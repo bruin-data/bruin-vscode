@@ -6,7 +6,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 This is the first release of Bruin's VS Code extension, therefore it currently only support syntax highlighting for Bruin's syntax. We will be adding more features in the future.
 
-![Syntax Highlighting for Bruin assets](asset.png)
+![Syntax Highlighting for Bruin assets](img/asset.png)
 
 
 ## Release Notes

@@ -9,13 +9,14 @@
   "categories": [
     "Data Science", "Formatters" 
   ],
+  "icon": "images/bruin-logo-sm128.png",
   "activationEvents": [],
   "main": "./extension.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/bruin-data/bruin-vscode"
   },
-  "publisher": "karakanb",
+  "publisher": "bruin",
   "contributes": {
     "grammars": [
       {
