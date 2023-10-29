@@ -15,6 +15,7 @@
     "type": "git",
     "url": "https://github.com/bruin-data/bruin-vscode"
   },
+  "publisher": "karakanb",
   "contributes": {
     "grammars": [
       {
