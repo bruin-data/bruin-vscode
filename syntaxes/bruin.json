@@ -14,13 +14,10 @@
                     "include": "source.yaml"
                 }
             ],
-            "begin": "(\\/\\*{1,})\\s*(@bruin)\\s*$",
+            "begin": "(\\/\\*\\s*@bruin)\\s*$",
             "end": "(@bruin\\s*\\*\/)$",
             "beginCaptures": {
                 "1": {
-                    "name": "comment"
-                },
-                "2": {
                     "name": "comment"
                 }
             },
