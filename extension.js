@@ -11,15 +11,10 @@ const vscode = require('vscode');
  */
 function activate(context) {
 	//
-	let bruinHelpDisposable = vscode.commands.registerCommand("bruin.help", () => {
-		exec("bruin --help", (error, stdout, stderr) => {
-			if (error) {
-				console.error(`exec error ${error}`);
-				return;
-			}
-			vscode.window.showInformationMessage(stdout);
-			vscode.window.showInformationMessage(stderr)
-		})
+	let bruinHelpDisposable = vscode.commands.registerCommand("bruin.help", async () => {
+		const outputCommand = await commandExcution("bruin --help");
+		vscode.window.showInformationMessage(outputCommand.stdout);
+		vscode.window.showErrorMessage(outputCommand.stderr)
 	})
 	context.subscriptions.push(bruinHelpDisposable);
 }
@@ -27,7 +22,20 @@ function activate(context) {
 // This method is called when your extension is deactivated
 function deactivate() { }
 
+
+function commandExcution(cliCommand) {
+	return new Promise((resolve) => {
+		exec(cliCommand, (error, stdout) => {
+			if (error) {
+				return resolve({ stderr: error.message });
+			}
+			return resolve({ stdout });
+		});
+	})
+}
+
 module.exports = {
 	activate,
-	deactivate
+	deactivate,
+	commandExcution
 }
