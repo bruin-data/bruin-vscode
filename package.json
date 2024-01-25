@@ -29,10 +29,16 @@
       }
     ],
     "menus": {
-      "editor/title/run": [
+      "editor/title": [
         {
           "command": "bruin.help",
-          "when": "resourceExtname == .sql"
+          "when": "resourceExtname == .sql",
+          "group": "navigation"
+        },
+        {
+          "command": "bruin.renderSql",
+          "when": "resourceExtname == .sql",
+          "group": "navigation"
         }
       ]
     },
@@ -42,6 +48,13 @@
         "title": "Help",
         "category": "Bruin",
         "icon":"$(lightbulb)"
+      },
+      {
+        "command": "bruin.renderSql",
+        "title": "Render single SQL asset",
+        "shortTitle": "Render SQL",
+        "category": "Bruin",
+        "icon":"$(rocket)"
       }
     ]
   },
