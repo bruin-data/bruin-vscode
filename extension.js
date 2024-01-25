@@ -36,8 +36,8 @@ function activate(context) {
 
 	let bruinRenderDisposable = vscode.commands.registerCommand(BRUIN_RENDER_COMMAND_ID, async () => {
 		const columnToShowIn = vscode.window.activeTextEditor
-        ? vscode.ViewColumn.Beside
-        : undefined;
+			? vscode.ViewColumn.Beside
+			: undefined;
 
 		if (isEditorActive() && isFileExtensionSQL()) {
 			const sqlAssetPath = vscode.window.activeTextEditor.document.fileName;
@@ -53,7 +53,7 @@ function activate(context) {
 					columnToShowIn || vscode.window.activeTextEditor.viewColumn, // Editor column to show the new webview panel in.
 					{} // Webview options. More on these later.
 				);
-				
+
 				panel.onDidDispose(
 					() => {
 						panel = undefined;
@@ -76,7 +76,7 @@ function activate(context) {
 }
 
 // This method is called when your extension is deactivated
-function deactivate() { 
+function deactivate() {
 	// Left empty intentionally
 }
 
@@ -129,7 +129,7 @@ function getWebviewContent(renderedSql, filePath) {
 
 /**
  * Checks if the Bruin executable is available.
- * @returns {Promise<boolean>}
+ * @returns {Boolean}
  */
 function checkBruinBinary() {
 	try {
@@ -139,14 +139,16 @@ function checkBruinBinary() {
 		}
 	} catch (error) {
 		console.error(error);
-		return;
+		return true;
 	}
+	return false;
 }
 
 module.exports = {
 	activate,
 	deactivate,
 	commandExcution,
-	checkBruinBinary
+	checkBruinBinary,
+	getWebviewContent
 }
 
