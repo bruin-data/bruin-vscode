@@ -4,14 +4,14 @@
   "description": "Manage your Bruin data assets from within VS Code.",
   "version": "0.0.1",
   "engines": {
-    "vscode": "^1.83.0"
+    "vscode": "^1.87.0"
   },
   "categories": [
     "Data Science", "Formatters" 
   ],
-  "icon": "images/bruin-logo-sm128.png",
+  "icon": "img/bruin-logo-sm128.png",
   "activationEvents": [],
-  "main": "./extension.js",
+  "main": "./out/extension.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/bruin-data/bruin-vscode"
@@ -20,27 +20,38 @@
   "contributes": {
     "grammars": [
       {
-        "path": "./syntaxes/bruin.json",
+        "path": "./syntaxes/bruin-sql-injection.json",
         "scopeName": "sql.comment.block",
         "injectTo": [
           "source.sql"
+        ]
+      },
+      {
+        "path":"./syntaxes/bruin-python-injection.json",
+        "scopeName":"python.docstring.block",
+        "injectTo": [
+          "source.python"
         ]
       }
     ]
   },
   "scripts": {
-    "lint": "eslint .",
-    "pretest": "npm run lint",
-    "test": "node ./test/runTest.js"
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "vscode-test"
   },
   "devDependencies": {
-    "@types/vscode": "^1.83.0",
-    "@types/mocha": "^10.0.2",
+    "@types/vscode": "^1.87.0",
+    "@types/mocha": "^10.0.6",
     "@types/node": "18.x",
-    "eslint": "^8.50.0",
-    "glob": "^10.3.3",
-    "mocha": "^10.2.0",
-    "typescript": "^5.2.2",
-    "@vscode/test-electron": "^2.3.4"
+    "@typescript-eslint/eslint-plugin": "^7.0.2",
+    "@typescript-eslint/parser": "^7.0.2",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3",
+    "@vscode/test-cli": "^0.0.6",
+    "@vscode/test-electron": "^2.3.9"
   }
 }
