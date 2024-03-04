@@ -20,10 +20,17 @@
   "contributes": {
     "grammars": [
       {
-        "path": "./syntaxes/bruin.json",
+        "path": "./syntaxes/bruin-sql-injection.json",
         "scopeName": "sql.comment.block",
         "injectTo": [
           "source.sql"
+        ]
+      },
+      {
+        "path":"./syntaxes/bruin-python-injection.json",
+        "scopeName":"python.docstring.block",
+        "injectTo": [
+          "source.python"
         ]
       }
     ]

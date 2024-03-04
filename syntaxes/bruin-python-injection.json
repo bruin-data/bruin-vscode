@@ -1,0 +1,32 @@
+{
+    "scopeName": "python.docstring.block",
+    "injectionSelector":"L:source.python",
+    "patterns":[
+        {
+        "include":"#bruin-docstring"
+        }
+    ],
+    "repository":{
+        "bruin-docstring": {
+            "name": "bruin-docstring",
+            "patterns": [
+                {
+                    "include": "source.yaml"
+                }
+            ],
+            "begin": "(\"\"\"\\s*@bruin)\\s*$",
+            "end": "(^\\s*@bruin\\s*\"\"\")",
+            "beginCaptures": {
+                "1": {
+                    "name": "comment.block.documentation.python"
+                }
+            },
+            "endCaptures": {
+                "1": {
+                    "name": "comment.block.documentation.python"
+                }
+            }
+        }
+    }
+
+}
