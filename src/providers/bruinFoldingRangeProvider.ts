@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { getLangageDelimiters } from '../utils/delimiters';
 
 
-export const bruinFoldingRangeProvider = (
+export const bruinFoldingRangeProvider  = (
     document: vscode.TextDocument
 ) => {
 
