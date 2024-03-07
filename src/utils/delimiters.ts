@@ -1,16 +1,5 @@
-type BruinDelimiters = {
-    pyStartDelimiter: RegExp;
-    pyEndDelimiter: RegExp;
-    sqlStartDelimiter: RegExp;
-    sqlEndDelimiter: RegExp;
-};
+import { bruinDelimiterRegex } from "../constants";
 
-const bruinDelimiterRegex : BruinDelimiters = {
-    pyStartDelimiter : new RegExp('(\"\"\"\\s*@bruin)\\s*$'),
-    pyEndDelimiter : new RegExp('(^\\s*@bruin\\s*\"\"\")'),
-    sqlStartDelimiter : new RegExp('(\\/\\*\\s*@bruin)\\s*$'),
-    sqlEndDelimiter : new RegExp('(@bruin\\s*\\*\/)$')
-};
 
 export const getLangageDelimiters = (languageId: string)  => {
     let startFoldingRegionDelimiter : RegExp = /$^/;

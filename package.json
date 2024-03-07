@@ -36,6 +36,24 @@
           "source.python"
         ]
       }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "bruin.renderSQL",
+          "when": "resourceLangId == sql",
+          "group": "navigation"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "bruin.renderSQL",
+        "title": "Render SQL",
+        "category": "Bruin",
+        "icon": "$(notebook-execute)",
+        "description": "Render SQL to a Bruin data asset."
+      }
     ]
   },
   "scripts": {
