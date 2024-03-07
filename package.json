@@ -10,7 +10,10 @@
     "Data Science", "Formatters" 
   ],
   "icon": "img/bruin-logo-sm128.png",
-  "activationEvents": [],
+  "activationEvents": [
+    "onLanguage:python",
+    "onLanguage:sql"
+  ],
   "main": "./out/extension.js",
   "repository": {
     "type": "git",
