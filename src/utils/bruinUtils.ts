@@ -1,6 +1,8 @@
 import { BRUIN_WHICH_COMMAND } from "../constants";
 import * as vscode from 'vscode';
 const { execSync } = require('child_process');
+// eslint-disable-next-line @typescript-eslint/naming-convention
+import * as child_process from 'child_process';
 
 const isBruinBinaryAvailable = () : boolean =>{
     // check if bruin is installed
@@ -37,4 +39,16 @@ const isFileExtensionSQL = (fileName: string) : boolean => {
 };
 
 
-export { isBruinBinaryAvailable, isEditorActive, isFileExtensionSQL };
+const commandExecution = (cliCommand: string): Promise<{ stderr?: string; stdout?: string }> => {
+    return new Promise((resolve) => {
+        child_process.exec(cliCommand, (error: child_process.ExecException | null, stdout: string) => {
+            if (error) {
+                return resolve({ stderr: error.message });
+            }
+            return resolve({ stdout });
+        });
+    });
+};
+
+
+export { isBruinBinaryAvailable, isEditorActive, isFileExtensionSQL, commandExecution };

@@ -2,7 +2,8 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import { bruinFoldingRangeProvider } from './providers/bruinFoldingRangeProvider';
-import { isBruinBinaryAvailable, isFileExtensionSQL } from './utils/bruinUtils';
+import { commandExecution, isBruinBinaryAvailable, isFileExtensionSQL } from './utils/bruinUtils';
+import { BRUIN_RENDER_SQL_ID, BRUIN_RENDER_SQL_COMMAND } from './constants';
 
 
 // This method is called when your extension is activated
@@ -27,24 +28,41 @@ export function activate(context: vscode.ExtensionContext) {
 
 	
 	// register the command to render SQL
-	const renderDisposable = vscode.commands.registerCommand('bruin.renderSQL', () => {
+	const renderDisposable = vscode.commands.registerCommand(BRUIN_RENDER_SQL_ID, async () => {
 		// check if the active file is a SQL file
-		if(isFileExtensionSQL(fileName)){
-			panel = vscode.window.createWebviewPanel(
-				'bruinSQL',
-				'Render single SQL asset',
-				vscode.ViewColumn.Beside,
-				{
-					enableScripts: true
-				}
-			);
+
+		if(vscode.window.activeTextEditor && isFileExtensionSQL(fileName)){
+			const columnToShowIn = vscode.window.activeTextEditor ? vscode.ViewColumn.Beside : undefined;
+			const sqlAssetPath = vscode.window.activeTextEditor.document.fileName;
+			const outputCommand = await commandExecution(`${BRUIN_RENDER_SQL_COMMAND} ${sqlAssetPath}`);
+
+			if(panel) {
+				panel.reveal(columnToShowIn);
+			} else {
+				panel = vscode.window.createWebviewPanel(
+					'bruinSQL',
+					'Render single SQL asset', // Title of the panel 
+					columnToShowIn || vscode.ViewColumn.Beside,
+					{ // Webview options
+						enableScripts: true
+					}
+				);
+				panel.onDidDispose(
+					() => {
+					// When the panel is closed, cancel any future updates to the webview content
+					panel = undefined;
+					},
+					null,
+					context.subscriptions
+				);
+			}
 			panel.webview.html = "<h1>SQL</h1>";
+	}  else {
+		vscode.window.showErrorMessage('Please trigger Bruin for SQL files');
 	}
-		vscode.window.showInformationMessage('Render SQL');
 	});
 
-	context.subscriptions.push(foldingDisposable);
-	context.subscriptions.push(renderDisposable);
+	context.subscriptions.push(foldingDisposable, renderDisposable);
 }
 
 // This method is called when your extension is deactivated
