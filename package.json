@@ -52,7 +52,7 @@
         "command": "bruin.renderSQL",
         "title": "Render SQL",
         "category": "Bruin",
-        "icon": "$(notebook-execute)",
+        "icon": "$(rocket)",
         "description": "Render SQL to a Bruin data asset."
       }
     ]
