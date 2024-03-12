@@ -7,7 +7,8 @@
     "vscode": "^1.87.0"
   },
   "categories": [
-    "Data Science", "Formatters" 
+    "Data Science",
+    "Formatters"
   ],
   "icon": "img/bruin-logo-sm128.png",
   "activationEvents": [
@@ -30,11 +31,29 @@
         ]
       },
       {
-        "path":"./syntaxes/bruin-python-injection.json",
-        "scopeName":"python.docstring.block",
+        "path": "./syntaxes/bruin-python-injection.json",
+        "scopeName": "python.docstring.block",
         "injectTo": [
           "source.python"
         ]
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "bruin.renderSQL",
+          "when": "resourceLangId == sql",
+          "group": "navigation"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "bruin.renderSQL",
+        "title": "Render SQL",
+        "category": "Bruin",
+        "icon": "$(rocket)",
+        "description": "Render SQL to a Bruin data asset."
       }
     ]
   },
@@ -47,14 +66,17 @@
     "test": "vscode-test"
   },
   "devDependencies": {
-    "@types/vscode": "^1.87.0",
     "@types/mocha": "^10.0.6",
-    "@types/node": "18.x",
+    "@types/node": "^18.19.22",
+    "@types/vscode": "^1.87.0",
     "@typescript-eslint/eslint-plugin": "^7.0.2",
     "@typescript-eslint/parser": "^7.0.2",
-    "eslint": "^8.56.0",
-    "typescript": "^5.3.3",
     "@vscode/test-cli": "^0.0.6",
-    "@vscode/test-electron": "^2.3.9"
+    "@vscode/test-electron": "^2.3.9",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "@vscode/webview-ui-toolkit": "^1.4.0"
   }
 }
