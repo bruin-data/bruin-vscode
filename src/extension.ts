@@ -4,6 +4,7 @@ import * as vscode from "vscode";
 import { bruinFoldingRangeProvider } from "./providers/bruinFoldingRangeProvider";
 import {
   commandExecution,
+  encodeHTML,
   isBruinBinaryAvailable,
   isFileExtensionSQL,
 } from "./utils/bruinUtils";
@@ -156,7 +157,7 @@ const getWebviewContent = (renderedSql: string, filePath: string) => {
 		</style>
 	</head>
 	<body>
-		<pre><code class="sql">${renderedSql}</code></pre>
+		<pre><code class="sql">${encodeHTML(renderedSql)}</code></pre>
 			<div id="copyIcon" onclick="copyToClipboard()" style="cursor: pointer;">
 				<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
 					<path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11v14z"/>
@@ -165,7 +166,7 @@ const getWebviewContent = (renderedSql: string, filePath: string) => {
 			<div id="copyFeedback">Copied!</div>
 		<script>
 			function copyToClipboard() {
-				navigator.clipboard.writeText(\`${renderedSql}\`).then(function() {
+				navigator.clipboard.writeText(\`${encodeHTML(renderedSql)}\`).then(function() {
 					document.getElementById('copyIcon').style.display = 'none';
 					const copyFeedback = document.getElementById('copyFeedback');
 					copyFeedback.style.display = 'block';
