@@ -50,5 +50,13 @@ const commandExecution = (cliCommand: string): Promise<{ stderr?: string; stdout
     });
 };
 
+const encodeHTML = (str: string) => {
+    return str.replace(/&/g, '&amp;')
+              .replace(/</g, '&lt;')
+              .replace(/>/g, '&gt;')
+              .replace(/"/g, '&quot;')
+              .replace(/'/g, '&#039;');
+  }
+  
 
-export { isBruinBinaryAvailable, isEditorActive, isFileExtensionSQL, commandExecution };
+export { isBruinBinaryAvailable, isEditorActive, isFileExtensionSQL, commandExecution, encodeHTML };
