@@ -82,15 +82,27 @@ export function activate(context: vscode.ExtensionContext) {
           }
           panel.webview.html = getWebviewContent(outputCommand.stdout || "Something wrong", sqlAssetPath);
 		   // Listen for changes to the active editor's document
-		   const changeDocumentDisposable = vscode.workspace.onDidChangeTextDocument(async event => {
-			if (event.document.uri.toString() === activeEditor.document.uri.toString()) {
-				// Reload the webview content when the SQL document is modified
-				const modifiedOutputCommand =  await commandExecution(`${BRUIN_RENDER_SQL_COMMAND} ${sqlAssetPath}`);
-				panel && (panel.webview.html = getWebviewContent( modifiedOutputCommand.stdout || "Something wrong", sqlAssetPath));
-				vscode.window.showInformationMessage("SQL content has been modified");
-			}
-		});
-		context.subscriptions.push(changeDocumentDisposable);
+       const showWebviewContent = async () => {
+        if (!panel) {return;}
+        const outputCommand = await commandExecution(`${BRUIN_RENDER_SQL_COMMAND} ${sqlAssetPath}`);
+        panel.webview.html = getWebviewContent(outputCommand.stdout || "Something wrong", sqlAssetPath);
+      };
+    
+      // Listen for changes to the active editor's document
+      const changeDocumentDisposable = vscode.workspace.onDidChangeTextDocument(async event => {
+        if (panel && event.document.uri.fsPath === sqlAssetPath) {
+          await showWebviewContent();
+        }
+      });
+    
+      // Listen for theme changes
+      const changeThemeDisposable = vscode.window.onDidChangeActiveColorTheme(async () => {
+        if (panel) {
+          await showWebviewContent();
+        }
+      });
+
+		context.subscriptions.push(changeDocumentDisposable, changeThemeDisposable);
         }
       } else {
         vscode.window.showErrorMessage("Please trigger Bruin for SQL files");
@@ -144,7 +156,7 @@ const getWebviewContent = (renderedSql: string, filePath: string) => {
 		</style>
 	</head>
 	<body>
-		<pre><code class="sql">${renderedSql /* Make sure this is safely encoded to prevent XSS */}</code></pre>
+		<pre><code class="sql">${renderedSql}</code></pre>
 			<div id="copyIcon" onclick="copyToClipboard()" style="cursor: pointer;">
 				<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
 					<path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11v14z"/>
@@ -153,7 +165,7 @@ const getWebviewContent = (renderedSql: string, filePath: string) => {
 			<div id="copyFeedback">Copied!</div>
 		<script>
 			function copyToClipboard() {
-				navigator.clipboard.writeText(\`${renderedSql /* Make sure this is safely encoded to prevent XSS */}\`).then(function() {
+				navigator.clipboard.writeText(\`${renderedSql}\`).then(function() {
 					document.getElementById('copyIcon').style.display = 'none';
 					const copyFeedback = document.getElementById('copyFeedback');
 					copyFeedback.style.display = 'block';
