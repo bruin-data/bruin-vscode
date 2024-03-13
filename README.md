@@ -5,13 +5,17 @@ Bruin is a unified analytics platform that enables data professionals to work en
 ## Features
 
 - **Syntax Coloring**: Applies YAML syntax coloring to Bruin code in SQL files (enclosed between `/* @bruin ... @bruin */`) and Python files (enclosed between `""" @bruin ... @bruin """`).
-![Screenshot of Syntaxe Coloring](./screenshots/syntaxe-coloring.png)
+
+    ![Screenshot of Syntaxe Coloring](./screenshots/syntaxe-coloring.png)
 
 - **Folding Range Provider**: Allows folding and unfolding Bruin code regions in SQL and Python files for a cleaner workspace.
 - **Dynamic SQL Content Viewer**: Renders SQL content within a VS Code Webview, enabling content copying, and automatically refreshing on file updates.
-![Screenshot of Bruin Extension Features](./screenshots/bruin_extension_features.gif)
+
+    ![Screenshot of Bruin Extension Features](./screenshots/bruin_extension_features.gif)
+
 - **Adapting to theme changes**: the SQL Content Viewer matches the vscode current theme (dark/light/Dark high contrast)
-![Screenshot of SQL viewer Theme Updates](./screenshots/theme-updates.gif)
+
+    ![Screenshot of SQL viewer Theme Updates](./screenshots/theme-updates.gif)
 
 ## Installation
 

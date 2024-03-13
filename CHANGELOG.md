@@ -1,4 +1,4 @@
-# Change Log
+# Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
 
