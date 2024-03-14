@@ -22,6 +22,16 @@
   },
   "publisher": "bruin",
   "contributes": {
+    "configuration": {
+      "properties": {
+      "bruin.defaultFoldingState": {
+      "type": "string",
+      "enum": ["folded", "expanded"],
+      "default": "folded",
+      "description": "Sets the default folding state for custom Bruin foldable regions in Python and SQL files."
+      }
+      }
+      },
     "grammars": [
       {
         "path": "./syntaxes/bruin-sql-injection.json",
