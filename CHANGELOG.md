@@ -2,6 +2,10 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.1.1] - [2024-03-13]
+
+## Fixed
+- Fixed the screenshots on the readme 
 
 ## [0.1.0] - [2024-03-13]
 
