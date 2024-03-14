@@ -81,33 +81,40 @@ export function activate(context: vscode.ExtensionContext) {
               context.subscriptions
             );
           }
-          panel.webview.html = getWebviewContent(outputCommand.stdout || "Something wrong", sqlAssetPath);
-		   // Listen for changes to the active editor's document
-       const showWebviewContent = async (currentSqlAssetPath: string | undefined) => {
-        if (!panel) {return;}
-        const outputCommand = await commandExecution(`${BRUIN_RENDER_SQL_COMMAND} ${currentSqlAssetPath}`);
-        panel.webview.html = getWebviewContent(outputCommand.stdout || "Something wrong", currentSqlAssetPath!);
-      };
+          panel.webview.html = getWebviewContent(outputCommand.stdout || "Something wrong first", sqlAssetPath);
+
+          async function showWebviewContent(currentSqlAssetPath: string) {
+            if (!panel) {return;}
+          
+            const { stdout, stderr } = await commandExecution(`${BRUIN_RENDER_SQL_COMMAND} ${currentSqlAssetPath}`);
+          
+            if (stderr) {
+              console.error('Error executing Bruin CLI:', stderr);
+              panel.webview.html = `<html><body><p>Error: ${encodeHTML(stderr)}</p></body></html>`;
+              return;
+            }
+          
+            panel.webview.html = getWebviewContent(stdout as string, currentSqlAssetPath);
+          }
     
       // Listen for changes to the active editor's document
       const changeDocumentDisposable = vscode.workspace.onDidChangeTextDocument(async event => {
         if (panel && event.document.uri.fsPath === sqlAssetPath) {
-          await showWebviewContent(sqlAssetPath);
+          await showWebviewContent(activeEditor.document.fileName);
         }
       });
        // Listen for changes to the active editor's document
        const changeFileDisposable = vscode.window.onDidChangeActiveTextEditor(async event => {
-        const currentSqlAssetPath = event?.document.fileName;
-        console.log(currentSqlAssetPath);
-        if (panel) {
-          await showWebviewContent(currentSqlAssetPath);
+        const activeEditor = vscode.window.activeTextEditor;
+        if (panel && activeEditor) {
+          await showWebviewContent(activeEditor.document.fileName);
         }
       });
     
       // Listen for theme changes
       const changeThemeDisposable = vscode.window.onDidChangeActiveColorTheme(async () => {
         if (panel) {
-          await showWebviewContent(sqlAssetPath);
+          await showWebviewContent(activeEditor.document.fileName);
         }
       });
 
