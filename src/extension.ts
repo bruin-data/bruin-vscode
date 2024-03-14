@@ -83,27 +83,35 @@ export function activate(context: vscode.ExtensionContext) {
           }
           panel.webview.html = getWebviewContent(outputCommand.stdout || "Something wrong", sqlAssetPath);
 		   // Listen for changes to the active editor's document
-       const showWebviewContent = async () => {
+       const showWebviewContent = async (currentSqlAssetPath: string | undefined) => {
         if (!panel) {return;}
-        const outputCommand = await commandExecution(`${BRUIN_RENDER_SQL_COMMAND} ${sqlAssetPath}`);
-        panel.webview.html = getWebviewContent(outputCommand.stdout || "Something wrong", sqlAssetPath);
+        const outputCommand = await commandExecution(`${BRUIN_RENDER_SQL_COMMAND} ${currentSqlAssetPath}`);
+        panel.webview.html = getWebviewContent(outputCommand.stdout || "Something wrong", currentSqlAssetPath!);
       };
     
       // Listen for changes to the active editor's document
       const changeDocumentDisposable = vscode.workspace.onDidChangeTextDocument(async event => {
         if (panel && event.document.uri.fsPath === sqlAssetPath) {
-          await showWebviewContent();
+          await showWebviewContent(sqlAssetPath);
+        }
+      });
+       // Listen for changes to the active editor's document
+       const changeFileDisposable = vscode.window.onDidChangeActiveTextEditor(async event => {
+        const currentSqlAssetPath = event?.document.fileName;
+        console.log(currentSqlAssetPath);
+        if (panel) {
+          await showWebviewContent(currentSqlAssetPath);
         }
       });
     
       // Listen for theme changes
       const changeThemeDisposable = vscode.window.onDidChangeActiveColorTheme(async () => {
         if (panel) {
-          await showWebviewContent();
+          await showWebviewContent(sqlAssetPath);
         }
       });
 
-		context.subscriptions.push(changeDocumentDisposable, changeThemeDisposable);
+		context.subscriptions.push(changeDocumentDisposable, changeThemeDisposable, changeFileDisposable);
         }
       } else {
         vscode.window.showErrorMessage("Please trigger Bruin for SQL files");
