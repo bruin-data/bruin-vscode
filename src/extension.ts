@@ -1,33 +1,32 @@
 import * as vscode from "vscode";
-
 import { bruinFoldingRangeProvider } from "./providers/bruinFoldingRangeProvider";
-
 import { isBruinBinaryAvailable } from "./utils/bruinUtils";
-
 import { BruinMainPanel } from "./panels/BruinMainPanel";
 
 export function activate(context: vscode.ExtensionContext) {
   if (!isBruinBinaryAvailable()) {
     vscode.window.showErrorMessage("Bruin is not installed");
-
     return;
   }
 
   const foldingDisposable = vscode.languages.registerFoldingRangeProvider(
-    ["python", "sql"],
-
-    {
-      provideFoldingRanges: bruinFoldingRangeProvider,
-    }
+    ["python", "sql"], { provideFoldingRanges: bruinFoldingRangeProvider }
   );
 
-  applyFoldingStateBasedOnConfiguration();
+  // Immediately try to apply the folding state to the current document
+  setTimeout(applyFoldingStateBasedOnConfiguration, 500);
 
-  // Listen for configuration changes to apply folding state
-
-  vscode.workspace.onDidChangeConfiguration((e) => {
+  vscode.workspace.onDidChangeConfiguration(e => {
     if (e.affectsConfiguration("bruin.defaultFoldingState")) {
       applyFoldingStateBasedOnConfiguration();
+    }
+  });
+  
+
+  vscode.window.onDidChangeActiveTextEditor((editor) => {
+    if (editor && ['python', 'sql'].includes(editor.document.languageId)) {
+      console.log("From onDidChangeActiveTextEditor", editor.document.languageId);
+      setTimeout(applyFoldingStateBasedOnConfiguration, 500);
     }
   });
 
@@ -35,25 +34,18 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("bruin.renderSQL", () => {
       BruinMainPanel.createOrShow(context.extensionUri, context);
     }),
-
-    foldingDisposable,
-
-    vscode.window.onDidChangeActiveTextEditor(() => {
-      applyFoldingStateBasedOnConfiguration();
-    })
+    foldingDisposable
   );
 }
-
-// This method is called when your extension is deactivated
 
 export function deactivate() {}
 
 function applyFoldingStateBasedOnConfiguration() {
-  const config = vscode.workspace.getConfiguration();
-
-  const defaultFoldingState = config.get("bruin.defaultFoldingState", "folded");
-
-  if (defaultFoldingState === "folded" && vscode.window.activeTextEditor) {
-    vscode.commands.executeCommand("editor.foldAllMarkerRegions");
-  }
+    const config = vscode.workspace.getConfiguration();
+    const defaultFoldingState = config.get("bruin.defaultFoldingState", "folded");
+    if (defaultFoldingState === "folded") {
+      vscode.commands.executeCommand("editor.foldAllMarkerRegions");
+    } else {
+      vscode.commands.executeCommand("editor.unfoldAll");
+    }
 }

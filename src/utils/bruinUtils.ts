@@ -43,7 +43,7 @@ const commandExecution = (cliCommand: string): Promise<{ stderr?: string; stdout
     return new Promise((resolve) => {
         child_process.exec(cliCommand, (error: child_process.ExecException | null, stdout: string) => {
             if (error) {
-                return resolve({ stderr: error.message });
+                return resolve({ stderr: stdout });
             }
             return resolve({ stdout });
         });
@@ -56,7 +56,7 @@ const encodeHTML = (str: string) => {
               .replace(/>/g, '&gt;')
               .replace(/"/g, '&quot;')
               .replace(/'/g, '&#039;');
-  }
+  };
   
 
 export { isBruinBinaryAvailable, isEditorActive, isFileExtensionSQL, commandExecution, encodeHTML };

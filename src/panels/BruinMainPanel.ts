@@ -94,7 +94,7 @@ export class BruinMainPanel {
       }
     );
 
-    this.disposables.push(changeDocumentDisposable, changeThemeDisposable);
+    this.disposables.push(changeDocumentDisposable, changeThemeDisposable, changeFileDisposable);
   }
 
   private update() {
