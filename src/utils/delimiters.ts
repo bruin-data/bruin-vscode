@@ -1,7 +1,7 @@
 import { bruinDelimiterRegex } from "../constants";
 
 
-export const getLangageDelimiters = (languageId: string)  => {
+export const getLanguageDelimiters = (languageId: string)  => {
     let startFoldingRegionDelimiter : RegExp = /$^/;
     let endFoldingRegionDelimiter : RegExp = /$^/;
 

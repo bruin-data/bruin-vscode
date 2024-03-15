@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { getLangageDelimiters } from '../utils/delimiters';
+import { getLanguageDelimiters } from '../utils/delimiters';
 
 
 export const bruinFoldingRangeProvider  = (
@@ -9,7 +9,7 @@ export const bruinFoldingRangeProvider  = (
     let ranges : vscode.FoldingRange[] = [];
     
     
-    let {startFoldingRegionDelimiter, endFoldingRegionDelimiter} = getLangageDelimiters(document.languageId);
+    let {startFoldingRegionDelimiter, endFoldingRegionDelimiter} = getLanguageDelimiters(document.languageId);
 
     let foldingRegionStart = -1;
     for(let i=0; i< document.lineCount; i++){
