@@ -2,7 +2,7 @@
   "name": "bruin",
   "displayName": "Bruin",
   "description": "Manage your Bruin data assets from within VS Code.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "engines": {
     "vscode": "^1.87.0"
   },
@@ -24,14 +24,17 @@
   "contributes": {
     "configuration": {
       "properties": {
-      "bruin.defaultFoldingState": {
-      "type": "string",
-      "enum": ["folded", "expanded"],
-      "default": "folded",
-      "description": "Sets the default folding state for custom Bruin foldable regions in Python and SQL files."
+        "bruin.defaultFoldingState": {
+          "type": "string",
+          "enum": [
+            "folded",
+            "expanded"
+          ],
+          "default": "folded",
+          "description": "Sets the default folding state for custom Bruin foldable regions in Python and SQL files."
+        }
       }
-      }
-      },
+    },
     "grammars": [
       {
         "path": "./syntaxes/bruin-sql-injection.json",
