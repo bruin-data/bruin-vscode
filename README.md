@@ -8,7 +8,17 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
     ![Screenshot of Syntaxe Coloring](https://github.com/bruin-data/bruin-vscode/blob/main/screenshots/syntaxe-coloring.png?raw=true)
 
-- **Folding Range Provider**: Allows folding and unfolding Bruin code regions in SQL and Python files for a cleaner workspace.
+- **Folding Range Provider**: Allows folding and unfolding Bruin code regions in SQL and Python files for a cleaner workspace. 
+
+- **Auto Folding**: You can configure this setting by editing your through the Settings UI under Extensions > Bruin.
+
+    ![Screenshot of Bruin Extension Settings](https://github.com/bruin-data/bruin-vscode/blob/main/screenshots/bruin_extension_settings.png?raw=true)
+
+
+*Important Note*
+	The Pylance extension, which provides advanced language support for Python, may affect the expected behavior of the auto-folding feature. If you encounter inconsistencies with code regions not folding as expected in python files, please review your Pylance settings. Adjusting these settings or temporarily disabling Pylance may help to resolve these issues. 
+
+
 - **Dynamic SQL Content Viewer**: Renders SQL content within a VS Code Webview, enabling content copying, and automatically refreshing on file updates.
 
     ![Screenshot of Bruin Extension Features](https://github.com/bruin-data/bruin-vscode/blob/main/screenshots/bruin_extension_features.gif?raw=true)
@@ -42,11 +52,16 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### 0.1.0
-We're excited to announce the latest update to the Bruin extension! This version brings new features for an even better coding experience.
+### Latest Release: 0.1.2
+- **New**: Settings for auto-folding! Users can now specify their preferred default folding state for Bruin regions.
+- **Fix**: Addressed compatibility issues with the Pylance extension affecting auto-folding behavior.
 
-### What's New
+### Previous Highlights
 
+#### 0.1.1
+- Minor bug fixes.
+
+#### 0.1.0
 - Introduced Python syntax coloring for Bruin code blocks.
 - Added code folding support for Bruin code regions in SQL and Python files.
 - Implemented the Dynamic SQL Content Viewer for previewing and copying SQL content.

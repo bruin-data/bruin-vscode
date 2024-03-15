@@ -2,6 +2,14 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.1.2] - [2024-03-13]
+
+## Fixed
+- Addressed compatibility issues with the Pylance extension affecting auto-folding behavior.
+
+## Added 
+- Settings for auto-folding! Users can now specify their preferred default folding state for Bruin regions.
+
 ## [0.1.1] - [2024-03-13]
 
 ## Fixed
