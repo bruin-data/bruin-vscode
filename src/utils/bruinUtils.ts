@@ -39,7 +39,7 @@ const isFileExtensionSQL = (fileName: string) : boolean => {
 };
 
 
-const commandExecution = (cliCommand: string): Promise<{ stderr?: string; stdout?: string }> => {
+const commandExecution = (cliCommand: string): Promise<{ stderr?: string; stdout?: any }> => {
     return new Promise((resolve) => {
         child_process.exec(cliCommand, (error: child_process.ExecException | null, stdout: string) => {
             if (error) {

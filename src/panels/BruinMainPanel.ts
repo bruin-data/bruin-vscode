@@ -23,7 +23,7 @@ export class BruinMainPanel {
       ? vscode.ViewColumn.Beside
       : undefined;
 
-    if (BruinMainPanel.currentPanel) {
+      if (BruinMainPanel.currentPanel) {
       BruinMainPanel.currentPanel.panel.reveal(columnToShowIn);
       return;
     }
@@ -100,22 +100,24 @@ export class BruinMainPanel {
       (message) => {
         switch (message.command) {
           case "bruin.validate":
-              const fileName = vscode.window.visibleTextEditors[0].document.fileName;
-              vscode.window.showInformationMessage(vscode.window.visibleTextEditors[0].document.fileName);
-              commandExecution(
-                `${BRUIN_VALIDATE_SQL_COMMAND} ${fileName}`
-              )
-                .then(({ stdout, stderr }) => {
-                  this.panel.webview.html = stderr
-                    ? this.getErrorContent(stderr)
-                    : this.getWebviewContent(stdout as string);
-                })
-                .catch((err) => {
-                  console.error(err);
-                  this.panel.webview.html = this.getErrorContent(
-                    "Failed to execute Bruin CLI command."
-                  );
-                });
+            const fileName =
+              vscode.window.visibleTextEditors[0].document.fileName;
+            commandExecution(
+              `${BRUIN_VALIDATE_SQL_COMMAND} -o json ${fileName}`
+            )
+              .then(({ stdout, stderr }) => {
+                stderr
+                  ? vscode.window.showErrorMessage(this.getErrorContent(stderr))
+                  : vscode.window.showInformationMessage(
+                      "Congrats! the SQL is valid.",
+                      "Close"
+                    );
+              })
+              .catch((err) => {
+                vscode.window.showErrorMessage(
+                  this.getErrorContent("Failed to execute Bruin CLI command.")
+                );
+              });
             this.update();
             return;
         }
