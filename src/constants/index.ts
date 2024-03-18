@@ -12,6 +12,8 @@ const BRUIN_RENDER_SQL_ID = 'bruin.renderSQL';
 const BRUIN_RENDER_SQL_COMMAND = 'bruin render';
 const BRUIN_HELP_COMMAND = 'bruin --help';
 const BRUIN_HELP_ID = 'bruin.help';
+const BRUIN_VALIDATE_SQL_COMMAND = 'bruin validate';
+const BRUIN_VALIDATE_SQL_ID = 'bruin.validate';
 
 
 export { 
@@ -20,5 +22,7 @@ export {
     BRUIN_RENDER_SQL_ID, 
     BRUIN_RENDER_SQL_COMMAND, 
     BRUIN_HELP_COMMAND, 
-    BRUIN_HELP_ID 
+    BRUIN_HELP_ID ,
+    BRUIN_VALIDATE_SQL_COMMAND,
+    BRUIN_VALIDATE_SQL_ID
 };

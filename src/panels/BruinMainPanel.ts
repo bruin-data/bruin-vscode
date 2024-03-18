@@ -4,14 +4,14 @@ import {
   encodeHTML,
   isFileExtensionSQL,
 } from "../utils/bruinUtils";
-import { BRUIN_RENDER_SQL_COMMAND } from "../constants";
+import { BRUIN_RENDER_SQL_COMMAND, BRUIN_VALIDATE_SQL_COMMAND } from "../constants";
 
 export class BruinMainPanel {
   private static currentPanel: BruinMainPanel | undefined;
   private readonly panel: vscode.WebviewPanel;
   private readonly extensionUri: vscode.Uri;
   private disposables: vscode.Disposable[] = [];
-
+  
   public static createOrShow(
     extensionUri: vscode.Uri,
     context: vscode.ExtensionContext
@@ -151,6 +151,19 @@ export class BruinMainPanel {
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.3.1/highlight.min.js"></script>
 		<script>hljs.highlightAll();</script>
 		<style>
+      #actionButtons {
+        display: flex;
+        align-items: center;
+        padding: 2px 10px;
+        justify-content: space-between;
+      }
+      #validateButton {
+        cursor: pointer;
+        padding: 5px;
+        border: 1px solid var(--vscode-editor-foreground);
+        color: var(--vscode-editor-foreground);
+        background-color: var(--vscode-editor-background);
+      }
 			.copy-button {
 				cursor: pointer;
 				padding: 5px;
@@ -165,13 +178,20 @@ export class BruinMainPanel {
 	</head>
 	<body>
 		<pre><code class="sql">${encodeHTML(renderedSql)}</code></pre>
-			<div id="copyIcon" onclick="copyToClipboard()" style="cursor: pointer;">
-				<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
-					<path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11v14z"/>
-				</svg>
-			</div>
-			<div id="copyFeedback">Copied!</div>
+			
+      <div id="actionButtons">
+                <div id="copyIcon" onclick="copyToClipboard()" style="cursor: pointer;">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                      <path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11v14z"/>
+                    </svg>
+                </div>
+                <div id="validateButton" onclick="validateSql()" style="cursor: pointer; margin-left: 10px;">
+                    Validate
+                </div>
+      </div>
+			  <div id="copyFeedback">Copied!</div>
 		<script>
+      const vscode = acquireVsCodeApi();
 			function copyToClipboard() {
 				navigator.clipboard.writeText(\`${encodeHTML(renderedSql)}\`).then(function() {
 					document.getElementById('copyIcon').style.display = 'none';
@@ -186,6 +206,13 @@ export class BruinMainPanel {
 				}, function(err) {
 					console.error('Could not copy text: ', err);
 				});
+
+        function validateSql() {
+          vscode.postMessage({
+              command: 'bruin.validate',
+              text: 'Validate SQL command executed.'
+          });
+        }
 			}
 		</script>
 	</body>
