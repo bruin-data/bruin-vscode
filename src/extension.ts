@@ -25,7 +25,6 @@ export function activate(context: vscode.ExtensionContext) {
 
   vscode.window.onDidChangeActiveTextEditor((editor) => {
     if (editor && ['python', 'sql'].includes(editor.document.languageId)) {
-      console.log("From onDidChangeActiveTextEditor", editor.document.languageId);
       setTimeout(applyFoldingStateBasedOnConfiguration, 500);
     }
   });
