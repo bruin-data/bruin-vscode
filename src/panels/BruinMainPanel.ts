@@ -14,6 +14,7 @@ export class BruinMainPanel {
   private readonly panel: vscode.WebviewPanel;
   private readonly extensionUri: vscode.Uri;
   private disposables: vscode.Disposable[] = [];
+  private lastRenderedDocumentUri: vscode.Uri | undefined;  
 
   public static createOrShow(
     extensionUri: vscode.Uri,
@@ -97,28 +98,21 @@ export class BruinMainPanel {
       }
     );
     this.panel.webview.onDidReceiveMessage(
-      (message) => {
+      async(message) => {
         switch (message.command) {
           case "bruin.validate":
-            const fileName =
-              vscode.window.visibleTextEditors[0].document.fileName;
-            commandExecution(
-              `${BRUIN_VALIDATE_SQL_COMMAND} -o json ${fileName}`
-            )
-              .then(({ stdout, stderr }) => {
-                stderr
-                  ? vscode.window.showErrorMessage(this.getErrorContent(stderr))
-                  : vscode.window.showInformationMessage(
-                      "Congrats! the SQL is valid.",
-                      "Close"
-                    );
-              })
-              .catch((err) => {
-                vscode.window.showErrorMessage(
-                  this.getErrorContent("Failed to execute Bruin CLI command.")
-                );
-              });
-            this.update();
+            if (!this.lastRenderedDocumentUri) {return;};
+            console.log(this.lastRenderedDocumentUri.fsPath);
+            const { stdout, stderr } = await commandExecution(
+              `${BRUIN_VALIDATE_SQL_COMMAND} -o json ${this.lastRenderedDocumentUri.fsPath}`,
+              vscode.workspace.workspaceFolders?.[0].uri.fsPath
+              );
+    
+            if (stderr) {
+                vscode.window.showErrorMessage(stderr);
+            } else {
+                vscode.window.showInformationMessage(stdout || 'Validation successful.');
+            }
             return;
         }
       },
@@ -135,6 +129,7 @@ export class BruinMainPanel {
 
   private update() {
     const activeEditor = vscode.window.activeTextEditor;
+    this.lastRenderedDocumentUri = activeEditor?.document.uri;
     if (activeEditor && isFileExtensionSQL(activeEditor.document.fileName)) {
       commandExecution(
         `${BRUIN_RENDER_SQL_COMMAND} ${activeEditor.document.fileName}`
