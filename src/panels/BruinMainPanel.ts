@@ -14,7 +14,7 @@ export class BruinMainPanel {
   private readonly panel: vscode.WebviewPanel;
   private readonly extensionUri: vscode.Uri;
   private disposables: vscode.Disposable[] = [];
-  private lastRenderedDocumentUri: vscode.Uri | undefined;  
+  private lastRenderedDocumentUri: vscode.Uri | undefined;
 
   public static createOrShow(
     extensionUri: vscode.Uri,
@@ -24,7 +24,7 @@ export class BruinMainPanel {
       ? vscode.ViewColumn.Beside
       : undefined;
 
-      if (BruinMainPanel.currentPanel) {
+    if (BruinMainPanel.currentPanel) {
       BruinMainPanel.currentPanel.panel.reveal(columnToShowIn);
       return;
     }
@@ -98,22 +98,26 @@ export class BruinMainPanel {
       }
     );
     this.panel.webview.onDidReceiveMessage(
-      async(message) => {
+      async (message) => {
         switch (message.command) {
           case "bruin.validate":
             if (!this.lastRenderedDocumentUri) {return;};
-            console.log(this.lastRenderedDocumentUri.fsPath);
-            const { stdout, stderr } = await commandExecution(
-              `${BRUIN_VALIDATE_SQL_COMMAND} -o json ${this.lastRenderedDocumentUri.fsPath}`,
+            const filePath = this.lastRenderedDocumentUri.fsPath;
+            commandExecution(
+              `${BRUIN_VALIDATE_SQL_COMMAND} -o json ${filePath}`,
               vscode.workspace.workspaceFolders?.[0].uri.fsPath
+            )
+              .then(({ stdout, stderr }) => {
+                const message = stderr
+                  ? `Validation failed: ${stderr}`
+                  : `Validation successful: ${stdout}`;
+                vscode.window.showInformationMessage(message);
+              })
+              .catch((err) =>
+                vscode.window.showErrorMessage(
+                  "Failed to execute Bruin CLI command: " + err
+                )
               );
-    
-            if (stderr) {
-                vscode.window.showErrorMessage(stderr);
-            } else {
-                vscode.window.showInformationMessage(stdout || 'Validation successful.');
-            }
-            return;
         }
       },
       undefined,
@@ -129,7 +133,9 @@ export class BruinMainPanel {
 
   private update() {
     const activeEditor = vscode.window.activeTextEditor;
+    const themeKind = vscode.window.activeColorTheme.kind;
     this.lastRenderedDocumentUri = activeEditor?.document.uri;
+    const themeCssUrl = this.getCurrentThemeCssUrl(themeKind);
     if (activeEditor && isFileExtensionSQL(activeEditor.document.fileName)) {
       commandExecution(
         `${BRUIN_RENDER_SQL_COMMAND} ${activeEditor.document.fileName}`
@@ -137,7 +143,7 @@ export class BruinMainPanel {
         .then(({ stdout, stderr }) => {
           this.panel.webview.html = stderr
             ? this.getErrorContent(stderr)
-            : this.getWebviewContent(stdout as string);
+            : this.getWebviewContent(stdout as string, themeCssUrl);
         })
         .catch((err) => {
           console.error(err);
@@ -148,8 +154,18 @@ export class BruinMainPanel {
     }
   }
 
-  private getWebviewContent = (renderedSql: string) => {
-    const themeKind = vscode.window.activeColorTheme.kind;
+  private dispose() {
+    BruinMainPanel.currentPanel = undefined;
+
+    // Dispose all disposables
+    while (this.disposables.length) {
+      const x = this.disposables.pop();
+      if (x) {
+        x.dispose();
+      }
+    }
+  }
+  private getCurrentThemeCssUrl = (themeKind: vscode.ColorThemeKind) => {
     let themeCssUrl;
 
     switch (themeKind) {
@@ -170,7 +186,10 @@ export class BruinMainPanel {
           "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.3.1/styles/default.min.css";
         break;
     }
+    return themeCssUrl;
+  };
 
+  private getWebviewContent = (renderedSql: string, themeCssUrl: string) => {
     return `
 	<!DOCTYPE html>
 	<html lang="en">
@@ -258,17 +277,5 @@ export class BruinMainPanel {
   private getErrorContent(errorMessage: string): string {
     // Use encodeHTML for safe rendering
     return `<!DOCTYPE html>...${encodeHTML(errorMessage)}`;
-  }
-
-  private dispose() {
-    BruinMainPanel.currentPanel = undefined;
-
-    // Dispose all disposables
-    while (this.disposables.length) {
-      const x = this.disposables.pop();
-      if (x) {
-        x.dispose();
-      }
-    }
   }
 }
