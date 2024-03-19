@@ -39,11 +39,15 @@ const isFileExtensionSQL = (fileName: string) : boolean => {
 };
 
 
-const commandExecution = (cliCommand: string): Promise<{ stderr?: string; stdout?: any }> => {
+const commandExecution = (cliCommand: string, workingDirectory?: string | undefined): Promise<{ stderr?: string; stdout?: string }> => {
+    const isWindows = process.platform === 'win32';
     return new Promise((resolve) => {
-        child_process.exec(cliCommand, (error: child_process.ExecException | null, stdout: string) => {
+        child_process.exec(cliCommand, {
+                cwd: workingDirectory,
+                timeout: 1000,
+            }, (error: child_process.ExecException | null, stdout: string) => {
             if (error) {
-                return resolve({ stderr: stdout });
+                return resolve({ stderr: error.message });
             }
             return resolve({ stdout });
         });
