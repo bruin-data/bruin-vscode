@@ -6,6 +6,7 @@ import {
 } from "../utils/bruinUtils";
 import {
   BRUIN_RENDER_SQL_COMMAND,
+  BRUIN_RUN_SQL_COMMAND,
   BRUIN_VALIDATE_SQL_COMMAND,
 } from "../constants";
 
@@ -100,6 +101,8 @@ export class BruinMainPanel {
       }
     );
 
+    
+
     this.panel.webview.onDidReceiveMessage(
       async (message) => {
         switch (message.command) {
@@ -134,6 +137,7 @@ export class BruinMainPanel {
               );
             break;
           case "bruin.run":
+            this.runInIntegratedTerminal(this.lastRenderedDocumentUri?.fsPath || "");
             vscode.window.showInformationMessage("Run SQL command executed.");
             break;
         }
@@ -150,6 +154,18 @@ export class BruinMainPanel {
 
     this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
   }
+
+  // Run the RUN SQL command in the integrated terminal
+  private runInIntegratedTerminal= (assetPath: string) =>{
+    const terminalName = "Bruin Terminal";
+    let terminal = vscode.window.terminals.find(t => t.name === terminalName);
+    if (!terminal) {
+        terminal = vscode.window.createTerminal(terminalName);
+    }
+    terminal.show(true); 
+    terminal.sendText(`${BRUIN_RUN_SQL_COMMAND} ${assetPath}`, true); 
+  };
+
 
   private update() {
     const activeEditor = vscode.window.activeTextEditor;
@@ -310,11 +326,15 @@ export class BruinMainPanel {
         });
       }
       function runSql() {
+        const runButton = document.getElementById('runButton');
+        //runButton.innerHTML = 'Running...';
         vscode.postMessage({
             command: 'bruin.run',
             text: 'RUN SQL command executed.'
         });
       }
+
+
       const validateButton = document.getElementById('validateButton');
       validateButton.addEventListener('click', validateSql);
 
