@@ -236,6 +236,7 @@ export class BruinMainPanel {
 			}
 
       function validateSql() {
+        document.getElementById('validateButton').innerHTML = 'Loading...';
         vscode.postMessage({
             command: 'bruin.validate',
             text: 'Validate SQL command executed.'
@@ -245,6 +246,7 @@ export class BruinMainPanel {
       validateButton.addEventListener('click', validateSql);
 
       function showToast(message) {
+        document.getElementById('validateButton').innerHTML = 'Validate';
         const prefix = "Validation successful:";
         let jsonContent = "";
         if (message.startsWith(prefix)) {
@@ -269,7 +271,7 @@ export class BruinMainPanel {
         }
 
         const toastElement = document.getElementById('toast');
-        toastElement.innerHTML = message; // Use innerHTML to set the formatted content
+        toastElement.innerHTML = message; 
         toastElement.classList.add('show');
         setTimeout(() => { toastElement.classList.remove('show'); }, 3000);
       }
