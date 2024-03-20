@@ -35,7 +35,7 @@ export class BruinMainPanel {
       columnToShowIn || vscode.ViewColumn.Beside,
       {
         enableScripts: true,
-        localResourceRoots: [vscode.Uri.joinPath(extensionUri, "img")],
+        localResourceRoots: [vscode.Uri.joinPath(extensionUri, "img"), vscode.Uri.joinPath(extensionUri, 'src', 'styles')],     
         retainContextWhenHidden: true,
       }
     );
@@ -111,7 +111,7 @@ export class BruinMainPanel {
                 const message = stderr
                   ? `Validation failed: ${stderr}`
                   : `Validation successful: ${stdout}`;
-                vscode.window.showInformationMessage(message);
+                this.panel.webview.postMessage({ command: 'showToast', message: message });
               })
               .catch((err) =>
                 vscode.window.showErrorMessage(
@@ -135,7 +135,6 @@ export class BruinMainPanel {
     const activeEditor = vscode.window.activeTextEditor;
     const themeKind = vscode.window.activeColorTheme.kind;
     this.lastRenderedDocumentUri = activeEditor?.document.uri;
-    const themeCssUrl = this.getCurrentThemeCssUrl(themeKind);
     if (activeEditor && isFileExtensionSQL(activeEditor.document.fileName)) {
       commandExecution(
         `${BRUIN_RENDER_SQL_COMMAND} ${activeEditor.document.fileName}`
@@ -143,7 +142,7 @@ export class BruinMainPanel {
         .then(({ stdout, stderr }) => {
           this.panel.webview.html = stderr
             ? this.getErrorContent(stderr)
-            : this.getWebviewContent(stdout as string, themeCssUrl);
+            : this.getWebviewContent(stdout as string, this.getCurrentThemeCssUrl(themeKind));
         })
         .catch((err) => {
           console.error(err);
@@ -190,6 +189,7 @@ export class BruinMainPanel {
   };
 
   private getWebviewContent = (renderedSql: string, themeCssUrl: string) => {
+    const cssUri = this.panel.webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, 'src', 'styles', 'style.css'));
     return `
 	<!DOCTYPE html>
 	<html lang="en">
@@ -197,38 +197,15 @@ export class BruinMainPanel {
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<title>SQL Content</title>
-		<link rel="stylesheet" href="${themeCssUrl}">
+    <link rel="stylesheet" href="${themeCssUrl}">
+    <link rel="stylesheet" type="text/css" href="${cssUri}">
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.3.1/highlight.min.js"></script>
 		<script>hljs.highlightAll();</script>
-		<style>
-      #actionButtons {
-        display: flex;
-        align-items: center;
-        padding: 2px 10px;
-        justify-content: space-between;
-      }
-      #validateButton {
-        cursor: pointer;
-        padding: 5px;
-        border: 1px solid var(--vscode-editor-foreground);
-        color: var(--vscode-editor-foreground);
-        background-color: var(--vscode-editor-background);
-      }
-			.copy-button {
-				cursor: pointer;
-				padding: 5px;
-				border: 1px solid #ccc;
-				background-color: #f9f9f9;
-			}
-			#copyFeedback {
-				display: none;
-				color: var(--vscode-editor-foreground);
-			}
-		</style>
+		
 	</head>
 	<body>
 		<pre><code class="sql">${encodeHTML(renderedSql)}</code></pre>
-			
+      <div id="toast" class="toast"></div>
       <div id="actionButtons">
                 <div id="copyFeedback">Copied!</div>
                 <div id="copyIcon" onclick="copyToClipboard()" style="cursor: pointer;">
@@ -267,6 +244,41 @@ export class BruinMainPanel {
       const validateButton = document.getElementById('validateButton');
       validateButton.addEventListener('click', validateSql);
 
+      function showToast(message) {
+        const prefix = "Validation successful:";
+        let jsonContent = "";
+        if (message.startsWith(prefix)) {
+            try {
+                jsonContent = message.substring(prefix.length).trim();
+                const parsed = JSON.parse(jsonContent);
+                const pipeline = parsed[0]?.pipeline || "N/A";
+                const issues = JSON.stringify(parsed[0]?.issues || {}, null, 2); // Beautify the JSON
+
+                // Generate formatted HTML content
+                // Generate formatted HTML content using string concatenation
+                const htmlContent = '<div class="toastContent">' +
+                                        '<div class="toastTitle">Validation Successful</div>' +
+                                        '<div>Pipeline: <span class="pipelineName">' + pipeline + '</span></div>' +
+                                        '<div class="toastDetails">Issues: <pre class="issues">' + issues + '</pre></div>' +
+                                    '</div>';
+                                message = htmlContent;
+            } catch (e) {
+                console.error("Error parsing JSON content:", e);
+                // Fallback to showing the original message
+            }
+        }
+
+        const toastElement = document.getElementById('toast');
+        toastElement.innerHTML = message; // Use innerHTML to set the formatted content
+        toastElement.classList.add('show');
+        setTimeout(() => { toastElement.classList.remove('show'); }, 3000);
+      }
+      window.addEventListener('message', event => {
+          const message = event.data;
+          if (message.command === 'showToast') {
+              showToast(message.message);
+          }
+      });
 		</script>
 	</body>
 	</html>

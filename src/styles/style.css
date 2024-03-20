@@ -1,0 +1,59 @@
+      #actionButtons {
+        display: flex;
+        align-items: center;
+        padding: 2px 10px;
+        justify-content: space-between;
+      }
+      #validateButton {
+        cursor: pointer;
+        padding: 5px;
+        border: 1px solid var(--vscode-editor-foreground);
+        color: var(--vscode-editor-foreground);
+        background-color: var(--vscode-editor-background);
+      }
+			.copy-button {
+				cursor: pointer;
+				padding: 5px;
+				border: 1px solid #ccc;
+				background-color: #f9f9f9;
+			}
+			#copyFeedback {
+				display: none;
+				color: var(--vscode-editor-foreground);
+			}
+      .toast {
+        min-width: 250px;
+        margin-left: -125px;
+        background-color: #333;
+        color: #fff;
+        text-align: center;
+        border-radius: 2px;
+        padding: 16px;
+        position: fixed;
+        z-index: 1;
+        left: 50%;
+        bottom: 30px;
+        opacity: 0;
+        transition: opacity 0.5s linear;
+    }
+    .toast.show {
+        opacity: 1;
+    }
+    
+    .toastContent {
+      padding: 10px;
+  }
+  .toastTitle {
+      font-weight: bold;
+      margin-bottom: 5px;
+  }
+  .toastDetails {
+      font-size: 0.9em;
+      margin-top: 5px;
+  }
+  .pipelineName {
+      color: #4CAF50; /* Green */
+  }
+  .issues {
+      color: #F44336; /* Red */
+  }
