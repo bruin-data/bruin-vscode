@@ -108,10 +108,13 @@ export class BruinMainPanel {
               vscode.workspace.workspaceFolders?.[0].uri.fsPath
             )
               .then(({ stdout, stderr }) => {
-                const message = stderr
-                  ? `Validation failed: ${stderr}`
-                  : `Validation successful: ${stdout}`;
-                this.panel.webview.postMessage({ command: 'showToast', message: message });
+                if(stderr){
+                  this.panel.webview.postMessage({ command: 'showToast', message: `Validation failed: ${stdout}` });
+                  return;
+                }
+                //this.panel.webview.postMessage({ command: 'showToast', message: `Validation failed: ${stdout}` });
+
+                this.panel.webview.postMessage({ command: 'validateSuccess', message: `Validation successful: ${stdout}` });
               })
               .catch((err) =>
                 vscode.window.showErrorMessage(
@@ -204,7 +207,7 @@ export class BruinMainPanel {
 		
 	</head>
 	<body>
-		<pre><code class="sql">${encodeHTML(renderedSql)}</code></pre>
+  <div class="header">
       <div id="toast" class="toast"></div>
       <div id="actionButtons">
                 <div id="copyFeedback">Copied!</div>
@@ -217,6 +220,9 @@ export class BruinMainPanel {
                     Validate
                 </div>
       </div>
+    </div>
+		<pre><code class="sql">${encodeHTML(renderedSql)}</code></pre>
+     
 		<script>
       const vscode = acquireVsCodeApi();
 			function copyToClipboard() {
@@ -245,9 +251,15 @@ export class BruinMainPanel {
       const validateButton = document.getElementById('validateButton');
       validateButton.addEventListener('click', validateSql);
 
+      function validateSuccess(){
+        document.getElementById('validateButton').innerHTML = 'Validate ✅';
+        vscode.postMessage({
+          command: 'validateSuccess',
+        });
+      }
       function showToast(message) {
-        document.getElementById('validateButton').innerHTML = 'Validate';
-        const prefix = "Validation successful:";
+        document.getElementById('validateButton').innerHTML = 'Validate ❌';
+        const prefix = "Validation failed:";
         let jsonContent = "";
         if (message.startsWith(prefix)) {
             try {
@@ -259,8 +271,7 @@ export class BruinMainPanel {
                 // Generate formatted HTML content
                 // Generate formatted HTML content using string concatenation
                 const htmlContent = '<div class="toastContent">' +
-                                        '<div class="toastTitle">Validation Successful</div>' +
-                                        '<div>Pipeline: <span class="pipelineName">' + pipeline + '</span></div>' +
+                                        '<div class="toastTitle">Validation failed : <span class="pipelineName">' + pipeline + ' </span></div>' +
                                         '<div class="toastDetails">Issues: <pre class="issues">' + issues + '</pre></div>' +
                                     '</div>';
                                 message = htmlContent;
@@ -281,6 +292,12 @@ export class BruinMainPanel {
               showToast(message.message);
           }
       });
+      window.addEventListener('message', event => {
+        const message = event.data;
+        if (message.command === 'validateSuccess') {
+          validateSuccess(message.message);
+        }
+    });
 		</script>
 	</body>
 	</html>
