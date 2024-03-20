@@ -121,7 +121,7 @@ input[type="checkbox"]:focus {
 }
 
 .startDate, .endDate {
-    width: 220px; 
+    width: 260px; 
 }
 
 .downstream, .fullRefresh {

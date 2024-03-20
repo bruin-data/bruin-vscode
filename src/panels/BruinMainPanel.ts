@@ -137,8 +137,11 @@ export class BruinMainPanel {
               );
             break;
           case "bruin.run":
-            this.runInIntegratedTerminal(this.lastRenderedDocumentUri?.fsPath || "");
-            vscode.window.showInformationMessage("Run SQL command executed.");
+            if (!this.lastRenderedDocumentUri) {
+              return;
+            }
+            const command = message.text;
+            this.runInIntegratedTerminal(this.lastRenderedDocumentUri?.fsPath || "", command);
             break;
         }
       },
@@ -156,14 +159,15 @@ export class BruinMainPanel {
   }
 
   // Run the RUN SQL command in the integrated terminal
-  private runInIntegratedTerminal= (assetPath: string) =>{
+  private runInIntegratedTerminal= (assetPath: string, flags?: string) =>{
     const terminalName = "Bruin Terminal";
     let terminal = vscode.window.terminals.find(t => t.name === terminalName);
     if (!terminal) {
         terminal = vscode.window.createTerminal(terminalName);
     }
     terminal.show(true); 
-    terminal.sendText(`${BRUIN_RUN_SQL_COMMAND} ${assetPath}`, true); 
+    terminal.sendText(`${BRUIN_RUN_SQL_COMMAND} ${flags} ${assetPath}`, true); 
+    
   };
 
 
@@ -311,11 +315,18 @@ export class BruinMainPanel {
 
      
         window.addEventListener('DOMContentLoaded', (event) => {
-          const now = new Date();
-          const nowUtc = new Date(now.getTime() + now.getTimezoneOffset() * 60000);
-          const isoDate = nowUtc.toISOString().substring(0, 16);
-          document.getElementById('start').value = isoDate;
-          document.getElementById('end').value = isoDate;
+          const today = new Date();
+          const yesterday = new Date(today);
+          yesterday.setDate(yesterday.getDate() - 1);
+          const startOfYesterday = new Date(Date.UTC(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 0, 0, 0, 0));
+          const endOfYesterday = new Date(Date.UTC(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59, 999));
+
+          const toLocalDateTimeFormat = (date) => {
+              return date.toISOString().slice(0, 23);
+          };
+
+          document.getElementById('start').value = toLocalDateTimeFormat(startOfYesterday);
+          document.getElementById('end').value = toLocalDateTimeFormat(endOfYesterday);
         });
 
       function validateSql() {
@@ -327,10 +338,19 @@ export class BruinMainPanel {
       }
       function runSql() {
         const runButton = document.getElementById('runButton');
+        const isDownstreamChecked = document.getElementById('downstream').checked;
+        const isFullRefreshChecked = document.getElementById('fullRefresh').checked;
+        let command = '';
+        if(isDownstreamChecked){
+          command += ' --downstream';
+        }
+        if(isFullRefreshChecked){  
+          command += ' --full-refresh';
+        }
         //runButton.innerHTML = 'Running...';
         vscode.postMessage({
             command: 'bruin.run',
-            text: 'RUN SQL command executed.'
+            text: command
         });
       }
 
