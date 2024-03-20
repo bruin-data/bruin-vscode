@@ -35,7 +35,10 @@ export class BruinMainPanel {
       columnToShowIn || vscode.ViewColumn.Beside,
       {
         enableScripts: true,
-        localResourceRoots: [vscode.Uri.joinPath(extensionUri, "img"), vscode.Uri.joinPath(extensionUri, 'src', 'styles')],     
+        localResourceRoots: [
+          vscode.Uri.joinPath(extensionUri, "img"),
+          vscode.Uri.joinPath(extensionUri, "src", "styles"),
+        ],
         retainContextWhenHidden: true,
       }
     );
@@ -67,7 +70,6 @@ export class BruinMainPanel {
     this.update();
 
     // Listen for when the panel is disposed
-    this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
 
     // React to content changes
     const changeDocumentDisposable = vscode.workspace.onDidChangeTextDocument(
@@ -97,30 +99,43 @@ export class BruinMainPanel {
         this.update();
       }
     );
+
     this.panel.webview.onDidReceiveMessage(
       async (message) => {
         switch (message.command) {
           case "bruin.validate":
-            if (!this.lastRenderedDocumentUri) {return;};
+            if (!this.lastRenderedDocumentUri) {
+              return;
+            }
             const filePath = this.lastRenderedDocumentUri.fsPath;
             commandExecution(
               `${BRUIN_VALIDATE_SQL_COMMAND} -o json ${filePath}`,
               vscode.workspace.workspaceFolders?.[0].uri.fsPath
             )
               .then(({ stdout, stderr }) => {
-                if(stderr){
-                  this.panel.webview.postMessage({ command: 'showToast', message: `Validation failed: ${stdout}` });
+                if (stderr) {
+                  this.panel.webview.postMessage({
+                    command: "showToast",
+                    message: `Validation failed: ${stdout}`,
+                  });
                   return;
                 }
                 //this.panel.webview.postMessage({ command: 'showToast', message: `Validation failed: ${stdout}` });
 
-                this.panel.webview.postMessage({ command: 'validateSuccess', message: `Validation successful: ${stdout}` });
+                this.panel.webview.postMessage({
+                  command: "validateSuccess",
+                  message: `Validation successful: ${stdout}`,
+                });
               })
               .catch((err) =>
                 vscode.window.showErrorMessage(
                   "Failed to execute Bruin CLI command: " + err
                 )
               );
+            break;
+          case "bruin.run":
+            vscode.window.showInformationMessage("Run SQL command executed.");
+            break;
         }
       },
       undefined,
@@ -132,6 +147,8 @@ export class BruinMainPanel {
       changeThemeDisposable,
       changeFileDisposable
     );
+
+    this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
   }
 
   private update() {
@@ -145,7 +162,10 @@ export class BruinMainPanel {
         .then(({ stdout, stderr }) => {
           this.panel.webview.html = stderr
             ? this.getErrorContent(stderr)
-            : this.getWebviewContent(stdout as string, this.getCurrentThemeCssUrl(themeKind));
+            : this.getWebviewContent(
+                stdout as string,
+                this.getCurrentThemeCssUrl(themeKind)
+              );
         })
         .catch((err) => {
           console.error(err);
@@ -192,8 +212,11 @@ export class BruinMainPanel {
   };
 
   private getWebviewContent = (renderedSql: string, themeCssUrl: string) => {
-    const cssUri = this.panel.webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, 'src', 'styles', 'style.css'));
-    return `
+    const cssUri = this.panel.webview.asWebviewUri(
+      vscode.Uri.joinPath(this.extensionUri, "src", "styles", "style.css")
+    );
+
+    return /*html*/ ` 
 	<!DOCTYPE html>
 	<html lang="en">
 	<head>
@@ -207,8 +230,47 @@ export class BruinMainPanel {
 		
 	</head>
 	<body>
-  <div class="header">
-      <div id="toast" class="toast"></div>
+    <div class="header">
+        <div id="toast" class="toast"></div>
+        <div class="runOptions">
+            <div class="dates">
+                   <div class="startDate">
+                      <label for="start">Start date:</label>
+                      <input
+                          type="datetime-local"
+                          id="start"
+                          name="start-date"
+                          />
+                    </div>
+                    <div class="endDate">
+                      <label for="end">End date:</label>
+                      <input
+                          type="datetime-local"
+                          id="end"
+                          name="end-date"
+                          />
+                      </div>
+              </div>
+              <div class="flags">
+                  <div class="downstream">
+                      <label for="downstream">Downstream:</label>
+                      <input
+                          type="checkbox"
+                          id="downstream"
+                          name="downstream"
+                          />
+                  </div>
+                  <div class="fullRefresh">
+                      <label for="fullRefresh">Full Refresh:</label>
+                      <input
+                          type="checkbox"
+                          id="fullRefresh"
+                          name="fullRefresh"
+                          />
+                  </div>
+              </div>
+          <div>
+      </div>
       <div id="actionButtons">
                 <div id="copyFeedback">Copied!</div>
                 <div id="copyIcon" onclick="copyToClipboard()" style="cursor: pointer;">
@@ -216,36 +278,41 @@ export class BruinMainPanel {
                       <path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11v14z"/>
                     </svg>
                 </div>
-                <div id="validateButton" onclick="validateSql()" style="cursor: pointer; margin-left: 10px;">
-                    Validate
-                </div>
+                <div class="commandButtons"> 
+                  <div id="validateButton" class="actionButton" onclick="validateSql()" style="cursor: pointer; margin-left: 10px;">
+                      Validate
+                  </div>
+                  <div id="runButton" class="actionButton" onclick="runSql()" style="cursor: pointer; margin-left: 10px;">
+                    Run
+                  </div>
+                </div> 
       </div>
     </div>
 		<pre><code class="sql">${encodeHTML(renderedSql)}</code></pre>
      
 		<script>
       const vscode = acquireVsCodeApi();
-			function copyToClipboard() {
-				navigator.clipboard.writeText(\`${encodeHTML(renderedSql)}\`).then(function() {
-					document.getElementById('copyIcon').style.display = 'none';
-					const copyFeedback = document.getElementById('copyFeedback');
-					copyFeedback.style.display = 'block';
-					
-					// Revert back to the icon after 2 seconds
-					setTimeout(() => {
-						copyFeedback.style.display = 'none';
-						document.getElementById('copyIcon').style.display = 'block';
-					}, 2000);
-				}, function(err) {
-					console.error('Could not copy text: ', err);
-				});
-			}
+
+     
+        window.addEventListener('DOMContentLoaded', (event) => {
+          const now = new Date();
+          const nowUtc = new Date(now.getTime() + now.getTimezoneOffset() * 60000);
+          const isoDate = nowUtc.toISOString().substring(0, 16);
+          document.getElementById('start').value = isoDate;
+          document.getElementById('end').value = isoDate;
+        });
 
       function validateSql() {
-        document.getElementById('validateButton').innerHTML = 'Loading...';
+        //document.getElementById('validateButton').innerHTML = 'Loading...';
         vscode.postMessage({
             command: 'bruin.validate',
             text: 'Validate SQL command executed.'
+        });
+      }
+      function runSql() {
+        vscode.postMessage({
+            command: 'bruin.run',
+            text: 'RUN SQL command executed.'
         });
       }
       const validateButton = document.getElementById('validateButton');
@@ -267,9 +334,6 @@ export class BruinMainPanel {
                 const parsed = JSON.parse(jsonContent);
                 const pipeline = parsed[0]?.pipeline || "N/A";
                 const issues = JSON.stringify(parsed[0]?.issues || {}, null, 2); // Beautify the JSON
-
-                // Generate formatted HTML content
-                // Generate formatted HTML content using string concatenation
                 const htmlContent = '<div class="toastContent">' +
                                         '<div class="toastTitle">Validation failed : <span class="pipelineName">' + pipeline + ' </span></div>' +
                                         '<div class="toastDetails">Issues: <pre class="issues">' + issues + '</pre></div>' +
@@ -298,6 +362,29 @@ export class BruinMainPanel {
           validateSuccess(message.message);
         }
     });
+    window.addEventListener('message', event => {
+      const message = event.data;
+      if (message.command === 'bruin.run') {
+        runSql(message.message);
+      }
+  });
+  
+  function copyToClipboard() {
+				navigator.clipboard.writeText(\`${encodeHTML(renderedSql)}\`).then(function() {
+					document.getElementById('copyIcon').style.display = 'none';
+					const copyFeedback = document.getElementById('copyFeedback');
+					copyFeedback.style.display = 'block';
+					
+					// Revert back to the icon after 2 seconds
+					setTimeout(() => {
+						copyFeedback.style.display = 'none';
+						document.getElementById('copyIcon').style.display = 'block';
+					}, 2000);
+				}, function(err) {
+					console.error('Could not copy text: ', err);
+				});
+			}
+
 		</script>
 	</body>
 	</html>

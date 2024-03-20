@@ -14,7 +14,8 @@ const BRUIN_HELP_COMMAND = 'bruin --help';
 const BRUIN_HELP_ID = 'bruin.help';
 const BRUIN_VALIDATE_SQL_COMMAND = 'bruin validate';
 const BRUIN_VALIDATE_SQL_ID = 'bruin.validate';
-
+const BRUIN_RUN_SQL_COMMAND = 'bruin run';
+const BRUIN_RUN_SQL_ID= 'bruin.run';
 
 export { 
     bruinDelimiterRegex, 
@@ -24,5 +25,7 @@ export {
     BRUIN_HELP_COMMAND, 
     BRUIN_HELP_ID ,
     BRUIN_VALIDATE_SQL_COMMAND,
-    BRUIN_VALIDATE_SQL_ID
+    BRUIN_VALIDATE_SQL_ID,
+    BRUIN_RUN_SQL_COMMAND,
+    BRUIN_RUN_SQL_ID
 };
