@@ -141,11 +141,10 @@ export class BruinMainPanel {
               );
             break;
           case "bruin.run":
-            if (!this.lastRenderedDocumentUri) {
+            if (!this.lastRenderedDocumentUri || !message.text) {
               return;
             }
-            const command = message.text;
-            this.runInIntegratedTerminal(this.lastRenderedDocumentUri?.fsPath || "", command);
+              this.runInIntegratedTerminal(this.lastRenderedDocumentUri?.fsPath || "", message.text);
             break;
         }
       },
@@ -352,27 +351,32 @@ export class BruinMainPanel {
         const isDownstreamChecked = document.getElementById('downstream').checked;
         const isFullRefreshChecked = document.getElementById('fullRefresh').checked;
         const isDateExclusiveChecked = document.getElementById('dateExclusive').checked;
-        const isStartDateDefined = document.getElementById('start').value;
+        const startDate = document.getElementById('start').value;
         const isEndDateDefined = document.getElementById('end').value;
         let endDate = new Date(isEndDateDefined);
         endDate.setUTCHours(23, 59, 59, 999);
         let endDateString = endDate.toISOString().slice(0, 19) + '.999999999Z';
 
         let command = '';
-        if(isStartDateDefined){
-          command += ' -start-date ' + isStartDateDefined.toString();
+        let dateError = false;
+        if(new Date(endDate).getTime() < new Date(startDate).getTime()){
+          errorToast('End date cannot be before start date');
+          dateError = true;
         }
-        if(isDateExclusiveChecked){
+        if(startDate && !dateError){
+          command += ' -start-date ' + startDate.toString();
+        }
+        if(isDateExclusiveChecked && !dateError){
           command += ' -end-date ' + endDateString;
         }
-        else if(isEndDateDefined){
+        else if(isEndDateDefined && !dateError){
           command += ' -end-date ' + isEndDateDefined.toString();
         }
 
-        if(isDownstreamChecked){
+        if(isDownstreamChecked && !dateError){
           command += ' --downstream';
         }
-        if(isFullRefreshChecked){  
+        if(isFullRefreshChecked && !dateError){  
           command += ' --full-refresh';
         }
         //runButton.innerHTML = 'Running...';
@@ -386,6 +390,12 @@ export class BruinMainPanel {
       const validateButton = document.getElementById('validateButton');
       validateButton.addEventListener('click', validateSql);
 
+      function errorToast(message) {
+        const toastElement = document.getElementById('toast');
+          toastElement.innerHTML = message; 
+          toastElement.classList.add('show');
+          setTimeout(() => { toastElement.classList.remove('show'); }, 3000);
+      }
       function validateSuccess(){
         document.getElementById('validateButton').innerHTML = 'Validate ✅';
         vscode.postMessage({
@@ -413,10 +423,7 @@ export class BruinMainPanel {
             }
         }
 
-        const toastElement = document.getElementById('toast');
-        toastElement.innerHTML = message; 
-        toastElement.classList.add('show');
-        setTimeout(() => { toastElement.classList.remove('show'); }, 3000);
+       errorToast(message);
       }
       window.addEventListener('message', event => {
           const message = event.data;
