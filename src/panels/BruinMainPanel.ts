@@ -354,7 +354,7 @@ export class BruinMainPanel {
         const isDateExclusiveChecked = document.getElementById('dateExclusive').checked;
         const isStartDateDefined = document.getElementById('start').value;
         const isEndDateDefined = document.getElementById('end').value;
-        let endDate = new Date(isEndDate);
+        let endDate = new Date(isEndDateDefined);
         endDate.setUTCHours(23, 59, 59, 999);
         let endDateString = endDate.toISOString().slice(0, 19) + '.999999999Z';
 
@@ -362,8 +362,11 @@ export class BruinMainPanel {
         if(isStartDateDefined){
           command += ' -start-date ' + isStartDateDefined.toString();
         }
-        if(isDateExclusiveChecked && isEndDateDefined){
+        if(isDateExclusiveChecked){
           command += ' -end-date ' + endDateString;
+        }
+        else if(isEndDateDefined){
+          command += ' -end-date ' + isEndDateDefined.toString();
         }
 
         if(isDownstreamChecked){
