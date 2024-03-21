@@ -11,12 +11,6 @@
         color: var(--vscode-editor-foreground);
         background-color: var(--vscode-editor-background);
       }
-			.copy-button {
-				cursor: pointer;
-				padding: 5px;
-				border: 1px solid #ccc;
-				background-color: #f9f9f9;
-			}
       .commandButtons {
         display: flex;
         align-items: center;
@@ -78,16 +72,16 @@
     gap: 20px;
 }
 
-.startDate, .endDate, .downstream, .fullRefresh {
+.startDate, .endDate, .downstream, .fullRefresh, .dateExclusive {
     display: flex;
     flex-direction: column;
 }
 
-.startDate label, .endDate label, .downstream label, .fullRefresh label {
+.startDate label, .endDate label, .downstream label, .fullRefresh label, .dateExclusive label{
     font-weight: bold;
 }
 
-.startDate input, .endDate input, .downstream input[type="checkbox"], .fullRefresh input[type="checkbox"] {
+.startDate input, .endDate input, .downstream input[type="checkbox"], .fullRefresh input[type="checkbox"], .dateExclusive input[type="checkbox"]{
     padding: 8px;
     border: 1px solid var(--vscode-editor-foreground);
     background-color: var(--vscode-editor-foreground);
@@ -112,7 +106,7 @@ input[type="checkbox"]:focus {
     color: var(--vscode-editor-background);
 }
 
-.downstream input, .fullRefresh input {
+.downstream input, .fullRefresh input, .dateExclusive input {
     margin-top: 0; 
 }
 
@@ -124,6 +118,6 @@ input[type="checkbox"]:focus {
     width: 260px; 
 }
 
-.downstream, .fullRefresh {
+.downstream, .fullRefresh, .dateExclusive{
     width: 150px; 
 }

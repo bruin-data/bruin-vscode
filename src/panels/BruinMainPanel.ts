@@ -26,7 +26,7 @@ export class BruinMainPanel {
       : undefined;
 
     if (BruinMainPanel.currentPanel) {
-      BruinMainPanel.currentPanel.panel.reveal(columnToShowIn);
+      BruinMainPanel.currentPanel.panel.reveal(columnToShowIn );
       return;
     }
 
@@ -58,6 +58,10 @@ export class BruinMainPanel {
   ) {
     this.panel = panel;
     this.extensionUri = extensionUri;
+    const uri = vscode.Uri.joinPath(extensionUri);
+    vscode.workspace.openTextDocument(uri).then((doc) => {
+      vscode.window.showTextDocument(doc, vscode.ViewColumn.One);
+    });
 
     // Set the icon path
     const iconPath = vscode.Uri.joinPath(
@@ -288,6 +292,14 @@ export class BruinMainPanel {
                           name="fullRefresh"
                           />
                   </div>
+                  <div class="dateExclusive">
+                      <label for="dateExclusive">End Date Exclusive:</label>
+                      <input
+                          type="checkbox"
+                          id="dateExclusive"
+                          name="dateExclusive"
+                          />
+                  </div>
               </div>
           <div>
       </div>
@@ -299,10 +311,10 @@ export class BruinMainPanel {
                     </svg>
                 </div>
                 <div class="commandButtons"> 
-                  <div id="validateButton" class="actionButton" onclick="validateSql()" style="cursor: pointer; margin-left: 10px;">
+                  <div id="validateButton" class="actionButton" onclick="validateSql()">
                       Validate
                   </div>
-                  <div id="runButton" class="actionButton" onclick="runSql()" style="cursor: pointer; margin-left: 10px;">
+                  <div id="runButton" class="actionButton" onclick="runSql()">
                     Run
                   </div>
                 </div> 
@@ -313,13 +325,12 @@ export class BruinMainPanel {
 		<script>
       const vscode = acquireVsCodeApi();
 
-     
         window.addEventListener('DOMContentLoaded', (event) => {
           const today = new Date();
           const yesterday = new Date(today);
           yesterday.setDate(yesterday.getDate() - 1);
           const startOfYesterday = new Date(Date.UTC(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 0, 0, 0, 0));
-          const endOfYesterday = new Date(Date.UTC(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59, 999));
+          const endOfYesterday = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0));
 
           const toLocalDateTimeFormat = (date) => {
               return date.toISOString().slice(0, 23);
@@ -340,7 +351,21 @@ export class BruinMainPanel {
         const runButton = document.getElementById('runButton');
         const isDownstreamChecked = document.getElementById('downstream').checked;
         const isFullRefreshChecked = document.getElementById('fullRefresh').checked;
+        const isDateExclusiveChecked = document.getElementById('dateExclusive').checked;
+        const isStartDateDefined = document.getElementById('start').value;
+        const isEndDateDefined = document.getElementById('end').value;
+        let endDate = new Date(isEndDate);
+        endDate.setUTCHours(23, 59, 59, 999);
+        let endDateString = endDate.toISOString().slice(0, 19) + '.999999999Z';
+
         let command = '';
+        if(isStartDateDefined){
+          command += ' -start-date ' + isStartDateDefined.toString();
+        }
+        if(isDateExclusiveChecked && isEndDateDefined){
+          command += ' -end-date ' + endDateString;
+        }
+
         if(isDownstreamChecked){
           command += ' --downstream';
         }

@@ -22,11 +22,11 @@ export function activate(context: vscode.ExtensionContext) {
     }
   });
   
-
   vscode.window.onDidChangeActiveTextEditor((editor) => {
-    if (editor && ['python', 'sql'].includes(editor.document.languageId)) {
-      setTimeout(applyFoldingStateBasedOnConfiguration, 500);
-    }
+    if (editor && ['python', 'sql'].includes(editor.document.languageId)){
+      //if(BruinMainPanel.lastRenderedDocumentUri?.toString() !== editor.document.uri.toString()){
+      setTimeout(applyFoldingStateBasedOnConfiguration, 500);}
+    //}
   });
 
   context.subscriptions.push(
