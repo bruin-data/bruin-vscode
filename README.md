@@ -27,6 +27,14 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
     ![Screenshot of SQL viewer Theme Updates](https://github.com/bruin-data/bruin-vscode/blob/main/screenshots/theme-updates.gif?raw=true)
 
+**SQL Validation and Execution**: Introduces SQL validation and execution capabilities, including custom messages for invalid SQL queries and the ability to run SQL with additional flags such as `--downstream` and `--full-refresh` as well as date inputs.
+	 **Date Inputs**:
+		- Introduces date picker inputs for selecting start and end dates for `run` command.
+		- Comes with `Exclusive End Date` checkbox, adjusting the end date to the end of the selected day (`23:59:59.999999999`).
+
+
+    ![Screenshot of SQL Validation and Execution](https://github.com/bruin-data/bruin-vscode/blob/main/screenshots/validation-and-execution.gif?raw=true)
+
 ## Installation
 
 1. Open Visual Studio Code.
@@ -38,25 +46,42 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Usage
 
-- Syntax Coloring: Enclose Bruin code with delimiters:
+- **Syntax Coloring**: Enclose Bruin code with delimiters:
 	- In **SQL files** `/* @bruin` and `@bruin */`.
 	- In **Python files** `""" @bruin` and `@bruin """`.
 
-- Folding Range: Bruin code regions are automatically foldable.
-- Dynamic SQL Content Viewer:
+- **Folding Range**: Bruin code regions are automatically foldable.
+- **Dynamic SQL Content Viewer**:
 	1. Open any SQL file.
 	2. Click the rocket icon 🚀 in the top right menu.
 	3. A Webview will open, previewing the SQL content.
 	4. Click the "Copy" icon to copy the content.
 	5. The theme color of the view can match the vscode current theme (dark/light/Dark high contrast)
 
+**SQL Validation and Execution**:
+    - **Validation**: Click the "Validate" button to validate the current SQL. A custom notification will appear based on the validation results.
+    - **Run with Flags**: Click the "Run" button to execute the SQL command in an integrated terminal. This can include optional flags based on user input (checkboxes & date inputs).
+        - **Start and End Dates**: 
+			1. Select start and end dates using the date picker inputs to specify the time range for the run command.
+			2. An "Exclusive End Date" checkbox is available. When checked, the end date is adjusted to the precise end of the selected day (`23:59:59.999999999`).
+			3. The dates will be appended as flags directly to the Bruin run command 
+
 ## Release Notes
 
-### Latest Release: 0.1.2
-- **New**: Settings for auto-folding! Users can now specify their preferred default folding state for Bruin regions.
-- **Fix**: Addressed compatibility issues with the Pylance extension affecting auto-folding behavior.
+
+### Latest Release: 0.2.2
+- **New**: Integrated SQL validation functionality, providing a custom notification for validation results.
+- **New**: Support for running SQL with conditional flags.
+- **New**: Added start and end date selectors for appending date conditions directly to the Bruin run command.
+- **New**: Incorporated the "exclusive end date" checkbox, automatically adjusting the end date to the end of the selected day.
+
+- **Fix**: Fixed the auto folding problem, when changing the active text editor.
 
 ### Previous Highlights
+
+#### 0.1.2
+- Settings for auto-folding! Users can now specify their preferred default folding state for Bruin regions.
+- Addressed compatibility issues with the Pylance extension affecting auto-folding behavior.
 
 #### 0.1.1
 - Minor bug fixes.
