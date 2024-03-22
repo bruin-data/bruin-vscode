@@ -67,8 +67,16 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
+### Latest Release: 0.2.4
 
-### Latest Release: 0.2.2
+- **Fix**: 
+	- Fixed the rendering problems with some assets.
+	- Fixed the error message triigerd for broken assets 
+
+
+### Previous Highlights
+
+#### 0.2.2
 - **New**: Integrated SQL validation functionality, providing a custom notification for validation results.
 - **New**: Support for running SQL with conditional flags.
 - **New**: Added start and end date selectors for appending date conditions directly to the Bruin run command.
@@ -76,7 +84,6 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 - **Fix**: Fixed the auto folding problem, when changing the active text editor.
 
-### Previous Highlights
 
 #### 0.1.2
 - Settings for auto-folding! Users can now specify their preferred default folding state for Bruin regions.
