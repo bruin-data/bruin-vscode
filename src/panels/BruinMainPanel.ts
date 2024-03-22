@@ -38,7 +38,7 @@ export class BruinMainPanel {
         enableScripts: true,
         localResourceRoots: [
           vscode.Uri.joinPath(extensionUri, "img"),
-          vscode.Uri.joinPath(extensionUri, "src", "styles"),
+          vscode.Uri.joinPath(extensionUri, "styles"),
         ],
         retainContextWhenHidden: true,
       }
@@ -236,7 +236,7 @@ export class BruinMainPanel {
 
   private getWebviewContent = (renderedSql: string, themeCssUrl: string) => {
     const cssUri = this.panel.webview.asWebviewUri(
-      vscode.Uri.joinPath(this.extensionUri, "src", "styles", "style.css")
+      vscode.Uri.joinPath(this.extensionUri, "styles", "style.css")
     );
 
     return /*html*/ ` 

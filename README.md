@@ -32,8 +32,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 		- Introduces date picker inputs for selecting start and end dates for `run` command.
 		- Comes with `Exclusive End Date` checkbox, adjusting the end date to the end of the selected day (`23:59:59.999999999`).
 
-
-    ![Screenshot of SQL Validation and Execution](https://github.com/bruin-data/bruin-vscode/blob/main/screenshots/validation-and-execution.gif?raw=true)
+![Screenshot of SQL Validation and Execution](https://github.com/bruin-data/bruin-vscode/blob/main/screenshots/validation-and-execution.gif?raw=true)
 
 ## Installation
 
