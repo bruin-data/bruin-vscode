@@ -44,10 +44,10 @@ const commandExecution = (cliCommand: string, workingDirectory?: string | undefi
     return new Promise((resolve) => {
         child_process.exec(cliCommand, {
                 cwd: workingDirectory,
-                timeout: 1000,
+                timeout: 60000,
             }, (error: child_process.ExecException | null, stdout: string) => {
             if (error) {
-                return resolve({ stderr: error.message });
+                return resolve({ stderr: stdout });
             }
             return resolve({ stdout });
         });
@@ -59,7 +59,9 @@ const encodeHTML = (str: string) => {
               .replace(/</g, '&lt;')
               .replace(/>/g, '&gt;')
               .replace(/"/g, '&quot;')
-              .replace(/'/g, '&#039;');
+              .replace(/'/g, '&#039;')
+              .replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '');
+              
   };
   
 

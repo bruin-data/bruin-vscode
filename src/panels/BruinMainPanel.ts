@@ -87,7 +87,6 @@ export class BruinMainPanel {
         }
       }
     );
-    // React to file changes
 
     const changeFileDisposable = vscode.window.onDidChangeActiveTextEditor(
       async (event) => {
@@ -130,7 +129,6 @@ export class BruinMainPanel {
                   return;
                 }
                 console.debug(stdout);
-                //this.panel.webview.postMessage({ command: 'showToast', message: `Validation failed: ${stdout}` });
 
                 this.panel.webview.postMessage({
                   command: "validateSuccess",
@@ -187,16 +185,15 @@ export class BruinMainPanel {
       )
         .then(({ stdout, stderr }) => {
           this.panel.webview.html = stderr
-            ? this.getErrorContent(stderr)
+            ? this.getErrorContent(stderr as string)
             : this.getWebviewContent(
               stdout as string,
                 this.getCurrentThemeCssUrl(themeKind)
               );
         })
         .catch((err) => {
-          console.error(err);
           this.panel.webview.html = this.getErrorContent(
-            "Failed to execute Bruin CLI command."
+            `Failed to render SQL: ${err.message}`
           );
         });
     }
@@ -464,10 +461,23 @@ export class BruinMainPanel {
 `;
   };
 
-  
 
   private getErrorContent(errorMessage: string): string {
-    // Use encodeHTML for safe rendering
-    return `<!DOCTYPE html>...${encodeHTML(errorMessage)}`;
+    const cssUri = this.panel.webview.asWebviewUri(
+      vscode.Uri.joinPath(this.extensionUri, "styles", "style.css")
+    );
+    console.error(errorMessage);
+    return `<!DOCTYPE html> 
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https:; style-src 'unsafe-inline' https:; script-src 'unsafe-inline' https:; connect-src https:;">
+      <title>SQL Content</title>
+      <link rel="stylesheet" href="${cssUri}">
+    </head>
+    <body>
+      <p class="error-message">${encodeHTML(errorMessage)}</p>
+    </body>
+    </html>`;
   }
 }

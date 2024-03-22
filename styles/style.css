@@ -121,3 +121,16 @@ input[type="checkbox"]:focus {
 .downstream, .fullRefresh, .dateExclusive{
     width: 150px; 
 }
+
+.error-message {
+    color: #D8000C; 
+    background-color: #FFD2D2; 
+    font-weight: bold; 
+    text-align: center; 
+    font-size: 1.1em; 
+    margin: 10px 0; 
+    padding: 10px; 
+    border-left: 3px solid #D8000C; 
+    border-radius: 5px; 
+    font-family: Arial, sans-serif; 
+}
