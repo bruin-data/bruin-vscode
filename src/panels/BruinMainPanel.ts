@@ -38,7 +38,7 @@ export class BruinMainPanel {
         enableScripts: true,
         localResourceRoots: [
           vscode.Uri.joinPath(extensionUri, "img"),
-          vscode.Uri.joinPath(extensionUri, "src", "styles"),
+          vscode.Uri.joinPath(extensionUri, "styles"),
         ],
         retainContextWhenHidden: true,
       }
@@ -87,7 +87,6 @@ export class BruinMainPanel {
         }
       }
     );
-    // React to file changes
 
     const changeFileDisposable = vscode.window.onDidChangeActiveTextEditor(
       async (event) => {
@@ -105,13 +104,13 @@ export class BruinMainPanel {
       }
     );
 
-    
-
     this.panel.webview.onDidReceiveMessage(
       async (message) => {
         switch (message.command) {
           case "bruin.validate":
+            console.debug("Validating SQL command.");
             if (!this.lastRenderedDocumentUri) {
+              console.error("No active document to validate.");
               return;
             }
             const filePath = this.lastRenderedDocumentUri.fsPath;
@@ -121,17 +120,19 @@ export class BruinMainPanel {
             )
               .then(({ stdout, stderr }) => {
                 if (stderr) {
+                  //console.error(`Error validating SQL command: ${stdout}`);
+                  //console.debug(stderr);
                   this.panel.webview.postMessage({
                     command: "showToast",
                     message: `Validation failed: ${stdout}`,
                   });
                   return;
                 }
-                //this.panel.webview.postMessage({ command: 'showToast', message: `Validation failed: ${stdout}` });
+                console.debug(stdout);
 
                 this.panel.webview.postMessage({
                   command: "validateSuccess",
-                  message: `Validation successful: ${stdout}`,
+                  message: "",
                 });
               })
               .catch((err) =>
@@ -184,16 +185,15 @@ export class BruinMainPanel {
       )
         .then(({ stdout, stderr }) => {
           this.panel.webview.html = stderr
-            ? this.getErrorContent(stderr)
+            ? this.getErrorContent(stderr as string)
             : this.getWebviewContent(
-                stdout as string,
+              stdout as string,
                 this.getCurrentThemeCssUrl(themeKind)
               );
         })
         .catch((err) => {
-          console.error(err);
           this.panel.webview.html = this.getErrorContent(
-            "Failed to execute Bruin CLI command."
+            `Failed to render SQL: ${err.message}`
           );
         });
     }
@@ -236,7 +236,7 @@ export class BruinMainPanel {
 
   private getWebviewContent = (renderedSql: string, themeCssUrl: string) => {
     const cssUri = this.panel.webview.asWebviewUri(
-      vscode.Uri.joinPath(this.extensionUri, "src", "styles", "style.css")
+      vscode.Uri.joinPath(this.extensionUri, "styles", "style.css")
     );
 
     return /*html*/ ` 
@@ -245,12 +245,147 @@ export class BruinMainPanel {
 	<head>
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https:; style-src 'unsafe-inline' https:; script-src 'unsafe-inline' https:; connect-src https:;">
 		<title>SQL Content</title>
     <link rel="stylesheet" href="${themeCssUrl}">
     <link rel="stylesheet" type="text/css" href="${cssUri}">
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.3.1/highlight.min.js"></script>
-		<script>hljs.highlightAll();</script>
-		
+    <script>
+      hljs.highlightAll();
+      const vscode = acquireVsCodeApi();
+
+        window.addEventListener('DOMContentLoaded', (event) => {
+          const today = new Date();
+          const yesterday = new Date(today);
+          yesterday.setDate(yesterday.getDate() - 1);
+          const startOfYesterday = new Date(Date.UTC(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 0, 0, 0, 0));
+          const endOfYesterday = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0));
+
+          const toLocalDateTimeFormat = (date) => {
+              return date.toISOString().slice(0, 23);
+          };
+
+          document.getElementById('start').value = toLocalDateTimeFormat(startOfYesterday);
+          document.getElementById('end').value = toLocalDateTimeFormat(endOfYesterday);
+        });
+
+      function validateSql() {
+        //document.getElementById('validateButton').innerHTML = 'Loading...';
+        vscode.postMessage({
+            command: 'bruin.validate',
+            text: 'Validate SQL command executed.'
+        });
+      }
+      function runSql() {
+        const runButton = document.getElementById('runButton');
+        const isDownstreamChecked = document.getElementById('downstream').checked;
+        const isFullRefreshChecked = document.getElementById('fullRefresh').checked;
+        const isDateExclusiveChecked = document.getElementById('dateExclusive').checked;
+        const startDate = document.getElementById('start').value;
+        const isEndDateDefined = document.getElementById('end').value;
+        let endDate = new Date(isEndDateDefined);
+        endDate.setUTCHours(23, 59, 59, 999);
+        let endDateString = endDate.toISOString().slice(0, 19) + '.999999999Z';
+
+        let command = '';
+        let dateError = false;
+        if(new Date(endDate).getTime() < new Date(startDate).getTime()){
+          errorToast('End date cannot be before start date');
+          dateError = true;
+        }
+        if(startDate && !dateError){
+          command += ' -start-date ' + startDate.toString();
+        }
+        if(isDateExclusiveChecked && !dateError){
+          command += ' -end-date ' + endDateString;
+        }
+        else if(isEndDateDefined && !dateError){
+          command += ' -end-date ' + isEndDateDefined.toString();
+        }
+
+        if(isDownstreamChecked && !dateError){
+          command += ' --downstream';
+        }
+        if(isFullRefreshChecked && !dateError){  
+          command += ' --full-refresh';
+        }
+        //runButton.innerHTML = 'Running...';
+        vscode.postMessage({
+            command: 'bruin.run',
+            text: command
+        });
+      }
+
+      function errorToast(message) {
+        const toastElement = document.getElementById('toast');
+          toastElement.innerHTML = message; 
+          toastElement.classList.add('show');
+          setTimeout(() => { toastElement.classList.remove('show'); }, 3000);
+      }
+      
+      function validateSuccess(){
+          document.getElementById('validateButton').innerHTML = 'Validate ✅';
+        }
+
+      function showToast(message) {
+        document.getElementById('validateButton').innerHTML = 'Validate ❌';
+        const prefix = "Validation failed:";
+        let jsonContent = "";
+        if (message.startsWith(prefix)) {
+            try {
+                jsonContent = message.substring(prefix.length).trim();
+                const parsed = JSON.parse(jsonContent);
+                const pipeline = parsed[0]?.pipeline || "N/A";
+                const issues = JSON.stringify(parsed[0]?.issues || {}, null, 2); // Beautify the JSON
+                const htmlContent = '<div class="toastContent">' +
+                                        '<div class="toastTitle">Validation failed : <span class="pipelineName">' + pipeline + ' </span></div>' +
+                                        '<div class="toastDetails">Issues: <pre class="issues">' + issues + '</pre></div>' +
+                                    '</div>';
+                                message = htmlContent;
+            } catch (e) {
+                console.error("Error parsing JSON content:", e);
+                // Fallback to showing the original message
+            }
+        }
+
+       errorToast(message);
+      }
+
+      window.addEventListener('message', event => {
+        const message = event.data;
+        switch (message.command) {
+          case 'validateSuccess':
+            validateSuccess();
+            break;
+
+          case 'showToast':
+            showToast(message.message);
+            break;
+
+          case 'bruin.run':
+            runSql(message.message);
+            break;
+        }
+    });
+  
+  function copyToClipboard() {
+        const text = document.querySelector('code').innerText;
+				navigator.clipboard.writeText(text).then(function() {
+					document.getElementById('copyIcon').style.display = 'none';
+					const copyFeedback = document.getElementById('copyFeedback');
+					copyFeedback.style.display = 'block';
+					
+					// Revert back to the icon after 2 seconds
+					setTimeout(() => {
+						copyFeedback.style.display = 'none';
+						document.getElementById('copyIcon').style.display = 'block';
+					}, 2000);
+				}, function(err) {
+					console.error('Could not copy text: ', err);
+				});
+			}
+
+		</script>
 	</head>
 	<body>
     <div class="header">
@@ -320,155 +455,29 @@ export class BruinMainPanel {
       </div>
     </div>
 		<pre><code class="sql">${encodeHTML(renderedSql)}</code></pre>
-     
-		<script>
-      const vscode = acquireVsCodeApi();
-
-        window.addEventListener('DOMContentLoaded', (event) => {
-          const today = new Date();
-          const yesterday = new Date(today);
-          yesterday.setDate(yesterday.getDate() - 1);
-          const startOfYesterday = new Date(Date.UTC(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 0, 0, 0, 0));
-          const endOfYesterday = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0));
-
-          const toLocalDateTimeFormat = (date) => {
-              return date.toISOString().slice(0, 23);
-          };
-
-          document.getElementById('start').value = toLocalDateTimeFormat(startOfYesterday);
-          document.getElementById('end').value = toLocalDateTimeFormat(endOfYesterday);
-        });
-
-      function validateSql() {
-        //document.getElementById('validateButton').innerHTML = 'Loading...';
-        vscode.postMessage({
-            command: 'bruin.validate',
-            text: 'Validate SQL command executed.'
-        });
-      }
-      function runSql() {
-        const runButton = document.getElementById('runButton');
-        const isDownstreamChecked = document.getElementById('downstream').checked;
-        const isFullRefreshChecked = document.getElementById('fullRefresh').checked;
-        const isDateExclusiveChecked = document.getElementById('dateExclusive').checked;
-        const startDate = document.getElementById('start').value;
-        const isEndDateDefined = document.getElementById('end').value;
-        let endDate = new Date(isEndDateDefined);
-        endDate.setUTCHours(23, 59, 59, 999);
-        let endDateString = endDate.toISOString().slice(0, 19) + '.999999999Z';
-
-        let command = '';
-        let dateError = false;
-        if(new Date(endDate).getTime() < new Date(startDate).getTime()){
-          errorToast('End date cannot be before start date');
-          dateError = true;
-        }
-        if(startDate && !dateError){
-          command += ' -start-date ' + startDate.toString();
-        }
-        if(isDateExclusiveChecked && !dateError){
-          command += ' -end-date ' + endDateString;
-        }
-        else if(isEndDateDefined && !dateError){
-          command += ' -end-date ' + isEndDateDefined.toString();
-        }
-
-        if(isDownstreamChecked && !dateError){
-          command += ' --downstream';
-        }
-        if(isFullRefreshChecked && !dateError){  
-          command += ' --full-refresh';
-        }
-        //runButton.innerHTML = 'Running...';
-        vscode.postMessage({
-            command: 'bruin.run',
-            text: command
-        });
-      }
-
-
-      const validateButton = document.getElementById('validateButton');
-      validateButton.addEventListener('click', validateSql);
-
-      function errorToast(message) {
-        const toastElement = document.getElementById('toast');
-          toastElement.innerHTML = message; 
-          toastElement.classList.add('show');
-          setTimeout(() => { toastElement.classList.remove('show'); }, 3000);
-      }
-      function validateSuccess(){
-        document.getElementById('validateButton').innerHTML = 'Validate ✅';
-        vscode.postMessage({
-          command: 'validateSuccess',
-        });
-      }
-      function showToast(message) {
-        document.getElementById('validateButton').innerHTML = 'Validate ❌';
-        const prefix = "Validation failed:";
-        let jsonContent = "";
-        if (message.startsWith(prefix)) {
-            try {
-                jsonContent = message.substring(prefix.length).trim();
-                const parsed = JSON.parse(jsonContent);
-                const pipeline = parsed[0]?.pipeline || "N/A";
-                const issues = JSON.stringify(parsed[0]?.issues || {}, null, 2); // Beautify the JSON
-                const htmlContent = '<div class="toastContent">' +
-                                        '<div class="toastTitle">Validation failed : <span class="pipelineName">' + pipeline + ' </span></div>' +
-                                        '<div class="toastDetails">Issues: <pre class="issues">' + issues + '</pre></div>' +
-                                    '</div>';
-                                message = htmlContent;
-            } catch (e) {
-                console.error("Error parsing JSON content:", e);
-                // Fallback to showing the original message
-            }
-        }
-
-       errorToast(message);
-      }
-      window.addEventListener('message', event => {
-          const message = event.data;
-          if (message.command === 'showToast') {
-              showToast(message.message);
-          }
-      });
-      window.addEventListener('message', event => {
-        const message = event.data;
-        if (message.command === 'validateSuccess') {
-          validateSuccess(message.message);
-        }
-    });
-    window.addEventListener('message', event => {
-      const message = event.data;
-      if (message.command === 'bruin.run') {
-        runSql(message.message);
-      }
-  });
-  
-  function copyToClipboard() {
-				navigator.clipboard.writeText(\`${encodeHTML(renderedSql)}\`).then(function() {
-					document.getElementById('copyIcon').style.display = 'none';
-					const copyFeedback = document.getElementById('copyFeedback');
-					copyFeedback.style.display = 'block';
-					
-					// Revert back to the icon after 2 seconds
-					setTimeout(() => {
-						copyFeedback.style.display = 'none';
-						document.getElementById('copyIcon').style.display = 'block';
-					}, 2000);
-				}, function(err) {
-					console.error('Could not copy text: ', err);
-				});
-			}
-
-		</script>
 	</body>
 	</html>
 	
 `;
   };
 
+
   private getErrorContent(errorMessage: string): string {
-    // Use encodeHTML for safe rendering
-    return `<!DOCTYPE html>...${encodeHTML(errorMessage)}`;
+    const cssUri = this.panel.webview.asWebviewUri(
+      vscode.Uri.joinPath(this.extensionUri, "styles", "style.css")
+    );
+    console.error(errorMessage);
+    return `<!DOCTYPE html> 
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https:; style-src 'unsafe-inline' https:; script-src 'unsafe-inline' https:; connect-src https:;">
+      <title>SQL Content</title>
+      <link rel="stylesheet" href="${cssUri}">
+    </head>
+    <body>
+      <p class="error-message">${encodeHTML(errorMessage)}</p>
+    </body>
+    </html>`;
   }
 }
