@@ -67,6 +67,16 @@
         "category": "Bruin",
         "icon": "$(rocket)",
         "description": "Render SQL to a Bruin data asset."
+      },
+      {
+        "command": "bruin.validate",
+        "title": "Validate Bruin asset",
+        "description": "Validate the current Bruin asset."
+      },
+      {
+        "command": "bruin.run",
+        "title": "Run Bruin asset",
+        "description": "Run the current Bruin asset."
       }
     ]
   },
