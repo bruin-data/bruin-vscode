@@ -2,6 +2,17 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.2.2] - [2024-03-22]
+
+## Added 
+- SQL validation functionality, providing a custom notification for validation results.
+- Running SQL with conditional flags.
+- Start and end date selectors for appending date conditions directly to the Bruin run command.
+- "exclusive end date" checkbox, automatically adjusting the end date to the end of the selected day.
+
+## Fixed 
+- Auto folding problem, when changing the active text editor 
+
 ## [0.1.2] - [2024-03-13]
 
 ## Fixed
