@@ -22,42 +22,11 @@
 				display: none;
 				color: var(--vscode-editor-foreground);
 			}
-      .toast {
-        color: rgb(101, 57, 61);
-        background-color: rgba(250, 150, 158, 0.879);
-        border-color: rgb(247, 138, 149);
-        border: 1px solid;
-        text-align: center;
-        border-radius: 2px;
-        padding: 4px;
-        z-index: 1;
-        display: none;
-        transition: opacity 0.5s linear;
-    }
-    .toast.show {
-        display: block;
-    }
-    
-    .toastContent {
-      padding: 10px;
-  }
-  .toastTitle {
-      font-weight: bold;
-      margin-bottom: 5px;
-      color: rgba(177, 25, 25, 0.847);
-  }
-  .toastDetails {
-      font-size: 0.9em;
-      margin-top: 5px;
-      display: flex;
-      flex-direction: column;
-  }
+  
   .pipelineName {
       color: #0b3f0d; /* Green */
   }
-  .issues {
-      color: #F44336; /* Red */
-  }
+
     
   .runOptions {
     display: flex;
@@ -122,6 +91,30 @@ input[type="checkbox"]:focus {
     width: 150px; 
 }
 
+.toast.show {
+    display: block;
+}
+
+.toastContent {
+    padding: 10px;
+    overflow: hidden;
+}
+
+.toastTitle {
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: rgba(177, 25, 25, 0.847);
+}
+
+.toastDetails {
+    font-size: 0.9em;
+    margin-top: 5px;
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+    max-height: 100px; 
+}
+
 .error-message {
     color: #D8000C; 
     background-color: #FFD2D2; 
@@ -133,4 +126,19 @@ input[type="checkbox"]:focus {
     border-left: 3px solid #D8000C; 
     border-radius: 5px; 
     font-family: Arial, sans-serif; 
+    overflow: hidden;
+}
+
+.toggleDetails {
+    cursor: pointer;
+    color: #00529B;
+    margin-top: 5px;
+}
+
+.issues {
+    white-space: pre-wrap; 
+    word-wrap: break-word;
+    font-family: monospace; 
+    max-width: 100%;
+    text-align: left;
 }

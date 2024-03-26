@@ -2,6 +2,12 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+
+## [0.2.5] - [2024-03-26]
+
+## Fixed 
+	- Fix validation error message formatting and handling.
+
 ## [0.2.4] - [2024-03-22]
 
 ## Fixed 
