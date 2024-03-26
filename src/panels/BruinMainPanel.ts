@@ -108,7 +108,6 @@ export class BruinMainPanel {
       async (message) => {
         switch (message.command) {
           case "bruin.validate":
-            console.debug("Validating SQL command.");
             if (!this.lastRenderedDocumentUri) {
               console.error("No active document to validate.");
               return;
@@ -120,16 +119,22 @@ export class BruinMainPanel {
             )
               .then(({ stdout, stderr }) => {
                 if (stderr) {
-                  //console.error(`Error validating SQL command: ${stdout}`);
-                  //console.debug(stderr);
+                  this.panel.webview.postMessage({
+                    command: "showToast",
+                    message: `Validation failed: ${stderr}`,
+                  });
+                  return;
+                }
+                const output = JSON.parse(stdout as string);
+                const issues = output[0]?.issues;
+                if(Object.keys(issues).length !== 0){
+                  console.log(issues);
                   this.panel.webview.postMessage({
                     command: "showToast",
                     message: `Validation failed: ${stdout}`,
                   });
                   return;
                 }
-                console.debug(stdout);
-
                 this.panel.webview.postMessage({
                   command: "validateSuccess",
                   message: "",
@@ -145,7 +150,15 @@ export class BruinMainPanel {
             if (!this.lastRenderedDocumentUri || !message.text) {
               return;
             }
-              this.runInIntegratedTerminal(this.lastRenderedDocumentUri?.fsPath || "", message.text);
+               this.runInIntegratedTerminal(this.lastRenderedDocumentUri?.fsPath || "", message.text);
+
+              setTimeout(() => {
+                this.panel.webview.postMessage({
+                  command: "runCompleted",
+                  message: "",
+                });
+              }
+              , 1500);
             break;
         }
       },
@@ -163,18 +176,20 @@ export class BruinMainPanel {
   }
 
   // Run the RUN SQL command in the integrated terminal
-  private runInIntegratedTerminal= (assetPath: string, flags?: string) =>{
+  private runInIntegratedTerminal= async(assetPath: string, flags?: string) =>{
+    const command = `${BRUIN_RUN_SQL_COMMAND} ${flags} ${assetPath}`;
+
     const terminalName = "Bruin Terminal";
     let terminal = vscode.window.terminals.find(t => t.name === terminalName);
     if (!terminal) {
         terminal = vscode.window.createTerminal(terminalName);
     }
     terminal.show(true); 
-    terminal.sendText(`${BRUIN_RUN_SQL_COMMAND} ${flags} ${assetPath}`, true); 
-    
+    terminal.sendText(command);
+    await new Promise(resolve => setTimeout(resolve, 1000));
   };
 
-
+  
   private update() {
     const activeEditor = vscode.window.activeTextEditor;
     const themeKind = vscode.window.activeColorTheme.kind;
@@ -268,16 +283,27 @@ export class BruinMainPanel {
           document.getElementById('start').value = toLocalDateTimeFormat(startOfYesterday);
           document.getElementById('end').value = toLocalDateTimeFormat(endOfYesterday);
         });
-
+      function loading(id){
+        switch(id){
+          case 'validate':
+            document.getElementById('validateButton').disabled = true;
+            document.getElementById('validateButton').innerHTML = 'Validating...';
+            break;
+          case 'run':
+            document.getElementById('runButton').disabled = true;
+            document.getElementById('runButton').innerHTML = 'Running...';
+            break;
+        }
+      }
       function validateSql() {
-        //document.getElementById('validateButton').innerHTML = 'Loading...';
+        loading('validate');
         vscode.postMessage({
             command: 'bruin.validate',
             text: 'Validate SQL command executed.'
         });
       }
       function runSql() {
-        const runButton = document.getElementById('runButton');
+        loading('run');
         const isDownstreamChecked = document.getElementById('downstream').checked;
         const isFullRefreshChecked = document.getElementById('fullRefresh').checked;
         const isDateExclusiveChecked = document.getElementById('dateExclusive').checked;
@@ -326,6 +352,10 @@ export class BruinMainPanel {
       function validateSuccess(){
           document.getElementById('validateButton').innerHTML = 'Validate ✅';
         }
+      function runCompleted(){
+          document.getElementById('runButton').innerHTML = 'Run';
+        }
+
 
       function showToast(message) {
         document.getElementById('validateButton').innerHTML = 'Validate ❌';
@@ -336,11 +366,17 @@ export class BruinMainPanel {
                 jsonContent = message.substring(prefix.length).trim();
                 const parsed = JSON.parse(jsonContent);
                 const pipeline = parsed[0]?.pipeline || "N/A";
-                const issues = JSON.stringify(parsed[0]?.issues || {}, null, 2); // Beautify the JSON
-                const htmlContent = '<div class="toastContent">' +
-                                        '<div class="toastTitle">Validation failed : <span class="pipelineName">' + pipeline + ' </span></div>' +
-                                        '<div class="toastDetails">Issues: <pre class="issues">' + issues + '</pre></div>' +
-                                    '</div>';
+                const issues = JSON.stringify(parsed[0]?.issues || {}, null, 2);
+                const htmlContent = '<div class="error-message">'+
+                                      '<div class="toastContent">'+
+                                          '<div class="toastTitle">Validation failed: <span class="pipelineName">'+ pipeline +'</span></div>'+
+                                          '<div class="toastDetails" id="errorDetails" style="display: none;">'+
+                                              '<pre class="issues">'+ issues + '</pre>'+
+                                          '</div>'+
+                                          '<div class="toggleDetails" onclick="toggleErrorDetails()">▼ Show Details</div>'+
+                                      '</div>'+
+                                  '</div>'
+                                  ;
                                 message = htmlContent;
             } catch (e) {
                 console.error("Error parsing JSON content:", e);
@@ -357,6 +393,9 @@ export class BruinMainPanel {
           case 'validateSuccess':
             validateSuccess();
             break;
+          case 'runCompleted':  
+            runCompleted();
+            break;
 
           case 'showToast':
             showToast(message.message);
@@ -367,7 +406,19 @@ export class BruinMainPanel {
             break;
         }
     });
-  
+          
+    function toggleErrorDetails() {
+          const details = document.getElementById("errorDetails");
+          const toggleButton = document.querySelector(".toggleDetails");
+          if (details.style.display === "none") {
+              details.style.display = "block";
+              toggleButton.textContent = "▲ Hide Details";
+          } else {
+              details.style.display = "none";
+              toggleButton.textContent = "▼ Show Details";
+          }
+      }
+
   function copyToClipboard() {
         const text = document.querySelector('code').innerText;
 				navigator.clipboard.writeText(text).then(function() {
