@@ -67,35 +67,34 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: 0.2.4
-
-- **Fix**: 
-	- Fixed the rendering problems with some assets.
-	- Fixed the error message triigerd for broken assets 
-
+### Latest Release: 0.2.5
+- Fixed validation error message formatting and handling.
 
 ### Previous Highlights
 
-#### 0.2.2
-- **New**: Integrated SQL validation functionality, providing a custom notification for validation results.
-- **New**: Support for running SQL with conditional flags.
-- **New**: Added start and end date selectors for appending date conditions directly to the Bruin run command.
-- **New**: Incorporated the "exclusive end date" checkbox, automatically adjusting the end date to the end of the selected day.
+### 0.2.4
+- Fixed the rendering problems with some assets.
+- Fixed the error message triigerd for broken assets 
 
-- **Fix**: Fixed the auto folding problem, when changing the active text editor.
+### 0.2.3
+- Fixed the css problem.
+
+#### 0.2.2
+- Integrated SQL validation functionality, providing a custom notification for validation results.
+- Support for running SQL with conditional flags.
+- Added start and end date selectors for appending date conditions directly to the Bruin run command.
+- Incorporated the "exclusive end date" checkbox, automatically adjusting the end date to the end of the selected day.
+- Fixed the auto folding problem, when changing the active text editor.
 
 
 #### 0.1.2
-- Settings for auto-folding! Users can now specify their preferred default folding state for Bruin regions.
-- Addressed compatibility issues with the Pylance extension affecting auto-folding behavior.
+- Added auto-folding settings and resolved compatibility issues with the Pylance extension.
 
 #### 0.1.1
-- Minor bug fixes.
+- General bug fixes.
 
 #### 0.1.0
-- Introduced Python syntax coloring for Bruin code blocks.
-- Added code folding support for Bruin code regions in SQL and Python files.
-- Implemented the Dynamic SQL Content Viewer for previewing and copying SQL content.
+- Launched with syntax coloring, code folding, and the dynamic SQL content viewer.
 
 
 ### How to Update
