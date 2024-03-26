@@ -26,7 +26,7 @@ export class BruinMainPanel {
       : undefined;
 
     if (BruinMainPanel.currentPanel) {
-      BruinMainPanel.currentPanel.panel.reveal(columnToShowIn );
+      BruinMainPanel.currentPanel.panel.reveal(columnToShowIn);
       return;
     }
 
@@ -58,10 +58,6 @@ export class BruinMainPanel {
   ) {
     this.panel = panel;
     this.extensionUri = extensionUri;
-    const uri = vscode.Uri.joinPath(extensionUri);
-    vscode.workspace.openTextDocument(uri).then((doc) => {
-      vscode.window.showTextDocument(doc, vscode.ViewColumn.One);
-    });
 
     // Set the icon path
     const iconPath = vscode.Uri.joinPath(
@@ -83,13 +79,14 @@ export class BruinMainPanel {
           event.document.uri.toString() ===
           vscode.window.activeTextEditor?.document.uri.toString()
         ) {
+          this.refreshContent();
           this.update();
         }
       }
     );
 
     const changeFileDisposable = vscode.window.onDidChangeActiveTextEditor(
-      async (event) => {
+       () => {
         const activeEditor = vscode.window.activeTextEditor;
         if (panel && activeEditor) {
           this.update();
@@ -174,7 +171,10 @@ export class BruinMainPanel {
 
     this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
   }
-
+  private refreshContent() {
+    this.panel.webview.postMessage({ command: 'resetUI' });
+  }
+  
   // Run the RUN SQL command in the integrated terminal
   private runInIntegratedTerminal= async(assetPath: string, flags?: string) =>{
     const command = `${BRUIN_RUN_SQL_COMMAND} ${flags} ${assetPath}`;
@@ -189,14 +189,14 @@ export class BruinMainPanel {
     await new Promise(resolve => setTimeout(resolve, 1000));
   };
 
-  
+
   private update() {
     const activeEditor = vscode.window.activeTextEditor;
     const themeKind = vscode.window.activeColorTheme.kind;
     this.lastRenderedDocumentUri = activeEditor?.document.uri;
-    if (activeEditor && isFileExtensionSQL(activeEditor.document.fileName)) {
+    if (activeEditor && isFileExtensionSQL(activeEditor.document.fileName )) {
       commandExecution(
-        `${BRUIN_RENDER_SQL_COMMAND} ${activeEditor.document.fileName}`
+        `${BRUIN_RENDER_SQL_COMMAND} ${activeEditor?.document.fileName}`
       )
         .then(({ stdout, stderr }) => {
           this.panel.webview.html = stderr
@@ -359,6 +359,10 @@ export class BruinMainPanel {
 
       function showToast(message) {
         document.getElementById('validateButton').innerHTML = 'Validate ❌';
+        const errorMessageElement = document.getElementById('toast'); 
+        errorMessageElement.style.display = 'block';
+        errorMessageElement.classList.add('show');
+
         const prefix = "Validation failed:";
         let jsonContent = "";
         if (message.startsWith(prefix)) {
@@ -367,7 +371,7 @@ export class BruinMainPanel {
                 const parsed = JSON.parse(jsonContent);
                 const pipeline = parsed[0]?.pipeline || "N/A";
                 const issues = JSON.stringify(parsed[0]?.issues || {}, null, 2);
-                const htmlContent = '<div class="error-message">'+
+                const htmlContent = '<div id="errorMessage" class="error-message">'+
                                       '<div class="toastContent">'+
                                           '<div class="toastTitle">Validation failed: <span class="pipelineName">'+ pipeline +'</span></div>'+
                                           '<div class="toastDetails" id="errorDetails" style="display: none;">'+
@@ -404,6 +408,15 @@ export class BruinMainPanel {
           case 'bruin.run':
             runSql(message.message);
             break;
+          
+            case 'resetUI':
+              document.getElementById('validateButton').disabled = false;
+              document.getElementById('validateButton').innerHTML = 'Validate';
+              
+              const errorMessageElement = document.getElementById('toast'); 
+              errorMessageElement.style.display = 'none';
+              errorMessageElement.classList.remove('show');
+              break;
         }
     });
           

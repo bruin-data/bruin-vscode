@@ -91,7 +91,6 @@ input[type="checkbox"]:focus {
     width: 150px; 
 }
 
-
 .toast.show {
     display: block;
 }
