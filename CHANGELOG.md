@@ -3,6 +3,12 @@
 All notable changes to the Bruin extension will be documented in this file.
 
 
+## [0.3.0] - [2024-03-27]
+
+## Added 
+	- Windows compatibility.
+	- Functionality for automatic detection of the workspace directory in Bruin projects.
+
 ## [0.2.5] - [2024-03-26]
 
 ## Fixed 

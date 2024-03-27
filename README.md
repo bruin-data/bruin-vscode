@@ -34,6 +34,8 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ![Screenshot of SQL Validation and Execution](https://github.com/bruin-data/bruin-vscode/blob/main/screenshots/validation-and-execution.gif?raw=true)
 
+**Cross-Platform Support**: The extension operates flawlessly across Windows, Linux, and macOS, ensuring a consistent development experience for all user.
+
 ## Installation
 
 1. Open Visual Studio Code.
@@ -67,10 +69,15 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: 0.2.5
-- Fixed validation error message formatting and handling.
+### Latest Release: 0.3.0
+
+- Implemented Windows compatibility.
+- Added functionality for automatic detection of the workspace directory in Bruin projects.
 
 ### Previous Highlights
+
+### 0.2.5
+- Fixed validation error message formatting and handling.
 
 ### 0.2.4
 - Fixed the rendering problems with some assets.
