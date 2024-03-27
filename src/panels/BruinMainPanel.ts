@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import {
+  bruinWorkspaceDirectory,
   commandExecution,
   encodeHTML,
   isFileExtensionSQL,
@@ -58,7 +59,6 @@ export class BruinMainPanel {
   ) {
     this.panel = panel;
     this.extensionUri = extensionUri;
-
     // Set the icon path
     const iconPath = vscode.Uri.joinPath(
       extensionUri,
@@ -110,9 +110,10 @@ export class BruinMainPanel {
               return;
             }
             const filePath = this.lastRenderedDocumentUri.fsPath;
+            const bruinWorkspaceDir = bruinWorkspaceDirectory(filePath || "");
             commandExecution(
               `${BRUIN_VALIDATE_SQL_COMMAND} -o json ${filePath}`,
-              vscode.workspace.workspaceFolders?.[0].uri.fsPath
+                bruinWorkspaceDir
             )
               .then(({ stdout, stderr }) => {
                 if (stderr) {
@@ -147,8 +148,9 @@ export class BruinMainPanel {
             if (!this.lastRenderedDocumentUri || !message.text) {
               return;
             }
-               this.runInIntegratedTerminal(this.lastRenderedDocumentUri?.fsPath || "", message.text);
-
+              const fPath = this.lastRenderedDocumentUri?.fsPath || "";
+              this.runInIntegratedTerminal(fPath, bruinWorkspaceDirectory(fPath),  message.text);
+              console.log("workspace directory: ", bruinWorkspaceDirectory(fPath));
               setTimeout(() => {
                 this.panel.webview.postMessage({
                   command: "runCompleted",
@@ -176,13 +178,13 @@ export class BruinMainPanel {
   }
   
   // Run the RUN SQL command in the integrated terminal
-  private runInIntegratedTerminal= async(assetPath: string, flags?: string) =>{
-    const command = `${BRUIN_RUN_SQL_COMMAND} ${flags} ${assetPath}`;
+  private runInIntegratedTerminal= async(assetPath: string, workingDir: string | undefined, flags?: string) =>{
+    const command = `bruin ${BRUIN_RUN_SQL_COMMAND} ${flags} ${assetPath}`;
 
     const terminalName = "Bruin Terminal";
     let terminal = vscode.window.terminals.find(t => t.name === terminalName);
     if (!terminal) {
-        terminal = vscode.window.createTerminal(terminalName);
+        terminal = vscode.window.createTerminal({ cwd: workingDir, name: terminalName});
     }
     terminal.show(true); 
     terminal.sendText(command);

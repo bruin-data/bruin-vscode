@@ -8,13 +8,14 @@ const bruinDelimiterRegex : BruinDelimiters = {
 };
 
 const BRUIN_WHICH_COMMAND= 'which bruin';
+const BRUIN_WHERE_COMMAND = 'where bruin';
 const BRUIN_RENDER_SQL_ID = 'bruin.renderSQL';
-const BRUIN_RENDER_SQL_COMMAND = 'bruin render';
-const BRUIN_HELP_COMMAND = 'bruin --help';
+const BRUIN_RENDER_SQL_COMMAND = 'render';
+const BRUIN_HELP_COMMAND = '--help';
 const BRUIN_HELP_ID = 'bruin.help';
-const BRUIN_VALIDATE_SQL_COMMAND = 'bruin validate';
+const BRUIN_VALIDATE_SQL_COMMAND = 'validate';
 const BRUIN_VALIDATE_SQL_ID = 'bruin.validate';
-const BRUIN_RUN_SQL_COMMAND = 'bruin run';
+const BRUIN_RUN_SQL_COMMAND = 'run';
 const BRUIN_RUN_SQL_ID= 'bruin.run';
 
 export { 
@@ -27,5 +28,6 @@ export {
     BRUIN_VALIDATE_SQL_COMMAND,
     BRUIN_VALIDATE_SQL_ID,
     BRUIN_RUN_SQL_COMMAND,
-    BRUIN_RUN_SQL_ID
+    BRUIN_RUN_SQL_ID,
+    BRUIN_WHERE_COMMAND
 };
