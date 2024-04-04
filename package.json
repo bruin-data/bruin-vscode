@@ -2,25 +2,25 @@
   "name": "bruin",
   "displayName": "Bruin",
   "description": "Manage your Bruin data assets from within VS Code.",
-  "version": "0.2.6",
+  "version": "0.0.1",
   "engines": {
     "vscode": "^1.87.0"
   },
+  "icon": "img/bruin-logo-sm128.png",
   "categories": [
     "Data Science",
     "Formatters"
   ],
-  "icon": "img/bruin-logo-sm128.png",
-  "activationEvents": [
-    "onLanguage:python",
-    "onLanguage:sql"
-  ],
-  "main": "./out/extension.js",
+  "main": "./out/extension/extension.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/bruin-data/bruin-vscode"
   },
   "publisher": "bruin",
+  "activationEvents": [
+    "workspaceContains:.bruin.yml",
+    "workspaceContains:pipeline.yml"
+  ],
   "contributes": {
     "configuration": {
       "properties": {
@@ -81,33 +81,31 @@
     ]
   },
   "scripts": {
+    "install:all": "npm install && cd webview-ui && npm install",
+    "start:webview": "cd webview-ui && npm run start",
+    "build:webview": "cd webview-ui && npm run build-only",
     "vscode:prepublish": "npm run compile",
-    "clean": "rimraf out",
-    "precompile": "npm run clean",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
+    "format": "prettier --write src/**/*.ts",
     "pretest": "npm run compile && npm run lint",
-    "lint": "eslint src --ext ts",
-    "test": "vscode-test"
+    "lint": "eslint src --ext ts"
   },
   "devDependencies": {
-    "@types/chai": "^4.3.14",
     "@types/mocha": "^10.0.6",
-    "@types/node": "^18.19.22",
+    "@types/node": "^20.11.30",
     "@types/sinon": "^17.0.3",
-    "@types/vscode": "^1.87.0",
-    "@typescript-eslint/eslint-plugin": "^7.0.2",
-    "@typescript-eslint/parser": "^7.0.2",
-    "@vscode/test-cli": "^0.0.6",
-    "@vscode/test-electron": "^2.3.9",
-    "eslint": "^8.56.0",
-    "rimraf": "^5.0.5",
-    "typescript": "^5.3.3"
+    "@types/vscode": "^1.46.0",
+    "@typescript-eslint/eslint-plugin": "^7.3.1",
+    "@typescript-eslint/parser": "^7.3.1",
+    "eslint": "^8.57.0",
+    "prettier": "^3.2.5",
+    "typescript": "^5.4.3",
+    "vscode-test": "^1.6.1"
   },
   "dependencies": {
-    "@vscode/webview-ui-toolkit": "^1.4.0",
-    "chai": "^4.3.14",
-    "proxyquire": "^2.1.3",
+    "all": "^0.0.0",
+    "mocha": "^10.4.0",
     "sinon": "^17.0.1"
   }
 }

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { getLanguageDelimiters } from '../utils/delimiters';
+import { getLanguageDelimiters } from '../utilities/delimiters';
 
 
 export const bruinFoldingRangeProvider  = (

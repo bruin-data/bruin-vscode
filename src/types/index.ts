@@ -5,3 +5,8 @@ export type BruinDelimiters = {
     sqlEndDelimiter: RegExp;
 };
 
+export type BruinCommandOptions = {
+    flags?: string[];
+    ignoresErrors?: boolean;
+  };
+  
