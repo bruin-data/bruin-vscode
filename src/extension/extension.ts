@@ -43,13 +43,13 @@ export function activate(context: ExtensionContext) {
       ) {
         BruinPanel.render(context.extensionUri);
 
-        const bruinRenderer = new BruinRender(
+        const bruinSqlRenderer = new BruinRender(
           getDefaultBruinExecutablePath(),
           workspace.workspaceFolders?.[0].uri.fsPath!!
         );
 
         const filePath = window.activeTextEditor.document.fileName;
-        await bruinRenderer.render(filePath);
+        await bruinSqlRenderer.render(filePath);
       }
     })
   );

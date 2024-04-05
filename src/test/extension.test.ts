@@ -161,8 +161,8 @@ suite("Folding Range Provider Test Suite", () => {
         "        - name: accepted_values",
         "          value: [1, 2]",
         "@bruin */
-        //",
-        /*
+//",
+/*
       ],
       expectedStart: 0,
       expectedEnd: 15,

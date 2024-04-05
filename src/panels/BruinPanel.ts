@@ -21,7 +21,7 @@ export class BruinPanel {
   private readonly _panel: WebviewPanel;
   private _disposables: Disposable[] = [];
   private _lastRenderedDocumentUri: Uri | undefined;
-
+  
   /**
    * The BruinPanel class private constructor (called only from the render method).
    *

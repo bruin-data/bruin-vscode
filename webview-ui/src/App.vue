@@ -5,6 +5,7 @@
     </div>
     <div v-show="!errorMessage">
       <br />
+      
       <Button
         @click="handleBruinValidate"
         variant="secondary"
@@ -30,6 +31,7 @@ import Error from "@/components/Error.vue";
 import '@/assets/index.css';
 
 import Button from "@/components/ui/button/Button.vue";
+
 provideVSCodeDesignSystem().register(allComponents);
 
 function handleBruinValidate() {

@@ -7,7 +7,6 @@ import hljsVuePlugin from '@highlightjs/vue-plugin';
 
 const app = createApp(App)
 
-// Register the JavaScript language
 hljs.registerLanguage('sql', sql);
 app.use(hljsVuePlugin);
 
