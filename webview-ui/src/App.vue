@@ -1,9 +1,9 @@
 <template>
   <main>
     <div v-show="errorMessage">
-      <Error :errorMessage="errorMessage"/>
+      <ErrorAlert :errorMessage="errorMessage"/>
     </div>
-    <div v-show="!errorMessage">
+    <div>
       <br />
       
       <Button
@@ -27,7 +27,7 @@
 import { allComponents, provideVSCodeDesignSystem } from "@vscode/webview-ui-toolkit";
 import { vscode } from "@/utilities/vscode";
 import { onBeforeUnmount, onMounted, ref } from "vue";
-import Error from "@/components/Error.vue";
+import  ErrorAlert from "@/components/ErrorAlert.vue";
 import '@/assets/index.css';
 
 import Button from "@/components/ui/button/Button.vue";
