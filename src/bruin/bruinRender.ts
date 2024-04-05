@@ -13,11 +13,11 @@ export class BruinRender extends BruinCommand {
   ) {
     await this.run([filePath, ...flags], { ignoresErrors }).then(
       (sqlRendered) => {
-        BruinPanel.currentPanel?.postMessage("message", sqlRendered);
+        BruinPanel.currentPanel?.postMessage("render-success", sqlRendered);
       },
       (error) => {
         console.debug(error);
-        BruinPanel.currentPanel?.postMessage("errorMessage", error);
+        BruinPanel.currentPanel?.postMessage("render-error", error);
       }
     );
   }

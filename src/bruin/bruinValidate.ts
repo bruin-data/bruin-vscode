@@ -18,10 +18,10 @@ export class BruinValidate extends BruinCommand {
   ) {
     await this.run([filePath, ...flags], { ignoresErrors })
       .then((result) => {
-        BruinPanel.currentPanel?.postMessage("message", result);
+        BruinPanel.currentPanel?.postMessage("validation-success", result);
       })
       .catch((err) => {
-        BruinPanel.currentPanel?.postMessage("errorMessage", err);
+        BruinPanel.currentPanel?.postMessage("validation-error", err);
       });
   }
 }

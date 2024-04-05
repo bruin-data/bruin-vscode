@@ -1,7 +1,7 @@
 <template>
   <main>
-    <div v-show="errorMessage">
-      <ErrorAlert :errorMessage="errorMessage"/>
+    <div v-show="validationError">
+      <ErrorAlert :errorMessage="validationError"/>
     </div>
     <div>
       <br />
@@ -16,7 +16,7 @@
       <div class="p">
       <highlightjs
         language="sql"
-        :code="message"
+        :code="renderSuccess"
       />
     </div>
     </div>
@@ -37,12 +37,14 @@ provideVSCodeDesignSystem().register(allComponents);
 function handleBruinValidate() {
   vscode.postMessage({
     command: "bruin.validate",
-    text: "",
   });
 }
 
-const message = ref(null);
-const errorMessage = ref(null);
+const validationSuccess = ref(null);
+const validationError = ref(null);
+const renderSuccess = ref(null);
+const renderError = ref(null);
+
 
 onMounted(() => {
   window.addEventListener('message', receiveMessage);
@@ -57,24 +59,23 @@ function receiveMessage(event: { data: any; }) {
 
   const envelope = event.data;
   switch (envelope.command) {
-    case 'message':
-      handleMessage(envelope.payload);
+    case 'validation-success':
+      validationSuccess.value = envelope.payload;
+      validationError.value = null;
       break;
-    case 'errorMessage':
-      handleError(envelope.payload);
+    case 'validation-error':
+      validationError.value = envelope.payload;
+      validationSuccess.value = null;
+      break;
+    case 'render-success':
+    renderSuccess.value = envelope.payload;
+      break;
+    case 'render-error':
+    renderError.value = envelope.payload;
       break;
   }
 }
 
-function handleMessage(payload: any) {
-  errorMessage.value = null;
-  message.value = payload;
-}
-
-function handleError(payload: any) {
-  message.value = null;
-  errorMessage.value = payload;
-}
 
 </script>
 
