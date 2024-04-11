@@ -14,7 +14,7 @@
 </template>
 
 <script setup>
-import IConButton from "@/components/IconButton.vue";
+import IConButton from "@/components/ui/buttons/IconButton.vue";
 const props = defineProps({
   code: String | undefined,
 });

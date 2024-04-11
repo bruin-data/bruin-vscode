@@ -1,17 +1,12 @@
 <template>
   <div class="flex flex-col p-4 space-y-4">
     <div class="flex flex-col space-y-1">
-      <div class="flex flex-wrap mx-2 my-2">
+      <div class="flex flex-wrap my-2">
         <DateInput class="px-2 w-full sm:w-1/2" label="Start Date" v-model="startDate" />
         <DateInput class="px-2 w-full sm:w-1/2" label="End Date" v-model="endDate" />
       </div>
-      <div class="flex flex-wrap space-x-4">
-        <vscode-checkbox v-for="(item, index) in checkboxItems" autofocus
-          :key="index" 
-          @change="handleCheckboxChange(item, $event)"
-          :checked="item.checked">
-          {{ item.name }}
-        </vscode-checkbox>
+      <div>
+        <CheckboxGroup :checkboxItems="checkboxItems" />
       </div>
     </div>
     <div class="flex justify-end space-x-4">
@@ -35,9 +30,10 @@ import { vscode } from "@/utilities/vscode";
 import { onBeforeUnmount, onMounted, ref } from "vue";
 import ErrorAlert from "@/components/ErrorAlert.vue";
 import "@/assets/index.css";
-import CommandButton from "@/components/CommandButton.vue";
+import CommandButton from "@/components/ui/buttons/ActionButton.vue";
 import DateInput from "@/components/DateInput.vue";
 import SqlEditor from "@/components/SqlEditor.vue";
+import CheckboxGroup from "@/components/CheckboxGroup.vue";
 
 provideVSCodeDesignSystem().register(allComponents);
 
@@ -63,7 +59,7 @@ function runSql() {
       startDate: startDate.value,
       endDate: endDate.value,
       checkboxes: checkboxItems.value.filter((item) => item.checked).map((item) => item.name),
-    },  
+    },
   });
 }
 const today = new Date().toISOString().split("T")[0];
@@ -72,9 +68,7 @@ const checkboxItems = ref([
   { name: "Full-Refresh", checked: false },
   { name: "Exclusive-End-Date", checked: false },
 ]);
-function handleCheckboxChange(item: { name: string; checked: boolean }, event: { target: { checked: boolean } }) {
-  item.checked = event.target.checked;
-}
+
 const validationSuccess = ref(null);
 const validationError = ref(null);
 const renderSuccess = ref(null);

@@ -1,0 +1,23 @@
+<template>
+      <div class="flex flex-wrap mx-2">
+        <vscode-checkbox v-for="(item, index) in props.checkboxItems" autofocus
+          :key="index" 
+          @change="handleCheckboxChange(item, $event)"
+          :checked="item.checked">
+          {{ item.name }}   
+        </vscode-checkbox>
+
+    </div>
+</template>
+<script setup lang="ts">
+type CheckboxItems = {
+    name: string;
+    checked: boolean;
+};
+const props = defineProps<{
+    checkboxItems: CheckboxItems[];
+}>();
+function handleCheckboxChange(item: any, event: any) {
+    item.checked = event.target.checked;
+}
+</script>
