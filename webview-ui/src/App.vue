@@ -1,8 +1,8 @@
 <template>
   <div class="flex flex-col p-4 space-y-4">
-    <div class="flex flex-col space-y-1">
-      <div class="flex flex-wrap my-2">
-        <DateInput class="px-2 w-full sm:w-1/2" label="Start Date" v-model="startDate" />
+    <div class="flex flex-col space-y-3">
+      <div class="flex flex-wrap gap-y-4">
+        <DateInput class="px-2 w-full sm:w-1/2" label="Start Date" v-model="startDate"/>
         <DateInput class="px-2 w-full sm:w-1/2" label="End Date" v-model="endDate" />
       </div>
       <div>
@@ -19,8 +19,8 @@
       >
       <CommandButton @click="runSql" BGColor="bg-green-500">Run</CommandButton>
     </div>
-    <SqlEditor :code="renderSuccess" />
     <ErrorAlert v-if="handleError()?.errorCaptured" :errorMessage="handleError()?.errorMessage!" />
+    <SqlEditor :code="renderSuccess" />
   </div>
 </template>
 
@@ -59,7 +59,6 @@ function runSql() {
     payload: concatCommandFlags(startDate.value, endDate.value, checkboxItems.value)
   });
 }
-const today = new Date().toISOString().split("T")[0];
 const checkboxItems = ref([
   { name: "Downstream", checked: false },
   { name: "Full-Refresh", checked: false },
@@ -71,8 +70,12 @@ const validationError = ref(null);
 const renderSuccess = ref(null);
 const renderError = ref(null);
 const validateButtonStatus = ref("" as "validated" | "failed" | null);
-const startDate = ref(today);
-const endDate = ref(today);
+const tzoffset = (new Date()).getTimezoneOffset() * 60000; //offset in milliseconds
+const startDateTime = ref((new Date(Date.now() - tzoffset)).toISOString().slice(0, -1));
+const endDateTime = ref((new Date(Date.now() - tzoffset)).toISOString().slice(0, -1));
+
+const startDate = ref(startDateTime);
+const endDate = ref(endDateTime);
 onMounted(() => {
   window.addEventListener("message", receiveMessage);
 });
