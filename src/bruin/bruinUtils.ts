@@ -1,10 +1,10 @@
-import { BRUIN_WHICH_COMMAND } from "../constants";
+import { BRUIN_RUN_SQL_COMMAND, BRUIN_WHICH_COMMAND } from "../constants";
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 import * as child_process from "child_process";
 import * as fs from "fs";
 import * as path from "path";
-
+import * as vscode from "vscode";
 export const isBruinBinaryAvailable = (): boolean => {
   try {
     let output = child_process.execSync(BRUIN_WHICH_COMMAND);
@@ -53,4 +53,17 @@ export const bruinWorkspaceDirectory = (fsPath: string): string | undefined => {
   } while (++iteration < maxIterations && dirname !== "" && dirname !== "/");
 
   return undefined;
+};
+
+export const runInIntegratedTerminal= async(assetPath: string, workingDir: string | undefined, flags?: string) =>{
+  const command = `bruin ${BRUIN_RUN_SQL_COMMAND} ${flags} ${assetPath}`;
+
+  const terminalName = "Bruin Terminal";
+  let terminal = vscode.window.terminals.find(t => t.name === terminalName);
+  if (!terminal) {
+      terminal = vscode.window.createTerminal({ cwd: workingDir, name: terminalName});
+  }
+  terminal.show(true); 
+  terminal.sendText(command);
+  await new Promise(resolve => setTimeout(resolve, 1000));
 };

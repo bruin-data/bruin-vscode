@@ -34,7 +34,7 @@ import CommandButton from "@/components/ui/buttons/ActionButton.vue";
 import DateInput from "@/components/DateInput.vue";
 import SqlEditor from "@/components/SqlEditor.vue";
 import CheckboxGroup from "@/components/CheckboxGroup.vue";
-
+import { concatCommandFlags } from "./utilities/helper";
 provideVSCodeDesignSystem().register(allComponents);
 
 function handleBruinValidate() {
@@ -53,18 +53,15 @@ function handleError() {
 }
 
 function runSql() {
+  console.log("Running SQL");
   vscode.postMessage({
-    command: "bruin.run",
-    payload: {
-      startDate: startDate.value,
-      endDate: endDate.value,
-      checkboxes: checkboxItems.value.filter((item) => item.checked).map((item) => item.name),
-    },
+    command: "bruin.runSql",
+    payload: concatCommandFlags(startDate.value, endDate.value, checkboxItems.value)
   });
 }
 const today = new Date().toISOString().split("T")[0];
 const checkboxItems = ref([
-  { name: "Downstearm", checked: false },
+  { name: "Downstream", checked: false },
   { name: "Full-Refresh", checked: false },
   { name: "Exclusive-End-Date", checked: false },
 ]);
@@ -109,6 +106,17 @@ function receiveMessage(event: { data: any }) {
       renderError.value = envelope.payload;
       renderSuccess.value = null;
       break;
+    
+      case "run-success":
+      console.log("Run success");
+      [renderError, validationError, validationSuccess, validateButtonStatus].forEach(
+        (state) => (state.value = null)
+      );
+      break;
+    case "run-error":
+      console.log("Run error");
+      break;
+
   }
 }
 </script>

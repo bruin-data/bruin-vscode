@@ -13,6 +13,7 @@ export const isFileExtensionSQL = (fileName: string): boolean => {
   return false;
 };
 
+
 export const encodeHTML = (str: string) => {
   return str
     .replace(/&/g, "&amp;")

@@ -10,10 +10,8 @@
     </div>
 </template>
 <script setup lang="ts">
-type CheckboxItems = {
-    name: string;
-    checked: boolean;
-};
+import type { CheckboxItems } from "@/types";
+
 const props = defineProps<{
     checkboxItems: CheckboxItems[];
 }>();

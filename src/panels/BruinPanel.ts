@@ -1,7 +1,7 @@
 import { Disposable, Webview, WebviewPanel, window, Uri, ViewColumn, workspace } from "vscode";
 import { getUri } from "../utilities/getUri";
 import { getNonce } from "../utilities/getNonce";
-import { BruinValidate, bruinWorkspaceDirectory } from "../bruin";
+import { BruinValidate, bruinWorkspaceDirectory, runInIntegratedTerminal } from "../bruin";
 import { getDefaultBruinExecutablePath } from "../extension/configuration";
 import { error } from "console";
 
@@ -21,7 +21,7 @@ export class BruinPanel {
   private readonly _panel: WebviewPanel;
   private _disposables: Disposable[] = [];
   private _lastRenderedDocumentUri: Uri | undefined;
-  
+
   /**
    * The BruinPanel class private constructor (called only from the render method).
    *
@@ -172,6 +172,22 @@ export class BruinPanel {
             await validator.validate(filePath, {
               flags: ["-o", "json"],
             });
+            break;
+          case "bruin.runSql":
+            console.debug("runSql", message.payload);
+            if (!this._lastRenderedDocumentUri) {
+              return;
+            }
+            const fPath = this._lastRenderedDocumentUri?.fsPath;
+            runInIntegratedTerminal(fPath, bruinWorkspaceDirectory(fPath), message.payload);
+            console.debug("workspace directory: ", bruinWorkspaceDirectory(fPath));
+            setTimeout(() => {
+              this._panel.webview.postMessage({
+                command: "runCompleted",
+                message: "",
+              });
+            }, 1500);
+            break;
         }
       },
       undefined,
