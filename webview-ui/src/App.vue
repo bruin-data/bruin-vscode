@@ -6,19 +6,26 @@
         <DateInput class="px-2 w-full sm:w-1/2" label="End Date" v-model="endDate" />
       </div>
       <div class="flex flex-wrap space-x-4">
-        <vscode-checkbox autofocus>Downstearm</vscode-checkbox>
-        <vscode-checkbox autofocus>Full-Refresh</vscode-checkbox>
-        <vscode-checkbox autofocus>Exclusive</vscode-checkbox>
+        <vscode-checkbox v-for="(item, index) in checkboxItems" autofocus
+          :key="index" 
+          @change="handleCheckboxChange(item, $event)"
+          :checked="item.checked">
+          {{ item.name }}
+        </vscode-checkbox>
       </div>
     </div>
     <div class="flex justify-end space-x-4">
-      <CommandButton @click="handleBruinValidate" BGColor="bg-blue-500" :status="buttonStatus"
+      <CommandButton
+        :disabled="handleError()?.errorCaptured"
+        @click="handleBruinValidate"
+        BGColor="bg-blue-500"
+        :status="validateButtonStatus"
         >Validate</CommandButton
       >
       <CommandButton @click="runSql" BGColor="bg-green-500">Run</CommandButton>
     </div>
     <SqlEditor :code="renderSuccess" />
-    <ErrorAlert v-if="validationError" :errorMessage="validationError" />
+    <ErrorAlert v-if="handleError()?.errorCaptured" :errorMessage="handleError()?.errorMessage!" />
   </div>
 </template>
 
@@ -40,18 +47,39 @@ function handleBruinValidate() {
   });
 }
 
+function handleError() {
+  if (validationError.value || renderError.value) {
+    return {
+      errorCaptured: true,
+      errorMessage: validationError.value || renderError.value || "An error occurred",
+    };
+  }
+}
+
 function runSql() {
   vscode.postMessage({
-    command: "run.sql",
+    command: "bruin.run",
+    payload: {
+      startDate: startDate.value,
+      endDate: endDate.value,
+      checkboxes: checkboxItems.value.filter((item) => item.checked).map((item) => item.name),
+    },  
   });
 }
-const today = new Date().toISOString().split('T')[0];
-
+const today = new Date().toISOString().split("T")[0];
+const checkboxItems = ref([
+  { name: "Downstearm", checked: false },
+  { name: "Full-Refresh", checked: false },
+  { name: "Exclusive-End-Date", checked: false },
+]);
+function handleCheckboxChange(item: { name: string; checked: boolean }, event: { target: { checked: boolean } }) {
+  item.checked = event.target.checked;
+}
 const validationSuccess = ref(null);
 const validationError = ref(null);
 const renderSuccess = ref(null);
 const renderError = ref(null);
-const buttonStatus = ref(null);
+const validateButtonStatus = ref("" as "validated" | "failed" | null);
 const startDate = ref(today);
 const endDate = ref(today);
 onMounted(() => {
@@ -70,21 +98,22 @@ function receiveMessage(event: { data: any }) {
     case "validation-success":
       validationSuccess.value = envelope.payload;
       validationError.value = null;
-      buttonStatus.value = "validated";
+      validateButtonStatus.value = "validated";
       break;
     case "validation-error":
       validationError.value = envelope.payload;
       validationSuccess.value = null;
-      buttonStatus.value = "failed";
+      validateButtonStatus.value = "failed";
       break;
     case "render-success":
       renderSuccess.value = envelope.payload;
-      buttonStatus.value = null;
-      validationError.value = null;
-      validationSuccess.value = null;
+      [renderError, validationError, validationSuccess, validateButtonStatus].forEach(
+        (state) => (state.value = null)
+      );
       break;
     case "render-error":
       renderError.value = envelope.payload;
+      renderSuccess.value = null;
       break;
   }
 }
