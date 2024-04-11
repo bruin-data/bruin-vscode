@@ -4,6 +4,8 @@
   "exclude": ["src/**/__tests__/*"],
   "compilerOptions": {
     "composite": true,
+    "noImplicitAny": false,
+    "allowJs": true,
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
