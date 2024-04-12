@@ -19,8 +19,6 @@ import { ref, defineProps, defineEmits } from "vue";
 const tzoffset = new Date().getTimezoneOffset() * 60000; //offset in milliseconds
 const dateTime = ref(new Date(Date.now() - tzoffset).toISOString().slice(0, -1));
 
-//const dateTime = ref(new Date().toISOString().slice(0, 23)); // 'YYYY-MM-DDTHH:MM' format
-
 const emit = defineEmits(["update:modelValue"]);
 
 function updateDateTime(event: Event) {
