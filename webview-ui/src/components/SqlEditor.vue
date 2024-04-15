@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col">
-    <label for="sql-editor" class="mb-2 text-sm font-medium text-gray-700">SQL Editor</label>
+    <label for="sql-editor" class="mb-2 text-sm font-medium text-gray-700">SQL Preview</label>
     <div class="relative">
       <div class="absolute top-0 right-0 m-2 mb-2">
         <IConButton v-if="code"></IConButton>

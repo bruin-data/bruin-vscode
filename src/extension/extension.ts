@@ -35,10 +35,11 @@ export function activate(context: ExtensionContext) {
     }
   });
 
+
   context.subscriptions.push(
     commands.registerCommand("bruin.renderSQL", async () => {
       const activeEditor = window.activeTextEditor;
-
+      
       if (
        activeEditor &&
         isFileExtensionSQL(activeEditor.document.fileName)
@@ -55,6 +56,18 @@ export function activate(context: ExtensionContext) {
       }
     })
   );
+
+  context.subscriptions.push(
+    window.onDidChangeActiveTextEditor(() => {
+    commands.executeCommand("bruin.renderSQL");
+  }
+  ),
+  workspace.onDidChangeTextDocument( () => {
+     commands.executeCommand("bruin.renderSQL");
+   }
+ )
+);
+
 
   context.subscriptions.push(foldingDisposable);
 

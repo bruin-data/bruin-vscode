@@ -3,8 +3,7 @@ import { getUri } from "../utilities/getUri";
 import { getNonce } from "../utilities/getNonce";
 import { BruinValidate, bruinWorkspaceDirectory, runInIntegratedTerminal } from "../bruin";
 import { getDefaultBruinExecutablePath } from "../extension/configuration";
-import { error } from "console";
-import { isFileExtensionSQL } from "../utilities/helperUtils";
+
 
 /**
  * This class manages the state and behavior of Bruin webview panels.
@@ -39,6 +38,16 @@ export class BruinPanel {
     // the panel or when the panel is closed programmatically)
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
 
+
+    this._disposables.push(
+      window.onDidChangeActiveTextEditor(editor => {
+        if (editor && editor.document.uri) {
+          this._lastRenderedDocumentUri = editor.document.uri;
+        }
+      })
+    );
+
+    
     this._disposables.push(
       window.onDidChangeActiveTextEditor(editor => {
         if (editor && editor.document.uri) {
@@ -56,6 +65,9 @@ export class BruinPanel {
 
     // Set the last rendered document URI to the current active editor document URI
     this._lastRenderedDocumentUri = window.activeTextEditor?.document.uri;
+    
+    
+    ;
 
     // Set an event listener to listen for messages passed from the webview context
     this._setWebviewMessageListener(this._panel.webview);
@@ -80,7 +92,7 @@ export class BruinPanel {
     const column = window.activeTextEditor ? ViewColumn.Beside : undefined;
 
     if (BruinPanel.currentPanel) {
-      BruinPanel.currentPanel._panel.reveal(column);
+      BruinPanel.currentPanel._panel.reveal(column, true);
     } else {
       const panel = window.createWebviewPanel(
         BruinPanel.viewType,
@@ -88,6 +100,7 @@ export class BruinPanel {
         column || ViewColumn.Active,
         {
           enableScripts: true,
+          retainContextWhenHidden: true,
           localResourceRoots: [
             Uri.joinPath(extensionUri, "img"),
             Uri.joinPath(extensionUri, "out"),
@@ -119,12 +132,6 @@ export class BruinPanel {
     }
   }
 
-
-  private update() {
-    if (this._lastRenderedDocumentUri) {
-      this.postMessage('refreshContent', this._lastRenderedDocumentUri.toString() );
-    }
-  }
   /**
    * Defines and returns the HTML that should be rendered within the webview panel.
    *

@@ -69,12 +69,12 @@
         "description": "Render SQL to a Bruin data asset."
       },
       {
-        "command": "bruin.validate",
+        "command": "bruin.validateSQL",
         "title": "Validate Bruin asset",
         "description": "Validate the current Bruin asset."
       },
       {
-        "command": "bruin.run",
+        "command": "bruin.runSQL",
         "title": "Run Bruin asset",
         "description": "Run the current Bruin asset."
       }
