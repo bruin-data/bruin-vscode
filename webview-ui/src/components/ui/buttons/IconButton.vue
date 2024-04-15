@@ -1,6 +1,6 @@
 <template>
   <button type="button" @click="$emit('click')">
-    <Clipboard id="clipboard" aria-hidden="true" />
+    <Clipboard size="20" id="clipboard" aria-hidden="true" />
   </button>
 </template>
 <script setup>

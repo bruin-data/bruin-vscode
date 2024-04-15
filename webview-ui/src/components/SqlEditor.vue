@@ -1,42 +1,57 @@
 <template>
-  <div class="flex flex-col">
-    <label for="sql-editor" class="mb-2 text-sm font-medium text-gray-700">SQL Preview</label>
-    <div class="relative">
-      <div class="absolute top-0 right-0 m-2 mb-2">
-        <div v-if="copied">
-          <span class="text-sm text-green-500">Copied!</span>
-        </div>
-        <div v-else>
-          <IConButton v-if="code" @click="copyToClipboard" />
-        </div>
-      </div>
-      <div id="sql-editor" class="">
-        <highlightjs language="sql" :code="code" />
-      </div>
+  <div class="highlight-container rounded-tl-md rounded-tr-md">
+    <div class="header rounded-tl-md rounded-tr-md flex items-center justify-between p-2">
+      <label class="text-sm font-medium">SQL Preview</label>
+      <button @click="copyToClipboard" :disabled="!code" class="copy-button flex items-center bg-none border-none cursor-pointer">
+        <IConButton v-show="!copied" aria-hidden="true" />
+        <span v-if="copied" class="text-sm">Copied!</span>
+      </button>
+    </div>
+    <div id="sql-editor" class="sql-content">
+      <highlightjs language="sql" :code="code" />
     </div>
   </div>
 </template>
 
 <script setup>
-import IConButton from "@/components/ui/buttons/IconButton.vue";
+import { ref, defineProps } from 'vue';
+import IConButton from './ui/buttons/IconButton.vue';
 const props = defineProps({
   code: String | undefined,
-  copied: Boolean,
+  copied: Boolean
 });
 
-const copyToClipboard = () => {
+const copied = ref(false);
+
+function copyToClipboard() {
   navigator.clipboard.writeText(props.code);
-  props.copied = true;
+  copied.value = true;
   setTimeout(() => {
-    props.copied = false;
+    copied.value = false;
   }, 2000);
-};
+}
 </script>
 
 <style scoped>
 .highlight-container {
   background-color: var(--vscode-editor-background);
-  border: 1px solid var(--vscode-editorGroup-border);
-  border-radius: 4px;
+  border: 1px solid var(--vscode-input-background);
+}
+
+.header {
+  color: var(--vscode-disabledForeground);
+  background-color: var(--vscode-input-background);
+}
+
+.copy-button {
+  color: var(--vscode-icon-foreground);
+}
+
+.sql-content {
+  background-color: var(--vscode-sideBar-background);
+  border-top: none;
+}
+.sql-content >>> .hljs {
+  background-color: var(--vscode-sideBar-background);
 }
 </style>
