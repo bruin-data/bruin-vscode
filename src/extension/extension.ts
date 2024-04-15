@@ -37,9 +37,11 @@ export function activate(context: ExtensionContext) {
 
   context.subscriptions.push(
     commands.registerCommand("bruin.renderSQL", async () => {
+      const activeEditor = window.activeTextEditor;
+
       if (
-        window.activeTextEditor &&
-        isFileExtensionSQL(window.activeTextEditor?.document.fileName)
+       activeEditor &&
+        isFileExtensionSQL(activeEditor.document.fileName)
       ) {
         BruinPanel.render(context.extensionUri);
 
@@ -48,7 +50,7 @@ export function activate(context: ExtensionContext) {
           workspace.workspaceFolders?.[0].uri.fsPath!!
         );
 
-        const filePath = window.activeTextEditor.document.fileName;
+        const filePath = activeEditor.document.fileName;
         await bruinSqlRenderer.render(filePath);
       }
     })

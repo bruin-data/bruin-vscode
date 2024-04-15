@@ -4,6 +4,7 @@ import { getNonce } from "../utilities/getNonce";
 import { BruinValidate, bruinWorkspaceDirectory, runInIntegratedTerminal } from "../bruin";
 import { getDefaultBruinExecutablePath } from "../extension/configuration";
 import { error } from "console";
+import { isFileExtensionSQL } from "../utilities/helperUtils";
 
 /**
  * This class manages the state and behavior of Bruin webview panels.
@@ -38,6 +39,18 @@ export class BruinPanel {
     // the panel or when the panel is closed programmatically)
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
 
+    this._disposables.push(
+      window.onDidChangeActiveTextEditor(editor => {
+        if (editor && editor.document.uri) {
+          this._lastRenderedDocumentUri = editor.document.uri;
+        }
+      })
+    );
+
+    // Ensure initial state is set based on the currently active editor
+    if (window.activeTextEditor) {
+      this._lastRenderedDocumentUri = window.activeTextEditor.document.uri;
+    }
     // Set the HTML content for the webview panel
     this._panel.webview.html = this._getWebviewContent(this._panel.webview, extensionUri);
 
@@ -84,6 +97,7 @@ export class BruinPanel {
       );
 
       BruinPanel.currentPanel = new BruinPanel(panel, extensionUri);
+      
     }
   }
 
@@ -105,6 +119,12 @@ export class BruinPanel {
     }
   }
 
+
+  private update() {
+    if (this._lastRenderedDocumentUri) {
+      this.postMessage('refreshContent', this._lastRenderedDocumentUri.toString() );
+    }
+  }
   /**
    * Defines and returns the HTML that should be rendered within the webview panel.
    *
@@ -163,6 +183,7 @@ export class BruinPanel {
 
             const filePath = this._lastRenderedDocumentUri.fsPath;
             const bruinWorkspaceDir = bruinWorkspaceDirectory(filePath || "");
+            console.debug("filePath", filePath);
             const validator = new BruinValidate(
               getDefaultBruinExecutablePath(),
               bruinWorkspaceDir!!
