@@ -20,7 +20,7 @@
       <CommandButton @click="runSql" BGColor="bg-green-500">Run</CommandButton>
     </div>
     <ErrorAlert v-if="handleError()?.errorCaptured" :errorMessage="handleError()?.errorMessage!" />
-    <SqlEditor :code="renderSuccess" />
+    <SqlEditor :code="renderSuccess" :copied="false"/>
   </div>
 </template>
 
