@@ -2,7 +2,7 @@
   <div class="flex flex-col p-4 space-y-4">
     <div class="flex flex-col space-y-3">
       <div class="flex flex-wrap gap-y-4">
-        <DateInput class="px-2 w-full sm:w-1/2" label="Start Date" v-model="startDate"/>
+        <DateInput class="px-2 w-full sm:w-1/2" label="Start Date" v-model="startDate" />
         <DateInput class="px-2 w-full sm:w-1/2" label="End Date" v-model="endDate" />
       </div>
       <div>
@@ -17,10 +17,21 @@
         :status="validateButtonStatus"
         >Validate</CommandButton
       >
-      <CommandButton @click="runSql" BGColor="bg-green-500">Run</CommandButton>
+      <CommandButton
+        :disabled="handleError()?.errorCaptured"
+        @click="runSql"
+        BGColor="bg-green-500"
+      >
+        Run
+      </CommandButton>
     </div>
     <ErrorAlert v-if="handleError()?.errorCaptured" :errorMessage="handleError()?.errorMessage!" />
-    <SqlEditor :code="code" :copied="false" :language="language"/>
+    <SqlEditor
+      v-show="!handleError()?.errorCaptured"
+      :code="code"
+      :copied="false"
+      :language="language"
+    />
   </div>
 </template>
 
@@ -56,7 +67,7 @@ function runSql() {
   console.log("Running SQL");
   vscode.postMessage({
     command: "bruin.runSql",
-    payload: concatCommandFlags(startDate.value, endDate.value, checkboxItems.value)
+    payload: concatCommandFlags(startDate.value, endDate.value, checkboxItems.value),
   });
 }
 const checkboxItems = ref([
@@ -71,10 +82,10 @@ const renderSQLAssetSuccess = ref(null);
 const renderPythonAsset = ref(null);
 const renderSQLAssetError = ref(null);
 const validateButtonStatus = ref("" as "validated" | "failed" | null);
-const tzoffset = (new Date()).getTimezoneOffset() * 60000; //offset in milliseconds
-const startDateTime = ref((new Date(Date.now() - tzoffset)).toISOString().slice(0, -1));
-const endDateTime = ref((new Date(Date.now() - tzoffset)).toISOString().slice(0, -1));
-const language = ref('');
+const tzoffset = new Date().getTimezoneOffset() * 60000; //offset in milliseconds
+const startDateTime = ref(new Date(Date.now() - tzoffset).toISOString().slice(0, -1));
+const endDateTime = ref(new Date(Date.now() - tzoffset).toISOString().slice(0, -1));
+const language = ref("");
 const startDate = ref(startDateTime);
 const endDate = ref(endDateTime);
 const code = ref(null);
@@ -109,7 +120,7 @@ function receiveMessage(event: { data: any }) {
         (state) => (state.value = null)
       );
       break;
-      case "render-alert":
+    case "render-alert":
       renderPythonAsset.value = envelope.payload;
       code.value = renderPythonAsset.value;
       language.value = "python";
@@ -118,13 +129,13 @@ function receiveMessage(event: { data: any }) {
         (state) => (state.value = null)
       );
       break;
-    
+
     case "render-error":
       renderSQLAssetError.value = envelope.payload;
       renderSQLAssetSuccess.value = null;
       break;
-    
-      case "run-success":
+
+    case "run-success":
       console.log("Run success");
       [renderSQLAssetError, validationError, validationSuccess, validateButtonStatus].forEach(
         (state) => (state.value = null)
@@ -133,7 +144,6 @@ function receiveMessage(event: { data: any }) {
     case "run-error":
       console.log("Run error");
       break;
-
   }
 }
 </script>
