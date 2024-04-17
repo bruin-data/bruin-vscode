@@ -55,7 +55,7 @@
       "editor/title": [
         {
           "command": "bruin.renderSQL",
-          "when": "resourceLangId == sql",
+          "when": "resourceLangId == sql || resourceLangId == python",
           "group": "navigation"
         }
       ]

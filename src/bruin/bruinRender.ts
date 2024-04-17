@@ -2,6 +2,7 @@ import { BruinPanel } from "../panels/BruinPanel";
 import { BruinCommand } from "./bruinCommand";
 import { BruinCommandOptions } from "../types";
 import { isPythonBruinAsset } from "../utilities/helperUtils";
+
 /** Provides a promise-based API around a Bruin render. */
 export class BruinRender extends BruinCommand {
   protected bruinCommand(): string {

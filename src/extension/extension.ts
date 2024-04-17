@@ -2,9 +2,9 @@ import { commands, ExtensionContext, languages, window, workspace } from "vscode
 import { BruinPanel } from "../panels/BruinPanel";
 import { isBruinBinaryAvailable } from "../bruin/bruinUtils";
 import { bruinFoldingRangeProvider } from "../providers/bruinFoldingRangeProvider";
-import { isFileExtensionSQL } from "../utilities/helperUtils";
 import { getDefaultBruinExecutablePath } from "./configuration";
 import { BruinRender } from "../bruin";
+import { isBruinAsset } from "../utilities/helperUtils";
 
 function applyFoldingStateBasedOnConfiguration() {
   const config = workspace.getConfiguration();
@@ -39,7 +39,8 @@ export function activate(context: ExtensionContext) {
   context.subscriptions.push(
     commands.registerCommand("bruin.renderSQL", async () => {
       const activeEditor = window.activeTextEditor;
-      
+      const bruinAsset = await isBruinAsset(activeEditor?.document.fileName || "", ["py", "sql"]);
+      console.debug("Bruin asset: ", bruinAsset, activeEditor?.document.fileName);
       if (
        activeEditor 
       ) {
@@ -72,3 +73,5 @@ export function activate(context: ExtensionContext) {
 
   console.debug("Bruin activated successfully");
 }
+
+

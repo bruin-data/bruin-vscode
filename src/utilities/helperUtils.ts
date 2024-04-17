@@ -13,18 +13,16 @@ export const isFileExtensionSQL = (fileName: string): boolean => {
   return false;
 };
 
-export const isPythonBruinAsset = async (fileName: string): Promise<boolean> => {
-  return isBruinAsset(fileName, ["py"]);
-};
+export const isPythonBruinAsset = async (fileName: string): Promise<boolean> => isBruinAsset(fileName, ["py"]);
 
-const isBruinAsset = async (fileName: string, validAssetExtentions: string[]): Promise<boolean> => {
+export const isBruinAsset = async (fileName: string, validAssetExtentions: string[]): Promise<boolean> => {
   const fileExtension = fileName.split('.').pop()?.toLowerCase() || '';
-  
+
   if (!validAssetExtentions.includes(fileExtension)) {
     return false;
   }
 
-  const bruinPattern = /(\"\"\"\s*@bruin)|(\/\*\s*@bruin)\s*$/g;
+  const bruinPattern = /(\"\"\"\s*@bruin\s*$)|(\/\*\s*@bruin\s*$)/m;
   
   try {
     const assetContent = await fs.readFileSync(fileName, 'utf8');
