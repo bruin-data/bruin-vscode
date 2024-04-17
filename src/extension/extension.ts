@@ -41,8 +41,7 @@ export function activate(context: ExtensionContext) {
       const activeEditor = window.activeTextEditor;
       
       if (
-       activeEditor &&
-        isFileExtensionSQL(activeEditor.document.fileName)
+       activeEditor 
       ) {
         BruinPanel.render(context.extensionUri);
 

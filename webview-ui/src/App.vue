@@ -20,7 +20,7 @@
       <CommandButton @click="runSql" BGColor="bg-green-500">Run</CommandButton>
     </div>
     <ErrorAlert v-if="handleError()?.errorCaptured" :errorMessage="handleError()?.errorMessage!" />
-    <SqlEditor :code="renderSuccess" :copied="false"/>
+    <SqlEditor :code="code" :copied="false" :language="language"/>
   </div>
 </template>
 
@@ -44,10 +44,10 @@ function handleBruinValidate() {
 }
 
 function handleError() {
-  if (validationError.value || renderError.value) {
+  if (validationError.value || renderSQLAssetError.value) {
     return {
       errorCaptured: true,
-      errorMessage: validationError.value || renderError.value || "An error occurred",
+      errorMessage: validationError.value || renderSQLAssetError.value || "An error occurred",
     };
   }
 }
@@ -67,15 +67,17 @@ const checkboxItems = ref([
 
 const validationSuccess = ref(null);
 const validationError = ref(null);
-const renderSuccess = ref(null);
-const renderError = ref(null);
+const renderSQLAssetSuccess = ref(null);
+const renderPythonAsset = ref(null);
+const renderSQLAssetError = ref(null);
 const validateButtonStatus = ref("" as "validated" | "failed" | null);
 const tzoffset = (new Date()).getTimezoneOffset() * 60000; //offset in milliseconds
 const startDateTime = ref((new Date(Date.now() - tzoffset)).toISOString().slice(0, -1));
 const endDateTime = ref((new Date(Date.now() - tzoffset)).toISOString().slice(0, -1));
-
+const language = ref('');
 const startDate = ref(startDateTime);
 const endDate = ref(endDateTime);
+const code = ref(null);
 onMounted(() => {
   window.addEventListener("message", receiveMessage);
 });
@@ -100,19 +102,31 @@ function receiveMessage(event: { data: any }) {
       validateButtonStatus.value = "failed";
       break;
     case "render-success":
-      renderSuccess.value = envelope.payload;
-      [renderError, validationError, validationSuccess, validateButtonStatus].forEach(
+      renderSQLAssetSuccess.value = envelope.payload;
+      code.value = renderSQLAssetSuccess.value;
+      language.value = "sql";
+      [renderSQLAssetError, validationError, validationSuccess, validateButtonStatus].forEach(
         (state) => (state.value = null)
       );
       break;
+      case "render-alert":
+      renderPythonAsset.value = envelope.payload;
+      code.value = renderPythonAsset.value;
+      language.value = "python";
+
+      [renderSQLAssetError, validationError, validationSuccess, validateButtonStatus].forEach(
+        (state) => (state.value = null)
+      );
+      break;
+    
     case "render-error":
-      renderError.value = envelope.payload;
-      renderSuccess.value = null;
+      renderSQLAssetError.value = envelope.payload;
+      renderSQLAssetSuccess.value = null;
       break;
     
       case "run-success":
       console.log("Run success");
-      [renderError, validationError, validationSuccess, validateButtonStatus].forEach(
+      [renderSQLAssetError, validationError, validationSuccess, validateButtonStatus].forEach(
         (state) => (state.value = null)
       );
       break;
