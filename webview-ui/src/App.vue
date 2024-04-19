@@ -26,12 +26,14 @@
       </CommandButton>
     </div>
     <ErrorAlert v-if="handleError()?.errorCaptured" :errorMessage="handleError()?.errorMessage!" />
+    <div v-if="language === 'sql'">
     <SqlEditor
       v-show="!handleError()?.errorCaptured"
       :code="code"
       :copied="false"
       :language="language"
     />
+  </div>
   </div>
 </template>
 

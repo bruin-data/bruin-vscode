@@ -11,11 +11,8 @@
         <span v-if="copied" class="text-sm">Copied!</span>
       </button>
     </div>
-    <div id="sql-editor" v-if="language === 'sql'">
-      <highlightjs language="sql" :code="code" />
-    </div>
-    <div id="sql-editor" v-else-if="language === 'python'" class="python-content">
-      {{ code }}
+    <div id="sql-editor" >
+      <highlightjs language="sql" :code="code"/>
     </div>
   </div>
 </template>
@@ -38,6 +35,7 @@ function copyToClipboard() {
     copied.value = false;
   }, 2000);
 }
+
 </script>
 
 <style scoped>
@@ -68,18 +66,11 @@ function copyToClipboard() {
   background-color: var(--vscode-sideBar-background);
   border-top: none;
 }
-.sql-content ::v-deep .hljs {
-  background-color: var(--vscode-sideBar-background);
-}
+
 
 #sql-editor ::v-deep .hljs {
   background-color: var(--vscode-sideBar-background);
-}
-
-#sql-editor ::v-deep .hljs {
   color: var(--vscode-foreground);
-} 
-
-
+}
 
 </style>
