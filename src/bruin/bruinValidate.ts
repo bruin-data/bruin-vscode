@@ -1,21 +1,32 @@
 import { BruinCommandOptions } from "../types";
 import { BruinCommand } from "./bruinCommand";
-import * as vscode from "vscode";
-
-// eslint-disable-next-line @typescript-eslint/naming-convention
-import * as child_process from "child_process";
 import { BruinPanel } from "../panels/BruinPanel";
 
-/** Provides a promise-based API around a Bruin validate. */
+/**
+ * Extends the BruinCommand class to implement the bruin validate command on Bruin assets.
+ */
 export class BruinValidate extends BruinCommand {
+  /**
+   * Specifies the Bruin command string.
+   * 
+   * @returns {string} Returns the 'validate' command string.
+   */
   protected bruinCommand(): string {
     return "validate";
   }
 
+  /**
+   * Validates a Bruin Asset based on it's path with optional flags and error handling.
+   * Communicates the results of the validation or errors back to the BruinPanel.
+   * 
+   * @param {string} filePath - The path of the asset to be validated.
+   * @param {BruinCommandOptions} [options={}] - Optional parameters for validation, including flags and errors.
+   * @returns {Promise<void>} A promise that resolves when the validation is complete or an error is caught.
+   */
   public async validate(
     filePath: string,
     { flags = [], ignoresErrors = false }: BruinCommandOptions = {}
-  ) {
+  ): Promise<void> {
     await this.run([filePath, ...flags], { ignoresErrors })
       .then((result) => {
         BruinPanel.currentPanel?.postMessage("validation-success", result);

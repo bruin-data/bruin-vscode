@@ -5,6 +5,13 @@ import * as child_process from "child_process";
 import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
+
+/**
+   * Checks if the Bruin binary is available in the system path.
+   * Throws an error if the binary is not found.
+   * @returns {boolean} Returns true if the Bruin binary is available, false otherwise.
+   */
+
 export const isBruinBinaryAvailable = (): boolean => {
   try {
     let output = child_process.execSync(BRUIN_WHICH_COMMAND);
@@ -20,6 +27,11 @@ export const isBruinBinaryAvailable = (): boolean => {
   return true;
 };
 
+/**
+ * Builds the Bruin command based on the platform.
+ * @param {string} cliCommand - The Bruin command to be executed in the CLI (e.g., "run", "render").
+ * @returns {string} Returns the built Bruin command.
+ */
 export const buildCommand = (cliCommand: string): string => {
   switch (process.platform) {
     case "win32":
@@ -28,6 +40,13 @@ export const buildCommand = (cliCommand: string): string => {
       return `bruin ${cliCommand}`;
   }
 };
+
+/**
+ * Locates the Bruin workspace directory by searching for specific Bruin configuration files.
+ * 
+ * @param {string} fsPath - The file system path where the search starts.
+ * @returns {string | undefined} The directory path of the Bruin workspace if found, otherwise undefined.
+ */
 
 export const bruinWorkspaceDirectory = (fsPath: string): string | undefined => {
   let dirname = fsPath;
@@ -54,6 +73,14 @@ export const bruinWorkspaceDirectory = (fsPath: string): string | undefined => {
 
   return undefined;
 };
+
+/**
+ * Runs the Bruin command "run" in the integrated terminal.
+ * @param {string} assetPath - The path of the asset to be executed.
+ * @param {string | undefined} workingDir - The working directory for the terminal.
+ * @param {string} [flags] - Optional flags to be passed to the Bruin command.
+ * @returns {Promise<void>} A promise that resolves when the command is executed.
+ */
 
 export const runInIntegratedTerminal= async(assetPath: string, workingDir: string | undefined, flags?: string) =>{
   const command = `bruin ${BRUIN_RUN_SQL_COMMAND} ${flags} ${assetPath}`;
