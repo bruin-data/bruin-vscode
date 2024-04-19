@@ -2,38 +2,28 @@ import { commands, ExtensionContext, languages, window, workspace } from "vscode
 import { BruinPanel } from "../panels/BruinPanel";
 import { isBruinBinaryAvailable } from "../bruin/bruinUtils";
 import { bruinFoldingRangeProvider } from "../providers/bruinFoldingRangeProvider";
-import { getDefaultBruinExecutablePath } from "./configuration";
+import { applyFoldingStateBasedOnConfiguration, getDefaultBruinExecutablePath, setupFoldingOnOpen, subscribeToConfigurationChanges } from "./configuration";
 import { BruinRender } from "../bruin";
 import { isBruinAsset } from "../utilities/helperUtils";
+import { subscribe } from "diagnostics_channel";
 
-function applyFoldingStateBasedOnConfiguration() {
-  const config = workspace.getConfiguration();
-  const defaultFoldingState = config.get("bruin.defaultFoldingState", "folded");
-  if (defaultFoldingState === "folded") {
-    commands.executeCommand("editor.foldAllMarkerRegions");
-  } else {
-    commands.executeCommand("editor.unfoldAll");
-  }
-}
+
 
 export function activate(context: ExtensionContext) {
   if (!isBruinBinaryAvailable()) {
     window.showErrorMessage("Bruin is not installed");
     return;
   }
+  // Setup folding on open
+  setupFoldingOnOpen();
 
+  subscribeToConfigurationChanges();
+  // Register the folding range provider for Python and SQL files
   const foldingDisposable = languages.registerFoldingRangeProvider(["python", "sql"], {
     provideFoldingRanges: bruinFoldingRangeProvider,
   });
 
   // Immediately try to apply the folding state to the current document
-  setTimeout(applyFoldingStateBasedOnConfiguration, 500);
-
-  workspace.onDidChangeConfiguration((e) => {
-    if (e.affectsConfiguration("bruin.defaultFoldingState")) {
-      applyFoldingStateBasedOnConfiguration();
-    }
-  });
 
 
   context.subscriptions.push(
