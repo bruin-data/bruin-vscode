@@ -14,7 +14,16 @@ export function getDefaultBruinExecutablePath(): string {
   const bruinConfig = vscode.workspace.getConfiguration("bruin");
   const bruinExecutable = bruinConfig.get<string>("executable") || "";
   if (bruinExecutable.length === 0) {
-    return "bruin";
+    return _defaultBruinExecutablePath();
   }
   return bruinExecutable;
+}
+
+function _defaultBruinExecutablePath(): string {
+  switch (process.platform) {
+    case 'win32':
+        return "cmd.exe /c bruin.exe";
+    default:   
+        return "bruin";
+  }
 }
