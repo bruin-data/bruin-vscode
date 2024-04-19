@@ -1,6 +1,6 @@
 <template>
   <div class="highlight-container rounded-tl-md rounded-tr-md">
-    <div class="header rounded-tl-md rounded-tr-md flex items-center justify-between p-2">
+    <div class="header rounded-tl-md rounded-tr-md flex items-center justify-between p-2 border-gray-300 shadow-sm">
       <label class="text-sm font-medium">SQL Preview</label>
       <button
         @click="copyToClipboard"
@@ -42,7 +42,7 @@ function copyToClipboard() {
 
 <style scoped>
 .highlight-container {
-  background-color: var(--vscode-editor-background);
+  background-color: var(--vscode-sideBar-background);
   border: 1px solid var(--vscode-input-background);
 }
 
@@ -68,7 +68,18 @@ function copyToClipboard() {
   background-color: var(--vscode-sideBar-background);
   border-top: none;
 }
-.sql-content >>> .hljs {
+.sql-content ::v-deep .hljs {
   background-color: var(--vscode-sideBar-background);
 }
+
+#sql-editor ::v-deep .hljs {
+  background-color: var(--vscode-sideBar-background);
+}
+
+#sql-editor ::v-deep .hljs {
+  color: var(--vscode-foreground);
+} 
+
+
+
 </style>
