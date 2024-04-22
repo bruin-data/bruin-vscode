@@ -11,24 +11,24 @@
     </div>
     <div class="flex justify-end space-x-4">
       <CommandButton
-        :disabled="handleError()?.errorCaptured"
+        :disabled="errorState?.errorCaptured"
         @click="handleBruinValidate"
         BGColor="bg-blue-500"
         :status="validateButtonStatus"
         >Validate</CommandButton
       >
       <CommandButton
-        :disabled="handleError()?.errorCaptured"
+        :disabled="errorState?.errorCaptured"
         @click="runSql"
         BGColor="bg-green-500"
       >
         Run
       </CommandButton>
     </div>
-    <ErrorAlert v-if="handleError()?.errorCaptured" :errorMessage="handleError()?.errorMessage!" />
+    <ErrorAlert v-if="errorState?.errorCaptured" :errorMessage="errorState?.errorMessage!" />
     <div v-if="language === 'sql'">
     <SqlEditor
-      v-show="!handleError()?.errorCaptured"
+      v-show="!errorState?.errorCaptured"
       :code="code"
       :copied="false"
       :language="language"
@@ -42,6 +42,7 @@ import { allComponents, provideVSCodeDesignSystem } from "@vscode/webview-ui-too
 import { vscode } from "@/utilities/vscode";
 import { onBeforeUnmount, onMounted, ref } from "vue";
 import ErrorAlert from "@/components/ErrorAlert.vue";
+import { handleError } from "@/composable/index";
 import "@/assets/index.css";
 import CommandButton from "@/components/ui/buttons/ActionButton.vue";
 import DateInput from "@/components/DateInput.vue";
@@ -50,21 +51,16 @@ import CheckboxGroup from "@/components/CheckboxGroup.vue";
 import { concatCommandFlags } from "./utilities/helper";
 provideVSCodeDesignSystem().register(allComponents);
 
+import { computed } from 'vue';
+
+
+const errorState = computed(() => handleError(validationError.value, renderSQLAssetError.value));
+
 function handleBruinValidate() {
   vscode.postMessage({
     command: "bruin.validate",
   });
 }
-
-function handleError() {
-  if (validationError.value || renderSQLAssetError.value) {
-    return {
-      errorCaptured: true,
-      errorMessage: validationError.value || renderSQLAssetError.value || "An error occurred",
-    };
-  }
-}
-
 function runSql() {
   console.log("Running SQL");
   vscode.postMessage({
