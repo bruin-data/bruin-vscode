@@ -3,6 +3,19 @@
 All notable changes to the Bruin extension will be documented in this file.
 
 
+
+## [0.4.0] - [2024-04-22]
+
+## Updated 
+	-  Rebuilt the Webview using several reusable Vue components. The use of Vue components allows for a more dynamic and responsive user experience.
+
+
+## [0.3.0] - [2024-03-27]
+
+## Added 
+	- Windows compatibility.
+	- Functionality for automatic detection of the workspace directory in Bruin projects.
+
 ## [0.2.5] - [2024-03-26]
 
 ## Fixed 
