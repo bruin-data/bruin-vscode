@@ -3,6 +3,14 @@
 All notable changes to the Bruin extension will be documented in this file.
 
 
+## [0.4.1] - [2024-04-22]
+
+## Added
+- Implemented a loading state and added a spinner to the validation button to handle the "loading" state.
+
+## Fixed
+- Improved responsiveness of the validation by correctly managing the loading state.
+
 
 ## [0.4.0] - [2024-04-22]
 
