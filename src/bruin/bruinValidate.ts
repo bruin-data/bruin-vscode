@@ -1,7 +1,6 @@
-import { BruinCommandOptions } from "../types";
 import { BruinCommand } from "./bruinCommand";
 import { BruinPanel } from "../panels/BruinPanel";
-
+import { BruinCommandOptions } from "../types";
 /**
  * Extends the BruinCommand class to implement the bruin validate command on Bruin assets.
  */
@@ -15,6 +14,9 @@ export class BruinValidate extends BruinCommand {
     return "validate";
   }
 
+  public isLoading: boolean = false;
+
+
   /**
    * Validates a Bruin Asset based on it's path with optional flags and error handling.
    * Communicates the results of the validation or errors back to the BruinPanel.
@@ -27,12 +29,17 @@ export class BruinValidate extends BruinCommand {
     filePath: string,
     { flags = [], ignoresErrors = false }: BruinCommandOptions = {}
   ): Promise<void> {
+    this.isLoading = true; 
+    BruinPanel.currentPanel?.postMessage("validation-loading", "Loading...");
     await this.run([filePath, ...flags], { ignoresErrors })
       .then((result) => {
         BruinPanel.currentPanel?.postMessage("validation-success", result);
       })
       .catch((err) => {
         BruinPanel.currentPanel?.postMessage("validation-error", err);
+      })
+      .finally(() => {
+        this.isLoading = false; // Reset loading state when validation completes or fails
       });
   }
 }

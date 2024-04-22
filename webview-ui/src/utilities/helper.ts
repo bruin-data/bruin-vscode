@@ -13,12 +13,12 @@ const adjustEndDateForExclusive = (endtDate: string): string => {
   }
  
   export const concatCommandFlags = (startDate: string, endDate: string, checkboxesItems: CheckboxItems[]): string => {
-    const startDateFlag = ' -start-date ' + startDate;
-    let endDateFlag = ' -end-date ' + endDate;
+    const startDateFlag = ' --start-date ' + startDate;
+    let endDateFlag = ' --end-date ' + endDate;
   
     // Adjust end date if "Exclusive End Date" is checked
     if (isExclusiveChecked(checkboxesItems)) {
-      endDateFlag = ' -end-date ' + adjustEndDateForExclusive(startDate);
+      endDateFlag = ' --end-date ' + adjustEndDateForExclusive(startDate);
     }
   
     const checkboxesFlags = checkboxesItems.filter(item => item.checked && item.name !== 'Exclusive-End-Date')

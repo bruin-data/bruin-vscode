@@ -67,15 +67,21 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: v0.4.0
+### Latest Release: v0.4.1
 
-- **Vue Installation**: Implemented Vue.js as the primary framework for developing the extension's Webview to enhance the extension's user interface and interactivity.
+## Added
+- Implemented a loading state and added a spinner to the validation button to handle the "loading" state.
 
-- **New Vue Components**: Rebuilt the Webview using several reusable Vue components. The use of Vue components allows for a more dynamic and responsive user experience.
+## Fixed
+- Improved responsiveness of the validation by correctly managing the loading state.
 
 
 
 ### Previous Highlights
+
+### 0.4.0
+	- Implemented Vue.js as the primary framework for developing the extension's Webview to enhance the extension's user interface and interactivity.
+	- Rebuilt the Webview using several reusable Vue components. The use of Vue components allows for a more dynamic and responsive user experience.
 
 ### 0.3.0
 	- Windows compatibility.
