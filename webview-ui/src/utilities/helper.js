@@ -9,7 +9,7 @@ const adjustEndDateForExclusive = (endtDate) => {
     endDateObject.setUTCHours(23, 59, 59, 999);
     return endDateObject.toISOString().replace(/\.999Z$/, ".999999999Z");
 };
-const concatCommandFlags = (startDate, endDate, checkboxesItems) => {
+export const concatCommandFlags = (startDate, endDate, checkboxesItems) => {
     const startDateFlag = ' --start-date ' + startDate;
     let endDateFlag = ' --end-date ' + endDate;
     // Adjust end date if "Exclusive End Date" is checked

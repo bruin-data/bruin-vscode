@@ -83,7 +83,7 @@ const validationError = ref(null);
 const renderSQLAssetSuccess = ref(null);
 const renderPythonAsset = ref(null);
 const renderSQLAssetError = ref(null);
-const validateButtonStatus = ref("" as "validated" | "failed" | null);
+const validateButtonStatus = ref("" as "validated" | "failed" | "loading" | null);
 const tzoffset = new Date().getTimezoneOffset() * 60000; //offset in milliseconds
 const startDateTime = ref(new Date(Date.now() - tzoffset).toISOString().slice(0, -1));
 const endDateTime = ref(new Date(Date.now() - tzoffset).toISOString().slice(0, -1));
@@ -113,6 +113,11 @@ function receiveMessage(event: { data: any }) {
       validationError.value = envelope.payload;
       validationSuccess.value = null;
       validateButtonStatus.value = "failed";
+      break;
+      case "validation-loading":
+      validateButtonStatus.value = 'loading';
+      validationSuccess.value = null;
+      validationError.value = null;
       break;
     case "render-success":
       renderSQLAssetSuccess.value = envelope.payload;
