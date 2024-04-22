@@ -67,10 +67,22 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: 0.2.5
-- Fixed validation error message formatting and handling.
+### Latest Release: v0.4.0
+
+- **Vue Installation**: Implemented Vue.js as the primary framework for developing the extension's Webview to enhance the extension's user interface and interactivity.
+
+- **New Vue Components**: Rebuilt the Webview using several reusable Vue components. The use of Vue components allows for a more dynamic and responsive user experience.
+
+
 
 ### Previous Highlights
+
+### 0.3.0
+	- Windows compatibility.
+	- Functionality for automatic detection of the workspace directory in Bruin projects.
+
+### 0.2.5
+- Fixed validation error message formatting and handling.
 
 ### 0.2.4
 - Fixed the rendering problems with some assets.
