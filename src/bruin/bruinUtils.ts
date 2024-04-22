@@ -1,4 +1,4 @@
-import { BRUIN_RUN_SQL_COMMAND, BRUIN_WHICH_COMMAND } from "../constants";
+import { BRUIN_RUN_SQL_COMMAND, BRUIN_WHERE_COMMAND, BRUIN_WHICH_COMMAND } from "../constants";
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 import * as child_process from "child_process";
@@ -14,7 +14,8 @@ import * as vscode from "vscode";
 
 export const isBruinBinaryAvailable = (): boolean => {
   try {
-    let output = child_process.execSync(BRUIN_WHICH_COMMAND);
+    const command = process.platform === 'win32' ? BRUIN_WHERE_COMMAND : BRUIN_WHICH_COMMAND;
+    let output = child_process.execSync(command);
     console.log(output.toString());
 
     if (!output) {
