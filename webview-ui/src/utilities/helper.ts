@@ -26,6 +26,6 @@ const adjustEndDateForExclusive = (endtDate: string): string => {
       }`);
   
     const flags = [startDateFlag, endDateFlag, ...checkboxesFlags];
-    return flags.join(" ");
+    return flags;
   };
   

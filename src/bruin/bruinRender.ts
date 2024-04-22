@@ -38,7 +38,7 @@ export class BruinRender extends BruinCommand {
       );
       return;
     }
-    await this.run([filePath, ...flags], { ignoresErrors }).then(
+    await this.run([...flags, filePath], { ignoresErrors }).then(
       (sqlRendered) => {
         BruinPanel.currentPanel?.postMessage("render-success", sqlRendered);
       },

@@ -40,7 +40,8 @@
 <script setup lang="ts">
 import { allComponents, provideVSCodeDesignSystem } from "@vscode/webview-ui-toolkit";
 import { vscode } from "@/utilities/vscode";
-import { onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { watch, reactive } from 'vue';
 import ErrorAlert from "@/components/ErrorAlert.vue";
 import { handleError } from "@/composable/index";
 import "@/assets/index.css";
@@ -50,9 +51,7 @@ import SqlEditor from "@/components/SqlEditor.vue";
 import CheckboxGroup from "@/components/CheckboxGroup.vue";
 import { concatCommandFlags } from "./utilities/helper";
 provideVSCodeDesignSystem().register(allComponents);
-
-import { computed } from 'vue';
-
+         
 
 const errorState = computed(() => handleError(validationError.value, renderSQLAssetError.value));
 
@@ -61,18 +60,28 @@ function handleBruinValidate() {
     command: "bruin.validate",
   });
 }
-function runSql() {
-  console.log("Running SQL");
-  vscode.postMessage({
-    command: "bruin.runSql",
-    payload: concatCommandFlags(startDate.value, endDate.value, checkboxItems.value),
-  });
-}
+
 const checkboxItems = ref([
   { name: "Downstream", checked: false },
   { name: "Full-Refresh", checked: false },
   { name: "Exclusive-End-Date", checked: false },
 ]);
+
+function getCheckboxChangePayload() {
+  return concatCommandFlags(startDate.value, endDate.value, checkboxItems.value);
+}
+
+
+
+function runSql() {
+  console.log("Running SQL");
+  const payload = getCheckboxChangePayload(); 
+  vscode.postMessage({
+    command: "bruin.runSql",
+    payload: payload,
+  });
+}
+
 
 const validationSuccess = ref(null);
 const validationError = ref(null);
@@ -87,13 +96,31 @@ const language = ref("");
 const startDate = ref(startDateTime);
 const endDate = ref(endDateTime);
 const code = ref(null);
+
+function sendInitialMessage() {
+  const initialPayload = getCheckboxChangePayload();
+  vscode.postMessage({
+    command: 'checkboxChange',
+    payload: initialPayload
+  });
+}
+
 onMounted(() => {
   window.addEventListener("message", receiveMessage);
+  sendInitialMessage();
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener("message", receiveMessage);
 });
+
+watch([checkboxItems.value, startDate.value, endDate.value], () => {
+  const payload: string = getCheckboxChangePayload();
+  vscode.postMessage({
+    command: 'checkboxChange',
+    payload: payload 
+  });
+}, { deep: true });
 
 function receiveMessage(event: { data: any }) {
   if (!event) return;

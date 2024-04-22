@@ -3,7 +3,8 @@ import { getUri } from "../utilities/getUri";
 import { getNonce } from "../utilities/getNonce";
 import { BruinValidate, bruinWorkspaceDirectory, runInIntegratedTerminal } from "../bruin";
 import { getDefaultBruinExecutablePath } from "../extension/configuration";
-
+import * as vscode from "vscode";
+import { renderCommandWithFlags } from "../extension/commands/renderCommand";
 
 /**
  * This class manages the state and behavior of Bruin webview panels.
@@ -179,7 +180,6 @@ export class BruinPanel {
     webview.onDidReceiveMessage(
       async (message: any) => {
         const command = message.command;
-        const text = message.text;
 
         switch (command) {
           case "bruin.validate":
@@ -190,25 +190,25 @@ export class BruinPanel {
 
             const filePath = this._lastRenderedDocumentUri.fsPath;
             const bruinWorkspaceDir = bruinWorkspaceDirectory(filePath || "");
-            console.debug("filePath", filePath);
+            //console.debug("filePath", filePath);
             const validator = new BruinValidate(
               getDefaultBruinExecutablePath(),
               bruinWorkspaceDir!!
             );
-            console.debug("validator", validator);
+            //console.debug("validator", validator);
 
             await validator.validate(filePath, {
               flags: ["-o", "json"],
             });
             break;
           case "bruin.runSql":
-            console.debug("runSql", message.payload);
+            //console.debug("runSql", message.payload);
             if (!this._lastRenderedDocumentUri) {
               return;
             }
             const fPath = this._lastRenderedDocumentUri?.fsPath;
             runInIntegratedTerminal(fPath, bruinWorkspaceDirectory(fPath), message.payload);
-            console.debug("workspace directory: ", bruinWorkspaceDirectory(fPath));
+            //console.debug("workspace directory: ", bruinWorkspaceDirectory(fPath));
             setTimeout(() => {
               this._panel.webview.postMessage({
                 command: "runCompleted",
@@ -216,6 +216,9 @@ export class BruinPanel {
               });
             }, 1500);
             break;
+            case "checkboxChange":
+              await renderCommandWithFlags(message.payload);
+              console.debug("updateCheckboxItems", message.payload); 
         }
       },
       undefined,
