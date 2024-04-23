@@ -68,13 +68,15 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: v0.4.2
+### Latest Release: v0.4.3
 
-## Added
-	- Implemented a reactivity handling to ensure that the SQL preview responds dynamically to user interactions with the checkboxes and the date inputs. 
-
+## Fixed
+- Fix the rendering for the last opened document
 
 ### Previous Highlights
+
+### 0.4.1
+	- Implemented a reactivity handling to ensure that the SQL preview responds dynamically to user interactions with the checkboxes and the date inputs. 
 
 ### 0.4.1
 	- Implemented a loading state and added a spinner to the validation button to handle the "loading" state.
