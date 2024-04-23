@@ -26,13 +26,20 @@ export const renderCommand = async (extensionUri: vscode.Uri) => {
   export const renderCommandWithFlags = async (flags: string) => {
     console.debug("Flags: ", flags);
     const activeEditor = vscode.window.activeTextEditor;
-    if (activeEditor) {
+    if (activeEditor || flags !== "") {
+      let filePath : string ;
+
+      if(!activeEditor){
+        filePath = vscode.window.visibleTextEditors[0].document.fileName;
+      }
+      else {
+        filePath = activeEditor?.document.fileName;
+      }
       const bruinSqlRenderer = new BruinRender(
         getDefaultBruinExecutablePath(),
         vscode.workspace.workspaceFolders?.[0].uri.fsPath!!
       );
 
-      const filePath = activeEditor.document.fileName;
       
       await bruinSqlRenderer.render(filePath, { flags: flags.split(" ").filter((flag) => flag !== "")});
     }

@@ -22,7 +22,7 @@ export class BruinPanel {
   private readonly _panel: WebviewPanel;
   private _disposables: Disposable[] = [];
   private _lastRenderedDocumentUri: Uri | undefined;
-
+  private _flags: string = "";
   /**
    * The BruinPanel class private constructor (called only from the render method).
    *
@@ -39,20 +39,31 @@ export class BruinPanel {
     // the panel or when the panel is closed programmatically)
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
 
+    this._disposables.push(
+      window.onDidChangeWindowState((state) => {
+          console.debug("Window state changed");
+          renderCommandWithFlags(this._flags);
+      })
+      
+    );
 
     this._disposables.push(
-      window.onDidChangeActiveTextEditor(editor => {
+      workspace.onDidChangeTextDocument((editor) => {
         if (editor && editor.document.uri) {
           this._lastRenderedDocumentUri = editor.document.uri;
+          console.debug("Active text document changed");
+          renderCommandWithFlags(this._flags);
         }
       })
     );
 
-    
+
     this._disposables.push(
-      window.onDidChangeActiveTextEditor(editor => {
+      window.onDidChangeActiveTextEditor((editor) => {
         if (editor && editor.document.uri) {
           this._lastRenderedDocumentUri = editor.document.uri;
+          console.debug("Active text editor changed");
+          renderCommandWithFlags(this._flags);
         }
       })
     );
@@ -66,9 +77,6 @@ export class BruinPanel {
 
     // Set the last rendered document URI to the current active editor document URI
     this._lastRenderedDocumentUri = window.activeTextEditor?.document.uri;
-    
-    
-    ;
 
     // Set an event listener to listen for messages passed from the webview context
     this._setWebviewMessageListener(this._panel.webview);
@@ -111,7 +119,6 @@ export class BruinPanel {
       );
 
       BruinPanel.currentPanel = new BruinPanel(panel, extensionUri);
-      
     }
   }
 
@@ -216,9 +223,10 @@ export class BruinPanel {
               });
             }, 1500);
             break;
-            case "checkboxChange":
-              await renderCommandWithFlags(message.payload);
-              console.debug("updateCheckboxItems", message.payload); 
+          case "checkboxChange":
+            this._flags = message.payload;
+            await renderCommandWithFlags(this._flags);
+            console.debug("updateCheckboxItems", this._flags);
         }
       },
       undefined,
