@@ -220,7 +220,7 @@ export class BruinPanel {
             break;
           case "checkboxChange":
             this._flags = message.payload;
-            await renderCommandWithFlags(this._flags);
+            await renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri?.fsPath);
         }
       },
       undefined,
