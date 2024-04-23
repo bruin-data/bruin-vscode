@@ -3,7 +3,8 @@ import { getUri } from "../utilities/getUri";
 import { getNonce } from "../utilities/getNonce";
 import { BruinValidate, bruinWorkspaceDirectory, runInIntegratedTerminal } from "../bruin";
 import { getDefaultBruinExecutablePath } from "../extension/configuration";
-
+import * as vscode from "vscode";
+import { renderCommandWithFlags } from "../extension/commands/renderCommand";
 
 /**
  * This class manages the state and behavior of Bruin webview panels.
@@ -21,7 +22,7 @@ export class BruinPanel {
   private readonly _panel: WebviewPanel;
   private _disposables: Disposable[] = [];
   private _lastRenderedDocumentUri: Uri | undefined;
-
+  private _flags: string = "";
   /**
    * The BruinPanel class private constructor (called only from the render method).
    *
@@ -38,20 +39,28 @@ export class BruinPanel {
     // the panel or when the panel is closed programmatically)
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
 
+    this._disposables.push(
+      window.onDidChangeWindowState((state) => {
+          renderCommandWithFlags(this._flags);
+      })
+      
+    );
 
     this._disposables.push(
-      window.onDidChangeActiveTextEditor(editor => {
+      workspace.onDidChangeTextDocument((editor) => {
         if (editor && editor.document.uri) {
           this._lastRenderedDocumentUri = editor.document.uri;
+          renderCommandWithFlags(this._flags);
         }
       })
     );
 
-    
+
     this._disposables.push(
-      window.onDidChangeActiveTextEditor(editor => {
+      window.onDidChangeActiveTextEditor((editor) => {
         if (editor && editor.document.uri) {
           this._lastRenderedDocumentUri = editor.document.uri;
+          renderCommandWithFlags(this._flags);
         }
       })
     );
@@ -65,9 +74,6 @@ export class BruinPanel {
 
     // Set the last rendered document URI to the current active editor document URI
     this._lastRenderedDocumentUri = window.activeTextEditor?.document.uri;
-    
-    
-    ;
 
     // Set an event listener to listen for messages passed from the webview context
     this._setWebviewMessageListener(this._panel.webview);
@@ -110,7 +116,6 @@ export class BruinPanel {
       );
 
       BruinPanel.currentPanel = new BruinPanel(panel, extensionUri);
-      
     }
   }
 
@@ -179,7 +184,6 @@ export class BruinPanel {
     webview.onDidReceiveMessage(
       async (message: any) => {
         const command = message.command;
-        const text = message.text;
 
         switch (command) {
           case "bruin.validate":
@@ -190,25 +194,23 @@ export class BruinPanel {
 
             const filePath = this._lastRenderedDocumentUri.fsPath;
             const bruinWorkspaceDir = bruinWorkspaceDirectory(filePath || "");
-            console.debug("filePath", filePath);
+
             const validator = new BruinValidate(
               getDefaultBruinExecutablePath(),
               bruinWorkspaceDir!!
             );
-            console.debug("validator", validator);
 
             await validator.validate(filePath, {
               flags: ["-o", "json"],
             });
             break;
           case "bruin.runSql":
-            console.debug("runSql", message.payload);
             if (!this._lastRenderedDocumentUri) {
               return;
             }
             const fPath = this._lastRenderedDocumentUri?.fsPath;
             runInIntegratedTerminal(fPath, bruinWorkspaceDirectory(fPath), message.payload);
-            console.debug("workspace directory: ", bruinWorkspaceDirectory(fPath));
+
             setTimeout(() => {
               this._panel.webview.postMessage({
                 command: "runCompleted",
@@ -216,6 +218,9 @@ export class BruinPanel {
               });
             }, 1500);
             break;
+          case "checkboxChange":
+            this._flags = message.payload;
+            await renderCommandWithFlags(this._flags);
         }
       },
       undefined,

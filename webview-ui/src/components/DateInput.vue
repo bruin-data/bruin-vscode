@@ -7,30 +7,32 @@
       id="datetime-picker"
       type="datetime-local"
       class="p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-      v-model="dateTime"
-      @input="updateDateTime"
-    />
+      :value="value" 
+      @input="updateValue(($event.target as HTMLInputElement).value)"
+      />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, defineProps, defineEmits } from "vue";
-
-const tzoffset = new Date().getTimezoneOffset() * 60000; //offset in milliseconds
-const dateTime = ref(new Date(Date.now() - tzoffset).toISOString().slice(0, -1));
-
-const emit = defineEmits(["update:modelValue"]);
-
-function updateDateTime(event: Event) {
-  const target = event.target as HTMLInputElement | null;
-  if (target) {
-    emit("update:modelValue", target.value);
-  }
-}
+import { defineProps, defineEmits, computed, ref } from "vue";
 
 const props = defineProps({
   label: String,
+  modelValue: {
+    type: String,
+    required: true
+  }
 });
+const emit = defineEmits(['update:modelValue']);
+
+const value = computed({
+  get: () => props.modelValue,
+  set: (val) => emit('update:modelValue', val)
+});
+
+const updateValue = (value: string) => {
+  emit('update:modelValue', value);
+};
 </script>
 
 <style>

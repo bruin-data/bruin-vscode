@@ -7,14 +7,14 @@ import * as path from "path";
 import * as vscode from "vscode";
 
 /**
-   * Checks if the Bruin binary is available in the system path.
-   * Throws an error if the binary is not found.
-   * @returns {boolean} Returns true if the Bruin binary is available, false otherwise.
-   */
+ * Checks if the Bruin binary is available in the system path.
+ * Throws an error if the binary is not found.
+ * @returns {boolean} Returns true if the Bruin binary is available, false otherwise.
+ */
 
 export const isBruinBinaryAvailable = (): boolean => {
   try {
-    const command = process.platform === 'win32' ? BRUIN_WHERE_COMMAND : BRUIN_WHICH_COMMAND;
+    const command = process.platform === "win32" ? BRUIN_WHERE_COMMAND : BRUIN_WHICH_COMMAND;
     let output = child_process.execSync(command);
     console.log(output.toString());
 
@@ -44,7 +44,7 @@ export const buildCommand = (cliCommand: string): string => {
 
 /**
  * Locates the Bruin workspace directory by searching for specific Bruin configuration files.
- * 
+ *
  * @param {string} fsPath - The file system path where the search starts.
  * @returns {string | undefined} The directory path of the Bruin workspace if found, otherwise undefined.
  */
@@ -83,15 +83,19 @@ export const bruinWorkspaceDirectory = (fsPath: string): string | undefined => {
  * @returns {Promise<void>} A promise that resolves when the command is executed.
  */
 
-export const runInIntegratedTerminal= async(assetPath: string, workingDir: string | undefined, flags?: string) =>{
+export const runInIntegratedTerminal = async (
+  assetPath: string,
+  workingDir: string | undefined,
+  flags?: string
+) => {
   const command = `bruin ${BRUIN_RUN_SQL_COMMAND} ${flags} ${assetPath}`;
 
   const terminalName = "Bruin Terminal";
-  let terminal = vscode.window.terminals.find(t => t.name === terminalName);
+  let terminal = vscode.window.terminals.find((t) => t.name === terminalName);
   if (!terminal) {
-      terminal = vscode.window.createTerminal({ cwd: workingDir, name: terminalName});
+    terminal = vscode.window.createTerminal({ cwd: workingDir, name: terminalName });
   }
-  terminal.show(true); 
+  terminal.show(true);
   terminal.sendText(command);
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  await new Promise((resolve) => setTimeout(resolve, 1000));
 };

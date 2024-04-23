@@ -25,7 +25,15 @@ const adjustEndDateForExclusive = (endtDate: string): string => {
       .map(item => ` --${item.name.toLowerCase()
       }`);
   
-    const flags = [startDateFlag, endDateFlag, ...checkboxesFlags];
-    return flags.join(" ");
+    const flags = [startDateFlag, endDateFlag, ...checkboxesFlags].concat().join(' ');
+    return flags;
   };
   
+  export const handleError = (validationError: string | null, renderSQLAssetError: string |null) => {
+    if (validationError || renderSQLAssetError) {
+      return {
+        errorCaptured: true,
+        errorMessage: validationError || renderSQLAssetError || "An error occurred",
+      };
+    }
+  }

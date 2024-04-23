@@ -26,6 +26,7 @@ export abstract class BruinCommand {
 
   /** The args used to execute the for the command. */
   protected execArgs(flags: string[] = []) {
+  console.log(this.options.concat([this.bruinCommand()]).concat(flags));
     return this.options.concat([this.bruinCommand()]).concat(flags);
   }
 
