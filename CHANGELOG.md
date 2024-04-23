@@ -3,6 +3,11 @@
 All notable changes to the Bruin extension will be documented in this file.
 
 
+## [0.4.2] - [2024-04-23]
+
+## Added
+- Implemented a reactivity handling to ensure that the SQL preview responds dynamically to user interactions with the checkboxes and the date inputs. 
+
 ## [0.4.1] - [2024-04-22]
 
 ## Added
