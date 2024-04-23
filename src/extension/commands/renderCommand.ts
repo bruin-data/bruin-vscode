@@ -24,7 +24,6 @@ export const renderCommand = async (extensionUri: vscode.Uri) => {
   };
 
   export const renderCommandWithFlags = async (flags: string) => {
-    console.debug("Flags: ", flags);
     const activeEditor = vscode.window.activeTextEditor;
     if (activeEditor || flags !== "") {
       let filePath : string ;
@@ -41,6 +40,6 @@ export const renderCommand = async (extensionUri: vscode.Uri) => {
       );
 
       
-      await bruinSqlRenderer.render(filePath, { flags: flags.split(" ").filter((flag) => flag !== "")});
+      await bruinSqlRenderer.render(filePath, { flags: flags.split(" ").filter((flag) => flag !== "" && flag !== "--downstream")});
     }
   };

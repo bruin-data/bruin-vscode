@@ -41,7 +41,6 @@ export class BruinPanel {
 
     this._disposables.push(
       window.onDidChangeWindowState((state) => {
-          console.debug("Window state changed");
           renderCommandWithFlags(this._flags);
       })
       
@@ -51,7 +50,6 @@ export class BruinPanel {
       workspace.onDidChangeTextDocument((editor) => {
         if (editor && editor.document.uri) {
           this._lastRenderedDocumentUri = editor.document.uri;
-          console.debug("Active text document changed");
           renderCommandWithFlags(this._flags);
         }
       })
@@ -62,7 +60,6 @@ export class BruinPanel {
       window.onDidChangeActiveTextEditor((editor) => {
         if (editor && editor.document.uri) {
           this._lastRenderedDocumentUri = editor.document.uri;
-          console.debug("Active text editor changed");
           renderCommandWithFlags(this._flags);
         }
       })
@@ -197,25 +194,23 @@ export class BruinPanel {
 
             const filePath = this._lastRenderedDocumentUri.fsPath;
             const bruinWorkspaceDir = bruinWorkspaceDirectory(filePath || "");
-            //console.debug("filePath", filePath);
+
             const validator = new BruinValidate(
               getDefaultBruinExecutablePath(),
               bruinWorkspaceDir!!
             );
-            //console.debug("validator", validator);
 
             await validator.validate(filePath, {
               flags: ["-o", "json"],
             });
             break;
           case "bruin.runSql":
-            //console.debug("runSql", message.payload);
             if (!this._lastRenderedDocumentUri) {
               return;
             }
             const fPath = this._lastRenderedDocumentUri?.fsPath;
             runInIntegratedTerminal(fPath, bruinWorkspaceDirectory(fPath), message.payload);
-            //console.debug("workspace directory: ", bruinWorkspaceDirectory(fPath));
+
             setTimeout(() => {
               this._panel.webview.postMessage({
                 command: "runCompleted",
@@ -226,7 +221,6 @@ export class BruinPanel {
           case "checkboxChange":
             this._flags = message.payload;
             await renderCommandWithFlags(this._flags);
-            console.debug("updateCheckboxItems", this._flags);
         }
       },
       undefined,
