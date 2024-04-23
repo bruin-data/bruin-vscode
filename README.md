@@ -56,7 +56,8 @@ Bruin is a unified analytics platform that enables data professionals to work en
 	3. A Webview will open, previewing the SQL content.
 	4. Click the "Copy" icon to copy the content.
 	5. The theme color of the view can match the vscode current theme (dark/light/Dark high contrast)
-
+	6. The SQL Preview automatically responds to changes in checkboxes and dates, ensuring an immediate re-render.
+	
 **SQL Validation and Execution**:
     - **Validation**: Click the "Validate" button to validate the current SQL. A custom notification will appear based on the validation results.
     - **Run with Flags**: Click the "Run" button to execute the SQL command in an integrated terminal. This can include optional flags based on user input (checkboxes & date inputs).
@@ -67,17 +68,18 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: v0.4.1
+### Latest Release: v0.4.2
 
 ## Added
-- Implemented a loading state and added a spinner to the validation button to handle the "loading" state.
-
-## Fixed
-- Improved responsiveness of the validation by correctly managing the loading state.
-
+	- Implemented a reactivity handling to ensure that the SQL preview responds dynamically to user interactions with the checkboxes and the date inputs. 
 
 
 ### Previous Highlights
+
+### 0.4.1
+	- Implemented a loading state and added a spinner to the validation button to handle the "loading" state.
+	- Improved responsiveness of the validation by correctly managing the loading state.
+
 
 ### 0.4.0
 	- Implemented Vue.js as the primary framework for developing the extension's Webview to enhance the extension's user interface and interactivity.
