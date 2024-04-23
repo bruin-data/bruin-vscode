@@ -104,6 +104,9 @@ const endDate = ref(new Date(Date.UTC(
   yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59, 999
 )).toISOString().slice(0, -1));
 
+//end date = endDate - 1microsecond
+// endDate.value = new Date(new Date(endDate.value).getTime() - 1).toISOString().slice(0, -1);
+
 // Using startDate and endDate in your application
 console.log("start & endDates", startDate.value, endDate.value);
 
