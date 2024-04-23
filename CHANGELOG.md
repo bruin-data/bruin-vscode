@@ -3,6 +3,12 @@
 All notable changes to the Bruin extension will be documented in this file.
 
 
+
+## [0.4.3] - [2024-04-23]
+
+## Fixed
+- Fixed the rendering of the last opened document
+
 ## [0.4.2] - [2024-04-23]
 
 ## Added
