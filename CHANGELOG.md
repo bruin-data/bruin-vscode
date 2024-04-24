@@ -3,6 +3,10 @@
 All notable changes to the Bruin extension will be documented in this file.
 
 
+## [0.5.0] - [2024-04-24]
+
+## Added
+- The SQL preview now displays line numbers, providing a clearer and more navigable interface for code review and debugging.
 
 ## [0.4.3] - [2024-04-23]
 

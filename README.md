@@ -68,14 +68,18 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: v0.4.3
+### Latest Release: v0.5.0
 
-## Fixed
-- Fix the rendering for the last opened document
+## Added
+- **Enhanced SQL Preview**: The SQL preview now displays line numbers, providing a clearer and more navigable interface for code review and debugging.
+
 
 ### Previous Highlights
 
-### 0.4.1
+### 0.4.3
+	- Fix the rendering for the last opened document
+
+### 0.4.2
 	- Implemented a reactivity handling to ensure that the SQL preview responds dynamically to user interactions with the checkboxes and the date inputs. 
 
 ### 0.4.1
