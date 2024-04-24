@@ -1,6 +1,8 @@
 <template>
   <div class="highlight-container rounded-tl-md rounded-tr-md">
-    <div class="header rounded-tl-md rounded-tr-md flex items-center justify-between p-2 border-gray-300 shadow-sm">
+    <div
+      class="header rounded-tl-md rounded-tr-md flex items-center justify-between p-2 border-gray-300 shadow-sm"
+    >
       <label class="text-sm font-medium">SQL Preview</label>
       <button
         @click="copyToClipboard"
@@ -11,15 +13,23 @@
         <span v-if="copied" class="text-sm">Copied!</span>
       </button>
     </div>
-    <div id="sql-editor" >
-      <highlightjs language="sql" :code="code"/>
+    <div id="sql-editor" class="code-container">
+      <pre id="editor-pre">
+        <div v-for="(line, index) in highlightedLines" :key="index" class="line">
+          <span class="line-number">{{ index + 1 }}</span>
+          <span v-html="line"></span>
+        </div>
+      </pre>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, defineProps } from "vue";
+import { ref, defineProps, computed } from "vue";
+import 'highlight.js/styles/default.css'; 
 import IConButton from "./ui/buttons/IconButton.vue";
+import hljs from 'highlight.js/lib/core';
+
 const props = defineProps({
   code: String | undefined,
   language: "sql" | "python",
@@ -35,6 +45,12 @@ function copyToClipboard() {
     copied.value = false;
   }, 2000);
 }
+
+const highlightedLines = computed(() => {
+  if (!props.code) return [];
+  const highlighted = hljs.highlight(props.code, { language: props.language }).value;
+  return highlighted.split('\n').map(line => `<span>${line}</span>`);
+});
 
 </script>
 
@@ -52,7 +68,8 @@ function copyToClipboard() {
 .copy-button {
   color: var(--vscode-icon-foreground);
 }
-#sql-editor, .python-content {
+#sql-editor,
+.python-content {
   padding: 1rem;
   background-color: var(--vscode-sideBar-background);
 }
@@ -67,10 +84,32 @@ function copyToClipboard() {
   border-top: none;
 }
 
-
-#sql-editor ::v-deep .hljs {
-  background-color: var(--vscode-sideBar-background);
-  color: var(--vscode-foreground);
+.line {
+  display: flex;
+  white-space: pre-wrap; /* Allows line breaks and white space */
 }
+
+.line-number {
+  min-width: 50px;
+  text-align: right;
+  padding-right: 1.5rem; /* Space between line numbers and code */
+  color: var(--vscode-disabledForeground);
+  user-select: none; /* Prevents selection of line numbers */
+}
+
+.code-content {
+  flex-grow: 1;
+  overflow: hidden; /* Prevents code from overflowing */
+}
+
+#editor-pre {
+  overflow: auto;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  max-width: 100%;
+  color: var(--vscode-icon-foreground);
+}
+  
+
 
 </style>
