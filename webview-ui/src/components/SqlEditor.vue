@@ -49,7 +49,12 @@ function copyToClipboard() {
 const highlightedLines = computed(() => {
   if (!props.code) return [];
   const highlighted = hljs.highlight(props.code, { language: props.language }).value;
-  return highlighted.split('\n').map(line => `<span>${line}</span>`);
+
+  let lines = highlighted.split('\n');
+  if (lines[lines.length - 1] === '') {
+    lines.pop(); 
+  }
+  return lines.map(line => `<span>${line}</span>`);
 });
 
 </script>
@@ -75,7 +80,7 @@ const highlightedLines = computed(() => {
 }
 
 .python-content {
-  white-space: pre-wrap; /* Preserves whitespace formatting */
+  white-space: pre-wrap; 
   color: var(--vscode-foreground);
 }
 
@@ -86,20 +91,20 @@ const highlightedLines = computed(() => {
 
 .line {
   display: flex;
-  white-space: pre-wrap; /* Allows line breaks and white space */
+  white-space: pre-wrap; 
 }
 
 .line-number {
   min-width: 50px;
   text-align: right;
-  padding-right: 1.5rem; /* Space between line numbers and code */
+  padding-right: 1.5rem;
   color: var(--vscode-disabledForeground);
-  user-select: none; /* Prevents selection of line numbers */
+  user-select: none; /* Prevents line number from being selected */
 }
 
 .code-content {
   flex-grow: 1;
-  overflow: hidden; /* Prevents code from overflowing */
+  overflow: hidden;
 }
 
 #editor-pre {
