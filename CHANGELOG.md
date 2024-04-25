@@ -3,6 +3,13 @@
 All notable changes to the Bruin extension will be documented in this file.
 
 
+## [0.5.0] - [2024-04-25]
+
+## Added
+- Updated the webview to feature a tabbed interfac. The interface now includes two distinct tabs:
+	- **General Tab**: Continues to display the existing asset details.
+	- **Asset Lineage Tab**: Newly introduced to showcase the lineage data in a textual format. This tab dynamically displays the lineage of the current asset.
+
 ## [0.5.0] - [2024-04-24]
 
 ## Added
