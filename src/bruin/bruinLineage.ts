@@ -25,12 +25,9 @@ export class BruinLineage extends BruinCommand {
    * @returns {Promise<void>} A promise that resolves when the display process completes or errors are handled.
    */
 
-  public async diplayLineage(
-    filePath: string,
-    { flags = [], ignoresErrors = false }: BruinCommandOptions = {}
-  ): Promise<void> {
+  public async diplayLineage(filePath: string): Promise<void> {
     
-    await this.run([...flags, filePath], { ignoresErrors }).then(
+    await this.run([filePath]).then(
       (lineageDisplayed) => {
         BruinPanel.currentPanel?.postMessage("lineage-success", lineageDisplayed);
         console.debug("lineage-success", lineageDisplayed);

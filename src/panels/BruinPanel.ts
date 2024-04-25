@@ -5,6 +5,7 @@ import { BruinLineage, BruinValidate, bruinWorkspaceDirectory, runInIntegratedTe
 import { getDefaultBruinExecutablePath } from "../extension/configuration";
 import * as vscode from "vscode";
 import { renderCommandWithFlags } from "../extension/commands/renderCommand";
+import { lineageCommand } from "../extension/commands/lineageCommand";
 
 /**
  * This class manages the state and behavior of Bruin webview panels.
@@ -51,6 +52,7 @@ export class BruinPanel {
         if (editor && editor.document.uri) {
           this._lastRenderedDocumentUri = editor.document.uri;
           renderCommandWithFlags(this._flags);
+          lineageCommand(this._lastRenderedDocumentUri);
         }
       })
     );
@@ -61,6 +63,7 @@ export class BruinPanel {
         if (editor && editor.document.uri) {
           this._lastRenderedDocumentUri = editor.document.uri;
           renderCommandWithFlags(this._flags);
+          lineageCommand(this._lastRenderedDocumentUri);
         }
       })
     );
@@ -224,16 +227,8 @@ export class BruinPanel {
             break;
 
           case "bruin.getAssetLineage":
-            console.log("getAssetLineage message well received");
-            if (!this._lastRenderedDocumentUri) {
-              return;
-            }
-            const lineage = new BruinLineage(
-              getDefaultBruinExecutablePath(),
-              bruinWorkspaceDirectory(this._lastRenderedDocumentUri.fsPath)!!
-            );
-
-            await lineage.diplayLineage(this._lastRenderedDocumentUri.fsPath);
+            //console.log("getAssetLineage message well received");
+            lineageCommand(this._lastRenderedDocumentUri);
             break;
         } 
       },
