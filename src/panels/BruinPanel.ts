@@ -1,7 +1,7 @@
 import { Disposable, Webview, WebviewPanel, window, Uri, ViewColumn, workspace } from "vscode";
 import { getUri } from "../utilities/getUri";
 import { getNonce } from "../utilities/getNonce";
-import { BruinValidate, bruinWorkspaceDirectory, runInIntegratedTerminal } from "../bruin";
+import { BruinLineage, BruinValidate, bruinWorkspaceDirectory, runInIntegratedTerminal } from "../bruin";
 import { getDefaultBruinExecutablePath } from "../extension/configuration";
 import * as vscode from "vscode";
 import { renderCommandWithFlags } from "../extension/commands/renderCommand";
@@ -221,7 +221,21 @@ export class BruinPanel {
           case "checkboxChange":
             this._flags = message.payload;
             await renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri?.fsPath);
-        }
+            break;
+
+          case "bruin.getAssetLineage":
+            console.log("getAssetLineage message well received");
+            if (!this._lastRenderedDocumentUri) {
+              return;
+            }
+            const lineage = new BruinLineage(
+              getDefaultBruinExecutablePath(),
+              bruinWorkspaceDirectory(this._lastRenderedDocumentUri.fsPath)!!
+            );
+
+            await lineage.diplayLineage(this._lastRenderedDocumentUri.fsPath);
+            break;
+        } 
       },
       undefined,
       this._disposables

@@ -19,21 +19,26 @@
 </template>
 
 
-<script>
+<script setup lang="ts">
 import AssetDetails from '@/components/AssetDetails.vue';
 import AssetLineage from '@/components/AssetLineage.vue';
+import { vscode } from '@/utilities/vscode';
+import { ref, onMounted } from 'vue';
 
-export default {
-  data() {
-    return {
-      activeTab: 0,
-      tabs: [
-        { label: 'Asset Details', component: AssetDetails },
-        { label: 'Other Content', component: AssetLineage }
-      ]
-    };
-  }
+const activeTab = ref(0);
+const tabs = ref([
+  { label: 'Asset Details', component: AssetDetails },
+  { label: 'Asset Lineage', component: AssetLineage }
+]);
+
+onMounted(() => {
+  loadLineageData();
+});
+
+function loadLineageData() {
+  vscode.postMessage({ command: 'bruin.getAssetLineage' });
 }
+
 </script>
 
 
