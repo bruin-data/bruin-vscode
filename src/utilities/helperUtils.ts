@@ -4,6 +4,10 @@ export const isEditorActive = (): boolean => !!vscode.window.activeTextEditor;
 
 export const isFileExtensionSQL = (fileName: string): boolean => {
   fileName = fileName.toLowerCase();
+
+  if (!fileName) {
+    return false;
+  } // Ensure fileName is not undefined
   let fileExtension = fileName.split(".").pop() || "";
 
   if (fileExtension?.toLowerCase() === "sql") {
@@ -20,6 +24,10 @@ export const isBruinAsset = async (
   fileName: string,
   validAssetExtentions: string[]
 ): Promise<boolean> => {
+  if (!fileName) {
+    return false;
+  } // Ensure fileName is not undefined
+
   const fileExtension = fileName.split(".").pop()?.toLowerCase() || "";
 
   if (!validAssetExtentions.includes(fileExtension)) {
