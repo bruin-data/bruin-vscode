@@ -1,10 +1,11 @@
 import { Disposable, Webview, WebviewPanel, window, Uri, ViewColumn, workspace } from "vscode";
 import { getUri } from "../utilities/getUri";
 import { getNonce } from "../utilities/getNonce";
-import { BruinValidate, bruinWorkspaceDirectory, runInIntegratedTerminal } from "../bruin";
+import { BruinLineage, BruinValidate, bruinWorkspaceDirectory, runInIntegratedTerminal } from "../bruin";
 import { getDefaultBruinExecutablePath } from "../extension/configuration";
 import * as vscode from "vscode";
 import { renderCommandWithFlags } from "../extension/commands/renderCommand";
+import { lineageCommand } from "../extension/commands/lineageCommand";
 
 /**
  * This class manages the state and behavior of Bruin webview panels.
@@ -51,6 +52,7 @@ export class BruinPanel {
         if (editor && editor.document.uri) {
           this._lastRenderedDocumentUri = editor.document.uri;
           renderCommandWithFlags(this._flags);
+          lineageCommand(this._lastRenderedDocumentUri);
         }
       })
     );
@@ -61,6 +63,7 @@ export class BruinPanel {
         if (editor && editor.document.uri) {
           this._lastRenderedDocumentUri = editor.document.uri;
           renderCommandWithFlags(this._flags);
+          lineageCommand(this._lastRenderedDocumentUri);
         }
       })
     );
@@ -221,7 +224,13 @@ export class BruinPanel {
           case "checkboxChange":
             this._flags = message.payload;
             await renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri?.fsPath);
-        }
+            break;
+
+          case "bruin.getAssetLineage":
+            //console.log("getAssetLineage message well received");
+            lineageCommand(this._lastRenderedDocumentUri);
+            break;
+        } 
       },
       undefined,
       this._disposables
