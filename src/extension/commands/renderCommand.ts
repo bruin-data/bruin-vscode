@@ -23,12 +23,16 @@ export const renderCommand = async (extensionUri: vscode.Uri) => {
 };
 
 export const renderCommandWithFlags = async (flags: string, lastRenderedDocumentUri?: string | undefined) => {
+
   const activeEditor = vscode.window.activeTextEditor;
   if (activeEditor || flags !== "") {
     let filePath: string;
 
     if (!activeEditor) {
       filePath = lastRenderedDocumentUri as string;
+      if(!filePath) {
+        return;
+      }
     } else {
       filePath = activeEditor?.document.fileName;
     }
