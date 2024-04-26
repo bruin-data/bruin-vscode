@@ -56,3 +56,10 @@ export const encodeHTML = (str: string) => {
 export const removeAnsiColors = (str: string): string => {
   return str.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, "");
 };
+
+export const processLineageData =(lineageString : string): any => {
+  if (lineageString.startsWith('"') && lineageString.endsWith('"')) {
+  lineageString = lineageString.substring(1, lineageString.length - 1);
+}
+return lineageString.split('\\n'); 
+};

@@ -30,13 +30,22 @@ export class BruinValidate extends BruinCommand {
     { flags = [], ignoresErrors = false }: BruinCommandOptions = {}
   ): Promise<void> {
     this.isLoading = true; 
-    BruinPanel.currentPanel?.postMessage("validation-loading", "Loading...");
+    BruinPanel.currentPanel?.postMessage("validation-message", {
+      status: "loading",
+      message: "Validating asset...",
+    });
     await this.run([filePath, ...flags], { ignoresErrors })
       .then((result) => {
-        BruinPanel.currentPanel?.postMessage("validation-success", result);
+        BruinPanel.currentPanel?.postMessage("validation-message", {
+          status: "success",
+          message: result,
+        });
       })
       .catch((err) => {
-        BruinPanel.currentPanel?.postMessage("validation-error", err);
+        BruinPanel.currentPanel?.postMessage("validation-message", {
+          status: "error",
+          message: err,
+        });
       })
       .finally(() => {
         this.isLoading = false; // Reset loading state when validation completes or fails
