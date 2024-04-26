@@ -46,6 +46,7 @@ export const updateValue = (envelope: { payload: { status: string; message: any;
   return envelope.payload.status === status ? envelope.payload.message : null;
 };
 
-export function determineValidationStatus(success: string | null, error: string | null, loading: string | null) {
+export const determineValidationStatus = (success: string | null, error: string | null, loading: string | null) =>{
   return success ? "validated" : error ? "failed" : loading ? "loading" : null;
 }
+

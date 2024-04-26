@@ -21,6 +21,7 @@
 import { vscode } from '@/utilities/vscode';
 import { onBeforeUnmount, onMounted, ref } from "vue";
 import ErrorAlert from "@/components/ErrorAlert.vue";
+import { updateValue } from "@/utilities/helper";
 
 const lineageSuccess = ref(null);
 const lineageError = ref(null);
@@ -33,30 +34,16 @@ onMounted(() => {
   onBeforeUnmount(() => {
     window.removeEventListener("message", receiveMessage);
   });
-  function processLineageData(lineageString) {
-    if (lineageString.startsWith('"') && lineageString.endsWith('"')) {
-    lineageString = lineageString.substring(1, lineageString.length - 1);
-  }
-  return lineageString.split('\\n'); 
 
-}
 
   function receiveMessage(event: { data: any }) {
     if (!event) return;
   
     const envelope = event.data;
     switch (envelope.command) {
-      case "lineage-success":
-        console.log('lineage-success from .vue')
-        //formay payload and display it and respect the line breaks 
-        const formatted =  JSON.stringify(envelope.payload);
-        lineageSuccess.value = processLineageData(formatted);
-        console.log('lineageSuccess.value', lineageSuccess.value)
-        lineageError.value = null;
-        break;
-      case "lineage-error":
-        lineageSuccess.value = null;
-        lineageError.value = envelope.payload;
+      case "lineage-message":
+        lineageSuccess.value = updateValue(envelope, "success");
+        lineageError.value = updateValue(envelope, "error");;
       break;
   }
 }

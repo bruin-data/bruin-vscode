@@ -2,7 +2,7 @@ import { BruinPanel } from "../panels/BruinPanel";
 import { BruinCommand } from "./bruinCommand";
 import { BruinCommandOptions } from "../types";
 import { isPythonBruinAsset } from "../utilities/helperUtils";
-
+import { processLineageData } from "../utilities/helperUtils";
 /**
  * Extends the BruinCommand class to implement the display of the asset Lineage.
  */
@@ -26,15 +26,21 @@ export class BruinLineage extends BruinCommand {
    */
 
   public async diplayLineage(filePath: string): Promise<void> {
-    
+
+
     await this.run([filePath]).then(
       (lineageDisplayed) => {
-        BruinPanel.currentPanel?.postMessage("lineage-success", lineageDisplayed);
-        console.debug("lineage-success", lineageDisplayed);
+        BruinPanel.currentPanel?.postMessage("lineage-message", 
+        { status: "success", 
+          message: processLineageData(JSON.stringify(lineageDisplayed))
+        });
       },
       (error) => {
         console.debug(error);
-        BruinPanel.currentPanel?.postMessage("lineage-error", error);
+        BruinPanel.currentPanel?.postMessage("lineage-message", {
+          status: "error",
+          message: error,
+        });
         console.debug("lineage-err", error);
       }
     );

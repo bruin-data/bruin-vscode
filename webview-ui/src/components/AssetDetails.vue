@@ -178,9 +178,7 @@ function receiveMessage(event: { data: any }) {
       break;
 
     case "run-success":
-      [renderSQLAssetError, validationError, validationSuccess, validateButtonStatus].forEach(
-        (state) => (state.value = null)
-      );
+      resetStates([renderSQLAssetError, validationError, validationSuccess, validateButtonStatus]);
       break;
     case "run-error":
       break;
