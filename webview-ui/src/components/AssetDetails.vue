@@ -47,7 +47,7 @@ import CommandButton from "@/components/ui/buttons/ActionButton.vue";
 import DateInput from "@/components/DateInput.vue";
 import SqlEditor from "@/components/SqlEditor.vue";
 import CheckboxGroup from "@/components/CheckboxGroup.vue";
-import { updateValue, resetStates } from "@/utilities/helper";
+import { updateValue, resetStates, determineValidationStatus } from "@/utilities/helper";
 
 provideVSCodeDesignSystem().register(allComponents);
 
@@ -155,21 +155,17 @@ function receiveMessage(event: { data: any }) {
 
   const envelope = event.data;
   switch (envelope.command) {
-    case "validation-success":
-      validationSuccess.value = envelope.payload;
-      validationError.value = null;
-      validateButtonStatus.value = "validated";
+    case "validation-message":
+      validationSuccess.value = updateValue(envelope, "success");
+      validationError.value = updateValue(envelope, "error");
+      validateButtonStatus.value = updateValue(envelope, "loading");
+      validateButtonStatus.value = determineValidationStatus(
+        validationSuccess.value,
+        validationError.value,
+        validateButtonStatus.value
+      );
       break;
-    case "validation-error":
-      validationError.value = envelope.payload;
-      validationSuccess.value = null;
-      validateButtonStatus.value = "failed";
-      break;
-    case "validation-loading":
-      validateButtonStatus.value = "loading";
-      validationSuccess.value = null;
-      validationError.value = null;
-      break;
+   
     case "render-message":
       renderSQLAssetSuccess.value = updateValue(envelope, "success");
       renderSQLAssetError.value = updateValue(envelope, "error");
@@ -182,13 +178,11 @@ function receiveMessage(event: { data: any }) {
       break;
 
     case "run-success":
-      console.log("Run success");
       [renderSQLAssetError, validationError, validationSuccess, validateButtonStatus].forEach(
         (state) => (state.value = null)
       );
       break;
     case "run-error":
-      console.log("Run error");
       break;
   }
 }
