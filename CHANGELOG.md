@@ -2,8 +2,11 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.6.1] - [2024-04-26]
+## Fixed
+- Resolves the functionality issues with the VSCode extension on Windows platforms.
 
-## [0.5.0] - [2024-04-25]
+## [0.6.0] - [2024-04-25]
 
 ## Added
 - Updated the webview to feature a tabbed interfac. The interface now includes two distinct tabs:
