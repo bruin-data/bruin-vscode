@@ -82,7 +82,7 @@ export class BruinPanel {
     this._setWebviewMessageListener(this._panel.webview);
   }
 
-  public postMessage(name: string, data: string) {
+  public postMessage(name: string, data: string | {status: string, message: string}) {
     if (this._panel) {
       this._panel.webview.postMessage({
         command: name,

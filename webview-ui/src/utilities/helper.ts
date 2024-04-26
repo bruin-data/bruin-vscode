@@ -37,3 +37,11 @@ const adjustEndDateForExclusive = (endtDate: string): string => {
       };
     }
   }
+
+  export const resetStates = (states: any[]) => {
+    states.forEach(state => state.value = null);
+}
+
+export const updateValue = (envelope: { payload: { status: string; message: any; }; }, status: string) => {
+  return envelope.payload.status === status ? envelope.payload.message : null;
+};

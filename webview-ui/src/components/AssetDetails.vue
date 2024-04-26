@@ -1,5 +1,5 @@
 <template>
-  <div class="divide-y  overflow-hidden rounded-lg shadow">
+  <div class="divide-y overflow-hidden rounded-lg shadow">
     <div class="px-4 py-5 sm:px-6">
       {{ assetName }}
     </div>
@@ -47,6 +47,8 @@ import CommandButton from "@/components/ui/buttons/ActionButton.vue";
 import DateInput from "@/components/DateInput.vue";
 import SqlEditor from "@/components/SqlEditor.vue";
 import CheckboxGroup from "@/components/CheckboxGroup.vue";
+import { updateValue, resetStates } from "@/utilities/helper";
+
 provideVSCodeDesignSystem().register(allComponents);
 
 const errorState = computed(() => handleError(validationError.value, renderSQLAssetError.value));
@@ -168,27 +170,15 @@ function receiveMessage(event: { data: any }) {
       validationSuccess.value = null;
       validationError.value = null;
       break;
-    case "render-success":
-      renderSQLAssetSuccess.value = envelope.payload;
-      code.value = renderSQLAssetSuccess.value;
-      language.value = "sql";
-      [renderSQLAssetError, validationError, validationSuccess, validateButtonStatus].forEach(
-        (state) => (state.value = null)
-      );
-      break;
-    case "render-alert":
-      renderPythonAsset.value = envelope.payload;
-      code.value = renderPythonAsset.value;
-      language.value = "python";
+    case "render-message":
+      renderSQLAssetSuccess.value = updateValue(envelope, "success");
+      renderSQLAssetError.value = updateValue(envelope, "error");
+      renderPythonAsset.value = updateValue(envelope, "py-asset-alert");
 
-      [renderSQLAssetError, validationError, validationSuccess, validateButtonStatus].forEach(
-        (state) => (state.value = null)
-      );
-      break;
+      code.value = renderSQLAssetSuccess.value || renderPythonAsset.value;
+      language.value = renderSQLAssetSuccess.value ? "sql" : "python";
 
-    case "render-error":
-      renderSQLAssetError.value = envelope.payload;
-      renderSQLAssetSuccess.value = null;
+      resetStates([validationError, validationSuccess, validateButtonStatus]);
       break;
 
     case "run-success":
