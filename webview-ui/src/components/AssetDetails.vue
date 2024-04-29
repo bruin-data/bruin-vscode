@@ -17,14 +17,17 @@
         <div class="flex justify-end space-x-4">
           <CommandButton
             :disabled="isError"
-            @click="handleBruinValidate"
+            :defaultAction="handleBruinValidate"
             BGColor="bg-blue-500"
             :status="validateButtonStatus"
-            >Validate</CommandButton
-          >
-          <CommandButton :disabled="isError" @click="runSql" BGColor="bg-green-500">
-            Run
-          </CommandButton>
+            buttonLabel="Validate"
+          />
+          <CommandButton
+            :disabled="isError"
+            :defaultAction="runSql"
+            BGColor="bg-green-500"
+            buttonLabel="Run"
+          />
         </div>
         <ErrorAlert v-if="isError" :errorMessage="errorMessage!" />
         <div v-if="language === 'sql'">
@@ -166,7 +169,7 @@ function receiveMessage(event: { data: any }) {
         validateButtonStatus.value
       );
       break;
-   
+
     case "render-message":
       renderSQLAssetSuccess.value = updateValue(envelope, "success");
       renderSQLAssetError.value = updateValue(envelope, "error");
