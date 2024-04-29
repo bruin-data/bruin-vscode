@@ -30,6 +30,8 @@ export const isBruinAsset = async (
 
   const fileExtension = fileName.split(".").pop()?.toLowerCase() || "";
 
+  
+
   if (!validAssetExtentions.includes(fileExtension)) {
     return false;
   }
@@ -37,7 +39,7 @@ export const isBruinAsset = async (
   const bruinPattern = /(\"\"\"\s*@bruin\s*$)|(\/\*\s*@bruin\s*$)/m;
 
   try {
-    const assetContent = await fs.readFileSync(fileName, "utf8");
+    const assetContent = fs.readFileSync(fileName, "utf8");
     return bruinPattern.test(assetContent);
   } catch (err) {
     return false;

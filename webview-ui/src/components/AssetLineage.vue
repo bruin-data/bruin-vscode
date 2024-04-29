@@ -18,7 +18,6 @@
 
 <script setup lang="ts">
 
-import { vscode } from '@/utilities/vscode';
 import { onBeforeUnmount, onMounted, ref } from "vue";
 import ErrorAlert from "@/components/ErrorAlert.vue";
 import { updateValue } from "@/utilities/helper";

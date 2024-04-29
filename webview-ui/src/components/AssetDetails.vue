@@ -84,6 +84,7 @@ const validationError = ref(null);
 const renderSQLAssetSuccess = ref(null);
 const renderPythonAsset = ref(null);
 const renderSQLAssetError = ref(null);
+const renderAssetAlert = ref(null);
 const validateButtonStatus = ref("" as "validated" | "failed" | "loading" | null);
 const tzoffset = new Date().getTimezoneOffset() * 60000; //offset in milliseconds
 //startDate := time.Date(yesterday.Year(), yesterday.Month(), yesterday.Day(), 0, 0, 0, 0, time.UTC)
@@ -170,7 +171,7 @@ function receiveMessage(event: { data: any }) {
       renderSQLAssetSuccess.value = updateValue(envelope, "success");
       renderSQLAssetError.value = updateValue(envelope, "error");
       renderPythonAsset.value = updateValue(envelope, "py-asset-alert");
-
+      renderAssetAlert.value = updateValue(envelope, "non-asset-alert");
       code.value = renderSQLAssetSuccess.value || renderPythonAsset.value;
       language.value = renderSQLAssetSuccess.value ? "sql" : "python";
 
