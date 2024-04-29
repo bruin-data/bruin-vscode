@@ -217,9 +217,9 @@ export class BruinPanel {
               getDefaultBruinExecutablePath(),
               bruinWorkspaceDir!!
             );
-
+            const flags = message.payload;
             await validator.validate(filePath, {
-              flags: ["-o", "json"],
+              flags: ["-o", "json", flags],
             });
             break;
           case "bruin.runSql":
@@ -227,7 +227,7 @@ export class BruinPanel {
               return;
             }
             const fPath = this._lastRenderedDocumentUri?.fsPath;
-            runInIntegratedTerminal(fPath, bruinWorkspaceDirectory(fPath), message.payload);
+            runInIntegratedTerminal( bruinWorkspaceDirectory(fPath), fPath, message.payload);
 
             setTimeout(() => {
               this._panel.webview.postMessage({
@@ -236,6 +236,21 @@ export class BruinPanel {
               });
             }, 1500);
             break;
+            case "bruin.runAll":
+              const workspaceF = vscode.workspace.workspaceFolders?.[0];
+              if (!workspaceF) {
+                console.error("No workspace folder found.");
+                return;
+              }
+              runInIntegratedTerminal(bruinWorkspaceDirectory(workspaceF?.uri.fsPath), message.payload);
+  
+              setTimeout(() => {
+                this._panel.webview.postMessage({
+                  command: "runCompleted",
+                  message: "",
+                });
+              }, 1500);
+              break;
           case "checkboxChange":
             this._flags = message.payload;
             await renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri?.fsPath);

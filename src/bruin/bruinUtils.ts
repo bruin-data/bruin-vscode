@@ -84,8 +84,8 @@ export const bruinWorkspaceDirectory = (fsPath: string): string | undefined => {
  */
 
 export const runInIntegratedTerminal = async (
-  assetPath: string,
   workingDir: string | undefined,
+  assetPath?: string,
   flags?: string
 ) => {
   const command = `bruin ${BRUIN_RUN_SQL_COMMAND} ${flags} ${assetPath}`;

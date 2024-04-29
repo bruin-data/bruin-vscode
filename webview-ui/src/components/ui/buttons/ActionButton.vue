@@ -24,26 +24,15 @@
       class="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
     >
       <div class="py-1">
-        <MenuItem v-slot="{ active }">
+        <MenuItem v-slot="{ active }" v-for="(item, index) in items" :key="index">
           <button
-            @click="selectAction('Downstream')"
+            @click="selectAction(item)"
             :class="[
               active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
               'block w-full text-left px-4 py-2 text-sm',
             ]"
           >
-            Downstream
-          </button>
-        </MenuItem>
-        <MenuItem v-slot="{ active }">
-          <button
-            @click="selectAction('Pipeline')"
-            :class="[
-              active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
-              'block w-full text-left px-4 py-2 text-sm',
-            ]"
-          >
-            Pipeline
+            {{ item }}
           </button>
         </MenuItem>
       </div>
@@ -61,6 +50,7 @@ const props = defineProps<{
   buttonLabel: string;
   BGColor: string | null;
   status?: "validated" | "failed" | "loading" | null;
+  items?: string[];
   defaultAction: () => void;
 }>();
 
@@ -101,3 +91,5 @@ function selectAction(action: string) {
   animation: spin 1s linear infinite;
 }
 </style>
+
+
