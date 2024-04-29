@@ -2,6 +2,11 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.7.0] - [2024-04-29]
+
+## Added
+- Integrated a dropdown menu into the `validate` and `run` buttons. The `validate` menu includes a new option titled "Pipeline". Selecting this option triggers the command `bruin validate .`. The `run` button menu, features the **"Downstream"** option. When selected, this initiates the command bruin `run --downstream [rest of the command]`.
+
 ## [0.6.2] - [2024-04-29]
 
 ## Fixed

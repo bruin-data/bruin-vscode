@@ -68,12 +68,16 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: v0.6.2
+### Latest Release: v0.7.0
 
-## Fixed
-- Resolves the issue of SQL Preview visibility in files that are not classified as Bruin assets.
+## Added
+- Integrated a dropdown menu into the `validate` and `run` buttons. The `validate` menu includes a new option titled "Pipeline". Selecting this option triggers the command `bruin validate .`. The `run` button menu, features the **"Downstream"** option. When selected, this initiates the command bruin `run --downstream [rest of the command]`.
+
 
 ### Previous Highlights
+
+### 0.6.2
+	- Resolves the issue of SQL Preview visibility in files that are not classified as Bruin assets.
 
 ### 0.6.1
 	- Resolves the functionality issues with the VSCode extension on Windows platforms.
