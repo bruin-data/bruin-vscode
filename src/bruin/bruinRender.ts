@@ -1,7 +1,7 @@
 import { BruinPanel } from "../panels/BruinPanel";
 import { BruinCommand } from "./bruinCommand";
 import { BruinCommandOptions } from "../types";
-import { isPythonBruinAsset } from "../utilities/helperUtils";
+import { isBruinAsset, isPythonBruinAsset } from "../utilities/helperUtils";
 
 /**
  * Extends the BruinCommand class to implement the rendering process specific to Bruin assets.
@@ -30,19 +30,20 @@ export class BruinRender extends BruinCommand {
     filePath: string,
     { flags = [], ignoresErrors = false }: BruinCommandOptions = {}
   ): Promise<void> {
-    if (!filePath.endsWith(".sql")) {
-      if (!isPythonBruinAsset(filePath)) {
+      if (!isBruinAsset(filePath, ["py", "sql"])) {
         BruinPanel.currentPanel?.postMessage("render-message", {
           status: "non-assset-alert",
           message: "-- This is not a BRUIN asset --",
         });
+        return;
       } else {
+        if (await isPythonBruinAsset(filePath)){
         BruinPanel.currentPanel?.postMessage("render-message", {
           status: "py-asset-alert",
           message: "-- Python BRUIN asset detected --",
         });
+        return;
       }
-      return;
     }
     await this.run([...flags, filePath], { ignoresErrors }).then(
       (sqlRendered) => {
