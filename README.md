@@ -68,19 +68,21 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-
-### Latest Release: v0.6.1
+### Latest Release: v0.6.2
 
 ## Fixed
-- Resolves the functionality issues with the VSCode extension on Windows platforms.
+- Resolves the issue of SQL Preview visibility in files that are not classified as Bruin assets.
 
 ### Previous Highlights
 
-### 0.6.0
+### 0.6.1
+	- Resolves the functionality issues with the VSCode extension on Windows platforms.
 
-**Tabbed Interface Implementation**: Updated the webview to feature a tabbed interfac. The interface now includes two distinct tabs:
-- **General Tab**: Continues to display the existing asset details.
-- **Asset Lineage Tab**: Newly introduced to showcase the lineage data in a textual format. This tab dynamically displays the lineage of the current asset.
+
+### 0.6.0
+	- Updated the webview to feature a tabbed interface. The interface now includes two distinct tabs.
+	- The `General` tab Continues to display the existing asset details in the General tab.
+	- The `Asset Lineage` is newly introduced to showcase the lineage data in a textual format. This tab dynamically displays the lineage of the current asset.
 
 ### 0.5.0
 	- The SQL preview now displays line numbers, providing a clearer and more navigable interface for code review and debugging.

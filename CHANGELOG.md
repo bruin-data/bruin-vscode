@@ -2,7 +2,13 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.6.2] - [2024-04-29]
+
+## Fixed
+- Resolves the issue of SQL Preview visibility in files that are not classified as Bruin assets.
+
 ## [0.6.1] - [2024-04-26]
+
 ## Fixed
 - Resolves the functionality issues with the VSCode extension on Windows platforms.
 
