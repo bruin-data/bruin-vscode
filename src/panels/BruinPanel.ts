@@ -189,6 +189,21 @@ export class BruinPanel {
         const command = message.command;
 
         switch (command) {
+          case "bruin.validateAll":
+            const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+            if (!workspaceFolder) {
+              console.error("No workspace folder found.");
+              return;
+            }
+            const validatorAll = new BruinValidate(
+              getDefaultBruinExecutablePath(),
+              workspaceFolder.uri.fsPath
+            );
+
+            await validatorAll.validate(workspaceFolder.uri.fsPath, {
+              flags: ["-o", "json"],
+            });
+          break;
           case "bruin.validate":
             if (!this._lastRenderedDocumentUri) {
               console.error("No active document to validate.");

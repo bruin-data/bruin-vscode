@@ -21,6 +21,7 @@
             BGColor="bg-blue-500"
             :status="validateButtonStatus"
             buttonLabel="Validate"
+            @exec-choice="execChoice"
           />
           <CommandButton
             :disabled="isError"
@@ -62,18 +63,33 @@ const props = defineProps<{
   assetName: string | null;
 }>();
 
-function handleBruinValidate() {
+function handleBruinValidate(all: boolean = false) {
+  if(all){
+    vscode.postMessage({
+      command: "bruin.validateAll",
+    });
+  }
+  else {
   vscode.postMessage({
     command: "bruin.validate",
   });
 }
+}
+
 
 const checkboxItems = ref([
-  { name: "Downstream", checked: false },
   { name: "Full-Refresh", checked: false },
   { name: "Exclusive-End-Date", checked: false },
 ]);
 
+function handleExecChoice(action: string) {
+  if(action === "Pipeline") {
+    handleBruinValidate(true);
+  }
+  console.log("Checkbox items", checkboxItems, action);
+}
+
+const execChoice = computed(() => handleExecChoice);
 function runSql() {
   const payload = getCheckboxChangePayload();
   vscode.postMessage({

@@ -66,18 +66,17 @@ const props = defineProps<{
 
 const buttonLabel = ref(props.buttonLabel);
 
-function handleDefaultClick(event) {
+function handleDefaultClick(event: { stopPropagation: () => void; }) {
   // Prevent the dropdown from opening when clicking the button part
   event.stopPropagation();
   if (props.defaultAction) {
     props.defaultAction();
   }
 }
-
-function selectAction(action) {
-  buttonLabel.value = action;
+const emit = defineEmits(["execChoice"]);
+function selectAction(action: string) {
+  emit("execChoice", action);
   console.log(`Action selected: ${action}`);
-  // Implement additional action handlers as needed
 }
 </script>
 
