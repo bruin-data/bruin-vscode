@@ -17,14 +17,21 @@
         <div class="flex justify-end space-x-4">
           <CommandButton
             :disabled="isError"
-            @click="handleBruinValidate"
+            :defaultAction="handleBruinValidate"
             BGColor="bg-blue-500"
             :status="validateButtonStatus"
-            >Validate</CommandButton
-          >
-          <CommandButton :disabled="isError" @click="runSql" BGColor="bg-green-500">
-            Run
-          </CommandButton>
+            buttonLabel="Validate"
+            :items="['Pipeline']"
+            @exec-choice="validateChoice"
+          />
+          <CommandButton
+            :disabled="isError"
+            :defaultAction="runSql"
+            BGColor="bg-green-500"
+            :items="['Downstream']"
+            buttonLabel="Run"
+            @exec-choice="runWithOptions"
+          />
         </div>
         <ErrorAlert v-if="isError" :errorMessage="errorMessage!" />
         <div v-if="language === 'sql'">
@@ -59,26 +66,52 @@ const props = defineProps<{
   assetName: string | null;
 }>();
 
-function handleBruinValidate() {
-  vscode.postMessage({
-    command: "bruin.validate",
-  });
+function handleBruinValidate(all: boolean = false) {
+  if (all) {
+    vscode.postMessage({
+      command: "bruin.validateAll",
+    });
+  } else {
+    vscode.postMessage({
+      command: "bruin.validate",
+    });
+  }
 }
 
 const checkboxItems = ref([
-  { name: "Downstream", checked: false },
   { name: "Full-Refresh", checked: false },
   { name: "Exclusive-End-Date", checked: false },
 ]);
+const runOptions = ref(null as string | null);
 
-function runSql() {
-  const payload = getCheckboxChangePayload();
-  vscode.postMessage({
-    command: "bruin.runSql",
-    payload: payload,
-  });
+function handleValidateAll() {
+  handleBruinValidate(true);
 }
 
+function handleRunWithOptions(action: string) {
+  runOptions.value = action;
+  runSql(runOptions.value);
+  console.log("Run options", runOptions.value);
+}
+const runWithOptions = computed(() => handleRunWithOptions);
+const validateChoice = computed(() => handleValidateAll);
+
+function runSql(runOption?: string) {
+  let payload = getCheckboxChangePayload();
+
+  if (runOption == "Pipeline") {
+    vscode.postMessage({
+      command: "bruin.runAll",
+    });
+    return;
+  } else if (runOption == "Downstream") {
+    payload = payload + " --downstream";
+  }
+  vscode.postMessage({
+      command: "bruin.runSql",
+      payload: payload,
+    });
+}
 const validationSuccess = ref(null);
 const validationError = ref(null);
 const renderSQLAssetSuccess = ref(null);
@@ -166,7 +199,7 @@ function receiveMessage(event: { data: any }) {
         validateButtonStatus.value
       );
       break;
-   
+
     case "render-message":
       renderSQLAssetSuccess.value = updateValue(envelope, "success");
       renderSQLAssetError.value = updateValue(envelope, "error");
