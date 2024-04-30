@@ -60,7 +60,7 @@ const formattedLineage = computed(() => {
 .lineage-container {
   background: var(--vscode-background);
   border: 1px solid var(--vscode-panel-border);
-  padding: 20px;
+  padding: 2rem 4rem 2rem 2rem;
   border-radius: 8px;
   margin-top: 20px;
 }
