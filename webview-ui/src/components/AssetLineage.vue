@@ -4,10 +4,13 @@
       <div class="flex flex-col space-y-3">
         <div class="flex flex-wrap gap-y-4">
             <div v-if="lineageSuccess" class="flex flex-col space-y-2">
-              <span v-for="(elt, index) in lineageSuccess" :key="index">
+              <!-- <span v-for="(elt, index) in lineageSuccess" :key="index">
                 {{ elt }}
-              </span>
+              </span> -->
+              <span>Lineage data loaded successfully</span>
+              {{ lineageSuccess }}
             </div>
+
             <div v-if="lineageError">
              <ErrorAlert :errorMessage="lineageError" />
             </div>

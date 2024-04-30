@@ -34,7 +34,7 @@ export class BruinValidate extends BruinCommand {
       status: "loading",
       message: "Validating asset...",
     });
-    await this.run([filePath, ...flags], { ignoresErrors })
+    await this.run([...flags, filePath], { ignoresErrors })
       .then((result) => {
         BruinPanel.currentPanel?.postMessage("validation-message", {
           status: "success",
