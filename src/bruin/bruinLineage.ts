@@ -1,8 +1,6 @@
 import { BruinPanel } from "../panels/BruinPanel";
 import { BruinCommand } from "./bruinCommand";
 import { BruinCommandOptions } from "../types";
-import { isPythonBruinAsset } from "../utilities/helperUtils";
-import { processLineageData } from "../utilities/helperUtils";
 /**
  * Extends the BruinCommand class to implement the display of the asset Lineage.
  */
@@ -32,7 +30,7 @@ export class BruinLineage extends BruinCommand {
       (lineageDisplayed) => {
         BruinPanel.currentPanel?.postMessage("lineage-message", {
           status: "success",
-          message: JSON.stringify(lineageDisplayed),
+          message: lineageDisplayed,
         });
         console.debug("lineage-success", lineageDisplayed);
       },

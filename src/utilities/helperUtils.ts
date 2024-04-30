@@ -59,9 +59,34 @@ export const removeAnsiColors = (str: string): string => {
   return str.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, "");
 };
 
-export const processLineageData =(lineageString : string): any => {
+/* export const processLineageData =(lineageString : string): any => {
   if (lineageString.startsWith('"') && lineageString.endsWith('"')) {
   lineageString = lineageString.substring(1, lineageString.length - 1);
 }
 return lineageString.split('\\n'); 
+}; */
+
+export const processLineageData =(lineageString: { name: any; } ): any => {
+  return lineageString.name;
 };
+
+/* {
+  "name": "test_dataset.test",
+  "upstream": [],
+  "downstream": [
+      {
+          "name": "test_dataset.test3",
+          "type": "bq.sql",
+          "executable_file": {
+              "name": "test3.sql",
+              "path": "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test3.sql",
+              "content": ""
+          },
+          "definition_file": {
+              "name": "test3.sql",
+              "path": "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test3.sql",
+              "type": "comment"
+          }
+      }
+  ]
+} */
