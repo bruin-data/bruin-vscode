@@ -201,7 +201,7 @@ export class BruinPanel {
             );
 
             await validatorAll.validate(workspaceFolder.uri.fsPath, {
-              flags: ["-o", "json"],
+              flags: [],
             });
           break;
           case "bruin.validate":
@@ -217,9 +217,8 @@ export class BruinPanel {
               getDefaultBruinExecutablePath(),
               bruinWorkspaceDir!!
             );
-            const flags = message.payload;
             await validator.validate(filePath, {
-              flags: ["-o", "json", flags],
+              flags: [],
             });
             break;
           case "bruin.runSql":
@@ -257,7 +256,9 @@ export class BruinPanel {
             break;
 
           case "bruin.getAssetLineage":
-            //console.log("getAssetLineage message well received");
+            if (!this._lastRenderedDocumentUri) {
+              return;
+            }
             lineageCommand(this._lastRenderedDocumentUri);
             break;
         } 
