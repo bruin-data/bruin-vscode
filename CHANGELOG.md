@@ -2,6 +2,11 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.7.1] -[2024-04-29]
+## Fixed
+- Transition from string-based lineage data handling to a JSON parsing mechanism. 
+- The `run` and `validate` buttons have been resized and a separator has been added between the button and its corresponding dropdown menu for better visual appeal and usability. 
+
 ## [0.7.0] - [2024-04-29]
 
 ## Added
