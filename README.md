@@ -68,14 +68,24 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: v0.7.1
+### Latest Release: v0.7.2
 
 ## Updated
 - **Lineage Visualizatio:** Transition from string-based lineage data handling to a JSON parsing mechanism. 
 - **Updated Button Design:** The `run` and `validate` buttons have been resized and a separator has been added between the button and its corresponding dropdown menu for better visual appeal and usability. 
 
 
+
+### Latest Release: v0.7.2
+
+## Updated
+- Fix the visual issues related to the display of icons and the loading spinner within the validate button component.
+
 ### Previous Highlights
+
+### 0.7.1
+ 	- Transition from string-based lineage data handling to a JSON parsing mechanism. 
+	- The `run` and `validate` buttons have been resized and a separator has been added between the button and its corresponding dropdown menu for better visual appeal and usability.
 
 ### 0.7.0
 	- Integrated a dropdown menu into the `validate` and `run` buttons. The `validate` menu includes a new option titled "Pipeline". Selecting this option triggers the command `bruin validate .`. The `run` button menu, features the **"Downstream"** option. When selected, this initiates the command bruin `run --downstream [rest of the command]`.
