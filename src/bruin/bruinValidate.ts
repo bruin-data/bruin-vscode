@@ -36,10 +36,20 @@ export class BruinValidate extends BruinCommand {
     });
     await this.run([...flags, filePath], { ignoresErrors })
       .then((result) => {
+        const validationData = JSON.parse(result)[0];
+        if(Object.keys(validationData.issues).length !== 0 && validationData.issues.constructor === Object){
         BruinPanel.currentPanel?.postMessage("validation-message", {
-          status: "success",
+          status: "error",
           message: result,
         });
+        }
+        else {
+        BruinPanel.currentPanel?.postMessage("validation-message", {
+          status: "success",
+          message: validationData,
+        });
+        console.log(result);
+        }
       })
       .catch((err) => {
         BruinPanel.currentPanel?.postMessage("validation-message", {

@@ -201,7 +201,7 @@ export class BruinPanel {
             );
 
             await validatorAll.validate(workspaceFolder.uri.fsPath, {
-              flags: [],
+              flags: ['-o', 'json'],
             });
           break;
           case "bruin.validate":
@@ -218,7 +218,7 @@ export class BruinPanel {
               bruinWorkspaceDir!!
             );
             await validator.validate(filePath, {
-              flags: [],
+              flags: ['-o', 'json'],
             });
             break;
           case "bruin.runSql":
