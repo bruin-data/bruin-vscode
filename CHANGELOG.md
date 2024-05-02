@@ -2,6 +2,10 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.7.2] -[2024-05-02]
+## Fixed 
+- Fixed the visual issues related to the display of icons and the loading spinner within the validate button component.
+
 ## [0.7.1] -[2024-04-29]
 ## Fixed
 - Transition from string-based lineage data handling to a JSON parsing mechanism. 
