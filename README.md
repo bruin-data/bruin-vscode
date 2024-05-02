@@ -76,12 +76,15 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 
 
-### Latest Release: v0.7.2
+### Latest Release: v0.7.3
 
 ## Updated
-- Fix the visual issues related to the display of icons and the loading spinner within the validate button component.
+- Enhances the validation error display, and adds the expand functionality to hide/show the error details.
 
 ### Previous Highlights
+
+### 0.7.2
+- Fix the visual issues related to the display of icons and the loading spinner within the validate button component.
 
 ### 0.7.1
  	- Transition from string-based lineage data handling to a JSON parsing mechanism. 
