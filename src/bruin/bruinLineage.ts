@@ -26,7 +26,7 @@ export class BruinLineage extends BruinCommand {
     filePath: string,
     { flags = [] }: BruinCommandOptions = {}
   ): Promise<void> {
-    await this.run([ ...flags, filePath]).then(
+    await this.run([...flags, filePath]).then(
       (lineageDisplayed) => {
         BruinPanel.currentPanel?.postMessage("lineage-message", {
           status: "success",
@@ -35,7 +35,6 @@ export class BruinLineage extends BruinCommand {
         console.debug("lineage-success", lineageDisplayed);
       },
       (error) => {
-        console.debug(error);
         BruinPanel.currentPanel?.postMessage("lineage-message", {
           status: "error",
           message: error,

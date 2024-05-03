@@ -7,7 +7,7 @@ import { BruinCommandOptions } from "../types";
 export class BruinValidate extends BruinCommand {
   /**
    * Specifies the Bruin command string.
-   * 
+   *
    * @returns {string} Returns the 'validate' command string.
    */
   protected bruinCommand(): string {
@@ -16,20 +16,19 @@ export class BruinValidate extends BruinCommand {
 
   public isLoading: boolean = false;
 
-
   /**
    * Validates a Bruin Asset based on it's path with optional flags and error handling.
    * Communicates the results of the validation or errors back to the BruinPanel.
-   * 
+   *
    * @param {string} filePath - The path of the asset to be validated.
    * @param {BruinCommandOptions} [options={}] - Optional parameters for validation, including flags and errors.
    * @returns {Promise<void>} A promise that resolves when the validation is complete or an error is caught.
    */
   public async validate(
     filePath: string,
-    { flags = [], ignoresErrors = false }: BruinCommandOptions = {}
+    { flags = ["-o", "json"], ignoresErrors = false }: BruinCommandOptions = {}
   ): Promise<void> {
-    this.isLoading = true; 
+    this.isLoading = true;
     BruinPanel.currentPanel?.postMessage("validation-message", {
       status: "loading",
       message: "Validating asset...",
@@ -37,18 +36,20 @@ export class BruinValidate extends BruinCommand {
     await this.run([...flags, filePath], { ignoresErrors })
       .then((result) => {
         const validationData = JSON.parse(result)[0];
-        if(Object.keys(validationData.issues).length !== 0 && validationData.issues.constructor === Object){
-        BruinPanel.currentPanel?.postMessage("validation-message", {
-          status: "error",
-          message: result,
-        });
-        }
-        else {
-        BruinPanel.currentPanel?.postMessage("validation-message", {
-          status: "success",
-          message: validationData,
-        });
-        console.log(result);
+        if (
+          Object.keys(validationData.issues).length !== 0 &&
+          validationData.issues.constructor === Object
+        ) {
+          BruinPanel.currentPanel?.postMessage("validation-message", {
+            status: "error",
+            message: result,
+          });
+        } else {
+          BruinPanel.currentPanel?.postMessage("validation-message", {
+            status: "success",
+            message: validationData,
+          });
+          console.log(result);
         }
       })
       .catch((err) => {

@@ -7,7 +7,9 @@ export const isFileExtensionSQL = (fileName: string): boolean => {
 
   if (!fileName) {
     return false;
-  } // Ensure fileName is not undefined
+  }
+
+  // Ensure fileName is not undefined
   let fileExtension = fileName.split(".").pop() || "";
 
   if (fileExtension?.toLowerCase() === "sql") {
@@ -26,11 +28,9 @@ export const isBruinAsset = async (
 ): Promise<boolean> => {
   if (!fileName) {
     return false;
-  } // Ensure fileName is not undefined
-
+  }
+  // Ensure fileName is not undefined
   const fileExtension = fileName.split(".").pop()?.toLowerCase() || "";
-
-  
 
   if (!validAssetExtentions.includes(fileExtension)) {
     return false;
@@ -66,7 +66,7 @@ export const removeAnsiColors = (str: string): string => {
 return lineageString.split('\\n'); 
 }; */
 
-export const processLineageData =(lineageString: { name: any; } ): any => {
+export const processLineageData = (lineageString: { name: any }): any => {
   return lineageString.name;
 };
 
