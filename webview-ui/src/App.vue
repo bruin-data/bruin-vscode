@@ -25,6 +25,7 @@
 </template>
 
 <script setup lang="ts">
+import AssetGeneral from "@/components/AssetGeneral.vue";
 import AssetDetails from "@/components/AssetDetails.vue";
 import AssetLineage from "@/components/AssetLineage.vue";
 import { vscode } from "@/utilities/vscode";
@@ -32,8 +33,10 @@ import { ref, onMounted } from "vue";
 
 const activeTab = ref(0);
 const tabs = ref([
-  { label: "General", component: AssetDetails, props: { assetName: "Asset Details"} },
+  { label: "General", component: AssetGeneral, props: { assetName: "Asset Name"} },
+  { label: "Asset Details", component: AssetDetails },
   { label: "Asset Lineage", component: AssetLineage },
+
 ]);
 
 onMounted(() => {
