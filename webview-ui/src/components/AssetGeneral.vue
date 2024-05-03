@@ -1,7 +1,9 @@
 <template>
   <div class="divide-y overflow-hidden rounded-lg shadow">
     <div class="px-4 py-5 sm:px-6">
-      {{ assetName }}
+      <h2 class="text-lg font-semibold font-mono leading-6 text-gray-300">
+        {{ assetName }}
+      </h2>
     </div>
     <div class="px-4 py-5 sm:p-6">
       <div class="flex flex-col p-4 space-y-4">
@@ -108,9 +110,9 @@ function runSql(runOption?: string) {
     payload = payload + " --downstream";
   }
   vscode.postMessage({
-      command: "bruin.runSql",
-      payload: payload,
-    });
+    command: "bruin.runSql",
+    payload: payload,
+  });
 }
 const validationSuccess = ref(null);
 const validationError = ref(null);

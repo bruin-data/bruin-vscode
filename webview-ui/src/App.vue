@@ -18,7 +18,8 @@
     >
       <component
         :is="tab.component"
-        :assetName="tab.props?.assetName"
+        v-bind="tab.props"        
+        @update:assetName="updateAssetName"
       />
     </vscode-panel-view>
   </vscode-panels>
@@ -33,10 +34,9 @@ import { ref, onMounted } from "vue";
 
 const activeTab = ref(0);
 const tabs = ref([
-  { label: "General", component: AssetGeneral, props: { assetName: "Asset Name"} },
-  { label: "Asset Details", component: AssetDetails },
+  { label: "General", component: AssetGeneral, props: { assetName: "Asset Name" } },
+  { label: "Asset Details", component: AssetDetails, props: { assetName: "Asset Name" } },
   { label: "Asset Lineage", component: AssetLineage },
-
 ]);
 
 onMounted(() => {
@@ -45,5 +45,11 @@ onMounted(() => {
 
 function loadLineageData() {
   vscode.postMessage({ command: "bruin.getAssetLineage" });
+}
+
+function updateAssetName(newName) {
+  tabs.value.map((tab) => {
+    tab.props.assetName = newName;
+  });  
 }
 </script>
