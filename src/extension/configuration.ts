@@ -19,8 +19,6 @@ export function getDefaultBruinExecutablePath(): string {
   return bruinExecutable;
 }
 
-
-
 let documentInitState = new Map();
 
 /**
@@ -31,7 +29,7 @@ let documentInitState = new Map();
  * @returns {void}
  */
 
-export function applyFoldingStateBasedOnConfiguration(editor: vscode.TextEditor | undefined) {
+export function applyFoldingStateBasedOnConfiguration(editor: vscode.TextEditor | undefined): void {
   if (editor) {
     const docUri = editor.document.uri.toString();
     const config = vscode.workspace.getConfiguration();
@@ -58,7 +56,7 @@ export function applyFoldingStateBasedOnConfiguration(editor: vscode.TextEditor 
  *
  * @returns {void}
  */
-export function setupFoldingOnOpen() {
+export function setupFoldingOnOpen(): void {
   vscode.window.onDidChangeActiveTextEditor((editor) => {
     applyFoldingStateBasedOnConfiguration(editor);
   });
@@ -70,14 +68,13 @@ export function setupFoldingOnOpen() {
  *
  * @returns {void}
  */
-function resetDocumentStates() {
+function resetDocumentStates(): void {
   documentInitState.clear();
 }
 
 /** Subscribe to configuration changes and reset the document states when the
  * default folding state is changed.
  @returns void
-
 */
 export function subscribeToConfigurationChanges() {
   vscode.workspace.onDidChangeConfiguration((e) => {

@@ -1,7 +1,7 @@
 import { Disposable, Webview, WebviewPanel, window, Uri, ViewColumn, workspace } from "vscode";
 import { getUri } from "../utilities/getUri";
 import { getNonce } from "../utilities/getNonce";
-import { BruinLineage, BruinValidate, bruinWorkspaceDirectory, runInIntegratedTerminal } from "../bruin";
+import { BruinValidate, bruinWorkspaceDirectory, runInIntegratedTerminal } from "../bruin";
 import { getDefaultBruinExecutablePath } from "../extension/configuration";
 import * as vscode from "vscode";
 import { renderCommandWithFlags } from "../extension/commands/renderCommand";
@@ -24,6 +24,7 @@ export class BruinPanel {
   private _disposables: Disposable[] = [];
   private _lastRenderedDocumentUri: Uri | undefined;
   private _flags: string = "";
+
   /**
    * The BruinPanel class private constructor (called only from the render method).
    *
@@ -42,23 +43,15 @@ export class BruinPanel {
 
     this._disposables.push(
       window.onDidChangeWindowState((state) => {
-          renderCommandWithFlags(this._flags);
-      })
-      
-    );
-
-    this._disposables.push(
+        renderCommandWithFlags(this._flags);
+      }),
       workspace.onDidChangeTextDocument((editor) => {
         if (editor && editor.document.uri) {
           this._lastRenderedDocumentUri = editor.document.uri;
           renderCommandWithFlags(this._flags);
           lineageCommand(this._lastRenderedDocumentUri);
         }
-      })
-    );
-
-
-    this._disposables.push(
+      }),
       window.onDidChangeActiveTextEditor((editor) => {
         if (editor && editor.document.uri) {
           this._lastRenderedDocumentUri = editor.document.uri;
@@ -82,7 +75,7 @@ export class BruinPanel {
     this._setWebviewMessageListener(this._panel.webview);
   }
 
-  public postMessage(name: string, data: string | {status: string, message: string}) {
+  public postMessage(name: string, data: string | { status: string; message: string }) {
     if (this._panel) {
       this._panel.webview.postMessage({
         command: name,
@@ -200,10 +193,8 @@ export class BruinPanel {
               workspaceFolder.uri.fsPath
             );
 
-            await validatorAll.validate(workspaceFolder.uri.fsPath, {
-              flags: ['-o', 'json'],
-            });
-          break;
+            await validatorAll.validate(workspaceFolder.uri.fsPath);
+            break;
           case "bruin.validate":
             if (!this._lastRenderedDocumentUri) {
               console.error("No active document to validate.");
@@ -217,16 +208,14 @@ export class BruinPanel {
               getDefaultBruinExecutablePath(),
               bruinWorkspaceDir!!
             );
-            await validator.validate(filePath, {
-              flags: ['-o', 'json'],
-            });
+            await validator.validate(filePath);
             break;
           case "bruin.runSql":
             if (!this._lastRenderedDocumentUri) {
               return;
             }
             const fPath = this._lastRenderedDocumentUri?.fsPath;
-            runInIntegratedTerminal( bruinWorkspaceDirectory(fPath), fPath, message.payload);
+            runInIntegratedTerminal(bruinWorkspaceDirectory(fPath), fPath, message.payload);
 
             setTimeout(() => {
               this._panel.webview.postMessage({
@@ -235,21 +224,24 @@ export class BruinPanel {
               });
             }, 1500);
             break;
-            case "bruin.runAll":
-              const workspaceF = vscode.workspace.workspaceFolders?.[0];
-              if (!workspaceF) {
-                console.error("No workspace folder found.");
-                return;
-              }
-              runInIntegratedTerminal(bruinWorkspaceDirectory(workspaceF?.uri.fsPath), message.payload);
-  
-              setTimeout(() => {
-                this._panel.webview.postMessage({
-                  command: "runCompleted",
-                  message: "",
-                });
-              }, 1500);
-              break;
+          case "bruin.runAll":
+            const workspaceF = vscode.workspace.workspaceFolders?.[0];
+            if (!workspaceF) {
+              console.error("No workspace folder found.");
+              return;
+            }
+            runInIntegratedTerminal(
+              bruinWorkspaceDirectory(workspaceF?.uri.fsPath),
+              message.payload
+            );
+
+            setTimeout(() => {
+              this._panel.webview.postMessage({
+                command: "runCompleted",
+                message: "",
+              });
+            }, 1500);
+            break;
           case "checkboxChange":
             this._flags = message.payload;
             await renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri?.fsPath);
@@ -261,7 +253,7 @@ export class BruinPanel {
             }
             lineageCommand(this._lastRenderedDocumentUri);
             break;
-        } 
+        }
       },
       undefined,
       this._disposables

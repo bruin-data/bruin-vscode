@@ -30,14 +30,14 @@ export class BruinRender extends BruinCommand {
     filePath: string,
     { flags = [], ignoresErrors = false }: BruinCommandOptions = {}
   ): Promise<void> {
-      if (!isBruinAsset(filePath, ["py", "sql"])) {
-        BruinPanel.currentPanel?.postMessage("render-message", {
-          status: "non-assset-alert",
-          message: "-- This is not a BRUIN asset --",
-        });
-        return;
-      } else {
-        if (await isPythonBruinAsset(filePath)){
+    if (!isBruinAsset(filePath, ["py", "sql"])) {
+      BruinPanel.currentPanel?.postMessage("render-message", {
+        status: "non-assset-alert",
+        message: "-- This is not a BRUIN asset --",
+      });
+      return;
+    } else {
+      if (await isPythonBruinAsset(filePath)) {
         BruinPanel.currentPanel?.postMessage("render-message", {
           status: "py-asset-alert",
           message: "-- Python BRUIN asset detected --",
