@@ -16,7 +16,7 @@
         </div>
         <div class="flex justify-end space-x-4">
           <CommandButton
-            :disabled="isError"
+            :disabled="isError || isNotAsset"
             :defaultAction="handleBruinValidate"
             BGColor="bg-blue-500"
             :status="validateButtonStatus"
@@ -25,7 +25,7 @@
             @exec-choice="validateChoice"
           />
           <CommandButton
-            :disabled="isError"
+            :disabled="isError || isNotAsset"
             :defaultAction="runSql"
             BGColor="bg-green-500"
             :items="['Downstream']"
@@ -36,6 +36,9 @@
         <ErrorAlert v-if="isError" :errorMessage="errorMessage!" />
         <div v-if="language === 'sql'">
           <SqlEditor v-show="!isError" :code="code" :copied="false" :language="language" />
+        </div>
+        <div v-else>
+          <pre class="white-space"></pre>
         </div>
       </div>
     </div>
@@ -61,6 +64,7 @@ provideVSCodeDesignSystem().register(allComponents);
 const errorState = computed(() => handleError(validationError.value, renderSQLAssetError.value));
 const isError = computed(() => errorState.value?.errorCaptured);
 const errorMessage = computed(() => errorState.value?.errorMessage);
+const isNotAsset = computed(() => renderAssetAlert.value ? true : false);
 
 const props = defineProps<{
   assetName: string | null;
@@ -203,12 +207,13 @@ function receiveMessage(event: { data: any }) {
     case "render-message":
       renderSQLAssetSuccess.value = updateValue(envelope, "success");
       renderSQLAssetError.value = updateValue(envelope, "error");
-      renderPythonAsset.value = updateValue(envelope, "py-asset-alert");
+      renderPythonAsset.value = updateValue(envelope, "bruin-asset-alert");
       renderAssetAlert.value = updateValue(envelope, "non-asset-alert");
       code.value = renderSQLAssetSuccess.value || renderPythonAsset.value;
       language.value = renderSQLAssetSuccess.value ? "sql" : "python";
 
       resetStates([validationError, validationSuccess, validateButtonStatus]);
+      console.log("Render message", isNotAsset.value);
       break;
 
     case "run-success":
