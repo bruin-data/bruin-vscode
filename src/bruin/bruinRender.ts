@@ -1,7 +1,7 @@
 import { BruinPanel } from "../panels/BruinPanel";
 import { BruinCommand } from "./bruinCommand";
 import { BruinCommandOptions } from "../types";
-import { isBruinAsset, isPythonBruinAsset } from "../utilities/helperUtils";
+import { isBruinAsset, isBruinPipeline, isBruinYaml, isPythonBruinAsset, isYamlBruinAsset } from "../utilities/helperUtils";
 
 /**
  * Extends the BruinCommand class to implement the rendering process specific to Bruin assets.
@@ -30,18 +30,20 @@ export class BruinRender extends BruinCommand {
     filePath: string,
     { flags = [], ignoresErrors = false }: BruinCommandOptions = {}
   ): Promise<void> {
-    if (!isBruinAsset(filePath, ["py", "sql"])) {
+    if (!isBruinAsset(filePath, ["py", "sql", 'asset.yml']) || await isBruinYaml(filePath)){
       BruinPanel.currentPanel?.postMessage("render-message", {
-        status: "non-assset-alert",
+        status: "non-asset-alert",
         message: "-- This is not a BRUIN asset --",
       });
+      console.log("This is not a BRUIN asset");
       return;
     } else {
-      if (await isPythonBruinAsset(filePath)) {
+      if (await isPythonBruinAsset(filePath) || await isYamlBruinAsset(filePath) || await isBruinPipeline(filePath)) {
         BruinPanel.currentPanel?.postMessage("render-message", {
-          status: "py-asset-alert",
-          message: "-- Python BRUIN asset detected --",
+          status: "bruin-asset-alert",
+          message: "-- Python or Yaml BRUIN asset detected --",
         });
+        console.log("Python or Yaml BRUIN asset detected");
         return;
       }
     }
@@ -51,13 +53,14 @@ export class BruinRender extends BruinCommand {
           status: "success",
           message: sqlRendered,
         });
+        console.log("SQL rendered successfully");
       },
       (error) => {
-        console.debug(error);
         BruinPanel.currentPanel?.postMessage("render-message", {
           status: "error",
           message: error,
         });
+        console.error("Error rendering SQL asset", error);
       }
     );
   }

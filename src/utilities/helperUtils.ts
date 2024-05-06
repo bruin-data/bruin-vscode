@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
+import path = require("path");
 export const isEditorActive = (): boolean => !!vscode.window.activeTextEditor;
 
 export const isFileExtensionSQL = (fileName: string): boolean => {
@@ -19,8 +20,29 @@ export const isFileExtensionSQL = (fileName: string): boolean => {
   return false;
 };
 
+const getFileExtension = (fileName: string) => {
+  const match = fileName.match(/\.(.+)/);
+  return match ? match[1].toLowerCase() : "";
+};
+
+
+
+
 export const isPythonBruinAsset = async (fileName: string): Promise<boolean> =>
   isBruinAsset(fileName, ["py"]);
+
+
+export const isBruinPipeline = async (fileName: string): Promise<boolean>=> {
+  console.log("this is a pipleine" + path.basename(fileName) === "pipeline.yml" ? true : false );
+  return path.basename(fileName) === "pipeline.yml" ? true : false ;
+};
+export const isYamlBruinAsset = async (fileName: string): Promise<boolean> =>
+  isBruinAsset(fileName, ["asset.yml"]);
+
+
+export const isBruinYaml = async (fileName: string): Promise<boolean> => {
+  return (getFileExtension(fileName) === "bruin.yml") ? true : false ;
+};
 
 export const isBruinAsset = async (
   fileName: string,
@@ -30,8 +52,8 @@ export const isBruinAsset = async (
     return false;
   }
   // Ensure fileName is not undefined
-  const fileExtension = fileName.split(".").pop()?.toLowerCase() || "";
-
+  const fileExtension = getFileExtension(fileName);
+ 
   if (!validAssetExtentions.includes(fileExtension)) {
     return false;
   }
@@ -40,7 +62,10 @@ export const isBruinAsset = async (
 
   try {
     const assetContent = fs.readFileSync(fileName, "utf8");
-    return bruinPattern.test(assetContent);
+    const bruinAsset = bruinPattern.test(assetContent) || fileExtension === "asset.yml";
+    console.log("============================================");
+    console.log("this file" + fileName + "is bruin asset " + bruinAsset);
+    return bruinAsset;
   } catch (err) {
     return false;
   }

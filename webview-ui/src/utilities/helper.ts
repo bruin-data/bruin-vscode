@@ -29,7 +29,7 @@ const adjustEndDateForExclusive = (endtDate: string): string => {
     return flags;
   };
   
-  export const handleError = (validationError: string | null, renderSQLAssetError: string |null) => {
+  export const handleError = (validationError: any | null, renderSQLAssetError: string |null) => {
     if (validationError || renderSQLAssetError) {
       return {
         errorCaptured: true,
