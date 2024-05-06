@@ -68,20 +68,14 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: v0.7.2
+### Latest Release: v0.7.4
 
-## Updated
-- **Lineage Visualizatio:** Transition from string-based lineage data handling to a JSON parsing mechanism. 
-- **Updated Button Design:** The `run` and `validate` buttons have been resized and a separator has been added between the button and its corresponding dropdown menu for better visual appeal and usability. 
-
-
-
-### Latest Release: v0.7.3
-
-## Updated
-- Enhances the validation error display, and adds the expand functionality to hide/show the error details.
+## Fixed
+- The extension activation on snowflake and bigQuery SQL as well as other languages is fixed.
 
 ### Previous Highlights
+### 0.7.3
+- Enhances the validation error display, and adds the expand functionality to hide/show the error details.
 
 ### 0.7.2
 - Fix the visual issues related to the display of icons and the loading spinner within the validate button component.

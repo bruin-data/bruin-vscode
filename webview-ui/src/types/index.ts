@@ -4,7 +4,7 @@ export type CheckboxItems = {
 };
 
 
-interface Issue {
+ interface Issue {
     asset: string;
     description: string;
     context: string[];
