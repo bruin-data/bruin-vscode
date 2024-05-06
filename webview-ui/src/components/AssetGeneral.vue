@@ -1,8 +1,8 @@
 <template>
-  <div class="divide-y overflow-hidden rounded-lg shadow">
+  <div class="divide-y overflow-hidden rounded-lg shadow w-full">
     <div class="px-4 py-5 sm:px-6">
       <h2 class="text-lg font-semibold font-mono leading-6 text-gray-300">
-        {{ assetName }}
+      {{ assetName }}
       </h2>
     </div>
     <div class="px-4 py-5 sm:p-6">
@@ -18,7 +18,7 @@
         </div>
         <div class="flex justify-end space-x-4">
           <CommandButton
-            :disabled="isError"
+            :disabled="isError || isNotAsset"
             :defaultAction="handleBruinValidate"
             BGColor="bg-blue-500"
             :status="validateButtonStatus"
@@ -27,7 +27,7 @@
             @exec-choice="validateChoice"
           />
           <CommandButton
-            :disabled="isError"
+            :disabled="isError || isNotAsset"
             :defaultAction="runSql"
             BGColor="bg-green-500"
             :items="['Downstream']"
@@ -38,6 +38,9 @@
         <ErrorAlert v-if="isError" :errorMessage="errorMessage!" />
         <div v-if="language === 'sql'">
           <SqlEditor v-show="!isError" :code="code" :copied="false" :language="language" />
+        </div>
+        <div v-else>
+          <pre class="white-space"></pre>
         </div>
       </div>
     </div>
@@ -63,6 +66,7 @@ provideVSCodeDesignSystem().register(allComponents);
 const errorState = computed(() => handleError(validationError.value, renderSQLAssetError.value));
 const isError = computed(() => errorState.value?.errorCaptured);
 const errorMessage = computed(() => errorState.value?.errorMessage);
+const isNotAsset = computed(() => renderAssetAlert.value ? true : false);
 
 const props = defineProps<{
   assetName: string | null;
@@ -110,9 +114,9 @@ function runSql(runOption?: string) {
     payload = payload + " --downstream";
   }
   vscode.postMessage({
-    command: "bruin.runSql",
-    payload: payload,
-  });
+      command: "bruin.runSql",
+      payload: payload,
+    });
 }
 const validationSuccess = ref(null);
 const validationError = ref(null);
@@ -205,12 +209,13 @@ function receiveMessage(event: { data: any }) {
     case "render-message":
       renderSQLAssetSuccess.value = updateValue(envelope, "success");
       renderSQLAssetError.value = updateValue(envelope, "error");
-      renderPythonAsset.value = updateValue(envelope, "py-asset-alert");
+      renderPythonAsset.value = updateValue(envelope, "bruin-asset-alert");
       renderAssetAlert.value = updateValue(envelope, "non-asset-alert");
       code.value = renderSQLAssetSuccess.value || renderPythonAsset.value;
       language.value = renderSQLAssetSuccess.value ? "sql" : "python";
 
       resetStates([validationError, validationSuccess, validateButtonStatus]);
+      console.log("Render message", isNotAsset.value);
       break;
 
     case "run-success":
