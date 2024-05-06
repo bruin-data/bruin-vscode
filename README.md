@@ -68,13 +68,6 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: v0.7.2
-
-## Updated
-- **Lineage Visualizatio:** Transition from string-based lineage data handling to a JSON parsing mechanism. 
-- **Updated Button Design:** The `run` and `validate` buttons have been resized and a separator has been added between the button and its corresponding dropdown menu for better visual appeal and usability. 
-
-
 ### Latest Release: v0.7.4
 
 ## Fixed
