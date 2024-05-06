@@ -37,6 +37,7 @@
           </div>
         </div>
       </div>
+   
     </div>
   </div>
 </template>
@@ -45,9 +46,10 @@
 import { computed, ref } from "vue";
 import { defineProps } from "vue";
 import { XCircleIcon, ChevronDownIcon, ChevronUpIcon } from "@heroicons/vue/20/solid";
+import type { ParsedErrorMessage } from "@/types";
 
 const props = defineProps<{
-  errorMessage: string | null;
+  errorMessage: string | any | null;
 }>();
 
 // Helper function to format issue context
@@ -56,28 +58,26 @@ const formattedIssueContext = (context) => {
 };
 
 const formattedErrorMessage = computed(() => {
-  if (props.errorMessage) {
-    try {
-      const parsed = JSON.parse(props.errorMessage)[0];
-      return {
-        pipeline: parsed.pipeline,
-        issues: Object.entries(parsed.issues)
-          .map(([test, issues]) => {
-            return issues.map((issue) => ({
-              asset: issue.asset,
-              description: issue.description,
-              context: issue.context,
-              expanded: ref(false),
-            }));
-          })
-          .flat(),
-      };
-    } catch (e) {
-      console.error("Failed to parse error message:", e);
-      return null;
-    }
-  }
-  return null;
+  if (!props.errorMessage) return null;
+      try {
+        const parsed = JSON.parse(props.errorMessage)[0] as ParsedErrorMessage;
+        return {
+          pipeline: parsed.pipeline,
+          issues: Object.entries(parsed.issues)
+            .map(([test, issues]) => {
+              return issues.map((issue) => ({
+                asset: issue.asset,
+                description: issue.description,
+                context: issue.context,
+                expanded: ref(false),
+              }));
+            })
+            .flat(),
+        };
+      } catch (e) {
+        console.error("Failed to parse error message:", e);
+        return null;
+      }
 });
 </script>
 
