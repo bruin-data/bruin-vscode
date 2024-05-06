@@ -6,8 +6,9 @@
   >
     <button
       type="button"
-      class="inline-flex items-center justify-center w-20"
+      class="inline-flex items-center justify-center w-20 disabled:opacity-50 disabled:cursor-not-allowed"
       @click="handleDefaultClick"
+      :disabled="disabled"
     >
       <div v-show="status" class="flex-grow">
         <CheckCircleIcon v-if="status === 'validated'" class="-ml-0.5 h-5 w-5" aria-hidden="true" />
@@ -20,7 +21,7 @@
     </button>
     <Menu as="div" class="relative inline-block text-left">
       <div>
-        <MenuButton as="button">
+        <MenuButton as="button"  :disabled="disabled">
           <ChevronDownIcon class="flex items-center h-5 w-5 pt-1" aria-hidden="true" />
         </MenuButton>
       </div>
@@ -32,6 +33,7 @@
           <MenuItem v-slot="{ active }" v-for="(item, index) in items" :key="index">
             <button
               @click="selectAction(item)"
+              :disabled="disabled"
               :class="[
                 active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
                 'block w-full text-left px-4 py-2 text-sm',
@@ -53,6 +55,7 @@ import { Menu, MenuItems, MenuItem, MenuButton } from "@headlessui/vue";
 
 const props = defineProps<{
   buttonLabel: string;
+  disabled: boolean;
   BGColor: string | null;
   status?: "validated" | "failed" | "loading" | null;
   items?: string[];
