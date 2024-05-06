@@ -2,6 +2,11 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+
+## [0.7.4] -[2024-05-06]
+### Fixed 
+- The extension activation on snowflake and bigQuery SQL as well as other languages is now fixed.
+
 ## [0.7.3] -[2024-05-02]
 ### Improved 
 - Enhanced the validation error display, and adds the expand functionality to hide/show the error details.
@@ -10,7 +15,7 @@ All notable changes to the Bruin extension will be documented in this file.
 ### Fixed 
 - Fixed the visual issues related to the display of icons and the loading spinner within the validate button component.
 
-## [0.7.1] -[2024-04-29]
+## [0.7.1] -[2024-04-30]
 ### Fixed
 - Transition from string-based lineage data handling to a JSON parsing mechanism. 
 - The `run` and `validate` buttons have been resized and a separator has been added between the button and its corresponding dropdown menu for better visual appeal and usability. 
