@@ -29,7 +29,7 @@ export class BruinValidate extends BruinCommand {
     { flags = ["-o", "json"], ignoresErrors = false }: BruinCommandOptions = {}
   ): Promise<void> {
     this.isLoading = true;
-    BruinPanel.currentPanel?.postMessage("validation-message", {
+    BruinPanel.postMessage("validation-message", {
       status: "loading",
       message: "Validating asset...",
     });
@@ -40,12 +40,12 @@ export class BruinValidate extends BruinCommand {
           Object.keys(validationData.issues).length !== 0 &&
           validationData.issues.constructor === Object
         ) {
-          BruinPanel.currentPanel?.postMessage("validation-message", {
+          BruinPanel.postMessage("validation-message", {
             status: "error",
             message: result,
           });
         } else {
-          BruinPanel.currentPanel?.postMessage("validation-message", {
+          BruinPanel.postMessage("validation-message", {
             status: "success",
             message: validationData,
           });
@@ -53,7 +53,7 @@ export class BruinValidate extends BruinCommand {
         }
       })
       .catch((err) => {
-        BruinPanel.currentPanel?.postMessage("validation-message", {
+        BruinPanel.postMessage("validation-message", {
           status: "error",
           message: err,
         });

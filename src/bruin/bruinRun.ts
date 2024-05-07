@@ -31,10 +31,10 @@ export class BruinRun extends BruinCommand {
   ): Promise<void> {
     await this.run([filePath, ...flags], { ignoresErrors })
       .then((result) => {
-        BruinPanel.currentPanel?.postMessage("run-success", result);
+        BruinPanel.postMessage("run-success", result);
       })
       .catch((err) => {
-        BruinPanel.currentPanel?.postMessage("run-error", err);
+        BruinPanel.postMessage("run-error", err);
       });
   }
 }

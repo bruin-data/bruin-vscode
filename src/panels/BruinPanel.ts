@@ -75,9 +75,9 @@ export class BruinPanel {
     this._setWebviewMessageListener(this._panel.webview);
   }
 
-  public postMessage(name: string, data: string | { status: string; message: string }) {
-    if (this._panel) {
-      this._panel.webview.postMessage({
+  public static postMessage(name: string, data: string | { status: string; message: string }) {
+    if (BruinPanel.currentPanel?._panel) {
+      BruinPanel.currentPanel._panel.webview.postMessage({
         command: name,
         payload: data,
       });
@@ -93,25 +93,20 @@ export class BruinPanel {
   public static render(extensionUri: Uri) {
     const column = window.activeTextEditor ? ViewColumn.Beside : undefined;
 
-    if (BruinPanel.currentPanel) {
-      BruinPanel.currentPanel._panel.reveal(column, true);
+    if (this.currentPanel) {
+      this.currentPanel._panel.reveal(column, true);
     } else {
-      const panel = window.createWebviewPanel(
-        BruinPanel.viewType,
-        "Bruin",
-        column || ViewColumn.Active,
-        {
-          enableScripts: true,
-          retainContextWhenHidden: true,
-          localResourceRoots: [
-            Uri.joinPath(extensionUri, "img"),
-            Uri.joinPath(extensionUri, "out"),
-            Uri.joinPath(extensionUri, "webview-ui/build"),
-          ],
-        }
-      );
+      const panel = window.createWebviewPanel(this.viewType, "Bruin", column || ViewColumn.Active, {
+        enableScripts: true,
+        retainContextWhenHidden: true,
+        localResourceRoots: [
+          Uri.joinPath(extensionUri, "img"),
+          Uri.joinPath(extensionUri, "out"),
+          Uri.joinPath(extensionUri, "webview-ui/build"),
+        ],
+      });
 
-      BruinPanel.currentPanel = new BruinPanel(panel, extensionUri);
+      this.currentPanel = new BruinPanel(panel, extensionUri);
     }
   }
 
@@ -251,7 +246,7 @@ export class BruinPanel {
             if (!this._lastRenderedDocumentUri) {
               return;
             }
-            lineageCommand(this._lastRenderedDocumentUri);
+            (this._lastRenderedDocumentUri);
             break;
         }
       },

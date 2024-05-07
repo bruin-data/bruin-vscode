@@ -28,14 +28,14 @@ export class BruinLineage extends BruinCommand {
   ): Promise<void> {
     await this.run([...flags, filePath]).then(
       (lineageDisplayed) => {
-        BruinPanel.currentPanel?.postMessage("lineage-message", {
+        BruinPanel.postMessage("lineage-message", {
           status: "success",
           message: lineageDisplayed,
         });
         console.debug("lineage-success", lineageDisplayed);
       },
       (error) => {
-        BruinPanel.currentPanel?.postMessage("lineage-message", {
+        BruinPanel.postMessage("lineage-message", {
           status: "error",
           message: error,
         });
