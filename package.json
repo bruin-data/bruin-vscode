@@ -55,6 +55,7 @@
       "editor/title": [
         {
           "command": "bruin.renderSQL",
+          "when": "resourceExtname == .sql || resourceExtname == .py  || resourceExtname == .yml",
           "group": "navigation"
         }
       ]
