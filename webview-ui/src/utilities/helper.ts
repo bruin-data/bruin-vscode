@@ -79,5 +79,23 @@ export function formatLineage(data: string ){
     result += `\nTotal: ${parsedData.downstream.length}\n`;
   }
 
+  
   return result;
 }
+
+export const parseAssetDetails = (data: string) => {
+  if (!data) return;
+
+  const parsedData = JSON.parse(data);
+  const assetDetails = {
+    id: parsedData.id,
+    name: parsedData.name,
+    type: parsedData.type,
+    schedule : parsedData.schedule,
+    description: parsedData.description,
+    owner: parsedData.owner,
+  };
+
+  return assetDetails;
+}
+

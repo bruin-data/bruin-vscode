@@ -25,23 +25,18 @@ const getFileExtension = (fileName: string) => {
   return match ? match[1].toLowerCase() : "";
 };
 
-
-
-
 export const isPythonBruinAsset = async (fileName: string): Promise<boolean> =>
   isBruinAsset(fileName, ["py"]);
 
-
-export const isBruinPipeline = async (fileName: string): Promise<boolean>=> {
-  console.log("this is a pipleine" + path.basename(fileName) === "pipeline.yml" ? true : false );
-  return path.basename(fileName) === "pipeline.yml" ? true : false ;
+export const isBruinPipeline = async (fileName: string): Promise<boolean> => {
+  console.log("this is a pipleine" + path.basename(fileName) === "pipeline.yml" ? true : false);
+  return path.basename(fileName) === "pipeline.yml" ? true : false;
 };
 export const isYamlBruinAsset = async (fileName: string): Promise<boolean> =>
   isBruinAsset(fileName, ["asset.yml"]);
 
-
 export const isBruinYaml = async (fileName: string): Promise<boolean> => {
-  return (getFileExtension(fileName) === "bruin.yml") ? true : false ;
+  return getFileExtension(fileName) === "bruin.yml" ? true : false;
 };
 
 export const isBruinAsset = async (
@@ -53,7 +48,7 @@ export const isBruinAsset = async (
   }
   // Ensure fileName is not undefined
   const fileExtension = getFileExtension(fileName);
- 
+
   if (!validAssetExtentions.includes(fileExtension)) {
     return false;
   }
