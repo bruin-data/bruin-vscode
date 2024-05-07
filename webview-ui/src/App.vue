@@ -16,11 +16,7 @@
       :id="`view-${index}`"
       v-show="activeTab === index"
     >
-      <component
-        :is="tab.component"
-        v-bind="tab.props"        
-        @update:assetName="updateAssetName"
-      />
+      <component :is="tab.component" v-bind="tab.props" @update:assetName="updateAssetName" />
     </vscode-panel-view>
   </vscode-panels>
 </template>
@@ -35,7 +31,18 @@ import { ref, onMounted } from "vue";
 const activeTab = ref(0);
 const tabs = ref([
   { label: "General", component: AssetGeneral, props: { assetName: "Asset Name" } },
-  { label: "Asset Details", component: AssetDetails, props: { assetName: "Asset Name" } },
+  {
+    label: "Asset Details",
+    component: AssetDetails,
+    props: {
+      assetName: "Asset Name",
+      description: "This is the asset description",
+      type: "BigQuery",
+      schedule: "daily",
+      owner: "Unknown",
+      id: "123",
+    },
+  },
   { label: "Asset Lineage", component: AssetLineage },
 ]);
 
@@ -49,7 +56,7 @@ function loadLineageData() {
 
 function updateAssetName(newName) {
   tabs.value.map((tab) => {
-    tab.props.assetName = newName;
-  });  
+    tab.props && (tab.props.assetName = newName);
+  });
 }
 </script>

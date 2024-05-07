@@ -246,7 +246,7 @@ export class BruinPanel {
             if (!this._lastRenderedDocumentUri) {
               return;
             }
-            (this._lastRenderedDocumentUri);
+            this._lastRenderedDocumentUri;
             break;
         }
       },

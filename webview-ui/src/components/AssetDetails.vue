@@ -10,25 +10,28 @@
     <div class="relative overflow-scroll py-6 flex-1 px-4 sm:px-6">
       <dl class="divide-y divide-gray-600">
         <DescriptionItem title="Asset" :value="assetName" />
-        <DescriptionItem title="Type" value="BigQuery" :className="classes.blueBadge" />
-        <DescriptionItem title="Schedule" value="daily" :className="classes.grayBadge" />
+        <DescriptionItem title="Type" :value="type" :className="classes.blueBadge" />
+        <DescriptionItem title="Schedule" :value="schedule" :className="classes.grayBadge" />
         <DescriptionItem title="Owner" value="Unknown" className="font-semibold text-gray-400" />
       </dl>
     </div>
     <div class="border-b  flex flex-col gap-4 py-6 flex-1 px-4 sm:px-6">
       <h3 class="text-lg leading-6 font-medium text-gray-100 mb-2"> Description </h3>
-      <p class="text-gray-300">This is a description of the asset</p>
+      <p class="text-gray-300">{{ description }}</p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { defineProps, defineEmits, ref } from "vue";
-import { PencilIcon } from "@heroicons/vue/20/solid";
 import DescriptionItem from "@/components/ui/description-item/DescriptionItem.vue";
-import ListBox from "@/components/ui/select-menu/ListBox.vue";
 const props = defineProps<{
   assetName: string;
+  description: string;
+  type: string;
+  schedule: string;
+  owner: string;
+  id: string;
 }>();
 
 const classes = ref({
