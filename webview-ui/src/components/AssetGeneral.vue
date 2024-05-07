@@ -2,7 +2,7 @@
   <div class="divide-y overflow-hidden rounded-lg shadow w-full">
     <div class="px-4 py-5 sm:px-6">
       <h2 class="text-lg font-semibold font-mono leading-6 text-gray-300">
-      {{ assetName }}
+      {{ name }}
       </h2>
     </div>
     <div class="px-4 py-5 sm:p-6">
@@ -69,7 +69,7 @@ const errorMessage = computed(() => errorState.value?.errorMessage);
 const isNotAsset = computed(() => renderAssetAlert.value ? true : false);
 
 const props = defineProps<{
-  assetName: string | null;
+  name: string | null;
 }>();
 
 function handleBruinValidate(all: boolean = false) {

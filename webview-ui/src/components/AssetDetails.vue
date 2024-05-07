@@ -4,12 +4,12 @@
   >
     <div class="px-4 sm:px-6 border-b pb-4">
       <h2 class="text-lg font-semibold font-mono leading-6 text-gray-300">
-        {{ assetName }}
+        {{ name }}
       </h2>
     </div>
     <div class="relative overflow-scroll py-6 flex-1 px-4 sm:px-6">
       <dl class="divide-y divide-gray-600">
-        <DescriptionItem title="Asset" :value="assetName" />
+        <DescriptionItem title="Asset" :value="name" />
         <DescriptionItem title="Type" :value="type" :className="classes.blueBadge" />
         <DescriptionItem title="Schedule" :value="schedule" :className="classes.grayBadge" />
         <DescriptionItem title="Owner" value="Unknown" className="font-semibold text-gray-400" />
@@ -26,7 +26,7 @@
 import { defineProps, defineEmits, ref } from "vue";
 import DescriptionItem from "@/components/ui/description-item/DescriptionItem.vue";
 const props = defineProps<{
-  assetName: string;
+  name: string;
   description: string;
   type: string;
   schedule: string;
