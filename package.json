@@ -22,6 +22,24 @@
     "workspaceContains:pipeline.yml"
   ],
   "contributes": {
+    "viewsContainers": {
+      "panel": [
+        {
+          "id": "lineagePanel",
+          "title": "Pipeline Lineage",
+          "icon": "$(graph)"
+        }
+      ]
+    },
+    "views": {
+      "lineagePanel": [
+        {
+          "type": "webview",
+          "id": "lineageView",
+          "name": "Lineage Graph"
+        }
+      ]
+    },
     "configuration": {
       "properties": {
         "bruin.defaultFoldingState": {
@@ -104,6 +122,10 @@
     "vscode-test": "^1.6.1"
   },
   "dependencies": {
+    "@vue-flow/background": "^1.3.0",
+    "@vue-flow/controls": "^1.1.1",
+    "@vue-flow/core": "^1.33.6",
+    "@vue-flow/minimap": "^1.4.0",
     "all": "^0.0.0",
     "mocha": "^10.4.0",
     "sinon": "^17.0.1"
