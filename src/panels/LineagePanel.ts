@@ -19,6 +19,17 @@ export class LineagePanel implements vscode.WebviewViewProvider {
       enableScripts: true,
       localResourceRoots: [this._extensionUri],
     };
+    this._setWebviewMessageListener(this._view!.webview);
+    setTimeout(() => {
+      this.postMessage({ command: "init", panelType: "lineage" });
+    }, 500);
+
+    webviewView.onDidChangeVisibility(() => {
+      if (this._view!.visible) {
+          this.postMessage({ command: "init", panelType: "lineage" });
+          webviewView.webview.html = this._getWebviewContent(webviewView.webview);
+      }
+  });
 
     webviewView.webview.html = this._getWebviewContent(webviewView.webview);
   }
@@ -52,5 +63,22 @@ export class LineagePanel implements vscode.WebviewViewProvider {
       </body>
       </html>
     `;
+  }
+  private _setWebviewMessageListener(webview: vscode.Webview) {
+    webview.onDidReceiveMessage((message) => {
+      switch (message.command) {
+        case "pipelineLineage":
+          vscode.window.showErrorMessage(message.text);
+          return;
+      }
+    });
+  }
+
+  public postMessage(message: any) {
+    if (this._view && this._view.webview) {
+      this._view.webview.postMessage(message);
+    } else {
+      console.error("Webview is not initialized when trying to post message");
+    }
   }
 }

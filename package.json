@@ -26,7 +26,7 @@
       "panel": [
         {
           "id": "lineagePanel",
-          "title": "Pipeline Lineage",
+          "title": "Bruin",
           "icon": "$(graph)"
         }
       ]
