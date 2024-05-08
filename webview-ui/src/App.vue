@@ -25,19 +25,20 @@
 import AssetGeneral from "@/components/AssetGeneral.vue";
 import AssetDetails from "@/components/AssetDetails.vue";
 import AssetLineage from "@/components/AssetLineage.vue";
+import PipelineLineage from "@/components/PipelineLineage.vue";
 import { vscode } from "@/utilities/vscode";
 import { ref, onMounted } from "vue";
 import { parseAssetDetails } from "./utilities/helper";
 
 const activeTab = ref(0);
 const data = JSON.stringify({
-name: "Asset Name",
-description: "Asset Description",
-type: "BigQuery",
-schedule: "daily",
-owner: "Asset Owner",
-id: "ID",
-});  
+  name: "Asset Name",
+  description: "Asset Description",
+  type: "BigQuery",
+  schedule: "daily",
+  owner: "Asset Owner",
+  id: "ID",
+});
 const tabs = ref([
   { label: "General", component: AssetGeneral, props: { name: parseAssetDetails(data)?.name } },
   {
@@ -46,6 +47,7 @@ const tabs = ref([
     props: parseAssetDetails(data),
   },
   { label: "Asset Lineage", component: AssetLineage },
+  { label: "Asset Graph Lineage", component: PipelineLineage },
 ]);
 
 onMounted(() => {
@@ -62,3 +64,4 @@ function updateAssetName(newName) {
   });
 }
 </script>
+

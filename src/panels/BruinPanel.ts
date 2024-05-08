@@ -158,7 +158,11 @@ export class BruinPanel {
         </head>
         <body>
           <div id="app"></div>
-          <script type="module" nonce="${nonce}" src="${scriptUri}"></script>
+          <script type="module" nonce="${nonce}" src="${scriptUri}">
+                window.onerror = function(message, source, lineno, colno, error) {
+                console.error('Webview error:', message, 'at line:', lineno, 'source:', source, 'error:', error);
+              };
+          </script>
         </body>
       </html>
     `;
