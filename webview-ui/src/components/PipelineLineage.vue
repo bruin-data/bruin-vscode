@@ -5,9 +5,29 @@
 </template>
 
 
-<script setup>
+<script setup lang="ts">
 import { VueFlow } from '@vue-flow/core';
-import { ref } from 'vue'
+import { ref, defineProps, onMounted, onBeforeUnmount } from 'vue'
+
+
+onMounted(() => {
+  window.addEventListener("message", receiveMessage);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("message", receiveMessage);
+});
+
+function receiveMessage(event) {
+  if (!event) return;
+  const envelope = event.data;
+  switch (envelope.command) {
+    case "pipeline":
+      console.log("Pipeline Lineage, received");
+      break;
+  }
+}
+
 
 const nodes = ref([
   { id: '1', type: 'input', label: 'Node 1', position: { x: 250, y: 5 } },
