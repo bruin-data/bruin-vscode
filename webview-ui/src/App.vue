@@ -68,15 +68,15 @@ const data = JSON.stringify({
 
 const tabs = ref([
   { label: "General", component: AssetGeneral, props: { name: parseAssetDetails(data)?.name }, includeIn: ["bruin"] },
-  {
+  /* {
     label: "Asset Details",
     component: AssetDetails,
     props: parseAssetDetails(data),
     includeIn: ["bruin"]
-  },
+  }, */
   { label: "Asset Lineage", component: AssetLineage, includeIn: ["bruin"] },
-  { label: "Asset Graph Lineage", component: PipelineLineage, includeIn: ["lineage"] },
-  { label: "Pipeline Graph Lineage", component: PipelineLineage, includeIn: ["lineage"] },
+  //{ label: "Asset Graph Lineage", component: PipelineLineage, includeIn: ["lineage"] },
+  //{ label: "Pipeline Graph Lineage", component: PipelineLineage, includeIn: ["lineage"] },
 
 ]);
 
