@@ -19,18 +19,16 @@
         <div class="flex justify-end space-x-4">
           <CommandButton
             :disabled="isError || isNotAsset"
-            :defaultAction="handleBruinValidate"
-            BGColor="bg-blue-500"
+            :defaultAction="handleBruinValidateCurrentAsset"
             :status="validateButtonStatus"
             buttonLabel="Validate"
-            :items="['Pipeline']"
+            :menuItems="['Pipeline']"
             @exec-choice="validateChoice"
           />
           <CommandButton
             :disabled="isError || isNotAsset"
             :defaultAction="runSql"
-            BGColor="bg-green-500"
-            :items="['Downstream']"
+            :menuItems="['Downstream']"
             buttonLabel="Run"
             @exec-choice="runWithOptions"
           />
@@ -72,16 +70,16 @@ const props = defineProps<{
   name: string | null;
 }>();
 
-function handleBruinValidate(all: boolean = false) {
-  if (all) {
+function handleBruinValidateAll() {
     vscode.postMessage({
       command: "bruin.validateAll",
     });
-  } else {
-    vscode.postMessage({
-      command: "bruin.validate",
-    });
-  }
+}
+
+function handleBruinValidateCurrentAsset() {
+  vscode.postMessage({
+    command: "bruin.validate",
+  });
 }
 
 const checkboxItems = ref([
@@ -90,9 +88,6 @@ const checkboxItems = ref([
 ]);
 const runOptions = ref(null as string | null);
 
-function handleValidateAll() {
-  handleBruinValidate(true);
-}
 
 function handleRunWithOptions(action: string) {
   runOptions.value = action;
@@ -100,7 +95,7 @@ function handleRunWithOptions(action: string) {
   console.log("Run options", runOptions.value);
 }
 const runWithOptions = computed(() => handleRunWithOptions);
-const validateChoice = computed(() => handleValidateAll);
+const validateChoice = computed(() => handleBruinValidateAll);
 
 function runSql(runOption?: string) {
   let payload = getCheckboxChangePayload();
