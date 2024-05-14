@@ -75,7 +75,11 @@ export class BruinPanel {
     this._setWebviewMessageListener(this._panel.webview);
   }
 
-  public static postMessage(name: string, data: string | { status: string; message: string }, panelType?: string) {
+  public static postMessage(
+    name: string,
+    data: string | { status: string; message: string },
+    panelType?: string
+  ) {
     if (BruinPanel.currentPanel?._panel) {
       BruinPanel.currentPanel._panel.webview.postMessage({
         command: name,
@@ -180,7 +184,7 @@ export class BruinPanel {
       command: "init",
       panelType: "bruin",
     });
-    
+
     webview.onDidReceiveMessage(
       async (message: any) => {
         const command = message.command;

@@ -1,10 +1,14 @@
 import * as vscode from "vscode";
 import { getNonce } from "../utilities/getNonce";
 import { getUri } from "../utilities/getUri";
+import { lineageCommand } from "../extension/commands/lineageCommand";
+import { Uri } from "vscode";
 
 export class LineagePanel implements vscode.WebviewViewProvider {
   public static readonly viewId = "lineageView";
+  public static currentPanel: LineagePanel | undefined;
   private _view?: vscode.WebviewView;
+  private _lastRenderedDocumentUri: Uri | undefined;
 
   constructor(private readonly _extensionUri: vscode.Uri) {}
 
@@ -22,14 +26,16 @@ export class LineagePanel implements vscode.WebviewViewProvider {
     this._setWebviewMessageListener(this._view!.webview);
     setTimeout(() => {
       this.postMessage({ command: "init", panelType: "lineage" });
-    }, 500);
+    }, 100);
 
+    webviewView.onDidDispose(() => {
+      this._view = undefined;
+    });
     webviewView.onDidChangeVisibility(() => {
       if (this._view!.visible) {
-          this.postMessage({ command: "init", panelType: "lineage" });
-          webviewView.webview.html = this._getWebviewContent(webviewView.webview);
+        this.postMessage({ command: "init", panelType: "lineage" });
       }
-  });
+    });
 
     webviewView.webview.html = this._getWebviewContent(webviewView.webview);
   }
@@ -67,9 +73,23 @@ export class LineagePanel implements vscode.WebviewViewProvider {
   private _setWebviewMessageListener(webview: vscode.Webview) {
     webview.onDidReceiveMessage((message) => {
       switch (message.command) {
-        case "pipelineLineage":
-          vscode.window.showErrorMessage(message.text);
-          return;
+        case "bruin.pipelineLineage":
+          console.log("Pipeline Lineage from webview in the Lineage panel, well received");
+          break;
+        case "bruin.assetLineage":
+          console.log("Asset Lineage from webview in the Lineage panel, well received");
+          this._lastRenderedDocumentUri = vscode.window.activeTextEditor?.document.uri;
+          if (!this._lastRenderedDocumentUri) {
+            console.debug("No active document found.");
+            return;
+          }
+          /*  lineageCommand(this._lastRenderedDocumentUri).catch((error) => {
+            console.error("Error displaying lineage", error);          }); */
+          this.postMessage({
+            command: "lineage-message",
+            status: "error",
+            message: "Error displaying lineage",
+          });
       }
     });
   }
