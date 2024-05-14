@@ -76,6 +76,8 @@ const tabs = ref([
   },
   { label: "Asset Lineage", component: AssetLineage, includeIn: ["bruin"] },
   { label: "Asset Graph Lineage", component: PipelineLineage, includeIn: ["lineage"] },
+  { label: "Pipeline Graph Lineage", component: PipelineLineage, includeIn: ["lineage"] },
+
 ]);
 
 const filteredTabs = computed(() => tabs.value.filter(tab => tab.includeIn.includes(panelType.value)));
@@ -83,10 +85,15 @@ const filteredTabs = computed(() => tabs.value.filter(tab => tab.includeIn.inclu
 
 onMounted(() => {
   loadLineageData();
+  loadLineageDataForLineagePanel()
 });
 
 function loadLineageData() {
   vscode.postMessage({ command: "bruin.getAssetLineage" });
+}
+
+function loadLineageDataForLineagePanel() {
+  vscode.postMessage({ command: "bruin.assetLineage" });
 }
 
 function updateAssetName(newName) {
