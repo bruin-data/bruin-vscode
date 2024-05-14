@@ -4,6 +4,7 @@ import { bruinFoldingRangeProvider } from "../providers/bruinFoldingRangeProvide
 import { setupFoldingOnOpen, subscribeToConfigurationChanges } from "./configuration";
 
 import { renderCommand } from "./commands/renderCommand";
+import { LineagePanel } from "../panels/LineagePanel";
 
 export function activate(context: ExtensionContext) {
   if (!isBruinBinaryAvailable()) {
@@ -16,6 +17,8 @@ export function activate(context: ExtensionContext) {
 
   subscribeToConfigurationChanges();
 
+  const lineageWebviewProvider = new LineagePanel(context.extensionUri);
+
   // Register the folding range provider for Python and SQL files
   const foldingDisposable = languages.registerFoldingRangeProvider(["python", "sql"], {
     provideFoldingRanges: bruinFoldingRangeProvider,
@@ -25,8 +28,8 @@ export function activate(context: ExtensionContext) {
     commands.registerCommand("bruin.renderSQL", () => {
       renderCommand(context.extensionUri);
     }),
-
-    foldingDisposable
+    foldingDisposable,
+    window.registerWebviewViewProvider(LineagePanel.viewId, lineageWebviewProvider)
   );
 
   console.debug("Bruin activated successfully");

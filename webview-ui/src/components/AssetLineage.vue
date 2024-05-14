@@ -17,8 +17,8 @@
 <script setup>
 import { onBeforeUnmount, onMounted, ref, computed } from "vue";
 import ErrorAlert from "@/components/ErrorAlert.vue";
-import LineageSection from "@/components/lineage/LineageSection.vue";
-import TotalSection from "@/components/lineage/TotalSection.vue";
+import LineageSection from "@/components/lineage-text/LineageSection.vue";
+import TotalSection from "@/components/lineage-text/TotalSection.vue";
 import { updateValue } from "@/utilities/helper";
 
 const lineageSuccess = ref(null);

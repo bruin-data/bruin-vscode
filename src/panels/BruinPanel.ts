@@ -19,7 +19,7 @@ import { lineageCommand } from "../extension/commands/lineageCommand";
  */
 export class BruinPanel {
   public static currentPanel: BruinPanel | undefined;
-  public static readonly viewType = "vscodebruin:panel";
+  public static readonly viewId = "vscodebruin:panel";
   private readonly _panel: WebviewPanel;
   private _disposables: Disposable[] = [];
   private _lastRenderedDocumentUri: Uri | undefined;
@@ -75,7 +75,11 @@ export class BruinPanel {
     this._setWebviewMessageListener(this._panel.webview);
   }
 
-  public static postMessage(name: string, data: string | { status: string; message: string }) {
+  public static postMessage(
+    name: string,
+    data: string | { status: string; message: string },
+    panelType?: string
+  ) {
     if (BruinPanel.currentPanel?._panel) {
       BruinPanel.currentPanel._panel.webview.postMessage({
         command: name,
@@ -96,7 +100,7 @@ export class BruinPanel {
     if (this.currentPanel) {
       this.currentPanel._panel.reveal(column, true);
     } else {
-      const panel = window.createWebviewPanel(this.viewType, "Bruin", column || ViewColumn.Active, {
+      const panel = window.createWebviewPanel(this.viewId, "Bruin", column || ViewColumn.Active, {
         enableScripts: true,
         retainContextWhenHidden: true,
         localResourceRoots: [
@@ -158,7 +162,11 @@ export class BruinPanel {
         </head>
         <body>
           <div id="app"></div>
-          <script type="module" nonce="${nonce}" src="${scriptUri}"></script>
+          <script type="module" nonce="${nonce}" src="${scriptUri}">
+                window.onerror = function(message, source, lineno, colno, error) {
+                console.error('Webview error:', message, 'at line:', lineno, 'source:', source, 'error:', error);
+              };
+          </script>
         </body>
       </html>
     `;
@@ -172,6 +180,11 @@ export class BruinPanel {
    * @param context A reference to the extension context
    */
   private _setWebviewMessageListener(webview: Webview) {
+    this._panel.webview.postMessage({
+      command: "init",
+      panelType: "bruin",
+    });
+
     webview.onDidReceiveMessage(
       async (message: any) => {
         const command = message.command;
