@@ -21,12 +21,18 @@ module.exports = {
       },
     },
     extend: {
+      
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        'editor-bg': 'var(--vscode-editor-background)',
+        'editor-fg': 'var(--vscode-editor-foreground)',
+        'editor-border': 'var(--vscode-editor-border)',
+        'link-activeForeground': 'var(--vscode-textLink-activeForeground)',
+        'menu-hoverBackground': 'var(--vscode-scrollbarSlider-hoverBackground)',
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
