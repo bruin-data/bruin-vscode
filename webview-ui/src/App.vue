@@ -24,8 +24,8 @@
 <script setup lang="ts">
 import AssetGeneral from "@/components/AssetGeneral.vue";
 import AssetDetails from "@/components/AssetDetails.vue";
-import AssetLineage from "@/components/AssetLineage.vue";
-import PipelineLineage from "@/components/PipelineLineage.vue";
+import AssetLineageText from "@/components/lineage-text/AssetLineageText.vue";
+import AssetLineageFlow from "@/components/lineage-flow/asset-lineage/AssetLineage.vue";
 import { vscode } from "@/utilities/vscode";
 import { ref, onMounted, computed } from "vue";
 import { parseAssetDetails } from "./utilities/helper";
@@ -74,8 +74,8 @@ const tabs = ref([
     props: parseAssetDetails(data),
     includeIn: ["bruin"]
   }, */
-  { label: "Asset Lineage", component: AssetLineage, includeIn: ["bruin"] },
-  //{ label: "Asset Graph Lineage", component: PipelineLineage, includeIn: ["lineage"] },
+  { label: "Asset Lineage", component: AssetLineageText, includeIn: ["bruin"] },
+  { label: "Asset Graph Lineage", component: AssetLineageFlow, includeIn: ["lineage"] },
   //{ label: "Pipeline Graph Lineage", component: PipelineLineage, includeIn: ["lineage"] },
 
 ]);

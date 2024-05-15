@@ -15,45 +15,13 @@
 </template>
 
 <script setup>
-import { onBeforeUnmount, onMounted, ref, computed } from "vue";
 import ErrorAlert from "@/components/ErrorAlert.vue";
 import LineageSection from "@/components/lineage-text/LineageSection.vue";
 import TotalSection from "@/components/lineage-text/TotalSection.vue";
-import { updateValue } from "@/utilities/helper";
+import { useLineage } from "@/composables/useLineage";
 
-const lineageSuccess = ref(null);
-const lineageError = ref(null);
+const { formattedLineage, lineageError, lineageSuccess } = useLineage();
 
-onMounted(() => {
-  window.addEventListener("message", receiveMessage);
-});
-
-onBeforeUnmount(() => {
-  window.removeEventListener("message", receiveMessage);
-});
-
-function receiveMessage(event) {
-  if (!event) return;
-  const envelope = event.data;
-  switch (envelope.command) {
-    case "lineage-message":
-      lineageSuccess.value = updateValue(envelope, "success");
-      lineageError.value = updateValue(envelope, "error");
-      break;
-  }
-}
-
-const formattedLineage = computed(() => {
-  if (lineageSuccess.value) {
-    try {
-      return JSON.parse(lineageSuccess.value);
-    } catch (e) {
-      console.error("Error parsing lineage data:", e);
-      return null;
-    }
-  }
-  return null;
-});
 </script>
 
 <style scoped>
