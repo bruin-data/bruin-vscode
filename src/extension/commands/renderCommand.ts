@@ -41,7 +41,7 @@ export const renderCommandWithFlags = async (flags: string, lastRenderedDocument
     );
 
     await bruinSqlRenderer.render(filePath, {
-      flags: flags.split(" ").filter((flag) => flag !== "" && flag !== "--downstream"),
+      flags: ['-o', 'json'].concat(flags.split(" ").filter((flag) => flag !== "" && flag !== "--downstream")),
     });
   }
 };

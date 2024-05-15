@@ -13,10 +13,12 @@ interface IssuesMap {
   [test: string]: Issue[];
 }
 
-export interface ParsedErrorMessage {
-  pipeline: string;
-  issues: IssuesMap;
+export interface ParsedValidationErrorMessage {
+  pipeline?: string;
+  issues?: IssuesMap;
+  error?: string;
 }
+
 
 export interface Asset {
   name: string;

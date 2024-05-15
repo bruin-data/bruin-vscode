@@ -77,7 +77,7 @@ export class BruinPanel {
 
   public static postMessage(
     name: string,
-    data: string | { status: string; message: string },
+    data: string | { status: string; message: string | any  },
     panelType?: string
   ) {
     if (BruinPanel.currentPanel?._panel) {
