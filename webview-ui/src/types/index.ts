@@ -26,6 +26,7 @@ export interface Asset {
   description: string;
   hasUpstreams: boolean;
   hasDownstreams: boolean;
+  isFocusAsset?: boolean;
 }
 
 export interface Project {
@@ -43,7 +44,6 @@ export interface BruinNodeProps {
     hasUpstreamForClicking?: boolean;
     hasDownstreamForClicking?: boolean;
   };
-  isFocusAsset?: boolean;
   status?: string;
   onNodeDoubleClick?: Function;
   nodeProps?: any;

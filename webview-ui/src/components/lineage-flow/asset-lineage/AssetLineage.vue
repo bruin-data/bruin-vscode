@@ -24,12 +24,12 @@
 </template>
 
 <script setup lang="ts">
-import { VueFlow, type NodeTypesObject } from "@vue-flow/core";
+import { VueFlow, type Edge, type NodeTypesObject } from "@vue-flow/core";
 import { Background } from "@vue-flow/background";
 import { ref, onMounted, onBeforeUnmount, reactive, nextTick, watchEffect, watch } from "vue";
 import ELK from "elkjs/lib/elk.bundled.js";
 import CustomNode from "@/components/lineage-flow/custom-nodes/CustomNodes.vue";
-
+import { generateGraphFromJSON } from "@/utilities/graphGenerator";
 const lineageSuccess = ref(null);
 const lineageError = ref(null);
 
@@ -60,94 +60,77 @@ function receiveMessage(event) {
   }
 }
 
-const nodes = ref([
-  {
-    id: "1",
-    type: "custom",
-    isFocusAsset: false,
-    data: {
-      type: "asset",
-      asset: { name: "asset 2", type: "bq.sql", hasDownstreams: true },
-      label: "Node 1",
-      hasUpstreamForClicking: true,
+const nodes = ref<any[]>([]);
+const edges = ref<any[]>([]);
+const jsonData = {
+  "name": "test_dataset.test",
+  "upstream": [
+    {
+      "name": "test_dataset.test1",
+      "type": "python",
+      "executable_file": {
+        "name": "test1.sql",
+        "path": "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test2.sql",
+        "content": ""
+      },
+      "definition_file": {
+        "name": "test1.sql",
+        "path": "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test2.sql",
+        "type": "comment"
+      }
     },
-    position: { x: 0, y: 0 },
-  },
-  {
-    id: "2",
-    type: "custom",
-    data: {
-      type: "asset",
-      asset: { name: "asset 1", type: "python", hasUpstreams: true },
-      label: "Node 2",
-    },
-    hasUpstreamForClicking: true,
-    position: { x: 0, y: 0 },
-  },
-  {
-    id: "3",
-    type: "custom",
-    isFocusAsset: false,
-    data: {
-      type: "asset",
-      asset: { name: "asset 3", type: "pg.sql", hasUpstreams: true, hasDownstreams: true },
-      label: "Node 3",
-    },
-    position: { x: 0, y: 0 },
-  },
-  {
-    id: "4",
-    type: "custom",
-    data: {
-      type: "asset",
+    {
+      "name": "test_dataset.test2",
+      "type": "python",
+      "executable_file": {
+        "name": "test2.sql",
+        "path": "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test2.sql",
+        "content": ""
+      },
+      "definition_file": {
+        "name": "test2.sql",
+        "path": "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test2.sql",
+        "type": "comment"
+      }
+    }
+  ],
+  "downstream": [
+    {
+      "name": "test_dataset.test3",
+      "type": "bq.sql",
+      "executable_file": {
+        "name": "test3.sql",
+        "path": "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test3.sql",
+        "content": ""
+      },
+      "definition_file": {
+        "name": "test3.sql",
+        "path": "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test3.sql",
+        "type": "comment"
+      }
+    }, 
+    {
+      "name": "test_dataset.test4",
+      "type": "python",
+      "executable_file": {
+        "name": "test3.sql",
+        "path": "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test3.sql",
+        "content": ""
+      },
+      "definition_file": {
+        "name": "test3.sql",
+        "path": "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test3.sql",
+        "type": "comment"
+      }
+    }
+  ],
+  isFocusAsset: true
+} 
 
-      asset: { name: "asset 1", type: "ingestr", hasUpstreams: true },
-      label: "Node 4",
-    },
-    position: { x: 0, y: 0 },
-  },
-  {
-    id: "5",
-    type: "custom",
-    data: {
-      type: "asset",
-
-      asset: { name: "asset 5", type: "python" },
-      label: "Node 5",
-    },
-    position: { x: 0, y: 0 },
-  },
-  {
-    id: "6",
-    type: "custom",
-    data: {
-      type: "asset",
-
-      asset: { name: "asset 6", type: "python"},
-      label: "Node 6",
-    },
-    position: { x: 0, y: 0 },
-  },
-  {
-    id: "7",
-    type: "custom",
-    data: {
-      type: "asset",
-
-      asset: { name: "asset 6", type: "python"},
-      label: "Node 7",
-    },
-    position: { x: 0, y: 0 },
-  },
-]);
-
-const edges = ref([
-  { id: "e1-3", source: "1", target: "3" },
-  //{ id: "e3-5", source: "3", target: "5" },
-  { id: "e1-2", source: "1", target: "2", animated: true },
-  { id: "e1-4", source: "1", target: "4" },
-]);
-
+const { nodes: generatedNodes, edges: generatedEdges } = generateGraphFromJSON(jsonData);
+  nodes.value = generatedNodes;
+  edges.value = generatedEdges;
+  
 const elk = new ELK();
 const updateNodePositions = (layout) => {
   const updatedNodes = nodes.value.map((node) => {
@@ -208,6 +191,7 @@ watch(
 <style>
 @import "@vue-flow/core/dist/style.css";
 @import "@vue-flow/core/dist/theme-default.css";
+
 
 .flow {
   display: flex;
