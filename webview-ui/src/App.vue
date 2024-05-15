@@ -75,8 +75,8 @@ const tabs = ref([
     includeIn: ["bruin"]
   }, */
   { label: "Asset Lineage", component: AssetLineageText, includeIn: ["bruin"] },
-  { label: "Asset Graph Lineage", component: AssetLineageFlow, includeIn: ["lineage"] },
-  //{ label: "Pipeline Graph Lineage", component: PipelineLineage, includeIn: ["lineage"] },
+/*   { label: "Asset Graph Lineage", component: AssetLineageFlow, includeIn: ["lineage"] },
+ */  //{ label: "Pipeline Graph Lineage", component: PipelineLineage, includeIn: ["lineage"] },
 
 ]);
 
