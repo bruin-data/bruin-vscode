@@ -68,32 +68,26 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: v0.7.5
+### Latest Release: v0.8.0
 
-### Fixed
-- Introduced a clear differentiation between render errors and validation errors. Previously, render errors were not being displayed when encountered, leading to confusion. 
-- Implemented a fallback mechanism to ensure compatibility with older CLI versions where the SQL preview and render error might not be displayed because of recent updates.
+### Added
+- Introduction of a new tab dedicated to rendering asset details, with dynamic updating for data.
+- Integration of an alert message feature to provide clear feedback when data is unavailable for display.
 
-### Improved
-- CSS Adjustments: Updated CSS for `run` and `validate` buttons to ensure visual coherence and maintain clickability.
-
+### Fixed 
+- Display the asset name on the `General Tab` dynamically
 
 ### Previous Highlights
-### 0.7.4
-- The extension activation on snowflake and bigQuery SQL as well as other languages is fixed.
 
-### 0.7.3
-- Enhances the validation error display, and adds the expand functionality to hide/show the error details.
-
-### 0.7.2
-- Fix the visual issues related to the display of icons and the loading spinner within the validate button component.
-
-### 0.7.1
- 	- Transition from string-based lineage data handling to a JSON parsing mechanism. 
-	- The `run` and `validate` buttons have been resized and a separator has been added between the button and its corresponding dropdown menu for better visual appeal and usability.
-
-### 0.7.0
-	- Integrated a dropdown menu into the `validate` and `run` buttons. The `validate` menu includes a new option titled "Pipeline". Selecting this option triggers the command `bruin validate .`. The `run` button menu, features the **"Downstream"** option. When selected, this initiates the command bruin `run --downstream [rest of the command]`.
+### Version 0.7.x
+- Clearly differentiated render errors and validation errors to eliminate confusion.
+- Adjusted CSS for `run` and `validate` buttons for improved visual coherence and usability.
+- Fixed extension activation issues for Snowflake, BigQuery SQL, and other languages.
+- Enhanced validation error display and added expand functionality for error details.
+- Resolved visual issues with icons and loading spinner within the validate button component.
+- Transitioned from string-based lineage data handling to JSON parsing mechanism.
+- Resized buttons and added separators for better visual hierarchy.
+- Integrated dropdown menus for streamlined command execution.
 
 #### 0.6.x
 - Improved SQL preview visibility in non-Bruin assets.

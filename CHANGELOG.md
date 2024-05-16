@@ -2,6 +2,16 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+
+
+## [0.8.0] - [2024-05-16]
+### Added
+- Introduction of a new tab dedicated to rendering asset details, with dynamic updating for data.
+- Integration of an alert message feature to provide clear feedback when data is unavailable for display.
+
+### Fixed 
+- Display the asset name on the `General Tab` dynamically
+
 ## [0.7.5] - [2024-05-16]
 ### Fixed
 - Introduced a clear differentiation between render errors and validation errors. Previously, render errors were not being displayed when encountered, leading to confusion. 
