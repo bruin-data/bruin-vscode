@@ -68,12 +68,20 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: v0.7.4
+### Latest Release: v0.7.5
 
-## Fixed
-- The extension activation on snowflake and bigQuery SQL as well as other languages is fixed.
+### Fixed
+- Introduced a clear differentiation between render errors and validation errors. Previously, render errors were not being displayed when encountered, leading to confusion. 
+- Implemented a fallback mechanism to ensure compatibility with older CLI versions where the SQL preview and render error might not be displayed because of recent updates.
+
+### Improved
+- CSS Adjustments: Updated CSS for `run` and `validate` buttons to ensure visual coherence and maintain clickability.
+
 
 ### Previous Highlights
+### 0.7.4
+- The extension activation on snowflake and bigQuery SQL as well as other languages is fixed.
+
 ### 0.7.3
 - Enhances the validation error display, and adds the expand functionality to hide/show the error details.
 
@@ -86,67 +94,28 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ### 0.7.0
 	- Integrated a dropdown menu into the `validate` and `run` buttons. The `validate` menu includes a new option titled "Pipeline". Selecting this option triggers the command `bruin validate .`. The `run` button menu, features the **"Downstream"** option. When selected, this initiates the command bruin `run --downstream [rest of the command]`.
-### 0.6.2
-	- Resolves the issue of SQL Preview visibility in files that are not classified as Bruin assets.
 
-### 0.6.1
-	- Resolves the functionality issues with the VSCode extension on Windows platforms.
+#### 0.6.x
+- Improved SQL preview visibility in non-Bruin assets.
+- Resolved functionality issues on Windows platforms.
+- Updated webview with tabbed interface for General and Asset Lineage tabs.
 
+#### 0.5.0
+- Added line numbers to SQL preview for better code review and debugging.
 
-### 0.6.0
-	- Updated the webview to feature a tabbed interface. The interface now includes two distinct tabs.
-	- The `General` tab Continues to display the existing asset details in the General tab.
-	- The `Asset Lineage` is newly introduced to showcase the lineage data in a textual format. This tab dynamically displays the lineage of the current asset.
+#### 0.4.x
+- Various fixes and improvements including rendering, responsiveness, and CSS adjustments.
 
-### 0.5.0
-	- The SQL preview now displays line numbers, providing a clearer and more navigable interface for code review and debugging.
+#### 0.3.0
+- Added Windows compatibility and automatic workspace directory detection.
 
-### 0.4.3
-	- Fix the rendering for the last opened document
+#### 0.2.x
+- Implemented SQL validation functionality with conditional flags.
+- Fixed auto folding issues and improved error message handling.
 
-### 0.4.2
-	- Implemented a reactivity handling to ensure that the SQL preview responds dynamically to user interactions with the checkboxes and the date inputs. 
-
-### 0.4.1
-	- Implemented a loading state and added a spinner to the validation button to handle the "loading" state.
-	- Improved responsiveness of the validation by correctly managing the loading state.
-
-
-### 0.4.0
-	- Implemented Vue.js as the primary framework for developing the extension's Webview to enhance the extension's user interface and interactivity.
-	- Rebuilt the Webview using several reusable Vue components. The use of Vue components allows for a more dynamic and responsive user experience.
-
-### 0.3.0
-	- Windows compatibility.
-	- Functionality for automatic detection of the workspace directory in Bruin projects.
-
-### 0.2.5
-- Fixed validation error message formatting and handling.
-
-### 0.2.4
-- Fixed the rendering problems with some assets.
-- Fixed the error message triigerd for broken assets 
-
-### 0.2.3
-- Fixed the css problem.
-
-#### 0.2.2
-- Integrated SQL validation functionality, providing a custom notification for validation results.
-- Support for running SQL with conditional flags.
-- Added start and end date selectors for appending date conditions directly to the Bruin run command.
-- Incorporated the "exclusive end date" checkbox, automatically adjusting the end date to the end of the selected day.
-- Fixed the auto folding problem, when changing the active text editor.
-
-
-#### 0.1.2
-- Added auto-folding settings and resolved compatibility issues with the Pylance extension.
-
-#### 0.1.1
-- General bug fixes.
-
-#### 0.1.0
-- Launched with syntax coloring, code folding, and the dynamic SQL content viewer.
-
+#### 0.1.x
+- Introduced auto-folding settings and resolved compatibility issues.
+- Launched with syntax coloring, code folding, and dynamic SQL content viewer.
 
 ### How to Update
 
