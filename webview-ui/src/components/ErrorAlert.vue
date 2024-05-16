@@ -60,11 +60,17 @@ const formattedIssueContext = (context) => {
   return context.join("\n");
 };
 
+
 const formattedErrorMessage = computed(() => {
   if (!props.errorMessage) return null;
 
+
   try {
-    const errorObject = JSON.parse(props.errorMessage) as ParsedValidationErrorMessage;
+
+    
+    const errorObject = JSON.parse(props.errorMessage) 
+    
+    const validationError = errorObject[0] as ParsedValidationErrorMessage;
 
     // Handling a simple error message
     if (errorObject.error) {
@@ -81,10 +87,10 @@ const formattedErrorMessage = computed(() => {
     }
 
     // Handling structured error messages
-    if (errorObject.pipeline || errorObject.issues) {
+    if (validationError.pipeline || validationError.issues) {
       return {
-        pipeline: errorObject.pipeline || null,
-        issues: Object.entries(errorObject.issues || {}) 
+        pipeline: validationError.pipeline || null,
+        issues: Object.entries(validationError.issues || {}) 
           .map(([test, issues]) => {
             return issues.map((issue) => ({
               asset: issue.asset || null,

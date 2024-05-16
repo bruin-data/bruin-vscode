@@ -2,6 +2,13 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.7.5] - [2024-05-16]
+### Fixed
+- Introduced a clear differentiation between render errors and validation errors. Previously, render errors were not being displayed when encountered, leading to confusion. 
+- Implemented a fallback mechanism to ensure compatibility with older CLI versions where the SQL preview and render error might not be displayed because of recent updates.
+
+### Improved
+- CSS Adjustments: Updated CSS for `run` and `validate` buttons to ensure visual coherence and maintain clickability.
 
 ## [0.7.4] -[2024-05-06]
 ### Fixed 

@@ -5,9 +5,10 @@
       @click="defaultAction"
       :class="`flex items-stretch justify-between text-sm font-medium leading-5 
                 text-[color:var(--vscode-editor-forground)] transition duration-150 ease-in-out border rounded-md 
+                disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring focus:ring-offset-2 focus:ring-offset-[color:var(--vscode-editor-background)]
   
                   ${btnClasses}`"
-      :disabled="disabled"
+      :disabled="props.isDisabled"
     >
       <!-- Status icons and button label -->
       <button
@@ -37,7 +38,7 @@
         <button
           class="h-full p-0 w-6 flex items-center justify-center hover:bg-editor-fg hover:opacity-75 hover:text-[color:var(--vscode-editor-background)]"
           @click.stop="toggleDropdown"
-          :disabled="disabled"
+          :disabled="props.isDisabled"
         >
           <ChevronDownIcon class="w-5 h-full" />
         </button>
@@ -69,7 +70,7 @@ import { CheckCircleIcon, XCircleIcon, ChevronDownIcon } from "@heroicons/vue/20
 const props = defineProps<{
   buttonLabel: string;
   btnClasses?: string;
-  disabled: boolean;
+  isDisabled: boolean;
   bgColor?: string | null;
   status?: "validated" | "failed" | "loading" | null;
   menuItems?: string[];
