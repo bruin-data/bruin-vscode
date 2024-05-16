@@ -5,7 +5,7 @@ export function useLineage() {
     const lineageSuccess = ref(null);
     const lineageError = ref(null);
 
-    function receiveMessage(event) {
+    function receiveLineageMessage(event) {
         if (!event) return;
         const envelope = event.data;
         switch (envelope.command) {
@@ -17,11 +17,11 @@ export function useLineage() {
     }
 
     onMounted(() => {
-        window.addEventListener("message", receiveMessage);
+        window.addEventListener("message", receiveLineageMessage);
     });
 
     onBeforeUnmount(() => {
-        window.removeEventListener("message", receiveMessage);
+        window.removeEventListener("message", receiveLineageMessage);
     });
 
     const formattedLineage = computed(() => {
