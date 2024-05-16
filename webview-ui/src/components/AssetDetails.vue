@@ -1,5 +1,6 @@
 <template>
   <div
+    v-if="props !== null"
     class="flex h-full w-full flex-col overflow-scroll overflow-x-auto pt-6 shadow-xl text-gray-500"
   >
     <div class="px-4 sm:px-6 border-b pb-4">
@@ -10,21 +11,27 @@
     <div class="relative overflow-scroll py-6 flex-1 px-4 sm:px-6">
       <dl class="divide-y divide-gray-600">
         <DescriptionItem title="Asset" :value="name" />
-        <DescriptionItem title="Type" :value="type" :className="classes.blueBadge" />
-        <DescriptionItem title="Schedule" :value="schedule" :className="classes.grayBadge" />
+        <DescriptionItem title="Type" :value="type" :className="badgeClass.badgeStyle" />
+        <DescriptionItem title="Schedule" :value="schedule" :className="badgeClass.grayBadge" />
         <DescriptionItem title="Owner" value="Unknown" className="font-semibold text-gray-400" />
       </dl>
     </div>
-    <div class="border-b  flex flex-col gap-4 py-6 flex-1 px-4 sm:px-6">
-      <h3 class="text-lg leading-6 font-medium text-gray-100 mb-2"> Description </h3>
+    <div class="border-b flex flex-col gap-4 py-6 flex-1 px-4 sm:px-6">
+      <h3 class="text-lg leading-6 font-medium text-gray-100 mb-2">Description</h3>
       <p class="text-gray-300">{{ description }}</p>
     </div>
+  </div>
+  <div class="flex" v-else>
+    <MessageAlert message="This file is not a Bruin Asset or has No data to dipslay" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { defineProps, defineEmits, ref } from "vue";
+import { defineProps, defineEmits, ref, computed } from "vue";
 import DescriptionItem from "@/components/ui/description-item/DescriptionItem.vue";
+import MessageAlert from "@/components/ui/alerts/AlertMessage.vue";
+import { badgeStyles, defaultBadgeStyle } from "@/components/ui/badges/CustomBadgesStyle";
+
 const props = defineProps<{
   name: string;
   description: string;
@@ -34,10 +41,15 @@ const props = defineProps<{
   id: string;
 }>();
 
-const classes = ref({
-  blueBadge:
-    "inline-flex items-center rounded-md bg-blue-400/10 px-2 py-1 text-xs font-medium text-blue-400 ring-1 ring-inset ring-blue-400/30",
-  grayBadge:
-    "inline-flex items-center rounded-md bg-gray-400/10 px-2 py-1 text-xs font-medium text-gray-400 ring-1 ring-inset ring-gray-400/20",
+
+const badgeClass = computed(() => {
+  const commonStyle =
+    "inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset";
+  console.log("Computed property recalculated.", badgeStyles[props.type]);
+  return {
+    commonStyle: commonStyle,
+    grayBadge: `${commonStyle} ${defaultBadgeStyle.main}`,
+    badgeStyle: `${commonStyle}  ${badgeStyles[props.type].main}`,
+  };
 });
 </script>

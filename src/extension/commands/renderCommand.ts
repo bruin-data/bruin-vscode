@@ -1,12 +1,10 @@
 import * as vscode from "vscode";
-import { isBruinAsset } from "../../utilities/helperUtils";
 import { BruinPanel } from "../../panels/BruinPanel";
 import { BruinRender } from "../../bruin";
 import { getDefaultBruinExecutablePath } from "../configuration";
 
 export const renderCommand = async (extensionUri: vscode.Uri) => {
   const activeEditor = vscode.window.activeTextEditor;
-  const bruinAsset = await isBruinAsset(activeEditor?.document.fileName || "", ["py", "sql"]);
   if (activeEditor) {
     BruinPanel.render(extensionUri);
 

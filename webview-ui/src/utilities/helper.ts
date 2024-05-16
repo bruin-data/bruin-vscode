@@ -88,12 +88,12 @@ export const parseAssetDetails = (data: string) => {
 
   const parsedData = JSON.parse(data);
   const assetDetails = {
-    id: parsedData.id,
-    name: parsedData.name,
-    type: parsedData.type,
-    schedule : parsedData.schedule,
-    description: parsedData.description,
-    owner: parsedData.owner,
+    id: parsedData.asset.id,
+    name: parsedData.asset.name || "undefined",
+    type: parsedData.asset.type || "undefined",
+    schedule : parsedData.asset.schedule || "undefined",
+    description: parsedData.asset.description || "No description available",
+    owner: parsedData.asset.owner || "undefined",
   };
 
   return assetDetails;

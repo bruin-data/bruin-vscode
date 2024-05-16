@@ -16,7 +16,15 @@
       :id="`view-${index}`"
       v-show="activeTab === index"
     >
-      <component :is="tab && tab.component" v-bind="tab && tab.props" @update:assetName="updateAssetName" />
+      <component
+        v-if="tab.props !== null"
+        :is="tab && tab.component"
+        v-bind="tab && tab.props"
+        @update:assetName="updateAssetName"
+      />
+      <div class="flex w-full" v-else-if="parseError">
+        <MessageAlert message="This file is not a Bruin Asset or has No data to dipslay" />
+      </div>
     </vscode-panel-view>
   </vscode-panels>
 </template>
@@ -27,34 +35,46 @@ import AssetDetails from "@/components/AssetDetails.vue";
 import AssetLineageText from "@/components/lineage-text/AssetLineageText.vue";
 import AssetLineageFlow from "@/components/lineage-flow/asset-lineage/AssetLineage.vue";
 import { vscode } from "@/utilities/vscode";
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import { parseAssetDetails } from "./utilities/helper";
-
+import { useParseAsset } from "./composables/useParseAsset";
+import { updateValue } from "./utilities/helper";
+import MessageAlert from "@/components/ui/alerts/AlertMessage.vue";
 
 const panelType = ref("");
+const parseError = ref();
+const data = ref(
+  JSON.stringify({
+    asset: {
+      name: "Asset Name",
+      description: "Asset Description",
+      type: "BigQuery",
+      schedule: "daily",
+      owner: "Asset Owner",
+      id: "ID",
+    },
+  })
+);
 
-window.addEventListener("message", event => {
+window.addEventListener("message", (event) => {
   const message = event.data;
-  switch(message.command) {
+  switch (message.command) {
     case "init":
       panelType.value = message.panelType;
       console.log("---------------------------\n");
       console.log("Panel Type", message.panelType);
       break;
+    case "parse-message":
+      data.value = updateValue(message, "success");
+      parseError.value = updateValue(message, "error");
+      break;
   }
 });
 
+console.log("Data", data.value);
 
 const activeTab = ref(0);
 
-const data = JSON.stringify({
-  name: "Asset Name",
-  description: "Asset Description",
-  type: "BigQuery",
-  schedule: "daily",
-  owner: "Asset Owner",
-  id: "ID",
-});
 /* const tabs = ref([
   { label: "General", component: AssetGeneral, props: { name: parseAssetDetails(data)?.name } },
   {
@@ -65,27 +85,36 @@ const data = JSON.stringify({
   { label: "Asset Lineage", component: AssetLineage },
   { label: "Asset Graph Lineage", component: PipelineLineage},
 ]); */
+const assetDetailsProps = computed(() => {
+  if (!data.value) return null;
+  return parseAssetDetails(data.value);
+});
 
+const assetName = computed(() => {
+  if (!data.value) return null;
+  return parseAssetDetails(data.value)?.name;
+});
 const tabs = ref([
-  { label: "General", component: AssetGeneral, props: { name: parseAssetDetails(data)?.name }, includeIn: ["bruin"] },
-  /* {
+  { label: "General", component: AssetGeneral, props: { name: assetName }, includeIn: ["bruin"] },
+  {
     label: "Asset Details",
     component: AssetDetails,
-    props: parseAssetDetails(data),
-    includeIn: ["bruin"]
-  }, */
+    includeIn: ["bruin"],
+    props: assetDetailsProps || null,
+  },
   { label: "Asset Lineage", component: AssetLineageText, includeIn: ["bruin"] },
-/*   { label: "Asset Graph Lineage", component: AssetLineageFlow, includeIn: ["lineage"] },
- */  //{ label: "Pipeline Graph Lineage", component: PipelineLineage, includeIn: ["lineage"] },
-
+  /*   { label: "Asset Graph Lineage", component: AssetLineageFlow, includeIn: ["lineage"] },
+   */ //{ label: "Pipeline Graph Lineage", component: PipelineLineage, includeIn: ["lineage"] },
 ]);
 
-const filteredTabs = computed(() => tabs.value.filter(tab => tab.includeIn.includes(panelType.value)));
-
+const filteredTabs = computed(() =>
+  tabs.value.filter((tab) => tab.includeIn.includes(panelType.value))
+);
 
 onMounted(() => {
   loadLineageData();
-  loadLineageDataForLineagePanel()
+  loadAssetData();
+  loadLineageDataForLineagePanel();
 });
 
 function loadLineageData() {
@@ -96,11 +125,14 @@ function loadLineageDataForLineagePanel() {
   vscode.postMessage({ command: "bruin.assetLineage" });
 }
 
+function loadAssetData() {
+  vscode.postMessage({ command: "bruin.getAssetDetails" });
+}
+
 function updateAssetName(newName) {
   tabs.value.map((tab) => {
-    if(!tab) return;
+    if (!tab) return;
     tab.props && (tab.props.name = newName);
   });
 }
 </script>
-
