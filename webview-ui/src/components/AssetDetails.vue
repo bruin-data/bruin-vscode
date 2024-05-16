@@ -15,8 +15,8 @@
         <DescriptionItem title="Owner" value="Unknown" className="font-semibold text-gray-400" />
       </dl>
     </div>
-    <div class="border-b  flex flex-col gap-4 py-6 flex-1 px-4 sm:px-6">
-      <h3 class="text-lg leading-6 font-medium text-gray-100 mb-2"> Description </h3>
+    <div class="border-b flex flex-col gap-4 py-6 flex-1 px-4 sm:px-6">
+      <h3 class="text-lg leading-6 font-medium text-gray-100 mb-2">Description</h3>
       <p class="text-gray-300">{{ description }}</p>
     </div>
   </div>
@@ -25,6 +25,7 @@
 <script setup lang="ts">
 import { defineProps, defineEmits, ref } from "vue";
 import DescriptionItem from "@/components/ui/description-item/DescriptionItem.vue";
+
 const props = defineProps<{
   name: string;
   description: string;

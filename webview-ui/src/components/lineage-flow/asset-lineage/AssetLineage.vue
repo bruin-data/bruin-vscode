@@ -63,74 +63,74 @@ function receiveMessage(event) {
 const nodes = ref<any[]>([]);
 const edges = ref<any[]>([]);
 const jsonData = {
-  "name": "test_dataset.test",
-  "upstream": [
+  name: "test_dataset.test",
+  upstream: [
     {
-      "name": "test_dataset.test1",
-      "type": "python",
-      "executable_file": {
-        "name": "test1.sql",
-        "path": "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test2.sql",
-        "content": ""
+      name: "test_dataset.test1",
+      type: "python",
+      executable_file: {
+        name: "test1.sql",
+        path: "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test2.sql",
+        content: "",
       },
-      "definition_file": {
-        "name": "test1.sql",
-        "path": "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test2.sql",
-        "type": "comment"
-      }
+      definition_file: {
+        name: "test1.sql",
+        path: "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test2.sql",
+        type: "comment",
+      },
     },
     {
-      "name": "test_dataset.test2",
-      "type": "python",
-      "executable_file": {
-        "name": "test2.sql",
-        "path": "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test2.sql",
-        "content": ""
+      name: "test_dataset.test2",
+      type: "python",
+      executable_file: {
+        name: "test2.sql",
+        path: "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test2.sql",
+        content: "",
       },
-      "definition_file": {
-        "name": "test2.sql",
-        "path": "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test2.sql",
-        "type": "comment"
-      }
-    }
+      definition_file: {
+        name: "test2.sql",
+        path: "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test2.sql",
+        type: "comment",
+      },
+    },
   ],
-  "downstream": [
+  downstream: [
     {
-      "name": "test_dataset.test3",
-      "type": "bq.sql",
-      "executable_file": {
-        "name": "test3.sql",
-        "path": "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test3.sql",
-        "content": ""
+      name: "test_dataset.test3",
+      type: "bq.sql",
+      executable_file: {
+        name: "test3.sql",
+        path: "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test3.sql",
+        content: "",
       },
-      "definition_file": {
-        "name": "test3.sql",
-        "path": "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test3.sql",
-        "type": "comment"
-      }
-    }, 
+      definition_file: {
+        name: "test3.sql",
+        path: "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test3.sql",
+        type: "comment",
+      },
+    },
     {
-      "name": "test_dataset.test4",
-      "type": "python",
-      "executable_file": {
-        "name": "test3.sql",
-        "path": "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test3.sql",
-        "content": ""
+      name: "test_dataset.test4",
+      type: "python",
+      executable_file: {
+        name: "test3.sql",
+        path: "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test3.sql",
+        content: "",
       },
-      "definition_file": {
-        "name": "test3.sql",
-        "path": "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test3.sql",
-        "type": "comment"
-      }
-    }
+      definition_file: {
+        name: "test3.sql",
+        path: "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test3.sql",
+        type: "comment",
+      },
+    },
   ],
-  isFocusAsset: true
-} 
+  isFocusAsset: true,
+};
 
 const { nodes: generatedNodes, edges: generatedEdges } = generateGraphFromJSON(jsonData);
-  nodes.value = generatedNodes;
-  edges.value = generatedEdges;
-  
+nodes.value = generatedNodes;
+edges.value = generatedEdges;
+
 const elk = new ELK();
 const updateNodePositions = (layout) => {
   const updatedNodes = nodes.value.map((node) => {
@@ -191,7 +191,6 @@ watch(
 <style>
 @import "@vue-flow/core/dist/style.css";
 @import "@vue-flow/core/dist/theme-default.css";
-
 
 .flow {
   display: flex;

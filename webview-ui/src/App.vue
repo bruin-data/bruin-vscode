@@ -27,11 +27,21 @@ import AssetDetails from "@/components/AssetDetails.vue";
 import AssetLineageText from "@/components/lineage-text/AssetLineageText.vue";
 import AssetLineageFlow from "@/components/lineage-flow/asset-lineage/AssetLineage.vue";
 import { vscode } from "@/utilities/vscode";
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import { parseAssetDetails } from "./utilities/helper";
-
+import { useParseAsset } from "./composables/useParseAsset";
+import {updateValue} from "./utilities/helper";
 
 const panelType = ref("");
+const data = ref(JSON.stringify({
+  asset:{
+  name: "Asset Name",
+  description: "Asset Description",
+  type: "BigQuery",
+  schedule: "daily",
+  owner: "Asset Owner",
+  id: "ID",
+}}));
 
 window.addEventListener("message", event => {
   const message = event.data;
@@ -41,20 +51,18 @@ window.addEventListener("message", event => {
       console.log("---------------------------\n");
       console.log("Panel Type", message.panelType);
       break;
+    case "parse-message":
+      data.value = updateValue(message, "success");
+      console.log("Data from event handeler", data.value);
+      break;
   }
 });
 
+console.log("Data", data.value);
 
 const activeTab = ref(0);
 
-const data = JSON.stringify({
-  name: "Asset Name",
-  description: "Asset Description",
-  type: "BigQuery",
-  schedule: "daily",
-  owner: "Asset Owner",
-  id: "ID",
-});
+
 /* const tabs = ref([
   { label: "General", component: AssetGeneral, props: { name: parseAssetDetails(data)?.name } },
   {
@@ -65,15 +73,21 @@ const data = JSON.stringify({
   { label: "Asset Lineage", component: AssetLineage },
   { label: "Asset Graph Lineage", component: PipelineLineage},
 ]); */
+const assetDetailsProps = computed(() => {
+  return parseAssetDetails(data.value);
+});
 
+const assetName = computed(() => {
+  return parseAssetDetails(data.value)?.name;
+});
 const tabs = ref([
-  { label: "General", component: AssetGeneral, props: { name: parseAssetDetails(data)?.name }, includeIn: ["bruin"] },
-  /* {
+  { label: "General", component: AssetGeneral, props: { name:   assetName}, includeIn: ["bruin"] },
+   {
     label: "Asset Details",
     component: AssetDetails,
-    props: parseAssetDetails(data),
-    includeIn: ["bruin"]
-  }, */
+    includeIn: ["bruin"],
+    props: assetDetailsProps,
+  }, 
   { label: "Asset Lineage", component: AssetLineageText, includeIn: ["bruin"] },
 /*   { label: "Asset Graph Lineage", component: AssetLineageFlow, includeIn: ["lineage"] },
  */  //{ label: "Pipeline Graph Lineage", component: PipelineLineage, includeIn: ["lineage"] },
@@ -85,6 +99,7 @@ const filteredTabs = computed(() => tabs.value.filter(tab => tab.includeIn.inclu
 
 onMounted(() => {
   loadLineageData();
+  loadAssetData();
   loadLineageDataForLineagePanel()
 });
 
@@ -96,11 +111,19 @@ function loadLineageDataForLineagePanel() {
   vscode.postMessage({ command: "bruin.assetLineage" });
 }
 
+function loadAssetData() {
+  vscode.postMessage({ command: "bruin.getAssetDetails" });
+}
+
+
 function updateAssetName(newName) {
   tabs.value.map((tab) => {
     if(!tab) return;
     tab.props && (tab.props.name = newName);
   });
 }
+
+
+
 </script>
 

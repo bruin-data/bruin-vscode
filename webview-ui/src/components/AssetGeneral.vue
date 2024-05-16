@@ -46,7 +46,7 @@
 </template>
 
 <script setup lang="ts">
-import { allComponents, provideVSCodeDesignSystem } from "@vscode/webview-ui-toolkit";
+
 import { vscode } from "@/utilities/vscode";
 import { computed, onBeforeUnmount, onMounted, ref, defineProps } from "vue";
 import { watch } from "vue";
@@ -58,8 +58,6 @@ import DateInput from "@/components/DateInput.vue";
 import SqlEditor from "@/components/SqlEditor.vue";
 import CheckboxGroup from "@/components/CheckboxGroup.vue";
 import { updateValue, resetStates, determineValidationStatus } from "@/utilities/helper";
-
-provideVSCodeDesignSystem().register(allComponents);
 
 const errorState = computed(() => handleError(validationError.value, renderSQLAssetError.value));
 const isError = computed(() => errorState.value?.errorCaptured);

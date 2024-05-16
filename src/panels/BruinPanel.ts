@@ -6,6 +6,8 @@ import { getDefaultBruinExecutablePath } from "../extension/configuration";
 import * as vscode from "vscode";
 import { renderCommandWithFlags } from "../extension/commands/renderCommand";
 import { lineageCommand } from "../extension/commands/lineageCommand";
+import { parseAssetCommand } from "../extension/commands/parseAssetCommand";
+import { parse } from "path";
 
 /**
  * This class manages the state and behavior of Bruin webview panels.
@@ -50,6 +52,7 @@ export class BruinPanel {
           this._lastRenderedDocumentUri = editor.document.uri;
           renderCommandWithFlags(this._flags);
           lineageCommand(this._lastRenderedDocumentUri);
+          parseAssetCommand(this._lastRenderedDocumentUri);
         }
       }),
       window.onDidChangeActiveTextEditor((editor) => {
@@ -57,6 +60,7 @@ export class BruinPanel {
           this._lastRenderedDocumentUri = editor.document.uri;
           renderCommandWithFlags(this._flags);
           lineageCommand(this._lastRenderedDocumentUri);
+          parseAssetCommand(this._lastRenderedDocumentUri);
         }
       })
     );
@@ -77,7 +81,7 @@ export class BruinPanel {
 
   public static postMessage(
     name: string,
-    data: string | { status: string; message: string | any  },
+    data: string | { status: string; message: string | any },
     panelType?: string
   ) {
     if (BruinPanel.currentPanel?._panel) {
@@ -260,6 +264,15 @@ export class BruinPanel {
               return;
             }
             lineageCommand(this._lastRenderedDocumentUri);
+            break;
+
+          case "bruin.getAssetDetails":
+            if (!this._lastRenderedDocumentUri) {
+              console.log("Loading asset data impossible without an active document.");
+              return;
+            }
+            console.log("Loading asset data for:", this._lastRenderedDocumentUri);
+            parseAssetCommand(this._lastRenderedDocumentUri);
             break;
         }
       },
