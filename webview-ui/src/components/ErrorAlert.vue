@@ -62,23 +62,24 @@ const formattedIssueContext = (context) => {
 
 
 const formattedErrorMessage = computed(() => {
-  let error = props.errorMessage;
   if (!props.errorMessage) return null;
-  if(typeof props.errorMessage === "string") {
-    error = {error: props.errorMessage};
-  }
+
 
   try {
-    const { error: errorMessage, pipeline, issues } = error as ParsedValidationErrorMessage;
+
+    
+    const errorObject = JSON.parse(props.errorMessage) 
+    
+    const validationError = errorObject[0] as ParsedValidationErrorMessage;
 
     // Handling a simple error message
-    if (errorMessage) {
-      console.log("Error message:", errorMessage);
+    if (errorObject.error) {
+      console.log("Error message:", errorObject.error);
       return {
         pipeline: null, // Set to null or a default message
         issues: [{
           asset: null, // Asset can be null
-          description: errorMessage, // Ensure description is always populated
+          description: errorObject.error, // Ensure description is always populated
           context: [],
           expanded: ref(false),
         }]
@@ -86,10 +87,10 @@ const formattedErrorMessage = computed(() => {
     }
 
     // Handling structured error messages
-    if (pipeline || issues) {
+    if (validationError.pipeline || validationError.issues) {
       return {
-        pipeline: pipeline || null,
-        issues: Object.entries(issues || {}) 
+        pipeline: validationError.pipeline || null,
+        issues: Object.entries(validationError.issues || {}) 
           .map(([test, issues]) => {
             return issues.map((issue) => ({
               asset: issue.asset || null,

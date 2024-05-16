@@ -137,9 +137,8 @@ export class BruinRender extends BruinCommand {
       (error)=>{
         BruinPanel?.postMessage("render-message", {
           status: "error",
-          message: JSON.parse(error).error,
+          message: error,
         });
-        console.error("Error rendering SQL asset from render",   JSON.parse(error).error);
       }
     )
       .catch ((err) => {
