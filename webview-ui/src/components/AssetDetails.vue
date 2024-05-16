@@ -18,7 +18,9 @@
     </div>
     <div class="border-b flex flex-col gap-4 py-6 flex-1 px-4 sm:px-6">
       <h3 class="text-lg leading-6 font-medium text-gray-100 mb-2">Description</h3>
-      <p class="text-gray-300">{{ description }}</p>
+      <div class="max-w-4xl lg:mt-0 xl:col-end-1 xl:row-start-1">
+        <p class="text-sm leading-8 text-gray-200 opacity-70 text-justify indent-8">{{ description }}</p>
+      </div>
     </div>
   </div>
   <div class="flex" v-else>
@@ -40,7 +42,6 @@ const props = defineProps<{
   owner: string;
   id: string;
 }>();
-
 
 const badgeClass = computed(() => {
   const commonStyle =
