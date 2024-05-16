@@ -77,7 +77,6 @@ export class BruinRender extends BruinCommand {
 }
  */
 
-
 import { BruinPanel } from "../panels/BruinPanel";
 import { BruinCommand } from "./bruinCommand";
 import { BruinCommandOptions } from "../types";
@@ -115,7 +114,7 @@ export class BruinRender extends BruinCommand {
 
   public async render(
     filePath: string,
-    { flags = [], ignoresErrors = false }: BruinCommandOptions = {}
+    { flags = ["-o", "json"], ignoresErrors = false }: BruinCommandOptions = {}
   ): Promise<void> {
     if (!isBruinAsset(filePath, ["py", "sql", "asset.yml"]) || (await isBruinYaml(filePath))) {
       BruinPanel?.postMessage("render-message", {
@@ -138,24 +137,25 @@ export class BruinRender extends BruinCommand {
         return;
       }
     }
-    
-    await this.run([...flags, filePath], { ignoresErrors }).then(
-      (sqlRendered)=>{
-       BruinPanel?.postMessage("render-message", {
-          status: "success",
-          message: JSON.parse(sqlRendered).query,
-        });
-        console.log("SQL rendered successfully");
-      },
-      (error)=>{
-        BruinPanel?.postMessage("render-message", {
-          status: "error",
-          message: error,
-        });
-        console.error("Error rendering SQL asset", error);
-      }
-    )
-      .catch ((err) => {
+
+    await this.run([...flags, filePath], { ignoresErrors })
+      .then(
+        (sqlRendered) => {
+          BruinPanel?.postMessage("render-message", {
+            status: "success",
+            message: JSON.parse(sqlRendered).query,
+          });
+          console.log("SQL rendered successfully");
+        },
+        (error) => {
+          BruinPanel?.postMessage("render-message", {
+            status: "error",
+            message: error,
+          });
+          console.error("Error rendering SQL asset", error);
+        }
+      )
+      .catch((err) => {
         if (err.toString().includes("Incorrect")) {
           this.runWithoutJsonFlag(filePath, ignoresErrors);
         } else {
@@ -164,26 +164,26 @@ export class BruinRender extends BruinCommand {
             message: JSON.stringify({ error: err }),
           });
           console.error("Error rendering SQL asset", err);
-      }
-    });
+        }
+      });
   }
-
 
   private async runWithoutJsonFlag(filePath: string, ignoresErrors: boolean) {
-      await this.run([filePath], { ignoresErrors }).then(
-        (result) => {
-      BruinPanel?.postMessage("render-message", {
-        status: "success",
-        message: result,
-      });
-      console.log("SQL rendered successfully without JSON", result);
-    },
-     (err) => {
-      BruinPanel?.postMessage("render-message", {
-        status: "error",
-        message: JSON.stringify({ error: err }), 
-      });
-      console.error("Error rendering SQL asset without JSON", err);
-    });
-}
+    await this.run([filePath], { ignoresErrors }).then(
+      (result) => {
+        BruinPanel?.postMessage("render-message", {
+          status: "success",
+          message: result,
+        });
+        console.log("SQL rendered successfully without JSON", result);
+      },
+      (err) => {
+        BruinPanel?.postMessage("render-message", {
+          status: "error",
+          message: JSON.stringify({ error: err }),
+        });
+        console.error("Error rendering SQL asset without JSON", err);
+      }
+    );
   }
+}
