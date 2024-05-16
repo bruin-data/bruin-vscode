@@ -2,7 +2,7 @@
   <div class="divide-y overflow-hidden rounded-lg shadow w-full">
     <div class="px-4 py-5 sm:px-6">
       <h2 class="text-lg font-semibold font-mono leading-6 text-gray-300">
-      {{ name }}
+        {{ name }}
       </h2>
     </div>
     <div class="px-4 py-5 sm:p-6">
@@ -18,7 +18,7 @@
         </div>
         <div class="flex justify-end space-x-4">
           <CommandButton
-            :disabled="isError || isNotAsset"
+            :isDisabled="isError || isNotAsset"
             :defaultAction="handleBruinValidateCurrentAsset"
             :status="validateButtonStatus"
             buttonLabel="Validate"
@@ -26,7 +26,7 @@
             @exec-choice="validateChoice"
           />
           <CommandButton
-            :disabled="isError || isNotAsset"
+            :isDisabled="isError || isNotAsset"
             :defaultAction="runSql"
             :menuItems="['Downstream']"
             buttonLabel="Run"
@@ -46,7 +46,6 @@
 </template>
 
 <script setup lang="ts">
-import { allComponents, provideVSCodeDesignSystem } from "@vscode/webview-ui-toolkit";
 import { vscode } from "@/utilities/vscode";
 import { computed, onBeforeUnmount, onMounted, ref, defineProps } from "vue";
 import { watch } from "vue";
@@ -59,21 +58,19 @@ import SqlEditor from "@/components/SqlEditor.vue";
 import CheckboxGroup from "@/components/CheckboxGroup.vue";
 import { updateValue, resetStates, determineValidationStatus } from "@/utilities/helper";
 
-provideVSCodeDesignSystem().register(allComponents);
-
 const errorState = computed(() => handleError(validationError.value, renderSQLAssetError.value));
 const isError = computed(() => errorState.value?.errorCaptured);
 const errorMessage = computed(() => errorState.value?.errorMessage);
-const isNotAsset = computed(() => renderAssetAlert.value ? true : false);
+const isNotAsset = computed(() => (renderAssetAlert.value ? true : false));
 
 const props = defineProps<{
   name: string | null;
 }>();
 
 function handleBruinValidateAll() {
-    vscode.postMessage({
-      command: "bruin.validateAll",
-    });
+  vscode.postMessage({
+    command: "bruin.validateAll",
+  });
 }
 
 function handleBruinValidateCurrentAsset() {
@@ -87,7 +84,6 @@ const checkboxItems = ref([
   { name: "Exclusive-End-Date", checked: false },
 ]);
 const runOptions = ref(null as string | null);
-
 
 function handleRunWithOptions(action: string) {
   runOptions.value = action;
@@ -109,9 +105,9 @@ function runSql(runOption?: string) {
     payload = payload + " --downstream";
   }
   vscode.postMessage({
-      command: "bruin.runSql",
-      payload: payload,
-    });
+    command: "bruin.runSql",
+    payload: payload,
+  });
 }
 const validationSuccess = ref(null);
 const validationError = ref(null);
@@ -210,7 +206,9 @@ function receiveMessage(event: { data: any }) {
       language.value = renderSQLAssetSuccess.value ? "sql" : "python";
 
       resetStates([validationError, validationSuccess, validateButtonStatus]);
-      console.log("Render message", isNotAsset.value);
+      console.log("Is not asset", isNotAsset.value);
+      console.log("Error state", isError.value);
+      console.log("Error message From Genearl", errorMessage.value);
       break;
 
     case "run-success":

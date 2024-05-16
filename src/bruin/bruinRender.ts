@@ -115,29 +115,16 @@ export class BruinRender extends BruinCommand {
 
   public async render(
     filePath: string,
-    { flags = [], ignoresErrors = false }: BruinCommandOptions = {}
+    { flags = ['-o', 'json'], ignoresErrors = false }: BruinCommandOptions = {}
   ): Promise<void> {
-    if (!isBruinAsset(filePath, ["py", "sql", "asset.yml"]) || (await isBruinYaml(filePath))) {
-      BruinPanel?.postMessage("render-message", {
-        status: "non-asset-alert",
-        message: "-- This is not a BRUIN asset --",
-      });
-      console.log("This is not a BRUIN asset");
+    if (await this.isValidAsset(filePath) === false) {
       return;
     } else {
-      if (
-        (await isPythonBruinAsset(filePath)) ||
-        (await isYamlBruinAsset(filePath)) ||
-        (await isBruinPipeline(filePath))
-      ) {
-        BruinPanel?.postMessage("render-message", {
-          status: "bruin-asset-alert",
-          message: "-- Python or Yaml BRUIN asset detected --",
-        });
-        console.log("Python or Yaml BRUIN asset detected");
-        return;
+      if (await this.detectBruinAsset(filePath) )
+        {
+          return;
+        }
       }
-    }
     
     await this.run([...flags, filePath], { ignoresErrors }).then(
       (sqlRendered)=>{
@@ -152,24 +139,54 @@ export class BruinRender extends BruinCommand {
           status: "error",
           message: error,
         });
-        console.error("Error rendering SQL asset", error);
       }
     )
       .catch ((err) => {
         if (err.toString().includes("Incorrect")) {
           this.runWithoutJsonFlag(filePath, ignoresErrors);
         } else {
-          BruinPanel?.postMessage("render-message", {
-            status: "error",
-            message: JSON.stringify({ error: err }),
-          });
-          console.error("Error rendering SQL asset", err);
+          console.error("Error rendering SQL asset from catch", err);
       }
     });
   }
+  private async isValidAsset(filePath: string): Promise<boolean>{
+    if (!isBruinAsset(filePath, ["py", "sql", "asset.yml"]) || (await isBruinYaml(filePath))) {
+      BruinPanel?.postMessage("render-message", {
+        status: "non-asset-alert",
+        message:  "-- This is not a BRUIN asset --",
+      });
+      console.log("This is not a BRUIN asset");
+      return false;
+    }
+    return true;
+  }
 
+  private async detectBruinAsset(filePath: string): Promise<boolean> {
+    if (
+      (await isPythonBruinAsset(filePath)) ||
+      (await isYamlBruinAsset(filePath)) ||
+      (await isBruinPipeline(filePath))
+    ) {
+      BruinPanel?.postMessage("render-message", {
+        status: "bruin-asset-alert",
+        message: "-- Python or Yaml BRUIN asset detected --",
+      });
+      console.log("Python or Yaml BRUIN asset detected");
+      return true;
+    }
+    return false;
+  }
 
   private async runWithoutJsonFlag(filePath: string, ignoresErrors: boolean) {
+    if (!this.isValidAsset(filePath)) {
+      return;
+    } else {
+      if (await this.detectBruinAsset(filePath))
+        {
+          return;
+        }
+      }
+    
       await this.run([filePath], { ignoresErrors }).then(
         (result) => {
       BruinPanel?.postMessage("render-message", {
