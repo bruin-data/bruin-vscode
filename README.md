@@ -68,12 +68,15 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: v0.8.1
+### Latest Release: v0.8.2
 
 ### Fixed 
-- Added error handling for the "no such file or directory" (ENOENT) error when the `output` panel is clicked.
+- Previously, the `schedule` value in the asset details was consistently displayed as undefined. In this updated version, the schedule value has been fixed and is now dynamically updated.
 
 ### Previous Highlights
+
+### Version 0.8.1
+- Added error handling for the "no such file or directory" (ENOENT) error when the `output` panel is clicked.
 
 ### Version 0.8.0
 - Introduction of a new tab dedicated to rendering asset details, with dynamic updating for data.
