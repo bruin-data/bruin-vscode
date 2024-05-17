@@ -68,16 +68,17 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: v0.8.0
-
-### Added
-- Introduction of a new tab dedicated to rendering asset details, with dynamic updating for data.
-- Integration of an alert message feature to provide clear feedback when data is unavailable for display.
+### Latest Release: v0.8.1
 
 ### Fixed 
-- Display the asset name on the `General Tab` dynamically
+- Added error handling for the "no such file or directory" (ENOENT) error when the `output` panel is clicked.
 
 ### Previous Highlights
+
+### Version 0.8.0
+- Introduction of a new tab dedicated to rendering asset details, with dynamic updating for data.
+- Integration of an alert message feature to provide clear feedback when data is unavailable for display.
+- Display the asset name on the `General Tab` dynamically
 
 ### Version 0.7.x
 - Clearly differentiated render errors and validation errors to eliminate confusion.
