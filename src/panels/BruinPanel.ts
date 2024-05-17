@@ -7,7 +7,6 @@ import * as vscode from "vscode";
 import { renderCommandWithFlags } from "../extension/commands/renderCommand";
 import { lineageCommand } from "../extension/commands/lineageCommand";
 import { parseAssetCommand } from "../extension/commands/parseAssetCommand";
-import { parse } from "path";
 
 /**
  * This class manages the state and behavior of Bruin webview panels.
@@ -57,7 +56,13 @@ export class BruinPanel {
       }),
       window.onDidChangeActiveTextEditor((editor) => {
         if (editor && editor.document.uri) {
-          this._lastRenderedDocumentUri = editor.document.uri;
+
+          if(editor.document.uri.fsPath === "tasks"){
+          return;
+        }
+        this._lastRenderedDocumentUri = editor.document.uri;
+          console.log("Document URI active text editor", this._lastRenderedDocumentUri);
+
           renderCommandWithFlags(this._flags);
           lineageCommand(this._lastRenderedDocumentUri);
           parseAssetCommand(this._lastRenderedDocumentUri);

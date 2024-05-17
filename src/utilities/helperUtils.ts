@@ -90,23 +90,3 @@ export const processLineageData = (lineageString: { name: any }): any => {
   return lineageString.name;
 };
 
-/* {
-  "name": "test_dataset.test",
-  "upstream": [],
-  "downstream": [
-      {
-          "name": "test_dataset.test3",
-          "type": "bq.sql",
-          "executable_file": {
-              "name": "test3.sql",
-              "path": "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test3.sql",
-              "content": ""
-          },
-          "definition_file": {
-              "name": "test3.sql",
-              "path": "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test3.sql",
-              "type": "comment"
-          }
-      }
-  ]
-} */
