@@ -1,4 +1,4 @@
-<template :props="properties">
+<template>
   <div class="flow">
     <VueFlow
       :nodes="nodes"
@@ -31,112 +31,19 @@ import ELK from "elkjs/lib/elk.bundled.js";
 import CustomNode from "@/components/lineage-flow/custom-nodes/CustomNodes.vue";
 import { generateGraphFromJSON } from "@/utilities/graphGenerator";
 import type { AssetDataset } from "@/types";
-const lineageSuccess = ref(null);
-const lineageError = ref(null);
 
-const props = defineProps<{
-  properties: AssetDataset;
-}>();
+const props = defineProps<AssetDataset>();
 
 const nodeTypes: NodeTypesObject = {
   custom: CustomNode as any,
 };
 
-onMounted(async () => {
-  window.addEventListener("message", receiveMessage);
-  await updateLayout();
-});
-
-onBeforeUnmount(() => {
-  window.removeEventListener("message", receiveMessage);
-});
-
-function receiveMessage(event) {
-  if (!event) return;
-  const envelope = event.data;
-  switch (envelope.command) {
-    case "pipeline":
-      console.log("Pipeline Lineage, received");
-      break;
-
-    case "lineage-message":
-      console.log("Lineage Message, received", envelope);
-      break;
-  }
-}
-
 const nodes = ref<any[]>([]);
 const edges = ref<any[]>([]);
-const jsonData = {
-  name: "test_dataset.test",
-  upstream: [
-    {
-      name: "test_dataset.test1",
-      type: "python",
-      executable_file: {
-        name: "test1.sql",
-        path: "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test2.sql",
-        content: "",
-      },
-      definition_file: {
-        name: "test1.sql",
-        path: "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test2.sql",
-        type: "comment",
-      },
-    },
-    {
-      name: "test_dataset.test2",
-      type: "python",
-      executable_file: {
-        name: "test2.sql",
-        path: "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test2.sql",
-        content: "",
-      },
-      definition_file: {
-        name: "test2.sql",
-        path: "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test2.sql",
-        type: "comment",
-      },
-    },
-  ],
-  downstream: [
-    {
-      name: "test_dataset.test3",
-      type: "bq.sql",
-      executable_file: {
-        name: "test3.sql",
-        path: "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test3.sql",
-        content: "",
-      },
-      definition_file: {
-        name: "test3.sql",
-        path: "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test3.sql",
-        type: "comment",
-      },
-    },
-    {
-      name: "test_dataset.test4",
-      type: "python",
-      executable_file: {
-        name: "test3.sql",
-        path: "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test3.sql",
-        content: "",
-      },
-      definition_file: {
-        name: "test3.sql",
-        path: "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test3.sql",
-        type: "comment",
-      },
-    },
-  ],
-  isFocusAsset: true,
-};
-
-const { nodes: generatedNodes, edges: generatedEdges } = generateGraphFromJSON(props.properties);
-nodes.value = generatedNodes;
-edges.value = generatedEdges;
 
 const elk = new ELK();
+
+// Function to update node positions based on ELK layout
 const updateNodePositions = (layout) => {
   const updatedNodes = nodes.value.map((node) => {
     const layoutChild = layout.children.find((child) => child.id === node.id);
@@ -148,6 +55,7 @@ const updateNodePositions = (layout) => {
   nodes.value = updatedNodes;
 };
 
+// Function to update the layout using ELK
 const updateLayout = async () => {
   const elkGraph = {
     id: "root",
@@ -157,10 +65,9 @@ const updateLayout = async () => {
       "elk.layered.spacing.nodeNodeBetweenLayers": "150",
       "elk.layered.nodePlacement.bk.fixedAlignment": "BALANCED",
       "elk.direction": "RIGHT",
-      "elk.spacing.componentComponent": "200", // Increase component spacing
-      "elk.layered.unnecessaryBendpoints": "true", // Reduce bend points for cleaner layout
+      "elk.spacing.componentComponent": "200",
+      "elk.layered.unnecessaryBendpoints": "true",
     },
-
     children: nodes.value.map((node) => ({
       id: node.id,
       width: 150,
@@ -184,13 +91,53 @@ const updateLayout = async () => {
   }
 };
 
+// Function to process the asset properties and update nodes and edges
+const processProperties = () => {
+  if (!props) return;
+
+  const { nodes: generatedNodes, edges: generatedEdges } = generateGraphFromJSON(props);
+  nodes.value = generatedNodes;
+  edges.value = generatedEdges;
+
+  updateLayout();
+};
+
+// Watch for changes in props.properties and update nodes and edges
 watch(
-  nodes,
-  () => {
-    console.log("Nodes updated", nodes.value);
+  () => props,
+  (newValue) => {
+    if (newValue) {
+      processProperties();
+    }
   },
-  { deep: true }
+  { immediate: true }
 );
+
+watch(nodes, () => {
+  updateLayout();
+});
+// Event listener for messages
+function receiveMessage(event) {
+  if (!event) return;
+  const envelope = event.data;
+  switch (envelope.command) {
+    case "pipeline":
+      console.log("Pipeline Lineage, received");
+      break;
+    case "lineage-message":
+      console.log("Lineage Message, received", envelope);
+      break;
+  }
+}
+
+onMounted(() => {
+  window.addEventListener("message", receiveMessage);
+  processProperties();
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("message", receiveMessage);
+});
 </script>
 
 <style>

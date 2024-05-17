@@ -3,39 +3,56 @@ import { getNonce } from "../utilities/getNonce";
 import { getUri } from "../utilities/getUri";
 import { lineageCommand } from "../extension/commands/lineageCommand";
 import { Uri } from "vscode";
+import { flowLineageCommand } from "../extension/commands/FlowLineageCommand";
 
 export class LineagePanel implements vscode.WebviewViewProvider {
   public static readonly viewId = "lineageView";
-  public static currentPanel: LineagePanel | undefined;
-  private _view?: vscode.WebviewView;
+  public static _view?: vscode.WebviewView | undefined;
   private _lastRenderedDocumentUri: Uri | undefined;
 
-  constructor(private readonly _extensionUri: vscode.Uri) {}
+  constructor(private readonly _extensionUri: vscode.Uri) {
+  }
 
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
     context: vscode.WebviewViewResolveContext,
     _token: vscode.CancellationToken
   ) {
-    this._view = webviewView;
+
+    LineagePanel._view = webviewView;
 
     webviewView.webview.options = {
       enableScripts: true,
       localResourceRoots: [this._extensionUri],
     };
-    this._setWebviewMessageListener(this._view!.webview);
+    this._setWebviewMessageListener(LineagePanel._view!.webview);
     setTimeout(() => {
-      this.postMessage({ command: "init", panelType: "lineage" });
+      LineagePanel._view?.webview.postMessage({command: "init", panelType: "Lineage" });
     }, 100);
 
     webviewView.onDidDispose(() => {
-      this._view = undefined;
+      console.log("Lineage panel disposed");
+      LineagePanel._view = undefined;
     });
     webviewView.onDidChangeVisibility(() => {
-      if (this._view!.visible) {
-        this.postMessage({ command: "init", panelType: "lineage" });
+      if (LineagePanel._view!.visible) {
+        LineagePanel._view?.webview.postMessage({command: "init", panelType: "Lineage" });
       }
     });
+
+    vscode.window.onDidChangeActiveTextEditor((editor) => {
+      if (editor && LineagePanel._view!.visible ) {
+        this._lastRenderedDocumentUri = editor.document.uri;
+          flowLineageCommand(this._lastRenderedDocumentUri);
+      }
+    });
+
+    vscode.workspace.onDidChangeTextDocument((event) => {
+      if (this._lastRenderedDocumentUri?.toString() === event.document.uri.toString() && LineagePanel._view!.visible) {
+          flowLineageCommand(this._lastRenderedDocumentUri);
+      }
+    }
+    );
 
     webviewView.webview.html = this._getWebviewContent(webviewView.webview);
   }
@@ -76,29 +93,30 @@ export class LineagePanel implements vscode.WebviewViewProvider {
         case "bruin.pipelineLineage":
           console.log("Pipeline Lineage from webview in the Lineage panel, well received");
           break;
-        case "bruin.assetLineage":
+        case "bruin.assetGraphLineage":
           console.log("Asset Lineage from webview in the Lineage panel, well received");
           this._lastRenderedDocumentUri = vscode.window.activeTextEditor?.document.uri;
           if (!this._lastRenderedDocumentUri) {
             console.debug("No active document found.");
             return;
           }
-          /*  lineageCommand(this._lastRenderedDocumentUri).catch((error) => {
-            console.error("Error displaying lineage", error);          }); */
-          this.postMessage({
-            command: "lineage-message",
-            status: "error",
-            message: "Error displaying lineage",
-          });
+          flowLineageCommand(this._lastRenderedDocumentUri);
+          break;
       }
     });
   }
 
-  public postMessage(message: any) {
-    if (this._view && this._view.webview) {
-      this._view.webview.postMessage(message);
-    } else {
-      console.error("Webview is not initialized when trying to post message");
+  public static postMessage(
+    name: string,
+    data: string | { status: string; message: string | any },
+  ) {
+    if (this._view) {
+      console.log("Posting message to webview in the Lineage panel", name, data);
+      this._view.webview.postMessage({
+          command: name,
+          payload: data,
+        });
     }
   }
+
 }

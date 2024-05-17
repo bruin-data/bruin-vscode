@@ -66,10 +66,12 @@ window.addEventListener("message", (event) => {
       console.log("Panel Type", message.panelType);
       break;
     case "parse-message":
+      console.log("Parse Message", message);
       data.value = updateValue(message, "success");
       parseError.value = updateValue(message, "error");
       break;
-    case "lineage-message":
+    case "flow-lineage-message":
+      console.log("Flow Lineage Data Message", message);
       lineageData.value = updateValue(message, "success");
       lineageError.value = updateValue(message, "error");
       break;
@@ -77,20 +79,9 @@ window.addEventListener("message", (event) => {
   
 });
 
-console.log("Data", data.value);
 
 const activeTab = ref(0);
 
-/* const tabs = ref([
-  { label: "General", component: AssetGeneral, props: { name: parseAssetDetails(data)?.name } },
-  {
-    label: "Asset Details",
-    component: AssetDetails,
-    props: parseAssetDetails(data),
-  },
-  { label: "Asset Lineage", component: AssetLineage },
-  { label: "Asset Graph Lineage", component: PipelineLineage},
-]); */
 const assetDetailsProps = computed(() => {
   if (!data.value) return null;
   return parseAssetDetails(data.value);
@@ -113,7 +104,7 @@ const tabs = ref([
     props: assetDetailsProps || null,
   },
   { label: "Asset Lineage", component: AssetLineageText, includeIn: ["bruin"] },
-  { label: "Asset Graph Lineage", component: AssetLineageFlow, includeIn: ["lineage"] },
+  { label: "Asset Graph Lineage", component: AssetLineageFlow, includeIn: ["Lineage"], props: computed(()=> getAssetDataset(lineageData.value, true))  },
  //{ label: "Pipeline Graph Lineage", component: PipelineLineage, includeIn: ["lineage"] },
 ]);
 
@@ -132,7 +123,7 @@ function loadLineageData() {
 }
 
 function loadLineageDataForLineagePanel() {
-  vscode.postMessage({ command: "bruin.assetLineage" });
+  vscode.postMessage({ command: "bruin.assetGraphLineage" });
 }
 
 function loadAssetData() {

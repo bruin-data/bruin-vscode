@@ -1,15 +1,12 @@
 import { BruinCommandOptions } from "../types";
 import { BruinCommand } from "./bruinCommand";
-import { BruinPanel } from "../panels/BruinPanel";
-
+import { LineagePanel } from "../panels/LineagePanel";
+import * as vscode from "vscode";
 /**
  * Extends the BruinCommand class to implement the bruin run command on Bruin assets.
  */
 
-export class BruinInternalParse extends BruinCommand {
-  parseAssetLineage(fsPath: string) {
-      throw new Error("Method not implemented.");
-  }
+export class BruinLineageInternalParse extends BruinCommand {
   /**
    * Specifies the Bruin command string.
    *
@@ -27,21 +24,20 @@ export class BruinInternalParse extends BruinCommand {
    * @param {BruinCommandOptions} [options={}] - Optional parameters for execution, including flags and errors.
    * @returns {Promise<void>} A promise that resolves when the execution is complete or an error is caught.
    */
-
-  public async parseAsset(
+  public async parseAssetLineage(
     filePath: string,
     { flags = ["parse-asset"], ignoresErrors = false }: BruinCommandOptions = {}
   ): Promise<void> {
     await this.run([...flags, filePath], { ignoresErrors })
       .then(
         (result) => {
-          BruinPanel.postMessage("parse-message", {
+          LineagePanel.postMessage("flow-lineage-message", {
             status: "success",
             message: result,
           });
         },
         (error) => {
-          BruinPanel.postMessage("parse-message", {
+          LineagePanel.postMessage("flow-lineage-message", {
             status: "error",
             message: error,
           });

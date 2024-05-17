@@ -1,7 +1,12 @@
 import type { AssetDataset } from "@/types";
 
-  export const getAssetDataset = (jsonData: any, isFocusAsset: boolean): AssetDataset => {
-    const asset = jsonData.asset;
+  export const getAssetDataset = (jsonData: string, isFocusAsset: boolean): AssetDataset | null => {
+    if(!jsonData) {
+      return null;
+    }
+    
+    const asset = JSON.parse(jsonData).asset;
+  
     const assetDataset: AssetDataset = {
       name: asset.name,
       isFocusAsset: isFocusAsset,
