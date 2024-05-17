@@ -12,7 +12,7 @@
       <dl class="divide-y divide-gray-600">
         <DescriptionItem title="Asset" :value="name" />
         <DescriptionItem title="Type" :value="type" :className="badgeClass.badgeStyle" />
-        <DescriptionItem title="Schedule" :value="schedule" :className="badgeClass.grayBadge" />
+        <DescriptionItem title="Schedule" :value="pipeline.schedule" :className="badgeClass.grayBadge" />
         <DescriptionItem title="Owner" value="Unknown" className="font-semibold text-gray-400" />
       </dl>
     </div>
@@ -41,6 +41,7 @@ const props = defineProps<{
   schedule: string;
   owner: string;
   id: string;
+  pipeline: any;
 }>();
 
 const badgeClass = computed(() => {
