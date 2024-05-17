@@ -2,7 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
-
+## [0.8.1] - [2024-05-17]
+### Fixed 
+- Added error handling for the "no such file or directory" (ENOENT) error when the `output` panel is clicked.
 
 ## [0.8.0] - [2024-05-16]
 ### Added
