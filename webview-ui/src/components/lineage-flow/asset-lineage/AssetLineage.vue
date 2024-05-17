@@ -1,4 +1,4 @@
-<template>
+<template :props="properties">
   <div class="flow">
     <VueFlow
       :nodes="nodes"
@@ -24,14 +24,19 @@
 </template>
 
 <script setup lang="ts">
-import { VueFlow, type Edge, type NodeTypesObject } from "@vue-flow/core";
+import { VueFlow, type NodeTypesObject } from "@vue-flow/core";
 import { Background } from "@vue-flow/background";
-import { ref, onMounted, onBeforeUnmount, reactive, nextTick, watchEffect, watch } from "vue";
+import { ref, onMounted, onBeforeUnmount, defineProps, watch } from "vue";
 import ELK from "elkjs/lib/elk.bundled.js";
 import CustomNode from "@/components/lineage-flow/custom-nodes/CustomNodes.vue";
 import { generateGraphFromJSON } from "@/utilities/graphGenerator";
+import type { AssetDataset } from "@/types";
 const lineageSuccess = ref(null);
 const lineageError = ref(null);
+
+const props = defineProps<{
+  properties: AssetDataset;
+}>();
 
 const nodeTypes: NodeTypesObject = {
   custom: CustomNode as any,
@@ -127,7 +132,7 @@ const jsonData = {
   isFocusAsset: true,
 };
 
-const { nodes: generatedNodes, edges: generatedEdges } = generateGraphFromJSON(jsonData);
+const { nodes: generatedNodes, edges: generatedEdges } = generateGraphFromJSON(props.properties);
 nodes.value = generatedNodes;
 edges.value = generatedEdges;
 

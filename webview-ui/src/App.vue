@@ -40,7 +40,7 @@ import { parseAssetDetails } from "./utilities/helper";
 import { useParseAsset } from "./composables/useParseAsset";
 import { updateValue } from "./utilities/helper";
 import MessageAlert from "@/components/ui/alerts/AlertMessage.vue";
-
+import { getAssetDataset } from "@/components/lineage-flow/asset-lineage/useAssetLineage";
 const panelType = ref("");
 const parseError = ref();
 const data = ref(
@@ -55,7 +55,8 @@ const data = ref(
     },
   })
 );
-
+const lineageData = ref();
+const lineageError = ref();
 window.addEventListener("message", (event) => {
   const message = event.data;
   switch (message.command) {
@@ -68,7 +69,12 @@ window.addEventListener("message", (event) => {
       data.value = updateValue(message, "success");
       parseError.value = updateValue(message, "error");
       break;
+    case "lineage-message":
+      lineageData.value = updateValue(message, "success");
+      lineageError.value = updateValue(message, "error");
+      break;
   }
+  
 });
 
 console.log("Data", data.value);
@@ -90,6 +96,10 @@ const assetDetailsProps = computed(() => {
   return parseAssetDetails(data.value);
 });
 
+const assetLineageData = computed(() => {
+  if (!lineageData.value) return null;
+  return getAssetDataset(lineageData.value, true);
+});
 const assetName = computed(() => {
   if (!data.value) return null;
   return parseAssetDetails(data.value)?.name;
@@ -103,8 +113,8 @@ const tabs = ref([
     props: assetDetailsProps || null,
   },
   { label: "Asset Lineage", component: AssetLineageText, includeIn: ["bruin"] },
-  /*   { label: "Asset Graph Lineage", component: AssetLineageFlow, includeIn: ["lineage"] },
-   */ //{ label: "Pipeline Graph Lineage", component: PipelineLineage, includeIn: ["lineage"] },
+  { label: "Asset Graph Lineage", component: AssetLineageFlow, includeIn: ["lineage"] },
+ //{ label: "Pipeline Graph Lineage", component: PipelineLineage, includeIn: ["lineage"] },
 ]);
 
 const filteredTabs = computed(() =>
