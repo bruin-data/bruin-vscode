@@ -43,15 +43,16 @@ export class BruinPanel {
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
 
     this._disposables.push(
-      window.onDidChangeWindowState((state) => {
-        renderCommandWithFlags(this._flags);
-      }),
       workspace.onDidChangeTextDocument((editor) => {
         if (editor && editor.document.uri) {
+          if(editor.document.uri.fsPath === "tasks"){
+            return;
+          }
           this._lastRenderedDocumentUri = editor.document.uri;
           renderCommandWithFlags(this._flags);
           lineageCommand(this._lastRenderedDocumentUri);
           parseAssetCommand(this._lastRenderedDocumentUri);
+          console.log("Document URI onDidChangeTextDocument", this._lastRenderedDocumentUri);
         }
       }),
       window.onDidChangeActiveTextEditor((editor) => {
