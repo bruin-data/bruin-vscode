@@ -94,6 +94,7 @@ export const parseAssetDetails = (data: string) => {
     schedule : parsedData.asset.schedule || "undefined",
     description: parsedData.asset.description || "No description available",
     owner: parsedData.asset.owner || "undefined",
+    pipeline: parsedData.pipeline || "undefined",
   };
 
   return assetDetails;

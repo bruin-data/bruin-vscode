@@ -2,6 +2,10 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.8.2] - [2024-05-17]
+### Fixed 
+- Previously, the `schedule` value in the asset details was consistently displayed as undefined. In this updated version, the schedule value has been fixed and is now dynamically updated.
+
 ## [0.8.1] - [2024-05-17]
 ### Fixed 
 - Added error handling for the "no such file or directory" (ENOENT) error when the `output` panel is clicked.
