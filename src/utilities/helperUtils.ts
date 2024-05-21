@@ -89,4 +89,3 @@ return lineageString.split('\\n');
 export const processLineageData = (lineageString: { name: any }): any => {
   return lineageString.name;
 };
-
