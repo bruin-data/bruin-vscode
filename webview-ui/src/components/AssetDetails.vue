@@ -12,14 +12,21 @@
       <dl class="divide-y divide-gray-600">
         <DescriptionItem title="Asset" :value="name" />
         <DescriptionItem title="Type" :value="type" :className="badgeClass.badgeStyle" />
-        <DescriptionItem title="Schedule" :value="pipeline.schedule" :className="badgeClass.grayBadge" />
+        <DescriptionItem
+          title="Schedule"
+          :value="pipeline.schedule"
+          :className="badgeClass.grayBadge"
+        />
         <DescriptionItem title="Owner" value="Unknown" className="font-semibold text-gray-400" />
       </dl>
     </div>
     <div class="border-b flex flex-col gap-4 py-6 flex-1 px-4 sm:px-6">
       <h3 class="text-lg leading-6 font-medium text-gray-100 mb-2">Description</h3>
-      <div class="max-w-4xl lg:mt-0 xl:col-end-1 xl:row-start-1">
-        <p class="text-sm leading-8 text-gray-200 opacity-70 text-justify indent-8">{{ description }}</p>
+      <div class="max-w-3xl lg:mt-0 xl:col-end-1 xl:row-start-1">
+        <p
+          class="max-w-full text-sm leading-8 text-editor-fg opacity-65 text-justify indent-8 prose"
+          v-html="markdownDescription"
+        ></p>
       </div>
     </div>
   </div>
@@ -33,6 +40,7 @@ import { defineProps, defineEmits, ref, computed } from "vue";
 import DescriptionItem from "@/components/ui/description-item/DescriptionItem.vue";
 import MessageAlert from "@/components/ui/alerts/AlertMessage.vue";
 import { badgeStyles, defaultBadgeStyle } from "@/components/ui/badges/CustomBadgesStyle";
+import MarkdownIt from "markdown-it";
 
 const props = defineProps<{
   name: string;
@@ -43,6 +51,11 @@ const props = defineProps<{
   id: string;
   pipeline: any;
 }>();
+
+const md = new MarkdownIt();
+const markdownDescription = computed(() => {
+  return md.render(props.description);
+});
 
 const badgeClass = computed(() => {
   const commonStyle =

@@ -110,6 +110,7 @@
     "lint": "eslint src --ext ts"
   },
   "devDependencies": {
+    "@tailwindcss/typography": "^0.5.13",
     "@types/mocha": "^10.0.6",
     "@types/node": "^20.11.30",
     "@types/sinon": "^17.0.3",
@@ -128,6 +129,7 @@
     "@vue-flow/minimap": "^1.4.0",
     "all": "^0.0.0",
     "elkjs": "^0.9.3",
+    "markdown-it": "^14.1.0",
     "mocha": "^10.4.0",
     "sinon": "^17.0.1"
   }

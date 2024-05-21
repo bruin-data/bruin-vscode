@@ -1,4 +1,6 @@
 const animate = require("tailwindcss-animate")
+import typography from '@tailwindcss/typography';
+
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
@@ -21,7 +23,47 @@ module.exports = {
       },
     },
     extend: {
-      
+      typography: (theme) => ({
+        DEFAULT: {
+          css: {
+            color: theme('colors.editor-fg'),
+            h1: {
+              color: theme('colors.editor-fg'),
+            },
+            h2: {
+              color: theme('colors.editor-fg'),
+            },
+            h3: {
+              color: theme('colors.editor-fg'),
+            },
+            h4: {
+              color: theme('colors.editor-fg'),
+            },
+            h5: {
+              color: theme('colors.editor-fg'),
+            },
+            h6: {
+              color: theme('colors.editor-fg'),
+            },
+            a: {
+              color: theme('colors.link-activeForeground'),
+              '&:hover': {
+                color: theme('colors.link-activeForeground'),
+              },
+            },
+            strong: {
+              color: theme('colors.editor-fg'),
+            },
+            blockquote: {
+              color: theme('colors.editor-fg'),
+            },
+            code: {
+              color: theme('colors.editor-bg'),
+              backgroundColor: theme('colors.editor-fg'),
+            },
+          },
+        },
+      }),
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -94,5 +136,8 @@ module.exports = {
       },
     },
   },
-  plugins: [animate],
+  plugins: [    
+    typography,
+    animate
+],
 }
