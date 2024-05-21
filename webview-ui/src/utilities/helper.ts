@@ -12,13 +12,13 @@ const adjustEndDateForExclusive = (endtDate: string): string => {
   return endDateObject.toISOString().replace(/\.999Z$/, ".999999999Z");
   }
  
-  export const concatCommandFlags = (startDate: string, endDate: string, checkboxesItems: CheckboxItems[]): string => {
+  export const concatCommandFlags = (startDate: string, endDate: string, endDateExclusive: string, checkboxesItems: CheckboxItems[]): string => {
     const startDateFlag = ' --start-date ' + startDate;
     let endDateFlag = ' --end-date ' + endDate;
   
     // Adjust end date if "Exclusive End Date" is checked
     if (isExclusiveChecked(checkboxesItems)) {
-      endDateFlag = ' --end-date ' + adjustEndDateForExclusive(startDate);
+      endDateFlag = ' --end-date ' + adjustEndDateForExclusive(endDateExclusive);
     }
   
     const checkboxesFlags = checkboxesItems.filter(item => item.checked && item.name !== 'Exclusive-End-Date')
