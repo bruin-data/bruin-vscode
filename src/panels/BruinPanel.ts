@@ -45,7 +45,7 @@ export class BruinPanel {
     this._disposables.push(
       workspace.onDidChangeTextDocument((editor) => {
         if (editor && editor.document.uri) {
-          if(editor.document.uri.fsPath === "tasks"){
+          if (editor.document.uri.fsPath === "tasks") {
             return;
           }
           this._lastRenderedDocumentUri = editor.document.uri;
@@ -57,11 +57,10 @@ export class BruinPanel {
       }),
       window.onDidChangeActiveTextEditor((editor) => {
         if (editor && editor.document.uri) {
-
-          if(editor.document.uri.fsPath === "tasks"){
-          return;
-        }
-        this._lastRenderedDocumentUri = editor.document.uri;
+          if (editor.document.uri.fsPath === "tasks") {
+            return;
+          }
+          this._lastRenderedDocumentUri = editor.document.uri;
           console.log("Document URI active text editor", this._lastRenderedDocumentUri);
 
           renderCommandWithFlags(this._flags);

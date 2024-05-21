@@ -22,9 +22,9 @@
     </div>
     <div class="border-b flex flex-col gap-4 py-6 flex-1 px-4 sm:px-6">
       <h3 class="text-lg leading-6 font-medium text-gray-100 mb-2">Description</h3>
-      <div class="max-w-4xl lg:mt-0 xl:col-end-1 xl:row-start-1">
+      <div class="max-w-3xl lg:mt-0 xl:col-end-1 xl:row-start-1">
         <p
-          class="text-sm leading-8 text-gray-200 opacity-70 text-justify indent-8 prose prose-gray-200"
+          class="max-w-full text-sm leading-8 text-editor-fg opacity-65 text-justify indent-8 prose"
           v-html="markdownDescription"
         ></p>
       </div>
