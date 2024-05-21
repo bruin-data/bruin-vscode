@@ -2,6 +2,11 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+
+- ## [0.8.3] - [2024-05-21]
+### Fixed
+- The "Exclusive End Date" checkbox is now checked by default, with a reactive update for `endDateExclusive` to ensure it accurately reflects changes in `endDate`.
+
 ## [0.8.2] - [2024-05-17]
 ### Fixed 
 - Previously, the `schedule` value in the asset details was consistently displayed as undefined. In this updated version, the schedule value has been fixed and is now dynamically updated.
