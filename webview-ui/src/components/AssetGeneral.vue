@@ -117,38 +117,31 @@ const renderSQLAssetError = ref(null);
 const renderAssetAlert = ref(null);
 const validateButtonStatus = ref("" as "validated" | "failed" | "loading" | null);
 const tzoffset = new Date().getTimezoneOffset() * 60000; //offset in milliseconds
-//startDate := time.Date(yesterday.Year(), yesterday.Month(), yesterday.Day(), 0, 0, 0, 0, time.UTC)
-//  endDate := time.Date(yesterday.Year(), yesterday.Month(), yesterday.Day(), 23, 59, 59, 999999999, time.UTC)
 
-const yesterday = new Date(Date.now() - tzoffset - 86400000);
 const today = new Date(Date.now() - tzoffset);
 const startDate = ref(
-  new Date(Date.UTC(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 0, 0, 0, 0))
+  new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate() - 1, 0, 0, 0, 0))
     .toISOString()
     .slice(0, -1)
 );
 
 const endDate = ref(
-  new Date(
-    Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(),  0, 0, 0, 0)
-  )
+  new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0))
     .toISOString()
     .slice(0, -1)
 );
 
-const endDateExclusive = ref(
-  new Date(
-    Date.UTC(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59, 999)
-  )
-    .toISOString()
-    .slice(0, -1)
+const endDateExclusive = ref("");
+
+watch(
+  endDate,
+  (newEndDate) => {
+    const endDateObj = new Date(newEndDate);
+    const endDateExclusiveObj = new Date(endDateObj.getTime() - 1 + 0.999);
+    endDateExclusive.value = endDateExclusiveObj.toISOString().slice(0, -1);
+  },
+  { immediate: true }
 );
-
-//end date = endDate - 1microsecond
-// endDate.value = new Date(new Date(endDate.value).getTime() - 1).toISOString().slice(0, -1);
-
-// Using startDate and endDate in your application
-console.log("start & endDates", startDate.value, endDate.value);
 
 function getCheckboxChangePayload() {
   console.log("start date", startDate.value);
@@ -178,7 +171,7 @@ onBeforeUnmount(() => {
 });
 
 watch(
-  [checkboxItems, startDate, endDate],
+  [checkboxItems, startDate, endDate, endDateExclusive],
   () => {
     const payload: string = getCheckboxChangePayload();
     console.log("Checkbox change payload", payload);
