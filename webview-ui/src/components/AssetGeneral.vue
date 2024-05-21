@@ -121,13 +121,22 @@ const tzoffset = new Date().getTimezoneOffset() * 60000; //offset in millisecond
 //  endDate := time.Date(yesterday.Year(), yesterday.Month(), yesterday.Day(), 23, 59, 59, 999999999, time.UTC)
 
 const yesterday = new Date(Date.now() - tzoffset - 86400000);
-
+const today = new Date(Date.now() - tzoffset);
 const startDate = ref(
   new Date(Date.UTC(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 0, 0, 0, 0))
     .toISOString()
     .slice(0, -1)
 );
+
 const endDate = ref(
+  new Date(
+    Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(),  0, 0, 0, 0)
+  )
+    .toISOString()
+    .slice(0, -1)
+);
+
+const endDateExclusive = ref(
   new Date(
     Date.UTC(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59, 999)
   )
@@ -144,7 +153,7 @@ console.log("start & endDates", startDate.value, endDate.value);
 function getCheckboxChangePayload() {
   console.log("start date", startDate.value);
   console.log("end date", endDate.value);
-  return concatCommandFlags(startDate.value, endDate.value, checkboxItems.value);
+  return concatCommandFlags(startDate.value, endDate.value, endDateExclusive.value, checkboxItems.value);
 }
 
 const language = ref("");
