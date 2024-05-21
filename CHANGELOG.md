@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+- ## [0.8.4] - [2024-05-21]
+### Fixed
+- Implemented Markdown rendering for the description in the AssetDetails component.
 
 - ## [0.8.3] - [2024-05-21]
 ### Fixed
