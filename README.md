@@ -68,12 +68,16 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: v0.8.3
+
+### Latest Release: v0.8.4
 
 ### Fixed
-- The "Exclusive End Date" checkbox is now checked by default, with a reactive update for `endDateExclusive` to ensure it accurately reflects changes in `endDate`.
+- Implemented Markdown rendering for the description in the AssetDetails component.
 
 ### Previous Highlights
+
+### Version 0.8.3
+- The "Exclusive End Date" checkbox is now checked by default, with a reactive update for `endDateExclusive` to ensure it accurately reflects changes in `endDate`.
 
 ### Version 0.8.2
 - Previously, the `schedule` value in the asset details was consistently displayed as undefined. In this updated version, the schedule value has been fixed and is now dynamically updated.
