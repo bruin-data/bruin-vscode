@@ -1,7 +1,6 @@
 import { BruinCommandOptions } from "../types";
 import { BruinCommand } from "./bruinCommand";
 import { LineagePanel } from "../panels/LineagePanel";
-import * as vscode from "vscode";
 /**
  * Extends the BruinCommand class to implement the bruin run command on Bruin assets.
  */
@@ -13,7 +12,7 @@ export class BruinLineageInternalParse extends BruinCommand {
    * @returns {string} Returns the 'run' command string.
    */
   protected bruinCommand(): string {
-    return "internal";
+    return "lineage";
   }
 
   /**
@@ -26,7 +25,7 @@ export class BruinLineageInternalParse extends BruinCommand {
    */
   public async parseAssetLineage(
     filePath: string,
-    { flags = ["parse-asset"], ignoresErrors = false }: BruinCommandOptions = {}
+    { flags = ['-o', 'json'], ignoresErrors = false }: BruinCommandOptions = {}
   ): Promise<void> {
     await this.run([...flags, filePath], { ignoresErrors })
       .then(

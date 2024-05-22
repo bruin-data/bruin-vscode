@@ -5,10 +5,12 @@ import type { AssetDataset } from "@/types";
       return null;
     }
     
-    const asset = JSON.parse(jsonData).asset;
+    console.log('jsonData', jsonData);
+    const asset = JSON.parse(jsonData);
   
     const assetDataset: AssetDataset = {
       name: asset.name,
+      type: asset.type,
       isFocusAsset: isFocusAsset,
     };
   

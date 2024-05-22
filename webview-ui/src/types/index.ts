@@ -54,6 +54,7 @@ export interface BruinNodeProps {
 
 export interface AssetDataset {
   name: string;
+  type: string;
   upstream?: Upstream[];
   downstream?: Downstream[];
   isFocusAsset: boolean;
