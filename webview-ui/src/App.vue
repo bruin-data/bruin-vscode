@@ -6,7 +6,17 @@
       :key="`tab-${index}`"
       :id="`tab-${index}`"
       @click="activeTab = index"
-      >{{ tab && tab.label }}
+    >
+      <div class="flex items-center justify-center">
+        <span>{{ tab && tab.label }}</span>
+        <ArrowPathIcon
+          v-if="tab.label === 'Asset Graph Lineage' && activeTab === index"
+          @click="refreshGraphLineage"
+          class="ml-2 w-4 h-4 text-link-activeForeground hover:text-progressBar-bg focus:outline-none"
+          title="Refresh"
+        >
+        </ArrowPathIcon>
+      </div>
     </vscode-panel-tab>
 
     <!-- Tab Content -->
@@ -37,10 +47,11 @@ import AssetLineageFlow from "@/components/lineage-flow/asset-lineage/AssetLinea
 import { vscode } from "@/utilities/vscode";
 import { ref, onMounted, computed, watch } from "vue";
 import { parseAssetDetails } from "./utilities/helper";
-import { useParseAsset } from "./composables/useParseAsset";
 import { updateValue } from "./utilities/helper";
 import MessageAlert from "@/components/ui/alerts/AlertMessage.vue";
 import { getAssetDataset } from "@/components/lineage-flow/asset-lineage/useAssetLineage";
+import { ArrowPathIcon } from "@heroicons/vue/20/solid";
+
 const panelType = ref("");
 const parseError = ref();
 const data = ref(
@@ -76,9 +87,7 @@ window.addEventListener("message", (event) => {
       lineageError.value = updateValue(message, "error");
       break;
   }
-  
 });
-
 
 const activeTab = ref(0);
 
@@ -104,8 +113,13 @@ const tabs = ref([
     props: assetDetailsProps || null,
   },
   { label: "Asset Lineage", component: AssetLineageText, includeIn: ["bruin"] },
-  { label: "Asset Graph Lineage", component: AssetLineageFlow, includeIn: ["Lineage"], props: computed(()=> getAssetDataset(lineageData.value, true))  },
- //{ label: "Pipeline Graph Lineage", component: PipelineLineage, includeIn: ["lineage"] },
+  {
+    label: "Asset Graph Lineage",
+    component: AssetLineageFlow,
+    includeIn: ["Lineage"],
+    props: computed(() => getAssetDataset(lineageData.value, true)),
+  },
+  //{ label: "Pipeline Graph Lineage", component: PipelineLineage, includeIn: ["lineage"] },
 ]);
 
 const filteredTabs = computed(() =>
@@ -128,6 +142,9 @@ function loadLineageDataForLineagePanel() {
 
 function loadAssetData() {
   vscode.postMessage({ command: "bruin.getAssetDetails" });
+}
+function refreshGraphLineage() {
+  vscode.postMessage({ command: "bruin.refreshGraphLineage" });
 }
 
 function updateAssetName(newName) {

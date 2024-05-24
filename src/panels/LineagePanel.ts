@@ -23,12 +23,12 @@ export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposab
         flowLineageCommand(this._lastRenderedDocumentUri);
         this.initPanel(event);
       }),
-      vscode.workspace.onDidChangeTextDocument((event: vscode.TextDocumentChangeEvent) => {
+      /* vscode.workspace.onDidChangeTextDocument((event: vscode.TextDocumentChangeEvent) => {
             this._lastRenderedDocumentUri = event.document.uri;
             flowLineageCommand(this._lastRenderedDocumentUri);
             this.initPanel(event);
     
-      })
+      }) */
     );
   }
 
@@ -117,6 +117,9 @@ export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposab
           }
           flowLineageCommand(this._lastRenderedDocumentUri);
           break;
+          case "bruin.refreshGraphLineage":
+            flowLineageCommand(this._lastRenderedDocumentUri);
+            this.initPanel(vscode.window.activeTextEditor);
       }
     });
   }
