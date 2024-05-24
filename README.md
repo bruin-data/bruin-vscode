@@ -68,13 +68,18 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
+### Latest Release: v0.9.0
+### Added
+- Implemented a new panel to display the lineage of a single asset.
+- The lineage updates automatically when switching between assets.
+- Click the refresh button next to the tab label to update content after modifying dependencies.
+- Requires CLI version update to fetch asset types for lineage display.
 
-### Latest Release: v0.8.4
-
-### Fixed
-- Implemented Markdown rendering for the description in the AssetDetails component.
 
 ### Previous Highlights
+
+### Version 0.8.4
+- Implemented Markdown rendering for the description in the AssetDetails component.
 
 ### Version 0.8.3
 - The "Exclusive End Date" checkbox is now checked by default, with a reactive update for `endDateExclusive` to ensure it accurately reflects changes in `endDate`.
