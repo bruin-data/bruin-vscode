@@ -1,6 +1,7 @@
 import { BruinCommandOptions } from "../types";
 import { BruinCommand } from "./bruinCommand";
 import { BruinPanel } from "../panels/BruinPanel";
+import { LineagePanel } from "../panels/LineagePanel";
 
 /**
  * Extends the BruinCommand class to implement the bruin run command on Bruin assets.
@@ -35,20 +36,19 @@ export class BruinInternalParse extends BruinCommand {
     await this.run([...flags, filePath], { ignoresErrors })
       .then(
         (result) => {
-          BruinPanel.postMessage("parse-message", {
-            status: "success",
-            message: result,
-          });
+          this.postMessageToPanels("success", result);
         },
         (error) => {
-          BruinPanel.postMessage("parse-message", {
-            status: "error",
-            message: error,
-          });
+          this.postMessageToPanels("error", error);
         }
       )
       .catch((err) => {
         console.debug("parsing command error", err);
       });
+  }
+
+  private postMessageToPanels(status: string, message: string | any) {
+    BruinPanel.postMessage("parse-message", { status, message });
+    LineagePanel.postMessage("parse-message", { status, message });
   }
 }

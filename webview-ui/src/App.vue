@@ -54,6 +54,7 @@ import { ArrowPathIcon } from "@heroicons/vue/20/solid";
 
 const panelType = ref("");
 const parseError = ref();
+
 const data = ref(
   JSON.stringify({
     asset: {
@@ -96,13 +97,15 @@ const assetDetailsProps = computed(() => {
   return parseAssetDetails(data.value);
 });
 
-const assetLineageData = computed(() => {
-  if (!lineageData.value) return null;
-  return getAssetDataset(lineageData.value, true);
-});
+
 const assetName = computed(() => {
   if (!data.value) return null;
   return parseAssetDetails(data.value)?.name;
+});
+
+const assetType = computed(() => {
+  if (!data.value) return null;
+  return parseAssetDetails(data.value)?.type;
 });
 const tabs = ref([
   { label: "General", component: AssetGeneral, props: { name: assetName }, includeIn: ["bruin"] },
@@ -117,7 +120,7 @@ const tabs = ref([
     label: "Asset Graph Lineage",
     component: AssetLineageFlow,
     includeIn: ["Lineage"],
-    props: computed(() => getAssetDataset(lineageData.value, true)),
+    props: computed(() => getAssetDataset(lineageData.value, true, assetType.value)),
   },
   //{ label: "Pipeline Graph Lineage", component: PipelineLineage, includeIn: ["lineage"] },
 ]);

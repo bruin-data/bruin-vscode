@@ -5,6 +5,7 @@ import { lineageCommand } from "../extension/commands/lineageCommand";
 import { Uri } from "vscode";
 import { flowLineageCommand } from "../extension/commands/FlowLineageCommand";
 import { isChangeInDependsSection } from "../utilities/helperUtils";
+import { parseAssetCommand } from "../extension/commands/parseAssetCommand";
 
 export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposable {
   public static readonly viewId = "lineageView";
@@ -21,6 +22,7 @@ export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposab
       vscode.window.onDidChangeActiveTextEditor((event: vscode.TextEditor | undefined) => {
         this._lastRenderedDocumentUri = event?.document.uri;
         flowLineageCommand(this._lastRenderedDocumentUri);
+        parseAssetCommand(this._lastRenderedDocumentUri);
         this.initPanel(event);
       }),
       /* vscode.workspace.onDidChangeTextDocument((event: vscode.TextDocumentChangeEvent) => {
@@ -116,10 +118,14 @@ export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposab
             return;
           }
           flowLineageCommand(this._lastRenderedDocumentUri);
+          parseAssetCommand(this._lastRenderedDocumentUri);
+
           break;
-          case "bruin.refreshGraphLineage":
+        case "bruin.refreshGraphLineage":
+            parseAssetCommand(this._lastRenderedDocumentUri);
             flowLineageCommand(this._lastRenderedDocumentUri);
             this.initPanel(vscode.window.activeTextEditor);
+          break;
       }
     });
   }
