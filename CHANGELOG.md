@@ -2,6 +2,12 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+- ## [0.9.0] - [2024-05-24]
+
+### Added
+- New panel to display the lineage of a single asset.
+- Requires CLI version update to fetch asset types for lineage display.
+
 - ## [0.8.4] - [2024-05-21]
 ### Fixed
 - Implemented Markdown rendering for the description in the AssetDetails component.
