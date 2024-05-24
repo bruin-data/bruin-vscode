@@ -4,55 +4,70 @@ import { getUri } from "../utilities/getUri";
 import { lineageCommand } from "../extension/commands/lineageCommand";
 import { Uri } from "vscode";
 import { flowLineageCommand } from "../extension/commands/FlowLineageCommand";
+import { isChangeInDependsSection } from "../utilities/helperUtils";
 
-export class LineagePanel implements vscode.WebviewViewProvider {
+export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposable {
   public static readonly viewId = "lineageView";
   public static _view?: vscode.WebviewView | undefined;
-  private _lastRenderedDocumentUri: Uri | undefined;
+  private _lastRenderedDocumentUri: vscode.Uri | undefined;
+
+  private context: vscode.WebviewViewResolveContext<unknown> | undefined;
+  private token: vscode.CancellationToken | undefined;
+
+  private disposables: vscode.Disposable[] = [];
 
   constructor(private readonly _extensionUri: vscode.Uri) {
+    this.disposables.push(
+      vscode.window.onDidChangeActiveTextEditor((event: vscode.TextEditor | undefined) => {
+        this._lastRenderedDocumentUri = event?.document.uri;
+        flowLineageCommand(this._lastRenderedDocumentUri);
+        this.initPanel(event);
+      }),
+      vscode.workspace.onDidChangeTextDocument((event: vscode.TextDocumentChangeEvent) => {
+            this._lastRenderedDocumentUri = event.document.uri;
+            flowLineageCommand(this._lastRenderedDocumentUri);
+            this.initPanel(event);
+    
+      })
+    );
   }
+
+  dispose() {
+    while (this.disposables.length) {
+      const x = this.disposables.pop();
+      if (x) {
+        x.dispose();
+      }
+    }
+  }
+
+  private init = async () => {
+    await this.resolveWebviewView(LineagePanel._view!, this.context!, this.token!);
+  };
 
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
     context: vscode.WebviewViewResolveContext,
     _token: vscode.CancellationToken
   ) {
-
     LineagePanel._view = webviewView;
-
+    this.context = context;
+    this.token = _token;
     webviewView.webview.options = {
       enableScripts: true,
       localResourceRoots: [this._extensionUri],
     };
     this._setWebviewMessageListener(LineagePanel._view!.webview);
+
     setTimeout(() => {
-      LineagePanel._view?.webview.postMessage({command: "init", panelType: "Lineage" });
+      LineagePanel._view?.webview.postMessage({ command: "init", panelType: "Lineage" });
     }, 100);
 
-    webviewView.onDidDispose(() => {
-      console.log("Lineage panel disposed");
-      LineagePanel._view = undefined;
-    });
     webviewView.onDidChangeVisibility(() => {
       if (LineagePanel._view!.visible) {
-        LineagePanel._view?.webview.postMessage({command: "init", panelType: "Lineage" });
+        LineagePanel._view?.webview.postMessage({ command: "init", panelType: "Lineage" });
       }
     });
-
-    vscode.window.onDidChangeActiveTextEditor((editor) => {
-      if (editor && LineagePanel._view!.visible ) {
-        this._lastRenderedDocumentUri = editor.document.uri;
-          flowLineageCommand(this._lastRenderedDocumentUri);
-      }
-    });
-
-    vscode.workspace.onDidChangeTextDocument((event) => {
-      if (this._lastRenderedDocumentUri?.toString() === event.document.uri.toString() && LineagePanel._view!.visible) {
-          flowLineageCommand(this._lastRenderedDocumentUri);
-      }
-    }
-    );
 
     webviewView.webview.html = this._getWebviewContent(webviewView.webview);
   }
@@ -108,15 +123,25 @@ export class LineagePanel implements vscode.WebviewViewProvider {
 
   public static postMessage(
     name: string,
-    data: string | { status: string; message: string | any },
+    data: string | { status: string; message: string | any }
   ) {
     if (this._view) {
       console.log("Posting message to webview in the Lineage panel", name, data);
       this._view.webview.postMessage({
-          command: name,
-          payload: data,
-        });
+        command: name,
+        payload: data,
+      });
     }
   }
 
+  public initPanel(event: vscode.TextEditor | vscode.TextDocumentChangeEvent | undefined) {
+    if (event === undefined) {
+      return;
+    }
+    if (!LineagePanel._view?.visible) {
+      return;
+    }
+
+    this.init();
+  }
 }

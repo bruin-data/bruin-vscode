@@ -25,7 +25,7 @@ export class BruinLineageInternalParse extends BruinCommand {
    */
   public async parseAssetLineage(
     filePath: string,
-    { flags = ['-o', 'json'], ignoresErrors = false }: BruinCommandOptions = {}
+    { flags = ["-o", "json"], ignoresErrors = false }: BruinCommandOptions = {}
   ): Promise<void> {
     await this.run([...flags, filePath], { ignoresErrors })
       .then(

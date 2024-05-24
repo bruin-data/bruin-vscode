@@ -8,7 +8,7 @@ import { BruinPanel } from "../panels/BruinPanel";
 
 export class BruinInternalParse extends BruinCommand {
   parseAssetLineage(fsPath: string) {
-      throw new Error("Method not implemented.");
+    throw new Error("Method not implemented.");
   }
   /**
    * Specifies the Bruin command string.
