@@ -75,6 +75,8 @@ module.exports = {
         'editor-border': 'var(--vscode-editor-border)',
         'link-activeForeground': 'var(--vscode-textLink-activeForeground)',
         'menu-hoverBackground': 'var(--vscode-scrollbarSlider-hoverBackground)',
+        'progressBar-bg': 'var(--vscode-progressBar-background)',
+        
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",

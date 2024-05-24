@@ -89,3 +89,46 @@ return lineageString.split('\\n');
 export const processLineageData = (lineageString: { name: any }): any => {
   return lineageString.name;
 };
+
+export function getDependsSectionOffsets(document: vscode.TextDocument) {
+  const text = document.getText();
+  const dependsStart = text.indexOf("depends:");
+  if (dependsStart === -1) {
+    return { start: -1, end: -1 };
+  }
+
+  let dependsEnd = text.length;
+  const lines = text.split("\n");
+  const startLine = document.positionAt(dependsStart).line;
+
+  for (let i = startLine + 1; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmedLine = line.trim();
+    if (trimmedLine === "" || (!trimmedLine.startsWith("-") && !line.startsWith(" "))) {
+      dependsEnd = document.offsetAt(new vscode.Position(i, 0));
+      break;
+    }
+  }
+
+  return { start: dependsStart, end: dependsEnd };
+}
+
+export function isChangeInDependsSection(
+  change: vscode.TextDocumentContentChangeEvent,
+  document: vscode.TextDocument
+) {
+  const { start, end } = getDependsSectionOffsets(document);
+  if (start === -1 || end === -1) {
+    return false;
+  }
+
+  const changeStartOffset = document.offsetAt(change.range.start);
+  const changeEndOffset = document.offsetAt(change.range.end);
+
+  return (
+    (changeStartOffset >= start && changeStartOffset <= end) ||
+    (changeEndOffset >= start && changeEndOffset <= end)
+  );
+}
+
+

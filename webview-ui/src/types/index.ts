@@ -50,3 +50,33 @@ export interface BruinNodeProps {
   onNodeDoubleClick?: Function;
   nodeProps?: any;
 }
+
+
+export interface AssetDataset {
+  name: string;
+  type: string;
+  upstream?: Upstream[];
+  downstream?: Downstream[];
+  isFocusAsset: boolean;
+}
+
+interface Upstream {
+  name: string;
+  type: string;
+  executable_file: File;
+  definition_file: File;
+}
+
+interface Downstream {
+  name: string;
+  type: string;
+  executable_file: File;
+  definition_file: File;
+}
+
+interface File {
+  name: string;
+  path: string;
+  content: string;
+  type: string;
+}

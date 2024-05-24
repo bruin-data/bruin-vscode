@@ -1,22 +1,18 @@
 import { BruinCommandOptions } from "../types";
 import { BruinCommand } from "./bruinCommand";
-import { BruinPanel } from "../panels/BruinPanel";
-
+import { LineagePanel } from "../panels/LineagePanel";
 /**
  * Extends the BruinCommand class to implement the bruin run command on Bruin assets.
  */
 
-export class BruinInternalParse extends BruinCommand {
-  parseAssetLineage(fsPath: string) {
-    throw new Error("Method not implemented.");
-  }
+export class BruinLineageInternalParse extends BruinCommand {
   /**
    * Specifies the Bruin command string.
    *
    * @returns {string} Returns the 'run' command string.
    */
   protected bruinCommand(): string {
-    return "internal";
+    return "lineage";
   }
 
   /**
@@ -27,26 +23,27 @@ export class BruinInternalParse extends BruinCommand {
    * @param {BruinCommandOptions} [options={}] - Optional parameters for execution, including flags and errors.
    * @returns {Promise<void>} A promise that resolves when the execution is complete or an error is caught.
    */
-
-  public async parseAsset(
+  public async parseAssetLineage(
     filePath: string,
-    { flags = ["parse-asset"], ignoresErrors = false }: BruinCommandOptions = {}
+    { flags = ["-o", "json"], ignoresErrors = false }: BruinCommandOptions = {}
   ): Promise<void> {
     await this.run([...flags, filePath], { ignoresErrors })
       .then(
         (result) => {
-          this.postMessageToPanels("success", result);
+          LineagePanel.postMessage("flow-lineage-message", {
+            status: "success",
+            message: result,
+          });
         },
         (error) => {
-          this.postMessageToPanels("error", error);
+          LineagePanel.postMessage("flow-lineage-message", {
+            status: "error",
+            message: error,
+          });
         }
       )
       .catch((err) => {
         console.debug("parsing command error", err);
       });
-  }
-
-  private postMessageToPanels(status: string, message: string | any) {
-    BruinPanel.postMessage("parse-message", { status, message });
   }
 }

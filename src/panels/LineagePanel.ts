@@ -1,39 +1,63 @@
 import * as vscode from "vscode";
 import { getNonce } from "../utilities/getNonce";
 import { getUri } from "../utilities/getUri";
-import { lineageCommand } from "../extension/commands/lineageCommand";
-import { Uri } from "vscode";
+import { flowLineageCommand } from "../extension/commands/FlowLineageCommand";
 
-export class LineagePanel implements vscode.WebviewViewProvider {
+
+export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposable {
   public static readonly viewId = "lineageView";
-  public static currentPanel: LineagePanel | undefined;
-  private _view?: vscode.WebviewView;
-  private _lastRenderedDocumentUri: Uri | undefined;
+  public static _view?: vscode.WebviewView | undefined;
+  private _lastRenderedDocumentUri: vscode.Uri | undefined;
 
-  constructor(private readonly _extensionUri: vscode.Uri) {}
+  private context: vscode.WebviewViewResolveContext<unknown> | undefined;
+  private token: vscode.CancellationToken | undefined;
+
+  private disposables: vscode.Disposable[] = [];
+
+  constructor(private readonly _extensionUri: vscode.Uri) {
+    this.disposables.push(
+      vscode.window.onDidChangeActiveTextEditor((event: vscode.TextEditor | undefined) => {
+        this._lastRenderedDocumentUri = event?.document.uri;
+        flowLineageCommand(this._lastRenderedDocumentUri);
+        this.initPanel(event);
+      }),
+    );
+  }
+
+  dispose() {
+    while (this.disposables.length) {
+      const x = this.disposables.pop();
+      if (x) {
+        x.dispose();
+      }
+    }
+  }
+
+  private init = async () => {
+    await this.resolveWebviewView(LineagePanel._view!, this.context!, this.token!);
+  };
 
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
     context: vscode.WebviewViewResolveContext,
     _token: vscode.CancellationToken
   ) {
-    this._view = webviewView;
-
+    LineagePanel._view = webviewView;
+    this.context = context;
+    this.token = _token;
     webviewView.webview.options = {
       enableScripts: true,
       localResourceRoots: [this._extensionUri],
     };
-    this._setWebviewMessageListener(this._view!.webview);
+    this._setWebviewMessageListener(LineagePanel._view!.webview);
+
     setTimeout(() => {
-      this.postMessage({ command: "init", panelType: "lineage" });
+      LineagePanel._view?.webview.postMessage({ command: "init", panelType: "Lineage" });
     }, 100);
 
-    webviewView.onDidDispose(() => {
-      this._view = undefined;
-    });
     webviewView.onDidChangeVisibility(() => {
-      if (this._view!.visible) {
-        this.postMessage({ command: "init", panelType: "lineage" });
+      if (LineagePanel._view!.visible) {
+        LineagePanel._view?.webview.postMessage({ command: "init", panelType: "Lineage" });
       }
     });
 
@@ -76,29 +100,45 @@ export class LineagePanel implements vscode.WebviewViewProvider {
         case "bruin.pipelineLineage":
           console.log("Pipeline Lineage from webview in the Lineage panel, well received");
           break;
-        case "bruin.assetLineage":
+        case "bruin.assetGraphLineage":
           console.log("Asset Lineage from webview in the Lineage panel, well received");
           this._lastRenderedDocumentUri = vscode.window.activeTextEditor?.document.uri;
           if (!this._lastRenderedDocumentUri) {
             console.debug("No active document found.");
             return;
           }
-          /*  lineageCommand(this._lastRenderedDocumentUri).catch((error) => {
-            console.error("Error displaying lineage", error);          }); */
-          this.postMessage({
-            command: "lineage-message",
-            status: "error",
-            message: "Error displaying lineage",
-          });
+          flowLineageCommand(this._lastRenderedDocumentUri);
+
+          break;
+        case "bruin.refreshGraphLineage":
+            flowLineageCommand(this._lastRenderedDocumentUri);
+            this.initPanel(vscode.window.activeTextEditor);
+          break;
       }
     });
   }
 
-  public postMessage(message: any) {
-    if (this._view && this._view.webview) {
-      this._view.webview.postMessage(message);
-    } else {
-      console.error("Webview is not initialized when trying to post message");
+  public static postMessage(
+    name: string,
+    data: string | { status: string; message: string | any }
+  ) {
+    if (this._view) {
+      console.log("Posting message to webview in the Lineage panel", name, data);
+      this._view.webview.postMessage({
+        command: name,
+        payload: data,
+      });
     }
+  }
+
+  public initPanel(event: vscode.TextEditor | vscode.TextDocumentChangeEvent | undefined) {
+    if (event === undefined) {
+      return;
+    }
+    if (!LineagePanel._view?.visible) {
+      return;
+    }
+
+    this.init();
   }
 }
