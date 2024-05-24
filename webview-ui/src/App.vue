@@ -10,7 +10,7 @@
       <div class="flex items-center justify-center">
         <span>{{ tab && tab.label }}</span>
         <ArrowPathIcon
-          v-if="tab.label === 'Asset Graph Lineage' && activeTab === index"
+          v-if="tab.label === 'Lineage' && activeTab === index"
           @click="refreshGraphLineage"
           class="ml-2 w-4 h-4 text-link-activeForeground hover:text-progressBar-bg focus:outline-none"
           title="Refresh"
@@ -103,10 +103,7 @@ const assetName = computed(() => {
   return parseAssetDetails(data.value)?.name;
 });
 
-const assetType = computed(() => {
-  if (!data.value) return null;
-  return parseAssetDetails(data.value)?.type;
-});
+
 const tabs = ref([
   { label: "General", component: AssetGeneral, props: { name: assetName }, includeIn: ["bruin"] },
   {
@@ -117,10 +114,10 @@ const tabs = ref([
   },
   { label: "Asset Lineage", component: AssetLineageText, includeIn: ["bruin"] },
   {
-    label: "Asset Graph Lineage",
+    label: "Lineage",
     component: AssetLineageFlow,
     includeIn: ["Lineage"],
-    props: computed(() => getAssetDataset(lineageData.value, true, assetType.value)),
+    props: computed(() => getAssetDataset(lineageData.value, true)),
   },
   //{ label: "Pipeline Graph Lineage", component: PipelineLineage, includeIn: ["lineage"] },
 ]);

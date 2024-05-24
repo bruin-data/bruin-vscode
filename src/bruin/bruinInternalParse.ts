@@ -1,7 +1,6 @@
 import { BruinCommandOptions } from "../types";
 import { BruinCommand } from "./bruinCommand";
 import { BruinPanel } from "../panels/BruinPanel";
-import { LineagePanel } from "../panels/LineagePanel";
 
 /**
  * Extends the BruinCommand class to implement the bruin run command on Bruin assets.
@@ -49,6 +48,5 @@ export class BruinInternalParse extends BruinCommand {
 
   private postMessageToPanels(status: string, message: string | any) {
     BruinPanel.postMessage("parse-message", { status, message });
-    LineagePanel.postMessage("parse-message", { status, message });
   }
 }
