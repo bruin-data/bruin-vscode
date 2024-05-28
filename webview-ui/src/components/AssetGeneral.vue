@@ -50,7 +50,7 @@ import { vscode } from "@/utilities/vscode";
 import { computed, onBeforeUnmount, onMounted, ref, defineProps } from "vue";
 import { watch } from "vue";
 import ErrorAlert from "@/components/ErrorAlert.vue";
-import { handleError, concatCommandFlags } from "@/utilities/helper";
+import { handleError, concatCommandFlags, adjustEndDateForExclusive } from "@/utilities/helper";
 import "@/assets/index.css";
 import CommandButton from "@/components/ui/buttons/ActionButton.vue";
 import DateInput from "@/components/DateInput.vue";
@@ -136,9 +136,9 @@ const endDateExclusive = ref("");
 watch(
   endDate,
   (newEndDate) => {
-    const endDateObj = new Date(newEndDate);
-    const endDateExclusiveObj = new Date(endDateObj.getTime() - 1 + 0.999);
-    endDateExclusive.value = endDateExclusiveObj.toISOString().slice(0, -1);
+    const adjustedEndDate = new Date(newEndDate);
+    adjustedEndDate.setUTCHours(adjustedEndDate.getUTCHours() + 1); // Adding one hour
+    endDateExclusive.value = adjustEndDateForExclusive(adjustedEndDate.toISOString());
   },
   { immediate: true }
 );
