@@ -6,9 +6,13 @@ const isExclusiveChecked = (checkboxesItems: CheckboxItems[]): boolean => {
 
   }
 
-const adjustEndDateForExclusive = (endtDate: string): string => {
-    let endDateObject = new Date(endtDate);
-    endDateObject.setUTCHours(23, 59, 59, 999);
+export const adjustEndDateForExclusive = (endtDate: string): string => {
+  const endDateObject = new Date(endtDate);
+  console.log('endDateObject', endDateObject);
+      endDateObject.setUTCHours(endDateObject.getUTCHours()); // Add one hour
+      endDateObject.setUTCMinutes(59);
+      endDateObject.setUTCSeconds(59);
+      endDateObject.setUTCMilliseconds(999);
   return endDateObject.toISOString().replace(/\.999Z$/, ".999999999Z");
   }
  
