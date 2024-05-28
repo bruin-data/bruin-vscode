@@ -2,8 +2,11 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
-- ## [0.9.0] - [2024-05-24]
+- ## [0.9.1] - [2024-05-28]
+### Fixed
+- Fix the exclusive end date function to accurately calculate the exclusive end time.
 
+- ## [0.9.0] - [2024-05-24]
 ### Added
 - New panel to display the lineage of a single asset.
 - Requires CLI version update to fetch asset types for lineage display.
