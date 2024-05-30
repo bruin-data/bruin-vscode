@@ -99,11 +99,23 @@ const formattedErrorMessages = computed<FormattedErrorMessage[]>(() => {
           ),
       }));
     }
-
+    
     return [];
   } catch (e) {
     console.error("Failed to parse error message:", e);
-    return [];
+    return [
+          {
+            pipeline: null,
+            issues: [
+              {
+                asset: null,
+                description: props.errorMessage,
+                context: [],
+                expanded: ref(false),
+              },
+            ],
+          },
+        ];;
   }
 });
 </script>
