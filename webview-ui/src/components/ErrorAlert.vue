@@ -1,5 +1,5 @@
 <template>
-  <div v-if="formattedErrorMessages.length" class="rounded-md bg-red-50 p-4 my-4">
+  <div v-if="formattedErrorMessages.length" class="rounded-md bg-red-50 p-4 my-4 max-h-64 overflow-y-auto">
     <div class="flex">
       <div class="flex-shrink-0">
         <XCircleIcon class="h-5 w-5 text-red-500" aria-hidden="true" />
