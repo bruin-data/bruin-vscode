@@ -49,12 +49,11 @@ export const buildCommand = (cliCommand: string): string => {
  * @returns {string | undefined} The directory path of the Bruin workspace if found, otherwise undefined.
  */
 
-export const bruinWorkspaceDirectory = (fsPath: string): string | undefined => {
+export const bruinWorkspaceDirectory = (fsPath: string, bruinRootFileNames=[".bruin.yaml", ".bruin.yml"]): string | undefined => {
   let dirname = fsPath;
   let iteration = 0;
   const maxIterations = 100;
 
-  const bruinRootFileNames = [".bruin.yaml", ".bruin.yml"];
 
   if (fs.statSync(fsPath).isFile()) {
     dirname = path.dirname(dirname);
@@ -75,6 +74,9 @@ export const bruinWorkspaceDirectory = (fsPath: string): string | undefined => {
   return undefined;
 };
 
+export const getCurrentPipelinePath = (fsPath: string): string | undefined => {
+  return bruinWorkspaceDirectory(fsPath, ["pipeline.yaml", "pipeline.yml"]);
+};
 /**
  * Runs the Bruin command "run" in the integrated terminal.
  * @param {string} assetPath - The path of the asset to be executed.

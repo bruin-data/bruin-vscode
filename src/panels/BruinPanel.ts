@@ -1,7 +1,7 @@
 import { Disposable, Webview, WebviewPanel, window, Uri, ViewColumn, workspace } from "vscode";
 import { getUri } from "../utilities/getUri";
 import { getNonce } from "../utilities/getNonce";
-import { BruinValidate, bruinWorkspaceDirectory, runInIntegratedTerminal } from "../bruin";
+import { BruinValidate, bruinWorkspaceDirectory, getCurrentPipelinePath, runInIntegratedTerminal } from "../bruin";
 import { getDefaultBruinExecutablePath } from "../extension/configuration";
 import * as vscode from "vscode";
 import { renderCommandWithFlags } from "../extension/commands/renderCommand";
@@ -210,7 +210,6 @@ export class BruinPanel {
               getDefaultBruinExecutablePath(),
               workspaceFolder.uri.fsPath
             );
-            console.log("Validating All pipelines########################", workspaceFolder.uri.fsPath);
 
           await validatorAll.validate(workspaceFolder.uri.fsPath);
             break;
@@ -220,7 +219,20 @@ export class BruinPanel {
               console.error("No active document to validate.");
               return;
             }
-            console.log("Validating current pipeline*********************");
+            const currAssetPath = this._lastRenderedDocumentUri.fsPath;
+            const currentPipelinePath = getCurrentPipelinePath(currAssetPath || "");
+            
+            if(!currentPipelinePath) {
+              console.error("No pipeline found for the current asset.");
+              return;
+            }
+
+            const pipelineValidator = new BruinValidate(
+              getDefaultBruinExecutablePath(),
+              bruinWorkspaceDirectory(currAssetPath || "")!!
+            );
+            
+            await pipelineValidator.validate(currentPipelinePath);
             break;
 
           case "bruin.validate":

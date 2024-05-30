@@ -1,24 +1,32 @@
+import type { Ref } from "vue";
+
 export type CheckboxItems = {
   name: string;
   checked: boolean;
 };
 
-interface Issue {
-  asset: string;
+export interface Issue {
+  asset: string | null;
   description: string;
   context: string[];
 }
 
-interface IssuesMap {
-  [test: string]: Issue[];
-}
-
 export interface ParsedValidationErrorMessage {
-  pipeline?: string;
-  issues?: IssuesMap;
-  error?: string;
+  pipeline: string | null;
+  issues: Record<string, Issue[]>;
 }
 
+export interface FormattedIssue {
+  asset: string | null;
+  description: string;
+  context: string[];
+  expanded: Ref<boolean>;
+}
+
+export interface FormattedErrorMessage {
+  pipeline: string | null;
+  issues: FormattedIssue[];
+}
 
 export interface Asset {
   name: string;

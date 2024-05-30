@@ -46,33 +46,13 @@
 
 
 <script setup lang="ts">
-import { computed, ref, type Ref } from "vue";
+import { computed, ref } from "vue";
 import { defineProps } from "vue";
 import { XCircleIcon, ChevronDownIcon, ChevronUpIcon } from "@heroicons/vue/20/solid";
+import type { FormattedErrorMessage, ParsedValidationErrorMessage } from "@/types";
 
 // Define the types explicitly
-interface Issue {
-  asset: string | null;
-  description: string;
-  context: string[];
-}
 
-interface ParsedValidationErrorMessage {
-  pipeline: string | null;
-  issues: Record<string, Issue[]>;
-}
-
-interface FormattedIssue {
-  asset: string | null;
-  description: string;
-  context: string[];
-  expanded: Ref<boolean>;
-}
-
-interface FormattedErrorMessage {
-  pipeline: string | null;
-  issues: FormattedIssue[];
-}
 
 const props = defineProps<{
   errorMessage: string | any | null;
