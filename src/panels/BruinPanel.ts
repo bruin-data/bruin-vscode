@@ -205,13 +205,24 @@ export class BruinPanel {
               console.error("No workspace folder found.");
               return;
             }
+
             const validatorAll = new BruinValidate(
               getDefaultBruinExecutablePath(),
               workspaceFolder.uri.fsPath
             );
+            console.log("Validating All pipelines########################", workspaceFolder.uri.fsPath);
 
-            await validatorAll.validate(workspaceFolder.uri.fsPath);
+          await validatorAll.validate(workspaceFolder.uri.fsPath);
             break;
+          
+            case "bruin.validateCurrentPipeline":
+            if (!this._lastRenderedDocumentUri) {
+              console.error("No active document to validate.");
+              return;
+            }
+            console.log("Validating current pipeline*********************");
+            break;
+
           case "bruin.validate":
             if (!this._lastRenderedDocumentUri) {
               console.error("No active document to validate.");

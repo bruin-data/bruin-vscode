@@ -22,13 +22,13 @@
             :defaultAction="handleBruinValidateCurrentAsset"
             :status="validateButtonStatus"
             buttonLabel="Validate"
-            :menuItems="['Pipeline']"
+            :menuItems="['Current Pipeline', 'All Pipelines']"
             @exec-choice="validateChoice"
           />
           <CommandButton
             :isDisabled="isError || isNotAsset"
             :defaultAction="runSql"
-            :menuItems="['Downstream']"
+            :menuItems="['Downstream', 'Current Pipeline']"
             buttonLabel="Run"
             @exec-choice="runWithOptions"
           />
@@ -67,10 +67,19 @@ const props = defineProps<{
   name: string | null;
 }>();
 
-function handleBruinValidateAll() {
-  vscode.postMessage({
-    command: "bruin.validateAll",
-  });
+function handleBruinValidateAll(action: string) {
+  switch(action){
+    case "All Pipelines":
+      vscode.postMessage({
+        command: "bruin.validateAll",
+      }); 
+      break;
+    case "Current Pipeline":
+      vscode.postMessage({
+        command: "bruin.validateCurrentPipeline",
+      });
+      break;
+  }
 }
 
 function handleBruinValidateCurrentAsset() {
@@ -96,7 +105,7 @@ const validateChoice = computed(() => handleBruinValidateAll);
 function runSql(runOption?: string) {
   let payload = getCheckboxChangePayload();
 
-  if (runOption == "Pipeline") {
+  if (runOption == "Current Pipeline") {
     vscode.postMessage({
       command: "bruin.runAll",
     });
@@ -146,7 +155,12 @@ watch(
 function getCheckboxChangePayload() {
   console.log("start date", startDate.value);
   console.log("end date", endDate.value);
-  return concatCommandFlags(startDate.value, endDate.value, endDateExclusive.value, checkboxItems.value);
+  return concatCommandFlags(
+    startDate.value,
+    endDate.value,
+    endDateExclusive.value,
+    checkboxItems.value
+  );
 }
 
 const language = ref("");
@@ -192,6 +206,7 @@ function receiveMessage(event: { data: any }) {
       validationSuccess.value = updateValue(envelope, "success");
       validationError.value = updateValue(envelope, "error");
       validateButtonStatus.value = updateValue(envelope, "loading");
+      console.debug("-------------------------Validation result------------------------", validationSuccess.value);
       validateButtonStatus.value = determineValidationStatus(
         validationSuccess.value,
         validationError.value,
@@ -208,9 +223,6 @@ function receiveMessage(event: { data: any }) {
       language.value = renderSQLAssetSuccess.value ? "sql" : "python";
 
       resetStates([validationError, validationSuccess, validateButtonStatus]);
-      console.log("Is not asset", isNotAsset.value);
-      console.log("Error state", isError.value);
-      console.log("Error message From Genearl", errorMessage.value);
       break;
 
     case "run-success":
