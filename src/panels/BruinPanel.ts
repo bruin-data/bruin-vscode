@@ -1,7 +1,7 @@
 import { Disposable, Webview, WebviewPanel, window, Uri, ViewColumn, workspace } from "vscode";
 import { getUri } from "../utilities/getUri";
 import { getNonce } from "../utilities/getNonce";
-import { BruinValidate, bruinWorkspaceDirectory, runInIntegratedTerminal } from "../bruin";
+import { BruinValidate, bruinWorkspaceDirectory, getCurrentPipelinePath, runInIntegratedTerminal } from "../bruin";
 import { getDefaultBruinExecutablePath } from "../extension/configuration";
 import * as vscode from "vscode";
 import { renderCommandWithFlags } from "../extension/commands/renderCommand";
@@ -205,13 +205,36 @@ export class BruinPanel {
               console.error("No workspace folder found.");
               return;
             }
+
             const validatorAll = new BruinValidate(
               getDefaultBruinExecutablePath(),
               workspaceFolder.uri.fsPath
             );
 
-            await validatorAll.validate(workspaceFolder.uri.fsPath);
+          await validatorAll.validate(workspaceFolder.uri.fsPath);
             break;
+          
+            case "bruin.validateCurrentPipeline":
+            if (!this._lastRenderedDocumentUri) {
+              console.error("No active document to validate.");
+              return;
+            }
+            const currAssetPath = this._lastRenderedDocumentUri.fsPath;
+            const currentPipelinePath = getCurrentPipelinePath(currAssetPath || "");
+            
+            if(!currentPipelinePath) {
+              console.error("No pipeline found for the current asset.");
+              return;
+            }
+
+            const pipelineValidator = new BruinValidate(
+              getDefaultBruinExecutablePath(),
+              bruinWorkspaceDirectory(currAssetPath || "")!!
+            );
+            
+            await pipelineValidator.validate(currentPipelinePath);
+            break;
+
           case "bruin.validate":
             if (!this._lastRenderedDocumentUri) {
               console.error("No active document to validate.");
@@ -241,14 +264,16 @@ export class BruinPanel {
               });
             }, 1500);
             break;
-          case "bruin.runAll":
-            const workspaceF = vscode.workspace.workspaceFolders?.[0];
-            if (!workspaceF) {
-              console.error("No workspace folder found.");
+          case "bruin.runCurrentPipeline":
+            if (!this._lastRenderedDocumentUri) {
               return;
             }
+            const currfilePath = this._lastRenderedDocumentUri.fsPath;
+            const currentPipeline = getCurrentPipelinePath(currfilePath || "");
+            
             runInIntegratedTerminal(
-              bruinWorkspaceDirectory(workspaceF?.uri.fsPath),
+              bruinWorkspaceDirectory(currfilePath),
+              currentPipeline,
               message.payload
             );
 
