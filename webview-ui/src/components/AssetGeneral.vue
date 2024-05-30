@@ -107,7 +107,8 @@ function runSql(runOption?: string) {
 
   if (runOption == "Current Pipeline") {
     vscode.postMessage({
-      command: "bruin.runAll",
+      command: "bruin.runCurrentPipeline",
+      payload: payload,
     });
     return;
   } else if (runOption == "Downstream") {

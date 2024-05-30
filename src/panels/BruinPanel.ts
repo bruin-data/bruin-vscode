@@ -264,14 +264,16 @@ export class BruinPanel {
               });
             }, 1500);
             break;
-          case "bruin.runAll":
-            const workspaceF = vscode.workspace.workspaceFolders?.[0];
-            if (!workspaceF) {
-              console.error("No workspace folder found.");
+          case "bruin.runCurrentPipeline":
+            if (!this._lastRenderedDocumentUri) {
               return;
             }
+            const currfilePath = this._lastRenderedDocumentUri.fsPath;
+            const currentPipeline = getCurrentPipelinePath(currfilePath || "");
+            
             runInIntegratedTerminal(
-              bruinWorkspaceDirectory(workspaceF?.uri.fsPath),
+              bruinWorkspaceDirectory(currfilePath),
+              currentPipeline,
               message.payload
             );
 
