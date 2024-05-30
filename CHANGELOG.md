@@ -2,6 +2,15 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+- ## [0.9.2] - [2024-05-30]
+### Improved
+- Expanded validation options with "Validate All Pipelines" and "Validate Current Pipeline" choices for increased flexibility.
+- Introduced "Run Current Pipeline" option in the run button for the execution of the current pipeline.
+
+### Fixed
+- Enhanced error alert display by fixing max height and adding a vertical scrollbar to accommodate multiple errors from different pipelines.
+- Improved error handling to catch additional error types, including those with stack traces.
+
 - ## [0.9.1] - [2024-05-28]
 ### Fixed
 - Fix the exclusive end date function to accurately calculate the exclusive end time.

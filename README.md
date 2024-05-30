@@ -68,33 +68,28 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: v0.9.1
-### Fixed
-- Fix the exclusive end date function to accurately calculate the exclusive end time.
+### Latest Release: v0.9.2
+### Improved
+- Added "Validate All Pipelines" and "Validate Current Pipeline" options for flexibility.
+- Introduced "Run Current Pipeline" option in the run button.
+- Enhanced error alert display and error handling.
 
 ### Previous Highlights
+### Version 0.9.1
+- Fix the exclusive end date function to accurately calculate the exclusive end time.
+
 ### Version 0.9.0
 - Implemented a new panel to display the lineage of a single asset.
 - The lineage updates automatically when switching between assets.
 - Click the refresh button next to the tab label to update content after modifying dependencies.
 - Requires CLI version update to fetch asset types for lineage display.
 
-### Version 0.8.4
-- Implemented Markdown rendering for the description in the AssetDetails component.
-
-### Version 0.8.3
-- The "Exclusive End Date" checkbox is now checked by default, with a reactive update for `endDateExclusive` to ensure it accurately reflects changes in `endDate`.
-
-### Version 0.8.2
-- Previously, the `schedule` value in the asset details was consistently displayed as undefined. In this updated version, the schedule value has been fixed and is now dynamically updated.
-
-### Version 0.8.1
-- Added error handling for the "no such file or directory" (ENOENT) error when the `output` panel is clicked.
-
-### Version 0.8.0
-- Introduction of a new tab dedicated to rendering asset details, with dynamic updating for data.
-- Integration of an alert message feature to provide clear feedback when data is unavailable for display.
-- Display the asset name on the `General Tab` dynamically
+### Version 0.8.x
+- **Markdown rendering** for AssetDetails description.
+- "Exclusive End Date" checkbox **defaults to checked**, ensuring reactive updates.
+- **Fixed schedule display** inconsistency in asset details.
+- Added **error handling** for "no such file or directory" (ENOENT).
+- Introduced **new tab** for dynamic asset details, with **alert message** feature.
 
 ### Version 0.7.x
 - Clearly differentiated render errors and validation errors to eliminate confusion.
