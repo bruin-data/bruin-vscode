@@ -98,14 +98,14 @@ const assetDetailsProps = computed(() => {
 });
 
 
-const assetName = computed(() => {
+/* const assetName = computed(() => {
   if (!data.value) return null;
   return parseAssetDetails(data.value)?.name;
 });
-
+ */
 
 const tabs = ref([
-  { label: "General", component: AssetGeneral, props: { name: assetName }, includeIn: ["bruin"] },
+  /* { label: "General", component: AssetGeneral, props: { name: assetName }, includeIn: ["bruin"] }, */
   {
     label: "Asset Details",
     component: AssetDetails,

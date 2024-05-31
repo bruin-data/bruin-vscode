@@ -1,10 +1,5 @@
 <template>
   <div class="divide-y overflow-hidden rounded-lg shadow w-full">
-    <div class="px-4 py-5 sm:px-6">
-      <h2 class="text-lg font-semibold font-mono leading-6 text-gray-300">
-        {{ name }}
-      </h2>
-    </div>
     <div class="px-4 py-5 sm:p-6">
       <div class="flex flex-col p-4 space-y-4">
         <div class="flex flex-col space-y-3">
@@ -62,10 +57,6 @@ const errorState = computed(() => handleError(validationError.value, renderSQLAs
 const isError = computed(() => errorState.value?.errorCaptured);
 const errorMessage = computed(() => errorState.value?.errorMessage);
 const isNotAsset = computed(() => (renderAssetAlert.value ? true : false));
-
-const props = defineProps<{
-  name: string | null;
-}>();
 
 function handleBruinValidateAll(action: string) {
   switch(action){
