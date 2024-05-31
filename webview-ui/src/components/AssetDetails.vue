@@ -1,34 +1,40 @@
 <template>
   <div
     v-if="props !== null"
-    class="flex flex-col h-1/4 overflow-auto shadow-xl text-gray-500 bg-editor-bg max-h-72"
+    class="flex flex-col h-1/4 overflow-auto shadow-xl text-editor-fg bg-editor-bg max-h-72 resize"
   >
     <div class="mt-8 flow-root">
       <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
         <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-          <table class="min-w-full divide-y divide-editor-border">
+          <table class="min-w-full divide-y divide-editor-border text-center">
+            <thead>
+              <tr>
+                <th class="py-3.5 pl-4 pr-3 text-sm font-semibold text-editor-fg sm:pl-0"></th>
+                <th class="px-3 py-3.5 text-sm font-semibold text-editor-fg opacity-50">Type</th>
+                <th class="px-3 py-3.5 text-sm font-semibold text-editor-fg opacity-50">Schedule</th>
+                <th class="px-3 py-3.5 text-sm font-semibold text-editor-fg opacity-50">Owner</th>
+              </tr>
+            </thead>
             <tbody class="divide-y divide-editor-border bg-editor-bg">
               <tr>
-                <td class="whitespace-nowrap py-5 pl-4 pr-3 text-sm sm:pl-0">
-                  <div class="flex items-center">
+                <td class="whitespace-nowrap px-3 py-5 text-sm text-editor-fg">
+                  <div class="flex items-center justify-left">
                     <div class="ml-4">
                       <div class="font-md text-editor-fg text-lg">{{ name }}</div>
                     </div>
                   </div>
                 </td>
                 <td class="whitespace-nowrap px-3 py-5 text-sm text-editor-fg">
-                  <DescriptionItem title="Type" :value="type" :className="badgeClass.badgeStyle" />
+                  <DescriptionItem :value="type" :className="badgeClass.badgeStyle" />
                 </td>
                 <td class="whitespace-nowrap px-3 py-5 text-sm text-editor-fg">
                   <DescriptionItem
-                    title="Schedule"
                     :value="pipeline.schedule"
                     :className="badgeClass.grayBadge"
                   />
                 </td>
                 <td class="whitespace-nowrap px-3 py-5 text-sm text-editor-fg">
                   <DescriptionItem
-                    title="Owner"
                     value="Unknown"
                     className="font-semibold text-gray-400"
                   />
@@ -39,11 +45,12 @@
         </div>
       </div>
     </div>
-    <div class="border-b py-6 px-4 sm:px-6 bg-editor-bg">
-      <h3 class="text-lg leading-6 font-medium text-gray-100 mb-2">Description</h3>
-      <div class="max-w-3xl">
+    <vscode-divider class="border-t border-editor-border opacity-20 shadow-lg"></vscode-divider>
+    <div class="border-b py-6 px-4 sm:px-6 bg-editor-bg ">
+      <h3 class="text-lg leading-6 font-medium text-editor-fg mb-2">Description</h3>
+      <div class="w-full ">
         <p
-          class="max-h-full overflow-auto text-sm leading-8 text-editor-fg opacity-65 text-justify indent-8 prose"
+          class="w-full overflow-auto text-sm leading-8 text-editor-fg opacity-65 text-justify indent-8 prose-lg"
           v-html="markdownDescription"
         ></p>
       </div>
@@ -55,7 +62,7 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps, defineEmits, ref, computed } from "vue";
+import { defineProps, computed } from "vue";
 import DescriptionItem from "@/components/ui/description-item/DescriptionItem.vue";
 import MessageAlert from "@/components/ui/alerts/AlertMessage.vue";
 import { badgeStyles, defaultBadgeStyle } from "@/components/ui/badges/CustomBadgesStyle";
@@ -77,13 +84,11 @@ const markdownDescription = computed(() => {
 });
 
 const badgeClass = computed(() => {
-  const commonStyle =
-    "inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset";
-  console.log("Computed property recalculated.", badgeStyles[props.type]);
+  const commonStyle = "inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset";
   return {
     commonStyle: commonStyle,
     grayBadge: `${commonStyle} ${defaultBadgeStyle.main}`,
-    badgeStyle: `${commonStyle}  ${badgeStyles[props.type].main}`,
+    badgeStyle: `${commonStyle} ${badgeStyles[props.type].main}`,
   };
 });
 </script>
