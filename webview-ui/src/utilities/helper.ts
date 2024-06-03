@@ -17,7 +17,11 @@ export const adjustEndDateForExclusive = (endtDate: string): string => {
   }
  
   export const concatCommandFlags = (startDate: string, endDate: string, endDateExclusive: string, checkboxesItems: CheckboxItems[]): string => {
-    const startDateFlag = ' --start-date ' + startDate;
+    let startDateFlag = ' --start-date ' + startDate;
+    if (startDateFlag.slice(-1) !== 'Z') {
+      startDateFlag += 'Z';
+    }
+
     let endDateFlag = ' --end-date ' + endDate;
   
     // Adjust end date if "Exclusive End Date" is checked
@@ -96,7 +100,7 @@ export const parseAssetDetails = (data: string) => {
     name: parsedData.asset.name || "undefined",
     type: parsedData.asset.type || "undefined",
     schedule : parsedData.asset.schedule || "undefined",
-    description: parsedData.asset.description || "No description available",
+    description: parsedData.asset.description || null,
     owner: parsedData.asset.owner || "undefined",
     pipeline: parsedData.pipeline || "undefined",
   };

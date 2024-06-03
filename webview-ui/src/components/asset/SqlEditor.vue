@@ -1,7 +1,7 @@
 <template>
-  <div class="highlight-container rounded-tl-md rounded-tr-md">
+  <div class="highlight-container rounded-md overflow-hidden">
     <div
-      class="header rounded-tl-md rounded-tr-md flex items-center justify-between p-2 border-gray-300 shadow-sm"
+      class="header flex items-center justify-between p-2 border-gray-300 shadow-sm"
     >
       <label class="text-sm font-medium">SQL Preview</label>
       <button
@@ -75,7 +75,6 @@ const highlightedLines = computed(() => {
 }
 #sql-editor,
 .python-content {
-  padding: 1rem;
   background-color: var(--vscode-sideBar-background);
 }
 
@@ -95,11 +94,12 @@ const highlightedLines = computed(() => {
 }
 
 .line-number {
-  min-width: 50px;
-  text-align: right;
-  padding-right: 1.5rem;
   color: var(--vscode-disabledForeground);
   user-select: none; /* Prevents line number from being selected */
+}
+
+.line-number {
+  @apply pr-4 pl-4 text-right
 }
 
 .code-content {

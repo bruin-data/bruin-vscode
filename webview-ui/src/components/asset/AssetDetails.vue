@@ -1,63 +1,38 @@
 <template>
   <div class="flex flex-col items-start justify-between w-full">
-    <div
-      v-if="props !== null"
-      class="flex flex-col h-1/4 shadow-xl text-editor-fg bg-editor-bg max-h-72 w-full"
-    >
-      <div class="mt-2 flow-root">
-        <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-          <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-            <table class="min-w-full divide-y divide-editor-border text-center">
-              <thead>
-                <tr>
-                  <th class="py-3.5 pl-4 pr-3 text-sm font-semibold text-editor-fg sm:pl-0"></th>
-                  <th class="px-3 py-3.5 text-sm font-semibold text-editor-fg opacity-50">Type</th>
-                  <th class="px-3 py-3.5 text-sm font-semibold text-editor-fg opacity-50">
-                    Schedule
-                  </th>
-                  <th class="px-3 py-3.5 text-sm font-semibold text-editor-fg opacity-50">Owner</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-editor-border bg-editor-bg">
-                <tr>
-                  <td class="whitespace-nowrap px-3 py-5 text-sm text-editor-fg">
-                    <div class="flex items-center justify-left">
-                      <div class="ml-4">
-                        <div class="font-md text-editor-fg text-lg">{{ name }}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td class="whitespace-nowrap px-3 py-5 text-sm text-editor-fg">
-                    <DescriptionItem :value="type" :className="badgeClass.badgeStyle" />
-                  </td>
-                  <td class="whitespace-nowrap px-3 py-5 text-sm text-editor-fg">
-                    <DescriptionItem :value="pipeline.schedule" :className="badgeClass.grayBadge" />
-                  </td>
-                  <td class="whitespace-nowrap px-3 py-5 text-sm text-editor-fg">
-                    <DescriptionItem value="Unknown" className="font-semibold text-gray-400" />
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+    <div class="w-full">
+      <div class="flex items-center space-x-2 w-full justify-between">
+        <div class="font-md text-editor-fg text-lg font-mono">{{ name }}</div>
+        <div class="space-x-2">
+          <DescriptionItem :value="type" :className="badgeClass.badgeStyle" />
+          <DescriptionItem :value="pipeline.schedule" :className="badgeClass.grayBadge" />
         </div>
       </div>
-      <vscode-divider class="border-t border-editor-border opacity-20 shadow-lg"></vscode-divider>
-      <div class="border-b py-4 px-2 sm:px-6 bg-editor-bg">
-        <!-- <h3 class="text-lg leading-6 font-medium text-editor-fg mb-2">Description</h3> -->
-        <div class="max-h-24 px-1 overflow-auto custom-scrollbar">
-          <p
-            class="text-sm leading-8 text-editor-fg opacity-65 text-justify indent-8 prose-lg"
-            v-html="markdownDescription"
-          ></p>
-        </div>
+      <div v-if="ownerExists" class="flex flex-wrap items-center">
+        <DescriptionItem :value="owner" className="font-semibold text-editor-fg opacity-30" />
+      </div>
+    </div>
+
+    <div v-if="props !== null" class="flex flex-col text-editor-fg bg-editor-bg w-full">
+      <div class="">
+        <p
+          v-if="markdownDescription"
+          class="text-sm text-editor-fg opacity-65 prose prose-sm pt-4"
+          v-html="markdownDescription"
+        ></p>
+        <p v-else class="text-sm text-editor-fg opacity-50 pt-4">
+          No description available for this asset.
+        </p>
       </div>
     </div>
 
     <div class="flex" v-else>
       <MessageAlert message="This file is not a Bruin Asset or has No data to display" />
     </div>
-    <div class="w-full ">
+
+    <vscode-divider class="border-t border-editor-border opacity-20 my-4"></vscode-divider>
+
+    <div class="w-full">
       <AssetGeneral />
     </div>
   </div>
@@ -81,14 +56,21 @@ const props = defineProps<{
   pipeline: any;
 }>();
 
+const ownerExists = computed(() => {
+  return props.owner !== "" && props.owner !== "undefined" && props.owner !== null && props.owner !== undefined;
+});
+
 const md = new MarkdownIt();
 const markdownDescription = computed(() => {
+  if (!props.description) {
+    return null;
+  }
   return md.render(props.description);
 });
 
 const badgeClass = computed(() => {
   const commonStyle =
-    "inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset";
+    "inline-flex items-center rounded-md px-1 py-0.5 text-xs font-medium ring-1 ring-inset";
   return {
     commonStyle: commonStyle,
     grayBadge: `${commonStyle} ${defaultBadgeStyle.main}`,
@@ -99,12 +81,10 @@ const badgeClass = computed(() => {
 
 <style scoped>
 .custom-scrollbar {
-  scrollbar-width: none; 
+  scrollbar-width: none;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
-width: 5px; 
+  width: 5px;
 }
-
-
 </style>
