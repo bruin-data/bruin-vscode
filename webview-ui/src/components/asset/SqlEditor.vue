@@ -27,7 +27,7 @@
 <script setup>
 import { ref, defineProps, computed } from "vue";
 import 'highlight.js/styles/default.css'; 
-import IConButton from "./ui/buttons/IconButton.vue";
+import IConButton from "@/components/ui/buttons/IconButton.vue";
 import hljs from 'highlight.js/lib/core';
 
 const props = defineProps({

@@ -44,13 +44,13 @@
 import { vscode } from "@/utilities/vscode";
 import { computed, onBeforeUnmount, onMounted, ref, defineProps } from "vue";
 import { watch } from "vue";
-import ErrorAlert from "@/components/ErrorAlert.vue";
+import ErrorAlert from "@/components/ui/alerts/ErrorAlert.vue";
 import { handleError, concatCommandFlags, adjustEndDateForExclusive } from "@/utilities/helper";
 import "@/assets/index.css";
 import CommandButton from "@/components/ui/buttons/ActionButton.vue";
-import DateInput from "@/components/DateInput.vue";
-import SqlEditor from "@/components/SqlEditor.vue";
-import CheckboxGroup from "@/components/CheckboxGroup.vue";
+import DateInput from "@/components/ui/date-inputs/DateInput.vue";
+import SqlEditor from "@/components/asset/SqlEditor.vue";
+import CheckboxGroup from "@/components/ui/checkbox-group/CheckboxGroup.vue";
 import { updateValue, resetStates, determineValidationStatus } from "@/utilities/helper";
 
 const errorState = computed(() => handleError(validationError.value, renderSQLAssetError.value));

@@ -30,6 +30,7 @@
         v-if="tab.props !== null"
         :is="tab && tab.component"
         v-bind="tab && tab.props"
+        class="flex w-full"
         @update:assetName="updateAssetName"
       />
       <div class="flex w-full" v-else-if="parseError && tab.label !== 'Asset Graph Lineage'">
@@ -40,8 +41,8 @@
 </template>
 
 <script setup lang="ts">
-import AssetGeneral from "@/components/AssetGeneral.vue";
-import AssetDetails from "@/components/AssetDetails.vue";
+import AssetGeneral from "@/components/asset/AssetGeneral.vue";
+import AssetDetails from "@/components/asset/AssetDetails.vue";
 import AssetLineageText from "@/components/lineage-text/AssetLineageText.vue";
 import AssetLineageFlow from "@/components/lineage-flow/asset-lineage/AssetLineage.vue";
 import { vscode } from "@/utilities/vscode";

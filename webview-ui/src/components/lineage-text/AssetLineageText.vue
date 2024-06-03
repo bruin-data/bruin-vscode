@@ -15,7 +15,7 @@
 </template>
 
 <script setup>
-import ErrorAlert from "@/components/ErrorAlert.vue";
+import ErrorAlert from "@/components/ui/alerts/ErrorAlert.vue";
 import LineageSection from "@/components/lineage-text/LineageSection.vue";
 import TotalSection from "@/components/lineage-text/TotalSection.vue";
 import { useLineage } from "@/composables/useLineage";

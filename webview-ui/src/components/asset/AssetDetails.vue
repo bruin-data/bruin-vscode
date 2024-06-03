@@ -1,10 +1,10 @@
 <template>
-  <div class="flex flex-col items-center">
+  <div class="flex flex-col items-start justify-between w-full">
     <div
       v-if="props !== null"
-      class="flex flex-col h-1/4 overflow-auto shadow-xl text-editor-fg bg-editor-bg max-h-72 resize"
+      class="flex flex-col h-1/4 shadow-xl text-editor-fg bg-editor-bg max-h-72 w-full"
     >
-      <div class="mt-8 flow-root">
+      <div class="mt-2 flow-root">
         <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
           <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
             <table class="min-w-full divide-y divide-editor-border text-center">
@@ -43,11 +43,11 @@
         </div>
       </div>
       <vscode-divider class="border-t border-editor-border opacity-20 shadow-lg"></vscode-divider>
-      <div class="border-b py-6 px-4 sm:px-6 bg-editor-bg">
-        <h3 class="text-lg leading-6 font-medium text-editor-fg mb-2">Description</h3>
-        <div class="w-full">
+      <div class="border-b py-4 px-2 sm:px-6 bg-editor-bg">
+        <!-- <h3 class="text-lg leading-6 font-medium text-editor-fg mb-2">Description</h3> -->
+        <div class="max-h-24 px-1 overflow-auto custom-scrollbar">
           <p
-            class="w-full overflow-auto text-sm leading-8 text-editor-fg opacity-65 text-justify indent-8 prose-lg"
+            class="text-sm leading-8 text-editor-fg opacity-65 text-justify indent-8 prose-lg"
             v-html="markdownDescription"
           ></p>
         </div>
@@ -57,7 +57,7 @@
     <div class="flex" v-else>
       <MessageAlert message="This file is not a Bruin Asset or has No data to display" />
     </div>
-    <div class="w-full">
+    <div class="w-full ">
       <AssetGeneral />
     </div>
   </div>
@@ -96,3 +96,15 @@ const badgeClass = computed(() => {
   };
 });
 </script>
+
+<style scoped>
+.custom-scrollbar {
+  scrollbar-width: none; 
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+width: 5px; 
+}
+
+
+</style>
