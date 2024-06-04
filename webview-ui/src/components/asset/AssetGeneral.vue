@@ -56,7 +56,7 @@
               </template>
               Validate
             </button>
-            <Menu as="div" class="relative -ml-px block">
+            <Menu as="div" class="relative -ml-px block ">
               <MenuButton
                 :disabled="isNotAsset || isError"
                 class="relative inline-flex items-center disabled:opacity-50 disabled:cursor-not-allowed rounded-r-md bg-editor-button-bg px-2 py-2 text-editor-button-fg ring-1 ring-inset ring-editor-button-border hover:bg-editor-button-hover-bg focus:z-10"
@@ -177,7 +177,7 @@
         <div v-if="language === 'sql'">
           <SqlEditor v-show="!isError" :code="code" :copied="false" :language="language" />
         </div>
-        <div v-else>
+        <div v-else class="overflow-hidden w-full h-20">
           <pre class="white-space"></pre>
         </div>
       </div>
