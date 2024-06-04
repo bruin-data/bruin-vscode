@@ -2,6 +2,12 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+- ## [0.9.3] - [2024-06-04]
+### Improved
+- Combined the asset general and asset details tabs into a single tab.
+- Adjusted the styling of the asset details to better align with Visual Studio Code's aesthetic.
+- Corrected the position of menu items for non-SQL assets.
+
 - ## [0.9.2] - [2024-05-30]
 ### Improved
 - Expanded validation options with "Validate All Pipelines" and "Validate Current Pipeline" choices for increased flexibility.
