@@ -13,7 +13,7 @@
         <span v-if="copied" class="text-sm">Copied!</span>
       </button>
     </div>
-    <div id="sql-editor" class="code-container">
+    <div id="sql-editor" class="code-container pb-0">
       <pre id="editor-pre">
         <div v-for="(line, index) in highlightedLines" :key="index" class="line">
           <span class="line-number">{{ index + 1 }}</span>
@@ -113,8 +113,10 @@ const highlightedLines = computed(() => {
   white-space: pre-wrap;
   max-width: 100%;
   color: var(--vscode-icon-foreground);
+  margin-bottom: -1em;
 }
   
+
 
 
 </style>
