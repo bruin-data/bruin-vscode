@@ -1,19 +1,14 @@
-const animate = require("tailwindcss-animate")
-import typography from '@tailwindcss/typography';
-
+const animate = require("tailwindcss-animate");
+import typography from "@tailwindcss/typography";
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   darkMode: ["class"],
   safelist: ["dark"],
   prefix: "",
-  
-  content: [
-    './index.html',
-    './src/components/**/*.{ts,tsx,vue}',
-    './src/**/*.{ts,tsx,vue}',
-	],
-  
+
+  content: ["./index.html", "./src/components/**/*.{ts,tsx,vue}", "./src/**/*.{ts,tsx,vue}"],
+
   theme: {
     container: {
       center: true,
@@ -26,88 +21,95 @@ module.exports = {
       typography: (theme) => ({
         DEFAULT: {
           css: {
-            color: theme('colors.editor-fg'),
+            color: theme("colors.editor-fg"),
             h1: {
-              color: theme('colors.editor-fg'),
+              color: theme("colors.editor-fg"),
             },
             h2: {
-              color: theme('colors.editor-fg'),
+              color: theme("colors.editor-fg"),
             },
             h3: {
-              color: theme('colors.editor-fg'),
+              color: theme("colors.editor-fg"),
             },
             h4: {
-              color: theme('colors.editor-fg'),
+              color: theme("colors.editor-fg"),
             },
             h5: {
-              color: theme('colors.editor-fg'),
+              color: theme("colors.editor-fg"),
             },
             h6: {
-              color: theme('colors.editor-fg'),
+              color: theme("colors.editor-fg"),
             },
             a: {
-              color: theme('colors.link-activeForeground'),
-              '&:hover': {
-                color: theme('colors.link-activeForeground'),
+              "color": theme("colors.link-activeForeground"),
+              "&:hover": {
+                color: theme("colors.link-activeForeground"),
               },
             },
             strong: {
-              color: theme('colors.editor-fg'),
+              color: theme("colors.editor-fg"),
             },
             blockquote: {
-              color: theme('colors.editor-fg'),
+              color: theme("colors.editor-fg"),
             },
             code: {
-              color: theme('colors.editor-bg'),
-              backgroundColor: theme('colors.editor-fg'),
+              color: theme("colors.editor-bg"),
+              backgroundColor: theme("colors.editor-fg"),
             },
           },
         },
       }),
+      fontSize: {
+        "2xs": "0.6rem",
+      },
       colors: {
-        border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
-        'editor-bg': 'var(--vscode-editor-background)',
-        'editor-fg': 'var(--vscode-editor-foreground)',
-        'editor-border': 'var(--vscode-editor-border)',
-        'link-activeForeground': 'var(--vscode-textLink-activeForeground)',
-        'menu-hoverBackground': 'var(--vscode-scrollbarSlider-hoverBackground)',
-        'progressBar-bg': 'var(--vscode-progressBar-background)',
-        
-        primary: {
+        "border": "hsl(var(--border))",
+        "input": "hsl(var(--input))",
+        "ring": "hsl(var(--ring))",
+        "background": "hsl(var(--background))",
+        "foreground": "hsl(var(--foreground))",
+        "editor-bg": "var(--vscode-editor-background)",
+        "editor-fg": "var(--vscode-editor-foreground)",
+        "editor-border": "var(--vscode-editor-border)",
+        "editor-button-bg": "var(--vscode-button-background)",
+        "editor-button-hover-bg": "var(--vscode-button-hoverBackground)",
+        "editor-button-fg": "var(--vscode-button-foreground)",
+        "editor-button-border": "var(--vscode-button-border)",
+        "link-activeForeground": "var(--vscode-textLink-activeForeground)",
+        "menu-hoverBackground": "var(--vscode-scrollbarSlider-hoverBackground)",
+        "progressBar-bg": "var(--vscode-progressBar-background)",
+
+        "primary": {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
         },
-        secondary: {
+        "secondary": {
           DEFAULT: "hsl(var(--secondary))",
           foreground: "hsl(var(--secondary-foreground))",
         },
-        destructive: {
+        "destructive": {
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
         },
-        muted: {
+        "muted": {
           DEFAULT: "hsl(var(--muted))",
           foreground: "hsl(var(--muted-foreground))",
         },
-        accent: {
+        "accent": {
           DEFAULT: "hsl(var(--accent))",
           foreground: "hsl(var(--accent-foreground))",
         },
-        popover: {
+        "popover": {
           DEFAULT: "hsl(var(--popover))",
           foreground: "hsl(var(--popover-foreground))",
         },
-        card: {
+        "card": {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
       },
       borderRadius: {
-      	xl: "calc(var(--radius) + 4px)",
+        xl: "calc(var(--radius) + 4px)",
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
@@ -123,10 +125,10 @@ module.exports = {
         },
         "collapsible-down": {
           from: { height: 0 },
-          to: { height: 'var(--radix-collapsible-content-height)' },
+          to: { height: "var(--radix-collapsible-content-height)" },
         },
         "collapsible-up": {
-          from: { height: 'var(--radix-collapsible-content-height)' },
+          from: { height: "var(--radix-collapsible-content-height)" },
           to: { height: 0 },
         },
       },
@@ -138,8 +140,5 @@ module.exports = {
       },
     },
   },
-  plugins: [    
-    typography,
-    animate
-],
-}
+  plugins: [typography, animate],
+};

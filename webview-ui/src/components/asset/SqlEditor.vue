@@ -1,7 +1,7 @@
 <template>
-  <div class="highlight-container rounded-tl-md rounded-tr-md">
+  <div class="highlight-container rounded-md overflow-hidden">
     <div
-      class="header rounded-tl-md rounded-tr-md flex items-center justify-between p-2 border-gray-300 shadow-sm"
+      class="header flex items-center justify-between p-2 border-gray-300 shadow-sm"
     >
       <label class="text-sm font-medium">SQL Preview</label>
       <button
@@ -13,7 +13,7 @@
         <span v-if="copied" class="text-sm">Copied!</span>
       </button>
     </div>
-    <div id="sql-editor" class="code-container">
+    <div id="sql-editor" class="code-container pb-0">
       <pre id="editor-pre">
         <div v-for="(line, index) in highlightedLines" :key="index" class="line">
           <span class="line-number">{{ index + 1 }}</span>
@@ -27,7 +27,7 @@
 <script setup>
 import { ref, defineProps, computed } from "vue";
 import 'highlight.js/styles/default.css'; 
-import IConButton from "./ui/buttons/IconButton.vue";
+import IConButton from "@/components/ui/buttons/IconButton.vue";
 import hljs from 'highlight.js/lib/core';
 
 const props = defineProps({
@@ -75,7 +75,6 @@ const highlightedLines = computed(() => {
 }
 #sql-editor,
 .python-content {
-  padding: 1rem;
   background-color: var(--vscode-sideBar-background);
 }
 
@@ -95,11 +94,12 @@ const highlightedLines = computed(() => {
 }
 
 .line-number {
-  min-width: 50px;
-  text-align: right;
-  padding-right: 1.5rem;
   color: var(--vscode-disabledForeground);
   user-select: none; /* Prevents line number from being selected */
+}
+
+.line-number {
+  @apply pr-4 pl-4 text-right
 }
 
 .code-content {
@@ -113,8 +113,10 @@ const highlightedLines = computed(() => {
   white-space: pre-wrap;
   max-width: 100%;
   color: var(--vscode-icon-foreground);
+  margin-bottom: -1em;
 }
   
+
 
 
 </style>

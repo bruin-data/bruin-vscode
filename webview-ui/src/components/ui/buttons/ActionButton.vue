@@ -12,7 +12,7 @@
     >
       <!-- Status icons and button label -->
       <button
-        class="flex items-center gap-x-2 px-4 py-2
+        class="flex items-center gap-x-2 px-3 py-2
         focus:rounded-md focus:text-[color:var(--vscode-editor-forground)] 
         focus:bg-editor-bg hover:bg-editor-fg 
         hover:opacity-75 
@@ -54,7 +54,7 @@
           v-for="(item, index) in menuItems"
           :key="index"
           @click="selectAction(item)"
-          class="block w-full px-4 py-2 text-sm text-left text-[color:var(--vscode-editor-background)] hover:text-[color:var(--vscode-editor-background)] hover:bg-menu-hoverBackground focus:outline-none "
+          class="block w-full px-3 py-2 text-sm text-left text-[color:var(--vscode-editor-background)] hover:text-[color:var(--vscode-editor-background)] hover:bg-menu-hoverBackground focus:outline-none "
         >
           {{ item }}
         </button>
