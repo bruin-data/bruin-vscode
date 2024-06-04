@@ -15,8 +15,9 @@
           <div class="inline-flex rounded-md shadow-sm">
             <button
               type="button"
-              class="relative inline-flex items-center rounded-l-md bg-editor-button-bg px-3 py-2 text-sm font-medium text-editor-button-fg ring-1 ring-inset ring-editor-button-border hover:bg-editor-button-hover-bg focus:z-10"
+              class="relative inline-flex items-center rounded-l-md bg-editor-button-bg px-3 py-2 text-sm font-medium text-editor-button-fg ring-1 ring-inset ring-editor-button-border hover:bg-editor-button-hover-bg disabled:opacity-50 disabled:cursor-not-allowed focus:z-10"
               @click="handleBruinValidateCurrentAsset"
+              :disabled="isNotAsset || isError"
             >
               <SparklesIcon v-if="!validateButtonStatus" class="h-4 w-4 mr-1"></SparklesIcon>
               <template v-else>
@@ -57,7 +58,8 @@
             </button>
             <Menu as="div" class="relative -ml-px block">
               <MenuButton
-                class="relative inline-flex items-center rounded-r-md bg-editor-button-bg px-2 py-2 text-editor-button-fg ring-1 ring-inset ring-editor-button-border hover:bg-editor-button-hover-bg focus:z-10"
+                :disabled="isNotAsset || isError"
+                class="relative inline-flex items-center disabled:opacity-50 disabled:cursor-not-allowed rounded-r-md bg-editor-button-bg px-2 py-2 text-editor-button-fg ring-1 ring-inset ring-editor-button-border hover:bg-editor-button-hover-bg focus:z-10"
               >
                 <ChevronDownIcon class="h-5 w-5" aria-hidden="true" />
               </MenuButton>
@@ -76,7 +78,9 @@
                     <MenuItem key="validate-current" v-slot="{ active }">
                       <button
                         :class="[
-                          active ? 'bg-editor-button-hover-bg text-editor-button-fg' : 'bg-editor-button-bg',
+                          active
+                            ? 'bg-editor-button-hover-bg text-editor-button-fg'
+                            : 'bg-editor-button-bg',
                           'block w-full text-left px-4 py-2 text-sm',
                         ]"
                         @click="handleBruinValidateAllPipelines"
@@ -87,7 +91,9 @@
                     <MenuItem key="validate-all" v-slot="{ active }">
                       <button
                         :class="[
-                          active ? 'bg-editor-button-hover-bg text-editor-button-fg' : 'bg-editor-button-bg',
+                          active
+                            ? 'bg-editor-button-hover-bg text-editor-button-fg'
+                            : 'bg-editor-button-bg',
                           'block w-full text-left px-4 py-2 text-sm',
                         ]"
                         @click="handleBruinValidateCurrentPipeline"
@@ -105,7 +111,10 @@
             <!-- TODO: djamila to implement disabling -->
             <button
               type="button"
-              class="relative inline-flex items-center rounded-l-md bg-editor-button-bg px-3 py-2 text-sm font-medium text-editor-button-fg ring-1 ring-inset ring-editor-button-border hover:bg-editor-button-hover-bg focus:z-10"
+              :disabled="isNotAsset || isError"
+              class="relative inline-flex items-center rounded-l-md bg-editor-button-bg px-3 py-2 text-sm font-medium 
+              text-editor-button-fg ring-1 ring-inset ring-editor-button-border 
+              hover:bg-editor-button-hover-bg focus:z-10 disabled:opacity-50 disabled:cursor-not-allowed"
               @click="runAssetOnly"
             >
               <PlayIcon class="h-4 w-4 mr-1"></PlayIcon>
@@ -113,7 +122,10 @@
             </button>
             <Menu as="div" class="relative -ml-px block">
               <MenuButton
-                class="relative inline-flex items-center rounded-r-md bg-editor-button-bg px-2 py-2 text-editor-button-fg ring-1 ring-inset ring-editor-button-border hover:bg-editor-button-hover-bg focus:z-10"
+                :disabled="isNotAsset || isError"
+                class="relative inline-flex items-center rounded-r-md bg-editor-button-bg px-2 py-2
+                 text-editor-button-fg ring-1 ring-inset ring-editor-button-border
+                  hover:bg-editor-button-hover-bg focus:z-10 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ChevronDownIcon class="h-5 w-5" aria-hidden="true" />
               </MenuButton>
@@ -132,7 +144,9 @@
                     <MenuItem key="validate-current" v-slot="{ active }">
                       <button
                         :class="[
-                          active ? 'bg-editor-button-hover-bg text-editor-button-fg' : 'bg-editor-button-bg',
+                          active
+                            ? 'bg-editor-button-hover-bg text-editor-button-fg'
+                            : 'bg-editor-button-bg',
                           'block w-full text-left px-4 py-2 text-sm',
                         ]"
                         @click="runAssetWithDownstream"
@@ -143,7 +157,9 @@
                     <MenuItem key="validate-all" v-slot="{ active }">
                       <button
                         :class="[
-                          active ? 'bg-editor-button-hover-bg text-editor-button-fg' : 'bg-editor-button-bg',
+                          active
+                            ? 'bg-editor-button-hover-bg text-editor-button-fg'
+                            : 'bg-editor-button-bg',
                           'block w-full text-left px-4 py-2 text-sm',
                         ]"
                         @click="runCurrentPipeline"
