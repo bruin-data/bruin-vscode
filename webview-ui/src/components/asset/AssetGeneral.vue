@@ -11,6 +11,11 @@
             <CheckboxGroup :checkboxItems="checkboxItems" />
           </div>
         </div>
+        <div class="flex justify-between items-center">
+          <EnvSelectMenu 
+            :options="['default', 'env 1', 'env 2']" 
+            @selected-env="setSelectedEnv"
+          />
         <div class="flex justify-end items-center space-x-4">
           <div class="inline-flex rounded-md shadow-sm">
             <button
@@ -173,6 +178,7 @@
             </Menu>
           </div>
         </div>
+      </div>
         <ErrorAlert v-if="isError" :errorMessage="errorMessage!" />
         <div v-if="language === 'sql'">
           <SqlEditor v-show="!isError" :code="code" :copied="false" :language="language" />
@@ -195,6 +201,7 @@ import "@/assets/index.css";
 import DateInput from "@/components/ui/date-inputs/DateInput.vue";
 import SqlEditor from "@/components/asset/SqlEditor.vue";
 import CheckboxGroup from "@/components/ui/checkbox-group/CheckboxGroup.vue";
+import EnvSelectMenu from "@/components/ui/select-menu/EnvSelectMenu.vue";
 import { updateValue, resetStates, determineValidationStatus } from "@/utilities/helper";
 
 const errorState = computed(() => handleError(validationError.value, renderSQLAssetError.value));
@@ -253,7 +260,11 @@ function runCurrentPipeline() {
     payload: payload,
   });
 }
+const selectedEnv = ref<string>('default');
 
+function setSelectedEnv(env: string) {
+  selectedEnv.value = env;
+}
 const validationSuccess = ref(null);
 const validationError = ref(null);
 const renderSQLAssetSuccess = ref(null);
@@ -321,9 +332,9 @@ onBeforeUnmount(() => {
 });
 
 watch(
-  [checkboxItems, startDate, endDate, endDateExclusive],
+  [checkboxItems, startDate, endDate, endDateExclusive, selectedEnv],
   () => {
-    const payload: string = getCheckboxChangePayload();
+    const payload = getCheckboxChangePayload() + ` --env ${selectedEnv.value}`;
     console.log("Checkbox change payload", payload);
     vscode.postMessage({
       command: "checkboxChange",
