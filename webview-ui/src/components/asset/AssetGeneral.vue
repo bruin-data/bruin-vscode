@@ -11,168 +11,166 @@
             <CheckboxGroup :checkboxItems="checkboxItems" />
           </div>
         </div>
-        <div class="flex justify-end items-center space-x-4">
-          <div class="inline-flex rounded-md shadow-sm">
-            <button
-              type="button"
-              class="relative inline-flex items-center rounded-l-md bg-editor-button-bg px-3 py-2 text-sm font-medium text-editor-button-fg ring-1 ring-inset ring-editor-button-border hover:bg-editor-button-hover-bg disabled:opacity-50 disabled:cursor-not-allowed focus:z-10"
-              @click="handleBruinValidateCurrentAsset"
-              :disabled="isNotAsset || isError"
-            >
-              <SparklesIcon v-if="!validateButtonStatus" class="h-4 w-4 mr-1"></SparklesIcon>
-              <template v-else>
-                <CheckCircleIcon
-                  v-if="validateButtonStatus === 'validated'"
-                  class="h-4 w-4 mr-1 text-green-600"
-                  aria-hidden="true"
-                />
-                <XCircleIcon
-                  v-else-if="validateButtonStatus === 'failed'"
-                  class="h-4 w-4 mr-1 text-[#f48771]"
-                  aria-hidden="true"
-                />
-
-                <svg
-                  v-else-if="validateButtonStatus === 'loading'"
-                  class="animate-spin mr-1 h-4 w-4 text-editor-bg"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    class="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    stroke-width="4"
-                  ></circle>
-                  <path
-                    class="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-              </template>
-              Validate
-            </button>
-            <Menu as="div" class="relative -ml-px block ">
-              <MenuButton
+        <div class="flex flex-wrap justify-between items-center">
+          <EnvSelectMenu :options="['default', 'env 1', 'env 2']" @selected-env="setSelectedEnv" />
+          <div class="flex justify-end items-center space-x-2 sm:space-x-4 mt-2 sm:mt-0">
+            <div class="inline-flex rounded-md shadow-sm">
+              <button
+                type="button"
+                class="relative inline-flex items-center rounded-l-md bg-editor-button-bg px-3 py-2 text-sm font-medium text-editor-button-fg ring-1 ring-inset ring-editor-button-border hover:bg-editor-button-hover-bg disabled:opacity-50 disabled:cursor-not-allowed focus:z-10"
+                @click="handleBruinValidateCurrentAsset"
                 :disabled="isNotAsset || isError"
-                class="relative inline-flex items-center disabled:opacity-50 disabled:cursor-not-allowed rounded-r-md bg-editor-button-bg px-2 py-2 text-editor-button-fg ring-1 ring-inset ring-editor-button-border hover:bg-editor-button-hover-bg focus:z-10"
               >
-                <ChevronDownIcon class="h-5 w-5" aria-hidden="true" />
-              </MenuButton>
-              <transition
-                enter-active-class="transition ease-out duration-100"
-                enter-from-class="transform opacity-0 scale-95"
-                enter-to-class="transform opacity-100 scale-100"
-                leave-active-class="transition ease-in duration-75"
-                leave-from-class="transform opacity-100 scale-100"
-                leave-to-class="transform opacity-0 scale-95"
-              >
-                <MenuItems
-                  class="absolute right-0 z-10 -mr-1 mt-2 w-56 origin-top-right rounded-md bg-editor-button-bg shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+                <SparklesIcon v-if="!validateButtonStatus" class="h-4 w-4 mr-1"></SparklesIcon>
+                <template v-else>
+                  <CheckCircleIcon
+                    v-if="validateButtonStatus === 'validated'"
+                    class="h-4 w-4 mr-1 text-green-600"
+                    aria-hidden="true"
+                  />
+                  <XCircleIcon
+                    v-else-if="validateButtonStatus === 'failed'"
+                    class="h-4 w-4 mr-1 text-[#f48771]"
+                    aria-hidden="true"
+                  />
+                  <svg
+                    v-else-if="validateButtonStatus === 'loading'"
+                    class="animate-spin mr-1 h-4 w-4 text-editor-bg"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      class="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      stroke-width="4"
+                    ></circle>
+                    <path
+                      class="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                </template>
+                Validate
+              </button>
+              <Menu as="div" class="relative -ml-px block">
+                <MenuButton
+                  :disabled="isNotAsset || isError"
+                  class="relative inline-flex items-center disabled:opacity-50 disabled:cursor-not-allowed rounded-r-md bg-editor-button-bg px-2 py-2 text-editor-button-fg ring-1 ring-inset ring-editor-button-border hover:bg-editor-button-hover-bg focus:z-10"
                 >
-                  <div class="py-1">
-                    <MenuItem key="validate-current" v-slot="{ active }">
-                      <button
-                        :class="[
-                          active
-                            ? 'bg-editor-button-hover-bg text-editor-button-fg'
-                            : 'bg-editor-button-bg',
-                          'block w-full text-left px-4 py-2 text-sm',
-                        ]"
-                        @click="handleBruinValidateAllPipelines"
-                      >
-                        Validate current pipeline
-                      </button>
-                    </MenuItem>
-                    <MenuItem key="validate-all" v-slot="{ active }">
-                      <button
-                        :class="[
-                          active
-                            ? 'bg-editor-button-hover-bg text-editor-button-fg'
-                            : 'bg-editor-button-bg',
-                          'block w-full text-left px-4 py-2 text-sm',
-                        ]"
-                        @click="handleBruinValidateCurrentPipeline"
-                      >
-                        Validate all pipelines
-                      </button>
-                    </MenuItem>
-                  </div>
-                </MenuItems>
-              </transition>
-            </Menu>
-          </div>
+                  <ChevronDownIcon class="h-5 w-5" aria-hidden="true" />
+                </MenuButton>
+                <transition
+                  enter-active-class="transition ease-out duration-100"
+                  enter-from-class="transform opacity-0 scale-95"
+                  enter-to-class="transform opacity-100 scale-100"
+                  leave-active-class="transition ease-in duration-75"
+                  leave-from-class="transform opacity-100 scale-100"
+                  leave-to-class="transform opacity-0 scale-95"
+                >
+                  <MenuItems
+                    class="absolute right-0 z-10 -mr-1 mt-2 w-56 origin-top-right rounded-md bg-editor-button-bg shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+                  >
+                    <div class="py-1">
+                      <MenuItem key="validate-current" v-slot="{ active }">
+                        <button
+                          :class="[
+                            active
+                              ? 'bg-editor-button-hover-bg text-editor-button-fg'
+                              : 'bg-editor-button-bg',
+                            'block w-full text-left px-4 py-2 text-sm',
+                          ]"
+                          @click="handleBruinValidateAllPipelines"
+                        >
+                          Validate current pipeline
+                        </button>
+                      </MenuItem>
+                      <MenuItem key="validate-all" v-slot="{ active }">
+                        <button
+                          :class="[
+                            active
+                              ? 'bg-editor-button-hover-bg text-editor-button-fg'
+                              : 'bg-editor-button-bg',
+                            'block w-full text-left px-4 py-2 text-sm',
+                          ]"
+                          @click="handleBruinValidateCurrentPipeline"
+                        >
+                          Validate all pipelines
+                        </button>
+                      </MenuItem>
+                    </div>
+                  </MenuItems>
+                </transition>
+              </Menu>
+            </div>
 
-          <div class="inline-flex rounded-md shadow-sm">
-            <!-- TODO: djamila to implement disabling -->
-            <button
-              type="button"
-              :disabled="isNotAsset || isError"
-              class="relative inline-flex items-center rounded-l-md bg-editor-button-bg px-3 py-2 text-sm font-medium 
-              text-editor-button-fg ring-1 ring-inset ring-editor-button-border 
-              hover:bg-editor-button-hover-bg focus:z-10 disabled:opacity-50 disabled:cursor-not-allowed"
-              @click="runAssetOnly"
-            >
-              <PlayIcon class="h-4 w-4 mr-1"></PlayIcon>
-              Run
-            </button>
-            <Menu as="div" class="relative -ml-px block">
-              <MenuButton
+            <div class="inline-flex rounded-md shadow-sm sm:mt-0">
+              <button
+                type="button"
                 :disabled="isNotAsset || isError"
-                class="relative inline-flex items-center rounded-r-md bg-editor-button-bg px-2 py-2
-                 text-editor-button-fg ring-1 ring-inset ring-editor-button-border
-                  hover:bg-editor-button-hover-bg focus:z-10 disabled:opacity-50 disabled:cursor-not-allowed"
+                class="relative inline-flex items-center rounded-l-md bg-editor-button-bg px-3 py-2 text-sm font-medium text-editor-button-fg ring-1 ring-inset ring-editor-button-border hover:bg-editor-button-hover-bg focus:z-10 disabled:opacity-50 disabled:cursor-not-allowed"
+                @click="runAssetOnly"
               >
-                <ChevronDownIcon class="h-5 w-5" aria-hidden="true" />
-              </MenuButton>
-              <transition
-                enter-active-class="transition ease-out duration-100"
-                enter-from-class="transform opacity-0 scale-95"
-                enter-to-class="transform opacity-100 scale-100"
-                leave-active-class="transition ease-in duration-75"
-                leave-from-class="transform opacity-100 scale-100"
-                leave-to-class="transform opacity-0 scale-95"
-              >
-                <MenuItems
-                  class="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-editor-button-bg shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+                <PlayIcon class="h-4 w-4 mr-1"></PlayIcon>
+                Run
+              </button>
+              <Menu as="div" class="relative -ml-px block">
+                <MenuButton
+                  :disabled="isNotAsset || isError"
+                  class="relative inline-flex items-center rounded-r-md bg-editor-button-bg px-2 py-2 text-editor-button-fg ring-1 ring-inset ring-editor-button-border hover:bg-editor-button-hover-bg focus:z-10 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <div class="py-1">
-                    <MenuItem key="validate-current" v-slot="{ active }">
-                      <button
-                        :class="[
-                          active
-                            ? 'bg-editor-button-hover-bg text-editor-button-fg'
-                            : 'bg-editor-button-bg',
-                          'block w-full text-left px-4 py-2 text-sm',
-                        ]"
-                        @click="runAssetWithDownstream"
-                      >
-                        Run with downstream
-                      </button>
-                    </MenuItem>
-                    <MenuItem key="validate-all" v-slot="{ active }">
-                      <button
-                        :class="[
-                          active
-                            ? 'bg-editor-button-hover-bg text-editor-button-fg'
-                            : 'bg-editor-button-bg',
-                          'block w-full text-left px-4 py-2 text-sm',
-                        ]"
-                        @click="runCurrentPipeline"
-                      >
-                        Run the whole pipeline
-                      </button>
-                    </MenuItem>
-                  </div>
-                </MenuItems>
-              </transition>
-            </Menu>
+                  <ChevronDownIcon class="h-5 w-5" aria-hidden="true" />
+                </MenuButton>
+                <transition
+                  enter-active-class="transition ease-out duration-100"
+                  enter-from-class="transform opacity-0 scale-95"
+                  enter-to-class="transform opacity-100 scale-100"
+                  leave-active-class="transition ease-in duration-75"
+                  leave-from-class="transform opacity-100 scale-100"
+                  leave-to-class="transform opacity-0 scale-95"
+                >
+                  <MenuItems
+                    class="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-editor-button-bg shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+                  >
+                    <div class="py-1">
+                      <MenuItem key="validate-current" v-slot="{ active }">
+                        <button
+                          :class="[
+                            active
+                              ? 'bg-editor-button-hover-bg text-editor-button-fg'
+                              : 'bg-editor-button-bg',
+                            'block w-full text-left px-4 py-2 text-sm',
+                          ]"
+                          @click="runAssetWithDownstream"
+                        >
+                          Run with downstream
+                        </button>
+                      </MenuItem>
+                      <MenuItem key="validate-all" v-slot="{ active }">
+                        <button
+                          :class="[
+                            active
+                              ? 'bg-editor-button-hover-bg text-editor-button-fg'
+                              : 'bg-editor-button-bg',
+                            'block w-full text-left px-4 py-2 text-sm',
+                          ]"
+                          @click="runCurrentPipeline"
+                        >
+                          Run the whole pipeline
+                        </button>
+                      </MenuItem>
+                    </div>
+                  </MenuItems>
+                </transition>
+              </Menu>
+            </div>
           </div>
         </div>
+
         <ErrorAlert v-if="isError" :errorMessage="errorMessage!" />
         <div v-if="language === 'sql'">
           <SqlEditor v-show="!isError" :code="code" :copied="false" :language="language" />
@@ -195,6 +193,7 @@ import "@/assets/index.css";
 import DateInput from "@/components/ui/date-inputs/DateInput.vue";
 import SqlEditor from "@/components/asset/SqlEditor.vue";
 import CheckboxGroup from "@/components/ui/checkbox-group/CheckboxGroup.vue";
+import EnvSelectMenu from "@/components/ui/select-menu/EnvSelectMenu.vue";
 import { updateValue, resetStates, determineValidationStatus } from "@/utilities/helper";
 
 const errorState = computed(() => handleError(validationError.value, renderSQLAssetError.value));
@@ -253,7 +252,11 @@ function runCurrentPipeline() {
     payload: payload,
   });
 }
+const selectedEnv = ref<string>("default");
 
+function setSelectedEnv(env: string) {
+  selectedEnv.value = env;
+}
 const validationSuccess = ref(null);
 const validationError = ref(null);
 const renderSQLAssetSuccess = ref(null);
@@ -321,9 +324,9 @@ onBeforeUnmount(() => {
 });
 
 watch(
-  [checkboxItems, startDate, endDate, endDateExclusive],
+  [checkboxItems, startDate, endDate, endDateExclusive, selectedEnv],
   () => {
-    const payload: string = getCheckboxChangePayload();
+    const payload = getCheckboxChangePayload() + ` --env ${selectedEnv.value}`;
     console.log("Checkbox change payload", payload);
     vscode.postMessage({
       command: "checkboxChange",
