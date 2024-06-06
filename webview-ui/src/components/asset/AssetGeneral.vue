@@ -11,7 +11,8 @@
                 type="button"
                 class="rounded-md bg-editor-button-bg  p-2 mt-6 text-editor-button-fg hover:bg-editor-button-hover-bg disabled:opacity-50 disabled:cursor-not-allowed"
                 @click="resetStartEndDate"
-                :disabled="isNotAsset || isError"
+                :title="isCron ? `Schedule not supported yet`: `Reset Start and End Date`"
+                :disabled="isCron"
               >
                 <ArrowPathRoundedSquareIcon class="sm:h-5 sm:w-5 h-4 w-4" aria-hidden="true" />
               </button>
@@ -271,6 +272,7 @@ const selectedEnv = ref<string>("default");
 function setSelectedEnv(env: string) {
   selectedEnv.value = env;
 }
+const isCron = ref(false);
 const validationSuccess = ref(null);
 const validationError = ref(null);
 const renderSQLAssetSuccess = ref(null);
@@ -349,6 +351,8 @@ function resetStartEndDate() {
       startDate.value = firstDayOfLastMonth.toISOString().slice(0, -1);
       endDate.value = lastDayOfLastMonth.toISOString().slice(0, -1);
       break;
+      default:
+      isCron.value = true;
   }
 }
 function getCheckboxChangePayload() {
