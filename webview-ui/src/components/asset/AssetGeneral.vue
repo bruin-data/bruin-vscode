@@ -3,9 +3,25 @@
     <div class="">
       <div class="flex flex-col space-y-4">
         <div class="flex flex-col space-y-3">
-          <div class="flex space-x-2">
-            <DateInput class="w-1/2" label="Start Date" v-model="startDate" />
-            <DateInput class="w-1/2" label="End Date" v-model="endDate" />
+          <div>
+            <div class="flex justify-end">
+              <button
+                type="button"
+                class="relative inline-flex items-center rounded-md bg-editor-button-bg px-3 py-2 mb-2 text-sm font-medium text-editor-button-fg ring-1 ring-inset ring-editor-button-border hover:bg-editor-button-hover-bg disabled:opacity-50 disabled:cursor-not-allowed focus:z-10"
+                @click="resetStartEndDate('daily')"
+                :disabled="isNotAsset || isError"
+              >
+                <ArrowPathRoundedSquareIcon
+                  v-if="!validateButtonStatus"
+                  class="h-4 w-4 mr-1"
+                ></ArrowPathRoundedSquareIcon>
+                Reset date
+              </button>
+            </div>
+            <div class="flex space-x-2">
+              <DateInput class="w-1/2" label="Start Date" v-model="startDate" />
+              <DateInput class="w-1/2" label="End Date" v-model="endDate" />
+            </div>
           </div>
           <div>
             <CheckboxGroup :checkboxItems="checkboxItems" />
@@ -203,7 +219,7 @@ const isNotAsset = computed(() => (renderAssetAlert.value ? true : false));
 
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/vue";
 import { ChevronDownIcon, CheckCircleIcon, XCircleIcon } from "@heroicons/vue/24/solid";
-import { SparklesIcon, PlayIcon } from "@heroicons/vue/24/outline";
+import { SparklesIcon, PlayIcon, ArrowPathRoundedSquareIcon } from "@heroicons/vue/24/outline";
 
 function handleBruinValidateAllPipelines() {
   vscode.postMessage({
@@ -291,6 +307,52 @@ watch(
   { immediate: true }
 );
 
+function resetStartEndDate(schedule: string) {
+  switch (schedule) {
+    case "daily":
+      startDate.value = new Date(
+        Date.UTC(today.getFullYear(), today.getMonth(), today.getDate() - 1, 0, 0, 0, 0)
+      )
+        .toISOString()
+        .slice(0, -1);
+      endDate.value = new Date(
+        Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0)
+      )
+        .toISOString()
+        .slice(0, -1);
+      break;
+    case "weekly":
+      const dayOfWeek = today.getUTCDay();
+      const lastMonday = new Date(
+        Date.UTC(today.getFullYear(), today.getMonth(), today.getDate() - dayOfWeek - 6, 0, 0, 0, 0)
+      );
+      
+      const thisMonday = new Date(
+        Date.UTC(
+          today.getFullYear(),
+          today.getMonth(),
+          today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1),
+          0,
+          0,
+          0,
+          0
+        )
+      );
+      startDate.value = lastMonday.toISOString().slice(0, -1);
+      endDate.value = thisMonday.toISOString().slice(0, -1);
+      break;
+    case "monthly":
+      const firstDayOfLastMonth = new Date(
+        Date.UTC(today.getFullYear(), today.getMonth() - 1, 1, 0, 0, 0, 0)
+      );
+      const lastDayOfLastMonth = new Date(
+        Date.UTC(today.getFullYear(), today.getMonth(), 0, 0, 0, 0, 0)
+      );
+      startDate.value = firstDayOfLastMonth.toISOString().slice(0, -1);
+      endDate.value = lastDayOfLastMonth.toISOString().slice(0, -1);
+      break;
+  }
+}
 function getCheckboxChangePayload() {
   console.log("start date", startDate.value);
   console.log("end date", endDate.value);
