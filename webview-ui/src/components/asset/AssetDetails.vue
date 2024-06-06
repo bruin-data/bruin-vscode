@@ -33,7 +33,7 @@
     <vscode-divider class="border-t border-editor-border opacity-20 my-4"></vscode-divider>
 
     <div class="w-full">
-      <AssetGeneral />
+      <AssetGeneral :schedule="scheduleExists ?  props.pipeline.schedule : ''"/>
     </div>
   </div>
 </template>
@@ -50,7 +50,6 @@ const props = defineProps<{
   name: string;
   description: string;
   type: string;
-  schedule: string;
   owner: string;
   id: string;
   pipeline: any;
@@ -60,6 +59,9 @@ const ownerExists = computed(() => {
   return props.owner !== "" && props.owner !== "undefined" && props.owner !== null && props.owner !== undefined;
 });
 
+const scheduleExists = computed(() => {
+  return props.pipeline.schedule !== "" && props.pipeline.schedule !== "undefined" && props.pipeline.schedule !== null && props.pipeline.schedule !== undefined;
+});
 const md = new MarkdownIt();
 const markdownDescription = computed(() => {
   if (!props.description) {

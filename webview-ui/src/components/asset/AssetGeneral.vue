@@ -3,16 +3,27 @@
     <div class="">
       <div class="flex flex-col space-y-4">
         <div class="flex flex-col space-y-3">
-          <div class="flex space-x-2">
-            <DateInput class="w-1/2" label="Start Date" v-model="startDate" />
-            <DateInput class="w-1/2" label="End Date" v-model="endDate" />
+          <div>
+            <div class="flex space-x-2 items-center">
+              <DateInput class="w-2/5" label="Start Date" v-model="startDate" />
+              <DateInput class="w-2/5" label="End Date" v-model="endDate" />
+              <button
+                type="button"
+                class="rounded-md bg-editor-button-bg  p-2 mt-6 text-editor-button-fg hover:bg-editor-button-hover-bg disabled:opacity-50 disabled:cursor-not-allowed"
+                @click="resetStartEndDate"
+                :title="isCron ? `Schedule not supported yet`: `Reset Start and End Date`"
+                :disabled="isCron"
+              >
+                <ArrowPathRoundedSquareIcon class="sm:h-5 sm:w-5 h-4 w-4" aria-hidden="true" />
+              </button>
+            </div>
           </div>
           <div>
             <CheckboxGroup :checkboxItems="checkboxItems" />
           </div>
         </div>
-        <div class="flex flex-wrap justify-between items-center">
-          <EnvSelectMenu :options="['default', 'env 1', 'env 2']" @selected-env="setSelectedEnv" />
+        <!-- <div class="flex flex-wrap justify-between items-center"> -->
+          <!-- <EnvSelectMenu :options="['default', 'env 1', 'env 2']" @selected-env="setSelectedEnv" /> -->
           <div class="flex justify-end items-center space-x-2 sm:space-x-4 mt-2 sm:mt-0">
             <div class="inline-flex rounded-md shadow-sm">
               <button
@@ -169,8 +180,8 @@
               </Menu>
             </div>
           </div>
-        </div>
-
+<!--         </div>
+ -->
         <ErrorAlert v-if="isError" :errorMessage="errorMessage!" />
         <div v-if="language === 'sql'">
           <SqlEditor v-show="!isError" :code="code" :copied="false" :language="language" />
@@ -201,9 +212,13 @@ const isError = computed(() => errorState.value?.errorCaptured);
 const errorMessage = computed(() => errorState.value?.errorMessage);
 const isNotAsset = computed(() => (renderAssetAlert.value ? true : false));
 
+const props = defineProps<{
+  schedule: string;
+}>();
+
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/vue";
 import { ChevronDownIcon, CheckCircleIcon, XCircleIcon } from "@heroicons/vue/24/solid";
-import { SparklesIcon, PlayIcon } from "@heroicons/vue/24/outline";
+import { SparklesIcon, PlayIcon, ArrowPathRoundedSquareIcon } from "@heroicons/vue/24/outline";
 
 function handleBruinValidateAllPipelines() {
   vscode.postMessage({
@@ -257,6 +272,7 @@ const selectedEnv = ref<string>("default");
 function setSelectedEnv(env: string) {
   selectedEnv.value = env;
 }
+const isCron = ref(false);
 const validationSuccess = ref(null);
 const validationError = ref(null);
 const renderSQLAssetSuccess = ref(null);
@@ -291,6 +307,54 @@ watch(
   { immediate: true }
 );
 
+function resetStartEndDate() {
+  switch (props.schedule) {
+    case "daily":
+      startDate.value = new Date(
+        Date.UTC(today.getFullYear(), today.getMonth(), today.getDate() - 1, 0, 0, 0, 0)
+      )
+        .toISOString()
+        .slice(0, -1);
+      endDate.value = new Date(
+        Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0)
+      )
+        .toISOString()
+        .slice(0, -1);
+      break;
+    case "weekly":
+      const dayOfWeek = today.getUTCDay();
+      const lastMonday = new Date(
+        Date.UTC(today.getFullYear(), today.getMonth(), today.getDate() - dayOfWeek - 6, 0, 0, 0, 0)
+      );
+
+      const thisMonday = new Date(
+        Date.UTC(
+          today.getFullYear(),
+          today.getMonth(),
+          today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1),
+          0,
+          0,
+          0,
+          0
+        )
+      );
+      startDate.value = lastMonday.toISOString().slice(0, -1);
+      endDate.value = thisMonday.toISOString().slice(0, -1);
+      break;
+    case "monthly":
+      const firstDayOfLastMonth = new Date(
+        Date.UTC(today.getFullYear(), today.getMonth() - 1, 1, 0, 0, 0, 0)
+      );
+      const lastDayOfLastMonth = new Date(
+        Date.UTC(today.getFullYear(), today.getMonth(), 0, 0, 0, 0, 0)
+      );
+      startDate.value = firstDayOfLastMonth.toISOString().slice(0, -1);
+      endDate.value = lastDayOfLastMonth.toISOString().slice(0, -1);
+      break;
+      default:
+      isCron.value = true;
+  }
+}
 function getCheckboxChangePayload() {
   console.log("start date", startDate.value);
   console.log("end date", endDate.value);

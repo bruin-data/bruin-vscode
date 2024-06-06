@@ -41,7 +41,6 @@
 </template>
 
 <script setup lang="ts">
-import AssetGeneral from "@/components/asset/AssetGeneral.vue";
 import AssetDetails from "@/components/asset/AssetDetails.vue";
 import AssetLineageText from "@/components/lineage-text/AssetLineageText.vue";
 import AssetLineageFlow from "@/components/lineage-flow/asset-lineage/AssetLineage.vue";
