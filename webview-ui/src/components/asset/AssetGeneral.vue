@@ -4,23 +4,17 @@
       <div class="flex flex-col space-y-4">
         <div class="flex flex-col space-y-3">
           <div>
-            <div class="flex justify-end">
+            <div class="flex space-x-2 items-center">
+              <DateInput class="w-2/5" label="Start Date" v-model="startDate" />
+              <DateInput class="w-2/5" label="End Date" v-model="endDate" />
               <button
                 type="button"
-                class="relative inline-flex items-center rounded-md bg-editor-button-bg px-3 py-2 mb-2 text-sm font-medium text-editor-button-fg ring-1 ring-inset ring-editor-button-border hover:bg-editor-button-hover-bg disabled:opacity-50 disabled:cursor-not-allowed focus:z-10"
-                @click="resetStartEndDate('daily')"
+                class="rounded-md bg-editor-button-bg  p-2 mt-6 text-editor-button-fg hover:bg-editor-button-hover-bg disabled:opacity-50 disabled:cursor-not-allowed"
+                @click="resetStartEndDate"
                 :disabled="isNotAsset || isError"
               >
-                <ArrowPathRoundedSquareIcon
-                  v-if="!validateButtonStatus"
-                  class="h-4 w-4 mr-1"
-                ></ArrowPathRoundedSquareIcon>
-                Reset date
+                <ArrowPathRoundedSquareIcon class="sm:h-5 sm:w-5 h-4 w-4" aria-hidden="true" />
               </button>
-            </div>
-            <div class="flex space-x-2">
-              <DateInput class="w-1/2" label="Start Date" v-model="startDate" />
-              <DateInput class="w-1/2" label="End Date" v-model="endDate" />
             </div>
           </div>
           <div>
@@ -217,6 +211,10 @@ const isError = computed(() => errorState.value?.errorCaptured);
 const errorMessage = computed(() => errorState.value?.errorMessage);
 const isNotAsset = computed(() => (renderAssetAlert.value ? true : false));
 
+const props = defineProps<{
+  schedule: string;
+}>();
+
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/vue";
 import { ChevronDownIcon, CheckCircleIcon, XCircleIcon } from "@heroicons/vue/24/solid";
 import { SparklesIcon, PlayIcon, ArrowPathRoundedSquareIcon } from "@heroicons/vue/24/outline";
@@ -307,8 +305,8 @@ watch(
   { immediate: true }
 );
 
-function resetStartEndDate(schedule: string) {
-  switch (schedule) {
+function resetStartEndDate() {
+  switch (props.schedule) {
     case "daily":
       startDate.value = new Date(
         Date.UTC(today.getFullYear(), today.getMonth(), today.getDate() - 1, 0, 0, 0, 0)
@@ -326,7 +324,7 @@ function resetStartEndDate(schedule: string) {
       const lastMonday = new Date(
         Date.UTC(today.getFullYear(), today.getMonth(), today.getDate() - dayOfWeek - 6, 0, 0, 0, 0)
       );
-      
+
       const thisMonday = new Date(
         Date.UTC(
           today.getFullYear(),

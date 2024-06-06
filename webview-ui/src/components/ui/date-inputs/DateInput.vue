@@ -6,7 +6,7 @@
     <input
       id="datetime-picker"
       type="datetime-local"
-      class="p-2 block  max-w-sm rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+      class="p-2 block  max-w-sm rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
       :value="value" 
       @input="updateValue(($event.target as HTMLInputElement).value)"
       />
