@@ -22,8 +22,8 @@
             <CheckboxGroup :checkboxItems="checkboxItems" />
           </div>
         </div>
-        <div class="flex flex-wrap justify-between items-center">
-          <EnvSelectMenu :options="['default', 'env 1', 'env 2']" @selected-env="setSelectedEnv" />
+        <!-- <div class="flex flex-wrap justify-between items-center"> -->
+          <!-- <EnvSelectMenu :options="['default', 'env 1', 'env 2']" @selected-env="setSelectedEnv" /> -->
           <div class="flex justify-end items-center space-x-2 sm:space-x-4 mt-2 sm:mt-0">
             <div class="inline-flex rounded-md shadow-sm">
               <button
@@ -180,8 +180,8 @@
               </Menu>
             </div>
           </div>
-        </div>
-
+<!--         </div>
+ -->
         <ErrorAlert v-if="isError" :errorMessage="errorMessage!" />
         <div v-if="language === 'sql'">
           <SqlEditor v-show="!isError" :code="code" :copied="false" :language="language" />
