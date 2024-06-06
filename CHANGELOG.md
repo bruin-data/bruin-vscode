@@ -2,6 +2,10 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+- ## [0.10.0] - [2024-06-06]
+## Added:
+- Added a reset button to reset start and end dates based on the pipeline schedule.
+
 - ## [0.9.3] - [2024-06-04]
 ### Improved
 - Combined the asset general and asset details tabs into a single tab.

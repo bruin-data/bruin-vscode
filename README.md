@@ -68,13 +68,19 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: v0.9.3
-### Improved
+
+# Release Notes
+
+### Latest Release: v0.10.0
+## New Features:
+- Added a reset button to reset start and end dates based on the pipeline schedule.
+
+### Previous Highlights
+### Version 0.9.3
 - Combined the asset general and asset details tabs into a single tab.
 - Adjusted the styling of the asset details to better align with Visual Studio Code's aesthetic.
 - Corrected the position of menu items for non-SQL assets.
 
-### Previous Highlights
 ### Version 0.9.2
 - Added "Validate All Pipelines" and "Validate Current Pipeline" options for flexibility.
 - Introduced "Run Current Pipeline" option in the run button.
