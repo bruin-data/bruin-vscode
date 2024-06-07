@@ -71,8 +71,12 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 # Release Notes
 
-### Latest Release: v0.10.0
-## New Features:
+
+### Latest Release: v0.10.1
+## Fix:
+- Updated the warning message displayed when the file isn't an asset and fixed a typo.
+
+### Version 0.10.0:
 - Added a reset button to reset start and end dates based on the pipeline schedule.
 
 ### Previous Highlights
