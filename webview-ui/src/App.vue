@@ -34,7 +34,7 @@
         @update:assetName="updateAssetName"
       />
       <div class="flex w-full" v-else-if="parseError && tab.label !== 'Asset Graph Lineage'">
-        <MessageAlert message="This file is not a Bruin Asset or has No data to dipslay" />
+        <MessageAlert message="This file is either not a Bruin Asset or has no data to display." />
       </div>
     </vscode-panel-view>
   </vscode-panels>

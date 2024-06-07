@@ -27,7 +27,7 @@
     </div>
 
     <div class="flex" v-else>
-      <MessageAlert message="This file is not a Bruin Asset or has No data to display" />
+      <MessageAlert message="This file is either not a Bruin Asset or has no data to display." />
     </div>
 
     <vscode-divider class="border-t border-editor-border opacity-20 my-4"></vscode-divider>
