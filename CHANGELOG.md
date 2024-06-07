@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+- ## [0.10.1] - [2024-06-07]
+- Updated the warning message displayed when the file isn't an asset and fixed a typo.
+
 - ## [0.10.0] - [2024-06-06]
 ## Added:
 - Added a reset button to reset start and end dates based on the pipeline schedule.
