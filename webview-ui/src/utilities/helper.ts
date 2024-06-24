@@ -6,36 +6,43 @@ const isExclusiveChecked = (checkboxesItems: CheckboxItems[]): boolean => {
 
   }
 
-export const adjustEndDateForExclusive = (endtDate: string): string => {
-  const endDateObject = new Date(endtDate);
-  console.log('endDateObject', endDateObject);
-      endDateObject.setUTCHours(endDateObject.getUTCHours()); // Add one hour
-      endDateObject.setUTCMinutes(59);
-      endDateObject.setUTCSeconds(59);
-      endDateObject.setUTCMilliseconds(999);
-  return endDateObject.toISOString().replace(/\.999Z$/, ".999999999Z");
-  }
+  export const adjustEndDateForExclusive = (endDate: string): string => {
+    const endDateObject = new Date(endDate);
+    endDateObject.setUTCMilliseconds(endDateObject.getMilliseconds() - 1);
+
+    const tzOffset = endDateObject.getTimezoneOffset() * 60000; // Offset in milliseconds
+    const adjustedEndDateWithOffset = new Date(endDateObject.getTime() - tzOffset);
+
+    return adjustedEndDateWithOffset.toISOString().replace(/\.999Z$/, ".999999999Z");
+  };
+  
  
-  export const concatCommandFlags = (startDate: string, endDate: string, endDateExclusive: string, checkboxesItems: CheckboxItems[]): string => {
+  export const concatCommandFlags = (
+    startDate: string,
+    endDate: string,
+    endDateExclusive: string,
+    checkboxItems: CheckboxItems[]
+  ): string => {
     let startDateFlag = ' --start-date ' + startDate;
     if (startDateFlag.slice(-1) !== 'Z') {
       startDateFlag += 'Z';
     }
-
+  
     let endDateFlag = ' --end-date ' + endDate;
   
     // Adjust end date if "Exclusive End Date" is checked
-    if (isExclusiveChecked(checkboxesItems)) {
-      endDateFlag = ' --end-date ' + adjustEndDateForExclusive(endDateExclusive);
+    if (isExclusiveChecked(checkboxItems)) {
+      endDateFlag = ' --end-date ' + endDateExclusive;
     }
   
-    const checkboxesFlags = checkboxesItems.filter(item => item.checked && item.name !== 'Exclusive-End-Date')
-      .map(item => ` --${item.name.toLowerCase()
-      }`);
+    const checkboxesFlags = checkboxItems
+      .filter(item => item.checked && item.name !== 'Exclusive-End-Date')
+      .map(item => ` --${item.name.toLowerCase()}`);
   
-    const flags = [startDateFlag, endDateFlag, ...checkboxesFlags].concat().join(' ');
+    const flags = [startDateFlag, endDateFlag, ...checkboxesFlags].join(' ');
     return flags;
   };
+  
   
   export const handleError = (validationError: any | null, renderSQLAssetError: string |null) => {
     if (validationError || renderSQLAssetError) {
