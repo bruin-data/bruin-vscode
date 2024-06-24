@@ -388,9 +388,9 @@ onBeforeUnmount(() => {
 });
 
 watch(
-  [checkboxItems, startDate, endDate, endDateExclusive, selectedEnv],
+  [checkboxItems, startDate, endDate, endDateExclusive],
   () => {
-    const payload = getCheckboxChangePayload() + ` --env ${selectedEnv.value}`;
+    const payload = getCheckboxChangePayload();
     console.log("Checkbox change payload", payload);
     vscode.postMessage({
       command: "checkboxChange",
