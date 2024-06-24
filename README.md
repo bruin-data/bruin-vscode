@@ -66,14 +66,15 @@ Bruin is a unified analytics platform that enables data professionals to work en
 			2. An "Exclusive End Date" checkbox is available. When checked, the end date is adjusted to the precise end of the selected day (`23:59:59.999999999`).
 			3. The dates will be appended as flags directly to the Bruin run command 
 
+
+
 ## Release Notes
 
-
-# Release Notes
-
-
-### Latest Release: v0.10.1
+### Latest Release: v0.10.2
 ## Fix:
+- Fixed the issue with the full refresh behavior.
+
+### Version 0.10.1:
 - Updated the warning message displayed when the file isn't an asset and fixed a typo.
 
 ### Version 0.10.0:
