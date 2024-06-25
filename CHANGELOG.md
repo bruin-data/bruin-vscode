@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+- ## [0.10.3] - [2024-06-25]
+- Fixed the timestamp exclusion problem.
+
 - ## [0.10.2] - [2024-06-24]
 - Fixed the issue with the full refresh behavior.
 

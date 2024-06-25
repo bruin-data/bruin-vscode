@@ -70,8 +70,11 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: v0.10.2
+### Latest Release: v0.10.3
 ## Fix:
+- Integrated Luxon library to fix the timestamp exclusion problem.
+
+### Version 0.10.2:
 - Fixed the issue with the full refresh behavior.
 
 ### Version 0.10.1:
