@@ -1,29 +1,23 @@
 import type { CheckboxItems } from "@/types";
+import { DateTime } from "luxon";
 
 const isExclusiveChecked = (checkboxesItems: CheckboxItems[]): boolean => {
   return checkboxesItems.some((item) => item.name === "Exclusive-End-Date" && item.checked);
 };
 
-export const adjustEndDateForExclusive = (endDate: string): string => {
-  console.log("Initial endDate:", endDate);
-  const endDateObject = new Date(endDate);
+export const adjustEndDateForExclusive = (endDateString: string): string => {
+  console.log("Initial endDate:", endDateString);
 
-  const tzOffset = endDateObject.getTimezoneOffset() * 60000;
+  // Parse the endDateString into a Luxon DateTime object
+  let endDate = DateTime.fromISO(endDateString, { zone: "utc" });
 
-  // Handle 00:00 case separately
-  if (
-    endDateObject.getUTCHours() === 0 &&
-    endDateObject.getUTCMinutes() === 0 &&
-    endDateObject.getUTCSeconds() === 0
-  ) {
-    endDateObject.setUTCDate(endDateObject.getUTCDate() - 1);
-    endDateObject.setUTCHours(23, 59, 59, 999);
-    return endDateObject.toISOString().replace(/\.999Z$/, ".999999999Z");
-  } else {
-    endDateObject.setMilliseconds(endDateObject.getMilliseconds() - 1);
-    const adjustedEndDateWithOffset = new Date(endDateObject.getTime() - tzOffset);
-    return adjustedEndDateWithOffset.toISOString().replace(/\.999Z$/, ".999999999Z");
-  }
+  endDate = endDate.minus({ milliseconds: 1 });
+
+  const adjustedEndDateString = endDate.toISO({ includeMillis: true });
+
+  console.log("Adjusted endDate with Luxon:", adjustedEndDateString);
+
+  return adjustedEndDateString.replace(/\.999Z$/, ".999999999Z");;
 };
 
 export const concatCommandFlags = (
