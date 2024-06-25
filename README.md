@@ -70,8 +70,11 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: v0.10.3
-## Fix:
+### Latest Release: v0.10.4
+## Improve:
+- Enhance the visibility of the Validate button by updating the color of the check icon.
+
+### Version 0.10.3:
 - Integrated Luxon library to fix the timestamp exclusion problem.
 
 ### Version 0.10.2:
