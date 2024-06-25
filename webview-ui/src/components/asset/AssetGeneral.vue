@@ -280,19 +280,18 @@ const renderPythonAsset = ref(null);
 const renderSQLAssetError = ref(null);
 const renderAssetAlert = ref(null);
 const validateButtonStatus = ref("" as "validated" | "failed" | "loading" | null);
-const tzoffset = new Date().getTimezoneOffset() * 60000; //offset in milliseconds
 
-const today = new Date(Date.now() - tzoffset);
+const today = new Date(Date.now());
 const startDate = ref(
   new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate() - 1, 0, 0, 0, 0))
     .toISOString()
-    .slice(0, -1)
+    .slice(0, -1) + 'Z'
 );
 
 const endDate = ref(
   new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0))
     .toISOString()
-    .slice(0, -1)
+    .slice(0, -1) + 'Z'
 );
 
 const endDateExclusive = ref("");
@@ -300,9 +299,7 @@ const endDateExclusive = ref("");
 watch(
   endDate,
   (newEndDate) => {
-    const adjustedEndDate = new Date(newEndDate);
-    adjustedEndDate.setUTCHours(adjustedEndDate.getUTCHours() + 1); // Adding one hour
-    endDateExclusive.value = adjustEndDateForExclusive(adjustedEndDate.toISOString());
+    endDateExclusive.value = adjustEndDateForExclusive(newEndDate);
   },
   { immediate: true }
 );

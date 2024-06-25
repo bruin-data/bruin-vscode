@@ -7,7 +7,7 @@
       id="datetime-picker"
       type="datetime-local"
       class="p-2 block  max-w-sm rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-      :value="value" 
+      :value="formattedValue" 
       @input="updateValue(($event.target as HTMLInputElement).value)"
       />
   </div>
@@ -25,14 +25,15 @@ const props = defineProps({
 });
 const emit = defineEmits(['update:modelValue']);
 
-const value = computed({
-  get: () => props.modelValue,
-  set: (val) => emit('update:modelValue', val)
+const formattedValue = computed(() => {
+  return props.modelValue.slice(0, 16);
 });
 
 const updateValue = (value: string) => {
   emit('update:modelValue', value);
 };
+
+
 </script>
 
 <style>
