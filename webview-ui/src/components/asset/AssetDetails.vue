@@ -73,10 +73,13 @@ const markdownDescription = computed(() => {
 const badgeClass = computed(() => {
   const commonStyle =
     "inline-flex items-center rounded-md px-1 py-0.5 text-xs font-medium ring-1 ring-inset";
+  
+    const styleForType = badgeStyles[props.type] || defaultBadgeStyle;
+
   return {
     commonStyle: commonStyle,
     grayBadge: `${commonStyle} ${defaultBadgeStyle.main}`,
-    badgeStyle: `${commonStyle} ${badgeStyles[props.type].main}`,
+    badgeStyle: `${commonStyle} ${styleForType.main}`,
   };
 });
 </script>
