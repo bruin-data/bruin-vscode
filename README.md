@@ -70,8 +70,12 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: v0.10.4
-## Improve:
+
+### Latest Release: v0.10.5
+## Fixed:
+- Fixed a bug where setting an asset type to an invalid value caused the UI to break.
+
+### Version 0.10.4:
 - Enhance the visibility of the Validate button by updating the color of the check icon.
 
 ### Version 0.10.3:

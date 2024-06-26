@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+- ## [0.10.5] - [2024-06-26]
+- Fixed a bug where setting an asset type to an invalid value caused the UI to break.
+
 - ## [0.10.4] - [2024-06-25]
 - Enhance the visibility of the Validate button by updating the color of the check icon.
 
