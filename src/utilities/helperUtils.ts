@@ -130,5 +130,3 @@ export function isChangeInDependsSection(
     (changeEndOffset >= start && changeEndOffset <= end)
   );
 }
-
-

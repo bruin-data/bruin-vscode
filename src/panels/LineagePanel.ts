@@ -3,7 +3,6 @@ import { getNonce } from "../utilities/getNonce";
 import { getUri } from "../utilities/getUri";
 import { flowLineageCommand } from "../extension/commands/FlowLineageCommand";
 
-
 export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposable {
   public static readonly viewId = "lineageView";
   public static _view?: vscode.WebviewView | undefined;
@@ -20,7 +19,7 @@ export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposab
         this._lastRenderedDocumentUri = event?.document.uri;
         flowLineageCommand(this._lastRenderedDocumentUri);
         this.initPanel(event);
-      }),
+      })
     );
   }
 
@@ -111,8 +110,8 @@ export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposab
 
           break;
         case "bruin.refreshGraphLineage":
-            flowLineageCommand(this._lastRenderedDocumentUri);
-            this.initPanel(vscode.window.activeTextEditor);
+          flowLineageCommand(this._lastRenderedDocumentUri);
+          this.initPanel(vscode.window.activeTextEditor);
           break;
       }
     });
