@@ -70,8 +70,14 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: v0.10.6
-## Fixed & Improved:
+
+ - Corrected the validation button behavior where "Validate All" and "Validate Current Pipeline" were erroneously swapped.
+
+### Latest Release: v0.10.7
+## Fixed
+ - Corrected the validation button behavior where "Validate All" and "Validate Current Pipeline" were erroneously swapped.
+
+### Version 0.10.6:
  - Resolves the issue encountered by Windows users using a UNIX-based shell regarding path separators
  - Users can now specify the path separator (/ or \) used in constructing Bruin asset paths via the extension's settings.
 
