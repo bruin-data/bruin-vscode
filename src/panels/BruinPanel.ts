@@ -1,7 +1,12 @@
 import { Disposable, Webview, WebviewPanel, window, Uri, ViewColumn, workspace } from "vscode";
 import { getUri } from "../utilities/getUri";
 import { getNonce } from "../utilities/getNonce";
-import { BruinValidate, bruinWorkspaceDirectory, getCurrentPipelinePath, runInIntegratedTerminal } from "../bruin";
+import {
+  BruinValidate,
+  bruinWorkspaceDirectory,
+  getCurrentPipelinePath,
+  runInIntegratedTerminal,
+} from "../bruin";
 import { getDefaultBruinExecutablePath } from "../extension/configuration";
 import * as vscode from "vscode";
 import { renderCommandWithFlags } from "../extension/commands/renderCommand";
@@ -211,18 +216,18 @@ export class BruinPanel {
               workspaceFolder.uri.fsPath
             );
 
-          await validatorAll.validate(workspaceFolder.uri.fsPath);
+            await validatorAll.validate(workspaceFolder.uri.fsPath);
             break;
-          
-            case "bruin.validateCurrentPipeline":
+
+          case "bruin.validateCurrentPipeline":
             if (!this._lastRenderedDocumentUri) {
               console.error("No active document to validate.");
               return;
             }
             const currAssetPath = this._lastRenderedDocumentUri.fsPath;
             const currentPipelinePath = getCurrentPipelinePath(currAssetPath || "");
-            
-            if(!currentPipelinePath) {
+
+            if (!currentPipelinePath) {
               console.error("No pipeline found for the current asset.");
               return;
             }
@@ -231,7 +236,7 @@ export class BruinPanel {
               getDefaultBruinExecutablePath(),
               bruinWorkspaceDirectory(currAssetPath || "")!!
             );
-            
+
             await pipelineValidator.validate(currentPipelinePath);
             break;
 
@@ -270,7 +275,7 @@ export class BruinPanel {
             }
             const currfilePath = this._lastRenderedDocumentUri.fsPath;
             const currentPipeline = getCurrentPipelinePath(currfilePath || "");
-            
+
             runInIntegratedTerminal(
               bruinWorkspaceDirectory(currfilePath),
               currentPipeline,

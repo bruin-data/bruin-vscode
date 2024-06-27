@@ -43,7 +43,6 @@ export const buildCommand = (cliCommand: string): string => {
   }
 };
 
-
 /**
  * Replaces path separators in a given path string based on the user configuration and platform.
  *
@@ -56,8 +55,8 @@ export const replacePathSeparator = (path: string): string => {
   if (process.platform === "win32") {
     // Replace all occurrences of '\' with the user-defined path separator
     path = path.replace(/\\/g, pathSeparator);
-  } 
-  
+  }
+
   return path;
 };
 
@@ -68,11 +67,13 @@ export const replacePathSeparator = (path: string): string => {
  * @returns {string | undefined} The directory path of the Bruin workspace if found, otherwise undefined.
  */
 
-export const bruinWorkspaceDirectory = (fsPath: string, bruinRootFileNames=[".bruin.yaml", ".bruin.yml"]): string | undefined => {
+export const bruinWorkspaceDirectory = (
+  fsPath: string,
+  bruinRootFileNames = [".bruin.yaml", ".bruin.yml"]
+): string | undefined => {
   let dirname = fsPath;
   let iteration = 0;
   const maxIterations = 100;
-
 
   if (fs.statSync(fsPath).isFile()) {
     dirname = path.dirname(dirname);
