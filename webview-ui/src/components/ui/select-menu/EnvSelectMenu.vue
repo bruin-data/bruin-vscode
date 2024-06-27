@@ -9,7 +9,6 @@
           v-for="option in options" 
           :key="option" 
           :value="option"
-          :disabled="option !== 'default'"
         >
           {{ option }}
         </vscode-option>

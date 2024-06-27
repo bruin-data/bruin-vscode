@@ -33,7 +33,7 @@
     <vscode-divider class="border-t border-editor-border opacity-20 my-4"></vscode-divider>
 
     <div class="w-full">
-      <AssetGeneral :schedule="scheduleExists ?  props.pipeline.schedule : ''"/>
+      <AssetGeneral :schedule="scheduleExists ?  props.pipeline.schedule : ''" :environments="environments"/>
     </div>
   </div>
 </template>
@@ -53,6 +53,7 @@ const props = defineProps<{
   owner: string;
   id: string;
   pipeline: any;
+  environments: string[]; 
 }>();
 
 const ownerExists = computed(() => {

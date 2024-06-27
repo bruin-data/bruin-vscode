@@ -197,7 +197,9 @@ export class BruinPanel {
     this._panel.webview.postMessage({
       command: "init",
       panelType: "bruin",
-    });
+      payload: ["default", "Env1", "Env2", "Env3"]
+    },
+  );
 
     webview.onDidReceiveMessage(
       async (message: any) => {

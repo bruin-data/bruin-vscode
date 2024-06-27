@@ -54,7 +54,7 @@ import { ArrowPathIcon } from "@heroicons/vue/20/solid";
 
 const panelType = ref("");
 const parseError = ref();
-
+const environments = ref([]);
 const data = ref(
   JSON.stringify({
     asset: {
@@ -74,8 +74,9 @@ window.addEventListener("message", (event) => {
   switch (message.command) {
     case "init":
       panelType.value = message.panelType;
+      environments.value = message.payload;
       console.log("---------------------------\n");
-      console.log("Panel Type", message.panelType);
+      console.log("Environments", message.payload);
       break;
     case "parse-message":
       console.log("Parse Message", message);
@@ -110,7 +111,10 @@ const tabs = ref([
     label: "Asset Details",
     component: AssetDetails,
     includeIn: ["bruin"],
-    props: assetDetailsProps || null,
+    props: computed(() => ({
+      ...assetDetailsProps.value,
+      environments: environments.value,
+    })),
   },
   { label: "Asset Lineage", component: AssetLineageText, includeIn: ["bruin"] },
   {
