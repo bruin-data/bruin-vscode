@@ -5,6 +5,7 @@ import * as child_process from "child_process";
 import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
+import { getPathSeparator } from "../extension/configuration";
 
 /**
  * Checks if the Bruin binary is available in the system path.
@@ -40,6 +41,24 @@ export const buildCommand = (cliCommand: string): string => {
     default:
       return `bruin ${cliCommand}`;
   }
+};
+
+
+/**
+ * Replaces path separators in a given path string based on the user configuration and platform.
+ *
+ * @param {string} path - The original path string.
+ * @returns {string} The path string with replaced path separators.
+ */
+export const replacePathSeparator = (path: string): string => {
+  const pathSeparator = getPathSeparator();
+
+  if (process.platform === "win32") {
+    // Replace all occurrences of '\' with the user-defined path separator
+    path = path.replace(/\\/g, pathSeparator);
+  } 
+  
+  return path;
 };
 
 /**
