@@ -50,6 +50,15 @@
           ],
           "default": "folded",
           "description": "Sets the default folding state for custom Bruin foldable regions in Python and SQL files."
+        },
+        "bruin.pathSeparator": {
+          "type": "string",
+          "default": "/",
+          "enum": [
+            "/",
+            "\\"
+          ],
+          "description": "The path separator to use when constructing Bruin asset paths."
         }
       }
     },

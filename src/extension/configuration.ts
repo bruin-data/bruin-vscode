@@ -19,6 +19,13 @@ export function getDefaultBruinExecutablePath(): string {
   return bruinExecutable;
 }
 
+
+export function getPathSeparator(): string {
+  const bruinConfig = vscode.workspace.getConfiguration("bruin");
+  const pathSeparator = bruinConfig.get<string>("pathSeparator") || "/";
+  return pathSeparator;
+}
+
 let documentInitState = new Map();
 
 /**
