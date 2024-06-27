@@ -2,7 +2,7 @@
   "name": "bruin",
   "displayName": "Bruin",
   "description": "Manage your Bruin data assets from within VS Code.",
-  "version": "0.10.4",
+  "version": "0.10.7",
   "engines": {
     "vscode": "^1.87.0"
   },
@@ -50,6 +50,15 @@
           ],
           "default": "folded",
           "description": "Sets the default folding state for custom Bruin foldable regions in Python and SQL files."
+        },
+        "bruin.pathSeparator": {
+          "type": "string",
+          "default": "/",
+          "enum": [
+            "/",
+            "\\"
+          ],
+          "description": "The path separator to use when constructing Bruin asset paths."
         }
       }
     },
@@ -103,6 +112,7 @@
     "start:webview": "cd webview-ui && npm run start",
     "build:webview": "cd webview-ui && npm run build-only",
     "vscode:prepublish": "npm run compile",
+    "test": "vscode-test",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "format": "prettier --write src/**/*.ts",
@@ -111,12 +121,13 @@
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.13",
-    "@types/mocha": "^10.0.6",
     "@types/node": "^20.11.30",
     "@types/sinon": "^17.0.3",
     "@types/vscode": "^1.46.0",
     "@typescript-eslint/eslint-plugin": "^7.3.1",
     "@typescript-eslint/parser": "^7.3.1",
+    "@vscode/test-cli": "^0.0.9",
+    "@vscode/test-electron": "^2.4.0",
     "eslint": "^8.57.0",
     "prettier": "^3.2.5",
     "typescript": "^5.4.3",
@@ -131,7 +142,6 @@
     "elkjs": "^0.9.3",
     "luxon": "^3.4.4",
     "markdown-it": "^14.1.0",
-    "mocha": "^10.4.0",
     "sinon": "^17.0.1"
   }
 }

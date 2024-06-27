@@ -1,6 +1,7 @@
 import { BruinCommandOptions } from "../types";
 import { BruinCommand } from "./bruinCommand";
 import { BruinPanel } from "../panels/BruinPanel";
+import { replacePathSeparator } from "./bruinUtils";
 
 /**
  * Extends the BruinCommand class to implement the bruin run command on Bruin assets.
@@ -29,7 +30,8 @@ export class BruinRun extends BruinCommand {
     filePath: string,
     { flags = [], ignoresErrors = false }: BruinCommandOptions = {}
   ): Promise<void> {
-    await this.run([filePath, ...flags], { ignoresErrors })
+    const updatedFilePath = replacePathSeparator(filePath);
+    await this.run([updatedFilePath, ...flags], { ignoresErrors })
       .then((result) => {
         BruinPanel.postMessage("run-success", result);
       })

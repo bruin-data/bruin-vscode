@@ -95,7 +95,7 @@
                             : 'bg-editor-button-bg',
                           'block w-full text-left px-4 py-2 text-sm',
                         ]"
-                        @click="handleBruinValidateAllPipelines"
+                        @click="handleBruinValidateCurrentPipeline"
                       >
                         Validate current pipeline
                       </button>
@@ -108,8 +108,8 @@
                             : 'bg-editor-button-bg',
                           'block w-full text-left px-4 py-2 text-sm',
                         ]"
-                        @click="handleBruinValidateCurrentPipeline"
-                      >
+                        @click="handleBruinValidateAllPipelines"
+                        >
                         Validate all pipelines
                       </button>
                     </MenuItem>
