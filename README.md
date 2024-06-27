@@ -70,9 +70,12 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
+### Latest Release: v0.10.6
+## Fixed & Improved:
+ - Resolves the issue encountered by Windows users using a UNIX-based shell regarding path separators
+ - Users can now specify the path separator (/ or \) used in constructing Bruin asset paths via the extension's settings.
 
-### Latest Release: v0.10.5
-## Fixed:
+### Version 0.10.5:
 - Fixed a bug where setting an asset type to an invalid value caused the UI to break.
 
 ### Version 0.10.4:

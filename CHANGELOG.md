@@ -2,6 +2,10 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+- ## [0.10.6] - [2024-06-27]
+ - Resolves the issue encountered by Windows users using a UNIX-based shell regarding path separators
+ - Users can now specify the path separator (/ or \) used in constructing Bruin asset paths via the extension's settings.
+
 - ## [0.10.5] - [2024-06-26]
 - Fixed a bug where setting an asset type to an invalid value caused the UI to break.
 
