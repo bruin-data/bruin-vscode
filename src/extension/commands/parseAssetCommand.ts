@@ -1,5 +1,5 @@
 import { Uri } from "vscode";
-import { BruinLineage, bruinWorkspaceDirectory } from "../../bruin";
+import { bruinWorkspaceDirectory } from "../../bruin";
 import { getDefaultBruinExecutablePath } from "../configuration";
 import { BruinInternalParse } from "../../bruin/bruinInternalParse";
 
