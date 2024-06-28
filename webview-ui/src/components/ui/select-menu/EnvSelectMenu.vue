@@ -4,7 +4,7 @@
       <span class="text-sm font-semibold text-editor-fg"> Environment </span>
     </div>
     <div class="p-4">
-      <vscode-dropdown @change="handleSelect" >
+      <vscode-dropdown @change="handleSelect">
         <vscode-option 
           v-for="option in options" 
           :key="option" 
@@ -13,9 +13,6 @@
           {{ option }}
         </vscode-option>
       </vscode-dropdown>
-    </div>
-    <div>
-      <span  class="text-sm font-semibold text-editor-fg"> {{selectedEnvironment}} </span>
     </div>
   </div>
 </template>

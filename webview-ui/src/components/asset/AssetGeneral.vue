@@ -248,6 +248,7 @@ const checkboxItems = ref([
 
 function runAssetOnly() {
   let payload = getCheckboxChangePayload();
+  payload = payload + " --environment " + selectedEnv.value;
   vscode.postMessage({
     command: "bruin.runSql",
     payload: payload,
@@ -256,7 +257,7 @@ function runAssetOnly() {
 
 function runAssetWithDownstream() {
   let payload = getCheckboxChangePayload();
-  payload = payload + " --downstream";
+  payload = payload + " --downstream" + " --environment " + selectedEnv.value;
   vscode.postMessage({
     command: "bruin.runSql",
     payload: payload,
@@ -265,6 +266,7 @@ function runAssetWithDownstream() {
 
 function runCurrentPipeline() {
   let payload = getCheckboxChangePayload();
+  payload = payload + " --downstream" + " --environment " + selectedEnv.value;
   vscode.postMessage({
     command: "bruin.runCurrentPipeline",
     payload: payload,
