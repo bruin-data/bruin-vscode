@@ -12,6 +12,8 @@ import * as vscode from "vscode";
 import { renderCommandWithFlags } from "../extension/commands/renderCommand";
 import { lineageCommand } from "../extension/commands/lineageCommand";
 import { parseAssetCommand } from "../extension/commands/parseAssetCommand";
+import { getEnvListCommand } from "../extension/commands/getEnvListCommand";
+import { Input, transformToEnvironmentsArray } from "../utilities/helperUtils";
 
 /**
  * This class manages the state and behavior of Bruin webview panels.
@@ -57,6 +59,7 @@ export class BruinPanel {
           renderCommandWithFlags(this._flags);
           lineageCommand(this._lastRenderedDocumentUri);
           parseAssetCommand(this._lastRenderedDocumentUri);
+          getEnvListCommand(this._lastRenderedDocumentUri);
           console.log("Document URI onDidChangeTextDocument", this._lastRenderedDocumentUri);
         }
       }),
@@ -71,6 +74,7 @@ export class BruinPanel {
           renderCommandWithFlags(this._flags);
           lineageCommand(this._lastRenderedDocumentUri);
           parseAssetCommand(this._lastRenderedDocumentUri);
+          getEnvListCommand(this._lastRenderedDocumentUri);
         }
       })
     );
@@ -87,6 +91,9 @@ export class BruinPanel {
 
     // Set an event listener to listen for messages passed from the webview context
     this._setWebviewMessageListener(this._panel.webview);
+
+
+  
   }
 
   public static postMessage(
@@ -101,6 +108,7 @@ export class BruinPanel {
       });
     }
   }
+
 
   /**
    * Renders the current webview panel if it exists otherwise a new webview panel
@@ -197,9 +205,7 @@ export class BruinPanel {
     this._panel.webview.postMessage({
       command: "init",
       panelType: "bruin",
-      payload: ["default", "Env1", "Env2", "Env3"]
-    },
-  );
+    });
 
     webview.onDidReceiveMessage(
       async (message: any) => {
@@ -311,7 +317,15 @@ export class BruinPanel {
             console.log("Loading asset data for:", this._lastRenderedDocumentUri);
             parseAssetCommand(this._lastRenderedDocumentUri);
             break;
+
+            case "bruin.getEnvironmentsList":
+              if (!this._lastRenderedDocumentUri) {
+                console.log("Loading asset data impossible without an active document.");
+                return;
+              }
+             getEnvListCommand(this._lastRenderedDocumentUri);
         }
+       
       },
       undefined,
       this._disposables
