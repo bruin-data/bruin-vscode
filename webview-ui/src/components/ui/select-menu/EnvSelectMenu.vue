@@ -14,6 +14,9 @@
         </vscode-option>
       </vscode-dropdown>
     </div>
+    <div>
+      <span  class="text-sm font-semibold text-editor-fg"> {{selectedEnvironment}} </span>
+    </div>
   </div>
 </template>
 
@@ -22,6 +25,7 @@ import { defineProps, defineEmits } from 'vue';
 
 const props = defineProps<{
   options: string[];
+  selectedEnvironment: string;
 }>();
 
 const emit = defineEmits(['selectedEnv']);

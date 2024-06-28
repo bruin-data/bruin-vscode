@@ -88,3 +88,13 @@ interface File {
   content: string;
   type: string;
 }
+
+
+interface Environment {
+  name: string;
+}
+
+export interface EnvironmentsList {
+  selectedEnvironment: string;
+  environments: Environment[];
+}

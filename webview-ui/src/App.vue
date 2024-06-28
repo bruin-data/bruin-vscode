@@ -51,6 +51,7 @@ import { updateValue } from "./utilities/helper";
 import MessageAlert from "@/components/ui/alerts/AlertMessage.vue";
 import { getAssetDataset } from "@/components/lineage-flow/asset-lineage/useAssetLineage";
 import { ArrowPathIcon } from "@heroicons/vue/20/solid";
+import type { EnvironmentsList } from "./types";
 
 const panelType = ref("");
 const parseError = ref();
@@ -94,33 +95,25 @@ window.addEventListener("message", (event) => {
   }
 });
 
-interface Environment {
-  name: string;
-}
-
-interface EnvironmentsList {
-  selected_environment: string;
-  environments: Environment[];
-}
 
 const activeTab = ref(0);
 
  const environmentsList = computed(() => {
   if(!environments.value) return [];
-  return parseEnvironmentList(environments.value);
+  return parseEnvironmentList(environments.value)?.environments || [];
 }); 
+
+
+const selectedEnvironment = computed(() => {
+  if(!environments.value) return [];
+  return parseEnvironmentList(environments.value)?.selectedEnvironment || "something went wrong";
+});
 
 const assetDetailsProps = computed(() => {
   if (!data.value) return null;
   return parseAssetDetails(data.value);
 });
 
-
-/* const assetName = computed(() => {
-  if (!data.value) return null;
-  return parseAssetDetails(data.value)?.name;
-});
- */
 
 const tabs = ref([
   /* { label: "General", component: AssetGeneral, props: { name: assetName }, includeIn: ["bruin"] }, */
@@ -131,6 +124,7 @@ const tabs = ref([
     props: computed(() => ({
       ...assetDetailsProps.value,
       environments: environmentsList.value,
+      selectedEnvironment: selectedEnvironment.value,
     })),
   },
   { label: "Asset Lineage", component: AssetLineageText, includeIn: ["bruin"] },

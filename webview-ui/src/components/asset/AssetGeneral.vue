@@ -23,7 +23,7 @@
           </div>
         </div>
         <div class="flex flex-wrap justify-between items-center"> 
-       <EnvSelectMenu :options="environments || ['default']" @selected-env="setSelectedEnv" /> 
+       <EnvSelectMenu :options="environments" @selected-env="setSelectedEnv" :selectedEnvironment="selectedEnvironment" /> 
         <div class="flex justify-end items-center space-x-2 sm:space-x-4 mt-2 sm:mt-0">
           <div class="inline-flex rounded-md shadow-sm">
             <button
@@ -215,7 +215,9 @@ const isNotAsset = computed(() => (renderAssetAlert.value ? true : false));
 const props = defineProps<{
   schedule: string;
   environments: string [];
+  selectedEnvironment: string;
 }>();
+
 
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/vue";
 import { ChevronDownIcon, CheckCircleIcon, XCircleIcon } from "@heroicons/vue/24/solid";

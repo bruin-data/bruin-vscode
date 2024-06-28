@@ -127,8 +127,10 @@ export const parseEnvironmentList = (data) => {
   if (!data) return;
 
   const parsedData = JSON.parse(data);
-
-  const environments = parsedData.environments.map((env) => env.name);
+  const environments = {
+    selectedEnvironment: parsedData.selected_environment,
+    environments: parsedData.environments.map((env) => env.name)
+  };
 
   return environments;
 }
