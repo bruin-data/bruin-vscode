@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+- ## [0.11.0] - [2024-06-28]
+- New Feature: Added a dropdown for selecting environments, dynamically fetched from the CLI.
+- The default environment is pre-selected and concatenated into the run command for accurate execution.
 
 - ## [0.10.7] - [2024-06-27]
  - Corrected the validation button behavior where "Validate All" and "Validate Current Pipeline" were erroneously swapped.

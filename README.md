@@ -70,51 +70,35 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: v0.10.7
-## Fixed
- - Corrected the validation button behavior where "Validate All" and "Validate Current Pipeline" were erroneously swapped.
+### Latest Release: v0.11.0
 
-### Version 0.10.6:
- - Resolves the issue encountered by Windows users using a UNIX-based shell regarding path separators
- - Users can now specify the path separator (/ or \) used in constructing Bruin asset paths via the extension's settings.
-
-### Version 0.10.5:
-- Fixed a bug where setting an asset type to an invalid value caused the UI to break.
-
-### Version 0.10.4:
-- Enhance the visibility of the Validate button by updating the color of the check icon.
-
-### Version 0.10.3:
-- Integrated Luxon library to fix the timestamp exclusion problem.
-
-### Version 0.10.2:
-- Fixed the issue with the full refresh behavior.
-
-### Version 0.10.1:
-- Updated the warning message displayed when the file isn't an asset and fixed a typo.
-
-### Version 0.10.0:
-- Added a reset button to reset start and end dates based on the pipeline schedule.
+**Added**
+- Introduced a dropdown for selecting environments within the extension.
+- Integrated a Bruin command to dynamically fetch the environment list from the CLI.
+- Ensured the default environment is pre-selected based on CLI-provided selected_environment.
+- Concatenated the selected environment into the run command for accurate execution.
 
 ### Previous Highlights
-### Version 0.9.3
-- Combined the asset general and asset details tabs into a single tab.
+
+### Version 0.10.x
+- Corrected the validation button behavior where "Validate All" and "Validate Current Pipeline" were erroneously swapped.
+- Resolved the issue encountered by Windows users using a UNIX-based shell regarding path separators. Users can specify the path separator (/ or ) used in constructing Bruin asset paths via the extension's settings.
+- Fixed a bug where setting an asset type to an invalid value caused the UI to break.
+- Enhanced the visibility of the Validate button by updating the color of the check icon.
+- Integrated Luxon library to fix the timestamp exclusion problem.
+- Fixed the issue with the full refresh behavior.
+- Updated the warning message displayed when the file isn't an asset and fixed a typo.
+- Added a reset button to reset start and end dates based on the pipeline schedule.
+
+### Version 0.9.x:
+- Combined the asset general and asset details tabs into a single tab for streamlined navigation.
+- Introduced a new panel to display the lineage of a single asset, which updates automatically when switching between assets.
+- Added "Validate All Pipelines" and "Validate Current Pipeline" options for increased flexibility.
+- Introduced a "Run Current Pipeline" option in the run button.
 - Adjusted the styling of the asset details to better align with Visual Studio Code's aesthetic.
 - Corrected the position of menu items for non-SQL assets.
-
-### Version 0.9.2
-- Added "Validate All Pipelines" and "Validate Current Pipeline" options for flexibility.
-- Introduced "Run Current Pipeline" option in the run button.
 - Enhanced error alert display and error handling.
-
-### Version 0.9.1
-- Fix the exclusive end date function to accurately calculate the exclusive end time.
-
-### Version 0.9.0
-- Implemented a new panel to display the lineage of a single asset.
-- The lineage updates automatically when switching between assets.
-- Click the refresh button next to the tab label to update content after modifying dependencies.
-- Requires CLI version update to fetch asset types for lineage display.
+- Fixed the exclusive end date function to accurately calculate the exclusive end time.
 
 ### Version 0.8.x
 - **Markdown rendering** for AssetDetails description.
