@@ -3,6 +3,28 @@ import * as fs from "fs";
 import path = require("path");
 export const isEditorActive = (): boolean => !!vscode.window.activeTextEditor;
 
+
+export interface Environment {
+  name: string;
+}
+
+export interface Input {
+  selectedEnvironment: string;
+  environments: Environment[];
+}
+
+
+// Function to transform the input object to an array of environment names
+export function transformToEnvironmentsArray(input: string): string[] {
+  const envResult = JSON.parse(input);
+  if (!envResult || !envResult.environments) {
+    return [];
+  }
+
+  return envResult.environments.map((env: { name: string; }) => env.name);
+}
+
+
 export const isFileExtensionSQL = (fileName: string): boolean => {
   fileName = fileName.toLowerCase();
 

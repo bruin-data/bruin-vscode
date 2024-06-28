@@ -70,9 +70,6 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-
- - Corrected the validation button behavior where "Validate All" and "Validate Current Pipeline" were erroneously swapped.
-
 ### Latest Release: v0.10.7
 ## Fixed
  - Corrected the validation button behavior where "Validate All" and "Validate Current Pipeline" were erroneously swapped.

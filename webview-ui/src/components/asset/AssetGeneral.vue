@@ -22,8 +22,8 @@
             <CheckboxGroup :checkboxItems="checkboxItems" />
           </div>
         </div>
-        <!-- <div class="flex flex-wrap justify-between items-center"> -->
-        <!-- <EnvSelectMenu :options="['default', 'env 1', 'env 2']" @selected-env="setSelectedEnv" /> -->
+        <div class="flex flex-wrap justify-between items-center"> 
+       <EnvSelectMenu :options="environments" @selected-env="setSelectedEnv" :selectedEnvironment="selectedEnvironment" /> 
         <div class="flex justify-end items-center space-x-2 sm:space-x-4 mt-2 sm:mt-0">
           <div class="inline-flex rounded-md shadow-sm">
             <button
@@ -180,8 +180,8 @@
             </Menu>
           </div>
         </div>
-        <!--         </div>
- -->
+             </div>
+ 
         <ErrorAlert v-if="isError" :errorMessage="errorMessage!" />
         <div v-if="language === 'sql'">
           <SqlEditor v-show="!isError" :code="code" :copied="false" :language="language" />
@@ -214,7 +214,10 @@ const isNotAsset = computed(() => (renderAssetAlert.value ? true : false));
 
 const props = defineProps<{
   schedule: string;
+  environments: string [];
+  selectedEnvironment: string;
 }>();
+
 
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/vue";
 import { ChevronDownIcon, CheckCircleIcon, XCircleIcon } from "@heroicons/vue/24/solid";
@@ -245,6 +248,7 @@ const checkboxItems = ref([
 
 function runAssetOnly() {
   let payload = getCheckboxChangePayload();
+  payload = payload + " --environment " + selectedEnv.value;
   vscode.postMessage({
     command: "bruin.runSql",
     payload: payload,
@@ -253,7 +257,7 @@ function runAssetOnly() {
 
 function runAssetWithDownstream() {
   let payload = getCheckboxChangePayload();
-  payload = payload + " --downstream";
+  payload = payload + " --downstream" + " --environment " + selectedEnv.value;
   vscode.postMessage({
     command: "bruin.runSql",
     payload: payload,
@@ -262,11 +266,13 @@ function runAssetWithDownstream() {
 
 function runCurrentPipeline() {
   let payload = getCheckboxChangePayload();
+  payload = payload + " --downstream" + " --environment " + selectedEnv.value;
   vscode.postMessage({
     command: "bruin.runCurrentPipeline",
     payload: payload,
   });
 }
+
 const selectedEnv = ref<string>("default");
 
 function setSelectedEnv(env: string) {

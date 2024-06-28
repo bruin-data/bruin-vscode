@@ -4,12 +4,11 @@
       <span class="text-sm font-semibold text-editor-fg"> Environment </span>
     </div>
     <div class="p-4">
-      <vscode-dropdown @change="handleSelect" >
+      <vscode-dropdown @change="handleSelect">
         <vscode-option 
           v-for="option in options" 
           :key="option" 
           :value="option"
-          :disabled="option !== 'default'"
         >
           {{ option }}
         </vscode-option>
@@ -23,6 +22,7 @@ import { defineProps, defineEmits } from 'vue';
 
 const props = defineProps<{
   options: string[];
+  selectedEnvironment: string;
 }>();
 
 const emit = defineEmits(['selectedEnv']);
