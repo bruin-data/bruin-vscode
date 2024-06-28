@@ -46,7 +46,7 @@ import AssetLineageText from "@/components/lineage-text/AssetLineageText.vue";
 import AssetLineageFlow from "@/components/lineage-flow/asset-lineage/AssetLineage.vue";
 import { vscode } from "@/utilities/vscode";
 import { ref, onMounted, computed, watch } from "vue";
-import { parseAssetDetails } from "./utilities/helper";
+import { parseAssetDetails, parseEnvironmentList } from "./utilities/helper";
 import { updateValue } from "./utilities/helper";
 import MessageAlert from "@/components/ui/alerts/AlertMessage.vue";
 import { getAssetDataset } from "@/components/lineage-flow/asset-lineage/useAssetLineage";
@@ -54,7 +54,7 @@ import { ArrowPathIcon } from "@heroicons/vue/20/solid";
 
 const panelType = ref("");
 const parseError = ref();
-const environments = ref([]);
+const environments = ref<EnvironmentsList | null>(null); // Type for environments list
 const data = ref(
   JSON.stringify({
     asset: {
@@ -74,9 +74,12 @@ window.addEventListener("message", (event) => {
   switch (message.command) {
     case "init":
       panelType.value = message.panelType;
-      environments.value = message.payload;
+      break;
+    case "environments-list-message":
+      environments.value = updateValue(message, "success");
+      //environments.value = updateValue(message, "error");
       console.log("---------------------------\n");
-      console.log("Environments", message.payload);
+      console.log("Environments", environments.value);
       break;
     case "parse-message":
       console.log("Parse Message", message);
@@ -91,7 +94,21 @@ window.addEventListener("message", (event) => {
   }
 });
 
+interface Environment {
+  name: string;
+}
+
+interface EnvironmentsList {
+  selected_environment: string;
+  environments: Environment[];
+}
+
 const activeTab = ref(0);
+
+ const environmentsList = computed(() => {
+  if(!environments.value) return [];
+  return parseEnvironmentList(environments.value);
+}); 
 
 const assetDetailsProps = computed(() => {
   if (!data.value) return null;
@@ -113,7 +130,7 @@ const tabs = ref([
     includeIn: ["bruin"],
     props: computed(() => ({
       ...assetDetailsProps.value,
-      environments: environments.value,
+      environments: environmentsList.value,
     })),
   },
   { label: "Asset Lineage", component: AssetLineageText, includeIn: ["bruin"] },
@@ -134,6 +151,7 @@ onMounted(() => {
   loadLineageData();
   loadAssetData();
   loadLineageDataForLineagePanel();
+  loadEnvironmentsList();
 });
 
 function loadLineageData() {
@@ -146,6 +164,10 @@ function loadLineageDataForLineagePanel() {
 
 function loadAssetData() {
   vscode.postMessage({ command: "bruin.getAssetDetails" });
+}
+
+function loadEnvironmentsList() {
+  vscode.postMessage({ command: "bruin.getEnvironmentsList" });
 }
 function refreshGraphLineage() {
   vscode.postMessage({ command: "bruin.refreshGraphLineage" });
