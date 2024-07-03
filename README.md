@@ -71,7 +71,6 @@ Bruin is a unified analytics platform that enables data professionals to work en
 ## Release Notes
 
 ### Latest Release: v0.11.1
-
 **Fixed**
 - Correct Default Environment Behavior: Users can now name their default environment as they wish, instead of "default".
 
