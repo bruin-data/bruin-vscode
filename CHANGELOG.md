@@ -2,8 +2,11 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+- ## [0.11.2] - [2024-07-03]
+- Fixed an issue where the rocket icon didn't display for `ingestr` asset YAML files due to the unsupported `.yaml` extension.
+
 - ## [0.11.1] - [2024-07-03]
-- Fix Default Environment Behavior: Users can now name their default environment as they wish, instead of "default".
+- Fix Default Environment Behavior: Users can now name their default environment as they wish, instead of `"default"`.
 
 - ## [0.11.0] - [2024-06-28]
 - New Feature: Added a dropdown for selecting environments, dynamically fetched from the CLI.
