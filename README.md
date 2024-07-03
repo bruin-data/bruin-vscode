@@ -70,11 +70,15 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: v0.11.2
-**Fixed**
-- Fixed an issue where the rocket icon didn't display for `ingestr` asset YAML files due to the unsupported `.yaml` extension.
+### Latest Release: v0.11.3
+
+**Enhanced**
+- Updates the render icon from a rocket to the Bruin logo.
 
 ### Previous Highlights
+
+### Version 0.11.2
+- Fixed an issue where the rocket icon didn't display for `ingestr` asset YAML files due to the unsupported `.yaml` extension.
 
 ### Version 0.11.1
 - Correct Default Environment Behavior: Users can now name their default environment as they wish, instead of "default".
