@@ -82,7 +82,7 @@
       "editor/title": [
         {
           "command": "bruin.renderSQL",
-          "when": "resourceExtname == .sql || resourceExtname == .py  || resourceExtname == .yml",
+          "when": "resourceExtname == .sql || resourceExtname == .py  || resourceExtname == .yml || resourceExtname == .yaml",
           "group": "navigation"
         }
       ]

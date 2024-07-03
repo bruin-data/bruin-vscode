@@ -55,7 +55,7 @@ export const isBruinPipeline = async (fileName: string): Promise<boolean> => {
   return path.basename(fileName) === "pipeline.yml" ? true : false;
 };
 export const isYamlBruinAsset = async (fileName: string): Promise<boolean> =>
-  isBruinAsset(fileName, ["asset.yml"]);
+  isBruinAsset(fileName, ["asset.yml", "asset.yaml"]);
 
 export const isBruinYaml = async (fileName: string): Promise<boolean> => {
   return getFileExtension(fileName) === "bruin.yml" ? true : false;
@@ -79,7 +79,7 @@ export const isBruinAsset = async (
 
   try {
     const assetContent = fs.readFileSync(fileName, "utf8");
-    const bruinAsset = bruinPattern.test(assetContent) || fileExtension === "asset.yml";
+    const bruinAsset = bruinPattern.test(assetContent) || fileExtension === "asset.yml" || fileExtension === "asset.yaml";
     console.log("============================================");
     console.log("this file" + fileName + "is bruin asset " + bruinAsset);
     return bruinAsset;

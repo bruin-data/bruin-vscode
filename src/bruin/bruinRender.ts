@@ -69,7 +69,7 @@ export class BruinRender extends BruinCommand {
       });
   }
   private async isValidAsset(filePath: string): Promise<boolean> {
-    if (!isBruinAsset(filePath, ["py", "sql", "asset.yml"]) || (await isBruinYaml(filePath))) {
+    if (!isBruinAsset(filePath, ["py", "sql", "asset.yml", "asset.yaml"]) || (await isBruinYaml(filePath))) {
       BruinPanel?.postMessage("render-message", {
         status: "non-asset-alert",
         message: "-- This is not a BRUIN asset --",
