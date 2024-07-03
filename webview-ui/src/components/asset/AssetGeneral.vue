@@ -246,6 +246,25 @@ const checkboxItems = ref([
   { name: "Exclusive-End-Date", checked: true },
 ]);
 
+
+const selectedEnv = ref<string>(""); 
+
+
+onMounted(() => {
+  if (props.selectedEnvironment) {
+    selectedEnv.value = props.selectedEnvironment;
+  }
+});
+
+watch(() => props.selectedEnvironment, (newValue) => {
+  selectedEnv.value = newValue;
+});
+
+
+function setSelectedEnv(env: string) {
+  selectedEnv.value = env;
+}
+
 function runAssetOnly() {
   let payload = getCheckboxChangePayload();
   payload = payload + " --environment " + selectedEnv.value;
@@ -273,11 +292,7 @@ function runCurrentPipeline() {
   });
 }
 
-const selectedEnv = ref<string>("default");
 
-function setSelectedEnv(env: string) {
-  selectedEnv.value = env;
-}
 const isCron = ref(false);
 const validationSuccess = ref(null);
 const validationError = ref(null);
