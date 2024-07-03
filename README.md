@@ -70,12 +70,16 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: v0.11.1
+### Latest Release: v0.11.2
 **Fixed**
-- Correct Default Environment Behavior: Users can now name their default environment as they wish, instead of "default".
+- Fixed an issue where the rocket icon didn't display for `ingestr` asset YAML files due to the unsupported `.yaml` extension.
 
 ### Previous Highlights
-### Versin 0.11.0
+
+### Version 0.11.1
+- Correct Default Environment Behavior: Users can now name their default environment as they wish, instead of "default".
+
+### Version 0.11.0
 - Introduced a dropdown for selecting environments within the extension.
 - Integrated a Bruin command to dynamically fetch the environment list from the CLI.
 - Ensured the default environment is pre-selected based on CLI-provided selected_environment.
