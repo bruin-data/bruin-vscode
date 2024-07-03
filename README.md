@@ -70,15 +70,16 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: v0.11.0
+### Latest Release: v0.11.1
+**Fixed**
+- Correct Default Environment Behavior: Users can now name their default environment as they wish, instead of "default".
 
-**Added**
+### Previous Highlights
+### Versin 0.11.0
 - Introduced a dropdown for selecting environments within the extension.
 - Integrated a Bruin command to dynamically fetch the environment list from the CLI.
 - Ensured the default environment is pre-selected based on CLI-provided selected_environment.
 - Concatenated the selected environment into the run command for accurate execution.
-
-### Previous Highlights
 
 ### Version 0.10.x
 - Corrected the validation button behavior where "Validate All" and "Validate Current Pipeline" were erroneously swapped.

@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+- ## [0.11.1] - [2024-07-03]
+- Fix Default Environment Behavior: Users can now name their default environment as they wish, instead of "default".
+
 - ## [0.11.0] - [2024-06-28]
 - New Feature: Added a dropdown for selecting environments, dynamically fetched from the CLI.
 - The default environment is pre-selected and concatenated into the run command for accurate execution.
