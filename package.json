@@ -90,9 +90,9 @@
     "commands": [
       {
         "command": "bruin.renderSQL",
-        "title": "Render SQL",
+        "title": "Bruin",
         "category": "Bruin",
-        "icon": "$(rocket)",
+        "icon": "img/bruin-logo-sm128.png",
         "description": "Render SQL to a Bruin data asset."
       },
       {
