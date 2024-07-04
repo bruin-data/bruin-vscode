@@ -157,3 +157,66 @@ export function isValidCron(expression: string) {
     return false;
   }
 }
+
+export function resetStartEndDate(props, today, startDate, endDate, isValidCron) {
+  switch (props.schedule) {
+    case "hourly":
+      startDate.value = new Date(
+        Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(), today.getHours() - 1, 0, 0, 0)
+      ).toISOString().slice(0, -1);
+      endDate.value = new Date(
+        Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(), today.getHours(), 0, 0, 0)
+      ).toISOString().slice(0, -1);
+      break;
+    case "daily":
+      startDate.value = new Date(
+        Date.UTC(today.getFullYear(), today.getMonth(), today.getDate() - 1, 0, 0, 0, 0)
+      ).toISOString().slice(0, -1);
+      endDate.value = new Date(
+        Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0)
+      ).toISOString().slice(0, -1);
+      break;
+    case "weekly":
+      const dayOfWeek = today.getUTCDay();
+      const lastMonday = new Date(
+        Date.UTC(today.getFullYear(), today.getMonth(), today.getDate() - dayOfWeek - 6, 0, 0, 0, 0)
+      );
+      const thisMonday = new Date(
+        Date.UTC(
+          today.getFullYear(),
+          today.getMonth(),
+          today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1),
+          0, 0, 0, 0
+        )
+      );
+      startDate.value = lastMonday.toISOString().slice(0, -1);
+      endDate.value = thisMonday.toISOString().slice(0, -1);
+      break;
+    case "monthly":
+      const firstDayOfLastMonth = new Date(
+        Date.UTC(today.getFullYear(), today.getMonth() - 1, 1, 0, 0, 0, 0)
+      );
+      const lastDayOfLastMonth = new Date(
+        Date.UTC(today.getFullYear(), today.getMonth(), 0, 0, 0, 0, 0)
+      );
+      startDate.value = firstDayOfLastMonth.toISOString().slice(0, -1);
+      endDate.value = lastDayOfLastMonth.toISOString().slice(0, -1);
+      break;
+    default:
+      if (isValidCron(props.schedule)) {
+        try {
+          const interval = cronParser.parseExpression(props.schedule);
+          const startUTC = interval.next().toDate();
+          const endUTC = interval.next().toDate();
+          const start = new Date(startUTC.getTime() - startUTC.getTimezoneOffset() * 60000).toISOString().slice(0, -1);
+          const end = new Date(endUTC.getTime() - endUTC.getTimezoneOffset() * 60000).toISOString().slice(0, -1);
+          startDate.value = start;
+          endDate.value = end;
+        } catch (err) {
+          console.error('Error parsing cron expression:', err);
+        }
+      } else {
+        console.error('Invalid schedule type or cron expression:', props.schedule);
+      }
+  }
+}
