@@ -116,8 +116,8 @@ export const parseAssetDetails = (data: string) => {
       id: "undefined",
       name: parsedData.pipeline.name || "undefined",
       type: "pipeline",
-      schedule: parsedData.asset ? parsedData.asset.schedule : "undefined",
-      description:'Start date : ' + parsedData.pipeline.start_date,
+      schedule: parsedData.pipeline.schedule || "undefined",
+      description:'No description available.',
       owner: "undefined",
       pipeline: parsedData.pipeline || "undefined",
     };
