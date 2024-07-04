@@ -1,5 +1,6 @@
 import type { CheckboxItems } from "@/types";
 import { DateTime } from "luxon";
+import cronParser from "cron-parser";
 
 const isExclusiveChecked = (checkboxesItems: CheckboxItems[]): boolean => {
   return checkboxesItems.some((item) => item.name === "Exclusive-End-Date" && item.checked);
@@ -135,3 +136,12 @@ export const parseEnvironmentList = (data) => {
   return environments;
 }
   
+
+export function isValidCron(expression: string) {
+  try {
+    cronParser.parseExpression(expression);
+    return true;
+  } catch {
+    return false;
+  }
+}

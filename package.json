@@ -139,6 +139,7 @@
     "@vue-flow/core": "^1.33.6",
     "@vue-flow/minimap": "^1.4.0",
     "all": "^0.0.0",
+    "cron-parser": "^4.9.0",
     "elkjs": "^0.9.3",
     "luxon": "^3.4.4",
     "markdown-it": "^14.1.0",
