@@ -324,8 +324,20 @@ watch(
   { immediate: true }
 );
 
-function resetStartEndDate() {
+export function resetStartEndDate() {
   switch (props.schedule) {
+    case "hourly":
+      startDate.value = new Date(
+        Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(), today.getHours() - 1, 0, 0, 0)
+      )
+        .toISOString()
+        .slice(0, -1);
+      endDate.value = new Date(
+        Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(), today.getHours(), 0, 0, 0)
+      )
+        .toISOString()
+        .slice(0, -1);
+      break;
     case "daily":
       startDate.value = new Date(
         Date.UTC(today.getFullYear(), today.getMonth(), today.getDate() - 1, 0, 0, 0, 0)
