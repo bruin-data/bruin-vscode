@@ -112,12 +112,12 @@ export const parseAssetDetails = (data: string) => {
 
   const parsedData = JSON.parse(data);
   const assetDetails = {
-    id: parsedData.asset.id,
-    name: parsedData.asset.name || "undefined",
-    type: parsedData.asset.type || "undefined",
-    schedule: parsedData.asset.schedule || "undefined",
-    description: parsedData.asset.description || null,
-    owner: parsedData.asset.owner || "undefined",
+    id: parsedData.asset ? parsedData.asset.id : "undefined",
+    name: parsedData.asset ? parsedData.asset.name : "undefined",
+    type: parsedData.asset ? parsedData.asset.type : "undefined",
+    schedule: parsedData.asset ? parsedData.asset.schedule : "undefined",
+    description: parsedData.asset ? parsedData.asset.description : null,
+    owner: parsedData.asset ? parsedData.asset.owner : "undefined",
     pipeline: parsedData.pipeline || "undefined",
   };
 
