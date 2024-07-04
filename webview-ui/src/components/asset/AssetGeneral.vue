@@ -10,7 +10,7 @@
               <button
                 type="button"
                 class="rounded-md bg-editor-button-bg p-2 mt-6 text-editor-button-fg hover:bg-editor-button-hover-bg disabled:opacity-50 disabled:cursor-not-allowed"
-                @click="resetStartEndDate"
+                @click="resetDatesOnSchedule"
                 :title="`Reset Start and End Date`"
               >
                 <ArrowPathRoundedSquareIcon class="sm:h-5 sm:w-5 h-4 w-4" aria-hidden="true" />
@@ -198,14 +198,13 @@ import { vscode } from "@/utilities/vscode";
 import { computed, onBeforeUnmount, onMounted, ref, defineProps } from "vue";
 import { watch } from "vue";
 import ErrorAlert from "@/components/ui/alerts/ErrorAlert.vue";
-import { handleError, concatCommandFlags, adjustEndDateForExclusive, isValidCron } from "@/utilities/helper";
+import { handleError, concatCommandFlags, adjustEndDateForExclusive, resetStartEndDate } from "@/utilities/helper";
 import "@/assets/index.css";
 import DateInput from "@/components/ui/date-inputs/DateInput.vue";
 import SqlEditor from "@/components/asset/SqlEditor.vue";
 import CheckboxGroup from "@/components/ui/checkbox-group/CheckboxGroup.vue";
 import EnvSelectMenu from "@/components/ui/select-menu/EnvSelectMenu.vue";
 import { updateValue, resetStates, determineValidationStatus } from "@/utilities/helper";
-import cronParser from "cron-parser";
 
 const errorState = computed(() => handleError(validationError.value, renderSQLAssetError.value));
 const isError = computed(() => errorState.value?.errorCaptured);
@@ -324,83 +323,7 @@ watch(
   { immediate: true }
 );
 
-export function resetStartEndDate() {
-  switch (props.schedule) {
-    case "hourly":
-      startDate.value = new Date(
-        Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(), today.getHours() - 1, 0, 0, 0)
-      )
-        .toISOString()
-        .slice(0, -1);
-      endDate.value = new Date(
-        Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(), today.getHours(), 0, 0, 0)
-      )
-        .toISOString()
-        .slice(0, -1);
-      break;
-    case "daily":
-      startDate.value = new Date(
-        Date.UTC(today.getFullYear(), today.getMonth(), today.getDate() - 1, 0, 0, 0, 0)
-      )
-        .toISOString()
-        .slice(0, -1);
-      endDate.value = new Date(
-        Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0)
-      )
-        .toISOString()
-        .slice(0, -1);
-      break;
-    case "weekly":
-      const dayOfWeek = today.getUTCDay();
-      const lastMonday = new Date(
-        Date.UTC(today.getFullYear(), today.getMonth(), today.getDate() - dayOfWeek - 6, 0, 0, 0, 0)
-      );
 
-      const thisMonday = new Date(
-        Date.UTC(
-          today.getFullYear(),
-          today.getMonth(),
-          today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1),
-          0,
-          0,
-          0,
-          0
-        )
-      );
-      startDate.value = lastMonday.toISOString().slice(0, -1);
-      endDate.value = thisMonday.toISOString().slice(0, -1);
-      break;
-    case "monthly":
-      const firstDayOfLastMonth = new Date(
-        Date.UTC(today.getFullYear(), today.getMonth() - 1, 1, 0, 0, 0, 0)
-      );
-      const lastDayOfLastMonth = new Date(
-        Date.UTC(today.getFullYear(), today.getMonth(), 0, 0, 0, 0, 0)
-      );
-      startDate.value = firstDayOfLastMonth.toISOString().slice(0, -1);
-      endDate.value = lastDayOfLastMonth.toISOString().slice(0, -1);
-      break;
-
-    default:
-    if (isValidCron(props.schedule)) {
-        try {
-          const interval = cronParser.parseExpression(props.schedule);
-          const startUTC = interval.next().toDate();
-          const endUTC = interval.next().toDate();
-
-          const start = new Date(startUTC.getTime() - startUTC.getTimezoneOffset() * 60000).toISOString().slice(0, -1);
-          const end = new Date(endUTC.getTime() - endUTC.getTimezoneOffset() * 60000).toISOString().slice(0, -1);
-
-          startDate.value = start;
-          endDate.value = end;
-        } catch (err) {
-          console.error('Error parsing cron expression:', err);
-        }
-      } else {
-        console.error('Invalid schedule type or cron expression:', props.schedule);
-      }
-  }
-}
 function getCheckboxChangePayload() {
   console.log("start date", startDate.value);
   console.log("end date", endDate.value);
@@ -424,6 +347,9 @@ function sendInitialMessage() {
   });
 }
 
+function resetDatesOnSchedule(){
+  resetStartEndDate(props.schedule, today, startDate, endDate);
+}
 onMounted(() => {
   window.addEventListener("message", receiveMessage);
   sendInitialMessage();

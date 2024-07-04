@@ -5,14 +5,13 @@ import { after } from 'node:test';
 
 suite('testing webview', () => {
   const environments = ['dev', 'qa', 'prod'];
-  let props, today, startDate, endDate, isValidCronStub;
+  let schedule, today, startDate, endDate;
 
   beforeEach(() => {
-    props = { schedule: '' };
+    schedule = '' ;
     today = new Date('2024-07-04T00:00:00.000');
     startDate = { value: '' };
     endDate = { value: '' };
-    isValidCronStub = () => true;
   });
 
   test('initializes selectedEnv with default environment', () => {
@@ -78,30 +77,30 @@ suite('testing webview', () => {
   });
 
   test('test reset start and end date for "daily" schedule', () => {
-    props.schedule = 'daily';
-    resetStartEndDate(props, today, startDate, endDate, isValidCronStub);
+    schedule = 'daily';
+    resetStartEndDate(schedule, today, startDate, endDate);
     assert.strictEqual(startDate.value, '2024-07-03T00:00:00.000');
     assert.strictEqual(endDate.value, '2024-07-04T00:00:00.000');
   });
 
   test('test reset start and end date for "weekly" schedule', () => {
-    props.schedule = 'weekly';
+    schedule = 'weekly';
     today = new Date('2024-07-04T00:00:00.000Z');
-    resetStartEndDate(props, today, startDate, endDate, isValidCronStub);
+    resetStartEndDate(schedule, today, startDate, endDate);
     assert.strictEqual(startDate.value, '2024-06-24T00:00:00.000');
     assert.strictEqual(endDate.value, '2024-07-01T00:00:00.000'); 
 });
 
   test('test reset start and end date for "monthly" schedule', () => {
-    props.schedule = 'monthly';
-    resetStartEndDate(props, today, startDate, endDate, isValidCronStub);
+    schedule = 'monthly';
+    resetStartEndDate(schedule, today, startDate, endDate);
     assert.strictEqual(startDate.value, '2024-06-01T00:00:00.000');
     assert.strictEqual(endDate.value, '2024-06-30T00:00:00.000');
   });
 
   test('test reset start and end date for "2 17 * * *"', () => {
-    props.schedule = '2 17 * * *';
-    resetStartEndDate(props, today, startDate, endDate, isValidCronStub);
+    schedule = '2 17 * * *';
+    resetStartEndDate(schedule, today, startDate, endDate);
     console.log('Start Date cron:', startDate.value);
     console.log('End Date cron:', endDate.value);
     assert.strictEqual(startDate.value, '2024-07-05T17:02:00.000');
@@ -109,43 +108,43 @@ suite('testing webview', () => {
   });
 
   test('test reset start and end date for "30 17 * * *"', () => {
-    props.schedule = '30 17 * * *';
-    resetStartEndDate(props, today, startDate, endDate, isValidCronStub);
+    schedule = '30 17 * * *';
+    resetStartEndDate(schedule, today, startDate, endDate);
     assert.strictEqual(startDate.value, '2024-07-05T17:30:00.000');
     assert.strictEqual(endDate.value, '2024-07-06T17:30:00.000');
   });
 
   test('test reset start and end date for "0 18 * * *"', () => {
-    props.schedule = '0 18 * * *';
-    resetStartEndDate(props, today, startDate, endDate, isValidCronStub);
+    schedule = '0 18 * * *';
+    resetStartEndDate(schedule, today, startDate, endDate);
     assert.strictEqual(startDate.value, '2024-07-05T18:00:00.000');
     assert.strictEqual(endDate.value, '2024-07-06T18:00:00.000');
   });
 
   test('test reset start and end date for "0 19 * 6 *"', () => {
-    props.schedule = '0 19 * 6 *'; // June
-    resetStartEndDate(props, today, startDate, endDate, isValidCronStub);
+    schedule = '0 19 * 6 *'; // June
+    resetStartEndDate(schedule, today, startDate, endDate);
     assert.strictEqual(startDate.value, '2025-06-01T19:00:00.000');
     assert.strictEqual(endDate.value, '2025-06-02T19:00:00.000');
   });
 
   test('test reset start and end date for "0 20 * * 1-5"', () => {
-    props.schedule = '0 20 * * 1-5'; // Weekdays (Monday to Friday)
-    resetStartEndDate(props, today, startDate, endDate, isValidCronStub);
+    schedule = '0 20 * * 1-5'; // Weekdays (Monday to Friday)
+    resetStartEndDate(schedule, today, startDate, endDate);
     assert.strictEqual(startDate.value, '2024-07-04T20:00:00.000');
     assert.strictEqual(endDate.value, '2024-07-05T20:00:00.000');
   });
 
   test('test reset start and end date for "0 20 * * 6,7"', () => {
-    props.schedule = '0 20 * * 6,7'; // Saturday and Sunday
-    resetStartEndDate(props, today, startDate, endDate, isValidCronStub);
+    schedule = '0 20 * * 6,7'; // Saturday and Sunday
+    resetStartEndDate(schedule, today, startDate, endDate);
     assert.strictEqual(startDate.value, '2024-07-06T20:00:00.000');
     assert.strictEqual(endDate.value, '2024-07-07T20:00:00.000');
   });
 
   test('test reset start and end date for "0 20 10 7 *"', () => {
-    props.schedule = '0 20 10 7 *'; // July 10th
-    resetStartEndDate(props, today, startDate, endDate, isValidCronStub);
+    schedule = '0 20 10 7 *'; // July 10th
+    resetStartEndDate(schedule, today, startDate, endDate);
     assert.strictEqual(startDate.value, '2024-07-10T20:00:00.000');
     assert.strictEqual(endDate.value, '2025-07-10T20:00:00.000');
   });

@@ -158,8 +158,8 @@ export function isValidCron(expression: string) {
   }
 }
 
-export function resetStartEndDate(props, today, startDate, endDate, isValidCron) {
-  switch (props.schedule) {
+export function resetStartEndDate(schedule, today, startDate, endDate) {
+  switch (schedule) {
     case "hourly":
       startDate.value = new Date(
         Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(), today.getHours() - 1, 0, 0, 0)
@@ -203,9 +203,9 @@ export function resetStartEndDate(props, today, startDate, endDate, isValidCron)
       endDate.value = lastDayOfLastMonth.toISOString().slice(0, -1);
       break;
     default:
-      if (isValidCron(props.schedule)) {
+      if (isValidCron(schedule)) {
         try {
-          const interval = cronParser.parseExpression(props.schedule);
+          const interval = cronParser.parseExpression(schedule);
           const startUTC = interval.next().toDate();
           const endUTC = interval.next().toDate();
           const start = new Date(startUTC.getTime() - startUTC.getTimezoneOffset() * 60000).toISOString().slice(0, -1);
@@ -216,7 +216,7 @@ export function resetStartEndDate(props, today, startDate, endDate, isValidCron)
           console.error('Error parsing cron expression:', err);
         }
       } else {
-        console.error('Invalid schedule type or cron expression:', props.schedule);
+        console.error('Invalid schedule type or cron expression:', schedule);
       }
   }
 }
