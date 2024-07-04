@@ -111,6 +111,18 @@ export const parseAssetDetails = (data: string) => {
   if (!data) return;
 
   const parsedData = JSON.parse(data);
+  if (!parsedData.asset) {
+    return {
+      id: "undefined",
+      name: parsedData.pipeline.name || "undefined",
+      type: "pipeline",
+      schedule: parsedData.asset ? parsedData.asset.schedule : "undefined",
+      description:'Start date : ' + parsedData.pipeline.start_date,
+      owner: "undefined",
+      pipeline: parsedData.pipeline || "undefined",
+    };
+  ;
+  }
   const assetDetails = {
     id: parsedData.asset ? parsedData.asset.id : "undefined",
     name: parsedData.asset ? parsedData.asset.name : "undefined",
