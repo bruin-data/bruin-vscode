@@ -164,14 +164,14 @@ export function scheduleToCron(schedule: string) {
     return { cronSchedule: schedule, error: null };
   } else {
     switch (schedule) {
-      case 'hourly':
-        return { cronSchedule: '0 0 * * * *', error: null };
-      case 'daily':
-        return { cronSchedule: '0 0 0 * * *', error: null };
-      case 'weekly':
-        return { cronSchedule: '0 0 0 * * 1', error: null };
-      case 'monthly':
-        return { cronSchedule: '0 0 0 1 * *', error: null };
+        case 'hourly':
+          return { cronSchedule: '0 * * * *', error: null };
+        case 'daily':
+          return { cronSchedule: '0 0 * * *', error: null };
+        case 'weekly':
+          return { cronSchedule: '0 0 * * 0', error: null }; 
+        case 'monthly':
+          return { cronSchedule: '0 0 1 * *', error: null };
       default:
         return { cronSchedule: null, error: `Invalid schedule: ${schedule}. Please provide a valid cron expression or use 'hourly', 'daily', 'weekly', or 'monthly'.` };
     }
@@ -197,8 +197,8 @@ export function getPreviousRun(schedule: string, timestamp: Date) {
 
 export function resetStartEndDate(schedule, today, startDate, endDate) {
   const {startTime, endTime} = getPreviousRun(schedule, today);
-  const start = new Date(startTime).toISOString().slice(0, -1);
-  const end = new Date(endTime).toISOString().slice(0, -1);
-  startDate.value = start;
-  endDate.value = end;
+  const start = new Date(startTime).toISOString();
+  const end = new Date(endTime).toISOString();
+  startDate.value = start.slice(0, -1);
+  endDate.value = end.slice(0, -1);
 }

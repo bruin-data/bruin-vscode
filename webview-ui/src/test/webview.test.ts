@@ -9,7 +9,7 @@ suite('testing webview', () => {
 
   beforeEach(() => {
     schedule = '' ;
-    today = new Date('2024-07-08T05:23:00.000');
+    today = new Date('2024-07-08T05:23:00.000Z');
     startDate = { value: '' };
     endDate = { value: '' };
     startTime = '';
@@ -95,8 +95,8 @@ suite('testing webview', () => {
   test('test get previous run for "hourly" schedule', () => {
     schedule = 'hourly';
     const { startTime, endTime } = getPreviousRun(schedule, today);
-    assert.strictEqual(startTime, new Date('2024-07-08T02:00:00.000Z').getTime());
-    assert.strictEqual(endTime, new Date('2024-07-08T03:00:00.000Z').getTime());
+    assert.strictEqual(startTime, new Date('2024-07-08T04:00:00.000Z').getTime());
+    assert.strictEqual(endTime, new Date('2024-07-08T05:00:00.000Z').getTime());
   });
 
   test('test get previous run for "daily" schedule', () => {
@@ -171,8 +171,8 @@ suite('testing webview', () => {
   test ('test reset Start End Date for "hourly" schedule', () => {
     schedule = 'hourly';
     resetStartEndDate(schedule, today, startDate, endDate);
-    assert.strictEqual(startDate.value, '2024-07-08T02:00:00.000');
-    assert.strictEqual(endDate.value, '2024-07-08T03:00:00.000');
+    assert.strictEqual(startDate.value, '2024-07-08T04:00:00.000');
+    assert.strictEqual(endDate.value, '2024-07-08T05:00:00.000');
   });
   test('test reset Start End Date for "daily" schedule', () => {
     schedule = 'daily';
