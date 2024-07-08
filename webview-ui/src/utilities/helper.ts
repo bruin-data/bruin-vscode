@@ -206,8 +206,8 @@ export function resetStartEndDate(schedule, today, startDate, endDate) {
       if (isValidCron(schedule)) {
         try {
           const interval = cronParser.parseExpression(schedule);
-          const startUTC = interval.next().toDate();
-          const endUTC = interval.next().toDate();
+          const endUTC = interval.prev().toDate();
+          const startUTC = interval.prev().toDate();
           const start = new Date(startUTC.getTime() - startUTC.getTimezoneOffset() * 60000).toISOString().slice(0, -1);
           const end = new Date(endUTC.getTime() - endUTC.getTimezoneOffset() * 60000).toISOString().slice(0, -1);
           startDate.value = start;
