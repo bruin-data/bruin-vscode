@@ -1,19 +1,34 @@
 import { suite, test, assert, beforeEach, afterEach } from 'vitest';
-import cronParser from 'cron-parser';
-import { isValidCron, resetStartEndDate } from '../utilities/helper';
-import { after } from 'node:test';
+import * as  cronParser from 'cron-parser';
+import { isValidCron, resetStartEndDate, scheduleToCron, getPreviousRun } from '../utilities/helper';
+
 
 suite('testing webview', () => {
   const environments = ['dev', 'qa', 'prod'];
-  let schedule, today, startDate, endDate;
+  let schedule, today, startDate, endDate, startTime, endTime;
 
   beforeEach(() => {
     schedule = '' ;
     today = new Date('2024-07-08T05:23:00.000');
     startDate = { value: '' };
     endDate = { value: '' };
+    startTime = '';
+    endTime = '';
   });
 
+  test('test scheduleToCron', () => {
+    const daily = '0 0 0 * * *';
+    const weekly = '0 0 0 * * 1';
+    const monthly = '0 0 0 1 * *';
+
+    const cronDaily = scheduleToCron('daily');
+    const cronWeekly = scheduleToCron('weekly');
+    const cronMonthly = scheduleToCron('monthly');
+
+    assert.strictEqual(cronDaily, daily);
+    assert.strictEqual(cronWeekly, weekly);
+    assert.strictEqual(cronMonthly, monthly);
+  });
   test('initializes selectedEnv with default environment', () => {
     const selectedEnvironment = 'qa';
     const wrapper = {
@@ -76,77 +91,171 @@ suite('testing webview', () => {
     assert.strictEqual(isInvalid, true);
   });
 
-  test('test reset start and end date for "daily" schedule', () => {
-    schedule = 'daily';
-    resetStartEndDate(schedule, today, startDate, endDate);
-    assert.strictEqual(startDate.value, '2024-07-07T00:00:00.000');
-    assert.strictEqual(endDate.value, '2024-07-08T00:00:00.000');
+  test('test get previous run for "hourly" schedule', () => {
+    schedule = 'hourly';
+    const { startTime, endTime } = getPreviousRun(schedule, today);
+    assert.strictEqual(startTime, new Date('2024-07-08T04:00:00.000Z').getTime());
+    assert.strictEqual(endTime, new Date('2024-07-08T05:00:00.000Z').getTime());
   });
 
-  test('test reset start and end date for "weekly" schedule', () => {
+  test('test get previous run for "daily" schedule', () => {
+    schedule = 'daily';
+    const { startTime, endTime } = getPreviousRun(schedule, today);
+    assert.strictEqual(startTime, new Date('2024-07-07T00:00:00.000Z').getTime());
+    assert.strictEqual(endTime, new Date('2024-07-08T00:00:00.000Z').getTime());
+  });
+
+  test('test get previous run for "weekly" schedule', () => {
     schedule = 'weekly';
-    today = new Date('2024-07-04T00:00:00.000Z');
-    resetStartEndDate(schedule, today, startDate, endDate);
-    assert.strictEqual(startDate.value, '2024-06-24T00:00:00.000');
-    assert.strictEqual(endDate.value, '2024-07-01T00:00:00.000'); 
+    const { startTime, endTime } = getPreviousRun(schedule, today);
+    assert.strictEqual(startTime, new Date('2024-07-01T00:00:00.000Z').getTime());
+    assert.strictEqual(endTime, new Date('2024-07-08T00:00:00.000Z').getTime()); 
 });
 
-  test('test reset start and end date for "monthly" schedule', () => {
+  test('test get previous run for "monthly" schedule', () => {
+    schedule = 'monthly';
+    const { startTime, endTime } = getPreviousRun(schedule, today);
+    assert.strictEqual(startTime, new Date('2024-06-01T00:00:00.000Z').getTime());
+    assert.strictEqual(endTime, new Date('2024-07-01T00:00:00.000Z').getTime());
+  });
+
+  test('test get previous run for "2 17 * * *"', () => {
+    schedule = '2 17 * * *';
+    const { startTime, endTime } = getPreviousRun(schedule, today);
+    assert.strictEqual(startTime, new Date('2024-07-06T17:02:00.000Z').getTime());
+    assert.strictEqual(endTime, new Date('2024-07-07T17:02:00.000Z').getTime());
+  });
+
+  test('test get previous run for "30 17 * * *"', () => {
+    schedule = '30 17 * * *';
+    const { startTime, endTime } = getPreviousRun(schedule, today);
+    assert.strictEqual(startTime, new Date('2024-07-06T17:30:00.000Z').getTime());
+    assert.strictEqual(endTime, new Date('2024-07-07T17:30:00.000Z').getTime());
+  });
+
+  test('test get previous run for "0 18 * * *"', () => {
+    schedule = '0 18 * * *';
+    const { startTime, endTime } = getPreviousRun(schedule, today);
+    assert.strictEqual(startTime, new Date('2024-07-06T18:00:00.000Z').getTime());
+    assert.strictEqual(endTime, new Date('2024-07-07T18:00:00.000Z').getTime());
+  });
+    test('test get previous run for "0 19 * 6 *"', () => {
+    schedule = '0 19 * 6 *'; // June
+    const { startTime, endTime } = getPreviousRun(schedule, today);
+    assert.strictEqual(startTime, new Date('2024-06-29T19:00:00.000Z').getTime());
+    assert.strictEqual(endTime, new Date('2024-06-30T19:00:00.000Z').getTime());
+  });
+
+  test('test get previous run for "0 20 * * 1-5"', () => {
+    schedule = '0 20 * * 1-5'; // Weekdays (Monday to Friday)
+    const { startTime, endTime } = getPreviousRun(schedule, today);
+    assert.strictEqual(startTime, new Date('2024-07-04T20:00:00.000Z').getTime());
+    assert.strictEqual(endTime, new Date('2024-07-05T20:00:00.000Z').getTime());
+  });
+
+  test('test get previous run for "0 20 * * 6,7"', () => {
+    schedule = '0 20 * * 6,7'; // Saturday and Sunday
+    const { startTime, endTime } = getPreviousRun(schedule, today);
+    assert.strictEqual(startTime, new Date('2024-07-06T20:00:00.000Z').getTime());
+    assert.strictEqual(endTime, new Date('2024-07-07T20:00:00.000Z').getTime());
+  });
+
+  test('test get previous run for "0 20 10 7 *"', () => {
+    schedule = '0 20 10 7 *'; // July 10th
+    const { startTime, endTime } = getPreviousRun(schedule, today);
+    assert.strictEqual(startTime, new Date('2022-07-10T20:00:00.000Z').getTime());
+    assert.strictEqual(endTime, new Date('2023-07-10T20:00:00.000Z').getTime());
+  });
+  
+  test ('test reset Start End Date for "hourly" schedule', () => {
+    schedule = 'hourly';
+    resetStartEndDate(schedule, today, startDate, endDate);
+    assert.strictEqual(startDate.value, '2024-07-08T04:00:00.000Z');
+    assert.strictEqual(endDate.value, '2024-07-08T05:00:00.000Z');
+  });
+  test('test reset Start End Date for "daily" schedule', () => {
+    schedule = 'daily';
+    resetStartEndDate(schedule, today, startDate, endDate);
+    assert.strictEqual(startDate.value, '2024-07-07T00:00:00.000Z');
+    assert.strictEqual(endDate.value, '2024-07-08T00:00:00.000Z');
+  });
+
+  test('test reset Start End Date for "weekly" schedule', () => {
+    schedule = 'weekly';
+    resetStartEndDate(schedule, today, startDate, endDate);
+    assert.strictEqual(startDate.value, '2024-07-01T00:00:00.000Z');
+    assert.strictEqual(endDate.value, '2024-07-08T00:00:00.000Z');
+  });
+
+  test('test reset Start End Date for "monthly" schedule', () => {
     schedule = 'monthly';
     resetStartEndDate(schedule, today, startDate, endDate);
-    assert.strictEqual(startDate.value, '2024-06-01T00:00:00.000');
-    assert.strictEqual(endDate.value, '2024-06-30T00:00:00.000');
+    assert.strictEqual(startDate.value, '2024-06-01T00:00:00.000Z');
+    assert.strictEqual(endDate.value, '2024-07-01T00:00:00.000Z');
   });
 
-  test('test reset start and end date for "2 17 * * *"', () => {
+  test('test reset Start End Date for "2 17 * * *"', () => {
     schedule = '2 17 * * *';
     resetStartEndDate(schedule, today, startDate, endDate);
-    console.log('Start Date cron:', startDate.value);
-    console.log('End Date cron:', endDate.value);
-    assert.strictEqual(startDate.value, '2024-07-06T17:02:00.000');
-    assert.strictEqual(endDate.value, '2024-07-07T17:02:00.000');
+    assert.strictEqual(startDate.value, '2024-07-06T17:02:00.000Z');
+    assert.strictEqual(endDate.value, '2024-07-07T17:02:00.000Z');
   });
 
-  test('test reset start and end date for "30 17 * * *"', () => {
+  test('test reset Start End Date for "30 17 * * *"', () => {
     schedule = '30 17 * * *';
     resetStartEndDate(schedule, today, startDate, endDate);
-    assert.strictEqual(startDate.value, '2024-07-06T17:30:00.000');
-    assert.strictEqual(endDate.value, '2024-07-07T17:30:00.000');
+    assert.strictEqual(startDate.value, '2024-07-06T17:30:00.000Z');
+    assert.strictEqual(endDate.value, '2024-07-07T17:30:00.000Z');
   });
 
-  test('test reset start and end date for "0 18 * * *"', () => {
+  test('test reset Start End Date for "0 18 * * *"', () => {
     schedule = '0 18 * * *';
     resetStartEndDate(schedule, today, startDate, endDate);
-    assert.strictEqual(startDate.value, '2024-07-06T18:00:00.000');
-    assert.strictEqual(endDate.value, '2024-07-07T18:00:00.000');
+    assert.strictEqual(startDate.value, '2024-07-06T18:00:00.000Z');
+    assert.strictEqual(endDate.value, '2024-07-07T18:00:00.000Z');
   });
 
-  test('test reset start and end date for "0 19 * 6 *"', () => {
+  test('test reset Start End Date for "0 19 * 6 *"', () => {
     schedule = '0 19 * 6 *'; // June
     resetStartEndDate(schedule, today, startDate, endDate);
-    assert.strictEqual(startDate.value, '2024-06-29T19:00:00.000');
-    assert.strictEqual(endDate.value, '2024-06-30T19:00:00.000');
+    assert.strictEqual(startDate.value, '2024-06-29T19:00:00.000Z');
+    assert.strictEqual(endDate.value, '2024-06-30T19:00:00.000Z');
   });
 
-  test('test reset start and end date for "0 20 * * 1-5"', () => {
+  test('test reset Start End Date for "0 20 * * 1-5"', () => {
     schedule = '0 20 * * 1-5'; // Weekdays (Monday to Friday)
     resetStartEndDate(schedule, today, startDate, endDate);
-    assert.strictEqual(startDate.value, '2024-07-04T20:00:00.000');
-    assert.strictEqual(endDate.value, '2024-07-05T20:00:00.000');
+    assert.strictEqual(startDate.value, '2024-07-04T20:00:00.000Z');
+    assert.strictEqual(endDate.value, '2024-07-05T20:00:00.000Z');
   });
 
-  test('test reset start and end date for "0 20 * * 6,7"', () => {
+  test('test reset Start End Date for "0 20 * * 6,7"', () => {
     schedule = '0 20 * * 6,7'; // Saturday and Sunday
     resetStartEndDate(schedule, today, startDate, endDate);
-    assert.strictEqual(startDate.value, '2024-07-06T20:00:00.000');
-    assert.strictEqual(endDate.value, '2024-07-07T20:00:00.000');
+    assert.strictEqual(startDate.value, '2024-07-06T20:00:00.000Z');
+    assert.strictEqual(endDate.value, '2024-07-07T20:00:00.000Z');
   });
 
-  test('test reset start and end date for "0 20 10 7 *"', () => {
+  test('test reset Start End Date for "0 20 10 7 *"', () => {
     schedule = '0 20 10 7 *'; // July 10th
     resetStartEndDate(schedule, today, startDate, endDate);
-    assert.strictEqual(startDate.value, '2022-07-10T20:00:00.000');
-    assert.strictEqual(endDate.value, '2023-07-10T20:00:00.000');
+    assert.strictEqual(startDate.value, '2022-07-10T20:00:00.000Z');
+    assert.strictEqual(endDate.value, '2023-07-10T20:00:00.000Z');
+  });
+
+  test ('test get previous run for invalid schedule', () => {
+    schedule = 'invalid';
+    const { startTime, endTime } = getPreviousRun(schedule, today);
+    assert.strictEqual(startTime, today.getTime());
+    assert.strictEqual(endTime, today.getTime());
+  }
+  );
+
+  test('test reset Start End Date for invalid schedule', () => {
+    schedule = 'invalid';
+    resetStartEndDate(schedule, today, startDate, endDate);
+    assert.strictEqual(startDate.value, '');
+    assert.strictEqual(endDate.value, '');
   });
 
 });
