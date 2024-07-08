@@ -161,31 +161,33 @@ export function isValidCron(expression: string) {
 // function that trnasform 'daily', weekly', 'monthly' schedule to cron
 export function scheduleToCron(schedule: string) {
   if (isValidCron(schedule)) {
-  return schedule;
-  }
-   else {
-  switch (schedule) {
-    case 'hourly':
-      return '0 0 * * * *';
-    case 'daily':
-      return '0 0 0 * * *';
-    case 'weekly':
-      return '0 0 0 * * 1';
-    case 'monthly':
-      return '0 0 0 1 * *';
-    default:
-      throw new Error(`Invalid schedule: ${schedule}. Please provide a valid cron expression or use 'hourly' 'daily', 'weekly', or 'monthly'.`);
+    return { cronSchedule: schedule, error: null };
+  } else {
+    switch (schedule) {
+      case 'hourly':
+        return { cronSchedule: '0 0 * * * *', error: null };
+      case 'daily':
+        return { cronSchedule: '0 0 0 * * *', error: null };
+      case 'weekly':
+        return { cronSchedule: '0 0 0 * * 1', error: null };
+      case 'monthly':
+        return { cronSchedule: '0 0 0 1 * *', error: null };
+      default:
+        return { cronSchedule: null, error: `Invalid schedule: ${schedule}. Please provide a valid cron expression or use 'hourly', 'daily', 'weekly', or 'monthly'.` };
     }
+  }
 }
 
-}
 // function that get timestamp and schedule, and return start and end timestamp 
 
 export function getPreviousRun(schedule: string, timestamp: Date) {
   const options = { currentDate: timestamp, tz: 'UTC'};
-  const cron = scheduleToCron(schedule);
-  const interval = cronParser.parseExpression(cron, options);
-  
+  const {cronSchedule, error} = scheduleToCron(schedule);
+  if (error) {
+    throw new Error(error);
+  } 
+
+  const interval = cronParser.parseExpression(cronSchedule!, options);
   const endTime = interval.prev().toDate().getTime();
   const startTime = interval.prev().toDate().getTime();
 
