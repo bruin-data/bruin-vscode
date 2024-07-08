@@ -1,6 +1,7 @@
+
 import type { CheckboxItems } from "@/types";
 import { DateTime } from "luxon";
-import cronParser from "cron-parser";
+import * as cronParser from "cron-parser";
 
 const isExclusiveChecked = (checkboxesItems: CheckboxItems[]): boolean => {
   return checkboxesItems.some((item) => item.name === "Exclusive-End-Date" && item.checked);
@@ -157,66 +158,45 @@ export function isValidCron(expression: string) {
     return false;
   }
 }
+// function that trnasform 'daily', weekly', 'monthly' schedule to cron
+export function scheduleToCron(schedule: string) {
+  if (isValidCron(schedule)) {
+  return schedule;
+  }
+   else {
+  switch (schedule) {
+    case 'hourly':
+      return '0 0 * * * *';
+    case 'daily':
+      return '0 0 0 * * *';
+    case 'weekly':
+      return '0 0 0 * * 1';
+    case 'monthly':
+      return '0 0 0 1 * *';
+    default:
+      throw new Error(`Invalid schedule: ${schedule}. Please provide a valid cron expression or use 'hourly' 'daily', 'weekly', or 'monthly'.`);
+    }
+}
+
+}
+// function that get timestamp and schedule, and return start and end timestamp 
+
+export function getPreviousRun(schedule: string, timestamp: Date) {
+  const options = { currentDate: timestamp, tz: 'UTC'};
+  const cron = scheduleToCron(schedule);
+  const interval = cronParser.parseExpression(cron, options);
+  
+  const endTime = interval.prev().toDate().getTime();
+  const startTime = interval.prev().toDate().getTime();
+
+  return { startTime, endTime };
+
+}
 
 export function resetStartEndDate(schedule, today, startDate, endDate) {
-  switch (schedule) {
-    case "hourly":
-      startDate.value = new Date(
-        Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(), today.getHours() - 1, 0, 0, 0)
-      ).toISOString().slice(0, -1);
-      endDate.value = new Date(
-        Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(), today.getHours(), 0, 0, 0)
-      ).toISOString().slice(0, -1);
-      break;
-    case "daily":
-      startDate.value = new Date(
-        Date.UTC(today.getFullYear(), today.getMonth(), today.getDate() - 1, 0, 0, 0, 0)
-      ).toISOString().slice(0, -1);
-      endDate.value = new Date(
-        Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0)
-      ).toISOString().slice(0, -1);
-      break;
-    case "weekly":
-      const dayOfWeek = today.getUTCDay();
-      const lastMonday = new Date(
-        Date.UTC(today.getFullYear(), today.getMonth(), today.getDate() - dayOfWeek - 6, 0, 0, 0, 0)
-      );
-      const thisMonday = new Date(
-        Date.UTC(
-          today.getFullYear(),
-          today.getMonth(),
-          today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1),
-          0, 0, 0, 0
-        )
-      );
-      startDate.value = lastMonday.toISOString().slice(0, -1);
-      endDate.value = thisMonday.toISOString().slice(0, -1);
-      break;
-    case "monthly":
-      const firstDayOfLastMonth = new Date(
-        Date.UTC(today.getFullYear(), today.getMonth() - 1, 1, 0, 0, 0, 0)
-      );
-      const lastDayOfLastMonth = new Date(
-        Date.UTC(today.getFullYear(), today.getMonth(), 0, 0, 0, 0, 0)
-      );
-      startDate.value = firstDayOfLastMonth.toISOString().slice(0, -1);
-      endDate.value = lastDayOfLastMonth.toISOString().slice(0, -1);
-      break;
-    default:
-      if (isValidCron(schedule)) {
-        try {
-          const interval = cronParser.parseExpression(schedule);
-          const endUTC = interval.prev().toDate();
-          const startUTC = interval.prev().toDate();
-          const start = new Date(startUTC.getTime() - startUTC.getTimezoneOffset() * 60000).toISOString().slice(0, -1);
-          const end = new Date(endUTC.getTime() - endUTC.getTimezoneOffset() * 60000).toISOString().slice(0, -1);
-          startDate.value = start;
-          endDate.value = end;
-        } catch (err) {
-          console.error('Error parsing cron expression:', err);
-        }
-      } else {
-        console.error('Invalid schedule type or cron expression:', schedule);
-      }
-  }
+  const {startTime, endTime} = getPreviousRun(schedule, today);
+  const start = new Date(startTime).toISOString().slice(0, -1);
+  const end = new Date(endTime).toISOString().slice(0, -1);
+  startDate.value = start;
+  endDate.value = end;
 }
