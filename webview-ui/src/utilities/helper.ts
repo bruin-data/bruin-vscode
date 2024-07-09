@@ -1,5 +1,7 @@
+
 import type { CheckboxItems } from "@/types";
 import { DateTime } from "luxon";
+import * as cronParser from "cron-parser";
 
 const isExclusiveChecked = (checkboxesItems: CheckboxItems[]): boolean => {
   return checkboxesItems.some((item) => item.name === "Exclusive-End-Date" && item.checked);
@@ -110,13 +112,25 @@ export const parseAssetDetails = (data: string) => {
   if (!data) return;
 
   const parsedData = JSON.parse(data);
+  if (!parsedData.asset) {
+    return {
+      id: "undefined",
+      name: parsedData.pipeline.name || "undefined",
+      type: "pipeline",
+      schedule: parsedData.pipeline.schedule || "undefined",
+      description:'No description available.',
+      owner: "undefined",
+      pipeline: parsedData.pipeline || "undefined",
+    };
+  ;
+  }
   const assetDetails = {
-    id: parsedData.asset.id,
-    name: parsedData.asset.name || "undefined",
-    type: parsedData.asset.type || "undefined",
-    schedule: parsedData.asset.schedule || "undefined",
-    description: parsedData.asset.description || null,
-    owner: parsedData.asset.owner || "undefined",
+    id: parsedData.asset ? parsedData.asset.id : "undefined",
+    name: parsedData.asset ? parsedData.asset.name : "undefined",
+    type: parsedData.asset ? parsedData.asset.type : "undefined",
+    schedule: parsedData.asset ? parsedData.asset.schedule : "undefined",
+    description: parsedData.asset ? parsedData.asset.description : null,
+    owner: parsedData.asset ? parsedData.asset.owner : "undefined",
     pipeline: parsedData.pipeline || "undefined",
   };
 
@@ -135,3 +149,63 @@ export const parseEnvironmentList = (data) => {
   return environments;
 }
   
+
+export function isValidCron(expression: string) {
+  try {
+    cronParser.parseExpression(expression);
+    return true;
+  } catch {
+    return false;
+  }
+}
+// function that trnasform 'daily', weekly', 'monthly' schedule to cron
+export function scheduleToCron(schedule: string) {
+  if (isValidCron(schedule)) {
+    return { cronSchedule: schedule, error: null };
+  } else {
+    switch (schedule) {
+        case 'hourly':
+          return { cronSchedule: '0 * * * *', error: null };
+        case 'daily':
+          return { cronSchedule: '0 0 * * *', error: null };
+        case 'weekly':
+          return { cronSchedule: '0 0 * * 1', error: null }; 
+        case 'monthly':
+          return { cronSchedule: '0 0 1 * *', error: null };
+      default:
+        return { cronSchedule: null, error: `Invalid schedule: ${schedule}. Please provide a valid cron expression or use 'hourly', 'daily', 'weekly', or 'monthly'.` };
+    }
+  }
+}
+
+// function that get timestamp and schedule, and return start and end timestamp 
+
+export function getPreviousRun(schedule: string, timestamp) {
+  
+  const options = { currentDate: timestamp, tz: 'UTC'};
+
+  const {cronSchedule, error} = scheduleToCron(schedule);
+  if (error) {
+    throw new Error(error);
+  } 
+
+  const interval = cronParser.parseExpression(cronSchedule!, options);
+
+  
+  const endTime = interval.prev().toDate().getTime();
+  const startTime = interval.prev().toDate().getTime();
+  return { startTime, endTime };
+
+}
+
+export function resetStartEndDate(schedule, today, startDate, endDate) {
+  const {startTime, endTime} = getPreviousRun(schedule, today);
+  console.log('start date:', startDate, 'end date:', endDate);
+  console.log('today', today, 'start time:', startTime, 'end time:', endTime);
+
+  const start = new Date(startTime).toISOString().slice(0, -1);
+  const end = new Date(endTime).toISOString().slice(0, -1);
+  console.log('start:', start, 'end:', end);
+  startDate.value = start;
+  endDate.value = end;
+}

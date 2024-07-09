@@ -2,7 +2,7 @@
   "name": "bruin",
   "displayName": "Bruin",
   "description": "Manage your Bruin data assets from within VS Code.",
-  "version": "0.11.3",
+  "version": "0.11.4",
   "engines": {
     "vscode": "^1.87.0"
   },
@@ -113,6 +113,7 @@
     "build:webview": "cd webview-ui && npm run build-only",
     "vscode:prepublish": "npm run compile",
     "test": "vscode-test",
+    "test:webview": "cd webview-ui && npm run test",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "format": "prettier --write src/**/*.ts",
@@ -139,6 +140,7 @@
     "@vue-flow/core": "^1.33.6",
     "@vue-flow/minimap": "^1.4.0",
     "all": "^0.0.0",
+    "cron-parser": "^4.9.0",
     "elkjs": "^0.9.3",
     "luxon": "^3.4.4",
     "markdown-it": "^14.1.0",

@@ -61,7 +61,7 @@ const data = ref(
     asset: {
       name: "Asset Name",
       description: "Asset Description",
-      type: "BigQuery",
+      type: "undefined",
       schedule: "daily",
       owner: "Asset Owner",
       id: "ID",
