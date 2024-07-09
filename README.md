@@ -70,12 +70,14 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: v0.11.3
-
+### Latest Release: v0.11.4
 **Enhanced**
-- Updates the render icon from a rocket to the Bruin logo.
+- This release introduces enhanced cron schedule detection and reset capabilities.
 
 ### Previous Highlights
+
+### Version 0.11.3
+- Updates the render icon from a rocket to the Bruin logo.
 
 ### Version 0.11.2
 - Fixed an issue where the rocket icon didn't display for `ingestr` asset YAML files due to the unsupported `.yaml` extension.
