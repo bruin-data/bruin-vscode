@@ -17,15 +17,18 @@ suite('testing webview', () => {
   });
 
   test('test scheduleToCron', () => {
-    const daily = '0 0 0 * * *';
-    const weekly = '0 0 0 * * 1';
-    const monthly = '0 0 0 1 * *';
+    const hourly = '0 * * * *';
+    const daily = '0 0 * * *';
+    const weekly = '0 0 * * 1';
+    const monthly = '0 0 1 * *';
 
+    const cronHourly = scheduleToCron('hourly');
     const cronDaily = scheduleToCron('daily');
     const cronWeekly = scheduleToCron('weekly');
     const cronMonthly = scheduleToCron('monthly');
     const cronInvalid = scheduleToCron('invalid');
 
+    assert.deepStrictEqual(cronHourly, { cronSchedule: hourly, error: null });
     assert.deepStrictEqual(cronDaily, { cronSchedule: daily, error: null });
     assert.deepStrictEqual(cronWeekly, { cronSchedule: weekly, error: null });
     assert.deepStrictEqual(cronMonthly, { cronSchedule: monthly, error: null });
@@ -216,6 +219,13 @@ suite('testing webview', () => {
     assert.strictEqual(endDate.value, '2024-07-07T18:00:00.000');
   });
 
+  test('test reset Start End Date for "2 * * * *"', () => {
+    schedule = '2 * * * *';
+    resetStartEndDate(schedule, today, startDate, endDate);
+    assert.strictEqual(startDate.value, '2024-07-08T04:02:00.000');
+    assert.strictEqual(endDate.value, '2024-07-08T05:02:00.000');
+  });
+
   test('test reset Start End Date for "0 19 * 6 *"', () => {
     schedule = '0 19 * 6 *'; // June
     resetStartEndDate(schedule, today, startDate, endDate);
@@ -244,7 +254,7 @@ suite('testing webview', () => {
     assert.strictEqual(endDate.value, '2023-07-10T20:00:00.000');
   });
 
-
+ 
   test ('test get previous run for invalid schedule', () => {
     schedule = 'invalid';
     try {

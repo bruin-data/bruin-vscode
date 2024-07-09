@@ -299,8 +299,8 @@ const renderPythonAsset = ref(null);
 const renderSQLAssetError = ref(null);
 const renderAssetAlert = ref(null);
 const validateButtonStatus = ref("" as "validated" | "failed" | "loading" | null);
-
-const today = new Date(Date.now());
+const timzone = new Date().getTimezoneOffset();
+const today = new Date(Date.now() - timzone * 60000);
 const startDate = ref(
   new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate() - 1, 0, 0, 0, 0))
     .toISOString()

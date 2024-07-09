@@ -169,7 +169,7 @@ export function scheduleToCron(schedule: string) {
         case 'daily':
           return { cronSchedule: '0 0 * * *', error: null };
         case 'weekly':
-          return { cronSchedule: '0 0 * * 0', error: null }; 
+          return { cronSchedule: '0 0 * * 1', error: null }; 
         case 'monthly':
           return { cronSchedule: '0 0 1 * *', error: null };
       default:
@@ -180,25 +180,32 @@ export function scheduleToCron(schedule: string) {
 
 // function that get timestamp and schedule, and return start and end timestamp 
 
-export function getPreviousRun(schedule: string, timestamp: Date) {
+export function getPreviousRun(schedule: string, timestamp) {
+  
   const options = { currentDate: timestamp, tz: 'UTC'};
+
   const {cronSchedule, error} = scheduleToCron(schedule);
   if (error) {
     throw new Error(error);
   } 
 
   const interval = cronParser.parseExpression(cronSchedule!, options);
+
+  
   const endTime = interval.prev().toDate().getTime();
   const startTime = interval.prev().toDate().getTime();
-
   return { startTime, endTime };
 
 }
 
 export function resetStartEndDate(schedule, today, startDate, endDate) {
   const {startTime, endTime} = getPreviousRun(schedule, today);
-  const start = new Date(startTime).toISOString();
-  const end = new Date(endTime).toISOString();
-  startDate.value = start.slice(0, -1);
-  endDate.value = end.slice(0, -1);
+  console.log('start date:', startDate, 'end date:', endDate);
+  console.log('today', today, 'start time:', startTime, 'end time:', endTime);
+
+  const start = new Date(startTime).toISOString().slice(0, -1);
+  const end = new Date(endTime).toISOString().slice(0, -1);
+  console.log('start:', start, 'end:', end);
+  startDate.value = start;
+  endDate.value = end;
 }
