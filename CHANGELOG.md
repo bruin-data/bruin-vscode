@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+- ## [0.11.4] - [2024-07-09]
+- Introduced new cron schedule detection and reset functionalities.
+
 - ## [0.11.3] - [2024-07-03]
 - Updates the render icon from a rocket to the Bruin logo.
 
