@@ -62,6 +62,16 @@
         }
       }
     },
+    "snippets": [
+      {
+        "fileTypes": ["sql"],
+        "path": "./snippets/bruin-sql.code-snippets"
+      },
+      {
+        "language": "python",
+        "path": "./snippets/bruin-python.json"
+      }
+    ],
     "grammars": [
       {
         "path": "./syntaxes/bruin-sql-injection.json",
