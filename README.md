@@ -70,26 +70,20 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: v0.11.4
-**Enhanced**
-- This release introduces enhanced cron schedule detection and reset capabilities.
+### Latest Release: v0.12.0
+# Added
+- Implemented new snippets for creating Bruin Python and SQL asset templates within VS Code.
 
 ### Previous Highlights
 
-### Version 0.11.3
-- Updates the render icon from a rocket to the Bruin logo.
-
-### Version 0.11.2
-- Fixed an issue where the rocket icon didn't display for `ingestr` asset YAML files due to the unsupported `.yaml` extension.
-
-### Version 0.11.1
-- Correct Default Environment Behavior: Users can now name their default environment as they wish, instead of "default".
-
-### Version 0.11.0
-- Introduced a dropdown for selecting environments within the extension.
-- Integrated a Bruin command to dynamically fetch the environment list from the CLI.
-- Ensured the default environment is pre-selected based on CLI-provided selected_environment.
-- Concatenated the selected environment into the run command for accurate execution.
+### Version 0.11.x
+- Updated render icon to Bruin logo.
+- Fixed rocket icon display for `.yaml` extension in ingestr asset YAML files.
+- Enhanced default environment customization.
+- Introduced environment selection dropdown.
+- Integrated CLI-based environment fetching.
+- Improved default environment pre-selection.
+- Included selected environment in run command for accuracy.
 
 ### Version 0.10.x
 - Corrected the validation button behavior where "Validate All" and "Validate Current Pipeline" were erroneously swapped.
