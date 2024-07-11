@@ -68,6 +68,10 @@
         "path": "./snippets/bruin-sql.code-snippets"
       },
       {
+        "language": "sql-bigquery",
+        "path": "./snippets/bruin-sql.code-snippets"
+      },
+      {
         "language": "snowflake-sql",
         "path": "./snippets/bruin-sql.code-snippets"
       },
