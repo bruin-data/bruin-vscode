@@ -1,6 +1,6 @@
 {
     "Bruin SQL Section": {
-      "prefix": "bruin",
+      "prefix": "bruinasset",
       "body": [
         "/* @bruin",
         "name: ${1:asset_name}",

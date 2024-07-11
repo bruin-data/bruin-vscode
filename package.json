@@ -64,12 +64,16 @@
     },
     "snippets": [
       {
-        "fileTypes": ["sql"],
+        "language": "sql",
+        "path": "./snippets/bruin-sql.code-snippets"
+      },
+      {
+        "language": "snowflake-sql",
         "path": "./snippets/bruin-sql.code-snippets"
       },
       {
         "language": "python",
-        "path": "./snippets/bruin-python.json"
+        "path": "./snippets/bruin-python.code-snippets"
       }
     ],
     "grammars": [
