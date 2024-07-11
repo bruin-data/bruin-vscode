@@ -1,0 +1,29 @@
+{
+    "Bruin Python Section": {
+      "prefix": "bruinasset",
+      "body": [
+        "\"\"\"@bruin",
+        "name: ${1:asset_name}",
+        "type: python",
+        "",
+        "depends: ",
+        "  - ${2:dependency1}",
+        "  - ${3:dependency2}",
+        "",
+        "materialization:",
+        "   type: ${4|table,view,incremental|}",
+        "",
+        "columns:",
+        "  - name: ${5:column_name}",
+        "    type: ${6|integer,string,float,boolean,date,timestamp|}",
+        "    description: \"${7:column_description}\"",
+        "    checks:",
+        "        - name: ${8|unique,not_null,accepted_values|}",
+        "        ${9:- name: accepted_values}",
+        "          ${10:value: [\"val1\", \"val2\"]}",
+        "@bruin\"\"\"",
+        "$0"
+      ],
+      "description": "Insert a Bruin section for Python files"
+    }
+  }

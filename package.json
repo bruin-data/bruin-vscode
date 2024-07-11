@@ -62,6 +62,24 @@
         }
       }
     },
+    "snippets": [
+      {
+        "language": "sql",
+        "path": "./snippets/bruin-sql.code-snippets"
+      },
+      {
+        "language": "sql-bigquery",
+        "path": "./snippets/bruin-sql.code-snippets"
+      },
+      {
+        "language": "snowflake-sql",
+        "path": "./snippets/bruin-sql.code-snippets"
+      },
+      {
+        "language": "python",
+        "path": "./snippets/bruin-python.code-snippets"
+      }
+    ],
     "grammars": [
       {
         "path": "./syntaxes/bruin-sql-injection.json",
