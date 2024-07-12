@@ -1,6 +1,6 @@
 {
     "Bruin Python Section": {
-      "prefix": "bruinasset",
+      "prefix": "!bruinasset",
       "body": [
         "\"\"\"@bruin",
         "name: ${1:asset_name}",

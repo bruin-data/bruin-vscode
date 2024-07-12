@@ -1,6 +1,6 @@
 {
     "Bruin SQL Section": {
-      "prefix": "bruinasset",
+      "prefix": "!bruinasset",
       "body": [
         "/* @bruin",
         "name: ${1:asset_name}",
@@ -11,7 +11,7 @@
         "  - ${3:dependency2}",
         "",
         "materialization:",
-        "   type: ${4|table,view,incremental|}",
+        "   type: ${4|table,view|}",
         "",
         "columns:",
         "  - name: ${5:column_name}",
