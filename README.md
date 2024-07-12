@@ -70,11 +70,14 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: v0.12.0
+### Latest Release: v0.12.1
 # Added
-- Implemented new snippets for creating Bruin Python and SQL asset templates within VS Code.
+- Implemented snippets for creating Bruin root configuration and Bruin pipeline.
 
 ### Previous Highlights
+
+### Version 0.12.0
+- Implemented new snippets for creating Bruin Python and SQL asset templates within VS Code.
 
 ### Version 0.11.x
 - Updated render icon to Bruin logo.
