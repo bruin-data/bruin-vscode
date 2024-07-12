@@ -2,11 +2,12 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
-- ## [0.12.0] - [2024-07-11]
+- ## [0.12.1] - [2024-07-12]
+- Implemented snippets for creating Bruin root configuration and Bruin pipeline.
 
+- ## [0.12.0] - [2024-07-11]
 - Implemented new snippets for creating Bruin Python and SQL asset templates within VS Code.
 - Added support for Snowflake and BigQuery environments.
-
 
 - ## [0.11.4] - [2024-07-09]
 - Introduced new cron schedule detection and reset functionalities.
