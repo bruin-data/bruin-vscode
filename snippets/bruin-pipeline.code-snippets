@@ -23,12 +23,6 @@
       "                - name: \"${3:your-dev}\"",
       "                  project_id: \"${4:your-project-id}\"",
       "                  service_account_file: '${5:keyfile.json}'",
-      "    ${6:env}:",
-      "        connections:",
-      "            ${7:cloud_provider}:",
-      "                - name: \"${8:your-dev}\"",
-      "                  project_id: \"${9:your-project-id}\"",
-      "                  service_account_file: '${10:keyfile.json}'",
       "$0"
     ],
     "description": "Insert a Bruin root configuration"
