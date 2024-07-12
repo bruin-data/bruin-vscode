@@ -3,7 +3,7 @@
     "prefix": "!bruin-pipeline",
     "body": [
       "name: ${1:bruin-init}",
-      "schedule: ${2|hourly,daily,weekly,monthy|}",
+      "schedule: ${2|hourly,daily,weekly,monthly|}",
       "start_date: \"${3:yyyy-mm-dd}\"",
       "",
       "default_connections:",
