@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+- ## [0.12.2] - [2024-07-12]
+- Fixed a typo in the pipeline snippet.
+
 - ## [0.12.1] - [2024-07-12]
 - Implemented snippets for creating Bruin root configuration and Bruin pipeline.
 
