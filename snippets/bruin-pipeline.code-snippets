@@ -1,0 +1,36 @@
+{
+  "Bruin Pipeline Initialization": {
+    "prefix": "!bruin-pipeline",
+    "body": [
+      "name: ${1:bruin-init}",
+      "schedule: ${2|hourly,daily,weekly,monthy|}",
+      "start_date: \"${3:yyyy-mm-dd}\"",
+      "",
+      "default_connections:",
+      "    google_cloud_platform: \"${4:user-name}\"",
+      "$0"
+    ],
+    "description": "Initialize a Bruin pipeline"
+  },
+  "Bruin Root Configuration": {
+    "prefix": "!bruin-root",
+    "body": [
+      "default_environment: ${1:prod}",
+      "environments:",
+      "    ${1:prod}:",
+      "        connections:",
+      "            ${2:google_cloud_platform}:",
+      "                - name: \"${3:your-dev}\"",
+      "                  project_id: \"${4:your-project-id}\"",
+      "                  service_account_file: '${5:keyfile.json}'",
+      "    ${6:env}:",
+      "        connections:",
+      "            ${7:cloud_provider}:",
+      "                - name: \"${8:your-dev}\"",
+      "                  project_id: \"${9:your-project-id}\"",
+      "                  service_account_file: '${10:keyfile.json}'",
+      "$0"
+    ],
+    "description": "Insert a Bruin root configuration"
+  }
+}

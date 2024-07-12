@@ -78,6 +78,10 @@
       {
         "language": "python",
         "path": "./snippets/bruin-python.code-snippets"
+      },
+      {
+        "language": "yaml",
+        "path": "./snippets/bruin-pipeline.code-snippets"
       }
     ],
     "grammars": [
