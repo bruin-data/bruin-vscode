@@ -75,24 +75,24 @@ export const determineValidationStatus = (
 ) => {
   return success ? "validated" : error ? "failed" : loading ? "loading" : null;
 };
-
+/* 
 export function formatLineage(data: string) {
   if (!data) return;
 
   const parsedData = JSON.parse(data);
   console.log(parsedData);
   const numDownstream = parsedData.downstream?.length || 0;
-  const numUpstream = parsedData.upstream?.length || 0;
+  const numUpstream = parsedData.upstreams?.length || 0;
 
   let result = `Lineage: '${parsedData.name}'\n\n`;
   result += "Upstream Dependencies\n ========================\n";
   if (numUpstream === 0) {
     result += "Asset has no upstream dependencies.\n\n";
   } else {
-    parsedData.upstream.forEach((dep) => {
+    parsedData.upstreams.forEach((dep) => {
       result += `- ${dep.name} (${dep.executable_file.path.split("/").pop()})\n`;
     });
-    result += `\nTotal: ${parsedData.upstream.length}\n\n`;
+    result += `\nTotal: ${parsedData.upstreams.length}\n\n`;
   }
 
   result += "Downstream Dependencies\n========================\n";
@@ -106,7 +106,7 @@ export function formatLineage(data: string) {
   }
 
   return result;
-}
+} */
 
 export const parseAssetDetails = (data: string) => {
   if (!data) return;
@@ -127,7 +127,7 @@ export const parseAssetDetails = (data: string) => {
   const assetDetails = {
     id: parsedData.asset ? parsedData.asset.id : "undefined",
     name: parsedData.asset ? parsedData.asset.name : "undefined",
-    type: parsedData.asset ? parsedData.asset.type : "undefined",
+    type: parsedData.asset ? parsedData.asset.type : (parsedData.asset.external ? "external" : "undefined"),
     schedule: parsedData.asset ? parsedData.asset.schedule : "undefined",
     description: parsedData.asset ? parsedData.asset.description : null,
     owner: parsedData.asset ? parsedData.asset.owner : "undefined",
@@ -209,3 +209,8 @@ export function resetStartEndDate(schedule, today, startDate, endDate) {
   startDate.value = start;
   endDate.value = end;
 }
+
+
+export const getUpstreams = (data) => {
+  return data?.upstreams || data?.upstream || [];
+};

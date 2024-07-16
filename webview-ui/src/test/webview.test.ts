@@ -1,6 +1,6 @@
 import { suite, test, assert, beforeEach, afterEach } from 'vitest';
 import * as  cronParser from 'cron-parser';
-import { isValidCron, resetStartEndDate, scheduleToCron, getPreviousRun, adjustEndDateForExclusive } from '../utilities/helper';
+import { isValidCron, resetStartEndDate, scheduleToCron, getPreviousRun, adjustEndDateForExclusive, getUpstreams } from '../utilities/helper';
 
 
 suite('testing webview', () => {
@@ -345,5 +345,50 @@ suite('testing webview', () => {
     }
   }
   );
+
+  test('test get lineage text for old and new upstream format', () => {
+
+    const oldFormatasset ={
+      name:"asset1",
+      type:"python",
+      upstream: [
+        {
+          name:"asset2",
+          type:"python",
+          executable_file: {
+            name:"asset2.py",
+          },
+          definition_file: {
+            name:"asset2.yml",
+          }
+        }
+      ]
+    }
+    const newFormatasset ={
+      name:"asset1",
+      type:"python",
+      upstreams: [
+        {
+          name:"asset2",
+          type:"python",
+          executable_file: {
+            name:"asset2.py",
+          },
+          definition_file: {
+            name:"asset2.yml",
+          }
+        },
+        {
+          name:"asset2",
+          external: true,
+        }
+      ]
+    }
+  
+    const oldUpstream = getUpstreams(oldFormatasset);
+    const newUpstream = getUpstreams(newFormatasset);
+    assert.deepStrictEqual(oldUpstream, oldFormatasset.upstream);
+    assert.deepStrictEqual(newUpstream, newFormatasset.upstreams);
+});
 
 });

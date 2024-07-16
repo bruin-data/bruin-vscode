@@ -9,6 +9,10 @@ export const styles = {
         main: "bg-sky-300 text-sky-800",
         label: "bg-sky-500 text-sky-100",
     },
+    "external": {
+        main: "bg-rose-300 text-rose-800",
+        label: "bg-rose-500 text-rose-100",
+    },
     "sf.sql": {
         main: "bg-orange-300 text-orange-800",
         label: "bg-orange-500 text-white",

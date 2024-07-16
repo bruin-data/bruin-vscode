@@ -63,16 +63,18 @@ export interface BruinNodeProps {
 export interface AssetDataset {
   name: string;
   type: string;
+  upstreams?: Upstream[];
   upstream?: Upstream[];
   downstream?: Downstream[];
   isFocusAsset: boolean;
 }
 
-interface Upstream {
+export interface Upstream {
   name: string;
-  type: string;
-  executable_file: File;
-  definition_file: File;
+  type?: string;
+  executable_file?: File;
+  definition_file?: File;
+  external?: boolean;
 }
 
 interface Downstream {

@@ -4,9 +4,9 @@
       <h1 class="lineage-title mb-4 text-xl font-bold leading-none tracking-tight">
         Lineage: '{{ formattedLineage.name }}'
       </h1>
-      <LineageSection title="Upstream Dependencies" :dependencies="formattedLineage.upstream" />
+      <LineageSection title="Upstream Dependencies" :dependencies="upstreams" />
       <LineageSection title="Downstream Dependencies" :dependencies="formattedLineage.downstream" />
-      <TotalSection :total="formattedLineage.downstream.length + formattedLineage.upstream.length" />
+      <TotalSection :total="totalDependencies" />
     </div>
     <div v-if="lineageError">
       <ErrorAlert :errorMessage="lineageError" />
@@ -19,9 +19,30 @@ import ErrorAlert from "@/components/ui/alerts/ErrorAlert.vue";
 import LineageSection from "@/components/lineage-text/LineageSection.vue";
 import TotalSection from "@/components/lineage-text/TotalSection.vue";
 import { useLineage } from "@/composables/useLineage";
+import { ref, watch, computed } from "vue";
+import { getUpstreams } from "@/utilities/helper";
 
 const { formattedLineage, lineageError, lineageSuccess } = useLineage();
 
+const lineageData = ref(formattedLineage.value);
+
+
+const upstreams = ref(getUpstreams(lineageData.value));
+
+watch(
+  formattedLineage,
+  (newLineage) => {
+    lineageData.value = newLineage;
+    upstreams.value = getUpstreams(newLineage);
+  },
+  { deep: true }
+);
+
+const totalDependencies = computed(() => {
+  const downstreamLength = lineageData.value?.downstream?.length || 0;
+  const upstreamsLength = upstreams.value.length;
+  return downstreamLength + upstreamsLength;
+});
 </script>
 
 <style scoped>
