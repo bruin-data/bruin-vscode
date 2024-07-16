@@ -209,3 +209,8 @@ export function resetStartEndDate(schedule, today, startDate, endDate) {
   startDate.value = start;
   endDate.value = end;
 }
+
+
+export const getUpstreams = (data) => {
+  return data?.upstreams || data?.upstream || [];
+};

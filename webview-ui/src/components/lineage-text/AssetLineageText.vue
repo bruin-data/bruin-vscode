@@ -20,18 +20,20 @@ import LineageSection from "@/components/lineage-text/LineageSection.vue";
 import TotalSection from "@/components/lineage-text/TotalSection.vue";
 import { useLineage } from "@/composables/useLineage";
 import { ref, watch, computed } from "vue";
+import { getUpstreams } from "@/utilities/helper";
 
 const { formattedLineage, lineageError, lineageSuccess } = useLineage();
 
 const lineageData = ref(formattedLineage.value);
 
-const upstreams = ref(lineageData.value?.upstreams || []);
+
+const upstreams = ref(getUpstreams(lineageData.value));
 
 watch(
   formattedLineage,
   (newLineage) => {
     lineageData.value = newLineage;
-    upstreams.value = newLineage?.upstreams || [];
+    upstreams.value = getUpstreams(newLineage);
   },
   { deep: true }
 );
