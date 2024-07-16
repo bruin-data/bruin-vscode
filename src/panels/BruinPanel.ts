@@ -13,7 +13,6 @@ import { renderCommandWithFlags } from "../extension/commands/renderCommand";
 import { lineageCommand } from "../extension/commands/lineageCommand";
 import { parseAssetCommand } from "../extension/commands/parseAssetCommand";
 import { getEnvListCommand } from "../extension/commands/getEnvListCommand";
-import { Input, transformToEnvironmentsArray } from "../utilities/helperUtils";
 
 /**
  * This class manages the state and behavior of Bruin webview panels.
@@ -51,6 +50,9 @@ export class BruinPanel {
 
     this._disposables.push(
       workspace.onDidChangeTextDocument((editor) => {
+        if(editor && editor.document.uri.fsPath.endsWith(".bruin.yml")) {
+          getEnvListCommand(this._lastRenderedDocumentUri);
+        }
         if (editor && editor.document.uri) {
           if (editor.document.uri.fsPath === "tasks") {
             return;
@@ -59,11 +61,11 @@ export class BruinPanel {
           renderCommandWithFlags(this._flags);
           lineageCommand(this._lastRenderedDocumentUri);
           parseAssetCommand(this._lastRenderedDocumentUri);
-          getEnvListCommand(this._lastRenderedDocumentUri);
           console.log("Document URI onDidChangeTextDocument", this._lastRenderedDocumentUri);
         }
       }),
       window.onDidChangeActiveTextEditor((editor) => {
+      
         if (editor && editor.document.uri) {
           if (editor.document.uri.fsPath === "tasks") {
             return;
@@ -74,7 +76,6 @@ export class BruinPanel {
           renderCommandWithFlags(this._flags);
           lineageCommand(this._lastRenderedDocumentUri);
           parseAssetCommand(this._lastRenderedDocumentUri);
-          getEnvListCommand(this._lastRenderedDocumentUri);
         }
       })
     );

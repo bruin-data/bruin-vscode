@@ -70,11 +70,14 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: v0.12.2
+### Latest Release: v0.12.3
 # Fixed
-- Fixed a typo in the pipeline snippet.
+- Fixed an issue where the environment list was being updated unnecessarily whenever a file was opened or updated.
 
 ### Previous Highlights
+### Version 0.12.2
+- Fixed a typo in the pipeline snippet.
+
 ### Version 0.12.1
 - Implemented snippets for creating Bruin root configuration and Bruin pipeline.
 
