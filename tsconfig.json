@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "module": "CommonJS",
+    "resolveJsonModule": true,
     "target": "ES6",
     "outDir": "out",
     "lib": ["ES6", "DOM"],

@@ -22,6 +22,29 @@
     "workspaceContains:pipeline.yml"
   ],
   "contributes": {
+    "languages": [
+      {
+        "id": "sql",
+        "extensions": [
+          ".sql"
+        ],
+        "configuration": "./syntaxes/bruin-sql-injection.json"
+      },
+      {
+        "id": "python",
+        "extensions": [
+          ".py"
+        ],
+        "configuration": "./syntaxes/bruin-python-injection.json"
+      },
+      {
+        "id": "yaml",
+        "extensions": [
+          ".yml",
+          ".yaml"
+        ]
+      }
+    ],
     "viewsContainers": {
       "panel": [
         {
@@ -41,6 +64,14 @@
       ]
     },
     "configuration": {
+      "jsonValidation": [
+        {
+          "fileMatch": [
+            "bruin.bruin"
+          ],
+          "url": "./schemas/bruinJSONSchema.json"
+        }
+      ],
       "properties": {
         "bruin.defaultFoldingState": {
           "type": "string",
@@ -161,6 +192,7 @@
     "@vue-flow/controls": "^1.1.1",
     "@vue-flow/core": "^1.33.6",
     "@vue-flow/minimap": "^1.4.0",
+    "ajv": "^8.17.1",
     "all": "^0.0.0",
     "cron-parser": "^4.9.0",
     "elkjs": "^0.9.3",
