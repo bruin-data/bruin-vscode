@@ -14,8 +14,8 @@ import type { AssetDataset } from "@/types";
       isFocusAsset: isFocusAsset,
     };
   
-    if (asset.upstream) {
-      assetDataset.upstream = asset.upstream.map((upstream: any) => {
+    if (asset.upstreams) {
+      assetDataset.upstreams = asset.upstreams.map((upstream: any) => {
         return {
           name: upstream.name,
           type: upstream.type,

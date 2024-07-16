@@ -82,17 +82,17 @@ export function formatLineage(data: string) {
   const parsedData = JSON.parse(data);
   console.log(parsedData);
   const numDownstream = parsedData.downstream?.length || 0;
-  const numUpstream = parsedData.upstream?.length || 0;
+  const numUpstream = parsedData.upstreams?.length || 0;
 
   let result = `Lineage: '${parsedData.name}'\n\n`;
   result += "Upstream Dependencies\n ========================\n";
   if (numUpstream === 0) {
     result += "Asset has no upstream dependencies.\n\n";
   } else {
-    parsedData.upstream.forEach((dep) => {
+    parsedData.upstreams.forEach((dep) => {
       result += `- ${dep.name} (${dep.executable_file.path.split("/").pop()})\n`;
     });
-    result += `\nTotal: ${parsedData.upstream.length}\n\n`;
+    result += `\nTotal: ${parsedData.upstreams.length}\n\n`;
   }
 
   result += "Downstream Dependencies\n========================\n";

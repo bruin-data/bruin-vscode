@@ -4,9 +4,9 @@
       <h1 class="lineage-title mb-4 text-xl font-bold leading-none tracking-tight">
         Lineage: '{{ formattedLineage.name }}'
       </h1>
-      <LineageSection title="Upstream Dependencies" :dependencies="formattedLineage.upstream" />
+      <LineageSection title="Upstream Dependencies" :dependencies="formattedLineage.upstreams" />
       <LineageSection title="Downstream Dependencies" :dependencies="formattedLineage.downstream" />
-      <TotalSection :total="formattedLineage.downstream.length + formattedLineage.upstream.length" />
+      <TotalSection :total="formattedLineage.downstream.length + formattedLineage.upstreams.length" />
     </div>
     <div v-if="lineageError">
       <ErrorAlert :errorMessage="lineageError" />

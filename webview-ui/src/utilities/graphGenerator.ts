@@ -17,7 +17,7 @@ export function generateGraphFromJSON(asset) {
               name: asset.name,
               type: asset.type || 'unknown',
               hasDownstreams: asset.downstream && asset.downstream.length > 0,
-              hasUpstreams: asset.upstream && asset.upstream.length > 0,
+              hasUpstreams: asset.upstreams && asset.upstreams.length > 0,
               isFocusAsset: asset.isFocusAsset,
             },
             label: asset.name,
@@ -47,8 +47,8 @@ export function generateGraphFromJSON(asset) {
         });
       }
   
-      if (asset.upstream) {
-        asset.upstream.forEach(upstreamAsset => {
+      if (asset.upstreams) {
+        asset.upstreams.forEach(upstreamAsset => {
           const parentNode = getNode(upstreamAsset);
           parentNode.data.asset.hasDownstreams = true;
           node.data.asset.hasUpstreams = true;
