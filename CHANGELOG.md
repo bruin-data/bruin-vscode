@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+- ## [0.12.3] - [2024-07-16]
+- Fixed an issue where the environment list was being updated unnecessarily whenever a file was opened or updated.
+
 - ## [0.12.2] - [2024-07-12]
 - Fixed a typo in the pipeline snippet.
 
