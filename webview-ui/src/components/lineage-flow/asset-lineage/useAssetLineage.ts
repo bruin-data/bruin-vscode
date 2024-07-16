@@ -13,9 +13,39 @@ import type { AssetDataset } from "@/types";
       type: asset.type,
       isFocusAsset: isFocusAsset,
     };
-  
+
+    console.log("================\n")    
+    console.log("assetDataset : ", assetDataset)
+
     if (asset.upstreams) {
       assetDataset.upstreams = asset.upstreams.map((upstream: any) => {
+        if(upstream.external){
+          return{
+            name: upstream.name,
+            type: "external",
+          }
+        }
+        return {
+          name: upstream.name,
+          type: upstream.type,
+          executable_file: {
+            name: upstream.executable_file.name,
+            path: upstream.executable_file.path,
+            content: upstream.executable_file.content,
+          },
+          definition_file: {
+            name: upstream.definition_file.name,
+            path: upstream.definition_file.path,
+            type: upstream.definition_file.type,
+          },
+        };
+      });
+      console.log("================\n")    
+      console.log("assetDataset.upstreams  ", assetDataset.upstreams)
+    }
+  
+    if (asset.upstream) {
+      assetDataset.upstreams = asset.upstream.map((upstream: any) => {
         return {
           name: upstream.name,
           type: upstream.type,
@@ -32,7 +62,7 @@ import type { AssetDataset } from "@/types";
         };
       });
     }
-  
+
     if (asset.downstream) {
       assetDataset.downstream = asset.downstream.map((downstream: any) => {
         return {

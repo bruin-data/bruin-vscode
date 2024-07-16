@@ -75,7 +75,7 @@ export const determineValidationStatus = (
 ) => {
   return success ? "validated" : error ? "failed" : loading ? "loading" : null;
 };
-
+/* 
 export function formatLineage(data: string) {
   if (!data) return;
 
@@ -106,7 +106,7 @@ export function formatLineage(data: string) {
   }
 
   return result;
-}
+} */
 
 export const parseAssetDetails = (data: string) => {
   if (!data) return;
@@ -127,7 +127,7 @@ export const parseAssetDetails = (data: string) => {
   const assetDetails = {
     id: parsedData.asset ? parsedData.asset.id : "undefined",
     name: parsedData.asset ? parsedData.asset.name : "undefined",
-    type: parsedData.asset ? parsedData.asset.type : "undefined",
+    type: parsedData.asset ? parsedData.asset.type : (parsedData.asset.external ? "external" : "undefined"),
     schedule: parsedData.asset ? parsedData.asset.schedule : "undefined",
     description: parsedData.asset ? parsedData.asset.description : null,
     owner: parsedData.asset ? parsedData.asset.owner : "undefined",
