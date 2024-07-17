@@ -22,6 +22,7 @@
     "workspaceContains:pipeline.yml"
   ],
   "contributes": {
+    
     "languages": [
       {
         "id": "sql",
@@ -43,8 +44,23 @@
           ".yml",
           ".yaml"
         ]
+      },
+      {
+        "id": "bruinyaml",
+        "icon": {
+          "light": "./img/bruin-logo-sm128.png",
+          "dark": "./img/bruin-logo-sm128.png"
+        },
+        "extensions": [
+          ".asset.yml",
+          ".asset.yaml"
+        ],
+        "configuration": "./syntaxes/bruin-asset.json"
       }
     ],
+    "yaml.schemas": {
+      "./schemas/bruin-asset-schema.json": ["*.asset.yml", "*.asset.yaml"]
+    },
     "viewsContainers": {
       "panel": [
         {
@@ -67,9 +83,9 @@
       "jsonValidation": [
         {
           "fileMatch": [
-            "bruin.bruin"
+            "*.asset.yaml"
           ],
-          "url": "./schemas/bruinJSONSchema.json"
+          "url": "./schemas/bruin-asset-schema.json"
         }
       ],
       "properties": {
@@ -129,6 +145,11 @@
         "injectTo": [
           "source.python"
         ]
+      },
+      {
+        "language": "bruinyaml",
+        "scopeName": "source.bruinyaml",
+        "path": "./syntaxes/yaml.tmLanguage.json"
       }
     ],
     "menus": {
