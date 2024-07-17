@@ -12,7 +12,7 @@
             <div v-if="data.type === 'asset'"
                  class=""
                  :class="[props.data.asset?.isFocusAsset ? 'ring-2 ring-offset-4 ring-indigo-300 outline-2 outline-dashed outline-offset-8 outline-indigo-300 w-56 rounded' : '',
-             data.highlight ? '' : 'opacity-50']"
+             data.highlight ? '' : '']"
             >
                 <div class="flex justify-between w-56" :class="status ? selectedStatusStyle : ''">
                     <div class="flex items-center px-2 font-mono text-sm font-semibold space-x-1">
