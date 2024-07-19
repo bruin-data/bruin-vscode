@@ -22,7 +22,12 @@
     "workspaceContains:pipeline.yml"
   ],
   "contributes": {
-    
+    "yamlValidation": [
+      {
+        "fileMatch": "*.yaml",
+        "url": "./out/extension/schema.json"
+      }
+    ],
     "languages": [
       {
         "id": "sql",
@@ -58,9 +63,6 @@
         "configuration": "./syntaxes/bruin-asset.json"
       }
     ],
-    "yaml.schemas": {
-      "./schemas/bruin-asset-schema.json": ["*.asset.yml", "*.asset.yaml"]
-    },
     "viewsContainers": {
       "panel": [
         {
@@ -80,14 +82,6 @@
       ]
     },
     "configuration": {
-      "jsonValidation": [
-        {
-          "fileMatch": [
-            "*.asset.yaml"
-          ],
-          "url": "./schemas/bruin-asset-schema.json"
-        }
-      ],
       "properties": {
         "bruin.defaultFoldingState": {
           "type": "string",
@@ -213,8 +207,6 @@
     "@vue-flow/controls": "^1.1.1",
     "@vue-flow/core": "^1.33.6",
     "@vue-flow/minimap": "^1.4.0",
-    "ajv": "^8.17.1",
-    "all": "^0.0.0",
     "cron-parser": "^4.9.0",
     "elkjs": "^0.9.3",
     "luxon": "^3.4.4",

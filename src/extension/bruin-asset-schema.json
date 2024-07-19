@@ -79,5 +79,5 @@
         }
       }
     },
-    "required": ["name", "type", "materialization", "columns"]
+    "required": ["name"]
   }
