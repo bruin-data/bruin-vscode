@@ -69,25 +69,15 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 
 ## Release Notes
+### Latest Release: 0.13.0
+#### Added 
+- **Autocomplete Support for Configuration in .bruin.yml**: Enhanced the configuration file with predefined options and schema validations for better usability and error reduction.
 
-### Latest Release: v0.12.4
-# Improved 
-- Updated the extension to support the new asset upstream format. 
-- The old format is still working for older CLI versions.
-- The opacity for the lineage graph node is removed 
-
-### Previous Highlights
-### Version 0.12.3
+### Version 0.12.x
+- Updated the extension to support the new asset upstream format. The old format is still working for older CLI versions. The opacity for the lineage graph node is removed.
 - Fixed an issue where the environment list was being updated unnecessarily whenever a file was opened or updated.
-
-### Version 0.12.2
 - Fixed a typo in the pipeline snippet.
-
-### Version 0.12.1
-- Implemented snippets for creating Bruin root configuration and Bruin pipeline.
-
-### Version 0.12.0
-- Implemented new snippets for creating Bruin Python and SQL asset templates within VS Code.
+- Implemented snippets for creating Bruin root configuration, pipeline and assets.
 
 ### Version 0.11.x
 - Updated render icon to Bruin logo.
