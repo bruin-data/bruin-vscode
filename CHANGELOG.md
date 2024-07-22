@@ -1,6 +1,8 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
+- ## [0.13.0] - [2024-07-22]
+- Added Autocomplete Support for .bruin.yml, enhanced with predefined options and schema validations for better usability.
 
 - ## [0.12.4] - [2024-07-17]
 - Updated the extension to support the new asset upstream format while keeping the old format for older CLI versions.
