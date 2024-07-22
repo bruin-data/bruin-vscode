@@ -36,7 +36,7 @@
           ".bruin.yml",
           ".bruin.yaml"
         ],
-        "url": "./src/extension/schemas/Config-schema.json"
+        "url": "./src/extension/schemas/config-schema.json"
       }
     ],
     "languages": [
