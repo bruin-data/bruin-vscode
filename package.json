@@ -24,8 +24,16 @@
   "contributes": {
     "yamlValidation": [
       {
-        "fileMatch": "*.yaml",
+        "fileMatch": "*.asset.yaml",
         "url": "./out/extension/schema.json"
+      },
+      {
+        "fileMatch": "pipeline.yml",
+        "url": "./src/extension/schemas/pipeline-schema.json"
+      },
+      {
+        "fileMatch": [".bruin.yml", ".bruin.yaml"],
+        "url": "./src/extension/schemas/Config-schema.json"
       }
     ],
     "languages": [

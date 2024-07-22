@@ -1,0 +1,444 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Config",
+    "type": "object",
+    "properties": {
+        "default_environment": {
+            "type": "string"
+        },
+        "selected_environment_name": {
+            "type": "string"
+        },
+        "selected_environment": {
+            "$ref": "#/definitions/environment"
+        },
+        "environments": {
+            "type": "object",
+            "additionalProperties": {
+                "$ref": "#/definitions/environment"
+            }
+        }
+    },
+    "required": [
+        "environments"
+    ],
+    "additionalProperties": false,
+    "definitions": {
+        "environment": {
+            "type": "object",
+            "properties": {
+                "connections": {
+                    "$ref": "#/definitions/connections"
+                }
+            },
+            "required": [
+                "connections"
+            ],
+            "additionalProperties": false
+        },
+        "connections": {
+            "type": "object",
+            "properties": {
+                "google_cloud_platform": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/googleCloudPlatformConnection"
+                    }
+                },
+                "snowflake": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/snowflakeConnection"
+                    }
+                },
+                "postgres": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/postgresConnection"
+                    }
+                },
+                "redshift": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/postgresConnection"
+                    }
+                },
+                "mssql": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/mssqlConnection"
+                    }
+                },
+                "synapse": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/mssqlConnection"
+                    }
+                },
+                "mongo": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/mongoConnection"
+                    }
+                },
+                "mysql": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/mysqlConnection"
+                    }
+                },
+                "notion": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/notionConnection"
+                    }
+                },
+                "hana": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/hanaConnection"
+                    }
+                },
+                "shopify": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/shopifyConnection"
+                    }
+                },
+                "gorgias": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/gorgiasConnection"
+                    }
+                },
+                "generic": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/genericConnection"
+                    }
+                }
+            },
+            "additionalProperties": false
+        },
+        "googleCloudPlatformConnection": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "service_account_json": {
+                    "type": "string"
+                },
+                "service_account_file": {
+                    "type": "string"
+                },
+                "project_id": {
+                    "type": "string"
+                },
+                "location": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "name",
+                "project_id"
+            ],
+            "additionalProperties": false
+        },
+        "snowflakeConnection": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "account": {
+                    "type": "string",
+                    "default": "xxxxxxx.xxxxxxx"
+                },
+                "username": {
+                    "type": "string",
+                    "default":"bruin"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "region": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string"
+                },
+                "database": {
+                    "type": "string"
+                },
+                "schema": {
+                    "type": "string"
+                },
+                "warehouse": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "name",
+                "account",
+                "username",
+                "password",
+                "role",
+                "database",
+                "warehouse"
+            ],
+            "additionalProperties": false
+        },
+        "postgresConnection": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer"
+                },
+                "database": {
+                    "type": "string"
+                },
+                "schema": {
+                    "type": "string"
+                },
+                "pool_max_conns": {
+                    "type": "integer",
+                    "default": 10
+                },
+                "ssl_mode": {
+                    "type": "string",
+                    "enum": [
+                        "enable",
+                        "disable"
+                    ],
+                    "default": "disable"
+                }
+            },
+            "required": [
+                "name",
+                "username",
+                "password",
+                "host",
+                "port",
+                "database"
+            ],
+            "additionalProperties": false
+        },
+        "mssqlConnection": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer"
+                },
+                "database": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "name",
+                "username",
+                "password",
+                "host",
+                "port",
+                "database"
+            ],
+            "additionalProperties": false
+        },
+        "mongoConnection": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer"
+                },
+                "database": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "name",
+                "username",
+                "password",
+                "host",
+                "port",
+                "database"
+            ],
+            "additionalProperties": false
+        },
+        "mysqlConnection": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer"
+                },
+                "database": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "name",
+                "username",
+                "password",
+                "host",
+                "port",
+                "database"
+            ],
+            "additionalProperties": false
+        },
+        "notionConnection": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "api_key": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "name",
+                "api_key"
+            ],
+            "additionalProperties": false
+        },
+        "hanaConnection": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer"
+                },
+                "database": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "name",
+                "username",
+                "password",
+                "host",
+                "port",
+                "database"
+            ],
+            "additionalProperties": false
+        },
+        "shopifyConnection": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                },
+                "api_key": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "name",
+                "url",
+                "api_key"
+            ],
+            "additionalProperties": false
+        },
+        "gorgiasConnection": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "domain": {
+                    "type": "string"
+                },
+                "api_key": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "name",
+                "domain",
+                "api_key",
+                "email"
+            ],
+            "additionalProperties": false
+        },
+        "genericConnection": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "name",
+                "value"
+            ],
+            "additionalProperties": false
+        }
+    }
+}
