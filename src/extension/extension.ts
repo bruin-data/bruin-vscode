@@ -13,7 +13,6 @@ import { setupFoldingOnOpen, subscribeToConfigurationChanges } from "./configura
 import * as os from "os";
 import { renderCommand } from "./commands/renderCommand";
 import { LineagePanel } from "../panels/LineagePanel";
-import { YAMLCompletionItemProvider } from "../providers/AutoCompleteProvider";
 
 export function activate(context: ExtensionContext) {
   if (!isBruinBinaryAvailable()) {
@@ -50,7 +49,6 @@ export function activate(context: ExtensionContext) {
       renderCommand(context.extensionUri);
     }),
     foldingDisposable,
-    vscode.languages.registerCompletionItemProvider(yamlSelector, new YAMLCompletionItemProvider()),
     window.registerWebviewViewProvider(LineagePanel.viewId, lineageWebviewProvider)
   );
 

@@ -1,0 +1,69 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Pipeline",
+    "type": "object",
+    "properties": {
+      "legacy_id": {
+        "type": "string"
+      },
+      "name": {
+        "type": "string"
+      },
+      "schedule": {
+        "type": "string"
+      },
+      "start_date": {
+        "type": "string",
+        "format": "date"
+      },
+      "default_parameters": {
+        "$ref": "#/definitions/default_parameters"
+      },
+      "default_connections": {
+        "$ref": "#/definitions/default_connections"
+      },
+      "notifications": {
+        "$ref": "#/definitions/notifications"
+      },
+      "catchup": {
+        "type": "boolean"
+      },
+      "retries": {
+        "type": "integer"
+      }
+    },
+    "required": ["legacy_id", "name", "schedule", "start_date", "default_parameters", "default_connections", "notifications", "catchup", "retries"],
+    "definitions": {
+      "default_parameters": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "string"
+        }
+      },
+      "default_connections": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "string"
+        }
+      },
+      "notifications": {
+        "type": "object",
+        "properties": {
+          "slack": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "channel": {
+                  "type": "string"
+                }
+              },
+              "required": ["channel"]
+            }
+          }
+        },
+        "required": ["slack"]
+      }
+    }
+  }
+  
