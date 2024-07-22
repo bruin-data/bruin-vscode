@@ -2,7 +2,7 @@
   "name": "bruin",
   "displayName": "Bruin",
   "description": "Manage your Bruin data assets from within VS Code.",
-  "version": "0.12.4",
+  "version": "0.13.0",
   "engines": {
     "vscode": "^1.87.0"
   },
@@ -32,7 +32,10 @@
         "url": "./src/extension/schemas/pipeline-schema.json"
       },
       {
-        "fileMatch": [".bruin.yml", ".bruin.yaml"],
+        "fileMatch": [
+          ".bruin.yml",
+          ".bruin.yaml"
+        ],
         "url": "./src/extension/schemas/Config-schema.json"
       }
     ],
