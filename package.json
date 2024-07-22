@@ -22,6 +22,55 @@
     "workspaceContains:pipeline.yml"
   ],
   "contributes": {
+    "yamlValidation": [
+      {
+        "fileMatch": "*.asset.yaml",
+        "url": "./out/extension/schema.json"
+      },
+      {
+        "fileMatch": "pipeline.yml",
+        "url": "./src/extension/schemas/pipeline-schema.json"
+      },
+      {
+        "fileMatch": [".bruin.yml", ".bruin.yaml"],
+        "url": "./src/extension/schemas/Config-schema.json"
+      }
+    ],
+    "languages": [
+      {
+        "id": "sql",
+        "extensions": [
+          ".sql"
+        ],
+        "configuration": "./syntaxes/bruin-sql-injection.json"
+      },
+      {
+        "id": "python",
+        "extensions": [
+          ".py"
+        ],
+        "configuration": "./syntaxes/bruin-python-injection.json"
+      },
+      {
+        "id": "yaml",
+        "extensions": [
+          ".yml",
+          ".yaml"
+        ]
+      },
+      {
+        "id": "bruinyaml",
+        "icon": {
+          "light": "./img/bruin-logo-sm128.png",
+          "dark": "./img/bruin-logo-sm128.png"
+        },
+        "extensions": [
+          ".asset.yml",
+          ".asset.yaml"
+        ],
+        "configuration": "./syntaxes/bruin-asset.json"
+      }
+    ],
     "viewsContainers": {
       "panel": [
         {
@@ -98,6 +147,11 @@
         "injectTo": [
           "source.python"
         ]
+      },
+      {
+        "language": "bruinyaml",
+        "scopeName": "source.bruinyaml",
+        "path": "./syntaxes/yaml.tmLanguage.json"
       }
     ],
     "menus": {
@@ -161,7 +215,6 @@
     "@vue-flow/controls": "^1.1.1",
     "@vue-flow/core": "^1.33.6",
     "@vue-flow/minimap": "^1.4.0",
-    "all": "^0.0.0",
     "cron-parser": "^4.9.0",
     "elkjs": "^0.9.3",
     "luxon": "^3.4.4",

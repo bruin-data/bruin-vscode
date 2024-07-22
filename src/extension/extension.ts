@@ -6,11 +6,11 @@ import {
   window,
   workspace,
 } from "vscode";
+import * as vscode from "vscode";
 import { isBruinBinaryAvailable } from "../bruin/bruinUtils";
 import { bruinFoldingRangeProvider } from "../providers/bruinFoldingRangeProvider";
 import { setupFoldingOnOpen, subscribeToConfigurationChanges } from "./configuration";
 import * as os from "os";
-
 import { renderCommand } from "./commands/renderCommand";
 import { LineagePanel } from "../panels/LineagePanel";
 
@@ -19,6 +19,11 @@ export function activate(context: ExtensionContext) {
     window.showErrorMessage("Bruin is not installed");
     return;
   }
+
+  const yamlSelector = [
+    { language: "yaml", scheme: "file" },
+    { language: "yaml", scheme: "untitled" },
+  ];
 
   const config = workspace.getConfiguration("bruin");
 
