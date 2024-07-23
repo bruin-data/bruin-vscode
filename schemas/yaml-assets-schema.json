@@ -1,0 +1,353 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/bruin-data/bruin/pkg/pipeline/assets-schema",
+  "$ref": "#/$defs/AssetsSchema",
+  "$defs": {
+    "AssetsSchema": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the asset"
+        },
+        "uri": {
+          "$ref": "#/$defs/uri",
+          "description": "The URI of the asset"
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description of the asset"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "python",
+            "sf.sql",
+            "sf.sensor.query",
+            "bq.sql",
+            "bq.sensor.table",
+            "bq.sensor.query",
+            "empty",
+            "pg.sql",
+            "rs.sql",
+            "ms.sql",
+            "synapse.sql",
+            "ingestr"
+          ],
+          "description": "The type of the asset"
+        },
+        "run": {
+          "type": "string",
+          "description": "The file to run for this asset"
+        },
+        "depends": {
+          "$ref": "#/$defs/depends",
+          "description": "Dependencies for this asset"
+        },
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string",
+              "description": "Optional source, used when inferring from connection is not enough"
+            },
+            "source_connection": {
+              "type": "string",
+              "description": "The connection used for the source"
+            },
+            "source_table": {
+              "type": "string",
+              "description": "The source table"
+            },
+            "destination": {
+              "type": "string",
+              "enum": ["bigquery", "snowflake", "redshift", "synapse", "postgres"],
+              "description": "The destination system",
+              "additionalProperties":{
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false,
+          "description": "Parameters for this asset"
+        },
+        "connections": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Connections for this asset"
+        },
+        "secrets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/secretMapping"
+          },
+          "description": "Secrets for this asset"
+        },
+        "connection": {
+          "type": "string",
+          "description": "The connection used by this asset"
+        },
+        "image": {
+          "type": "string",
+          "description": "The image used for this asset"
+        },
+        "instance": {
+          "type": "string",
+          "description": "The instance type for this asset"
+        },
+        "materialization": {
+          "$ref": "#/$defs/materialization",
+          "description": "Materialization details for this asset"
+        },
+        "owner": {
+          "type": "string",
+          "description": "The owner of this asset"
+        },
+        "columns": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/column"
+          },
+          "description": "Columns for this asset"
+        },
+        "custom_checks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/customCheck"
+          },
+          "description": "Custom checks for this asset"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Tags for this asset"
+        },
+        "snowflake": {
+          "$ref": "#/$defs/snowflake",
+          "description": "Snowflake configuration for this asset"
+        }
+      },
+      "required": ["name"],
+      "additionalProperties": false
+    },
+    "depends": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "string",
+            "description": "A simple asset dependency represented by its name"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "uri": {
+                "$ref": "#/$defs/uri"
+              }
+            },
+            "required": ["uri"],
+            "description": "A URI dependency"
+          }
+        ]
+      }
+    },
+   "materialization": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["table", "view"],
+          "description": "Materialization type"
+        },
+        "strategy": {
+          "$ref": "#/$defs/strategy",
+          "description": "Materialization strategy, applicable if type is table"
+        },
+        "partition_by": {
+          "type": "string",
+          "description": "Partitioning key"
+        },
+        "cluster_by": {
+          "$ref": "#/$defs/clusterBy",
+          "description": "Clustering keys"
+        },
+        "incremental_key": {
+          "type": "string",
+          "description": "Incremental key, applicable if strategy is delete+insert"
+        }
+      },
+      "required": ["type"],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": { "const": "table" }
+            }
+          },
+          "then": {
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "strategy": { "const": "delete+insert" }
+                  },
+                  "required": ["strategy"]
+                },
+                "then": {
+                  "required": ["incremental_key"]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": { "const": "view" }
+            }
+          },
+          "then": {
+            "not": {
+              "required": ["strategy"]
+            }
+          }
+        }
+      ]
+    },
+    "strategy": {
+      "type": "string",
+      "enum": ["create+replace", "delete+insert", "append", "merge"],
+      "description": "Materialization strategy"
+    },
+    "uri": {
+      "type": "string",
+      "description": "A URI representing an external dependency"
+    },
+    "clusterBy": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "column": {
+      "type": "object",
+      "properties": {
+        "extends": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "checks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/columnCheck"
+          }
+        },
+        "primary_key": {
+          "type": "boolean"
+        },
+        "update_on_merge": {
+          "type": "boolean"
+        }
+      },
+      "required": ["name", "type"]
+    },
+    "columnCheck": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "value": {
+          "$ref": "#/$defs/columnCheckValue"
+        },
+        "blocking": {
+          "type": "boolean"
+        }
+      },
+      "required": ["name"]
+    },
+    "columnCheckValue": {
+      "type": "object",
+      "properties": {
+        "IntArray": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "Int": {
+          "type": "integer"
+        },
+        "Float": {
+          "type": "number"
+        },
+        "StringArray": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "String": {
+          "type": "string"
+        },
+        "Bool": {
+          "type": "boolean"
+        }
+      }
+    },
+    "customCheck": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "query": {
+          "type": "string"
+        },
+        "value": {
+          "type": "integer"
+        },
+        "blocking": {
+          "type": "boolean"
+        }
+      },
+      "required": ["name"]
+    },
+    "secretMapping": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "inject_as": {
+          "type": "string"
+        }
+      },
+      "required": ["key", "inject_as"]
+    },
+    "snowflake": {
+      "type": "object",
+      "properties": {
+        "warehouse": {
+          "type": "string"
+        }
+      },
+      "required": ["warehouse"]
+    }
+  }
+}
