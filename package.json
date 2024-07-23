@@ -2,7 +2,7 @@
   "name": "bruin",
   "displayName": "Bruin",
   "description": "Manage your Bruin data assets from within VS Code.",
-  "version": "0.13.1",
+  "version": "0.13.2",
   "engines": {
     "vscode": "^1.87.0"
   },
@@ -36,6 +36,13 @@
           "pipeline.yaml"
         ],
         "url": "./schemas/pipeline-schema.json"
+      },
+      {
+        "fileMatch": [
+          "*.asset.yml",
+          "*.asset.yaml"
+        ],
+        "url": "./schemas/yaml-assets-schema.json"
       }
     ],
     "languages": [
@@ -59,18 +66,6 @@
           ".yml",
           ".yaml"
         ]
-      },
-      {
-        "id": "bruinyaml",
-        "icon": {
-          "light": "./img/bruin-logo-sm128.png",
-          "dark": "./img/bruin-logo-sm128.png"
-        },
-        "extensions": [
-          ".asset.yml",
-          ".asset.yaml"
-        ],
-        "configuration": "./syntaxes/bruin-asset.json"
       }
     ],
     "viewsContainers": {
@@ -149,11 +144,6 @@
         "injectTo": [
           "source.python"
         ]
-      },
-      {
-        "language": "bruinyaml",
-        "scopeName": "source.bruinyaml",
-        "path": "./syntaxes/yaml.tmLanguage.json"
       }
     ],
     "menus": {
