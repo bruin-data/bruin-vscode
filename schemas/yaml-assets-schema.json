@@ -1,5 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AssetsSchema",
   "$id": "https://github.com/bruin-data/bruin/pkg/pipeline/assets-schema",
   "$ref": "#/$defs/AssetsSchema",
   "$defs": {
