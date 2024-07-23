@@ -69,11 +69,17 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 
 ## Release Notes
-### Latest Release: 0.13.1
-#### Enhanced 
-- **Autocomplete Support for pipeline.yml**: Enhanced the pipeline file with predefined options and schema validations.
+
+### Latest Release: 0.13.2
+#### Added 
+- **Autocomplete Support for *.asset.yml**: Improved YAML assets with autocomplete and schema validations.
+
+#### Fixed 
+- Enforced single `service_account_json` or `service_account_file` in Google Cloud Platform connection schema.
 
 ### Previous Highlights
+### Version 0.13.1
+- Enhanced the pipeline file with autocomplete and schema validations.
 
 ### Version 0.13.0
 - Enhanced the configuration file `.bruin.yml` with predefined options and schema validations for better usability and error reduction.

@@ -139,6 +139,51 @@
                     "type": "string"
                 }
             },
+            "oneOf": [
+                {
+                    "type": "object",
+                    "required": [
+                        "name",
+                        "project_id",
+                        "service_account_json"
+                    ],
+                    "not": {
+                        "required": [
+                            "service_account_file"
+                        ]
+                    }
+                },
+                {
+                    "type": "object",
+                    "required": [
+                        "name",
+                        "project_id",
+                        "service_account_file"
+                    ],
+                    "not": {
+                        "required": [
+                            "service_account_json"
+                        ]
+                    }
+                },
+                {
+                    "type": "object",
+                    "not": {
+                        "anyOf": [
+                            {
+                                "required": [
+                                    "service_account_json"
+                                ]
+                            },
+                            {
+                                "required": [
+                                    "service_account_file"
+                                ]
+                            }
+                        ]
+                    }
+                }
+            ],
             "required": [
                 "name",
                 "project_id"
@@ -157,7 +202,7 @@
                 },
                 "username": {
                     "type": "string",
-                    "default":"bruin"
+                    "default": "bruin"
                 },
                 "password": {
                     "type": "string"
