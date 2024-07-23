@@ -69,9 +69,14 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 
 ## Release Notes
-### Latest Release: 0.13.0
-#### Added 
-- **Autocomplete Support for Configuration in .bruin.yml**: Enhanced the configuration file with predefined options and schema validations for better usability and error reduction.
+### Latest Release: 0.13.1
+#### Enhanced 
+- **Autocomplete Support for pipeline.yml**: Enhanced the pipeline file with predefined options and schema validations.
+
+### Previous Highlights
+
+### Version 0.13.0
+- Enhanced the configuration file `.bruin.yml` with predefined options and schema validations for better usability and error reduction.
 
 ### Version 0.12.x
 - Updated the extension to support the new asset upstream format. The old format is still working for older CLI versions. The opacity for the lineage graph node is removed.

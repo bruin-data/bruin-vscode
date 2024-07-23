@@ -1,6 +1,10 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
+
+- ## [0.13.1] - [2024-07-23]
+- Implemented autocomplete for `pipeline.yml` with predefined options and schema validations.
+
 - ## [0.13.0] - [2024-07-22]
 - Added Autocomplete Support for .bruin.yml, enhanced with predefined options and schema validations for better usability.
 
