@@ -1,69 +1,115 @@
 {
-    "$schema": "http://json-schema.org/draft-07/schema#",
-    "title": "Pipeline",
-    "type": "object",
-    "properties": {
-      "legacy_id": {
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Pipeline",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "schedule": {
+      "type": "string",
+      "anyOf": [
+        {
+          "enum": [
+            "hourly",
+            "daily",
+            "weekly",
+            "monthly",
+            "yearly"
+          ]
+        },
+        {
+          "type": "string",         
+          "description": "Cron expression format: minute hour day month weekday.\n\nExamples:\n- `0 20 * * *`: Every day at 8:00 PM\n- `30 17 * * *`: Every day at 5:30 PM\n- `0 20 * * 1-5`: Every weekday at 8:00 PM\n- `0 20 * * 6,7`: Every weekend at 8:00 PM\n- `0 20 10 7 *`: Every July 10th at 8:00 PM\n\nRefer to standard cron documentation for more details."
+        }
+      ],
+      "default": "daily",
+      "description": "Default schedule value"
+    },
+    "default_connections": {
+      "type": "object",
+      "properties": {
+        "google_cloud_platform": {
+          "type": "string"
+        },
+        "snowflake": {
+          "type": "string"
+        },
+        "postgres": {
+          "type": "string"
+        },
+        "redshift": {
+          "type": "string"
+        },
+        "mssql": {
+          "type": "string"
+        },
+        "synapse": {
+          "type": "string"
+        },
+        "mongo": {
+          "type": "string"
+        },
+        "mysql": {
+          "type": "string"
+        },
+        "notion": {
+          "type": "string"
+        },
+        "hana": {
+          "type": "string"
+        },
+        "shopify": {
+          "type": "string"
+        },
+        "gorgias": {
+          "type": "string"
+        },
+        "generic": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "id": {
+      "type": "string"
+    },
+    "start_date": {
+      "type": "string",
+      "default": "2024-07-23", 
+      "description": "The start date of the pipeline in YYYY-MM-DD format."
+    },
+    "default_parameters": {
+      "type": "object",
+      "additionalProperties": {
         "type": "string"
-      },
-      "name": {
-        "type": "string"
-      },
-      "schedule": {
-        "type": "string"
-      },
-      "start_date": {
-        "type": "string",
-        "format": "date"
-      },
-      "default_parameters": {
-        "$ref": "#/definitions/default_parameters"
-      },
-      "default_connections": {
-        "$ref": "#/definitions/default_connections"
-      },
-      "notifications": {
-        "$ref": "#/definitions/notifications"
-      },
-      "catchup": {
-        "type": "boolean"
-      },
-      "retries": {
-        "type": "integer"
       }
     },
-    "required": ["legacy_id", "name", "schedule", "start_date", "default_parameters", "default_connections", "notifications", "catchup", "retries"],
-    "definitions": {
-      "default_parameters": {
-        "type": "object",
-        "additionalProperties": {
-          "type": "string"
-        }
-      },
-      "default_connections": {
-        "type": "object",
-        "additionalProperties": {
-          "type": "string"
-        }
-      },
-      "notifications": {
-        "type": "object",
-        "properties": {
-          "slack": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "channel": {
-                  "type": "string"
-                }
-              },
-              "required": ["channel"]
-            }
+    "notifications": {
+      "type": "object",
+      "properties": {
+        "slack": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "channel": {
+                "type": "string"
+              }
+            },
+            "required": ["channel"]
           }
-        },
-        "required": ["slack"]
-      }
+        }
+      },
+      "required": ["slack"]
+    },
+    "catchup": {
+      "type": "boolean",
+      "default": "true"
+    },
+    "retries": {
+      "type": "integer"
     }
-  }
-  
+  },
+  "required": ["name", "schedule", "default_connections"]
+}

@@ -29,6 +29,13 @@
           ".bruin.yaml"
         ],
         "url": "./schemas/config-schema.json"
+      },
+      {
+        "fileMatch": [
+          "pipeline.yml",
+          "pipeline.yaml"
+        ],
+        "url": "./schemas/pipeline-schema.json"
       }
     ],
     "languages": [
