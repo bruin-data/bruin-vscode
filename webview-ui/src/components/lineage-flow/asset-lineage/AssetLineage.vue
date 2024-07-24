@@ -65,7 +65,7 @@ const updateLayout = async () => {
       "elk.layered.spacing.nodeNodeBetweenLayers": "150",
       "elk.layered.nodePlacement.bk.fixedAlignment": "BALANCED",
       "elk.direction": "RIGHT",
-      "elk.spacing.componentComponent": "200",
+      "elk.spacing.nodeNode": "0.0",
       "elk.layered.unnecessaryBendpoints": "true",
     },
     children: nodes.value.map((node) => ({
