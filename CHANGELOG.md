@@ -2,6 +2,8 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+- ## [0.13.3] - [2024-07-24]
+- Decreased the vertical spacing between the nodes in the lineage graph.
 
 - ## [0.13.2] - [2024-07-23]
 - Implemented autocomplete for `*.asset.yml` with predefined options and schema validations.
