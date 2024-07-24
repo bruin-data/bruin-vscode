@@ -111,19 +111,19 @@
     "snippets": [
       {
         "language": "sql",
-        "path": "./snippets/bruin-sql.code-snippets"
+        "path": "./snippets/bruin-asset.code-snippets"
       },
       {
         "language": "sql-bigquery",
-        "path": "./snippets/bruin-sql.code-snippets"
+        "path": "./snippets/bruin-asset.code-snippets"
       },
       {
         "language": "snowflake-sql",
-        "path": "./snippets/bruin-sql.code-snippets"
+        "path": "./snippets/bruin-asset.code-snippets"
       },
       {
         "language": "python",
-        "path": "./snippets/bruin-python.code-snippets"
+        "path": "./snippets/bruin-asset.code-snippets"
       },
       {
         "language": "yaml",

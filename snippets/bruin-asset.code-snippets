@@ -1,0 +1,381 @@
+{
+  "Bruin Asset Name": {
+    "prefix": "!name",
+    "body": [
+      "name: ${1:asset_name}"
+    ],
+    "description": "Insert the asset name"
+  },
+  "Bruin Asset Type": {
+    "prefix": "!type",
+    "body": [
+      "type: ${1|python,sf.sql,sf.sensor.query,bq.sql,bq.sensor.table,bq.sensor.query,empty,pg.sql,rs.sql,ms.sql,synapse.sql,ingestr|}"
+    ],
+    "description": "Insert the asset type"
+  },
+  "Bruin Asset URI": {
+    "prefix": "!uri",
+    "body": [
+      "uri: ${1:asset_uri}"
+    ],
+    "description": "Insert the asset URI"
+  },
+  "Bruin Asset Description": {
+    "prefix": "!description",
+    "body": [
+      "description: ${1:asset_description}"
+    ],
+    "description": "Insert the asset description"
+  },
+  "Bruin Asset Run": {
+    "prefix": "!run",
+    "body": [
+      "run: ${1:asset_run_file}"
+    ],
+    "description": "Insert the asset run file"
+  },
+  "Bruin Asset Depends": {
+    "prefix": "!depends",
+    "body": [
+      "depends:",
+      "  - ${1:dependency1}",
+      "  - ${2:dependency2}"
+    ],
+    "description": "Insert the asset dependencies"
+  },
+  "Bruin Asset URI Dependency": {
+    "prefix": "!uridependency",
+    "body": [
+      "- uri: ${1:dependency_uri}"
+    ],
+    "description": "Insert a URI asset dependency"
+  },
+  "Bruin Asset Parameters": {
+    "prefix": "!parameters",
+    "body": [
+      "parameters:",
+      "  source: ${1:source}",
+      "  source_connection: ${2:source_connection}",
+      "  source_table: ${3:source_table}",
+      "  destination: ${4|bigquery,snowflake,redshift,synapse,postgres|}"
+    ],
+    "description": "Insert the asset parameters"
+  },
+  "Bruin Asset Parameters Source": {
+    "prefix": "!source",
+    "body": [
+      "parameters:",
+      "source: ${1:source}"
+    ],
+    "description": "Insert the asset source parameter"
+  },
+  "Bruin Asset Parameters Source Connection": {
+    "prefix": "!sourceconnection",
+    "body": [
+      "source_connection: ${1:source_connection}"
+    ],
+    "description": "Insert the asset source connection parameter"
+  },
+  "Bruin Asset Parameters Source Table": {
+    "prefix": "!sourcetable",
+    "body": [
+      "  source_table: ${1:source_table}"
+    ],
+    "description": "Insert the asset source table parameter"
+  },
+  "Bruin Asset Parameters Destination": {
+    "prefix": "!destination",
+    "body": [
+      "destination: ${1|bigquery,snowflake,redshift,synapse,postgres|}"
+    ],
+    "description": "Insert the asset destination parameter"
+  },
+  "Bruin Asset Connections": {
+    "prefix": "!connections",
+    "body": [
+      "connections:",
+      "${1:connection_name}: ${2:connection_value}"
+    ],
+    "description": "Insert the asset connections"
+  },
+  "Bruin Asset Secrets": {
+    "prefix": "!secrets",
+    "body": [
+      "secrets:",
+      "  - key: ${1:secret_key}",
+      "    inject_as: ${2:injection_method}"
+    ],
+    "description": "Insert the asset secrets"
+  },
+  "Bruin Asset Connection": {
+    "prefix": "!connection",
+    "body": [
+      "connection: ${1:connection_name}"
+    ],
+    "description": "Insert the asset connection"
+  },
+  "Bruin Asset Image": {
+    "prefix": "!image",
+    "body": [
+      "image: ${1:image_name}"
+    ],
+    "description": "Insert the asset image"
+  },
+  "Bruin Asset Instance": {
+    "prefix": "!instance",
+    "body": [
+      "instance: ${1:instance_type}"
+    ],
+    "description": "Insert the asset instance"
+  },
+  "Bruin Asset Materialization": {
+    "prefix": "!materialization",
+    "body": [
+      "materialization:",
+      "  type: ${1|table,view|}"
+    ],
+    "description": "Insert the asset materialization type"
+  },
+  "Bruin Asset Materialization Strategy": {
+    "prefix": "!strategy",
+    "body": [
+      "strategy: ${1|create+replace,delete+insert,append,merge|}"
+    ],
+    "description": "Insert the asset materialization strategy"
+  },
+  "Bruin Asset Materialization Partition By": {
+    "prefix": "!partitionby",
+    "body": [
+      "partition_by: ${1:partition_key}"
+    ],
+    "description": "Insert the asset materialization partition by key"
+  },
+  "Bruin Asset Materialization Cluster By": {
+    "prefix": "!clusterby",
+    "body": [
+      "cluster_by:",
+      "   - ${1:cluster_key1}",
+      "   - ${2:cluster_key2}"
+    ],
+    "description": "Insert the asset materialization cluster by keys"
+  },
+  "Bruin Asset Materialization Incremental Key": {
+    "prefix": "!incrementalkey",
+    "body": [
+      "incremental_key: ${1:incremental_key}"
+    ],
+    "description": "Insert the asset materialization incremental key"
+  },
+  "Bruin Asset Column": {
+    "prefix": "!column",
+    "body": [
+      "columns:",
+      "  - name: ${1:column_name}",
+      "    type: ${2|integer,string,float,boolean,date,timestamp|}",
+      "    description: \"${3:column_description}\"",
+      "    checks:",
+      "      - name: ${4|unique,not_null,accepted_values|}",
+      "      ${5:- name: accepted_values}",
+      "      ${6:value: [\"val1\", \"val2\"]}"
+    ],
+    "description": "Insert an asset column definition"
+  },
+  "Bruin Asset Column Name": {
+    "prefix": "!columnname",
+    "body": [
+      "- name: ${1:column_name}"
+    ],
+    "description": "Insert the asset column name"
+  },
+  "Bruin Asset Column Type": {
+    "prefix": "!columntype",
+    "body": [
+      "type: ${1|integer,string,float,boolean,date,timestamp|}"
+    ],
+    "description": "Insert the asset column type"
+  },
+  "Bruin Asset Column Description": {
+    "prefix": "!columndescription",
+    "body": [
+      "description: \"${1:column_description}\""
+    ],
+    "description": "Insert the asset column description"
+  },
+  "Bruin Asset Column Checks": {
+    "prefix": "!columnchecks",
+    "body": [
+      "checks:",
+      "   - name: ${1|unique,not_null,accepted_values|}",
+      "   ${2:- name: accepted_values}",
+      "   ${3:  value: [\"val1\", \"val2\"]}"
+    ],
+    "description": "Insert the asset column checks"
+  },
+  "Bruin Asset Custom Checks": {
+    "prefix": "!customchecks",
+    "body": [
+      "custom_checks:",
+      "  - name: ${1:check_name}",
+      "    description: \"${2:check_description}\"",
+      "    query: ${3:check_query}",
+      "    value: ${4:check_value}",
+      "    blocking: ${5|true,false|}"
+    ],
+    "description": "Insert custom checks for the asset"
+  },
+  "Bruin Asset Custom Checks Name": {
+    "prefix": "!customcheckname",
+    "body": [
+      "- name: ${1:check_name}"
+    ],
+    "description": "Insert the custom check name"
+  },
+  "Bruin Asset Custom Checks Description": {
+    "prefix": "!customcheckdescription",
+    "body": [
+      "description: \"${1:check_description}\""
+    ],
+    "description": "Insert the custom check description"
+  },
+  "Bruin Asset Custom Checks Query": {
+    "prefix": "!customcheckquery",
+    "body": [
+      "query: ${1:check_query}"
+    ],
+    "description": "Insert the custom check query"
+  },
+  "Bruin Asset Custom Checks Value": {
+    "prefix": "!customcheckvalue",
+    "body": [
+      "value: ${1:check_value}"
+    ],
+    "description": "Insert the custom check value"
+  },
+  "Bruin Asset Custom Checks Blocking": {
+    "prefix": "!blocking",
+    "body": [
+      "blocking: ${1|true,false|}"
+    ],
+    "description": "Insert the custom check blocking status"
+  },
+  "Bruin Asset Tags": {
+    "prefix": "!tags",
+    "body": [
+      "tags:",
+      "  - ${1:tag1}",
+      "  - ${2:tag2}"
+    ],
+    "description": "Insert the asset tags"
+  },
+  "Bruin Asset Owner": {
+    "prefix": "!owner",
+    "body": [
+      "owner: ${1:owner_name}"
+    ],
+    "description": "Insert the asset owner"
+  },
+  "Bruin Asset Snowflake": {
+    "prefix": "!snowflake",
+    "body": [
+      "snowflake:",
+      "  warehouse: ${1:warehouse_name}"
+    ],
+    "description": "Insert the Snowflake configuration for the asset"
+  },
+  "Bruin Full Sql Asset Block": {
+    "prefix": "!fullsqlasset",
+    "body": [
+      "/* @bruin",
+      "name: ${1:asset_name}",
+      "type: ${2|python,sf.sql,sf.sensor.query,bq.sql,bq.sensor.table,bq.sensor.query,empty,pg.sql,rs.sql,ms.sql,synapse.sql,ingestr|}",
+      "",
+      "depends: ",
+      "  - ${3:dependency1}",
+      "  - ${4:dependency2}",
+      "",
+      "materialization:",
+      "  type: ${5|table,view|}",
+      "  strategy: ${6|create+replace,delete+insert,append,merge|}",
+      "",
+      "columns:",
+      "  - name: ${7:column_name}",
+      "    type: ${8|integer,string,float,boolean,date,timestamp|}",
+      "    description: \"${9:column_description}\"",
+      "    checks:",
+      "      - name: ${10|unique,not_null,accepted_values|}",
+      "      ${11:- name: accepted_values}",
+      "      ${12:value: [\"val1\", \"val2\"]}",
+      "",
+      "parameters:",
+      "  source: ${13:source}",
+      "  source_connection: ${14:source_connection}",
+      "  source_table: ${15:source_table}",
+      "  destination: ${16|bigquery,snowflake,redshift,synapse|}",
+      "",
+      "tags:",
+      "  - ${17:tag1}",
+      "  - ${18:tag2}",
+      "",
+      "owner: ${19:owner_name}",
+      "",
+      "secrets:",
+      "  - key: ${20:secret_key}",
+      "    inject_as: ${21:injection_method}",
+      "",
+      "connections:",
+      "  ${22:connection_name}: ${23:connection_value}",
+      "",
+      "@bruin\"\"\"",
+      "$0"
+    ],
+    "description": "Insert a full Bruin SQL asset block"
+  },
+  "Bruin Full Python Asset Block": {
+    "prefix": "!fullpythonasset",
+    "body": [
+      "\"\"\"@bruin",
+      "name: ${1:asset_name}",
+      "type: ${2|python,sf.sql,sf.sensor.query,bq.sql,bq.sensor.table,bq.sensor.query,empty,pg.sql,rs.sql,ms.sql,synapse.sql,ingestr|}",
+      "",
+      "depends: ",
+      "  - ${3:dependency1}",
+      "  - ${4:dependency2}",
+      "",
+      "materialization:",
+      "  type: ${5|table,view|}",
+      "  strategy: ${6|create+replace,delete+insert,append,merge|}",
+      "",
+      "columns:",
+      "  - name: ${7:column_name}",
+      "    type: ${8|integer,string,float,boolean,date,timestamp|}",
+      "    description: \"${9:column_description}\"",
+      "    checks:",
+      "      - name: ${10|unique,not_null,accepted_values|}",
+      "      ${11:- name: accepted_values}",
+      "      ${12:value: [\"val1\", \"val2\"]}",
+      "",
+      "parameters:",
+      "  source: ${13:source}",
+      "  source_connection: ${14:source_connection}",
+      "  source_table: ${15:source_table}",
+      "  destination: ${16|bigquery,snowflake,redshift,synapse|}",
+      "",
+      "tags:",
+      "  - ${17:tag1}",
+      "  - ${18:tag2}",
+      "",
+      "owner: ${19:owner_name}",
+      "",
+      "secrets:",
+      "  - key: ${20:secret_key}",
+      "    inject_as: ${21:injection_method}",
+      "",
+      "connections:",
+      "  ${22:connection_name}: ${23:connection_value}",
+      "",
+      "@bruin\"\"\"",
+      "$0"
+    ],
+    "description": "Insert a full Bruin Python asset block"
+  }
+}
