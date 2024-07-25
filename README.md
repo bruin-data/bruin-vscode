@@ -69,12 +69,15 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 
 ## Release Notes
-
-### Latest Release: 0.13.3
+### Latest Release: 0.13.4
 #### Improved 
-- Decreased the vertical spacing between the nodes in the lineage graph.
+- Enhanced the SQL and Python asset files with modularized snippets for autocomplete.
 
 ### Previous Highlights
+
+### Version 0.13.3
+- Decreased the vertical spacing between the nodes in the lineage graph.
+
 ### Version 0.13.2
 - Improved YAML assets with autocomplete and schema validations.
 - Ennforced single `service_account_json` or `service_account_file` in Google Cloud Platform connection schema.
