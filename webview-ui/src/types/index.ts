@@ -100,3 +100,17 @@ export interface EnvironmentsList {
   selectedEnvironment: string;
   environments: Environment[];
 }
+
+export interface PipelineAssets {
+  assets: SimpleAsset[];
+}
+
+export interface SimpleAsset {
+  name: string;
+  type: string;
+  upstreams: string[];
+  downstreams: string[];
+  hasUpstreamForClicking?: boolean;
+  hasDownstreamForClicking?: boolean;
+  isFocusAsset?: boolean;
+}
