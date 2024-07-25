@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+- ## [0.13.4] - [2024-07-25]
+- Enhanced the SQL and Python asset files with modularized snippets for autocomplete.
+
 - ## [0.13.3] - [2024-07-24]
 - Decreased the vertical spacing between the nodes in the lineage graph.
 
