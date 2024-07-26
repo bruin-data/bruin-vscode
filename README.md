@@ -69,11 +69,14 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 
 ## Release Notes
-### Latest Release: 0.13.4
-#### Improved 
-- Enhanced the SQL and Python asset files with modularized snippets for autocomplete.
+### Latest Release: 0.13.5
+#### Fixed 
+- Fixed an indentation issue in the asset snippets.
+- Removed the requirement for "type" in the columns of the autocomplete schema
 
 ### Previous Highlights
+### Version 0.13.4
+- Enhanced the SQL and Python asset files with modularized snippets for autocomplete.
 
 ### Version 0.13.3
 - Decreased the vertical spacing between the nodes in the lineage graph.
