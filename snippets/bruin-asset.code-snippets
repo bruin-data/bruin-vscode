@@ -176,7 +176,7 @@
       "    checks:",
       "      - name: ${4|unique,not_null,accepted_values|}",
       "      ${5:- name: accepted_values}",
-      "      ${6:value: [\"val1\", \"val2\"]}"
+      "      ${6:  value: [\"val1\", \"val2\"]}"
     ],
     "description": "Insert an asset column definition"
   },
