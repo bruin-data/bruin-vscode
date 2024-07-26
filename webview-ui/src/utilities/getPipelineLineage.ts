@@ -52,3 +52,53 @@ export const parsePipelineData = (pipelineJson): PipelineAssets => {
   });
   return { assets };
 };
+
+
+// function that get the full dependencies of an asset and return all the dependencies of the asset dependencies and so on
+// until all the dependencies are found
+export const getAssetDependencies = (assetId: string, pipelineAssets: SimpleAsset[]): any => {
+  const asset = pipelineAssets.find((asset) => asset.id === assetId);
+  if (!asset) {
+    return null;
+  }
+
+  const buildDependencyTree = (currentAssetId: string, visited: Set<string> = new Set()): any => {
+    if (visited.has(currentAssetId)) {
+      return null; // Circular dependency detected, stop recursion
+    }
+
+    visited.add(currentAssetId);
+
+    const currentAsset = pipelineAssets.find((asset) => asset.id === currentAssetId);
+    if (!currentAsset) {
+      return null;
+    }
+
+    const buildDependency = (dependencyName: string) => {
+      const dependencyAsset = pipelineAssets.find((asset) => asset.name === dependencyName);
+      if (dependencyAsset) {
+        return buildDependencyTree(dependencyAsset.id, new Set(visited));
+      } else {
+        // If the asset is not found in pipelineAssets, still include it in the tree
+        return {
+          name: dependencyName,
+          upstreams: [],
+          downstreams: [],
+        };
+      }
+    };
+
+    const upstreams = currentAsset.upstreams.map(buildDependency);
+    const downstreams = currentAsset.downstreams.map(buildDependency);
+
+    return {
+      name: currentAsset.name,
+      upstreams: upstreams.filter(Boolean), // Remove nulls from the array
+      downstreams: downstreams.filter(Boolean), // Remove nulls from the array
+    };
+  };
+
+  return buildDependencyTree(assetId);
+};
+
+

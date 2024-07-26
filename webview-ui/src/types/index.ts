@@ -106,6 +106,7 @@ export interface PipelineAssets {
 }
 
 export interface SimpleAsset {
+  id: string;
   name: string;
   type: string;
   upstreams: string[];
