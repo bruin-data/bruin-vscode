@@ -261,8 +261,7 @@
         "update_on_merge": {
           "type": "boolean"
         }
-      },
-      "required": ["name", "type"]
+      }    
     },
     "columnCheck": {
       "type": "object",
