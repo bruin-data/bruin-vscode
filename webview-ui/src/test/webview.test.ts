@@ -8,7 +8,7 @@ import {
   adjustEndDateForExclusive,
   getUpstreams,
 } from "../utilities/helper";
-import { parsePipelineData } from "../utilities/getPipelineLineage";
+import { getAssetDependencies, parsePipelineData } from "../utilities/getPipelineLineage";
 import * as pipelineData from "../utilities/pipeline.json";
 
 suite("testing webview", () => {
@@ -451,4 +451,67 @@ suite("testing webview", () => {
     const pipelineAssets = parsePipelineData(null);
     assert.deepStrictEqual(pipelineAssets.assets, []);
   });
+
+  test("test getAssetDependencies with valid assetId", () => {
+    const pipelineAssets = parsePipelineData(pipelineData).assets;
+    const expectedOutput = {
+      "name": "test_dataset.test3",
+      "upstreams": [
+        {
+          "name": "test_dataset.test",
+          "upstreams": [],
+          "downstreams": []
+        },
+        {
+          "name": "test_dataset.test2",
+          "upstreams": [
+            {
+              "name": "test_dataset.test5",
+              "upstreams": [],
+              "downstreams": []
+            }
+          ],
+          "downstreams": []
+        },
+        {
+          "name": "test_dataset.test4",
+          "upstreams": [
+            {
+              "name": "test_dataset.test6",
+              "upstreams": [],
+              "downstreams": []
+            },
+            {
+              "name": "bigquery://some-query",
+              "upstreams": [],
+              "downstreams": []
+            }
+          ],
+          "downstreams": []
+        },
+        {
+          "name": "asset_uri",
+          "upstreams": [],
+          "downstreams": []
+        }
+      ],
+      "downstreams": []
+  };
+
+    const assetId = "842395685364ad0d4d6903bbb5b9cf48a54945774187f169327559e1453a7612";
+    const assetDependencies = getAssetDependencies(assetId, pipelineAssets);
+    const assetName = pipelineAssets.filter((asset) => asset.id === assetId)[0].name;
+   // assert.deepStrictEqual(assetName, "test_dataset.test3");
+    assert.deepStrictEqual(assetDependencies, expectedOutput);
+  }
+);
+
+test("test getAssetDependencies with assetId that has downstreams and upstreams ", () => {
+  const pipelineAssets = parsePipelineData(pipelineData).assets;
+
+  const assetId = "04a0d75146552e5e3305db450e7c5b402bd4bb8f8de813263166466f9f901a6b";
+  const assetDependencies = getAssetDependencies(assetId, pipelineAssets);
+  //assert.deepStrictEqual(assetDependencies, []);
+}
+);
 });
