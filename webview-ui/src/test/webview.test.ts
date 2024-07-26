@@ -8,7 +8,7 @@ import {
   adjustEndDateForExclusive,
   getUpstreams,
 } from "../utilities/helper";
-import { getAssetDependencies, parsePipelineData } from "../utilities/getPipelineLineage";
+import { getAssetDependencies, parsePipelineData, processAssetDependencies } from "../utilities/getPipelineLineage";
 import * as pipelineData from "../utilities/pipeline.json";
 
 suite("testing webview", () => {
@@ -512,6 +512,39 @@ test("test getAssetDependencies with assetId that has downstreams and upstreams 
   const assetId = "04a0d75146552e5e3305db450e7c5b402bd4bb8f8de813263166466f9f901a6b";
   const assetDependencies = getAssetDependencies(assetId, pipelineAssets);
   //assert.deepStrictEqual(assetDependencies, []);
-}
-);
+});
+
+test("test processAssetDependencies with assetId that has no downstreams and some upstreams ", () => {
+  const pipelineAssets = parsePipelineData(pipelineData).assets;
+  const expectedOutput = {
+    "name": "test_dataset.test3",
+      "upstreams": [
+        {
+          "name": "test_dataset.test",
+          "hasUpstreamForClicking": false,
+          "hasDownstreamForClicking": false
+        },
+        {
+          "name": "test_dataset.test2",
+          "hasUpstreamForClicking": true,
+          "hasDownstreamForClicking": false
+        },
+        {
+          "name": "test_dataset.test4",
+          "hasUpstreamForClicking": true,
+          "hasDownstreamForClicking": false
+        },
+        {
+          "name": "asset_uri",
+          "hasUpstreamForClicking": false,
+          "hasDownstreamForClicking": false
+        }
+      ],
+      "downstreams": []
+  };
+  const assetId = "842395685364ad0d4d6903bbb5b9cf48a54945774187f169327559e1453a7612";
+  const assetDependencies = processAssetDependencies(assetId, pipelineAssets);
+  assert.deepStrictEqual(assetDependencies, expectedOutput);
+});
+
 });

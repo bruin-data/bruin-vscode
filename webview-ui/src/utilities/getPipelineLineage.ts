@@ -101,4 +101,31 @@ export const getAssetDependencies = (assetId: string, pipelineAssets: SimpleAsse
   return buildDependencyTree(assetId);
 };
 
+// function that process the asset dependencies and return the dependencies that can be clicked
 
+export const processAssetDependencies = (assetId: string, pipelineAssets: SimpleAsset[]): any => {
+  const assetDependencies = getAssetDependencies(assetId, pipelineAssets);
+  if (!assetDependencies) {
+    return null;
+  }
+
+  const processDependency = (dependency) => {
+    const hasUpstreamForClicking = dependency.upstreams.length > 0;
+    const hasDownstreamForClicking = dependency.downstreams.length > 0;
+    return {
+      name: dependency.name,
+      hasUpstreamForClicking,
+      hasDownstreamForClicking,
+    };
+  };
+
+  const processDependencies = (dependencies) => {
+    return dependencies.map(processDependency);
+  };
+
+  return {
+    name: assetDependencies.name,
+    upstreams: processDependencies(assetDependencies.upstreams),
+    downstreams: processDependencies(assetDependencies.downstreams),
+  };
+}
