@@ -1,13 +1,13 @@
 <template>
   <div class="flow">
     <VueFlow
-      :nodes="nodes"
-      :edges="edges"
-      :node-types="nodeTypes"
       :default-viewport="{ zoom: 0.8 }"
       :min-zoom="0.2"
       :max-zoom="4"
       class="basic-flow"
+      :draggable="true"
+      :node-draggable="true"
+      @nodesDragged="onNodesDragged"
     >
       <Background />
 
@@ -19,13 +19,17 @@
           :label="nodeProps.data.label"
         />
       </template>
+
+      <Controls />
     </VueFlow>
   </div>
 </template>
 
 <script setup lang="ts">
-import { VueFlow, type NodeTypesObject } from "@vue-flow/core";
+import { VueFlow, useVueFlow } from "@vue-flow/core";
 import { Background } from "@vue-flow/background";
+import { Controls } from "@vue-flow/controls";
+import type { NodeTypesObject, Node, Edge, NodeDragEvent, XYPosition } from "@vue-flow/core";
 import { ref, onMounted, onBeforeUnmount, defineProps, watch } from "vue";
 import ELK from "elkjs/lib/elk.bundled.js";
 import CustomNode from "@/components/lineage-flow/custom-nodes/CustomNodes.vue";
@@ -38,21 +42,23 @@ const nodeTypes: NodeTypesObject = {
   custom: CustomNode as any,
 };
 
-const nodes = ref<any[]>([]);
-const edges = ref<any[]>([]);
+const { nodes, edges, addNodes, addEdges, setNodes, setEdges } = useVueFlow();
 
 const elk = new ELK();
 
 // Function to update node positions based on ELK layout
-const updateNodePositions = (layout) => {
-  const updatedNodes = nodes.value.map((node) => {
-    const layoutChild = layout.children.find((child) => child.id === node.id);
-    if (layoutChild) {
-      return { ...node, position: { x: layoutChild.x, y: layoutChild.y } };
+const updateNodePositions = (layout: any) => {
+  const updatedNodes = nodes.value.map(node => {
+    const layoutNode = layout.children.find((child: any) => child.id === node.id);
+    if (layoutNode) {
+      return {
+        ...node,
+        position: { x: layoutNode.x, y: layoutNode.y },
+      };
     }
     return node;
   });
-  nodes.value = updatedNodes;
+  setNodes(updatedNodes);
 };
 
 // Function to update the layout using ELK
@@ -96,13 +102,13 @@ const processProperties = () => {
   if (!props) return;
 
   const { nodes: generatedNodes, edges: generatedEdges } = generateGraphFromJSON(props);
-  nodes.value = generatedNodes;
-  edges.value = generatedEdges;
+  addNodes(generatedNodes);
+  addEdges(generatedEdges);
 
   updateLayout();
 };
 
-// Watch for changes in props.properties and update nodes and edges
+// Watch for changes in props and update nodes and edges
 watch(
   () => props,
   (newValue) => {
@@ -113,30 +119,20 @@ watch(
   { immediate: true }
 );
 
-watch(nodes, () => {
-  updateLayout();
-});
-// Event listener for messages
-function receiveMessage(event) {
-  if (!event) return;
-  const envelope = event.data;
-  switch (envelope.command) {
-    case "pipeline":
-      console.log("Pipeline Lineage, received");
-      break;
-    case "lineage-message":
-      console.log("Lineage Message, received", envelope);
-      break;
-  }
-}
+// Handle node dragging
+const onNodesDragged = (draggedNodes: NodeDragEvent[]) => {
+  const updatedNodes = nodes.value.map(node => {
+    const draggedNode = draggedNodes.find(n => n.node.id === node.id);
+    if (draggedNode) {
+      return { ...node, position: draggedNode.node.position as XYPosition };
+    }
+    return node;
+  });
+  setNodes(updatedNodes);
+};
 
 onMounted(() => {
-  window.addEventListener("message", receiveMessage);
   processProperties();
-});
-
-onBeforeUnmount(() => {
-  window.removeEventListener("message", receiveMessage);
 });
 </script>
 
