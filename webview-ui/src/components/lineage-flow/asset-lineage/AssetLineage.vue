@@ -36,7 +36,7 @@ import CustomNode from "@/components/lineage-flow/custom-nodes/CustomNodes.vue";
 import { generateGraphFromJSON } from "@/utilities/graphGenerator";
 import type { AssetDataset } from "@/types";
 
-const props = defineProps<AssetDataset>();
+const graphProps = defineProps<AssetDataset>();
 
 const nodeTypes: NodeTypesObject = {
   custom: CustomNode as any,
@@ -48,7 +48,7 @@ const elk = new ELK();
 
 // Function to update node positions based on ELK layout
 const updateNodePositions = (layout: any) => {
-  const updatedNodes = nodes.value.map(node => {
+  const updatedNodes = nodes.value.map((node) => {
     const layoutNode = layout.children.find((child: any) => child.id === node.id);
     if (layoutNode) {
       return {
@@ -99,9 +99,9 @@ const updateLayout = async () => {
 
 // Function to process the asset properties and update nodes and edges
 const processProperties = () => {
-  if (!props) return;
-
-  const { nodes: generatedNodes, edges: generatedEdges } = generateGraphFromJSON(props);
+  if (!graphProps) return;
+  // on node click update the props and re-render the graph
+  const { nodes: generatedNodes, edges: generatedEdges } = generateGraphFromJSON(graphProps);
   addNodes(generatedNodes);
   addEdges(generatedEdges);
 
@@ -110,7 +110,7 @@ const processProperties = () => {
 
 // Watch for changes in props and update nodes and edges
 watch(
-  () => props,
+  () => graphProps,
   (newValue) => {
     if (newValue) {
       processProperties();
@@ -121,8 +121,8 @@ watch(
 
 // Handle node dragging
 const onNodesDragged = (draggedNodes: NodeDragEvent[]) => {
-  const updatedNodes = nodes.value.map(node => {
-    const draggedNode = draggedNodes.find(n => n.node.id === node.id);
+  const updatedNodes = nodes.value.map((node) => {
+    const draggedNode = draggedNodes.find((n) => n.node.id === node.id);
     if (draggedNode) {
       return { ...node, position: draggedNode.node.position as XYPosition };
     }
