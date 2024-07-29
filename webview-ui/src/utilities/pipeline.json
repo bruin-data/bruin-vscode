@@ -1,0 +1,576 @@
+{
+    "legacy_id": "",
+    "name": "bruin-init",
+    "schedule": "2 17 * * *",
+    "start_date": "",
+    "definition_file": {
+      "name": "pipeline.yml",
+      "path": "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/pipeline.yml"
+    },
+    "default_parameters": {},
+    "default_connections": {
+      "google_cloud_platform": "djamila-dev"
+    },
+    "assets": [
+      {
+        "id": "fbb7b5bf4ca348eeeebf8cc3660712859a5a1fbf18e83217a57ce203fb51d5c2",
+        "uri": "",
+        "name": "basic",
+        "description": "",
+        "type": "python",
+        "executable_file": {
+          "name": "asset.py",
+          "path": "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/asset.py",
+          "content": ""
+        },
+        "definition_file": {
+          "name": "asset.py",
+          "path": "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/asset.py",
+          "type": "comment"
+        },
+        "parameters": {},
+        "connection": "",
+        "secrets": [],
+        "materialization": null,
+        "columns": [],
+        "custom_checks": [],
+        "image": "",
+        "instance": "",
+        "owner": "",
+        "metadata": {},
+        "tags": [],
+        "snowflake": null,
+        "upstreams": [],
+        "upstream": []
+      },
+      {
+        "id": "3ada037570e5da866bb214bae5880da26f2220b9659a4c28799b504ff28ab4b4",
+        "uri": "",
+        "name": "public.ingestr_destiny",
+        "description": "",
+        "type": "ingestr",
+        "executable_file": {
+          "name": "",
+          "path": "",
+          "content": ""
+        },
+        "definition_file": {
+          "name": "asset_names.asset.yaml",
+          "path": "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/asset_names.asset.yaml",
+          "type": "yaml"
+        },
+        "parameters": {
+          "destination": "postgres",
+          "source_connection": "neon",
+          "source_table": "public.test_merge"
+        },
+        "connection": "local",
+        "secrets": [],
+        "materialization": null,
+        "columns": [
+          {
+            "entity_attribute": null,
+            "name": "id",
+            "type": "integer",
+            "description": "Just a number",
+            "checks": [
+              {
+                "id": "484ee52bdd9e49dcde77e12618b799d2897f1894626573a5eff65391d112e8f8",
+                "name": "not_null",
+                "value": null,
+                "blocking": true
+              },
+              {
+                "id": "471cbd2380364e9bd7cbf5582483dc3ac399d7e5db09a19c525ef8ae30662748",
+                "name": "positive",
+                "value": null,
+                "blocking": true
+              }
+            ],
+            "primary_key": false,
+            "update_on_merge": false
+          }
+        ],
+        "custom_checks": [
+          {
+            "id": "379a9e0bad82b577bdb8ff893f4ab9112eb9c87b0c717078fdbb1f09213269a8",
+            "name": "This is a custom check name",
+            "description": "",
+            "query": "select count(*) from public.ingestr_destiny",
+            "value": 6,
+            "blocking": true
+          }
+        ],
+        "image": "",
+        "instance": "",
+        "owner": "",
+        "metadata": {},
+        "tags": [],
+        "snowflake": null,
+        "upstreams": [],
+        "upstream": []
+      },
+      {
+        "id": "0dcd4af9110c57d830557f390a423529739ce7d105e37e0733329f42479cddb9",
+        "uri": "",
+        "name": "test_dataset.test",
+        "description": "",
+        "type": "bq.sql",
+        "executable_file": {
+          "name": "test.sql",
+          "path": "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test.sql",
+          "content": ""
+        },
+        "definition_file": {
+          "name": "test.sql",
+          "path": "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test.sql",
+          "type": "comment"
+        },
+        "parameters": {},
+        "connection": "",
+        "secrets": [],
+        "materialization": {
+          "type": "table",
+          "strategy": "",
+          "partition_by": "",
+          "cluster_by": null,
+          "incremental_key": ""
+        },
+        "columns": [
+          {
+            "entity_attribute": null,
+            "name": "one",
+            "type": "integer",
+            "description": "Just a number",
+            "checks": [
+              {
+                "id": "202bdb6cea4132a3ca87aa2cdd3fc422092d5c4c71847bc834a77fdf8f049065",
+                "name": "unique",
+                "value": null,
+                "blocking": true
+              },
+              {
+                "id": "c1735029eb1ea93da2f0fbe4dd172ac8412bf9a65e50a3da22096e864f245614",
+                "name": "not_null",
+                "value": null,
+                "blocking": true
+              },
+              {
+                "id": "902bfe1959d1cb045a96b4683d1523e3f7e5e228fd141e32e07e427c1d380dfa",
+                "name": "negative",
+                "value": null,
+                "blocking": true
+              },
+              {
+                "id": "685192c8265e4ffd4378af05fe628be96869254d3866f79dbc145f8223b41f0a",
+                "name": "accepted_values",
+                "value": [
+                  1,
+                  2
+                ],
+                "blocking": true
+              }
+            ],
+            "primary_key": false,
+            "update_on_merge": false
+          }
+        ],
+        "custom_checks": [
+          {
+            "id": "11202db75f03682c83cbc3d33bd736b2467e2b43a2da8a1cc587ab1b7b460dcd",
+            "name": "This is a custom check name here",
+            "description": "",
+            "query": "select count(*) from test_dataset.test",
+            "value": 2,
+            "blocking": true
+          }
+        ],
+        "image": "",
+        "instance": "",
+        "owner": "",
+        "metadata": {},
+        "tags": [],
+        "snowflake": null,
+        "upstreams": [],
+        "upstream": []
+      },
+      {
+        "id": "49048325f91f37ede0c77e6187cd1ba8ac6bdcc7aac323bd4721bd4b6e92ac93",
+        "uri": "",
+        "name": "test_dataset.test2",
+        "description": "",
+        "type": "bq.sql",
+        "executable_file": {
+          "name": "test2.sql",
+          "path": "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test2.sql",
+          "content": ""
+        },
+        "definition_file": {
+          "name": "test2.sql",
+          "path": "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test2.sql",
+          "type": "comment"
+        },
+        "parameters": {},
+        "connection": "",
+        "secrets": [],
+        "materialization": {
+          "type": "table",
+          "strategy": "",
+          "partition_by": "",
+          "cluster_by": null,
+          "incremental_key": ""
+        },
+        "columns": [
+          {
+            "entity_attribute": null,
+            "name": "one",
+            "type": "integer",
+            "description": "Just a number",
+            "checks": [
+              {
+                "id": "4ad3d8d19d19b6dc3867a500a5a9343baf5523c7c915bbb1e05caab28bfec735",
+                "name": "unique",
+                "value": null,
+                "blocking": true
+              },
+              {
+                "id": "db7fe959cc791b1e05afa2602d7bec382f642f9024fabf21a83a779c955663fa",
+                "name": "not_null",
+                "value": null,
+                "blocking": true
+              },
+              {
+                "id": "65e868fec7269644000d2a913e8a68ec517edcb65cb05c52963cd1a8506a565d",
+                "name": "negative",
+                "value": null,
+                "blocking": true
+              },
+              {
+                "id": "f509a4173bfc02f7e889b6724220d8ffa2462a3d9ffb5834d03772b97450d2ad",
+                "name": "accepted_values",
+                "value": [
+                  1,
+                  2
+                ],
+                "blocking": true
+              }
+            ],
+            "primary_key": false,
+            "update_on_merge": false
+          }
+        ],
+        "custom_checks": [
+          {
+            "id": "c86f611eaa5c91a6f8acd3c94206be23839ef986264b1250e0afdff24067f0a1",
+            "name": "This is a custom check name here",
+            "description": "",
+            "query": "select count(*) from test_dataset.test",
+            "value": 2,
+            "blocking": true
+          }
+        ],
+        "image": "",
+        "instance": "",
+        "owner": "",
+        "metadata": {},
+        "tags": [],
+        "snowflake": null,
+        "upstreams": [
+          {
+            "type": "asset",
+            "value": "test_dataset.test5"
+          }
+        ],
+        "upstream": [
+          "test_dataset.test5"
+        ]
+      },
+      {
+        "id": "842395685364ad0d4d6903bbb5b9cf48a54945774187f169327559e1453a7612",
+        "uri": "",
+        "name": "test_dataset.test3",
+        "description": "",
+        "type": "bq.sql",
+        "executable_file": {
+          "name": "test3.sql",
+          "path": "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test3.sql",
+          "content": ""
+        },
+        "definition_file": {
+          "name": "test3.sql",
+          "path": "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test3.sql",
+          "type": "comment"
+        },
+        "parameters": {},
+        "connection": "",
+        "secrets": [],
+        "materialization": {
+          "type": "table",
+          "strategy": "",
+          "partition_by": "",
+          "cluster_by": null,
+          "incremental_key": ""
+        },
+        "columns": [],
+        "custom_checks": [],
+        "image": "",
+        "instance": "",
+        "owner": "",
+        "metadata": {},
+        "tags": [],
+        "snowflake": null,
+        "upstreams": [
+          {
+            "type": "asset",
+            "value": "test_dataset.test"
+          },
+          {
+            "type": "asset",
+            "value": "test_dataset.test2"
+          },
+          {
+            "type": "asset",
+            "value": "test_dataset.test4"
+          },
+          {
+            "type": "uri",
+            "value": "asset_uri"
+          }
+        ],
+        "upstream": [
+          "test_dataset.test",
+          "test_dataset.test2",
+          "test_dataset.test4"
+        ]
+      },
+      {
+        "id": "04a0d75146552e5e3305db450e7c5b402bd4bb8f8de813263166466f9f901a6b",
+        "uri": "",
+        "name": "test_dataset.test4",
+        "description": "",
+        "type": "bq.sql",
+        "executable_file": {
+          "name": "test4.sql",
+          "path": "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test4.sql",
+          "content": ""
+        },
+        "definition_file": {
+          "name": "test4.sql",
+          "path": "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test4.sql",
+          "type": "comment"
+        },
+        "parameters": {},
+        "connection": "",
+        "secrets": [],
+        "materialization": {
+          "type": "table",
+          "strategy": "",
+          "partition_by": "",
+          "cluster_by": null,
+          "incremental_key": ""
+        },
+        "columns": [
+          {
+            "entity_attribute": null,
+            "name": "column_name",
+            "type": "integer",
+            "description": "column_description",
+            "checks": [
+              {
+                "id": "f9ffcec05b2820e0affc47d53b78fbfa24025e4fa186aa52354321d81abbf731",
+                "name": "unique",
+                "value": null,
+                "blocking": true
+              },
+              {
+                "id": "8ee5038ce5ba790c8f0cc9edc70cfade753c1eb47320c24e7d114d8de16fff46",
+                "name": "accepted_values",
+                "value": [
+                  "val1",
+                  "val2"
+                ],
+                "blocking": true
+              }
+            ],
+            "primary_key": false,
+            "update_on_merge": false
+          }
+        ],
+        "custom_checks": [],
+        "image": "",
+        "instance": "",
+        "owner": "",
+        "metadata": {},
+        "tags": [],
+        "snowflake": null,
+        "upstreams": [
+          {
+            "type": "asset",
+            "value": "test_dataset.test6"
+          },
+          {
+            "type": "uri",
+            "value": "bigquery://some-query"
+          }
+        ],
+        "upstream": [
+          "test_dataset.test6"
+        ]
+      },
+      {
+        "id": "0846e19dafdf994dcc866608c38b5516207266f3289b9dafd20413fe0b6a5678",
+        "uri": "",
+        "name": "test_dataset.test5",
+        "description": "",
+        "type": "python",
+        "executable_file": {
+          "name": "test5.sql",
+          "path": "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test5.sql",
+          "content": ""
+        },
+        "definition_file": {
+          "name": "test5.sql",
+          "path": "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test5.sql",
+          "type": "comment"
+        },
+        "parameters": {},
+        "connection": "",
+        "secrets": [],
+        "materialization": {
+          "type": "table",
+          "strategy": "",
+          "partition_by": "",
+          "cluster_by": null,
+          "incremental_key": ""
+        },
+        "columns": [
+          {
+            "entity_attribute": null,
+            "name": "one",
+            "type": "integer",
+            "description": "Just another number",
+            "checks": [
+              {
+                "id": "f41936eb414a20b62b9c36a6350c2a5586515407dd63b0f4f9530ae94dd3f838",
+                "name": "unique",
+                "value": null,
+                "blocking": true
+              },
+              {
+                "id": "9d6699ee7a8fb34ec62bd8214c9bbfa7ecbb9b720747c0cb758232d1c9f35d30",
+                "name": "not_null",
+                "value": null,
+                "blocking": true
+              },
+              {
+                "id": "4fb94e0bf55a19f28a96f25cf76ea8c4e2bd511c9b0ce7a140c730365027d701",
+                "name": "negative",
+                "value": null,
+                "blocking": true
+              },
+              {
+                "id": "f9214b401710dbdc31938b578dd47ef45e3a74aa51a44e6f21a43533bf259202",
+                "name": "accepted_values",
+                "value": [
+                  1,
+                  2
+                ],
+                "blocking": true
+              }
+            ],
+            "primary_key": false,
+            "update_on_merge": false
+          }
+        ],
+        "custom_checks": [],
+        "image": "",
+        "instance": "",
+        "owner": "",
+        "metadata": {},
+        "tags": [],
+        "snowflake": null,
+        "upstreams": [],
+        "upstream": []
+      },
+      {
+        "id": "9669f46513643c48836a192c2f99882a51472c613f00919b81573f7cb77ef02a",
+        "uri": "",
+        "name": "test_dataset.test6",
+        "description": "",
+        "type": "python",
+        "executable_file": {
+          "name": "test6.sql",
+          "path": "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test6.sql",
+          "content": ""
+        },
+        "definition_file": {
+          "name": "test6.sql",
+          "path": "/Users/djamilabaroudi/Desktop/bruin-test/pipeline-one/assets/test6.sql",
+          "type": "comment"
+        },
+        "parameters": {},
+        "connection": "",
+        "secrets": [],
+        "materialization": {
+          "type": "table",
+          "strategy": "",
+          "partition_by": "",
+          "cluster_by": null,
+          "incremental_key": ""
+        },
+        "columns": [
+          {
+            "entity_attribute": null,
+            "name": "one",
+            "type": "integer",
+            "description": "Just another number",
+            "checks": [
+              {
+                "id": "b1f5150c59be07de452902f514befcce893eddc5baa56cafd65b8593af95da73",
+                "name": "unique",
+                "value": null,
+                "blocking": true
+              },
+              {
+                "id": "3ac27b41c7498bd460136fb5fe7e1a15c69a8f9c6c3aa8104def01b902d62281",
+                "name": "not_null",
+                "value": null,
+                "blocking": true
+              },
+              {
+                "id": "cd19c730076001d138b00d0d6e59829b1037ecffaea4a14e9b1542c37628cb05",
+                "name": "negative",
+                "value": null,
+                "blocking": true
+              },
+              {
+                "id": "dfa86a12e705a7ac3ed78520c02da74974dbbbff7ebe05f1941e88ea19af580a",
+                "name": "accepted_values",
+                "value": [
+                  1,
+                  2
+                ],
+                "blocking": true
+              }
+            ],
+            "primary_key": false,
+            "update_on_merge": false
+          }
+        ],
+        "custom_checks": [],
+        "image": "",
+        "instance": "",
+        "owner": "",
+        "metadata": {},
+        "tags": [],
+        "snowflake": null,
+        "upstreams": [],
+        "upstream": []
+      }
+    ],
+    "notifications": {
+      "slack": []
+    },
+    "catchup": false,
+    "retries": 0
+  }

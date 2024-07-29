@@ -34,19 +34,11 @@
                     class="rounded-b font-mono py-1 text-left w-56 px-1 border border-white/20"
                     :class="[selectedStyle.main, status ? '' : 'rounded-tl']">
                     <div class="truncate">
-                        {{ label }}
+                       {{ label }}
                     </div>
                 </div>
             </div>
 
-            <div v-else-if="data.type === 'dot'"
-                 class="rounded border border-dashed border-gray-400 bg-gray-300 opacity-25 h-full w-full text-sm p-2 font-mono">
-                {{ label }}
-            </div>
-            <div v-else
-                 class="rounded border border-dashed border-gray-400 bg-gray-300 opacity-25 h-full w-full text-sm p-2 font-mono">
-                Project: {{ data?.project?.name }}
-            </div>
         </div>
         <div @click.stop="props.onNodeDoubleClick?.(nodeProps)"
              class="ml-1 border border-gray-700/20 hover:border-gray-700/50 rounded h-full py-2"
