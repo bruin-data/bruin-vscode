@@ -1,6 +1,10 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
+
+- ## [0.13.6] - [2024-07-29]
+- Nodes in the lineage graph can now be dragged freely. Clicking the refresh button will restore them to their initial positions.
+
 - ## [0.13.5] - [2024-07-26]
 - Fixed an indentation issue in the asset snippets.
 - Removed the requirement for "type" in the columns of the autocomplete schema
