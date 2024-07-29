@@ -1,6 +1,8 @@
 import { BruinCommandOptions } from "../types";
 import { BruinCommand } from "./bruinCommand";
 import { LineagePanel } from "../panels/LineagePanel";
+import { getCurrentPipelinePath } from "./bruinUtils";
+import * as vscode from "vscode";
 /**
  * Extends the BruinCommand class to implement the bruin run command on Bruin assets.
  */
@@ -11,8 +13,9 @@ export class BruinLineageInternalParse extends BruinCommand {
    *
    * @returns {string} Returns the 'run' command string.
    */
+  // bruin internal parse-pipeline pipeline-one
   protected bruinCommand(): string {
-    return "lineage";
+    return "internal";
   }
 
   /**
@@ -25,15 +28,27 @@ export class BruinLineageInternalParse extends BruinCommand {
    */
   public async parseAssetLineage(
     filePath: string,
-    { flags = ["-o", "json"], ignoresErrors = false }: BruinCommandOptions = {}
+
+    { flags = ["parse-pipeline"], ignoresErrors = false }: BruinCommandOptions = {}
   ): Promise<void> {
-    await this.run([...flags, filePath], { ignoresErrors })
+    await this.run([...flags, getCurrentPipelinePath(filePath) as string], { ignoresErrors })
       .then(
         (result) => {
-          LineagePanel.postMessage("flow-lineage-message", {
-            status: "success",
-            message: result,
-          });
+          const pipelineData = JSON.parse(result);
+          const asset = pipelineData.assets.find((asset: any) => asset.definition_file.path === filePath);
+          
+          if (asset) {
+            LineagePanel.postMessage("flow-lineage-message", {
+              status: "success",
+              message: {
+                id: asset.id,
+                name: asset.name,
+                pipeline: result,
+              },
+            });
+          } else {
+            throw new Error("Asset not found in pipeline data");
+          }
         },
         (error) => {
           LineagePanel.postMessage("flow-lineage-message", {
@@ -43,7 +58,7 @@ export class BruinLineageInternalParse extends BruinCommand {
         }
       )
       .catch((err) => {
-        console.debug("parsing command error", err);
+        console.error("Parsing command error", err);
       });
   }
 }
