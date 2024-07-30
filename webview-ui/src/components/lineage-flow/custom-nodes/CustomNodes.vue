@@ -1,33 +1,26 @@
 <template>
-  <div class="flex items-end">
+  <div class="custom-node-wrapper">
     <div
+      v-if="showUpstreamIcon"
       @click.stop="onAddUpstream"
-      class="mr-1 border border-gray-700/30 hover:border-gray-700/50 rounded h-full py-2"
+      class="icon-wrapper left-icon"
       :class="props.data.hasUpstreamForClicking ? '' : 'invisible'"
       title="Show Upstreams"
-      v-if="showUpstreamIcon"
     >
       <PlusIcon class="h-4 w-4 fill-gray-300 text-gray-700/50 hover:text-gray-700" />
     </div>
-    <!-- Invisible Fallback for Upstream -->
-    <!-- <div
-      v-else
-      class="mr-1 border border-gray-700/30 rounded h-full py-2 flex items-center justify-center opacity-0"
-      :style="{ width: '24px', height: '24px' }"
-    >
-     
-    </div> -->
-    <div :class="assetClass">
+
+    <div class="node-content" :class="assetClass">
       <div
         v-if="data.type === 'asset'"
         :class="[
           props.data.asset?.isFocusAsset
-            ? 'ring-2 ring-offset-4 ring-indigo-300 outline-2 outline-dashed outline-offset-8 outline-indigo-300 w-56 rounded'
+            ? 'ring-2 ring-offset-4 ring-indigo-300 outline-2 outline-dashed outline-offset-8 outline-indigo-300 rounded'
             : '',
           data.highlight ? '' : '',
         ]"
       >
-        <div class="flex justify-between w-56" :class="status ? selectedStatusStyle : ''">
+        <div class="flex justify-between" :class="status ? selectedStatusStyle : ''">
           <div class="flex items-center px-2 font-mono text-sm font-semibold space-x-1">
             <div
               v-if="status === 'running'"
@@ -48,7 +41,7 @@
         </div>
 
         <div
-          class="rounded-b font-mono py-1 text-left w-56 px-1 border border-white/20"
+          class="rounded-b font-mono py-1 text-left px-1 border border-white/20"
           :class="[selectedStyle.main, status ? '' : 'rounded-tl']"
         >
           <div class="truncate">
@@ -57,17 +50,22 @@
         </div>
       </div>
     </div>
+
     <div
-      @click.stop="onAddDownstream"
-      class="ml-1 border border-gray-700/20 hover:border-gray-700/50 rounded h-full py-2"
-      title="Show Downstreams"
       v-if="showDownstreamIcon"
+      @click.stop="onAddDownstream"
+      class="icon-wrapper right-icon"
+      title="Show Downstreams"
     >
       <PlusIcon class="h-4 w-4 fill-gray-300 text-gray-700/50 hover:text-gray-700" />
     </div>
   </div>
-  <Handle v-if="assetHasDownstreams" class="opacity-0" type="source" :position="Position.Right" />
-  <Handle v-if="assetHasUpstreams" class="opacity-0" type="target" :position="Position.Left" />
+  <Handle v-if="assetHasDownstreams" type="source" class="opacity-0" :position="Position.Right" />
+  <Handle v-if="assetHasUpstreams" type="target" class="opacity-0" :position="Position.Left" />
+  <Handle v-if="assetHasUpstreams" type="source" class="opacity-0" :position="Position.Right" />
+  <Handle v-if="assetHasDownstreams" type="target" class="opacity-0" :position="Position.Left" />
+  
+
 </template>
 
 <script lang="ts" setup>
@@ -96,10 +94,22 @@ const selectedStatusStyle = computed(() => {
 });
 
 const isAsset = computed(() => props.data.type === "asset");
-const assetHasUpstreams = computed(() => isAsset.value && props.data.asset?.hasUpstreams);
-const assetHasDownstreams = computed(() => isAsset.value && props.data.asset?.hasDownstreams);
-console.log("hasUpstream, ... ", assetHasUpstreams.value);
-console.log("hasDownstream, ... ", assetHasDownstreams.value);
+
+const assetHasUpstreams = computed(() => {
+  const result = isAsset.value && props.data.asset?.hasUpstreams;
+  console.log(`Asset ${props.data.asset?.name} has upstreams: ${result}`);
+  return result;
+});
+
+const assetHasDownstreams = computed(() => {
+  const result = isAsset.value && props.data.asset?.hasDownstreams;
+  console.log(`Asset ${props.data.asset?.name} has downstreams: ${result}`);
+  return result;
+});
+
+const handleStyle = computed(() => ({
+  opacity: 0,
+}));
 
 const showUpstreamIcon = computed(() => isAsset.value && props.data?.hasUpstreamForClicking);
 const showDownstreamIcon = computed(() => isAsset.value && props.data?.hasDownstreamForClicking);
@@ -119,3 +129,43 @@ const onAddDownstream = () => {
   emit("add-downstream", props.data.asset?.name);
 };
 </script>
+<style scoped>
+.custom-node-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.node-content {
+  width: 224px; /* 14rem */
+}
+
+.icon-wrapper {
+  position: absolute;
+  top: 72%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(55, 65, 81, 0.3);
+  border-radius: 4px;
+  cursor: pointer;
+  background-color: rgba(17, 24, 39, 0.8);
+  z-index: 10;
+}
+
+.icon-wrapper:hover {
+  border-color: rgba(55, 65, 81, 0.5);
+}
+
+.left-icon {
+  left: -28px;
+}
+
+.right-icon {
+  right: -28px;
+}
+</style>
