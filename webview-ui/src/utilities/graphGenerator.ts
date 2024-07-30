@@ -38,6 +38,7 @@ export function generateGraphFromJSON(asset) {
     if (assetData.downstream) {
       assetData.downstream.forEach((downstreamAsset) => {
         const childNode = getNode(downstreamAsset);
+        childNode.data.asset.hasUpstreams = true;
         localEdges.push({
           id: `${node.id}-${childNode.id}`,
           source: node.id,
@@ -50,6 +51,7 @@ export function generateGraphFromJSON(asset) {
     if (allUpstreams.length > 0) {
       allUpstreams.forEach((upstreamAsset) => {
         const parentNode = getNode(upstreamAsset);
+        parentNode.data.asset.hasDownstreams = true;
         localEdges.push({
           id: `${parentNode.id}-${node.id}`,
           source: parentNode.id,
