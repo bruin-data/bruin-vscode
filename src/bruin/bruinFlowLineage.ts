@@ -51,6 +51,10 @@ export class BruinLineageInternalParse extends BruinCommand {
           }
         },
         (error) => {
+          if(error.includes("No help topic for")) {
+            error = "Bruin CLI is not installed or is outdated. Please install or update Bruin CLI to use this feature.";
+            vscode.window.showErrorMessage(error);
+          }
           LineagePanel.postMessage("flow-lineage-message", {
             status: "error",
             message: error,

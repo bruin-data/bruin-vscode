@@ -171,7 +171,7 @@ const filteredTabs = computed(() =>
 onMounted(() => {
   loadLineageData();
   loadAssetData();
-  //loadLineageDataForLineagePanel();
+  loadLineageDataForLineagePanel();
   loadEnvironmentsList();
 });
 
