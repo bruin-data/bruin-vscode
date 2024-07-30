@@ -1,12 +1,14 @@
 <template>
   <div class="flow">
     <VueFlow
+      v-model:elements="elements"
       :default-viewport="{ zoom: 0.8 }"
       :min-zoom="0.2"
       :max-zoom="4"
       class="basic-flow"
       :draggable="true"
       :node-draggable="true"
+      @paneReady="onPaneReady"
       @nodesDragged="onNodesDragged"
     >
       <Background />
@@ -31,7 +33,7 @@ import { VueFlow, useVueFlow } from "@vue-flow/core";
 import { Background } from "@vue-flow/background";
 import { Controls } from "@vue-flow/controls";
 import type { NodeTypesObject, Node, Edge, NodeDragEvent, XYPosition } from "@vue-flow/core";
-import { ref, onMounted, defineProps, watch } from "vue";
+import { computed, onMounted, defineProps, watch } from "vue";
 import ELK from "elkjs/lib/elk.bundled.js";
 import CustomNode from "@/components/lineage-flow/custom-nodes/CustomNodes.vue";
 import {
@@ -50,7 +52,10 @@ const nodeTypes: NodeTypesObject = {
 };
 
 const { nodes, edges, addNodes, addEdges, setNodes, setEdges } = useVueFlow();
-
+const elements = computed(() => [...nodes.value, ...edges.value]);
+const onPaneReady = () => {
+  updateLayout();
+};
 const elk = new ELK();
 
 // Function to update node positions based on ELK layout
