@@ -9,6 +9,8 @@ import type { PipelineAssets, SimpleAsset } from "@/types";
  *
  */
 
+
+
 export const parsePipelineData = (pipelineJson): PipelineAssets => {
   if (!pipelineJson) {
     return { assets: [] };
@@ -23,7 +25,7 @@ export const parsePipelineData = (pipelineJson): PipelineAssets => {
       name: asset.name,
       type: asset.type,
       upstreams: [],
-      downstreams: [],
+      downstream: [],
     };
   });
 
@@ -45,15 +47,13 @@ export const parsePipelineData = (pipelineJson): PipelineAssets => {
     if (asset.upstreams) {
       asset.upstreams.forEach((upstream) => {
         if (assetMap[upstream.value]) {
-          assetMap[upstream.value].downstreams.push(asset.name);
+          assetMap[upstream.value].downstream.push(asset.name);
         }
       });
     }
   });
   return { assets };
 };
-
-
 // function that get the full dependencies of an asset and return all the dependencies of the asset dependencies and so on
 // until all the dependencies are found
 export const getAssetDependencies = (assetId: string, pipelineAssets: SimpleAsset[]): any => {
@@ -83,18 +83,18 @@ export const getAssetDependencies = (assetId: string, pipelineAssets: SimpleAsse
         return {
           name: dependencyName,
           upstreams: [],
-          downstreams: [],
+          downstream: [],
         };
       }
     };
 
     const upstreams = currentAsset.upstreams.map(buildDependency);
-    const downstreams = currentAsset.downstreams.map(buildDependency);
+    const downstream = currentAsset.downstream.map(buildDependency);
 
     return {
       name: currentAsset.name,
       upstreams: upstreams.filter(Boolean), // Remove nulls from the array
-      downstreams: downstreams.filter(Boolean), // Remove nulls from the array
+      downstream: downstream.filter(Boolean), // Remove nulls from the array
     };
   };
 
@@ -111,7 +111,7 @@ export const processAssetDependencies = (assetId: string, pipelineAssets: Simple
 
   const processDependency = (dependency) => {
     const hasUpstreamForClicking = dependency.upstreams.length > 0;
-    const hasDownstreamForClicking = dependency.downstreams.length > 0;
+    const hasDownstreamForClicking = dependency.downstream.length > 0;
     return {
       name: dependency.name,
       hasUpstreamForClicking,
@@ -126,6 +126,8 @@ export const processAssetDependencies = (assetId: string, pipelineAssets: Simple
   return {
     name: assetDependencies.name,
     upstreams: processDependencies(assetDependencies.upstreams),
-    downstreams: processDependencies(assetDependencies.downstreams),
+    downstream: processDependencies(assetDependencies.downstream),
   };
 }
+
+

@@ -1,43 +1,43 @@
 // src/utils/graphGenerator.js
 
+import { getAssetDataset } from "@/components/lineage-flow/asset-lineage/useAssetLineage";
+
 export function generateGraphFromJSON(asset) {
   const localNodes = new Map();
   const localEdges: any[] = [];
 
-  console.log('asset', asset);
-
-  // Helper function to create or retrieve a node
-  function getNode(asset) {
-    if (!localNodes.has(asset.name)) {
+  function getNode(assetData) {
+    if (!localNodes.has(assetData.name)) {
       const newNode = {
-        id: asset.name,
+        id: assetData.name,
         type: "custom",
         data: {
           type: "asset",
           asset: {
-            name: asset.name,
-            type: asset.type || 'unknown',
-            hasDownstreams: (asset.downstream && asset.downstream.length > 0) || false,
-            hasUpstreams: (asset.upstreams && asset.upstreams.length > 0) || (asset.upstream && asset.upstream.length > 0) || false,
-            isFocusAsset: asset.isFocusAsset,
+            name: assetData.name,
+            type: assetData.type || "unknown",
+            hasDownstreams: (assetData.downstream && assetData.downstream.length > 0) || false,
+            hasUpstreams: (assetData.upstreams && assetData.upstreams.length > 0) || false,
+            isFocusAsset: assetData.isFocusAsset || false,
           },
-          label: asset.name,
+          hasUpstreamForClicking: assetData.hasUpstreamForClicking,
+          hasDownstreamForClicking: assetData.hasDownstreamForClicking,
+          label: assetData.name,
         },
         position: { x: 0, y: 0 },
       };
-      localNodes.set(asset.name, newNode);
+      localNodes.set(assetData.name, newNode);
     }
-    return localNodes.get(asset.name);
+    return localNodes.get(assetData.name);
   }
 
-  function processAsset(asset, isFocusAsset = false) {
-    const node = getNode(asset);
-    node.isFocusAsset = isFocusAsset;
+  function processAsset(assetData, isFocusAsset = false) {
+    const node = getNode(assetData);
+    node.data.asset.isFocusAsset = isFocusAsset;
 
-    if (asset.downstream) {
-      asset.downstream.forEach(downstreamAsset => {
+    if (assetData.downstream) {
+      assetData.downstream.forEach((downstreamAsset) => {
         const childNode = getNode(downstreamAsset);
-        node.data.asset.hasDownstreams = true;
         childNode.data.asset.hasUpstreams = true;
         localEdges.push({
           id: `${node.id}-${childNode.id}`,
@@ -47,26 +47,49 @@ export function generateGraphFromJSON(asset) {
       });
     }
 
-    // Combine upstreams from both properties into one array
-    const allUpstreams = [...(asset.upstreams || []), ...(asset.upstream || [])];
-
+    const allUpstreams = [...(assetData.upstreams || []), ...(assetData.upstream || [])];
     if (allUpstreams.length > 0) {
-      allUpstreams.forEach(upstreamAsset => {
+      allUpstreams.forEach((upstreamAsset) => {
         const parentNode = getNode(upstreamAsset);
         parentNode.data.asset.hasDownstreams = true;
-        node.data.asset.hasUpstreams = true;
         localEdges.push({
           id: `${parentNode.id}-${node.id}`,
           source: parentNode.id,
           target: node.id,
         });
-        // processAsset(upstreamAsset); // Uncomment if recursive processing is needed
       });
     }
   }
 
-  // Start processing from the given JSON data
-  processAsset(asset, true);
+  processAsset(asset, asset.isFocusAsset);
 
   return { nodes: Array.from(localNodes.values()), edges: localEdges };
+}
+
+export function generateGraphForUpstream(nodeName: string, pipelineData: any) {
+  const upstreamAsset = pipelineData.assets.filter((asset: any) => asset.name === nodeName)[0];
+  if (!upstreamAsset) return { nodes: [], edges: [] };
+
+  const upstream = getAssetDataset(pipelineData, upstreamAsset.id);
+
+  return generateGraphFromJSON({
+    ...upstream,
+    isFocusAsset: false,
+    hasUpstreamForClicking: upstreamAsset.upstreams && upstreamAsset.upstreams.length > 0,
+    hasDownstreamForClicking: false,
+  });
+}
+
+export function generateGraphForDownstream(nodeName: string, pipelineData: any) {
+  const downstreamAsset = pipelineData.assets.filter((asset: any) => asset.name === nodeName)[0];
+  if (!downstreamAsset) return { nodes: [], edges: [] };
+
+  const downstream = getAssetDataset(pipelineData, downstreamAsset.id);
+
+  return generateGraphFromJSON({
+    ...downstream,
+    isFocusAsset: false,
+    hasUpstreamForClicking: false,
+    hasDownstreamForClicking: downstreamAsset.downstream && downstreamAsset.downstream.length > 0,
+  });
 }

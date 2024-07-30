@@ -33,7 +33,7 @@
         class="flex w-full"
         @update:assetName="updateAssetName"
       />
-      <div class="flex w-full" v-else-if="parseError && tab.label !== 'Asset Graph Lineage'">
+      <div class="flex w-full" v-else-if="parseError">
         <MessageAlert message="This file is either not a Bruin Asset or has no data to display." />
       </div>
     </vscode-panel-view>
@@ -45,7 +45,7 @@ import AssetDetails from "@/components/asset/AssetDetails.vue";
 import AssetLineageText from "@/components/lineage-text/AssetLineageText.vue";
 import AssetLineageFlow from "@/components/lineage-flow/asset-lineage/AssetLineage.vue";
 import { vscode } from "@/utilities/vscode";
-import { ref, onMounted, computed, watch } from "vue";
+import { ref, onMounted, computed, nextTick } from "vue";
 import { parseAssetDetails, parseEnvironmentList } from "./utilities/helper";
 import { updateValue } from "./utilities/helper";
 import MessageAlert from "@/components/ui/alerts/AlertMessage.vue";
@@ -91,21 +91,27 @@ window.addEventListener("message", (event) => {
       console.log("Flow Lineage Data Message", message);
       lineageData.value = updateValue(message, "success");
       lineageError.value = updateValue(message, "error");
+      console.log("Lineage Data from webview", lineageData.value);
+      // Add this line to ensure the graph updates
+      if (activeTab.value === tabs.value.findIndex((tab) => tab.label === "Lineage")) {
+        nextTick(() => {
+          // Force re-render of the AssetLineageFlow component
+          tabs.value = [...tabs.value];
+        });
+      }
       break;
   }
 });
 
-
 const activeTab = ref(0);
 
- const environmentsList = computed(() => {
-  if(!environments.value) return [];
+const environmentsList = computed(() => {
+  if (!environments.value) return [];
   return parseEnvironmentList(environments.value)?.environments || [];
-}); 
-
+});
 
 const selectedEnvironment = computed(() => {
-  if(!environments.value) return [];
+  if (!environments.value) return [];
   return parseEnvironmentList(environments.value)?.selectedEnvironment || "something went wrong";
 });
 
@@ -114,6 +120,23 @@ const assetDetailsProps = computed(() => {
   return parseAssetDetails(data.value);
 });
 
+const pipeline = computed(() => {
+  if (!lineageData.value || !lineageData.value.pipeline) return null;
+  try {
+    return JSON.parse(lineageData.value.pipeline);
+  } catch (error) {
+    console.error("Error parsing pipeline data:", error);
+    return null;
+  }
+});
+
+const assetName = computed(() => {
+  return lineageData.value?.name ?? null;
+});
+
+const assetId = computed(() => {
+  return lineageData.value?.id ?? null;
+});
 
 const tabs = ref([
   /* { label: "General", component: AssetGeneral, props: { name: assetName }, includeIn: ["bruin"] }, */
@@ -132,7 +155,11 @@ const tabs = ref([
     label: "Lineage",
     component: AssetLineageFlow,
     includeIn: ["Lineage"],
-    props: computed(() => getAssetDataset(lineageData.value, true)),
+    props: {
+      assetDataset: computed(() => getAssetDataset(pipeline.value, assetId.value)),
+      pipelineData: computed(() => pipeline.value),
+      name: assetName.value,
+    },
   },
   //{ label: "Pipeline Graph Lineage", component: PipelineLineage, includeIn: ["lineage"] },
 ]);
@@ -144,16 +171,12 @@ const filteredTabs = computed(() =>
 onMounted(() => {
   loadLineageData();
   loadAssetData();
-  loadLineageDataForLineagePanel();
   loadEnvironmentsList();
 });
 
+
 function loadLineageData() {
   vscode.postMessage({ command: "bruin.getAssetLineage" });
-}
-
-function loadLineageDataForLineagePanel() {
-  vscode.postMessage({ command: "bruin.assetGraphLineage" });
 }
 
 function loadAssetData() {
@@ -163,10 +186,11 @@ function loadAssetData() {
 function loadEnvironmentsList() {
   vscode.postMessage({ command: "bruin.getEnvironmentsList" });
 }
-function refreshGraphLineage() {
+
+function refreshGraphLineage(event) {
+  event.stopPropagation(); // Prevent event bubbling
   vscode.postMessage({ command: "bruin.refreshGraphLineage" });
 }
-
 function updateAssetName(newName) {
   tabs.value.map((tab) => {
     if (!tab) return;

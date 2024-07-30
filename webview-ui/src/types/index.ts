@@ -29,6 +29,7 @@ export interface FormattedErrorMessage {
 }
 
 export interface Asset {
+  id: string;
   name: string;
   type: string;
   pipeline: string;
@@ -51,8 +52,8 @@ export interface BruinNodeProps {
     type: string;
     asset?: Asset;
     project?: Project;
-    hasUpstreamForClicking?: boolean;
-    hasDownstreamForClicking?: boolean;
+    hasUpstreamForClicking: boolean;
+    hasDownstreamForClicking: boolean;
   };
   status?: string;
   onNodeDoubleClick?: Function;
@@ -61,6 +62,7 @@ export interface BruinNodeProps {
 
 
 export interface AssetDataset {
+  id: string;
   name: string;
   type: string;
   upstreams?: Upstream[];
@@ -82,6 +84,7 @@ interface Downstream {
   type: string;
   executable_file: File;
   definition_file: File;
+  external?: boolean;
 }
 
 interface File {
@@ -110,7 +113,7 @@ export interface SimpleAsset {
   name: string;
   type: string;
   upstreams: string[];
-  downstreams: string[];
+  downstream: string[];
   hasUpstreamForClicking?: boolean;
   hasDownstreamForClicking?: boolean;
   isFocusAsset?: boolean;
