@@ -45,7 +45,7 @@ import AssetDetails from "@/components/asset/AssetDetails.vue";
 import AssetLineageText from "@/components/lineage-text/AssetLineageText.vue";
 import AssetLineageFlow from "@/components/lineage-flow/asset-lineage/AssetLineage.vue";
 import { vscode } from "@/utilities/vscode";
-import { ref, onMounted, computed, watch } from "vue";
+import { ref, onMounted, computed, nextTick } from "vue";
 import { parseAssetDetails, parseEnvironmentList } from "./utilities/helper";
 import { updateValue } from "./utilities/helper";
 import MessageAlert from "@/components/ui/alerts/AlertMessage.vue";
@@ -92,6 +92,13 @@ window.addEventListener("message", (event) => {
       lineageData.value = updateValue(message, "success");
       lineageError.value = updateValue(message, "error");
       console.log("Lineage Data from webview", lineageData.value);
+      // Add this line to ensure the graph updates
+      if (activeTab.value === tabs.value.findIndex((tab) => tab.label === "Lineage")) {
+        nextTick(() => {
+          // Force re-render of the AssetLineageFlow component
+          tabs.value = [...tabs.value];
+        });
+      }
       break;
   }
 });
@@ -131,7 +138,6 @@ const assetId = computed(() => {
   return lineageData.value?.id ?? null;
 });
 
-
 const tabs = ref([
   /* { label: "General", component: AssetGeneral, props: { name: assetName }, includeIn: ["bruin"] }, */
   {
@@ -150,10 +156,7 @@ const tabs = ref([
     component: AssetLineageFlow,
     includeIn: ["Lineage"],
     props: {
-      assetDataset: computed(() => getAssetDataset(
-        pipeline.value,
-        assetId.value,
-      )),
+      assetDataset: computed(() => getAssetDataset(pipeline.value, assetId.value)),
       pipelineData: computed(() => pipeline.value),
       name: assetName.value,
     },
@@ -168,9 +171,10 @@ const filteredTabs = computed(() =>
 onMounted(() => {
   loadLineageData();
   loadAssetData();
-  loadLineageDataForLineagePanel();
+  //loadLineageDataForLineagePanel();
   loadEnvironmentsList();
 });
+
 
 function loadLineageData() {
   vscode.postMessage({ command: "bruin.getAssetLineage" });
@@ -187,10 +191,11 @@ function loadAssetData() {
 function loadEnvironmentsList() {
   vscode.postMessage({ command: "bruin.getEnvironmentsList" });
 }
-function refreshGraphLineage() {
+
+function refreshGraphLineage(event) {
+  event.stopPropagation(); // Prevent event bubbling
   vscode.postMessage({ command: "bruin.refreshGraphLineage" });
 }
-
 function updateAssetName(newName) {
   tabs.value.map((tab) => {
     if (!tab) return;
