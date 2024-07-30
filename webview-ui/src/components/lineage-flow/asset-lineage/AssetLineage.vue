@@ -2,7 +2,7 @@
   <div class="flow">
     <VueFlow
       v-model:elements="elements"
-      :default-viewport="{ zoom: 0.8 }"
+      :default-viewport="{x:50, zoom: 0.8 }"
       :min-zoom="0.2"
       :max-zoom="4"
       class="basic-flow"
