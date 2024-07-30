@@ -29,6 +29,7 @@ export interface FormattedErrorMessage {
 }
 
 export interface Asset {
+  id: string;
   name: string;
   type: string;
   pipeline: string;
@@ -51,8 +52,8 @@ export interface BruinNodeProps {
     type: string;
     asset?: Asset;
     project?: Project;
-    hasUpstreamForClicking?: boolean;
-    hasDownstreamForClicking?: boolean;
+    hasUpstreamForClicking: boolean;
+    hasDownstreamForClicking: boolean;
   };
   status?: string;
   onNodeDoubleClick?: Function;
@@ -61,6 +62,7 @@ export interface BruinNodeProps {
 
 
 export interface AssetDataset {
+  id: string;
   name: string;
   type: string;
   upstreams?: Upstream[];

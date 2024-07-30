@@ -13,10 +13,11 @@
 
       <template #node-custom="nodeProps">
         <CustomNode
-          :is-focus-asset="true"
           :data="nodeProps.data"
           :node-props="nodeProps"
           :label="nodeProps.data.label"
+          @add-upstream="onAddUpstream"
+          @add-downstream="onAddDownstream"
         />
       </template>
 
@@ -30,14 +31,20 @@ import { VueFlow, useVueFlow } from "@vue-flow/core";
 import { Background } from "@vue-flow/background";
 import { Controls } from "@vue-flow/controls";
 import type { NodeTypesObject, Node, Edge, NodeDragEvent, XYPosition } from "@vue-flow/core";
-import { ref, onMounted, onBeforeUnmount, defineProps, watch } from "vue";
+import { ref, onMounted, defineProps, watch } from "vue";
 import ELK from "elkjs/lib/elk.bundled.js";
 import CustomNode from "@/components/lineage-flow/custom-nodes/CustomNodes.vue";
-import { generateGraphFromJSON } from "@/utilities/graphGenerator";
+import {
+  generateGraphForDownstream,
+  generateGraphForUpstream,
+  generateGraphFromJSON,
+} from "@/utilities/graphGenerator";
 import type { AssetDataset } from "@/types";
 
-const graphProps = defineProps<AssetDataset>();
-
+const props = defineProps<{
+  assetDataset?: AssetDataset;
+  pipelineData: any;
+}>();
 const nodeTypes: NodeTypesObject = {
   custom: CustomNode as any,
 };
@@ -99,9 +106,11 @@ const updateLayout = async () => {
 
 // Function to process the asset properties and update nodes and edges
 const processProperties = () => {
-  if (!graphProps) return;
+  if (!props) return;
   // on node click update the props and re-render the graph
-  const { nodes: generatedNodes, edges: generatedEdges } = generateGraphFromJSON(graphProps);
+  const { nodes: generatedNodes, edges: generatedEdges } = generateGraphFromJSON(
+    props.assetDataset,
+  );
   addNodes(generatedNodes);
   addEdges(generatedEdges);
 
@@ -110,7 +119,7 @@ const processProperties = () => {
 
 // Watch for changes in props and update nodes and edges
 watch(
-  () => graphProps,
+  () => props,
   (newValue) => {
     if (newValue) {
       processProperties();
@@ -118,6 +127,24 @@ watch(
   },
   { immediate: true }
 );
+
+// Event handlers for adding upstream and downstream nodes
+const onAddUpstream = (nodeId: string) => {
+  const { nodes: newNodes, edges: newEdges } = generateGraphForUpstream(nodeId, props.pipelineData);
+  addNodes(newNodes);
+  addEdges(newEdges);
+  updateLayout();
+};
+
+const onAddDownstream = (nodeId: string) => {
+  const { nodes: newNodes, edges: newEdges } = generateGraphForDownstream(
+    nodeId,
+    props.pipelineData
+  );
+  addNodes(newNodes);
+  addEdges(newEdges);
+  updateLayout();
+};
 
 // Handle node dragging
 const onNodesDragged = (draggedNodes: NodeDragEvent[]) => {

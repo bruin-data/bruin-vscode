@@ -33,7 +33,7 @@
         class="flex w-full"
         @update:assetName="updateAssetName"
       />
-      <div class="flex w-full" v-else-if="parseError && tab.label !== 'Asset Graph Lineage'">
+      <div class="flex w-full" v-else-if="parseError">
         <MessageAlert message="This file is either not a Bruin Asset or has no data to display." />
       </div>
     </vscode-panel-view>
@@ -52,6 +52,7 @@ import MessageAlert from "@/components/ui/alerts/AlertMessage.vue";
 import { getAssetDataset } from "@/components/lineage-flow/asset-lineage/useAssetLineage";
 import { ArrowPathIcon } from "@heroicons/vue/20/solid";
 import type { EnvironmentsList } from "./types";
+import pipelineData from "@/utilities/pipeline.json";
 
 const panelType = ref("");
 const parseError = ref();
@@ -91,27 +92,44 @@ window.addEventListener("message", (event) => {
       console.log("Flow Lineage Data Message", message);
       lineageData.value = updateValue(message, "success");
       lineageError.value = updateValue(message, "error");
+      console.log("Lineage Data from webview", lineageData.value);
       break;
   }
 });
 
-
 const activeTab = ref(0);
 
- const environmentsList = computed(() => {
-  if(!environments.value) return [];
+const environmentsList = computed(() => {
+  if (!environments.value) return [];
   return parseEnvironmentList(environments.value)?.environments || [];
-}); 
-
+});
 
 const selectedEnvironment = computed(() => {
-  if(!environments.value) return [];
+  if (!environments.value) return [];
   return parseEnvironmentList(environments.value)?.selectedEnvironment || "something went wrong";
 });
 
 const assetDetailsProps = computed(() => {
   if (!data.value) return null;
   return parseAssetDetails(data.value);
+});
+
+const pipeline = computed(() => {
+  if (!lineageData.value || !lineageData.value.pipeline) return null;
+  try {
+    return JSON.parse(lineageData.value.pipeline);
+  } catch (error) {
+    console.error("Error parsing pipeline data:", error);
+    return null;
+  }
+});
+
+const assetName = computed(() => {
+  return lineageData.value?.name ?? null;
+});
+
+const assetId = computed(() => {
+  return lineageData.value?.id ?? null;
 });
 
 
@@ -132,7 +150,14 @@ const tabs = ref([
     label: "Lineage",
     component: AssetLineageFlow,
     includeIn: ["Lineage"],
-    props: computed(() => getAssetDataset(lineageData.value, true)),
+    props: {
+      assetDataset: computed(() => getAssetDataset(
+        pipeline.value,
+        assetId.value,
+      )),
+      pipelineData: computed(() => pipeline.value),
+      name: assetName.value,
+    },
   },
   //{ label: "Pipeline Graph Lineage", component: PipelineLineage, includeIn: ["lineage"] },
 ]);

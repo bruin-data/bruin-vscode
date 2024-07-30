@@ -1,41 +1,47 @@
 import type { AssetDataset, Upstream } from "@/types";
 
-export const getAssetDataset = (jsonData: string, isFocusAsset: boolean): AssetDataset | null => {
+export const getAssetDataset = (
+  jsonData,
+  assetId
+): AssetDataset  | null => {
   if (!jsonData) {
     return null;
   }
 
-  console.log('jsonData', jsonData);
-  const asset = JSON.parse(jsonData);
+  const asset = jsonData.assets.filter((asset) => asset.id === assetId)[0];
 
   const assetDataset: AssetDataset = {
+    id: asset.id,
     name: asset.name,
     type: asset.type,
-    isFocusAsset: isFocusAsset,
+    isFocusAsset: true,
   };
 
-  console.log("================\n")
-  console.log("assetDataset : ", assetDataset)
+  console.log("================\n");
 
   const parseUpstream = (upstream) => {
-    if (upstream.external) {
+    if (upstream.type === "uri") {
       return {
-        name: upstream.name,
+        name: upstream.value,
         type: "external",
       };
     }
+    const upstreamAsAsset = jsonData.assets.filter((asset) => asset.name === upstream.value)[0];
+    console.log("upstreamAsAsset", upstreamAsAsset);
     return {
-      name: upstream.name,
-      type: upstream.type,
+      name: upstreamAsAsset.name,
+      type: upstreamAsAsset.type,
+      hasUpstreamForClicking: upstreamAsAsset.upstreams && upstreamAsAsset.upstreams.length > 0,
+      isFocusAsset: false,
       executable_file: {
-        name: upstream.executable_file?.name,
-        path: upstream.executable_file?.path,
-        content: upstream.executable_file?.content,
+        name: upstreamAsAsset.executable_file?.name,
+        path: upstreamAsAsset.executable_file?.path,
+        content: upstreamAsAsset.executable_file?.content,
       },
       definition_file: {
-        name: upstream.definition_file?.name,
-        path: upstream.definition_file?.path,
-        type: upstream.definition_file?.type,
+        name: upstreamAsAsset.definition_file?.name,
+        path: upstreamAsAsset.definition_file?.path,
+        type: upstreamAsAsset.definition_file?.type,
       },
     };
   };
@@ -44,10 +50,6 @@ export const getAssetDataset = (jsonData: string, isFocusAsset: boolean): AssetD
 
   if (asset.upstreams) {
     upstreams.push(...asset.upstreams.map(parseUpstream));
-  }
-
-  if (asset.upstream) {
-    upstreams.push(...asset.upstream.map(parseUpstream));
   }
 
   if (upstreams.length > 0) {
@@ -59,6 +61,7 @@ export const getAssetDataset = (jsonData: string, isFocusAsset: boolean): AssetD
       return {
         name: downstream.name,
         type: downstream.type,
+        hasDownstreamForClicking: downstream.downstream && downstream.downstream.length > 0,
         executable_file: {
           name: downstream.executable_file?.name,
           path: downstream.executable_file?.path,
@@ -72,6 +75,6 @@ export const getAssetDataset = (jsonData: string, isFocusAsset: boolean): AssetD
       };
     });
   }
-
-  return assetDataset;
-}
+  console.log("assetDataset ....", assetDataset);
+  return assetDataset ;
+};
