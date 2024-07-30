@@ -62,8 +62,7 @@
   </div>
   <Handle v-if="assetHasDownstreams" type="source" class="opacity-0" :position="Position.Right" />
   <Handle v-if="assetHasUpstreams" type="target" class="opacity-0" :position="Position.Left" />
-  <Handle v-if="assetHasUpstreams" type="source" class="opacity-0" :position="Position.Right" />
-  <Handle v-if="assetHasDownstreams" type="target" class="opacity-0" :position="Position.Left" />
+
   
 
 </template>

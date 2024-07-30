@@ -80,22 +80,16 @@ export function generateGraphForUpstream(nodeName: string, pipelineData: any) {
   });
 }
 
-export function generateGraphForDownstream(nodeId: string, pipelineData: any) {
-  const downstreamAsset = pipelineData.assets.find((asset: any) => asset.name === nodeId);
+export function generateGraphForDownstream(nodeName: string, pipelineData: any) {
+  const downstreamAsset = pipelineData.assets.filter((asset: any) => asset.name === nodeName)[0];
   if (!downstreamAsset) return { nodes: [], edges: [] };
 
-  const downstreamNodes =
-    downstreamAsset.downstream?.map((downstream: string) => {
-      const downstreamAssetData = pipelineData.assets.find(
-        (asset: any) => asset.name === downstream
-      );
-      return {
-        ...downstreamAssetData,
-        hasUpstreamForClicking: true, // Since we know it has at least one upstream (the current node)
-        hasDownstreamForClicking:
-          downstreamAssetData.downstream && downstreamAssetData.downstream.length > 0,
-      };
-    }) || [];
+  const downstream = getAssetDataset(pipelineData, downstreamAsset.id);
 
-  return generateGraphFromJSON({ ...downstreamAsset, downstream: downstreamNodes });
+  return generateGraphFromJSON({
+    ...downstream,
+    isFocusAsset: false,
+    hasUpstreamForClicking: false,
+    hasDownstreamForClicking: downstreamAsset.downstream && downstreamAsset.downstream.length > 0,
+  });
 }

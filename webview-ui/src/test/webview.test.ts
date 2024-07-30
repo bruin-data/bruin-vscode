@@ -408,14 +408,14 @@ suite("testing webview", () => {
       "test_dataset.test4",
       "asset_uri",
     ]);
-    assert.deepStrictEqual(assetTest3 && assetTest3.downstreams, []);
+    assert.deepStrictEqual(assetTest3 && assetTest3.downstream, []);
     assert.deepStrictEqual(assetTest4 && assetTest4.upstreams, [
       "test_dataset.test6",
       "bigquery://some-query",
     ]);
-    assert.deepStrictEqual(assetTest4 && assetTest4.downstreams, ["test_dataset.test3"]);
+    assert.deepStrictEqual(assetTest4 && assetTest4.downstream, ["test_dataset.test3"]);
     assert.deepStrictEqual(assetTest2 && assetTest2.upstreams, ["test_dataset.test5"]);
-    assert.deepStrictEqual(assetTest2 && assetTest2.downstreams, ["test_dataset.test3"]);
+    assert.deepStrictEqual(assetTest2 && assetTest2.downstream, ["test_dataset.test3"]);
   });
 
   const pipelineDataNoUpstreamsDownstreams = {
@@ -423,7 +423,7 @@ suite("testing webview", () => {
       {
         name: "test_dataset.test7",
         upstreams: [],
-        downstreams: [],
+        downstream: [],
       },
     ],
   };
@@ -434,7 +434,7 @@ suite("testing webview", () => {
     const assetTest7 = pipelineAssets.assets.find((asset) => asset.name === "test_dataset.test7");
 
     assert.deepStrictEqual(assetTest7 && assetTest7.upstreams, []);
-    assert.deepStrictEqual(assetTest7 && assetTest7.downstreams, []);
+    assert.deepStrictEqual(assetTest7 && assetTest7.downstream, []);
   });
 
   test("test parsePipelineData with no assets", () => {
@@ -460,7 +460,7 @@ suite("testing webview", () => {
         {
           "name": "test_dataset.test",
           "upstreams": [],
-          "downstreams": []
+          "downstream": []
         },
         {
           "name": "test_dataset.test2",
@@ -468,10 +468,10 @@ suite("testing webview", () => {
             {
               "name": "test_dataset.test5",
               "upstreams": [],
-              "downstreams": []
+              "downstream": []
             }
           ],
-          "downstreams": []
+          "downstream": []
         },
         {
           "name": "test_dataset.test4",
@@ -479,23 +479,23 @@ suite("testing webview", () => {
             {
               "name": "test_dataset.test6",
               "upstreams": [],
-              "downstreams": []
+              "downstream": []
             },
             {
               "name": "bigquery://some-query",
               "upstreams": [],
-              "downstreams": []
+              "downstream": []
             }
           ],
-          "downstreams": []
+          "downstream": []
         },
         {
           "name": "asset_uri",
           "upstreams": [],
-          "downstreams": []
+          "downstream": []
         }
       ],
-      "downstreams": []
+      "downstream": []
   };
 
     const assetId = "842395685364ad0d4d6903bbb5b9cf48a54945774187f169327559e1453a7612";
@@ -540,7 +540,7 @@ test("test processAssetDependencies with assetId that has no downstreams and som
           "hasDownstreamForClicking": false
         }
       ],
-      "downstreams": []
+      "downstream": []
   };
   const assetId = "842395685364ad0d4d6903bbb5b9cf48a54945774187f169327559e1453a7612";
   const assetDependencies = processAssetDependencies(assetId, pipelineAssets);

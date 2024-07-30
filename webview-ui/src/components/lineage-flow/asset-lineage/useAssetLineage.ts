@@ -8,8 +8,40 @@ export const getAssetDataset = (
     return null;
   }
 
-  const asset = jsonData.assets.filter((asset) => asset.id === assetId)[0];
+  const asset_ = jsonData.assets.find((asset) => asset.id === assetId);
+  if (!asset_) {
+    return null;
+  }
 
+  // Step 2: Deduce downstreams
+  const downstreamMap: Record<string, Set<string>> = {};
+
+  // Initialize the map with empty sets for each asset
+  jsonData.assets.forEach((a) => {
+    downstreamMap[a.name] = new Set<string>();
+  });
+
+  // Populate the map with upstream relationships
+  jsonData.assets.forEach((a) => {
+    if (a.upstreams) {
+      a.upstreams.forEach((upstream) => {
+        if (downstreamMap[upstream.value]) {
+          downstreamMap[upstream.value].add(a.name);
+        }
+      });
+    }
+  });
+
+  // Deduce downstreams for the specific asset
+  const assetDownstreams = downstreamMap[asset_.name] || [];
+  const populatedDownstream = Array.from(assetDownstreams).map((name) => ({
+    type: 'asset',  
+    value: name,
+  }));
+  
+  const asset = {...asset_, downstream: populatedDownstream};
+  
+  console.log("asset .....", asset.downstream);
   const assetDataset: AssetDataset = {
     id: asset.id,
     name: asset.name,
@@ -55,22 +87,23 @@ export const getAssetDataset = (
   if (upstreams.length > 0) {
     assetDataset.upstreams = upstreams;
   }
-
   if (asset.downstream) {
+    let assetDownstream;
     assetDataset.downstream = asset.downstream.map((downstream: any) => {
+      assetDownstream = jsonData.assets.find((asset) => asset.name === downstream.value);
       return {
-        name: downstream.name,
-        type: downstream.type,
-        hasDownstreamForClicking: downstream.downstream && downstream.downstream.length > 0,
+        name: assetDownstream.name,
+        type: assetDownstream.type,
+        hasDownstreamForClicking: assetDownstream.downstream && assetDownstream.downstream.length > 0,
         executable_file: {
-          name: downstream.executable_file?.name,
-          path: downstream.executable_file?.path,
-          content: downstream.executable_file?.content,
+          name: assetDownstream.executable_file?.name,
+          path: assetDownstream.executable_file?.path,
+          content: assetDownstream.executable_file?.content,
         },
         definition_file: {
-          name: downstream.definition_file?.name,
-          path: downstream.definition_file?.path,
-          type: downstream.definition_file?.type,
+          name: assetDownstream.definition_file?.name,
+          path: assetDownstream.definition_file?.path,
+          type: assetDownstream.definition_file?.type,
         },
       };
     });

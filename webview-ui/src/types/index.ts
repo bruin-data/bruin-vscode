@@ -84,6 +84,7 @@ interface Downstream {
   type: string;
   executable_file: File;
   definition_file: File;
+  external?: boolean;
 }
 
 interface File {
@@ -112,7 +113,7 @@ export interface SimpleAsset {
   name: string;
   type: string;
   upstreams: string[];
-  downstreams: string[];
+  downstream: string[];
   hasUpstreamForClicking?: boolean;
   hasDownstreamForClicking?: boolean;
   isFocusAsset?: boolean;
