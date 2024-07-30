@@ -171,17 +171,12 @@ const filteredTabs = computed(() =>
 onMounted(() => {
   loadLineageData();
   loadAssetData();
-  loadLineageDataForLineagePanel();
   loadEnvironmentsList();
 });
 
 
 function loadLineageData() {
   vscode.postMessage({ command: "bruin.getAssetLineage" });
-}
-
-function loadLineageDataForLineagePanel() {
-  vscode.postMessage({ command: "bruin.assetGraphLineage" });
 }
 
 function loadAssetData() {

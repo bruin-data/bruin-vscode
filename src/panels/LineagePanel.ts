@@ -6,7 +6,7 @@ import { flowLineageCommand } from "../extension/commands/FlowLineageCommand";
 export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposable {
   public static readonly viewId = "lineageView";
   public static _view?: vscode.WebviewView | undefined;
-  private _lastRenderedDocumentUri: vscode.Uri | undefined;
+  private _lastRenderedDocumentUri: vscode.Uri | undefined = vscode.window.activeTextEditor?.document.uri;
 
   private context: vscode.WebviewViewResolveContext<unknown> | undefined;
   private token: vscode.CancellationToken | undefined;
@@ -14,6 +14,7 @@ export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposab
   private disposables: vscode.Disposable[] = [];
 
   constructor(private readonly _extensionUri: vscode.Uri) {
+    flowLineageCommand(this._lastRenderedDocumentUri);
     this.disposables.push(
       vscode.window.onDidChangeActiveTextEditor((event: vscode.TextEditor | undefined) => {
         this._lastRenderedDocumentUri = event?.document.uri;
