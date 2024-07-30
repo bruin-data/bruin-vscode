@@ -52,7 +52,6 @@ import MessageAlert from "@/components/ui/alerts/AlertMessage.vue";
 import { getAssetDataset } from "@/components/lineage-flow/asset-lineage/useAssetLineage";
 import { ArrowPathIcon } from "@heroicons/vue/20/solid";
 import type { EnvironmentsList } from "./types";
-import pipelineData from "@/utilities/pipeline.json";
 
 const panelType = ref("");
 const parseError = ref();
