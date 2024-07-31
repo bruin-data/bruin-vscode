@@ -341,10 +341,7 @@
       "  - ${3:dependency1}",
       "  - ${4:dependency2}",
       "",
-      "materialization:",
-      "  type: ${5|table,view|}",
-      "  strategy: ${6|create+replace,delete+insert,append,merge|}",
-      "",
+     
       "columns:",
       "  - name: ${7:column_name}",
       "    type: ${8|integer,string,float,boolean,date,timestamp|}",
@@ -354,12 +351,7 @@
       "      ${11:- name: accepted_values}",
       "      ${12:value: [\"val1\", \"val2\"]}",
       "",
-      "parameters:",
-      "  source: ${13:source}",
-      "  source_connection: ${14:source_connection}",
-      "  source_table: ${15:source_table}",
-      "  destination: ${16|bigquery,snowflake,redshift,synapse|}",
-      "",
+    
       "tags:",
       "  - ${17:tag1}",
       "  - ${18:tag2}",
@@ -370,9 +362,7 @@
       "  - key: ${20:secret_key}",
       "    inject_as: ${21:injection_method}",
       "",
-      "connections:",
-      "  ${22:connection_name}: ${23:connection_value}",
-      "",
+     
       "@bruin\"\"\"",
       "$0"
     ],
