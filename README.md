@@ -71,15 +71,17 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: 0.14.0
-### New Features
-- **Lineage View Expansion**: Users can now expand properties in the lineage view to see further upstream and downstream elements.
+### Latest Release: 0.14.1
+### Enhanced
+- Removed extra fields from the snippets that generate a full Python asset. The removed fields are: `Materialization`, `connections`, and `parameters`
 
-### Bug Fixes
+### Previous Highlights
+
+### Version 0.14.0
+- **Lineage View Expansion**: Users can now expand properties in the lineage view to see further upstream and downstream elements.
 - **Infinite Loop**: Resolved an infinite loop issue, improving performance.
 - **CLI Warning**: Added a VSCode error window for outdated CLI.
 
-### Previous Highlights
 ### Version 0.13.6
 - Nodes can now be dragged freely. Clicking the refresh button will return them to their initial positions.
 

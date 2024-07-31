@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.14.1] - [2024-07-31]
+- Removed `materialization`, `connections`, and `parameters` fields from Python asset snippets.
+
 ## [0.14.0] - [2024-07-31]
 ### Added
 - **Lineage View Expansion**: Users can now expand properties in the lineage view to see further upstream and downstream elements.
