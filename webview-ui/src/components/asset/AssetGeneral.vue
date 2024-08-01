@@ -181,9 +181,9 @@
         </div>
              </div>
  
-        <ErrorAlert v-if="isError" :errorMessage="errorMessage!" />
-        <div v-if="language === 'sql'">
-          <SqlEditor v-show="!isError" :code="code" :copied="false" :language="language" />
+        <ErrorAlert v-if="isError" :errorMessage="errorMessage!" class="mb-4"/>
+        <div v-if="language === 'sql'" class="mt-4">
+          <SqlEditor :code="code" :copied="false" :language="language" />
         </div>
         <div v-else class="overflow-hidden w-full h-20">
           <pre class="white-space"></pre>
@@ -381,10 +381,6 @@ function receiveMessage(event: { data: any }) {
       validationSuccess.value = updateValue(envelope, "success");
       validationError.value = updateValue(envelope, "error");
       validateButtonStatus.value = updateValue(envelope, "loading");
-      console.debug(
-        "-------------------------Validation result------------------------",
-        validationSuccess.value
-      );
       validateButtonStatus.value = determineValidationStatus(
         validationSuccess.value,
         validationError.value,
