@@ -71,11 +71,14 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: 0.14.3
-### Fixed 
-- Added quoting around file paths to handle spaces and special characters.
+
+### Latest Release: 0.15.0
+### Added 
+- Added a new checkbox to the main panel for enabling the metadata push feature.
 
 ### Previous Highlights
+### Version 0.14.3
+- Added quoting around file paths to handle spaces and special characters.
 
 ### Version 0.14.2
 - **Detailed Error Phases**: Distinguishes between render and validate errors for clearer feedback.

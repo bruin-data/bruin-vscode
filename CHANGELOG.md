@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.15.0] - [2024-08-02]
+- Added a new checkbox to the main panel for enabling the metadata push feature.
+
 ## [0.14.3] - [2024-08-02]
 - Added quoting around file paths to handle spaces and special characters.
 
