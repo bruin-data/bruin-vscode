@@ -94,6 +94,13 @@ export const bruinWorkspaceDirectory = (
   return undefined;
 };
 
+const escapeFilePath = (filePath: string): string => {
+  // Escape backslashes first (they need to be escaped as double backslashes)
+  // Then escape spaces (they need to be escaped with a backslash)
+  // Finally, wrap the path in quotes for safety
+  return `"${filePath.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+};
+
 export const getCurrentPipelinePath = (fsPath: string): string | undefined => {
   return bruinWorkspaceDirectory(fsPath, ["pipeline.yaml", "pipeline.yml"]);
 };
@@ -110,8 +117,8 @@ export const runInIntegratedTerminal = async (
   assetPath?: string,
   flags?: string
 ) => {
-  const assetPathEscaped = assetPath?.replace(/ /g, "\\ ");
-  const command = `bruin ${BRUIN_RUN_SQL_COMMAND} ${flags} ${assetPathEscaped}`;
+  const escapedAssetPath = assetPath ? escapeFilePath(assetPath) : '';
+  const command = `bruin ${BRUIN_RUN_SQL_COMMAND} ${flags} ${escapedAssetPath}`;
 
   const terminalName = "Bruin Terminal";
   let terminal = vscode.window.terminals.find((t) => t.name === terminalName);
