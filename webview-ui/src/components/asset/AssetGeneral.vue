@@ -181,9 +181,9 @@
         </div>
              </div>
  
-        <ErrorAlert v-if="isError" :errorMessage="errorMessage!" />
-        <div v-if="language === 'sql'">
-          <SqlEditor v-show="!isError" :code="code" :copied="false" :language="language" />
+        <ErrorAlert v-if="isError" :errorMessage="errorMessage!" class="mb-4" :errorPhase="errorPhase"  @close="handleClose"/>
+        <div v-if="language === 'sql'" class="mt-4">
+          <SqlEditor :code="code" :copied="false" :language="language" />
         </div>
         <div v-else class="overflow-hidden w-full h-20">
           <pre class="white-space"></pre>
@@ -209,7 +209,11 @@ import { updateValue, resetStates, determineValidationStatus } from "@/utilities
 const errorState = computed(() => handleError(validationError.value, renderSQLAssetError.value));
 const isError = computed(() => errorState.value?.errorCaptured);
 const errorMessage = computed(() => errorState.value?.errorMessage);
+const handleClose = () => {
+  resetStates([validationError, renderSQLAssetError]);
+};
 const isNotAsset = computed(() => (renderAssetAlert.value ? true : false));
+const errorPhase = ref<"Validation" | "Rendering" | "Unknown">("Unknown");
 
 const props = defineProps<{
   schedule: string;
@@ -381,15 +385,12 @@ function receiveMessage(event: { data: any }) {
       validationSuccess.value = updateValue(envelope, "success");
       validationError.value = updateValue(envelope, "error");
       validateButtonStatus.value = updateValue(envelope, "loading");
-      console.debug(
-        "-------------------------Validation result------------------------",
-        validationSuccess.value
-      );
       validateButtonStatus.value = determineValidationStatus(
         validationSuccess.value,
         validationError.value,
         validateButtonStatus.value
       );
+      errorPhase.value = validationError.value ? "Validation" : "Unknown";
       break;
 
     case "render-message":
@@ -399,6 +400,7 @@ function receiveMessage(event: { data: any }) {
       renderAssetAlert.value = updateValue(envelope, "non-asset-alert");
       code.value = renderSQLAssetSuccess.value || renderPythonAsset.value;
       language.value = renderSQLAssetSuccess.value ? "sql" : "python";
+      errorPhase.value = renderSQLAssetError.value ? "Rendering" : "Unknown";
 
       resetStates([validationError, validationSuccess, validateButtonStatus]);
       break;

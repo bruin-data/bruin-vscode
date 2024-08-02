@@ -26,6 +26,7 @@ export interface FormattedIssue {
 export interface FormattedErrorMessage {
   pipeline: string | null;
   issues: FormattedIssue[];
+  expanded?: boolean;
 }
 
 export interface Asset {
@@ -118,3 +119,5 @@ export interface SimpleAsset {
   hasDownstreamForClicking?: boolean;
   isFocusAsset?: boolean;
 }
+
+export type ErrorPhase = "Validating" | "Rednering";
