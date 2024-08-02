@@ -181,7 +181,7 @@
         </div>
              </div>
  
-        <ErrorAlert v-if="isError" :errorMessage="errorMessage!" class="mb-4"/>
+        <ErrorAlert v-if="isError" :errorMessage="errorMessage!" class="mb-4" :errorPhase="errorPhase"  @close="handleClose"/>
         <div v-if="language === 'sql'" class="mt-4">
           <SqlEditor :code="code" :copied="false" :language="language" />
         </div>
@@ -209,7 +209,11 @@ import { updateValue, resetStates, determineValidationStatus } from "@/utilities
 const errorState = computed(() => handleError(validationError.value, renderSQLAssetError.value));
 const isError = computed(() => errorState.value?.errorCaptured);
 const errorMessage = computed(() => errorState.value?.errorMessage);
+const handleClose = () => {
+  resetStates([validationError, renderSQLAssetError]);
+};
 const isNotAsset = computed(() => (renderAssetAlert.value ? true : false));
+const errorPhase = ref<"Validation" | "Rendering" | "Unknown">("Unknown");
 
 const props = defineProps<{
   schedule: string;
@@ -386,6 +390,7 @@ function receiveMessage(event: { data: any }) {
         validationError.value,
         validateButtonStatus.value
       );
+      errorPhase.value = validationError.value ? "Validation" : "Unknown";
       break;
 
     case "render-message":
@@ -395,6 +400,7 @@ function receiveMessage(event: { data: any }) {
       renderAssetAlert.value = updateValue(envelope, "non-asset-alert");
       code.value = renderSQLAssetSuccess.value || renderPythonAsset.value;
       language.value = renderSQLAssetSuccess.value ? "sql" : "python";
+      errorPhase.value = renderSQLAssetError.value ? "Rendering" : "Unknown";
 
       resetStates([validationError, validationSuccess, validateButtonStatus]);
       break;
