@@ -73,9 +73,14 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ### Latest Release: 0.14.1
 ### Enhanced
-- Removed extra fields from the snippets that generate a full Python asset. The removed fields are: `Materialization`, `connections`, and `parameters`
+- **Detailed Error Phases**: Distinguishes between render and validate errors for clearer feedback.
+- **Editor Visibility**: Keeps the SQL Editor accessible even when errors occur.
+
+
 
 ### Previous Highlights
+### Version 0.14.1
+- Removed extra fields from the snippets that generate a full Python asset. The removed fields are: `Materialization`, `connections`, and `parameters`
 
 ### Version 0.14.0
 - **Lineage View Expansion**: Users can now expand properties in the lineage view to see further upstream and downstream elements.

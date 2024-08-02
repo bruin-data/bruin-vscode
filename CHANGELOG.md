@@ -2,16 +2,18 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+
+## [0.14.2] - [2024-08-02]
+- Clarified error messages by distinguishing between render and validate phases.
+- Ensured the SQL Editor remains visible during validation errors.
+
 ## [0.14.1] - [2024-07-31]
 - Removed `materialization`, `connections`, and `parameters` fields from Python asset snippets.
 
 ## [0.14.0] - [2024-07-31]
-### Added
-- **Lineage View Expansion**: Users can now expand properties in the lineage view to see further upstream and downstream elements.
-
-### Fixed
-- **Infinite Loop**: Resolved an infinite loop issue, improving performance.
-- **CLI Warning**: Added a VSCode error window for outdated CLI.
+-  Users can now expand properties in the lineage view to see further upstream and downstream elements.
+-  Resolved an infinite loop issue, improving performance.
+-  Added a VSCode error window for outdated CLI.
 
 - ## [0.13.6] - [2024-07-29]
 - Nodes in the lineage graph can now be dragged freely. Clicking the refresh button will restore them to their initial positions.
