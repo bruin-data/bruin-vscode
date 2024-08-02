@@ -247,6 +247,7 @@ function handleBruinValidateCurrentAsset() {
 const checkboxItems = ref([
   { name: "Full-Refresh", checked: false },
   { name: "Exclusive-End-Date", checked: true },
+  { name: "Push-Metadata", checked: false}
 ]);
 
 
