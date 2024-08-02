@@ -110,7 +110,8 @@ export const runInIntegratedTerminal = async (
   assetPath?: string,
   flags?: string
 ) => {
-  const command = `bruin ${BRUIN_RUN_SQL_COMMAND} ${flags} ${assetPath?.replace(/ /g, "\\ ")}`;
+  const assetPathEscaped = assetPath?.replace(/ /g, "\\ ");
+  const command = `bruin ${BRUIN_RUN_SQL_COMMAND} ${flags} ${assetPathEscaped}`;
 
   const terminalName = "Bruin Terminal";
   let terminal = vscode.window.terminals.find((t) => t.name === terminalName);
