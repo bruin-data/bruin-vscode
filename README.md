@@ -71,14 +71,16 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: 0.14.1
-### Enhanced
+### Latest Release: 0.14.3
+### Fixed 
+- Added quoting around file paths to handle spaces and special characters.
+
+### Previous Highlights
+
+### Version 0.14.2
 - **Detailed Error Phases**: Distinguishes between render and validate errors for clearer feedback.
 - **Editor Visibility**: Keeps the SQL Editor accessible even when errors occur.
 
-
-
-### Previous Highlights
 ### Version 0.14.1
 - Removed extra fields from the snippets that generate a full Python asset. The removed fields are: `Materialization`, `connections`, and `parameters`
 

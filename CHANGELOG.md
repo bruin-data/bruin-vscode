@@ -2,6 +2,8 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.14.3] - [2024-08-02]
+- Added quoting around file paths to handle spaces and special characters.
 
 ## [0.14.2] - [2024-08-02]
 - Clarified error messages by distinguishing between render and validate phases.
