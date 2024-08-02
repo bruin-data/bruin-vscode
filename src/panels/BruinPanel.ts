@@ -246,7 +246,14 @@ export class BruinPanel {
               bruinWorkspaceDirectory(currAssetPath || "")!!
             );
 
-            await pipelineValidator.validate(currentPipelinePath);
+            try {
+            // if the promess is rejected, the error will be catched and logged
+              await pipelineValidator.validate(currentPipelinePath);
+            }
+            catch (error) {
+              console.error("Error validating pipeline:", currentPipelinePath, error);
+            }
+
             break;
 
           case "bruin.validate":

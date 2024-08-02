@@ -83,7 +83,7 @@ export const bruinWorkspaceDirectory = (
       const bruinWorkspace = path.join(dirname, fileName);
       try {
         fs.accessSync(bruinWorkspace, fs.constants.F_OK);
-        return dirname;
+        return dirname.replace(/\\/g, "/");
       } catch (err) {
         // do nothing
       }
@@ -110,7 +110,7 @@ export const runInIntegratedTerminal = async (
   assetPath?: string,
   flags?: string
 ) => {
-  const command = `bruin ${BRUIN_RUN_SQL_COMMAND} ${flags} ${assetPath}`;
+  const command = `bruin ${BRUIN_RUN_SQL_COMMAND} ${flags} ${assetPath?.replace(/ /g, "\\ ")}`;
 
   const terminalName = "Bruin Terminal";
   let terminal = vscode.window.terminals.find((t) => t.name === terminalName);
