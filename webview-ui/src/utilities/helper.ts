@@ -39,12 +39,11 @@ export const concatCommandFlags = (
   if (isExclusiveChecked(checkboxItems)) {
     endDateFlag = " --end-date " + endDateExclusive;
   }
-
   const checkboxesFlags = checkboxItems
     .filter((item) => item.checked && item.name !== "Exclusive-End-Date")
     .map((item) => ` --${item.name.toLowerCase()}`);
 
-  const flags = [startDateFlag, endDateFlag, ...checkboxesFlags].join(" ");
+  const flags = [startDateFlag, endDateFlag, ...checkboxesFlags].join("");
   return flags;
 };
 
