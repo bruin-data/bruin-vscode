@@ -33,38 +33,46 @@ export class BruinValidate extends BruinCommand {
       status: "loading",
       message: "Validating asset...",
     });
-    await this.run([...flags, filePath], { ignoresErrors })
-      .then((result) => {
-        const validationResults = JSON.parse(result);
-
-        let hasErrors = false;
-        const pipelinesWithIssues = [];
-
-        for (const validationData of validationResults) {
-          if (
-            validationData.issues &&
-            Object.keys(validationData.issues).length !== 0 &&
-            validationData.issues.constructor === Object
-          ) {
-            hasErrors = true;
-            pipelinesWithIssues.push(validationData);
-          }
+  
+    try {
+      const result = await this.run([...flags, filePath], { ignoresErrors });
+      const validationResults = JSON.parse(result);
+  
+      let hasErrors = false;
+      const pipelinesWithIssues = [];
+  
+      for (const validationData of validationResults) {
+        if (
+          validationData.issues &&
+          Object.keys(validationData.issues).length !== 0 &&
+          validationData.issues.constructor === Object
+        ) {
+          hasErrors = true;
+          pipelinesWithIssues.push(validationData);
         }
-
-        if (hasErrors) {
-          BruinPanel.postMessage("validation-message", {
-            status: "error",
-            message: JSON.stringify(pipelinesWithIssues),
-          });
-        } else {
-          BruinPanel.postMessage("validation-message", {
-            status: "success",
-            message: validationResults,
-          });
-        }
-      })
-      .finally(() => {
-        this.isLoading = false; // Reset loading state when validation completes or fails
+      }
+  
+      if (hasErrors) {
+        BruinPanel.postMessage("validation-message", {
+          status: "error",
+          message: JSON.stringify(pipelinesWithIssues),
+        });
+      } else {
+        BruinPanel.postMessage("validation-message", {
+          status: "success",
+          message: validationResults,
+        });
+      }
+    } catch (error) {
+      // Handle the error and notify the user
+      BruinPanel.postMessage("validation-message", {
+        status: "error",
+        message: `Validation failed: 'Unknown error'`,
       });
+      console.error("Validation error:", error);
+    } finally {
+      this.isLoading = false; // Reset loading state when validation completes or fails
+    }
   }
+  
 }
