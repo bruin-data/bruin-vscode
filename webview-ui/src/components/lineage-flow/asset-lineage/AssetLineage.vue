@@ -2,7 +2,7 @@
   <div class="flow">
     <VueFlow
       v-model:elements="elements"
-      :default-viewport="{x:50, zoom: 0.8 }"
+      :default-viewport="{ x: 50, zoom: 0.8 }"
       :min-zoom="0.2"
       :max-zoom="4"
       class="basic-flow"
@@ -18,8 +18,8 @@
           :data="nodeProps.data"
           :node-props="nodeProps"
           :label="nodeProps.data.label"
-          @add-upstream="onAddUpstream"
-          @add-downstream="onAddDownstream"
+          @addUpstream="onAddUpstream"
+          @addDownstream="onAddDownstream"
         />
       </template>
 
@@ -114,7 +114,7 @@ const processProperties = () => {
   if (!props) return;
   // on node click update the props and re-render the graph
   const { nodes: generatedNodes, edges: generatedEdges } = generateGraphFromJSON(
-    props.assetDataset,
+    props.assetDataset
   );
   addNodes(generatedNodes);
   addEdges(generatedEdges);
@@ -134,21 +134,21 @@ watch(
 );
 
 // Event handlers for adding upstream and downstream nodes
-const onAddUpstream = (nodeId: string) => {
-  const { nodes: newNodes, edges: newEdges } = generateGraphForUpstream(nodeId, props.pipelineData);
+const onAddUpstream = async (nodeId: string) => {
+  const { nodes: newNodes, edges: newEdges } = generateGraphForUpstream(nodeId, props.pipelineData, props.assetDataset?.id ?? "");
   addNodes(newNodes);
   addEdges(newEdges);
-  updateLayout();
+  await updateLayout();
 };
 
-const onAddDownstream = (nodeId: string) => {
+const onAddDownstream = async (nodeId: string) => {
   const { nodes: newNodes, edges: newEdges } = generateGraphForDownstream(
     nodeId,
     props.pipelineData
   );
   addNodes(newNodes);
   addEdges(newEdges);
-  updateLayout();
+  await updateLayout();  
 };
 
 // Handle node dragging
