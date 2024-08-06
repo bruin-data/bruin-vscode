@@ -45,7 +45,7 @@ import AssetDetails from "@/components/asset/AssetDetails.vue";
 import AssetLineageText from "@/components/lineage-text/AssetLineageText.vue";
 import AssetLineageFlow from "@/components/lineage-flow/asset-lineage/AssetLineage.vue";
 import { vscode } from "@/utilities/vscode";
-import { ref, onMounted, computed, nextTick } from "vue";
+import { ref, onMounted, computed, nextTick, watch } from "vue";
 import { parseAssetDetails, parseEnvironmentList } from "./utilities/helper";
 import { updateValue } from "./utilities/helper";
 import MessageAlert from "@/components/ui/alerts/AlertMessage.vue";
@@ -137,6 +137,9 @@ const assetName = computed(() => {
 const assetId = computed(() => {
   return lineageData.value?.id ?? null;
 });
+const assetDataset = computed(() => {
+  return getAssetDataset(pipeline.value, assetId.value);
+});
 
 const tabs = ref([
   /* { label: "General", component: AssetGeneral, props: { name: assetName }, includeIn: ["bruin"] }, */
@@ -174,6 +177,25 @@ onMounted(() => {
   loadEnvironmentsList();
 });
 
+const debounce = (func, wait) => {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+};
+watch(() => [assetDataset, pipeline], ([newAssetDataset, newPipeline]) => {
+  console.log('Asset dataset or pipeline changed:', { assetDataset: newAssetDataset, pipeline: newPipeline });
+}, { deep: true });
+// Updated refreshGraphLineage function
+const refreshGraphLineage = debounce((event: Event) => {
+  event.stopPropagation(); // Prevent event bubbling
+  vscode.postMessage({ command: "bruin.assetGraphLineage" });
+}, 300); // 300ms debounce time
 
 function loadLineageData() {
   vscode.postMessage({ command: "bruin.getAssetLineage" });
@@ -187,10 +209,6 @@ function loadEnvironmentsList() {
   vscode.postMessage({ command: "bruin.getEnvironmentsList" });
 }
 
-function refreshGraphLineage(event) {
-  event.stopPropagation(); // Prevent event bubbling
-  vscode.postMessage({ command: "bruin.refreshGraphLineage" });
-}
 function updateAssetName(newName) {
   tabs.value.map((tab) => {
     if (!tab) return;
