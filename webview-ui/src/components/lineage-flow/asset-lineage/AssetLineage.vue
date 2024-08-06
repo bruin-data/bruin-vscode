@@ -1,5 +1,13 @@
 <template>
   <div class="flow">
+    <div v-if="isLoading" class="loading-overlay">
+      <vscode-progress-ring></vscode-progress-ring>
+      <span class="ml-2">Loading lineage data...</span>
+    </div>
+    <div v-else-if="error" class="error-message">
+      <vscode-badge variant="error">Error</vscode-badge>
+      <span class="ml-2">{{ error }}</span>
+    </div>
     <VueFlow
       v-model:elements="elements"
       :default-viewport="{ x: 50, zoom: 0.8 }"
@@ -46,7 +54,11 @@ import type { AssetDataset } from "@/types";
 const props = defineProps<{
   assetDataset?: AssetDataset;
   pipelineData: any;
+  isLoading: boolean,  // Pass loading state
+
 }>();
+
+
 const nodeTypes: NodeTypesObject = {
   custom: CustomNode as any,
 };
@@ -57,6 +69,13 @@ const onPaneReady = () => {
   updateLayout();
 };
 const elk = new ELK();
+
+const isLoading = ref(true);
+const error = ref<string | null>(null);
+
+error.value = !props.assetDataset ? "No asset dataset provided" : "";
+
+
 
 // Function to update node positions based on ELK layout
 const updateNodePositions = (layout: any) => {
@@ -117,22 +136,35 @@ const updateLayout = async () => {
 
 // Function to process the asset properties and update nodes and edges
 const processProperties = () => {
-  if (!props) return;
-  // on node click update the props and re-render the graph
-  const { nodes: generatedNodes, edges: generatedEdges } = generateGraphFromJSON(
-    props.assetDataset
-  );
-  addNodes(generatedNodes);
-  addEdges(generatedEdges);
+  if (!props.assetDataset || !props.pipelineData) {
+    isLoading.value = true;
+    return;
+  }
 
-  updateLayout();
+  isLoading.value = true;
+  error.value = null;
+
+ try {
+    const { nodes: generatedNodes, edges: generatedEdges } = generateGraphFromJSON(
+      props.assetDataset
+    );
+    addNodes(generatedNodes);
+    addEdges(generatedEdges);
+
+    updateLayout();
+  } catch (err) {
+    console.error("Error processing properties:", err);
+    error.value = "Failed to generate lineage graph. Please try again.";
+  } finally {
+    isLoading.value = false;
+  }
 };
 
 // Watch for changes in props and update nodes and edges
 watch(
-  () => props,
-  (newValue) => {
-    if (newValue) {
+  () => [props.assetDataset, props.pipelineData],
+  ([newAssetDataset, newPipelineData]) => {
+    if (newAssetDataset && newPipelineData) {
       processProperties();
     }
   },
@@ -185,4 +217,22 @@ onMounted(() => {
   height: 100vh;
   width: 100%;
 }
+.loading-overlay,
+.error-message {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+
+.error-message {
+  flex-direction: column;
+}
+
 </style>
