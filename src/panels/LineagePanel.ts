@@ -13,10 +13,19 @@ export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposab
   private disposables: vscode.Disposable[] = [];
   private isRefreshing = false;
 
+  private async loadAndSendLineageData() {
+    if (this._lastRenderedDocumentUri) {
+      try {
+       await flowLineageCommand(this._lastRenderedDocumentUri);
+      } catch (error) {
+        console.error("Error loading lineage data:", error);
+      }
+    }
+  }
+
   private refresh = ((event: vscode.TextEditor) => {
     if (event.document.uri === this._lastRenderedDocumentUri && !this.isRefreshing) {
       this.isRefreshing = true;
-      flowLineageCommand(this._lastRenderedDocumentUri);
       this.initPanel(event)
         .then(() => {
           this.isRefreshing = false;
@@ -64,7 +73,7 @@ export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposab
     };
 
     this._setWebviewMessageListener(LineagePanel._view!.webview);
-
+    this.loadAndSendLineageData();
     setTimeout(() => {
       if(LineagePanel._view && LineagePanel._view.visible){
       LineagePanel._view?.webview.postMessage({ command: "init", panelType: "Lineage" });
