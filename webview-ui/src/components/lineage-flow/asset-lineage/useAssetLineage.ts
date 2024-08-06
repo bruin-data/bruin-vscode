@@ -1,113 +1,91 @@
-import type { AssetDataset, Upstream } from "@/types";
-
+import type { AssetDataset } from "@/types";
+ 
 export const getAssetDataset = (
-  jsonData,
-  assetId
+  pipelineData,
+  assetId,
 ): AssetDataset  | null => {
-  if (!jsonData) {
+  if (!pipelineData) {
     return null;
-  }
+  } 
+  console.log("pipelineData", pipelineData);
 
-  const asset_ = jsonData.assets.find((asset) => asset.id === assetId);
-  if (!asset_) {
-    return null;
-  }
 
-  // Step 2: Deduce downstreams
-  const downstreamMap: Record<string, Set<string>> = {};
+  const findAssetById = (id) => {
+    return pipelineData.assets.find(asset => asset.id === id);
+  };
 
-  // Initialize the map with empty sets for each asset
-  jsonData.assets.forEach((a) => {
-    downstreamMap[a.name] = new Set<string>();
-  });
-
-  // Populate the map with upstream relationships
-  jsonData.assets.forEach((a) => {
-    if (a.upstreams) {
-      a.upstreams.forEach((upstream) => {
-        if (downstreamMap[upstream.value]) {
-          downstreamMap[upstream.value].add(a.name);
-        }
-      });
+  const getUpstreamAsset = (upstream) => {
+    if (upstream.type === "uri") {
+      return { name: upstream.value, external: true };
     }
-  });
+    const asset = pipelineData.assets.find(asset => asset.name === upstream.value);
+    if (asset) {
+      return {
+        name: asset.name,
+        type: asset.type,
+        isFocusAsset: false,
+        hasUpstreamForClicking: asset.upstreams && asset.upstreams.length > 0,
+        hasDownstreamForClicking: false,
+      };
+    }
+    return null;
+  };
 
-  // Deduce downstreams for the specific asset
-  const assetDownstreams = downstreamMap[asset_.name] || [];
-  const populatedDownstream = Array.from(assetDownstreams).map((name) => ({
-    type: 'asset',  
-    value: name,
-  }));
+  const deduceDownstream = (asset) => {
+    const downstreamMap = pipelineData.assets.reduce((map, a) => {
+      map[a.name] = new Set();
+      return map;
+    }, {});
+
+    pipelineData.assets.forEach(a => {
+      if (a.upstreams) {
+        a.upstreams.forEach(upstream => {
+          if (downstreamMap[upstream.value]) {
+            downstreamMap[upstream.value].add(a.name);
+          }
+        });
+      }
+    });
+
+    const assetDownstreams = downstreamMap[asset.name] || [];
+    const populatedDownstream = Array.from(assetDownstreams).map(name => ({
+      type: "asset",
+      value: name
+    }));
+
+     return populatedDownstream
+  }
+
+  const getDownstreamAssets = (asset) => {
+    return pipelineData.assets.filter(a => a.upstreams.some(up => up.value === asset.name))
+      .map(a => ({
+        name: a.name,
+        type: a.type,
+        isFocusAsset: false,
+        hasUpstreamForClicking: false,
+        hasDownstreamForClicking: deduceDownstream(a) && deduceDownstream(a).length > 0,
+      }));
+  };
+
+  const asset = findAssetById(assetId);
+
+  if (!asset) {
+    throw new Error(`Asset with ID ${assetId} not found.`);
+  }
+
+  const upstreams = asset.upstreams.map(getUpstreamAsset).filter(Boolean);
+  const downstreams = getDownstreamAssets(asset);
   
-  const asset = {...asset_, downstream: populatedDownstream};
-  
-  console.log("asset .....", asset.downstream);
-  const assetDataset: AssetDataset = {
+  const result = {
     id: asset.id,
+    isFocusAsset: asset.isFocusAsset || true,
     name: asset.name,
     type: asset.type,
-    isFocusAsset: true,
+    upstreams: upstreams,
+    downstream: downstreams,
   };
 
-  console.log("================\n");
-
-  const parseUpstream = (upstream) => {
-    if (upstream.type === "uri") {
-      return {
-        name: upstream.value,
-        type: "external",
-      };
-    }
-    const upstreamAsAsset = jsonData.assets.filter((asset) => asset.name === upstream.value)[0];
-    console.log("upstreamAsAsset", upstreamAsAsset);
-    return {
-      name: upstreamAsAsset.name,
-      type: upstreamAsAsset.type,
-      hasUpstreamForClicking: upstreamAsAsset.upstreams && upstreamAsAsset.upstreams.length > 0,
-      isFocusAsset: false,
-      executable_file: {
-        name: upstreamAsAsset.executable_file?.name,
-        path: upstreamAsAsset.executable_file?.path,
-        content: upstreamAsAsset.executable_file?.content,
-      },
-      definition_file: {
-        name: upstreamAsAsset.definition_file?.name,
-        path: upstreamAsAsset.definition_file?.path,
-        type: upstreamAsAsset.definition_file?.type,
-      },
-    };
-  };
-
-  const upstreams: Upstream[] = [];
-
-  if (asset.upstreams) {
-    upstreams.push(...asset.upstreams.map(parseUpstream));
-  }
-
-  if (upstreams.length > 0) {
-    assetDataset.upstreams = upstreams;
-  }
-  if (asset.downstream) {
-    let assetDownstream;
-    assetDataset.downstream = asset.downstream.map((downstream: any) => {
-      assetDownstream = jsonData.assets.find((asset) => asset.name === downstream.value);
-      return {
-        name: assetDownstream.name,
-        type: assetDownstream.type,
-        hasDownstreamForClicking: assetDownstream.downstream && assetDownstream.downstream.length > 0,
-        executable_file: {
-          name: assetDownstream.executable_file?.name,
-          path: assetDownstream.executable_file?.path,
-          content: assetDownstream.executable_file?.content,
-        },
-        definition_file: {
-          name: assetDownstream.definition_file?.name,
-          path: assetDownstream.definition_file?.path,
-          type: assetDownstream.definition_file?.type,
-        },
-      };
-    });
-  }
-  console.log("assetDataset ....", assetDataset);
-  return assetDataset ;
-};
+  console.log("Result", JSON.stringify(result, null, 2));
+  return result;
+}
+ 

@@ -60,8 +60,8 @@
       <PlusIcon class="h-4 w-4 fill-gray-300 text-gray-700/50 hover:text-gray-700" />
     </div>
   </div>
-  <Handle v-if="assetHasDownstreams" type="source" class="opacity-0" :position="Position.Right" />
-  <Handle v-if="assetHasUpstreams" type="target" class="opacity-0" :position="Position.Left" />
+  <Handle v-if="assetHasDownstreams || assetHasUpstreams" type="source" class="opacity-0" :position="Position.Right" />
+  <Handle v-if="assetHasUpstreams || assetHasDownstreams" type="target" class="opacity-0" :position="Position.Left" />
 
   
 

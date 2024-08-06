@@ -5,7 +5,9 @@ import { getAssetDataset } from "@/components/lineage-flow/asset-lineage/useAsse
 export function generateGraphFromJSON(asset) {
   const localNodes = new Map();
   const localEdges: any[] = [];
-
+  
+  const currentAssetId = asset.id;
+  console.log("currentAssetId", currentAssetId);
   function getNode(assetData) {
     if (!localNodes.has(assetData.name)) {
       const newNode = {
@@ -18,7 +20,6 @@ export function generateGraphFromJSON(asset) {
             type: assetData.type || "unknown",
             hasDownstreams: (assetData.downstream && assetData.downstream.length > 0) || false,
             hasUpstreams: (assetData.upstreams && assetData.upstreams.length > 0) || false,
-            isFocusAsset: assetData.isFocusAsset || false,
           },
           hasUpstreamForClicking: assetData.hasUpstreamForClicking,
           hasDownstreamForClicking: assetData.hasDownstreamForClicking,
@@ -66,17 +67,24 @@ export function generateGraphFromJSON(asset) {
   return { nodes: Array.from(localNodes.values()), edges: localEdges };
 }
 
-export function generateGraphForUpstream(nodeName: string, pipelineData: any) {
+ export function generateGraphForUpstream(nodeName: string, pipelineData: any, focusAssetId: string) {
   const upstreamAsset = pipelineData.assets.filter((asset: any) => asset.name === nodeName)[0];
   if (!upstreamAsset) return { nodes: [], edges: [] };
 
   const upstream = getAssetDataset(pipelineData, upstreamAsset.id);
+  
+  const focusAssetUpstreams = pipelineData.assets.filter((asset: any) => asset.id === focusAssetId)[0].upstreams.map((upstream: any) => upstream.value);
+  console.log("focusAssetUpstreams", focusAssetUpstreams);
+  // Filter downstream assets to include only those from the focus asset's upstream
+  const filteredDownstreams = upstream?.downstream?.filter((downstream: any) =>
+    focusAssetUpstreams?.includes(downstream.name)
+  );
+  console.log("filteredDownstreams", filteredDownstreams);
 
   return generateGraphFromJSON({
     ...upstream,
+    downstream: [],
     isFocusAsset: false,
-    hasUpstreamForClicking: upstreamAsset.upstreams && upstreamAsset.upstreams.length > 0,
-    hasDownstreamForClicking: false,
   });
 }
 
@@ -88,8 +96,8 @@ export function generateGraphForDownstream(nodeName: string, pipelineData: any) 
 
   return generateGraphFromJSON({
     ...downstream,
+    upstreams: [],
     isFocusAsset: false,
-    hasUpstreamForClicking: false,
-    hasDownstreamForClicking: downstreamAsset.downstream && downstreamAsset.downstream.length > 0,
   });
 }
+ 

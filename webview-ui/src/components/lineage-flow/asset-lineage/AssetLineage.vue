@@ -1,8 +1,16 @@
 <template>
   <div class="flow">
+    <div v-if="isLoading" class="loading-overlay">
+      <vscode-progress-ring></vscode-progress-ring>
+      <span class="ml-2">Loading lineage data...</span>
+    </div>
+    <div v-else-if="error" class="error-message">
+      <vscode-badge variant="error">Error</vscode-badge>
+      <span class="ml-2">{{ error }}</span>
+    </div>
     <VueFlow
       v-model:elements="elements"
-      :default-viewport="{x:50, zoom: 0.8 }"
+      :default-viewport="{ x: 50, zoom: 0.8 }"
       :min-zoom="0.2"
       :max-zoom="4"
       class="basic-flow"
@@ -18,8 +26,8 @@
           :data="nodeProps.data"
           :node-props="nodeProps"
           :label="nodeProps.data.label"
-          @add-upstream="onAddUpstream"
-          @add-downstream="onAddDownstream"
+          @addUpstream="onAddUpstream"
+          @addDownstream="onAddDownstream"
         />
       </template>
 
@@ -33,7 +41,7 @@ import { VueFlow, useVueFlow } from "@vue-flow/core";
 import { Background } from "@vue-flow/background";
 import { Controls } from "@vue-flow/controls";
 import type { NodeTypesObject, Node, Edge, NodeDragEvent, XYPosition } from "@vue-flow/core";
-import { computed, onMounted, defineProps, watch } from "vue";
+import { computed, onMounted, defineProps, watch, ref } from "vue";
 import ELK from "elkjs/lib/elk.bundled.js";
 import CustomNode from "@/components/lineage-flow/custom-nodes/CustomNodes.vue";
 import {
@@ -46,7 +54,11 @@ import type { AssetDataset } from "@/types";
 const props = defineProps<{
   assetDataset?: AssetDataset;
   pipelineData: any;
+  isLoading: boolean,  // Pass loading state
+
 }>();
+
+
 const nodeTypes: NodeTypesObject = {
   custom: CustomNode as any,
 };
@@ -57,6 +69,13 @@ const onPaneReady = () => {
   updateLayout();
 };
 const elk = new ELK();
+
+const isLoading = ref(true);
+const error = ref<string | null>(null);
+
+error.value = !props.assetDataset ? "No asset dataset provided" : "";
+
+
 
 // Function to update node positions based on ELK layout
 const updateNodePositions = (layout: any) => {
@@ -79,11 +98,16 @@ const updateLayout = async () => {
     id: "root",
     layoutOptions: {
       "elk.algorithm": "layered",
-      "elk.layered.layering.strategy": "NETWORK_SIMPLEX",
-      "elk.layered.spacing.nodeNodeBetweenLayers": "150",
-      "elk.layered.nodePlacement.bk.fixedAlignment": "BALANCED",
       "elk.direction": "RIGHT",
+      "elk.layered.spacing.nodeNodeBetweenLayers": "150",
       "elk.spacing.nodeNode": "0.0",
+      "elk.layered.nodePlacement.strategy": "NETWORK_SIMPLEX",
+      "elk.layered.nodePlacement.bk.fixedAlignment": "BALANCED",
+      "elk.layered.crossingMinimization.strategy": "LAYER_SWEEP",
+      "elk.layered.cycleBreaking.strategy": "DEPTH_FIRST",
+      "elk.layered.layering.strategy": "NETWORK_SIMPLEX",
+      "elk.layered.considerModelOrder.strategy": "PREFER_NODES",
+      "elk.layered.crossingMinimization.semiInteractive": "true",
       "elk.layered.unnecessaryBendpoints": "true",
     },
     children: nodes.value.map((node) => ({
@@ -91,6 +115,7 @@ const updateLayout = async () => {
       width: 150,
       height: 70,
       labels: [{ text: node.data.label }],
+      position: { x: node.position.x, y: node.position.y },
     })),
     edges: edges.value.map((edge) => ({
       id: edge.id,
@@ -111,22 +136,35 @@ const updateLayout = async () => {
 
 // Function to process the asset properties and update nodes and edges
 const processProperties = () => {
-  if (!props) return;
-  // on node click update the props and re-render the graph
-  const { nodes: generatedNodes, edges: generatedEdges } = generateGraphFromJSON(
-    props.assetDataset,
-  );
-  addNodes(generatedNodes);
-  addEdges(generatedEdges);
+  if (!props.assetDataset || !props.pipelineData) {
+    isLoading.value = true;
+    return;
+  }
 
-  updateLayout();
+  isLoading.value = true;
+  error.value = null;
+
+ try {
+    const { nodes: generatedNodes, edges: generatedEdges } = generateGraphFromJSON(
+      props.assetDataset
+    );
+    addNodes(generatedNodes);
+    addEdges(generatedEdges);
+
+    updateLayout();
+  } catch (err) {
+    console.error("Error processing properties:", err);
+    error.value = "Failed to generate lineage graph. Please try again.";
+  } finally {
+    isLoading.value = false;
+  }
 };
 
 // Watch for changes in props and update nodes and edges
 watch(
-  () => props,
-  (newValue) => {
-    if (newValue) {
+  () => [props.assetDataset, props.pipelineData],
+  ([newAssetDataset, newPipelineData]) => {
+    if (newAssetDataset && newPipelineData) {
       processProperties();
     }
   },
@@ -134,21 +172,21 @@ watch(
 );
 
 // Event handlers for adding upstream and downstream nodes
-const onAddUpstream = (nodeId: string) => {
-  const { nodes: newNodes, edges: newEdges } = generateGraphForUpstream(nodeId, props.pipelineData);
+const onAddUpstream = async (nodeId: string) => {
+  const { nodes: newNodes, edges: newEdges } = generateGraphForUpstream(nodeId, props.pipelineData, props.assetDataset?.id ?? "");
   addNodes(newNodes);
   addEdges(newEdges);
-  updateLayout();
+  await updateLayout();
 };
 
-const onAddDownstream = (nodeId: string) => {
+const onAddDownstream = async (nodeId: string) => {
   const { nodes: newNodes, edges: newEdges } = generateGraphForDownstream(
     nodeId,
     props.pipelineData
   );
   addNodes(newNodes);
   addEdges(newEdges);
-  updateLayout();
+  await updateLayout();  
 };
 
 // Handle node dragging
@@ -162,6 +200,7 @@ const onNodesDragged = (draggedNodes: NodeDragEvent[]) => {
   });
   setNodes(updatedNodes);
 };
+
 
 onMounted(() => {
   processProperties();
@@ -178,4 +217,22 @@ onMounted(() => {
   height: 100vh;
   width: 100%;
 }
+.loading-overlay,
+.error-message {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+
+.error-message {
+  flex-direction: column;
+}
+
 </style>
