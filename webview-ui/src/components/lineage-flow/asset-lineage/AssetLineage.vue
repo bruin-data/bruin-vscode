@@ -33,7 +33,7 @@ import { VueFlow, useVueFlow } from "@vue-flow/core";
 import { Background } from "@vue-flow/background";
 import { Controls } from "@vue-flow/controls";
 import type { NodeTypesObject, Node, Edge, NodeDragEvent, XYPosition } from "@vue-flow/core";
-import { computed, onMounted, defineProps, watch } from "vue";
+import { computed, onMounted, defineProps, watch, ref } from "vue";
 import ELK from "elkjs/lib/elk.bundled.js";
 import CustomNode from "@/components/lineage-flow/custom-nodes/CustomNodes.vue";
 import {
@@ -79,11 +79,16 @@ const updateLayout = async () => {
     id: "root",
     layoutOptions: {
       "elk.algorithm": "layered",
-      "elk.layered.layering.strategy": "NETWORK_SIMPLEX",
-      "elk.layered.spacing.nodeNodeBetweenLayers": "150",
-      "elk.layered.nodePlacement.bk.fixedAlignment": "BALANCED",
       "elk.direction": "RIGHT",
+      "elk.layered.spacing.nodeNodeBetweenLayers": "150",
       "elk.spacing.nodeNode": "0.0",
+      "elk.layered.nodePlacement.strategy": "NETWORK_SIMPLEX",
+      "elk.layered.nodePlacement.bk.fixedAlignment": "BALANCED",
+      "elk.layered.crossingMinimization.strategy": "LAYER_SWEEP",
+      "elk.layered.cycleBreaking.strategy": "DEPTH_FIRST",
+      "elk.layered.layering.strategy": "NETWORK_SIMPLEX",
+      "elk.layered.considerModelOrder.strategy": "PREFER_NODES",
+      "elk.layered.crossingMinimization.semiInteractive": "true",
       "elk.layered.unnecessaryBendpoints": "true",
     },
     children: nodes.value.map((node) => ({
@@ -91,6 +96,7 @@ const updateLayout = async () => {
       width: 150,
       height: 70,
       labels: [{ text: node.data.label }],
+      position: { x: node.position.x, y: node.position.y },
     })),
     edges: edges.value.map((edge) => ({
       id: edge.id,
@@ -162,6 +168,7 @@ const onNodesDragged = (draggedNodes: NodeDragEvent[]) => {
   });
   setNodes(updatedNodes);
 };
+
 
 onMounted(() => {
   processProperties();
