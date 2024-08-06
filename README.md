@@ -70,13 +70,17 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 
 ## Release Notes
+### Latest Release: 0.15.1
+### Fixed 
+- Fixed an issue where the "Show More" functionality in the lineage panel was not working as expected.
 
-
-### Latest Release: 0.15.0
-### Added 
-- Added a new checkbox to the main panel for enabling the metadata push feature.
+### Improved 
+- Improved the visual layout of nodes within the lineage panel for better readability.
 
 ### Previous Highlights
+### Version 0.15.0
+- Added a new checkbox to the main panel for enabling the metadata push feature.
+
 ### Version 0.14.3
 - Added quoting around file paths to handle spaces and special characters.
 
