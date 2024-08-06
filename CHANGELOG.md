@@ -2,6 +2,10 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.15.1] - [2024-08-06]
+- Fixed an issue where the "Show More" functionality in the lineage panel was not working as expected.
+- Improved the visual layout of nodes within the lineage panel for better readability.
+
 ## [0.15.0] - [2024-08-02]
 - Added a new checkbox to the main panel for enabling the metadata push feature.
 
