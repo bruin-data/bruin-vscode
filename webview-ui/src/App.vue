@@ -91,7 +91,7 @@ window.addEventListener("message", (event) => {
       console.log("Flow Lineage Data Message", message);
       lineageData.value = updateValue(message, "success");
       lineageError.value = updateValue(message, "error");
-      console.log("Lineage Data from webview", lineageData.value);
+      console.log("Lineage Data ERR from webview", lineageError.value);
       // Add this line to ensure the graph updates
       if (activeTab.value === tabs.value.findIndex((tab) => tab.label === "Lineage")) {
         nextTick(() => {
@@ -130,6 +130,10 @@ const pipeline = computed(() => {
   }
 });
 
+const lineageErr = computed(() => {
+  if(!lineageError.value) return null;
+  return lineageError.value;
+});
 const assetName = computed(() => {
   return lineageData.value?.name ?? null;
 });
@@ -162,6 +166,7 @@ const tabs = ref([
       assetDataset: computed(() => getAssetDataset(pipeline.value, assetId.value)),
       pipelineData: computed(() => pipeline.value),
       name: assetName.value,
+      LineageError: lineageErr.value,
     },
   },
   //{ label: "Pipeline Graph Lineage", component: PipelineLineage, includeIn: ["lineage"] },

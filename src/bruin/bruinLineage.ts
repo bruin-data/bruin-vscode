@@ -32,7 +32,7 @@ export class BruinLineage extends BruinCommand {
           status: "success",
           message: lineageDisplayed,
         });
-        console.debug("lineage-success", lineageDisplayed);
+        //console.debug("lineage-success", lineageDisplayed);
       },
       (error) => {
         BruinPanel.postMessage("lineage-message", {
