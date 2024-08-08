@@ -64,9 +64,15 @@ export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposab
     context: vscode.WebviewViewResolveContext,
     _token: vscode.CancellationToken
   ) {
+    try {
     LineagePanel._view = webviewView;
     this.context = context;
     this.token = _token;
+
+    if (!webviewView.webview) {
+      throw new Error("Webview is undefined");
+    }
+
     webviewView.webview.options = {
       enableScripts: true,
       localResourceRoots: [this._extensionUri],
@@ -87,6 +93,10 @@ export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposab
     });
 
     webviewView.webview.html = this._getWebviewContent(webviewView.webview);
+    }
+    catch (error) {
+      console.error("Error loading lineage data:", error);
+    }
   }
 
   private _getWebviewContent(webview: vscode.Webview) {

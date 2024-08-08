@@ -11,7 +11,6 @@ export const flowLineageCommand = async (lastRenderedDocumentUri:  Uri | undefin
     getDefaultBruinExecutablePath(),
     bruinWorkspaceDirectory(lastRenderedDocumentUri.fsPath)!!
   );
-  console.log("flowLineageCommand", lastRenderedDocumentUri.fsPath);
   await flowLineage.parseAssetLineage(lastRenderedDocumentUri.fsPath);
   };
   

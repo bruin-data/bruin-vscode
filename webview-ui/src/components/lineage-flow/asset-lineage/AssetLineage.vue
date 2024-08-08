@@ -5,7 +5,6 @@
       <span class="ml-2">Loading lineage data...</span>
     </div>
     <div v-else-if="error" class="error-message">
-      <vscode-badge variant="error">Error</vscode-badge>
       <span class="ml-2">{{ error }}</span>
     </div>
     <VueFlow
@@ -55,9 +54,12 @@ const props = defineProps<{
   assetDataset?: AssetDataset;
   pipelineData: any;
   isLoading: boolean,  // Pass loading state
-
+  LineageError: string | null,  // Pass error state
 }>();
 
+console.log("=====================================\n");
+
+console.log("Lineage Error from webview ", props.LineageError);
 
 const nodeTypes: NodeTypesObject = {
   custom: CustomNode as any,
@@ -71,9 +73,9 @@ const onPaneReady = () => {
 const elk = new ELK();
 
 const isLoading = ref(true);
-const error = ref<string | null>(null);
+const error = ref<string | null>(props.LineageError);
 
-error.value = !props.assetDataset ? "No asset dataset provided" : "";
+error.value = !props.assetDataset ? "No Lineage Data Available" : null;
 
 
 
@@ -137,11 +139,12 @@ const updateLayout = async () => {
 // Function to process the asset properties and update nodes and edges
 const processProperties = () => {
   if (!props.assetDataset || !props.pipelineData) {
-    isLoading.value = true;
+
+    isLoading.value = error.value === null ? true : false;
     return;
   }
 
-  isLoading.value = true;
+  isLoading.value = error.value === null ? true : false;
   error.value = null;
 
  try {
