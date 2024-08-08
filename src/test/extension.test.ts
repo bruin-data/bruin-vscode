@@ -6,16 +6,16 @@ import * as fs from 'fs';
 suite("Extension Initialization", () => {
   test("should set default path separator based on platform", async () => {
     const config = vscode.workspace.getConfiguration("bruin");
-
+  
     // Determine the expected path separator based on the current platform
-    const expectedPathSeparator = os.platform() === "win32" ? "\\" : "/";
-
+    const expectedPathSeparator = process.platform === "win32" ? "\\" : "/";
+  
     // Update the path separator setting
     await config.update("pathSeparator", expectedPathSeparator, vscode.ConfigurationTarget.Global);
-
+  
     // Retrieve the updated setting
     const pathSeparator = config.get<string>("pathSeparator");
-
+  
     // Assert that the path separator matches the expected value
     assert.strictEqual(pathSeparator, expectedPathSeparator);
   });
