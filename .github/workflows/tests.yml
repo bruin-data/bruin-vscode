@@ -15,10 +15,6 @@ jobs:
 
     - name: Install dependencies
       run: npm run install:all
+    - name: Run webview tests
+      run: npm run test:webview
     
-    - name: Run Playwright tests
-      uses: microsoft/playwright-github-action@v1
-      with:
-        browser: chromium
-    - run: npm run test
-    - run: npm run test:webview
