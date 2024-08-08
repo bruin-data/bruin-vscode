@@ -80,8 +80,7 @@ export const isBruinAsset = async (
   try {
     const assetContent = fs.readFileSync(fileName, "utf8");
     const bruinAsset = bruinPattern.test(assetContent) || fileExtension === "asset.yml" || fileExtension === "asset.yaml";
-    console.log("============================================");
-    console.log("this file" + fileName + "is bruin asset " + bruinAsset);
+
     return bruinAsset;
   } catch (err) {
     return false;
