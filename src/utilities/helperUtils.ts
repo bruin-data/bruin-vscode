@@ -42,7 +42,7 @@ export const isFileExtensionSQL = (fileName: string): boolean => {
   return false;
 };
 
-const getFileExtension = (fileName: string) => {
+export const getFileExtension = (fileName: string) => {
   const match = fileName.match(/\.(.+)/);
   return match ? match[1].toLowerCase() : "";
 };
