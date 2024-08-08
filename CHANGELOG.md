@@ -1,6 +1,8 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
+## [0.15.3] - [2024-08-08]
+- Resolved a problem where file modifications led to date resets. Dates will now stay consistent when switching assets or files, unless manually updated.
 
 ## [0.15.2] - [2024-08-08]
 - Fixed an issue with the loading state in the lineage panel when no lineage data is available.
