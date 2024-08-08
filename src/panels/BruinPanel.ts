@@ -9,7 +9,7 @@ import {
 } from "../bruin";
 import { getDefaultBruinExecutablePath } from "../extension/configuration";
 import * as vscode from "vscode";
-import { renderCommandWithFlags } from "../extension/commands/renderCommand";
+import { renderCommand, renderCommandWithFlags } from "../extension/commands/renderCommand";
 import { lineageCommand } from "../extension/commands/lineageCommand";
 import { parseAssetCommand } from "../extension/commands/parseAssetCommand";
 import { getEnvListCommand } from "../extension/commands/getEnvListCommand";
@@ -50,30 +50,39 @@ export class BruinPanel {
 
     this._disposables.push(
       workspace.onDidChangeTextDocument((editor) => {
-        if(editor && editor.document.uri.fsPath.endsWith(".bruin.yml")) {
+        if (editor && editor.document.uri.fsPath.endsWith(".bruin.yml")) {
           getEnvListCommand(this._lastRenderedDocumentUri);
         }
         if (editor && editor.document.uri) {
           if (editor.document.uri.fsPath === "tasks") {
             return;
           }
-          this._lastRenderedDocumentUri = editor.document.uri;
-          renderCommandWithFlags(this._flags);
+          this._lastRenderedDocumentUri = !this.relevantFileExtensions.some((ext) =>
+            editor.document.uri.fsPath.endsWith(ext)
+          )
+            ? this._lastRenderedDocumentUri
+            : editor.document.uri;
+
+          renderCommand(extensionUri);
           lineageCommand(this._lastRenderedDocumentUri);
           parseAssetCommand(this._lastRenderedDocumentUri);
           console.log("Document URI onDidChangeTextDocument", this._lastRenderedDocumentUri);
         }
       }),
       window.onDidChangeActiveTextEditor((editor) => {
-      
         if (editor && editor.document.uri) {
           if (editor.document.uri.fsPath === "tasks") {
             return;
           }
-          this._lastRenderedDocumentUri = editor.document.uri;
+          this._lastRenderedDocumentUri = !this.relevantFileExtensions.some((ext) =>
+            editor.document.uri.fsPath.endsWith(ext)
+          )
+            ? this._lastRenderedDocumentUri
+            : editor.document.uri;
+
           console.log("Document URI active text editor", this._lastRenderedDocumentUri);
 
-          renderCommandWithFlags(this._flags);
+          renderCommand(extensionUri);
           lineageCommand(this._lastRenderedDocumentUri);
           parseAssetCommand(this._lastRenderedDocumentUri);
         }
@@ -92,9 +101,6 @@ export class BruinPanel {
 
     // Set an event listener to listen for messages passed from the webview context
     this._setWebviewMessageListener(this._panel.webview);
-
-
-  
   }
 
   public static postMessage(
@@ -109,7 +115,6 @@ export class BruinPanel {
       });
     }
   }
-
 
   /**
    * Renders the current webview panel if it exists otherwise a new webview panel
@@ -166,6 +171,15 @@ export class BruinPanel {
    * @returns A template string literal containing the HTML that should be
    * rendered within the webview panel
    */
+  private readonly relevantFileExtensions = [
+    "sql",
+    "py",
+    "asset.yml",
+    "asset.yaml",
+    "pipeline.yml",
+    "pipeline.yaml",
+  ];
+
   private _getWebviewContent(webview: Webview, extensionUri: Uri) {
     const stylesUri = getUri(webview, extensionUri, ["webview-ui", "build", "assets", "index.css"]);
     const scriptUri = getUri(webview, extensionUri, ["webview-ui", "build", "assets", "index.js"]);
@@ -247,10 +261,9 @@ export class BruinPanel {
             );
 
             try {
-            // if the promess is rejected, the error will be catched and logged
+              // if the promess is rejected, the error will be catched and logged
               await pipelineValidator.validate(currentPipelinePath);
-            }
-            catch (error) {
+            } catch (error) {
               console.error("Error validating pipeline:", currentPipelinePath, error);
             }
 
@@ -326,14 +339,13 @@ export class BruinPanel {
             parseAssetCommand(this._lastRenderedDocumentUri);
             break;
 
-            case "bruin.getEnvironmentsList":
-              if (!this._lastRenderedDocumentUri) {
-                console.log("Loading asset data impossible without an active document.");
-                return;
-              }
-             getEnvListCommand(this._lastRenderedDocumentUri);
+          case "bruin.getEnvironmentsList":
+            if (!this._lastRenderedDocumentUri) {
+              console.log("Loading asset data impossible without an active document.");
+              return;
+            }
+            getEnvListCommand(this._lastRenderedDocumentUri);
         }
-       
       },
       undefined,
       this._disposables
