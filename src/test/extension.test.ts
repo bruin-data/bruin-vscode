@@ -3,18 +3,18 @@ import * as vscode from "vscode";
 import * as os from "os";
 import { isFileExtensionSQL, isPythonBruinAsset, isBruinPipeline, isYamlBruinAsset, isBruinYaml, isBruinAsset, encodeHTML, removeAnsiColors, processLineageData, getDependsSectionOffsets, isChangeInDependsSection, getFileExtension } from '../utilities/helperUtils';
 import * as fs from 'fs';
+import path = require('path');
+
 suite("Extension Initialization", () => {
   test("should set default path separator based on platform", async () => {
-    const config = vscode.workspace.getConfiguration("bruin");
-  
     // Determine the expected path separator based on the current platform
-    const expectedPathSeparator = process.platform === "win32" ? "\\" : "/";
+    const expectedPathSeparator = path.sep;
   
     // Update the path separator setting
-    await config.update("pathSeparator", expectedPathSeparator, vscode.ConfigurationTarget.Global);
+    await vscode.workspace.getConfiguration("bruin").update("pathSeparator", expectedPathSeparator, vscode.ConfigurationTarget.Global);
   
     // Retrieve the updated setting
-    const pathSeparator = config.get<string>("pathSeparator");
+    const pathSeparator = vscode.workspace.getConfiguration("bruin").get<string>("pathSeparator");
   
     // Assert that the path separator matches the expected value
     assert.strictEqual(pathSeparator, expectedPathSeparator);
