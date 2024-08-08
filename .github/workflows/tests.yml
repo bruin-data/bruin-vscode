@@ -4,7 +4,10 @@ on: pull_request
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
 
     steps:
     - uses: actions/checkout@v4
@@ -15,6 +18,15 @@ jobs:
 
     - name: Install dependencies
       run: npm run install:all
+
+    - name: Run extension tests
+      if: runner.os == 'Linux'
+      run: xvfb-run -a npm run test
+
+    - name: Run extension tests
+      if: runner.os != 'Linux'
+      run: npm run test
+      
     - name: Run webview tests
       run: npm run test:webview
     
