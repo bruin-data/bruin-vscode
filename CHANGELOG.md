@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.15.Z] - [2024-08-08]
+- Fixed an issue with the loading state in the lineage panel when no lineage data is available.
+
 ## [0.15.1] - [2024-08-06]
 - Fixed an issue where the "Show More" functionality in the lineage panel was not working as expected.
 - Improved the visual layout of nodes within the lineage panel for better readability.
