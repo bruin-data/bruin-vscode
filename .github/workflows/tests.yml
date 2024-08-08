@@ -14,7 +14,7 @@ jobs:
         node-version: '16'
 
     - name: Install dependencies
-      run: npm install:all
+      run: npm run install:all
     - name: Run extension tests
       run: npm run test
     - name: Run webview tests
