@@ -70,7 +70,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 ## Release Notes
 ### Latest Release: 0.15.2
 ### Fixed 
-- Fixed an issue with the loading state in the lineage panel when no lineage data is available
+- Fixed an issue with the loading state in the lineage panel when no lineage data is available.
 
 ### Previous Highlights
 ### Version 0.15.1

@@ -36,14 +36,39 @@ export class BruinRender extends BruinCommand {
     filePath: string,
     { flags = ["-o", "json"], ignoresErrors = false }: BruinCommandOptions = {}
   ): Promise<void> {
-    if ((await this.isValidAsset(filePath)) === false) {
+    let isValidAsset = false;
+    let isBruinAsset = false;
+    let isBruinPipeline = false;
+    let isBruinYaml = false;
+  
+    try {
+      isValidAsset = await this.isValidAsset(filePath);
+      isBruinAsset = await this.detectBruinAsset(filePath);
+      isBruinPipeline = await this.isBruinPipeline(filePath);
+      isBruinYaml = await this.isBruinYaml(filePath);
+    } catch (error) {
+      console.error("Error checking file type:", error);
       return;
-    } else {
-      if (await this.detectBruinAsset(filePath)) {
-        return;
-      }
     }
-
+  
+    if (!isValidAsset) {
+      BruinPanel?.postMessage("render-message", {
+        status: "non-asset-alert",
+        message: "-- This is not a BRUIN asset --",
+      });
+      console.log("This is not a BRUIN asset");
+      return;
+    }
+  
+    if (isBruinAsset || isBruinPipeline || isBruinYaml) {
+      BruinPanel?.postMessage("render-message", {
+        status: "bruin-asset-alert",
+        message: "-- Python, Yaml, or Pipeline BRUIN asset detected --",
+      });
+      console.log("Python, Yaml, or Pipeline BRUIN asset detected");
+      return;
+    }
+  
     await this.run([...flags, filePath], { ignoresErrors })
       .then(
         (sqlRendered) => {
@@ -68,8 +93,23 @@ export class BruinRender extends BruinCommand {
         }
       });
   }
+  
+
+  
+
+  
+  private async isBruinPipeline(filePath: string): Promise<boolean> {
+    return await isBruinPipeline(filePath);
+  }
+  
+  private async isBruinYaml(filePath: string): Promise<boolean> {
+    return await isBruinYaml(filePath);
+  }
+
+  private readonly relevantFileExtensions = ["sql", "py", "asset.yml", "asset.yaml", "pipeline.yml", "pipeline.yaml"];
+    
   private async isValidAsset(filePath: string): Promise<boolean> {
-    if (!isBruinAsset(filePath, ["py", "sql", "asset.yml", "asset.yaml"]) || (await isBruinYaml(filePath))) {
+    if (!isBruinAsset(filePath, this.relevantFileExtensions) || (await isBruinYaml(filePath)) || !this.relevantFileExtensions.some(ext => filePath.endsWith(ext))) {
       BruinPanel?.postMessage("render-message", {
         status: "non-asset-alert",
         message: "-- This is not a BRUIN asset --",

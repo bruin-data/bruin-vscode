@@ -1,7 +1,8 @@
 import * as assert from 'assert';
 import * as vscode from "vscode";
 import * as os from "os";
-
+import { isFileExtensionSQL, isPythonBruinAsset, isBruinPipeline, isYamlBruinAsset, isBruinYaml, isBruinAsset, encodeHTML, removeAnsiColors, processLineageData, getDependsSectionOffsets, isChangeInDependsSection, getFileExtension } from '../utilities/helperUtils';
+import * as fs from 'fs';
 suite("Extension Initialization", () => {
   test("should set default path separator based on platform", async () => {
     const config = vscode.workspace.getConfiguration("bruin");
@@ -18,6 +19,69 @@ suite("Extension Initialization", () => {
     // Assert that the path separator matches the expected value
     assert.strictEqual(pathSeparator, expectedPathSeparator);
   });
+});
+
+suite("Render Command Helper functions", () => {
+  test("isFileExtensionSQL should return true for SQL files", () => {
+    assert.strictEqual(isFileExtensionSQL("example.sql"), true);
+    assert.strictEqual(isFileExtensionSQL("EXAMPLE.SQL"), true);
+    assert.strictEqual(isFileExtensionSQL("example.txt"), false);
+    assert.strictEqual(isFileExtensionSQL(""), false);
+  });
+
+  test("getFileExtension should return the file extension", () => {
+    assert.strictEqual(getFileExtension("example.txt"), "txt");
+    assert.strictEqual(getFileExtension("example.sql"), "sql");
+    assert.strictEqual(getFileExtension("example"), "");
+  });
+
+  test("isPythonBruinAsset should return true for Python Bruin assets", async () => {
+    const examplePythonAsset = `\"\"\" @bruin \nname: example\n type: python\n depends:\n - raw.example\n\"\"\"\nprint("Hello World")`;
+    const examplePythonNoBruinAsset = `print("Hello World")`;
+    const filePath = "bruinPythonAsset.py";
+    const noBruinFilePath = "example.txt";
+    fs.writeFileSync(filePath, examplePythonAsset);
+    assert.strictEqual(await isPythonBruinAsset("bruinPythonAsset.py"), true);
+    assert.strictEqual(await isPythonBruinAsset("example.txt"), false);
+    fs.writeFileSync(noBruinFilePath, examplePythonNoBruinAsset);
+    assert.strictEqual(await isPythonBruinAsset("example.txt"), false);
+  });
+
+  test("isBruinPipeline should return true for pipeline.yml files", async () => {
+    assert.strictEqual(await isBruinPipeline("pipeline.yml"), true);
+    assert.strictEqual(await isBruinPipeline("example.yml"), false);
+  });
+
+/*   test("isYamlBruinAsset should return true for Yaml Bruin assets", async () => {
+    assert.strictEqual(await isYamlBruinAsset("example.asset.yml"), true);
+    assert.strictEqual(await isYamlBruinAsset("example.asset.yaml"), true);
+    assert.strictEqual(await isYamlBruinAsset("example.txt"), false);
+  }); */
+
+  test("isBruinYaml should return true for .bruin.yml files", async () => {
+    assert.strictEqual(await isBruinYaml(".bruin.yml"), true);
+    assert.strictEqual(await isBruinYaml("example.yml"), false);
+  });
+
+/*   test("isBruinAsset should return true for valid Bruin assets", async () => {
+    assert.strictEqual(await isBruinAsset("example.py", ["py"]), true);
+    assert.strictEqual(await isBruinAsset("example.asset.yml", ["asset.yml", "asset.yaml"]), true);
+    assert.strictEqual(await isBruinAsset("example.txt", ["py", "sql", "asset.yml", "asset.yaml"]), false);
+  }); */
+
+  test("encodeHTML should encode HTML special characters", () => {
+    assert.strictEqual(encodeHTML("<script>alert('XSS');</script>"), "&lt;script&gt;alert(&#039;XSS&#039;);&lt;/script&gt;");
+  });
+
+  test("removeAnsiColors should remove ANSI color codes", () => {
+    assert.strictEqual(removeAnsiColors("\x1b[1;32mHello\x1b[0m World"), "Hello World");
+  });
+
+  test("processLineageData should extract the name property", () => {
+    const lineageString = { name: "example-name" };
+    assert.strictEqual(processLineageData(lineageString), "example-name");
+  });
+
 });
 
 /* import * as assert from "assert";
