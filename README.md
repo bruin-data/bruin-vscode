@@ -68,11 +68,14 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 
 ## Release Notes
-### Latest Release: 0.15.2
+### Latest Release: 0.15.3
 ### Fixed 
-- Fixed an issue with the loading state in the lineage panel when no lineage data is available.
+- Fixed an issue where file modifications caused dates to reset. This update ensures that dates remain unchanged when switching assets and files, unless explicitly updated.
 
 ### Previous Highlights
+### Version 0.15.2
+- Fixed an issue with the loading state in the lineage panel when no lineage data is available.
+
 ### Version 0.15.1
 - Fixed an issue where the "Show More" functionality in the lineage panel was not working as expected.
 - Improved the visual layout of nodes within the lineage panel for better readability.
@@ -80,117 +83,70 @@ Bruin is a unified analytics platform that enables data professionals to work en
 ### Version 0.15.0
 - Added a new checkbox to the main panel for enabling the metadata push feature.
 
-### Version 0.14.3
-- Added quoting around file paths to handle spaces and special characters.
+### Version 0.14.x
+- Quoting around file paths now handles spaces and special characters.
+- Distinguishes render and validate errors for clearer feedback.
+- Keeps SQL Editor accessible during errors.
+- Removed fields (`Materialization`, `connections`, `parameters`) from Python asset snippets.
 
-### Version 0.14.2
-- **Detailed Error Phases**: Distinguishes between render and validate errors for clearer feedback.
-- **Editor Visibility**: Keeps the SQL Editor accessible even when errors occur.
-
-### Version 0.14.1
-- Removed extra fields from the snippets that generate a full Python asset. The removed fields are: `Materialization`, `connections`, and `parameters`
-
-### Version 0.14.0
-- **Lineage View Expansion**: Users can now expand properties in the lineage view to see further upstream and downstream elements.
-- **Infinite Loop**: Resolved an infinite loop issue, improving performance.
-- **CLI Warning**: Added a VSCode error window for outdated CLI.
-
-### Version 0.13.6
-- Nodes can now be dragged freely. Clicking the refresh button will return them to their initial positions.
-
-### Version 0.13.5
-- Fixed an indentation issue in the asset snippets.
-- Removed the requirement for "type" in the columns of the autocomplete schema
-
-### Version 0.13.4
-- Enhanced the SQL and Python asset files with modularized snippets for autocomplete.
-
-### Version 0.13.3
-- Decreased the vertical spacing between the nodes in the lineage graph.
-
-### Version 0.13.2
+### Version 0.13.x
+- Free dragging of nodes; refresh button returns them to original positions.
+- Fixed indentation in asset snippets and removed "type" requirement in autocomplete schema columns.
+- Modularized SQL and Python asset snippets for autocomplete.
+- Reduced vertical spacing between nodes in the lineage graph.
 - Improved YAML assets with autocomplete and schema validations.
-- Ennforced single `service_account_json` or `service_account_file` in Google Cloud Platform connection schema.
-
-### Version 0.13.1
-- Enhanced the pipeline file with autocomplete and schema validations.
-
-### Version 0.13.0
-- Enhanced the configuration file `.bruin.yml` with predefined options and schema validations for better usability and error reduction.
+- Enforced single `service_account_json` or `service_account_file` in GCP schema.
+- Enhanced pipeline file with autocomplete and schema validations.
 
 ### Version 0.12.x
-- Updated the extension to support the new asset upstream format. The old format is still working for older CLI versions. The opacity for the lineage graph node is removed.
-- Fixed an issue where the environment list was being updated unnecessarily whenever a file was opened or updated.
-- Fixed a typo in the pipeline snippet.
-- Implemented snippets for creating Bruin root configuration, pipeline and assets.
+- Updated for new asset upstream format; old format still supported.
+- Fixed unnecessary environment list updates and typo in pipeline snippet.
+- Implemented snippets for Bruin root configuration, pipelines, and assets.
 
 ### Version 0.11.x
 - Updated render icon to Bruin logo.
-- Fixed rocket icon display for `.yaml` extension in ingestr asset YAML files.
-- Enhanced default environment customization.
-- Introduced environment selection dropdown.
-- Integrated CLI-based environment fetching.
-- Improved default environment pre-selection.
-- Included selected environment in run command for accuracy.
+- Fixed rocket icon for `.yaml` files.
+- Enhanced default environment customization and CLI-based environment fetching.
 
 ### Version 0.10.x
-- Corrected the validation button behavior where "Validate All" and "Validate Current Pipeline" were erroneously swapped.
-- Resolved the issue encountered by Windows users using a UNIX-based shell regarding path separators. Users can specify the path separator (/ or ) used in constructing Bruin asset paths via the extension's settings.
-- Fixed a bug where setting an asset type to an invalid value caused the UI to break.
-- Enhanced the visibility of the Validate button by updating the color of the check icon.
-- Integrated Luxon library to fix the timestamp exclusion problem.
-- Fixed the issue with the full refresh behavior.
-- Updated the warning message displayed when the file isn't an asset and fixed a typo.
-- Added a reset button to reset start and end dates based on the pipeline schedule.
+- Corrected validation button behavior and path separator issues.
+- Fixed UI breakage for invalid asset types and timestamp exclusion problems.
+- Updated warning messages and added reset button for dates.
 
-### Version 0.9.x:
-- Combined the asset general and asset details tabs into a single tab for streamlined navigation.
-- Introduced a new panel to display the lineage of a single asset, which updates automatically when switching between assets.
-- Added "Validate All Pipelines" and "Validate Current Pipeline" options for increased flexibility.
-- Introduced a "Run Current Pipeline" option in the run button.
-- Adjusted the styling of the asset details to better align with Visual Studio Code's aesthetic.
-- Corrected the position of menu items for non-SQL assets.
-- Enhanced error alert display and error handling.
-- Fixed the exclusive end date function to accurately calculate the exclusive end time.
+### Version 0.9.x
+- Merged asset tabs for streamlined navigation.
+- Added lineage panel, "Validate All Pipelines," and "Run Current Pipeline" options.
+- Improved asset details styling and error handling.
 
 ### Version 0.8.x
-- **Markdown rendering** for AssetDetails description.
-- "Exclusive End Date" checkbox **defaults to checked**, ensuring reactive updates.
-- **Fixed schedule display** inconsistency in asset details.
-- Added **error handling** for "no such file or directory" (ENOENT).
-- Introduced **new tab** for dynamic asset details, with **alert message** feature.
+- Added Markdown rendering for AssetDetails description.
+- Made "Exclusive End Date" checkbox default to checked.
+- Fixed schedule display inconsistencies and added error handling for ENOENT.
+- Introduced new tab for dynamic asset details.
 
 ### Version 0.7.x
-- Clearly differentiated render errors and validation errors to eliminate confusion.
-- Adjusted CSS for `run` and `validate` buttons for improved visual coherence and usability.
-- Fixed extension activation issues for Snowflake, BigQuery SQL, and other languages.
-- Enhanced validation error display and added expand functionality for error details.
-- Resolved visual issues with icons and loading spinner within the validate button component.
-- Transitioned from string-based lineage data handling to JSON parsing mechanism.
-- Resized buttons and added separators for better visual hierarchy.
-- Integrated dropdown menus for streamlined command execution.
+- Clarified render vs. validation errors.
+- Improved button styling and error display.
+- Resolved activation issues and visual inconsistencies.
 
-#### 0.6.x
-- Improved SQL preview visibility in non-Bruin assets.
-- Resolved functionality issues on Windows platforms.
-- Updated webview with tabbed interface for General and Asset Lineage tabs.
+### Version 0.6.x
+- Enhanced SQL preview visibility and resolved Windows functionality issues.
+- Updated webview with tabbed interface.
 
-#### 0.5.0
-- Added line numbers to SQL preview for better code review and debugging.
+### Version 0.5.x
+- Added line numbers to SQL preview.
 
-#### 0.4.x
-- Various fixes and improvements including rendering, responsiveness, and CSS adjustments.
+### Version 0.4.x
+- Various fixes for rendering, responsiveness, and CSS.
 
-#### 0.3.0
+### Version 0.3.x
 - Added Windows compatibility and automatic workspace directory detection.
 
-#### 0.2.x
-- Implemented SQL validation functionality with conditional flags.
-- Fixed auto folding issues and improved error message handling.
+### Version 0.2.x
+- Implemented SQL validation and fixed auto-folding issues.
 
-#### 0.1.x
-- Introduced auto-folding settings and resolved compatibility issues.
-- Launched with syntax coloring, code folding, and dynamic SQL content viewer.
+### Version 0.1.x
+- Introduced auto-folding, syntax coloring, and dynamic SQL content viewer.
 
 ### How to Update
 
