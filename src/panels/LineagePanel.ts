@@ -145,7 +145,7 @@ export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposab
           this.refresh(vscode.window.activeTextEditor!!);
           break;
       }
-    })
+    });
   }
 
   public static postMessage(
