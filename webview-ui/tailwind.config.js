@@ -91,6 +91,7 @@ module.exports = {
         "inputValidation-warningBackground": "var(--vscode-inputValidation-warningBackground)",
         "inputValidation-warningBorder": "var(--vscode-inputValidation-warningBorder)",
         "inputValidation-errorBackground": "var(--vscode-inputValidation-errorBackground)",
+        'editorWidget-background': "var(--vscode-editorWidget-background)",
 
         "primary": {
           DEFAULT: "hsl(var(--primary))",
