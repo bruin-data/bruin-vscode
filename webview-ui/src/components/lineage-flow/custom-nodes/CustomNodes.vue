@@ -1,5 +1,17 @@
 <template>
-  <div class="custom-node-wrapper">
+  <div class="custom-node-wrapper" @click.stop="toggleAssetInfo">
+    
+      <AssetProperties
+        v-if="showAssetInfo && !data.asset?.isFocusAsset"
+        :show="showAssetInfo"
+        @close="closeAssetInfo"
+        @goToDetails="handleGoToDetails"
+        :name="data.asset?.name!!"
+        :pipeline="data.asset?.pipeline!!"
+        :type="data.asset?.type!!"
+        :path="data.asset?.path!!"  
+      />
+    
     <div
       v-if="showUpstreamIcon"
       @click.stop="onAddUpstream"
@@ -60,18 +72,26 @@
       <PlusIcon class="h-4 w-4 fill-gray-300 text-gray-700/50 hover:text-gray-700" />
     </div>
   </div>
-  <Handle v-if="assetHasDownstreams || assetHasUpstreams" type="source" class="opacity-0" :position="Position.Right" />
-  <Handle v-if="assetHasUpstreams || assetHasDownstreams" type="target" class="opacity-0" :position="Position.Left" />
-
-  
-
+  <Handle
+    v-if="assetHasDownstreams || assetHasUpstreams"
+    type="source"
+    class="opacity-0"
+    :position="Position.Right"
+  />
+  <Handle
+    v-if="assetHasUpstreams || assetHasDownstreams"
+    type="target"
+    class="opacity-0"
+    :position="Position.Left"
+  />
 </template>
 
 <script lang="ts" setup>
-import { computed, defineProps, defineEmits } from "vue";
+import { computed, defineProps, defineEmits, ref, onMounted, onUnmounted } from "vue";
 import { Handle, Position } from "@vue-flow/core";
 import { PlusIcon } from "@heroicons/vue/20/solid";
 import type { BruinNodeProps } from "@/types";
+import AssetProperties from "@/components/ui/asset/AssetProperties.vue";
 import {
   defaultStyle,
   statusStyles,
@@ -127,6 +147,37 @@ const onAddUpstream = () => {
 const onAddDownstream = () => {
   emit("add-downstream", props.data.asset?.name);
 };
+
+const showAssetInfo = ref(false);
+
+
+const toggleAssetInfo = (event: Event) => {
+  event.stopPropagation();
+  showAssetInfo.value = !showAssetInfo.value;
+};
+
+const closeAssetInfo = () => {
+  showAssetInfo.value = false;
+};
+
+const handleGoToDetails = (asset: any) => {
+  // Implement the logic to navigate to asset details
+  console.log("Go to details for asset:", asset.path);
+};
+
+const handleClickOutside = (event: Event) => {
+  if (showAssetInfo.value) {
+    closeAssetInfo();
+  }
+};
+
+onMounted(() => {
+  document.addEventListener("click", handleClickOutside);
+});
+
+onUnmounted(() => {
+  document.removeEventListener("click", handleClickOutside);
+});
 </script>
 <style scoped>
 .custom-node-wrapper {
