@@ -92,6 +92,8 @@ import { Handle, Position } from "@vue-flow/core";
 import { PlusIcon } from "@heroicons/vue/20/solid";
 import type { BruinNodeProps } from "@/types";
 import AssetProperties from "@/components/ui/asset/AssetProperties.vue";
+import { vscode } from "@/utilities/vscode";
+
 import {
   defaultStyle,
   statusStyles,
@@ -162,6 +164,10 @@ const closeAssetInfo = () => {
 
 const handleGoToDetails = (asset: any) => {
   // Implement the logic to navigate to asset details
+  vscode.postMessage({
+    command: "bruin.openAssetDetails",
+    payload: asset.path
+  });
   console.log("Go to details for asset:", asset.path);
 };
 

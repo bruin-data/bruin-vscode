@@ -135,6 +135,13 @@ export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposab
         case "bruin.pipelineLineage":
           console.log("Pipeline Lineage from webview in the Lineage panel, well received");
           break;
+        case "bruin.openAssetDetails":
+          console.log("Asset Details from webview in the Lineage panel, well received");
+          const assetFilePath = message.payload;
+          vscode.workspace.openTextDocument(vscode.Uri.file(assetFilePath)).then((doc) => {
+            vscode.window.showTextDocument(doc);
+          });
+          break;
         case "bruin.assetGraphLineage":
           console.log("Asset Lineage from webview in the Lineage panel, well received");
           this._lastRenderedDocumentUri = vscode.window.activeTextEditor?.document.uri;
