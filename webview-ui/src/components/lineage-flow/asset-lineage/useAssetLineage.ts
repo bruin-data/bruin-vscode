@@ -23,6 +23,8 @@ export const getAssetDataset = (
       return {
         name: asset.name,
         type: asset.type,
+        pipeline: pipelineData.name,
+        path: asset.definition_file.path,
         isFocusAsset: false,
         hasUpstreamForClicking: asset.upstreams && asset.upstreams.length > 0,
         hasDownstreamForClicking: false,
@@ -61,6 +63,8 @@ export const getAssetDataset = (
       .map(a => ({
         name: a.name,
         type: a.type,
+        pipeline: pipelineData.name,
+        path: a.definition_file.path,
         isFocusAsset: false,
         hasUpstreamForClicking: false,
         hasDownstreamForClicking: deduceDownstream(a) && deduceDownstream(a).length > 0,
@@ -81,6 +85,8 @@ export const getAssetDataset = (
     isFocusAsset: asset.isFocusAsset || true,
     name: asset.name,
     type: asset.type,
+    pipeline: pipelineData.name,
+    path: asset.definition_file.path,
     upstreams: upstreams,
     downstream: downstreams,
   };

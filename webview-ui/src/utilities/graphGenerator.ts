@@ -1,6 +1,7 @@
 // src/utils/graphGenerator.js
 
 import { getAssetDataset } from "@/components/lineage-flow/asset-lineage/useAssetLineage";
+import path from "path";
 
 export function generateGraphFromJSON(asset) {
   const localNodes = new Map();
@@ -18,6 +19,8 @@ export function generateGraphFromJSON(asset) {
           asset: {
             name: assetData.name,
             type: assetData.type || "unknown",
+            pipeline: assetData.pipeline || "unknown",
+            path: assetData.path || "unknown",
             hasDownstreams: (assetData.downstream && assetData.downstream.length > 0) || false,
             hasUpstreams: (assetData.upstreams && assetData.upstreams.length > 0) || false,
           },

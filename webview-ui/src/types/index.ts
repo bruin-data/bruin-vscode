@@ -39,6 +39,7 @@ export interface Asset {
   hasUpstreams: boolean;
   hasDownstreams: boolean;
   isFocusAsset?: boolean;
+  path: string;
 }
 
 export interface Project {
