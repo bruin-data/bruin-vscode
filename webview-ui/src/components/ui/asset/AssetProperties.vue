@@ -20,7 +20,7 @@
       </p>
       <button
         @click="goToDetails"
-        class="w-full mt-2 px-3 py-2 text-sm flex items-center justify-between bg-input-background hover:bg-menu-hoverBackground rounded-sm transition-colors duration-200"
+        class="w-full mt-2 px-3 py-2 text-sm flex items-center justify-between bg-input-background hover:bg-menu-hoverBackground hover:text-bl rounded-sm transition-colors duration-200"
       >
         Go to asset details
         <span class="pl-2"><ArrowTopRightOnSquareIcon class="h-4 w-4 text-[#569cd6]" /></span>
