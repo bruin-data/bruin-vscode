@@ -7,7 +7,6 @@
         @close="closeAssetInfo"
         @goToDetails="handleGoToDetails"
         :name="data.asset?.name!!"
-        :pipeline="data.asset?.pipeline!!"
         :type="data.asset?.type!!"
         :path="data.asset?.path!!"  
       />

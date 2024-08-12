@@ -87,6 +87,7 @@ const updateNodePositions = (layout: any) => {
       return {
         ...node,
         position: { x: layoutNode.x, y: layoutNode.y },
+        zIndex: 1,
       };
     }
     return node;
