@@ -5,7 +5,7 @@
         position: 'absolute',
         zIndex: 9999
       }"
-      class="bg-editor-bg border border-editor-border b-[0.2px] rounded-md shadow-lg p-3 w-auto text-editor-fg -translate-x-8 -translate-y-24"
+      class="bg-editor-bg border border-input-background b-[0.2px] rounded-md shadow-lg p-3 w-auto text-editor-fg -translate-x-8 -translate-y-24"
       @click.stop
   >
     <div class="space-y-2">
