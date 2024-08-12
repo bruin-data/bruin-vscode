@@ -1,16 +1,15 @@
 <template>
   <div class="custom-node-wrapper" @click.stop="toggleAssetInfo">
-    
-      <AssetProperties
-        v-if="showAssetInfo && !data.asset?.isFocusAsset"
-        :show="showAssetInfo"
-        @close="closeAssetInfo"
-        @goToDetails="handleGoToDetails"
-        :name="data.asset?.name!!"
-        :type="data.asset?.type!!"
-        :path="data.asset?.path!!"  
-      />
-    
+    <AssetProperties
+      v-if="showAssetInfo && !data.asset?.isFocusAsset"
+      :show="showAssetInfo"
+      @close="closeAssetInfo"
+      @goToDetails="handleGoToDetails"
+      :name="data.asset?.name!!"
+      :type="data.asset?.type!!"
+      :path="data.asset?.path!!"
+    />
+
     <div
       v-if="showUpstreamIcon"
       @click.stop="onAddUpstream"
@@ -55,8 +54,21 @@
           class="rounded-b font-mono py-1 text-left px-1 border border-white/20"
           :class="[selectedStyle.main, status ? '' : 'rounded-tl']"
         >
-          <div class="truncate">
-            {{ label }}
+          <div class="relative group">
+            <!-- Truncated Text -->
+            <div class="truncate">
+              {{ label }}
+            </div>
+
+            <!-- Tooltip -->
+            <div
+              v-if="isTurncated"
+              class="absolute left-0 top-0 w-max px-2 text-sm rounded opacity-0 py-1
+              group-hover:opacity-100 transition-opacity duration-200 group-hover:cursor-pointer"
+              :class="selectedStyle.main"
+            >
+              {{ label }}
+            </div>
           </div>
         </div>
       </div>
@@ -134,6 +146,11 @@ const handleStyle = computed(() => ({
 const showUpstreamIcon = computed(() => isAsset.value && props.data?.hasUpstreamForClicking);
 const showDownstreamIcon = computed(() => isAsset.value && props.data?.hasDownstreamForClicking);
 
+const isTurncated = computed(()=> {
+  if(!props.data.asset?.name) return false;
+  return props.data.asset?.name.length > 26;
+});
+
 const assetClass = computed(() => {
   let classes = "rounded w-56";
   if (props.status) {
@@ -151,7 +168,6 @@ const onAddDownstream = () => {
 
 const showAssetInfo = ref(false);
 
-
 const toggleAssetInfo = (event: Event) => {
   event.stopPropagation();
   showAssetInfo.value = !showAssetInfo.value;
@@ -165,7 +181,7 @@ const handleGoToDetails = (asset: any) => {
   // Implement the logic to navigate to asset details
   vscode.postMessage({
     command: "bruin.openAssetDetails",
-    payload: asset.path
+    payload: asset.path,
   });
   console.log("Go to details for asset:", asset.path);
 };
