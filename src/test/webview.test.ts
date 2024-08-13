@@ -1,4 +1,4 @@
-import * as assert from 'assert';
+import * as assert from "assert";
 
 suite("Webview Tests", () => {
   const environments = ["dev", "qa", "prod"];
@@ -39,7 +39,6 @@ suite("Webview Tests", () => {
       wrapper.vm.selectedEnv = selectedEnvironment;
     }
 
-    assert.strictEqual(wrapper.vm.selectedEnv, null); 
+    assert.strictEqual(wrapper.vm.selectedEnv, null);
   });
-
 });

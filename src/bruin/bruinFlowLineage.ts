@@ -35,8 +35,10 @@ export class BruinLineageInternalParse extends BruinCommand {
       .then(
         (result) => {
           const pipelineData = JSON.parse(result);
-          const asset = pipelineData.assets.find((asset: any) => asset.definition_file.path === filePath);
-          
+          const asset = pipelineData.assets.find(
+            (asset: any) => asset.definition_file.path === filePath
+          );
+
           if (asset) {
             LineagePanel.postMessage("flow-lineage-message", {
               status: "success",
@@ -51,8 +53,9 @@ export class BruinLineageInternalParse extends BruinCommand {
           }
         },
         (error) => {
-          if(error.includes("No help topic for")) {
-            error = "Bruin CLI is not installed or is outdated. Please install or update Bruin CLI to use this feature.";
+          if (error.includes("No help topic for")) {
+            error =
+              "Bruin CLI is not installed or is outdated. Please install or update Bruin CLI to use this feature.";
             vscode.window.showErrorMessage(error);
           }
           LineagePanel.postMessage("flow-lineage-message", {

@@ -33,14 +33,14 @@ export class BruinValidate extends BruinCommand {
       status: "loading",
       message: "Validating asset...",
     });
-  
+
     try {
       const result = await this.run([...flags, filePath], { ignoresErrors });
       const validationResults = JSON.parse(result);
-  
+
       let hasErrors = false;
       const pipelinesWithIssues = [];
-  
+
       for (const validationData of validationResults) {
         if (
           validationData.issues &&
@@ -51,7 +51,7 @@ export class BruinValidate extends BruinCommand {
           pipelinesWithIssues.push(validationData);
         }
       }
-  
+
       if (hasErrors) {
         BruinPanel.postMessage("validation-message", {
           status: "error",
@@ -74,5 +74,4 @@ export class BruinValidate extends BruinCommand {
       this.isLoading = false; // Reset loading state when validation completes or fails
     }
   }
-  
 }

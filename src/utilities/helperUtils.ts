@@ -3,7 +3,6 @@ import * as fs from "fs";
 import path = require("path");
 export const isEditorActive = (): boolean => !!vscode.window.activeTextEditor;
 
-
 export interface Environment {
   name: string;
 }
@@ -13,7 +12,6 @@ export interface Input {
   environments: Environment[];
 }
 
-
 // Function to transform the input object to an array of environment names
 export function transformToEnvironmentsArray(input: string): string[] {
   const envResult = JSON.parse(input);
@@ -21,9 +19,8 @@ export function transformToEnvironmentsArray(input: string): string[] {
     return [];
   }
 
-  return envResult.environments.map((env: { name: string; }) => env.name);
+  return envResult.environments.map((env: { name: string }) => env.name);
 }
-
 
 export const isFileExtensionSQL = (fileName: string): boolean => {
   fileName = fileName.toLowerCase();
@@ -79,7 +76,10 @@ export const isBruinAsset = async (
 
   try {
     const assetContent = fs.readFileSync(fileName, "utf8");
-    const bruinAsset = bruinPattern.test(assetContent) || fileExtension === "asset.yml" || fileExtension === "asset.yaml";
+    const bruinAsset =
+      bruinPattern.test(assetContent) ||
+      fileExtension === "asset.yml" ||
+      fileExtension === "asset.yaml";
 
     return bruinAsset;
   } catch (err) {

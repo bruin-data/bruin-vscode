@@ -9,7 +9,7 @@
     </div>
     <VueFlow
       v-model:elements="elements"
-      :default-viewport="{ x: 50, zoom: 0.8 }"
+      :default-viewport="{ x: 50, y: 50, zoom: 0.7 }"
       :min-zoom="0.2"
       :max-zoom="4"
       class="basic-flow"
@@ -27,6 +27,8 @@
           :label="nodeProps.data.label"
           @addUpstream="onAddUpstream"
           @addDownstream="onAddDownstream"
+          @node-click="onNodeClick"
+          :selected-node-id="selectedNodeId"
         />
       </template>
 
@@ -56,6 +58,19 @@ const props = defineProps<{
   isLoading: boolean,  // Pass loading state
   LineageError: string | null,  // Pass error state
 }>();
+
+const selectedNodeId = ref<string | null>(null);
+
+const onNodeClick = (nodeId: string, event: MouseEvent) => {
+  console.log("Node clicked:", nodeId);
+  if (selectedNodeId.value === nodeId) {
+    // If clicking the same node, close the popup
+    selectedNodeId.value = null;
+  } else {
+    // If clicking a different node, open its popup
+    selectedNodeId.value = nodeId;
+  }
+};
 
 console.log("=====================================\n");
 
@@ -87,6 +102,7 @@ const updateNodePositions = (layout: any) => {
       return {
         ...node,
         position: { x: layoutNode.x, y: layoutNode.y },
+        zIndex: 1,
       };
     }
     return node;

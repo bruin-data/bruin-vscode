@@ -24,9 +24,10 @@ export class BruinEnvList extends BruinCommand {
    * @returns {Promise<void>} A promise that resolves when the execution is complete or an error is caught.
    */
 
-  public async getEnvironmentsList(
-    { flags = ["list", "-o", "json"], ignoresErrors = false }: BruinCommandOptions = {}
-  ): Promise<void> {
+  public async getEnvironmentsList({
+    flags = ["list", "-o", "json"],
+    ignoresErrors = false,
+  }: BruinCommandOptions = {}): Promise<void> {
     await this.run([...flags], { ignoresErrors })
       .then(
         (result) => {

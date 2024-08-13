@@ -1,21 +1,36 @@
-import * as assert from 'assert';
+import * as assert from "assert";
 import * as vscode from "vscode";
 import * as os from "os";
-import { isFileExtensionSQL, isPythonBruinAsset, isBruinPipeline, isYamlBruinAsset, isBruinYaml, isBruinAsset, encodeHTML, removeAnsiColors, processLineageData, getDependsSectionOffsets, isChangeInDependsSection, getFileExtension } from '../utilities/helperUtils';
-import * as fs from 'fs';
-import path = require('path');
+import {
+  isFileExtensionSQL,
+  isPythonBruinAsset,
+  isBruinPipeline,
+  isYamlBruinAsset,
+  isBruinYaml,
+  isBruinAsset,
+  encodeHTML,
+  removeAnsiColors,
+  processLineageData,
+  getDependsSectionOffsets,
+  isChangeInDependsSection,
+  getFileExtension,
+} from "../utilities/helperUtils";
+import * as fs from "fs";
+import path = require("path");
 
 suite("Extension Initialization", () => {
   test("should set default path separator based on platform", async () => {
     // Determine the expected path separator based on the current platform
     const expectedPathSeparator = path.sep;
-  
+
     // Update the path separator setting
-    await vscode.workspace.getConfiguration("bruin").update("pathSeparator", expectedPathSeparator, vscode.ConfigurationTarget.Global);
-  
+    await vscode.workspace
+      .getConfiguration("bruin")
+      .update("pathSeparator", expectedPathSeparator, vscode.ConfigurationTarget.Global);
+
     // Retrieve the updated setting
     const pathSeparator = vscode.workspace.getConfiguration("bruin").get<string>("pathSeparator");
-  
+
     // Assert that the path separator matches the expected value
     assert.strictEqual(pathSeparator, expectedPathSeparator);
   });
@@ -52,7 +67,7 @@ suite("Render Command Helper functions", () => {
     assert.strictEqual(await isBruinPipeline("example.yml"), false);
   });
 
-/*   test("isYamlBruinAsset should return true for Yaml Bruin assets", async () => {
+  /*   test("isYamlBruinAsset should return true for Yaml Bruin assets", async () => {
     assert.strictEqual(await isYamlBruinAsset("example.asset.yml"), true);
     assert.strictEqual(await isYamlBruinAsset("example.asset.yaml"), true);
     assert.strictEqual(await isYamlBruinAsset("example.txt"), false);
@@ -63,14 +78,17 @@ suite("Render Command Helper functions", () => {
     assert.strictEqual(await isBruinYaml("example.yml"), false);
   });
 
-/*   test("isBruinAsset should return true for valid Bruin assets", async () => {
+  /*   test("isBruinAsset should return true for valid Bruin assets", async () => {
     assert.strictEqual(await isBruinAsset("example.py", ["py"]), true);
     assert.strictEqual(await isBruinAsset("example.asset.yml", ["asset.yml", "asset.yaml"]), true);
     assert.strictEqual(await isBruinAsset("example.txt", ["py", "sql", "asset.yml", "asset.yaml"]), false);
   }); */
 
   test("encodeHTML should encode HTML special characters", () => {
-    assert.strictEqual(encodeHTML("<script>alert('XSS');</script>"), "&lt;script&gt;alert(&#039;XSS&#039;);&lt;/script&gt;");
+    assert.strictEqual(
+      encodeHTML("<script>alert('XSS');</script>"),
+      "&lt;script&gt;alert(&#039;XSS&#039;);&lt;/script&gt;"
+    );
   });
 
   test("removeAnsiColors should remove ANSI color codes", () => {
@@ -81,7 +99,6 @@ suite("Render Command Helper functions", () => {
     const lineageString = { name: "example-name" };
     assert.strictEqual(processLineageData(lineageString), "example-name");
   });
-
 });
 
 /* import * as assert from "assert";

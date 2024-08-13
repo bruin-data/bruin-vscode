@@ -117,7 +117,7 @@ export const runInIntegratedTerminal = async (
   assetPath?: string,
   flags?: string
 ) => {
-  const escapedAssetPath = assetPath ? escapeFilePath(assetPath) : '';
+  const escapedAssetPath = assetPath ? escapeFilePath(assetPath) : "";
   const command = `bruin ${BRUIN_RUN_SQL_COMMAND} ${flags} ${escapedAssetPath}`;
 
   const terminalName = "Bruin Terminal";

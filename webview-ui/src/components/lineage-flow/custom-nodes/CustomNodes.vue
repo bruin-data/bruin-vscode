@@ -10,7 +10,7 @@
       <PlusIcon class="h-4 w-4 fill-gray-300 text-gray-700/50 hover:text-gray-700" />
     </div>
 
-    <div class="node-content" :class="assetClass">
+    <div class="node-content" :class="assetClass" @click="togglePopup">
       <div
         v-if="data.type === 'asset'"
         :class="[
@@ -44,8 +44,20 @@
           class="rounded-b font-mono py-1 text-left px-1 border border-white/20"
           :class="[selectedStyle.main, status ? '' : 'rounded-tl']"
         >
-          <div class="truncate">
-            {{ label }}
+          <div class="relative group">
+            <!-- Truncated Text -->
+            <div class="truncate">
+              {{ label }}
+            </div>
+
+            <!-- Tooltip -->
+            <div
+              v-if="isTurncated"
+              class="absolute left-0 top-0 w-max px-2 text-sm rounded opacity-0 py-1 group-hover:opacity-100 transition-opacity duration-200 group-hover:cursor-pointer"
+              :class="selectedStyle.main"
+            >
+              {{ label }}
+            </div>
           </div>
         </div>
       </div>
@@ -59,26 +71,46 @@
     >
       <PlusIcon class="h-4 w-4 fill-gray-300 text-gray-700/50 hover:text-gray-700" />
     </div>
+    <AssetProperties
+      v-if="!data.asset?.isFocusAsset"
+      :show="showPopup"
+      :name="props.data.asset?.name || ''"
+      :type="props.data.asset?.type || ''"
+      :path="props.data.asset?.path || ''"
+      @close="closePopup"
+      @goToDetails="handleGoToDetails"
+    />
   </div>
-  <Handle v-if="assetHasDownstreams || assetHasUpstreams" type="source" class="opacity-0" :position="Position.Right" />
-  <Handle v-if="assetHasUpstreams || assetHasDownstreams" type="target" class="opacity-0" :position="Position.Left" />
-
-  
-
+  <Handle
+    v-if="assetHasDownstreams || assetHasUpstreams"
+    type="source"
+    class="opacity-0"
+    :position="Position.Right"
+  />
+  <Handle
+    v-if="assetHasUpstreams || assetHasDownstreams"
+    type="target"
+    class="opacity-0"
+    :position="Position.Left"
+  />
 </template>
 
 <script lang="ts" setup>
-import { computed, defineProps, defineEmits } from "vue";
+import { computed, defineProps, defineEmits, ref, onMounted, onUnmounted, watch } from "vue";
 import { Handle, Position } from "@vue-flow/core";
 import { PlusIcon } from "@heroicons/vue/20/solid";
 import type { BruinNodeProps } from "@/types";
+import AssetProperties from "@/components/ui/asset/AssetProperties.vue";
+import { vscode } from "@/utilities/vscode";
+
 import {
   defaultStyle,
   statusStyles,
   styles,
 } from "@/components/lineage-flow/custom-nodes/CustomNodeStyles";
-const props = defineProps<BruinNodeProps>();
-
+const props = defineProps<BruinNodeProps & {
+  selectedNodeId: string | null;
+}>();
 const selectedStyle = computed(() => {
   if (props.data?.type === "project") {
     console.log("Project", props.data?.type);
@@ -113,6 +145,11 @@ const handleStyle = computed(() => ({
 const showUpstreamIcon = computed(() => isAsset.value && props.data?.hasUpstreamForClicking);
 const showDownstreamIcon = computed(() => isAsset.value && props.data?.hasDownstreamForClicking);
 
+const isTurncated = computed(() => {
+  if (!props.data.asset?.name) return false;
+  return props.data.asset?.name.length > 26;
+});
+
 const assetClass = computed(() => {
   let classes = "rounded w-56";
   if (props.status) {
@@ -120,13 +157,47 @@ const assetClass = computed(() => {
   }
   return classes;
 });
-const emit = defineEmits(["add-upstream", "add-downstream"]);
+const emit = defineEmits(["add-upstream", "add-downstream", "node-click"]);
 const onAddUpstream = () => {
   emit("add-upstream", props.data.asset?.name);
 };
 const onAddDownstream = () => {
   emit("add-downstream", props.data.asset?.name);
 };
+
+const showPopup = computed(() => {
+  return props.selectedNodeId === props.data.asset?.name && !props.data.asset?.isFocusAsset;
+});
+const togglePopup = (event: MouseEvent) => {
+  event.stopPropagation();
+  emit("node-click", props.data.asset?.name, event);
+};
+
+const closePopup = () => {
+  emit("node-click", null, new MouseEvent('click'));
+};
+
+const handleGoToDetails = (asset: any) => {
+  vscode.postMessage({
+    command: "bruin.openAssetDetails",
+    payload: asset.path,
+  });
+  closePopup();
+};
+
+const handleClickOutside = (event: MouseEvent) => {
+  if (showPopup.value) {
+    closePopup();
+  }
+};
+
+onMounted(() => {
+  document.addEventListener("click", handleClickOutside);
+});
+
+onUnmounted(() => {
+  document.removeEventListener("click", handleClickOutside);
+});
 </script>
 <style scoped>
 .custom-node-wrapper {
