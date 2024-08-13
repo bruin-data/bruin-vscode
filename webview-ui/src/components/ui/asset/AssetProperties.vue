@@ -1,15 +1,18 @@
 <template>
   <div
     v-if="show"
-      :style="{
-        position: 'absolute',
-        zIndex: 9999
-      }"
-      class="bg-editor-bg border border-input-background b-[0.2px] rounded-md shadow-lg p-3 w-auto text-editor-fg -translate-x-8 -translate-y-24"
-      @click.stop
+    :style="{
+      position: 'absolute',
+      zIndex: 9999,
+    }"
+    class="bg-editor-bg border border-input-background b-[0.2px] rounded-md shadow-lg p-3 w-auto text-editor-fg -translate-x-8 -translate-y-24"
+    @click.stop
   >
     <div class="space-y-2">
-      <p > <span class="text-lg font-semibold">Name: </span> <span class="text-lg">{{ name }}</span></p>
+      <div class="flex items-center">
+        <span class="text-lg font-semibold whitespace-nowrap">Name: </span>
+        <span class="text-lg ml-1 truncate">{{ name }}</span>
+      </div>
       <p class="text-md flex items-center">
         Type:
         <span
@@ -46,6 +49,4 @@ const emit = defineEmits(["close", "goToDetails"]);
 const goToDetails = () => {
   emit("goToDetails", props);
 };
-
-
 </script>
