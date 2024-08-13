@@ -68,11 +68,18 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 
 ## Release Notes
-### Latest Release: 0.15.3
-### Fixed 
-- Fixed an issue where file modifications caused dates to reset. This update ensures that dates remain unchanged when switching assets and files, unless explicitly updated.
+
+### Latest Release: 0.16.0
+### Added
+- **Asset Details Popup:** Introduced a popup to display asset information and enable opening the asset text document in VSCode for additional details.
+
+### Enhanced
+- **Tooltip:** Added a tooltip that reveals the full asset name on hover over a node when the name is truncated.
 
 ### Previous Highlights
+### Version 0.15.3
+- Fixed an issue where file modifications caused dates to reset. This update ensures that dates remain unchanged when switching assets and files, unless explicitly updated.
+
 ### Version 0.15.2
 - Fixed an issue with the loading state in the lineage panel when no lineage data is available.
 

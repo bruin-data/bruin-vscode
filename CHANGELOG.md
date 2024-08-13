@@ -1,6 +1,11 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
+
+## [0.16.0] - [2024-08-13]
+- Introduced a popup to display asset information and enable opening the asset text document in VSCode for additional details.
+- Added a tooltip that reveals the full asset name on hover over a node when the name is truncated.
+
 ## [0.15.3] - [2024-08-08]
 - Resolved a problem where file modifications led to date resets. Dates will now stay consistent when switching assets or files, unless manually updated.
 
