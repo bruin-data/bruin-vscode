@@ -75,14 +75,7 @@
           "title": "Bruin",
           "icon": "$(graph)"
         }
-      ],
-      "activitybar": [
-				{
-					"id": "bruin-explorer",
-					"title": "Bruin Explorer",
-					"icon": "img/bruin-logo-sm128.png"
-				}
-			]
+      ]
     },
     "views": {
       "lineagePanel": [
@@ -91,16 +84,7 @@
           "id": "lineageView",
           "name": "Lineage Graph"
         }
-      ],
-      "bruin-explorer": [
-				{
-					"id": "bruinExplorer",
-          "type": "webview",
-					"name": "Bruin Explorer",
-					"icon": "img/bruin-logo-sm128.png",
-					"contextualTitle": "Bruin Explorer"
-				}
-			]
+      ]
     },
     "configuration": {
       "properties": {
@@ -192,6 +176,7 @@
       {
         "command": "bruin.installCli",
         "title": "Install Bruin CLI",
+        "category": "Bruin",
         "description": "Install the Bruin CLI."
       }
     ]

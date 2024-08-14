@@ -44,6 +44,7 @@
 import AssetDetails from "@/components/asset/AssetDetails.vue";
 import AssetLineageText from "@/components/lineage-text/AssetLineageText.vue";
 import AssetLineageFlow from "@/components/lineage-flow/asset-lineage/AssetLineage.vue";
+import BruinCLI from "@/components/bruin-cli/BruinCLI.vue";
 import { vscode } from "@/utilities/vscode";
 import { ref, onMounted, computed, nextTick, watch } from "vue";
 import { parseAssetDetails, parseEnvironmentList } from "./utilities/helper";
@@ -75,6 +76,7 @@ window.addEventListener("message", (event) => {
   switch (message.command) {
     case "init":
       panelType.value = message.panelType;
+      console.log("Panel Type", panelType.value);
       break;
     case "environments-list-message":
       environments.value = updateValue(message, "success");
@@ -158,6 +160,7 @@ const tabs = ref([
     })),
   },
   { label: "Asset Lineage", component: AssetLineageText, includeIn: ["bruin"] },
+  { label: "Bruin CLI", component: BruinCLI, includeIn: ["bruin"] },
   {
     label: "Lineage",
     component: AssetLineageFlow,
@@ -169,7 +172,6 @@ const tabs = ref([
       LineageError: lineageErr.value,
     },
   },
-  //{ label: "Pipeline Graph Lineage", component: PipelineLineage, includeIn: ["lineage"] },
 ]);
 
 const filteredTabs = computed(() =>

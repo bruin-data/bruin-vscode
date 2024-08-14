@@ -13,7 +13,6 @@ import { setupFoldingOnOpen, subscribeToConfigurationChanges } from "./configura
 import * as os from "os";
 import { renderCommand } from "./commands/renderCommand";
 import { LineagePanel } from "../panels/LineagePanel";
-import { BruinExplorerPanel } from "../panels/BruinExplorer";
 import { installOrUpdateCli } from "./commands/updateBruinCLI";
 
 export function activate(context: ExtensionContext) {
@@ -40,7 +39,6 @@ export function activate(context: ExtensionContext) {
   subscribeToConfigurationChanges();
 
   const lineageWebviewProvider = new LineagePanel(context.extensionUri);
-  const bruinExplorerWebviewProvider = new BruinExplorerPanel(context.extensionUri);
 
   // Register the folding range provider for Python and SQL files
   const foldingDisposable = languages.registerFoldingRangeProvider(["python", "sql"], {
@@ -55,7 +53,6 @@ export function activate(context: ExtensionContext) {
       installOrUpdateCli();
 }),
     foldingDisposable,
-    window.registerWebviewViewProvider(BruinExplorerPanel.viewId, bruinExplorerWebviewProvider),
     window.registerWebviewViewProvider(LineagePanel.viewId, lineageWebviewProvider)
   );
 
