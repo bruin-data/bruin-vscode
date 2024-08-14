@@ -151,3 +151,17 @@ export function isChangeInDependsSection(
     (changeEndOffset >= start && changeEndOffset <= end)
   );
 }
+
+/**
+ * Filter and concatenate flags for a command.
+ * 
+ * @param {string} flags - A space-separated string of flags.
+ * @param {string[]} excludeFlags - Flags to be excluded from the result.
+ * @returns {string[]} - An array of concatenated flags.
+ */
+export function prepareFlags(flags: string, excludeFlags: string[] = []): string[] {
+  const baseFlags = ['-o', 'json'];
+  const filteredFlags = flags.split(' ')
+                             .filter(flag => flag !== '' && !excludeFlags.includes(flag));
+  return baseFlags.concat(filteredFlags);
+}
