@@ -345,10 +345,51 @@ export class BruinPanel {
               return;
             }
             getEnvListCommand(this._lastRenderedDocumentUri);
+            break;
+          case "checkBruinCliInstallation":
+            this.checkAndUpdateBruinCliStatus();
+            break;
+
+          case "bruinInstallCLI":
+          case "bruinUpdateCLI":
+            await this.installOrUpdateBruinCli();
+            break;
         }
       },
       undefined,
       this._disposables
     );
+  }
+  private async checkAndUpdateBruinCliStatus() {
+    const isBruinCliInstalled = await this.checkIfBruinCliIsInstalled();
+    this._panel.webview.postMessage({
+      command: "bruinCliInstallationStatus",
+      installed: isBruinCliInstalled,
+    });
+  }
+
+  private async checkIfBruinCliIsInstalled(): Promise<boolean> {
+    // Implement the actual check.
+
+    try {
+      const bruinPath = getDefaultBruinExecutablePath();
+      if (!bruinPath) {
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error("Error checking Bruin CLI installation:", error);
+      return false;
+    }
+  }
+
+  private async installOrUpdateBruinCli() {
+    try {
+      await vscode.commands.executeCommand("bruin.installCli");
+      await this.checkAndUpdateBruinCliStatus();
+    } catch (error) {
+      console.error("Error installing/updating Bruin CLI:", error);
+      vscode.window.showErrorMessage("Failed to install/update Bruin CLI. Please try again.");
+    }
   }
 }
