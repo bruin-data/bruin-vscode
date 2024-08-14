@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.16.1] - [2024-08-14]
+- Resolved an issue where checking the push-metadata checkbox caused unnecessary re-renders in the SQL Preview.
+
 ## [0.16.0] - [2024-08-13]
 - Introduced a popup to display asset information and enable opening the asset text document in VSCode for additional details.
 - Added a tooltip that reveals the full asset name on hover over a node when the name is truncated.
