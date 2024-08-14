@@ -69,14 +69,14 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: 0.16.0
-### Added
-- **Asset Details Popup:** Introduced a popup to display asset information and enable opening the asset text document in VSCode for additional details.
-
-### Enhanced
-- **Tooltip:** Added a tooltip that reveals the full asset name on hover over a node when the name is truncated.
+### Latest Release: 0.16.1
+- Resolved an issue where checking the push-metadata checkbox caused unnecessary re-renders in the SQL Preview.
 
 ### Previous Highlights
+### Version 0.16.0
+- Introduced a popup to display asset information and enable opening the asset text document in VSCode for additional details.
+- Added a tooltip that reveals the full asset name on hover over a node when the name is truncated.
+
 ### Version 0.15.3
 - Fixed an issue where file modifications caused dates to reset. This update ensures that dates remain unchanged when switching assets and files, unless explicitly updated.
 
