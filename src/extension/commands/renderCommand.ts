@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { BruinPanel } from "../../panels/BruinPanel";
 import { BruinRender } from "../../bruin";
 import { getDefaultBruinExecutablePath } from "../configuration";
+import { prepareFlags } from "../../utilities/helperUtils";
 
 export const renderCommand = async (extensionUri: vscode.Uri) => {
   const activeEditor = vscode.window.activeTextEditor;
@@ -39,7 +40,7 @@ export const renderCommandWithFlags = async (flags: string, lastRenderedDocument
     );
 
     await bruinSqlRenderer.render(filePath, {
-      flags: ['-o', 'json'].concat(flags.split(" ").filter((flag) => flag !== "" && flag !== "--downstream")),
+      flags: prepareFlags(flags, ['--downstream', '--push-metadata']),
     });
   }
 };
