@@ -5,18 +5,16 @@ import {
   isFileExtensionSQL,
   isPythonBruinAsset,
   isBruinPipeline,
-  isYamlBruinAsset,
   isBruinYaml,
-  isBruinAsset,
   encodeHTML,
   removeAnsiColors,
   processLineageData,
-  getDependsSectionOffsets,
-  isChangeInDependsSection,
   getFileExtension,
 } from "../utilities/helperUtils";
 import * as fs from "fs";
 import path = require("path");
+import sinon = require("sinon");
+const proxyquire = require('proxyquire').noCallThru();
 
 suite("Extension Initialization", () => {
   test("should set default path separator based on platform", async () => {
@@ -98,6 +96,75 @@ suite("Render Command Helper functions", () => {
   test("processLineageData should extract the name property", () => {
     const lineageString = { name: "example-name" };
     assert.strictEqual(processLineageData(lineageString), "example-name");
+  });
+});
+suite('checkBruinCliInstallation Tests', function() {
+  const execMock = sinon.stub();
+  let osStub: sinon.SinonStub<[], string>;
+  let execAsyncStub: sinon.SinonStub<[string], Promise<{ stdout: string; stderr: string }>>;
+
+  setup(function() {
+    osStub = sinon.stub(os, 'platform');
+    execAsyncStub = sinon.stub();
+  });
+
+  teardown(function() {
+    sinon.restore();
+  });
+
+  const { checkBruinCliInstallation } = proxyquire('../bruin/bruinUtils', {
+    'os': { platform: () => osStub() },
+    'util': { promisify: () => () => execAsyncStub },
+    'child_process': { exec: execMock },
+  });
+
+  test('Should return installed true on non-Windows when bruin is installed', async function() {
+    osStub.returns('darwin');
+    execAsyncStub.withArgs('bruin --version').resolves();
+
+    const result = await checkBruinCliInstallation();
+    assert.deepStrictEqual(result, { installed: true, isWindows: false, goInstalled: false });
+  });
+
+  test('Should return installed false on non-Windows when bruin is not installed', async function() {
+    osStub.returns('darwin');
+    execAsyncStub.withArgs('bruin --version').rejects("Command failed: bruin --version");
+
+    const result = await checkBruinCliInstallation();
+    assert.deepStrictEqual(result, { installed: false, isWindows: false, goInstalled: false });
+  });
+
+  test('Should return installed false on non-Windows when bruin is not installed', async function() {
+    osStub.returns('linux');
+    execMock.withArgs('bruin --version').yields(new Error('Command not found')); // Simulate failure
+    const result = await checkBruinCliInstallation();
+    assert.deepStrictEqual(result, { installed: false, isWindows: false, goInstalled: false });
+  });
+
+  test('Should return correct values on Windows when bruin is installed', async function() {
+    osStub.returns('win32');
+    execAsyncStub.withArgs('bruin --version').resolves();
+
+    const result = await checkBruinCliInstallation();
+    assert.deepStrictEqual(result, { installed: true, isWindows: true, goInstalled: false });
+  });
+
+  test('Should check for Go on Windows when bruin is not installed', async function() {
+    osStub.returns('win32');
+    execAsyncStub.withArgs('bruin --version').rejects();
+    execAsyncStub.withArgs('go version').resolves();
+
+    const result = await checkBruinCliInstallation();
+    assert.deepStrictEqual(result, { installed: false, isWindows: true, goInstalled: true });
+  });
+
+  test('Should return goInstalled false on Windows when neither bruin nor Go are installed', async function() {
+    osStub.returns('win32');
+    execAsyncStub.withArgs('bruin --version').rejects();
+    execAsyncStub.withArgs('go version').rejects();
+
+    const result = await checkBruinCliInstallation();
+    assert.deepStrictEqual(result, { installed: false, isWindows: true, goInstalled: false });
   });
 });
 

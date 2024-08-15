@@ -143,21 +143,28 @@ export async function checkBruinCliInstallation(): Promise<{ installed: boolean;
   let installed = false;
   let goInstalled = false;
 
+  console.log('Platform:', os.platform()); // Debugging log
+
   try {
     await execAsync('bruin --version');
     installed = true;
-  } catch (error) {
+    console.log('Bruin is installed');
+  } catch (error: any ) {
     installed = false;
+    console.error('Error checking Bruin installation:', error.message); // Log the error message
   }
 
   if (isWindows && !installed) {
     try {
       await execAsync('go version');
       goInstalled = true;
-    } catch (error) {
+      console.log('Go is installed on Windows');
+    } catch (error: any) {
       goInstalled = false;
+      console.error('Error checking Go installation:', error.message); // Log the error message
     }
   }
 
+  console.log({ installed, isWindows, goInstalled }); // Debugging log
   return { installed, isWindows, goInstalled };
 }
