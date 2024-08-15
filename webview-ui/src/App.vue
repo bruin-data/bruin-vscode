@@ -2,7 +2,7 @@
   <vscode-panels :activeid="`tab-${activeTab}`" aria-label="Tabbed Content">
     <!-- Tab Headers -->
     <vscode-panel-tab
-      v-for="(tab, index) in filteredTabs"
+      v-for="(tab, index) in visibleTabs"
       :key="`tab-${index}`"
       :id="`tab-${index}`"
       @click="activeTab = index"
@@ -21,7 +21,7 @@
 
     <!-- Tab Content -->
     <vscode-panel-view
-      v-for="(tab, index) in filteredTabs"
+      v-for="(tab, index) in visibleTabs"
       :key="`view-${index}`"
       :id="`view-${index}`"
       v-show="activeTab === index"
@@ -69,6 +69,7 @@ const data = ref(
     },
   })
 );
+const isBruinInstalled = ref(false);
 const lineageData = ref();
 const lineageError = ref();
 window.addEventListener("message", (event) => {
@@ -89,19 +90,14 @@ window.addEventListener("message", (event) => {
       data.value = updateValue(message, "success");
       parseError.value = updateValue(message, "error");
       break;
+    case "bruinCliInstallationStatus":
+      isBruinInstalled.value = message.installed;
+      break;
     case "flow-lineage-message":
       console.log("Flow Lineage Data Message", message);
       lineageData.value = updateValue(message, "success");
       lineageError.value = updateValue(message, "error");
       console.log("Lineage Data ERR from webview", lineageError.value);
-      // Add this line to ensure the graph updates
-      if (activeTab.value === tabs.value.findIndex((tab) => tab.label === "Lineage")) {
-        nextTick(() => {
-          // Force re-render of the AssetLineageFlow component
-          tabs.value = [...tabs.value];
-        });
-      }
-      break;
   }
 });
 
@@ -133,7 +129,7 @@ const pipeline = computed(() => {
 });
 
 const lineageErr = computed(() => {
-  if(!lineageError.value) return null;
+  if (!lineageError.value) return null;
   return lineageError.value;
 });
 const assetName = computed(() => {
@@ -174,15 +170,23 @@ const tabs = ref([
   },
 ]);
 
-const filteredTabs = computed(() =>
-  tabs.value.filter((tab) => tab.includeIn.includes(panelType.value))
-);
+const visibleTabs = computed(() => {
+  if (!isBruinInstalled.value) {
+    return tabs.value.filter((tab) => tab.includeIn.includes("bruin") && tab.label === "Bruin CLI");
+  }
+  return tabs.value.filter((tab) => tab.includeIn.includes(panelType.value));
+});
 
 onMounted(() => {
   loadLineageData();
   loadAssetData();
   loadEnvironmentsList();
+  checkBruinCliInstallation();
 });
+
+function checkBruinCliInstallation() {
+  vscode.postMessage({ command: "checkBruinCliInstallation" });
+}
 
 const debounce = (func, wait) => {
   let timeout;
@@ -195,9 +199,16 @@ const debounce = (func, wait) => {
     timeout = setTimeout(later, wait);
   };
 };
-watch(() => [assetDataset, pipeline], ([newAssetDataset, newPipeline]) => {
-  console.log('Asset dataset or pipeline changed:', { assetDataset: newAssetDataset, pipeline: newPipeline });
-}, { deep: true });
+watch(
+  () => [assetDataset, pipeline],
+  ([newAssetDataset, newPipeline]) => {
+    console.log("Asset dataset or pipeline changed:", {
+      assetDataset: newAssetDataset,
+      pipeline: newPipeline,
+    });
+  },
+  { deep: true }
+);
 // Updated refreshGraphLineage function
 const refreshGraphLineage = debounce((event: Event) => {
   event.stopPropagation(); // Prevent event bubbling
