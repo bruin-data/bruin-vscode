@@ -1,5 +1,9 @@
 import { BRUIN_RUN_SQL_COMMAND, BRUIN_WHERE_COMMAND, BRUIN_WHICH_COMMAND } from "../constants";
 
+import * as os from 'os';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
 // eslint-disable-next-line @typescript-eslint/naming-convention
 import * as child_process from "child_process";
 import * as fs from "fs";
@@ -129,3 +133,31 @@ export const runInIntegratedTerminal = async (
   terminal.sendText(command);
   await new Promise((resolve) => setTimeout(resolve, 1000));
 };
+
+
+
+const execAsync = promisify(exec);
+
+export async function checkBruinCliInstallation(): Promise<{ installed: boolean; isWindows: boolean; goInstalled: boolean }> {
+  const isWindows = os.platform() === 'win32';
+  let installed = false;
+  let goInstalled = false;
+
+  try {
+    await execAsync('bruin --version');
+    installed = true;
+  } catch (error) {
+    installed = false;
+  }
+
+  if (isWindows && !installed) {
+    try {
+      await execAsync('go version');
+      goInstalled = true;
+    } catch (error) {
+      goInstalled = false;
+    }
+  }
+
+  return { installed, isWindows, goInstalled };
+}

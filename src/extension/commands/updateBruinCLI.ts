@@ -1,8 +1,8 @@
-
-import * as vscode from "vscode";
 import { BruinInstallCLI } from "../../bruin/bruinInstallCli";
+import { checkBruinCliInstallation } from "../../bruin";
 
 export const installOrUpdateCli = async () => {
-      const bruinUpgradeOrInstallCli = new BruinInstallCLI();
-      await bruinUpgradeOrInstallCli.installOrUpdate();
-  };
+  const bruinInstaller = new BruinInstallCLI();
+  const isInstalled = await checkBruinCliInstallation();
+  await bruinInstaller.installOrUpdate(isInstalled.installed);
+};
