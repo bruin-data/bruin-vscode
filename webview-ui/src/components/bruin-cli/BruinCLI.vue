@@ -1,26 +1,65 @@
-<template>
+<!-- <template>
   <div class="flex flex-col h-full w-full text-editor-fg">
     <div class="flex flex-col p-2 space-y-2">
-      <div v-if="!isBruinCliInstalled" class="flex flex-col space-y-3">
-        <h2 class="text-lg font-semibold">Install Bruin CLI</h2>
+      <h2 class="text-lg font-semibold">
+        {{ isBruinCliInstalled ? "Update" : "Install" }} Bruin CLI
+      </h2>
+      <p class="text-sm">
+        {{
+          isBruinCliInstalled
+            ? "Keep your Bruin CLI up-to-date to ensure you have the latest features and improvements."
+            : "Bruin CLI needs to be installed to use the full features of the Bruin Extension."
+        }}
+      </p>
+      <template v-if="isWindows && !isBruinCliInstalled && !goInstalled">
         <p class="text-sm">
-          Bruin CLI needs to be installed to use the full features of the Bruin Extension.
+          Go is required to install Bruin CLI on Windows. Please install Go first.
+          <a href="https://golang.org/doc/install" target="_blank">Go installation guide</a>
         </p>
-        <vscode-button @click="installBruinCli" class="self-center">Install Bruin CLI</vscode-button>
-      </div>
-      <div v-else class="flex flex-col space-y-3">
-        <h2 class="text-lg font-semibold">Update Bruin CLI</h2>
-        <p class="text-sm">
-          Keep your Bruin CLI up-to-date to ensure you have the latest features and improvements.
-        </p>
-        <vscode-button @click="updateBruinCli" class="self-center">Update Bruin CLI</vscode-button>
-      </div>
+      </template>
+      <vscode-button v-else @click="installOrUpdateBruinCli" class="self-center">
+        {{ isBruinCliInstalled ? "Update" : "Install" }} Bruin CLI
+      </vscode-button>
     </div>
-    
-    <vscode-divider role="separator"></vscode-divider>
-    
-    <div class="flex-grow p-4">
-      <!-- Additional content can go here -->
+  </div>
+</template> -->
+
+<template>
+  <div class="bg-editorWidget-bg shadow sm:rounded-lg">
+    <div class="px-4 py-5 sm:p-6">
+      <h3 class="text-base font-semibold leading-6 text-editor-fg">
+        {{ isBruinCliInstalled ? "Update" : "Install" }} Bruin CLI
+      </h3>
+      <div class="mt-2 max-w-xl text-sm text-editor-fg">
+        <p>
+          {{
+            isBruinCliInstalled
+              ? "Keep your Bruin CLI up-to-date to ensure you have the latest features and improvements."
+              : "Bruin CLI needs to be installed to use the full features of the Bruin Extension."
+          }}
+        </p>
+      </div>
+      <div class="mt-5">
+        <template v-if="isWindows && !isBruinCliInstalled && !goInstalled">
+          <div class="mt-3 text-sm leading-6">
+            <a
+              href="https://golang.org/doc/install"
+              class="font-semibold text-editorLink-activeFg  hover:text-link-activeForeground"
+            >
+              Go is required to install Bruin CLI on Windows. Please install Go first.
+              <span aria-hidden="true"> &rarr;</span>
+            </a>
+          </div>
+        </template>
+
+        <vscode-button
+          v-else
+          @click="installOrUpdateBruinCli"
+          class="inline-flex items-center rounded-md px-3 py-2 text-sm font-semibold shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+        >
+          {{ isBruinCliInstalled ? "Update" : "Install" }} Bruin CLI
+        </vscode-button>
+      </div>
     </div>
   </div>
 </template>
@@ -30,15 +69,18 @@ import { ref, onMounted } from "vue";
 import { vscode } from "@/utilities/vscode";
 
 const isBruinCliInstalled = ref(false);
+const isWindows = ref(false);
+const goInstalled = ref(false);
 
 onMounted(() => {
   checkBruinCliInstallation();
 
   window.addEventListener("message", (event) => {
     const message = event.data;
-    console.log("Message received in Vue component:", message);
     if (message.command === "bruinCliInstallationStatus") {
       isBruinCliInstalled.value = message.installed;
+      isWindows.value = message.isWindows;
+      goInstalled.value = message.goInstalled;
     }
   });
 });
@@ -47,11 +89,7 @@ function checkBruinCliInstallation() {
   vscode.postMessage({ command: "checkBruinCliInstallation" });
 }
 
-function installBruinCli() {
-  vscode.postMessage({ command: "bruinInstallCLI" });
-}
-
-function updateBruinCli() {
-  vscode.postMessage({ command: "bruinUpdateCLI" });
+function installOrUpdateBruinCli() {
+  vscode.postMessage({ command: "bruinInstallOrUpdateCLI" });
 }
 </script>
