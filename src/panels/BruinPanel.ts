@@ -4,7 +4,9 @@ import { getNonce } from "../utilities/getNonce";
 import {
   BruinValidate,
   bruinWorkspaceDirectory,
+  checkBruinCliInstallation,
   getCurrentPipelinePath,
+  isBruinBinaryAvailable,
   runInIntegratedTerminal,
 } from "../bruin";
 import { getDefaultBruinExecutablePath } from "../extension/configuration";
@@ -13,6 +15,7 @@ import { renderCommand, renderCommandWithFlags } from "../extension/commands/ren
 import { lineageCommand } from "../extension/commands/lineageCommand";
 import { parseAssetCommand } from "../extension/commands/parseAssetCommand";
 import { getEnvListCommand } from "../extension/commands/getEnvListCommand";
+import { BruinInstallCLI } from "../bruin/bruinInstallCli";
 
 /**
  * This class manages the state and behavior of Bruin webview panels.
@@ -350,8 +353,11 @@ export class BruinPanel {
             this.checkAndUpdateBruinCliStatus();
             break;
 
-          case "bruinInstallCLI":
-          case "bruinUpdateCLI":
+          case "checkBruinCliInstallation":
+            await this.checkAndUpdateBruinCliStatus();
+            break;
+
+          case "bruinInstallOrUpdateCLI":
             await this.installOrUpdateBruinCli();
             break;
         }
@@ -361,31 +367,20 @@ export class BruinPanel {
     );
   }
   private async checkAndUpdateBruinCliStatus() {
-    const isBruinCliInstalled = await this.checkIfBruinCliIsInstalled();
+    const { installed, isWindows, goInstalled } = await checkBruinCliInstallation();
     this._panel.webview.postMessage({
       command: "bruinCliInstallationStatus",
-      installed: isBruinCliInstalled,
+      installed,
+      isWindows,
+      goInstalled
     });
-  }
-
-  private async checkIfBruinCliIsInstalled(): Promise<boolean> {
-    // Implement the actual check.
-
-    try {
-      const bruinPath = getDefaultBruinExecutablePath();
-      if (!bruinPath) {
-        return false;
-      }
-      return true;
-    } catch (error) {
-      console.error("Error checking Bruin CLI installation:", error);
-      return false;
-    }
   }
 
   private async installOrUpdateBruinCli() {
     try {
-      await vscode.commands.executeCommand("bruin.installCli");
+      const bruinInstaller = new BruinInstallCLI();
+      const { installed } = await checkBruinCliInstallation();
+      await bruinInstaller.installOrUpdate(installed);
       await this.checkAndUpdateBruinCliStatus();
     } catch (error) {
       console.error("Error installing/updating Bruin CLI:", error);
