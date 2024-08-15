@@ -46,7 +46,7 @@ import AssetLineageText from "@/components/lineage-text/AssetLineageText.vue";
 import AssetLineageFlow from "@/components/lineage-flow/asset-lineage/AssetLineage.vue";
 import BruinCLI from "@/components/bruin-cli/BruinCLI.vue";
 import { vscode } from "@/utilities/vscode";
-import { ref, onMounted, computed, nextTick, watch } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import { parseAssetDetails, parseEnvironmentList } from "./utilities/helper";
 import { updateValue } from "./utilities/helper";
 import MessageAlert from "@/components/ui/alerts/AlertMessage.vue";
@@ -69,7 +69,7 @@ const data = ref(
     },
   })
 );
-const isBruinInstalled = ref(false);
+const isBruinInstalled = ref(true);
 const lineageData = ref();
 const lineageError = ref();
 window.addEventListener("message", (event) => {
@@ -171,8 +171,11 @@ const tabs = ref([
 ]);
 
 const visibleTabs = computed(() => {
-  if (!isBruinInstalled.value) {
-    return tabs.value.filter((tab) => tab.includeIn.includes("bruin") && tab.label === "Bruin CLI");
+
+  if (panelType.value === "bruin" ) {
+    if (!isBruinInstalled.value ) {
+      return tabs.value.filter((tab) => tab.includeIn.includes("bruin") && tab.label === "Bruin CLI");;
+    }
   }
   return tabs.value.filter((tab) => tab.includeIn.includes(panelType.value));
 });
