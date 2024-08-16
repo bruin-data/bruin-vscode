@@ -55,7 +55,7 @@
         <vscode-button
           v-else
           @click="installOrUpdateBruinCli"
-          class="inline-flex items-center rounded-md px-3 py-2 text-sm font-semibold shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+          class="inline-flex items-center rounded-md px-3 py-2 text-sm font-semibold shadow-sm"
         >
           {{ isBruinCliInstalled ? "Update" : "Install" }} Bruin CLI
         </vscode-button>
