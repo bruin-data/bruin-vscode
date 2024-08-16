@@ -2,7 +2,7 @@
   <vscode-panels :activeid="`tab-${activeTab}`" aria-label="Tabbed Content">
     <!-- Tab Headers -->
     <vscode-panel-tab
-      v-for="(tab, index) in filteredTabs"
+      v-for="(tab, index) in visibleTabs"
       :key="`tab-${index}`"
       :id="`tab-${index}`"
       @click="activeTab = index"
@@ -21,7 +21,7 @@
 
     <!-- Tab Content -->
     <vscode-panel-view
-      v-for="(tab, index) in filteredTabs"
+      v-for="(tab, index) in visibleTabs"
       :key="`view-${index}`"
       :id="`view-${index}`"
       v-show="activeTab === index"
@@ -44,8 +44,9 @@
 import AssetDetails from "@/components/asset/AssetDetails.vue";
 import AssetLineageText from "@/components/lineage-text/AssetLineageText.vue";
 import AssetLineageFlow from "@/components/lineage-flow/asset-lineage/AssetLineage.vue";
+import BruinCLI from "@/components/bruin-cli/BruinCLI.vue";
 import { vscode } from "@/utilities/vscode";
-import { ref, onMounted, computed, nextTick, watch } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import { parseAssetDetails, parseEnvironmentList } from "./utilities/helper";
 import { updateValue } from "./utilities/helper";
 import MessageAlert from "@/components/ui/alerts/AlertMessage.vue";
@@ -68,6 +69,7 @@ const data = ref(
     },
   })
 );
+const isBruinInstalled = ref(true);
 const lineageData = ref();
 const lineageError = ref();
 window.addEventListener("message", (event) => {
@@ -75,6 +77,7 @@ window.addEventListener("message", (event) => {
   switch (message.command) {
     case "init":
       panelType.value = message.panelType;
+      console.log("Panel Type", panelType.value);
       break;
     case "environments-list-message":
       environments.value = updateValue(message, "success");
@@ -87,19 +90,14 @@ window.addEventListener("message", (event) => {
       data.value = updateValue(message, "success");
       parseError.value = updateValue(message, "error");
       break;
+    case "bruinCliInstallationStatus":
+      isBruinInstalled.value = message.installed;
+      break;
     case "flow-lineage-message":
       console.log("Flow Lineage Data Message", message);
       lineageData.value = updateValue(message, "success");
       lineageError.value = updateValue(message, "error");
       console.log("Lineage Data ERR from webview", lineageError.value);
-      // Add this line to ensure the graph updates
-      if (activeTab.value === tabs.value.findIndex((tab) => tab.label === "Lineage")) {
-        nextTick(() => {
-          // Force re-render of the AssetLineageFlow component
-          tabs.value = [...tabs.value];
-        });
-      }
-      break;
   }
 });
 
@@ -131,7 +129,7 @@ const pipeline = computed(() => {
 });
 
 const lineageErr = computed(() => {
-  if(!lineageError.value) return null;
+  if (!lineageError.value) return null;
   return lineageError.value;
 });
 const assetName = computed(() => {
@@ -158,6 +156,7 @@ const tabs = ref([
     })),
   },
   { label: "Asset Lineage", component: AssetLineageText, includeIn: ["bruin"] },
+  { label: "Bruin CLI", component: BruinCLI, includeIn: ["bruin"] },
   {
     label: "Lineage",
     component: AssetLineageFlow,
@@ -169,18 +168,28 @@ const tabs = ref([
       LineageError: lineageErr.value,
     },
   },
-  //{ label: "Pipeline Graph Lineage", component: PipelineLineage, includeIn: ["lineage"] },
 ]);
 
-const filteredTabs = computed(() =>
-  tabs.value.filter((tab) => tab.includeIn.includes(panelType.value))
-);
+const visibleTabs = computed(() => {
+
+  if (panelType.value === "bruin" ) {
+    if (!isBruinInstalled.value ) {
+      return tabs.value.filter((tab) => tab.includeIn.includes("bruin") && tab.label === "Bruin CLI");;
+    }
+  }
+  return tabs.value.filter((tab) => tab.includeIn.includes(panelType.value));
+});
 
 onMounted(() => {
   loadLineageData();
   loadAssetData();
   loadEnvironmentsList();
+  checkBruinCliInstallation();
 });
+
+function checkBruinCliInstallation() {
+  vscode.postMessage({ command: "checkBruinCliInstallation" });
+}
 
 const debounce = (func, wait) => {
   let timeout;
@@ -193,9 +202,16 @@ const debounce = (func, wait) => {
     timeout = setTimeout(later, wait);
   };
 };
-watch(() => [assetDataset, pipeline], ([newAssetDataset, newPipeline]) => {
-  console.log('Asset dataset or pipeline changed:', { assetDataset: newAssetDataset, pipeline: newPipeline });
-}, { deep: true });
+watch(
+  () => [assetDataset, pipeline],
+  ([newAssetDataset, newPipeline]) => {
+    console.log("Asset dataset or pipeline changed:", {
+      assetDataset: newAssetDataset,
+      pipeline: newPipeline,
+    });
+  },
+  { deep: true }
+);
 // Updated refreshGraphLineage function
 const refreshGraphLineage = debounce((event: Event) => {
   event.stopPropagation(); // Prevent event bubbling

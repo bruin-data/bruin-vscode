@@ -1,5 +1,9 @@
 import { BRUIN_RUN_SQL_COMMAND, BRUIN_WHERE_COMMAND, BRUIN_WHICH_COMMAND } from "../constants";
 
+import * as os from 'os';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
 // eslint-disable-next-line @typescript-eslint/naming-convention
 import * as child_process from "child_process";
 import * as fs from "fs";
@@ -129,3 +133,38 @@ export const runInIntegratedTerminal = async (
   terminal.sendText(command);
   await new Promise((resolve) => setTimeout(resolve, 1000));
 };
+
+
+
+const execAsync = promisify(exec);
+
+export async function checkBruinCliInstallation(): Promise<{ installed: boolean; isWindows: boolean; goInstalled: boolean }> {
+  const isWindows = os.platform() === 'win32';
+  let installed = false;
+  let goInstalled = false;
+
+  console.log('Platform:', os.platform()); // Debugging log
+
+  try {
+    await execAsync('bruin --version');
+    installed = true;
+    console.log('Bruin is installed');
+  } catch (error: any ) {
+    installed = false;
+    console.error('Error checking Bruin installation:', error.message); // Log the error message
+  }
+
+  if (isWindows && !installed) {
+    try {
+      await execAsync('go version');
+      goInstalled = true;
+      console.log('Go is installed on Windows');
+    } catch (error: any) {
+      goInstalled = false;
+      console.error('Error checking Go installation:', error.message); // Log the error message
+    }
+  }
+
+  console.log({ installed, isWindows, goInstalled }); // Debugging log
+  return { installed, isWindows, goInstalled };
+}

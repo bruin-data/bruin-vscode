@@ -72,7 +72,7 @@
       "panel": [
         {
           "id": "lineagePanel",
-          "title": "Bruin",
+          "title": "Lineage",
           "icon": "$(graph)"
         }
       ]
@@ -172,6 +172,12 @@
         "command": "bruin.runSQL",
         "title": "Run Bruin asset",
         "description": "Run the current Bruin asset."
+      },
+      {
+        "command": "bruin.installCli",
+        "title": "Install Bruin CLI",
+        "category": "Bruin",
+        "description": "Install the Bruin CLI."
       }
     ]
   },
@@ -211,6 +217,7 @@
     "elkjs": "^0.9.3",
     "luxon": "^3.4.4",
     "markdown-it": "^14.1.0",
+    "proxyquire": "^2.1.3",
     "sinon": "^17.0.1"
   }
 }

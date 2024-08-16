@@ -13,12 +13,10 @@ import { setupFoldingOnOpen, subscribeToConfigurationChanges } from "./configura
 import * as os from "os";
 import { renderCommand } from "./commands/renderCommand";
 import { LineagePanel } from "../panels/LineagePanel";
+import { installOrUpdateCli } from "./commands/updateBruinCLI";
 
 export function activate(context: ExtensionContext) {
-  if (!isBruinBinaryAvailable()) {
-    window.showErrorMessage("Bruin is not installed");
-    return;
-  }
+
 
   const yamlSelector = [
     { language: "yaml", scheme: "file" },
@@ -48,6 +46,9 @@ export function activate(context: ExtensionContext) {
     commands.registerCommand("bruin.renderSQL", () => {
       renderCommand(context.extensionUri);
     }),
+    commands.registerCommand("bruin.installCli", () => {
+      installOrUpdateCli();
+}),
     foldingDisposable,
     window.registerWebviewViewProvider(LineagePanel.viewId, lineageWebviewProvider)
   );

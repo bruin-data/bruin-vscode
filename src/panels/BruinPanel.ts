@@ -4,7 +4,9 @@ import { getNonce } from "../utilities/getNonce";
 import {
   BruinValidate,
   bruinWorkspaceDirectory,
+  checkBruinCliInstallation,
   getCurrentPipelinePath,
+  isBruinBinaryAvailable,
   runInIntegratedTerminal,
 } from "../bruin";
 import { getDefaultBruinExecutablePath } from "../extension/configuration";
@@ -13,6 +15,7 @@ import { renderCommand, renderCommandWithFlags } from "../extension/commands/ren
 import { lineageCommand } from "../extension/commands/lineageCommand";
 import { parseAssetCommand } from "../extension/commands/parseAssetCommand";
 import { getEnvListCommand } from "../extension/commands/getEnvListCommand";
+import { BruinInstallCLI } from "../bruin/bruinInstallCli";
 
 /**
  * This class manages the state and behavior of Bruin webview panels.
@@ -345,10 +348,43 @@ export class BruinPanel {
               return;
             }
             getEnvListCommand(this._lastRenderedDocumentUri);
+            break;
+          case "checkBruinCliInstallation":
+            this.checkAndUpdateBruinCliStatus();
+            break;
+
+          case "checkBruinCliInstallation":
+            await this.checkAndUpdateBruinCliStatus();
+            break;
+
+          case "bruinInstallOrUpdateCLI":
+            await this.installOrUpdateBruinCli();
+            break;
         }
       },
       undefined,
       this._disposables
     );
+  }
+  private async checkAndUpdateBruinCliStatus() {
+    const { installed, isWindows, goInstalled } = await checkBruinCliInstallation();
+    this._panel.webview.postMessage({
+      command: "bruinCliInstallationStatus",
+      installed,
+      isWindows,
+      goInstalled
+    });
+  }
+
+  private async installOrUpdateBruinCli() {
+    try {
+      const bruinInstaller = new BruinInstallCLI();
+      const { installed } = await checkBruinCliInstallation();
+      await bruinInstaller.installOrUpdate(installed);
+      await this.checkAndUpdateBruinCliStatus();
+    } catch (error) {
+      console.error("Error installing/updating Bruin CLI:", error);
+      vscode.window.showErrorMessage("Failed to install/update Bruin CLI. Please try again.");
+    }
   }
 }
