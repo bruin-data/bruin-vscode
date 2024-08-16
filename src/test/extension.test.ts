@@ -16,6 +16,7 @@ import path = require("path");
 import sinon = require("sinon");
 const proxyquire = require('proxyquire').noCallThru();
 
+
 suite("Extension Initialization", () => {
   test("should set default path separator based on platform", async () => {
     // Determine the expected path separator based on the current platform
@@ -99,28 +100,31 @@ suite("Render Command Helper functions", () => {
   });
 });
 suite('checkBruinCliInstallation Tests', function() {
-  const execMock = sinon.stub();
   let osStub: sinon.SinonStub<[], string>;
   let execAsyncStub: sinon.SinonStub<[string], Promise<{ stdout: string; stderr: string }>>;
+  let promisifyStub: sinon.SinonStub;
+  let checkBruinCliInstallation: any;
 
   setup(function() {
     osStub = sinon.stub(os, 'platform');
     execAsyncStub = sinon.stub();
+    promisifyStub = sinon.stub().returns(execAsyncStub);
+
+    const proxyquire = require('proxyquire');
+    ({ checkBruinCliInstallation } = proxyquire('../bruin/bruinUtils', {
+      'os': { platform: () => osStub() },
+      'util': { promisify: promisifyStub },
+      'child_process': { exec: sinon.stub() },
+    }));
   });
 
   teardown(function() {
     sinon.restore();
   });
 
-  const { checkBruinCliInstallation } = proxyquire('../bruin/bruinUtils', {
-    'os': { platform: () => osStub() },
-    'util': { promisify: () => () => execAsyncStub },
-    'child_process': { exec: execMock },
-  });
-
   test('Should return installed true on non-Windows when bruin is installed', async function() {
     osStub.returns('darwin');
-    execAsyncStub.withArgs('bruin --version').resolves();
+    execAsyncStub.withArgs('bruin --version').resolves({ stdout: 'version info', stderr: '' });
 
     const result = await checkBruinCliInstallation();
     assert.deepStrictEqual(result, { installed: true, isWindows: false, goInstalled: false });
@@ -128,7 +132,7 @@ suite('checkBruinCliInstallation Tests', function() {
 
   test('Should return installed false on non-Windows when bruin is not installed', async function() {
     osStub.returns('darwin');
-    execAsyncStub.withArgs('bruin --version').rejects("Command failed: bruin --version");
+    execAsyncStub.withArgs('bruin --version').rejects(new Error("Command failed: bruin --version"));
 
     const result = await checkBruinCliInstallation();
     assert.deepStrictEqual(result, { installed: false, isWindows: false, goInstalled: false });
@@ -136,14 +140,15 @@ suite('checkBruinCliInstallation Tests', function() {
 
   test('Should return installed false on non-Windows when bruin is not installed', async function() {
     osStub.returns('linux');
-    execMock.withArgs('bruin --version').yields(new Error('Command not found')); // Simulate failure
+    execAsyncStub.withArgs('bruin --version').rejects(new Error('Command not found'));
+    
     const result = await checkBruinCliInstallation();
     assert.deepStrictEqual(result, { installed: false, isWindows: false, goInstalled: false });
   });
 
   test('Should return correct values on Windows when bruin is installed', async function() {
     osStub.returns('win32');
-    execAsyncStub.withArgs('bruin --version').resolves();
+    execAsyncStub.withArgs('bruin --version').resolves({ stdout: 'version info', stderr: '' });
 
     const result = await checkBruinCliInstallation();
     assert.deepStrictEqual(result, { installed: true, isWindows: true, goInstalled: false });
@@ -151,8 +156,8 @@ suite('checkBruinCliInstallation Tests', function() {
 
   test('Should check for Go on Windows when bruin is not installed', async function() {
     osStub.returns('win32');
-    execAsyncStub.withArgs('bruin --version').rejects();
-    execAsyncStub.withArgs('go version').resolves();
+    execAsyncStub.withArgs('bruin --version').rejects(new Error('Command not found'));
+    execAsyncStub.withArgs('go version').resolves({ stdout: 'go version info', stderr: '' });
 
     const result = await checkBruinCliInstallation();
     assert.deepStrictEqual(result, { installed: false, isWindows: true, goInstalled: true });
@@ -160,8 +165,8 @@ suite('checkBruinCliInstallation Tests', function() {
 
   test('Should return goInstalled false on Windows when neither bruin nor Go are installed', async function() {
     osStub.returns('win32');
-    execAsyncStub.withArgs('bruin --version').rejects();
-    execAsyncStub.withArgs('go version').rejects();
+    execAsyncStub.withArgs('bruin --version').rejects(new Error('Command not found'));
+    execAsyncStub.withArgs('go version').rejects(new Error('Command not found'));
 
     const result = await checkBruinCliInstallation();
     assert.deepStrictEqual(result, { installed: false, isWindows: true, goInstalled: false });
