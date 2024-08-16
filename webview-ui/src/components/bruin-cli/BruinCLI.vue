@@ -67,3 +67,10 @@ function installOrUpdateBruinCli() {
   vscode.postMessage({ command: "bruinInstallOrUpdateCLI" });
 }
 </script>
+
+<style scoped>
+vscode-button::part(control) {
+  border: none;
+  outline: none;
+}
+</style>
