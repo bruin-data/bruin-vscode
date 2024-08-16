@@ -72,7 +72,7 @@
       "panel": [
         {
           "id": "lineagePanel",
-          "title": "Bruin",
+          "title": "Lineage",
           "icon": "$(graph)"
         }
       ]
