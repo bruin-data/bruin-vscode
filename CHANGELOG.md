@@ -2,6 +2,12 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.17.0] - [2024-08-14]
+
+- New Bruin CLI management tab in the side panel for installing or updating the CLI.
+- Windows-specific check for Go, with a link to documentation if Go is not installed.
+- Renamed "Bruin" panel to "Lineage" for improved clarity.
+
 ## [0.16.1] - [2024-08-14]
 - Resolved an issue where checking the push-metadata checkbox caused unnecessary re-renders in the SQL Preview.
 

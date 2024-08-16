@@ -69,10 +69,18 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: 0.16.1
-- Resolved an issue where checking the push-metadata checkbox caused unnecessary re-renders in the SQL Preview.
+### Latest Release: 0.17.0
+### Added
+- New Bruin CLI management tab in the side panel for easy installation and updates.
+- Windows-specific Go check, with a link to documentation if Go is missing.
+
+### Enhanced
+- Renamed the "Bruin" panel to "Lineage" for better clarity.
 
 ### Previous Highlights
+### Version 0.16.1
+- Resolved an issue where checking the push-metadata checkbox caused unnecessary re-renders in the SQL Preview.
+
 ### Version 0.16.0
 - Introduced a popup to display asset information and enable opening the asset text document in VSCode for additional details.
 - Added a tooltip that reveals the full asset name on hover over a node when the name is truncated.
