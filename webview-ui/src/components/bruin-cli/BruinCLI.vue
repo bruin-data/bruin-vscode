@@ -1,29 +1,3 @@
-<!-- <template>
-  <div class="flex flex-col h-full w-full text-editor-fg">
-    <div class="flex flex-col p-2 space-y-2">
-      <h2 class="text-lg font-semibold">
-        {{ isBruinCliInstalled ? "Update" : "Install" }} Bruin CLI
-      </h2>
-      <p class="text-sm">
-        {{
-          isBruinCliInstalled
-            ? "Keep your Bruin CLI up-to-date to ensure you have the latest features and improvements."
-            : "Bruin CLI needs to be installed to use the full features of the Bruin Extension."
-        }}
-      </p>
-      <template v-if="isWindows && !isBruinCliInstalled && !goInstalled">
-        <p class="text-sm">
-          Go is required to install Bruin CLI on Windows. Please install Go first.
-          <a href="https://golang.org/doc/install" target="_blank">Go installation guide</a>
-        </p>
-      </template>
-      <vscode-button v-else @click="installOrUpdateBruinCli" class="self-center">
-        {{ isBruinCliInstalled ? "Update" : "Install" }} Bruin CLI
-      </vscode-button>
-    </div>
-  </div>
-</template> -->
-
 <template>
   <div class="bg-editorWidget-bg shadow sm:rounded-lg">
     <div class="px-4 py-5 sm:p-6">
