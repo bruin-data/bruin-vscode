@@ -53,6 +53,8 @@ import MessageAlert from "@/components/ui/alerts/AlertMessage.vue";
 import { getAssetDataset } from "@/components/lineage-flow/asset-lineage/useAssetLineage";
 import { ArrowPathIcon } from "@heroicons/vue/20/solid";
 import type { EnvironmentsList } from "./types";
+import ConnectionsForm from "@/components/connections/ConnectionsForm.vue";
+import ConnectionsList from "@/components/connections/ConnectionList.vue";
 
 const panelType = ref("");
 const parseError = ref();
@@ -81,9 +83,6 @@ window.addEventListener("message", (event) => {
       break;
     case "environments-list-message":
       environments.value = updateValue(message, "success");
-      //environments.value = updateValue(message, "error");
-      console.log("---------------------------\n");
-      console.log("Environments", environments.value);
       break;
     case "parse-message":
       console.log("Parse Message", message);
@@ -168,6 +167,7 @@ const tabs = ref([
       LineageError: lineageErr.value,
     },
   },
+  { label: "Connections List", component: ConnectionsList, includeIn: ["bruin"] }
 ]);
 
 const visibleTabs = computed(() => {

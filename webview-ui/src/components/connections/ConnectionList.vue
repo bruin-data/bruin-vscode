@@ -4,7 +4,9 @@
       class="flex bg-editorWidget-bg shadow w-full mx-auto py-6 px-4 sm:px-6 lg:px-8 sm:rounded-lg items-center justify-between mb-2"
     >
       <h2 class="text-base font-semibold leading-7 text-editor-fg">Connections</h2>
-      <vscode-button class="p-1 font-semibold rounded-md"> New connection </vscode-button>
+      <vscode-button @click="showNewConnectionForm = true" class="p-1 font-semibold rounded-md">
+        New connection
+      </vscode-button>
     </header>
     <div class="bg-editorWidget-bg shadow sm:rounded-lg px-4 sm:px-6">
       <table class="min-w-full divide-y divide-gray-300">
@@ -53,6 +55,15 @@
         @cancel="cancelDelete"
       />
     </div>
+    <!-- New Connection Form Modal -->
+    <div
+      v-if="showNewConnectionForm"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center"
+    >
+      <div class="bg-editorWidget-bg p-6 rounded-lg max-w-2xl w-full">
+        <ConnectionForm @submit="addNewConnection" @cancel="showNewConnectionForm = false" />
+      </div>
+    </div>
   </div>
 </template>
 
@@ -60,6 +71,7 @@
 import { TrashIcon } from "@heroicons/vue/24/outline";
 import { ref } from "vue";
 import DeleteAlert from "@/components/ui/alerts/AlertWithActions.vue";
+import ConnectionForm from "./ConnectionsForm.vue";
 
 const connections = ref([
   { name: "bruin-health-check-bq", type: "google_cloud_platform" },
@@ -69,6 +81,7 @@ const connections = ref([
 
 const showAlert = ref(false);
 const connectionToDelete = ref(null);
+const showNewConnectionForm = ref(false);
 
 const confirmDelete = (connection) => {
   connectionToDelete.value = connection;
@@ -84,5 +97,10 @@ const deleteConnection = () => {
 const cancelDelete = () => {
   showAlert.value = false;
   connectionToDelete.value = null;
+};
+
+const addNewConnection = (newConnection) => {
+  connections.value.push(newConnection);
+  showNewConnectionForm.value = false;
 };
 </script>
