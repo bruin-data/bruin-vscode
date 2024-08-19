@@ -74,6 +74,8 @@ module.exports = {
         "editor-button-bg": "var(--vscode-button-background)",
         "editor-button-hover-bg": "var(--vscode-button-hoverBackground)",
         "editor-button-fg": "var(--vscode-button-foreground)",
+        "errorForeground": "var(--vscode-errorForeground)",
+        "editorError-foreground"	: "var(--vscode-editorError-foreground)",
         "editor-button-border": "var(--vscode-button-border)",
         "link-activeForeground": "var(--vscode-textLink-activeForeground)",
         "menu-hoverBackground": "var(--vscode-scrollbarSlider-hoverBackground)",
@@ -91,9 +93,10 @@ module.exports = {
         "inputValidation-warningBackground": "var(--vscode-inputValidation-warningBackground)",
         "inputValidation-warningBorder": "var(--vscode-inputValidation-warningBorder)",
         "inputValidation-errorBackground": "var(--vscode-inputValidation-errorBackground)",
-        'editorWidget-bg': "var(--vscode-editorWidget-background)",
-        "editorLink-activeFg"	: "var(--vscode-editorLink-activeForeground)",
-
+        "editorWidget-bg": "var(--vscode-editorWidget-background)",
+        "editorLink-activeFg": "var(--vscode-editorLink-activeForeground)",
+        "descriptionFg": "var(--vscode-descriptionForeground)",
+        "editorInlayHint-fg"	: "var(--vscode-editorInlayHint-foreground)",
         "primary": {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
@@ -155,5 +158,5 @@ module.exports = {
       },
     },
   },
-  plugins: [typography, animate],
+  plugins: [typography, animate, require("@tailwindcss/forms")],
 };
