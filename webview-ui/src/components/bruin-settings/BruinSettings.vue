@@ -1,10 +1,13 @@
 <template>
-  <div class="flex flex-col justify-between">
-    <div>
+  <div class="flex flex-col space-y-6">
+    <!-- Bruin CLI Section -->
+    <div class="bg-editorWidget-bg shadow sm:rounded-lg p-6">
       <BruinCLI />
     </div>
-    <div class="mt-2" v-if="props.isBruinInstalled">
-      <ConnectionsList />
+
+    <!-- Connections Section -->
+    <div class="bg-editorWidget-bg shadow sm:rounded-lg">
+      <ConnectionsList v-if="props.isBruinInstalled" />
     </div>
   </div>
 </template>
