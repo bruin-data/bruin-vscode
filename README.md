@@ -69,15 +69,18 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: 0.17.0
-### Added
-- New Bruin CLI management tab in the side panel for easy installation and updates.
-- Windows-specific Go check, with a link to documentation if Go is missing.
+### Latest Release: 0.17.1
+### Fixed
+- Corrected the SQL snippet formatting and removed unnecessary sections. 
 
-### Enhanced
-- Renamed the "Bruin" panel to "Lineage" for better clarity.
 
 ### Previous Highlights
+### Version 0.17.0
+- New Bruin CLI management tab in the side panel for easy installation and updates.
+- Windows-specific Go check, with a link to documentation if Go is missing.
+- Renamed the "Bruin" panel to "Lineage" for better clarity.
+
+
 ### Version 0.16.1
 - Resolved an issue where checking the push-metadata checkbox caused unnecessary re-renders in the SQL Preview.
 
