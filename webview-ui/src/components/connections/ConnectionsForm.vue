@@ -93,7 +93,7 @@ const connectionConfig = {
     { id: "project_id", label: "Project ID", type: "text" },
     { id: "bigquery_schema", label: "BigQuery Schema", type: "text" },
     { id: "bigquery_location", label: "BigQuery Location", type: "text" },
-    { id: "service_account_json", label: "Service Account JSON", type: "text" },
+    { id: "service_account_json", label: "Service Account JSON", type: "textarea" },
   ],
   ms_sql: [
     { id: "username", label: "Username", type: "text" },
