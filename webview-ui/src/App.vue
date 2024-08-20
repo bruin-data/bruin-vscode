@@ -142,7 +142,6 @@ const assetDataset = computed(() => {
 });
 
 const tabs = ref([
-  /* { label: "General", component: AssetGeneral, props: { name: assetName }, includeIn: ["bruin"] }, */
   {
     label: "Asset Details",
     component: AssetDetails,
@@ -154,7 +153,14 @@ const tabs = ref([
     })),
   },
   { label: "Asset Lineage", component: AssetLineageText, includeIn: ["bruin"] },
-  { label: "Settings", component: BruinSettings, includeIn: ["bruin"] },
+  {
+    label: "Settings",
+    component: BruinSettings,
+    includeIn: ["bruin"],
+    props: {
+      isBruinInstalled: computed(() => isBruinInstalled.value),
+    },
+  },
   {
     label: "Lineage",
     component: AssetLineageFlow,
@@ -166,14 +172,14 @@ const tabs = ref([
       LineageError: lineageErr.value,
     },
   },
-/*   { label: "Connections List", component: ConnectionsList, includeIn: ["bruin"] }
- */]);
+]);
 
 const visibleTabs = computed(() => {
-
-  if (panelType.value === "bruin" ) {
-    if (!isBruinInstalled.value ) {
-      return tabs.value.filter((tab) => tab.includeIn.includes("bruin") && tab.label === "Settings");;
+  if (panelType.value === "bruin") {
+    if (!isBruinInstalled.value) {
+      return tabs.value.filter(
+        (tab) => tab.includeIn.includes("bruin") && tab.label === "Settings"
+      );
     }
   }
   return tabs.value.filter((tab) => tab.includeIn.includes(panelType.value));
