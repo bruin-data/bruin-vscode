@@ -19,7 +19,7 @@
           ]
         },
         {
-          "type": "string",         
+          "type": "string",
           "description": "Cron expression format: minute hour day month weekday.\n\nExamples:\n- `0 20 * * *`: Every day at 8:00 PM\n- `30 17 * * *`: Every day at 5:30 PM\n- `0 20 * * 1-5`: Every weekday at 8:00 PM\n- `0 20 * * 6,7`: Every weekend at 8:00 PM\n- `0 20 10 7 *`: Every July 10th at 8:00 PM\n\nRefer to standard cron documentation for more details."
         }
       ],
@@ -69,14 +69,14 @@
           "type": "string"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     },
     "id": {
       "type": "string"
     },
     "start_date": {
       "type": "string",
-      "default": "2024-07-23", 
+      "default": "2024-07-23",
       "description": "The start date of the pipeline in YYYY-MM-DD format."
     },
     "default_parameters": {
@@ -97,11 +97,15 @@
                 "type": "string"
               }
             },
-            "required": ["channel"]
+            "required": [
+              "channel"
+            ]
           }
         }
       },
-      "required": ["slack"]
+      "required": [
+        "slack"
+      ]
     },
     "catchup": {
       "type": "boolean",
@@ -111,5 +115,32 @@
       "type": "integer"
     }
   },
-  "required": ["name", "schedule", "default_connections"]
+  "oneOf": [
+    {
+      "type": "object",
+      "required": [
+        "name",
+        "schedule",
+        "default_connections"
+      ],
+      "not": {
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "id",
+        "schedule",
+        "default_connections"
+      ],
+      "not": {
+        "required": [
+          "name"
+        ]
+      }
+    }
+  ]
 }
