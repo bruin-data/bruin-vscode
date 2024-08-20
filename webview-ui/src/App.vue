@@ -44,7 +44,7 @@
 import AssetDetails from "@/components/asset/AssetDetails.vue";
 import AssetLineageText from "@/components/lineage-text/AssetLineageText.vue";
 import AssetLineageFlow from "@/components/lineage-flow/asset-lineage/AssetLineage.vue";
-import BruinCLI from "@/components/bruin-cli/BruinCLI.vue";
+import BruinSettings from "@/components/bruin-settings/BruinSettings.vue";
 import { vscode } from "@/utilities/vscode";
 import { ref, onMounted, computed, watch } from "vue";
 import { parseAssetDetails, parseEnvironmentList } from "./utilities/helper";
@@ -53,7 +53,6 @@ import MessageAlert from "@/components/ui/alerts/AlertMessage.vue";
 import { getAssetDataset } from "@/components/lineage-flow/asset-lineage/useAssetLineage";
 import { ArrowPathIcon } from "@heroicons/vue/20/solid";
 import type { EnvironmentsList } from "./types";
-import ConnectionsForm from "@/components/connections/ConnectionsForm.vue";
 import ConnectionsList from "@/components/connections/ConnectionList.vue";
 
 const panelType = ref("");
@@ -155,7 +154,7 @@ const tabs = ref([
     })),
   },
   { label: "Asset Lineage", component: AssetLineageText, includeIn: ["bruin"] },
-  { label: "Bruin CLI", component: BruinCLI, includeIn: ["bruin"] },
+  { label: "Settings", component: BruinSettings, includeIn: ["bruin"] },
   {
     label: "Lineage",
     component: AssetLineageFlow,
@@ -167,14 +166,14 @@ const tabs = ref([
       LineageError: lineageErr.value,
     },
   },
-  { label: "Connections List", component: ConnectionsList, includeIn: ["bruin"] }
-]);
+/*   { label: "Connections List", component: ConnectionsList, includeIn: ["bruin"] }
+ */]);
 
 const visibleTabs = computed(() => {
 
   if (panelType.value === "bruin" ) {
     if (!isBruinInstalled.value ) {
-      return tabs.value.filter((tab) => tab.includeIn.includes("bruin") && tab.label === "Bruin CLI");;
+      return tabs.value.filter((tab) => tab.includeIn.includes("bruin") && tab.label === "Settings");;
     }
   }
   return tabs.value.filter((tab) => tab.includeIn.includes(panelType.value));
