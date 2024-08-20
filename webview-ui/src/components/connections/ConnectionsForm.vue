@@ -20,26 +20,13 @@
               v-model="form.connection_name"
             />
 
-            <template v-if="form.connection_type === 'slack'">
-              <div class="sm:col-span-4">
-                <vscode-button
-                  @click="connectSlack"
-                  class="rounded-md px-4 py-2 text-sm font-semibold"
-                >
-                  Connect to Slack
-                </vscode-button>
-              </div>
-            </template>
-
-            <template v-else>
-              <FormField
-                v-for="field in connectionFields"
-                :key="field.id"
-                v-bind="field"
-                v-model="form[field.id]"
-              />
-            </template>
-          
+            <FormField
+              v-for="field in connectionFields"
+              :key="field.id"
+              v-bind="field"
+              v-model="form[field.id]"
+            />
+          </div>
         </div>
       </div>
 
@@ -189,11 +176,6 @@ const submitForm = () => {
     type: form.value.connection_type,
     // Add other relevant fields
   });
-};
-
-const connectSlack = () => {
-  console.log("Connecting to Slack...");
-  // Implement Slack connection logic here
 };
 </script>
 
