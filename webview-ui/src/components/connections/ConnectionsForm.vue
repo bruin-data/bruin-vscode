@@ -44,6 +44,13 @@
       </div>
 
       <div class="mt-6 flex justify-end w-full">
+        <vscode-button
+          appearance="secondary"
+          @click="$emit('cancel')"
+          class="mr-2 rounded-md px-4 py-2 text-sm font-semibold"
+        >
+          Cancel
+        </vscode-button>
         <vscode-button type="submit" class="rounded-md px-4 py-2 text-sm font-semibold">
           Create
         </vscode-button>
@@ -56,7 +63,7 @@
 import { ref, computed } from "vue";
 import FormField from "./FormField.vue";
 
-const emit = defineEmits(['submit', 'cancel']);
+const emit = defineEmits(["submit", "cancel"]);
 
 const connectionTypes = [
   "amazone_web_services",
@@ -181,7 +188,7 @@ const connectionFields = computed(() => {
 
 const submitForm = () => {
   console.log("Form submitted:", form.value);
-  emit('submit', {
+  emit("submit", {
     name: form.value.connection_name,
     type: form.value.connection_type,
     // Add other relevant fields
