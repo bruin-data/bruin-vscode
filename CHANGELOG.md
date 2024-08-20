@@ -1,6 +1,8 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
+## [0.17.2] - [2024-08-20]
+- Updated the input date indicator with a Heroicon for a consistent design and adjusted its color to match VSCode themes.
 
 ## [0.17.1] - [2024-08-20]
 - Fixed: SQL snippet formatting and removed unnecessary sections like secrets and parameters.
