@@ -57,15 +57,15 @@ const connectionTypes = [
   "azure_synapse",
   "databricks",
   "google_cloud_platform",
-  "gorgias",
   "mongo_db",
   "ms_sql",
   "mysql",
-  "notion",
   "postgresql",
   "redshift",
   "snowflake",
   "shopify",
+  "gorgias",
+  "notion",
   "generic_secret",
 ];
 
