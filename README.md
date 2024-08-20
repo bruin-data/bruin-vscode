@@ -69,12 +69,17 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: 0.17.1
+### Latest Release: 0.17.3
 ### Fixed
-- Corrected the SQL snippet formatting and removed unnecessary sections. 
-
+- Corrected the schema for pipeline autocomplete to allow new, unlisted connections and updated the requirement so that either `name` or `id` must be present.
 
 ### Previous Highlights
+### Version 0.17.2
+- Replaced the input date indicator with a Heroicon for a more consistent design and adjusted the color to match VSCode themes.
+
+### Version 0.17.1
+- Corrected the SQL snippet formatting and removed unnecessary sections. 
+
 ### Version 0.17.0
 - New Bruin CLI management tab in the side panel for easy installation and updates.
 - Windows-specific Go check, with a link to documentation if Go is missing.

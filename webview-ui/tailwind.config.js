@@ -95,8 +95,8 @@ module.exports = {
         "inputValidation-errorBackground": "var(--vscode-inputValidation-errorBackground)",
         "editorWidget-bg": "var(--vscode-editorWidget-background)",
         "editorLink-activeFg": "var(--vscode-editorLink-activeForeground)",
-        "descriptionFg": "var(--vscode-descriptionForeground)",
-        "editorInlayHint-fg"	: "var(--vscode-editorInlayHint-foreground)",
+        "commandCenter-border": "var(--vscode-commandCenter-border)",
+
         "primary": {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
