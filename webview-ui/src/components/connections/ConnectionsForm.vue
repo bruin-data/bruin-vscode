@@ -39,7 +39,7 @@
                 v-model="form[field.id]"
               />
             </template>
-          </div>
+          
         </div>
       </div>
 
@@ -66,22 +66,19 @@ import FormField from "./FormField.vue";
 const emit = defineEmits(["submit", "cancel"]);
 
 const connectionTypes = [
-  "amazone_web_services",
+  "amazon_web_services",
   "azure_synapse",
   "databricks",
   "google_cloud_platform",
   "gorgias",
-  "mango_db",
+  "mongo_db",
   "ms_sql",
-  "ms_teams",
   "mysql",
   "notion",
   "postgresql",
   "redshift",
   "snowflake",
   "shopify",
-  /*   "slack",
-   */
   "generic_secret",
 ];
 
@@ -101,7 +98,7 @@ const connectionConfig = {
     { id: "port", label: "Port", type: "number" },
     { id: "schema", label: "Schema", type: "text" },
   ],
-  amazone_web_services: [
+  amazon_web_services: [
     { id: "access_key_id", label: "Access Key ID", type: "text" },
     { id: "secret_access_key", label: "Secret Access Key", type: "password" },
   ],
@@ -152,7 +149,7 @@ const connectionConfig = {
     { id: "port", label: "Port", type: "number" },
     { id: "database", label: "Database", type: "text" },
   ],
-  mango_db: [
+  mongo_db: [
     { id: "username", label: "Username", type: "text" },
     { id: "password", label: "Password", type: "password" },
     { id: "host", label: "Host", type: "text" },
@@ -169,7 +166,6 @@ const connectionConfig = {
     { id: "domain", label: "domain", type: "text" },
     { id: "email", label: "Email", type: "text" },
   ],
-  ms_teams: [{ id: "webhook_url", label: "Webhook Url", type: "text" }],
   generic_secret: [{ id: "value", label: "Value", type: "text" }],
 };
 

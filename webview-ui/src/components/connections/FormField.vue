@@ -23,7 +23,7 @@
           >
             <option value="" disabled selected hidden>Please Select</option>
             <option v-for="option in options" :key="option" :value="option">
-              {{ option.charAt(0).toUpperCase() + option.slice(1) }}
+              {{ formatConnectionName(option) }}  
             </option>
           </select>
           <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
@@ -47,4 +47,29 @@
     }
     emit('update:modelValue', value);
   };
+
+  const formatConnectionName = (option) => {
+  const map = {
+    mongo_db: "MongoDB",
+    amazon_web_services: "Amazon Web Services (AWS)",
+    ms_sql: "MsSQL",
+    mysql: "MySQL",
+    google_cloud_platform: "Google Cloud Platform",
+    azure_synapse: "Azure Synapse",
+    databricks: "Databricks",
+    postgresql: "PostgreSQL",
+    redshift: "Redshift",
+    snowflake: "Snowflake",
+    shopify: "Shopify",
+    gorgias: "Gorgias",
+    notion: "Notion",
+    generic_secret: "Generic Secret"
+  };
+
+  return map[option] || option
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
   </script>
