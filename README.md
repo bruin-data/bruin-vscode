@@ -69,12 +69,14 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: 0.17.1
+### Latest Release: 0.17.2
 ### Fixed
-- Corrected the SQL snippet formatting and removed unnecessary sections. 
-
+- Replaced the input date indicator with a Heroicon for a more consistent design and adjusted the color to match VSCode themes.
 
 ### Previous Highlights
+### Version 0.17.1
+- Corrected the SQL snippet formatting and removed unnecessary sections. 
+
 ### Version 0.17.0
 - New Bruin CLI management tab in the side panel for easy installation and updates.
 - Windows-specific Go check, with a link to documentation if Go is missing.
