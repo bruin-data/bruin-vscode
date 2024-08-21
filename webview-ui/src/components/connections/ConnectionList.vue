@@ -4,7 +4,10 @@
       class="flex bg-editorWidget-bg shadow w-full mx-auto py-6 px-4 sm:px-6 lg:px-8 sm:rounded-lg items-center justify-between mb-2"
     >
       <h2 class="text-base font-semibold leading-7 text-editor-fg">Connections</h2>
-      <vscode-button @click="showNewConnectionForm = true" class="p-1 font-semibold rounded-md">
+      <vscode-button
+        @click="$emit('new-connection')"
+        class="rounded-md px-4 py-2 font-semibold"
+      >
         New connection
       </vscode-button>
     </header>
@@ -21,9 +24,8 @@
             <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-editor-fg">
               Type
             </th>
-
             <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-0">
-              <span class="sr-only">remove</span>
+              <span class="sr-only">Actions</span>
             </th>
           </tr>
         </thead>
@@ -39,68 +41,32 @@
               class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-0"
             >
               <button
-                @click="confirmDelete(connection)"
+                @click="$emit('edit-connection', connection)"
+                class="text-descriptionFg hover:text-editor-fg mr-2"
+              >
+                <PencilIcon class="h-5 w-5" />
+              </button>
+              <button
+                @click="$emit('delete-connection', connection)"
                 class="text-errorForeground hover:text-editorError-foreground"
               >
-                <trash-icon class="h-5 w-5" />
+                <TrashIcon class="h-5 w-5" />
               </button>
             </td>
           </tr>
         </tbody>
       </table>
-      <DeleteAlert
-        v-if="showAlert"
-        :connectionName="connectionToDelete?.name"
-        @confirm="deleteConnection"
-        @cancel="cancelDelete"
-      />
-    </div>
-    <!-- New Connection Form Modal -->
-    <div
-      v-if="showNewConnectionForm"
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center"
-    >
-      <div class="bg-editorWidget-bg p-6 rounded-lg max-w-2xl w-full">
-        <ConnectionForm @submit="addNewConnection" @cancel="showNewConnectionForm = false" />
-      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { TrashIcon } from "@heroicons/vue/24/outline";
-import { ref } from "vue";
-import DeleteAlert from "@/components/ui/alerts/AlertWithActions.vue";
-import ConnectionForm from "./ConnectionsForm.vue";
+import { TrashIcon, PencilIcon } from "@heroicons/vue/24/outline";
+import { useConnectionsStore } from "@/store/connections";
 
-const connections = ref([
-  { name: "bruin-health-check-bq", type: "google_cloud_platform" },
-  { name: "bruin-health-check-sf", type: "snowflake" },
-  { name: "client", type: "ms_teams" },
-]);
 
-const showAlert = ref(false);
-const connectionToDelete = ref(null);
-const showNewConnectionForm = ref(false);
+const connectionsStore = useConnectionsStore();
+const connections = connectionsStore.connections;
 
-const confirmDelete = (connection) => {
-  connectionToDelete.value = connection;
-  showAlert.value = true;
-};
-
-const deleteConnection = () => {
-  connections.value = connections.value.filter((c) => c.name !== connectionToDelete.value.name);
-  showAlert.value = false;
-  connectionToDelete.value = null;
-};
-
-const cancelDelete = () => {
-  showAlert.value = false;
-  connectionToDelete.value = null;
-};
-
-const addNewConnection = (newConnection) => {
-  connections.value.push(newConnection);
-  showNewConnectionForm.value = false;
-};
+defineEmits(['new-connection', 'edit-connection', 'delete-connection']);
 </script>

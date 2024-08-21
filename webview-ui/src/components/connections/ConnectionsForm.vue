@@ -3,7 +3,9 @@
     <form @submit.prevent="submitForm" class="w-full">
       <div class="space-y-6 w-full">
         <div class="border-b border-editorInlayHint-fg pb-6">
-          <h2 class="text-base font-semibold leading-7 text-editor-fg">New Connection</h2>
+          <h2 class="text-base font-semibold leading-7 text-editor-fg">
+            {{ isEditing ? "Edit Connection" : "New Connection" }}
+          </h2>
           <div class="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-6">
             <FormField
               id="connection_type"
@@ -39,7 +41,7 @@
           Cancel
         </vscode-button>
         <vscode-button type="submit" class="rounded-md px-4 py-2 text-sm font-semibold">
-          Create
+          {{ isEditing ? "Save Changes" : "Create" }}
         </vscode-button>
       </div>
     </form>
@@ -47,10 +49,55 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, watch} from "vue";
 import FormField from "./FormField.vue";
 
 const emit = defineEmits(["submit", "cancel"]);
+
+const props = defineProps({
+  connection: {
+    type: Object,
+    default: () => ({
+      connection_type: "",
+      connection_name: "",
+    }),
+  },
+});
+
+watch(
+  () => props.connection,
+  (newConnection) => {
+    form.value.connection_type = newConnection.type || "";
+    form.value.connection_name = newConnection.name || "";
+  },
+  { immediate: true }
+);
+
+// Determine if we are editing an existing connection
+const isEditing = computed(() => !!props.connection.name);
+
+const form = ref({
+  connection_type: "",
+  connection_name: "",
+});
+
+const connectionFields = computed(() => {
+  const fields = connectionConfig[form.value.connection_type] || [];
+  return fields.map((field) => ({
+    ...field,
+    modelValue: form.value[field.id] || field.defaultValue || "",
+  }));
+});
+
+const submitForm = () => {
+  console.log("Form submitted:", form.value);
+  emit("submit", {
+    name: form.value.connection_name,
+    type: form.value.connection_type,
+  });
+};
+
+
 
 const connectionTypes = [
   "amazon_web_services",
@@ -156,27 +203,6 @@ const connectionConfig = {
   generic_secret: [{ id: "value", label: "Value", type: "text" }],
 };
 
-const form = ref({
-  connection_type: "",
-  connection_name: "",
-});
-
-const connectionFields = computed(() => {
-  const fields = connectionConfig[form.value.connection_type] || [];
-  return fields.map((field) => ({
-    ...field,
-    modelValue: form.value[field.id] || field.defaultValue || "",
-  }));
-});
-
-const submitForm = () => {
-  console.log("Form submitted:", form.value);
-  emit("submit", {
-    name: form.value.connection_name,
-    type: form.value.connection_type,
-    // Add other relevant fields
-  });
-};
 </script>
 
 <style scoped>
