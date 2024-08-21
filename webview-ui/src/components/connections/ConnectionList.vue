@@ -70,3 +70,9 @@ const connections = computed(() => connectionsStore.connections);
 
 defineEmits(['new-connection', 'edit-connection', 'delete-connection']);
 </script>
+<style scoped>
+vscode-button::part(control) {
+  border: none;
+  outline: none;
+}
+</style>

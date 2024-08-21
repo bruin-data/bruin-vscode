@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col space-y-6">
     <!-- Bruin CLI Section -->
-    <div class="bg-editorWidget-bg shadow sm:rounded-lg p-6">
+    <div>
       <BruinCLI />
     </div>
 
