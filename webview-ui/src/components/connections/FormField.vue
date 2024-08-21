@@ -41,6 +41,7 @@
         <select
           :id="id"
           :value="modelValue"
+          :required="id === 'connection_type'"
           @change="updateValue"
           class="block bg-input-background w-full rounded-md border-0 py-1.5 text-input-foreground shadow-sm ring-1 ring-inset ring-editor-border focus:ring-2 focus:ring-inset focus:ring-accent sm:text-sm appearance-none pr-8"
         >
