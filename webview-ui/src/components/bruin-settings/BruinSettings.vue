@@ -15,19 +15,13 @@
       />
     </div>
 
-    <!-- Connection Form Modal -->
-    <div
-      v-if="showForm"
-      class="flex items-center justify-center z-50"
-    >
-      <div class="bg-editorWidget-bg p-6 rounded-lg max-w-2xl w-full">
+      <div v-if="showForm" class="mt-6 bg-editorWidget-bg shadow sm:rounded-lg p-6">
         <ConnectionForm
           :connection="connectionToEdit"
           @submit="saveConnection"
           @cancel="cancelConnectionForm"
         />
       </div>
-    </div>
 
     <!-- Delete Confirmation Modal -->
     <DeleteAlert
@@ -43,8 +37,7 @@
 import BruinCLI from "@/components/bruin-settings/BruinCLI.vue";
 import ConnectionsList from "@/components/connections/ConnectionList.vue";
 import ConnectionForm from "@/components/connections/ConnectionsForm.vue";
-import { defineProps } from "vue";
-import { ref } from "vue";
+import { ref, defineProps, onMounted } from "vue";
 import DeleteAlert from "@/components/ui/alerts/AlertWithActions.vue";
 import { useConnectionsStore } from "@/store/connections";
 
@@ -58,18 +51,29 @@ const showDeleteAlert = ref(false);
 const connectionToDelete = ref(null);
 const connectionsStore = useConnectionsStore();
 
+onMounted(() => {
+  connectionsStore.loadConnections();
+});
+
 const showConnectionForm = (connection = null) => {
   connectionToEdit.value = connection || { name: "", type: "" };
   showForm.value = true;
 };
 
 const saveConnection = (connection) => {
-  connectionsStore.saveConnection(connection);
+  if (connection.id) {
+    const existingIndex = connectionsStore.connections.findIndex((c) => c.id === connection.id);
+    connectionsStore.updateConnection(existingIndex, connection);
+  } else {
+    connectionsStore.saveConnection(connection);
+  }
   showForm.value = false;
+  connectionToEdit.value = null;
 };
 
 const cancelConnectionForm = () => {
   showForm.value = false;
+  connectionToEdit.value = null;
 };
 
 const confirmDeleteConnection = (connection) => {

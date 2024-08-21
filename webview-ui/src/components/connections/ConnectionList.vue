@@ -63,10 +63,10 @@
 <script setup>
 import { TrashIcon, PencilIcon } from "@heroicons/vue/24/outline";
 import { useConnectionsStore } from "@/store/connections";
-
+import { computed, defineEmits } from "vue";
 
 const connectionsStore = useConnectionsStore();
-const connections = connectionsStore.connections;
+const connections = computed(() => connectionsStore.connections);
 
 defineEmits(['new-connection', 'edit-connection', 'delete-connection']);
 </script>
