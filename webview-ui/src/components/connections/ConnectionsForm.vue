@@ -70,22 +70,15 @@ const props = defineProps({
   },
 });
 
-watch(
-  () => props.connection,
-  (newConnection) => {
-    form.value.connection_type = newConnection.type || "";
-    form.value.connection_name = newConnection.name || "";
-  },
-  { immediate: true }
-);
-
-// Determine if we are editing an existing connection
-const isEditing = computed(() => !!props.connection.name);
-
 const form = ref({
   connection_type: "",
   connection_name: "",
 });
+
+
+// Determine if we are editing an existing connection
+const isEditing = computed(() => !!props.connection.name);
+
 
 const connectionFields = computed(() => {
   const fields = connectionConfig[form.value.connection_type] || [];
@@ -97,12 +90,20 @@ const connectionFields = computed(() => {
 
 const submitForm = () => {
   console.log("Form submitted:", form.value);
-  emit("submit", {
-    name: form.value.connection_name,
-    type: form.value.connection_type,
-    ...(isEditing.value ? { id: props.connection.id } : {}),
-  });
+    emit("submit", {
+      name: form.value.connection_name,
+      type: form.value.connection_type,
+    });
 };
+
+watch(
+  () => props.connection,
+  (newConnection) => {
+    form.value.connection_type = newConnection.type || "";
+    form.value.connection_name = newConnection.name || "";
+  },
+  { immediate: true }
+);
 
 </script>
 

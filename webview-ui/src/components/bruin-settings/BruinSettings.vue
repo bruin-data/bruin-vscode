@@ -61,11 +61,13 @@ const showConnectionForm = (connection = null) => {
 };
 
 const saveConnection = (connection) => {
-  if (connection.id) {
-    const existingIndex = connectionsStore.connections.findIndex((c) => c.id === connection.id);
-    connectionsStore.updateConnection(existingIndex, connection);
-  } else {
+  const existingIndex = connectionsStore.connections.findIndex(
+    (c) => c.name === connectionToEdit.value.name
+  );
+  if (existingIndex === -1) {
     connectionsStore.saveConnection(connection);
+  } else {
+    connectionsStore.updateConnection(existingIndex, connection);
   }
   showForm.value = false;
   connectionToEdit.value = null;
