@@ -3,11 +3,16 @@
 All notable changes to the Bruin extension will be documented in this file.
 
 
-## [0.17.3] - [2024-08-20]
-- Corrected the schema for pipeline autocomplete to allow new, unlisted connections and updated the requirement so that either `name` or `id` must be present.
+## [0.17.6] - [2024-08-21]
+- Resolved issue with the date input not triggering the datepicker on click.
 
-## [0.17.2] - [2024-08-20]
+## [0.17.5] - [2024-08-21]
+- Temporarily removed the connection tab from the side panel.
+- Corrected the schema for pipeline autocomplete to allow new, unlisted connections and updated the requirement so that either `name` or `id` must be present.
 - Updated the input date indicator with a Heroicon for a consistent design and adjusted its color to match VSCode themes.
+
+**Note:**
+*Note: Due to issues with the VSCode extension publisher, some versions between 0.17.1 and 0.17.5 were not available to users. All fixes and updates during this period have been consolidated under version 0.17.5.*
 
 ## [0.17.1] - [2024-08-20]
 - Fixed: SQL snippet formatting and removed unnecessary sections like secrets and parameters.
