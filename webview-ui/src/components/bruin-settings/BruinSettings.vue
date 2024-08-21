@@ -66,8 +66,10 @@ const saveConnection = (connection) => {
   );
   if (existingIndex === -1) {
     connectionsStore.saveConnection(connection);
+    prepareCliPayload(connection);
   } else {
     connectionsStore.updateConnection(existingIndex, connection);
+    prepareCliPayload(connection);
   }
   showForm.value = false;
   connectionToEdit.value = null;
@@ -93,4 +95,10 @@ const cancelDeleteConnection = () => {
   showDeleteAlert.value = false;
   connectionToDelete.value = null;
 };
+
+const prepareCliPayload = (connection) => {
+  const cliPayload = `${connection.name} ${connection.type} '${JSON.stringify(connection)}'`;
+  console.log('CLI Payload:', cliPayload);
+};
+
 </script>
