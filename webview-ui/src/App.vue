@@ -113,9 +113,16 @@ const selectedEnvironment = computed(() => {
   return parseEnvironmentList(environments.value)?.selectedEnvironment || "something went wrong";
 });
 
-const assetDetailsProps = computed(() => {
-  if (!data.value) return null;
-  return parseAssetDetails(data.value);
+const assetDetailsProps = computed({
+  get: () => {
+    if (!data.value) return null;
+    return parseAssetDetails(data.value);
+  },
+  set: (newValue) => {
+    if (newValue) {
+      data.value = JSON.stringify({ asset: newValue });
+    }
+  }
 });
 
 const pipeline = computed(() => {
@@ -154,6 +161,7 @@ const tabs = ref([
       environments: environmentsList.value,
       selectedEnvironment: selectedEnvironment.value,
     })),
+    emits: ['update:name', 'update:description']
   },
   { label: "Asset Lineage", component: AssetLineageText, includeIn: ["bruin"] },
   { label: "Bruin CLI", component: BruinCLI, includeIn: ["bruin"] },
@@ -231,9 +239,15 @@ function loadEnvironmentsList() {
 }
 
 function updateAssetName(newName) {
-  tabs.value.map((tab) => {
-    if (!tab) return;
-    tab.props && (tab.props.name = newName);
+  if (assetDetailsProps.value) {
+    assetDetailsProps.value.name = newName;
+  }
+  tabs.value.forEach((tab) => {
+    if (tab && tab.props && 'name' in tab.props) {
+      tab.props.name = newName;
+    }
   });
+  // You might also want to trigger a re-fetch of the asset details or update other components
+  vscode.postMessage({ command: "bruin.updateAssetName", name: newName });
 }
 </script>
