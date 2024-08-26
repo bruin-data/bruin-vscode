@@ -1,0 +1,32 @@
+<template>
+  <div class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+    <div class="bg-editorWidget-bg rounded-lg p-6">
+      <h3 class="text-lg font-medium text-editor-fg">Delete connection</h3>
+      <p class="mt-2 text-sm text-descriptionFg">
+        Are you sure you want to delete the connection "{{ connectionName }}"? This action cannot be
+        undone.
+      </p>
+      <div class="mt-4 flex justify-end">
+        <button
+          appearance="secondary"
+          @click="$emit('cancel')"
+          class="mr-3 bg-editor-fg px-4 py-1 rounded hover:text-editor-fg hover:bg-inputOption-hoverBackground text-editor-bg"
+        >
+          Cancel
+        </button>
+        <button
+          @click="$emit('confirm')"
+          class="bg-errorForeground hover:bg-editorError-foreground hover:text-white px-4 py-1 rounded text-white"
+        >
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+defineProps({
+  connectionName: String,
+});
+</script>

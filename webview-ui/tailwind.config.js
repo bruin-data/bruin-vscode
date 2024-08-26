@@ -74,6 +74,8 @@ module.exports = {
         "editor-button-bg": "var(--vscode-button-background)",
         "editor-button-hover-bg": "var(--vscode-button-hoverBackground)",
         "editor-button-fg": "var(--vscode-button-foreground)",
+        "errorForeground": "var(--vscode-errorForeground)",
+        "editorError-foreground"	: "var(--vscode-editorError-foreground)",
         "editor-button-border": "var(--vscode-button-border)",
         "link-activeForeground": "var(--vscode-textLink-activeForeground)",
         "menu-hoverBackground": "var(--vscode-scrollbarSlider-hoverBackground)",
@@ -156,5 +158,5 @@ module.exports = {
       },
     },
   },
-  plugins: [typography, animate],
+  plugins: [typography, animate, require("@tailwindcss/forms")],
 };
