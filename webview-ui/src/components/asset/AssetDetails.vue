@@ -1,84 +1,60 @@
 <template>
   <div class="relative w-full flex flex-col">
-    <!-- Mode toggle buttons -->
-    <div class="absolute top-0 right-0 flex space-x-2 z-10">
-      <button
-        @click="toggleEditMode"
-        :class="isEditMode ? 'text-editor-button-hover-fg' : 'text-editor-button-fg'"
-        title="Edit mode"
-      >
-        <PencilIcon class="h-5 w-5" />
-      </button>
-      <button
-        @click="toggleViewMode"
-        :class="isEditMode ? 'text-editor-button-fg' : 'text-editor-button-hover-fg'"
-        title="View mode"
-      >
-        <EyeIcon class="h-5 w-5" />
-      </button>
+    <!-- Name and badges -->
+    <div class="flex items-center justify-between w-full mt-2 pt-4">
+      <div class="flex items-center space-x-2 font-md text-editor-fg text-lg font-mono">
+        <span
+          ref="nameElement"
+          :contenteditable="isEditingName"
+          @dblclick="startEditingName"
+          @blur="saveName"
+          @keydown.enter.prevent="saveName"
+          @input="updateEditableName"
+          >{{ name }}</span
+        >
+      </div>
+      <div class="flex space-x-2">
+        <DescriptionItem :value="type" :className="badgeClass.badgeStyle" />
+        <DescriptionItem
+          v-if="scheduleExists"
+          :value="pipeline.schedule"
+          :className="badgeClass.grayBadge"
+        />
+      </div>
     </div>
 
-    <template v-if="!isEditMode">
-      <!-- View Mode -->
-      <!-- Name and badges -->
-      <div class="flex items-center justify-between w-full mt-2 pt-4">
-        <div class="flex items-center space-x-2 font-md text-editor-fg text-lg font-mono">
-          {{ name }}
-        </div>
-        <div class="flex space-x-2">
-          <DescriptionItem :value="type" :className="badgeClass.badgeStyle" />
-          <DescriptionItem
-            v-if="scheduleExists"
-            :value="pipeline.schedule"
-            :className="badgeClass.grayBadge"
-          />
-        </div>
-      </div>
-
-      <!-- Description and owner -->
-      <DescriptionItem
-        v-if="ownerExists"
-        :value="owner"
-        className="font-semibold text-editor-fg opacity-30 mb-2"
-      />
-
+    <!-- Description and owner -->
+    <div>
       <div
-        v-if="markdownDescription"
+        ref="descriptionElement"
+        :contenteditable="isEditingDescription"
+        @blur="saveDescription"
+        @keydown.enter.prevent="saveDescription"
+        @dblclick="startEditingDescription"
+        @input="updateEditableDescription"
         class="text-sm text-editor-fg opacity-65 prose prose-sm pt-4"
-        v-html="markdownDescription"
-      ></div>
-      <p v-else class="text-sm text-editor-fg opacity-50 pt-4">
-        No description available for this asset.
-      </p>
+      >
+        <div v-if="description" v-html="markdownDescription"></div>
+        <p v-else class="opacity-50">No description available for this asset.</p>
+      </div>
+    </div>
+    <vscode-divider class="border-t border-editor-border opacity-20 my-4"></vscode-divider>
 
-      <vscode-divider class="border-t border-editor-border opacity-20 my-4"></vscode-divider>
-
-      <!-- Displaying other details in view mode -->
-      <AssetGeneral
-        :schedule="scheduleExists ? pipeline.schedule : ''"
-        :environments="environments"
-        :selectedEnvironment="selectedEnvironment"
-      />
-    </template>
-
-    <!-- Edit Mode -->
-    <AssetEditSection
-      v-else
-      :asset="assetData"
-      @save="handleSave"
-      @cancel="toggleViewMode"
+    <!-- Displaying other details in view mode -->
+    <AssetGeneral
+      :schedule="scheduleExists ? pipeline.schedule : ''"
+      :environments="environments"
+      :selectedEnvironment="selectedEnvironment"
     />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watch, nextTick } from "vue";
 import DescriptionItem from "@/components/ui/description-item/DescriptionItem.vue";
 import AssetGeneral from "./AssetGeneral.vue";
-import AssetEditSection from "./AssetEditSection.vue";
 import { badgeStyles, defaultBadgeStyle } from "@/components/ui/badges/CustomBadgesStyle";
 import MarkdownIt from "markdown-it";
-import { PencilIcon, EyeIcon } from "@heroicons/vue/24/outline";
 import { vscode } from "@/utilities/vscode";
 
 const props = defineProps<{
@@ -93,19 +69,24 @@ const props = defineProps<{
   checks: any[];
 }>();
 
-const emit = defineEmits(["update:name", "update:description", "update:type", "update:owner", "update:pipeline", "update:columns", "update:checks"]);
+const emit = defineEmits(["update:name", "update:description"]);
 
-const isEditMode = ref(false);
+const nameElement = ref();
+const descriptionElement = ref();
+const isEditingName = ref(false);
+const isEditingDescription = ref(false);
+const editableName = ref(props.name);
+const editableDescription = ref(props.description);
 
 const assetData = computed(() => ({
-  name: props.name,
-  description: props.description,
+  name: editableName.value,
+  description: editableDescription.value,
   type: props.type,
   owner: props.owner,
   pipeline: props.pipeline,
   columns: props.columns,
   checks: props.checks,
-  materialization: { type: 'table' }, // Add this if it's not in the props
+  materialization: { type: "table" },
 }));
 
 const ownerExists = computed(() => props.owner && props.owner !== "undefined");
@@ -118,14 +99,6 @@ const markdownDescription = computed(() =>
   props.description ? md.render(props.description) : null
 );
 
-const toggleEditMode = () => {
-  isEditMode.value = true;
-};
-
-const toggleViewMode = () => {
-  isEditMode.value = false;
-};
-
 const badgeClass = computed(() => {
   const commonStyle =
     "inline-flex items-center rounded-md px-1 py-0.5 text-xs font-medium ring-1 ring-inset";
@@ -136,19 +109,55 @@ const badgeClass = computed(() => {
   };
 });
 
-const handleSave = (updatedAsset) => {
-  emit("update:name", updatedAsset.name);
-  emit("update:description", updatedAsset.description);
-  emit("update:type", updatedAsset.type);
-  emit("update:owner", updatedAsset.owner);
-  emit("update:pipeline", updatedAsset.pipeline);
-  emit("update:columns", updatedAsset.columns);
-  emit("update:checks", updatedAsset.checks);
-
-  vscode.postMessage({
-    command: "bruin.updateAsset",
-    asset: updatedAsset,
+const startEditingName = () => {
+  isEditingName.value = true;
+  nextTick(() => {
+    nameElement.value.focus();
   });
-  toggleViewMode();
 };
+
+const startEditingDescription = () => {
+  isEditingDescription.value = true;
+  nextTick(() => {
+    descriptionElement.value.focus();
+  });
+};
+
+const updateEditableName = (event) => {
+  editableName.value = event.target.textContent;
+};
+
+const updateEditableDescription = (event) => {
+  editableDescription.value = event.target.textContent;
+};
+
+const saveName = () => {
+  isEditingName.value = false;
+  if (editableName.value !== props.name) {
+    emit('update:name', editableName.value);
+    vscode.postMessage({
+      command: 'bruin.updateAsset',
+      asset: assetData.value,
+    });
+  }
+};
+
+const saveDescription = () => {
+  isEditingDescription.value = false;
+  if (editableDescription.value !== props.description) {
+    emit('update:description', editableDescription.value);
+    vscode.postMessage({
+      command: 'bruin.updateAsset',
+      asset: assetData.value,
+    });
+  }
+};
+
+watch(() => props.name, (newName) => {
+  editableName.value = newName;
+});
+
+watch(() => props.description, (newDescription) => {
+  editableDescription.value = newDescription;
+});
 </script>
