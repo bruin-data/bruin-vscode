@@ -35,7 +35,7 @@
       </div>
   
       <!-- Materialization -->
-      <div class="mb-4">
+ <!--      <div class="mb-4">
         <label class="block text-sm font-medium mb-1">Materialization</label>
         <div class="flex items-center space-x-2">
           <select
@@ -44,13 +44,12 @@
           >
             <option value="table">Table</option>
             <option value="view">View</option>
-            <!-- Add more options as needed -->
           </select>
         </div>
-      </div>
+      </div> -->
   
       <!-- Columns -->
-      <div class="mb-4">
+ <!--      <div class="mb-4">
         <label class="block text-sm font-medium mb-2">Columns</label>
         <div v-for="(column, index) in editedAsset.columns" :key="index" class="mb-2 p-2 border border-editor-border rounded">
           <div class="flex items-center justify-between mb-2">
@@ -98,7 +97,7 @@
         <button @click="addColumn" class="mt-2 text-editor-button-fg hover:text-editor-button-hover-fg">
           Add Column
         </button>
-      </div>
+      </div> -->
   
       <!-- Save and Cancel buttons -->
       <div class="flex justify-end space-x-2">
