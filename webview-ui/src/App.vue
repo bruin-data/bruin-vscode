@@ -44,7 +44,7 @@
 import AssetDetails from "@/components/asset/AssetDetails.vue";
 import AssetLineageText from "@/components/lineage-text/AssetLineageText.vue";
 import AssetLineageFlow from "@/components/lineage-flow/asset-lineage/AssetLineage.vue";
-import BruinSettings from "@/components/bruin-settings/BruinSettings.vue";
+import BruinCLI from "@/components/bruin-settings/BruinCLI.vue";
 import { vscode } from "@/utilities/vscode";
 import { ref, onMounted, computed, watch } from "vue";
 import { parseAssetDetails, parseEnvironmentList } from "./utilities/helper";
@@ -163,7 +163,7 @@ const tabs = ref([
   { label: "Asset Lineage", component: AssetLineageText, includeIn: ["bruin"] },
   {
     label: "Settings",
-    component: BruinSettings,
+    component: BruinCLI,
     includeIn: ["bruin"],
     props: {
       isBruinInstalled: computed(() => isBruinInstalled.value),
