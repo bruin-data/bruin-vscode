@@ -32,8 +32,9 @@
         @keydown.enter.prevent="saveDescription"
         @dblclick="startEditingDescription"
         @input="updateEditableDescription"
-        class="text-sm text-editor-fg opacity-65 prose prose-sm pt-4"
-      >
+        class="description-container"
+        :class="{ 'editing': isEditingDescription }"      
+        >
         <div v-if="description" v-html="markdownDescription"></div>
         <p v-else class="opacity-50">No description available for this asset.</p>
       </div>
@@ -142,6 +143,7 @@ const saveName = () => {
   }
 };
 
+
 const saveDescription = () => {
   isEditingDescription.value = false;
   if (editableDescription.value !== props.description) {
@@ -161,3 +163,40 @@ watch(() => props.description, (newDescription) => {
   editableDescription.value = newDescription;
 });
 </script>
+
+<style scoped>
+.description-container {
+  text-align: left;
+  min-height: 2em;
+  padding: 0.5em;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.description-container.editing {
+  border-color: var(--vscode-input-border);
+  background-color: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+}
+
+.description-container:hover:not(.editing) {
+  background-color: var(--vscode-list-hoverBackground);
+}
+
+.empty-description {
+  opacity: 0.5;
+  font-style: italic;
+}
+
+/* Ensure proper styling for markdown content */
+.description-container :deep(p) {
+  margin: 0;
+  padding: 0;
+}
+
+.description-container :deep(ul), .description-container :deep(ol) {
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+}
+</style>
