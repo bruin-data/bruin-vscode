@@ -44,7 +44,7 @@
 import AssetDetails from "@/components/asset/AssetDetails.vue";
 import AssetLineageText from "@/components/lineage-text/AssetLineageText.vue";
 import AssetLineageFlow from "@/components/lineage-flow/asset-lineage/AssetLineage.vue";
-import BruinCLI from "@/components/bruin-cli/BruinCLI.vue";
+import BruinSettings from "@/components/bruin-settings/BruinSettings.vue";
 import { vscode } from "@/utilities/vscode";
 import { ref, onMounted, computed, watch } from "vue";
 import { parseAssetDetails, parseEnvironmentList } from "./utilities/helper";
@@ -53,6 +53,7 @@ import MessageAlert from "@/components/ui/alerts/AlertMessage.vue";
 import { getAssetDataset } from "@/components/lineage-flow/asset-lineage/useAssetLineage";
 import { ArrowPathIcon } from "@heroicons/vue/20/solid";
 import type { EnvironmentsList } from "./types";
+import ConnectionsList from "@/components/connections/ConnectionList.vue";
 
 const panelType = ref("");
 const parseError = ref();
@@ -81,9 +82,6 @@ window.addEventListener("message", (event) => {
       break;
     case "environments-list-message":
       environments.value = updateValue(message, "success");
-      //environments.value = updateValue(message, "error");
-      console.log("---------------------------\n");
-      console.log("Environments", environments.value);
       break;
     case "parse-message":
       console.log("Parse Message", message);
@@ -144,7 +142,6 @@ const assetDataset = computed(() => {
 });
 
 const tabs = ref([
-  /* { label: "General", component: AssetGeneral, props: { name: assetName }, includeIn: ["bruin"] }, */
   {
     label: "Asset Details",
     component: AssetDetails,
@@ -156,7 +153,14 @@ const tabs = ref([
     })),
   },
   { label: "Asset Lineage", component: AssetLineageText, includeIn: ["bruin"] },
-  { label: "Bruin CLI", component: BruinCLI, includeIn: ["bruin"] },
+  {
+    label: "Settings",
+    component: BruinSettings,
+    includeIn: ["bruin"],
+    props: {
+      isBruinInstalled: computed(() => isBruinInstalled.value),
+    },
+  },
   {
     label: "Lineage",
     component: AssetLineageFlow,
@@ -171,10 +175,11 @@ const tabs = ref([
 ]);
 
 const visibleTabs = computed(() => {
-
-  if (panelType.value === "bruin" ) {
-    if (!isBruinInstalled.value ) {
-      return tabs.value.filter((tab) => tab.includeIn.includes("bruin") && tab.label === "Bruin CLI");;
+  if (panelType.value === "bruin") {
+    if (!isBruinInstalled.value) {
+      return tabs.value.filter(
+        (tab) => tab.includeIn.includes("bruin") && tab.label === "Settings"
+      );
     }
   }
   return tabs.value.filter((tab) => tab.includeIn.includes(panelType.value));
