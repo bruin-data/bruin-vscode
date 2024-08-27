@@ -32,6 +32,7 @@
         v-bind="tab && tab.props"
         class="flex w-full"
         @update:assetName="updateAssetName"
+        @update:columns="updateColumns"
       />
       <div class="flex w-full" v-else-if="parseError">
         <MessageAlert message="This file is either not a Bruin Asset or has no data to display." />
@@ -63,8 +64,8 @@ const dummyColumns = [
     description: "Unique identifier for each record",
     checks: {
       unique: true,
-      notNull: true
-    }
+      notNull: true,
+    },
   },
   {
     name: "first_name",
@@ -72,8 +73,15 @@ const dummyColumns = [
     description: "First name of the person",
     checks: {
       unique: false,
-      notNull: true
-    }
+      notNull: false,
+      positive: false,
+      negative: false,
+      notNegative: false,
+      acceptedValuesEnabled: false,
+      accepted_values: "",
+      patternEnabled: false,
+      pattern: "",
+    },
   },
   {
     name: "last_name",
@@ -81,8 +89,8 @@ const dummyColumns = [
     description: "Last name of the person",
     checks: {
       unique: false,
-      notNull: true
-    }
+      notNull: true,
+    },
   },
   {
     name: "email",
@@ -90,12 +98,11 @@ const dummyColumns = [
     description: "Email address of the person",
     checks: {
       unique: true,
-      notNull: true
-    }
+      notNull: true,
+    },
   },
-  
 ];
-const columns = ref(dummyColumns);
+const columns = ref([...dummyColumns]);
 const panelType = ref("");
 const parseError = ref();
 const environments = ref<EnvironmentsList | null>(null); // Type for environments list
@@ -161,7 +168,7 @@ const assetDetailsProps = computed({
     if (newValue) {
       data.value = JSON.stringify({ asset: newValue });
     }
-  }
+  },
 });
 
 const pipeline = computed(() => {
@@ -199,15 +206,15 @@ const tabs = ref([
       environments: environmentsList.value,
       selectedEnvironment: selectedEnvironment.value,
     })),
-    emits: ['update:name', 'update:description']
+    emits: ["update:name", "update:description"],
   },
   {
-    label: 'Columns',
+    label: "Columns",
     component: AssetColumns,
     includeIn: ["bruin"],
-    props: {
-      columns: columns.value
-    }
+    props: computed(() => ({
+      columns: columns.value,
+    })),
   },
   { label: "Asset Lineage", component: AssetLineageText, includeIn: ["bruin"] },
   {
@@ -274,6 +281,17 @@ watch(
   },
   { deep: true }
 );
+/* watch(
+  columns,
+  (newColumns) => {
+    vscode.postMessage({ command: "bruin.updateAssetColumns", columns: newColumns });
+  },
+  { deep: true }
+); */
+
+const updateColumns = (newColumns) => {
+  columns.value = newColumns;
+};
 // Updated refreshGraphLineage function
 const refreshGraphLineage = debounce((event: Event) => {
   event.stopPropagation(); // Prevent event bubbling
@@ -297,7 +315,7 @@ function updateAssetName(newName) {
     assetDetailsProps.value.name = newName;
   }
   tabs.value.forEach((tab) => {
-    if (tab && tab.props && 'name' in tab.props) {
+    if (tab && tab.props && "name" in tab.props) {
       tab.props.name = newName;
     }
   });

@@ -12,7 +12,7 @@
 
     <!-- Columns List -->
     <div
-      v-for="(column, index) in columns"
+      v-for="(column, index) in props.columns"
       :key="index"
       class="container mb-6 bg-editorWidget-bg p-2 rounded-md"
     >
@@ -20,11 +20,16 @@
         <div class="w-11/12 flex justify-between items-center">
           <vscode-text-field
             placeholder="Column Name"
-            v-model="column.name"
+            :value="column.name"
             class="border-none p-0 bg-transparent"
+            @input="updateColumn(index, 'name', $event.target.value)"
           >
           </vscode-text-field>
-          <vscode-dropdown v-model="column.type" class="px-4 py-2">
+          <vscode-dropdown
+            :value="column.type"
+            class="px-4 py-2"
+            @change="updateColumn(index, 'type', $event.target.value)"
+          >
             <vscode-option value="string">String</vscode-option>
             <vscode-option value="integer">Integer</vscode-option>
             <vscode-option value="float">Float</vscode-option>
@@ -43,53 +48,79 @@
         <vscode-text-area
           cols="50"
           resize="vertical"
-          v-model="column.description"
+          :value="column.description"
           placeholder="Description"
           class="w-11/12"
+          @input="updateColumn(index, 'description', $event.target.value)"
         >
         </vscode-text-area>
         <div class="flex flex-col space-y-2 w-11/12">
           <div class="flex items-start justify-between flex-wrap">
-            <vscode-checkbox v-model="column.checks.unique">
+            <vscode-checkbox
+              :checked="column.checks.unique"
+              @change="updateColumnCheck(index, 'unique', $event.target.checked)"
+            >
               Unique
             </vscode-checkbox>
-            <vscode-checkbox v-model="column.checks.notNull">
+            <vscode-checkbox
+              :checked="column.checks.notNull"
+              @change="updateColumnCheck(index, 'notNull', $event.target.checked)"
+            >
               Not Null
             </vscode-checkbox>
-            <vscode-checkbox v-if="column.type === 'integer'" v-model="column.checks.positive">
+            <vscode-checkbox
+              v-if="column.type === 'integer'"
+              :checked="column.checks.positive"
+              @change="updateColumnCheck(index, 'positive', $event.target.checked)"
+            >
               Positive
             </vscode-checkbox>
-            <vscode-checkbox v-if="column.type === 'integer'" v-model="column.checks.negative">
+            <vscode-checkbox
+              v-if="column.type === 'integer'"
+              :checked="column.checks.negative"
+              @change="updateColumnCheck(index, 'negative', $event.target.checked)"
+            >
               Negative
             </vscode-checkbox>
-            <vscode-checkbox v-if="column.type === 'integer'" v-model="column.checks.notNegative">
+            <vscode-checkbox
+              v-if="column.type === 'integer'"
+              :checked="column.checks.notNegative"
+              @change="updateColumnCheck(index, 'notNegative', $event.target.checked)"
+            >
               Non Negative
             </vscode-checkbox>
           </div>
           <div class="flex flex-col w-2/4 space-y-2 mt-2">
             <div>
               <vscode-checkbox
-                v-model="column.checks.acceptedValuesEnabled"
+                :checked="column.checks.acceptedValuesEnabled"
                 class="w-1/2"
+                @change="updateColumnCheck(index, 'acceptedValuesEnabled', $event.target.checked)"
               >
                 Accepted Values
               </vscode-checkbox>
               <vscode-text-field
                 class="bg-transparent p-0 w-1/2"
-                v-model="column.checks.accepted_values"
+                :value="column.checks.accepted_values"
                 placeholder="Accepted Values"
                 :disabled="!column.checks.acceptedValuesEnabled"
+                @input="updateColumnCheck(index, 'accepted_values', $event.target.value)"
               />
             </div>
             <div>
-              <vscode-checkbox v-model="column.checks.patternEnabled" class="w-1/2">
+              <vscode-checkbox
+                :checked="column.checks.patternEnabled"
+                class="w-1/2"
+                @change="updateColumnCheck(index, 'patternEnabled', $event.target.checked)"
+              >
                 Pattern
               </vscode-checkbox>
               <vscode-text-field
                 class="bg-transparent p-0 w-1/2"
-                v-model="column.checks.pattern"
+                :value="column.checks.pattern"
                 placeholder="Pattern"
                 :disabled="!column.checks.patternEnabled"
+                @input="updateColumnCheck(index, 'pattern', $event.target.value)"
               />
             </div>
           </div>
@@ -97,28 +128,80 @@
       </div>
     </div>
   </div>
-
 </template>
 
 <script setup>
-import { ref, reactive } from "vue";
+import { ref, watch, onMounted, defineEmits, defineProps } from "vue";
 import { TrashIcon } from "@heroicons/vue/20/solid";
 
 const props = defineProps({
-  columns: Array,
+  columns: {
+    type: Array,
+    required: true,
+  },
 });
 
-const columns = reactive(props.columns);
+const emit = defineEmits(["update:columns"]);
 
-const removeColumn = (index) => {
-  columns.splice(index, 1);
+const localColumns = ref([]);
+console.log("localColumns", props.columns);
+
+onMounted(() => {
+  localColumns.value = JSON.parse(JSON.stringify(props.columns));
+});
+
+const addColumn = () => {
+  console.log("addColumn", JSON.parse(JSON.stringify(props.columns)));
+  localColumns.value.push({
+    name: "",
+    type: "string",
+    description: "",
+    checks: {
+      unique: false,
+      notNull: false,
+      positive: false,
+      negative: false,
+      notNegative: false,
+      acceptedValuesEnabled: false,
+      accepted_values: "",
+      patternEnabled: false,
+      pattern: "",
+    },
+  });
+  emitUpdate();
 };
 
+const removeColumn = (index) => {
+  localColumns.value.splice(index, 1);
+  emitUpdate();
+};
+
+const updateColumn = (index, key, value) => {
+  localColumns.value[index][key] = value;
+  emitUpdate();
+};
+
+const updateColumnCheck = (index, checkKey, value) => {
+  localColumns.value[index].checks[checkKey] = value;
+  emitUpdate();
+};
+
+const emitUpdate = () => {
+  emit("update:columns", localColumns.value);
+};
+
+watch(
+  () => props.columns,
+  (newColumns) => {
+    localColumns.value = JSON.parse(JSON.stringify(newColumns));
+  },
+  { deep: true }
+);
 </script>
+
 <style scoped>
 vscode-dropdown::part(control) {
   border: none;
   outline: none;
 }
-
 </style>
