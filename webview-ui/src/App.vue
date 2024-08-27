@@ -54,7 +54,48 @@ import { getAssetDataset } from "@/components/lineage-flow/asset-lineage/useAsse
 import { ArrowPathIcon } from "@heroicons/vue/20/solid";
 import type { EnvironmentsList } from "./types";
 import ConnectionsList from "@/components/connections/ConnectionList.vue";
+import AssetColumns from "@/components/asset/columns/AssetColumns.vue";
 
+const dummyColumns = [
+  {
+    name: "id",
+    type: "integer",
+    description: "Unique identifier for each record",
+    checks: {
+      unique: true,
+      notNull: true
+    }
+  },
+  {
+    name: "first_name",
+    type: "string",
+    description: "First name of the person",
+    checks: {
+      unique: false,
+      notNull: true
+    }
+  },
+  {
+    name: "last_name",
+    type: "string",
+    description: "Last name of the person",
+    checks: {
+      unique: false,
+      notNull: true
+    }
+  },
+  {
+    name: "email",
+    type: "string",
+    description: "Email address of the person",
+    checks: {
+      unique: true,
+      notNull: true
+    }
+  },
+  
+];
+const columns = ref(dummyColumns);
 const panelType = ref("");
 const parseError = ref();
 const environments = ref<EnvironmentsList | null>(null); // Type for environments list
@@ -159,6 +200,14 @@ const tabs = ref([
       selectedEnvironment: selectedEnvironment.value,
     })),
     emits: ['update:name', 'update:description']
+  },
+  {
+    label: 'Columns',
+    component: AssetColumns,
+    includeIn: ["bruin"],
+    props: {
+      columns: columns.value
+    }
   },
   { label: "Asset Lineage", component: AssetLineageText, includeIn: ["bruin"] },
   {
