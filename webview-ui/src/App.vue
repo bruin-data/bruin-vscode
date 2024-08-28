@@ -57,45 +57,6 @@ import type { EnvironmentsList } from "./types";
 import ConnectionsList from "@/components/connections/ConnectionList.vue";
 import AssetColumns from "@/components/asset/columns/AssetColumns.vue";
 
-const dummyColumns = [
-  {
-    name: "id",
-    type: "integer",
-    description: "Unique identifier for each record",
-    checks: {
-      unique: true,
-      notNull: true,
-      accepted_values: [""],
-    },
-  },
-  {
-    name: "first_name",
-    type: "string",
-    description: "First name of the person",
-    checks: {
-      unique: false,
-      notNull: false,
-      positive: false,
-      negative: false,
-      notNegative: false,
-      acceptedValuesEnabled: false,
-      accepted_values: ["first", "second"],
-      patternEnabled: false,
-      pattern: "",
-    },
-  },
-  {
-    name: "last_name",
-    type: "string",
-    description: "Last name of the person",
-    checks: {
-      unique: false,
-      notNull: true,
-      accepted_values: [""],
-    },
-  },
-];
-const columns = ref([...dummyColumns]);
 const panelType = ref("");
 const parseError = ref();
 const environments = ref<EnvironmentsList | null>(null); // Type for environments list
@@ -164,6 +125,13 @@ const assetDetailsProps = computed({
   },
 });
 
+const columnsProps = computed(() => {
+  if (!data.value) return [];
+  const details = parseAssetDetails(data.value);
+  console.log("Columns Props", details);
+  return details?.columns || [];
+});
+
 const pipeline = computed(() => {
   if (!lineageData.value || !lineageData.value.pipeline) return null;
   try {
@@ -206,7 +174,7 @@ const tabs = ref([
     component: AssetColumns,
     includeIn: ["bruin"],
     props: computed(() => ({
-      columns: columns.value,
+      columns: columnsProps.value,
     })),
   },
   { label: "Asset Lineage", component: AssetLineageText, includeIn: ["bruin"] },
@@ -283,7 +251,7 @@ watch(
 ); */
 
 const updateColumns = (newColumns) => {
-  columns.value = newColumns;
+  vscode.postMessage({ command: "bruin.updateAssetColumns", columns: newColumns });
 };
 // Updated refreshGraphLineage function
 const refreshGraphLineage = debounce((event: Event) => {

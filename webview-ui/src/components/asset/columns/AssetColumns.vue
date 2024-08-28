@@ -188,7 +188,7 @@ const addColumn = () => {
       negative: false,
       notNegative: false,
       acceptedValuesEnabled: false,
-      accepted_values: [""],
+      accepted_values: [],
       patternEnabled: false,
       pattern: "",
     },

@@ -1,4 +1,3 @@
-
 import type { CheckboxItems } from "@/types";
 import { DateTime } from "luxon";
 import * as cronParser from "cron-parser";
@@ -19,7 +18,7 @@ export const adjustEndDateForExclusive = (endDateString: string): string => {
 
   console.log("Adjusted endDate with Luxon:", adjustedEndDateString);
 
-  return adjustedEndDateString.replace(/\.999Z$/, ".999999999Z");;
+  return adjustedEndDateString.replace(/\.999Z$/, ".999999999Z");
 };
 
 export const concatCommandFlags = (
@@ -117,20 +116,25 @@ export const parseAssetDetails = (data: string) => {
       name: parsedData.pipeline.name || "undefined",
       type: "pipeline",
       schedule: parsedData.pipeline.schedule || "undefined",
-      description:'No description available.',
+      description: "No description available.",
       owner: "undefined",
       pipeline: parsedData.pipeline || "undefined",
+      columns:[],
     };
-  ;
   }
   const assetDetails = {
     id: parsedData.asset ? parsedData.asset.id : "undefined",
     name: parsedData.asset ? parsedData.asset.name : "undefined",
-    type: parsedData.asset ? parsedData.asset.type : (parsedData.asset.external ? "external" : "undefined"),
+    type: parsedData.asset
+      ? parsedData.asset.type
+      : parsedData.asset.external
+        ? "external"
+        : "undefined",
     schedule: parsedData.asset ? parsedData.asset.schedule : "undefined",
     description: parsedData.asset ? parsedData.asset.description : null,
     owner: parsedData.asset ? parsedData.asset.owner : "undefined",
     pipeline: parsedData.pipeline || "undefined",
+    columns: parsedData.asset ? transformColumnData(parsedData.asset.columns) : [],
   };
 
   return assetDetails;
@@ -142,12 +146,11 @@ export const parseEnvironmentList = (data) => {
   const parsedData = JSON.parse(data);
   const environments = {
     selectedEnvironment: parsedData.selected_environment,
-    environments: parsedData.environments.map((env) => env.name)
+    environments: parsedData.environments.map((env) => env.name),
   };
 
   return environments;
-}
-  
+};
 
 export function isValidCron(expression: string) {
   try {
@@ -163,53 +166,111 @@ export function scheduleToCron(schedule: string) {
     return { cronSchedule: schedule, error: null };
   } else {
     switch (schedule) {
-        case 'hourly':
-          return { cronSchedule: '0 * * * *', error: null };
-        case 'daily':
-          return { cronSchedule: '0 0 * * *', error: null };
-        case 'weekly':
-          return { cronSchedule: '0 0 * * 1', error: null }; 
-        case 'monthly':
-          return { cronSchedule: '0 0 1 * *', error: null };
+      case "hourly":
+        return { cronSchedule: "0 * * * *", error: null };
+      case "daily":
+        return { cronSchedule: "0 0 * * *", error: null };
+      case "weekly":
+        return { cronSchedule: "0 0 * * 1", error: null };
+      case "monthly":
+        return { cronSchedule: "0 0 1 * *", error: null };
       default:
-        return { cronSchedule: null, error: `Invalid schedule: ${schedule}. Please provide a valid cron expression or use 'hourly', 'daily', 'weekly', or 'monthly'.` };
+        return {
+          cronSchedule: null,
+          error: `Invalid schedule: ${schedule}. Please provide a valid cron expression or use 'hourly', 'daily', 'weekly', or 'monthly'.`,
+        };
     }
   }
 }
 
-// function that get timestamp and schedule, and return start and end timestamp 
+// function that get timestamp and schedule, and return start and end timestamp
 
 export function getPreviousRun(schedule: string, timestamp) {
-  
-  const options = { currentDate: timestamp, tz: 'UTC'};
+  const options = { currentDate: timestamp, tz: "UTC" };
 
-  const {cronSchedule, error} = scheduleToCron(schedule);
+  const { cronSchedule, error } = scheduleToCron(schedule);
   if (error) {
     throw new Error(error);
-  } 
+  }
 
   const interval = cronParser.parseExpression(cronSchedule!, options);
 
-  
   const endTime = interval.prev().toDate().getTime();
   const startTime = interval.prev().toDate().getTime();
   return { startTime, endTime };
-
 }
 
 export function resetStartEndDate(schedule, today, startDate, endDate) {
-  const {startTime, endTime} = getPreviousRun(schedule, today);
-  console.log('start date:', startDate, 'end date:', endDate);
-  console.log('today', today, 'start time:', startTime, 'end time:', endTime);
+  const { startTime, endTime } = getPreviousRun(schedule, today);
+  console.log("start date:", startDate, "end date:", endDate);
+  console.log("today", today, "start time:", startTime, "end time:", endTime);
 
   const start = new Date(startTime).toISOString().slice(0, -1);
   const end = new Date(endTime).toISOString().slice(0, -1);
-  console.log('start:', start, 'end:', end);
+  console.log("start:", start, "end:", end);
   startDate.value = start;
   endDate.value = end;
 }
 
-
 export const getUpstreams = (data) => {
   return data?.upstreams || data?.upstream || [];
 };
+
+
+export function transformColumnData(columns) {
+  if(!columns) return [];
+  return columns.map(column => {
+    // Create a new object for each column with the desired structure
+    const newColumn = {
+      name: column.name,
+      type: column.type,
+      description: column.description,
+      checks: {
+        unique: false,
+        notNull: false,
+        positive: false,
+        negative: false,
+        notNegative: false,
+        acceptedValuesEnabled: false,
+        accepted_values: [],
+        patternEnabled: false,
+        pattern: "",
+      },
+    };
+
+    // Transform the checks array into the new checks object format
+    column.checks.forEach(check => {
+      switch (check.name) {
+        case 'unique':
+          newColumn.checks.unique = check.value !== null;
+          break;
+        case 'not_null':
+          newColumn.checks.notNull = check.value !== null;
+          break;
+        case 'positive':
+          newColumn.checks.positive = check.value !== null;
+          break;
+        case 'negative':
+          newColumn.checks.negative = check.value !== null;
+          break;
+        case 'not_negative':
+          newColumn.checks.notNegative = check.value !== null;
+          break;
+        case 'accepted_values':
+          newColumn.checks.acceptedValuesEnabled = true;
+          newColumn.checks.accepted_values = check.value.map(val => val.toString());
+          break;
+        case 'pattern_enabled':
+          newColumn.checks.patternEnabled = check.value !== null;
+          break;
+        case 'pattern':
+          newColumn.checks.pattern = check.value || "";
+          break;
+        default:
+          break;
+      }
+    });
+
+    return newColumn;
+  });
+}
