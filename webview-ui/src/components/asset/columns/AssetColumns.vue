@@ -90,33 +90,38 @@
               Non Negative
             </vscode-checkbox>
           </div>
-          <div class="flex flex-col w-2/4 space-y-2 mt-2">
-            <div>
+          <div class="flex flex-col space-y-4 mt-2 w-3/4">
+            <div class="flex items-center">
               <vscode-checkbox
                 :checked="column.checks.acceptedValuesEnabled"
-                class="w-1/2"
+                class="w-40 flex-shrink-0"
                 @change="updateColumnCheck(index, 'acceptedValuesEnabled', $event.target.checked)"
               >
                 Accepted Values
               </vscode-checkbox>
-              <vscode-text-field
-                class="bg-transparent p-0 w-1/2"
-                :value="column.checks.accepted_values"
-                placeholder="Accepted Values"
-                :disabled="!column.checks.acceptedValuesEnabled"
-                @input="updateColumnCheck(index, 'accepted_values', $event.target.value)"
-              />
+              <div class="flex items-center flex-grow space-x-2">
+                <vscode-text-field
+                  class="bg-transparent border-none w-full"
+                  :value="column.checks.accepted_values"
+                  placeholder="Accepted Values"
+                  :disabled="!column.checks.acceptedValuesEnabled"
+                  @input="updateColumnCheck(index, 'accepted_values', $event.target.value)"
+                />
+                <vscode-button>
+                  <PlusIcon class="h-4 w-4" />
+                </vscode-button>
+              </div>
             </div>
-            <div>
+            <div class="flex items-center">
               <vscode-checkbox
                 :checked="column.checks.patternEnabled"
-                class="w-1/2"
+                class="w-40 flex-shrink-0"
                 @change="updateColumnCheck(index, 'patternEnabled', $event.target.checked)"
               >
                 Pattern
               </vscode-checkbox>
               <vscode-text-field
-                class="bg-transparent p-0 w-1/2"
+                class="bg-transparent border-none w-full"
                 :value="column.checks.pattern"
                 placeholder="Pattern"
                 :disabled="!column.checks.patternEnabled"
@@ -132,7 +137,7 @@
 
 <script setup>
 import { ref, watch, onMounted, defineEmits, defineProps } from "vue";
-import { TrashIcon } from "@heroicons/vue/20/solid";
+import { TrashIcon, PlusIcon } from "@heroicons/vue/20/solid";
 
 const props = defineProps({
   columns: {
@@ -201,6 +206,10 @@ watch(
 
 <style scoped>
 vscode-dropdown::part(control) {
+  border: none;
+  outline: none;
+}
+vscode-text-field::part(input) {
   border: none;
   outline: none;
 }
