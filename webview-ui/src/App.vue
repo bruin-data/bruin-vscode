@@ -65,6 +65,7 @@ const dummyColumns = [
     checks: {
       unique: true,
       notNull: true,
+      accepted_values: [""],
     },
   },
   {
@@ -78,7 +79,7 @@ const dummyColumns = [
       negative: false,
       notNegative: false,
       acceptedValuesEnabled: false,
-      accepted_values: "",
+      accepted_values: ["first", "second"],
       patternEnabled: false,
       pattern: "",
     },
@@ -90,15 +91,7 @@ const dummyColumns = [
     checks: {
       unique: false,
       notNull: true,
-    },
-  },
-  {
-    name: "email",
-    type: "string",
-    description: "Email address of the person",
-    checks: {
-      unique: true,
-      notNull: true,
+      accepted_values: [""],
     },
   },
 ];

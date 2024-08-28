@@ -91,7 +91,7 @@
             </vscode-checkbox>
           </div>
           <div class="flex flex-col space-y-4 mt-2 w-3/4">
-            <div class="flex items-center">
+            <div class="flex items-start">
               <vscode-checkbox
                 :checked="column.checks.acceptedValuesEnabled"
                 class="w-40 flex-shrink-0"
@@ -99,17 +99,37 @@
               >
                 Accepted Values
               </vscode-checkbox>
-              <div class="flex items-center flex-grow space-x-2">
-                <vscode-text-field
-                  class="bg-transparent border-none w-full"
-                  :value="column.checks.accepted_values"
-                  placeholder="Accepted Values"
-                  :disabled="!column.checks.acceptedValuesEnabled"
-                  @input="updateColumnCheck(index, 'accepted_values', $event.target.value)"
-                />
-                <vscode-button>
-                  <PlusIcon class="h-4 w-4" />
-                </vscode-button>
+
+              <div class="flex flex-col space-y-2 w-full">
+                <div
+                  v-for="(value, valueIndex) in column.checks.accepted_values"
+                  :key="valueIndex"
+                  class="flex items-center space-x-2"
+                >
+                  <vscode-text-field
+                    class="bg-transparent border-none flex-grow"
+                    :value="value"
+                    placeholder="Accepted Values"
+                    :disabled="!column.checks.acceptedValuesEnabled"
+                    @input="
+                      updateColumnCheck(index, 'accepted_values', $event.target.value, valueIndex)
+                    "
+                  />
+                  <button
+                    class="p-1 hover:bg-editor-button-hover-bg rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                    :disabled="!column.checks.acceptedValuesEnabled"
+                    @click="addAcceptedValue(index)"
+                  >
+                    <PlusIcon class="h-4 w-4" />
+                  </button>
+                  <button
+                    v-if="column.checks.accepted_values.length > 1 && valueIndex > 0"
+                    @click="removeAcceptedValue(index, valueIndex)"
+                    class="p-1 hover:bg-editor-button-hover-bg rounded"
+                  >
+                    <MinusIcon class="h-4 w-4" />
+                  </button>
+                </div>
               </div>
             </div>
             <div class="flex items-center">
@@ -137,7 +157,7 @@
 
 <script setup>
 import { ref, watch, onMounted, defineEmits, defineProps } from "vue";
-import { TrashIcon, PlusIcon } from "@heroicons/vue/20/solid";
+import { TrashIcon, PlusIcon, MinusIcon } from "@heroicons/vue/20/solid";
 
 const props = defineProps({
   columns: {
@@ -168,7 +188,7 @@ const addColumn = () => {
       negative: false,
       notNegative: false,
       acceptedValuesEnabled: false,
-      accepted_values: "",
+      accepted_values: [""],
       patternEnabled: false,
       pattern: "",
     },
@@ -186,8 +206,26 @@ const updateColumn = (index, key, value) => {
   emitUpdate();
 };
 
-const updateColumnCheck = (index, checkKey, value) => {
-  localColumns.value[index].checks[checkKey] = value;
+const updateColumnCheck = (columnIndex, key, value, valueIndex = null) => {
+  if (key === "accepted_values") {
+    if (valueIndex !== null) {
+      localColumns.value[columnIndex].checks.accepted_values[valueIndex] = value;
+    } else {
+      localColumns.value[columnIndex].checks.accepted_values.push(value);
+    }
+  } else {
+    localColumns.value[columnIndex].checks[key] = value;
+  }
+  emitUpdate();
+};
+
+const addAcceptedValue = (index) => {
+  localColumns.value[index].checks.accepted_values.push("");
+  emitUpdate();
+};
+
+const removeAcceptedValue = (columnIndex, valueIndex) => {
+  localColumns.value[columnIndex].checks.accepted_values.splice(valueIndex, 1);
   emitUpdate();
 };
 
