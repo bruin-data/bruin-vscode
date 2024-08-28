@@ -128,9 +128,10 @@ const assetDetailsProps = computed({
 const columnsProps = computed(() => {
   if (!data.value) return [];
   const details = parseAssetDetails(data.value);
-  console.log("Columns Props", details);
   return details?.columns || [];
 });
+
+const columns = ref([...columnsProps.value]);
 
 const pipeline = computed(() => {
   if (!lineageData.value || !lineageData.value.pipeline) return null;
@@ -174,8 +175,8 @@ const tabs = ref([
     component: AssetColumns,
     includeIn: ["bruin"],
     props: computed(() => ({
-      columns: columnsProps.value,
-    })),
+      columns: columns.value,
+    }))
   },
   { label: "Asset Lineage", component: AssetLineageText, includeIn: ["bruin"] },
   {
@@ -242,17 +243,17 @@ watch(
   },
   { deep: true }
 );
-/* watch(
-  columns,
-  (newColumns) => {
-    vscode.postMessage({ command: "bruin.updateAssetColumns", columns: newColumns });
-  },
-  { deep: true }
-); */
+watch(columnsProps, (newColumns) => {
+  columns.value = newColumns;
+}, { deep: true });
 
 const updateColumns = (newColumns) => {
-  vscode.postMessage({ command: "bruin.updateAssetColumns", columns: newColumns });
+  columns.value = newColumns;
 };
+
+
+
+
 // Updated refreshGraphLineage function
 const refreshGraphLineage = debounce((event: Event) => {
   event.stopPropagation(); // Prevent event bubbling
