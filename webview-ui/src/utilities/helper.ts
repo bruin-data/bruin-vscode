@@ -242,31 +242,31 @@ export function transformColumnData(columns) {
     column.checks.forEach(check => {
       switch (check.name) {
         case 'unique':
-          newColumn.checks.unique = check.value !== null;
+          newColumn.checks.unique = true;
           break;
         case 'not_null':
-          newColumn.checks.notNull = check.value !== null;
+          newColumn.checks.notNull = true;
           break;
         case 'positive':
-          newColumn.checks.positive = check.value !== null;
+          newColumn.checks.positive = true;
           break;
         case 'negative':
-          newColumn.checks.negative = check.value !== null;
+          newColumn.checks.negative = true;
           break;
         case 'not_negative':
-          newColumn.checks.notNegative = check.value !== null;
+          newColumn.checks.notNegative = true;
           break;
         case 'accepted_values':
           newColumn.checks.acceptedValuesEnabled = true;
-          newColumn.checks.accepted_values = check.value.map(val => val.toString());
-          break;
-        case 'pattern_enabled':
-          newColumn.checks.patternEnabled = check.value !== null;
+          newColumn.checks.accepted_values = check.value ? check.value.map(val => val.toString()) : [];
           break;
         case 'pattern':
+          newColumn.checks.patternEnabled = true;
           newColumn.checks.pattern = check.value || "";
           break;
         default:
+          // Optionally log an unexpected check for debugging purposes
+          console.warn(`Unexpected check name: ${check.name}`);
           break;
       }
     });

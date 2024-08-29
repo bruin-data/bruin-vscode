@@ -56,6 +56,7 @@ import { ArrowPathIcon } from "@heroicons/vue/20/solid";
 import type { EnvironmentsList } from "./types";
 import ConnectionsList from "@/components/connections/ConnectionList.vue";
 import AssetColumns from "@/components/asset/columns/AssetColumns.vue";
+import EditColumns from "@/components/asset/columns/EditColumns.vue";
 
 const panelType = ref("");
 const parseError = ref();
@@ -176,7 +177,15 @@ const tabs = ref([
     includeIn: ["bruin"],
     props: computed(() => ({
       columns: columns.value,
-    }))
+    })),
+  },
+  {
+    label: "Edit Columns",
+    component: EditColumns,
+    includeIn: ["bruin"],
+    props: computed(() => ({
+      columns: columns.value,
+    })),
   },
   { label: "Asset Lineage", component: AssetLineageText, includeIn: ["bruin"] },
   {
@@ -243,16 +252,17 @@ watch(
   },
   { deep: true }
 );
-watch(columnsProps, (newColumns) => {
-  columns.value = newColumns;
-}, { deep: true });
+watch(
+  columnsProps,
+  (newColumns) => {
+    columns.value = newColumns;
+  },
+  { deep: true }
+);
 
 const updateColumns = (newColumns) => {
   columns.value = newColumns;
 };
-
-
-
 
 // Updated refreshGraphLineage function
 const refreshGraphLineage = debounce((event: Event) => {
