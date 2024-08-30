@@ -10,6 +10,7 @@
       <div class="w-1/4 sm:w-1/4">Name</div>
       <div class="w-1/4 sm:w-1/4">Type</div>
       <div class="w-1/2 sm:w-1/2">Description</div>
+      <div class="w-1/8 sm:w-1/8">Actions</div>
     </div>
 
     <!-- Column Rows -->
@@ -26,10 +27,23 @@
           <vscode-tag v-if="column.type">{{ column.type.toUpperCase() }}</vscode-tag>
           <div class="text-editor-fg opacity-30 text-sm sm:text-xs" v-else>undefined</div>
         </div>
-        <div v-if="column.description" class="w-1/2 sm:w-1/2 text-editor-fg opacity-70 text-sm sm:text-xs">
+        <div
+          v-if="column.description"
+          class="w-1/2 sm:w-1/2 text-editor-fg opacity-70 text-sm sm:text-xs"
+        >
           {{ column.description }}
         </div>
-        <div v-else class="w-1/2 sm:w-1/2 text-editor-fg opacity-30 text-sm sm:text-xs">No description provided.</div>
+        <div v-else class="w-1/2 sm:w-1/2 text-editor-fg opacity-30 text-sm sm:text-xs">
+          No description provided.
+        </div>
+        <div class="w-1/8 sm:w-1/8 text-editor-fg text-sm sm:text-xs">
+          <button
+            @click="removeColumn(index)"
+            class="text-editor-fg hover:text-editorError-foreground mr-2"
+          >
+            <TrashIcon class="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       <!-- Checks Section -->
@@ -42,18 +56,26 @@
         >
           {{ check }}
         </vscode-badge>
-        <div v-if="column.checks.patternEnabled && column.checks.pattern" class="mt-2 text-sm sm:text-xs text-editor-fg">
+        <div
+          v-if="column.checks.patternEnabled && column.checks.pattern"
+          class="mt-2 text-sm sm:text-xs text-editor-fg"
+        >
           Pattern: {{ column.checks.pattern }}
         </div>
       </div>
     </div>
-    <div v-else class="flex p-2 sm:p-1 bg-editorWidget-bg mb-2 text-editor-fg opacity-50 font-light italic">No columns provided.</div>
+    <div
+      v-else
+      class="flex p-2 sm:p-1 bg-editorWidget-bg mb-2 text-editor-fg opacity-50 font-light italic"
+    >
+      No columns provided.
+    </div>
   </div>
 </template>
 
 <script setup>
-import { defineProps, ref, defineEmits } from "vue";
-
+import { defineProps, ref, defineEmits, watch } from "vue";
+import { TrashIcon } from "@heroicons/vue/20/solid";
 const props = defineProps({
   columns: {
     type: Array,
@@ -64,6 +86,7 @@ const props = defineProps({
 const emit = defineEmits(["update:columns"]);
 
 const localColumns = ref([...props.columns]);
+
 const addColumn = () => {
   localColumns.value.push({
     name: "New Column",
@@ -74,6 +97,11 @@ const addColumn = () => {
       patternEnabled: false,
     },
   });
+  emitUpdateColumns();
+};
+
+const removeColumn = (index) => {
+  localColumns.value.splice(index, 1);
   emitUpdateColumns();
 };
 
@@ -96,7 +124,13 @@ const getActiveChecks = (column) => {
 const emitUpdateColumns = () => {
   emit("update:columns", localColumns.value);
 };
-
+watch(
+  () => props.columns,
+  (newColumns) => {
+    localColumns.value = JSON.parse(JSON.stringify(newColumns));
+  },
+  { deep: true }
+);
 </script>
 
 <style scoped>
@@ -133,6 +167,4 @@ vscode-badge::part(control) {
 vscode-button::part(control) {
   outline: none;
 }
-
-
 </style>
