@@ -179,14 +179,14 @@ const tabs = ref([
       columns: columns.value,
     })),
   },
-  {
+  /* {
     label: "Edit Columns",
     component: EditColumns,
     includeIn: ["bruin"],
     props: computed(() => ({
       columns: columns.value,
     })),
-  },
+  }, */
   { label: "Asset Lineage", component: AssetLineageText, includeIn: ["bruin"] },
   {
     label: "Settings",
