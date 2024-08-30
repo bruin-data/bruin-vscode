@@ -69,11 +69,14 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: 0.17.6
-### Fixed
-- Resolved issue with the date input not triggering the datepicker on click.
+### Latest Release: 0.18.0
+### Added
+- **New Columns & Checks Tab**: Introduced a new tab to display asset columns and their associated quality checks.
 
 ### Previous Highlights
+### Version 0.17.6
+- Resolved issue with the date input not triggering the datepicker on click.
+
 ### Version 0.17.5
 - Temporarily removed the connection tab from the side panel.
 - Corrected the schema for pipeline autocomplete to allow new, unlisted connections and updated the requirement so that either `name` or `id` must be present.

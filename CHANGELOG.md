@@ -2,6 +2,8 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.18.0] - [2024-08-30]
+- Introduced a new tab to display asset columns and their associated quality checks.
 
 ## [0.17.6] - [2024-08-21]
 - Resolved issue with the date input not triggering the datepicker on click.
