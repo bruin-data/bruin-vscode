@@ -32,6 +32,7 @@
         v-bind="tab && tab.props"
         class="flex w-full"
         @update:assetName="updateAssetName"
+        @update:columns="updateColumns"
       />
       <div class="flex w-full" v-else-if="parseError">
         <MessageAlert message="This file is either not a Bruin Asset or has no data to display." />
@@ -44,7 +45,7 @@
 import AssetDetails from "@/components/asset/AssetDetails.vue";
 import AssetLineageText from "@/components/lineage-text/AssetLineageText.vue";
 import AssetLineageFlow from "@/components/lineage-flow/asset-lineage/AssetLineage.vue";
-import BruinSettings from "@/components/bruin-settings/BruinSettings.vue";
+import BruinCLI from "@/components/bruin-settings/BruinCLI.vue";
 import { vscode } from "@/utilities/vscode";
 import { ref, onMounted, computed, watch } from "vue";
 import { parseAssetDetails, parseEnvironmentList } from "./utilities/helper";
@@ -54,6 +55,8 @@ import { getAssetDataset } from "@/components/lineage-flow/asset-lineage/useAsse
 import { ArrowPathIcon } from "@heroicons/vue/20/solid";
 import type { EnvironmentsList } from "./types";
 import ConnectionsList from "@/components/connections/ConnectionList.vue";
+import AssetColumns from "@/components/asset/columns/AssetColumns.vue";
+import EditColumns from "@/components/asset/columns/EditColumns.vue";
 
 const panelType = ref("");
 const parseError = ref();
@@ -111,10 +114,25 @@ const selectedEnvironment = computed(() => {
   return parseEnvironmentList(environments.value)?.selectedEnvironment || "something went wrong";
 });
 
-const assetDetailsProps = computed(() => {
-  if (!data.value) return null;
-  return parseAssetDetails(data.value);
+const assetDetailsProps = computed({
+  get: () => {
+    if (!data.value) return null;
+    return parseAssetDetails(data.value);
+  },
+  set: (newValue) => {
+    if (newValue) {
+      data.value = JSON.stringify({ asset: newValue });
+    }
+  },
 });
+
+const columnsProps = computed(() => {
+  if (!data.value) return [];
+  const details = parseAssetDetails(data.value);
+  return details?.columns || [];
+});
+
+const columns = ref([...columnsProps.value]);
 
 const pipeline = computed(() => {
   if (!lineageData.value || !lineageData.value.pipeline) return null;
@@ -151,11 +169,28 @@ const tabs = ref([
       environments: environmentsList.value,
       selectedEnvironment: selectedEnvironment.value,
     })),
+    emits: ["update:name", "update:description"],
   },
+  {
+    label: "Columns",
+    component: AssetColumns,
+    includeIn: ["bruin"],
+    props: computed(() => ({
+      columns: columns.value,
+    })),
+  },
+  /* {
+    label: "Edit Columns",
+    component: EditColumns,
+    includeIn: ["bruin"],
+    props: computed(() => ({
+      columns: columns.value,
+    })),
+  }, */
   { label: "Asset Lineage", component: AssetLineageText, includeIn: ["bruin"] },
   {
     label: "Settings",
-    component: BruinSettings,
+    component: BruinCLI,
     includeIn: ["bruin"],
     props: {
       isBruinInstalled: computed(() => isBruinInstalled.value),
@@ -217,6 +252,18 @@ watch(
   },
   { deep: true }
 );
+watch(
+  columnsProps,
+  (newColumns) => {
+    columns.value = newColumns;
+  },
+  { deep: true }
+);
+
+const updateColumns = (newColumns) => {
+  columns.value = newColumns;
+};
+
 // Updated refreshGraphLineage function
 const refreshGraphLineage = debounce((event: Event) => {
   event.stopPropagation(); // Prevent event bubbling
@@ -236,9 +283,15 @@ function loadEnvironmentsList() {
 }
 
 function updateAssetName(newName) {
-  tabs.value.map((tab) => {
-    if (!tab) return;
-    tab.props && (tab.props.name = newName);
+  if (assetDetailsProps.value) {
+    assetDetailsProps.value.name = newName;
+  }
+  tabs.value.forEach((tab) => {
+    if (tab && tab.props && "name" in tab.props) {
+      tab.props.name = newName;
+    }
   });
+  // You might also want to trigger a re-fetch of the asset details or update other components
+  vscode.postMessage({ command: "bruin.updateAssetName", name: newName });
 }
 </script>
