@@ -1,5 +1,10 @@
 <template>
   <div class="flex flex-col space-y-1 p-4 sm:p-1 bg-editor-bg">
+    <div class="flex justify-end mb-4">
+      <vscode-button @click="addColumn" class="p-1 rounded focus:outline-none">
+        Add column
+      </vscode-button>
+    </div>
     <!-- Header Row -->
     <div class="flex bg-editorWidget-bg p-2 sm:p-1 font-semibold text-editor-fg text-md opacity-65">
       <div class="w-1/4 sm:w-1/4">Name</div>
@@ -47,7 +52,7 @@
 </template>
 
 <script setup>
-import { defineProps } from "vue";
+import { defineProps, ref, defineEmits } from "vue";
 
 const props = defineProps({
   columns: {
@@ -55,6 +60,22 @@ const props = defineProps({
     required: true,
   },
 });
+
+const emit = defineEmits(["update:columns"]);
+
+const localColumns = ref([...props.columns]);
+const addColumn = () => {
+  localColumns.value.push({
+    name: "New Column",
+    type: "string",
+    description: "Description for the new column",
+    checks: {
+      acceptedValuesEnabled: false,
+      patternEnabled: false,
+    },
+  });
+  emitUpdateColumns();
+};
 
 const getActiveChecks = (column) => {
   const activeChecks = Object.entries(column.checks)
@@ -72,6 +93,10 @@ const getActiveChecks = (column) => {
 
   return activeChecks;
 };
+const emitUpdateColumns = () => {
+  emit("update:columns", localColumns.value);
+};
+
 </script>
 
 <style scoped>
@@ -104,4 +129,10 @@ const getActiveChecks = (column) => {
 vscode-badge::part(control) {
   background-color: var(--vscode-button-background);
 }
+
+vscode-button::part(control) {
+  outline: none;
+}
+
+
 </style>
