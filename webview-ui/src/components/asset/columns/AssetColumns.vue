@@ -1,7 +1,7 @@
 <template>
-  <div class="flex flex-col space-y-1 p-4 sm:p-1 bg-editorWidget-bg">
+  <div class="flex flex-col space-y-1 py-4 sm:py-1 bg-editorWidget-bg">
     <!-- Header Row -->
-    <div class="flex p-2 sm:p-2 font-semibold text-editor-fg text-md opacity-65 border-b border-commandCenter-border">
+    <div class="flex p-2 sm:p-2 font-semibold text-editor-fg text-md opacity-65 border-b border-editor-fg">
       <div class="flex-1 px-2 text-left">Name</div>
       <div class="flex-1 px-2 text-left">Type</div>
       <div class="flex-1 px-2 text-left">Description</div>
