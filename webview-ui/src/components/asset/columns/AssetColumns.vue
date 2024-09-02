@@ -75,31 +75,11 @@ const getActiveChecks = (column) => {
 </script>
 
 <style scoped>
-/* Tooltip styling */
 .has-tooltip {
   position: relative;
   cursor: pointer;
 }
 
-.has-tooltip::after {
-  content: attr(title);
-  position: absolute;
-  bottom: 125%; /* Position above the badge */
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: var(--vscode-tooltip-background);
-  color: var(--vscode-tooltip-foreground);
-  padding: 4px 8px;
-  border-radius: 4px;
-  white-space: nowrap;
-  font-size: 0.75rem;
-  opacity: 0;
-  visibility: hidden;
-  transition:
-    opacity 0.1s,
-    visibility 0.1s;
-  pointer-events: none;
-}
 .header-cell {
   flex: 1;
   padding: 0 8px;
