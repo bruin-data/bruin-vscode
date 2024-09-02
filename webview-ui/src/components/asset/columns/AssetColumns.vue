@@ -4,7 +4,7 @@
     <div class="flex p-2 sm:p-2 font-semibold text-editor-fg text-md opacity-65 border-b-2 border-editor-fg">
       <div class="flex-1 min-w-0 px-2 text-left">Name</div>
       <div class="flex-1 min-w-0 px-2 text-left">Type</div>
-      <div class="flex-[1.5] min-w-0 px-2 text-left">Description</div> 
+      <div class="flex-2 min-w-0 px-2 text-left">Description</div> 
       <div class="flex-1 min-w-0 px-2 text-left">Checks</div>
     </div>
 
@@ -21,10 +21,10 @@
           <div class="truncate" :title="column.name">{{ column.name }}</div>
         </div>
         <div class="flex-1 min-w-0 px-2 text-left">
-          <div v-if="column.type" class="flex-1 min-w-0 px-2 text-left text-[0.7rem] opacity-70">{{ column.type.toUpperCase() }}</div>
+          <div v-if="column.type" class="flex-1 min-w-0 px-2 text-left text-[0.7rem] opacity-70 truncate">{{ column.type.toUpperCase() }}</div>
           <div class="flex-1 min-w-0 px-2 text-left text-editor-fg opacity-30 text-xs sm:text-xs" v-else>undefined</div>
         </div>
-        <div v-if="column.description" class="flex-[1.5] min-w-0 px-2 text-left text-commandCenter-fg opacity-70 font-thin">
+        <div v-if="column.description" class="flex-2 min-w-0 px-2 text-left text-commandCenter-fg opacity-70 font-thin">
           {{ column.description }}
         </div>
         <div v-else class="flex-[1.5] min-w-0 px-2 text-left text-commandCenter-fg">No description provided.</div>
