@@ -39,7 +39,7 @@
         </div>
         <div
           v-if="column.description"
-          class="flex-[2] min-w-0 px-2 text-left text-commandCenter-fg opacity-70 font-thin"
+          class="flex-[2] min-w-0 px-2 text-left text-input-foreground opacity-70 font-thin"
         >
           {{ column.description }}
         </div>
@@ -47,7 +47,7 @@
           No description provided.
         </div>
         <!-- Checks Column -->
-        <div class="flex-1 min-w-0 px-2 text-left flex flex-wrap gap-2 whitespace-nowrap">
+        <div class="flex-1 min-w-0 px-2 text-left opacity-70 flex flex-wrap gap-2 whitespace-nowrap font-mono">
           <vscode-badge
             v-for="check in getActiveChecks(column)"
             :key="check"
@@ -107,4 +107,10 @@ const getActiveChecks = (column) => {
 };
 </script>
 
-<style scoped></style>
+<style scoped>
+vscode-badge::part(control) {
+  background-color: transparent; 
+  border: 1px solid var(--vscode-commandCenter-border); 
+  color: 'var(--vscode-editor-foreground)',
+}
+</style>

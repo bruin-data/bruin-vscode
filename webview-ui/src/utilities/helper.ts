@@ -227,10 +227,10 @@ export function transformColumnData(columns) {
       description: column.description,
       checks: {
         unique: false,
-        notNull: false,
+        not_null: false,
         positive: false,
         negative: false,
-        notNegative: false,
+        not_negative: false,
         acceptedValuesEnabled: false,
         accepted_values: [],
         patternEnabled: false,
@@ -245,7 +245,7 @@ export function transformColumnData(columns) {
           newColumn.checks.unique = true;
           break;
         case 'not_null':
-          newColumn.checks.notNull = true;
+          newColumn.checks.not_null = true;
           break;
         case 'positive':
           newColumn.checks.positive = true;
@@ -254,7 +254,7 @@ export function transformColumnData(columns) {
           newColumn.checks.negative = true;
           break;
         case 'not_negative':
-          newColumn.checks.notNegative = true;
+          newColumn.checks.not_negative = true;
           break;
         case 'accepted_values':
           newColumn.checks.acceptedValuesEnabled = true;
