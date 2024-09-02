@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.18.1] - [2024-09-02]
+- Fixed the display and styling of asset descriptions for better readability and visual consistency.
+
 ## [0.18.0] - [2024-08-30]
 - Introduced a new tab to display asset columns and their associated quality checks.
 
