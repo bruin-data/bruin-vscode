@@ -1,5 +1,10 @@
 <template>
   <div class="flex flex-col py-4 sm:py-1 bg-editorWidget-bg">
+    <div class="flex justify-end mb-4">
+      <vscode-button @click="addColumn" class="py-1 rounded focus:outline-none">
+        Add column
+      </vscode-button>
+    </div>
     <!-- Header Row -->
     <div
       class="flex p-2 sm:p-2 font-semibold text-editor-fg text-md opacity-65 border-b-2 border-editor-fg"
@@ -44,7 +49,10 @@
         >
           {{ column.description }}
         </div>
-        <div v-else class="flex-[2] min-w-0 px-2 text-left text-xs text-input-foreground opacity-60 font-light italic">
+        <div
+          v-else
+          class="flex-[2] min-w-0 px-2 text-left text-xs text-input-foreground opacity-60 font-light italic"
+        >
           No description provided.
         </div>
         <!-- Checks Column -->
@@ -53,7 +61,11 @@
             v-for="check in getActiveChecks(column)"
             :key="check"
             :class="{ 'relative cursor-pointer': check === 'accepted_values' }"
-            :title="check === 'accepted_values' ? 'accepted_values \n' + column.checks.accepted_values.join('\n') : ''"
+            :title="
+              check === 'accepted_values'
+                ? 'accepted_values \n' + column.checks.accepted_values.join('\n')
+                : ''
+            "
             :style="{
               overflow: 'hidden',
               textOverflow: 'ellipsis',
@@ -81,7 +93,7 @@
 </template>
 
 <script setup>
-import { defineProps } from "vue";
+import { defineProps, defineEmits, watch, ref } from "vue";
 
 const props = defineProps({
   columns: {
@@ -90,6 +102,22 @@ const props = defineProps({
   },
 });
 
+const emit = defineEmits(["update:columns"]);
+
+const localColumns = ref([...props.columns]);
+
+const addColumn = () => {
+  localColumns.value.push({
+    name: "New Column",
+    type: "string",
+    description: "Description for the new column",
+    checks: {
+      acceptedValuesEnabled: false,
+      patternEnabled: false,
+    },
+  });
+  emitUpdateColumns();
+};
 const getActiveChecks = (column) => {
   const activeChecks = Object.entries(column.checks)
     .filter(
@@ -106,13 +134,30 @@ const getActiveChecks = (column) => {
 
   return activeChecks;
 };
+
+const emitUpdateColumns = () => {
+  emit("update:columns", localColumns.value);
+};
+
+watch(
+  () => props.columns,
+  (newColumns) => {
+    localColumns.value = JSON.parse(JSON.stringify(newColumns));
+  },
+  { deep: true }
+);
 </script>
 
 <style scoped>
 vscode-badge::part(control) {
-  background-color: transparent; 
-  border: 1px solid var(--vscode-commandCenter-border); 
+  background-color: transparent;
+  border: 1px solid var(--vscode-commandCenter-border);
   color: var(--vscode-editor-foreground);
-  font-family: 'monospace';
+  font-family: "monospace";
+}
+
+vscode-button::part(control) {
+  border: none;
+  outline: none;
 }
 </style>
