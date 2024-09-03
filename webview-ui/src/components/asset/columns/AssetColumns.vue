@@ -73,7 +73,8 @@
               whiteSpace: 'nowrap',
             }"
           >
-            <span class="flex items-center  truncate">{{ check }} 
+            <span class="flex items-center truncate"
+              >{{ check }}
               <XMarkIcon
                 v-show="isEditing"
                 @click="removeCheck(index, check)"
@@ -109,6 +110,10 @@
         class="flex p-2 sm:p-2 bg-editorWidget-bg mb-2 text-editor-fg opacity-50 font-light italic"
       >
         No columns provided.
+      </div>
+      <div v-if="isEditing" class="flex justify-end items-center space-x-2 mt-2">
+        <vscode-button appearance="primary" aria-label="Save changes" @click="saveChanges()"> Save </vscode-button>
+        <vscode-button appearance="secondary" aria-label="Cancel" @click="cancelChnages()"> Cancel </vscode-button>
       </div>
     </div>
   </div>
@@ -179,9 +184,21 @@ const deleteColumn = (index) => {
 
 const removeCheck = (index, check) => {
   localColumns.value[index].checks[check] = false;
+  if(saveChanges) {
+    saveChanges();
+  }
   emitUpdateColumns();
   console.log(`Removing check ${check} from column at index ${index}`);
   console.log("localColumns", localColumns.value);
+};
+
+const saveChanges = () => {
+  isEditing.value = false;
+  emitUpdateColumns();
+};
+
+const cancelChnages = () => {
+  isEditing.value = false;
 };
 
 watch(
