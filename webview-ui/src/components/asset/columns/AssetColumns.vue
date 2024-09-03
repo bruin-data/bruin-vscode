@@ -26,35 +26,44 @@
       >
         <!-- Column Details -->
         <div class="flex-1 min-w-0 px-2 text-left font-medium">
-          <div class="truncate" :title="column.name">{{ column.name }}</div>
+          <input
+            v-if="editingIndex === index"
+            v-model="editingColumn.name"
+            class="w-full bg-editorWidget-bg text-editor-fg"
+          />
+          <div v-else class="truncate" :title="column.name">{{ column.name }}</div>
         </div>
         <div class="flex-1 min-w-0 px-2 text-left">
+          <select
+            v-if="editingIndex === index"
+            v-model="editingColumn.type"
+            class="w-full bg-editorWidget-bg text-editor-fg"
+          >
+            <option value="string">STRING</option>
+            <option value="number">NUMBER</option>
+            <option value="boolean">BOOLEAN</option>
+            <option value="date">DATE</option>
+          </select>
           <div
-            v-if="column.type"
+            v-else
             class="flex-1 min-w-0 px-2 text-left text-[0.7rem] opacity-70 truncate"
             :title="column.type.toUpperCase()"
           >
             {{ column.type.toUpperCase() }}
           </div>
+        </div>
+        <div class="flex-[2] min-w-0 px-2 text-left">
+          <input
+            v-if="editingIndex === index"
+            v-model="editingColumn.description"
+            class="w-full bg-editorWidget-bg text-editor-fg"
+          />
           <div
-            class="flex-1 min-w-0 px-2 text-left text-editor-fg opacity-30 text-xs sm:text-xs truncate"
-            title="undefined"
             v-else
+            class="text-xs text-input-foreground opacity-70 font-light"
           >
-            undefined
+            {{ column.description || "No description provided." }}
           </div>
-        </div>
-        <div
-          v-if="column.description"
-          class="flex-[2] min-w-0 px-2 text-left text-xs text-input-foreground opacity-70 font-light"
-        >
-          {{ column.description }}
-        </div>
-        <div
-          v-else
-          class="flex-[2] min-w-0 px-2 text-left text-xs text-input-foreground opacity-60 font-light italic"
-        >
-          No description provided.
         </div>
         <!-- Checks Column -->
         <div class="flex-1 pr-6 min-w-0 text-left flex flex-wrap gap-2 whitespace-nowrap font-mono">
@@ -76,7 +85,7 @@
             <span class="flex items-center truncate"
               >{{ check }}
               <XMarkIcon
-                v-show="isEditing"
+                v-if="editingIndex === index"
                 @click="removeCheck(index, check)"
                 class="h-3 w-3 text-editor-fg ml-[0.1rem] cursor-pointer"
               />
@@ -88,9 +97,27 @@
           >
             Pattern: {{ column.checks.pattern }}
           </div>
+          <div v-if="editingIndex === index" class="relative">
+            <vscode-button appearance="icon" @click="toggleAddCheckDropdown(index)" aria-label="Add Check">
+              <PlusIcon class="h-4 w-4" />
+            </vscode-button>
+            <div v-if="showAddCheckDropdown === index" class="absolute z-10 mt-1 bg-editorWidget-bg border border-commandCenter-border rounded shadow-lg">
+              <div
+                v-for="check in availableChecks(column)"
+                :key="check"
+                @click="addCheck(index, check)"
+                class="px-4 py-2 hover:bg-commandCenter-border cursor-pointer"
+              >
+                {{ check }}
+              </div>
+            </div>
+          </div>
         </div>
         <div class="flex-[1/2] justify-end space-x-2">
-          <vscode-button appearance="icon" @click="startEditing(index)" aria-label="Edit">
+          <vscode-button v-if="editingIndex === index" appearance="icon" @click="saveChanges(index)" aria-label="Save">
+            <CheckIcon class="h-4 w-4" />
+          </vscode-button>
+          <vscode-button v-else appearance="icon" @click="startEditing(index)" aria-label="Edit">
             <PencilIcon class="h-4 w-4" />
           </vscode-button>
           <vscode-button appearance="icon" @click="showDeleteAlert = true" aria-label="Delete">
@@ -111,17 +138,13 @@
       >
         No columns provided.
       </div>
-      <div v-if="isEditing" class="flex justify-end items-center space-x-2 mt-2">
-        <vscode-button appearance="primary" aria-label="Save changes" @click="saveChanges()"> Save </vscode-button>
-        <vscode-button appearance="secondary" aria-label="Cancel" @click="cancelChnages()"> Cancel </vscode-button>
-      </div>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, watch, computed } from "vue";
-import { TrashIcon, PencilIcon, XMarkIcon } from "@heroicons/vue/20/solid";
+import { TrashIcon, PencilIcon, XMarkIcon, CheckIcon } from "@heroicons/vue/20/solid";
 import DeleteAlert from "@/components/ui/alerts/AlertWithActions.vue";
 
 const props = defineProps({
@@ -134,7 +157,8 @@ const props = defineProps({
 const emit = defineEmits(["update:columns"]);
 const showDeleteAlert = ref(false);
 const localColumns = ref([...props.columns]);
-const isEditing = ref(false);
+const editingIndex = ref(null);
+const editingColumn = ref({});
 
 const addColumn = () => {
   localColumns.value.push({
@@ -171,34 +195,25 @@ const emitUpdateColumns = () => {
 };
 
 const startEditing = (index) => {
-  // Implement editing functionality here
-  isEditing.value = true;
-  console.log(`Editing column at index ${index}`);
+  editingIndex.value = index;
+  editingColumn.value = { ...localColumns.value[index] };
+};
+
+const saveChanges = (index) => {
+  localColumns.value[index] = { ...editingColumn.value };
+  editingIndex.value = null;
+  emitUpdateColumns();
 };
 
 const deleteColumn = (index) => {
   localColumns.value.splice(index, 1);
-  showDeleteAlert.value = !showDeleteAlert.value;
+  showDeleteAlert.value = false;
   emitUpdateColumns();
 };
 
 const removeCheck = (index, check) => {
   localColumns.value[index].checks[check] = false;
-  if(saveChanges) {
-    saveChanges();
-  }
   emitUpdateColumns();
-  console.log(`Removing check ${check} from column at index ${index}`);
-  console.log("localColumns", localColumns.value);
-};
-
-const saveChanges = () => {
-  isEditing.value = false;
-  emitUpdateColumns();
-};
-
-const cancelChnages = () => {
-  isEditing.value = false;
 };
 
 watch(
@@ -221,5 +236,13 @@ vscode-badge::part(control) {
 vscode-button::part(control) {
   border: none;
   outline: none;
+}
+
+input, select {
+  background-color: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border);
+  padding: 2px 4px;
+  font-size: 0.9em;
 }
 </style>
