@@ -31,7 +31,8 @@
             {{ column.type.toUpperCase() }}
           </div>
           <div
-            class="flex-1 min-w-0 px-2 text-left text-editor-fg opacity-30 text-xs sm:text-xs"
+            class="flex-1 min-w-0 px-2 text-left text-editor-fg opacity-30 text-xs sm:text-xs truncate"
+            title="undefined"
             v-else
           >
             undefined
