@@ -47,7 +47,7 @@
           No description provided.
         </div>
         <!-- Checks Column -->
-        <div class="flex-1 min-w-0 px-2 text-left opacity-70 flex flex-wrap gap-2 whitespace-nowrap font-mono">
+        <div class="flex-1 min-w-0 px-2 text-left flex flex-wrap gap-2 whitespace-nowrap font-mono">
           <vscode-badge
             v-for="check in getActiveChecks(column)"
             :key="check"
@@ -111,6 +111,7 @@ const getActiveChecks = (column) => {
 vscode-badge::part(control) {
   background-color: transparent; 
   border: 1px solid var(--vscode-commandCenter-border); 
-  color: 'var(--vscode-editor-foreground)',
+  color: var(--vscode-editor-foreground);
+  font-family: 'monospace';
 }
 </style>
