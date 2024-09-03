@@ -73,10 +73,11 @@
               whiteSpace: 'nowrap',
             }"
           >
-            <span class="flex items-center truncate">{{ check }} 
+            <span class="flex items-center  truncate">{{ check }} 
               <XMarkIcon
                 v-show="isEditing"
-                class="h-3 w-3 text-editor-fg ml-1 z-10"
+                @click="removeCheck(index, check)"
+                class="h-3 w-3 text-editor-fg ml-[0.1rem] cursor-pointer"
               />
             </span>
           </vscode-badge>
@@ -174,6 +175,13 @@ const deleteColumn = (index) => {
   localColumns.value.splice(index, 1);
   showDeleteAlert.value = !showDeleteAlert.value;
   emitUpdateColumns();
+};
+
+const removeCheck = (index, check) => {
+  localColumns.value[index].checks[check] = false;
+  emitUpdateColumns();
+  console.log(`Removing check ${check} from column at index ${index}`);
+  console.log("localColumns", localColumns.value);
 };
 
 watch(
