@@ -73,7 +73,12 @@
               whiteSpace: 'nowrap',
             }"
           >
-            <span class="block truncate max-w-[100px]">{{ check }}</span>
+            <span class="flex items-center truncate">{{ check }} 
+              <XMarkIcon
+                v-show="isEditing"
+                class="h-3 w-3 text-editor-fg ml-1 z-10"
+              />
+            </span>
           </vscode-badge>
           <div
             v-if="column.checks.patternEnabled && column.checks.pattern"
@@ -110,7 +115,7 @@
 
 <script setup>
 import { ref, watch, computed } from "vue";
-import { TrashIcon, PencilIcon } from "@heroicons/vue/20/solid";
+import { TrashIcon, PencilIcon, XMarkIcon } from "@heroicons/vue/20/solid";
 import DeleteAlert from "@/components/ui/alerts/AlertWithActions.vue";
 
 const props = defineProps({
@@ -123,6 +128,7 @@ const props = defineProps({
 const emit = defineEmits(["update:columns"]);
 const showDeleteAlert = ref(false);
 const localColumns = ref([...props.columns]);
+const isEditing = ref(false);
 
 const addColumn = () => {
   localColumns.value.push({
@@ -160,6 +166,7 @@ const emitUpdateColumns = () => {
 
 const startEditing = (index) => {
   // Implement editing functionality here
+  isEditing.value = true;
   console.log(`Editing column at index ${index}`);
 };
 
