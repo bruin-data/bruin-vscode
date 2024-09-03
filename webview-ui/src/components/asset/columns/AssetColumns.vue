@@ -31,7 +31,8 @@
             {{ column.type.toUpperCase() }}
           </div>
           <div
-            class="flex-1 min-w-0 px-2 text-left text-editor-fg opacity-30 text-xs sm:text-xs"
+            class="flex-1 min-w-0 px-2 text-left text-editor-fg opacity-30 text-xs sm:text-xs truncate"
+            title="undefined"
             v-else
           >
             undefined
@@ -39,15 +40,15 @@
         </div>
         <div
           v-if="column.description"
-          class="flex-[2] min-w-0 px-2 text-left text-commandCenter-fg opacity-70 font-thin"
+          class="flex-[2] min-w-0 px-2 text-left text-xs text-input-foreground opacity-70 font-light"
         >
           {{ column.description }}
         </div>
-        <div v-else class="flex-[1.5] min-w-0 px-2 text-left text-commandCenter-fg">
+        <div v-else class="flex-[2] min-w-0 px-2 text-left text-xs text-input-foreground opacity-60 font-light italic">
           No description provided.
         </div>
         <!-- Checks Column -->
-        <div class="flex-1 min-w-0 px-2 text-left flex flex-wrap gap-2 whitespace-nowrap">
+        <div class="flex-1 min-w-0 px-2 text-left flex flex-wrap gap-2 whitespace-nowrap font-mono">
           <vscode-badge
             v-for="check in getActiveChecks(column)"
             :key="check"
@@ -107,4 +108,11 @@ const getActiveChecks = (column) => {
 };
 </script>
 
-<style scoped></style>
+<style scoped>
+vscode-badge::part(control) {
+  background-color: transparent; 
+  border: 1px solid var(--vscode-commandCenter-border); 
+  color: var(--vscode-editor-foreground);
+  font-family: 'monospace';
+}
+</style>
