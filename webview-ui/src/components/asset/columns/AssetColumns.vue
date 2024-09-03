@@ -39,11 +39,11 @@
         </div>
         <div
           v-if="column.description"
-          class="flex-[2] min-w-0 px-2 text-left text-input-foreground opacity-70 font-thin"
+          class="flex-[2] min-w-0 px-2 text-left text-xs text-input-foreground opacity-70 font-light"
         >
           {{ column.description }}
         </div>
-        <div v-else class="flex-[1.5] min-w-0 px-2 text-left text-commandCenter-fg">
+        <div v-else class="flex-[2] min-w-0 px-2 text-left text-xs text-input-foreground opacity-60 font-light italic">
           No description provided.
         </div>
         <!-- Checks Column -->
