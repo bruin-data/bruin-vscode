@@ -86,9 +86,16 @@
           <vscode-button appearance="icon" @click="startEditing(index)" aria-label="Edit">
             <PencilIcon class="h-4 w-4" />
           </vscode-button>
-          <vscode-button appearance="icon" @click="deleteColumn(index)" aria-label="Delete">
+          <vscode-button appearance="icon" @click="showDeleteAlert = true" aria-label="Delete">
             <TrashIcon class="h-4 w-4" />
           </vscode-button>
+          <DeleteAlert
+            v-if="showDeleteAlert"
+            :elementName="column.name"
+            elementType="column"
+            @confirm="deleteColumn(index)"
+            @cancel="showDeleteAlert = false"
+          />
         </div>
       </div>
       <div
@@ -104,6 +111,7 @@
 <script setup>
 import { ref, watch, computed } from "vue";
 import { TrashIcon, PencilIcon } from "@heroicons/vue/20/solid";
+import DeleteAlert from "@/components/ui/alerts/AlertWithActions.vue";
 
 const props = defineProps({
   columns: {
@@ -113,7 +121,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["update:columns"]);
-
+const showDeleteAlert = ref(false);
 const localColumns = ref([...props.columns]);
 
 const addColumn = () => {
@@ -157,6 +165,7 @@ const startEditing = (index) => {
 
 const deleteColumn = (index) => {
   localColumns.value.splice(index, 1);
+  showDeleteAlert.value = !showDeleteAlert.value;
   emitUpdateColumns();
 };
 
