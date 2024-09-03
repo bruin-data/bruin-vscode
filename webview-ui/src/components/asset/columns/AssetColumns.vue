@@ -13,13 +13,14 @@
       <div class="flex-1 min-w-0 px-2 text-left">Type</div>
       <div class="flex-[2] min-w-0 px-2 text-left">Description</div>
       <div class="flex-1 min-w-0 px-2 text-left">Checks</div>
+      <div class="flex-[1/2] min-w-0 px-2 text-left">Actions</div>
     </div>
 
     <!-- Column Rows -->
     <div class="flex-1 min-h-0">
       <div
-        v-if="columns.length"
-        v-for="(column, index) in columns"
+        v-if="localColumns.length"
+        v-for="(column, index) in localColumns"
         :key="index"
         class="flex p-1 border-b border-commandCenter-border items-center"
       >
@@ -56,7 +57,7 @@
           No description provided.
         </div>
         <!-- Checks Column -->
-        <div class="flex-1 min-w-0 px-2 text-left flex flex-wrap gap-2 whitespace-nowrap font-mono">
+        <div class="flex-1 pr-6 min-w-0 text-left flex flex-wrap gap-2 whitespace-nowrap font-mono">
           <vscode-badge
             v-for="check in getActiveChecks(column)"
             :key="check"
@@ -81,6 +82,14 @@
             Pattern: {{ column.checks.pattern }}
           </div>
         </div>
+        <div class="flex-[1/2] justify-end space-x-2">
+          <vscode-button appearance="icon" @click="startEditing(index)" aria-label="Edit">
+            <PencilIcon class="h-4 w-4" />
+          </vscode-button>
+          <vscode-button appearance="icon" @click="deleteColumn(index)" aria-label="Delete">
+            <TrashIcon class="h-4 w-4" />
+          </vscode-button>
+        </div>
       </div>
       <div
         v-else
@@ -93,7 +102,8 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits, watch, ref } from "vue";
+import { ref, watch, computed } from "vue";
+import { TrashIcon, PencilIcon } from "@heroicons/vue/20/solid";
 
 const props = defineProps({
   columns: {
@@ -118,7 +128,8 @@ const addColumn = () => {
   });
   emitUpdateColumns();
 };
-const getActiveChecks = (column) => {
+
+const getActiveChecks = computed(() => (column) => {
   const activeChecks = Object.entries(column.checks)
     .filter(
       ([key, value]) => value === true && !["acceptedValuesEnabled", "patternEnabled"].includes(key)
@@ -133,10 +144,20 @@ const getActiveChecks = (column) => {
   }
 
   return activeChecks;
-};
+});
 
 const emitUpdateColumns = () => {
   emit("update:columns", localColumns.value);
+};
+
+const startEditing = (index) => {
+  // Implement editing functionality here
+  console.log(`Editing column at index ${index}`);
+};
+
+const deleteColumn = (index) => {
+  localColumns.value.splice(index, 1);
+  emitUpdateColumns();
 };
 
 watch(
@@ -153,7 +174,7 @@ vscode-badge::part(control) {
   background-color: transparent;
   border: 1px solid var(--vscode-commandCenter-border);
   color: var(--vscode-editor-foreground);
-  font-family: "monospace";
+  font-family: monospace;
 }
 
 vscode-button::part(control) {
