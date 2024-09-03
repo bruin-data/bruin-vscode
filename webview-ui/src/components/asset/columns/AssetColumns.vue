@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col py-4 sm:py-1 bg-editorWidget-bg">
+  <div class="flex flex-col py-4 sm:py-1 bg-editorWidget-bg h-full">
     <div class="flex justify-end mb-4">
       <vscode-button @click="addColumn" class="py-1 rounded focus:outline-none">
         Add column
@@ -34,21 +34,12 @@
           <div v-else class="truncate" :title="column.name">{{ column.name }}</div>
         </div>
         <div class="flex-1 min-w-0 px-2 text-left">
-          <select
+          <input
             v-if="editingIndex === index"
             v-model="editingColumn.type"
             class="w-full bg-editorWidget-bg text-editor-fg"
           >
-            <option value="string">STRING</option>
-            <option value="number">NUMBER</option>
-            <option value="boolean">BOOLEAN</option>
-            <option value="date">DATE</option>
-          </select>
-          <div
-            v-else
-            class="flex-1 min-w-0 px-2 text-left text-[0.7rem] opacity-70 truncate"
-            :title="column.type.toUpperCase()"
-          >
+          <div v-else class="text-[0.7rem] opacity-70 truncate" :title="column.type.toUpperCase()">
             {{ column.type.toUpperCase() }}
           </div>
         </div>
@@ -58,63 +49,72 @@
             v-model="editingColumn.description"
             class="w-full bg-editorWidget-bg text-editor-fg"
           />
-          <div
-            v-else
-            class="text-xs text-input-foreground opacity-70 font-light"
-          >
+          <div v-else class="truncate text-xs text-input-foreground opacity-70 font-light" :class="!column.description ? 'opcaity-60 italic' : ''" :title="column.description || 'undefined'">
             {{ column.description || "No description provided." }}
           </div>
         </div>
+
         <!-- Checks Column -->
         <div class="flex-1 pr-6 min-w-0 text-left flex flex-wrap gap-2 whitespace-nowrap font-mono">
-          <vscode-badge
-            v-for="check in getActiveChecks(column)"
-            :key="check"
-            :class="{ 'relative cursor-pointer': check === 'accepted_values' }"
-            :title="
-              check === 'accepted_values'
-                ? 'accepted_values \n' + column.checks.accepted_values.join('\n')
-                : ''
-            "
-            :style="{
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }"
-          >
-            <span class="flex items-center truncate"
-              >{{ check }}
-              <XMarkIcon
-                v-if="editingIndex === index"
-                @click="removeCheck(index, check)"
-                class="h-3 w-3 text-editor-fg ml-[0.1rem] cursor-pointer"
-              />
-            </span>
-          </vscode-badge>
-          <div
-            v-if="column.checks.patternEnabled && column.checks.pattern"
-            class="text-sm sm:text-xs text-editor-fg whitespace-nowrap"
-          >
-            Pattern: {{ column.checks.pattern }}
-          </div>
-          <div v-if="editingIndex === index" class="relative">
-            <vscode-button appearance="icon" @click="toggleAddCheckDropdown(index)" aria-label="Add Check">
-              <PlusIcon class="h-4 w-4" />
-            </vscode-button>
-            <div v-if="showAddCheckDropdown === index" class="absolute z-10 mt-1 bg-editorWidget-bg border border-commandCenter-border rounded shadow-lg">
-              <div
-                v-for="check in availableChecks(column)"
-                :key="check"
-                @click="addCheck(index, check)"
-                class="px-4 py-2 hover:bg-commandCenter-border cursor-pointer"
+          <template v-if="editingIndex === index">
+            <vscode-badge
+              v-for="check in getActiveChecks(editingColumn)"
+              :key="check"
+              :class="{
+                'relative cursor-pointer': check === 'accepted_values' || check === 'pattern',
+              }"
+              :title="getCheckTooltip(check, editingColumn)"
+            >
+              <span class="flex items-center truncate"
+                >{{ check }}
+                <XMarkIcon
+                  @click="removeCheck(check)"
+                  class="h-3 w-3 text-editor-fg ml-[0.1rem] cursor-pointer"
+                />
+              </span>
+            </vscode-badge>
+            <div class="relative">
+              <vscode-button
+                appearance="icon"
+                @click="toggleAddCheckDropdown(index)"
+                aria-label="Add Check"
               >
-                {{ check }}
+                <PlusIcon class="h-4 w-4" />
+              </vscode-button>
+              <div
+                v-if="showAddCheckDropdown === index"
+                class="absolute z-100 mt-1 bg-editorWidget-bg border border-commandCenter-border rounded"
+              >
+                <div
+                  v-for="check in availableChecks(editingColumn)"
+                  :key="check"
+                  @click="addCheck(check)"
+                  class="px-4 py-2 hover:bg-commandCenter-border cursor-pointer"
+                >
+                  {{ check }}
+                </div>
               </div>
             </div>
-          </div>
+          </template>
+          <template v-else>
+            <vscode-badge
+              v-for="check in getActiveChecks(column)"
+              :key="check"
+              :title="getCheckTooltip(check, column)"
+            >
+              {{ check }}
+            </vscode-badge>
+          </template>
         </div>
+
+        <!-- Actions Column -->
         <div class="flex-[1/2] justify-end space-x-2">
-          <vscode-button v-if="editingIndex === index" appearance="icon" @click="saveChanges(index)" aria-label="Save">
+          <vscode-button
+            v-if="editingIndex === index"
+            appearance="icon"
+            @click="saveChanges(index)"
+            aria-label="Save"
+          >
             <CheckIcon class="h-4 w-4" />
           </vscode-button>
           <vscode-button v-else appearance="icon" @click="startEditing(index)" aria-label="Edit">
@@ -132,19 +132,21 @@
           />
         </div>
       </div>
-      <div
-        v-else
-        class="flex p-2 sm:p-2 bg-editorWidget-bg mb-2 text-editor-fg opacity-50 font-light italic"
-      >
-        No columns provided.
-      </div>
+    </div>
+
+    <!-- Notification -->
+    <div
+      v-if="notification"
+      class="fixed bottom-4 right-4 bg-editorWidget-bg border border-commandCenter-border p-4 rounded shadow-lg"
+    >
+      {{ notification }}
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, watch, computed } from "vue";
-import { TrashIcon, PencilIcon, XMarkIcon, CheckIcon } from "@heroicons/vue/20/solid";
+import { TrashIcon, PencilIcon, XMarkIcon, CheckIcon, PlusIcon } from "@heroicons/vue/20/solid";
 import DeleteAlert from "@/components/ui/alerts/AlertWithActions.vue";
 
 const props = defineProps({
@@ -190,17 +192,82 @@ const getActiveChecks = computed(() => (column) => {
   return activeChecks;
 });
 
+const showAddCheckDropdown = ref(null);
+const notification = ref(null);
+
+const allChecks = [
+  "not_null",
+  "unique",
+  "accepted_values",
+  "pattern",
+  "positive",
+  "negative",
+  "not_negative",
+];
+
+const availableChecks = computed(() => (column) => {
+  const activeChecks = getActiveChecks.value(column);
+  return allChecks.filter((check) => !activeChecks.includes(check));
+});
+
+const toggleAddCheckDropdown = (index) => {
+  showAddCheckDropdown.value = showAddCheckDropdown.value === index ? null : index;
+};
+
+const addCheck = (check) => {
+  if (check === "accepted_values") {
+    editingColumn.value.checks.acceptedValuesEnabled = true;
+    editingColumn.value.checks.accepted_values = [];
+    showNotification("Please specify the accepted values in the asset file.");
+  } else if (check === "pattern") {
+    editingColumn.value.checks.patternEnabled = true;
+    editingColumn.value.checks.pattern = " ";
+    showNotification("Please specify the regex pattern in the asset file.");
+  } else {
+    editingColumn.value.checks[check] = true;
+  }
+  showAddCheckDropdown.value = null;
+};
+
+const removeCheck = (check) => {
+  if (check === "accepted_values") {
+    editingColumn.value.checks.acceptedValuesEnabled = false;
+    editingColumn.value.checks.accepted_values = [];
+  } else if (check === "pattern") {
+    editingColumn.value.checks.patternEnabled = false;
+    editingColumn.value.checks.pattern = "";
+  } else {
+    editingColumn.value.checks[check] = false;
+  }
+};
+
+const showNotification = (message) => {
+  notification.value = message;
+  setTimeout(() => {
+    notification.value = null;
+  }, 5000); // Hide notification after 5 seconds
+};
+
+const getCheckTooltip = (check, column) => {
+  if (check === "accepted_values") {
+    return `Accepted values: ${column.checks.accepted_values?.join(", ") || "Not specified"}`;
+  } else if (check === "pattern") {
+    return `Pattern: ${column.checks.pattern || "Not specified"}`;
+  }
+  return "";
+};
+
 const emitUpdateColumns = () => {
   emit("update:columns", localColumns.value);
 };
 
 const startEditing = (index) => {
   editingIndex.value = index;
-  editingColumn.value = { ...localColumns.value[index] };
+  editingColumn.value = JSON.parse(JSON.stringify(localColumns.value[index]));
 };
 
 const saveChanges = (index) => {
-  localColumns.value[index] = { ...editingColumn.value };
+  localColumns.value[index] = JSON.parse(JSON.stringify(editingColumn.value));
   editingIndex.value = null;
   emitUpdateColumns();
 };
@@ -208,11 +275,6 @@ const saveChanges = (index) => {
 const deleteColumn = (index) => {
   localColumns.value.splice(index, 1);
   showDeleteAlert.value = false;
-  emitUpdateColumns();
-};
-
-const removeCheck = (index, check) => {
-  localColumns.value[index].checks[check] = false;
   emitUpdateColumns();
 };
 
@@ -238,11 +300,17 @@ vscode-button::part(control) {
   outline: none;
 }
 
-input, select {
+input,
+select {
   background-color: var(--vscode-input-background);
   color: var(--vscode-input-foreground);
-  border: 1px solid var(--vscode-input-border);
+  border: none;
+  outline: none;
   padding: 2px 4px;
   font-size: 0.9em;
+}
+input,
+select:focus {
+  outline: none;
 }
 </style>
