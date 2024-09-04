@@ -165,3 +165,44 @@ export function prepareFlags(flags: string, excludeFlags: string[] = []): string
                              .filter(flag => flag !== '' && !excludeFlags.includes(flag));
   return baseFlags.concat(filteredFlags);
 }
+
+type ConnectionType = "aws" | "athena" | "google_cloud_platform" | "snowflake" | "postgres" | "redshift" | "mssql" | "databricks" | "synapse" | "mongo" | "mysql" | "notion" | "hana" | "shopify" | "gorgias" | "generic";
+
+interface Connection {
+  type: ConnectionType;
+  name: string | null;
+}
+
+export const extractNonNullConnections = (json: any): Connection[] => {
+  const connections: Connection[] = [];
+
+  if (!json || !json.environments) {
+    // Return an empty array if json or environments key is missing/undefined
+    return connections;
+  }
+
+  // Iterate through each environment
+  Object.keys(json.environments).forEach((environmentName) => {
+    const environmentConnections = json.environments[environmentName].connections;
+
+    // Iterate through each connection type within the environment
+    Object.keys(environmentConnections).forEach((connectionType: string) => {
+      const connection = environmentConnections[connectionType];
+
+      if (Array.isArray(connection)) {
+        connection.forEach((conn) => {
+          if (conn) {
+            const name = conn.project_id || conn.name || null;
+            connections.push({ type: connectionType as ConnectionType, name });
+          }
+        });
+      } else if (connection !== null) {
+        const name = connection.project_id || connection.name || null;
+        connections.push({ type: connectionType as ConnectionType, name });
+      }
+    });
+  });
+
+  return connections;
+};
+
