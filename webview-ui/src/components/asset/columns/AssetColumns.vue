@@ -60,62 +60,64 @@
         </div>
 
         <!-- Checks Column -->
-        <div class="flex-1 pr-6 min-w-0 text-left flex flex-wrap gap-2 whitespace-nowrap font-mono overflow-visible">
-        <template v-if="editingIndex === index">
-          <div class="flex flex-wrap gap-2 max-w-full overflow-hidden">
-            <vscode-badge
-              v-for="check in getActiveChecks(editingColumn)"
-              :key="check"
-              :class="{
-                'relative cursor-pointer': check === 'accepted_values' || check === 'pattern',
-              }"
-              :title="getCheckTooltip(check, editingColumn)"
-            >
-              <span class="flex items-center truncate max-w-[100px]">
-                {{ check }}
-                <XMarkIcon
-                  @click="removeCheck(check)"
-                  class="h-3 w-3 text-editor-fg ml-[0.1rem] cursor-pointer flex-shrink-0"
-                />
-              </span>
-            </vscode-badge>
-          </div>
-          <div class="relative">
-            <vscode-button
-              appearance="icon"
-              @click="toggleAddCheckDropdown(index)"
-              aria-label="Add Check"
-            >
-              <PlusIcon class="h-4 w-4" />
-            </vscode-button>
-            <div
-              v-if="showAddCheckDropdown === index"
-              class="absolute z-50 mt-1 bg-editorWidget-bg border border-commandCenter-border rounded bottom-full mb-1"
-            >
-              <div
-                v-for="check in availableChecks(editingColumn)"
+        <div
+          class="flex-1 pr-6 min-w-0 text-left flex flex-wrap gap-2 whitespace-nowrap font-mono overflow-visible"
+        >
+          <template v-if="editingIndex === index">
+            <div class="flex flex-wrap gap-2 max-w-full overflow-hidden">
+              <vscode-badge
+                v-for="check in getActiveChecks(editingColumn)"
                 :key="check"
-                @click="addCheck(check)"
-                class="px-4 py-2 hover:bg-commandCenter-border cursor-pointer whitespace-nowrap"
+                :class="{
+                  'relative cursor-pointer': check === 'accepted_values' || check === 'pattern',
+                }"
+                :title="getCheckTooltip(check, editingColumn)"
               >
-                {{ check }}
+                <span class="flex items-center max-w-[100px]">
+                  <span class="truncate">{{ check }}</span>
+                  <XMarkIcon
+                    @click="removeCheck(check)"
+                    class="h-3 w-3 text-editor-fg ml-[0.1rem] cursor-pointer flex-shrink-0"
+                  />
+                </span>
+              </vscode-badge>
+            </div>
+            <div class="relative">
+              <vscode-button
+                appearance="icon"
+                @click="toggleAddCheckDropdown(index)"
+                aria-label="Add Check"
+              >
+                <PlusIcon class="h-4 w-4" />
+              </vscode-button>
+              <div
+                v-if="showAddCheckDropdown === index"
+                class="absolute z-50 mt-1 bg-editorWidget-bg border border-commandCenter-border rounded bottom-full mb-1"
+              >
+                <div
+                  v-for="check in availableChecks(editingColumn)"
+                  :key="check"
+                  @click="addCheck(check)"
+                  class="px-4 py-2 hover:bg-commandCenter-border cursor-pointer whitespace-nowrap"
+                >
+                  {{ check }}
+                </div>
               </div>
             </div>
-          </div>
-        </template>
-        <template v-else>
-          <div class="flex flex-wrap gap-2 max-w-full overflow-hidden">
-            <vscode-badge
-              v-for="check in getActiveChecks(column)"
-              :key="check"
-              :title="getCheckTooltip(check, column)"
-              class="max-w-[100px]"
-            >
-              <span class="truncate inline-block w-full">{{ check }}</span>
-            </vscode-badge>
-          </div>
-        </template>
-      </div>
+          </template>
+          <template v-else>
+            <div class="flex flex-wrap gap-2 max-w-full overflow-hidden">
+              <vscode-badge
+                v-for="check in getActiveChecks(column)"
+                :key="check"
+                :title="getCheckTooltip(check, column)"
+                class="max-w-[100px]"
+              >
+                <span class="truncate inline-block w-full">{{ check }}</span>
+              </vscode-badge>
+            </div>
+          </template>
+        </div>
 
         <!-- Actions Column -->
         <div class="flex-[1/2] justify-end space-x-2">
@@ -155,7 +157,7 @@
 </template>
 
 <script setup>
-import { ref, watch, computed, nextTick} from "vue";
+import { ref, watch, computed, nextTick } from "vue";
 import { TrashIcon, PencilIcon, XMarkIcon, CheckIcon, PlusIcon } from "@heroicons/vue/20/solid";
 import DeleteAlert from "@/components/ui/alerts/AlertWithActions.vue";
 
@@ -228,7 +230,7 @@ const toggleAddCheckDropdown = (index) => {
     nextTick(() => {
       const dropdown = document.querySelector(`[data-dropdown-index="${index}"]`);
       if (dropdown) {
-        dropdown.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        dropdown.scrollIntoView({ block: "nearest", inline: "nearest" });
       }
     });
   }
