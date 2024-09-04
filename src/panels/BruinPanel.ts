@@ -360,6 +360,17 @@ export class BruinPanel {
           case "bruinInstallOrUpdateCLI":
             await this.installOrUpdateBruinCli();
             break;
+
+          case "bruin.getConnectionsList":
+            BruinPanel.postMessage("connections-list-message", {
+              status: "success",
+              message: [
+                { name: "bruin-health-check-bq", type: "google_cloud_platform" },
+                { name: "test", type: "notion" },
+                { name: "bruin-health-check-sf", type: "snowflake" },
+              ],
+            });
+            break;
         }
       },
       undefined,
@@ -372,7 +383,7 @@ export class BruinPanel {
       command: "bruinCliInstallationStatus",
       installed,
       isWindows,
-      goInstalled
+      goInstalled,
     });
   }
 

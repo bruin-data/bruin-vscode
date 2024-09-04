@@ -45,7 +45,6 @@
 import AssetDetails from "@/components/asset/AssetDetails.vue";
 import AssetLineageText from "@/components/lineage-text/AssetLineageText.vue";
 import AssetLineageFlow from "@/components/lineage-flow/asset-lineage/AssetLineage.vue";
-import BruinCLI from "@/components/bruin-settings/BruinCLI.vue";
 import { vscode } from "@/utilities/vscode";
 import { ref, onMounted, computed, watch } from "vue";
 import { parseAssetDetails, parseEnvironmentList } from "./utilities/helper";
@@ -54,9 +53,8 @@ import MessageAlert from "@/components/ui/alerts/AlertMessage.vue";
 import { getAssetDataset } from "@/components/lineage-flow/asset-lineage/useAssetLineage";
 import { ArrowPathIcon } from "@heroicons/vue/20/solid";
 import type { EnvironmentsList } from "./types";
-import ConnectionsList from "@/components/connections/ConnectionList.vue";
 import AssetColumns from "@/components/asset/columns/AssetColumns.vue";
-import EditColumns from "@/components/asset/columns/EditColumns.vue";
+import BruinSettings from "@/components/bruin-settings/BruinSettings.vue";
 
 const panelType = ref("");
 const parseError = ref();
@@ -179,18 +177,10 @@ const tabs = ref([
       columns: columns.value,
     })),
   },
-  /* {
-    label: "Edit Columns",
-    component: EditColumns,
-    includeIn: ["bruin"],
-    props: computed(() => ({
-      columns: columns.value,
-    })),
-  }, */
   { label: "Asset Lineage", component: AssetLineageText, includeIn: ["bruin"] },
   {
     label: "Settings",
-    component: BruinCLI,
+    component: BruinSettings,
     includeIn: ["bruin"],
     props: {
       isBruinInstalled: computed(() => isBruinInstalled.value),
