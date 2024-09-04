@@ -16,6 +16,7 @@ import { lineageCommand } from "../extension/commands/lineageCommand";
 import { parseAssetCommand } from "../extension/commands/parseAssetCommand";
 import { getEnvListCommand } from "../extension/commands/getEnvListCommand";
 import { BruinInstallCLI } from "../bruin/bruinInstallCli";
+import { getConnections } from "../extension/commands/getConnections";
 
 /**
  * This class manages the state and behavior of Bruin webview panels.
@@ -362,15 +363,7 @@ export class BruinPanel {
             break;
 
           case "bruin.getConnectionsList":
-            BruinPanel.postMessage("connections-list-message", {
-              status: "success",
-              message: [
-                { name: "bruin-health-check-bq", type: "google_cloud_platform" },
-                { name: "test", type: "notion" },
-                { name: "bruin-health-check-sf", type: "snowflake" },
-              ],
-            });
-            break;
+            getConnections(this._lastRenderedDocumentUri); 
         }
       },
       undefined,
@@ -398,4 +391,5 @@ export class BruinPanel {
       vscode.window.showErrorMessage("Failed to install/update Bruin CLI. Please try again.");
     }
   }
+
 }
