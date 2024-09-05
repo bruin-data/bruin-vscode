@@ -130,17 +130,17 @@ suite("checkBruinCliInstallation Tests", function () {
     assert.deepStrictEqual(result, { installed: true, isWindows: false, goInstalled: false });
   });
 
-  test("Should return installed false on non-Windows when bruin is not installed", async function () {
-    osStub.returns("darwin");
-    execAsyncStub.withArgs("bruin --version").rejects(new Error("Command failed: bruin --version"));
+  test('Should return installed false on non-Windows when bruin is not installed', async function() {
+    osStub.returns('darwin');
+    execAsyncStub.withArgs('bruin --version').rejects(new Error("Command failed: bruin --version"));
 
     const result = await checkBruinCliInstallation();
     assert.deepStrictEqual(result, { installed: false, isWindows: false, goInstalled: false });
   });
-
-  test("Should return correct values on Windows when bruin is installed", async function () {
-    osStub.returns("win32");
-    execAsyncStub.withArgs("bruin --version").resolves({ stdout: "version info", stderr: "" });
+  
+  test('Should return correct values on Windows when bruin is installed', async function() {
+    osStub.returns('win32');
+    execAsyncStub.withArgs('bruin --version').resolves({ stdout: 'version info', stderr: '' });
 
     const result = await checkBruinCliInstallation();
     assert.deepStrictEqual(result, { installed: true, isWindows: true, goInstalled: false });

@@ -1,4 +1,4 @@
-import { suite, test, assert, beforeEach, afterEach } from "vitest";
+import { suite, test, assert, beforeEach, vi, expect } from "vitest";
 import * as cronParser from "cron-parser";
 import {
   isValidCron,
@@ -8,8 +8,17 @@ import {
   adjustEndDateForExclusive,
   getUpstreams,
 } from "../utilities/helper";
-import { getAssetDependencies, parsePipelineData, processAssetDependencies } from "../utilities/getPipelineLineage";
+import {
+  getAssetDependencies,
+  parsePipelineData,
+  processAssetDependencies,
+} from "../utilities/getPipelineLineage";
 import * as pipelineData from "../utilities/pipeline.json";
+import AssetDetails from "../components/asset/AssetDetails.vue";
+import { mount } from '@vue/test-utils'
+import MarkdownIt from "markdown-it";
+
+vi.mock("markdown-it");
 
 suite("testing webview", () => {
   const environments = ["dev", "qa", "prod"];
@@ -455,96 +464,159 @@ suite("testing webview", () => {
   test("test getAssetDependencies with valid assetId", () => {
     const pipelineAssets = parsePipelineData(pipelineData).assets;
     const expectedOutput = {
-      "name": "test_dataset.test3",
-      "upstreams": [
+      name: "test_dataset.test3",
+      upstreams: [
         {
-          "name": "test_dataset.test",
-          "upstreams": [],
-          "downstream": []
+          name: "test_dataset.test",
+          upstreams: [],
+          downstream: [],
         },
         {
-          "name": "test_dataset.test2",
-          "upstreams": [
+          name: "test_dataset.test2",
+          upstreams: [
             {
-              "name": "test_dataset.test5",
-              "upstreams": [],
-              "downstream": []
-            }
+              name: "test_dataset.test5",
+              upstreams: [],
+              downstream: [],
+            },
           ],
-          "downstream": []
+          downstream: [],
         },
         {
-          "name": "test_dataset.test4",
-          "upstreams": [
+          name: "test_dataset.test4",
+          upstreams: [
             {
-              "name": "test_dataset.test6",
-              "upstreams": [],
-              "downstream": []
+              name: "test_dataset.test6",
+              upstreams: [],
+              downstream: [],
             },
             {
-              "name": "bigquery://some-query",
-              "upstreams": [],
-              "downstream": []
-            }
+              name: "bigquery://some-query",
+              upstreams: [],
+              downstream: [],
+            },
           ],
-          "downstream": []
+          downstream: [],
         },
         {
-          "name": "asset_uri",
-          "upstreams": [],
-          "downstream": []
-        }
+          name: "asset_uri",
+          upstreams: [],
+          downstream: [],
+        },
       ],
-      "downstream": []
-  };
+      downstream: [],
+    };
 
     const assetId = "842395685364ad0d4d6903bbb5b9cf48a54945774187f169327559e1453a7612";
     const assetDependencies = getAssetDependencies(assetId, pipelineAssets);
     const assetName = pipelineAssets.filter((asset) => asset.id === assetId)[0].name;
-   // assert.deepStrictEqual(assetName, "test_dataset.test3");
+    // assert.deepStrictEqual(assetName, "test_dataset.test3");
     assert.deepStrictEqual(assetDependencies, expectedOutput);
-  }
-);
+  });
 
-test("test getAssetDependencies with assetId that has downstreams and upstreams ", () => {
-  const pipelineAssets = parsePipelineData(pipelineData).assets;
+  test("test getAssetDependencies with assetId that has downstreams and upstreams ", () => {
+    const pipelineAssets = parsePipelineData(pipelineData).assets;
 
-  const assetId = "04a0d75146552e5e3305db450e7c5b402bd4bb8f8de813263166466f9f901a6b";
-  const assetDependencies = getAssetDependencies(assetId, pipelineAssets);
-  //assert.deepStrictEqual(assetDependencies, []);
-});
+    const assetId = "04a0d75146552e5e3305db450e7c5b402bd4bb8f8de813263166466f9f901a6b";
+    const assetDependencies = getAssetDependencies(assetId, pipelineAssets);
+    //assert.deepStrictEqual(assetDependencies, []);
+  });
 
-test("test processAssetDependencies with assetId that has no downstreams and some upstreams ", () => {
-  const pipelineAssets = parsePipelineData(pipelineData).assets;
-  const expectedOutput = {
-    "name": "test_dataset.test3",
-      "upstreams": [
+  test("test processAssetDependencies with assetId that has no downstreams and some upstreams ", () => {
+    const pipelineAssets = parsePipelineData(pipelineData).assets;
+    const expectedOutput = {
+      name: "test_dataset.test3",
+      upstreams: [
         {
-          "name": "test_dataset.test",
-          "hasUpstreamForClicking": false,
-          "hasDownstreamForClicking": false
+          name: "test_dataset.test",
+          hasUpstreamForClicking: false,
+          hasDownstreamForClicking: false,
         },
         {
-          "name": "test_dataset.test2",
-          "hasUpstreamForClicking": true,
-          "hasDownstreamForClicking": false
+          name: "test_dataset.test2",
+          hasUpstreamForClicking: true,
+          hasDownstreamForClicking: false,
         },
         {
-          "name": "test_dataset.test4",
-          "hasUpstreamForClicking": true,
-          "hasDownstreamForClicking": false
+          name: "test_dataset.test4",
+          hasUpstreamForClicking: true,
+          hasDownstreamForClicking: false,
         },
         {
-          "name": "asset_uri",
-          "hasUpstreamForClicking": false,
-          "hasDownstreamForClicking": false
-        }
+          name: "asset_uri",
+          hasUpstreamForClicking: false,
+          hasDownstreamForClicking: false,
+        },
       ],
-      "downstream": []
-  };
-  const assetId = "842395685364ad0d4d6903bbb5b9cf48a54945774187f169327559e1453a7612";
-  const assetDependencies = processAssetDependencies(assetId, pipelineAssets);
-  assert.deepStrictEqual(assetDependencies, expectedOutput);
+      downstream: [],
+    };
+    const assetId = "842395685364ad0d4d6903bbb5b9cf48a54945774187f169327559e1453a7612";
+    const assetDependencies = processAssetDependencies(assetId, pipelineAssets);
+    assert.deepStrictEqual(assetDependencies, expectedOutput);
+  });
 });
 
-});
+/* suite("AssetDetails", () => {
+  const defaultProps = {
+    name: "Test Asset",
+    description: "This is a **test** description",
+    type: "dataset",
+    owner: "John Doe",
+    id: "123",
+    pipeline: { schedule: "daily" },
+    environments: ["dev", "prod"],
+    selectedEnvironment: "dev",
+  };
+  test("renders correctly with all props", () => {
+    const wrapper = mount(AssetDetails, { props: defaultProps });
+    assert.match(wrapper.text(), /Test Asset/);
+    assert.match(wrapper.text(), /John Doe/);
+    assert.match(wrapper.text(), /dataset/);
+    assert.match(wrapper.text(), /daily/);
+  });
+
+  test("computes ownerExists correctly",async () => {
+    const wrapper = mount(AssetDetails, { props: defaultProps })
+    expect(wrapper.find('.font-semibold.text-editor-fg.opacity-30').exists()).toBe(true)
+
+    await wrapper.setProps({ owner: '' })
+    expect(wrapper.find('.font-semibold.text-editor-fg.opacity-30').exists()).toBe(false)
+  });
+
+  test("computes scheduleExists correctly", async () => {
+    const wrapper = mount(AssetDetails, { props: defaultProps });
+    expect(wrapper.findComponent({ name: 'AssetGeneral' }).props('schedule')).toBe('daily')
+
+    await wrapper.setProps({ pipeline: { schedule: "" } });
+    expect(wrapper.findComponent({ name: 'AssetGeneral' }).props('schedule')).toBe('')
+  });
+
+  test("renders markdown description correctly", () => {
+    const mockRender = vi.fn().mockReturnValue('<p>This is a <strong>test</strong> description</p>')
+    vi.mocked(MarkdownIt).mockImplementation(() => ({
+      render: mockRender
+    }))
+
+    const wrapper = mount(AssetDetails, { props: defaultProps })
+    expect(wrapper.html()).toContain('<p>This is a <strong>test</strong> description</p>')
+    expect(mockRender).toHaveBeenCalledWith('This is a **test** description')
+  });
+
+  test("toggles name editing mode", async () => {
+    const wrapper = mount(AssetDetails, { props: defaultProps })
+
+    const nameElement = wrapper.find('.font-md.text-editor-fg.text-lg.font-mono')
+    await nameElement.trigger('dblclick')
+
+    expect(wrapper.find('input.font-md.text-editor-fg.text-lg.font-mono').exists()).toBe(true)
+  });
+
+  test("toggles description editing mode", async () => {
+    const wrapper = mount(AssetDetails, { props: defaultProps })
+
+    const descriptionElement = wrapper.find('.text-sm.text-editor-fg.opacity-65.prose.prose-sm.pt-4')
+    await descriptionElement.trigger('dblclick')
+
+    expect(wrapper.find('textarea.text-sm.text-editor-fg.opacity-65.prose.prose-sm.pt-4').exists()).toBe(true)
+  });
+}); */

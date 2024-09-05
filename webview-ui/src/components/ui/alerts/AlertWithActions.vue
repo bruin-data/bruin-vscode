@@ -1,9 +1,9 @@
 <template>
   <div class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
     <div class="bg-editorWidget-bg rounded-lg p-6">
-      <h3 class="text-lg font-medium text-editor-fg">Delete connection</h3>
+      <h3 class="text-lg font-medium text-editor-fg">Delete {{ elementType }}</h3>
       <p class="mt-2 text-sm text-descriptionFg">
-        Are you sure you want to delete the connection "{{ connectionName }}"? This action cannot be
+        Are you sure you want to delete the {{ elementType }} "{{ elementName }}"? This action cannot be
         undone.
       </p>
       <div class="mt-4 flex justify-end">
@@ -27,6 +27,7 @@
 
 <script setup>
 defineProps({
-  connectionName: String,
+  elementName: String,
+  elementType: String,
 });
 </script>
