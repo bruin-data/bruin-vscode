@@ -203,8 +203,8 @@ suite("Manage Bruin Connections Tests", function () {
     };
     const connections = extractNonNullConnections(singleEnvconnections);
     assert.deepStrictEqual(connections, [
-      { type: "google_cloud_platform", name: "gcp_project" },
-      { type: "snowflake", name: "snowflake_project" },
+      { environment: "default", type: "google_cloud_platform", name: "gcp_project" },
+      { environment: "default", type: "snowflake", name: "snowflake_project" },
     ]);
   });
   test("Should return an array of connections from multiple environments", async () => {
@@ -234,8 +234,8 @@ suite("Manage Bruin Connections Tests", function () {
     };
     const connections = extractNonNullConnections(multiEnvconnections);
     assert.deepStrictEqual(connections, [
-      { type: "google_cloud_platform", name: "gcp_project" },
-      { type: "aws", name: "aws_project" },
+      { environment: "default", type: "google_cloud_platform", name: "gcp_project" },
+      { environment: "staging", type: "aws", name: "aws_project" },
     ]);
   });
   test("Should handle connections without project_id or name", async () => {
@@ -259,8 +259,8 @@ suite("Manage Bruin Connections Tests", function () {
     };
     const connections = extractNonNullConnections(singleEnvconnections);
     assert.deepStrictEqual(connections, [
-      { type: "google_cloud_platform", name: null }, // No project_id or name
-      { type: "aws", name: "aws_connection" },
+      { environment: "default", type: "google_cloud_platform", name: null }, // No project_id or name
+      { environment: "default", type: "aws", name: "aws_connection" },
     ]);
   });
   test("Should return an empty array when input is completely empty", async () => {
