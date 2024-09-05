@@ -2,7 +2,7 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
-## [0.18.1] - [2024-09-03]
+## [0.18.2] - [2024-09-03]
 - Improved the display and styling of the columns tab.
 
 ## [0.18.1] - [2024-09-02]
