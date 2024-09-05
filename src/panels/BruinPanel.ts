@@ -56,6 +56,7 @@ export class BruinPanel {
       workspace.onDidChangeTextDocument((editor) => {
         if (editor && editor.document.uri.fsPath.endsWith(".bruin.yml")) {
           getEnvListCommand(this._lastRenderedDocumentUri);
+          getConnections(this._lastRenderedDocumentUri);
         }
         if (editor && editor.document.uri) {
           if (editor.document.uri.fsPath === "tasks") {
@@ -182,6 +183,8 @@ export class BruinPanel {
     "asset.yaml",
     "pipeline.yml",
     "pipeline.yaml",
+    "bruin.yml",
+    "bruin.yaml",
   ];
 
   private _getWebviewContent(webview: Webview, extensionUri: Uri) {
@@ -224,6 +227,9 @@ export class BruinPanel {
     this._panel.webview.postMessage({
       command: "init",
       panelType: "bruin",
+      lastRenderedDocument: this._lastRenderedDocumentUri
+        ? this._lastRenderedDocumentUri.fsPath
+        : null,
     });
 
     webview.onDidReceiveMessage(
@@ -363,7 +369,15 @@ export class BruinPanel {
             break;
 
           case "bruin.getConnectionsList":
-            getConnections(this._lastRenderedDocumentUri); 
+            getConnections(this._lastRenderedDocumentUri);
+            break;
+          
+          case "getLastRenderedDocument":
+            this._panel.webview.postMessage({
+              command: "lastRenderedDocument",
+              path: this._lastRenderedDocumentUri ? this._lastRenderedDocumentUri.fsPath : null,
+            });
+            break;
         }
       },
       undefined,
@@ -391,5 +405,4 @@ export class BruinPanel {
       vscode.window.showErrorMessage("Failed to install/update Bruin CLI. Please try again.");
     }
   }
-
 }

@@ -73,13 +73,17 @@ const data = ref(
 );
 const isBruinInstalled = ref(true);
 const lineageData = ref();
+const lastRenderedDocument = ref("");
 const lineageError = ref();
 window.addEventListener("message", (event) => {
   const message = event.data;
   switch (message.command) {
     case "init":
       panelType.value = message.panelType;
-      console.log("Panel Type", panelType.value);
+      lastRenderedDocument.value = message.lastRenderedDocument;
+      break;
+    case "lastRenderedDocument":
+      lastRenderedDocument.value = message.path;
       break;
     case "environments-list-message":
       environments.value = updateValue(message, "success");
@@ -101,6 +105,9 @@ window.addEventListener("message", (event) => {
 });
 
 const activeTab = ref(0);
+const isBruinYml = computed(() => {
+  return lastRenderedDocument.value && lastRenderedDocument.value.endsWith(".bruin.yml");
+});
 
 const environmentsList = computed(() => {
   if (!environments.value) return [];
@@ -176,6 +183,7 @@ const tabs = ref([
     props: computed(() => ({
       columns: columns.value,
     })),
+    show: computed(()=> !isBruinYml.value),
   },
   { label: "Asset Lineage", component: AssetLineageText, includeIn: ["bruin"] },
   {
@@ -201,20 +209,38 @@ const tabs = ref([
 
 const visibleTabs = computed(() => {
   if (panelType.value === "bruin") {
-    if (!isBruinInstalled.value) {
-      return tabs.value.filter(
-        (tab) => tab.includeIn.includes("bruin") && tab.label === "Settings"
-      );
+    if (isBruinYml.value) {
+      // If .bruin.yml is active, only show the Settings tab
+      return tabs.value.filter((tab) => tab.label === "Settings");
+    } else if (!isBruinInstalled.value) {
+      // If Bruin is not installed, only show the Settings tab
+      return tabs.value.filter((tab) => tab.label === "Settings");
+    } else {
+      // Otherwise, show all Bruin tabs
+      return tabs.value.filter((tab) => tab.includeIn.includes("bruin"));
     }
   }
+  // For other panel types, show relevant tabs
   return tabs.value.filter((tab) => tab.includeIn.includes(panelType.value));
 });
+
+// When isBruinYml changes, adjust the active tab if necessary
+watch(isBruinYml, (newValue) => {
+  if (newValue) {
+    // If .bruin.yml becomes active, switch to the Settings tab
+    const settingsTabIndex = visibleTabs.value.findIndex((tab) => tab.label === "Settings");
+    if (settingsTabIndex !== -1) {
+      activeTab.value = settingsTabIndex;
+    }
+  }
+}, { immediate: true });
 
 onMounted(() => {
   loadLineageData();
   loadAssetData();
   loadEnvironmentsList();
   checkBruinCliInstallation();
+  vscode.postMessage({ command: "getLastRenderedDocument" });
 });
 
 function checkBruinCliInstallation() {
