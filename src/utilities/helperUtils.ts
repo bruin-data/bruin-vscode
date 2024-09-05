@@ -165,3 +165,56 @@ export function prepareFlags(flags: string, excludeFlags: string[] = []): string
                              .filter(flag => flag !== '' && !excludeFlags.includes(flag));
   return baseFlags.concat(filteredFlags);
 }
+
+type ConnectionType = "aws" | "athena" | "google_cloud_platform" | "snowflake" | "postgres" | "redshift" | "mssql" | "databricks" | "synapse" | "mongo" | "mysql" | "notion" | "hana" | "shopify" | "gorgias" | "generic";
+
+interface Connection {
+  type: ConnectionType;
+  name: string | null;
+  environment: string;
+}
+
+/**
+ * Extracts non-null connections from the JSON object.
+ * param {any} json - The JSON object to extract connections from.
+ * returns {Connection[]} - An array of connections.
+ * 
+ * @param json
+ * @returns
+ * */
+
+
+export const extractNonNullConnections = (json: any): Connection[] => {
+  const connections: Connection[] = [];
+
+  // Ensure json and environments exist
+  if (!json || !json.environments) {
+    return connections; // Return empty if environments key is missing
+  }
+
+  // Iterate through each environment
+  Object.keys(json.environments).forEach(environmentName => {
+    const environmentConnections = json.environments[environmentName].connections;
+
+    // Iterate through each connection type within the environment
+    Object.keys(environmentConnections).forEach((connectionType: string) => {
+      const connection = environmentConnections[connectionType];
+
+      if (Array.isArray(connection)) {
+        connection.forEach((conn) => {
+          if (conn) {
+            const name = conn.name || null;
+            connections.push({ environment: environmentName, type: connectionType as ConnectionType, name });
+          }
+        });
+      } else if (connection !== null) {
+        const name = connection.name || null;
+        connections.push({ environment: environmentName, type: connectionType as ConnectionType, name });
+      }
+    });
+  });
+
+  return connections;
+};
+
+

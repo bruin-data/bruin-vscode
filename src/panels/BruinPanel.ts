@@ -6,7 +6,6 @@ import {
   bruinWorkspaceDirectory,
   checkBruinCliInstallation,
   getCurrentPipelinePath,
-  isBruinBinaryAvailable,
   runInIntegratedTerminal,
 } from "../bruin";
 import { getDefaultBruinExecutablePath } from "../extension/configuration";
@@ -16,6 +15,7 @@ import { lineageCommand } from "../extension/commands/lineageCommand";
 import { parseAssetCommand } from "../extension/commands/parseAssetCommand";
 import { getEnvListCommand } from "../extension/commands/getEnvListCommand";
 import { BruinInstallCLI } from "../bruin/bruinInstallCli";
+import { getConnections } from "../extension/commands/getConnections";
 
 /**
  * This class manages the state and behavior of Bruin webview panels.
@@ -55,6 +55,7 @@ export class BruinPanel {
       workspace.onDidChangeTextDocument((editor) => {
         if (editor && editor.document.uri.fsPath.endsWith(".bruin.yml")) {
           getEnvListCommand(this._lastRenderedDocumentUri);
+          getConnections(this._lastRenderedDocumentUri);
         }
         if (editor && editor.document.uri) {
           if (editor.document.uri.fsPath === "tasks") {
@@ -181,6 +182,9 @@ export class BruinPanel {
     "asset.yaml",
     "pipeline.yml",
     "pipeline.yaml",
+    ".bruin.yml",
+    ".bruin.yaml",
+
   ];
 
   private _getWebviewContent(webview: Webview, extensionUri: Uri) {
@@ -223,6 +227,9 @@ export class BruinPanel {
     this._panel.webview.postMessage({
       command: "init",
       panelType: "bruin",
+      lastRenderedDocument: this._lastRenderedDocumentUri
+        ? this._lastRenderedDocumentUri.fsPath
+        : null,
     });
 
     webview.onDidReceiveMessage(
@@ -360,6 +367,15 @@ export class BruinPanel {
           case "bruinInstallOrUpdateCLI":
             await this.installOrUpdateBruinCli();
             break;
+
+          case "bruin.getConnectionsList":
+            getConnections(this._lastRenderedDocumentUri);
+            break;
+          
+          case "getLastRenderedDocument":
+            console.log("Sending last rendered document to webview", this._lastRenderedDocumentUri);
+            BruinPanel.postMessage("lastRenderedDocument", { status: "success", message: this._lastRenderedDocumentUri?.fsPath });
+            break;
         }
       },
       undefined,
@@ -372,7 +388,7 @@ export class BruinPanel {
       command: "bruinCliInstallationStatus",
       installed,
       isWindows,
-      goInstalled
+      goInstalled,
     });
   }
 

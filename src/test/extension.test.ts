@@ -10,12 +10,12 @@ import {
   removeAnsiColors,
   processLineageData,
   getFileExtension,
+  extractNonNullConnections,
 } from "../utilities/helperUtils";
 import * as fs from "fs";
 import path = require("path");
 import sinon = require("sinon");
-const proxyquire = require('proxyquire').noCallThru();
-
+const proxyquire = require("proxyquire").noCallThru();
 
 suite("Extension Initialization", () => {
   test("should set default path separator based on platform", async () => {
@@ -99,32 +99,32 @@ suite("Render Command Helper functions", () => {
     assert.strictEqual(processLineageData(lineageString), "example-name");
   });
 });
-suite('checkBruinCliInstallation Tests', function() {
+suite("checkBruinCliInstallation Tests", function () {
   let osStub: sinon.SinonStub<[], string>;
   let execAsyncStub: sinon.SinonStub<[string], Promise<{ stdout: string; stderr: string }>>;
   let promisifyStub: sinon.SinonStub;
   let checkBruinCliInstallation: any;
 
-  setup(function() {
-    osStub = sinon.stub(os, 'platform');
+  setup(function () {
+    osStub = sinon.stub(os, "platform");
     execAsyncStub = sinon.stub();
     promisifyStub = sinon.stub().returns(execAsyncStub);
 
-    const proxyquire = require('proxyquire');
-    ({ checkBruinCliInstallation } = proxyquire('../bruin/bruinUtils', {
-      'os': { platform: () => osStub() },
-      'util': { promisify: promisifyStub },
-      'child_process': { exec: sinon.stub() },
+    const proxyquire = require("proxyquire");
+    ({ checkBruinCliInstallation } = proxyquire("../bruin/bruinUtils", {
+      os: { platform: () => osStub() },
+      util: { promisify: promisifyStub },
+      child_process: { exec: sinon.stub() },
     }));
   });
 
-  teardown(function() {
+  teardown(function () {
     sinon.restore();
   });
 
-  test('Should return installed true on non-Windows when bruin is installed', async function() {
-    osStub.returns('darwin');
-    execAsyncStub.withArgs('bruin --version').resolves({ stdout: 'version info', stderr: '' });
+  test("Should return installed true on non-Windows when bruin is installed", async function () {
+    osStub.returns("darwin");
+    execAsyncStub.withArgs("bruin --version").resolves({ stdout: "version info", stderr: "" });
 
     const result = await checkBruinCliInstallation();
     assert.deepStrictEqual(result, { installed: true, isWindows: false, goInstalled: false });
@@ -146,230 +146,151 @@ suite('checkBruinCliInstallation Tests', function() {
     assert.deepStrictEqual(result, { installed: true, isWindows: true, goInstalled: false });
   });
 
-  test('Should check for Go on Windows when bruin is not installed', async function() {
-    osStub.returns('win32');
-    execAsyncStub.withArgs('bruin --version').rejects(new Error('Command not found'));
-    execAsyncStub.withArgs('go version').resolves({ stdout: 'go version info', stderr: '' });
+  test("Should check for Go on Windows when bruin is not installed", async function () {
+    osStub.returns("win32");
+    execAsyncStub.withArgs("bruin --version").rejects(new Error("Command not found"));
+    execAsyncStub.withArgs("go version").resolves({ stdout: "go version info", stderr: "" });
 
     const result = await checkBruinCliInstallation();
     assert.deepStrictEqual(result, { installed: false, isWindows: true, goInstalled: true });
   });
 
-  test('Should return goInstalled false on Windows when neither bruin nor Go are installed', async function() {
-    osStub.returns('win32');
-    execAsyncStub.withArgs('bruin --version').rejects(new Error('Command not found'));
-    execAsyncStub.withArgs('go version').rejects(new Error('Command not found'));
+  test("Should return goInstalled false on Windows when neither bruin nor Go are installed", async function () {
+    osStub.returns("win32");
+    execAsyncStub.withArgs("bruin --version").rejects(new Error("Command not found"));
+    execAsyncStub.withArgs("go version").rejects(new Error("Command not found"));
 
     const result = await checkBruinCliInstallation();
     assert.deepStrictEqual(result, { installed: false, isWindows: true, goInstalled: false });
   });
 });
 
-/* import * as assert from "assert";
-import * as vscode from "vscode";
-import { bruinFoldingRangeProvider } from "../providers/bruinFoldingRangeProvider";
-import { test } from "mocha";
-import sinon from 'sinon';
-import { buildCommand, commandExecution } from "../utils/bruinUtils";
-const proxyquire = require('proxyquire').noCallThru();
-
-const child_process = require('child_process');
-
-function createMockTextDocument(content: string[], languageId: string): any {
-  return {
-    lineAt: (lineNumber: number) => {
-      return { text: content[lineNumber] };
-    },
-    lineCount: content.length,
-    languageId,
-  };
-}
-suite('bruinWorkspaceDirectory Tests', function() {
-  let fsStub: { statSync: any; accessSync: any; }, pathStub: { dirname: any; join?: sinon.SinonStub<any[], any>; };
-
-  setup(function() {
-    // Setup fs and path stubs before each test
-    fsStub = {
-      statSync: sinon.stub(),
-      accessSync: sinon.stub(),
+suite("Manage Bruin Connections Tests", function () {
+  test("Should return an empty array for all null connections", async () => {
+    const singleEnvconnections = {
+      environments: {
+        default: {
+          connections: {
+            aws: null,
+            google_cloud_platform: null,
+            snowflake: null,
+          },
+        },
+      },
     };
-    pathStub = {
-      dirname: sinon.stub(),
-      join: sinon.stub().callsFake((...args) => args.join('/')), 
+    const connections = extractNonNullConnections(singleEnvconnections);
+    assert.deepStrictEqual(connections, []);
+  });
+  test("Should return an array of connections for all non-null connections", async () => {
+    const singleEnvconnections = {
+      environments: {
+        default: {
+          connections: {
+            aws: null,
+            google_cloud_platform: [
+              {
+                project_id: "gcp_project",
+              },
+            ],
+            snowflake: [
+              {
+                project_id: "snowflake_project",
+              },
+            ],
+          },
+        },
+      },
     };
+    const connections = extractNonNullConnections(singleEnvconnections);
+    assert.deepStrictEqual(connections, [
+      { environment: "default", type: "google_cloud_platform", name: null },
+      { environment: "default", type: "snowflake", name: null },
+    ]);
+  });
+  test("Should return an array of connections from multiple environments", async () => {
+    const multiEnvconnections = {
+      environments: {
+        default: {
+          connections: {
+            aws: null,
+            google_cloud_platform: [
+              {
+                project_id: "gcp_project",
+              },
+            ],
+          },
+        },
+        staging: {
+          connections: {
+            aws: [
+              {
+                name: "aws_project",
+              },
+            ],
+            snowflake: null,
+          },
+        },
+      },
+    };
+    const connections = extractNonNullConnections(multiEnvconnections);
+    assert.deepStrictEqual(connections, [
+      { environment: "default", type: "google_cloud_platform", name: null },
+      { environment: "staging", type: "aws", name: "aws_project" },
+    ]);
+  });
+  test("Should handle connections without project_id or name", async () => {
+    const singleEnvconnections = {
+      environments: {
+        default: {
+          connections: {
+            google_cloud_platform: [
+              {
+                // No project_id or name provided
+              },
+            ],
+            aws: [
+              {
+                name: "aws_connection",
+              },
+            ],
+          },
+        },
+      },
+    };
+    const connections = extractNonNullConnections(singleEnvconnections);
+    assert.deepStrictEqual(connections, [
+      { environment: "default", type: "google_cloud_platform", name: null }, // No project_id or name
+      { environment: "default", type: "aws", name: "aws_connection" },
+    ]);
+  });
+  test("Should return an empty array when input is completely empty", async () => {
+    const emptyConnections = {};
+    const connections = extractNonNullConnections(emptyConnections);
+    assert.deepStrictEqual(connections, []);
+  });
+  test("Should return an empty array when connections object is empty", async () => {
+    const singleEnvconnections = {
+      environments: {
+        default: {
+          connections: {},
+        },
+      },
+    };
+    const connections = extractNonNullConnections(singleEnvconnections);
+    assert.deepStrictEqual(connections, []);
   });
 
-  teardown(function() {
-    // Cleanup actions after each test
-    sinon.restore();
-  });
-
-  // Define a test
-  test('should return the directory containing the .bruin.yml file', function() {
-    const fsPath = '/some/path/to/project/file.txt';
-    const expectedDir = '/some/path/to/project';
-
-    // Configure stubs
-    fsStub.statSync.returns({ isFile: () => true });
-    fsStub.accessSync.withArgs('/some/path/to/project/.bruin.yml').throws(new Error('Not found'));
-    fsStub.accessSync.withArgs('/some/path/to/project/.bruin.yaml').returns(undefined); // Found
-
-    pathStub.dirname.onFirstCall().returns('/some/path/to/project');
-    pathStub.dirname.onSecondCall().returns('/some/path/to');
-
-    // path to the function to be tested
-    const bruinWorkspaceDirectory = proxyquire('../utils/bruinUtils', {
-      fs: fsStub,
-      path: pathStub,
-    }).bruinWorkspaceDirectory;
-
-    const result = bruinWorkspaceDirectory(fsPath) === undefined ? expectedDir : bruinWorkspaceDirectory(fsPath);
-  
-    assert.strictEqual(result, expectedDir);
-    
+  test("Should return an empty array when environments key is missing", async () => {
+    const missingEnvironmentsKey = {
+      connections: {
+        aws: [
+          {
+            name: "aws_connection",
+          },
+        ],
+      },
+    };
+    const connections = extractNonNullConnections(missingEnvironmentsKey);
+    assert.deepStrictEqual(connections, []);
   });
 });
-
-suite('Command Execution Test Suite', function() {
-    let execStub : sinon.SinonStub;
-
-    setup(function() {
-        execStub = sinon.stub(child_process, 'exec');
-    });
-
-    teardown(function() {
-        execStub.restore();
-    });
-
-    test('Should resolve with stdout on successful execution', function(done) {
-        const expectedOutput = 'command output';
-        execStub.callsArgWith(2, null, expectedOutput); // Simulate successful execution
-
-        commandExecution('echo "Hello World"').then(result => {
-            assert.strictEqual(execStub.calledOnce, true);
-            assert.strictEqual(result.stdout, expectedOutput);
-            assert.strictEqual(result.stderr, undefined);
-            done();
-        }).catch(done);
-    });
-
-    test('Should resolve with stderr on execution error', function(done) {
-        const expectedErrorOutput = 'Error occurred';
-        execStub.callsArgWith(2, new Error('error'), expectedErrorOutput); 
-    
-        commandExecution('invalid_command').then(result => {
-            assert.strictEqual(execStub.calledOnce, true, "Stub was not called exactly once");
-            assert.strictEqual(result.stderr, expectedErrorOutput, "Error message does not match expected output");
-            assert.strictEqual(result.stdout, undefined, "Expected no stdout on execution error");
-            done();
-        }).catch(err => done(err));
-    });
-    
-});
-
-suite("Utils Test Suite", () => {
-    let platformStub: sinon.SinonStub;
-
-    setup(() => {
-        platformStub = sinon.stub(process, 'platform');
-    });
-
-    teardown(() => {
-        platformStub.restore();
-    });
-
-    test('Builds correct command on Windows', () => {
-        platformStub.value('win32');
-        const command = buildCommand('myCommand');
-        assert.strictEqual(command, 'cmd.exe /c bruin.exe myCommand');
-    });
-
-    test('Builds correct command on Unix-based systems', () => {
-        platformStub.value('darwin');
-        const command = buildCommand('myCommand');
-        assert.strictEqual(command, 'bruin myCommand');
-    });
-});
-
-suite("Folding Range Provider Test Suite", () => {
-  vscode.window.showInformationMessage("Start all tests.");
-  const tests = [
-    {
-      languageId: "python",
-      content: [
-        '""" @bruin',
-        "name: dashboard.bookings",
-        "type: python",
-        " depends:",
-        " - raw.Bookings",
-        "    pass",
-        '@bruin """',
-      ],
-      expectedStart: 0,
-      expectedEnd: 6,
-      expectedFoldingRangeKind: 3,
-    },
-    {
-      languageId: "sql",
-      content: [
-        "/* @bruin",
-        "name: dbo.hello_ms",
-        "type: ms.sql",
-        "materialization:",
-        "   type: table",
-        "columns:",
-        "  - name: one",
-        "    type: integer",
-        "    description: 'Just a number'",
-        "    checks:",
-        "        - name: unique",
-        "        - name: not_null",
-        "        - name: positive",
-        "        - name: accepted_values",
-        "          value: [1, 2]",
-        "@bruin */
-//",
-/*
-      ],
-      expectedStart: 0,
-      expectedEnd: 15,
-      expectedFoldingRangeKind: 3,
-    },
-  ];
-
-  tests.forEach(
-    ({
-      languageId,
-      content,
-      expectedStart,
-      expectedEnd,
-      expectedFoldingRangeKind,
-    }) => {
-      test(`Detects Foldable Regions for ${languageId}`, async () => {
-        const mockDocument = createMockTextDocument(content, languageId);
-        const ranges = bruinFoldingRangeProvider(mockDocument);
-        assert.strictEqual(
-          ranges.length,
-          1,
-          "Should detect one foldable region"
-        );
-        assert.strictEqual(
-          ranges[0].start,
-          expectedStart,
-          `Foldable region start should be ${expectedStart}`
-        );
-        assert.strictEqual(
-          ranges[0].end,
-          expectedEnd,
-          `Foldable region end should be ${expectedEnd}`
-        );
-        assert.strictEqual(
-          ranges[0].kind,
-          expectedFoldingRangeKind,
-          `Folding range kind should be ${expectedFoldingRangeKind}`
-        );
-      });
-    }
-  );
-});
- */

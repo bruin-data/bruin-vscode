@@ -8,20 +8,22 @@
     <!-- Connections Section -->
     <div class="bg-editorWidget-bg shadow sm:rounded-lg">
       <ConnectionsList
-        v-if="props.isBruinInstalled"
+        v-if="isBruinInstalled"
+        :connections="connections"
         @new-connection="showConnectionForm"
         @edit-connection="showConnectionForm"
         @delete-connection="confirmDeleteConnection"
+        :error="error"
       />
     </div>
 
-      <div v-if="showForm" class="mt-6 bg-editorWidget-bg shadow sm:rounded-lg p-6">
-        <ConnectionForm
-          :connection="connectionToEdit"
-          @submit="saveConnection"
-          @cancel="cancelConnectionForm"
-        />
-      </div>
+    <div v-if="showForm" class="mt-6 bg-editorWidget-bg shadow sm:rounded-lg p-6">
+      <ConnectionForm
+        :connection="connectionToEdit"
+        @submit="saveConnection"
+        @cancel="cancelConnectionForm"
+      />
+    </div>
 
     <!-- Delete Confirmation Modal -->
     <DeleteAlert
@@ -38,9 +40,10 @@
 import BruinCLI from "@/components/bruin-settings/BruinCLI.vue";
 import ConnectionsList from "@/components/connections/ConnectionList.vue";
 import ConnectionForm from "@/components/connections/ConnectionsForm.vue";
-import { ref, defineProps, onMounted } from "vue";
+import { ref, defineProps, onMounted, computed } from "vue";
 import DeleteAlert from "@/components/ui/alerts/AlertWithActions.vue";
 import { useConnectionsStore } from "@/store/connections";
+import { vscode } from "@/utilities/vscode";
 
 const props = defineProps({
   isBruinInstalled: Boolean,
@@ -51,10 +54,24 @@ const connectionToEdit = ref(null);
 const showDeleteAlert = ref(false);
 const connectionToDelete = ref(null);
 const connectionsStore = useConnectionsStore();
+const connections = computed(() => connectionsStore.connections);
+const error = computed(() => connectionsStore.error);
 
 onMounted(() => {
-  connectionsStore.loadConnections();
+  window.addEventListener("message", (event) => {
+    const message = event.data;
+    if (message.command === "connections-list-message") {
+      if (message.payload.status === "success") {
+        connectionsStore.updateConnectionsFromMessage(message.payload.message);
+      } else {
+        connectionsStore.updateErrorFromMessage(message.payload.message);
+      }
+    }
+  });
+
+  vscode.postMessage({ command: "bruin.getConnectionsList" });
 });
+
 
 const showConnectionForm = (connection = null) => {
   connectionToEdit.value = connection || { name: "", type: "" };
@@ -62,16 +79,14 @@ const showConnectionForm = (connection = null) => {
 };
 
 const saveConnection = (connection) => {
-  const existingIndex = connectionsStore.connections.findIndex(
-    (c) => c.name === connectionToEdit.value.name
-  );
+  // Update the connections in the store
+  const existingIndex = connections.value.findIndex((c) => c.name === connectionToEdit.value.name);
   if (existingIndex === -1) {
-    connectionsStore.saveConnection(connection);
-    prepareCliPayload(connection);
+    connections.value.push(connection);
   } else {
-    connectionsStore.updateConnection(existingIndex, connection);
-    prepareCliPayload(connection);
+    connections.value[existingIndex] = connection;
   }
+
   showForm.value = false;
   connectionToEdit.value = null;
 };
@@ -87,7 +102,13 @@ const confirmDeleteConnection = (connection) => {
 };
 
 const deleteConnection = () => {
-  connectionsStore.deleteConnection(connectionToDelete.value);
+  const updatedConnections = connections.value.filter(
+    (c) => c.name !== connectionToDelete.value.name
+  );
+  // Update the local state
+  connections.value = updatedConnections;
+  // Update the Pinia store
+  connectionsStore.updateConnectionsFromMessage(updatedConnections);
   showDeleteAlert.value = false;
   connectionToDelete.value = null;
 };
@@ -96,10 +117,4 @@ const cancelDeleteConnection = () => {
   showDeleteAlert.value = false;
   connectionToDelete.value = null;
 };
-
-const prepareCliPayload = (connection) => {
-  const cliPayload = `${connection.name} ${connection.type} '${JSON.stringify(connection)}'`;
-  console.log('CLI Payload:', cliPayload);
-};
-
 </script>

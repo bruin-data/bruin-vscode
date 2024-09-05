@@ -45,7 +45,6 @@
 import AssetDetails from "@/components/asset/AssetDetails.vue";
 import AssetLineageText from "@/components/lineage-text/AssetLineageText.vue";
 import AssetLineageFlow from "@/components/lineage-flow/asset-lineage/AssetLineage.vue";
-import BruinCLI from "@/components/bruin-settings/BruinCLI.vue";
 import { vscode } from "@/utilities/vscode";
 import { ref, onMounted, computed, watch } from "vue";
 import { parseAssetDetails, parseEnvironmentList } from "./utilities/helper";
@@ -54,13 +53,12 @@ import MessageAlert from "@/components/ui/alerts/AlertMessage.vue";
 import { getAssetDataset } from "@/components/lineage-flow/asset-lineage/useAssetLineage";
 import { ArrowPathIcon } from "@heroicons/vue/20/solid";
 import type { EnvironmentsList } from "./types";
-import ConnectionsList from "@/components/connections/ConnectionList.vue";
 import AssetColumns from "@/components/asset/columns/AssetColumns.vue";
-import EditColumns from "@/components/asset/columns/EditColumns.vue";
+import BruinSettings from "@/components/bruin-settings/BruinSettings.vue";
 
 const panelType = ref("");
 const parseError = ref();
-const environments = ref<EnvironmentsList | null>(null); // Type for environments list
+const environments = ref<EnvironmentsList | null>(null);
 const data = ref(
   JSON.stringify({
     asset: {
@@ -75,34 +73,43 @@ const data = ref(
 );
 const isBruinInstalled = ref(true);
 const lineageData = ref();
+const lastRenderedDocument = ref("");
 const lineageError = ref();
+
 window.addEventListener("message", (event) => {
   const message = event.data;
   switch (message.command) {
     case "init":
       panelType.value = message.panelType;
-      console.log("Panel Type", panelType.value);
+      lastRenderedDocument.value = message.lastRenderedDocument;
+      console.log("Last Rendered:", lastRenderedDocument.value);
+      break;
+    case "lastRenderedDocument":
+      lastRenderedDocument.value = updateValue(message, "success");
+      console.log("Last Rendered 2:", lastRenderedDocument.value);
       break;
     case "environments-list-message":
       environments.value = updateValue(message, "success");
+      lastRenderedDocument.value = updateValue(message, "success");
       break;
     case "parse-message":
-      console.log("Parse Message", message);
       data.value = updateValue(message, "success");
       parseError.value = updateValue(message, "error");
+      lastRenderedDocument.value = updateValue(message, "success");
       break;
     case "bruinCliInstallationStatus":
       isBruinInstalled.value = message.installed;
       break;
     case "flow-lineage-message":
-      console.log("Flow Lineage Data Message", message);
       lineageData.value = updateValue(message, "success");
       lineageError.value = updateValue(message, "error");
-      console.log("Lineage Data ERR from webview", lineageError.value);
   }
 });
 
 const activeTab = ref(0);
+const isBruinYml = computed(() => {
+  return lastRenderedDocument.value && lastRenderedDocument.value.endsWith(".bruin.yml");
+});
 
 const environmentsList = computed(() => {
   if (!environments.value) return [];
@@ -144,20 +151,10 @@ const pipeline = computed(() => {
   }
 });
 
-const lineageErr = computed(() => {
-  if (!lineageError.value) return null;
-  return lineageError.value;
-});
-const assetName = computed(() => {
-  return lineageData.value?.name ?? null;
-});
-
-const assetId = computed(() => {
-  return lineageData.value?.id ?? null;
-});
-const assetDataset = computed(() => {
-  return getAssetDataset(pipeline.value, assetId.value);
-});
+const lineageErr = computed(() => lineageError.value);
+const assetName = computed(() => lineageData.value?.name ?? null);
+const assetId = computed(() => lineageData.value?.id ?? null);
+const assetDataset = computed(() => getAssetDataset(pipeline.value, assetId.value));
 
 const tabs = ref([
   {
@@ -179,18 +176,10 @@ const tabs = ref([
       columns: columns.value,
     })),
   },
-  /* {
-    label: "Edit Columns",
-    component: EditColumns,
-    includeIn: ["bruin"],
-    props: computed(() => ({
-      columns: columns.value,
-    })),
-  }, */
   { label: "Asset Lineage", component: AssetLineageText, includeIn: ["bruin"] },
   {
     label: "Settings",
-    component: BruinCLI,
+    component: BruinSettings,
     includeIn: ["bruin"],
     props: {
       isBruinInstalled: computed(() => isBruinInstalled.value),
@@ -210,21 +199,21 @@ const tabs = ref([
 ]);
 
 const visibleTabs = computed(() => {
-  if (panelType.value === "bruin") {
-    if (!isBruinInstalled.value) {
-      return tabs.value.filter(
-        (tab) => tab.includeIn.includes("bruin") && tab.label === "Settings"
-      );
-    }
+  if (isBruinYml.value) {
+    // Only show the "Settings" tab
+    return tabs.value.filter((tab) => tab.label === "Settings");
   }
+  // Show tabs based on panel type
   return tabs.value.filter((tab) => tab.includeIn.includes(panelType.value));
 });
+
 
 onMounted(() => {
   loadLineageData();
   loadAssetData();
   loadEnvironmentsList();
   checkBruinCliInstallation();
+  vscode.postMessage({ command: "getLastRenderedDocument" });
 });
 
 function checkBruinCliInstallation() {
@@ -242,6 +231,7 @@ const debounce = (func, wait) => {
     timeout = setTimeout(later, wait);
   };
 };
+
 watch(
   () => [assetDataset, pipeline],
   ([newAssetDataset, newPipeline]) => {
@@ -252,6 +242,7 @@ watch(
   },
   { deep: true }
 );
+
 watch(
   columnsProps,
   (newColumns) => {
@@ -291,7 +282,6 @@ function updateAssetName(newName) {
       tab.props.name = newName;
     }
   });
-  // You might also want to trigger a re-fetch of the asset details or update other components
   vscode.postMessage({ command: "bruin.updateAssetName", name: newName });
 }
 </script>
