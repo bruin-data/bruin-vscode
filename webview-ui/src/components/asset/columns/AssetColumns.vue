@@ -9,11 +9,10 @@
     <div
       class="flex p-2 sm:p-2 font-semibold text-editor-fg text-md opacity-65 border-b-2 border-editor-fg"
     >
-      <div class="flex-1 min-w-0 px-2 text-left">Name</div>
-      <div class="flex-1 min-w-0 px-2 text-left">Type</div>
-      <div class="flex-[2] min-w-0 px-2 text-left">Description</div>
-      <div class="flex-1 min-w-0 px-2 text-left">Checks</div>
-      <div class="flex-[1/2] min-w-0 px-2 text-left">Actions</div>
+      <div class="flex-[2] min-w-0 px-2 text-left">Name</div>
+      <div class="flex-[2] min-w-0 px-2 text-left">Type</div>
+      <div class="flex-[3] min-w-0 px-2 text-left">Description</div>
+      <div class="flex-[2] min-w-0 px-2 text-left">Checks</div>
     </div>
 
     <!-- Column Rows -->
@@ -25,7 +24,7 @@
         class="flex p-1 border-b border-commandCenter-border items-center relative"
       >
         <!-- Column Details -->
-        <div class="flex-1 min-w-0 px-2 text-left font-medium">
+        <div class="flex-[2] min-w-0 px-2 text-left font-medium font-mono">
           <input
             v-if="editingIndex === index"
             v-model="editingColumn.name"
@@ -33,6 +32,12 @@
           />
           <div v-else class="truncate" :title="column.name">{{ column.name }}</div>
         </div>
+        <div class="flex-[2] min-w-0 px-2 text-left">
+          <div
+            v-if="column.type"
+            class="flex-[2] min-w-0 px-2 text-left text-[0.7rem] opacity-70 truncate font-mono"
+            :title="column.type.toUpperCase()"
+          >
         <div class="flex-1 min-w-0 px-2 text-left">
           <input
             v-if="editingIndex === index"
