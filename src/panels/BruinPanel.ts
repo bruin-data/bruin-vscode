@@ -6,7 +6,6 @@ import {
   bruinWorkspaceDirectory,
   checkBruinCliInstallation,
   getCurrentPipelinePath,
-  isBruinBinaryAvailable,
   runInIntegratedTerminal,
 } from "../bruin";
 import { getDefaultBruinExecutablePath } from "../extension/configuration";
@@ -183,8 +182,9 @@ export class BruinPanel {
     "asset.yaml",
     "pipeline.yml",
     "pipeline.yaml",
-    "bruin.yml",
-    "bruin.yaml",
+    ".bruin.yml",
+    ".bruin.yaml",
+
   ];
 
   private _getWebviewContent(webview: Webview, extensionUri: Uri) {
@@ -373,10 +373,8 @@ export class BruinPanel {
             break;
           
           case "getLastRenderedDocument":
-            this._panel.webview.postMessage({
-              command: "lastRenderedDocument",
-              path: this._lastRenderedDocumentUri ? this._lastRenderedDocumentUri.fsPath : null,
-            });
+            console.log("Sending last rendered document to webview", this._lastRenderedDocumentUri);
+            BruinPanel.postMessage("lastRenderedDocument", { status: "success", message: this._lastRenderedDocumentUri?.fsPath });
             break;
         }
       },
