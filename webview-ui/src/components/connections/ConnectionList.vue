@@ -89,10 +89,8 @@ vscode-button::part(control) {
     <div class="sm:flex sm:items-center sm:justify-between mb-2">
       <div class="flex flex-col items-start space-y-2">
         <h2 class="text-xl font-semibold text-editor-fg">Connections</h2>
-        <div class="mt-2 max-w-xl text-sm text-editor-fg">
-          <p>
-            View your connections across different environments in one place.
-          </p>
+        <div v-if="!error" class="mt-2 max-w-xl text-sm text-editor-fg">
+          <p>View your connections across different environments in one place.</p>
         </div>
       </div>
       <!--  <vscode-button
@@ -103,7 +101,15 @@ vscode-button::part(control) {
       </vscode-button> -->
     </div>
 
-    <div v-for="(connections, environment) in groupedConnections" :key="environment" class="mt-6">
+    <div v-if="error">
+      <AlertMessage :message="error" />
+    </div>
+    <div
+      v-else
+      v-for="(connections, environment) in groupedConnections"
+      :key="environment"
+      class="mt-6"
+    >
       <h3 class="text-lg font-medium text-editor-fg mb-2 font-mono">{{ environment }}</h3>
       <div class="overflow-hidden bg-editorWidget-bg sm:rounded-lg">
         <table class="min-w-full divide-y divide-commandCenter-border">
@@ -133,7 +139,7 @@ vscode-button::part(control) {
                 class="w-1/2 whitespace-nowrap px-2 py-4 text-sm font-medium text-editor-fg font-mono"
                 :class="{ 'opacity-80 italic': !connection.name }"
               >
-                {{ connection.name || 'undefined' }}
+                {{ connection.name || "undefined" }}
               </td>
               <td class="w-1/2 whitespace-nowrap px-2 py-4 text-sm text-descriptionFg font-mono">
                 {{ connection.type }}
@@ -168,9 +174,12 @@ vscode-button::part(control) {
 import { useConnectionsStore } from "@/store/connections";
 import { computed } from "vue";
 import { TrashIcon, PencilIcon } from "@heroicons/vue/24/outline";
+import AlertMessage from "@/components/ui/alerts/AlertMessage.vue";
+
 
 const connectionsStore = useConnectionsStore();
 const connections = computed(() => connectionsStore.connections);
+const error = computed(() => connectionsStore.error);
 
 const groupedConnections = computed(() => {
   return connections.value.reduce((grouped, connection) => {

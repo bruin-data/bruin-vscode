@@ -13,6 +13,7 @@
         @new-connection="showConnectionForm"
         @edit-connection="showConnectionForm"
         @delete-connection="confirmDeleteConnection"
+        :error="error"
       />
     </div>
 
@@ -54,6 +55,7 @@ const showDeleteAlert = ref(false);
 const connectionToDelete = ref(null);
 const connectionsStore = useConnectionsStore();
 const connections = computed(() => connectionsStore.connections);
+const error = computed(() => connectionsStore.error);
 
 onMounted(() => {
   window.addEventListener("message", (event) => {
@@ -62,13 +64,14 @@ onMounted(() => {
       if (message.payload.status === "success") {
         connectionsStore.updateConnectionsFromMessage(message.payload.message);
       } else {
-        console.error("Error fetching connections:", message.payload.message);
+        connectionsStore.updateErrorFromMessage(message.payload.message);
       }
     }
   });
 
   vscode.postMessage({ command: "bruin.getConnectionsList" });
 });
+
 
 const showConnectionForm = (connection = null) => {
   connectionToEdit.value = connection || { name: "", type: "" };
