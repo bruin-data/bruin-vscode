@@ -203,8 +203,8 @@ suite("Manage Bruin Connections Tests", function () {
     };
     const connections = extractNonNullConnections(singleEnvconnections);
     assert.deepStrictEqual(connections, [
-      { environment: "default", type: "google_cloud_platform", name: "gcp_project" },
-      { environment: "default", type: "snowflake", name: "snowflake_project" },
+      { environment: "default", type: "google_cloud_platform", name: null },
+      { environment: "default", type: "snowflake", name: null },
     ]);
   });
   test("Should return an array of connections from multiple environments", async () => {
@@ -224,7 +224,7 @@ suite("Manage Bruin Connections Tests", function () {
           connections: {
             aws: [
               {
-                project_id: "aws_project",
+                name: "aws_project",
               },
             ],
             snowflake: null,
@@ -234,7 +234,7 @@ suite("Manage Bruin Connections Tests", function () {
     };
     const connections = extractNonNullConnections(multiEnvconnections);
     assert.deepStrictEqual(connections, [
-      { environment: "default", type: "google_cloud_platform", name: "gcp_project" },
+      { environment: "default", type: "google_cloud_platform", name: null },
       { environment: "staging", type: "aws", name: "aws_project" },
     ]);
   });
