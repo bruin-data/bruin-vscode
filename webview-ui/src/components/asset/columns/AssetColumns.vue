@@ -1,19 +1,20 @@
 <template>
-  <div class="flex flex-col py-4 sm:py-1 bg-editorWidget-bg h-full">
+  <div class="flex flex-col py-4 sm:py-1 h-full">
     <div class="flex justify-end mb-4">
-      <vscode-button @click="addColumn" class="py-1 rounded focus:outline-none">
+      <!-- <vscode-button @click="addColumn" class="py-1 rounded focus:outline-none">
         Add column
-      </vscode-button>
+      </vscode-button> -->
     </div>
     <!-- Header Row -->
     <div
       class="flex p-2 sm:p-2 font-semibold text-editor-fg text-md opacity-65 border-b-2 border-editor-fg"
     >
       <div class="flex-[2] min-w-0 px-2 text-left">Name</div>
-      <div class="flex-[2] min-w-0 px-2 text-left">Type</div>
-      <div class="flex-[3] min-w-0 px-2 text-left">Description</div>
+      <div class="flex-1 min-w-0 px-2 text-left">Type</div>
+      <div class="flex-[2] min-w-0 px-2 text-left">Description</div>
       <div class="flex-[2] min-w-0 px-2 text-left">Checks</div>
-    </div>
+<!--       <div class="flex-[1/2] min-w-0 px-2 text-left">Actions</div>
+ -->    </div>
 
     <!-- Column Rows -->
     <div class="flex-1 min-h-0 overflow-y-auto">
@@ -32,19 +33,13 @@
           />
           <div v-else class="truncate" :title="column.name">{{ column.name }}</div>
         </div>
-        <div class="flex-[2] min-w-0 px-2 text-left">
-          <div
-            v-if="column.type"
-            class="flex-[2] min-w-0 px-2 text-left text-[0.7rem] opacity-70 truncate font-mono"
-            :title="column.type.toUpperCase()"
-          >
         <div class="flex-1 min-w-0 px-2 text-left">
           <input
             v-if="editingIndex === index"
             v-model="editingColumn.type"
-            class="w-full bg-editorWidget-bg text-editor-fg"
+            class="w-full bg-editorWidget-bg text-editor-fg font-mono"
           />
-          <div v-else class="text-[0.7rem] opacity-70 truncate" :title="column.type.toUpperCase()">
+          <div v-else class="text-[0.7rem] opacity-70 truncate font-mono" :title="column.type.toUpperCase()">
             {{ column.type.toUpperCase() }}
           </div>
         </div>
@@ -56,7 +51,7 @@
           />
           <div
             v-else
-            class="truncate text-xs text-input-foreground opacity-70 font-light"
+            class="flex-[2] min-w-0 px-2 text-left text-xs text-input-foreground opacity-70 font-light"
             :class="!column.description ? 'opacity-60 italic' : ''"
             :title="column.description || 'undefined'"
           >
@@ -66,7 +61,7 @@
 
         <!-- Checks Column -->
         <div
-          class="flex-1 pr-6 min-w-0 text-left flex flex-wrap gap-2 whitespace-nowrap font-mono overflow-visible"
+          class="flex-[2] pr-6 min-w-0 text-left flex flex-wrap gap-2 whitespace-nowrap font-mono overflow-visible"
         >
           <template v-if="editingIndex === index">
             <div class="flex flex-wrap gap-2 max-w-full overflow-hidden">
@@ -79,7 +74,7 @@
                 :title="getCheckTooltip(check, editingColumn)"
               >
                 <span class="flex items-center max-w-[100px]">
-                  <span class="truncate">{{ check }}</span>
+                  <span class="truncate font-mono">{{ check }}</span>
                   <XMarkIcon
                     @click="removeCheck(check)"
                     class="h-3 w-3 text-editor-fg ml-[0.1rem] cursor-pointer flex-shrink-0"
@@ -125,7 +120,7 @@
         </div>
 
         <!-- Actions Column -->
-        <div class="flex-[1/2] justify-end space-x-2">
+        <!-- <div class="flex-[1/2] justify-end space-x-2">
           <vscode-button
             v-if="editingIndex === index"
             appearance="icon"
@@ -147,7 +142,7 @@
             @confirm="deleteColumn(index)"
             @cancel="showDeleteAlert = false"
           />
-        </div>
+        </div> -->
       </div>
     </div>
 
