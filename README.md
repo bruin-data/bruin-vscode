@@ -69,12 +69,15 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-
-### Latest Release: 0.18.2
+### Latest Release: 0.18.3
 ### Fixed
-- Improved the display and styling of the columns tab.
+- **Visual Enhancements**: Removed the background color from the columns table, adjusted the width of check badges, and updated the font styles for the Name and Type columns to improve readability and consistency.
+- **Previous Issues**: We acknowledge that the previous version contained some outdated information. This update corrects those issues and incorporates the latest changes.
 
 ### Previous Highlights
+### Version 0.18.2
+- Improved the display and styling of the columns tab.
+
 ### Version 0.18.1
 - Improved the display and styling of the asset description for better readability and consistency.
 
