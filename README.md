@@ -69,12 +69,22 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: 0.18.3
-### Fixed
-- **Visual Enhancements**: Removed the background color from the columns table, adjusted the width of check badges, and updated the font styles for the Name and Type columns to improve readability and consistency.
-- **Previous Issues**: We acknowledge that the previous version contained some outdated information. This update corrects those issues and incorporates the latest changes.
+
+### Latest Release: 0.19.0
+### Added
+- New section for displaying connections.
+- Integration with Bruin CLI to fetch all available connections.
+- Alert to ensure users have the latest Bruin CLI version for this feature.
+
+### Fixed 
+Added message to display when no columns are available.
+
 
 ### Previous Highlights
+### Version 0.18.3
+- Removed the background color from the columns table, adjusted the width of check badges, and updated the font styles for the Name and Type columns to improve readability and consistency.
+- We acknowledge that the previous version contained some outdated information. This update corrects those issues and incorporates the latest changes.
+
 ### Version 0.18.2
 - Improved the display and styling of the columns tab.
 

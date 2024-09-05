@@ -1,6 +1,14 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
+
+## [0.19.0] - [2024-09-05]
+### Added
+- Section for displaying connections with Bruin CLI integration.
+- Alert for ensuring the latest Bruin CLI version.
+### Fixed 
+- Added message for when no columns are available.
+
 ## [0.18.3] - [2024-09-05]
 - Fixed issues from the previous release.
 - Removed background color from the columns table, adjusted check badge width, and updated font styles for the Name and Type columns."
