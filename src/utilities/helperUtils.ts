@@ -171,18 +171,29 @@ type ConnectionType = "aws" | "athena" | "google_cloud_platform" | "snowflake" |
 interface Connection {
   type: ConnectionType;
   name: string | null;
+  environment: string;
 }
+
+/**
+ * Extracts non-null connections from the JSON object.
+ * param {any} json - The JSON object to extract connections from.
+ * returns {Connection[]} - An array of connections.
+ * 
+ * @param json
+ * @returns
+ * */
+
 
 export const extractNonNullConnections = (json: any): Connection[] => {
   const connections: Connection[] = [];
 
+  // Ensure json and environments exist
   if (!json || !json.environments) {
-    // Return an empty array if json or environments key is missing/undefined
-    return connections;
+    return connections; // Return empty if environments key is missing
   }
 
   // Iterate through each environment
-  Object.keys(json.environments).forEach((environmentName) => {
+  Object.keys(json.environments).forEach(environmentName => {
     const environmentConnections = json.environments[environmentName].connections;
 
     // Iterate through each connection type within the environment
@@ -193,16 +204,17 @@ export const extractNonNullConnections = (json: any): Connection[] => {
         connection.forEach((conn) => {
           if (conn) {
             const name = conn.project_id || conn.name || null;
-            connections.push({ type: connectionType as ConnectionType, name });
+            connections.push({ environment: environmentName, type: connectionType as ConnectionType, name });
           }
         });
       } else if (connection !== null) {
         const name = connection.project_id || connection.name || null;
-        connections.push({ type: connectionType as ConnectionType, name });
+        connections.push({ environment: environmentName, type: connectionType as ConnectionType, name });
       }
     });
   });
 
   return connections;
 };
+
 
