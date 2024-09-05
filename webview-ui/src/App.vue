@@ -90,10 +90,12 @@ window.addEventListener("message", (event) => {
       break;
     case "environments-list-message":
       environments.value = updateValue(message, "success");
+      lastRenderedDocument.value = updateValue(message, "success");
       break;
     case "parse-message":
       data.value = updateValue(message, "success");
       parseError.value = updateValue(message, "error");
+      lastRenderedDocument.value = updateValue(message, "success");
       break;
     case "bruinCliInstallationStatus":
       isBruinInstalled.value = message.installed;
@@ -164,7 +166,6 @@ const tabs = ref([
       environments: environmentsList.value,
       selectedEnvironment: selectedEnvironment.value,
     })),
-    show: computed(() => lastRenderedDocument.value !== ".bruin.yml"),
     emits: ["update:name", "update:description"],
   },
   {
@@ -174,9 +175,8 @@ const tabs = ref([
     props: computed(() => ({
       columns: columns.value,
     })),
-    show: isBruinYml.value !== true 
   },
-  { label: "Asset Lineage", component: AssetLineageText, includeIn: ["bruin"], show: isBruinYml.value !== true },
+  { label: "Asset Lineage", component: AssetLineageText, includeIn: ["bruin"] },
   {
     label: "Settings",
     component: BruinSettings,
@@ -184,7 +184,6 @@ const tabs = ref([
     props: {
       isBruinInstalled: computed(() => isBruinInstalled.value),
     },
-    show: true,
   },
   {
     label: "Lineage",
@@ -196,36 +195,18 @@ const tabs = ref([
       name: assetName.value,
       LineageError: lineageErr.value,
     },
-    show: isBruinYml.value !== true 
   },
 ]);
 
 const visibleTabs = computed(() => {
-  // Show all tabs based on panel type, but ensure "Settings" is visible if .bruin.yml is detected
-  const tabsToShow = tabs.value.filter((tab) => tab.includeIn.includes(panelType.value) && tab.show !== false);
   if (isBruinYml.value) {
-    // Ensure "Settings" tab is always included and active
-    if (!tabsToShow.some((tab) => tab.label === "Settings")) {
-      const settingsTab = tabs.value.find((tab) => tab.label === "Settings");
-      if (settingsTab) {
-        tabsToShow.push(settingsTab);
-      }
-    }
+    // Only show the "Settings" tab
+    return tabs.value.filter((tab) => tab.label === "Settings");
   }
-  return tabsToShow;
+  // Show tabs based on panel type
+  return tabs.value.filter((tab) => tab.includeIn.includes(panelType.value));
 });
 
-watch(visibleTabs, (newVisibleTabs) => {
-  if (isBruinYml.value) {
-    // Set activeTab to the index of the "Settings" tab
-    const settingsIndex = newVisibleTabs.findIndex(tab => tab.label === "Settings");
-    if (settingsIndex !== -1) {
-      activeTab.value = settingsIndex;
-    }
-  } else if (newVisibleTabs.length > 0) {
-    activeTab.value = 0; // Default to the first tab
-  }
-}, { deep: true });
 
 onMounted(() => {
   loadLineageData();

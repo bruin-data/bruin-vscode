@@ -144,6 +144,11 @@
           />
         </div> -->
       </div>
+      <div v-else>
+        <p class="flex text-md italic justify-start items-center text-editor-fg opacity-70 p-2">
+          No columns to display.
+        </p>
+      </div>
     </div>
 
     <!-- Notification -->
@@ -153,6 +158,7 @@
     >
       {{ notification }}
     </div>
+
   </div>
 </template>
 
