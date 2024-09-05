@@ -131,8 +131,9 @@ vscode-button::part(control) {
             >
               <td
                 class="w-1/2 whitespace-nowrap px-2 py-4 text-sm font-medium text-editor-fg font-mono"
+                :class="{ 'opacity-80 italic': !connection.name }"
               >
-                {{ connection.name }}
+                {{ connection.name || 'undefined' }}
               </td>
               <td class="w-1/2 whitespace-nowrap px-2 py-4 text-sm text-descriptionFg font-mono">
                 {{ connection.type }}

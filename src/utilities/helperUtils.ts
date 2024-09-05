@@ -203,12 +203,12 @@ export const extractNonNullConnections = (json: any): Connection[] => {
       if (Array.isArray(connection)) {
         connection.forEach((conn) => {
           if (conn) {
-            const name = conn.project_id || conn.name || null;
+            const name = conn.name || null;
             connections.push({ environment: environmentName, type: connectionType as ConnectionType, name });
           }
         });
       } else if (connection !== null) {
-        const name = connection.project_id || connection.name || null;
+        const name = connection.name || null;
         connections.push({ environment: environmentName, type: connectionType as ConnectionType, name });
       }
     });
