@@ -26,7 +26,8 @@
     <!-- Delete Confirmation Modal -->
     <DeleteAlert
       v-if="showDeleteAlert"
-      :connectionName="connectionToDelete?.name"
+      :elementName="connectionToDelete?.name"
+      elementType="connection"
       @confirm="deleteConnection"
       @cancel="cancelDeleteConnection"
     />

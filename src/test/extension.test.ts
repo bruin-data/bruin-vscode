@@ -137,15 +137,7 @@ suite('checkBruinCliInstallation Tests', function() {
     const result = await checkBruinCliInstallation();
     assert.deepStrictEqual(result, { installed: false, isWindows: false, goInstalled: false });
   });
-
-  test('Should return installed false on non-Windows when bruin is not installed', async function() {
-    osStub.returns('linux');
-    execAsyncStub.withArgs('bruin --version').rejects(new Error('Command not found'));
-    
-    const result = await checkBruinCliInstallation();
-    assert.deepStrictEqual(result, { installed: false, isWindows: false, goInstalled: false });
-  });
-
+  
   test('Should return correct values on Windows when bruin is installed', async function() {
     osStub.returns('win32');
     execAsyncStub.withArgs('bruin --version').resolves({ stdout: 'version info', stderr: '' });

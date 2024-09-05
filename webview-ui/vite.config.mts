@@ -1,6 +1,6 @@
 import path from "path"
-import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
+const { defineConfig } = await import('vitest/config');
 
 import tailwind from "tailwindcss"
 import autoprefixer from "autoprefixer"
