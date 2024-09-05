@@ -1,7 +1,7 @@
 <template>
   <div class="bg-editorWidget-bg shadow sm:rounded-lg">
-    <div class="px-4 py-5 sm:p-6">
-      <h3 class="text-base font-semibold leading-6 text-editor-fg">
+    <div class="p-4 sm:p-4">
+      <h3 class="text-lg font-semibold leading-6 text-editor-fg">
         {{ isBruinCliInstalled ? "Update" : "Install" }} Bruin CLI
       </h3>
       <div class="mt-2 max-w-xl text-sm text-editor-fg">
@@ -29,7 +29,7 @@
         <vscode-button
           v-else
           @click="installOrUpdateBruinCli"
-          class="inline-flex items-center rounded-md px-3 py-2 text-sm font-semibold shadow-sm"
+          class="inline-flex items-center rounded-md px-3 py-2 text-lg font-semibold shadow-sm"
         >
           {{ isBruinCliInstalled ? "Update" : "Install" }} Bruin CLI
         </vscode-button>
