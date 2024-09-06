@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.20.0] - [2024-09-06]
+- Introduced the ability to delete a connection via the UI.
+
 ## [0.19.0] - [2024-09-05]
 ### Added
 - Section for displaying connections with Bruin CLI integration.
