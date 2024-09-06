@@ -86,19 +86,23 @@ vscode-button::part(control) {
 
 <template>
   <div class="max-w-7xl mx-auto p-4">
-    <div class="sm:flex sm:items-center sm:justify-between mb-2">
-      <div class="flex flex-col items-start space-y-2">
+    <div class="flex-col items-center">
+      <div class="flex flex-col items-start space-y-2 mb-2">
         <h2 class="text-xl font-semibold text-editor-fg">Connections</h2>
         <div v-if="!error" class="mt-2 max-w-xl text-sm text-editor-fg">
-          <p>View your connections across different environments in one place.</p>
+          <p>
+            View, add, remove, and edit your connections across different environments in one place.
+          </p>
         </div>
       </div>
-      <!--  <vscode-button
-        @click="$emit('new-connection')"
-        class="mt-3 sm:mt-0 rounded-md px-3 py-2 text-sm font-semibold"
-      >
-        New connection
-      </vscode-button> -->
+      <div class="flex items-center justify-end">
+        <vscode-button
+          @click="$emit('new-connection')"
+          class="mt-2 rounded-md px-1 py-2 text-sm font-semibold"
+        >
+          New connection
+        </vscode-button>
+      </div>
     </div>
 
     <div v-if="error">
@@ -144,10 +148,10 @@ vscode-button::part(control) {
               <td class="w-1/2 whitespace-nowrap px-2 py-4 text-sm text-descriptionFg font-mono">
                 {{ connection.type }}
               </td>
-             <td
+              <td
                 class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6"
               >
-             <!--    <button
+                <!--    <button
                   @click="$emit('edit-connection', connection)"
                   class="text-descriptionFg hover:text-editor-fg mr-3"
                   title="Edit"
@@ -155,8 +159,10 @@ vscode-button::part(control) {
                   <PencilIcon class="h-5 w-5" />
                 </button> -->
                 <button
-                @click="$emit('delete-connection', { name: connection.name, environment: environment })"
-                class="text-errorForeground opacity-70 hover:text-editorError-foreground"
+                  @click="
+                    $emit('delete-connection', { name: connection.name, environment: environment })
+                  "
+                  class="text-errorForeground opacity-70 hover:text-editorError-foreground"
                   title="Delete"
                 >
                   <TrashIcon class="h-5 w-5" />
@@ -175,7 +181,6 @@ import { useConnectionsStore } from "@/store/connections";
 import { computed } from "vue";
 import { TrashIcon, PencilIcon } from "@heroicons/vue/24/outline";
 import AlertMessage from "@/components/ui/alerts/AlertMessage.vue";
-
 
 const connectionsStore = useConnectionsStore();
 const connections = computed(() => connectionsStore.connections);
