@@ -67,11 +67,18 @@ onMounted(() => {
         connectionsStore.updateErrorFromMessage(message.payload.message);
       }
     }
+
+    if (message.command === "connections-list-after-delete") {
+      if (message.payload.status === "success") {
+        connectionsStore.updateConnectionsFromMessage(message.payload.message);
+      } else {
+        connectionsStore.updateErrorFromMessage(message.payload.message);
+      }
+    }
   });
 
   vscode.postMessage({ command: "bruin.getConnectionsList" });
 });
-
 
 const showConnectionForm = (connection = null) => {
   connectionToEdit.value = connection || { name: "", type: "" };
@@ -98,19 +105,42 @@ const cancelConnectionForm = () => {
 
 const confirmDeleteConnection = (connection) => {
   connectionToDelete.value = connection;
+  console.log("Connection to delete:", connection);
   showDeleteAlert.value = true;
 };
 
-const deleteConnection = () => {
-  const updatedConnections = connections.value.filter(
-    (c) => c.name !== connectionToDelete.value.name
-  );
-  // Update the local state
-  connections.value = updatedConnections;
-  // Update the Pinia store
-  connectionsStore.updateConnectionsFromMessage(updatedConnections);
-  showDeleteAlert.value = false;
-  connectionToDelete.value = null;
+const deleteConnection = async () => {
+  try {
+    await vscode.postMessage({
+      command: "bruin.deleteConnection",
+      payload: {
+        name: connectionToDelete.value.name,
+        environment: connectionToDelete.value.environment,
+      },
+    });
+
+    // Wait for the deletion to complete before updating the UI
+    await new Promise((resolve) => {
+      const messageListener = (event) => {
+        const message = event.data;
+        if (message.command === "connections-list-after-delete") {
+          window.removeEventListener("message", messageListener);
+          if (message.payload.status === "success") {
+            connectionsStore.updateConnectionsFromMessage(message.payload.message);
+          } else {
+            connectionsStore.updateErrorFromMessage(message.payload.message);
+          }
+          resolve();
+        }
+      };
+      window.addEventListener("message", messageListener);
+    });
+
+    showDeleteAlert.value = false;
+    connectionToDelete.value = null;
+  } catch (error) {
+    console.error("Error deleting connection:", error);
+  }
 };
 
 const cancelDeleteConnection = () => {

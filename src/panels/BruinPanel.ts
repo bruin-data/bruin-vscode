@@ -15,7 +15,7 @@ import { lineageCommand } from "../extension/commands/lineageCommand";
 import { parseAssetCommand } from "../extension/commands/parseAssetCommand";
 import { getEnvListCommand } from "../extension/commands/getEnvListCommand";
 import { BruinInstallCLI } from "../bruin/bruinInstallCli";
-import { getConnections } from "../extension/commands/getConnections";
+import { deleteConnection, getConnections } from "../extension/commands/manageConnections";
 
 /**
  * This class manages the state and behavior of Bruin webview panels.
@@ -376,6 +376,11 @@ export class BruinPanel {
             console.log("Sending last rendered document to webview", this._lastRenderedDocumentUri);
             BruinPanel.postMessage("lastRenderedDocument", { status: "success", message: this._lastRenderedDocumentUri?.fsPath });
             break;
+
+            case "bruin.deleteConnection":
+              const { name, environment } = message.payload;
+              deleteConnection(environment, name, this._lastRenderedDocumentUri);
+              break;
         }
       },
       undefined,

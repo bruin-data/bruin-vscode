@@ -103,6 +103,7 @@ window.addEventListener("message", (event) => {
     case "flow-lineage-message":
       lineageData.value = updateValue(message, "success");
       lineageError.value = updateValue(message, "error");
+      break;
   }
 });
 

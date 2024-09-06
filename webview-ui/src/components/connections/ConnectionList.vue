@@ -144,24 +144,24 @@ vscode-button::part(control) {
               <td class="w-1/2 whitespace-nowrap px-2 py-4 text-sm text-descriptionFg font-mono">
                 {{ connection.type }}
               </td>
-              <!--  <td
+             <td
                 class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6"
               >
-                <button
+             <!--    <button
                   @click="$emit('edit-connection', connection)"
                   class="text-descriptionFg hover:text-editor-fg mr-3"
                   title="Edit"
                 >
                   <PencilIcon class="h-5 w-5" />
-                </button>
+                </button> -->
                 <button
-                  @click="$emit('delete-connection', connection)"
-                  class="text-errorForeground hover:text-editorError-foreground"
+                @click="$emit('delete-connection', { name: connection.name, environment: environment })"
+                class="text-errorForeground opacity-70 hover:text-editorError-foreground"
                   title="Delete"
                 >
                   <TrashIcon class="h-5 w-5" />
                 </button>
-              </td> -->
+              </td>
             </tr>
           </tbody>
         </table>
