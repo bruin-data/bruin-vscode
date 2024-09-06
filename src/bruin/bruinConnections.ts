@@ -27,17 +27,18 @@ export class BruinConnections extends BruinCommand {
     flags = ["list", "-o", "json"],
     ignoresErrors = false,
   }: BruinCommandOptions = {}): Promise<void> {
-
     await this.run([...flags], { ignoresErrors })
       .then(
         (result) => {
           const connections = extractNonNullConnections(JSON.parse(result));
           this.postMessageToPanels("success", connections);
+          return connections;
         },
         (error) => {
           // Check if the error is related to an outdated or missing CLI
           if (error.includes("No help topic for")) {
-            const cliError = "The Bruin CLI is out of date. Please update it to access your connections.";
+            const cliError =
+              "The Bruin CLI is out of date. Please update it to access your connections.";
             this.postMessageToPanels("error", cliError);
           } else {
             this.postMessageToPanels("error", error);
@@ -57,5 +58,51 @@ export class BruinConnections extends BruinCommand {
    */
   private postMessageToPanels(status: string, message: string | any) {
     BruinPanel.postMessage("connections-list-message", { status, message });
+  }
+}
+
+/**
+ * Extends the BruinCommand class to implement the Bruin 'connections delete' command.
+ */
+export class BruinDeleteConnection extends BruinCommand {
+  bruinWorkspace: string = "";
+  /**
+   * Specifies the Bruin command string.
+   *
+   * @returns {string} Returns the 'connections delete' command string.
+   */
+  protected bruinCommand(): string {
+    return "connections";
+  }
+  // bruin connections delete --env staging --name MY_SECRET       # Delete a connection
+  public async deleteConnection(
+    env: string,
+    connectionName: string,
+    {
+      flags = ["delete", "--env", env, "--name", connectionName],
+      ignoresErrors = false,
+    }: BruinCommandOptions = {}
+  ): Promise<void> {
+    await this.run([...flags], { ignoresErrors })
+      .then(
+        () => {
+          // Refresh the connections list
+          this.postMessageToPanels(
+            "success",
+            `Connection "${connectionName}" deleted successfully.`
+          );
+          
+        },
+        (error) => {
+          this.postMessageToPanels("error", error);
+        }
+      )
+      .catch((err) => {
+        console.error("Connections delete command error", err);
+      });
+  }
+
+  private postMessageToPanels(status: string, message: string | any) {
+    BruinPanel.postMessage("connections-list-after-delete", { status, message });
   }
 }
