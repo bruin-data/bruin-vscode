@@ -1,98 +1,10 @@
-<!-- <template>
-  <div class="max-w-7xl mx-auto p-4 sm:px-6 lg:px-">
-    <div class="sm:flex sm:items-center sm:justify-between">
-      <div class="flex flex-col items-start space-y-2">
-      <h2 class="text-xl font-semibold text-editor-fg">Connections</h2>
-      <vscode-button
-        @click="$emit('new-connection')"
-        class="mt-3 sm:mt-0 rounded-md px-3 py-2 text-sm font-semibold"
-      >
-        New connection
-      </vscode-button>
-      <div> This is a description for the connection list  </div>
-    </div>
-    </div> 
-    
-    <div v-for="(connections, environment) in groupedConnections" :key="environment" class="mt-6">
-      <h3 class="text-lg font-medium text-editor-fg mb-2 font-mono">{{ environment }}</h3>
-      <div class="overflow-hidden bg-editorWidget-bg sm:rounded-lg">
-        <table class="min-w-full divide-y divide-editor-fg divide-opacity-30">
-          <thead>
-            <tr>
-              <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-editor-fg sm:pl-6 opacity-70">Name</th>
-              <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-editor-fg opacity-70">Type</th>
-             <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6">
-                <span class="sr-only">Actions</span>
-              </th> 
-            </tr>
-          </thead>
-          <tbody class=" ">
-            <tr v-for="connection in connections" :key="connection.name" class="hover:bg-editor-hoverBackground">
-              <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-editor-fg sm:pl-6 font-mono">
-                {{ connection.name }}
-              </td>
-              <td class="whitespace-nowrap px-3 py-4 text-sm text-descriptionFg font-mono">
-                {{ connection.type }}
-              </td>
-           <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                <button
-                  @click="$emit('edit-connection', connection)"
-                  class="text-descriptionFg hover:text-editor-fg mr-3"
-                  title="Edit"
-                >
-                  <PencilIcon class="h-5 w-5" />
-                </button>
-                <button
-                  @click="$emit('delete-connection', connection)"
-                  class="text-errorForeground hover:text-editorError-foreground"
-                  title="Delete"
-                >
-                  <TrashIcon class="h-5 w-5" />
-                </button>
-              </td> 
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-</template>
-
-<script setup>
-import { TrashIcon, PencilIcon } from "@heroicons/vue/24/outline";
-import { useConnectionsStore } from "@/store/connections";
-import { computed } from "vue";
-
-const connectionsStore = useConnectionsStore();
-const connections = computed(() => connectionsStore.connections);
-
-const groupedConnections = computed(() => {
-  return connections.value.reduce((grouped, connection) => {
-    const { environment } = connection;
-    (grouped[environment] = grouped[environment] || []).push(connection);
-    return grouped;
-  }, {});
-});
-
-defineEmits(['new-connection', 'edit-connection', 'delete-connection']);
-</script>
-
-<style scoped>
-vscode-button::part(control) {
-  border: none;
-  outline: none;
-}
-</style> -->
-
 <template>
   <div class="max-w-7xl mx-auto p-4">
     <div class="flex-col items-center">
       <div class="flex flex-col items-start space-y-2 mb-2">
         <h2 class="text-xl font-semibold text-editor-fg">Connections</h2>
         <div v-if="!error" class="mt-2 max-w-xl text-sm text-editor-fg">
-          <p>
-            View, add, remove, and edit your connections across different environments in one place.
-          </p>
+          <p>View your connections across different environments in one place.</p>
         </div>
       </div>
       <div class="flex items-center justify-end">
