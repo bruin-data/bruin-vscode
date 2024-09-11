@@ -17,10 +17,11 @@
       />
     </div>
 
-    <div v-if="showForm" class="mt-6 bg-editorWidget-bg shadow sm:rounded-lg p-6">
+    <div v-if="showForm" class="mt-6 bg-editorWidget-bg shadow sm:rounded-lg p-6" ref="formRef">
       <ConnectionForm
         :connection="connectionToEdit"
-        @submit="saveConnection"
+        :environments="environments"
+        @submit="createConnection"
         @cancel="cancelConnectionForm"
       />
     </div>
@@ -47,6 +48,7 @@ import { vscode } from "@/utilities/vscode";
 
 const props = defineProps({
   isBruinInstalled: Boolean,
+  environments: Array,
 });
 
 const showForm = ref(false);
@@ -56,6 +58,7 @@ const connectionToDelete = ref(null);
 const connectionsStore = useConnectionsStore();
 const connections = computed(() => connectionsStore.connections);
 const error = computed(() => connectionsStore.error);
+const formRef = ref(null);
 
 onMounted(() => {
   window.addEventListener("message", (event) => {
@@ -75,28 +78,31 @@ onMounted(() => {
         connectionsStore.updateErrorFromMessage(message.payload.message);
       }
     }
+
+    if (message.command === "connection-created-message") {
+      if (message.payload.status === "success") {
+        connectionsStore.updateConnectionsFromMessage(message.payload.message);
+        showForm.value = false;
+        connectionToEdit.value = null;
+      } else {
+        console.error("Failed to create connection:", message.payload.message);
+      }
+    }
   });
 
   vscode.postMessage({ command: "bruin.getConnectionsList" });
 });
 
 const showConnectionForm = (connection = null) => {
-  connectionToEdit.value = connection || { name: "", type: "" };
+  connectionToEdit.value = connection || { name: "", type: "", environment: "" };
   showForm.value = true;
+  setTimeout(() => {
+    if (formRef.value) {
+      formRef.value.scrollIntoView({ behavior: "smooth" });
+    }
+  }, 100);
 };
 
-const saveConnection = (connection) => {
-  // Update the connections in the store
-  const existingIndex = connections.value.findIndex((c) => c.name === connectionToEdit.value.name);
-  if (existingIndex === -1) {
-    connections.value.push(connection);
-  } else {
-    connections.value[existingIndex] = connection;
-  }
-
-  showForm.value = false;
-  connectionToEdit.value = null;
-};
 
 const cancelConnectionForm = () => {
   showForm.value = false;
@@ -143,6 +149,41 @@ const deleteConnection = async () => {
   }
 };
 
+const createConnection = async (connection) => {
+  try {
+    // Create the new connection
+    await vscode.postMessage({
+      command: "bruin.createConnection",
+      payload: {
+        name: connection.name,
+        type: connection.type,
+        environment: connection.environment,
+      },
+    });
+
+    // Wait for the creation to complete before updating the UI
+    await new Promise((resolve) => {
+      const messageListener = (event) => {
+        const message = event.data;
+        if (message.command === "connection-created-message") {
+          window.removeEventListener("message", messageListener);
+          if (message.payload.status === "success") {
+            // Refresh the connections list
+            vscode.postMessage({ command: "bruin.getConnectionsList" });
+            showForm.value = false;
+            connectionToEdit.value = null;
+          } else {
+            console.error("Failed to create connection:", message.payload.message);
+          }
+          resolve();
+        }
+      };
+      window.addEventListener("message", messageListener);
+    });
+  } catch (error) {
+    console.error("Error creating connection:", error);
+  }
+};
 const cancelDeleteConnection = () => {
   showDeleteAlert.value = false;
   connectionToDelete.value = null;
