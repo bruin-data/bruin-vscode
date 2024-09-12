@@ -108,7 +108,7 @@ export class BruinDeleteConnection extends BruinCommand {
 
 export class BruinCreateConnection extends BruinCommand {
   bruinWorkspace: string = "";
-  
+
   protected bruinCommand(): string {
     return "connections";
   }
@@ -118,7 +118,17 @@ export class BruinCreateConnection extends BruinCommand {
     connectionName: string,
     connectionType: string,
     {
-      flags = ["add", "--env", env, "--type", connectionType, "--name", connectionName, "--credentials", "{}"],
+      flags = [
+        "add",
+        "--env",
+        env,
+        "--type",
+        connectionType,
+        "--name",
+        connectionName,
+        "--credentials",
+        "{}",
+      ],
       ignoresErrors = false,
     }: BruinCommandOptions = {}
   ): Promise<void> {
