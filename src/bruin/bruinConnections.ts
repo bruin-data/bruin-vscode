@@ -126,7 +126,7 @@ export class BruinCreateConnection extends BruinCommand {
       .then(
         (result) => {
           // The result is a plain text message, not JSON
-          if (result.includes("Successfully added connectio")) {
+          if (result.includes("Successfully added connection")) {
             this.postMessageToPanels(
               "success",
               `Connection "${connectionName}" created successfully.`

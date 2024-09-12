@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 
 export const useConnectionsStore = defineStore('connections', {
   state: () => ({
-    connections: [],
+    connections: [] as any[],
     error: null,
   }),
   actions: {
@@ -14,5 +14,9 @@ export const useConnectionsStore = defineStore('connections', {
       this.error = data;
       this.connections = [];
     },
+    addConnection(connection: any) {
+      this.connections.push(connection);
+    }
+
   },
 });
