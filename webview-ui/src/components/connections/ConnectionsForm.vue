@@ -3,7 +3,7 @@
     <form @submit.prevent="submitForm" class="w-full">
       <div class="space-y-6 w-full">
         <h3 class="text-lg font-medium text-editor-fg">
-          {{ connectionToEdit ? "Edit Connection" : "New Connection" }}
+          {{ isEditing ? "Edit Connection" : "New Connection" }}
         </h3>
         <div class="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-6">
           <FormField
@@ -19,6 +19,14 @@
             label="Connection Name"
             type="text"
             v-model="form.connection_name"
+          />
+
+          <FormField
+            id="environment"
+            label="Environment"
+            type="select"
+            :options="environments"
+            v-model="form.environment"
           />
 
           <FormField
@@ -66,19 +74,22 @@ const props = defineProps({
     default: () => ({
       connection_type: "",
       connection_name: "",
+      environment: "",
     }),
+  },
+  environments: {
+    type: Array,
+    required: true,
   },
 });
 
 const form = ref({
   connection_type: "",
   connection_name: "",
+  environment: "",
 });
 
-
-// Determine if we are editing an existing connection
 const isEditing = computed(() => !!props.connection.name);
-
 
 const connectionFields = computed(() => {
   const fields = connectionConfig[form.value.connection_type] || [];
@@ -90,10 +101,11 @@ const connectionFields = computed(() => {
 
 const submitForm = () => {
   console.log("Form submitted:", form.value);
-    emit("submit", {
-      name: form.value.connection_name,
-      type: form.value.connection_type,
-    });
+  emit("submit", {
+    name: form.value.connection_name,
+    type: form.value.connection_type,
+    environment: form.value.environment,
+  });
 };
 
 watch(
@@ -101,10 +113,10 @@ watch(
   (newConnection) => {
     form.value.connection_type = newConnection.type || "";
     form.value.connection_name = newConnection.name || "";
+    form.value.environment = newConnection.environment || "";
   },
   { immediate: true }
 );
-
 </script>
 
 <style scoped>
