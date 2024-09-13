@@ -124,30 +124,44 @@ const validateForm = () => {
   return Object.keys(errors).length === 0;
 };
 
-const submitForm = () => {
-  if (!validateForm()) {    
-    return;
-  }
-  const credentials = {};
-  connectionFields.value.forEach((field) => {
-    if (
-      field.id !== "connection_type" &&
-      field.id !== "connection_name" &&
-      field.id !== "environment"
-    ) {
-      credentials[field.id] = form.value[field.id];
-    }
-  });
+// Close the form after successful submission
+const closeForm = () => {
+    emit("close");
+  };
 
-  console.log("Form submitted:", form.value);
-  emit("submit", {
-    name: form.value.connection_name,
-    type: form.value.connection_type,
-    environment: form.value.environment,
-    credentials: credentials,
-  });
-  emit("close");
-};
+  // Modify submitForm to use closeForm
+  const submitForm = async () => {
+    if (!validateForm()) {    
+      return;
+    }
+
+    try {
+      const credentials = {};
+      connectionFields.value.forEach((field) => {
+        if (
+          field.id !== "connection_type" &&
+          field.id !== "connection_name" &&
+          field.id !== "environment"
+        ) {
+          credentials[field.id] = form.value[field.id];
+        }
+      });
+
+      console.log("Form submitted:", form.value);
+      await emit("submit", {
+        name: form.value.connection_name,
+        type: form.value.connection_type,
+        environment: form.value.environment,
+        credentials: credentials,
+      });
+
+      // Close the form after successful submission
+      closeForm();
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      // Handle error if needed
+    }
+  };
 
 watch(
   () => props.connection,

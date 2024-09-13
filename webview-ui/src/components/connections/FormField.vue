@@ -76,6 +76,7 @@ const props = defineProps({
   isInvalid: Boolean, // New prop for validation
 });
 
+
 const emit = defineEmits(["update:modelValue"]);
 
 const updateValue = (event) => {

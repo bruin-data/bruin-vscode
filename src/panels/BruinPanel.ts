@@ -10,7 +10,7 @@ import {
 } from "../bruin";
 import { getDefaultBruinExecutablePath } from "../extension/configuration";
 import * as vscode from "vscode";
-import { renderCommand, renderCommandWithFlags } from "../extension/commands/renderCommand";
+import { renderCommandWithFlags } from "../extension/commands/renderCommand";
 import { lineageCommand } from "../extension/commands/lineageCommand";
 import { parseAssetCommand } from "../extension/commands/parseAssetCommand";
 import { getEnvListCommand } from "../extension/commands/getEnvListCommand";
