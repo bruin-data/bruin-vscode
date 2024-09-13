@@ -12,7 +12,7 @@
         @input="updateValue"
         :class="[
           'block bg-input-background w-full rounded-md border-0 py-1.5 text-input-foreground shadow-sm ring-1 ring-inset placeholder:text-editorInlayHint-fg focus:ring-2 focus:ring-inset focus:ring-accent sm:text-sm',
-          isInvalid ? 'ring-inputValidation-errorBorder' : 'ring-editor-border'
+          isInvalid ? 'ring-inputValidation-errorBorder' : 'ring-editor-border',
         ]"
         :placeholder="`Enter ${label.toLowerCase()}`"
         :required="required"
@@ -24,7 +24,7 @@
           @input="updateValue"
           :class="[
             'block bg-input-background w-full rounded-md border-0 py-1.5 text-input-foreground shadow-sm ring-1 ring-inset placeholder:text-editorInlayHint-fg focus:ring-2 focus:ring-inset focus:ring-accent sm:text-sm',
-            isInvalid ? 'ring-inputValidation-errorBorder' : 'ring-editor-border'
+            isInvalid ? 'ring-inputValidation-errorBorder' : 'ring-editor-border',
           ]"
           :placeholder="`Enter ${label.toLowerCase()}`"
           :required="required"
@@ -34,26 +34,30 @@
         <!-- File input label remains unchanged -->
       </div>
       <template v-if="type === 'select'">
-        <select
-          :id="id"
-          :value="modelValue"
-          :required="required"
-          @change="updateValue"
-          :class="[
-            'block bg-input-background w-full rounded-md border-0 py-1.5 text-input-foreground shadow-sm ring-1 ring-inset focus:ring-2 focus:ring-inset focus:ring-accent sm:text-sm appearance-none pr-8',
-            isInvalid ? 'ring-inputValidation-errorBorder' : 'ring-editor-border'
-          ]"
-        >
-          <option value="" disabled selected hidden>Please Select</option>
-          <option v-for="option in options" :key="option" :value="option">
-            {{ formatConnectionName(option) }}
-          </option>
-        </select>
-        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-          <ChevronDownIcon class="w-4 h-4 text-input-foreground" aria-hidden="true" />
+        <div class="relative">
+          <select
+            :id="id"
+            :value="modelValue"
+            :required="required"
+            @change="updateValue"
+            :class="[
+              'block bg-input-background w-full rounded-md border-0 py-1.5 text-input-foreground shadow-sm ring-1 ring-inset focus:ring-2 focus:ring-inset focus:ring-accent sm:text-sm appearance-none pr-8',
+              isInvalid ? 'ring-inputValidation-errorBorder' : 'ring-editor-border',
+            ]"
+          >
+            <option value="" disabled selected hidden>Please Select</option>
+            <option v-for="option in options" :key="option" :value="option">
+              {{ formatConnectionName(option) }}
+            </option>
+          </select>
+          <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+            <ChevronDownIcon class="w-4 h-4 text-input-foreground" aria-hidden="true" />
+          </div>
         </div>
       </template>
-      <p v-if="isInvalid" class="mt-1 text-sm text-inputValidation-errorBorder">This field is required</p>
+      <p v-if="isInvalid" class="mt-1 text-sm text-inputValidation-errorBorder absolute">
+        This field is required
+      </p>
     </div>
   </div>
 </template>
@@ -75,7 +79,6 @@ const props = defineProps({
   required: Boolean,
   isInvalid: Boolean, // New prop for validation
 });
-
 
 const emit = defineEmits(["update:modelValue"]);
 
