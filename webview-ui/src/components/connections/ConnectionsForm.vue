@@ -1,6 +1,6 @@
 <template>
   <div class="relative bg-editorWidget-bg shadow sm:rounded-lg p-4 max-w-2xl mx-auto">
-    <form @submit.prevent="submitForm" class="w-full">
+    <form @submit.prevent="submitForm" class="w-full" novalidate>
       <div class="space-y-6 w-full">
         <h3 class="text-lg font-medium text-editor-fg">
           {{ isEditing ? "Edit Connection" : "New Connection" }}
@@ -12,6 +12,7 @@
             type="select"
             :options="connectionTypes"
             v-model="form.connection_type"
+            :isInvalid="validationErrors.connection_type"
           />
 
           <FormField
@@ -19,6 +20,7 @@
             label="Connection Name"
             type="text"
             v-model="form.connection_name"
+            :isInvalid="validationErrors.connection_name"
           />
 
           <FormField
@@ -27,6 +29,7 @@
             type="select"
             :options="environments"
             v-model="form.environment"
+            :isInvalid="validationErrors.environment"
           />
 
           <FormField
@@ -34,6 +37,8 @@
             :key="field.id"
             v-bind="field"
             v-model="form[field.id]"
+            :required="field.required"
+            :isInvalid="validationErrors[field.id]"
           />
         </div>
       </div>
@@ -46,7 +51,11 @@
         >
           Cancel
         </vscode-button>
-        <vscode-button type="submit" class="rounded-md px-4 py-2 text-sm font-semibold">
+        <vscode-button
+          type="submit"
+          class="rounded-md px-4 py-2 text-sm font-semibold"
+          @click="submitForm"
+        >
           {{ isEditing ? "Save Changes" : "Create" }}
         </vscode-button>
       </div>
@@ -66,7 +75,7 @@ import FormField from "./FormField.vue";
 import { XMarkIcon } from "@heroicons/vue/20/solid";
 import { connectionTypes, connectionConfig } from "./connectionUtility";
 
-const emit = defineEmits(["submit", "cancel"]);
+const emit = defineEmits(["submit", "cancel", "close"]);
 
 const props = defineProps({
   connection: {
@@ -89,6 +98,8 @@ const form = ref({
   environment: "",
 });
 
+const validationErrors = ref({});
+
 const isEditing = computed(() => !!props.connection.name);
 
 const connectionFields = computed(() => {
@@ -99,13 +110,43 @@ const connectionFields = computed(() => {
   }));
 });
 
+const validateForm = () => {
+  const errors = {};
+  const requiredFields = ['connection_type', 'connection_name', 'environment', ...connectionFields.value.filter(f => f.required).map(f => f.id)];
+  
+  requiredFields.forEach(field => {
+    if (!form.value[field]) {
+      errors[field] = true;
+    }
+  });
+
+  validationErrors.value = errors;
+  return Object.keys(errors).length === 0;
+};
+
 const submitForm = () => {
+  if (!validateForm()) {    
+    return;
+  }
+  const credentials = {};
+  connectionFields.value.forEach((field) => {
+    if (
+      field.id !== "connection_type" &&
+      field.id !== "connection_name" &&
+      field.id !== "environment"
+    ) {
+      credentials[field.id] = form.value[field.id];
+    }
+  });
+
   console.log("Form submitted:", form.value);
   emit("submit", {
     name: form.value.connection_name,
     type: form.value.connection_type,
     environment: form.value.environment,
+    credentials: credentials,
   });
+  emit("close");
 };
 
 watch(
@@ -114,6 +155,7 @@ watch(
     form.value.connection_type = newConnection.type || "";
     form.value.connection_name = newConnection.name || "";
     form.value.environment = newConnection.environment || "";
+    validationErrors.value = {};
   },
   { immediate: true }
 );

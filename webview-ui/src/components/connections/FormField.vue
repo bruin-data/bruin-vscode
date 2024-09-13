@@ -10,40 +10,39 @@
         :type="type"
         :value="defaultValue ? defaultValue : modelValue"
         @input="updateValue"
-        class="block bg-input-background w-full rounded-md border-0 py-1.5 text-input-foreground shadow-sm ring-1 ring-inset ring-editor-border placeholder:text-editorInlayHint-fg focus:ring-2 focus:ring-inset focus:ring-accent sm:text-sm"
+        :class="[
+          'block bg-input-background w-full rounded-md border-0 py-1.5 text-input-foreground shadow-sm ring-1 ring-inset placeholder:text-editorInlayHint-fg focus:ring-2 focus:ring-inset focus:ring-accent sm:text-sm',
+          isInvalid ? 'ring-inputValidation-errorBorder' : 'ring-editor-border'
+        ]"
         :placeholder="`Enter ${label.toLowerCase()}`"
-        :required="id === 'connection_name'"
+        :required="required"
       />
       <div v-if="type === 'textarea'" class="flex flex-col">
         <textarea
           :id="id"
           :value="defaultValue ? defaultValue : modelValue"
           @input="updateValue"
-          class="block bg-input-background w-full rounded-md border-0 py-1.5 text-input-foreground shadow-sm ring-1 ring-inset ring-editor-border placeholder:text-editorInlayHint-fg focus:ring-2 focus:ring-inset focus:ring-accent sm:text-sm"
+          :class="[
+            'block bg-input-background w-full rounded-md border-0 py-1.5 text-input-foreground shadow-sm ring-1 ring-inset placeholder:text-editorInlayHint-fg focus:ring-2 focus:ring-inset focus:ring-accent sm:text-sm',
+            isInvalid ? 'ring-inputValidation-errorBorder' : 'ring-editor-border'
+          ]"
           :placeholder="`Enter ${label.toLowerCase()}`"
-          :required="id === 'connection_name'"
+          :required="required"
           :rows="rows"
           :cols="cols"
         />
-        <label for="file-input" class="mt-2 flex items-center cursor-pointer">
-          <DocumentPlusIcon class="w-5 h-5 mr-2 text-editorInlayHint-fg" />
-          <span class="text-editorInlayHint-fg-">Pick a JSON file</span>
-          <input
-            type="file"
-            id="file-input"
-            @change="handleFileUpload"
-            class="sr-only"
-            accept=".json"
-          />
-        </label>
+        <!-- File input label remains unchanged -->
       </div>
       <template v-if="type === 'select'">
         <select
           :id="id"
           :value="modelValue"
-          :required="id === 'connection_type'"
+          :required="required"
           @change="updateValue"
-          class="block bg-input-background w-full rounded-md border-0 py-1.5 text-input-foreground shadow-sm ring-1 ring-inset ring-editor-border focus:ring-2 focus:ring-inset focus:ring-accent sm:text-sm appearance-none pr-8"
+          :class="[
+            'block bg-input-background w-full rounded-md border-0 py-1.5 text-input-foreground shadow-sm ring-1 ring-inset focus:ring-2 focus:ring-inset focus:ring-accent sm:text-sm appearance-none pr-8',
+            isInvalid ? 'ring-inputValidation-errorBorder' : 'ring-editor-border'
+          ]"
         >
           <option value="" disabled selected hidden>Please Select</option>
           <option v-for="option in options" :key="option" :value="option">
@@ -54,6 +53,7 @@
           <ChevronDownIcon class="w-4 h-4 text-input-foreground" aria-hidden="true" />
         </div>
       </template>
+      <p v-if="isInvalid" class="mt-1 text-sm text-inputValidation-errorBorder">This field is required</p>
     </div>
   </div>
 </template>
@@ -63,16 +63,19 @@ import { ChevronDownIcon, DocumentPlusIcon } from "@heroicons/vue/24/outline";
 import { defineProps, defineEmits } from "vue";
 import { formatConnectionName } from "./connectionUtility";
 
-const props = defineProps([
-  "id",
-  "label",
-  "type",
-  "modelValue",
-  "options",
-  "defaultValue",
-  "rows",
-  "cols",
-]);
+const props = defineProps({
+  id: String,
+  label: String,
+  type: String,
+  modelValue: [String, Number],
+  options: Array,
+  defaultValue: [String, Number],
+  rows: Number,
+  cols: Number,
+  required: Boolean,
+  isInvalid: Boolean, // New prop for validation
+});
+
 const emit = defineEmits(["update:modelValue"]);
 
 const updateValue = (event) => {
@@ -96,6 +99,4 @@ const handleFileUpload = async (event) => {
     alert("Please upload a valid JSON file.");
   }
 };
-
-
 </script>

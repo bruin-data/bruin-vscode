@@ -16,6 +16,9 @@ export const useConnectionsStore = defineStore('connections', {
     },
     addConnection(connection: any) {
       this.connections.push(connection);
+    },
+    deleteConnection(connection: any) {
+      this.connections = this.connections.filter((c) => c.name !== connection.name);
     }
 
   },
