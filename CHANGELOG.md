@@ -2,6 +2,10 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.21.0] - [2024-09-13]
+- Introduced the ability to add a new connection directly from the UI, leveraging the Bruin CLI command.
+- Updated the autocomplete schema to include support for Databricks connections.
+
 ## [0.20.1] - [2024-09-13]
 - Fixed an issue where the UI would incorrectly re-render after clicking on an asset file to edit, ignoring the state of the "full-refresh" checkbox.
 

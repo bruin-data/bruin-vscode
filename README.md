@@ -1,38 +1,54 @@
 # Bruin
 Bruin is a unified analytics platform that enables data professionals to work end-to-end for their data pipelines. This extension is built to improve the development experience of data products on Bruin using Visual Studio Code.
 
-
 ## Features
 
-- **Syntax Coloring**: Applies YAML syntax coloring to Bruin code in SQL files (enclosed between `/* @bruin ... @bruin */`) and Python files (enclosed between `""" @bruin ... @bruin """`).
+### Syntax Coloring
+- Applies YAML syntax coloring to Bruin code in SQL files (enclosed between `/* @bruin ... @bruin */`) and Python files (enclosed between `""" @bruin ... @bruin """`).
 
-    ![Screenshot of Syntaxe Coloring](https://github.com/bruin-data/bruin-vscode/blob/main/screenshots/syntaxe-coloring.png?raw=true)
+![Screenshot of Syntax Coloring](https://github.com/bruin-data/bruin-vscode/blob/main/screenshots/syntaxe-coloring.png?raw=true)
 
-- **Folding Range Provider**: Allows folding and unfolding Bruin code regions in SQL and Python files for a cleaner workspace. 
+### Folding Range Provider
+- Allows folding and unfolding Bruin code regions in SQL and Python files for a cleaner workspace.
+- Auto Folding: Configure this setting through the Settings UI under Extensions > Bruin.
 
-- **Auto Folding**: You can configure this setting by editing your through the Settings UI under Extensions > Bruin.
+![Screenshot of Bruin Extension Settings](https://github.com/bruin-data/bruin-vscode/blob/main/screenshots/bruin_extension_settings.png?raw=true)
 
-    ![Screenshot of Bruin Extension Settings](https://github.com/bruin-data/bruin-vscode/blob/main/screenshots/bruin_extension_settings.png?raw=true)
+**Note**: The Pylance extension may affect the auto-folding feature. If you encounter inconsistencies, review your Pylance settings or temporarily disable it.
 
+### Dynamic SQL Content Viewer
+- Renders SQL content within a VS Code Webview, enabling content copying and automatic refreshing on file updates.
+- Adapts to theme changes (dark/light/Dark high contrast)
 
-*Important Note*
-	The Pylance extension, which provides advanced language support for Python, may affect the expected behavior of the auto-folding feature. If you encounter inconsistencies with code regions not folding as expected in python files, please review your Pylance settings. Adjusting these settings or temporarily disabling Pylance may help to resolve these issues. 
+![Screenshot of Bruin Extension Features](https://github.com/bruin-data/bruin-vscode/blob/main/screenshots/bruin_extension_features.gif?raw=true)
 
+![Screenshot of SQL viewer Theme Updates](https://github.com/bruin-data/bruin-vscode/blob/main/screenshots/theme-updates.gif?raw=true)
 
-- **Dynamic SQL Content Viewer**: Renders SQL content within a VS Code Webview, enabling content copying, and automatically refreshing on file updates.
-
-    ![Screenshot of Bruin Extension Features](https://github.com/bruin-data/bruin-vscode/blob/main/screenshots/bruin_extension_features.gif?raw=true)
-
-- **Adapting to theme changes**: the SQL Content Viewer matches the vscode current theme (dark/light/Dark high contrast)
-
-    ![Screenshot of SQL viewer Theme Updates](https://github.com/bruin-data/bruin-vscode/blob/main/screenshots/theme-updates.gif?raw=true)
-
-**SQL Validation and Execution**: Introduces SQL validation and execution capabilities, including custom messages for invalid SQL queries and the ability to run SQL with additional flags such as `--downstream` and `--full-refresh` as well as date inputs.
-	 **Date Inputs**:
-		- Introduces date picker inputs for selecting start and end dates for `run` command.
-		- Comes with `Exclusive End Date` checkbox, adjusting the end date to the end of the selected day (`23:59:59.999999999`).
+### SQL Validation and Execution
+- Introduces SQL validation and execution capabilities.
+- Custom messages for invalid SQL queries.
+- Ability to run SQL with additional flags such as `--downstream` and `--full-refresh`.
+- Date inputs for selecting start and end dates for the `run` command.
+- `Exclusive End Date` checkbox to adjust the end date to the end of the selected day.
 
 ![Screenshot of SQL Validation and Execution](https://github.com/bruin-data/bruin-vscode/blob/main/screenshots/validation-and-execution.gif?raw=true)
+
+### Asset Lineage
+- New panel to display the lineage of a single asset.
+- Ability to expand properties in the lineage view to see further upstream and downstream elements.
+
+### Connections Management
+- Display and manage connections integrated with Bruin CLI.
+- Add new connections directly from the UI.
+- Delete existing connections via the UI.
+
+### Bruin CLI Management
+- New tab in the side panel for easy installation and updates of Bruin CLI.
+- Windows-specific Go check, with a link to documentation if Go is missing.
+
+### Autocomplete and Snippets
+- Autocomplete support for `.bruin.yml`, `pipeline.yml`, and `*.asset.yml` files with predefined options and schema validations.
+- Snippets for creating Bruin root configuration, pipelines, and assets.
 
 ## Installation
 
@@ -40,39 +56,50 @@ Bruin is a unified analytics platform that enables data professionals to work en
 2. Navigate to the Extensions view (Ctrl+Shift+X).
 3. Search for "Bruin" and click Install.
 
- ***Note***:  Before using the new features, ensure that you have the Bruin CLI installed on your system. 
- For guidance on installing the Bruin CLI, please refer to the official documentation [link to documentation](https://github.com/bruin-data/bruin).
+**Note**: Ensure that you have the Bruin CLI installed on your system before using the new features. For guidance on installing the Bruin CLI, please refer to the [official documentation](https://github.com/bruin-data/bruin).
 
 ## Usage
 
-- **Syntax Coloring**: Enclose Bruin code with delimiters:
-	- In **SQL files** `/* @bruin` and `@bruin */`.
-	- In **Python files** `""" @bruin` and `@bruin """`.
+### Syntax Coloring
+Enclose Bruin code with delimiters:
+- In **SQL files**: `/* @bruin` and `@bruin */`
+- In **Python files**: `""" @bruin` and `@bruin """`
 
-- **Folding Range**: Bruin code regions are automatically foldable.
-- **Dynamic SQL Content Viewer**:
-	1. Open any SQL file.
-	2. Click the rocket icon 🚀 in the top right menu.
-	3. A Webview will open, previewing the SQL content.
-	4. Click the "Copy" icon to copy the content.
-	5. The theme color of the view can match the vscode current theme (dark/light/Dark high contrast)
-	6. The SQL Preview automatically responds to changes in checkboxes and dates, ensuring an immediate re-render.
-	
-**SQL Validation and Execution**:
-    - **Validation**: Click the "Validate" button to validate the current SQL. A custom notification will appear based on the validation results.
-    - **Run with Flags**: Click the "Run" button to execute the SQL command in an integrated terminal. This can include optional flags based on user input (checkboxes & date inputs).
-        - **Start and End Dates**: 
-			1. Select start and end dates using the date picker inputs to specify the time range for the run command.
-			2. An "Exclusive End Date" checkbox is available. When checked, the end date is adjusted to the precise end of the selected day (`23:59:59.999999999`).
-			3. The dates will be appended as flags directly to the Bruin run command 
+### Folding Range
+Bruin code regions are automatically foldable.
+
+### Dynamic SQL Content Viewer
+1. Open any SQL file.
+2. Click the Bruin logo icon in the top right menu.
+3. A Webview will open, previewing the SQL content.
+4. Click the "Copy" icon to copy the content.
+5. The theme color of the view matches the current VS Code theme.
+
+### SQL Validation and Execution
+- **Validation**: Click the "Validate" button to validate the current SQL or entire pipeline.
+- **Run with Flags**: Click the "Run" button to execute the SQL command in an integrated terminal, with optional flags and date inputs.
+
+### Asset Lineage
+Access the new lineage panel to view and interact with asset lineages.
+
+### Connections Management
+Use the new connections section from `Settings` tab to view, add, or delete connections directly from the UI.
+
+### Bruin CLI Management
+Access the Bruin CLI management tab `Settings` in the side panel for easy installation and updates.
 
 
 ## Release Notes
-### Latest Release: 0.20.1
-### Fixed 
-- Resolved an issue where the UI would incorrectly re-render after clicking on an asset file to edit, ignoring the state of the "full-refresh" checkbox.
+### Latest Release: 0.21.0
+### Added
+- Introduced the ability to add a new connection directly from the UI, leveraging the Bruin CLI command.
+- Updated the autocomplete schema to include support for Databricks connections.
+
 
 ### Previous Highlights
+### Version 0.20.1
+- Resolved an issue where the UI would incorrectly re-render after clicking on an asset file to edit, ignoring the state of the "full-refresh" checkbox.
+
 ### Version 0.20.0
 - Introduced the ability to delete a connection via the UI.
 
