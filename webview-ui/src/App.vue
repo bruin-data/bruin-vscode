@@ -184,6 +184,7 @@ const tabs = ref([
     includeIn: ["bruin"],
     props: {
       isBruinInstalled: computed(() => isBruinInstalled.value),
+      environments: computed(() => environmentsList.value),
     },
   },
   {
@@ -207,7 +208,6 @@ const visibleTabs = computed(() => {
   // Show tabs based on panel type
   return tabs.value.filter((tab) => tab.includeIn.includes(panelType.value));
 });
-
 
 onMounted(() => {
   loadLineageData();

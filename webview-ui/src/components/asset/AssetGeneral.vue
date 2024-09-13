@@ -331,6 +331,11 @@ const renderAssetAlert = ref(null);
 const validateButtonStatus = ref("" as "validated" | "failed" | "loading" | null);
 const timzone = new Date().getTimezoneOffset();
 const today = new Date(Date.now() - timzone * 60000);
+
+const year = today.getFullYear();
+const month = today.getMonth();
+const day = today.getDate();
+
 const startDate = ref(
   new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate() - 1, 0, 0, 0, 0))
     .toISOString()

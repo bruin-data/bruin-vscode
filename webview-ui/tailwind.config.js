@@ -93,6 +93,7 @@ module.exports = {
         "inputValidation-warningBackground": "var(--vscode-inputValidation-warningBackground)",
         "inputValidation-warningBorder": "var(--vscode-inputValidation-warningBorder)",
         "inputValidation-errorBackground": "var(--vscode-inputValidation-errorBackground)",
+        "inputValidation-errorBorder": "var(--vscode-inputValidation-errorBorder)",
         "editorWidget-bg": "var(--vscode-editorWidget-background)",
         "editorLink-activeFg": "var(--vscode-editorLink-activeForeground)",
         "commandCenter-border": "var(--vscode-commandCenter-border)",

@@ -10,12 +10,16 @@ import {
 } from "../bruin";
 import { getDefaultBruinExecutablePath } from "../extension/configuration";
 import * as vscode from "vscode";
-import { renderCommand, renderCommandWithFlags } from "../extension/commands/renderCommand";
+import { renderCommandWithFlags } from "../extension/commands/renderCommand";
 import { lineageCommand } from "../extension/commands/lineageCommand";
 import { parseAssetCommand } from "../extension/commands/parseAssetCommand";
 import { getEnvListCommand } from "../extension/commands/getEnvListCommand";
 import { BruinInstallCLI } from "../bruin/bruinInstallCli";
-import { deleteConnection, getConnections } from "../extension/commands/manageConnections";
+import {
+  createConnection,
+  deleteConnection,
+  getConnections,
+} from "../extension/commands/manageConnections";
 
 /**
  * This class manages the state and behavior of Bruin webview panels.
@@ -390,6 +394,22 @@ export class BruinPanel {
           case "bruin.deleteConnection":
             const { name, environment } = message.payload;
             deleteConnection(environment, name, this._lastRenderedDocumentUri);
+            break;
+          case "bruin.createConnection":
+            await deleteConnection(
+              message.payload.environment,
+              message.payload.name,
+              this._lastRenderedDocumentUri
+            );
+            await createConnection(
+              message.payload.environment,
+              message.payload.name,
+              message.payload.type,
+              message.payload.credentials,
+              this._lastRenderedDocumentUri
+            );
+            // After creating the connection, fetch the updated list
+            await getConnections(this._lastRenderedDocumentUri);
             break;
         }
       },

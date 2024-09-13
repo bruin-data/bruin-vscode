@@ -1,23 +1,19 @@
 import * as vscode from "vscode";
-import * as os from 'os';
+import * as os from "os";
 
 export class BruinInstallCLI {
   private isWindows: boolean;
 
   constructor() {
-    this.isWindows = os.platform() === 'win32';
+    this.isWindows = os.platform() === "win32";
   }
 
   private getInstallCommand(): string {
-    return this.isWindows
-      ? 'go install github.com/bruin-data/bruin@latest'
-      : 'brew install bruin';
+    return this.isWindows ? "go install github.com/bruin-data/bruin@latest" : "brew install bruin";
   }
 
   private getUpdateCommand(): string {
-    return this.isWindows
-      ? 'go install github.com/bruin-data/bruin@latest'
-      : 'brew upgrade bruin';
+    return this.isWindows ? "go install github.com/bruin-data/bruin@latest" : "brew upgrade bruin";
   }
 
   private async executeCommand(command: string): Promise<void> {

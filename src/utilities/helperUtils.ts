@@ -154,19 +154,36 @@ export function isChangeInDependsSection(
 
 /**
  * Filter and concatenate flags for a command.
- * 
+ *
  * @param {string} flags - A space-separated string of flags.
  * @param {string[]} excludeFlags - Flags to be excluded from the result.
  * @returns {string[]} - An array of concatenated flags.
  */
 export function prepareFlags(flags: string, excludeFlags: string[] = []): string[] {
-  const baseFlags = ['-o', 'json'];
-  const filteredFlags = flags.split(' ')
-                             .filter(flag => flag !== '' && !excludeFlags.includes(flag));
+  const baseFlags = ["-o", "json"];
+  const filteredFlags = flags
+    .split(" ")
+    .filter((flag) => flag !== "" && !excludeFlags.includes(flag));
   return baseFlags.concat(filteredFlags);
 }
 
-type ConnectionType = "aws" | "athena" | "google_cloud_platform" | "snowflake" | "postgres" | "redshift" | "mssql" | "databricks" | "synapse" | "mongo" | "mysql" | "notion" | "hana" | "shopify" | "gorgias" | "generic";
+type ConnectionType =
+  | "aws"
+  | "athena"
+  | "google_cloud_platform"
+  | "snowflake"
+  | "postgres"
+  | "redshift"
+  | "mssql"
+  | "databricks"
+  | "synapse"
+  | "mongo"
+  | "mysql"
+  | "notion"
+  | "hana"
+  | "shopify"
+  | "gorgias"
+  | "generic";
 
 interface Connection {
   type: ConnectionType;
@@ -178,11 +195,10 @@ interface Connection {
  * Extracts non-null connections from the JSON object.
  * param {any} json - The JSON object to extract connections from.
  * returns {Connection[]} - An array of connections.
- * 
+ *
  * @param json
  * @returns
  * */
-
 
 export const extractNonNullConnections = (json: any): Connection[] => {
   const connections: Connection[] = [];
@@ -193,7 +209,7 @@ export const extractNonNullConnections = (json: any): Connection[] => {
   }
 
   // Iterate through each environment
-  Object.keys(json.environments).forEach(environmentName => {
+  Object.keys(json.environments).forEach((environmentName) => {
     const environmentConnections = json.environments[environmentName].connections;
 
     // Iterate through each connection type within the environment
@@ -204,17 +220,23 @@ export const extractNonNullConnections = (json: any): Connection[] => {
         connection.forEach((conn) => {
           if (conn) {
             const name = conn.name || null;
-            connections.push({ environment: environmentName, type: connectionType as ConnectionType, name });
+            connections.push({
+              environment: environmentName,
+              type: connectionType as ConnectionType,
+              name,
+            });
           }
         });
       } else if (connection !== null) {
         const name = connection.name || null;
-        connections.push({ environment: environmentName, type: connectionType as ConnectionType, name });
+        connections.push({
+          environment: environmentName,
+          type: connectionType as ConnectionType,
+          name,
+        });
       }
     });
   });
 
   return connections;
 };
-
-

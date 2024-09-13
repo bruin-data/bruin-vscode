@@ -91,7 +91,6 @@ export class BruinDeleteConnection extends BruinCommand {
             "success",
             `Connection "${connectionName}" deleted successfully.`
           );
-          
         },
         (error) => {
           this.postMessageToPanels("error", error);
@@ -104,5 +103,58 @@ export class BruinDeleteConnection extends BruinCommand {
 
   private postMessageToPanels(status: string, message: string | any) {
     BruinPanel.postMessage("connections-list-after-delete", { status, message });
+  }
+}
+
+export class BruinCreateConnection extends BruinCommand {
+  bruinWorkspace: string = "";
+
+  protected bruinCommand(): string {
+    return "connections";
+  }
+
+  public async createConnection(
+    env: string,
+    connectionName: string,
+    connectionType: string,
+    credentials: any,
+    { ignoresErrors = false }: BruinCommandOptions = {}
+  ): Promise<void> {
+    const credentialsString = JSON.stringify(credentials);
+    const flags = [
+      "add",
+      "--env",
+      env,
+      "--type",
+      connectionType,
+      "--name",
+      connectionName,
+      "--credentials",
+      credentialsString,
+    ];
+
+    await this.run(flags, { ignoresErrors })
+      .then(
+        (result) => {
+          if (result.includes("Connection created successfully")) {
+            this.postMessageToPanels(
+              "success",
+              `Connection "${connectionName}" created successfully.`
+            );
+          } else {
+            this.postMessageToPanels("error", result);
+          }
+        },
+        (error) => {
+          this.postMessageToPanels("error", error);
+        }
+      )
+      .catch((err) => {
+        console.error("Connections create command error", err);
+      });
+  }
+
+  private postMessageToPanels(status: string, message: string) {
+    BruinPanel.postMessage("connection-created-message", { status, message });
   }
 }

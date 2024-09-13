@@ -16,8 +16,6 @@ import { LineagePanel } from "../panels/LineagePanel";
 import { installOrUpdateCli } from "./commands/updateBruinCLI";
 
 export function activate(context: ExtensionContext) {
-
-
   const yamlSelector = [
     { language: "yaml", scheme: "file" },
     { language: "yaml", scheme: "untitled" },
@@ -48,7 +46,7 @@ export function activate(context: ExtensionContext) {
     }),
     commands.registerCommand("bruin.installCli", () => {
       installOrUpdateCli();
-}),
+    }),
     foldingDisposable,
     window.registerWebviewViewProvider(LineagePanel.viewId, lineageWebviewProvider)
   );
