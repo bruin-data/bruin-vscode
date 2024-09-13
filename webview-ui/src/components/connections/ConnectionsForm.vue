@@ -13,6 +13,7 @@
             :options="connectionTypes"
             v-model="form.connection_type"
             :isInvalid="validationErrors.connection_type"
+            required
           />
 
           <FormField
@@ -21,6 +22,7 @@
             type="text"
             v-model="form.connection_name"
             :isInvalid="validationErrors.connection_name"
+            required
           />
 
           <FormField
@@ -30,6 +32,7 @@
             :options="environments"
             v-model="form.environment"
             :isInvalid="validationErrors.environment"
+            required
           />
 
           <FormField

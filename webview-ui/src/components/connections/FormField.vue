@@ -1,7 +1,7 @@
 <template>
   <div class="sm:col-span-4">
     <label :for="id" class="block text-sm font-medium leading-6 text-editor-fg">
-      {{ label }}
+      {{ label }}{{ !required ? ' (Optional)' : '' }}
     </label>
     <div class="mt-2 relative">
       <input
@@ -76,7 +76,10 @@ const props = defineProps({
   defaultValue: [String, Number],
   rows: Number,
   cols: Number,
-  required: Boolean,
+  required: {
+    type: Boolean,
+    default: false
+  },
   isInvalid: Boolean, // New prop for validation
 });
 
@@ -89,6 +92,7 @@ const updateValue = (event) => {
   }
   emit("update:modelValue", value);
 };
+
 
 const handleFileUpload = async (event) => {
   const file = event.target.files[0];
