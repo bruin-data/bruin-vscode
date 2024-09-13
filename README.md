@@ -68,14 +68,14 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 
 ## Release Notes
-
-
-
-### Latest Release: 0.20.0
-### Added
-- Introduced the ability to delete a connection via the UI.
+### Latest Release: 0.20.1
+### Fixed 
+- Resolved an issue where the UI would incorrectly re-render after clicking on an asset file to edit, ignoring the state of the "full-refresh" checkbox.
 
 ### Previous Highlights
+### Version 0.20.0
+- Introduced the ability to delete a connection via the UI.
+
 ### Version 0.19.0
 - Added a new section to display connections and integrated with Bruin CLI for fetching data. Also, an alert ensures users have the latest Bruin CLI version.
 - Fixed issue where a message wasn’t shown when no columns were available.
