@@ -270,6 +270,17 @@ onMounted(() => {
   if (props.selectedEnvironment) {
     selectedEnv.value = props.selectedEnvironment;
   }
+  if ((vscode.getState() as { checkboxState?: { [key: string]: boolean } })?.checkboxState) {
+    checkboxItems.value = checkboxItems.value.map((item) => ({
+      ...item,
+      checked:
+        (vscode.getState() as { checkboxState: { [key: string]: boolean } }).checkboxState[
+          item.name
+        ] || item.checked,
+    }));
+  }
+
+  sendInitialMessage();
 });
 
 watch(
@@ -278,6 +289,7 @@ watch(
     selectedEnv.value = newValue;
   }
 );
+
 
 function setSelectedEnv(env: string) {
   selectedEnv.value = env;
@@ -325,10 +337,16 @@ const month = today.getMonth();
 const day = today.getDate();
 
 const startDate = ref(
-  new Date(Date.UTC(year, month, day - 1, 0, 0, 0, 0)).toISOString().slice(0, -1)
+  new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate() - 1, 0, 0, 0, 0))
+    .toISOString()
+    .slice(0, -1)
 );
 
-const endDate = ref(new Date(Date.UTC(year, month, day, 0, 0, 0, 0)).toISOString().slice(0, -1));
+const endDate = ref(
+  new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0))
+    .toISOString()
+    .slice(0, -1)
+);
 
 const endDateExclusive = ref("");
 
@@ -355,8 +373,16 @@ const language = ref("");
 const code = ref(null);
 
 function sendInitialMessage() {
-  const initialPayload = getCheckboxChangePayload();
-  console.log("Initial payload", initialPayload);
+  const checkboxState = checkboxItems.value.reduce((acc, item) => {
+    acc[item.name] = item.checked;
+    return acc;
+  }, {});
+
+  const initialPayload = {
+    flags: getCheckboxChangePayload(),
+    checkboxState
+  };
+
   vscode.postMessage({
     command: "checkboxChange",
     payload: initialPayload,
@@ -375,19 +401,22 @@ onBeforeUnmount(() => {
   window.removeEventListener("message", receiveMessage);
 });
 
-watch(
-  [checkboxItems, startDate, endDate, endDateExclusive],
-  () => {
-    const payload = getCheckboxChangePayload();
-    console.log("Checkbox change payload", payload);
-    vscode.postMessage({
-      command: "checkboxChange",
-      payload: payload,
-    });
-  },
-  { deep: true }
-);
+watch([checkboxItems, startDate, endDate, endDateExclusive], () => {
+  const checkboxState = checkboxItems.value.reduce((acc, item) => {
+    acc[item.name] = item.checked;
+    return acc;
+  }, {});
 
+  const payload = {
+    flags: getCheckboxChangePayload(),
+    checkboxState
+  };
+
+  vscode.postMessage({
+    command: "checkboxChange",
+    payload: payload,
+  });
+}, { deep: true });
 function receiveMessage(event: { data: any }) {
   if (!event) return;
 

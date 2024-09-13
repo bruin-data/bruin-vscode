@@ -71,7 +71,8 @@ export class BruinPanel {
             ? this._lastRenderedDocumentUri
             : editor.document.uri;
 
-          renderCommand(extensionUri);
+          //renderCommand(extensionUri);
+          renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri?.fsPath);
           lineageCommand(this._lastRenderedDocumentUri);
           parseAssetCommand(this._lastRenderedDocumentUri);
           console.log("Document URI onDidChangeTextDocument", this._lastRenderedDocumentUri);
@@ -90,7 +91,8 @@ export class BruinPanel {
 
           console.log("Document URI active text editor", this._lastRenderedDocumentUri);
 
-          renderCommand(extensionUri);
+          //renderCommand(extensionUri);
+          renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri?.fsPath);
           lineageCommand(this._lastRenderedDocumentUri);
           parseAssetCommand(this._lastRenderedDocumentUri);
         }
@@ -233,6 +235,7 @@ export class BruinPanel {
       lastRenderedDocument: this._lastRenderedDocumentUri
         ? this._lastRenderedDocumentUri.fsPath
         : null,
+      checkboxState: this._checkboxState,
     });
 
     webview.onDidReceiveMessage(
@@ -280,6 +283,11 @@ export class BruinPanel {
               console.error("Error validating pipeline:", currentPipelinePath, error);
             }
 
+            break;
+          case "checkboxChange":
+            this._checkboxState = message.payload.checkboxState;
+            this._flags = message.payload.flags;
+            await renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri?.fsPath);
             break;
 
           case "bruin.validate":
@@ -418,7 +426,12 @@ export class BruinPanel {
       goInstalled,
     });
   }
-
+  public getCheckboxFlags(): string {
+    return Object.entries(this._checkboxState)
+      .filter(([_, checked]) => checked)
+      .map(([name, _]) => `--${name.toLowerCase()}`)
+      .join(" ");
+  }
   private async installOrUpdateBruinCli() {
     try {
       const bruinInstaller = new BruinInstallCLI();
@@ -430,4 +443,5 @@ export class BruinPanel {
       vscode.window.showErrorMessage("Failed to install/update Bruin CLI. Please try again.");
     }
   }
+  private _checkboxState: { [key: string]: boolean } = {};
 }
