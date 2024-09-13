@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.20.1] - [2024-09-13]
+- Fixed an issue where the UI would incorrectly re-render after clicking on an asset file to edit, ignoring the state of the "full-refresh" checkbox.
+
 ## [0.20.0] - [2024-09-06]
 - Introduced the ability to delete a connection via the UI.
 
