@@ -45,6 +45,7 @@ import { ref, defineProps, onMounted, computed } from "vue";
 import DeleteAlert from "@/components/ui/alerts/AlertWithActions.vue";
 import { useConnectionsStore } from "@/store/connections";
 import { vscode } from "@/utilities/vscode";
+import { v4 as uuidv4 } from "uuid";
 
 const props = defineProps({
   isBruinInstalled: Boolean,
@@ -65,7 +66,13 @@ onMounted(() => {
     const message = event.data;
     if (message.command === "connections-list-message") {
       if (message.payload.status === "success") {
-        connectionsStore.updateConnectionsFromMessage(message.payload.message);
+        const connectionsWithIds = message.payload.message.map((conn) => {
+          if (!conn.id) {
+            return { ...conn, id: uuidv4() };
+          }
+          return conn;
+        });
+        connectionsStore.updateConnectionsFromMessage(connectionsWithIds);
       } else {
         connectionsStore.updateErrorFromMessage(message.payload.message);
       }
@@ -116,7 +123,6 @@ const deleteConnection = async () => {
         environment: connectionToDelete.value.environment,
       },
     });
-
     // Remove the deleted connection from the local state
     connectionsStore.removeConnection(connectionToDelete.value);
 
@@ -134,14 +140,16 @@ const closeForm = () => {
 const createConnection = async (connection) => {
   try {
     // Create the new connection
+    const newConnection = {
+      id: uuidv4(),
+      name: connection.name,
+      type: connection.type,
+      environment: connection.environment,
+      credentials: connection.credentials,
+    };
     await vscode.postMessage({
       command: "bruin.createConnection",
-      payload: {
-        name: connection.name,
-        type: connection.type,
-        environment: connection.environment,
-        credentials: connection.credentials,
-      },
+      payload: newConnection,
     });
 
     // Wait for the creation to complete before updating the UI
@@ -152,6 +160,9 @@ const createConnection = async (connection) => {
         const message = event.data;
         if (message.command === "connection-created-message") {
           window.removeEventListener("message", messageListener);
+          // Add the new connection to the local state
+          connectionsStore.addConnection(newConnection);
+
           closeForm();
         } else {
           console.error("Failed to create connection:", message.payload.message);
