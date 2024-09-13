@@ -21,11 +21,11 @@ export const deleteConnection = async (env: string, connectionName: string, last
   await bruinConnections.deleteConnection(env, connectionName);
 };
 
-export const createConnection = async (env: string, connectionName: string, connectionType:string, lastRenderedDocumentUri: Uri | undefined) => {
+export const createConnection = async (env: string, connectionName: string, connectionType:string, credentials: any,lastRenderedDocumentUri: Uri | undefined) => {
   console.log('Creating connection');
   const bruinConnections = new BruinCreateConnection(
     getDefaultBruinExecutablePath(),
     bruinWorkspaceDirectory(lastRenderedDocumentUri!.fsPath)!!
   );
-  await bruinConnections.createConnection(env, connectionName, connectionType);
+  await bruinConnections.createConnection(env, connectionName, connectionType, credentials);
 };

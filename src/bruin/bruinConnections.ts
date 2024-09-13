@@ -117,26 +117,26 @@ export class BruinCreateConnection extends BruinCommand {
     env: string,
     connectionName: string,
     connectionType: string,
-    {
-      flags = [
-        "add",
-        "--env",
-        env,
-        "--type",
-        connectionType,
-        "--name",
-        connectionName,
-        "--credentials",
-        "{}",
-      ],
-      ignoresErrors = false,
-    }: BruinCommandOptions = {}
+    credentials: any,
+    { ignoresErrors = false }: BruinCommandOptions = {}
   ): Promise<void> {
-    await this.run([...flags], { ignoresErrors })
+    const credentialsString = JSON.stringify(credentials);
+    const flags = [
+      "add",
+      "--env",
+      env,
+      "--type",
+      connectionType,
+      "--name",
+      connectionName,
+      "--credentials",
+      credentialsString,
+    ];
+
+    await this.run(flags, { ignoresErrors })
       .then(
         (result) => {
-          // The result is a plain text message, not JSON
-          if (result.includes("Successfully added connection")) {
+          if (result.includes("Connection created successfully")) {
             this.postMessageToPanels(
               "success",
               `Connection "${connectionName}" created successfully.`

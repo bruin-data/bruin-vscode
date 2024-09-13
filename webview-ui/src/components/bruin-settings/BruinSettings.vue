@@ -158,6 +158,7 @@ const createConnection = async (connection) => {
         name: connection.name,
         type: connection.type,
         environment: connection.environment,
+        credentials: connection.credentials
       },
     });
 

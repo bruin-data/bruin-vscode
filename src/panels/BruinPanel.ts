@@ -397,6 +397,7 @@ export class BruinPanel {
               message.payload.environment,
               message.payload.name,
               message.payload.type,
+              message.payload.credentials,
               this._lastRenderedDocumentUri
             );
             // After creating the connection, fetch the updated list
