@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import * as assert from "assert";
 import * as vscode from "vscode";
 import * as os from "os";
@@ -181,32 +182,38 @@ suite("Manage Bruin Connections Tests", function () {
     const connections = extractNonNullConnections(singleEnvconnections);
     assert.deepStrictEqual(connections, []);
   });
+
   test("Should return an array of connections for all non-null connections", async () => {
     const singleEnvconnections = {
       environments: {
-        default: {
+        staging: {
           connections: {
-            aws: null,
-            google_cloud_platform: [
+            databricks: [
               {
-                project_id: "gcp_project",
-              },
+                name: "databrick",
+                token: "",
+                path: "",
+                host: "host",
+                port: 1228
+              }
             ],
-            snowflake: [
+            generic: [
               {
-                project_id: "snowflake_project",
-              },
-            ],
-          },
-        },
-      },
+                name: "test23",
+                value: "val"
+              }
+            ]
+          }
+        }
+      }
     };
     const connections = extractNonNullConnections(singleEnvconnections);
     assert.deepStrictEqual(connections, [
-      { environment: "default", type: "google_cloud_platform", name: null },
-      { environment: "default", type: "snowflake", name: null },
+      { environment: "staging", type: "databricks", name: "databrick", token: "", path: "", host: "host", port: 1228 },
+      { environment: "staging", type: "generic", name: "test23", value: "val" },
     ]);
   });
+
   test("Should return an array of connections from multiple environments", async () => {
     const multiEnvconnections = {
       environments: {
@@ -215,7 +222,8 @@ suite("Manage Bruin Connections Tests", function () {
             aws: null,
             google_cloud_platform: [
               {
-                project_id: "gcp_project",
+                name: "gcp_project",
+                project_id: "gcp_project_id",
               },
             ],
           },
@@ -225,6 +233,7 @@ suite("Manage Bruin Connections Tests", function () {
             aws: [
               {
                 name: "aws_project",
+                access_key_id: "aws_access_key",
               },
             ],
             snowflake: null,
@@ -234,23 +243,25 @@ suite("Manage Bruin Connections Tests", function () {
     };
     const connections = extractNonNullConnections(multiEnvconnections);
     assert.deepStrictEqual(connections, [
-      { environment: "default", type: "google_cloud_platform", name: null },
-      { environment: "staging", type: "aws", name: "aws_project" },
+      { environment: "default", type: "google_cloud_platform", name: "gcp_project", project_id: "gcp_project_id" },
+      { environment: "staging", type: "aws", name: "aws_project", access_key_id: "aws_access_key" },
     ]);
   });
-  test("Should handle connections without project_id or name", async () => {
+
+  test("Should handle connections without name", async () => {
     const singleEnvconnections = {
       environments: {
         default: {
           connections: {
             google_cloud_platform: [
               {
-                // No project_id or name provided
+                project_id: "gcp_project_id",
               },
             ],
             aws: [
               {
                 name: "aws_connection",
+                access_key_id: "aws_access_key",
               },
             ],
           },
@@ -259,15 +270,17 @@ suite("Manage Bruin Connections Tests", function () {
     };
     const connections = extractNonNullConnections(singleEnvconnections);
     assert.deepStrictEqual(connections, [
-      { environment: "default", type: "google_cloud_platform", name: null }, // No project_id or name
-      { environment: "default", type: "aws", name: "aws_connection" },
+      { environment: "default", type: "google_cloud_platform", project_id: "gcp_project_id" },
+      { environment: "default", type: "aws", name: "aws_connection", access_key_id: "aws_access_key" },
     ]);
   });
+
   test("Should return an empty array when input is completely empty", async () => {
     const emptyConnections = {};
     const connections = extractNonNullConnections(emptyConnections);
     assert.deepStrictEqual(connections, []);
   });
+
   test("Should return an empty array when connections object is empty", async () => {
     const singleEnvconnections = {
       environments: {
@@ -286,6 +299,7 @@ suite("Manage Bruin Connections Tests", function () {
         aws: [
           {
             name: "aws_connection",
+            access_key_id: "aws_access_key",
           },
         ],
       },

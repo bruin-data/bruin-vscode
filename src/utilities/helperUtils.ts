@@ -185,10 +185,11 @@ type ConnectionType =
   | "gorgias"
   | "generic";
 
-interface Connection {
+export interface Connection {
   type: ConnectionType;
   name: string | null;
   environment: string;
+  [key: string]: any; // This allows for any additional properties
 }
 
 /**
@@ -219,20 +220,18 @@ export const extractNonNullConnections = (json: any): Connection[] => {
       if (Array.isArray(connection)) {
         connection.forEach((conn) => {
           if (conn) {
-            const name = conn.name || null;
             connections.push({
               environment: environmentName,
               type: connectionType as ConnectionType,
-              name,
+              ...conn, // Spread all properties of the connection
             });
           }
         });
       } else if (connection !== null) {
-        const name = connection.name || null;
         connections.push({
           environment: environmentName,
           type: connectionType as ConnectionType,
-          name,
+          ...connection, // Spread all properties of the connection
         });
       }
     });
