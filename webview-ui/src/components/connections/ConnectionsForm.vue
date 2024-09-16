@@ -77,17 +77,22 @@ import { ref, computed, watch, defineEmits, defineProps } from "vue";
 import FormField from "./FormField.vue";
 import { XMarkIcon } from "@heroicons/vue/20/solid";
 import { connectionTypes, connectionConfig } from "./connectionUtility";
-
+import { vscode } from "@/utilities/vscode";
 const emit = defineEmits(["submit", "cancel", "close"]);
 
 const props = defineProps({
   connection: {
     type: Object,
     default: () => ({
-      connection_type: "",
-      connection_name: "",
-      environment: "",
+      name: '',
+      type: '',
+      environment: '',
+      credentials: {},
     }),
+  },
+  isEditing: {
+    type: Boolean,
+    default: false,
   },
   environments: {
     type: Array,
@@ -103,7 +108,7 @@ const form = ref({
 
 const validationErrors = ref({});
 
-const isEditing = computed(() => !!props.connection.name);
+const isEditing = computed(() => props.isEditing);
 
 const connectionFields = computed(() => {
   const fields = connectionConfig[form.value.connection_type] || [];
@@ -134,44 +139,61 @@ const closeForm = () => {
 
   // Modify submitForm to use closeForm
   const submitForm = async () => {
-    if (!validateForm()) {    
-      return;
+  if (!validateForm()) {    
+    console.error("Form validation failed");
+    return;
+  }
+
+  try {
+    const credentials = {};
+    connectionFields.value.forEach((field) => {
+      credentials[field.id] = form.value[field.id];
+    });
+
+    const connectionData = {
+      name: form.value.connection_name,
+      type: form.value.connection_type,
+      environment: form.value.environment,
+      credentials: credentials,
+    };
+
+    if (props.isEditing) {
+      const oldConnection = {
+        name: props.connection.name,
+        type: props.connection.type,
+        environment: props.connection.environment,
+      };
+
+      await vscode.postMessage({
+        command: "bruin.editConnection",
+        payload: JSON.parse(JSON.stringify({
+          oldConnection,
+          newConnection: connectionData,
+        })),
+      });
+    } else {
+      await vscode.postMessage({
+        command: "bruin.createConnection",
+        payload: JSON.parse(JSON.stringify(connectionData)),
+      });
     }
 
-    try {
-      const credentials = {};
-      connectionFields.value.forEach((field) => {
-        if (
-          field.id !== "connection_type" &&
-          field.id !== "connection_name" &&
-          field.id !== "environment"
-        ) {
-          credentials[field.id] = form.value[field.id];
-        }
-      });
+    emit("close");
+  } catch (error) {
+    console.error("Error submitting form:", error);
+  }
+};
 
-      console.log("Form submitted:", form.value);
-      await emit("submit", {
-        name: form.value.connection_name,
-        type: form.value.connection_type,
-        environment: form.value.environment,
-        credentials: credentials,
-      });
-
-      // Close the form after successful submission
-      closeForm();
-    } catch (error) {
-      console.error("Error submitting form:", error);
-      // Handle error if needed
-    }
-  };
 
 watch(
   () => props.connection,
   (newConnection) => {
-    form.value.connection_type = newConnection.type || "";
-    form.value.connection_name = newConnection.name || "";
-    form.value.environment = newConnection.environment || "";
+    form.value = {
+      connection_type: newConnection.type || "",
+      connection_name: newConnection.name || "",
+      environment: newConnection.environment || "",
+      ...newConnection.credentials, // Spread the credentials into the form
+    };
     validationErrors.value = {};
   },
   { immediate: true }
