@@ -96,15 +96,12 @@ onMounted(() => {
   vscode.postMessage({ command: "bruin.getConnectionsList" });
 });
 
+
 const showConnectionForm = (connection = null) => {
   if (connection) {
-    connectionToEdit.value = {
-      name: connection.name,
-      type: connection.type,
-      environment: connection.environment,
-      credentials: { ...connection.credentials }, // Ensure we're copying all credentials
-    };
+    connectionToEdit.value = { ...connection }; // Pass the entire connection object
     isEditing.value = true;
+    console.log("connection to edit", connection)
   } else {
     connectionToEdit.value = {
       name: '',

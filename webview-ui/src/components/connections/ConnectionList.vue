@@ -98,10 +98,12 @@ const connectionsStore = useConnectionsStore();
 const connections = computed(() => connectionsStore.connections);
 const error = computed(() => connectionsStore.error);
 
+
 const groupedConnections = computed(() => {
   return connections.value.reduce((grouped, connection) => {
     const { environment } = connection;
     (grouped[environment] = grouped[environment] || []).push(connection);
+    console.log("connections......", connections.value)
     return grouped;
   }, {});
 });

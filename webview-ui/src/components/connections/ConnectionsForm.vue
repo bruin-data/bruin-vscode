@@ -87,7 +87,7 @@ const props = defineProps({
       name: '',
       type: '',
       environment: '',
-      credentials: {},
+      
     }),
   },
   isEditing: {
@@ -162,6 +162,7 @@ const closeForm = () => {
         name: props.connection.name,
         type: props.connection.type,
         environment: props.connection.environment,
+        ...props.connection
       };
 
       await vscode.postMessage({
@@ -192,7 +193,7 @@ watch(
       connection_type: newConnection.type || "",
       connection_name: newConnection.name || "",
       environment: newConnection.environment || "",
-      ...newConnection.credentials, // Spread the credentials into the form
+      ...newConnection, // Spread the credentials into the form
     };
     validationErrors.value = {};
   },
