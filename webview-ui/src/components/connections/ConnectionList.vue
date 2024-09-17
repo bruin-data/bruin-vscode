@@ -33,43 +33,47 @@
             <tr>
               <th
                 scope="col"
-                class="w-1/2 px-2 py-2 text-left text-sm font-semibold text-editor-fg opacity-70"
+                class="w-2/5 px-2 py-2 text-left text-sm font-semibold text-editor-fg opacity-70"
               >
                 Name
               </th>
               <th
                 scope="col"
-                class="w-1/2 px-2 py-2 text-left text-sm font-semibold text-editor-fg opacity-70"
+                class="w-2/5 px-2 py-2 text-left text-sm font-semibold text-editor-fg opacity-70"
               >
                 Type
               </th>
+              <th
+                scope="col"
+                class="w-1/5 px-2 py-2 text-right text-sm font-semibold text-editor-fg opacity-70"
+              >
+                Actions
+              </th>
             </tr>
           </thead>
-          <tbody class="">
+          <tbody>
             <tr
               v-for="connection in connections"
               :key="connection.name"
               class="hover:bg-editor-hoverBackground"
             >
               <td
-                class="w-1/2 whitespace-nowrap px-2 py-2 text-sm font-medium text-editor-fg font-mono"
+                class="w-2/5 whitespace-nowrap px-2 py-2 text-sm font-medium text-editor-fg font-mono"
                 :class="{ 'opacity-80 italic': !connection.name }"
               >
                 {{ connection.name || "undefined" }}
               </td>
-              <td class="w-1/2 whitespace-nowrap px-2 py-2 text-sm text-descriptionFg font-mono">
+              <td class="w-2/5 whitespace-nowrap px-2 py-2 text-sm text-descriptionFg font-mono">
                 {{ connection.type }}
               </td>
-              <td
-                class="relative whitespace-nowrap py-2 pl-3 pr-4 text-right text-sm font-medium sm:pr-6"
-              >
-                  <button
+              <td class="w-1/5 whitespace-nowrap px-2 py-2 text-right text-sm font-medium">
+                <button
                   @click="$emit('edit-connection', connection)"
                   class="text-descriptionFg hover:text-editor-fg mr-3"
                   title="Edit"
                 >
-                  <PencilIcon class="h-5 w-5" />
-                </button> 
+                  <PencilIcon class="h-5 w-5 inline-block" />
+                </button>
                 <button
                   @click="
                     $emit('delete-connection', { name: connection.name, environment: environment })
@@ -77,7 +81,7 @@
                   class="text-errorForeground opacity-70 hover:text-editorError-foreground"
                   title="Delete"
                 >
-                  <TrashIcon class="h-5 w-5" />
+                  <TrashIcon class="h-5 w-5 inline-block" />
                 </button>
               </td>
             </tr>
@@ -98,12 +102,11 @@ const connectionsStore = useConnectionsStore();
 const connections = computed(() => connectionsStore.connections);
 const error = computed(() => connectionsStore.error);
 
-
 const groupedConnections = computed(() => {
   return connections.value.reduce((grouped, connection) => {
     const { environment } = connection;
     (grouped[environment] = grouped[environment] || []).push(connection);
-    console.log("connections......", connections.value)
+    console.log("connections......", connections.value);
     return grouped;
   }, {});
 });
