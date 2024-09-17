@@ -20,9 +20,11 @@
     <div v-if="showForm" class="mt-6 bg-editorWidget-bg shadow sm:rounded-lg p-6" ref="formRef">
       <ConnectionForm
         :connection="connectionToEdit"
+        :isEditing="isEditing"
         :environments="environments"
-        @submit="createConnection"
+        @submit="handleConnectionSubmit"
         @cancel="cancelConnectionForm"
+        @close="closeConnectionForm"
       />
     </div>
 
@@ -54,6 +56,7 @@ const props = defineProps({
 
 const showForm = ref(false);
 const connectionToEdit = ref(null);
+const isEditing = ref(false);
 const showDeleteAlert = ref(false);
 const connectionToDelete = ref(null);
 const connectionsStore = useConnectionsStore();
@@ -93,8 +96,21 @@ onMounted(() => {
   vscode.postMessage({ command: "bruin.getConnectionsList" });
 });
 
+
 const showConnectionForm = (connection = null) => {
-  connectionToEdit.value = connection || { name: "", type: "", environment: "" };
+  if (connection) {
+    connectionToEdit.value = { ...connection }; // Pass the entire connection object
+    isEditing.value = true;
+    console.log("connection to edit", connection)
+  } else {
+    connectionToEdit.value = {
+      name: '',
+      type: '',
+      environment: '',
+      credentials: {},
+    };
+    isEditing.value = false;
+  }
   showForm.value = true;
   setTimeout(() => {
     if (formRef.value) {
@@ -103,15 +119,45 @@ const showConnectionForm = (connection = null) => {
   }, 100);
 };
 
+const handleConnectionSubmit = async (connectionData) => {
+  try {
+    if (isEditing.value) {
+      // Editing existing connection
+      await vscode.postMessage({
+        command: "bruin.editConnection",
+        payload: {
+          oldConnection: connectionToEdit.value,
+          newConnection: connectionData,
+        },
+      });
+    } else {
+      // Creating new connection
+      await vscode.postMessage({
+        command: "bruin.createConnection",
+        payload: connectionData,
+      });
+    }
+    closeConnectionForm();
+  } catch (error) {
+    console.error("Error submitting connection:", error);
+    // Optionally, show an error message to the user
+  }
+};
+
 const cancelConnectionForm = () => {
-  showForm.value = false;
-  connectionToEdit.value = null;
+  closeConnectionForm();
 };
 
 const confirmDeleteConnection = (connection) => {
   connectionToDelete.value = connection;
   console.log("Connection to delete:", connection);
   showDeleteAlert.value = true;
+};
+
+const closeConnectionForm = () => {
+  showForm.value = false;
+  connectionToEdit.value = null;
+  isEditing.value = false;
 };
 
 const deleteConnection = async () => {
@@ -132,6 +178,7 @@ const deleteConnection = async () => {
     console.error("Error deleting connection:", error);
   }
 };
+
 const closeForm = () => {
   showForm.value = false;
   connectionToEdit.value = null;
@@ -175,6 +222,7 @@ const createConnection = async (connection) => {
     console.error("Error creating connection:", error);
   }
 };
+
 const cancelDeleteConnection = () => {
   showDeleteAlert.value = false;
   connectionToDelete.value = null;

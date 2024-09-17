@@ -390,7 +390,40 @@ export class BruinPanel {
               message: this._lastRenderedDocumentUri?.fsPath,
             });
             break;
+          case "bruin.editConnection":
+            const { oldConnection, newConnection } = message.payload;
+            try {
+              // Delete the old connection
+              await deleteConnection(
+                oldConnection.environment,
+                oldConnection.name,
+                this._lastRenderedDocumentUri
+              );
 
+              // Create the new connection
+              await createConnection(
+                newConnection.environment,
+                newConnection.name,
+                newConnection.type,
+                newConnection.credentials,
+                this._lastRenderedDocumentUri
+              );
+
+              // Fetch updated connections list
+              await getConnections(this._lastRenderedDocumentUri);
+
+              this._panel.webview.postMessage({
+                command: "connection-edited-message",
+                payload: { status: "success", message: "Connection updated successfully" },
+              });
+            } catch (error) {
+              console.error("Error editing connection:", error);
+              this._panel.webview.postMessage({
+                command: "connection-edited-message",
+                payload: { status: "error", message: "Failed to edit connection" },
+              });
+            }
+            break;
           case "bruin.deleteConnection":
             const { name, environment } = message.payload;
             deleteConnection(environment, name, this._lastRenderedDocumentUri);
