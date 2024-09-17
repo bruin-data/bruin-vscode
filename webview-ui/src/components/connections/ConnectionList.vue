@@ -45,23 +45,23 @@
               </th>
             </tr>
           </thead>
-          <tbody>
+          <tbody class="">
             <tr
               v-for="connection in connections"
               :key="connection.name"
               class="hover:bg-editor-hoverBackground"
             >
               <td
-                class="w-1/2 whitespace-nowrap px-2 py-4 text-sm font-medium text-editor-fg font-mono"
+                class="w-1/2 whitespace-nowrap px-2 py-2 text-sm font-medium text-editor-fg font-mono"
                 :class="{ 'opacity-80 italic': !connection.name }"
               >
                 {{ connection.name || "undefined" }}
               </td>
-              <td class="w-1/2 whitespace-nowrap px-2 py-4 text-sm text-descriptionFg font-mono">
+              <td class="w-1/2 whitespace-nowrap px-2 py-2 text-sm text-descriptionFg font-mono">
                 {{ connection.type }}
               </td>
               <td
-                class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6"
+                class="relative whitespace-nowrap py-2 pl-3 pr-4 text-right text-sm font-medium sm:pr-6"
               >
                   <button
                   @click="$emit('edit-connection', connection)"
