@@ -90,13 +90,15 @@ Access the Bruin CLI management tab `Settings` in the side panel for easy instal
 
 
 ## Release Notes
-### Latest Release: 0.21.0
+### Latest Release: 0.22.0
 ### Added
+- Added the ability to edit existing connections directly from the UI, integrated with the Bruin CLI for seamless updates.
+
+### Previous Highlights
+### Version 0.21.0
 - Introduced the ability to add a new connection directly from the UI, leveraging the Bruin CLI command.
 - Updated the autocomplete schema to include support for Databricks connections.
 
-
-### Previous Highlights
 ### Version 0.20.1
 - Resolved an issue where the UI would incorrectly re-render after clicking on an asset file to edit, ignoring the state of the "full-refresh" checkbox.
 
