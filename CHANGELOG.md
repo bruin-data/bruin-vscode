@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.22.0] - [2024-09-17]
+- Added the ability to edit existing connections directly from the UI, integrated with the Bruin CLI for seamless updates.
+
 ## [0.21.0] - [2024-09-13]
 - Introduced the ability to add a new connection directly from the UI, leveraging the Bruin CLI command.
 - Updated the autocomplete schema to include support for Databricks connections.
