@@ -267,7 +267,8 @@
                     "type": "string",
                     "enum": [
                         "enable",
-                        "disable"
+                        "disable",
+                        ""
                     ],
                     "default": "disable"
                 }

@@ -1,43 +1,42 @@
 <template>
   <div class="sm:col-span-4">
     <label :for="id" class="block text-sm font-medium leading-6 text-editor-fg">
-      {{ label }}{{ !required ? ' (Optional)' : '' }}
+      {{ label }}{{ !required ? " (Optional)" : "" }}
     </label>
     <div class="mt-2 relative">
       <input
         v-if="type === 'text' || type === 'password' || type === 'number'"
         :id="id"
         :type="type"
-        :value="defaultValue ? defaultValue : modelValue"
+        :value="internalValue"
         @input="updateValue"
         :class="[
           'block bg-input-background w-full rounded-md border-0 py-1.5 text-input-foreground shadow-sm ring-1 ring-inset placeholder:text-editorInlayHint-fg focus:ring-2 focus:ring-inset focus:ring-accent sm:text-sm',
           isInvalid ? 'ring-inputValidation-errorBorder' : 'ring-editor-border',
         ]"
-        :placeholder="`Enter ${label.toLowerCase()}`"
+        :placeholder="defaultValue !== undefined ? String(defaultValue) : `Enter ${label.toLowerCase()}`"
         :required="required"
       />
       <div v-if="type === 'textarea'" class="flex flex-col">
         <textarea
           :id="id"
-          :value="defaultValue ? defaultValue : modelValue"
+          :value="internalValue"
           @input="updateValue"
           :class="[
             'block bg-input-background w-full rounded-md border-0 py-1.5 text-input-foreground shadow-sm ring-1 ring-inset placeholder:text-editorInlayHint-fg focus:ring-2 focus:ring-inset focus:ring-accent sm:text-sm',
             isInvalid ? 'ring-inputValidation-errorBorder' : 'ring-editor-border',
           ]"
-          :placeholder="`Enter ${label.toLowerCase()}`"
+          :placeholder="defaultValue !== undefined ? String(defaultValue) : `Enter ${label.toLowerCase()}`"
           :required="required"
           :rows="rows"
           :cols="cols"
         />
-        <!-- File input label remains unchanged -->
       </div>
       <template v-if="type === 'select'">
         <div class="relative">
           <select
             :id="id"
-            :value="modelValue"
+            :value="internalValue"
             :required="required"
             @change="updateValue"
             :class="[
@@ -63,8 +62,8 @@
 </template>
 
 <script setup>
-import { ChevronDownIcon, DocumentPlusIcon } from "@heroicons/vue/24/outline";
-import { defineProps, defineEmits } from "vue";
+import { ChevronDownIcon } from "@heroicons/vue/24/outline";
+import { defineProps, defineEmits, ref, watch } from "vue";
 import { formatConnectionName } from "./connectionUtility";
 
 const props = defineProps({
@@ -78,33 +77,25 @@ const props = defineProps({
   cols: Number,
   required: {
     type: Boolean,
-    default: false
+    default: false,
   },
-  isInvalid: Boolean, // New prop for validation
+  isInvalid: Boolean,
 });
 
 const emit = defineEmits(["update:modelValue"]);
+
+const internalValue = ref(props.modelValue ?? props.defaultValue ?? "");
+
+watch(() => props.modelValue, (newValue) => {
+  internalValue.value = newValue ?? props.defaultValue ?? "";
+});
 
 const updateValue = (event) => {
   let value = event.target.value;
   if (props.type === "number") {
     value = Number(value);
   }
+  internalValue.value = value;
   emit("update:modelValue", value);
-};
-
-
-const handleFileUpload = async (event) => {
-  const file = event.target.files[0];
-  if (file && file.type === "application/json") {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const fileContent = e.target.result;
-      emit("update:modelValue", fileContent);
-    };
-    reader.readAsText(file);
-  } else {
-    alert("Please upload a valid JSON file.");
-  }
 };
 </script>
