@@ -7,7 +7,7 @@
       <input
         v-if="type === 'text' || type === 'password' || type === 'number'"
         :id="id"
-        :type="type"
+        :type="inputType"
         :value="internalValue"
         @input="updateValue"
         :class="[
@@ -17,6 +17,16 @@
         :placeholder="defaultValue !== undefined ? String(defaultValue) : `Enter ${label.toLowerCase()}`"
         :required="required"
       />
+      <button
+        v-if="type === 'password'"
+        type="button"
+        class="absolute inset-y-0 right-0 flex items-center pr-3"
+        @click="togglePasswordVisibility"
+      >
+        <EyeIcon v-if="!showPassword" class="h-5 w-5 text-input-foreground" />
+        <EyeSlashIcon v-else class="h-5 w-5 text-input-foreground" />
+      </button>
+
       <div v-if="type === 'textarea'" class="flex flex-col">
         <textarea
           :id="id"
@@ -62,8 +72,8 @@
 </template>
 
 <script setup>
-import { ChevronDownIcon } from "@heroicons/vue/24/outline";
-import { defineProps, defineEmits, ref, watch } from "vue";
+import { ChevronDownIcon, EyeIcon, EyeSlashIcon} from "@heroicons/vue/24/outline";
+import { defineProps, defineEmits, ref, watch, computed} from "vue";
 import { formatConnectionName } from "./connectionUtility";
 
 const props = defineProps({
@@ -85,6 +95,19 @@ const props = defineProps({
 const emit = defineEmits(["update:modelValue"]);
 
 const internalValue = ref(props.modelValue ?? props.defaultValue ?? "");
+
+const showPassword = ref(false);
+
+const inputType = computed(() => {
+  if (props.type === 'password') {
+    return showPassword.value ? 'text' : 'password';
+  }
+  return props.type;
+});
+
+const togglePasswordVisibility = () => {
+  showPassword.value = !showPassword.value;
+};
 
 watch(() => props.modelValue, (newValue) => {
   internalValue.value = newValue ?? props.defaultValue ?? "";
