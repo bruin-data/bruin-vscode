@@ -2,6 +2,8 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.22.2] - [2024-09-18]
+- Added an eye icon to the password input field, enabling users to toggle visibility for easier password input management.
 
 ## [0.22.1] - [2024-09-18]
 - Updated the connection form to make the `port` field editable with a default value, and adjusted schema validation to allow an empty string for `ssl_mode`. 

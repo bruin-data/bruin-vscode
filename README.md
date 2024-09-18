@@ -90,11 +90,14 @@ Access the Bruin CLI management tab `Settings` in the side panel for easy instal
 
 
 ## Release Notes
-### Latest Release: 0.22.1
-### Fixed
-- The `port` field in the connection form is now editable with a default value, and `PostgreSQL` connection issues were resolved. Additionally, schema validation now permits an empty string for the `ssl_mode` field.
+### Latest Release: 0.22.2
+### Enhanced
+- Introduced an eye icon to the password field, allowing users to toggle visibility for easier password entry.
 
 ### Previous Highlights
+### Version 0.22.1
+- The `port` field in the connection form is now editable with a default value, and `PostgreSQL` connection issues were resolved. Additionally, schema validation now permits an empty string for the `ssl_mode` field.
+
 ### Version 0.22.0
 - Added the ability to edit existing connections directly from the UI, integrated with the Bruin CLI for seamless updates.
 
