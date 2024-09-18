@@ -7,7 +7,7 @@ export const formatConnectionName = (option) => {
       google_cloud_platform: "Google Cloud Platform",
       synapse: "Azure Synapse",
       databricks: "Databricks",
-      postgresql: "PostgreSQL",
+      postgres: "PostgreSQL",
       redshift: "Redshift",
       snowflake: "Snowflake",
       shopify: "Shopify",
@@ -51,7 +51,7 @@ export const formatConnectionName = (option) => {
       { id: "catalog", label: "Catalog", type: "text", required: false },
       { id: "schema", label: "Schema", type: "text", required: false },
     ],
-    postgresql: [
+    postgres: [
       { id: "username", label: "Username", type: "text", required: true },
       { id: "password", label: "Password", type: "password", required: true},
       { id: "host", label: "Host", type: "text", required: true },
