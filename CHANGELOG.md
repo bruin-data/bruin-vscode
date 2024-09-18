@@ -2,6 +2,11 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+
+## [0.22.1] - [2024-09-18]
+- Updated the connection form to make the `port` field editable with a default value, and adjusted schema validation to allow an empty string for `ssl_mode`. 
+- Resolved an issue with PostgreSQL connections.
+
 ## [0.22.0] - [2024-09-17]
 - Added the ability to edit existing connections directly from the UI, integrated with the Bruin CLI for seamless updates.
 
