@@ -90,11 +90,14 @@ Access the Bruin CLI management tab `Settings` in the side panel for easy instal
 
 
 ## Release Notes
-### Latest Release: 0.22.0
-### Added
-- Added the ability to edit existing connections directly from the UI, integrated with the Bruin CLI for seamless updates.
+### Latest Release: 0.22.1
+### Fixed
+- The `port` field in the connection form is now editable with a default value, and `PostgreSQL` connection issues were resolved. Additionally, schema validation now permits an empty string for the `ssl_mode` field.
 
 ### Previous Highlights
+### Version 0.22.0
+- Added the ability to edit existing connections directly from the UI, integrated with the Bruin CLI for seamless updates.
+
 ### Version 0.21.0
 - Introduced the ability to add a new connection directly from the UI, leveraging the Bruin CLI command.
 - Updated the autocomplete schema to include support for Databricks connections.
