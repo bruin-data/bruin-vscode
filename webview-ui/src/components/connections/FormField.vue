@@ -14,7 +14,7 @@
           'block bg-input-background w-full rounded-md border-0 py-1.5 text-input-foreground shadow-sm ring-1 ring-inset placeholder:text-editorInlayHint-fg focus:ring-2 focus:ring-inset focus:ring-accent sm:text-sm',
           isInvalid ? 'ring-inputValidation-errorBorder' : 'ring-editor-border',
         ]"
-        :placeholder="defaultValue !== undefined ? String(defaultValue) : `Enter ${label.toLowerCase()}`"
+        :placeholder="internalValue ? '' : `Enter ${label.toLowerCase()}`"
         :required="required"
       />
       <button
@@ -36,7 +36,9 @@
             'block bg-input-background w-full rounded-md border-0 py-1.5 text-input-foreground shadow-sm ring-1 ring-inset placeholder:text-editorInlayHint-fg focus:ring-2 focus:ring-inset focus:ring-accent sm:text-sm',
             isInvalid ? 'ring-inputValidation-errorBorder' : 'ring-editor-border',
           ]"
-          :placeholder="defaultValue !== undefined ? String(defaultValue) : `Enter ${label.toLowerCase()}`"
+          :placeholder="
+            defaultValue !== undefined ? String(defaultValue) : `Enter ${label.toLowerCase()}`
+          "
           :required="required"
           :rows="rows"
           :cols="cols"
@@ -72,8 +74,8 @@
 </template>
 
 <script setup>
-import { ChevronDownIcon, EyeIcon, EyeSlashIcon} from "@heroicons/vue/24/outline";
-import { defineProps, defineEmits, ref, watch, computed} from "vue";
+import { ChevronDownIcon, EyeIcon, EyeSlashIcon } from "@heroicons/vue/24/outline";
+import { defineProps, defineEmits, ref, watch, computed } from "vue";
 import { formatConnectionName } from "./connectionUtility";
 
 const props = defineProps({
@@ -99,8 +101,8 @@ const internalValue = ref(props.modelValue ?? props.defaultValue ?? "");
 const showPassword = ref(false);
 
 const inputType = computed(() => {
-  if (props.type === 'password') {
-    return showPassword.value ? 'text' : 'password';
+  if (props.type === "password") {
+    return showPassword.value ? "text" : "password";
   }
   return props.type;
 });
@@ -109,9 +111,12 @@ const togglePasswordVisibility = () => {
   showPassword.value = !showPassword.value;
 };
 
-watch(() => props.modelValue, (newValue) => {
-  internalValue.value = newValue ?? props.defaultValue ?? "";
-});
+watch(
+  () => props.modelValue,
+  (newValue) => {
+    internalValue.value = newValue ?? props.defaultValue ?? "";
+  }
+);
 
 const updateValue = (event) => {
   let value = event.target.value;
@@ -122,3 +127,11 @@ const updateValue = (event) => {
   emit("update:modelValue", value);
 };
 </script>
+
+<style scoped>
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+</style>
