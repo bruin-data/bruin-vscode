@@ -131,18 +131,23 @@ export class BruinCreateConnection extends BruinCommand {
       connectionName,
       "--credentials",
       credentialsString,
+      "-o",
+      "json"
     ];
 
     await this.run(flags, { ignoresErrors })
       .then(
         (result) => {
-          if (result.includes("Connection created successfully")) {
-            this.postMessageToPanels(
-              "success",
-              `Connection "${connectionName}" created successfully.`
-            );
+          if (!result) {
+            const connection = {
+              name: connectionName,
+              type: connectionType,
+              environment: env,
+              credentials: credentials,
+            };
+            this.postMessageToPanels("success", connection);
           } else {
-            this.postMessageToPanels("error", result);
+            this.postMessageToPanels("error", JSON.parse(result).error);
           }
         },
         (error) => {
@@ -154,7 +159,7 @@ export class BruinCreateConnection extends BruinCommand {
       });
   }
 
-  private postMessageToPanels(status: string, message: string) {
+  private postMessageToPanels(status: string, message: any) {
     BruinPanel.postMessage("connection-created-message", { status, message });
   }
 }
