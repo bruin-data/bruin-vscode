@@ -15,6 +15,12 @@ export const useConnectionsStore = defineStore("connections", {
         return conn;
       });
     },
+    updateConnection(updatedConnection) {
+      const index = this.connections.findIndex(conn => conn.id === updatedConnection.id);
+      if (index !== -1) {
+        this.connections[index] = updatedConnection;
+      }
+    },
     updateErrorFromMessage(data) {
       this.error = data;
       this.connections = [];

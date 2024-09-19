@@ -7,42 +7,14 @@
         </h3>
         <div class="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-6">
           <FormField
-            id="connection_type"
-            label="Connection Type"
-            type="select"
-            :options="connectionTypes"
-            v-model="form.connection_type"
-            :isInvalid="validationErrors.connection_type"
-            required
-          />
-
-          <FormField
-            id="connection_name"
-            label="Connection Name"
-            type="text"
-            v-model="form.connection_name"
-            :isInvalid="validationErrors.connection_name"
-            required
-          />
-
-          <FormField
-            id="environment"
-            label="Environment"
-            type="select"
-            :options="environments"
-            v-model="form.environment"
-            :isInvalid="validationErrors.environment"
-            required
-          />
-
-          <FormField
-            v-for="field in connectionFields"
+            v-for="field in formFields"
             :key="field.id"
             v-bind="field"
             :modelValue="form[field.id]"
             @update:modelValue="updateField(field.id, $event)"
             :required="field.required"
-            :isInvalid="validationErrors[field.id]"
+            :isInvalid="!!validationErrors[field.id]"
+            :errorMessage="validationErrors[field.id]"
           />
         </div>
       </div>
@@ -78,17 +50,13 @@ import { ref, computed, watch, defineEmits, defineProps } from "vue";
 import FormField from "./FormField.vue";
 import { XMarkIcon } from "@heroicons/vue/20/solid";
 import { connectionTypes, connectionConfig } from "./connectionUtility";
-import { vscode } from "@/utilities/vscode";
-const emit = defineEmits(["submit", "cancel", "close"]);
+
+const emit = defineEmits(["submit", "cancel"]);
 
 const props = defineProps({
   connection: {
     type: Object,
-    default: () => ({
-      name: "",
-      type: "",
-      environment: "",
-    }),
+    default: () => ({}),
   },
   isEditing: {
     type: Boolean,
@@ -98,126 +66,123 @@ const props = defineProps({
     type: Array,
     required: true,
   },
+  error: Object,
 });
 
 const form = ref({
   connection_type: "",
   connection_name: "",
   environment: "",
+  // Add other fields here if necessary
 });
 
 const validationErrors = ref({});
 
-const isEditing = computed(() => props.isEditing);
-
-const connectionFields = computed(() => {
-  const fields = connectionConfig[form.value.connection_type] || [];
-  return fields.map((field) => ({
+const formFields = computed(() => [
+  {
+    id: "connection_type",
+    label: "Connection Type",
+    type: "select",
+    options: connectionTypes,
+    required: true,
+  },
+  {
+    id: "connection_name",
+    label: "Connection Name",
+    type: "text",
+    required: true,
+  },
+  {
+    id: "environment",
+    label: "Environment",
+    type: "select",
+    options: props.environments,
+    required: true,
+  },
+  ...(connectionConfig[form.value.connection_type] || []).map(field => ({
     ...field,
-    modelValue: form.value[field.id],
-    defaultValue: field.defaultValue,
-  }));
-});
+    value: form.value[field.id] || '',
+  })),
+]);
 
-const updateField = (fieldId, value) => {
-  form.value[fieldId] = value;
-};
-
-const validateForm = () => {
-  const errors = {};
-  const requiredFields = [
-    "connection_type",
-    "connection_name",
-    "environment",
-    ...connectionFields.value.filter((f) => f.required).map((f) => f.id),
-  ];
-
-  requiredFields.forEach((field) => {
-    if (!form.value[field]) {
-      errors[field] = true;
-    }
-  });
-
-  validationErrors.value = errors;
-  return Object.keys(errors).length === 0;
-};
-
-// Close the form after successful submission
-const closeForm = () => {
-  emit("close");
-};
-
-// Modify submitForm to use closeForm
-const submitForm = async () => {
-  if (!validateForm()) {
-    console.error("Form validation failed");
-    return;
-  }
-
-  try {
-    const credentials = {};
-    connectionFields.value.forEach((field) => {
-      credentials[field.id] = form.value[field.id];
-    });
-
-    const connectionData = {
-      name: form.value.connection_name,
-      type: form.value.connection_type,
-      environment: form.value.environment,
-      credentials: credentials,
-    };
-
-    if (props.isEditing) {
-      const oldConnection = {
-        name: props.connection.name,
-        type: props.connection.type,
-        environment: props.connection.environment,
-        ...props.connection,
-      };
-
-      await vscode.postMessage({
-        command: "bruin.editConnection",
-        payload: JSON.parse(
-          JSON.stringify({
-            oldConnection,
-            newConnection: connectionData,
-          })
-        ),
-      });
+watch(
+  () => props.error,
+  (newError) => {
+    if (newError) {
+      validationErrors.value = { [newError.field]: newError.message };
     } else {
-      await vscode.postMessage({
-        command: "bruin.createConnection",
-        payload: JSON.parse(JSON.stringify(connectionData)),
-      });
+      validationErrors.value = {};
     }
-
-    emit("close");
-  } catch (error) {
-    console.error("Error submitting form:", error);
-  }
-};
+  },
+  { deep: true }
+);
 
 watch(
   () => props.connection,
   (newConnection) => {
-    form.value = {
-      connection_type: newConnection.type || "",
-      connection_name: newConnection.name || "",
-      environment: newConnection.environment || "",
-      ...newConnection, // Spread the credentials into the form
-    };
-    // Add default values from connectionConfig
-    if (newConnection.type) {
-      const fields = connectionConfig[newConnection.type] || [];
-      fields.forEach(field => {
-        form.value[field.id] = newConnection[field.id] ?? field.defaultValue ?? "";
-      });
+    if (Object.keys(newConnection).length > 0) {
+      form.value = {
+        connection_type: newConnection.type || "",
+        connection_name: newConnection.name || "",
+        environment: newConnection.environment || "",
+        ...newConnection.credentials,
+      };
+    } else {
+      // Reset form when creating a new connection
+      form.value = {
+        connection_type: "",
+        connection_name: "",
+        environment: "",
+      };
     }
-    
     validationErrors.value = {};
   },
-  { immediate: true }
+  { immediate: true, deep: true }
 );
+
+const updateField = (fieldId, value) => {
+  form.value[fieldId] = value;
+  // Clear the error for this field when it's updated
+  if (validationErrors.value[fieldId]) {
+    validationErrors.value[fieldId] = null;
+  }
+};
+
+const validateForm = () => {
+  const errors = {};
+  formFields.value.forEach((field) => {
+    if (field.required && !form.value[field.id]) {
+      errors[field.id] = "This field is required";
+    }
+  });
+  validationErrors.value = errors;
+  return Object.keys(errors).length === 0;
+};
+
+const submitForm = () => {
+  if (!validateForm()) {
+    return;
+  }
+
+  const connectionData = {
+    name: form.value.connection_name,
+    type: form.value.connection_type,
+    environment: form.value.environment,
+    credentials: {},
+  };
+
+  formFields.value.forEach((field) => {
+    if (
+      field.id !== "connection_type" &&
+      field.id !== "connection_name" &&
+      field.id !== "environment"
+    ) {
+      connectionData.credentials[field.id] = form.value[field.id];
+    }
+  });
+
+  emit("submit", connectionData);
+};
 </script>
 
 <style scoped>

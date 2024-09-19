@@ -4,28 +4,30 @@
       {{ label }}{{ !required ? " (Optional)" : "" }}
     </label>
     <div class="mt-2 relative">
-      <input
-        v-if="type === 'text' || type === 'password' || type === 'number'"
-        :id="id"
-        :type="inputType"
-        :value="internalValue"
-        @input="updateValue"
-        :class="[
-          'block bg-input-background w-full rounded-md border-0 py-1.5 text-input-foreground shadow-sm ring-1 ring-inset placeholder:text-editorInlayHint-fg focus:ring-2 focus:ring-inset focus:ring-accent sm:text-sm',
-          isInvalid ? 'ring-inputValidation-errorBorder' : 'ring-editor-border',
-        ]"
-        :placeholder="internalValue ? '' : `Enter ${label.toLowerCase()}`"
-        :required="required"
-      />
-      <button
-        v-if="type === 'password'"
-        type="button"
-        class="absolute inset-y-0 right-0 flex items-center pr-3"
-        @click="togglePasswordVisibility"
-      >
-        <EyeIcon v-if="!showPassword" class="h-5 w-5 text-input-foreground" />
-        <EyeSlashIcon v-else class="h-5 w-5 text-input-foreground" />
-      </button>
+      <div class="relative">
+        <input
+          v-if="type === 'text' || type === 'password' || type === 'number'"
+          :id="id"
+          :type="inputType"
+          :value="internalValue"
+          @input="updateValue"
+          :class="[
+            'block bg-input-background w-full rounded-md border-0 py-1.5 text-input-foreground shadow-sm ring-1 ring-inset placeholder:text-editorInlayHint-fg focus:ring-2 focus:ring-inset focus:ring-accent sm:text-sm',
+            isInvalid ? 'ring-inputValidation-errorBorder' : 'ring-editor-border',
+          ]"
+          :placeholder="internalValue ? '' : `Enter ${label.toLowerCase()}`"
+          :required="required"
+        />
+        <button
+          v-if="type === 'password'"
+          type="button"
+          class="absolute inset-y-0 right-0 flex items-center pr-3"
+          @click="togglePasswordVisibility"
+        >
+          <EyeIcon v-if="!showPassword" class="h-5 w-5 text-input-foreground" />
+          <EyeSlashIcon v-else class="h-5 w-5 text-input-foreground" />
+        </button>
+      </div>
 
       <div v-if="type === 'textarea'" class="flex flex-col">
         <textarea
@@ -66,8 +68,8 @@
           </div>
         </div>
       </template>
-      <p v-if="isInvalid" class="mt-1 text-sm text-inputValidation-errorBorder absolute">
-        This field is required
+      <p v-if="isInvalid" class="mt-2 text-sm text-inputValidation-errorBorder">
+        {{ formattedErrorMessage }}
       </p>
     </div>
   </div>
@@ -79,6 +81,7 @@ import { defineProps, defineEmits, ref, watch, computed } from "vue";
 import { formatConnectionName } from "./connectionUtility";
 
 const props = defineProps({
+  errorMessage: String,
   id: String,
   label: String,
   type: String,
@@ -107,6 +110,19 @@ const inputType = computed(() => {
   return props.type;
 });
 
+const formattedErrorMessage = computed(() => {
+  if (!props.errorMessage) return "This field is required";
+  try {
+    const errorObj = JSON.parse(props.errorMessage);
+    if (errorObj.error) {
+      return errorObj.error.charAt(0).toUpperCase() + errorObj.error.slice(1);
+    }
+  } catch (e) {
+    // If parsing fails, it's not a JSON string
+  }
+  return props.errorMessage;
+});
+
 const togglePasswordVisibility = () => {
   showPassword.value = !showPassword.value;
 };
@@ -125,6 +141,7 @@ const updateValue = (event) => {
   }
   internalValue.value = value;
   emit("update:modelValue", value);
+  emit("clearError");
 };
 </script>
 
