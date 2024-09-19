@@ -87,7 +87,7 @@ export const formatConnectionName = (option) => {
       { id: "username", label: "Username", type: "text", required: true },
       { id: "password", label: "Password", type: "password", required: true },
       { id: "host", label: "Host", type: "text", required: true },
-      { id: "port", label: "Port", type: "number", defaultValue: 5439, required: true },
+      { id: "port", label: "Port", type: "number", defaultValue: 5439, required: false },
       { id: "database", label: "Database", type: "text", required: true },
       { id: "schema", label: "Schema", type: "text", required: false },
       { id: "ssl_mode", label: "SSL Mode", type: "select", options: ["disable", "require"], required: false },

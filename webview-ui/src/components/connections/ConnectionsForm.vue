@@ -39,7 +39,8 @@
             v-for="field in connectionFields"
             :key="field.id"
             v-bind="field"
-            v-model="form[field.id]"
+            :modelValue="form[field.id]"
+            @update:modelValue="updateField(field.id, $event)"
             :required="field.required"
             :isInvalid="validationErrors[field.id]"
           />
@@ -84,10 +85,9 @@ const props = defineProps({
   connection: {
     type: Object,
     default: () => ({
-      name: '',
-      type: '',
-      environment: '',
-      
+      name: "",
+      type: "",
+      environment: "",
     }),
   },
   isEditing: {
@@ -114,15 +114,25 @@ const connectionFields = computed(() => {
   const fields = connectionConfig[form.value.connection_type] || [];
   return fields.map((field) => ({
     ...field,
-    modelValue: form.value[field.id] || field.defaultValue || "",
+    modelValue: form.value[field.id],
+    defaultValue: field.defaultValue,
   }));
 });
 
+const updateField = (fieldId, value) => {
+  form.value[fieldId] = value;
+};
+
 const validateForm = () => {
   const errors = {};
-  const requiredFields = ['connection_type', 'connection_name', 'environment', ...connectionFields.value.filter(f => f.required).map(f => f.id)];
-  
-  requiredFields.forEach(field => {
+  const requiredFields = [
+    "connection_type",
+    "connection_name",
+    "environment",
+    ...connectionFields.value.filter((f) => f.required).map((f) => f.id),
+  ];
+
+  requiredFields.forEach((field) => {
     if (!form.value[field]) {
       errors[field] = true;
     }
@@ -134,12 +144,12 @@ const validateForm = () => {
 
 // Close the form after successful submission
 const closeForm = () => {
-    emit("close");
-  };
+  emit("close");
+};
 
-  // Modify submitForm to use closeForm
-  const submitForm = async () => {
-  if (!validateForm()) {    
+// Modify submitForm to use closeForm
+const submitForm = async () => {
+  if (!validateForm()) {
     console.error("Form validation failed");
     return;
   }
@@ -162,15 +172,17 @@ const closeForm = () => {
         name: props.connection.name,
         type: props.connection.type,
         environment: props.connection.environment,
-        ...props.connection
+        ...props.connection,
       };
 
       await vscode.postMessage({
         command: "bruin.editConnection",
-        payload: JSON.parse(JSON.stringify({
-          oldConnection,
-          newConnection: connectionData,
-        })),
+        payload: JSON.parse(
+          JSON.stringify({
+            oldConnection,
+            newConnection: connectionData,
+          })
+        ),
       });
     } else {
       await vscode.postMessage({
@@ -185,7 +197,6 @@ const closeForm = () => {
   }
 };
 
-
 watch(
   () => props.connection,
   (newConnection) => {
@@ -195,6 +206,14 @@ watch(
       environment: newConnection.environment || "",
       ...newConnection, // Spread the credentials into the form
     };
+    // Add default values from connectionConfig
+    if (newConnection.type) {
+      const fields = connectionConfig[newConnection.type] || [];
+      fields.forEach(field => {
+        form.value[field.id] = newConnection[field.id] ?? field.defaultValue ?? "";
+      });
+    }
+    
     validationErrors.value = {};
   },
   { immediate: true }
