@@ -88,10 +88,12 @@ const handleMessage = (event) => {
 
 const handleConnectionsList = (payload) => {
   if (payload.status === "success") {
-    const connectionsWithIds = payload.message.map((conn) => ({
-      ...conn,
-      id: conn.id || uuidv4(),
-    }));
+    const connectionsWithIds = message.payload.message.map((conn) => {
+      if (!conn.id) {
+        return { ...conn, id: uuidv4() };
+      }
+      return conn;
+    });
     connectionsStore.updateConnectionsFromMessage(connectionsWithIds);
   } else {
     connectionsStore.updateErrorFromMessage(payload.message);
@@ -124,9 +126,9 @@ const showConnectionForm = (connection = null) => {
     isEditing.value = true;
   } else {
     connectionToEdit.value = {
-      name: '',
-      type: '',
-      environment: '',
+      name: "",
+      type: "",
+      environment: "",
       credentials: {},
     };
     isEditing.value = false;
@@ -165,7 +167,7 @@ const createConnection = (connection) => {
     environment: connection.environment,
     credentials: connection.credentials,
   };
-  
+
   vscode.postMessage({
     command: "bruin.createConnection",
     payload: newConnection,
