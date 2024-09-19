@@ -429,11 +429,6 @@ export class BruinPanel {
             deleteConnection(environment, name, this._lastRenderedDocumentUri);
             break;
           case "bruin.createConnection":
-            await deleteConnection(
-              message.payload.environment,
-              message.payload.name,
-              this._lastRenderedDocumentUri
-            );
             await createConnection(
               message.payload.environment,
               message.payload.name,
