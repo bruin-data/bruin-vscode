@@ -81,7 +81,7 @@
                   @click="
                     $emit('delete-connection', { name: connection.name, environment: environment })
                   "
-                  class="text-errorForeground opacity-70 hover:text-editorError-foreground"
+                  class="text-descriptionFg opacity-70 hover:text-editorError-foreground"
                   title="Delete"
                 >
                   <TrashIcon class="h-5 w-5 inline-block" />
