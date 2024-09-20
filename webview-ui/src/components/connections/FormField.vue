@@ -41,16 +41,22 @@
           :placeholder="
             defaultValue !== undefined ? String(defaultValue) : `Enter ${label.toLowerCase()}`
           "
-          :required="required && !filePath"
+          :required="required && !selectedFile && !internalValue"
           :rows="rows"
           :cols="cols"
         />
         <div v-if="id === 'service_account_json'" class="mt-2 flex items-center">
-          <div @click="openFilePicker" class="inline-flex items-center cursor-pointer">
+          <input type="file" ref="fileInput" @change="handleFileSelection" style="display: none" />
+          <button
+            @click="$refs.fileInput.click()"
+            class="inline-flex items-center px-2 py-1 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
             <FolderIcon class="h-5 w-5 mr-2" />
-            <span class="text-sm font-medium text-editor-fg">Choose File</span>
-          </div>
-          <span v-if="filePath" class="ml-2 text-sm text-gray-500">{{ filePath }}</span>
+            Choose File
+          </button>
+          <span v-if="selectedFile" class="ml-2 text-sm text-gray-500">{{
+            selectedFile.name
+          }}</span>
         </div>
       </div>
       <template v-if="type === 'select'">
@@ -107,39 +113,26 @@ const props = defineProps({
 const emit = defineEmits(["update:modelValue", "clearError", "fileSelected"]);
 
 const internalValue = ref(props.modelValue ?? props.defaultValue ?? "");
-
 const showPassword = ref(false);
-
-const filePath = ref("");
+const selectedFile = ref(null);
 
 const inputType = computed(() => {
-  if (props.type === "password") {
-    return showPassword.value ? "text" : "password";
-  }
-  return props.type;
+  return props.type === "password" ? (showPassword.value ? "text" : "password") : props.type;
 });
 
 const formattedErrorMessage = computed(() => {
   if (!props.errorMessage) {
-    if (
-      props.id === "service_account_json" &&
-      props.required &&
-      !internalValue.value &&
-      !filePath.value
-    ) {
+    if (props.id === "service_account_json" && props.required && !internalValue.value && !selectedFile.value) {
       return "Please either enter the Service Account JSON or choose a file";
     }
-    return "This field is required";
+    return props.required ? "This field is required" : "";
   }
   try {
     const errorObj = JSON.parse(props.errorMessage);
-    if (errorObj.error) {
-      return errorObj.error.charAt(0).toUpperCase() + errorObj.error.slice(1);
-    }
+    return errorObj.error ? errorObj.error.charAt(0).toUpperCase() + errorObj.error.slice(1) : props.errorMessage;
   } catch (e) {
-    // If parsing fails, it's not a JSON string
+    return props.errorMessage;
   }
-  return props.errorMessage;
 });
 
 const togglePasswordVisibility = () => {
@@ -154,28 +147,37 @@ watch(
 );
 
 const updateValue = (event) => {
-  let value = event.target.value;
-  if (props.type === "number") {
-    value = Number(value);
-  }
+  const value = props.type === "number" ? Number(event.target.value) : event.target.value;
   internalValue.value = value;
   emit("update:modelValue", value);
   emit("clearError");
+  // Clear the selected file when text is entered in the textarea
+  if (props.id === "service_account_json" && value) {
+    selectedFile.value = null;
+  }
+  validateAndEmit();
 };
 
-const openFilePicker = async () => {
-  try {
-    const result = await vscode.postMessage({ command: "openFilePicker" });
-    if (result) {
-      filePath.value = result;
-      emit("fileSelected", result);
-      emit("clearError");
-    }
-  } catch (error) {
-    console.error("Error opening file picker:", error);
+const handleFileSelection = (event) => {
+  const file = event.target.files[0];
+  if (file) {
+    selectedFile.value = file;
+    internalValue.value = "";
+    emit("update:modelValue", "");
+    emit("fileSelected", file);
+    validateAndEmit();
   }
 };
 
+const isValidInput = computed(() => {
+  return !!internalValue.value || !!selectedFile.value;
+});
+
+const validateAndEmit = () => {
+  if (isValidInput.value) {
+    emit("clearError");
+  }
+};
 </script>
 
 <style scoped>
