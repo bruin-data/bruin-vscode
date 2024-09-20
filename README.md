@@ -90,11 +90,11 @@ Access the Bruin CLI management tab `Settings` in the side panel for easy instal
 
 
 ## Release Notes
-### Latest Release: 0.23.0
-- Added a radio button in the GCP connection form, allowing users to choose between a file picker for service_account_json or directly inputting the schema in a text area.
+### Latest Release: 0.23.1
+- Reorganized the connection form by moving optional fields to the bottom and updated the color of the delete icon for better visual consistency.
 
 ### Previous Highlights
-
+- **0.23.0**: Added a radio button in the GCP connection form, to choose between a file picker for service_account_json or a text area.
 - **0.22.4**: Added a file picker for `service_account_json` in GPC connections, with fixed keywords and default values for improved usability.
 - **0.22.3**: Added validation for duplicate connection names in the same environment and made the port field editable.
 - **0.22.2**: Introduced an eye icon for password visibility in the input field.

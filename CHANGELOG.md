@@ -1,6 +1,8 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
+## [0.23.1] - [2024-09-20]
+- Reorganized the connection form by moving optional fields to the bottom and updated the color of the delete icon for better visual consistency.
 
 ## [0.23.0] - [2024-09-20]
 - Added a radio button in the GCP connection form, allowing users to choose between a file picker for service_account_json or directly inputting the schema in a text area.
