@@ -2,6 +2,10 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.22.3] - [2024-09-20]
+- Added validation for duplicate connection names in the same environment, with an error message displayed for duplicates. 
+- Optimized connection management and made the port field editable.
+
 ## [0.22.2] - [2024-09-18]
 - Added an eye icon to the password input field, enabling users to toggle visibility for easier password input management.
 
