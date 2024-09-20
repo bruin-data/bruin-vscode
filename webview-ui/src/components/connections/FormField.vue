@@ -4,7 +4,7 @@
       {{ label }}{{ !required ? " (Optional)" : "" }}
     </label>
     <div class="mt-2 relative">
-      <div class="relative">
+      <div class="relative" v-if="id !== 'service_account_json'">
         <input
           v-if="type === 'text' || type === 'password' || type === 'number'"
           :id="id"
@@ -29,7 +29,7 @@
         </button>
       </div>
 
-      <div v-if="type === 'textarea'" class="flex flex-col">
+      <div v-if="type === 'textarea' && id !== 'service_account_json'" class="flex flex-col">
         <textarea
           :id="id"
           :value="internalValue"
@@ -45,12 +45,22 @@
           :rows="rows"
           :cols="cols"
         />
-        <div v-if="id === 'service_account_json'" class="mt-2 flex items-center">
+      </div>
+
+      <div v-if="id === 'service_account_json'" class="mt-2">
+        <div class="flex space-x-4 mb-2">
+          <vscode-radio-group :value="serviceAccountInputMethod" @change="handleInputMethodChange">
+            <vscode-radio value="file" checked>Use File Picker</vscode-radio>
+            <vscode-radio value="text">Input JSON Directly</vscode-radio>
+          </vscode-radio-group>
+        </div>
+
+        <div v-if="serviceAccountInputMethod === 'file'" class="flex items-center">
           <input type="file" ref="fileInput" @change="handleFileSelection" style="display: none" />
           <vscode-button
             appearance="icon"
             @click="$refs.fileInput.click()"
-            class="inline-flex items-center px-2 py-1 text-sm font-medium rounded-md"
+            class="inline-flex items-center py-1 text-sm font-medium rounded-md"
           >
             <div class="flex items-center">
               <FolderIcon class="h-5 w-5 mr-2" />
@@ -61,7 +71,23 @@
             selectedFile.name
           }}</span>
         </div>
+
+        <textarea
+          v-if="serviceAccountInputMethod === 'text'"
+          :id="id"
+          :value="internalValue"
+          @input="updateValue"
+          :class="[
+            'block bg-input-background w-full rounded-md border-0 py-1.5 text-input-foreground shadow-sm ring-1 ring-inset placeholder:text-editorInlayHint-fg focus:ring-2 focus:ring-inset focus:ring-accent sm:text-sm',
+            isInvalid ? 'ring-inputValidation-errorBorder' : 'ring-editor-border',
+          ]"
+          placeholder="Enter Service Account JSON"
+          :required="required && !selectedFile && !internalValue"
+          :rows="rows"
+          :cols="cols"
+        />
       </div>
+
       <template v-if="type === 'select'">
         <div class="relative">
           <select
@@ -118,6 +144,7 @@ const emit = defineEmits(["update:modelValue", "clearError", "fileSelected"]);
 const internalValue = ref(props.modelValue ?? props.defaultValue ?? "");
 const showPassword = ref(false);
 const selectedFile = ref(null);
+const serviceAccountInputMethod = ref("file");
 
 const inputType = computed(() => {
   return props.type === "password" ? (showPassword.value ? "text" : "password") : props.type;
@@ -187,6 +214,18 @@ const validateAndEmit = () => {
   if (isValidInput.value) {
     emit("clearError");
   }
+};
+
+const handleInputMethodChange = (event) => {
+  serviceAccountInputMethod.value = event.target.value;
+  if (serviceAccountInputMethod.value === 'file') {
+    internalValue.value = '';
+    selectedFile.value = null;
+  } else {
+    selectedFile.value = null;
+  }
+  emit("update:modelValue", '');
+  emit("clearError");
 };
 </script>
 
