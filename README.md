@@ -90,12 +90,12 @@ Access the Bruin CLI management tab `Settings` in the side panel for easy instal
 
 
 ## Release Notes
-### Latest Release: 0.22.3
-### Enhanced
-- Added validation for duplicate connection names in the same environment, with an error message displayed for duplicates. 
-- Optimized connection management and made the port field editable.
+### Latest Release: 0.22.4
+- Introduced a file picker for selecting the `service_account_json` in GPC connections.
+- Fixed connection keywords and set default values for a smoother user experience.
 
 ### Previous Highlights
+- **0.22.3**: Added validation for duplicate connection names in the same environment and made the port field editable.
 - **0.22.2**: Introduced an eye icon for password visibility in the input field.
 - **0.22.1**: Made the port field editable, resolved PostgreSQL connection issues, and allowed empty strings for `ssl_mode`.
 - **0.22.0**: Enabled editing of existing connections directly from the UI with Bruin CLI integration.
