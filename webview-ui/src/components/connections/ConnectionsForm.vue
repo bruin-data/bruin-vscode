@@ -13,6 +13,7 @@
             :modelValue="form[field.id]"
             @update:modelValue="updateField(field.id, $event)"
             :required="field.required"
+            @fileSelected="handleFileSelected"
             :isInvalid="!!validationErrors[field.id]"
             :errorMessage="validationErrors[field.id]"
           />
@@ -77,6 +78,7 @@ const form = ref({
 });
 
 const validationErrors = ref({});
+const selectedFile = ref(null);
 
 const formFields = computed(() => [
   {
@@ -136,9 +138,20 @@ watch(
       };
     }
     validationErrors.value = {};
+    selectedFile.value = null;
   },
   { immediate: true, deep: true }
 );
+
+const handleFileSelected = (file) => {
+  selectedFile.value = file;
+  // Clear the service_account_json field if a file is selected
+  if (file) {
+    form.value.service_account_json = "";
+  }
+  // Clear the error for service_account_json when a file is selected
+  validationErrors.value.service_account_json = null;
+};
 
 const updateField = (fieldId, value) => {
   form.value[fieldId] = value;
@@ -146,12 +159,20 @@ const updateField = (fieldId, value) => {
   if (validationErrors.value[fieldId]) {
     validationErrors.value[fieldId] = null;
   }
+  // Clear the selected file if service_account_json is updated manually
+  if (fieldId === 'service_account_json' && value) {
+    selectedFile.value = null;
+  }
 };
 
 const validateForm = () => {
   const errors = {};
   formFields.value.forEach((field) => {
     if (field.required && !form.value[field.id]) {
+      if (field.id === 'service_account_json' && selectedFile.value) {
+        // If a file is selected for service_account_json, it's valid
+        return;
+      }
       errors[field.id] = "This field is required";
     }
   });
@@ -180,6 +201,11 @@ const submitForm = () => {
       connectionData.credentials[field.id] = form.value[field.id];
     }
   });
+
+  // Handle the file upload for service_account_json
+  if (selectedFile.value && form.value.connection_type === 'google_cloud_platform') {
+    connectionData.credentials.service_account_json = selectedFile.value.path;
+  }
 
   emit("submit", connectionData);
 };

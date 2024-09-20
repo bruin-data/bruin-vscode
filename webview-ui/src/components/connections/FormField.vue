@@ -41,10 +41,26 @@
           :placeholder="
             defaultValue !== undefined ? String(defaultValue) : `Enter ${label.toLowerCase()}`
           "
-          :required="required"
+          :required="required && !selectedFile && !internalValue"
           :rows="rows"
           :cols="cols"
         />
+        <div v-if="id === 'service_account_json'" class="mt-2 flex items-center">
+          <input type="file" ref="fileInput" @change="handleFileSelection" style="display: none" />
+          <vscode-button
+            appearance="icon"
+            @click="$refs.fileInput.click()"
+            class="inline-flex items-center px-2 py-1 text-sm font-medium rounded-md"
+          >
+            <div class="flex items-center">
+              <FolderIcon class="h-5 w-5 mr-2" />
+              Choose File
+            </div>
+          </vscode-button>
+          <span v-if="selectedFile" class="ml-2 text-sm text-inputPlaceholderForeground">{{
+            selectedFile.name
+          }}</span>
+        </div>
       </div>
       <template v-if="type === 'select'">
         <div class="relative">
@@ -76,7 +92,7 @@
 </template>
 
 <script setup>
-import { ChevronDownIcon, EyeIcon, EyeSlashIcon } from "@heroicons/vue/24/outline";
+import { ChevronDownIcon, EyeIcon, EyeSlashIcon, FolderIcon } from "@heroicons/vue/24/outline";
 import { defineProps, defineEmits, ref, watch, computed } from "vue";
 import { formatConnectionName } from "./connectionUtility";
 
@@ -97,30 +113,36 @@ const props = defineProps({
   isInvalid: Boolean,
 });
 
-const emit = defineEmits(["update:modelValue"]);
+const emit = defineEmits(["update:modelValue", "clearError", "fileSelected"]);
 
 const internalValue = ref(props.modelValue ?? props.defaultValue ?? "");
-
 const showPassword = ref(false);
+const selectedFile = ref(null);
 
 const inputType = computed(() => {
-  if (props.type === "password") {
-    return showPassword.value ? "text" : "password";
-  }
-  return props.type;
+  return props.type === "password" ? (showPassword.value ? "text" : "password") : props.type;
 });
 
 const formattedErrorMessage = computed(() => {
-  if (!props.errorMessage) return "This field is required";
+  if (!props.errorMessage) {
+    if (
+      props.id === "service_account_json" &&
+      props.required &&
+      !internalValue.value &&
+      !selectedFile.value
+    ) {
+      return "Please either enter the Service Account JSON or choose a file";
+    }
+    return props.required ? "This field is required" : "";
+  }
   try {
     const errorObj = JSON.parse(props.errorMessage);
-    if (errorObj.error) {
-      return errorObj.error.charAt(0).toUpperCase() + errorObj.error.slice(1);
-    }
+    return errorObj.error
+      ? errorObj.error.charAt(0).toUpperCase() + errorObj.error.slice(1)
+      : props.errorMessage;
   } catch (e) {
-    // If parsing fails, it's not a JSON string
+    return props.errorMessage;
   }
-  return props.errorMessage;
 });
 
 const togglePasswordVisibility = () => {
@@ -135,13 +157,36 @@ watch(
 );
 
 const updateValue = (event) => {
-  let value = event.target.value;
-  if (props.type === "number") {
-    value = Number(value);
-  }
+  const value = props.type === "number" ? Number(event.target.value) : event.target.value;
   internalValue.value = value;
   emit("update:modelValue", value);
   emit("clearError");
+  // Clear the selected file when text is entered in the textarea
+  if (props.id === "service_account_json" && value) {
+    selectedFile.value = null;
+  }
+  validateAndEmit();
+};
+
+const handleFileSelection = (event) => {
+  const file = event.target.files[0];
+  if (file) {
+    selectedFile.value = file;
+    internalValue.value = "";
+    emit("update:modelValue", "");
+    emit("fileSelected", file);
+    validateAndEmit();
+  }
+};
+
+const isValidInput = computed(() => {
+  return !!internalValue.value || !!selectedFile.value;
+});
+
+const validateAndEmit = () => {
+  if (isValidInput.value) {
+    emit("clearError");
+  }
 };
 </script>
 
@@ -150,5 +195,9 @@ input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
+}
+vscode-button::part(control) {
+  border: none;
+  outline: none;
 }
 </style>
