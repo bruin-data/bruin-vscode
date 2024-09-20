@@ -4,7 +4,10 @@
       <div class="flex flex-col items-start space-y-2 mb-2">
         <h2 class="text-xl font-semibold text-editor-fg">Connections</h2>
         <div v-if="!error" class="mt-2 max-w-xl text-sm text-editor-fg">
-          <p>View your connections across different environments in one place.</p>
+          <p>
+            Manage your connections across different environments all in one place. View existing
+            connections, edit their details, or delete them as needed.
+          </p>
         </div>
       </div>
       <div class="flex items-center justify-end">
@@ -106,7 +109,6 @@ const groupedConnections = computed(() => {
   return connections.value.reduce((grouped, connection) => {
     const { environment } = connection;
     (grouped[environment] = grouped[environment] || []).push(connection);
-    console.log("connections......", connections.value);
     return grouped;
   }, {});
 });

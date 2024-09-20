@@ -1,11 +1,9 @@
 <template>
   <div class="flex flex-col space-y-6">
-    <!-- Bruin CLI Section -->
     <div>
       <BruinCLI />
     </div>
 
-    <!-- Connections Section -->
     <div class="bg-editorWidget-bg shadow sm:rounded-lg">
       <ConnectionsList
         v-if="isBruinInstalled"
@@ -23,12 +21,11 @@
         :isEditing="isEditing"
         :environments="environments"
         @submit="handleConnectionSubmit"
-        @cancel="cancelConnectionForm"
-        @close="closeConnectionForm"
+        @cancel="closeConnectionForm"
+        :error="formError"
       />
     </div>
 
-    <!-- Delete Confirmation Modal -->
     <DeleteAlert
       v-if="showDeleteAlert"
       :elementName="connectionToDelete?.name"
@@ -40,10 +37,10 @@
 </template>
 
 <script setup>
+import { ref, computed, onMounted } from "vue";
 import BruinCLI from "@/components/bruin-settings/BruinCLI.vue";
 import ConnectionsList from "@/components/connections/ConnectionList.vue";
 import ConnectionForm from "@/components/connections/ConnectionsForm.vue";
-import { ref, defineProps, onMounted, computed } from "vue";
 import DeleteAlert from "@/components/ui/alerts/AlertWithActions.vue";
 import { useConnectionsStore } from "@/store/connections";
 import { vscode } from "@/utilities/vscode";
@@ -54,59 +51,111 @@ const props = defineProps({
   environments: Array,
 });
 
+const connectionsStore = useConnectionsStore();
+const connections = computed(() => connectionsStore.connections);
+const error = computed(() => connectionsStore.error);
+
 const showForm = ref(false);
 const connectionToEdit = ref(null);
 const isEditing = ref(false);
 const showDeleteAlert = ref(false);
 const connectionToDelete = ref(null);
-const connectionsStore = useConnectionsStore();
-const connections = computed(() => connectionsStore.connections);
-const error = computed(() => connectionsStore.error);
+const formError = ref(null);
 const formRef = ref(null);
 
 onMounted(() => {
-  window.addEventListener("message", (event) => {
-    const message = event.data;
-    if (message.command === "connections-list-message") {
-      if (message.payload.status === "success") {
-        const connectionsWithIds = message.payload.message.map((conn) => {
-          if (!conn.id) {
-            return { ...conn, id: uuidv4() };
-          }
-          return conn;
-        });
-        connectionsStore.updateConnectionsFromMessage(connectionsWithIds);
-      } else {
-        connectionsStore.updateErrorFromMessage(message.payload.message);
-      }
-    }
-
-    if (message.command === "connection-deleted-message") {
-      if (message.payload.status === "success") {
-        // Connection already removed from local state, no need to update
-        console.log("Connection deleted successfully");
-      } else {
-        console.error("Failed to delete connection:", message.payload.message);
-        // Optionally, refresh the connections list if the local state is out of sync
-        vscode.postMessage({ command: "bruin.getConnectionsList" });
-      }
-    }
-  });
-
+  window.addEventListener("message", handleMessage);
   vscode.postMessage({ command: "bruin.getConnectionsList" });
 });
 
+const handleMessage = (event) => {
+  const message = event.data;
+  switch (message.command) {
+    case "connections-list-message":
+      handleConnectionsList(message.payload);
+      break;
+    case "connection-deleted-message":
+      handleConnectionDeleted(message.payload);
+      break;
+    case "connection-created-message":
+      handleConnectionCreated(message.payload);
+      break;
+    case "connection-edited-message":
+      handleConnectionEdited(message.payload);
+      break;
+  }
+};
+
+const handleConnectionsList = (payload) => {
+  console.log("Received connections list payload:", payload); // Log payload for debugging
+  if (payload.status === "success") {
+    const connectionsWithIds = payload.message.map((conn) => ({
+      ...conn,
+      id: conn.id || uuidv4(),
+    }));
+    connectionsStore.updateConnectionsFromMessage(connectionsWithIds);
+  } else {
+    connectionsStore.updateErrorFromMessage(payload.message);
+  }
+};
+
+const handleConnectionDeleted = (payload) => {
+  if (payload.status === "success") {
+    connectionsStore.removeConnection(connectionToDelete.value.id);
+    showDeleteAlert.value = false;
+    connectionToDelete.value = null;
+  } else {
+    console.error("Failed to delete connection:", payload.message);
+    vscode.postMessage({ command: "bruin.getConnectionsList" });
+  }
+};
+
+const handleConnectionCreated = (payload) => {
+  if (payload.status === "success") {
+    try {
+      console.log("Payload received:", payload);
+      if (payload.message && typeof payload.message === "object") {
+        const newConnection = {
+          ...payload.message,
+          id: payload.message.id || uuidv4(),
+        };
+        connectionsStore.addConnection(newConnection);
+        closeConnectionForm();
+      } else {
+        throw new Error("Invalid payload structure");
+      }
+    } catch (error) {
+      console.error("Error adding connection:", error);
+      formError.value = { field: "connection_name", message: error.message };
+    }
+  } else {
+    formError.value = { field: "connection_name", message: payload.message };
+  }
+};
+const handleConnectionEdited = (payload) => {
+  if (payload.status === "success") {
+    connectionsStore.updateConnection(payload.connection);
+    closeConnectionForm();
+  } else {
+    formError.value = { field: "connection_name", message: payload.message };
+  }
+};
 
 const showConnectionForm = (connection = null) => {
   if (connection) {
-    connectionToEdit.value = { ...connection }; // Pass the entire connection object
+    connectionToEdit.value = {
+      name: connection.name,
+      type: connection.type,
+      environment: connection.environment,
+      credentials:{...connection},
+    }; // Pass the entire connection object
+    console.log("connection to edit", connection);
     isEditing.value = true;
-    console.log("connection to edit", connection)
   } else {
     connectionToEdit.value = {
-      name: '',
-      type: '',
-      environment: '',
+      name: "",
+      type: "",
+      environment: "",
       credentials: {},
     };
     isEditing.value = false;
@@ -120,44 +169,44 @@ const showConnectionForm = (connection = null) => {
 };
 
 const handleConnectionSubmit = async (connectionData) => {
+  clearFormError();
   try {
+    const sanitizedConnectionData = JSON.parse(JSON.stringify(connectionData)); // Ensure no circular refs
+
     if (isEditing.value) {
-      // Editing existing connection
       await vscode.postMessage({
         command: "bruin.editConnection",
         payload: {
-          oldConnection: connectionToEdit.value,
-          newConnection: connectionData,
+          oldConnection: JSON.parse(JSON.stringify(connectionToEdit.value)), // Ensure no circular refs
+          newConnection: sanitizedConnectionData,
         },
       });
     } else {
-      // Creating new connection
       await vscode.postMessage({
         command: "bruin.createConnection",
-        payload: connectionData,
+        payload: { ...sanitizedConnectionData, id: uuidv4() },
       });
     }
-    closeConnectionForm();
   } catch (error) {
     console.error("Error submitting connection:", error);
-    // Optionally, show an error message to the user
+    formError.value = { field: "connection_name", message: error.message };
   }
-};
-
-const cancelConnectionForm = () => {
-  closeConnectionForm();
-};
-
-const confirmDeleteConnection = (connection) => {
-  connectionToDelete.value = connection;
-  console.log("Connection to delete:", connection);
-  showDeleteAlert.value = true;
 };
 
 const closeConnectionForm = () => {
   showForm.value = false;
   connectionToEdit.value = null;
   isEditing.value = false;
+  clearFormError();
+};
+
+const clearFormError = () => {
+  formError.value = null;
+};
+
+const confirmDeleteConnection = (connection) => {
+  connectionToDelete.value = connection;
+  showDeleteAlert.value = true;
 };
 
 const deleteConnection = async () => {
@@ -169,57 +218,11 @@ const deleteConnection = async () => {
         environment: connectionToDelete.value.environment,
       },
     });
-    // Remove the deleted connection from the local state
-    connectionsStore.removeConnection(connectionToDelete.value);
-
+    // Close the delete alert after successful deletion
     showDeleteAlert.value = false;
     connectionToDelete.value = null;
   } catch (error) {
     console.error("Error deleting connection:", error);
-  }
-};
-
-const closeForm = () => {
-  showForm.value = false;
-  connectionToEdit.value = null;
-};
-
-const createConnection = async (connection) => {
-  try {
-    // Create the new connection
-    const newConnection = {
-      id: uuidv4(),
-      name: connection.name,
-      type: connection.type,
-      environment: connection.environment,
-      credentials: connection.credentials,
-    };
-    await vscode.postMessage({
-      command: "bruin.createConnection",
-      payload: newConnection,
-    });
-
-    // Wait for the creation to complete before updating the UI
-    // Close the form after successful creation
-
-    await new Promise((resolve) => {
-      const messageListener = (event) => {
-        const message = event.data;
-        if (message.command === "connection-created-message") {
-          window.removeEventListener("message", messageListener);
-          // Add the new connection to the local state
-          connectionsStore.addConnection(newConnection);
-
-          closeForm();
-        } else {
-          console.error("Failed to create connection:", message.payload.message);
-        }
-        resolve();
-      };
-      window.addEventListener("message", messageListener);
-    });
-  } catch (error) {
-    console.error("Error creating connection:", error);
   }
 };
 
