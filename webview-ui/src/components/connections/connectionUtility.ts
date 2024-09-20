@@ -67,9 +67,9 @@ export const formatConnectionName = (option) => {
     ],
     google_cloud_platform: [
       { id: "project_id", label: "Project ID", type: "text", required: true },
+      { id: "service_account_json", label: "Service Account JSON", type: "textarea", required: true },
       { id: "bigquery_schema", label: "BigQuery Schema", type: "text", required: false }, // do we need it ? it's not in the cli config
       { id: "location", label: "BigQuery Location", type: "text", required: false },
-      { id: "service_account_json", label: "Service Account JSON", type: "textarea", required: true },
     ],
     mssql: [
       { id: "username", label: "Username", type: "text", required: true },
@@ -90,8 +90,8 @@ export const formatConnectionName = (option) => {
       { id: "username", label: "Username", type: "text", required: true },
       { id: "password", label: "Password", type: "password", required: true },
       { id: "host", label: "Host", type: "text", required: true },
-      { id: "port", label: "Port", type: "number", defaultValue: 5439, required: false },
       { id: "database", label: "Database", type: "text", required: true },
+      { id: "port", label: "Port", type: "number", defaultValue: 5439, required: false },
       { id: "schema", label: "Schema", type: "text", required: false },
       { id: "pool_max_conns", label: "Pool Max Connections", type: "number", required: false, defaultValue: 10 },
       { id: "ssl_mode", label: "SSL Mode", type: "select", options: ["disable", "require"], required: false },
