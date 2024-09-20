@@ -41,10 +41,17 @@
           :placeholder="
             defaultValue !== undefined ? String(defaultValue) : `Enter ${label.toLowerCase()}`
           "
-          :required="required"
+          :required="required && !filePath"
           :rows="rows"
           :cols="cols"
         />
+        <div v-if="id === 'service_account_json'" class="mt-2 flex items-center">
+          <div @click="openFilePicker" class="inline-flex items-center cursor-pointer">
+            <FolderIcon class="h-5 w-5 mr-2" />
+            <span class="text-sm font-medium text-editor-fg">Choose File</span>
+          </div>
+          <span v-if="filePath" class="ml-2 text-sm text-gray-500">{{ filePath }}</span>
+        </div>
       </div>
       <template v-if="type === 'select'">
         <div class="relative">
@@ -76,7 +83,7 @@
 </template>
 
 <script setup>
-import { ChevronDownIcon, EyeIcon, EyeSlashIcon } from "@heroicons/vue/24/outline";
+import { ChevronDownIcon, EyeIcon, EyeSlashIcon, FolderIcon } from "@heroicons/vue/24/outline";
 import { defineProps, defineEmits, ref, watch, computed } from "vue";
 import { formatConnectionName } from "./connectionUtility";
 
@@ -97,11 +104,13 @@ const props = defineProps({
   isInvalid: Boolean,
 });
 
-const emit = defineEmits(["update:modelValue"]);
+const emit = defineEmits(["update:modelValue", "clearError", "fileSelected"]);
 
 const internalValue = ref(props.modelValue ?? props.defaultValue ?? "");
 
 const showPassword = ref(false);
+
+const filePath = ref("");
 
 const inputType = computed(() => {
   if (props.type === "password") {
@@ -111,7 +120,17 @@ const inputType = computed(() => {
 });
 
 const formattedErrorMessage = computed(() => {
-  if (!props.errorMessage) return "This field is required";
+  if (!props.errorMessage) {
+    if (
+      props.id === "service_account_json" &&
+      props.required &&
+      !internalValue.value &&
+      !filePath.value
+    ) {
+      return "Please either enter the Service Account JSON or choose a file";
+    }
+    return "This field is required";
+  }
   try {
     const errorObj = JSON.parse(props.errorMessage);
     if (errorObj.error) {
@@ -143,6 +162,20 @@ const updateValue = (event) => {
   emit("update:modelValue", value);
   emit("clearError");
 };
+
+const openFilePicker = async () => {
+  try {
+    const result = await vscode.postMessage({ command: "openFilePicker" });
+    if (result) {
+      filePath.value = result;
+      emit("fileSelected", result);
+      emit("clearError");
+    }
+  } catch (error) {
+    console.error("Error opening file picker:", error);
+  }
+};
+
 </script>
 
 <style scoped>
