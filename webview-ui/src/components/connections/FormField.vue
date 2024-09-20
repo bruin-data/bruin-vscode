@@ -47,14 +47,17 @@
         />
         <div v-if="id === 'service_account_json'" class="mt-2 flex items-center">
           <input type="file" ref="fileInput" @change="handleFileSelection" style="display: none" />
-          <button
+          <vscode-button
+            appearance="icon"
             @click="$refs.fileInput.click()"
-            class="inline-flex items-center px-2 py-1 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            class="inline-flex items-center px-2 py-1 text-sm font-medium rounded-md"
           >
-            <FolderIcon class="h-5 w-5 mr-2" />
-            Choose File
-          </button>
-          <span v-if="selectedFile" class="ml-2 text-sm text-gray-500">{{
+            <div class="flex items-center">
+              <FolderIcon class="h-5 w-5 mr-2" />
+              Choose File
+            </div>
+          </vscode-button>
+          <span v-if="selectedFile" class="ml-2 text-sm text-inputPlaceholderForeground">{{
             selectedFile.name
           }}</span>
         </div>
@@ -122,14 +125,21 @@ const inputType = computed(() => {
 
 const formattedErrorMessage = computed(() => {
   if (!props.errorMessage) {
-    if (props.id === "service_account_json" && props.required && !internalValue.value && !selectedFile.value) {
+    if (
+      props.id === "service_account_json" &&
+      props.required &&
+      !internalValue.value &&
+      !selectedFile.value
+    ) {
       return "Please either enter the Service Account JSON or choose a file";
     }
     return props.required ? "This field is required" : "";
   }
   try {
     const errorObj = JSON.parse(props.errorMessage);
-    return errorObj.error ? errorObj.error.charAt(0).toUpperCase() + errorObj.error.slice(1) : props.errorMessage;
+    return errorObj.error
+      ? errorObj.error.charAt(0).toUpperCase() + errorObj.error.slice(1)
+      : props.errorMessage;
   } catch (e) {
     return props.errorMessage;
   }
@@ -185,5 +195,9 @@ input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
+}
+vscode-button::part(control) {
+  border: none;
+  outline: none;
 }
 </style>
