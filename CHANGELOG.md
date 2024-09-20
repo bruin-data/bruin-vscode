@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.23.0] - [2024-09-20]
+- Added a radio button in the GCP connection form, allowing users to choose between a file picker for service_account_json or directly inputting the schema in a text area.
+
 ## [0.22.4] - [2024-09-20]
 - Introduced a file picker for selecting the `service_account_json` in GPC connections.
 - Fixed connection keywords and set default values for a smoother user experience.
