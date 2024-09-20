@@ -2,6 +2,10 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.22.4] - [2024-09-20]
+- Introduced a file picker for selecting the `service_account_json` in GPC connections.
+- Fixed connection keywords and set default values for a smoother user experience.
+
 ## [0.22.3] - [2024-09-20]
 - Added validation for duplicate connection names in the same environment, with an error message displayed for duplicates. 
 - Optimized connection management and made the port field editable.
