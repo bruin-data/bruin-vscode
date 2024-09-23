@@ -1,6 +1,8 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
+## [0.24.1] - [2024-09-23]
+- Added 'default' keyword to highlight the default environment in the UI, preselected it in the dropdown, and refactored asset parameters schema.
 
 ## [0.24.0] - [2024-09-23]
 - Added the ability to duplicate connections with a prefilled form and " (Copy)" appended to the name.
