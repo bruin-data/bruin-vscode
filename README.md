@@ -90,10 +90,12 @@ Access the Bruin CLI management tab `Settings` in the side panel for easy instal
 
 
 ## Release Notes
-### Latest Release: 0.24.0
-- Added the ability to duplicate connections with a prefilled form and " (Copy)" appended to the name.
+### Latest Release: 0.24.1
+- Added 'default' keyword to highlight and preselect the default environment in the UI. 
+- Updated asset parameters schema with location and query properties.
 
 ### Previous Highlights
+- **0.24.0**: Added the ability to duplicate connections with a prefilled form and " (Copy)" appended to the name.
 - **0.23.1**: Reorganized the connection form by moving optional fields to the bottom and updated the color of the delete icon for better visual consistency.
 - **0.23.0**: Added a radio button in the GCP connection form, to choose between a file picker for service_account_json or a text area.
 - **0.22.4**: Added a file picker for `service_account_json` in GPC connections, with fixed keywords and default values for improved usability.
