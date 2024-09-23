@@ -67,9 +67,17 @@
               "additionalProperties":{
                 "type": "string"
               }
+            },
+            "location": {
+              "type": "string",
+              "description": "The location of the asset"
+            },
+            "query": {
+              "type": "string",
+              "description": "The query for this asset"
             }
           },
-          "additionalProperties": false,
+          "additionalProperties": true,
           "description": "Parameters for this asset"
         },
         "connections": {
