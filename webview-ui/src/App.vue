@@ -55,7 +55,9 @@ import { ArrowPathIcon } from "@heroicons/vue/20/solid";
 import type { EnvironmentsList } from "./types";
 import AssetColumns from "@/components/asset/columns/AssetColumns.vue";
 import BruinSettings from "@/components/bruin-settings/BruinSettings.vue";
+import { useConnectionsStore } from "./store/connections";
 
+const connectionsStore = useConnectionsStore();
 const panelType = ref("");
 const parseError = ref();
 const environments = ref<EnvironmentsList | null>(null);
@@ -91,6 +93,7 @@ window.addEventListener("message", (event) => {
     case "environments-list-message":
       environments.value = updateValue(message, "success");
       lastRenderedDocument.value = updateValue(message, "success");
+      connectionsStore.setDefaultEnvironment(selectedEnvironment.value); // Set the default environment in the store
       break;
     case "parse-message":
       data.value = updateValue(message, "success");

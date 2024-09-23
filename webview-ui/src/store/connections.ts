@@ -5,6 +5,7 @@ export const useConnectionsStore = defineStore("connections", {
   state: () => ({
     connections: [] as any[],
     error: null,
+    defaultEnvironment: null,
   }),
   actions: {
     updateConnectionsFromMessage(connections) {
@@ -41,5 +42,13 @@ export const useConnectionsStore = defineStore("connections", {
     getConnectionById(id) {
       return this.connections.find((conn) => conn.id === id);
     },
+    setDefaultEnvironment(environment) {
+      this.defaultEnvironment = environment; // Store the default environment
+    },
+
+    getDefaultEnvironment() {
+      return this.defaultEnvironment; // Return the stored default environment
+    },
+
   },
 });
