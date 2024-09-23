@@ -15,6 +15,10 @@ export const useConnectionsStore = defineStore("connections", {
         return conn;
       });
     },
+    addDuplicatedConnection(connection) {
+      const duplicatedConnection = { ...connection, id: uuidv4(), name: `${connection.name} (Copy)` };
+      this.addConnection(duplicatedConnection); 
+    },    
     updateConnection(updatedConnection) {
       const index = this.connections.findIndex(conn => conn.id === updatedConnection.id);
       if (index !== -1) {

@@ -71,6 +71,13 @@
               </td>
               <td class="w-1/5 whitespace-nowrap px-2 py-2 text-right text-sm font-medium">
                 <button
+                  @click="$emit('duplicate-connection', connection)"
+                  class="text-descriptionFg hover:text-editor-fg mr-3"
+                  title="Duplicate"
+                >
+                <DocumentDuplicateIcon class="h-5 w-5 inline-block" />
+                </button>
+                <button
                   @click="$emit('edit-connection', connection)"
                   class="text-descriptionFg hover:text-editor-fg mr-3"
                   title="Edit"
@@ -98,7 +105,7 @@
 <script setup>
 import { useConnectionsStore } from "@/store/connections";
 import { computed } from "vue";
-import { TrashIcon, PencilIcon } from "@heroicons/vue/24/outline";
+import { TrashIcon, PencilIcon, DocumentDuplicateIcon } from "@heroicons/vue/24/outline";
 import AlertMessage from "@/components/ui/alerts/AlertMessage.vue";
 
 const connectionsStore = useConnectionsStore();
@@ -113,7 +120,7 @@ const groupedConnections = computed(() => {
   }, {});
 });
 
-defineEmits(["new-connection", "edit-connection", "delete-connection"]);
+defineEmits(["new-connection", "edit-connection", "delete-connection", "duplicate-connection"]);
 </script>
 
 <style scoped>

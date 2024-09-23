@@ -11,6 +11,7 @@
         @new-connection="showConnectionForm"
         @edit-connection="showConnectionForm"
         @delete-connection="confirmDeleteConnection"
+        @duplicate-connection="handleDuplicateConnection"
         :error="error"
       />
     </div>
@@ -99,14 +100,16 @@ const handleConnectionsList = (payload) => {
   }
 };
 
-const handleConnectionDeleted = (payload) => {
+const handleConnectionDeleted = async (payload) => {
   if (payload.status === "success") {
     connectionsStore.removeConnection(connectionToDelete.value.id);
     showDeleteAlert.value = false;
     connectionToDelete.value = null;
+
+    // Fetch updated connections list from the backend
+    await vscode.postMessage({ command: "bruin.getConnectionsList" });
   } else {
     console.error("Failed to delete connection:", payload.message);
-    vscode.postMessage({ command: "bruin.getConnectionsList" });
   }
 };
 
@@ -141,17 +144,20 @@ const handleConnectionEdited = (payload) => {
   }
 };
 
-const showConnectionForm = (connection = null) => {
+const showConnectionForm = (connection = null, duplicate = false) => {
   if (connection) {
+    const duplicatedName = duplicate ? `${connection.name} (Copy)` : connection.name;
     connectionToEdit.value = {
-      name: connection.name,
-      type: connection.type,
-      environment: connection.environment,
-      credentials:{...connection},
-    }; // Pass the entire connection object
-    console.log("connection to edit", connection);
-    isEditing.value = true;
+      ...connection,
+      name: duplicatedName,
+      // Ensure credentials and other fields are preserved
+      credentials: { ...connection },
+    };
+
+    // Set isEditing to true only if not duplicating
+    isEditing.value = !duplicate; 
   } else {
+    // Default empty connection object if creating a new connection
     connectionToEdit.value = {
       name: "",
       type: "",
@@ -160,12 +166,20 @@ const showConnectionForm = (connection = null) => {
     };
     isEditing.value = false;
   }
+
+  // Show the form
   showForm.value = true;
+
+  // Scroll to form
   setTimeout(() => {
     if (formRef.value) {
       formRef.value.scrollIntoView({ behavior: "smooth" });
     }
   }, 100);
+};
+
+const handleDuplicateConnection = (connection) => {
+  showConnectionForm(connection, true);
 };
 
 const handleConnectionSubmit = async (connectionData) => {
@@ -177,7 +191,7 @@ const handleConnectionSubmit = async (connectionData) => {
       await vscode.postMessage({
         command: "bruin.editConnection",
         payload: {
-          oldConnection: JSON.parse(JSON.stringify(connectionToEdit.value)), // Ensure no circular refs
+          oldConnection: JSON.parse(JSON.stringify(connectionToEdit.value)),
           newConnection: sanitizedConnectionData,
         },
       });
