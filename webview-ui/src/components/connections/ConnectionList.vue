@@ -23,13 +23,16 @@
     <div v-if="error">
       <AlertMessage :message="error" />
     </div>
+
     <div
       v-else
       v-for="(connections, environment) in groupedConnections"
       :key="environment"
       class="mt-6"
     >
-      <h3 class="text-lg font-medium text-editor-fg mb-2 font-mono">{{ environment }}</h3>
+      <h3 class="text-lg font-medium text-editor-fg mb-2 font-mono">
+        {{ environment === defaultEnvironment ? `${environment} (default)` : environment }}
+      </h3>
       <div class="overflow-hidden bg-editorWidget-bg sm:rounded-lg">
         <table class="min-w-full divide-y divide-commandCenter-border">
           <thead>
@@ -75,7 +78,7 @@
                   class="text-descriptionFg hover:text-editor-fg mr-3"
                   title="Duplicate"
                 >
-                <DocumentDuplicateIcon class="h-5 w-5 inline-block" />
+                  <DocumentDuplicateIcon class="h-5 w-5 inline-block" />
                 </button>
                 <button
                   @click="$emit('edit-connection', connection)"
@@ -85,9 +88,7 @@
                   <PencilIcon class="h-5 w-5 inline-block" />
                 </button>
                 <button
-                  @click="
-                    $emit('delete-connection', { name: connection.name, environment: environment })
-                  "
+                  @click="$emit('delete-connection', { name: connection.name, environment })"
                   class="text-descriptionFg opacity-70 hover:text-editorError-foreground"
                   title="Delete"
                 >
@@ -111,10 +112,11 @@ import AlertMessage from "@/components/ui/alerts/AlertMessage.vue";
 const connectionsStore = useConnectionsStore();
 const connections = computed(() => connectionsStore.connections);
 const error = computed(() => connectionsStore.error);
+const defaultEnvironment = computed(() => connectionsStore.getDefaultEnvironment());
 
 const groupedConnections = computed(() => {
   return connections.value.reduce((grouped, connection) => {
-    const { environment } = connection;
+    const environment = connection.environment;
     (grouped[environment] = grouped[environment] || []).push(connection);
     return grouped;
   }, {});
