@@ -16,6 +16,7 @@
             @fileSelected="handleFileSelected"
             :isInvalid="!!validationErrors[field.id]"
             :errorMessage="validationErrors[field.id]"
+            :defaultValue="getDefaultValue(field)"
           />
         </div>
       </div>
@@ -51,6 +52,7 @@ import { ref, computed, watch, defineEmits, defineProps } from "vue";
 import FormField from "./FormField.vue";
 import { XMarkIcon } from "@heroicons/vue/20/solid";
 import { connectionTypes, connectionConfig } from "./connectionUtility";
+import { useConnectionsStore } from "@/store/connections";
 
 const emit = defineEmits(["submit", "cancel"]);
 
@@ -70,16 +72,34 @@ const props = defineProps({
   error: Object,
 });
 
+const connectionsStore = useConnectionsStore();
+const defaultEnvironment = computed(() => connectionsStore.getDefaultEnvironment());
+
+const getDefaultValue = (field) => {
+  if (field.id === "environment") {
+    return defaultEnvironment.value;
+  }
+  return field.defaultValue;
+};
+
 const form = ref({
   connection_type: "",
   connection_name: "",
-  environment: "",
-  // Add other fields here if necessary
+  environment: defaultEnvironment.value, // Set default environment here
 });
+
+// Watch for changes in the default environment
+watch(defaultEnvironment, (newDefault) => {
+  if (!form.value.environment) {
+    form.value.environment = newDefault; // Set it only if not already set
+  }
+});
+
 
 const validationErrors = ref({});
 const selectedFile = ref(null);
 
+// Update form fields to include environment
 const formFields = computed(() => [
   {
     id: "connection_type",
@@ -101,12 +121,13 @@ const formFields = computed(() => [
     options: props.environments,
     required: true,
   },
-  ...(connectionConfig[form.value.connection_type] || []).map(field => ({
+  ...(connectionConfig[form.value.connection_type] || []).map((field) => ({
     ...field,
-    value: form.value[field.id] || '',
+    value: form.value[field.id] || "",
   })),
 ]);
 
+// Watch for error updates
 watch(
   () => props.error,
   (newError) => {
@@ -119,6 +140,7 @@ watch(
   { deep: true }
 );
 
+// Watch for connection updates
 watch(
   () => props.connection,
   (newConnection) => {
@@ -126,7 +148,7 @@ watch(
       form.value = {
         connection_type: newConnection.type || "",
         connection_name: newConnection.name || "",
-        environment: newConnection.environment || "",
+        environment: newConnection.environment || defaultEnvironment.value,
         ...newConnection.credentials,
       };
     } else {
@@ -134,7 +156,7 @@ watch(
       form.value = {
         connection_type: "",
         connection_name: "",
-        environment: "",
+        environment: defaultEnvironment.value,
       };
     }
     validationErrors.value = {};
@@ -142,6 +164,19 @@ watch(
   },
   { immediate: true, deep: true }
 );
+
+
+watch(() => form.value.connection_type, (newType) => {
+  if (newType) {
+    const config = connectionConfig[newType] || [];
+    config.forEach(field => {
+      if (field.defaultValue !== undefined) {
+        form.value[field.id] = field.defaultValue;
+      }
+    });
+  }
+}, { immediate: true });
+
 
 const handleFileSelected = (file) => {
   selectedFile.value = file;
@@ -160,7 +195,7 @@ const updateField = (fieldId, value) => {
     validationErrors.value[fieldId] = null;
   }
   // Clear the selected file if service_account_json is updated manually
-  if (fieldId === 'service_account_json' && value) {
+  if (fieldId === "service_account_json" && value) {
     selectedFile.value = null;
   }
 };
@@ -169,7 +204,7 @@ const validateForm = () => {
   const errors = {};
   formFields.value.forEach((field) => {
     if (field.required && !form.value[field.id]) {
-      if (field.id === 'service_account_json' && selectedFile.value) {
+      if (field.id === "service_account_json" && selectedFile.value) {
         // If a file is selected for service_account_json, it's valid
         return;
       }
@@ -203,7 +238,7 @@ const submitForm = () => {
   });
 
   // Handle the file upload for service_account_json
-  if (selectedFile.value && form.value.connection_type === 'google_cloud_platform') {
+  if (selectedFile.value && form.value.connection_type === "google_cloud_platform") {
     connectionData.credentials.service_account_json = selectedFile.value.path;
   }
 

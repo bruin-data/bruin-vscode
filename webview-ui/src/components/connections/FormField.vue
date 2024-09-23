@@ -9,13 +9,13 @@
           v-if="type === 'text' || type === 'password' || type === 'number'"
           :id="id"
           :type="inputType"
-          :value="internalValue"
+          :value="displayValue"
           @input="updateValue"
           :class="[
             'block bg-input-background w-full rounded-md border-0 py-1.5 text-input-foreground shadow-sm ring-1 ring-inset placeholder:text-editorInlayHint-fg focus:ring-2 focus:ring-inset focus:ring-accent sm:text-sm',
             isInvalid ? 'ring-inputValidation-errorBorder' : 'ring-editor-border',
           ]"
-          :placeholder="internalValue ? '' : `Enter ${label.toLowerCase()}`"
+          :placeholder="displayValue ? '' : `Enter ${label.toLowerCase()}`"
           :required="required"
         />
         <button
@@ -92,7 +92,7 @@
         <div class="relative">
           <select
             :id="id"
-            :value="internalValue"
+            :value="displayValue"
             :required="required"
             @change="updateValue"
             :class="[
@@ -100,7 +100,7 @@
               isInvalid ? 'ring-inputValidation-errorBorder' : 'ring-editor-border',
             ]"
           >
-            <option value="" disabled selected hidden>Please Select</option>
+            <option v-if="!displayValue" value="" disabled>Please Select</option>
             <option v-for="option in options" :key="option" :value="option">
               {{ formatConnectionName(option) }}
             </option>
@@ -128,6 +128,7 @@ const props = defineProps({
   label: String,
   type: String,
   modelValue: [String, Number],
+  defaultValue: [String, Number],
   options: Array,
   defaultValue: [String, Number],
   rows: Number,
@@ -148,6 +149,10 @@ const serviceAccountInputMethod = ref("file");
 
 const inputType = computed(() => {
   return props.type === "password" ? (showPassword.value ? "text" : "password") : props.type;
+});
+
+const displayValue = computed(() => {
+  return internalValue.value !== "" ? internalValue.value : props.defaultValue ?? "";
 });
 
 const formattedErrorMessage = computed(() => {
@@ -177,10 +182,17 @@ const togglePasswordVisibility = () => {
 };
 
 watch(
-  () => props.modelValue,
-  (newValue) => {
-    internalValue.value = newValue ?? props.defaultValue ?? "";
-  }
+  [() => props.modelValue, () => props.defaultValue],
+  ([newModelValue, newDefaultValue]) => {
+    if (newModelValue !== undefined && newModelValue !== null) {
+      internalValue.value = newModelValue;
+    } else if (newDefaultValue !== undefined && newDefaultValue !== null) {
+      internalValue.value = newDefaultValue;
+    } else {
+      internalValue.value = "";
+    }
+  },
+  { immediate: true }
 );
 
 const updateValue = (event) => {
@@ -192,6 +204,7 @@ const updateValue = (event) => {
   if (props.id === "service_account_json" && value) {
     selectedFile.value = null;
   }
+
   validateAndEmit();
 };
 
@@ -218,13 +231,13 @@ const validateAndEmit = () => {
 
 const handleInputMethodChange = (event) => {
   serviceAccountInputMethod.value = event.target.value;
-  if (serviceAccountInputMethod.value === 'file') {
-    internalValue.value = '';
+  if (serviceAccountInputMethod.value === "file") {
+    internalValue.value = "";
     selectedFile.value = null;
   } else {
     selectedFile.value = null;
   }
-  emit("update:modelValue", '');
+  emit("update:modelValue", "");
   emit("clearError");
 };
 </script>
