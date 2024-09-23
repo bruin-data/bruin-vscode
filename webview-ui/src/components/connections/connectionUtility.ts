@@ -19,9 +19,6 @@ export const formatConnectionName = (option) => {
     return (
       map[option] ||
       option
-        .split("_")
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(" ")
     );
   };
 
