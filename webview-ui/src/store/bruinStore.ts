@@ -62,7 +62,7 @@ export const useAssetStore = defineStore("assets", {
     updateAssetsFromMessage(assets) {
       this.assets = assets;
     },
-    updateAsset(updatedAsset) {
+    updateAssetDetails(updatedAsset) {
       const index = this.assets.findIndex((asset) => asset.id === updatedAsset.id);
       if (index !== -1) {
         this.assets[index] = updatedAsset;
