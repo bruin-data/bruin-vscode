@@ -3,22 +3,22 @@
     <div class="w-full">
       <div class="flex items-center space-x-2 w-full justify-between">
         <!-- Name editing -->
-        <div 
-          v-if="!editingName" 
-          class="font-md text-editor-fg text-lg font-mono cursor-pointer"
+        <div
+          v-if="!editingName"
+          class="font-md text-editor-fg text-lg font-mono cursor-pointer truncate max-w-[70%]"
           @click="editName"
         >
           {{ editableName }}
         </div>
-        <input 
-          v-else 
+        <input
+          v-else
           v-model="editableName"
           @blur="saveName"
           @keyup.enter="saveName"
-          class="font-md text-editor-fg text-lg font-mono bg-transparent border-none focus:outline-none border-b border-editor-border"
+          class="font-md text-editor-fg text-lg font-mono bg-transparent border-none focus:outline-none border-b border-editor-border max-w-[70%]"
           autofocus
         />
-        
+
         <div class="space-x-2">
           <DescriptionItem :value="type" :className="badgeClass.badgeStyle" />
           <DescriptionItem :value="pipeline.schedule" :className="badgeClass.grayBadge" />
@@ -57,19 +57,30 @@
     <vscode-divider class="border-t border-editor-border opacity-20 my-4"></vscode-divider>
 
     <div class="w-full">
-      <AssetGeneral :schedule="scheduleExists ?  props.pipeline.schedule : ''" :environments="environments" :selectedEnvironment="selectedEnvironment"/>
+      <AssetGeneral
+        :schedule="scheduleExists ? props.pipeline.schedule : ''"
+        :environments="environments"
+        :selectedEnvironment="selectedEnvironment"
+      />
+    </div>
+
+    <div class="mt-4">
+      <button @click="setAssetValues" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+        Set Asset Values
+      </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, defineProps, computed, watch } from "vue";
+import { ref, defineProps, computed, watch, onMounted } from "vue";
 import DescriptionItem from "@/components/ui/description-item/DescriptionItem.vue";
 import MessageAlert from "@/components/ui/alerts/AlertMessage.vue";
 import { badgeStyles, defaultBadgeStyle } from "@/components/ui/badges/CustomBadgesStyle";
 import MarkdownIt from "markdown-it";
 import AssetGeneral from "./AssetGeneral.vue";
 import { useAssetStore } from "@/store/bruinStore";
+import { vscode } from "@/utilities/vscode";
 
 const props = defineProps<{
   name: string;
@@ -78,10 +89,26 @@ const props = defineProps<{
   owner: string;
   id: string;
   pipeline: any;
-  environments: string[]; 
+  environments: string[];
   selectedEnvironment: string;
   filePath: string;
 }>();
+
+
+onMounted(() => {
+  window.addEventListener("message", handleMessage);
+  vscode.postMessage({ command: "bruin.getConnectionsList" });
+});
+
+const handleMessage = (event: MessageEvent) => {
+  const message = event.data;
+  switch (message.command) {
+    case "patch-message":
+      console.log("Asset Details:", message.payload);
+      break;
+  }
+};
+
 
 const assetStore = useAssetStore();
 
@@ -96,7 +123,7 @@ const scheduleExists = computed(() => {
 const md = new MarkdownIt();
 const markdownDescription = computed(() => {
   if (!props.description) {
-    return null;
+    return " No description available for this asset";
   }
   return md.render(props.description);
 });
@@ -113,10 +140,11 @@ const saveName = async () => {
   editingName.value = false;
   if (editableName.value !== props.name) {
     try {
-      console.log('Editable Name:', editableName.value);
-      assetStore.updateAsset(editableName.value);
+      console.log("Editable Name:", editableName.value);
+      await assetStore.updateAssetDetails({ ...props, name: editableName.value });
+      await vscode.postMessage({ command: "bruin.setAssetDetails", payload: { "name": editableName.value } });
     } catch (error) {
-      console.error('Error updating asset name:', error);
+      console.error("Error updating asset name:", error);
     }
   }
 };
@@ -133,19 +161,18 @@ const saveDescription = async () => {
   editingDescription.value = false;
   if (editableDescription.value !== props.description) {
     try {
-      console.log('Editable Description:', editableDescription.value);
+      console.log("Editable Description:", editableDescription.value);
+      await assetStore.updateAssetDetails({ ...props, description: editableDescription.value });
+      await vscode.postMessage({ command: "bruin.setAssetDetails", payload: { description: editableDescription.value } });
     } catch (error) {
-      console.error('Error updating asset description:', error);
+      console.error("Error updating asset description:", error);
     }
   }
 };
 
 const badgeClass = computed(() => {
-  const commonStyle =
-    "inline-flex items-center rounded-md px-1 py-0.5 text-xs font-medium ring-1 ring-inset";
-  
+  const commonStyle = "inline-flex items-center rounded-md px-1 py-0.5 text-xs font-medium ring-1 ring-inset";
   const styleForType = badgeStyles[props.type] || defaultBadgeStyle;
-
   return {
     commonStyle: commonStyle,
     grayBadge: `${commonStyle} ${defaultBadgeStyle.main}`,
@@ -160,6 +187,16 @@ watch(() => props.name, (newName) => {
 watch(() => props.description, (newDescription) => {
   editableDescription.value = newDescription;
 });
+
+const setAssetValues = async () => {
+  try {
+    await vscode.postMessage({ command: "bruin.setAssetDetails", payload: {...props, name: editableName.value, description:editableDescription.value } });
+    // Update the store after successful execution
+    await assetStore.updateAssetDetails({ ...props, name: editableName.value, description:editableDescription.value});
+  } catch (error) {
+    console.error("Error setting asset values:", error);
+  }
+};
 </script>
 
 <style scoped>
@@ -171,4 +208,3 @@ watch(() => props.description, (newDescription) => {
   width: 5px;
 }
 </style>
-@/store/bruinStore
