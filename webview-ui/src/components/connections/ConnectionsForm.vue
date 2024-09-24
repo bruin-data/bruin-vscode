@@ -52,7 +52,7 @@ import { ref, computed, watch, defineEmits, defineProps } from "vue";
 import FormField from "./FormField.vue";
 import { XMarkIcon } from "@heroicons/vue/20/solid";
 import { connectionTypes, connectionConfig } from "./connectionUtility";
-import { useConnectionsStore } from "@/store/connections";
+import { useConnectionsStore } from "@/store/bruinStore";
 
 const emit = defineEmits(["submit", "cancel"]);
 
@@ -252,3 +252,4 @@ vscode-button::part(control) {
   outline: none;
 }
 </style>
+@/store/bruinStore

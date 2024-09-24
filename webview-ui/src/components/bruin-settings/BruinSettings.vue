@@ -43,7 +43,7 @@ import BruinCLI from "@/components/bruin-settings/BruinCLI.vue";
 import ConnectionsList from "@/components/connections/ConnectionList.vue";
 import ConnectionForm from "@/components/connections/ConnectionsForm.vue";
 import DeleteAlert from "@/components/ui/alerts/AlertWithActions.vue";
-import { useConnectionsStore } from "@/store/connections";
+import { useConnectionsStore } from "@/store/bruinStore";
 import { vscode } from "@/utilities/vscode";
 import { v4 as uuidv4 } from "uuid";
 
@@ -245,3 +245,4 @@ const cancelDeleteConnection = () => {
   connectionToDelete.value = null;
 };
 </script>
+@/store/bruinStore

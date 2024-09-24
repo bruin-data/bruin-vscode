@@ -55,7 +55,7 @@ import { ArrowPathIcon } from "@heroicons/vue/20/solid";
 import type { EnvironmentsList } from "./types";
 import AssetColumns from "@/components/asset/columns/AssetColumns.vue";
 import BruinSettings from "@/components/bruin-settings/BruinSettings.vue";
-import { useConnectionsStore } from "./store/connections";
+import { useConnectionsStore } from "./store/bruinStore";
 
 const connectionsStore = useConnectionsStore();
 const panelType = ref("");
@@ -289,3 +289,4 @@ function updateAssetName(newName) {
   vscode.postMessage({ command: "bruin.updateAssetName", name: newName });
 }
 </script>
+./store/bruinStore

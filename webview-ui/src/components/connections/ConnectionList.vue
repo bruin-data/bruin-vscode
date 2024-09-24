@@ -104,7 +104,7 @@
 </template>
 
 <script setup>
-import { useConnectionsStore } from "@/store/connections";
+import { useConnectionsStore } from "@/store/bruinStore";
 import { computed } from "vue";
 import { TrashIcon, PencilIcon, DocumentDuplicateIcon } from "@heroicons/vue/24/outline";
 import AlertMessage from "@/components/ui/alerts/AlertMessage.vue";
@@ -134,3 +134,4 @@ vscode-button::part(control) {
   border: 0.5;
 }
 </style>
+@/store/bruinStore
