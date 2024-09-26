@@ -1,6 +1,10 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
+
+## [0.25.0] - [2024-09-26]
+- Added the ability to edit asset names and descriptions directly in the UI, integrating the Bruin CLI patchAssetCommand for updates
+
 ## [0.24.1] - [2024-09-23]
 - Added 'default' keyword to highlight the default environment in the UI, preselected it in the dropdown, and refactored asset parameters schema.
 
