@@ -12,7 +12,7 @@ import { getDefaultBruinExecutablePath } from "../extension/configuration";
 import * as vscode from "vscode";
 import { renderCommandWithFlags } from "../extension/commands/renderCommand";
 import { lineageCommand } from "../extension/commands/lineageCommand";
-import { parseAssetCommand } from "../extension/commands/parseAssetCommand";
+import { parseAssetCommand, patchAssetCommand } from "../extension/commands/parseAssetCommand";
 import { getEnvListCommand } from "../extension/commands/getEnvListCommand";
 import { BruinInstallCLI } from "../bruin/bruinInstallCli";
 import {
@@ -358,6 +358,17 @@ export class BruinPanel {
             }
             console.log("Loading asset data for:", this._lastRenderedDocumentUri);
             parseAssetCommand(this._lastRenderedDocumentUri);
+            break;
+
+          case "bruin.setAssetDetails":
+            console.log("Setting asset data from payload :", message.payload);
+            const  assetData  = message.payload;
+            if (!this._lastRenderedDocumentUri) {
+              console.log("Setting asset data impossible without an active document.");
+              return;
+            }
+            console.log("Setting asset data :", assetData);
+            patchAssetCommand(assetData, this._lastRenderedDocumentUri);
             break;
 
           case "bruin.getEnvironmentsList":
