@@ -15,7 +15,7 @@
           v-model="editableName"
           @blur="saveName"
           @keyup.enter="saveName"
-          class="font-md text-editor-fg text-lg font-mono bg-transparent border-none focus:outline-none border-b border-editor-border max-w-[70%]"
+          class="font-md text-editor-fg text-lg font-mono bg-transparent border-none focus:outline-none border-b border-editor-border max-w-[70%] h-8 leading-8 px-1"
           autofocus
         />
 
@@ -42,8 +42,8 @@
           v-else
           v-model="editableDescription"
           @blur="saveDescription"
-          @keyup.enter="saveDescription"
-          class="text-sm text-editor-fg opacity-65 prose prose-sm pt-4 bg-transparent border-none focus:outline-none w-full"
+          @keydown.enter.prevent="saveDescription"
+          class="text-sm text-editor-fg opacity-65 prose prose-sm pt-4 bg-transparent border-none focus:outline-none w-full resize-none"
           rows="4"
           autofocus
         ></textarea>
@@ -62,12 +62,6 @@
         :environments="environments"
         :selectedEnvironment="selectedEnvironment"
       />
-    </div>
-
-    <div class="mt-4">
-      <button @click="setAssetValues" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-        Set Asset Values
-      </button>
     </div>
   </div>
 </template>
@@ -94,7 +88,6 @@ const props = defineProps<{
   filePath: string;
 }>();
 
-
 onMounted(() => {
   window.addEventListener("message", handleMessage);
   vscode.postMessage({ command: "bruin.getConnectionsList" });
@@ -108,7 +101,6 @@ const handleMessage = (event: MessageEvent) => {
       break;
   }
 };
-
 
 const assetStore = useAssetStore();
 
