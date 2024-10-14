@@ -90,10 +90,11 @@ Access the Bruin CLI management tab `Settings` in the side panel for easy instal
 
 
 ## Release Notes
-### Latest Release: 0.25.0
-- Added the ability to edit asset names and descriptions directly in the UI, integrating the Bruin CLI patchAssetCommand for updates
+### Latest Release: 0.25.1
+- Added YAML syntax highlighting support with "redhat.vscode-yaml" extension and updated regex patterns for improved parsing.
 
 ### Previous Highlights
+- **0.25.0**: Added the ability to edit asset names and descriptions directly in the UI, integrating the Bruin CLI patchAssetCommand for updates
 - **0.24.1**: Highlighted the default environment in the UI and updated the asset parameters schema with location and query properties.
 - **0.24.0**: Added the ability to duplicate connections with a prefilled form and " (Copy)" appended to the name.
 - **0.23.1**: Reorganized the connection form by moving optional fields to the bottom and updated the color of the delete icon for better visual consistency.

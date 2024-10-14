@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.25.1] - [2024-10-14]
+- Added YAML syntax highlighting support with "redhat.vscode-yaml" extension and updated regex patterns for improved parsing.
+
 ## [0.25.0] - [2024-09-26]
 - Added the ability to edit asset names and descriptions directly in the UI, integrating the Bruin CLI patchAssetCommand for updates
 
