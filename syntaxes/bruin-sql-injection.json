@@ -15,7 +15,7 @@
                 }
             ],
             "begin": "(\\/\\*\\s*@bruin)\\s*$",
-            "end": "(@bruin\\s*\\*\/)$",
+            "end": "(@bruin\\s*\\*/)\\s*$",
             "beginCaptures": {
                 "1": {
                     "name": "comment"
