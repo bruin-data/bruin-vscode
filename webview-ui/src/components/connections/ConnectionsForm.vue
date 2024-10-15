@@ -239,7 +239,7 @@ const submitForm = () => {
 
   // Handle the file upload for service_account_json
   if (selectedFile.value && form.value.connection_type === "google_cloud_platform") {
-    connectionData.credentials.service_account_json = selectedFile.value.path;
+    connectionData.credentials.service_account_file = selectedFile.value.path;
   }
 
   emit("submit", connectionData);
