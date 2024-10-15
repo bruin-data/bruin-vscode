@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.25.2] - [2024-10-15]
+- Fixed an issue where the GCP service account file was incorrectly saved as `service_account_json` instead of `service_account_file`.
+
 ## [0.25.1] - [2024-10-14]
 - Added YAML syntax highlighting support with "redhat.vscode-yaml" extension and updated regex patterns for improved parsing.
 
