@@ -69,9 +69,13 @@ export const updateValue = (
 export const determineValidationStatus = (
   success: string | null,
   error: string | null,
-  loading: string | null
+  loading: string | null,
+  hasCriticalErrors: boolean
 ) => {
-  return success ? "validated" : error ? "failed" : loading ? "loading" : null;
+  if (loading) return "loading";
+  if (error) return hasCriticalErrors? "failed" : "validated";
+  if (success) return "validated";
+  return null; // Add a default return value
 };
 /* 
 export function formatLineage(data: string) {
