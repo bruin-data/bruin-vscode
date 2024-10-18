@@ -90,10 +90,11 @@ Access the Bruin CLI management tab `Settings` in the side panel for easy instal
 
 
 ## Release Notes
-### Latest Release: 0.25.2
-- Fixed an issue where the GCP service account file was incorrectly saved as `service_account_json` instead of `service_account_file`.
+### Latest Release: 0.25.3
+- Introduced separate handling and display of warnings and critical errors, providing a clearer distinction between the two and improving overall user experience.
 
 ### Previous Highlights
+- **0.25.2**: Fixed an issue where the GCP service account file was incorrectly saved as `service_account_json` instead of `service_account_file`.
 - **0.25.1**: Added YAML syntax highlighting support with "redhat.vscode-yaml" extension and updated regex patterns for improved parsing.
 - **0.25.0**: Added the ability to edit asset names and descriptions directly in the UI, integrating the Bruin CLI patchAssetCommand for updates
 - **0.24.1**: Highlighted the default environment in the UI and updated the asset parameters schema with location and query properties.
