@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.25.3] - [2024-10-18]
+- Introduced separate handling and display of warnings and critical errors, providing a clearer distinction between the two and improving overall user experience.
+
 ## [0.25.2] - [2024-10-15]
 - Fixed an issue where the GCP service account file was incorrectly saved as `service_account_json` instead of `service_account_file`.
 
