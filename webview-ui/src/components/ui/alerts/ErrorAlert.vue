@@ -1,6 +1,6 @@
 <template>
   <div
-    v-if="criticalErrors.length"
+    v-if="processedErrors.length"
     class="rounded-md bg-red-50 p-4 my-4 overflow-hidden transition-all duration-300"
     :class="{ 'h-16': !isExpanded, 'max-h-64': isExpanded }"
   >
@@ -19,7 +19,7 @@
       </div>
     </div>
     <div v-if="isExpanded" class="mt-4 overflow-y-auto" style="max-height: 200px">
-      <div v-for="(errorMessage, index) in criticalErrors" :key="index">
+      <div v-for="(errorMessage, index) in processedErrors" :key="index">
         <div v-if="errorPhase === 'Validation'" class="mt-4">
           <div @click="toggleExpansion(index)" class="flex items-center cursor-pointer">
             <component :is="errorMessage.expanded ? ChevronDownIcon : ChevronRightIcon" class="h-5 w-5 text-red-500" aria-hidden="true" />
@@ -32,6 +32,7 @@
               Asset: {{ issue.asset }}
             </h4>
             <p class="text-sm text-red-600">{{ issue.description }}</p>
+            <span class="text-xs text-red-500">Severity: {{ issue.severity }}</span>
             <div v-if="issue.context.length" class="flex items-center space-x-1 mt-2 justify-end">
               <button
                 @click="toggleIssueExpansion(index, issueIndex)"
@@ -52,7 +53,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, watch } from "vue";
 import {
   XCircleIcon,
   ChevronRightIcon,
@@ -60,7 +61,7 @@ import {
   ChevronUpIcon,
   XMarkIcon,
 } from "@heroicons/vue/20/solid";
-import type { FormattedErrorMessage, ParsedValidationErrorMessage, Issue } from "@/types";
+import type { FormattedErrorMessage, ParsedValidationErrorMessage, Issue, FormattedIssue } from "@/types";
 
 const props = defineProps<{
   errorMessage: string | any | null;
@@ -70,8 +71,9 @@ const props = defineProps<{
 defineEmits(["close"]);
 
 const isExpanded = ref(false);
+const processedErrors = ref<FormattedErrorMessage[]>([]);
 
-const criticalErrors = computed(() => {
+const parseErrorMessage = (): FormattedErrorMessage[] => {
   if (!props.errorMessage) return [];
 
   try {
@@ -86,20 +88,22 @@ const criticalErrors = computed(() => {
           description: errorObject.error,
           context: [],
           expanded: false,
+          severity: "critical"
         }],
       }];
     }
 
     if (Array.isArray(errorObject)) {
-      return errorObject.map((validationError: ParsedValidationErrorMessage, index) => ({
-        pipeline: validationError.pipeline || `Pipeline ${index + 1}`,
-        expanded: index === 0,
+      return errorObject.map((validationError: ParsedValidationErrorMessage) => ({
+        pipeline: validationError.pipeline || null,
+        expanded: false,
         issues: Object.entries(validationError.issues || {}).flatMap(([test, issues]) =>
-          issues.filter((issue: Issue) => issue.severity === "critical").map((issue: Issue) => ({
+          issues.filter((issue: Issue) => issue.severity === "critical").map((issue: Issue): FormattedIssue => ({
             asset: issue.asset || null,
             description: issue.description,
             context: issue.context || [],
             expanded: false,
+            severity: issue.severity
           }))
         ),
       })).filter(error => error.issues.length > 0);
@@ -113,20 +117,25 @@ const criticalErrors = computed(() => {
       expanded: true,
       issues: [{
         asset: null,
-        description: props.errorMessage,
+        description: String(props.errorMessage),
         context: [],
         expanded: false,
+        severity: "critical"
       }],
     }];
   }
-});
+};
+
+watch(() => props.errorMessage, () => {
+  processedErrors.value = parseErrorMessage();
+}, { immediate: true });
 
 const toggleExpansion = (index: number) => {
-  criticalErrors.value[index].expanded = !criticalErrors.value[index].expanded;
+  processedErrors.value[index].expanded = !processedErrors.value[index].expanded;
 };
 
 const toggleIssueExpansion = (pipelineIndex: number, issueIndex: number) => {
-  criticalErrors.value[pipelineIndex].issues[issueIndex].expanded = !criticalErrors.value[pipelineIndex].issues[issueIndex].expanded;
+  processedErrors.value[pipelineIndex].issues[issueIndex].expanded = !processedErrors.value[pipelineIndex].issues[issueIndex].expanded;
 };
 </script>
 
