@@ -295,7 +295,6 @@ const warningMessages = computed(() =>
   )
 );
 
-
 const props = defineProps<{
   schedule: string;
   environments: string[];
@@ -478,24 +477,20 @@ function receiveMessage(event: { data: any }) {
   const envelope = event.data;
   switch (envelope.command) {
     case "validation-message":
-    validationError.value = updateValue(envelope, "error");
+      validationSuccess.value = updateValue(envelope, "success");
+      validationError.value = updateValue(envelope, "error");
       const isLoading = updateValue(envelope, "loading");
       validateButtonStatus.value = isLoading
-       ? "loading"
+        ? "loading"
         : determineValidationStatus(
-            validationSuccess.value,
+            validationSuccess.value, // Now updated before calling determineValidationStatus
             validationError.value,
-            isLoading, // Pass isLoading instead of validateButtonStatus.value
+            isLoading,
             hasCriticalErrors.value
           );
-      errorPhase.value = validationError.value? "Validation" : "Unknown";
+      errorPhase.value = validationError.value ? "Validation" : "Unknown";
       console.log("validateButtonStatus.....", validateButtonStatus.value);
-      /*       console.log("formated error message.....", parsedErrorMessages.value);
-      console.log("hasCriticalErrors.....", hasCriticalErrors.value);
-      console.log("validateButtonStatus.....", validateButtonStatus.value);
-      console.log("validationError.....", validationError.value);
-      console.log("Warning.....", hasWarnings.value);
-      console.log("warningsMessages.....", warningMessages.value); */
+
       break;
 
     case "render-message":
