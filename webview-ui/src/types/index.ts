@@ -9,6 +9,7 @@ export interface Issue {
   asset: string | null;
   description: string;
   context: string[];
+  severity: string;
 }
 
 export interface ParsedValidationErrorMessage {
@@ -20,7 +21,8 @@ export interface FormattedIssue {
   asset: string | null;
   description: string;
   context: string[];
-  expanded: Ref<boolean>;
+  expanded: boolean;
+  severity: string;
 }
 
 export interface FormattedErrorMessage {

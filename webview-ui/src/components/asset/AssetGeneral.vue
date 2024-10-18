@@ -184,13 +184,17 @@
             </div>
           </div>
         </div>
-
         <ErrorAlert
-          v-if="isError"
+          v-if="hasCriticalErrors"
           :errorMessage="errorMessage!"
           class="mb-4"
           :errorPhase="errorPhase"
-          @close="handleClose"
+          @errorClose="handleErrorClose"
+        />
+        <WarningAlert
+          v-if="hasWarnings"
+          :warnings="warningMessages"
+          @warningClose="handleWarningClose"
         />
         <div v-if="language === 'sql'" class="mt-4">
           <SqlEditor :code="code" :copied="false" :language="language" />
@@ -208,6 +212,7 @@ import { vscode } from "@/utilities/vscode";
 import { computed, onBeforeUnmount, onMounted, ref, defineProps } from "vue";
 import { watch } from "vue";
 import ErrorAlert from "@/components/ui/alerts/ErrorAlert.vue";
+import WarningAlert from "@/components/ui/alerts/WarningAlert.vue";
 import {
   handleError,
   concatCommandFlags,
@@ -220,25 +225,81 @@ import SqlEditor from "@/components/asset/SqlEditor.vue";
 import CheckboxGroup from "@/components/ui/checkbox-group/CheckboxGroup.vue";
 import EnvSelectMenu from "@/components/ui/select-menu/EnvSelectMenu.vue";
 import { updateValue, resetStates, determineValidationStatus } from "@/utilities/helper";
+import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/vue";
+import { ChevronDownIcon, CheckCircleIcon, XCircleIcon } from "@heroicons/vue/24/solid";
+import { SparklesIcon, PlayIcon, ArrowPathRoundedSquareIcon } from "@heroicons/vue/24/outline";
+import type { FormattedErrorMessage } from "@/types";
 
 const errorState = computed(() => handleError(validationError.value, renderSQLAssetError.value));
 const isError = computed(() => errorState.value?.errorCaptured);
 const errorMessage = computed(() => errorState.value?.errorMessage);
-const handleClose = () => {
-  resetStates([validationError, renderSQLAssetError]);
-};
+
+const parsedErrorMessages = computed(() => {
+  if (!errorMessage.value) return [];
+  try {
+    return JSON.parse(errorMessage.value);
+  } catch {
+    return [];
+  }
+});
 const isNotAsset = computed(() => (renderAssetAlert.value ? true : false));
 const errorPhase = ref<"Validation" | "Rendering" | "Unknown">("Unknown");
+const validationSuccess = ref(null);
+const validationError = ref(null);
+const renderSQLAssetSuccess = ref(null);
+const renderPythonAsset = ref(null);
+const renderSQLAssetError = ref(null);
+const renderAssetAlert = ref(null);
+const validateButtonStatus = ref<"validated" | "failed" | "loading" | null>(null);
+
+const showWarnings = ref(true);
+
+const handleErrorClose = () => {
+  resetStates([validationError, renderSQLAssetError, errorPhase]);
+};
+
+const handleWarningClose = () => {
+  showWarnings.value = false;
+  warningMessages.value.splice(0, warningMessages.value.length);
+};
+
+const hasCriticalErrors = computed(() =>
+  parsedErrorMessages.value.some(
+    (error) =>
+      error.issues &&
+      Object.values(error.issues)
+        .flat()
+        .some((issue) => (issue as { severity: string }).severity === "critical")
+  )
+);
+
+const hasWarnings = computed(
+  () =>
+    showWarnings.value &&
+    parsedErrorMessages.value.some(
+      (error: FormattedErrorMessage) =>
+        error.issues &&
+        Object.values(error.issues)
+          .flat()
+          .some((issue) => issue.severity === "warning")
+    )
+);
+
+const warningMessages = computed(() =>
+  parsedErrorMessages.value.filter(
+    (error: FormattedErrorMessage) =>
+      error.issues &&
+      Object.values(error.issues)
+        .flat()
+        .some((issue) => issue.severity === "warning")
+  )
+);
 
 const props = defineProps<{
   schedule: string;
   environments: string[];
   selectedEnvironment: string;
 }>();
-
-import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/vue";
-import { ChevronDownIcon, CheckCircleIcon, XCircleIcon } from "@heroicons/vue/24/solid";
-import { SparklesIcon, PlayIcon, ArrowPathRoundedSquareIcon } from "@heroicons/vue/24/outline";
 
 function handleBruinValidateAllPipelines() {
   vscode.postMessage({
@@ -290,7 +351,7 @@ watch(
   }
 );
 
-
+watch;
 function setSelectedEnv(env: string) {
   selectedEnv.value = env;
 }
@@ -322,19 +383,8 @@ function runCurrentPipeline() {
   });
 }
 
-const validationSuccess = ref(null);
-const validationError = ref(null);
-const renderSQLAssetSuccess = ref(null);
-const renderPythonAsset = ref(null);
-const renderSQLAssetError = ref(null);
-const renderAssetAlert = ref(null);
-const validateButtonStatus = ref("" as "validated" | "failed" | "loading" | null);
 const timzone = new Date().getTimezoneOffset();
 const today = new Date(Date.now() - timzone * 60000);
-
-const year = today.getFullYear();
-const month = today.getMonth();
-const day = today.getDate();
 
 const startDate = ref(
   new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate() - 1, 0, 0, 0, 0))
@@ -380,7 +430,7 @@ function sendInitialMessage() {
 
   const initialPayload = {
     flags: getCheckboxChangePayload(),
-    checkboxState
+    checkboxState,
   };
 
   vscode.postMessage({
@@ -401,22 +451,26 @@ onBeforeUnmount(() => {
   window.removeEventListener("message", receiveMessage);
 });
 
-watch([checkboxItems, startDate, endDate, endDateExclusive], () => {
-  const checkboxState = checkboxItems.value.reduce((acc, item) => {
-    acc[item.name] = item.checked;
-    return acc;
-  }, {});
+watch(
+  [checkboxItems, startDate, endDate, endDateExclusive],
+  () => {
+    const checkboxState = checkboxItems.value.reduce((acc, item) => {
+      acc[item.name] = item.checked;
+      return acc;
+    }, {});
 
-  const payload = {
-    flags: getCheckboxChangePayload(),
-    checkboxState
-  };
+    const payload = {
+      flags: getCheckboxChangePayload(),
+      checkboxState,
+    };
 
-  vscode.postMessage({
-    command: "checkboxChange",
-    payload: payload,
-  });
-}, { deep: true });
+    vscode.postMessage({
+      command: "checkboxChange",
+      payload: payload,
+    });
+  },
+  { deep: true }
+);
 function receiveMessage(event: { data: any }) {
   if (!event) return;
 
@@ -425,13 +479,19 @@ function receiveMessage(event: { data: any }) {
     case "validation-message":
       validationSuccess.value = updateValue(envelope, "success");
       validationError.value = updateValue(envelope, "error");
-      validateButtonStatus.value = updateValue(envelope, "loading");
-      validateButtonStatus.value = determineValidationStatus(
-        validationSuccess.value,
-        validationError.value,
-        validateButtonStatus.value
-      );
+      const isLoading = updateValue(envelope, "loading");
+      validateButtonStatus.value = isLoading
+        ? "loading"
+        : determineValidationStatus(
+            validationSuccess.value, // Now updated before calling determineValidationStatus
+            validationError.value,
+            isLoading,
+            hasCriticalErrors.value
+          );
       errorPhase.value = validationError.value ? "Validation" : "Unknown";
+      showWarnings.value = true;
+      console.log("validateButtonStatus.....", validateButtonStatus.value);
+
       break;
 
     case "render-message":
