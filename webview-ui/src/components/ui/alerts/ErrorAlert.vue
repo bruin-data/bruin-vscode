@@ -13,7 +13,7 @@
         <button @click="isExpanded = !isExpanded" class="text-red-500 mr-2">
           <component :is="isExpanded ? ChevronUpIcon : ChevronDownIcon" class="h-5 w-5" aria-hidden="true" />
         </button>
-        <button @click="$emit('close')" class="text-red-700">
+        <button @click="$emit('errorClose')" class="text-red-700">
           <XMarkIcon class="h-5 w-5" aria-hidden="true" />
         </button>
       </div>
@@ -32,7 +32,6 @@
               Asset: {{ issue.asset }}
             </h4>
             <p class="text-sm text-red-600">{{ issue.description }}</p>
-            <span class="text-xs text-red-500">Severity: {{ issue.severity }}</span>
             <div v-if="issue.context.length" class="flex items-center space-x-1 mt-2 justify-end">
               <button
                 @click="toggleIssueExpansion(index, issueIndex)"
@@ -68,8 +67,7 @@ const props = defineProps<{
   errorPhase: "Validation" | "Rendering" | "Unknown";
 }>();
 
-defineEmits(["close"]);
-
+defineEmits(["errorClose"]);
 const isExpanded = ref(false);
 const processedErrors = ref<FormattedErrorMessage[]>([]);
 
