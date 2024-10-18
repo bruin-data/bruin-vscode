@@ -489,6 +489,7 @@ function receiveMessage(event: { data: any }) {
             hasCriticalErrors.value
           );
       errorPhase.value = validationError.value ? "Validation" : "Unknown";
+      showWarnings.value = true;
       console.log("validateButtonStatus.....", validateButtonStatus.value);
 
       break;
