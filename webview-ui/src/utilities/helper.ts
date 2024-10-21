@@ -46,14 +46,28 @@ export const concatCommandFlags = (
   return flags;
 };
 
-export const handleError = (validationError: any | null, renderSQLAssetError: string | null) => {
+export const handleError = (validationError: any | null, renderSQLAssetError: any | null) => {
   if (validationError || renderSQLAssetError) {
+    let errorMessage = validationError || renderSQLAssetError || "An error occurred";
+    let isValidationError = !!validationError;
+
+    // Handle JSON-formatted errors
+    if (typeof errorMessage === 'string' && errorMessage.startsWith('{')) {
+      try {
+        const parsedError = JSON.parse(errorMessage);
+        errorMessage = parsedError.error || errorMessage;
+      } catch (e) {
+        // If parsing fails, use the original error message
+      }
+    }
+
     return {
       errorCaptured: true,
-      errorMessage: validationError || renderSQLAssetError || "An error occurred",
-      isValidationError: !!validationError,
+      errorMessage,
+      isValidationError,
     };
   }
+  return null;
 };
 
 export const resetStates = (states: any[]) => {
