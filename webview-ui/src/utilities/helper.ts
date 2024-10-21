@@ -51,6 +51,7 @@ export const handleError = (validationError: any | null, renderSQLAssetError: st
     return {
       errorCaptured: true,
       errorMessage: validationError || renderSQLAssetError || "An error occurred",
+      isValidationError: !!validationError,
     };
   }
 };

@@ -289,4 +289,3 @@ function updateAssetName(newName) {
   vscode.postMessage({ command: "bruin.updateAssetName", name: newName });
 }
 </script>
-./store/bruinStore

@@ -236,10 +236,15 @@ const errorMessage = computed(() => errorState.value?.errorMessage);
 
 const parsedErrorMessages = computed(() => {
   if (!errorMessage.value) return [];
-  try {
-    return JSON.parse(errorMessage.value);
-  } catch {
-    return [];
+  if (errorState.value?.isValidationError) {
+    try {
+      return JSON.parse(errorMessage.value);
+    } catch {
+      return [{ issues: [{ severity: "critical", message: errorMessage.value }] }];
+    }
+  } else {
+    // Handle render errors
+    return [{ issues: [{ severity: "critical", message: errorMessage.value }] }];
   }
 });
 const isNotAsset = computed(() => (renderAssetAlert.value ? true : false));
@@ -269,8 +274,7 @@ const hasCriticalErrors = computed(() =>
       error.issues &&
       Object.values(error.issues)
         .flat()
-        .some((issue) => (issue as { severity: string }).severity === "critical")
-  )
+        .some((issue) => (issue as { severity: string }).severity === "critical")  )
 );
 
 const hasWarnings = computed(
