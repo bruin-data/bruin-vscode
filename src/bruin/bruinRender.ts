@@ -79,9 +79,10 @@ export class BruinRender extends BruinCommand {
           console.log("SQL rendered successfully");
         },
         (error) => {
+          console.error("Error rendering SQL asset in the reject", this.parseError(error));
           BruinPanel?.postMessage("render-message", {
             status: "error",
-            message: error,
+            message: this.parseError(error), 
           });
         }
       )
@@ -94,6 +95,14 @@ export class BruinRender extends BruinCommand {
       });
   }
 
+  private parseError(error: string): string {
+    if(error.startsWith("{")) {
+      return error;
+    }
+    else {
+      return JSON.stringify({ error: error });
+    }
+  }
   private async isBruinPipeline(filePath: string): Promise<boolean> {
     return await isBruinPipeline(filePath);
   }
@@ -161,6 +170,7 @@ export class BruinRender extends BruinCommand {
         console.log("SQL rendered successfully without JSON", result);
       },
       (err) => {
+        console.error("Error rendering SQL asset without JSON", err);
         BruinPanel?.postMessage("render-message", {
           status: "error",
           message: JSON.stringify({ error: err }),

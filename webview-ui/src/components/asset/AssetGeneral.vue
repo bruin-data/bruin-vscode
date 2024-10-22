@@ -230,18 +230,9 @@ import { ChevronDownIcon, CheckCircleIcon, XCircleIcon } from "@heroicons/vue/24
 import { SparklesIcon, PlayIcon, ArrowPathRoundedSquareIcon } from "@heroicons/vue/24/outline";
 import type { FormattedErrorMessage } from "@/types";
 
-const errorState = computed(() => handleError(validationError.value, renderSQLAssetError.value));
-const isError = computed(() => errorState.value?.errorCaptured);
-const errorMessage = computed(() => errorState.value?.errorMessage);
 
-const parsedErrorMessages = computed(() => {
-  if (!errorMessage.value) return [];
-  try {
-    return JSON.parse(errorMessage.value);
-  } catch {
-    return [];
-  }
-});
+
+
 const isNotAsset = computed(() => (renderAssetAlert.value ? true : false));
 const errorPhase = ref<"Validation" | "Rendering" | "Unknown">("Unknown");
 const validationSuccess = ref(null);
@@ -251,8 +242,37 @@ const renderPythonAsset = ref(null);
 const renderSQLAssetError = ref(null);
 const renderAssetAlert = ref(null);
 const validateButtonStatus = ref<"validated" | "failed" | "loading" | null>(null);
-
 const showWarnings = ref(true);
+const errorState = computed(() => handleError(validationError.value, renderSQLAssetError.value));
+const isError = computed(() => errorState.value?.errorCaptured);
+const errorMessage = computed(() => errorState.value?.errorMessage);
+
+const parsedErrorMessages = computed(() => {
+  if (!errorMessage.value) return [];
+
+  let errors;
+  if (errorState.value?.isValidationError) {
+    try {
+      errors = JSON.parse(errorMessage.value);
+    } catch {
+      errors = [{ issues: [{ severity: "critical", message: errorMessage.value }] }];
+    }
+  } else {
+    // Handle render errors (both JSON and plain text)
+    let message = errorMessage.value;
+    if (typeof message === "string" && message.startsWith("{")) {
+      try {
+        const parsedError = JSON.parse(message);
+        message = parsedError.error || message;
+      } catch {
+      }
+    }
+    errors = [{ issues: [{ severity: "critical", message }] }];
+  }
+
+  return Array.isArray(errors) ? errors : [errors];
+});
+
 
 const handleErrorClose = () => {
   resetStates([validationError, renderSQLAssetError, errorPhase]);

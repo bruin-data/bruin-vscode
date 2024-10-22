@@ -339,11 +339,6 @@ export class BruinPanel {
               });
             }, 1500);
             break;
-          case "checkboxChange":
-            this._flags = message.payload;
-            await renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri?.fsPath);
-            break;
-
           case "bruin.getAssetLineage":
             if (!this._lastRenderedDocumentUri) {
               return;

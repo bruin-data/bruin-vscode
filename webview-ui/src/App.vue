@@ -96,8 +96,10 @@ window.addEventListener("message", (event) => {
       connectionsStore.setDefaultEnvironment(selectedEnvironment.value); // Set the default environment in the store
       break;
     case "parse-message":
-      data.value = updateValue(message, "success");
       parseError.value = updateValue(message, "error");
+      if(!parseError.value) {
+        data.value = updateValue(message, "success");
+      }
       lastRenderedDocument.value = updateValue(message, "success");
       break;
     case "bruinCliInstallationStatus":
@@ -289,4 +291,3 @@ function updateAssetName(newName) {
   vscode.postMessage({ command: "bruin.updateAssetName", name: newName });
 }
 </script>
-./store/bruinStore
