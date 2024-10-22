@@ -1,20 +1,39 @@
 import * as vscode from "vscode";
 import * as os from "os";
 
+
+
 export class BruinInstallCLI {
   private isWindows: boolean;
+  private isMac: boolean;
 
   constructor() {
     this.isWindows = os.platform() === "win32";
+    this.isMac = os.platform() === "darwin";
   }
 
   private getInstallCommand(): string {
-    return this.isWindows ? "go install github.com/bruin-data/bruin@latest" : "brew install bruin";
+    switch (os.platform()) {
+      case this.isWindows: 
+        return "powershell -ExecutionPolicy ByPass -c 'irm https://raw.githubusercontent.com/y-bruin/bruin/refs/heads/feature/powershell/powershell.ps1 | iex'";
+      case this.isMac:
+        return "brew install bruin-data/homebrew-tap/bruin";
+      default:
+        return "curl -LsSf https://raw.githubusercontent.com/y-bruin/bruin/refs/heads/feature/install_script/install.sh | sh -s -- -b /usr/local/bin";
+    }
   }
 
   private getUpdateCommand(): string {
-    return this.isWindows ? "go install github.com/bruin-data/bruin@latest" : "brew upgrade bruin";
+    switch (os.platform()) {
+      case this.isWindows: 
+        return "powershell -ExecutionPolicy ByPass -c 'irm https://raw.githubusercontent.com/y-bruin/bruin/refs/heads/feature/powershell/powershell.ps1 | iex'";
+      case this.isMac:
+        return "brew upgrade bruin";
+      default:
+        return "curl -LsSf https://raw.githubusercontent.com/y-bruin/bruin/refs/heads/feature/install_script/install.sh | sh -s -- -b /usr/local/bin";
+    }
   }
+
 
   private async executeCommand(command: string): Promise<void> {
     const terminalName = "Bruin Terminal";
