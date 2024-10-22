@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.25.4] - [2024-10-22]
+- Refactored error handling to prevent UI from crashing when parsing errors occur, ensuring graceful error display.
+
 ## [0.25.3] - [2024-10-18]
 - Introduced separate handling and display of warnings and critical errors, providing a clearer distinction between the two and improving overall user experience.
 
