@@ -1,9 +1,9 @@
 <template>
   <div class="flex flex-col py-4 sm:py-1 h-full">
     <div class="flex justify-end mb-4">
-      <!-- <vscode-button @click="addColumn" class="py-1 rounded focus:outline-none">
+      <vscode-button @click="addColumn" class="py-1 rounded focus:outline-none">
         Add column
-      </vscode-button> -->
+      </vscode-button>
     </div>
     <!-- Header Row -->
     <div
@@ -13,8 +13,8 @@
       <div class="flex-1 min-w-0 px-2 text-left">Type</div>
       <div class="flex-[2] min-w-0 px-2 text-left">Description</div>
       <div class="flex-[2] min-w-0 px-2 text-left">Checks</div>
-<!--       <div class="flex-[1/2] min-w-0 px-2 text-left">Actions</div>
- -->    </div>
+      <div class="flex-[1/2] min-w-0 px-2 text-left">Actions</div>
+    </div>
 
     <!-- Column Rows -->
     <div class="flex-1 min-h-0 overflow-y-auto">
@@ -39,7 +39,11 @@
             v-model="editingColumn.type"
             class="w-full bg-editorWidget-bg text-editor-fg font-mono"
           />
-          <div v-else class="text-[0.7rem] opacity-70 truncate font-mono" :title="column.type.toUpperCase()">
+          <div
+            v-else
+            class="text-[0.7rem] opacity-70 truncate font-mono"
+            :title="column.type.toUpperCase()"
+          >
             {{ column.type.toUpperCase() }}
           </div>
         </div>
@@ -119,8 +123,7 @@
           </template>
         </div>
 
-        <!-- Actions Column -->
-        <!-- <div class="flex-[1/2] justify-end space-x-2">
+        <div class="flex-[1/2] justify-end space-x-2">
           <vscode-button
             v-if="editingIndex === index"
             appearance="icon"
@@ -142,7 +145,7 @@
             @confirm="deleteColumn(index)"
             @cancel="showDeleteAlert = false"
           />
-        </div> -->
+        </div>
       </div>
       <div v-else>
         <p class="flex text-md italic justify-start items-center text-editor-fg opacity-70 p-2">
@@ -158,7 +161,6 @@
     >
       {{ notification }}
     </div>
-
   </div>
 </template>
 
