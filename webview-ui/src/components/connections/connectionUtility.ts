@@ -68,7 +68,7 @@ export const formatConnectionName = (option) => {
       { id: "access_key", label: "Access Key ID", type: "text", required: true },
       { id: "secret_key", label: "Secret Access Key", type: "password", required: true },
       { id: "region", label: "Region", type: "text", required: true },
-      { id: "query_results_path", label: "Results bucket", type: "text", required: true },
+      { id: "query_results_path", label: "Query Results Path", type: "text", required: true },
       { id: "database", label: "Database", type: "text", required: false },
     ],
     google_cloud_platform: [
