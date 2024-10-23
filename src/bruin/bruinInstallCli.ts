@@ -12,21 +12,11 @@ export class BruinInstallCLI {
   }
 
   private getInstallCommand(): string {
-    switch (os.platform()) {
-      case this.isWindows: 
-        return "powershell -ExecutionPolicy ByPass -c 'irm https://raw.githubusercontent.com/y-bruin/bruin/refs/heads/feature/powershell/powershell.ps1 | iex'";
-      default:
-        return "curl -LsSf https://raw.githubusercontent.com/bruin-data/bruin/refs/heads/main/install.sh | sh";
-    }
+    return this.isWindows ? "powershell -ExecutionPolicy ByPass -c 'irm https://raw.githubusercontent.com/y-bruin/bruin/refs/heads/feature/powershell/powershell.ps1 | iex'" :  "curl -LsSf https://raw.githubusercontent.com/bruin-data/bruin/refs/heads/main/install.sh | sh"
   }
 
   private getUpdateCommand(): string {
-    switch (os.platform()) {
-      case this.isWindows: 
-        return "powershell -ExecutionPolicy ByPass -c 'irm https://raw.githubusercontent.com/y-bruin/bruin/refs/heads/feature/powershell/powershell.ps1 | iex'";
-      default:
-        return "curl -LsSf https://raw.githubusercontent.com/bruin-data/bruin/refs/heads/main/install.sh | sh";
-    }
+    return this.isWindows ? "powershell -ExecutionPolicy ByPass -c 'irm https://raw.githubusercontent.com/y-bruin/bruin/refs/heads/feature/powershell/powershell.ps1 | iex'" :  "curl -LsSf https://raw.githubusercontent.com/bruin-data/bruin/refs/heads/main/install.sh | sh"
   }
 
 
