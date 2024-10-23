@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.25.6] - [2024-10-23]
+- Added support for Athena connections in the Bruin configuration schema and connection form.
+
 ## [0.25.5] - [2024-10-23]
 - Ensured proper visibility of the lineage panel when focusing on the side panel and improved focus handling during extension activation.
 
