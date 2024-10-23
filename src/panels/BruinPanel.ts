@@ -357,7 +357,7 @@ export class BruinPanel {
 
           case "bruin.setAssetDetails":
             console.log("Setting asset data from payload :", message.payload);
-            const  assetData  = message.payload;
+            const assetData = message.payload;
             if (!this._lastRenderedDocumentUri) {
               console.log("Setting asset data impossible without an active document.");
               return;
@@ -444,6 +444,23 @@ export class BruinPanel {
             );
             // After creating the connection, fetch the updated list
             await getConnections(this._lastRenderedDocumentUri);
+            break;
+
+          case "bruin.addColumn":
+            try {
+              const columnPayload = message.payload.columns[0];
+              console.log("Received column data:", columnPayload);
+              // Handle the column data here
+            } catch (error) {
+              console.error("Error processing column data:", error);
+              webview.postMessage({
+                command: "addColumn-error",
+                payload: {
+                  status: "error",
+                  message: "Failed to process column data",
+                },
+              });
+            }
             break;
         }
       },

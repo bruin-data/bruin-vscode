@@ -168,6 +168,7 @@
 import { ref, watch, computed, nextTick } from "vue";
 import { TrashIcon, PencilIcon, XMarkIcon, CheckIcon, PlusIcon } from "@heroicons/vue/20/solid";
 import DeleteAlert from "@/components/ui/alerts/AlertWithActions.vue";
+import { vscode } from "@/utilities/vscode";
 
 const props = defineProps({
   columns: {
@@ -182,8 +183,20 @@ const localColumns = ref([...props.columns]);
 const editingIndex = ref(null);
 const editingColumn = ref({});
 
+/* const addColumn = () => {
+  const newColumn = {
+    name: "New Column",
+    type: "string",
+    description: "Description for the new column",
+    checks: [],
+  };
+  localColumns.value.push(newColumn);
+  editingIndex.value = localColumns.value.length - 1;
+  editingColumn.value = JSON.parse(JSON.stringify(newColumn));
+  emitUpdateColumns();
+}; */
 const addColumn = () => {
-  localColumns.value.push({
+  const newColumn = {
     name: "New Column",
     type: "string",
     description: "Description for the new column",
@@ -191,10 +204,100 @@ const addColumn = () => {
       acceptedValuesEnabled: false,
       patternEnabled: false,
     },
+  };
+
+  // Add new column to local columns
+  localColumns.value.push(newColumn);
+  editingIndex.value = localColumns.value.length - 1;
+  editingColumn.value = JSON.parse(JSON.stringify(newColumn));
+
+  // Create clean data for ALL columns
+  const allColumnsData = localColumns.value.map((column) => ({
+    name: column.name,
+    type: column.type,
+    description: column.description,
+    checks: Object.entries(column.checks).reduce((acc, [key, value]) => {
+      // Handle special cases for accepted_values and pattern
+      if (key === "acceptedValuesEnabled" && value === true) {
+        acc.push({
+          name: "accepted_values",
+          value: column.checks.accepted_values || [],
+        });
+      } else if (key === "patternEnabled" && value === true) {
+        acc.push({
+          name: "pattern",
+          value: column.checks.pattern || "",
+        });
+      }
+      // Handle boolean checks
+      else if (
+        typeof value === "boolean" &&
+        value === true &&
+        !["acceptedValuesEnabled", "patternEnabled"].includes(key)
+      ) {
+        acc.push({
+          name: key,
+          value: true,
+        });
+      }
+      return acc;
+    }, []),
+  }));
+
+  // Send ALL columns data
+  vscode.postMessage({
+    command: "bruin.addColumn",
+    payload: { columns: allColumnsData },
   });
+
   emitUpdateColumns();
 };
 
+const saveChanges = (index) => {
+  localColumns.value[index] = JSON.parse(JSON.stringify(editingColumn.value));
+  editingIndex.value = null;
+
+  // Create clean data for ALL columns
+  const allColumnsData = localColumns.value.map((column) => ({
+    name: column.name,
+    type: column.type,
+    description: column.description,
+    checks: Object.entries(column.checks).reduce((acc, [key, value]) => {
+      // Handle special cases for accepted_values and pattern
+      if (key === "acceptedValuesEnabled" && value === true) {
+        acc.push({
+          name: "accepted_values",
+          value: column.checks.accepted_values || [],
+        });
+      } else if (key === "patternEnabled" && value === true) {
+        acc.push({
+          name: "pattern",
+          value: column.checks.pattern || "",
+        });
+      }
+      // Handle boolean checks
+      else if (
+        typeof value === "boolean" &&
+        value === true &&
+        !["acceptedValuesEnabled", "patternEnabled"].includes(key)
+      ) {
+        acc.push({
+          name: key,
+          value: true,
+        });
+      }
+      return acc;
+    }, []),
+  }));
+
+  // Send ALL columns data
+  vscode.postMessage({
+    command: "bruin.addColumn",
+    payload: { columns: allColumnsData },
+  });
+
+  emitUpdateColumns();
+};
 const getActiveChecks = computed(() => (column) => {
   const activeChecks = Object.entries(column.checks)
     .filter(
@@ -296,11 +399,52 @@ const startEditing = (index) => {
   editingColumn.value = JSON.parse(JSON.stringify(localColumns.value[index]));
 };
 
-const saveChanges = (index) => {
+/* const saveChanges = (index) => {
   localColumns.value[index] = JSON.parse(JSON.stringify(editingColumn.value));
   editingIndex.value = null;
   emitUpdateColumns();
-};
+  
+  // Transform checks into an array of {name, value} objects
+  const checksArray = Object.entries(localColumns.value[index].checks)
+    .reduce((acc, [key, value]) => {
+      // Handle special cases for accepted_values and pattern
+      if (key === 'acceptedValuesEnabled' && value === true) {
+        acc.push({
+          name: 'accepted_values',
+          value: localColumns.value[index].checks.accepted_values || []
+        });
+      }
+      else if (key === 'patternEnabled' && value === true) {
+        acc.push({
+          name: 'pattern',
+          value: localColumns.value[index].checks.pattern || ''
+        });
+      }
+      // Handle boolean checks
+      else if (typeof value === 'boolean' && value === true && 
+               !['acceptedValuesEnabled', 'patternEnabled'].includes(key)) {
+        acc.push({
+          name: key,
+          value: true
+        });
+      }
+      return acc;
+    }, []);
+
+  // Create the clean, serializable column data
+  const columnData = {
+    name: localColumns.value[index].name,
+    type: localColumns.value[index].type,
+    description: localColumns.value[index].description,
+    checks: checksArray
+  };
+
+  // Send the clean data
+  vscode.postMessage({
+    command: "bruin.setAssetDetails",
+    payload: { columns: [columnData] },
+  });
+}; */
 
 const deleteColumn = (index) => {
   localColumns.value.splice(index, 1);
