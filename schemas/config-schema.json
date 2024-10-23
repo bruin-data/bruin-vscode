@@ -556,14 +556,21 @@
                 },
                 "region": {
                     "type": "string"
+                },
+                "database": {
+                    "type": "string"
+                },
+                "output_bucket": {
+                    "type": "string"
                 }
             },
             "required": [
                 "name",
                 "access_key",
-                "secret_key"
+                "secret_key",
+                "region"
             ],
-            "additionalProperties": false
+            "additionalProperties": true
         }
     }
 }
