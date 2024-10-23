@@ -5,7 +5,6 @@ import * as os from "os";
 
 export class BruinInstallCLI {
   private isWindows: boolean;
-  private isMac: boolean;
 
   constructor() {
     this.isWindows = os.platform() === "win32";
