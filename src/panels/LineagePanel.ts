@@ -34,11 +34,14 @@ export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposab
   };
 
   constructor(private readonly _extensionUri: vscode.Uri) {
+    
     this.disposables.push(
       vscode.window.onDidChangeActiveTextEditor((event: vscode.TextEditor | undefined) => {
+        if (event && event.document.uri.scheme !== "vscodebruin:panel") {
         this._lastRenderedDocumentUri = event?.document.uri;
         flowLineageCommand(this._lastRenderedDocumentUri);
         this.initPanel(event);
+        }
       })
     );
   }
@@ -56,44 +59,55 @@ export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposab
     await this.resolveWebviewView(LineagePanel._view!, this.context!, this.token!);
   };
 
-  public resolveWebviewView(
-    webviewView: vscode.WebviewView,
-    context: vscode.WebviewViewResolveContext,
-    _token: vscode.CancellationToken
-  ) {
-    try {
-      LineagePanel._view = webviewView;
-      this.context = context;
-      this.token = _token;
+public resolveWebviewView(
+  webviewView: vscode.WebviewView,
+  context: vscode.WebviewViewResolveContext,
+  _token: vscode.CancellationToken
+) {
+  try {
+    LineagePanel._view = webviewView;
+    this.context = context;
+    this.token = _token;
 
-      if (!webviewView.webview) {
-        throw new Error("Webview is undefined");
-      }
-
-      webviewView.webview.options = {
-        enableScripts: true,
-        localResourceRoots: [this._extensionUri],
-      };
-
-      this._setWebviewMessageListener(LineagePanel._view!.webview);
-      this.loadAndSendLineageData();
-      setTimeout(() => {
-        if (LineagePanel._view && LineagePanel._view.visible) {
-          LineagePanel._view?.webview.postMessage({ command: "init", panelType: "Lineage" });
-        }
-      }, 100);
-
-      webviewView.onDidChangeVisibility(() => {
-        if (LineagePanel._view!.visible) {
-          LineagePanel._view?.webview.postMessage({ command: "init", panelType: "Lineage" });
-        }
-      });
-
-      webviewView.webview.html = this._getWebviewContent(webviewView.webview);
-    } catch (error) {
-      console.error("Error loading lineage data:", error);
+    if (!webviewView.webview) {
+      throw new Error("Webview is undefined");
     }
+
+    webviewView.webview.options = {
+      enableScripts: true,
+      localResourceRoots: [this._extensionUri],
+    };
+
+    this._setWebviewMessageListener(LineagePanel._view!.webview);
+    this.loadAndSendLineageData();  // Load lineage data when view is resolved
+
+    setTimeout(() => {
+      if (LineagePanel._view && LineagePanel._view.visible) {
+        LineagePanel._view.webview.postMessage({ command: "init", panelType: "Lineage" });
+        this.loadAndSendLineageData();  // Ensure lineage data is reloaded when the panel becomes visible
+      }
+    }, 100);
+
+    vscode.window.onDidChangeVisibleTextEditors((editors) => {
+      if (editors.some((editor) => editor.viewColumn === vscode.ViewColumn.Active)) {
+        webviewView.webview.postMessage({ command: "init", panelType: "Lineage" });
+        this.loadAndSendLineageData(); // Load lineage data when panel becomes visible
+      }
+    });
+    // Reload lineage data when webview becomes visible
+    webviewView.onDidChangeVisibility(() => {
+      if (LineagePanel._view!.visible) {
+        LineagePanel._view!.webview.postMessage({ command: "init", panelType: "Lineage" });
+        this.loadAndSendLineageData();  // Load lineage data when visible
+      }
+    });
+
+    webviewView.webview.html = this._getWebviewContent(webviewView.webview);
+  } catch (error) {
+    console.error("Error loading lineage data:", error);
   }
+}
+
 
   private _getWebviewContent(webview: vscode.Webview) {
     const stylesUri = getUri(webview, this._extensionUri, [

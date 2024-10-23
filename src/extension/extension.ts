@@ -7,7 +7,6 @@ import {
   workspace,
 } from "vscode";
 import * as vscode from "vscode";
-import { isBruinBinaryAvailable } from "../bruin/bruinUtils";
 import { bruinFoldingRangeProvider } from "../providers/bruinFoldingRangeProvider";
 import { setupFoldingOnOpen, subscribeToConfigurationChanges } from "./configuration";
 import * as os from "os";
@@ -16,10 +15,7 @@ import { LineagePanel } from "../panels/LineagePanel";
 import { installOrUpdateCli } from "./commands/updateBruinCLI";
 
 export function activate(context: ExtensionContext) {
-  const yamlSelector = [
-    { language: "yaml", scheme: "file" },
-    { language: "yaml", scheme: "untitled" },
-  ];
+  // Automatically focus editor when extension starts
 
   const config = workspace.getConfiguration("bruin");
 
@@ -27,6 +23,15 @@ export function activate(context: ExtensionContext) {
   const isWindows = os.platform() === "win32";
   const newPathSeparator = isWindows ? "\\" : "/";
   config.update("pathSeparator", newPathSeparator, ConfigurationTarget.Global);
+  
+  const activeEditor = window.activeTextEditor;
+  if (activeEditor) {
+    // Focus the active editor if it exists
+    vscode.commands.executeCommand("workbench.action.focusActiveEditorGroup");
+  } else {
+    // If no active editor, try to focus the editor group
+    vscode.commands.executeCommand("workbench.action.focusFirstEditorGroup");
+  }
 
   // Setup folding on open
   setupFoldingOnOpen();
