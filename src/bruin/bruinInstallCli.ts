@@ -9,17 +9,14 @@ export class BruinInstallCLI {
 
   constructor() {
     this.isWindows = os.platform() === "win32";
-    this.isMac = os.platform() === "darwin";
   }
 
   private getInstallCommand(): string {
     switch (os.platform()) {
       case this.isWindows: 
         return "powershell -ExecutionPolicy ByPass -c 'irm https://raw.githubusercontent.com/y-bruin/bruin/refs/heads/feature/powershell/powershell.ps1 | iex'";
-      case this.isMac:
-        return "brew install bruin-data/homebrew-tap/bruin";
       default:
-        return "curl -LsSf https://raw.githubusercontent.com/y-bruin/bruin/refs/heads/feature/install_script/install.sh | sh -s -- -b /usr/local/bin";
+        return "curl -LsSf https://raw.githubusercontent.com/bruin-data/bruin/refs/heads/main/install.sh | sh";
     }
   }
 
@@ -27,10 +24,8 @@ export class BruinInstallCLI {
     switch (os.platform()) {
       case this.isWindows: 
         return "powershell -ExecutionPolicy ByPass -c 'irm https://raw.githubusercontent.com/y-bruin/bruin/refs/heads/feature/powershell/powershell.ps1 | iex'";
-      case this.isMac:
-        return "brew upgrade bruin";
       default:
-        return "curl -LsSf https://raw.githubusercontent.com/y-bruin/bruin/refs/heads/feature/install_script/install.sh | sh -s -- -b /usr/local/bin";
+        return "curl -LsSf https://raw.githubusercontent.com/bruin-data/bruin/refs/heads/main/install.sh | sh";
     }
   }
 
