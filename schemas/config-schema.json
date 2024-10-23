@@ -69,6 +69,12 @@
                         "$ref": "#/definitions/mssqlConnection"
                     }
                 },
+                "aws": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/awsConnection"
+                    }
+                },
                 "synapse": {
                     "type": "array",
                     "items": {
@@ -93,7 +99,6 @@
                         "$ref": "#/definitions/notionConnection"
                     }
                 },
-           
                 "shopify": {
                     "type": "array",
                     "items": {
@@ -112,6 +117,12 @@
                         "$ref": "#/definitions/databricksConnection"
                     }
                 },
+                "athena": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/athenaConnection"
+                    }
+                },
                 "generic": {
                     "type": "array",
                     "items": {
@@ -119,7 +130,7 @@
                     }
                 }
             },
-            "additionalProperties": false
+            "additionalProperties": true
         },
         "googleCloudPlatformConnection": {
             "type": "object",
@@ -395,7 +406,6 @@
             ],
             "additionalProperties": false
         },
-
         "shopifyConnection": {
             "type": "object",
             "properties": {
@@ -440,7 +450,7 @@
             ],
             "additionalProperties": false
         },
-        "databricksConnection":{
+        "databricksConnection": {
             "type": "object",
             "properties": {
                 "name": {
@@ -476,6 +486,82 @@
             "required": [
                 "name",
                 "value"
+            ],
+            "additionalProperties": false
+        },
+        "awsConnection": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "access_key": {
+                    "type": "string"
+                },
+                "secret_key": {
+                    "type": "string"
+                },
+                "region": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "name",
+                "access_key",
+                "secret_key",
+                "region"
+            ],
+            "additionalProperties": false
+        },
+        "aws":{
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "access_key": {
+                    "type": "string"
+                },
+                "secret_key": {
+                    "type": "string"
+                },
+                "region": {
+                    "type": "string"
+                },
+                "output_bucket": {
+                    "type": "string"
+                },
+                "database": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "name",
+                "access_key",
+                "secret_key"
+            ],
+            "additionalProperties": false
+        },
+        "athenaConnection": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "access_key": {
+                    "type": "string"
+                },
+                "secret_key": {
+                    "type": "string"
+                },
+                "region": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "name",
+                "access_key",
+                "secret_key"
             ],
             "additionalProperties": false
         }
