@@ -2,6 +2,7 @@ export const formatConnectionName = (option) => {
     const map = {
       mongo: "MongoDB",
       aws: "Amazon Web Services (AWS)",
+      athena: "Athena",
       mssql: "Microsoft SQL Server",
       mysql: "MySQL",
       google_cloud_platform: "Google Cloud Platform",
@@ -24,6 +25,7 @@ export const formatConnectionName = (option) => {
 
   export const connectionTypes = [
     "aws",
+    "athena",
     "synapse",
     "databricks",
     "google_cloud_platform",
@@ -61,6 +63,13 @@ export const formatConnectionName = (option) => {
     aws: [
       { id: "access_key", label: "Access Key ID", type: "text", required: true },
       { id: "secret_key", label: "Secret Access Key", type: "password", required: true },
+    ],
+    athena:[
+      { id: "access_key", label: "Access Key ID", type: "text", required: true },
+      { id: "secret_key", label: "Secret Access Key", type: "password", required: true },
+      { id: "region", label: "Region", type: "text", required: true },
+      { id: "query_results_path", label: "Query Results Path", type: "text", required: true },
+      { id: "database", label: "Database", type: "text", required: false },
     ],
     google_cloud_platform: [
       { id: "project_id", label: "Project ID", type: "text", required: true },

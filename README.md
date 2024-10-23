@@ -90,10 +90,11 @@ Access the Bruin CLI management tab `Settings` in the side panel for easy instal
 
 
 ## Release Notes
-### Latest Release: 0.25.5
-- Ensured proper visibility of the lineage panel when focusing on the side panel and improved focus handling during extension activation.
+### Latest Release: 0.25.6
+- Added support for Athena connections in the Bruin configuration schema and connection form.
 
 ### Previous Highlights
+- **0.25.5**: Ensured proper visibility of the lineage panel when focusing on the side panel and improved focus handling during extension activation.
 - **0.25.4**: Refactored error handling to prevent UI from crashing when parsing errors occur, ensuring graceful error display.
 - **0.25.3**: Introduced separate handling and display of warnings and critical errors, providing a clearer distinction between the two and improving overall user experience.
 - **0.25.2**: Fixed an issue where the GCP service account file was incorrectly saved as `service_account_json` instead of `service_account_file`.
