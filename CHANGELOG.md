@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.25.5] - [2024-10-23]
+- Ensured proper visibility of the lineage panel when focusing on the side panel and improved focus handling during extension activation.
+
 ## [0.25.4] - [2024-10-22]
 - Refactored error handling to prevent UI from crashing when parsing errors occur, ensuring graceful error display.
 

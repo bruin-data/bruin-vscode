@@ -90,11 +90,12 @@ Access the Bruin CLI management tab `Settings` in the side panel for easy instal
 
 
 ## Release Notes
-### Latest Release: 0.25.3
-- Refactored error handling to prevent UI from crashing when parsing errors occur, ensuring graceful error display.
+### Latest Release: 0.25.5
+- Ensured proper visibility of the lineage panel when focusing on the side panel and improved focus handling during extension activation.
 
 ### Previous Highlights
-- **0.25.2**: Introduced separate handling and display of warnings and critical errors, providing a clearer distinction between the two and improving overall user experience.
+- **0.25.4**: Refactored error handling to prevent UI from crashing when parsing errors occur, ensuring graceful error display.
+- **0.25.3**: Introduced separate handling and display of warnings and critical errors, providing a clearer distinction between the two and improving overall user experience.
 - **0.25.2**: Fixed an issue where the GCP service account file was incorrectly saved as `service_account_json` instead of `service_account_file`.
 - **0.25.1**: Added YAML syntax highlighting support with "redhat.vscode-yaml" extension and updated regex patterns for improved parsing.
 - **0.25.0**: Added the ability to edit asset names and descriptions directly in the UI, integrating the Bruin CLI patchAssetCommand for updates
