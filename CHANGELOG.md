@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.25.7] - [2024-10-24]
+- Updated Content-Security-Policy for BruinPanel and LineagePanel, and refactored initialization logic for improved security and performance.
+
 ## [0.25.6] - [2024-10-23]
 - Added support for Athena connections in the Bruin configuration schema and connection form.
 
