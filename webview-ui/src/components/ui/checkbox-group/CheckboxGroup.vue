@@ -1,6 +1,6 @@
 <template>
       <div class="flex flex-wrap sm:space-x-4">
-        <vscode-checkbox v-for="(item, index) in props.checkboxItems" autofocus
+        <vscode-checkbox v-for="(item, index) in props.checkboxItems"
           :key="index" 
           @change="handleCheckboxChange(item, $event)"
           :checked="item.checked">
