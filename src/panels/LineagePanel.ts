@@ -56,7 +56,11 @@ export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposab
   }
 
   private init = async () => {
-    await this.resolveWebviewView(LineagePanel._view!, this.context!, this.token!);
+    if (!LineagePanel._view) {
+      console.log("View is not initialized yet");
+      return;
+    }
+    await this.resolveWebviewView(LineagePanel._view, this.context!, this.token!);
   };
 
 public resolveWebviewView(
