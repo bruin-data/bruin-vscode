@@ -56,7 +56,11 @@ export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposab
   }
 
   private init = async () => {
-    await this.resolveWebviewView(LineagePanel._view!, this.context!, this.token!);
+    if (!LineagePanel._view) {
+      console.log("View is not initialized yet");
+      return;
+    }
+    await this.resolveWebviewView(LineagePanel._view, this.context!, this.token!);
   };
 
 public resolveWebviewView(
@@ -128,7 +132,13 @@ public resolveWebviewView(
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource} https:; script-src 'nonce-${nonce}'; style-src ${webview.cspSource};">
+        <meta http-equiv="Content-Security-Policy" content="
+          default-src 'none';
+          img-src ${webview.cspSource} https:;
+          script-src 'nonce-${nonce}' ${webview.cspSource};
+          style-src ${webview.cspSource} 'unsafe-inline';
+          font-src ${webview.cspSource};
+        ">        
         <link rel="stylesheet" href="${stylesUri}">
         <title>Bruin Lineage</title>
       </head>

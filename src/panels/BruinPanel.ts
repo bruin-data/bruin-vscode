@@ -205,7 +205,13 @@ export class BruinPanel {
         <head>
           <meta charset="UTF-8" />
           <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-          <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
+          <meta http-equiv="Content-Security-Policy" content="
+            default-src 'none';
+            img-src ${webview.cspSource} https:;
+            script-src 'nonce-${nonce}' ${webview.cspSource};
+            style-src ${webview.cspSource} 'unsafe-inline';
+            font-src ${webview.cspSource};
+          ">
           <link rel="stylesheet" type="text/css" href="${stylesUri}">
           <title>Bruin Panel</title>
         </head>
@@ -357,7 +363,7 @@ export class BruinPanel {
 
           case "bruin.setAssetDetails":
             console.log("Setting asset data from payload :", message.payload);
-            const  assetData  = message.payload;
+            const assetData = message.payload;
             if (!this._lastRenderedDocumentUri) {
               console.log("Setting asset data impossible without an active document.");
               return;
