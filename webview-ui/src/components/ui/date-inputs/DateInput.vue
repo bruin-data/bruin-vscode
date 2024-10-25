@@ -7,13 +7,13 @@
       <input
         id="datetime-picker"
         type="datetime-local"
-        class="block px-1 py-0.5 w-full text-xs text-input-foreground bg-input-background rounded-sm focus:border-inputOption-activeBorder border border-commandCenter-border"
+        class="block w-full text-xs text-input-foreground bg-input-background rounded-md focus:border-inputOption-activeBorder border border-commandCenter-border"
         :value="modelValue"
         @input="updateValue($event)"
       />
- <!--      <div class="absolute inset-y-0 right-0 flex px-1 items-center pointer-events-none">
+      <div class="absolute inset-y-0 right-0 flex px-1 items-center pointer-events-none">
         <CalendarIcon class="w-4 h-4 text-input-foreground" />
-      </div> -->
+      </div>
     </div>
   </div>
 </template>
@@ -46,5 +46,9 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   width: 100%;
   height: 100%;
   cursor: pointer;
+}
+
+input[type="datetime-local"] {
+  padding-right: 2.5rem;
 }
 </style>

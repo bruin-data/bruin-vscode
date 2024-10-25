@@ -1,17 +1,25 @@
 <template>
-  <div class="flex items-center space-x-2 w-full justify-between pt-2">
-    <!-- Name editing -->
-    <div class="font-md text-editor-fg text-lg font-mono cursor-pointer truncate max-w-[70%]">
-      {{ assetDetailsProps?.name }}
-    </div>
+  <div class="">
+    <div class="flex items-center space-x-2 w-full justify-between pt-2">
+      <!-- Name editing -->
+      <div class="font-md text-editor-fg text-lg font-mono cursor-pointer truncate max-w-[70%]">
+        {{ assetDetailsProps?.name }}
+      </div>
 
-    <div class="space-x-2">
-      <DescriptionItem :value="assetDetailsProps?.type" :className="badgeClass.badgeStyle" />
-      <DescriptionItem
-        :value="assetDetailsProps?.pipeline.schedule"
-        :className="badgeClass.grayBadge"
-      />
+      <div class="space-x-2">
+        <DescriptionItem :value="assetDetailsProps?.type" :className="badgeClass.badgeStyle" />
+        <DescriptionItem
+          :value="assetDetailsProps?.pipeline.schedule"
+          :className="badgeClass.grayBadge"
+        />
+      </div>
     </div>
+   <!--  <div class="">
+      <DescriptionItem
+        :value="assetDetailsProps?.pipeline.name"
+        class="font-semibold text-editor-fg opacity-30"
+      />
+    </div> -->
   </div>
   <vscode-panels :activeid="`tab-${activeTab}`" aria-label="Tabbed Content" class="pl-0">
     <!-- Tab Headers -->

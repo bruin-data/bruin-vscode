@@ -4,16 +4,16 @@
       <div class="flex flex-col space-y-4">
         <div class="flex flex-col space-y-3">
           <div>
-            <div class="flex space-x-2 items-center justify-end">
-              <DateInput class="w-32" label="Start Date" v-model="startDate" />
-              <DateInput class="w-32" label="End Date" v-model="endDate" />
+            <div class="flex space-x-2 items-center">
+              <DateInput class="w-2/5" label="Start Date" v-model="startDate" />
+              <DateInput class="w-2/5" label="End Date" v-model="endDate" />
               <button
                 type="button"
-                class="rounded-md bg-editor-button-bg p-1 mt-6 text-editor-button-fg hover:bg-editor-button-hover-bg disabled:opacity-50 disabled:cursor-not-allowed"
+                class="rounded-md bg-editor-button-bg p-2 mt-6 text-editor-button-fg hover:bg-editor-button-hover-bg disabled:opacity-50 disabled:cursor-not-allowed"
                 @click="resetDatesOnSchedule"
                 :title="`Reset Start and End Date`"
               >
-                <ArrowPathRoundedSquareIcon class="h-3 w-3" aria-hidden="true" />
+                <ArrowPathRoundedSquareIcon class="h-4 w-4" aria-hidden="true" />
               </button>
             </div>
           </div>
@@ -27,7 +27,7 @@
             @selected-env="setSelectedEnv"
             :selectedEnvironment="selectedEnvironment"
           />
-          <div class="flex justify-end items-center space-x-2 sm:space-x-4 mt-2 sm:mt-0">
+          <div class="flex justify-end items-center space-x-2 sm:space-x-4 sm:mt-0">
             <div class="inline-flex rounded-md shadow-sm">
               <button
                 type="button"
@@ -87,7 +87,7 @@
                   leave-to-class="transform opacity-0 scale-95"
                 >
                   <MenuItems
-                    class="absolute right-0 z-10 -mr-1 mt-2 w-56 origin-top-right rounded-md bg-editor-button-bg shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+                    class="absolute right-2 z-10 -mr-1 w-56 origin-top-right rounded-md bg-editor-button-bg ring-1 ring-opacity-5 focus:outline-none"
                   >
                     <div class="py-1">
                       <MenuItem key="validate-current" v-slot="{ active }">
