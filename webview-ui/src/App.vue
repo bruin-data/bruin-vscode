@@ -1,5 +1,19 @@
 <template>
-  <vscode-panels :activeid="`tab-${activeTab}`" aria-label="Tabbed Content">
+  <div class="flex items-center space-x-2 w-full justify-between pt-2">
+    <!-- Name editing -->
+    <div class="font-md text-editor-fg text-lg font-mono cursor-pointer truncate max-w-[70%]">
+      {{ assetDetailsProps?.name }}
+    </div>
+
+    <div class="space-x-2">
+      <DescriptionItem :value="assetDetailsProps?.type" :className="badgeClass.badgeStyle" />
+      <DescriptionItem
+        :value="assetDetailsProps?.pipeline.schedule"
+        :className="badgeClass.grayBadge"
+      />
+    </div>
+  </div>
+  <vscode-panels :activeid="`tab-${activeTab}`" aria-label="Tabbed Content" class="pl-0">
     <!-- Tab Headers -->
     <vscode-panel-tab
       v-for="(tab, index) in visibleTabs"
@@ -18,6 +32,7 @@
       :key="`view-${index}`"
       :id="`view-${index}`"
       v-show="activeTab === index"
+      class="px-0"
     >
       <component
         v-if="tab.props"
@@ -42,14 +57,14 @@ import { parseAssetDetails, parseEnvironmentList } from "./utilities/helper";
 import { updateValue } from "./utilities/helper";
 import MessageAlert from "@/components/ui/alerts/AlertMessage.vue";
 import { useConnectionsStore } from "./store/bruinStore";
-import { ArrowPathIcon } from "@heroicons/vue/20/solid";
 import type { EnvironmentsList } from "./types";
 import AssetColumns from "@/components/asset/columns/AssetColumns.vue";
 import BruinSettings from "@/components/bruin-settings/BruinSettings.vue";
-
+import DescriptionItem from "./components/ui/description-item/DescriptionItem.vue";
+import { badgeStyles, defaultBadgeStyle } from "./components/ui/badges/CustomBadgesStyle";
 /**
  * App Component
- * 
+ *
  * This component serves as the main application interface for managing assets.
  * It handles communication with the VSCode extension, manages the state of
  * asset data, and renders different tabs for asset details, columns, and settings.
@@ -240,4 +255,20 @@ const updateAssetName = (newName) => {
   });
   vscode.postMessage({ command: "bruin.updateAssetName", name: newName });
 };
+
+const badgeClass = computed(() => {
+  const commonStyle =
+    "inline-flex items-center rounded-md px-1 py-0.5 text-xs font-medium ring-1 ring-inset";
+  const styleForType = badgeStyles[assetDetailsProps.value?.type] || defaultBadgeStyle;
+  return {
+    commonStyle: commonStyle,
+    grayBadge: `${commonStyle} ${defaultBadgeStyle.main}`,
+    badgeStyle: `${commonStyle} ${styleForType.main}`,
+  };
+});
 </script>
+<style>
+vscode-panels::part(tablist) {
+  padding-left: 0 !important;
+}
+</style>

@@ -1,8 +1,8 @@
 <template>
   <div class="flex flex-col items-start justify-between w-full">
     <div class="w-full">
-      <div class="flex items-center space-x-2 w-full justify-between">
-        <!-- Name editing -->
+    <!--   <div class="flex items-center space-x-2 w-full justify-between">
+ 
         <div
           v-if="!editingName"
           class="font-md text-editor-fg text-lg font-mono cursor-pointer truncate max-w-[70%]"
@@ -23,8 +23,8 @@
           <DescriptionItem :value="type" :className="badgeClass.badgeStyle" />
           <DescriptionItem :value="pipeline.schedule" :className="badgeClass.grayBadge" />
         </div>
-      </div>
- <!--      <div v-if="ownerExists" class="flex flex-wrap items-center">
+      </div> 
+      <div v-if="ownerExists" class="flex flex-wrap items-center">
         <DescriptionItem :value="owner" className="font-semibold text-editor-fg opacity-30" />
       </div> -->
     </div>
@@ -35,7 +35,7 @@
         <!-- Have max-h for the description, and have `show more`to expand -->
         <div
           v-if="!editingDescription"
-          class="text-xs text-editor-fg opacity-65 prose prose-sm pt-4 cursor-pointer max-w-none"
+          class="text-xs text-editor-fg opacity-65 prose prose-sm cursor-pointer max-w-none"
           v-html="markdownDescription"
           @click="editDescription"
         ></div>
@@ -44,7 +44,7 @@
           v-model="editableDescription"
           @blur="saveDescription"
           @keydown.enter.prevent="saveDescription"
-          class="text-sm text-editor-fg opacity-65 prose prose-sm pt-4 bg-transparent border-none focus:outline-none w-full resize-none"
+          class="text-sm text-editor-fg opacity-65 prose prose-sm bg-transparent border-none focus:outline-none w-full resize-none"
           rows="4"
           autofocus
         ></textarea>
