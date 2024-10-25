@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.25.9] - [2024-10-25]
+- Rearrange asset details layout: move asset name and tags to the top with tabs positioned below for improved UI structure.
+
 ## [0.25.8] - [2024-10-25]
 - Moved Lineage Panel to a dedicated component for improved organization and performance.
 
