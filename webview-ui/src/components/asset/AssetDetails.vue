@@ -24,17 +24,18 @@
           <DescriptionItem :value="pipeline.schedule" :className="badgeClass.grayBadge" />
         </div>
       </div>
-      <div v-if="ownerExists" class="flex flex-wrap items-center">
+ <!--      <div v-if="ownerExists" class="flex flex-wrap items-center">
         <DescriptionItem :value="owner" className="font-semibold text-editor-fg opacity-30" />
-      </div>
+      </div> -->
     </div>
 
     <div v-if="props !== null" class="flex flex-col text-editor-fg bg-editor-bg w-full">
       <div class="">
         <!-- Description editing -->
+        <!-- Have max-h for the description, and have `show more`to expand -->
         <div
           v-if="!editingDescription"
-          class="text-sm text-editor-fg opacity-65 prose prose-sm pt-4 cursor-pointer"
+          class="text-xs text-editor-fg opacity-65 prose prose-sm pt-4 cursor-pointer max-w-none"
           v-html="markdownDescription"
           @click="editDescription"
         ></div>
