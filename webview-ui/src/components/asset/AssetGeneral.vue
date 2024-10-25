@@ -458,9 +458,8 @@ function sendInitialMessage() {
     payload: initialPayload,
   });
 }
-
 function resetDatesOnSchedule() {
-  resetStartEndDate(props.schedule, today, startDate, endDate);
+  resetStartEndDate(props.schedule, today.getTime(), startDate, endDate);
 }
 onMounted(() => {
   window.addEventListener("message", receiveMessage);
