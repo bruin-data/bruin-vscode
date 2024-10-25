@@ -9,12 +9,6 @@
     >
       <div class="flex items-center justify-center">
         <span>{{ tab.label }}</span>
-        <ArrowPathIcon
-          v-if="tab.label === 'Asset Details' && activeTab === index"
-          @click="refreshGraphLineage"
-          class="ml-2 w-4 h-4 text-link-activeForeground hover:text-progressBar-bg focus:outline-none"
-          title="Refresh"
-        />
       </div>
     </vscode-panel-tab>
 
@@ -223,12 +217,6 @@ watch(
 const updateColumns = (newColumns) => {
   columns.value = newColumns;
 };
-
-// Function to refresh the lineage graph
-const refreshGraphLineage = debounce((event: Event) => {
-  event.stopPropagation(); // Prevent event bubbling
-  vscode.postMessage({ command: "bruin.assetGraphLineage" });
-}, 300); // 300ms debounce time
 
 // Function to load asset data
 function loadAssetData() {
