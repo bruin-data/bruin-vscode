@@ -90,10 +90,11 @@ Access the Bruin CLI management tab `Settings` in the side panel for easy instal
 
 
 ## Release Notes
-### Latest Release: 0.25.7
-- Updated Content-Security-Policy for BruinPanel and LineagePanel, and refactored initialization logic for improved security and performance.
+### Latest Release: 0.25.8
+- Moved Lineage Panel to a dedicated component for improved organization and performance.
 
 ### Previous Highlights
+-  **0.25.7**: Updated Content-Security-Policy for BruinPanel and LineagePanel, and refactored initialization logic for improved security and performance.
 - **0.25.6**: Added support for Athena connections in the Bruin configuration schema and connection form.
 - **0.25.5**: Ensured proper visibility of the lineage panel when focusing on the side panel and improved focus handling during extension activation.
 - **0.25.4**: Refactored error handling to prevent UI from crashing when parsing errors occur, ensuring graceful error display.

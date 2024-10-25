@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.25.8] - [2024-10-25]
+- Moved Lineage Panel to a dedicated component for improved organization and performance.
+
 ## [0.25.7] - [2024-10-24]
 - Updated Content-Security-Policy for BruinPanel and LineagePanel, and refactored initialization logic for improved security and performance.
 
