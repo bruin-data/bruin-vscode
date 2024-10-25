@@ -118,10 +118,25 @@ public resolveWebviewView(
       "webview-ui",
       "build",
       "assets",
+      "lineage.css",
+    ]);
+    const stylesUriCustomElt = getUri(webview, this._extensionUri, [
+      "webview-ui",
+      "build",
+      "assets",
+      "custom-elements.css",
+    ]);
+    const stylesUriIndex = getUri(webview, this._extensionUri, [
+      "webview-ui",
+      "build",
+      "assets",
       "index.css",
     ]);
     const scriptUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, "webview-ui", "build", "assets", "index.js")
+      vscode.Uri.joinPath(this._extensionUri, "webview-ui", "build", "assets", "lineage.js")
+    );
+    const scriptUriCustomElt = webview.asWebviewUri(
+      vscode.Uri.joinPath(this._extensionUri, "webview-ui", "build", "assets", "custom-elements.js")
     );
 
     const nonce = getNonce();
@@ -140,12 +155,24 @@ public resolveWebviewView(
           font-src ${webview.cspSource};
         ">        
         <link rel="stylesheet" href="${stylesUri}">
+        <link rel="stylesheet" href="${stylesUriCustomElt}">
+        <link rel="stylesheet" href="${stylesUriIndex}">
         <title>Bruin Lineage</title>
       </head>
+  
       <body>
         <div id="app"></div>
-        <script nonce="${nonce}" src="${scriptUri}"></script>
-      </body>
+        <script type="module" nonce="${nonce}" src="${scriptUri}">
+                window.onerror = function(message, source, lineno, colno, error) {
+                console.error('Webview error:', message, 'at line:', lineno, 'source:', source, 'error:', error);
+              };
+          </script>
+          <script type="module" nonce="${nonce}" src="${scriptUriCustomElt}">
+                window.onerror = function(message, source, lineno, colno, error) {
+                console.error('Webview error:', message, 'at line:', lineno, 'source:', source, 'error:', error);
+              };
+          </script>
+        </body>
       </html>
     `;
   }
