@@ -4,16 +4,16 @@
       <div class="flex flex-col space-y-4">
         <div class="flex flex-col space-y-3">
           <div>
-            <div class="flex space-x-2 items-center">
-              <DateInput class="w-2/5" label="Start Date" v-model="startDate" />
-              <DateInput class="w-2/5" label="End Date" v-model="endDate" />
+            <div class="flex space-x-2 items-center justify-end">
+              <DateInput class="w-32" label="Start Date" v-model="startDate" />
+              <DateInput class="w-32" label="End Date" v-model="endDate" />
               <button
                 type="button"
-                class="rounded-md bg-editor-button-bg p-2 mt-6 text-editor-button-fg hover:bg-editor-button-hover-bg disabled:opacity-50 disabled:cursor-not-allowed"
+                class="rounded-md bg-editor-button-bg p-1 mt-6 text-editor-button-fg hover:bg-editor-button-hover-bg disabled:opacity-50 disabled:cursor-not-allowed"
                 @click="resetDatesOnSchedule"
                 :title="`Reset Start and End Date`"
               >
-                <ArrowPathRoundedSquareIcon class="sm:h-5 sm:w-5 h-4 w-4" aria-hidden="true" />
+                <ArrowPathRoundedSquareIcon class="h-3 w-3" aria-hidden="true" />
               </button>
             </div>
           </div>
