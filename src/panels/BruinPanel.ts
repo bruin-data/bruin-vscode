@@ -195,9 +195,17 @@ export class BruinPanel {
   private _getWebviewContent(webview: Webview, extensionUri: Uri) {
     const stylesUri = getUri(webview, extensionUri, ["webview-ui", "build", "assets", "index.css"]);
     const scriptUri = getUri(webview, extensionUri, ["webview-ui", "build", "assets", "index.js"]);
-
+    const scriptUriCustomElt = webview.asWebviewUri(
+      vscode.Uri.joinPath(extensionUri, "webview-ui", "build", "assets", "custom-elements.js")
+    );
+    const stylesUriCustomElt = getUri(webview, extensionUri, [
+      "webview-ui",
+      "build",
+      "assets",
+      "custom-elements.css",
+    ]);
     const nonce = getNonce();
-
+   
     // Tip: Install the es6-string-html VS Code extension to enable code highlighting below
     return /*html*/ `
       <!DOCTYPE html>
@@ -213,6 +221,7 @@ export class BruinPanel {
             font-src ${webview.cspSource};
           ">
           <link rel="stylesheet" type="text/css" href="${stylesUri}">
+          <link rel="stylesheet" href="${stylesUriCustomElt}">
           <title>Bruin Panel</title>
         </head>
         <body>
@@ -222,6 +231,11 @@ export class BruinPanel {
                 console.error('Webview error:', message, 'at line:', lineno, 'source:', source, 'error:', error);
               };
           </script>
+          <script type="module" nonce="${nonce}" src="${scriptUriCustomElt}">
+                window.onerror = function(message, source, lineno, colno, error) {
+                console.error('Webview error:', message, 'at line:', lineno, 'source:', source, 'error:', error);
+              };
+          </script>        
         </body>
       </html>
     `;
