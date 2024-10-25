@@ -25,7 +25,6 @@
         v-bind="tab.props"
         class="flex w-full"
       />
-      <MessageAlert v-else-if="parseError" message="This file is either not a Bruin Asset or has no data to display." />
     </vscode-panel-view>
   </vscode-panels>
 </template>
@@ -35,7 +34,6 @@ import AssetLineageFlow from "@/components/lineage-flow/asset-lineage/AssetLinea
 import { vscode } from "@/utilities/vscode";
 import { ref, onMounted, onUnmounted, computed } from "vue";
 import { updateValue } from "./utilities/helper";
-import MessageAlert from "@/components/ui/alerts/AlertMessage.vue";
 import { getAssetDataset } from "@/components/lineage-flow/asset-lineage/useAssetLineage";
 import { ArrowPathIcon } from "@heroicons/vue/20/solid";
 
