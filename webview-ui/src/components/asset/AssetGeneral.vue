@@ -13,7 +13,7 @@
                 @click="resetDatesOnSchedule"
                 :title="`Reset Start and End Date`"
               >
-                <ArrowPathRoundedSquareIcon class="sm:h-5 sm:w-5 h-4 w-4" aria-hidden="true" />
+                <ArrowPathRoundedSquareIcon class="h-4 w-4" aria-hidden="true" />
               </button>
             </div>
           </div>
@@ -27,7 +27,7 @@
             @selected-env="setSelectedEnv"
             :selectedEnvironment="selectedEnvironment"
           />
-          <div class="flex justify-end items-center space-x-2 sm:space-x-4 mt-2 sm:mt-0">
+          <div class="flex justify-end items-center space-x-2 sm:space-x-4 sm:mt-0">
             <div class="inline-flex rounded-md shadow-sm">
               <button
                 type="button"
@@ -87,7 +87,7 @@
                   leave-to-class="transform opacity-0 scale-95"
                 >
                   <MenuItems
-                    class="absolute right-0 z-10 -mr-1 mt-2 w-56 origin-top-right rounded-md bg-editor-button-bg shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+                    class="absolute right-2 z-10 -mr-1 w-56 origin-top-right rounded-md bg-editor-button-bg ring-1 ring-opacity-5 focus:outline-none"
                   >
                     <div class="py-1">
                       <MenuItem key="validate-current" v-slot="{ active }">

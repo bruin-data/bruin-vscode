@@ -7,12 +7,12 @@
       <input
         id="datetime-picker"
         type="datetime-local"
-        class="p-2 block w-full text-input-foreground bg-input-background rounded-md focus:border-inputOption-activeBorder sm:text-sm border border-commandCenter-border"
+        class="block w-full text-xs text-input-foreground bg-input-background rounded-md focus:border-inputOption-activeBorder border border-commandCenter-border"
         :value="modelValue"
         @input="updateValue($event)"
       />
-      <div class="absolute inset-y-0 right-0 flex py-1.5 pr-1.5 items-center pointer-events-none">
-        <CalendarIcon class="w-5 h-5 text-input-foreground" />
+      <div class="absolute inset-y-0 right-0 flex px-1 items-center pointer-events-none">
+        <CalendarIcon class="w-4 h-4 text-input-foreground" />
       </div>
     </div>
   </div>
