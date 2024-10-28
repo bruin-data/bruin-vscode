@@ -1,5 +1,5 @@
 <template>
-      <div class="flex flex-wrap sm:space-x-4">
+      <div class="flex flex-wrap rounded-none">
         <vscode-checkbox v-for="(item, index) in props.checkboxItems"
           :key="index" 
           @change="handleCheckboxChange(item, $event)"
