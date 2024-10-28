@@ -1,19 +1,14 @@
 <template>
-  <div id="dateInput" class="flex flex-col space-y-1 max-w-md">
-    <label for="datetime-picker" class="block text-sm font-medium">
-      {{ label }}
-    </label>
-    <div class="relative mt-2 flex items-center">
+  <div class="flex flex-col w-40">
+    <label class="text-xs mb-1 font-medium">{{ label }}</label>
+    <div class="relative">
       <input
-        id="datetime-picker"
         type="datetime-local"
-        class="block w-full text-xs text-input-foreground bg-input-background rounded-md focus:border-inputOption-activeBorder border border-commandCenter-border"
+        class="w-full text-xs p-1.5 border border-commandCenter-border rounded-sm bg-input-background focus:border-input-border"
         :value="modelValue"
         @input="updateValue($event)"
       />
-      <div class="absolute inset-y-0 right-0 flex px-1 items-center pointer-events-none">
-        <CalendarIcon class="w-4 h-4 text-input-foreground" />
-      </div>
+      <CalendarIcon class="absolute right-1 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-input-foreground" />
     </div>
   </div>
 </template>
@@ -22,18 +17,18 @@
 import { defineProps, defineEmits } from "vue";
 import { CalendarIcon } from "@heroicons/vue/20/solid";
 
-const props = defineProps({
+defineProps({
   label: String,
   modelValue: {
     type: String,
     required: true,
   },
 });
+
 const emit = defineEmits(["update:modelValue"]);
 
 const updateValue = (event: Event) => {
-  const target = event.target as HTMLInputElement;
-  emit("update:modelValue", target.value);
+  emit("update:modelValue", (event.target as HTMLInputElement).value);
 };
 </script>
 
@@ -46,9 +41,5 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   width: 100%;
   height: 100%;
   cursor: pointer;
-}
-
-input[type="datetime-local"] {
-  padding-right: 2.5rem;
 }
 </style>
