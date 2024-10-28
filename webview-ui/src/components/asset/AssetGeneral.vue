@@ -4,19 +4,17 @@
     <!-- Header Section -->
     <div class="flex flex-col space-y-4">
       <!-- Checkbox and Date Controls Row -->
-      <div class="flex flex-col sm:flex-row gap-4 w-full">
+      <div class="flex flex-col sm:flex-row gap-2 w-full">
         <!-- Checkbox Group -->
-        <div class="sm:w-1/2 p-1 border border-commandCenter-border bg-editor-button-bg/5">
+        <div class="sm:w-1/2 p-1 border border-commandCenter-border">
           <CheckboxGroup :checkboxItems="checkboxItems" />
         </div>
 
         <!-- Date Controls -->
-        <div
-          class="sm:w-1/2 p-1 border border-commandCenter-border rounded-xs bg-editor-button-bg/5"
-        >
-          <div class="flex gap-1">
-            <DateInput class="w-2/5" label="Start Date" v-model="startDate" />
-            <DateInput class="w-2/5" label="End Date" v-model="endDate" />
+        <div class="sm:w-1/2 p-1 border border-commandCenter-border">
+          <div class="flex gap-1 w-full justify-between">
+            <DateInput label="Start Date" v-model="startDate" />
+            <DateInput label="End Date" v-model="endDate" />
             <button
               type="button"
               @click="resetDatesOnSchedule"
