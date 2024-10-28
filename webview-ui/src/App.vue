@@ -14,12 +14,12 @@
         />
       </div>
     </div>
-   <!--  <div class="">
+    <div>
       <DescriptionItem
         :value="assetDetailsProps?.pipeline.name"
         class="font-semibold text-editor-fg opacity-30"
       />
-    </div> -->
+    </div>
   </div>
   <vscode-panels :activeid="`tab-${activeTab}`" aria-label="Tabbed Content" class="pl-0">
     <!-- Tab Headers -->
