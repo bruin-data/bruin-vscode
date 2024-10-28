@@ -45,7 +45,6 @@ import { ref, defineProps, computed, watch, onMounted, nextTick } from "vue";
 import MessageAlert from "@/components/ui/alerts/AlertMessage.vue";
 import MarkdownIt from "markdown-it";
 import AssetGeneral from "./AssetGeneral.vue";
-import { useAssetStore } from "@/store/bruinStore";
 import { vscode } from "@/utilities/vscode";
 import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/vue/20/solid";
 
@@ -58,14 +57,12 @@ const props = defineProps<{
   pipeline: any;
   environments: string[];
   selectedEnvironment: string;
-  filePath: string;
 }>();
 
 const descriptionRef = ref<HTMLElement | null>(null);
 const isExpanded = ref(false);
 const contentHeight = ref(0);
 const maxHeight = 160; // 40px * 4 lines
-const assetStore = useAssetStore();
 
 // Update content height measurement
 const updateContentHeight = async () => {
