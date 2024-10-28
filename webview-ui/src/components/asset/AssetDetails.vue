@@ -1,53 +1,26 @@
 <template>
   <div class="flex flex-col items-start justify-between w-full">
-    <div class="w-full">
-    <!--   <div class="flex items-center space-x-2 w-full justify-between">
- 
-        <div
-          v-if="!editingName"
-          class="font-md text-editor-fg text-lg font-mono cursor-pointer truncate max-w-[70%]"
-          @click="editName"
-        >
-          {{ editableName }}
-        </div>
-        <input
-          v-else
-          v-model="editableName"
-          @blur="saveName"
-          @keyup.enter="saveName"
-          class="font-md text-editor-fg text-lg font-mono bg-transparent border-none focus:outline-none border-b border-editor-border max-w-[70%] h-8 leading-8 px-1"
-          autofocus
-        />
-
-        <div class="space-x-2">
-          <DescriptionItem :value="type" :className="badgeClass.badgeStyle" />
-          <DescriptionItem :value="pipeline.schedule" :className="badgeClass.grayBadge" />
-        </div>
-      </div> 
-      <div v-if="ownerExists" class="flex flex-wrap items-center">
-        <DescriptionItem :value="owner" className="font-semibold text-editor-fg opacity-30" />
-      </div> -->
-    </div>
-
     <div v-if="props !== null" class="flex flex-col text-editor-fg bg-editor-bg w-full">
-      <div class="">
-        <!-- Description editing -->
-        <!-- Have max-h for the description, and have `show more`to expand -->
+      <div class="relative">
         <div
-          v-if="!editingDescription"
-          class="text-xs text-editor-fg opacity-65 prose prose-sm cursor-pointer max-w-none"
+          ref="descriptionRef"
+          class="text-xs text-editor-fg opacity-65 prose prose-sm max-w-none"
+          :class="{ 'max-h-40 overflow-hidden': shouldTruncate && !isExpanded }"
           v-html="markdownDescription"
-          @click="editDescription"
         ></div>
-        <textarea
-          v-else
-          v-model="editableDescription"
-          @blur="saveDescription"
-          @keydown.enter.prevent="saveDescription"
-          class="text-sm text-editor-fg opacity-65 prose prose-sm bg-transparent border-none focus:outline-none w-full resize-none"
-          rows="4"
-          autofocus
-        ></textarea>
+
+        <button
+          v-if="shouldShowButton"
+          @click="toggleExpand"
+          class="flex items-center gap-2 mt-2 text-xs text-textLink-activeForeground hover:text-editorLink-activeForeground transition-colors"
+        >
+          <span>{{ isExpanded ? "Show Less" : "Show More" }}</span>
+          <component
+            :is="isExpanded ? ChevronUpIcon : ChevronDownIcon"
+            class="h-4 w-4"
+            aria-hidden="true"
+          />
+        </button>
       </div>
     </div>
 
@@ -68,14 +41,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, defineProps, computed, watch, onMounted } from "vue";
-import DescriptionItem from "@/components/ui/description-item/DescriptionItem.vue";
+import { ref, defineProps, computed, watch, onMounted, nextTick } from "vue";
 import MessageAlert from "@/components/ui/alerts/AlertMessage.vue";
-import { badgeStyles, defaultBadgeStyle } from "@/components/ui/badges/CustomBadgesStyle";
 import MarkdownIt from "markdown-it";
 import AssetGeneral from "./AssetGeneral.vue";
 import { useAssetStore } from "@/store/bruinStore";
 import { vscode } from "@/utilities/vscode";
+import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/vue/20/solid";
 
 const props = defineProps<{
   name: string;
@@ -89,10 +61,55 @@ const props = defineProps<{
   filePath: string;
 }>();
 
-onMounted(() => {
+const descriptionRef = ref<HTMLElement | null>(null);
+const isExpanded = ref(false);
+const contentHeight = ref(0);
+const maxHeight = 160; // 40px * 4 lines
+const assetStore = useAssetStore();
+
+// Update content height measurement
+const updateContentHeight = async () => {
+  await nextTick();
+  if (descriptionRef.value) {
+    contentHeight.value = descriptionRef.value.scrollHeight;
+  }
+};
+
+// Check if content height exceeds max-height
+const shouldTruncate = computed(() => {
+  return contentHeight.value > maxHeight && props.description;
+});
+
+// Only show button if there's content that needs truncating
+const shouldShowButton = computed(() => {
+  return shouldTruncate.value;
+});
+
+const toggleExpand = () => {
+  isExpanded.value = !isExpanded.value;
+};
+
+onMounted(async () => {
   window.addEventListener("message", handleMessage);
   vscode.postMessage({ command: "bruin.getConnectionsList" });
+  await updateContentHeight();
+
+  // Add resize observer to handle dynamic content changes
+  if (descriptionRef.value) {
+    const resizeObserver = new ResizeObserver(() => {
+      updateContentHeight();
+    });
+    resizeObserver.observe(descriptionRef.value);
+  }
 });
+
+// Watch for description changes and update height
+watch(
+  () => props.description,
+  async () => {
+    await updateContentHeight();
+  }
+);
 
 const handleMessage = (event: MessageEvent) => {
   const message = event.data;
@@ -103,93 +120,32 @@ const handleMessage = (event: MessageEvent) => {
   }
 };
 
-const assetStore = useAssetStore();
-
-const ownerExists = computed(() => {
-  return props.owner !== "" && props.owner !== "undefined" && props.owner !== null && props.owner !== undefined;
-});
-
 const scheduleExists = computed(() => {
-  return props.pipeline.schedule !== "" && props.pipeline.schedule !== "undefined" && props.pipeline.schedule !== null && props.pipeline.schedule !== undefined;
+  return (
+    props.pipeline.schedule !== "" &&
+    props.pipeline.schedule !== "undefined" &&
+    props.pipeline.schedule !== null &&
+    props.pipeline.schedule !== undefined
+  );
 });
 
 const md = new MarkdownIt();
 const markdownDescription = computed(() => {
   if (!props.description) {
-    return " No description available for this asset";
+    return "No description available for this asset";
   }
   return md.render(props.description);
 });
 
-// State for name editing
-const editingName = ref(false);
-const editableName = ref(props.name);
-
-const editName = () => {
-  editingName.value = true;
-};
-
-const saveName = async () => {
-  editingName.value = false;
-  if (editableName.value !== props.name) {
-    try {
-      console.log("Editable Name:", editableName.value);
-      await assetStore.updateAssetDetails({ ...props, name: editableName.value });
-      await vscode.postMessage({ command: "bruin.setAssetDetails", payload: { "name": editableName.value } });
-    } catch (error) {
-      console.error("Error updating asset name:", error);
-    }
-  }
-};
-
 // State for description editing
-const editingDescription = ref(false);
 const editableDescription = ref(props.description);
 
-const editDescription = () => {
-  editingDescription.value = true;
-};
-
-const saveDescription = async () => {
-  editingDescription.value = false;
-  if (editableDescription.value !== props.description) {
-    try {
-      console.log("Editable Description:", editableDescription.value);
-      await assetStore.updateAssetDetails({ ...props, description: editableDescription.value });
-      await vscode.postMessage({ command: "bruin.setAssetDetails", payload: { description: editableDescription.value } });
-    } catch (error) {
-      console.error("Error updating asset description:", error);
-    }
+watch(
+  () => props.description,
+  (newDescription) => {
+    editableDescription.value = newDescription;
   }
-};
-
-const badgeClass = computed(() => {
-  const commonStyle = "inline-flex items-center rounded-md px-1 py-0.5 text-xs font-medium ring-1 ring-inset";
-  const styleForType = badgeStyles[props.type] || defaultBadgeStyle;
-  return {
-    commonStyle: commonStyle,
-    grayBadge: `${commonStyle} ${defaultBadgeStyle.main}`,
-    badgeStyle: `${commonStyle} ${styleForType.main}`,
-  };
-});
-
-watch(() => props.name, (newName) => {
-  editableName.value = newName;
-});
-
-watch(() => props.description, (newDescription) => {
-  editableDescription.value = newDescription;
-});
-
-const setAssetValues = async () => {
-  try {
-    await vscode.postMessage({ command: "bruin.setAssetDetails", payload: {...props, name: editableName.value, description:editableDescription.value } });
-    // Update the store after successful execution
-    await assetStore.updateAssetDetails({ ...props, name: editableName.value, description:editableDescription.value});
-  } catch (error) {
-    console.error("Error setting asset values:", error);
-  }
-};
+);
 </script>
 
 <style scoped>
