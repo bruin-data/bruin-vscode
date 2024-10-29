@@ -4,36 +4,36 @@
     <!-- Header Section -->
     <div class="flex flex-col space-y-4">
       <!-- Checkbox and Date Controls Row -->
-      <div class="flex flex-col sm:flex-row gap-2 w-full">
-        <!-- Checkbox Group -->
-        <div class="sm:w-1/2 p-1 border border-commandCenter-border">
-          <CheckboxGroup :checkboxItems="checkboxItems" />
-        </div>
-
-        <!-- Date Controls -->
-        <div class="sm:w-1/2 p-1 border border-commandCenter-border">
-          <div class="flex gap-1 w-full justify-between">
-            <DateInput label="Start Date" v-model="startDate" />
-            <DateInput label="End Date" v-model="endDate" />
-            <button
-              type="button"
-              @click="resetDatesOnSchedule"
-              :title="`Reset Start and End Date`"
-              class="rounded-md bg-editor-button-bg p-1.5 self-end mb-[2px] text-editor-button-fg hover:bg-editor-button-hover-bg disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <ArrowPathRoundedSquareIcon class="h-4 w-4" aria-hidden="true" />
-            </button>
+      <div class="flex flex-col">
+        <div class="flex flex-col xs:flex-row gap-2 w-full">
+          <EnvSelectMenu
+            :options="environments"
+            @selected-env="setSelectedEnv"
+            :selectedEnvironment="selectedEnvironment"
+          />
+          <!-- Date Controls -->
+          <div class="xs:w-1/2 p-1">
+            <div class="flex gap-1 w-full justify-between">
+              <DateInput label="Start Date" v-model="startDate" />
+              <DateInput label="End Date" v-model="endDate" />
+              <button
+                type="button"
+                @click="resetDatesOnSchedule"
+                :title="`Reset Start and End Date`"
+                class="rounded-md bg-editor-button-bg p-[0.2rem] self-end text-editor-button-fg hover:bg-editor-button-hover-bg disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ArrowPathRoundedSquareIcon class="h-4 w-4" aria-hidden="true" />
+              </button>
+            </div>
           </div>
         </div>
+        <!-- Expandable Checkboxes -->
+          <CheckboxGroup :checkboxItems="checkboxItems" label="Options" class="" />
       </div>
 
-      <!-- Environment Selection and Action Buttons Row -->
+      <!-- Action Buttons Row -->
       <div class="flex flex-wrap justify-between items-center">
-        <EnvSelectMenu
-          :options="environments"
-          @selected-env="setSelectedEnv"
-          :selectedEnvironment="selectedEnvironment"
-        />
+        <div class="flex-1"></div>
         <div class="flex justify-end items-center space-x-2 sm:space-x-4 sm:mt-0">
           <!-- Validate Button Group -->
           <div class="inline-flex rounded-md shadow-sm">
@@ -41,7 +41,7 @@
               type="button"
               @click="handleBruinValidateCurrentAsset"
               :disabled="isNotAsset || isError"
-              class="relative inline-flex items-center rounded-l-md bg-editor-button-bg px-3 py-2 text-sm font-medium text-editor-button-fg ring-1 ring-inset ring-editor-button-border hover:bg-editor-button-hover-bg disabled:opacity-50 disabled:cursor-not-allowed focus:z-10"
+              class="relative inline-flex items-center rounded-l-md bg-editor-button-bg px-1.5 py-0.5 text-sm font-medium text-editor-button-fg ring-1 ring-inset ring-editor-button-border hover:bg-editor-button-hover-bg disabled:opacity-50 disabled:cursor-not-allowed focus:z-10"
             >
               <template v-if="validateButtonStatus === 'validated'">
                 <CheckCircleIcon class="h-4 w-4 mr-1 text-editor-button-fg" aria-hidden="true" />
