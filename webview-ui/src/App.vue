@@ -2,23 +2,26 @@
   <div class="">
     <div class="flex items-center space-x-2 w-full justify-between pt-2">
       <!-- Name editing -->
-      <div class="font-md text-editor-fg text-lg font-mono cursor-pointer truncate max-w-[70%]">
-        {{ assetDetailsProps?.name }}
+      <div
+        class="flex items-baseline w-3/4 font-md text-editor-fg text-lg font-mono cursor-pointer"
+      >
+        <!-- Hide the pipeline name and the slash when the panel is too small -->
+        <div class="pipeline-name max-w-[40%] text-xs opacity-50 truncate inline-block">
+          {{ assetDetailsProps?.pipeline.name }}
+        </div>
+        <span class="slash opacity-50 text-xs px-0.5">/</span>
+        <div class="flex-grow inline-block">
+          {{ assetDetailsProps?.name }}
+        </div>
       </div>
-
-      <div class="space-x-2">
+      <!--     hide the tags when the panel is too small -->
+      <div class="tags flex w-1/4 space-x-2 justify-end flex-wrap">
         <DescriptionItem :value="assetDetailsProps?.type" :className="badgeClass.badgeStyle" />
         <DescriptionItem
           :value="assetDetailsProps?.pipeline.schedule"
           :className="badgeClass.grayBadge"
         />
       </div>
-    </div>
-    <div>
-      <DescriptionItem
-        :value="assetDetailsProps?.pipeline.name"
-        class="font-semibold text-editor-fg opacity-30"
-      />
     </div>
   </div>
   <vscode-panels :activeid="`tab-${activeTab}`" aria-label="Tabbed Content" class="pl-0">
@@ -278,5 +281,13 @@ const badgeClass = computed(() => {
 <style>
 vscode-panels::part(tablist) {
   padding-left: 0 !important;
+}
+/* Media query to hide the pipeline name, slash, and tags when the panel is too small */
+@media (max-width: 320px) {
+  .pipeline-name,
+  .slash,
+  .tags {
+    display: none;
+  }
 }
 </style>
