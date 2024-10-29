@@ -3,32 +3,37 @@
   <div class="divide-y overflow-hidden w-full">
     <!-- Header Section -->
     <div class="flex flex-col space-y-4">
-      <!-- Checkbox and Date Controls Row -->
       <div class="flex flex-col">
-        <div class="flex flex-col xs:flex-row gap-2 w-full">
+        <!-- Checkbox and Date Controls Row -->
+        <div class="flex flex-col xs:flex-row gap-2 w-full justify-between">
           <EnvSelectMenu
             :options="environments"
             @selected-env="setSelectedEnv"
             :selectedEnvironment="selectedEnvironment"
+            class="flex-shrink-0"
           />
-          <!-- Date Controls -->
-          <div class="xs:w-1/2 p-1">
-            <div class="flex gap-1 w-full justify-between">
+          <!-- Date Controls and Checkbox Group -->
+          <div id="controls" class="flex flex-col xs:w-1/2 p-1">
+            <div class="flex gap-1 w-full xs:justify-end">
               <DateInput label="Start Date" v-model="startDate" />
               <DateInput label="End Date" v-model="endDate" />
-              <button
-                type="button"
-                @click="resetDatesOnSchedule"
-                :title="`Reset Start and End Date`"
-                class="rounded-md bg-editor-button-bg p-[0.2rem] self-end text-editor-button-fg hover:bg-editor-button-hover-bg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <ArrowPathRoundedSquareIcon class="h-4 w-4" aria-hidden="true" />
-              </button>
+              <div class="flex self-end">
+                <button
+                  type="button"
+                  @click="resetDatesOnSchedule"
+                  :title="`Reset Start and End Date`"
+                  class="rounded-md bg-editor-button-bg p-[0.2rem] text-editor-button-fg hover:bg-editor-button-hover-bg disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ArrowPathRoundedSquareIcon class="h-4 w-4" aria-hidden="true" />
+                </button>
+                <button @click="toggled = !toggled" :isToggled="toggled">
+                  <EllipsisVerticalIcon class="h-5"></EllipsisVerticalIcon>
+                </button>
+              </div>
             </div>
           </div>
         </div>
-        <!-- Expandable Checkboxes -->
-          <CheckboxGroup :checkboxItems="checkboxItems" label="Options" class="" />
+        <CheckboxGroup v-if="toggled" :checkboxItems="checkboxItems" label="Options" class="mt-2" />
       </div>
 
       <!-- Action Buttons Row -->
@@ -239,6 +244,7 @@ import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/vue";
 import { ChevronDownIcon, CheckCircleIcon, XCircleIcon } from "@heroicons/vue/24/solid";
 import { SparklesIcon, PlayIcon, ArrowPathRoundedSquareIcon } from "@heroicons/vue/24/outline";
 import type { FormattedErrorMessage } from "@/types";
+import { EllipsisVerticalIcon } from "@heroicons/vue/20/solid";
 
 /**
  * Define component props
@@ -265,10 +271,11 @@ const showWarnings = ref(true);
 const errorState = computed(() => handleError(validationError.value, renderSQLAssetError.value));
 const isError = computed(() => errorState.value?.errorCaptured);
 const errorMessage = computed(() => errorState.value?.errorMessage);
-
+const toggled = ref(false);
 /**
  * Computed properties for error handling and warnings
  */
+
 const parsedErrorMessages = computed(() => {
   if (!errorMessage.value) return [];
 
