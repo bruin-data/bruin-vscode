@@ -17,6 +17,11 @@ module.exports = {
         "2xl": "1400px",
       },
     },
+    screens: {
+      "xs": "480px",
+      "2xs": "320px",
+      "3xs": "240px",
+    },
     extend: {
       typography: (theme) => ({
         DEFAULT: {
@@ -60,7 +65,7 @@ module.exports = {
         },
       }),
       fontSize: {
-        "2xs": "0.6rem",
+        "2xs": ["0.75rem", { lineHeight: "1rem" }],
       },
       colors: {
         "border": "hsl(var(--border))",

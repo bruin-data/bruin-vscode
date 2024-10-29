@@ -1,10 +1,11 @@
 <template>
-  <div class="flex items-center">
-    <div>
-      <span class="text-sm font-semibold text-editor-fg"> Environment </span>
-    </div>
-    <div class="p-4">
-      <vscode-dropdown @change="handleSelect">
+  <div class="flex flex-col w-32">
+    <span class="text-xs mb-1 font-medium text-editor-fg">Environment</span>
+    <div class="relative">
+      <vscode-dropdown 
+        @change="handleSelect"
+        class="w-full"
+      >
         <vscode-option 
           v-for="option in options" 
           :key="option" 
@@ -32,3 +33,12 @@ function handleSelect(event: Event) {
   emit('selectedEnv', selectedEnv);
 }
 </script>
+
+<style scoped>
+vscode-dropdown {
+  @apply text-2xs;
+}
+vscode-dropdown::part(control) {
+  @apply px-1 py-0.5 h-[26px] min-h-[26px];
+}
+</style>
