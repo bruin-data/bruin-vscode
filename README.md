@@ -90,10 +90,11 @@ Access the Bruin CLI management tab `Settings` in the side panel for easy instal
 
 
 ## Release Notes
-### Latest Release: 0.25.9
-- Rearrange asset details layout: move asset name and tags to the top with tabs positioned below for improved UI structure
+### Latest Release: 0.25.10
+- Added 'Show More' for long descriptions, displayed pipeline names before asset titles, and optimized view by hiding tags and pipeline names on smaller screens.
 
 ### Previous Highlights
+- **0.25.9**: Rearrange asset details layout: move asset name and tags to the top with tabs positioned below for improved UI structure
 - **0.25.8**: Moved Lineage Panel to a dedicated component for improved organization and performance.
 - **0.25.7**: Updated Content-Security-Policy for BruinPanel and LineagePanel, and refactored initialization logic for improved security and performance.
 - **0.25.6**: Added support for Athena connections in the Bruin configuration schema and connection form.
