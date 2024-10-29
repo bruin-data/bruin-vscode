@@ -5,17 +5,17 @@
       <div
         class="flex items-baseline w-3/4 font-md text-editor-fg text-lg font-mono cursor-pointer"
       >
-        <!--     hide the pipeline name and the slash when the panel is too small -->
-        <div class="max-w-[40%] text-xs opacity-50 truncate inline-block">
+        <!-- Hide the pipeline name and the slash when the panel is too small -->
+        <div class="pipeline-name max-w-[40%] text-xs opacity-50 truncate inline-block">
           {{ assetDetailsProps?.pipeline.name }}
         </div>
-        <span class="opacity-50 text-xs px-0.5">/</span>
+        <span class="slash opacity-50 text-xs px-0.5">/</span>
         <div class="flex-grow inline-block">
           {{ assetDetailsProps?.name }}
         </div>
       </div>
       <!--     hide the tags when the panel is too small -->
-      <div class="flex w-1/4 space-x-2 justify-end flex-wrap">
+      <div class="tags flex w-1/4 space-x-2 justify-end flex-wrap">
         <DescriptionItem :value="assetDetailsProps?.type" :className="badgeClass.badgeStyle" />
         <DescriptionItem
           :value="assetDetailsProps?.pipeline.schedule"
@@ -23,12 +23,6 @@
         />
       </div>
     </div>
-    <!--   <div>
-      <DescriptionItem
-        :value="assetDetailsProps?.pipeline.name"
-        class="font-semibold text-editor-fg opacity-30"
-      />
-    </div> -->
   </div>
   <vscode-panels :activeid="`tab-${activeTab}`" aria-label="Tabbed Content" class="pl-0">
     <!-- Tab Headers -->
