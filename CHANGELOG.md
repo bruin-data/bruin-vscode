@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.26.0] - [2024-10-29]
+- Added 'Show More' for long descriptions, displayed pipeline names before asset titles, and optimized view by hiding tags and pipeline names on smaller screens.
+
 ## [0.25.9] - [2024-10-25]
 - Rearrange asset details layout: move asset name and tags to the top with tabs positioned below for improved UI structure.
 
