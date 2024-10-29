@@ -27,7 +27,7 @@
                   <ArrowPathRoundedSquareIcon class="h-4 w-4" aria-hidden="true" />
                 </button>
                 <button @click="toggled = !toggled" :isToggled="toggled">
-                  <EllipsisVerticalIcon class="h-5"></EllipsisVerticalIcon>
+                  <EllipsisVerticalIcon class="h-5 -mr-2.5"></EllipsisVerticalIcon>
                 </button>
               </div>
             </div>
