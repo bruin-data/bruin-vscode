@@ -90,7 +90,7 @@ Access the Bruin CLI management tab `Settings` in the side panel for easy instal
 
 
 ## Release Notes
-### Latest Release: 0.26.0
+### Latest Release: 0.25.10
 - Added 'Show More' for long descriptions, displayed pipeline names before asset titles, and optimized view by hiding tags and pipeline names on smaller screens.
 
 ### Previous Highlights
