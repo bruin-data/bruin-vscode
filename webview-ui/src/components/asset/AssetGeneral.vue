@@ -17,17 +17,17 @@
             <div class="flex gap-1 w-full xs:justify-end">
               <DateInput label="Start Date" v-model="startDate" />
               <DateInput label="End Date" v-model="endDate" />
-              <div class="flex self-end">
+              <div class="flex items-center self-end">
                 <button
                   type="button"
                   @click="resetDatesOnSchedule"
                   :title="`Reset Start and End Date`"
-                  class="rounded-md bg-editor-button-bg p-[0.2rem] text-editor-button-fg hover:bg-editor-button-hover-bg disabled:opacity-50 disabled:cursor-not-allowed"
+                  class="rounded-md bg-editor-button-bg p-[0.175rem] text-editor-button-fg hover:bg-editor-button-hover-bg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ArrowPathRoundedSquareIcon class="h-4 w-4" aria-hidden="true" />
                 </button>
                 <Menu as="div" class="relative">
-                  <MenuButton>
+                  <MenuButton class="flex items-center">
                     <EllipsisVerticalIcon class="h-5 -mr-2.5 text-2xs text-icon-forground"></EllipsisVerticalIcon>
                   </MenuButton>
                   <Transition
