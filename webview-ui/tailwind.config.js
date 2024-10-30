@@ -105,6 +105,7 @@ module.exports = {
         "editorLink-activeFg": "var(--vscode-editorLink-activeForeground)",
         "commandCenter-border": "var(--vscode-commandCenter-border)",
         "commandCenter-fg":"var(--vscode-commandCenter-foreground)",
+        "icon-forground": "var(--vscode-icon-foreground)",
 
         "primary": {
           DEFAULT: "hsl(var(--primary))",
