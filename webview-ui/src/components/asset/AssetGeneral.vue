@@ -26,14 +26,40 @@
                 >
                   <ArrowPathRoundedSquareIcon class="h-4 w-4" aria-hidden="true" />
                 </button>
-                <button @click="toggled = !toggled" :isToggled="toggled">
-                  <EllipsisVerticalIcon class="h-5 -mr-2.5"></EllipsisVerticalIcon>
-                </button>
+                <Menu as="div" class="relative">
+                  <MenuButton>
+                    <EllipsisVerticalIcon class="h-5 -mr-2.5 text-2xs text-icon-forground"></EllipsisVerticalIcon>
+                  </MenuButton>
+                  <Transition
+                    enter-active-class="transition ease-out duration-100"
+                    enter-from-class="transform opacity-0 scale-95"
+                    enter-to-class="transform opacity-100 scale-100"
+                    leave-active-class="transition ease-in duration-75"
+                    leave-from-class="transform opacity-100 scale-100"
+                    leave-to-class="transform opacity-0 scale-95"
+                  >
+                    <MenuItems
+                      class="absolute right-0 z-10 mt-2 w-40 origin-top-right bg-input-background border border-commandCenter-border rounded-sm focus:outline-none"
+                    >
+                      <div class="py-0.5 pl-1">
+                        <MenuItem>
+                          <vscode-checkbox @change="updateVisibility" :checked="showCheckboxGroup">
+                            Run Options
+                          </vscode-checkbox>
+                        </MenuItem>
+                      </div>
+                    </MenuItems>
+                  </Transition>
+                </Menu>
               </div>
             </div>
           </div>
         </div>
-        <CheckboxGroup v-if="toggled" :checkboxItems="checkboxItems" label="Options" class="mt-2" />
+
+        <!-- Conditional rendering of CheckboxGroup -->
+        <div v-if="showCheckboxGroup">
+          <CheckboxGroup :checkboxItems="checkboxItems" label="Options" />
+        </div>
       </div>
 
       <!-- Action Buttons Row -->
@@ -245,6 +271,7 @@ import { ChevronDownIcon, CheckCircleIcon, XCircleIcon } from "@heroicons/vue/24
 import { SparklesIcon, PlayIcon, ArrowPathRoundedSquareIcon } from "@heroicons/vue/24/outline";
 import type { FormattedErrorMessage } from "@/types";
 import { EllipsisVerticalIcon } from "@heroicons/vue/20/solid";
+import { Transition } from "vue";
 
 /**
  * Define component props
@@ -350,6 +377,15 @@ const checkboxItems = ref([
   { name: "Exclusive-End-Date", checked: true },
   { name: "Push-Metadata", checked: false },
 ]);
+
+// State to control visibility of CheckboxGroup
+const showCheckboxGroup = ref(false);
+
+// Function to update visibility based on checkbox state
+function updateVisibility() {
+  showCheckboxGroup.value = !showCheckboxGroup.value;
+  // This function can be used to perform additional actions if needed
+}
 
 /**
  * Selected environment state
@@ -586,3 +622,8 @@ function receiveMessage(event: { data: any }) {
   }
 }
 </script>
+<style scoped>
+vscode-checkbox::part(control) {
+  @apply border-none outline-none w-3.5 h-3.5;
+}
+</style>
