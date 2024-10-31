@@ -25,7 +25,7 @@
     <!-- Expanded section to display detailed error messages -->
     <div v-if="isExpanded" class="overflow-y-auto" style="max-height: 200px">
       <div v-for="(errorMessage, index) in processedErrors" :key="index">
-        <div v-if="errorPhase === 'Validation'" class="mt-4">
+        <div v-if="errorPhase === 'Validation' && errorMessage.pipeline !=='Error'" class="mt-4">
           <div @click="toggleExpansion(index)" class="flex items-center cursor-pointer">
             <component :is="errorMessage.expanded ? ChevronDownIcon : ChevronRightIcon" class="h-5 w-5 text-red-500" aria-hidden="true" />
             <span class="ml-2 text-red-700">Pipeline: {{ errorMessage.pipeline }}</span>
