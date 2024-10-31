@@ -14,7 +14,7 @@
           />
           <!-- Date Controls and Checkbox Group -->
           <div id="controls" class="flex flex-col xs:w-1/2">
-            <div class="flex gap-1 w-full justify-between  xs:justify-end">
+            <div class="flex gap-1 w-full justify-between xs:justify-end">
               <DateInput label="Start Date" v-model="startDate" />
               <DateInput label="End Date" v-model="endDate" />
               <div class="flex items-center self-end">
@@ -26,31 +26,10 @@
                 >
                   <ArrowPathRoundedSquareIcon class="h-3 w-3" aria-hidden="true" />
                 </button>
-                <Menu as="div" class="relative">
-                  <MenuButton class="flex items-center">
-                    <EllipsisVerticalIcon class="h-5 -mr-2.5 text-2xs text-icon-forground"></EllipsisVerticalIcon>
-                  </MenuButton>
-                  <Transition
-                    enter-active-class="transition ease-out duration-100"
-                    enter-from-class="transform opacity-0 scale-95"
-                    enter-to-class="transform opacity-100 scale-100"
-                    leave-active-class="transition ease-in duration-75"
-                    leave-from-class="transform opacity-100 scale-100"
-                    leave-to-class="transform opacity-0 scale-95"
-                  >
-                    <MenuItems
-                      class="absolute right-0 z-10 mt-2 w-40 origin-top-right bg-input-background border border-commandCenter-border rounded-sm focus:outline-none"
-                    >
-                      <div class="py-0.5 pl-1">
-                        <MenuItem>
-                          <vscode-checkbox @change="updateVisibility" :checked="showCheckboxGroup">
-                            Run Options
-                          </vscode-checkbox>
-                        </MenuItem>
-                      </div>
-                    </MenuItems>
-                  </Transition>
-                </Menu>
+                <div class="relative ml-1">
+                  <ChevronUpIcon v-if="showCheckboxGroup" class="h-4 w-4"  @click="updateVisibility" />
+                  <ChevronDownIcon v-else class="h-4 w-4" @click="updateVisibility" />
+                </div>
               </div>
             </div>
           </div>
@@ -72,7 +51,7 @@
             class="flex-shrink-0 hidden xs:hidden 2xs:flex"
           />
         </div>
-        
+
         <div class="flex justify-end items-center space-x-2 sm:space-x-4 sm:mt-0">
           <!-- Validate Button Group -->
           <div class="inline-flex rounded-md shadow-sm">
@@ -275,10 +254,14 @@ import CheckboxGroup from "@/components/ui/checkbox-group/CheckboxGroup.vue";
 import EnvSelectMenu from "@/components/ui/select-menu/EnvSelectMenu.vue";
 import { updateValue, resetStates, determineValidationStatus } from "@/utilities/helper";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/vue";
-import { ChevronDownIcon, CheckCircleIcon, XCircleIcon } from "@heroicons/vue/24/solid";
+import {
+  ChevronDownIcon,
+  ChevronUpIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+} from "@heroicons/vue/24/solid";
 import { SparklesIcon, PlayIcon, ArrowPathRoundedSquareIcon } from "@heroicons/vue/24/outline";
 import type { FormattedErrorMessage } from "@/types";
-import { EllipsisVerticalIcon } from "@heroicons/vue/20/solid";
 import { Transition } from "vue";
 
 /**
