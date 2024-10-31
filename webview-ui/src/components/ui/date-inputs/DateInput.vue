@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col w-32">
+  <div class="flex flex-col w-full xs:w-32">
     <label class="text-xs mb-1 font-medium">{{ label }}</label>
     <div class="relative">
       <input
