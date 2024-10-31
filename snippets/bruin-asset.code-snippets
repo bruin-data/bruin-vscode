@@ -90,14 +90,6 @@
     ],
     "description": "Insert the asset destination parameter"
   },
-  "Bruin Asset Connections": {
-    "prefix": "!connections",
-    "body": [
-      "connections:",
-      "${1:connection_name}: ${2:connection_value}"
-    ],
-    "description": "Insert the asset connections"
-  },
   "Bruin Asset Secrets": {
     "prefix": "!secrets",
     "body": [
@@ -106,13 +98,6 @@
       "    inject_as: ${2:injection_method}"
     ],
     "description": "Insert the asset secrets"
-  },
-  "Bruin Asset Connection": {
-    "prefix": "!connection",
-    "body": [
-      "connection: ${1:connection_name}"
-    ],
-    "description": "Insert the asset connection"
   },
   "Bruin Asset Image": {
     "prefix": "!image",
@@ -311,9 +296,6 @@
       "  - ${18:tag2}",
       "",
       "owner: ${19:owner_name}",
-      "",
-      "connections:",
-      "  ${22:connection_name}: ${23:connection_value}",
       "",
       "@bruin */",
       "$0"
