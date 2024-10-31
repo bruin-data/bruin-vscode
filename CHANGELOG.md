@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.25.12] - [2024-10-31]
+- Improved UI consistency for DateInput and CheckboxGroup components, including updated styling and layout adjustments.
+
 ## [0.25.11] - [2024-10-31]
 - Improved error handling to display 'panic' errors more clearly.
 
