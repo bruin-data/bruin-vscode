@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.25.11] - [2024-10-31]
+- Improved error handling to display 'panic' errors more clearly.
+
 ## [0.25.10] - [2024-10-29]
 - Added 'Show More' for long descriptions, displayed pipeline names before asset titles, and optimized view by hiding tags and pipeline names on smaller screens.
 

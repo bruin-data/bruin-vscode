@@ -1,14 +1,17 @@
 # Bruin
+
 Bruin is a unified analytics platform that enables data professionals to work end-to-end for their data pipelines. This extension is built to improve the development experience of data products on Bruin using Visual Studio Code.
 
 ## Features
 
 ### Syntax Coloring
+
 - Applies YAML syntax coloring to Bruin code in SQL files (enclosed between `/* @bruin ... @bruin */`) and Python files (enclosed between `""" @bruin ... @bruin """`).
 
 ![Screenshot of Syntax Coloring](https://github.com/bruin-data/bruin-vscode/blob/main/screenshots/syntaxe-coloring.png?raw=true)
 
 ### Folding Range Provider
+
 - Allows folding and unfolding Bruin code regions in SQL and Python files for a cleaner workspace.
 - Auto Folding: Configure this setting through the Settings UI under Extensions > Bruin.
 
@@ -17,6 +20,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 **Note**: The Pylance extension may affect the auto-folding feature. If you encounter inconsistencies, review your Pylance settings or temporarily disable it.
 
 ### Dynamic SQL Content Viewer
+
 - Renders SQL content within a VS Code Webview, enabling content copying and automatic refreshing on file updates.
 - Adapts to theme changes (dark/light/Dark high contrast)
 
@@ -25,6 +29,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 ![Screenshot of SQL viewer Theme Updates](https://github.com/bruin-data/bruin-vscode/blob/main/screenshots/theme-updates.gif?raw=true)
 
 ### SQL Validation and Execution
+
 - Introduces SQL validation and execution capabilities.
 - Custom messages for invalid SQL queries.
 - Ability to run SQL with additional flags such as `--downstream` and `--full-refresh`.
@@ -34,19 +39,23 @@ Bruin is a unified analytics platform that enables data professionals to work en
 ![Screenshot of SQL Validation and Execution](https://github.com/bruin-data/bruin-vscode/blob/main/screenshots/validation-and-execution.gif?raw=true)
 
 ### Asset Lineage
+
 - New panel to display the lineage of a single asset.
 - Ability to expand properties in the lineage view to see further upstream and downstream elements.
 
 ### Connections Management
+
 - Display and manage connections integrated with Bruin CLI.
 - Add new connections directly from the UI.
 - Delete existing connections via the UI.
 
 ### Bruin CLI Management
+
 - New tab in the side panel for easy installation and updates of Bruin CLI.
 - Windows-specific Go check, with a link to documentation if Go is missing.
 
 ### Autocomplete and Snippets
+
 - Autocomplete support for `.bruin.yml`, `pipeline.yml`, and `*.asset.yml` files with predefined options and schema validations.
 - Snippets for creating Bruin root configuration, pipelines, and assets.
 
@@ -61,14 +70,18 @@ Bruin is a unified analytics platform that enables data professionals to work en
 ## Usage
 
 ### Syntax Coloring
+
 Enclose Bruin code with delimiters:
+
 - In **SQL files**: `/* @bruin` and `@bruin */`
 - In **Python files**: `""" @bruin` and `@bruin """`
 
 ### Folding Range
+
 Bruin code regions are automatically foldable.
 
 ### Dynamic SQL Content Viewer
+
 1. Open any SQL file.
 2. Click the Bruin logo icon in the top right menu.
 3. A Webview will open, previewing the SQL content.
@@ -76,24 +89,28 @@ Bruin code regions are automatically foldable.
 5. The theme color of the view matches the current VS Code theme.
 
 ### SQL Validation and Execution
+
 - **Validation**: Click the "Validate" button to validate the current SQL or entire pipeline.
 - **Run with Flags**: Click the "Run" button to execute the SQL command in an integrated terminal, with optional flags and date inputs.
 
 ### Asset Lineage
+
 Access the new lineage panel to view and interact with asset lineages.
 
 ### Connections Management
+
 Use the new connections section from `Settings` tab to view, add, or delete connections directly from the UI.
 
 ### Bruin CLI Management
+
 Access the Bruin CLI management tab `Settings` in the side panel for easy installation and updates.
 
-
 ## Release Notes
-### Latest Release: 0.25.10
-- Added 'Show More' for long descriptions, displayed pipeline names before asset titles, and optimized view by hiding tags and pipeline names on smaller screens.
+### Latest Release: 0.25.11
+- Improved error handling to display 'panic' errors more clearly.
 
 ### Previous Highlights
+- **0.25.10**: Added 'Show More' for long descriptions, displayed pipeline names before asset titles, and optimized view by hiding tags and pipeline names on smaller screens.
 - **0.25.9**: Rearrange asset details layout: move asset name and tags to the top with tabs positioned below for improved UI structure
 - **0.25.8**: Moved Lineage Panel to a dedicated component for improved organization and performance.
 - **0.25.7**: Updated Content-Security-Policy for BruinPanel and LineagePanel, and refactored initialization logic for improved security and performance.
@@ -127,4 +144,5 @@ Access the Bruin CLI management tab `Settings` in the side panel for easy instal
 - **0.4.x - 0.1.x**: Initial features including SQL validation, auto-folding, syntax coloring, and dynamic content viewing.
 
 ### How to Update
+
 To update to the latest version, search for "Bruin" in the Extensions Marketplace and click the Update button.
