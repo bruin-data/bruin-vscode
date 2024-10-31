@@ -2,6 +2,10 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+
+## [0.25.14] - [2024-10-31]
+- Removed the connections from the `fullasset` snippet
+
 ## [0.25.13] - [2024-10-31]
 - Replaced ellipsis icon with arrow icon to toggle checkbox group.
 
