@@ -10,11 +10,11 @@
             :options="environments"
             @selected-env="setSelectedEnv"
             :selectedEnvironment="selectedEnvironment"
-            class="flex-shrink-0"
+            class="flex-shrink-0 hidden xs:flex"
           />
           <!-- Date Controls and Checkbox Group -->
           <div id="controls" class="flex flex-col xs:w-1/2">
-            <div class="flex gap-1 w-full xs:justify-end">
+            <div class="flex gap-1 w-full justify-between  xs:justify-end">
               <DateInput label="Start Date" v-model="startDate" />
               <DateInput label="End Date" v-model="endDate" />
               <div class="flex items-center self-end">
@@ -63,8 +63,16 @@
       </div>
 
       <!-- Action Buttons Row -->
-      <div class="flex flex-wrap justify-between items-center">
-        <div class="flex-1"></div>
+      <div class="flex flex-wrap space-y-2 justify-between items-end">
+        <div class="flex-1">
+          <EnvSelectMenu
+            :options="environments"
+            @selected-env="setSelectedEnv"
+            :selectedEnvironment="selectedEnvironment"
+            class="flex-shrink-0 hidden xs:hidden 2xs:flex"
+          />
+        </div>
+        
         <div class="flex justify-end items-center space-x-2 sm:space-x-4 sm:mt-0">
           <!-- Validate Button Group -->
           <div class="inline-flex rounded-md shadow-sm">
