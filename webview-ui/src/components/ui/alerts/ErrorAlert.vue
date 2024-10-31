@@ -23,7 +23,7 @@
       </div>
     </div>
     <!-- Expanded section to display detailed error messages -->
-    <div v-if="isExpanded" class="mt-4 overflow-y-auto" style="max-height: 200px">
+    <div v-if="isExpanded" class="overflow-y-auto" style="max-height: 200px">
       <div v-for="(errorMessage, index) in processedErrors" :key="index">
         <div v-if="errorPhase === 'Validation'" class="mt-4">
           <div @click="toggleExpansion(index)" class="flex items-center cursor-pointer">
