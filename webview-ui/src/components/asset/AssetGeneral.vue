@@ -13,7 +13,7 @@
             class="flex-shrink-0"
           />
           <!-- Date Controls and Checkbox Group -->
-          <div id="controls" class="flex flex-col xs:w-1/2 p-1">
+          <div id="controls" class="flex flex-col xs:w-1/2">
             <div class="flex gap-1 w-full xs:justify-end">
               <DateInput label="Start Date" v-model="startDate" />
               <DateInput label="End Date" v-model="endDate" />
@@ -22,9 +22,9 @@
                   type="button"
                   @click="resetDatesOnSchedule"
                   :title="`Reset Start and End Date`"
-                  class="rounded-md bg-editor-button-bg p-[0.175rem] text-editor-button-fg hover:bg-editor-button-hover-bg disabled:opacity-50 disabled:cursor-not-allowed"
+                  class="rounded-sm bg-editor-button-bg p-1 text-editor-button-fg hover:bg-editor-button-hover-bg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <ArrowPathRoundedSquareIcon class="h-4 w-4" aria-hidden="true" />
+                  <ArrowPathRoundedSquareIcon class="h-3 w-3" aria-hidden="true" />
                 </button>
                 <Menu as="div" class="relative">
                   <MenuButton class="flex items-center">
