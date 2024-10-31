@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.25.13] - [2024-10-31]
+- Replaced ellipsis icon with arrow icon to toggle checkbox group.
+
 ## [0.25.12] - [2024-10-31]
 - Improved UI consistency for DateInput and CheckboxGroup components, including updated styling and layout adjustments.
 
