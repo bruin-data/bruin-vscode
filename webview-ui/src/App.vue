@@ -15,11 +15,12 @@
         </div>
       </div>
       <!--     hide the tags when the panel is too small -->
-      <div class="tags flex w-1/4 space-x-2 justify-end flex-wrap">
+      <div class="tags flex w-1/4 items-center space-x-2 justify-end overflow-hidden">
         <DescriptionItem :value="assetDetailsProps?.type" :className="badgeClass.badgeStyle" />
         <DescriptionItem
           :value="assetDetailsProps?.pipeline.schedule"
           :className="badgeClass.grayBadge"
+          class="xs:flex hidden overflow-hidden truncate"
         />
       </div>
     </div>
