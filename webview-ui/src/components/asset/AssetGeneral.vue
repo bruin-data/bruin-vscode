@@ -43,7 +43,7 @@
 
       <!-- Action Buttons Row -->
       <div class="flex flex-wrap space-y-2 justify-between items-end">
-        <div class="flex-1">
+        <div class="flex-1 relative">
           <EnvSelectMenu
             :options="environments"
             @selected-env="setSelectedEnv"
