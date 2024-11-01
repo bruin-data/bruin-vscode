@@ -106,10 +106,11 @@ Use the new connections section from `Settings` tab to view, add, or delete conn
 Access the Bruin CLI management tab `Settings` in the side panel for easy installation and updates.
 
 ## Release Notes
-### Latest Release: 0.25.14
-- Removed the connections from the `fullasset` snippet.
+### Latest Release: 0.25.15
+- Adjust date input background color to align with GitHub's dimmed dark theme.
 
 ### Previous Highlights
+- **0.25.14**: Removed the connections from the `fullasset` snippet.
 - **0.25.13**: Replaced ellipsis icon with arrow icon to toggle checkbox group.
 - **0.25.12**: Improved UI consistency for DateInput and CheckboxGroup components, including updated styling and layout adjustments.
 - **0.25.11**: Improved error handling to display 'panic' errors more clearly.
