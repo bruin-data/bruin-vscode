@@ -82,7 +82,7 @@ export class BruinRender extends BruinCommand {
           console.error("Error rendering SQL asset in the reject", this.parseError(error));
           BruinPanel?.postMessage("render-message", {
             status: "error",
-            message: this.parseError(error), 
+            message: this.parseError(error),
           });
         }
       )
@@ -96,10 +96,9 @@ export class BruinRender extends BruinCommand {
   }
 
   private parseError(error: string): string {
-    if(error.startsWith("{")) {
+    if (error.startsWith("{")) {
       return error;
-    }
-    else {
+    } else {
       return JSON.stringify({ error: error });
     }
   }
