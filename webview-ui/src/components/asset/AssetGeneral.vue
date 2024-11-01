@@ -112,35 +112,23 @@
                 leave-from-class="transform opacity-100 scale-100"
                 leave-to-class="transform opacity-0 scale-95"
               >
-                <MenuItems
-                  class="absolute right-2 z-10 -mr-1 w-56 origin-top-right rounded-md bg-editor-button-bg ring-1 ring-opacity-5 focus:outline-none"
-                >
-                  <div class="py-1">
-                    <MenuItem key="validate-current" v-slot="{ active }">
-                      <button
-                        :class="[
-                          active
-                            ? 'bg-editor-button-hover-bg text-editor-button-fg'
-                            : 'bg-editor-button-bg',
-                          'block w-full text-left px-4 py-2 text-sm',
-                        ]"
+                <MenuItems class="absolute right-2 z-10 -mr-1 w-48 origin-top-right">
+                  <div class="p-1 bg-editorWidget-bg rounded-sm border border-commandCenter-border">
+                    <MenuItem key="validate-current">
+                      <vscode-button
+                        class="block rounded-sm w-full text-left text-2xs hover:bg-editor-button-hover-bg bg-editorWidget-bg"
                         @click="handleBruinValidateCurrentPipeline"
                       >
                         Validate current pipeline
-                      </button>
+                      </vscode-button>
                     </MenuItem>
-                    <MenuItem key="validate-all" v-slot="{ active }">
-                      <button
-                        :class="[
-                          active
-                            ? 'bg-editor-button-hover-bg text-editor-button-fg'
-                            : 'bg-editor-button-bg',
-                          'block w-full text-left px-4 py-2 text-sm',
-                        ]"
+                    <MenuItem key="validate-all">
+                      <vscode-button
+                        class="block rounded-sm w-full text-left text-2xs hover:bg-editor-button-hover-bg bg-editorWidget-bg"
                         @click="handleBruinValidateAllPipelines"
                       >
                         Validate all pipelines
-                      </button>
+                      </vscode-button>
                     </MenuItem>
                   </div>
                 </MenuItems>
@@ -171,34 +159,24 @@
                 leave-to-class="transform opacity-0 scale-95"
               >
                 <MenuItems
-                  class="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-editor-button-bg shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+                  class="absolute right-0 z-10 w-48 origin-top-right"
                 >
-                  <div class="py-1">
+                  <div class="p-1 bg-editorWidget-bg rounded-sm border border-commandCenter-border">
                     <MenuItem key="run-with-downstream" v-slot="{ active }">
-                      <button
-                        :class="[
-                          active
-                            ? 'bg-editor-button-hover-bg text-editor-button-fg'
-                            : 'bg-editor-button-bg',
-                          'block w-full text-left px-4 py-2 text-sm',
-                        ]"
+                      <vscode-button
+                        class="block rounded-sm w-full text-left text-2xs hover:bg-editor-button-hover-bg bg-editorWidget-bg"
                         @click="runAssetWithDownstream"
                       >
                         Run with downstream
-                      </button>
+                      </vscode-button>
                     </MenuItem>
                     <MenuItem key="run-current-pipeline" v-slot="{ active }">
-                      <button
-                        :class="[
-                          active
-                            ? 'bg-editor-button-hover-bg text-editor-button-fg'
-                            : 'bg-editor-button-bg',
-                          'block w-full text-left px-4 py-2 text-sm',
-                        ]"
+                      <vscode-button
+                        class="block rounded-sm w-full text-left text-2xs hover:bg-editor-button-hover-bg bg-editorWidget-bg"
                         @click="runCurrentPipeline"
                       >
                         Run the whole pipeline
-                      </button>
+                      </vscode-button>
                     </MenuItem>
                   </div>
                 </MenuItems>
