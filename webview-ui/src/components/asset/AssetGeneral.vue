@@ -27,7 +27,11 @@
                   <ArrowPathRoundedSquareIcon class="h-3 w-3" aria-hidden="true" />
                 </button>
                 <div class="relative ml-1">
-                  <ChevronUpIcon v-if="showCheckboxGroup" class="h-4 w-4"  @click="updateVisibility" />
+                  <ChevronUpIcon
+                    v-if="showCheckboxGroup"
+                    class="h-4 w-4"
+                    @click="updateVisibility"
+                  />
                   <ChevronDownIcon v-else class="h-4 w-4" @click="updateVisibility" />
                 </div>
               </div>
@@ -54,12 +58,10 @@
 
         <div class="flex justify-end items-center space-x-2 sm:space-x-4 sm:mt-0">
           <!-- Validate Button Group -->
-          <div class="inline-flex rounded-md shadow-sm">
-            <button
-              type="button"
+          <div class="inline-flex">
+            <vscode-button
               @click="handleBruinValidateCurrentAsset"
               :disabled="isNotAsset || isError"
-              class="relative inline-flex items-center rounded-l-md bg-editor-button-bg px-1.5 py-0.5 text-sm font-medium text-editor-button-fg ring-1 ring-inset ring-editor-button-border hover:bg-editor-button-hover-bg disabled:opacity-50 disabled:cursor-not-allowed focus:z-10"
             >
               <template v-if="validateButtonStatus === 'validated'">
                 <CheckCircleIcon class="h-4 w-4 mr-1 text-editor-button-fg" aria-hidden="true" />
@@ -93,13 +95,13 @@
                 <SparklesIcon class="h-4 w-4 mr-1"></SparklesIcon>
               </template>
               Validate
-            </button>
+            </vscode-button>
             <Menu as="div" class="relative -ml-px block">
               <MenuButton
                 :disabled="isNotAsset || isError"
-                class="relative inline-flex items-center disabled:opacity-50 disabled:cursor-not-allowed rounded-r-md bg-editor-button-bg px-2 py-2 text-editor-button-fg ring-1 ring-inset ring-editor-button-border hover:bg-editor-button-hover-bg focus:z-10"
+                class="relative border border-transparent inline-flex items-center disabled:opacity-50 disabled:cursor-not-allowed bg-editor-button-bg p-1 text-editor-button-fg hover:bg-editor-button-hover-bg focus:z-10"
               >
-                <ChevronDownIcon class="h-5 w-5" aria-hidden="true" />
+                <ChevronDownIcon class="h-4 w-4" aria-hidden="true" />
               </MenuButton>
               <!-- Dropdown Menu for Validate -->
               <transition
@@ -147,22 +149,17 @@
           </div>
 
           <!-- Run Button Group -->
-          <div class="inline-flex rounded-md shadow-sm sm:mt-0">
-            <button
-              type="button"
-              @click="runAssetOnly"
-              :disabled="isNotAsset || isError"
-              class="relative inline-flex items-center rounded-l-md bg-editor-button-bg px-3 py-2 text-sm font-medium text-editor-button-fg ring-1 ring-inset ring-editor-button-border hover:bg-editor-button-hover-bg focus:z-10 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+          <div class="inline-flex sm:mt-0">
+            <vscode-button @click="runAssetOnly" :disabled="isNotAsset || isError">
               <PlayIcon class="h-4 w-4 mr-1"></PlayIcon>
               Run
-            </button>
+            </vscode-button>
             <Menu as="div" class="relative -ml-px block">
               <MenuButton
                 :disabled="isNotAsset || isError"
-                class="relative inline-flex items-center disabled:opacity-50 disabled:cursor-not-allowed rounded-r-md bg-editor-button-bg px-2 py-2 text-editor-button-fg ring-1 ring-inset ring-editor-button-border hover:bg-editor-button-hover-bg focus:z-10"
+                class="relative border border-transparent inline-flex items-center disabled:opacity-50 disabled:cursor-not-allowed bg-editor-button-bg p-1 text-editor-button-fg hover:bg-editor-button-hover-bg focus:z-10"
               >
-                <ChevronDownIcon class="h-5 w-5" aria-hidden="true" />
+                <ChevronDownIcon class="h-4 w-4" aria-hidden="true" />
               </MenuButton>
               <!-- Dropdown Menu for Run -->
               <transition
