@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.25.16] - [2024-11-01]
+- Adjust the position of the environment dropdown menu, moving it from the top to the bottom.
+
 ## [0.25.15] - [2024-11-01]
 - Adjust date input background color to align with GitHub's dimmed dark theme.
 
