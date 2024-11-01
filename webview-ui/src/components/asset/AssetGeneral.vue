@@ -46,7 +46,7 @@
       </div>
 
       <!-- Action Buttons Row -->
-      <div class="flex flex-wrap justify-between items-end mb-2">
+      <div class="flex flex-wrap justify-between items-end space-y-1">
         <div class="flex-1 relative">
           <EnvSelectMenu
             :options="environments"
@@ -158,9 +158,7 @@
                 leave-from-class="transform opacity-100 scale-100"
                 leave-to-class="transform opacity-0 scale-95"
               >
-                <MenuItems
-                  class="absolute right-0 z-10 w-48 origin-top-right"
-                >
+                <MenuItems class="absolute right-0 z-10 w-48 origin-top-right">
                   <div class="p-1 bg-editorWidget-bg rounded-sm border border-commandCenter-border">
                     <MenuItem key="run-with-downstream" v-slot="{ active }">
                       <vscode-button
@@ -199,11 +197,13 @@
         :warnings="warningMessages"
         @warningClose="handleWarningClose"
       />
-      <div v-if="language === 'sql'" class="mt-4">
-        <SqlEditor :code="code" :copied="false" :language="language" />
-      </div>
-      <div v-else class="overflow-hidden w-full h-20">
-        <pre class="white-space"></pre>
+      <div class="">
+        <div v-if="language === 'sql'" class="mt-1">
+          <SqlEditor :code="code" :copied="false" :language="language" />
+        </div>
+        <div v-else class="overflow-hidden w-full h-20">
+          <pre class="white-space"></pre>
+        </div>
       </div>
     </div>
   </div>
