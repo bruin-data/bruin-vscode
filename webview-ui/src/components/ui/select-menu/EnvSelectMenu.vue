@@ -41,4 +41,9 @@ vscode-dropdown {
 vscode-dropdown::part(control) {
   @apply px-1 py-0.5 text-2xs border-0;
 }
+vscode-dropdown::part(listbox) {
+  bottom: auto!important;
+  top: 100%!important;
+  left: 0!important;
+}
 </style>
