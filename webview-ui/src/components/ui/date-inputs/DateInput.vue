@@ -4,7 +4,7 @@
     <div class="relative">
       <input
         type="datetime-local"
-        class="w-full text-2xs px-1 border-0 py-0.5 bg-input-background focus:border-input-border"
+        class="w-full text-2xs text-dropdown-fg px-1 border-0 py-0.5 bg-dropdown-bg focus:border-input-border"
         :value="modelValue"
         @input="updateValue($event)"
       />
