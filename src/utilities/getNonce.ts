@@ -1,4 +1,4 @@
-import { randomBytes } from 'crypto';
+import { randomBytes } from "crypto";
 
 /**
  * A helper function that returns a unique alphanumeric identifier called a nonce.
@@ -9,5 +9,5 @@ import { randomBytes } from 'crypto';
  * @returns A nonce
  */
 export function getNonce() {
-    return randomBytes(16).toString('base64');
+  return randomBytes(16).toString("base64");
 }

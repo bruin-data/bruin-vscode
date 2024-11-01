@@ -205,7 +205,7 @@ export class BruinPanel {
       "custom-elements.css",
     ]);
     const nonce = getNonce();
-   
+
     // Tip: Install the es6-string-html VS Code extension to enable code highlighting below
     return /*html*/ `
       <!DOCTYPE html>

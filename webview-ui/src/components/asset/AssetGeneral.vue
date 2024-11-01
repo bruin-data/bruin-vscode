@@ -2,7 +2,7 @@
   <!-- Container -->
   <div class="divide-y overflow-hidden w-full">
     <!-- Header Section -->
-    <div class="flex flex-col space-y-4">
+    <div class="flex flex-col space-y-3">
       <div class="flex flex-col">
         <!-- Checkbox and Date Controls Row -->
         <div class="flex flex-col xs:flex-row gap-2 w-full justify-between">
@@ -27,7 +27,11 @@
                   <ArrowPathRoundedSquareIcon class="h-3 w-3" aria-hidden="true" />
                 </button>
                 <div class="relative ml-1">
-                  <ChevronUpIcon v-if="showCheckboxGroup" class="h-4 w-4"  @click="updateVisibility" />
+                  <ChevronUpIcon
+                    v-if="showCheckboxGroup"
+                    class="h-4 w-4"
+                    @click="updateVisibility"
+                  />
                   <ChevronDownIcon v-else class="h-4 w-4" @click="updateVisibility" />
                 </div>
               </div>
@@ -42,7 +46,7 @@
       </div>
 
       <!-- Action Buttons Row -->
-      <div class="flex flex-wrap space-y-2 justify-between items-end">
+      <div class="flex flex-wrap justify-between items-end space-y-1">
         <div class="flex-1 relative">
           <EnvSelectMenu
             :options="environments"
@@ -54,12 +58,10 @@
 
         <div class="flex justify-end items-center space-x-2 sm:space-x-4 sm:mt-0">
           <!-- Validate Button Group -->
-          <div class="inline-flex rounded-md shadow-sm">
-            <button
-              type="button"
+          <div class="inline-flex">
+            <vscode-button
               @click="handleBruinValidateCurrentAsset"
               :disabled="isNotAsset || isError"
-              class="relative inline-flex items-center rounded-l-md bg-editor-button-bg px-1.5 py-0.5 text-sm font-medium text-editor-button-fg ring-1 ring-inset ring-editor-button-border hover:bg-editor-button-hover-bg disabled:opacity-50 disabled:cursor-not-allowed focus:z-10"
             >
               <template v-if="validateButtonStatus === 'validated'">
                 <CheckCircleIcon class="h-4 w-4 mr-1 text-editor-button-fg" aria-hidden="true" />
@@ -93,13 +95,13 @@
                 <SparklesIcon class="h-4 w-4 mr-1"></SparklesIcon>
               </template>
               Validate
-            </button>
+            </vscode-button>
             <Menu as="div" class="relative -ml-px block">
               <MenuButton
                 :disabled="isNotAsset || isError"
-                class="relative inline-flex items-center disabled:opacity-50 disabled:cursor-not-allowed rounded-r-md bg-editor-button-bg px-2 py-2 text-editor-button-fg ring-1 ring-inset ring-editor-button-border hover:bg-editor-button-hover-bg focus:z-10"
+                class="relative border border-transparent inline-flex items-center disabled:opacity-50 disabled:cursor-not-allowed bg-editor-button-bg p-1 text-editor-button-fg hover:bg-editor-button-hover-bg focus:z-10"
               >
-                <ChevronDownIcon class="h-5 w-5" aria-hidden="true" />
+                <ChevronDownIcon class="h-4 w-4" aria-hidden="true" />
               </MenuButton>
               <!-- Dropdown Menu for Validate -->
               <transition
@@ -110,35 +112,23 @@
                 leave-from-class="transform opacity-100 scale-100"
                 leave-to-class="transform opacity-0 scale-95"
               >
-                <MenuItems
-                  class="absolute right-2 z-10 -mr-1 w-56 origin-top-right rounded-md bg-editor-button-bg ring-1 ring-opacity-5 focus:outline-none"
-                >
-                  <div class="py-1">
-                    <MenuItem key="validate-current" v-slot="{ active }">
-                      <button
-                        :class="[
-                          active
-                            ? 'bg-editor-button-hover-bg text-editor-button-fg'
-                            : 'bg-editor-button-bg',
-                          'block w-full text-left px-4 py-2 text-sm',
-                        ]"
+                <MenuItems class="absolute right-2 z-10 -mr-1 w-48 origin-top-right">
+                  <div class="p-1 bg-editorWidget-bg rounded-sm border border-commandCenter-border">
+                    <MenuItem key="validate-current">
+                      <vscode-button
+                        class="block rounded-sm w-full text-left text-2xs hover:bg-editor-button-hover-bg bg-editorWidget-bg"
                         @click="handleBruinValidateCurrentPipeline"
                       >
                         Validate current pipeline
-                      </button>
+                      </vscode-button>
                     </MenuItem>
-                    <MenuItem key="validate-all" v-slot="{ active }">
-                      <button
-                        :class="[
-                          active
-                            ? 'bg-editor-button-hover-bg text-editor-button-fg'
-                            : 'bg-editor-button-bg',
-                          'block w-full text-left px-4 py-2 text-sm',
-                        ]"
+                    <MenuItem key="validate-all">
+                      <vscode-button
+                        class="block rounded-sm w-full text-left text-2xs hover:bg-editor-button-hover-bg bg-editorWidget-bg"
                         @click="handleBruinValidateAllPipelines"
                       >
                         Validate all pipelines
-                      </button>
+                      </vscode-button>
                     </MenuItem>
                   </div>
                 </MenuItems>
@@ -147,22 +137,17 @@
           </div>
 
           <!-- Run Button Group -->
-          <div class="inline-flex rounded-md shadow-sm sm:mt-0">
-            <button
-              type="button"
-              @click="runAssetOnly"
-              :disabled="isNotAsset || isError"
-              class="relative inline-flex items-center rounded-l-md bg-editor-button-bg px-3 py-2 text-sm font-medium text-editor-button-fg ring-1 ring-inset ring-editor-button-border hover:bg-editor-button-hover-bg focus:z-10 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+          <div class="inline-flex sm:mt-0">
+            <vscode-button @click="runAssetOnly" :disabled="isNotAsset || isError">
               <PlayIcon class="h-4 w-4 mr-1"></PlayIcon>
               Run
-            </button>
+            </vscode-button>
             <Menu as="div" class="relative -ml-px block">
               <MenuButton
                 :disabled="isNotAsset || isError"
-                class="relative inline-flex items-center disabled:opacity-50 disabled:cursor-not-allowed rounded-r-md bg-editor-button-bg px-2 py-2 text-editor-button-fg ring-1 ring-inset ring-editor-button-border hover:bg-editor-button-hover-bg focus:z-10"
+                class="relative border border-transparent inline-flex items-center disabled:opacity-50 disabled:cursor-not-allowed bg-editor-button-bg p-1 text-editor-button-fg hover:bg-editor-button-hover-bg focus:z-10"
               >
-                <ChevronDownIcon class="h-5 w-5" aria-hidden="true" />
+                <ChevronDownIcon class="h-4 w-4" aria-hidden="true" />
               </MenuButton>
               <!-- Dropdown Menu for Run -->
               <transition
@@ -173,35 +158,23 @@
                 leave-from-class="transform opacity-100 scale-100"
                 leave-to-class="transform opacity-0 scale-95"
               >
-                <MenuItems
-                  class="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-editor-button-bg shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
-                >
-                  <div class="py-1">
+                <MenuItems class="absolute right-0 z-10 w-48 origin-top-right">
+                  <div class="p-1 bg-editorWidget-bg rounded-sm border border-commandCenter-border">
                     <MenuItem key="run-with-downstream" v-slot="{ active }">
-                      <button
-                        :class="[
-                          active
-                            ? 'bg-editor-button-hover-bg text-editor-button-fg'
-                            : 'bg-editor-button-bg',
-                          'block w-full text-left px-4 py-2 text-sm',
-                        ]"
+                      <vscode-button
+                        class="block rounded-sm w-full text-left text-2xs hover:bg-editor-button-hover-bg bg-editorWidget-bg"
                         @click="runAssetWithDownstream"
                       >
                         Run with downstream
-                      </button>
+                      </vscode-button>
                     </MenuItem>
                     <MenuItem key="run-current-pipeline" v-slot="{ active }">
-                      <button
-                        :class="[
-                          active
-                            ? 'bg-editor-button-hover-bg text-editor-button-fg'
-                            : 'bg-editor-button-bg',
-                          'block w-full text-left px-4 py-2 text-sm',
-                        ]"
+                      <vscode-button
+                        class="block rounded-sm w-full text-left text-2xs hover:bg-editor-button-hover-bg bg-editorWidget-bg"
                         @click="runCurrentPipeline"
                       >
                         Run the whole pipeline
-                      </button>
+                      </vscode-button>
                     </MenuItem>
                   </div>
                 </MenuItems>
@@ -224,11 +197,13 @@
         :warnings="warningMessages"
         @warningClose="handleWarningClose"
       />
-      <div v-if="language === 'sql'" class="mt-4">
-        <SqlEditor :code="code" :copied="false" :language="language" />
-      </div>
-      <div v-else class="overflow-hidden w-full h-20">
-        <pre class="white-space"></pre>
+      <div class="">
+        <div v-if="language === 'sql'" class="mt-1">
+          <SqlEditor :code="code" :copied="false" :language="language" />
+        </div>
+        <div v-else class="overflow-hidden w-full h-20">
+          <pre class="white-space"></pre>
+        </div>
       </div>
     </div>
   </div>

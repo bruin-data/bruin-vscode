@@ -187,6 +187,7 @@
   "scripts": {
     "install:all": "npm install && cd webview-ui && npm install",
     "start:webview": "cd webview-ui && npm run start",
+    "dev:watch": "concurrently \"tsc -watch -p ./\" \"cd webview-ui && npm run build-only\" \"code --extensionDevelopmentPath=$PWD\"",
     "build:webview": "cd webview-ui && npm run build-only",
     "vscode:prepublish": "npm run compile",
     "test": "vscode-test",
@@ -217,6 +218,7 @@
     "@vue-flow/controls": "^1.1.1",
     "@vue-flow/core": "^1.33.6",
     "@vue-flow/minimap": "^1.4.0",
+    "concurrently": "^9.0.1",
     "cron-parser": "^4.9.0",
     "elkjs": "^0.9.3",
     "luxon": "^3.4.4",
