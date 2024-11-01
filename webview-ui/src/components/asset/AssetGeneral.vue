@@ -2,7 +2,7 @@
   <!-- Container -->
   <div class="divide-y overflow-hidden w-full">
     <!-- Header Section -->
-    <div class="flex flex-col space-y-4">
+    <div class="flex flex-col space-y-3">
       <div class="flex flex-col">
         <!-- Checkbox and Date Controls Row -->
         <div class="flex flex-col xs:flex-row gap-2 w-full justify-between">
@@ -46,7 +46,7 @@
       </div>
 
       <!-- Action Buttons Row -->
-      <div class="flex flex-wrap space-y-2 justify-between items-end">
+      <div class="flex flex-wrap justify-between items-end mb-2">
         <div class="flex-1 relative">
           <EnvSelectMenu
             :options="environments"
