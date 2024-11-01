@@ -2,6 +2,8 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.25.15] - [2024-11-01]
+- Adjust date input background color to align with GitHub's dimmed dark theme.
 
 ## [0.25.14] - [2024-10-31]
 - Removed the connections from the `fullasset` snippet
