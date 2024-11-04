@@ -23,7 +23,7 @@ export function activate(context: ExtensionContext) {
   const isWindows = os.platform() === "win32";
   const newPathSeparator = isWindows ? "\\" : "/";
   config.update("pathSeparator", newPathSeparator, ConfigurationTarget.Global);
-  
+
   const activeEditor = window.activeTextEditor;
   if (activeEditor) {
     // Focus the active editor if it exists

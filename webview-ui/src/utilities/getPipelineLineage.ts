@@ -1,5 +1,4 @@
 import type { PipelineAssets, SimpleAsset } from "@/types";
-
 /**
  * Parses the pipeline data from the JSON object.
  *
@@ -9,125 +8,90 @@ import type { PipelineAssets, SimpleAsset } from "@/types";
  *
  */
 
-
-
 export const parsePipelineData = (pipelineJson): PipelineAssets => {
-  if (!pipelineJson) {
+  if (!pipelineJson || !pipelineJson.assets || pipelineJson.assets.length === 0) {
     return { assets: [] };
   }
 
-  if (!pipelineJson.assets || pipelineJson.assets.length === 0) {
-    return { assets: [] };
-  }
+  const assetMap: { [name: string]: SimpleAsset } = {};
   const assets = pipelineJson.assets.map((asset) => {
-    return {
+    const newAsset = {
       id: asset.id,
       name: asset.name,
       type: asset.type,
       upstreams: [],
       downstream: [],
     };
+    assetMap[asset.name] = newAsset;
+    return newAsset;
   });
 
-  const assetMap: { [name: string]: SimpleAsset } = {};
-  assets.forEach((asset) => {
-    assetMap[asset.name] = asset;
-  });
-
-  // Populate upstreams
+  // Populate upstreams and downstreams
   pipelineJson.assets.forEach((asset) => {
     if (asset.upstreams) {
       const upstreamNames = asset.upstreams.map((upstream) => upstream.value);
       assetMap[asset.name].upstreams = upstreamNames;
-    }
-  });
 
-  // Populate downstreams
-  pipelineJson.assets.forEach((asset) => {
-    if (asset.upstreams) {
-      asset.upstreams.forEach((upstream) => {
-        if (assetMap[upstream.value]) {
-          assetMap[upstream.value].downstream.push(asset.name);
+      upstreamNames.forEach((upstreamName) => {
+        if (assetMap[upstreamName]) {
+          assetMap[upstreamName].downstream.push(asset.name);
         }
       });
     }
   });
+
   return { assets };
 };
-// function that get the full dependencies of an asset and return all the dependencies of the asset dependencies and so on
-// until all the dependencies are found
+
+// Function that gets the full dependencies of an asset and returns all the dependencies recursively
 export const getAssetDependencies = (assetId: string, pipelineAssets: SimpleAsset[]): any => {
   const asset = pipelineAssets.find((asset) => asset.id === assetId);
-  if (!asset) {
-    return null;
-  }
+  if (!asset) return null;
 
   const buildDependencyTree = (currentAssetId: string, visited: Set<string> = new Set()): any => {
-    if (visited.has(currentAssetId)) {
-      return null; // Circular dependency detected, stop recursion
-    }
+    if (visited.has(currentAssetId)) return null; // Circular dependency detected
 
     visited.add(currentAssetId);
-
     const currentAsset = pipelineAssets.find((asset) => asset.id === currentAssetId);
-    if (!currentAsset) {
-      return null;
-    }
+    if (!currentAsset) return null;
 
-    const buildDependency = (dependencyName: string) => {
+    const upstreams = currentAsset.upstreams.map((dependencyName) => {
       const dependencyAsset = pipelineAssets.find((asset) => asset.name === dependencyName);
-      if (dependencyAsset) {
-        return buildDependencyTree(dependencyAsset.id, new Set(visited));
-      } else {
-        // If the asset is not found in pipelineAssets, still include it in the tree
-        return {
-          name: dependencyName,
-          upstreams: [],
-          downstream: [],
-        };
-      }
-    };
+      return dependencyAsset ? buildDependencyTree(dependencyAsset.id, new Set(visited)) : { name: dependencyName, upstreams: [], downstream: [] };
+    });
 
-    const upstreams = currentAsset.upstreams.map(buildDependency);
-    const downstream = currentAsset.downstream.map(buildDependency);
+    const downstreams = currentAsset.downstream.map((dependencyName) => {
+      const dependencyAsset = pipelineAssets.find((asset) => asset.name === dependencyName);
+      return dependencyAsset ? buildDependencyTree(dependencyAsset.id, new Set(visited)) : { name: dependencyName, upstreams: [], downstream: [] };
+    });
 
     return {
       name: currentAsset.name,
-      upstreams: upstreams.filter(Boolean), // Remove nulls from the array
-      downstream: downstream.filter(Boolean), // Remove nulls from the array
+      upstreams: upstreams.filter(Boolean),
+      downstream: downstreams.filter(Boolean),
     };
   };
 
   return buildDependencyTree(assetId);
 };
 
-// function that process the asset dependencies and return the dependencies that can be clicked
-
+// Function that processes the asset dependencies and returns the dependencies that can be clicked
 export const processAssetDependencies = (assetId: string, pipelineAssets: SimpleAsset[]): any => {
   const assetDependencies = getAssetDependencies(assetId, pipelineAssets);
-  if (!assetDependencies) {
-    return null;
-  }
+  if (!assetDependencies) return null;
 
-  const processDependency = (dependency) => {
-    const hasUpstreamForClicking = dependency.upstreams.length > 0;
-    const hasDownstreamForClicking = dependency.downstream.length > 0;
-    return {
-      name: dependency.name,
-      hasUpstreamForClicking,
-      hasDownstreamForClicking,
-    };
-  };
-
-  const processDependencies = (dependencies) => {
-    return dependencies.map(processDependency);
-  };
+  const processDependency = (dependency) => ({
+    name: dependency.name,
+    hasUpstreamForClicking: dependency.upstreams.length > 0,
+    hasDownstreamForClicking: dependency.downstream.length > 0,
+  });
 
   return {
     name: assetDependencies.name,
-    upstreams: processDependencies(assetDependencies.upstreams),
-    downstream: processDependencies(assetDependencies.downstream),
+    upstreams: assetDependencies.upstreams.map(processDependency),
+    downstream: assetDependencies.downstream.map(processDependency),
   };
 }
+
 
 

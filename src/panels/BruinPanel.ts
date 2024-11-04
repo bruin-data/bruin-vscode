@@ -195,7 +195,15 @@ export class BruinPanel {
   private _getWebviewContent(webview: Webview, extensionUri: Uri) {
     const stylesUri = getUri(webview, extensionUri, ["webview-ui", "build", "assets", "index.css"]);
     const scriptUri = getUri(webview, extensionUri, ["webview-ui", "build", "assets", "index.js"]);
-
+    const scriptUriCustomElt = webview.asWebviewUri(
+      vscode.Uri.joinPath(extensionUri, "webview-ui", "build", "assets", "custom-elements.js")
+    );
+    const stylesUriCustomElt = getUri(webview, extensionUri, [
+      "webview-ui",
+      "build",
+      "assets",
+      "custom-elements.css",
+    ]);
     const nonce = getNonce();
 
     // Tip: Install the es6-string-html VS Code extension to enable code highlighting below
@@ -205,8 +213,15 @@ export class BruinPanel {
         <head>
           <meta charset="UTF-8" />
           <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-          <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
+          <meta http-equiv="Content-Security-Policy" content="
+            default-src 'none';
+            img-src ${webview.cspSource} https:;
+            script-src 'nonce-${nonce}' ${webview.cspSource};
+            style-src ${webview.cspSource} 'unsafe-inline';
+            font-src ${webview.cspSource};
+          ">
           <link rel="stylesheet" type="text/css" href="${stylesUri}">
+          <link rel="stylesheet" href="${stylesUriCustomElt}">
           <title>Bruin Panel</title>
         </head>
         <body>
@@ -216,6 +231,11 @@ export class BruinPanel {
                 console.error('Webview error:', message, 'at line:', lineno, 'source:', source, 'error:', error);
               };
           </script>
+          <script type="module" nonce="${nonce}" src="${scriptUriCustomElt}">
+                window.onerror = function(message, source, lineno, colno, error) {
+                console.error('Webview error:', message, 'at line:', lineno, 'source:', source, 'error:', error);
+              };
+          </script>        
         </body>
       </html>
     `;

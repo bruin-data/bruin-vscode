@@ -17,6 +17,11 @@ module.exports = {
         "2xl": "1400px",
       },
     },
+    screens: {
+      "xs": "480px",
+      "2xs": "320px",
+      "3xs": "240px",
+    },
     extend: {
       typography: (theme) => ({
         DEFAULT: {
@@ -60,7 +65,7 @@ module.exports = {
         },
       }),
       fontSize: {
-        "2xs": "0.6rem",
+        "2xs": ["0.75rem", { lineHeight: "1rem" }],
       },
       colors: {
         "border": "hsl(var(--border))",
@@ -77,7 +82,8 @@ module.exports = {
         "errorForeground": "var(--vscode-errorForeground)",
         "editorError-foreground"	: "var(--vscode-editorError-foreground)",
         "editor-button-border": "var(--vscode-button-border)",
-        "link-activeForeground": "var(--vscode-textLink-activeForeground)",
+        "textLink-activeForeground": "var(--vscode-textLink-activeForeground)",
+        "editorLink-activeForeground"	: "var(--vscode-editorLink-activeForeground)",
         "menu-hoverBackground": "var(--vscode-scrollbarSlider-hoverBackground)",
         "progressBar-bg": "var(--vscode-progressBar-background)",
         "editorError-foreground": "var(--vscode-editorError-foreground)",
@@ -99,6 +105,9 @@ module.exports = {
         "editorLink-activeFg": "var(--vscode-editorLink-activeForeground)",
         "commandCenter-border": "var(--vscode-commandCenter-border)",
         "commandCenter-fg":"var(--vscode-commandCenter-foreground)",
+        "commandCenter-bg":"var(--vscode-commandCenter-background)",
+        "icon-forground": "var(--vscode-icon-foreground)",
+        "dropdown-bg": "var(--vscode-dropdown-background)",
 
         "primary": {
           DEFAULT: "hsl(var(--primary))",

@@ -132,7 +132,7 @@ export class BruinCreateConnection extends BruinCommand {
       "--credentials",
       credentialsString,
       "-o",
-      "json"
+      "json",
     ];
 
     await this.run(flags, { ignoresErrors })

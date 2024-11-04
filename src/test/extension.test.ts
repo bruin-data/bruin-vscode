@@ -194,22 +194,30 @@ suite("Manage Bruin Connections Tests", function () {
                 token: "",
                 path: "",
                 host: "host",
-                port: 1228
-              }
+                port: 1228,
+              },
             ],
             generic: [
               {
                 name: "test23",
-                value: "val"
-              }
-            ]
-          }
-        }
-      }
+                value: "val",
+              },
+            ],
+          },
+        },
+      },
     };
     const connections = extractNonNullConnections(singleEnvconnections);
     assert.deepStrictEqual(connections, [
-      { environment: "staging", type: "databricks", name: "databrick", token: "", path: "", host: "host", port: 1228 },
+      {
+        environment: "staging",
+        type: "databricks",
+        name: "databrick",
+        token: "",
+        path: "",
+        host: "host",
+        port: 1228,
+      },
       { environment: "staging", type: "generic", name: "test23", value: "val" },
     ]);
   });
@@ -243,7 +251,12 @@ suite("Manage Bruin Connections Tests", function () {
     };
     const connections = extractNonNullConnections(multiEnvconnections);
     assert.deepStrictEqual(connections, [
-      { environment: "default", type: "google_cloud_platform", name: "gcp_project", project_id: "gcp_project_id" },
+      {
+        environment: "default",
+        type: "google_cloud_platform",
+        name: "gcp_project",
+        project_id: "gcp_project_id",
+      },
       { environment: "staging", type: "aws", name: "aws_project", access_key_id: "aws_access_key" },
     ]);
   });
@@ -271,7 +284,12 @@ suite("Manage Bruin Connections Tests", function () {
     const connections = extractNonNullConnections(singleEnvconnections);
     assert.deepStrictEqual(connections, [
       { environment: "default", type: "google_cloud_platform", project_id: "gcp_project_id" },
-      { environment: "default", type: "aws", name: "aws_connection", access_key_id: "aws_access_key" },
+      {
+        environment: "default",
+        type: "aws",
+        name: "aws_connection",
+        access_key_id: "aws_access_key",
+      },
     ]);
   });
 

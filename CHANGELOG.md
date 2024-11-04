@@ -2,6 +2,39 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.25.17] - [2024-11-01]
+- Refactored asset validation and run button styles to improve consistency with the VSCode editor.
+
+## [0.25.16] - [2024-11-01]
+- Adjust the position of the environment dropdown menu, moving it from the top to the bottom.
+
+## [0.25.15] - [2024-11-01]
+- Adjust date input background color to align with GitHub's dimmed dark theme.
+
+## [0.25.14] - [2024-10-31]
+- Removed the connections from the `fullasset` snippet
+
+## [0.25.13] - [2024-10-31]
+- Replaced ellipsis icon with arrow icon to toggle checkbox group.
+
+## [0.25.12] - [2024-10-31]
+- Improved UI consistency for DateInput and CheckboxGroup components, including updated styling and layout adjustments.
+
+## [0.25.11] - [2024-10-31]
+- Improved error handling to display 'panic' errors more clearly.
+
+## [0.25.10] - [2024-10-29]
+- Added 'Show More' for long descriptions, displayed pipeline names before asset titles, and optimized view by hiding tags and pipeline names on smaller screens.
+
+## [0.25.9] - [2024-10-25]
+- Rearrange asset details layout: move asset name and tags to the top with tabs positioned below for improved UI structure.
+
+## [0.25.8] - [2024-10-25]
+- Moved Lineage Panel to a dedicated component for improved organization and performance.
+
+## [0.25.7] - [2024-10-24]
+- Updated Content-Security-Policy for BruinPanel and LineagePanel, and refactored initialization logic for improved security and performance.
+
 ## [0.25.6] - [2024-10-23]
 - Added support for Athena connections in the Bruin configuration schema and connection form.
 

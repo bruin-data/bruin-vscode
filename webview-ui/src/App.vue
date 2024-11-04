@@ -1,5 +1,31 @@
 <template>
-  <vscode-panels :activeid="`tab-${activeTab}`" aria-label="Tabbed Content">
+  <div class="">
+    <div class="flex items-center space-x-2 w-full justify-between pt-2">
+      <!-- Name editing -->
+      <div
+        class="flex items-baseline w-3/4 font-md text-editor-fg text-lg font-mono cursor-pointer"
+      >
+        <!-- Hide the pipeline name and the slash when the panel is too small -->
+        <div class="pipeline-name max-w-[40%] text-xs opacity-50 truncate inline-block">
+          {{ assetDetailsProps?.pipeline.name }}
+        </div>
+        <span class="slash opacity-50 text-xs px-0.5">/</span>
+        <div class="flex-grow inline-block">
+          {{ assetDetailsProps?.name }}
+        </div>
+      </div>
+      <!--     hide the tags when the panel is too small -->
+      <div class="tags flex w-1/4 items-center space-x-2 justify-end overflow-hidden">
+        <DescriptionItem :value="assetDetailsProps?.type" :className="badgeClass.badgeStyle" />
+        <DescriptionItem
+          :value="assetDetailsProps?.pipeline.schedule"
+          :className="badgeClass.grayBadge"
+          class="xs:flex hidden overflow-hidden truncate"
+        />
+      </div>
+    </div>
+  </div>
+  <vscode-panels :activeid="`tab-${activeTab}`" aria-label="Tabbed Content" class="pl-0">
     <!-- Tab Headers -->
     <vscode-panel-tab
       v-for="(tab, index) in visibleTabs"
@@ -8,14 +34,7 @@
       @click="activeTab = index"
     >
       <div class="flex items-center justify-center">
-        <span>{{ tab && tab.label }}</span>
-        <ArrowPathIcon
-          v-if="tab.label === 'Lineage' && activeTab === index"
-          @click="refreshGraphLineage"
-          class="ml-2 w-4 h-4 text-link-activeForeground hover:text-progressBar-bg focus:outline-none"
-          title="Refresh"
-        >
-        </ArrowPathIcon>
+        <span>{{ tab.label }}</span>
       </div>
     </vscode-panel-tab>
 
@@ -25,11 +44,12 @@
       :key="`view-${index}`"
       :id="`view-${index}`"
       v-show="activeTab === index"
+      class="px-0"
     >
       <component
-        v-if="tab.props !== null"
-        :is="tab && tab.component"
-        v-bind="tab && tab.props"
+        v-if="tab.props"
+        :is="tab.component"
+        v-bind="tab.props"
         class="flex w-full"
         @update:assetName="updateAssetName"
         @update:columns="updateColumns"
@@ -43,24 +63,28 @@
 
 <script setup lang="ts">
 import AssetDetails from "@/components/asset/AssetDetails.vue";
-import AssetLineageText from "@/components/lineage-text/AssetLineageText.vue";
-import AssetLineageFlow from "@/components/lineage-flow/asset-lineage/AssetLineage.vue";
 import { vscode } from "@/utilities/vscode";
 import { ref, onMounted, computed, watch } from "vue";
 import { parseAssetDetails, parseEnvironmentList } from "./utilities/helper";
 import { updateValue } from "./utilities/helper";
 import MessageAlert from "@/components/ui/alerts/AlertMessage.vue";
-import { getAssetDataset } from "@/components/lineage-flow/asset-lineage/useAssetLineage";
-import { ArrowPathIcon } from "@heroicons/vue/20/solid";
+import { useConnectionsStore } from "./store/bruinStore";
 import type { EnvironmentsList } from "./types";
 import AssetColumns from "@/components/asset/columns/AssetColumns.vue";
 import BruinSettings from "@/components/bruin-settings/BruinSettings.vue";
-import { useConnectionsStore } from "./store/bruinStore";
+import DescriptionItem from "./components/ui/description-item/DescriptionItem.vue";
+import { badgeStyles, defaultBadgeStyle } from "./components/ui/badges/CustomBadgesStyle";
+/**
+ * App Component
+ *
+ * This component serves as the main application interface for managing assets.
+ * It handles communication with the VSCode extension, manages the state of
+ * asset data, and renders different tabs for asset details, columns, and settings.
+ */
 
 const connectionsStore = useConnectionsStore();
-const panelType = ref("");
-const parseError = ref();
-const environments = ref<EnvironmentsList | null>(null);
+const parseError = ref(); // Holds any parsing errors
+const environments = ref<EnvironmentsList | null>(null); // Holds the list of environments
 const data = ref(
   JSON.stringify({
     asset: {
@@ -73,60 +97,54 @@ const data = ref(
     },
   })
 );
-const isBruinInstalled = ref(true);
-const lineageData = ref();
-const lastRenderedDocument = ref("");
-const lineageError = ref();
+const isBruinInstalled = ref(true); // Tracks if Bruin is installed
+const lastRenderedDocument = ref(""); // Holds the last rendered document
 
+// Event listener for messages from the VSCode extension
 window.addEventListener("message", (event) => {
   const message = event.data;
   switch (message.command) {
     case "init":
-      panelType.value = message.panelType;
-      lastRenderedDocument.value = message.lastRenderedDocument;
+      lastRenderedDocument.value = message.lastRenderedDocument; // Update last rendered document
       console.log("Last Rendered:", lastRenderedDocument.value);
-      break;
-    case "lastRenderedDocument":
-      lastRenderedDocument.value = updateValue(message, "success");
-      console.log("Last Rendered 2:", lastRenderedDocument.value);
       break;
     case "environments-list-message":
       environments.value = updateValue(message, "success");
-      lastRenderedDocument.value = updateValue(message, "success");
       connectionsStore.setDefaultEnvironment(selectedEnvironment.value); // Set the default environment in the store
       break;
     case "parse-message":
       parseError.value = updateValue(message, "error");
-      if(!parseError.value) {
-        data.value = updateValue(message, "success");
+      if (!parseError.value) {
+        data.value = updateValue(message, "success"); // Update asset data on success
       }
       lastRenderedDocument.value = updateValue(message, "success");
       break;
     case "bruinCliInstallationStatus":
-      isBruinInstalled.value = message.installed;
-      break;
-    case "flow-lineage-message":
-      lineageData.value = updateValue(message, "success");
-      lineageError.value = updateValue(message, "error");
+      isBruinInstalled.value = message.installed; // Update installation status
       break;
   }
 });
 
-const activeTab = ref(0);
+const activeTab = ref(0); // Tracks the currently active tab
+
+// Computed property to check if the last rendered document is a Bruin YAML file
 const isBruinYml = computed(() => {
   return lastRenderedDocument.value && lastRenderedDocument.value.endsWith(".bruin.yml");
 });
 
+// Computed property to parse the list of environments
 const environmentsList = computed(() => {
   if (!environments.value) return [];
   return parseEnvironmentList(environments.value)?.environments || [];
 });
 
+// Computed property to get the selected environment
 const selectedEnvironment = computed(() => {
   if (!environments.value) return [];
   return parseEnvironmentList(environments.value)?.selectedEnvironment || "something went wrong";
 });
 
+// Computed property for asset details
 const assetDetailsProps = computed({
   get: () => {
     if (!data.value) return null;
@@ -134,39 +152,25 @@ const assetDetailsProps = computed({
   },
   set: (newValue) => {
     if (newValue) {
-      data.value = JSON.stringify({ asset: newValue });
+      data.value = JSON.stringify({ asset: newValue }); // Update asset data
     }
   },
 });
 
+// Computed property for asset columns
 const columnsProps = computed(() => {
   if (!data.value) return [];
   const details = parseAssetDetails(data.value);
   return details?.columns || [];
 });
 
-const columns = ref([...columnsProps.value]);
+const columns = ref([...columnsProps.value]); // Reactive reference for columns
 
-const pipeline = computed(() => {
-  if (!lineageData.value || !lineageData.value.pipeline) return null;
-  try {
-    return JSON.parse(lineageData.value.pipeline);
-  } catch (error) {
-    console.error("Error parsing pipeline data:", error);
-    return null;
-  }
-});
-
-const lineageErr = computed(() => lineageError.value);
-const assetName = computed(() => lineageData.value?.name ?? null);
-const assetId = computed(() => lineageData.value?.id ?? null);
-const assetDataset = computed(() => getAssetDataset(pipeline.value, assetId.value));
-
+// Define tabs for the application
 const tabs = ref([
   {
     label: "Asset Details",
     component: AssetDetails,
-    includeIn: ["bruin"],
     props: computed(() => ({
       ...assetDetailsProps.value,
       environments: environmentsList.value,
@@ -177,55 +181,44 @@ const tabs = ref([
   {
     label: "Columns",
     component: AssetColumns,
-    includeIn: ["bruin"],
     props: computed(() => ({
       columns: columns.value,
     })),
   },
-  { label: "Asset Lineage", component: AssetLineageText, includeIn: ["bruin"] },
   {
     label: "Settings",
     component: BruinSettings,
-    includeIn: ["bruin"],
     props: {
       isBruinInstalled: computed(() => isBruinInstalled.value),
       environments: computed(() => environmentsList.value),
     },
   },
-  {
-    label: "Lineage",
-    component: AssetLineageFlow,
-    includeIn: ["Lineage"],
-    props: {
-      assetDataset: computed(() => getAssetDataset(pipeline.value, assetId.value)),
-      pipelineData: computed(() => pipeline.value),
-      name: assetName.value,
-      LineageError: lineageErr.value,
-    },
-  },
 ]);
 
+// Computed property to determine which tabs to show based on the document type
 const visibleTabs = computed(() => {
   if (isBruinYml.value) {
     // Only show the "Settings" tab
     return tabs.value.filter((tab) => tab.label === "Settings");
   }
-  // Show tabs based on panel type
-  return tabs.value.filter((tab) => tab.includeIn.includes(panelType.value));
+  // Show all tabs
+  return tabs.value;
 });
 
+// Lifecycle hook to load data when the component is mounted
 onMounted(() => {
-  loadLineageData();
   loadAssetData();
   loadEnvironmentsList();
   checkBruinCliInstallation();
   vscode.postMessage({ command: "getLastRenderedDocument" });
 });
 
+// Function to check if Bruin CLI is installed
 function checkBruinCliInstallation() {
   vscode.postMessage({ command: "checkBruinCliInstallation" });
 }
 
+// Debounce function to limit the rate at which a function can fire
 const debounce = (func, wait) => {
   let timeout;
   return function executedFunction(...args) {
@@ -238,17 +231,7 @@ const debounce = (func, wait) => {
   };
 };
 
-watch(
-  () => [assetDataset, pipeline],
-  ([newAssetDataset, newPipeline]) => {
-    console.log("Asset dataset or pipeline changed:", {
-      assetDataset: newAssetDataset,
-      pipeline: newPipeline,
-    });
-  },
-  { deep: true }
-);
-
+// Watcher to update columns when columnsProps change
 watch(
   columnsProps,
   (newColumns) => {
@@ -257,37 +240,55 @@ watch(
   { deep: true }
 );
 
+// Function to update columns
 const updateColumns = (newColumns) => {
   columns.value = newColumns;
 };
 
-// Updated refreshGraphLineage function
-const refreshGraphLineage = debounce((event: Event) => {
-  event.stopPropagation(); // Prevent event bubbling
-  vscode.postMessage({ command: "bruin.assetGraphLineage" });
-}, 300); // 300ms debounce time
-
-function loadLineageData() {
-  vscode.postMessage({ command: "bruin.getAssetLineage" });
-}
-
+// Function to load asset data
 function loadAssetData() {
   vscode.postMessage({ command: "bruin.getAssetDetails" });
 }
 
+// Function to load the list of environments
 function loadEnvironmentsList() {
   vscode.postMessage({ command: "bruin.getEnvironmentsList" });
 }
 
-function updateAssetName(newName) {
+// Function to update the asset name
+const updateAssetName = (newName) => {
   if (assetDetailsProps.value) {
     assetDetailsProps.value.name = newName;
   }
   tabs.value.forEach((tab) => {
     if (tab && tab.props && "name" in tab.props) {
-      tab.props.name = newName;
+      tab.props.name = newName; // Update the name in the tab props
     }
   });
   vscode.postMessage({ command: "bruin.updateAssetName", name: newName });
-}
+};
+
+const badgeClass = computed(() => {
+  const commonStyle =
+    "inline-flex items-center rounded-md px-1 py-0.5 text-xs font-medium ring-1 ring-inset";
+  const styleForType = badgeStyles[assetDetailsProps.value?.type] || defaultBadgeStyle;
+  return {
+    commonStyle: commonStyle,
+    grayBadge: `${commonStyle} ${defaultBadgeStyle.main}`,
+    badgeStyle: `${commonStyle} ${styleForType.main}`,
+  };
+});
 </script>
+<style>
+vscode-panels::part(tablist) {
+  padding-left: 0 !important;
+}
+/* Media query to hide the pipeline name, slash, and tags when the panel is too small */
+@media (max-width: 320px) {
+  .pipeline-name,
+  .slash,
+  .tags {
+    display: none;
+  }
+}
+</style>

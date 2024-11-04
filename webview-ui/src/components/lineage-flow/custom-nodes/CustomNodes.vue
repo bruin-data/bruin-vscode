@@ -3,8 +3,8 @@
     <div
       v-if="showUpstreamIcon"
       @click.stop="onAddUpstream"
-      class="icon-wrapper left-icon"
-      :class="props.data.hasUpstreamForClicking ? '' : 'invisible'"
+      class="icon-wrapper left-icon bg-commandCenter-border"
+      :class="{ invisible: !props.data.hasUpstreamForClicking }"
       title="Show Upstreams"
     >
       <PlusIcon class="h-4 w-4 fill-gray-300 text-gray-700/50 hover:text-gray-700" />
@@ -13,14 +13,9 @@
     <div class="node-content" :class="assetClass" @click="togglePopup">
       <div
         v-if="data.type === 'asset'"
-        :class="[
-          props.data.asset?.isFocusAsset
-            ? 'ring-2 ring-offset-4 ring-indigo-300 outline-2 outline-dashed outline-offset-8 outline-indigo-300 rounded'
-            : '',
-          data.highlight ? '' : '',
-        ]"
+        :class="assetHighlightClass"
       >
-        <div class="flex justify-between" :class="status ? selectedStatusStyle : ''">
+        <div class="flex justify-between" :class="selectedStatusStyle">
           <div class="flex items-center px-2 font-mono text-sm font-semibold space-x-1">
             <div
               v-if="status === 'running'"
@@ -52,7 +47,7 @@
 
             <!-- Tooltip -->
             <div
-              v-if="isTurncated"
+              v-if="isTruncated"
               class="absolute left-0 top-0 w-max px-2 text-sm rounded opacity-0 py-1 group-hover:opacity-100 transition-opacity duration-200 group-hover:cursor-pointer"
               :class="selectedStyle.main"
             >
@@ -66,7 +61,7 @@
     <div
       v-if="showDownstreamIcon"
       @click.stop="onAddDownstream"
-      class="icon-wrapper right-icon"
+      class="icon-wrapper right-icon bg-commandCenter-border"
       title="Show Downstreams"
     >
       <PlusIcon class="h-4 w-4 fill-gray-300 text-gray-700/50 hover:text-gray-700" />
@@ -96,99 +91,60 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, defineProps, defineEmits, ref, onMounted, onUnmounted, watch } from "vue";
+import { computed, defineProps, defineEmits, onMounted, onUnmounted } from "vue";
 import { Handle, Position } from "@vue-flow/core";
 import { PlusIcon } from "@heroicons/vue/20/solid";
 import type { BruinNodeProps } from "@/types";
 import AssetProperties from "@/components/ui/asset/AssetProperties.vue";
 import { vscode } from "@/utilities/vscode";
-
 import {
   defaultStyle,
   statusStyles,
   styles,
 } from "@/components/lineage-flow/custom-nodes/CustomNodeStyles";
+
 const props = defineProps<BruinNodeProps & {
   selectedNodeId: string | null;
 }>();
-const selectedStyle = computed(() => {
-  if (props.data?.type === "project") {
-    console.log("Project", props.data?.type);
-    return defaultStyle;
-  }
+const emit = defineEmits(["add-upstream", "add-downstream", "node-click"]);
 
-  return styles[props.data?.asset?.type!!] || defaultStyle;
-});
-
-const selectedStatusStyle = computed(() => {
-  return statusStyles[props.status || "unknown"];
-});
-
+const selectedStyle = computed(() => styles[props.data?.asset?.type || "default"] || defaultStyle);
+const selectedStatusStyle = computed(() => statusStyles[props.status || ""]);
 const isAsset = computed(() => props.data.type === "asset");
 
-const assetHasUpstreams = computed(() => {
-  const result = isAsset.value && props.data.asset?.hasUpstreams;
-  console.log(`Asset ${props.data.asset?.name} has upstreams: ${result}`);
-  return result;
-});
-
-const assetHasDownstreams = computed(() => {
-  const result = isAsset.value && props.data.asset?.hasDownstreams;
-  console.log(`Asset ${props.data.asset?.name} has downstreams: ${result}`);
-  return result;
-});
-
-const handleStyle = computed(() => ({
-  opacity: 0,
-}));
+const assetHasUpstreams = computed(() => isAsset.value && props.data.asset?.hasUpstreams !== undefined);
+const assetHasDownstreams = computed(() => isAsset.value && props.data.asset?.hasDownstreams);
 
 const showUpstreamIcon = computed(() => isAsset.value && props.data?.hasUpstreamForClicking);
 const showDownstreamIcon = computed(() => isAsset.value && props.data?.hasDownstreamForClicking);
 
-const isTurncated = computed(() => {
-  if (!props.data.asset?.name) return false;
-  return props.data.asset?.name.length > 26;
+const isTruncated = computed(() => (props.data.asset?.name?.length || 0) > 26);
+const assetClass = computed(() => `rounded w-56 ${props.status ? selectedStatusStyle.value : ''}`);
+
+const assetHighlightClass = computed(() => {
+  return props.data.asset?.isFocusAsset
+    ? 'ring-2 ring-offset-4 ring-indigo-300 outline-2 outline-dashed outline-offset-8 outline-indigo-300 rounded'
+    : '';
 });
 
-const assetClass = computed(() => {
-  let classes = "rounded w-56";
-  if (props.status) {
-    classes += ` ${selectedStatusStyle.value}`;
-  }
-  return classes;
-});
-const emit = defineEmits(["add-upstream", "add-downstream", "node-click"]);
-const onAddUpstream = () => {
-  emit("add-upstream", props.data.asset?.name);
-};
-const onAddDownstream = () => {
-  emit("add-downstream", props.data.asset?.name);
-};
+const onAddUpstream = () => emit("add-upstream", props.data.asset?.name);
+const onAddDownstream = () => emit("add-downstream", props.data.asset?.name);
 
-const showPopup = computed(() => {
-  return props.selectedNodeId === props.data.asset?.name && !props.data.asset?.isFocusAsset;
-});
+const showPopup = computed(() => props.selectedNodeId === props.data.asset?.name && !props.data.asset?.isFocusAsset);
 const togglePopup = (event: MouseEvent) => {
   event.stopPropagation();
   emit("node-click", props.data.asset?.name, event);
 };
 
-const closePopup = () => {
-  emit("node-click", null, new MouseEvent('click'));
-};
+const closePopup = () => emit("node-click", null, new MouseEvent('click'));
 
 const handleGoToDetails = (asset: any) => {
-  vscode.postMessage({
-    command: "bruin.openAssetDetails",
-    payload: asset.path,
-  });
+  vscode.postMessage({ command: "bruin.openAssetDetails", payload: asset.path });
   closePopup();
 };
 
 const handleClickOutside = (event: MouseEvent) => {
-  if (showPopup.value) {
-    closePopup();
-  }
+  if (showPopup.value) closePopup();
 };
 
 onMounted(() => {
@@ -223,7 +179,6 @@ onUnmounted(() => {
   border: 1px solid rgba(55, 65, 81, 0.3);
   border-radius: 4px;
   cursor: pointer;
-  background-color: rgba(17, 24, 39, 0.8);
   z-index: 10;
 }
 

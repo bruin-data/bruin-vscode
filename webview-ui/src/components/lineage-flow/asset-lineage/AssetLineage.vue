@@ -41,7 +41,7 @@
 import { VueFlow, useVueFlow } from "@vue-flow/core";
 import { Background } from "@vue-flow/background";
 import { Controls } from "@vue-flow/controls";
-import type { NodeTypesObject, Node, Edge, NodeDragEvent, XYPosition } from "@vue-flow/core";
+import type { NodeDragEvent, XYPosition } from "@vue-flow/core";
 import { computed, onMounted, defineProps, watch, ref } from "vue";
 import ELK from "elkjs/lib/elk.bundled.js";
 import CustomNode from "@/components/lineage-flow/custom-nodes/CustomNodes.vue";
@@ -53,10 +53,10 @@ import {
 import type { AssetDataset } from "@/types";
 
 const props = defineProps<{
-  assetDataset?: AssetDataset;
+  assetDataset?: AssetDataset | null;  // Change this to accept null
   pipelineData: any;
-  isLoading: boolean,  // Pass loading state
-  LineageError: string | null,  // Pass error state
+  isLoading: boolean;
+  LineageError: string | null;
 }>();
 
 const selectedNodeId = ref<string | null>(null);
@@ -72,15 +72,8 @@ const onNodeClick = (nodeId: string, event: MouseEvent) => {
   }
 };
 
-console.log("=====================================\n");
 
-console.log("Lineage Error from webview ", props.LineageError);
-
-const nodeTypes: NodeTypesObject = {
-  custom: CustomNode as any,
-};
-
-const { nodes, edges, addNodes, addEdges, setNodes, setEdges } = useVueFlow();
+const { nodes, edges, addNodes, addEdges, setNodes } = useVueFlow();
 const elements = computed(() => [...nodes.value, ...edges.value]);
 const onPaneReady = () => {
   updateLayout();
@@ -91,8 +84,6 @@ const isLoading = ref(true);
 const error = ref<string | null>(props.LineageError);
 
 error.value = !props.assetDataset ? "No Lineage Data Available" : null;
-
-
 
 // Function to update node positions based on ELK layout
 const updateNodePositions = (layout: any) => {
