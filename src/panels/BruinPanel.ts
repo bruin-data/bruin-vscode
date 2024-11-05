@@ -4,7 +4,6 @@ import { getNonce } from "../utilities/getNonce";
 import {
   BruinValidate,
   bruinWorkspaceDirectory,
-  checkBruinCliInstallation,
   getCurrentPipelinePath,
   runInIntegratedTerminal,
 } from "../bruin";
@@ -397,10 +396,6 @@ export class BruinPanel {
             this.checkAndUpdateBruinCliStatus();
             break;
 
-          case "checkBruinCliInstallation":
-            await this.checkAndUpdateBruinCliStatus();
-            break;
-
           case "bruinInstallOrUpdateCLI":
             await this.installOrUpdateBruinCli();
             break;
@@ -472,12 +467,13 @@ export class BruinPanel {
     );
   }
   private async checkAndUpdateBruinCliStatus() {
-    const { installed, isWindows, goInstalled } = await checkBruinCliInstallation();
+    const bruinInstaller = new BruinInstallCLI();
+    const { installed, isWindows, gitAvailable } = await bruinInstaller.checkBruinCliInstallation();
     this._panel.webview.postMessage({
       command: "bruinCliInstallationStatus",
       installed,
       isWindows,
-      goInstalled,
+      gitAvailable,
     });
   }
   public getCheckboxFlags(): string {
@@ -489,7 +485,8 @@ export class BruinPanel {
   private async installOrUpdateBruinCli() {
     try {
       const bruinInstaller = new BruinInstallCLI();
-      const { installed } = await checkBruinCliInstallation();
+      const { installed } = await bruinInstaller.checkBruinCliInstallation();
+      console.log("Bruin CLI installed:", installed);
       await bruinInstaller.installOrUpdate(installed);
       await this.checkAndUpdateBruinCliStatus();
     } catch (error) {
