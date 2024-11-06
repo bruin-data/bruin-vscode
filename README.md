@@ -106,10 +106,11 @@ Use the new connections section from `Settings` tab to view, add, or delete conn
 Access the Bruin CLI management tab `Settings` in the side panel for easy installation and updates.
 
 ## Release Notes
-### Latest Release: 0.25.26
-- Fixed the validate and run buttons height. 
+### Latest Release: 0.25.27
+- Fixed the validate and run buttons hover colors to match the vscode themes. 
 
 ### Previous Highlights
+- **0.25.26**: Fixed the validate and run buttons height. 
 - **0.25.25**: Added excetuable path to the bruin commands to run on the powershell. 
 - **0.25.24**: Added excetuable path option to the configuration for windows. 
 - **0.25.23**: Updated the logic to look fo bruin executable path on windows and add debugging informations. 

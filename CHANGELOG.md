@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.25.27] - [2024-11-06]
+- Fixed the validate and run buttons hover colors to match the vscode themes. 
+
 ## [0.25.26] - [2024-11-06]
 - Fixed the validate and run buttons height. 
 
