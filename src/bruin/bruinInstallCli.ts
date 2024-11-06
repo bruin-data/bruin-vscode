@@ -7,11 +7,22 @@ const execAsync = promisify(exec);
 
 export class BruinInstallCLI {
   private platform: string;
-  private scriptPath = "curl -LsSf https://raw.githubusercontent.com/bruin-data/bruin/refs/heads/main/install.sh | sh";
+  private scriptPath =
+    "curl -LsSf https://raw.githubusercontent.com/bruin-data/bruin/refs/heads/main/install.sh | sh";
+private static installMethod: string | null = null;
   constructor() {
     this.platform = os.platform();
   }
 
+  private async getInstallMethodFromCommand(command: string): Promise<string> {
+    if (command.startsWith("brew")) {
+      BruinInstallCLI.installMethod = "brew";
+      return "brew";
+    } else {
+      BruinInstallCLI.installMethod = "script";
+      return "script";
+    }
+  }
   private async executeCommand(command: string): Promise<void> {
     const terminalName = "Bruin Terminal";
     let terminal = vscode.window.terminals.find((t) => t.name === terminalName);
@@ -34,10 +45,14 @@ export class BruinInstallCLI {
         } catch {
           // Check for Git
           if (await this.isGitAvailable()) {
-            console.log("Git is available, but no Bash-like environment detected. Using Git to install.");
-            command =this.scriptPath;
+            console.log(
+              "Git is available, but no Bash-like environment detected. Using Git to install."
+            );
+            command = this.scriptPath;
           } else {
-            console.error("Git is required to install Bruin CLI on Windows. Please install Git and try again.");
+            console.error(
+              "Git is required to install Bruin CLI on Windows. Please install Git and try again."
+            );
             throw new Error("Git is not installed");
           }
         }
@@ -48,11 +63,11 @@ export class BruinInstallCLI {
           await execAsync("brew --version");
           command = "brew install bruin";
         } catch {
-          command =this.scriptPath;
+          command = this.scriptPath;
         }
         break;
       case "linux":
-        command =this.scriptPath;
+        command = this.scriptPath;
         break;
       default:
         throw new Error(`Unsupported platform: ${this.platform}`);
@@ -70,23 +85,36 @@ export class BruinInstallCLI {
 
   private async getUpdateCommand(): Promise<string> {
     let command = "";
-    switch (this.platform) {
-      case "win32":
-      case "darwin":
-      case "linux":
-        command = this.scriptPath;
-        break;
-      default:
-        throw new Error(`Unsupported platform: ${this.platform}`);
+  
+    if (BruinInstallCLI.installMethod === "brew") {
+      switch (this.platform) {
+        case "darwin":
+          // First, update the entire Brew system
+          command = "brew upgrade && ";
+          // Then, specifically update Bruin
+          command += "brew upgrade bruin";
+          break;
+        default:
+          throw new Error(`Unsupported platform: ${this.platform}`);
+      }
+    } else {
+      switch (this.platform) {
+        case "win32":
+        case "linux":
+          command = this.scriptPath;
+          break;
+        default:
+          throw new Error(`Unsupported platform: ${this.platform}`);
+      }
     }
-
+  
     // Check for curl, fall back to wget if not available
     try {
       await execAsync("which curl");
     } catch {
       command = command.replace("curl", "wget -qO-");
     }
-
+  
     return command;
   }
 
@@ -105,7 +133,6 @@ export class BruinInstallCLI {
 
   public async installBruinCli(): Promise<void> {
     const installCommand = await this.getInstallCommand();
-    console.log("installBruinCli:", { installCommand });
     await this.executeCommand(installCommand);
   }
 
@@ -130,7 +157,7 @@ export class BruinInstallCLI {
   }> {
     let installed = false;
     let gitAvailable = false;
-  
+
     try {
       // Check if Bruin CLI is installed
       await execAsync("bruin --version");
@@ -138,7 +165,7 @@ export class BruinInstallCLI {
     } catch {
       installed = false;
     }
-  
+
     if (this.platform === "win32") {
       try {
         // Check if Git is available on Windows
@@ -151,7 +178,7 @@ export class BruinInstallCLI {
       // On non-Windows platforms, assume Git is available if Bruin CLI is installed
       gitAvailable = true;
     }
-  
+
     return {
       installed,
       isWindows: this.platform === "win32",
