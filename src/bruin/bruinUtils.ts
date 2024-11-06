@@ -33,19 +33,6 @@ export const isBruinBinaryAvailable = (): boolean => {
   return true;
 };
 
-/**
- * Builds the Bruin command based on the platform.
- * @param {string} cliCommand - The Bruin command to be executed in the CLI (e.g., "run", "render").
- * @returns {string} Returns the built Bruin command.
- */
-export const buildCommand = (cliCommand: string): string => {
-  switch (process.platform) {
-    case "win32":
-      return `cmd.exe /c bruin.exe ${cliCommand}`;
-    default:
-      return `bruin ${cliCommand}`;
-  }
-};
 
 /**
  * Replaces path separators in a given path string based on the user configuration and platform.
@@ -134,39 +121,5 @@ export const runInIntegratedTerminal = async (
   await new Promise((resolve) => setTimeout(resolve, 1000));
 };
 
-const execAsync = promisify(exec);
 
-export async function checkBruinCliInstallation(): Promise<{
-  installed: boolean;
-  isWindows: boolean;
-  goInstalled: boolean;
-}> {
-  const isWindows = os.platform() === "win32";
-  let installed = false;
-  let goInstalled = false;
-
-  console.log("Platform:", os.platform()); // Debugging log
-
-  try {
-    await execAsync("bruin --version");
-    installed = true;
-    console.log("Bruin is installed");
-  } catch (error: any) {
-    installed = false;
-    console.error("Error checking Bruin installation:", error.message); // Log the error message
-  }
-
-  if (isWindows && !installed) {
-    try {
-      await execAsync("go version");
-      goInstalled = true;
-      console.log("Go is installed on Windows");
-    } catch (error: any) {
-      goInstalled = false;
-      console.error("Error checking Go installation:", error.message); // Log the error message
-    }
-  }
-
-  console.log({ installed, isWindows, goInstalled }); // Debugging log
-  return { installed, isWindows, goInstalled };
-}
+export { BruinInstallCLI } from './bruinInstallCli';
