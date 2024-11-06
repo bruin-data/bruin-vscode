@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.25.24] - [2024-11-06]
+- Add excetuable path option to the configuration for windows. 
+
 ## [0.25.23] - [2024-11-06]
 - Updated the logic to look fo bruin executable path on windows and add debugging informations. 
 
