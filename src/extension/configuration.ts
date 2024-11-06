@@ -1,6 +1,7 @@
 import path = require("path");
 import * as vscode from "vscode";
 import * as fs from "fs";
+import * as os from "os";
 
 /**
  * Gets the path to the Bruin executable specified by the workspace
@@ -21,7 +22,7 @@ export function getDefaultBruinExecutablePath(): string {
     // Attempt to find 'bruin' in the system's PATH
     const paths = (process.env.PATH || "").split(path.delimiter);
     for (const p of paths) {
-      const executablePath = path.join(p, process.platform === 'win32'? 'bruin.exe' : 'bruin');
+      const executablePath = path.join(p, process.platform === "win32" ? "bruin.exe" : "bruin");
       try {
         // Test if the file exists and is executable
         fs.accessSync(executablePath, fs.constants.X_OK);
@@ -31,8 +32,25 @@ export function getDefaultBruinExecutablePath(): string {
         continue;
       }
     }
+    if (process.platform === "win32") {
+      const homePath = os.homedir();
+      const localBinPath = path.join(homePath, ".local", "bin");
+      const executablePathLocal = path.join(
+        localBinPath,
+        "bruin.exe"
+      );
+      try {
+        // Test if the file exists and is executable
+        fs.accessSync(executablePathLocal, fs.constants.X_OK);
+        return executablePathLocal;
+      } catch (err) {
+        // Continue searching if not found or not executable
+      }
+    }
     // If all else fails, provide a meaningful message or default
-    throw new Error(`Unable to find 'bruin' executable in system's PATH. Please set the 'bruin.executable' setting in VS Code.`);
+    throw new Error(
+      `Unable to find 'bruin' executable in system's PATH. Please set the 'bruin.executable' setting in VS Code.`
+    );
   }
 }
 export function getPathSeparator(): string {

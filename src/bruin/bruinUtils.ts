@@ -9,7 +9,7 @@ import * as child_process from "child_process";
 import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
-import { getPathSeparator } from "../extension/configuration";
+import { getDefaultBruinExecutablePath, getPathSeparator } from "../extension/configuration";
 
 /**
  * Checks if the Bruin binary is available in the system path.
@@ -108,8 +108,10 @@ export const runInIntegratedTerminal = async (
   assetPath?: string,
   flags?: string
 ) => {
+  // we should open not a powershell terminal but a Git bash on windows 
   const escapedAssetPath = assetPath ? escapeFilePath(assetPath) : "";
-  const command = `bruin ${BRUIN_RUN_SQL_COMMAND} ${flags} ${escapedAssetPath}`;
+  const bruinExecutable = getDefaultBruinExecutablePath();
+  const command = `${bruinExecutable} ${BRUIN_RUN_SQL_COMMAND} ${flags} ${escapedAssetPath}`;
 
   const terminalName = "Bruin Terminal";
   let terminal = vscode.window.terminals.find((t) => t.name === terminalName);
@@ -123,3 +125,5 @@ export const runInIntegratedTerminal = async (
 
 
 export { BruinInstallCLI } from './bruinInstallCli';
+
+

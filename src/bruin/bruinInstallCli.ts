@@ -128,6 +128,8 @@ export class BruinInstallCLI {
 import { exec } from "child_process";
 import * as os from "os";
 import { promisify } from "util";
+import { get } from "http";
+import { getDefaultBruinExecutablePath } from "../extension/configuration";
 
 const execAsync = promisify(exec);
 
@@ -191,10 +193,10 @@ export class BruinInstallCLI {
   }> {
     let installed = false;
     let gitAvailable = false;
-
+    let bruinExecutable = getDefaultBruinExecutablePath();
     try {
       // Check if Bruin CLI is installed
-      await execAsync("bruin --version");
+      await execAsync(`${bruinExecutable} --version`);
       installed = true;
     } catch {
       installed = false;
