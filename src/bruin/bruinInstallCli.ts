@@ -9,7 +9,8 @@ export class BruinInstallCLI {
   private platform: string;
   private scriptPath =
     "curl -LsSf https://raw.githubusercontent.com/bruin-data/bruin/refs/heads/main/install.sh | sh";
-private static installMethod: string | null = null;
+  private static installMethod: string | null = null;
+
   constructor() {
     this.platform = os.platform();
   }
@@ -23,6 +24,7 @@ private static installMethod: string | null = null;
       return "script";
     }
   }
+
   private async executeCommand(command: string): Promise<void> {
     const terminalName = "Bruin Terminal";
     let terminal = vscode.window.terminals.find((t) => t.name === terminalName);
@@ -80,12 +82,15 @@ private static installMethod: string | null = null;
       command = command.replace("curl", "wget -qO-");
     }
 
+    // Update the install method
+    await this.getInstallMethodFromCommand(command);
+
     return command;
   }
 
   private async getUpdateCommand(): Promise<string> {
     let command = "";
-  
+
     if (BruinInstallCLI.installMethod === "brew") {
       switch (this.platform) {
         case "darwin":
@@ -107,14 +112,14 @@ private static installMethod: string | null = null;
           throw new Error(`Unsupported platform: ${this.platform}`);
       }
     }
-  
+
     // Check for curl, fall back to wget if not available
     try {
       await execAsync("which curl");
     } catch {
       command = command.replace("curl", "wget -qO-");
     }
-  
+
     return command;
   }
 
@@ -133,6 +138,7 @@ private static installMethod: string | null = null;
 
   public async installBruinCli(): Promise<void> {
     const installCommand = await this.getInstallCommand();
+    console.log("installBruinCli:", { installCommand });
     await this.executeCommand(installCommand);
   }
 
