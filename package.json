@@ -161,20 +161,11 @@
     "commands": [
       {
         "command": "bruin.renderSQL",
-        "title": "Bruin",
+        "title": "Bruin Render",
+        "shortTitle": "Bruin",
         "category": "Bruin",
         "icon": "img/bruin-logo-sm128.png",
-        "description": "Render SQL to a Bruin data asset."
-      },
-      {
-        "command": "bruin.validateSQL",
-        "title": "Validate Bruin asset",
-        "description": "Validate the current Bruin asset."
-      },
-      {
-        "command": "bruin.runSQL",
-        "title": "Run Bruin asset",
-        "description": "Run the current Bruin asset."
+        "description": "Render a Bruin asset."
       },
       {
         "command": "bruin.installCli",

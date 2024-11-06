@@ -13,6 +13,7 @@ import * as os from "os";
 import { renderCommand } from "./commands/renderCommand";
 import { LineagePanel } from "../panels/LineagePanel";
 import { installOrUpdateCli } from "./commands/updateBruinCLI";
+import { runInIntegratedTerminal } from "../bruin";
 
 export function activate(context: ExtensionContext) {
   // Automatically focus editor when extension starts
@@ -46,8 +47,14 @@ export function activate(context: ExtensionContext) {
   });
 
   context.subscriptions.push(
-    commands.registerCommand("bruin.renderSQL", () => {
-      renderCommand(context.extensionUri);
+    commands.registerCommand("bruin.renderSQL", async () => {
+      try{
+      await renderCommand(context.extensionUri);
+      }
+      catch (error) {
+        const errorMessage = (error instanceof Error) ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error rendering SQL: ${errorMessage}`);
+      }
     }),
     commands.registerCommand("bruin.installCli", async () => {
       try {
