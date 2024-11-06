@@ -1,8 +1,12 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
+
+## [0.25.23] - [2024-11-06]
+- Updated the logic to look fo bruin executable path on windows and add debugging informations. 
+
 ## [0.25.22] - [2024-11-06]
-- Remove blockers.
+- Used the install script on all the platforms.
 
 ## [0.25.21] - [2024-11-06]
 - Remove blockers.
