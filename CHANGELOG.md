@@ -2,7 +2,10 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
-## [0.25.24] - [2024-11-06]
+## [0.25.26] - [2024-11-06]
+- Fixed the validate and run buttons height. 
+
+## [0.25.25] - [2024-11-06]
 - Added excetuable path to the bruin commands to run on the powershell. 
 
 ## [0.25.24] - [2024-11-06]
