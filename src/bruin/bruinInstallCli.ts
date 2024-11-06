@@ -90,7 +90,25 @@ export class BruinInstallCLI {
 
   private async getUpdateCommand(): Promise<string> {
     let command = "";
-
+  
+    // Detect the installation method if it's not already set
+    if (BruinInstallCLI.installMethod === null) {
+      try {
+        // Check if Brew is installed and if Bruin was installed using Brew
+        await execAsync("brew --version");
+        const brewListOutput = await execAsync("brew list --versions");
+        if (brewListOutput.stdout.includes("bruin")) {
+          BruinInstallCLI.installMethod = "brew";
+        } else {
+          // If not installed using Brew, assume it was installed using the script
+          BruinInstallCLI.installMethod = "script";
+        }
+      } catch {
+        // If Brew is not installed, assume the script was used
+        BruinInstallCLI.installMethod = "script";
+      }
+    }
+  
     if (BruinInstallCLI.installMethod === "brew") {
       switch (this.platform) {
         case "darwin":
@@ -112,17 +130,16 @@ export class BruinInstallCLI {
           throw new Error(`Unsupported platform: ${this.platform}`);
       }
     }
-
+  
     // Check for curl, fall back to wget if not available
     try {
       await execAsync("which curl");
     } catch {
       command = command.replace("curl", "wget -qO-");
     }
-
+  
     return command;
   }
-
   private async isGitAvailable(): Promise<boolean> {
     if (this.platform === "win32") {
       try {
