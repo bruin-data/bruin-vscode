@@ -116,7 +116,7 @@
                   <div class="p-1 bg-editorWidget-bg rounded-sm border border-commandCenter-border">
                     <MenuItem key="validate-current">
                       <vscode-button
-                        class="block rounded-sm w-full text-left text-2xs hover:bg-editor-button-hover-bg bg-editorWidget-bg"
+                        class="block text-editor-fg rounded-sm w-full text-left text-2xs hover:bg-editor-button-hover-bg bg-editorWidget-bg"
                         @click="handleBruinValidateCurrentPipeline"
                       >
                         Validate current pipeline
@@ -124,7 +124,7 @@
                     </MenuItem>
                     <MenuItem key="validate-all">
                       <vscode-button
-                        class="block rounded-sm w-full text-left text-2xs hover:bg-editor-button-hover-bg bg-editorWidget-bg"
+                        class="block text-editor-fg rounded-sm w-full text-left text-2xs hover:bg-editor-button-hover-bg bg-editorWidget-bg"
                         @click="handleBruinValidateAllPipelines"
                       >
                         Validate all pipelines
@@ -162,7 +162,7 @@
                   <div class="p-1 bg-editorWidget-bg rounded-sm border border-commandCenter-border">
                     <MenuItem key="run-with-downstream" v-slot="{ active }">
                       <vscode-button
-                        class="block rounded-sm w-full text-left text-2xs hover:bg-editor-button-hover-bg bg-editorWidget-bg"
+                        class="block text-editor-fg rounded-sm w-full text-left text-2xs hover:bg-editor-button-hover-bg bg-editorWidget-bg"
                         @click="runAssetWithDownstream"
                       >
                         Run with downstream
@@ -170,7 +170,7 @@
                     </MenuItem>
                     <MenuItem key="run-current-pipeline" v-slot="{ active }">
                       <vscode-button
-                        class="block rounded-sm w-full text-left text-2xs hover:bg-editor-button-hover-bg bg-editorWidget-bg"
+                        class="block text-editor-fg rounded-sm w-full text-left text-2xs hover:bg-editor-button-hover-bg bg-editorWidget-bg"
                         @click="runCurrentPipeline"
                       >
                         Run the whole pipeline
