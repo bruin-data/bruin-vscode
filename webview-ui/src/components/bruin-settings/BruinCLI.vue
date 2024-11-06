@@ -14,15 +14,9 @@
         </p>
       </div>
       <div class="mt-5">
-        <template v-if="isWindows && !isBruinCliInstalled && !goInstalled">
+        <template v-if="isWindows && !isBruinCliInstalled && !gitAvailble">
           <div class="mt-3 text-sm leading-6">
-            <a
-              href="https://golang.org/doc/install"
-              class="font-semibold text-editorLink-activeFg  hover:text-link-activeForeground"
-            >
-              Go is required to install Bruin CLI on Windows. Please install Go first.
-              <span aria-hidden="true"> &rarr;</span>
-            </a>
+              Git is required to install Bruin CLI on Windows. Please install Git first.
           </div>
         </template>
 
@@ -44,7 +38,7 @@ import { vscode } from "@/utilities/vscode";
 
 const isBruinCliInstalled = ref(false);
 const isWindows = ref(false);
-const goInstalled = ref(false);
+const gitAvailble = ref(false);
 
 onMounted(() => {
   checkBruinCliInstallation();
@@ -54,7 +48,7 @@ onMounted(() => {
     if (message.command === "bruinCliInstallationStatus") {
       isBruinCliInstalled.value = message.installed;
       isWindows.value = message.isWindows;
-      goInstalled.value = message.goInstalled;
+      gitAvailble.value = message.gitAvailble;
     }
   });
 });

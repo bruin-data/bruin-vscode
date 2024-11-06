@@ -106,10 +106,11 @@ Use the new connections section from `Settings` tab to view, add, or delete conn
 Access the Bruin CLI management tab `Settings` in the side panel for easy installation and updates.
 
 ## Release Notes
-### Latest Release: 0.25.18
-- Enhanced Bruin CLI installation process with a new shell script for Windows and Linux, and Homebrew support for macOS.
+### Latest Release: 0.25.19
+- Clarified Windows installation message to specify Git requirement and fixed CLI installation command to run from the command palette.
 
 ### Previous Highlights
+- **0.25.18**: Enhanced Bruin CLI installation process with a new shell script for Windows and Linux, and Homebrew support for macOS.
 - **0.25.17**: Refactored asset validation and run button styles to improve consistency with the VSCode editor.
 - **0.25.16**: Adjust the position of the environment dropdown menu, moving it from the top to the bottom.
 - **0.25.15**: Adjust date input background color to align with GitHub's dimmed dark theme.
