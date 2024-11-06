@@ -106,11 +106,11 @@ Use the new connections section from `Settings` tab to view, add, or delete conn
 Access the Bruin CLI management tab `Settings` in the side panel for easy installation and updates.
 
 ## Release Notes
-### Latest Release: 0.25.24
-- Add excetuable path option to the configuration for windows. 
-
+### Latest Release: 0.25.25
+- Added excetuable path to the bruin commands to run on the powershell. 
 
 ### Previous Highlights
+- **0.25.24**: Add excetuable path option to the configuration for windows. 
 - **0.25.23**: Updated the logic to look fo bruin executable path on windows and add debugging informations. 
 - **0.25.22**: Used the install script on all the platforms.
 - **0.25.21**: Remove the git check for windows.
