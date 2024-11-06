@@ -14,14 +14,7 @@
         </p>
       </div>
       <div class="mt-5">
-        <template v-if="isWindows && !isBruinCliInstalled && !gitAvailble">
-          <div class="mt-3 text-sm leading-6">
-              Git is required to install Bruin CLI on Windows. Please install Git first.
-          </div>
-        </template>
-
         <vscode-button
-          v-else
           @click="installOrUpdateBruinCli"
           class="inline-flex items-center rounded-md px-3 py-2 text-lg font-semibold shadow-sm"
         >

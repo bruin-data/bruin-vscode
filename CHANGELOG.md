@@ -1,6 +1,9 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
+## [0.25.21] - [2024-11-06]
+- FRemove blockers.
+
 ## [0.25.20] - [2024-11-06]
 - Fixed Bruin Render command to run properly from the command palette.
 

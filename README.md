@@ -106,10 +106,11 @@ Use the new connections section from `Settings` tab to view, add, or delete conn
 Access the Bruin CLI management tab `Settings` in the side panel for easy installation and updates.
 
 ## Release Notes
-### Latest Release: 0.25.20
-- Fixed Bruin Render command to run properly from the command palette.
+### Latest Release: 0.25.21
+- Remove blockers.
 
 ### Previous Highlights
+- **0.25.20**: Fixed Bruin Render command to run properly from the command palette.
 - **0.25.19**: Clarified Windows installation message to specify Git requirement and fixed CLI installation command to run from the command palette.
 - **0.25.18**: Enhanced Bruin CLI installation process with a new shell script for Windows and Linux, and Homebrew support for macOS.
 - **0.25.17**: Refactored asset validation and run button styles to improve consistency with the VSCode editor.
