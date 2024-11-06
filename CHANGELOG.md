@@ -1,6 +1,9 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
+## [0.25.20] - [2024-11-06]
+- Fixed Bruin Render command to run properly from the command palette.
+
 ## [0.25.19] - [2024-11-06]
 - Clarified Windows installation message to specify Git requirement and fixed CLI installation command to run from the command palette.
 
