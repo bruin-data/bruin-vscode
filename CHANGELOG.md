@@ -2,7 +2,7 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
-## [0.25.17] - [2024-11-06]
+## [0.25.18] - [2024-11-06]
 - Enhanced Bruin CLI installation process with a new shell script for Windows and Linux, and Homebrew support for macOS.
 
 ## [0.25.17] - [2024-11-01]
