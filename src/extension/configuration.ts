@@ -47,10 +47,11 @@ export function getDefaultBruinExecutablePath(): string {
         // Continue searching if not found or not executable
       }
     }
+    return "";
     // If all else fails, provide a meaningful message or default
-    throw new Error(
+  /*   throw new Error(
       `Unable to find 'bruin' executable in system's PATH. Please set the 'bruin.executable' setting in VS Code.`
-    );
+    ); */
   }
 }
 export function getPathSeparator(): string {
