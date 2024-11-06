@@ -106,6 +106,9 @@ Use the new connections section from `Settings` tab to view, add, or delete conn
 Access the Bruin CLI management tab `Settings` in the side panel for easy installation and updates.
 
 ## Release Notes
+### Latest Release: 0.25.22
+- Remove blockers.
+
 ### Latest Release: 0.25.21
 - Remove blockers.
 
