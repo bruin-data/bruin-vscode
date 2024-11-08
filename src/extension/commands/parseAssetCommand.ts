@@ -10,7 +10,7 @@ export const parseAssetCommand = async (lastRenderedDocumentUri: Uri | undefined
   }
   const parsed = new BruinInternalParse(
     getDefaultBruinExecutablePath(),
-    bruinWorkspaceDirectory(lastRenderedDocumentUri.fsPath)!!
+    await bruinWorkspaceDirectory(lastRenderedDocumentUri.fsPath)!! as string
   );
   await parsed.parseAsset(lastRenderedDocumentUri.fsPath);
 };
@@ -21,7 +21,7 @@ export const patchAssetCommand = async (body: object, lastRenderedDocumentUri: U
   }
   const patched = new BruinInternalPatch(
     getDefaultBruinExecutablePath(),
-    bruinWorkspaceDirectory(lastRenderedDocumentUri.fsPath)!!
+    await bruinWorkspaceDirectory(lastRenderedDocumentUri.fsPath)!! as string
   );
   await patched.patchAsset(body, lastRenderedDocumentUri.fsPath);
 };

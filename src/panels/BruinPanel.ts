@@ -283,16 +283,17 @@ export class BruinPanel {
               return;
             }
             const currAssetPath = this._lastRenderedDocumentUri.fsPath;
-            const currentPipelinePath = getCurrentPipelinePath(currAssetPath || "");
+            const currentPipelinePath = await getCurrentPipelinePath(currAssetPath || "");
 
             if (!currentPipelinePath) {
               console.error("No pipeline found for the current asset.");
               return;
             }
 
+            const bruinWorkspaceDirc = await bruinWorkspaceDirectory(currAssetPath || "");
             const pipelineValidator = new BruinValidate(
               getDefaultBruinExecutablePath(),
-              bruinWorkspaceDirectory(currAssetPath || "")!!
+              bruinWorkspaceDirc || ""
             );
 
             try {
@@ -316,7 +317,7 @@ export class BruinPanel {
             }
 
             const filePath = this._lastRenderedDocumentUri.fsPath;
-            const bruinWorkspaceDir = bruinWorkspaceDirectory(filePath || "");
+            const bruinWorkspaceDir = await bruinWorkspaceDirectory(filePath || "");
 
             const validator = new BruinValidate(
               getDefaultBruinExecutablePath(),
@@ -329,7 +330,7 @@ export class BruinPanel {
               return;
             }
             const fPath = this._lastRenderedDocumentUri?.fsPath;
-            runInIntegratedTerminal(bruinWorkspaceDirectory(fPath), fPath, message.payload);
+            runInIntegratedTerminal(await bruinWorkspaceDirectory(fPath), fPath, message.payload);
 
             setTimeout(() => {
               this._panel.webview.postMessage({
@@ -346,8 +347,8 @@ export class BruinPanel {
             const currentPipeline = getCurrentPipelinePath(currfilePath || "");
 
             runInIntegratedTerminal(
-              bruinWorkspaceDirectory(currfilePath),
-              currentPipeline,
+              await bruinWorkspaceDirectory(currfilePath),
+              await currentPipeline,
               message.payload
             );
 
