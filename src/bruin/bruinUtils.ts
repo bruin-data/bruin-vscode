@@ -152,10 +152,9 @@ export const createIntegratedTerminal = async (workingDir: string | undefined): 
           // Neither Git Bash nor WSL is found, display an alert to the user
           vscode.window.showWarningMessage(
             "Neither Git Bash nor Windows Subsystem for Linux (WSL) was found on your system. " +
-            "Please install one of them to use the integrated terminal. " +
-            "You can download Git Bash from <https://gitforwindows.org/> or enable WSL from Windows Features."
+            "Please install one of them to use the integrated terminal. " 
           );
-          return vscode.window.createTerminal({ name: "Dummy Terminal" }); // Exit the function without creating a terminal
+          return vscode.window.createTerminal({ name: terminalName }); // Exit the function without creating a terminal
         }
       }
     } else {
