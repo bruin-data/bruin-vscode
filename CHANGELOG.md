@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.25.28] - [2024-11-07]
+- Update Terminal Creation to Default to Git Bash on Windows.
+
 ## [0.25.27] - [2024-11-06]
 - Fixed the validate and run buttons hover colors to match the vscode themes. 
 
