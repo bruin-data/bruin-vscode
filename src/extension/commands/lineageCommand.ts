@@ -8,7 +8,7 @@ export const lineageCommand = async (lastRenderedDocumentUri:  Uri | undefined, 
   }
   const lineage = new BruinLineage(
     getDefaultBruinExecutablePath(),
-    bruinWorkspaceDirectory(lastRenderedDocumentUri.fsPath)!!
+    await bruinWorkspaceDirectory(lastRenderedDocumentUri.fsPath)!! as string
   );
   await lineage.diplayLineage(lastRenderedDocumentUri.fsPath, {flags: flags});
   };

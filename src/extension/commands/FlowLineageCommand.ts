@@ -9,7 +9,7 @@ export const flowLineageCommand = async (lastRenderedDocumentUri:  Uri | undefin
   }
   const flowLineage = new BruinLineageInternalParse(
     getDefaultBruinExecutablePath(),
-    bruinWorkspaceDirectory(lastRenderedDocumentUri.fsPath)!!
+    await bruinWorkspaceDirectory(lastRenderedDocumentUri.fsPath!) as string
   );
   await flowLineage.parseAssetLineage(lastRenderedDocumentUri.fsPath);
   };

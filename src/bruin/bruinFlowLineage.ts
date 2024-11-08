@@ -31,7 +31,7 @@ export class BruinLineageInternalParse extends BruinCommand {
 
     { flags = ["parse-pipeline"], ignoresErrors = false }: BruinCommandOptions = {}
   ): Promise<void> {
-    await this.run([...flags, getCurrentPipelinePath(filePath) as string], { ignoresErrors })
+    await this.run([...flags, await getCurrentPipelinePath(filePath) as string], { ignoresErrors })
       .then(
         (result) => {
           const pipelineData = JSON.parse(result);

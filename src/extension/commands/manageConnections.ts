@@ -6,7 +6,7 @@ import { BruinConnections, BruinCreateConnection, BruinDeleteConnection } from "
 export const getConnections = async (lastRenderedDocumentUri: Uri | undefined) => {
   const bruinConnections = new BruinConnections(
     getDefaultBruinExecutablePath(),
-    bruinWorkspaceDirectory(lastRenderedDocumentUri!.fsPath)!!
+    await bruinWorkspaceDirectory(lastRenderedDocumentUri!.fsPath)!! as string
   );
   await bruinConnections.getConnections();
 };
@@ -16,7 +16,7 @@ export const deleteConnection = async (env: string, connectionName: string, last
   console.log('Deleting connection:', { env, connectionName });
   const bruinConnections = new BruinDeleteConnection(
     getDefaultBruinExecutablePath(),
-    bruinWorkspaceDirectory(lastRenderedDocumentUri!.fsPath)!!
+    await bruinWorkspaceDirectory(lastRenderedDocumentUri!.fsPath)!! as string
   );
   await bruinConnections.deleteConnection(env, connectionName);
 };
@@ -25,7 +25,7 @@ export const createConnection = async (env: string, connectionName: string, conn
   console.log('Creating connection');
   const bruinConnections = new BruinCreateConnection(
     getDefaultBruinExecutablePath(),
-    bruinWorkspaceDirectory(lastRenderedDocumentUri!.fsPath)!!
+    await bruinWorkspaceDirectory(lastRenderedDocumentUri!.fsPath)!! as string
   );
   await bruinConnections.createConnection(env, connectionName, connectionType, credentials);
 };
