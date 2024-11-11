@@ -167,6 +167,7 @@ watch(
 
 
 watch(() => form.value.connection_type, (newType) => {
+  console.log(connectionConfig, connectionTypes)
   if (newType) {
     const config = connectionConfig[newType] || [];
     config.forEach(field => {
@@ -252,4 +253,3 @@ vscode-button::part(control) {
   outline: none;
 }
 </style>
-@/store/bruinStore
