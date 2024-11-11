@@ -406,7 +406,7 @@ export class BruinPanel {
             getConnections(this._lastRenderedDocumentUri);
             break;
 
-          case "bruin.getAllConnectionsFromSchema":
+          case "bruin.getConnectionsSchema":
             getConnectionsListFromSchema(this._lastRenderedDocumentUri);
             break;
 

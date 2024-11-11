@@ -190,6 +190,6 @@ export class BruinGetAllBruinConnections extends BruinCommand {
   }
 
   private postMessageToPanels(status: string, message: string | any) {
-    BruinPanel.postMessage("get-all-connections-message", { status, message });
+    BruinPanel.postMessage("connections-schema-message", { status, message });
   }
 }
