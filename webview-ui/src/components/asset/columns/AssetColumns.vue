@@ -183,18 +183,6 @@ const localColumns = ref([...props.columns]);
 const editingIndex = ref(null);
 const editingColumn = ref({});
 
-/* const addColumn = () => {
-  const newColumn = {
-    name: "New Column",
-    type: "string",
-    description: "Description for the new column",
-    checks: [],
-  };
-  localColumns.value.push(newColumn);
-  editingIndex.value = localColumns.value.length - 1;
-  editingColumn.value = JSON.parse(JSON.stringify(newColumn));
-  emitUpdateColumns();
-}; */
 const addColumn = () => {
   const newColumn = {
     name: "New Column",
@@ -246,7 +234,7 @@ const addColumn = () => {
 
   // Send ALL columns data
   vscode.postMessage({
-    command: "bruin.addColumn",
+    command: "bruin.setAssetDetails",
     payload: { columns: allColumnsData },
   });
 
@@ -292,12 +280,13 @@ const saveChanges = (index) => {
 
   // Send ALL columns data
   vscode.postMessage({
-    command: "bruin.addColumn",
+    command: "bruin.setAssetDetails",
     payload: { columns: allColumnsData },
   });
 
   emitUpdateColumns();
 };
+
 const getActiveChecks = computed(() => (column) => {
   const activeChecks = Object.entries(column.checks)
     .filter(
@@ -399,53 +388,6 @@ const startEditing = (index) => {
   editingColumn.value = JSON.parse(JSON.stringify(localColumns.value[index]));
 };
 
-/* const saveChanges = (index) => {
-  localColumns.value[index] = JSON.parse(JSON.stringify(editingColumn.value));
-  editingIndex.value = null;
-  emitUpdateColumns();
-  
-  // Transform checks into an array of {name, value} objects
-  const checksArray = Object.entries(localColumns.value[index].checks)
-    .reduce((acc, [key, value]) => {
-      // Handle special cases for accepted_values and pattern
-      if (key === 'acceptedValuesEnabled' && value === true) {
-        acc.push({
-          name: 'accepted_values',
-          value: localColumns.value[index].checks.accepted_values || []
-        });
-      }
-      else if (key === 'patternEnabled' && value === true) {
-        acc.push({
-          name: 'pattern',
-          value: localColumns.value[index].checks.pattern || ''
-        });
-      }
-      // Handle boolean checks
-      else if (typeof value === 'boolean' && value === true && 
-               !['acceptedValuesEnabled', 'patternEnabled'].includes(key)) {
-        acc.push({
-          name: key,
-          value: true
-        });
-      }
-      return acc;
-    }, []);
-
-  // Create the clean, serializable column data
-  const columnData = {
-    name: localColumns.value[index].name,
-    type: localColumns.value[index].type,
-    description: localColumns.value[index].description,
-    checks: checksArray
-  };
-
-  // Send the clean data
-  vscode.postMessage({
-    command: "bruin.setAssetDetails",
-    payload: { columns: [columnData] },
-  });
-}; */
-
 const deleteColumn = (index) => {
   localColumns.value.splice(index, 1);
   showDeleteAlert.value = false;
@@ -467,9 +409,9 @@ vscode-badge::part(control) {
   border: 1px solid var(--vscode-commandCenter-border);
   color: var(--vscode-editor-foreground);
   font-family: monospace;
-  max-width: 100%; /* Equivalent to max-w-full */
+  max-width: 100%; 
   overflow: hidden;
-  text-overflow: ellipsis; /* Equivalent to text-ellipsis */
+  text-overflow: ellipsis; 
   white-space: nowrap;
 }
 
@@ -484,8 +426,8 @@ select {
   color: var(--vscode-input-foreground);
   border: none;
   outline: none;
-  padding: 0.25rem; /* Equivalent to p-1 (1/4 of 1rem) */
-  font-size: 0.875rem; /* Equivalent to text-sm */
+  padding: 0.25rem; 
+  font-size: 0.875rem; 
 }
 
 input:focus,

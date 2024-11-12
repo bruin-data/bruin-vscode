@@ -467,22 +467,6 @@ export class BruinPanel {
             await getConnections(this._lastRenderedDocumentUri);
             break;
 
-          case "bruin.addColumn":
-            try {
-              const columnPayload = message.payload.columns[0];
-              console.log("Received column data:", columnPayload);
-              // Handle the column data here
-            } catch (error) {
-              console.error("Error processing column data:", error);
-              webview.postMessage({
-                command: "addColumn-error",
-                payload: {
-                  status: "error",
-                  message: "Failed to process column data",
-                },
-              });
-            }
-            break;
         }
       },
       undefined,
