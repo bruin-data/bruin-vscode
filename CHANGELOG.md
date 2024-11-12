@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.25.29] - [2024-11-12]
+- Added functionality to retrieve all connections from the json schema using internal and introduced CSV upload support for custom chess players.
+
 ## [0.25.28] - [2024-11-07]
 - Update Terminal Creation to Default to Git Bash on Windows.
 
