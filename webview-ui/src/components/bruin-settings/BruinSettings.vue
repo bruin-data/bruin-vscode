@@ -67,6 +67,7 @@ const formRef = ref(null);
 onMounted(() => {
   window.addEventListener("message", handleMessage);
   vscode.postMessage({ command: "bruin.getConnectionsList" });
+  vscode.postMessage({ command: "bruin.getConnectionsSchema" });
 });
 
 const handleMessage = (event) => {
@@ -84,7 +85,16 @@ const handleMessage = (event) => {
     case "connection-edited-message":
       handleConnectionEdited(message.payload);
       break;
+    case "connections-schema-message":
+      getConnectionsListFromSchema(message.payload);
+      break;
   }
+};
+
+const getConnectionsListFromSchema = (payload) => {
+  console.log("Received connections schema payload:", payload); 
+  connectionsStore.updateConnectionsSchema(payload.message);
+  console.log("Connections schema:", connectionsStore.connectionsSchema);
 };
 
 const handleConnectionsList = (payload) => {
@@ -155,7 +165,7 @@ const showConnectionForm = (connection = null, duplicate = false) => {
     };
 
     // Set isEditing to true only if not duplicating
-    isEditing.value = !duplicate; 
+    isEditing.value = !duplicate;
   } else {
     // Default empty connection object if creating a new connection
     connectionToEdit.value = {

@@ -18,6 +18,7 @@ import {
   createConnection,
   deleteConnection,
   getConnections,
+  getConnectionsListFromSchema,
 } from "../extension/commands/manageConnections";
 
 /**
@@ -403,6 +404,10 @@ export class BruinPanel {
 
           case "bruin.getConnectionsList":
             getConnections(this._lastRenderedDocumentUri);
+            break;
+
+          case "bruin.getConnectionsSchema":
+            getConnectionsListFromSchema(this._lastRenderedDocumentUri);
             break;
 
           case "getLastRenderedDocument":

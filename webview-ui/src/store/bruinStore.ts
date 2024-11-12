@@ -5,9 +5,13 @@ export const useConnectionsStore = defineStore("connections", {
   state: () => ({
     connections: [] as any[],
     error: null,
+    connectionsSchema: null,
     defaultEnvironment: null,
   }),
   actions: {
+    updateConnectionsSchema(connectionsSchema) {
+      this.connectionsSchema = connectionsSchema;
+    },
     updateConnectionsFromMessage(connections) {
       this.connections = connections.map((conn) => {
         if (!conn.id) {

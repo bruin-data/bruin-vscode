@@ -508,8 +508,7 @@
             "required": [
                 "name",
                 "access_key",
-                "secret_key",
-                "region"
+                "secret_key"
             ],
             "additionalProperties": false
         },
