@@ -1,64 +1,75 @@
 <template>
-  <div class="">
-    <div class="flex items-center space-x-2 w-full justify-between pt-2">
-      <!-- Name editing -->
-      <div
-        class="flex items-baseline w-3/4 font-md text-editor-fg text-lg font-mono cursor-pointer"
-      >
-        <!-- Hide the pipeline name and the slash when the panel is too small -->
-        <div class="pipeline-name max-w-[40%] text-xs opacity-50 truncate inline-block">
-          {{ assetDetailsProps?.pipeline.name }}
+  <div v-if="isBruinInstalled">
+    <div class="">
+      <div class="flex items-center space-x-2 w-full justify-between pt-2">
+        <!-- Name editing -->
+        <div
+          class="flex items-baseline w-3/4 font-md text-editor-fg text-lg font-mono cursor-pointer"
+        >
+          <!-- Hide the pipeline name and the slash when the panel is too small -->
+          <div class="pipeline-name max-w-[40%] text-xs opacity-50 truncate inline-block">
+            {{ assetDetailsProps?.pipeline.name }}
+          </div>
+          <span class="slash opacity-50 text-xs px-0.5">/</span>
+          <div class="flex-grow inline-block">
+            {{ assetDetailsProps?.name }}
+          </div>
         </div>
-        <span class="slash opacity-50 text-xs px-0.5">/</span>
-        <div class="flex-grow inline-block">
-          {{ assetDetailsProps?.name }}
+        <!--     hide the tags when the panel is too small -->
+        <div class="tags flex w-1/4 items-center space-x-2 justify-end overflow-hidden">
+          <DescriptionItem :value="assetDetailsProps?.type" :className="badgeClass.badgeStyle" />
+          <DescriptionItem
+            :value="assetDetailsProps?.pipeline.schedule"
+            :className="badgeClass.grayBadge"
+            class="xs:flex hidden overflow-hidden truncate"
+          />
         </div>
-      </div>
-      <!--     hide the tags when the panel is too small -->
-      <div class="tags flex w-1/4 items-center space-x-2 justify-end overflow-hidden">
-        <DescriptionItem :value="assetDetailsProps?.type" :className="badgeClass.badgeStyle" />
-        <DescriptionItem
-          :value="assetDetailsProps?.pipeline.schedule"
-          :className="badgeClass.grayBadge"
-          class="xs:flex hidden overflow-hidden truncate"
-        />
       </div>
     </div>
-  </div>
-  <vscode-panels :activeid="`tab-${activeTab}`" aria-label="Tabbed Content" class="pl-0">
-    <!-- Tab Headers -->
-    <vscode-panel-tab
-      v-for="(tab, index) in visibleTabs"
-      :key="`tab-${index}`"
-      :id="`tab-${index}`"
-      @click="activeTab = index"
-    >
-      <div class="flex items-center justify-center">
-        <span>{{ tab.label }}</span>
-      </div>
-    </vscode-panel-tab>
+    <vscode-panels :activeid="`tab-${activeTab}`" aria-label="Tabbed Content" class="pl-0">
+      <!-- Tab Headers -->
+      <vscode-panel-tab
+        v-for="(tab, index) in visibleTabs"
+        :key="`tab-${index}`"
+        :id="`tab-${index}`"
+        @click="activeTab = index"
+      >
+        <div class="flex items-center justify-center">
+          <span>{{ tab.label }}</span>
+        </div>
+      </vscode-panel-tab>
 
-    <!-- Tab Content -->
-    <vscode-panel-view
-      v-for="(tab, index) in visibleTabs"
-      :key="`view-${index}`"
-      :id="`view-${index}`"
-      v-show="activeTab === index"
-      class="px-0"
-    >
-      <component
-        v-if="tab.props"
-        :is="tab.component"
-        v-bind="tab.props"
-        class="flex w-full"
-        @update:assetName="updateAssetName"
-        @update:columns="updateColumns"
-      />
-      <div class="flex w-full" v-else-if="parseError">
-        <MessageAlert message="This file is either not a Bruin Asset or has no data to display." />
-      </div>
-    </vscode-panel-view>
-  </vscode-panels>
+      <!-- Tab Content -->
+      <vscode-panel-view
+        v-for="(tab, index) in visibleTabs"
+        :key="`view-${index}`"
+        :id="`view-${index}`"
+        v-show="activeTab === index"
+        class="px-0"
+      >
+        <component
+          v-if="tab.props"
+          :is="tab.component"
+          v-bind="tab.props"
+          class="flex w-full"
+          @update:assetName="updateAssetName"
+          @update:columns="updateColumns"
+        />
+        <div class="flex w-full" v-else-if="parseError">
+          <MessageAlert
+            message="This file is either not a Bruin Asset or has no data to display."
+          />
+        </div>
+      </vscode-panel-view>
+    </vscode-panels>
+  </div>
+  <div class="flex items-center space-x-2 w-full justify-between pt-2" v-else>
+    <BruinSettings
+      :isBruinInstalled="isBruinInstalled"
+      :environments="environmentsList"
+      class="flex w-full"
+    />
+  </div>
 </template>
 
 <script setup lang="ts">

@@ -99,7 +99,7 @@
             <Menu as="div" class="relative -ml-px block">
               <MenuButton
                 :disabled="isNotAsset || isError"
-                class="relative border border-transparent inline-flex items-center disabled:opacity-50 disabled:cursor-not-allowed bg-editor-button-bg p-1 text-editor-button-fg hover:bg-editor-button-hover-bg focus:z-10"
+                class="relative h-full border border-transparent inline-flex items-center disabled:opacity-50 disabled:cursor-not-allowed bg-editor-button-bg p-1 text-editor-button-fg hover:bg-editor-button-hover-bg focus:z-10"
               >
                 <ChevronDownIcon class="h-4 w-4" aria-hidden="true" />
               </MenuButton>
@@ -116,7 +116,7 @@
                   <div class="p-1 bg-editorWidget-bg rounded-sm border border-commandCenter-border">
                     <MenuItem key="validate-current">
                       <vscode-button
-                        class="block rounded-sm w-full text-left text-2xs hover:bg-editor-button-hover-bg bg-editorWidget-bg"
+                        class="block text-editor-fg rounded-sm w-full text-left text-2xs hover:bg-editor-button-hover-bg hover:text-editor-button-fg bg-editorWidget-bg"
                         @click="handleBruinValidateCurrentPipeline"
                       >
                         Validate current pipeline
@@ -124,7 +124,7 @@
                     </MenuItem>
                     <MenuItem key="validate-all">
                       <vscode-button
-                        class="block rounded-sm w-full text-left text-2xs hover:bg-editor-button-hover-bg bg-editorWidget-bg"
+                        class="block text-editor-fg rounded-sm w-full text-left text-2xs hover:bg-editor-button-hover-bg hover:text-editor-button-fg bg-editorWidget-bg"
                         @click="handleBruinValidateAllPipelines"
                       >
                         Validate all pipelines
@@ -145,7 +145,7 @@
             <Menu as="div" class="relative -ml-px block">
               <MenuButton
                 :disabled="isNotAsset || isError"
-                class="relative border border-transparent inline-flex items-center disabled:opacity-50 disabled:cursor-not-allowed bg-editor-button-bg p-1 text-editor-button-fg hover:bg-editor-button-hover-bg focus:z-10"
+                class="relative h-full border border-transparent inline-flex items-center disabled:opacity-50 disabled:cursor-not-allowed bg-editor-button-bg p-1 hover:text-editor-button-fg hover:bg-editor-button-hover-bg focus:z-10"
               >
                 <ChevronDownIcon class="h-4 w-4" aria-hidden="true" />
               </MenuButton>
@@ -162,7 +162,8 @@
                   <div class="p-1 bg-editorWidget-bg rounded-sm border border-commandCenter-border">
                     <MenuItem key="run-with-downstream" v-slot="{ active }">
                       <vscode-button
-                        class="block rounded-sm w-full text-left text-2xs hover:bg-editor-button-hover-bg bg-editorWidget-bg"
+                        class="block text-editor-fg rounded-sm w-full text-left text-2xs hover:bg-editor-button-hover-bg 
+                        hover:text-editor-button-fg bg-editorWidget-bg"
                         @click="runAssetWithDownstream"
                       >
                         Run with downstream
@@ -170,7 +171,7 @@
                     </MenuItem>
                     <MenuItem key="run-current-pipeline" v-slot="{ active }">
                       <vscode-button
-                        class="block rounded-sm w-full text-left text-2xs hover:bg-editor-button-hover-bg bg-editorWidget-bg"
+                        class="block text-editor-fg rounded-sm w-full text-left text-2xs hover:bg-editor-button-hover-bg hover:text-editor-button-fg bg-editorWidget-bg"
                         @click="runCurrentPipeline"
                       >
                         Run the whole pipeline

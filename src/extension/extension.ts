@@ -46,11 +46,22 @@ export function activate(context: ExtensionContext) {
   });
 
   context.subscriptions.push(
-    commands.registerCommand("bruin.renderSQL", () => {
-      renderCommand(context.extensionUri);
+    commands.registerCommand("bruin.renderSQL", async () => {
+      try{
+      await renderCommand(context.extensionUri);
+      }
+      catch (error) {
+        const errorMessage = (error instanceof Error) ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error rendering SQL: ${errorMessage}`);
+      }
     }),
-    commands.registerCommand("bruin.installCli", () => {
-      installOrUpdateCli();
+    commands.registerCommand("bruin.installCli", async () => {
+      try {
+        await installOrUpdateCli();
+      } catch (error) {
+        const errorMessage = (error instanceof Error) ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error installing/updating Bruin CLI: ${errorMessage}`);
+      }
     }),
     foldingDisposable,
     window.registerWebviewViewProvider(LineagePanel.viewId, lineageWebviewProvider)

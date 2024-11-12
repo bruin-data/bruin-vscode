@@ -2,7 +2,7 @@
   "name": "bruin",
   "displayName": "Bruin",
   "description": "Manage your Bruin data assets from within VS Code.",
-  "version": "0.25.17",
+  "version": "0.25.29",
   "engines": {
     "vscode": "^1.87.0"
   },
@@ -91,6 +91,11 @@
     },
     "configuration": {
       "properties": {
+        "bruin.executable": {
+          "type": "string",
+          "default": "bruin",
+          "description": "The path to the Bruin executable."
+        },
         "bruin.defaultFoldingState": {
           "type": "string",
           "enum": [
@@ -161,20 +166,11 @@
     "commands": [
       {
         "command": "bruin.renderSQL",
-        "title": "Bruin",
+        "title": "Bruin Render",
+        "shortTitle": "Bruin",
         "category": "Bruin",
         "icon": "img/bruin-logo-sm128.png",
-        "description": "Render SQL to a Bruin data asset."
-      },
-      {
-        "command": "bruin.validateSQL",
-        "title": "Validate Bruin asset",
-        "description": "Validate the current Bruin asset."
-      },
-      {
-        "command": "bruin.runSQL",
-        "title": "Run Bruin asset",
-        "description": "Run the current Bruin asset."
+        "description": "Render a Bruin asset."
       },
       {
         "command": "bruin.installCli",

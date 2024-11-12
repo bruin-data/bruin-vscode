@@ -2,6 +2,42 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.25.29] - [2024-11-12]
+- Added functionality to retrieve all connections from the json schema using internal and introduced CSV upload support for custom chess players.
+
+## [0.25.28] - [2024-11-07]
+- Update Terminal Creation to Default to Git Bash on Windows.
+
+## [0.25.27] - [2024-11-06]
+- Fixed the validate and run buttons hover colors to match the vscode themes. 
+
+## [0.25.26] - [2024-11-06]
+- Fixed the validate and run buttons height. 
+
+## [0.25.25] - [2024-11-06]
+- Added excetuable path to the bruin commands to run on the powershell. 
+
+## [0.25.24] - [2024-11-06]
+- Add excetuable path option to the configuration for windows. 
+
+## [0.25.23] - [2024-11-06]
+- Updated the logic to look fo bruin executable path on windows and add debugging informations. 
+
+## [0.25.22] - [2024-11-06]
+- Used the install script on all the platforms.
+
+## [0.25.21] - [2024-11-06]
+- Remove blockers.
+
+## [0.25.20] - [2024-11-06]
+- Fixed Bruin Render command to run properly from the command palette.
+
+## [0.25.19] - [2024-11-06]
+- Clarified Windows installation message to specify Git requirement and fixed CLI installation command to run from the command palette.
+
+## [0.25.18] - [2024-11-06]
+- Enhanced Bruin CLI installation process with a new shell script for Windows and Linux, and Homebrew support for macOS.
+
 ## [0.25.17] - [2024-11-01]
 - Refactored asset validation and run button styles to improve consistency with the VSCode editor.
 

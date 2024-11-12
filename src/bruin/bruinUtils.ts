@@ -3,13 +3,10 @@ import { BRUIN_RUN_SQL_COMMAND, BRUIN_WHERE_COMMAND, BRUIN_WHICH_COMMAND } from 
 import * as os from "os";
 import { exec } from "child_process";
 import { promisify } from "util";
-
-// eslint-disable-next-line @typescript-eslint/naming-convention
-import * as child_process from "child_process";
 import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
-import { getPathSeparator } from "../extension/configuration";
+import { getDefaultBruinExecutablePath, getPathSeparator } from "../extension/configuration";
 
 /**
  * Checks if the Bruin binary is available in the system path.
@@ -17,13 +14,13 @@ import { getPathSeparator } from "../extension/configuration";
  * @returns {boolean} Returns true if the Bruin binary is available, false otherwise.
  */
 
-export const isBruinBinaryAvailable = (): boolean => {
+export const isBruinBinaryAvailable = async (): Promise<boolean> => {
   try {
-    const command = process.platform === "win32" ? BRUIN_WHERE_COMMAND : BRUIN_WHICH_COMMAND;
-    let output = child_process.execSync(command);
-    console.log(output.toString());
+    const command = process.platform === "win32"? BRUIN_WHERE_COMMAND : BRUIN_WHICH_COMMAND;
+    const output = await promisify(exec)(command);
+    console.log(output.stdout);
 
-    if (!output) {
+    if (!output.stdout) {
       throw new Error("Bruin is not installed");
     }
   } catch (e) {
@@ -33,19 +30,6 @@ export const isBruinBinaryAvailable = (): boolean => {
   return true;
 };
 
-/**
- * Builds the Bruin command based on the platform.
- * @param {string} cliCommand - The Bruin command to be executed in the CLI (e.g., "run", "render").
- * @returns {string} Returns the built Bruin command.
- */
-export const buildCommand = (cliCommand: string): string => {
-  switch (process.platform) {
-    case "win32":
-      return `cmd.exe /c bruin.exe ${cliCommand}`;
-    default:
-      return `bruin ${cliCommand}`;
-  }
-};
 
 /**
  * Replaces path separators in a given path string based on the user configuration and platform.
@@ -71,42 +55,51 @@ export const replacePathSeparator = (path: string): string => {
  * @returns {string | undefined} The directory path of the Bruin workspace if found, otherwise undefined.
  */
 
-export const bruinWorkspaceDirectory = (
+export const bruinWorkspaceDirectory = async (
   fsPath: string,
   bruinRootFileNames = [".bruin.yaml", ".bruin.yml"]
-): string | undefined => {
+): Promise<string | undefined> => {
   let dirname = fsPath;
   let iteration = 0;
   const maxIterations = 100;
 
-  if (fs.statSync(fsPath).isFile()) {
+  if ((await fs.promises.stat(fsPath)).isFile()) {
     dirname = path.dirname(dirname);
   }
   do {
     for (const fileName of bruinRootFileNames) {
       const bruinWorkspace = path.join(dirname, fileName);
       try {
-        fs.accessSync(bruinWorkspace, fs.constants.F_OK);
+        await fs.promises.access(bruinWorkspace, fs.constants.F_OK);
         return dirname.replace(/\\/g, "/");
       } catch (err) {
         // do nothing
       }
     }
     dirname = path.dirname(dirname);
-  } while (++iteration < maxIterations && dirname !== "" && dirname !== "/");
+  } while (++iteration < maxIterations && dirname!== "" && dirname!== "/");
 
   return undefined;
 };
 
+
 const escapeFilePath = (filePath: string): string => {
-  // Escape backslashes first (they need to be escaped as double backslashes)
-  // Then escape spaces (they need to be escaped with a backslash)
-  // Finally, wrap the path in quotes for safety
-  return `"${filePath.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+  // Convert Windows-style paths to Unix-style paths for Git Bash
+  if (process.platform === 'win32' && process.env.SHELL?.includes('bash')) {
+    filePath = filePath.replace(/\\/g, '/');
+    if (filePath[1] === ':') {
+      filePath = `/${filePath[0].toLowerCase()}${filePath.slice(2)}`;
+    }
+  }
+  // Escape quotes
+  filePath = filePath.replace(/"/g, '\\"');
+
+  // Wrap the path in quotes for safety
+  return `"${filePath}"`;
 };
 
-export const getCurrentPipelinePath = (fsPath: string): string | undefined => {
-  return bruinWorkspaceDirectory(fsPath, ["pipeline.yaml", "pipeline.yml"]);
+export const getCurrentPipelinePath = async (fsPath: string): Promise<string | undefined> => {
+  return await bruinWorkspaceDirectory(fsPath, ["pipeline.yaml", "pipeline.yml"]);
 };
 /**
  * Runs the Bruin command "run" in the integrated terminal.
@@ -120,53 +113,65 @@ export const runInIntegratedTerminal = async (
   workingDir: string | undefined,
   assetPath?: string,
   flags?: string
-) => {
-  const escapedAssetPath = assetPath ? escapeFilePath(assetPath) : "";
-  const command = `bruin ${BRUIN_RUN_SQL_COMMAND} ${flags} ${escapedAssetPath}`;
-
-  const terminalName = "Bruin Terminal";
-  let terminal = vscode.window.terminals.find((t) => t.name === terminalName);
-  if (!terminal) {
-    terminal = vscode.window.createTerminal({ cwd: workingDir, name: terminalName });
+): Promise<void> => {
+  const escapedAssetPath = assetPath? escapeFilePath(assetPath) : "";
+  const bruinExecutable = getDefaultBruinExecutablePath();
+  let command = "";
+  const terminal = await createIntegratedTerminal(workingDir);
+  if((terminal.creationOptions as  vscode.TerminalOptions).shellPath?.includes("bash")){
+    command = `bruin ${BRUIN_RUN_SQL_COMMAND} ${flags} ${escapedAssetPath}`;
+  }
+  else{
+    command = `${bruinExecutable} ${BRUIN_RUN_SQL_COMMAND} ${flags} ${escapedAssetPath}`;
   }
   terminal.show(true);
   terminal.sendText(command);
   await new Promise((resolve) => setTimeout(resolve, 1000));
 };
 
-const execAsync = promisify(exec);
+export const createIntegratedTerminal = async (workingDir: string | undefined): Promise<vscode.Terminal> => {
+  const terminalName = "Bruin Terminal";
+  let terminal = vscode.window.terminals.find((t) => t.name === terminalName);
 
-export async function checkBruinCliInstallation(): Promise<{
-  installed: boolean;
-  isWindows: boolean;
-  goInstalled: boolean;
-}> {
-  const isWindows = os.platform() === "win32";
-  let installed = false;
-  let goInstalled = false;
+  if (!terminal) {
+    let shellPath: string | undefined;
+    let shellArgs: string[] | undefined;
 
-  console.log("Platform:", os.platform()); // Debugging log
-
-  try {
-    await execAsync("bruin --version");
-    installed = true;
-    console.log("Bruin is installed");
-  } catch (error: any) {
-    installed = false;
-    console.error("Error checking Bruin installation:", error.message); // Log the error message
-  }
-
-  if (isWindows && !installed) {
-    try {
-      await execAsync("go version");
-      goInstalled = true;
-      console.log("Go is installed on Windows");
-    } catch (error: any) {
-      goInstalled = false;
-      console.error("Error checking Go installation:", error.message); // Log the error message
+    // Check for Git Bash on Windows
+    if (process.platform === "win32") {
+      const gitBashPath = "C:\\Program Files\\Git\\bin\\bash.exe";
+      if (fs.existsSync(gitBashPath)) {
+        shellPath = gitBashPath;
+      } else {
+        // Check for WSL on Windows
+        const wslPath = "wsl.exe";
+        if (fs.existsSync(wslPath)) {
+          shellPath = wslPath;
+          shellArgs = ["-d", "Ubuntu"]; // Assuming Ubuntu as the default WSL distro
+        } else {
+          // Neither Git Bash nor WSL is found, display an alert to the user
+          vscode.window.showWarningMessage(
+            "Neither Git Bash nor Windows Subsystem for Linux (WSL) was found on your system. " +
+            "Please install one of them to use the integrated terminal. " 
+          );
+          return vscode.window.createTerminal({ name: terminalName }); // Exit the function without creating a terminal
+        }
+      }
+    } else {
+      // For non-Windows platforms, use the default shell
+      shellPath = undefined;
     }
-  }
 
-  console.log({ installed, isWindows, goInstalled }); // Debugging log
-  return { installed, isWindows, goInstalled };
-}
+    const terminalOptions: vscode.TerminalOptions = {
+      name: terminalName,
+      cwd: workingDir,
+      shellPath,
+      shellArgs,
+    };
+    terminal = vscode.window.createTerminal(terminalOptions);
+  }
+  return terminal;
+};
+
+
+export { BruinInstallCLI } from './bruinInstallCli';

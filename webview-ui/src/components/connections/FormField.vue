@@ -88,6 +88,46 @@
         />
       </div>
 
+      <div v-if="type === 'csv'" class="flex flex-col justify-start">
+        <textarea
+          :id="id"
+          :value="internalValue"
+          @input="updateValue"
+          :class="[
+            'block bg-input-background w-full rounded-md border-0 py-1.5 text-input-foreground shadow-sm ring-1 ring-inset placeholder:text-editorInlayHint-fg focus:ring-2 focus:ring-inset focus:ring-accent sm:text-sm',
+            isInvalid ? 'ring-inputValidation-errorBorder' : 'ring-editor-border',
+          ]"
+          placeholder="Enter CSV values"
+          :required="required"
+          :rows="rows"
+          :cols="cols"
+        />
+        <p class="mt-2 text-sm text-inputPlaceholderForeground">
+            These top three players are set by default. You can also upload your own CSV file.
+          </p>
+
+        <div>
+          <input type="file" @change="handleCSVUpload" accept=".csv" style="display: none" />
+          <vscode-button
+            appearance="icon"
+            @click="$refs.csvFileInput.click()"
+            class="inline-flex items-center py-1 text-sm font-medium rounded-md mt-2"
+          >
+            <div class="flex items-center">
+              <FolderIcon class="h-5 w-5 mr-2" />
+              Upload CSV
+            </div>
+          </vscode-button>
+          <input
+            type="file"
+            ref="csvFileInput"
+            @change="handleCSVUpload"
+            style="display: none"
+            accept=".csv"
+          />
+        </div>
+      </div>
+
       <template v-if="type === 'select'">
         <div class="relative">
           <select
@@ -196,7 +236,10 @@ watch(
 );
 
 const updateValue = (event) => {
-  const value = props.type === "number" ? Number(event.target.value) : event.target.value;
+  let value = props.type === "number" ? Number(event.target.value) : event.target.value;
+  if (props.id === "players") {
+    value = value.split(",").map((player) => player.trim());
+  }
   internalValue.value = value;
   emit("update:modelValue", value);
   emit("clearError");
@@ -208,14 +251,30 @@ const updateValue = (event) => {
   validateAndEmit();
 };
 
+const handleCSVUpload = (event) => {
+  const file = event.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const csvContent = e.target.result;
+      const playersArray = csvContent.split(",").map((player) => player.trim());
+      internalValue.value = playersArray.join(", ");
+      emit("update:modelValue", playersArray);
+      emit("clearError");
+    };
+    reader.readAsText(file);
+  }
+};
+
 const handleFileSelection = (event) => {
   const file = event.target.files[0];
   if (file) {
-    selectedFile.value = file;
-    internalValue.value = "";
-    emit("update:modelValue", "");
-    emit("fileSelected", file);
-    validateAndEmit();
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      internalValue.value = e.target.result;
+      emit("update:modelValue", internalValue.value);
+    };
+    reader.readAsText(file);
   }
 };
 

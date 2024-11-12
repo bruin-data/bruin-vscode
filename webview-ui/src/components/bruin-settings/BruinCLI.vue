@@ -14,20 +14,7 @@
         </p>
       </div>
       <div class="mt-5">
-        <template v-if="isWindows && !isBruinCliInstalled && !goInstalled">
-          <div class="mt-3 text-sm leading-6">
-            <a
-              href="https://golang.org/doc/install"
-              class="font-semibold text-editorLink-activeFg  hover:text-link-activeForeground"
-            >
-              Go is required to install Bruin CLI on Windows. Please install Go first.
-              <span aria-hidden="true"> &rarr;</span>
-            </a>
-          </div>
-        </template>
-
         <vscode-button
-          v-else
           @click="installOrUpdateBruinCli"
           class="inline-flex items-center rounded-md px-3 py-2 text-lg font-semibold shadow-sm"
         >
@@ -44,7 +31,7 @@ import { vscode } from "@/utilities/vscode";
 
 const isBruinCliInstalled = ref(false);
 const isWindows = ref(false);
-const goInstalled = ref(false);
+const gitAvailble = ref(false);
 
 onMounted(() => {
   checkBruinCliInstallation();
@@ -54,7 +41,7 @@ onMounted(() => {
     if (message.command === "bruinCliInstallationStatus") {
       isBruinCliInstalled.value = message.installed;
       isWindows.value = message.isWindows;
-      goInstalled.value = message.goInstalled;
+      gitAvailble.value = message.gitAvailble;
     }
   });
 });

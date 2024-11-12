@@ -4,7 +4,6 @@ import { getNonce } from "../utilities/getNonce";
 import {
   BruinValidate,
   bruinWorkspaceDirectory,
-  checkBruinCliInstallation,
   getCurrentPipelinePath,
   runInIntegratedTerminal,
 } from "../bruin";
@@ -19,6 +18,7 @@ import {
   createConnection,
   deleteConnection,
   getConnections,
+  getConnectionsListFromSchema,
 } from "../extension/commands/manageConnections";
 
 /**
@@ -284,16 +284,17 @@ export class BruinPanel {
               return;
             }
             const currAssetPath = this._lastRenderedDocumentUri.fsPath;
-            const currentPipelinePath = getCurrentPipelinePath(currAssetPath || "");
+            const currentPipelinePath = await getCurrentPipelinePath(currAssetPath || "");
 
             if (!currentPipelinePath) {
               console.error("No pipeline found for the current asset.");
               return;
             }
 
+            const bruinWorkspaceDirc = await bruinWorkspaceDirectory(currAssetPath || "");
             const pipelineValidator = new BruinValidate(
               getDefaultBruinExecutablePath(),
-              bruinWorkspaceDirectory(currAssetPath || "")!!
+              bruinWorkspaceDirc || ""
             );
 
             try {
@@ -317,7 +318,7 @@ export class BruinPanel {
             }
 
             const filePath = this._lastRenderedDocumentUri.fsPath;
-            const bruinWorkspaceDir = bruinWorkspaceDirectory(filePath || "");
+            const bruinWorkspaceDir = await bruinWorkspaceDirectory(filePath || "");
 
             const validator = new BruinValidate(
               getDefaultBruinExecutablePath(),
@@ -330,7 +331,7 @@ export class BruinPanel {
               return;
             }
             const fPath = this._lastRenderedDocumentUri?.fsPath;
-            runInIntegratedTerminal(bruinWorkspaceDirectory(fPath), fPath, message.payload);
+            runInIntegratedTerminal(await bruinWorkspaceDirectory(fPath), fPath, message.payload);
 
             setTimeout(() => {
               this._panel.webview.postMessage({
@@ -347,8 +348,8 @@ export class BruinPanel {
             const currentPipeline = getCurrentPipelinePath(currfilePath || "");
 
             runInIntegratedTerminal(
-              bruinWorkspaceDirectory(currfilePath),
-              currentPipeline,
+              await bruinWorkspaceDirectory(currfilePath),
+              await currentPipeline,
               message.payload
             );
 
@@ -397,16 +398,16 @@ export class BruinPanel {
             this.checkAndUpdateBruinCliStatus();
             break;
 
-          case "checkBruinCliInstallation":
-            await this.checkAndUpdateBruinCliStatus();
-            break;
-
           case "bruinInstallOrUpdateCLI":
             await this.installOrUpdateBruinCli();
             break;
 
           case "bruin.getConnectionsList":
             getConnections(this._lastRenderedDocumentUri);
+            break;
+
+          case "bruin.getConnectionsSchema":
+            getConnectionsListFromSchema(this._lastRenderedDocumentUri);
             break;
 
           case "getLastRenderedDocument":
@@ -489,12 +490,13 @@ export class BruinPanel {
     );
   }
   private async checkAndUpdateBruinCliStatus() {
-    const { installed, isWindows, goInstalled } = await checkBruinCliInstallation();
+    const bruinInstaller = new BruinInstallCLI();
+    const { installed, isWindows, gitAvailable } = await bruinInstaller.checkBruinCliInstallation();
     this._panel.webview.postMessage({
       command: "bruinCliInstallationStatus",
       installed,
       isWindows,
-      goInstalled,
+      gitAvailable,
     });
   }
   public getCheckboxFlags(): string {
@@ -506,7 +508,8 @@ export class BruinPanel {
   private async installOrUpdateBruinCli() {
     try {
       const bruinInstaller = new BruinInstallCLI();
-      const { installed } = await checkBruinCliInstallation();
+      const { installed } = await bruinInstaller.checkBruinCliInstallation();
+      console.log("Bruin CLI installed:", installed);
       await bruinInstaller.installOrUpdate(installed);
       await this.checkAndUpdateBruinCliStatus();
     } catch (error) {

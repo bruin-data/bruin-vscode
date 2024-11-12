@@ -163,3 +163,33 @@ export class BruinCreateConnection extends BruinCommand {
     BruinPanel.postMessage("connection-created-message", { status, message });
   }
 }
+
+export class BruinGetAllBruinConnections extends BruinCommand {
+  protected bruinCommand(): string {
+    return "internal";
+  }
+
+  public async getConnectionsListFromSchema({
+    flags = ["connections"],
+    ignoresErrors = false,
+  }: BruinCommandOptions = {}): Promise<void> {
+    await this.run([...flags], { ignoresErrors })
+      .then(
+        (result) => {
+          const connections = JSON.parse(result);
+          this.postMessageToPanels("success", connections);
+          return connections;
+        },
+        (error) => {
+          this.postMessageToPanels("error", error);
+        }
+      )
+      .catch((err) => {
+        console.error("Internal Connections command error", err);
+      });
+  }
+
+  private postMessageToPanels(status: string, message: string | any) {
+    BruinPanel.postMessage("connections-schema-message", { status, message });
+  }
+}

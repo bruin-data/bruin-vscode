@@ -51,8 +51,12 @@
 import { ref, computed, watch, defineEmits, defineProps } from "vue";
 import FormField from "./FormField.vue";
 import { XMarkIcon } from "@heroicons/vue/20/solid";
-import { connectionTypes, connectionConfig } from "./connectionUtility";
 import { useConnectionsStore } from "@/store/bruinStore";
+import { generateConnectionConfig } from "./connectionUtility";
+const connectionsStore = useConnectionsStore();
+
+const connectionSchema = connectionsStore.connectionsSchema;
+const { connectionConfig, connectionTypes } = generateConnectionConfig(connectionSchema);
 
 const emit = defineEmits(["submit", "cancel"]);
 
@@ -72,7 +76,6 @@ const props = defineProps({
   error: Object,
 });
 
-const connectionsStore = useConnectionsStore();
 const defaultEnvironment = computed(() => connectionsStore.getDefaultEnvironment());
 
 const getDefaultValue = (field) => {
@@ -167,6 +170,7 @@ watch(
 
 
 watch(() => form.value.connection_type, (newType) => {
+  console.log(connectionConfig, connectionTypes)
   if (newType) {
     const config = connectionConfig[newType] || [];
     config.forEach(field => {
@@ -252,4 +256,3 @@ vscode-button::part(control) {
   outline: none;
 }
 </style>
-@/store/bruinStore

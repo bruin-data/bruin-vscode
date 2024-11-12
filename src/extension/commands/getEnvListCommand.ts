@@ -7,7 +7,7 @@ export const getEnvListCommand = async (lastRenderedDocumentUri:  Uri | undefine
 
   const getList = new BruinEnvList(
     getDefaultBruinExecutablePath(),
-    bruinWorkspaceDirectory(lastRenderedDocumentUri!.fsPath)!!
+    await bruinWorkspaceDirectory(lastRenderedDocumentUri!.fsPath)!! as string
   );
   await getList.getEnvironmentsList();
   };

@@ -1,4 +1,7 @@
+import path = require("path");
 import * as vscode from "vscode";
+import * as fs from "fs";
+import * as os from "os";
 
 /**
  * Gets the path to the Bruin executable specified by the workspace
@@ -9,16 +12,43 @@ import * as vscode from "vscode";
  * will be searched).
  */
 export function getDefaultBruinExecutablePath(): string {
-  // Try to retrieve the executable from VS Code's settings. If it's not set,
-  // just use "bruin" as the default and get it from the system PATH.
   const bruinConfig = vscode.workspace.getConfiguration("bruin");
   const bruinExecutable = bruinConfig.get<string>("executable") || "";
-  if (bruinExecutable.length === 0) {
-    return "bruin";
-  }
-  return bruinExecutable;
-}
 
+  if (bruinExecutable.length > 0) {
+    // If a path is provided, use it
+    return bruinExecutable;
+  } else {
+    // Attempt to find 'bruin' in the system's PATH (works for Git Bash)
+    const paths = (process.env.PATH || "").split(path.delimiter);
+    for (const p of paths) {
+      const executablePath = path.join(p, process.platform === "win32"? "bruin.exe" : "bruin");
+      try {
+        // Test if the file exists and is executable
+        // NOTE: Git Bash's `which` command doesn't work as expected, so we use `fs.accessSync` instead
+        fs.accessSync(executablePath, fs.constants.X_OK);
+        return "bruin";
+      } catch (err) {
+        // Continue searching if not found or not executable
+        continue;
+      }
+    }
+    // If all else fails, check in ~/.local/bin for Windows (Git Bash)
+    if (process.platform === "win32") {
+      const homePath = os.homedir();
+      const localBinPath = path.join(homePath, ".local", "bin");
+      const executablePathLocal = path.join(localBinPath, "bruin.exe");
+      try {
+        fs.accessSync(executablePathLocal, fs.constants.X_OK);
+        return executablePathLocal;
+      } catch (err) {
+        // Continue searching if not found or not executable
+      }
+    }
+    // If all else fails, provide a meaningful message or default
+    return "";
+  }
+}
 export function getPathSeparator(): string {
   const bruinConfig = vscode.workspace.getConfiguration("bruin");
   const pathSeparator = bruinConfig.get<string>("pathSeparator") || "/";
