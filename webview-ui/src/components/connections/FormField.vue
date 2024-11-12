@@ -88,6 +88,25 @@
         />
       </div>
 
+      <div v-if="type === 'csv'" class="flex flex-col">
+        <textarea
+          :id="id"
+          :value="internalValue"
+          @input="updateValue"
+          :class="[
+            'block bg-input-background w-full rounded-md border-0 py-1.5 text-input-foreground shadow-sm ring-1 ring-inset placeholder:text-editorInlayHint-fg focus:ring-2 focus:ring-inset focus:ring-accent sm:text-sm',
+            isInvalid ? 'ring-inputValidation-errorBorder' : 'ring-editor-border',
+          ]"
+          placeholder="Enter CSV values"
+          :required="required"
+          :rows="rows"
+          :cols="cols"
+        />
+        <p class="mt-2 text-sm text-inputPlaceholderForeground">
+          You can use these chess players: "MagnusCarlsen", "HikaruNakamura", "ArjunErigaisi"
+        </p>
+      </div>
+
       <template v-if="type === 'select'">
         <div class="relative">
           <select
@@ -196,7 +215,10 @@ watch(
 );
 
 const updateValue = (event) => {
-  const value = props.type === "number" ? Number(event.target.value) : event.target.value;
+  let value = props.type === "number" ? Number(event.target.value) : event.target.value;
+  if (props.id === "players") {
+    value = value.split(",").map((player) => player.trim());
+  }
   internalValue.value = value;
   emit("update:modelValue", value);
   emit("clearError");
@@ -211,11 +233,12 @@ const updateValue = (event) => {
 const handleFileSelection = (event) => {
   const file = event.target.files[0];
   if (file) {
-    selectedFile.value = file;
-    internalValue.value = "";
-    emit("update:modelValue", "");
-    emit("fileSelected", file);
-    validateAndEmit();
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      internalValue.value = e.target.result;
+      emit("update:modelValue", internalValue.value);
+    };
+    reader.readAsText(file);
   }
 };
 

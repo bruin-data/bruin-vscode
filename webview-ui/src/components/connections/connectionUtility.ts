@@ -16,7 +16,9 @@ if (connectionDef) {
         .map((prop) => {
           const propDef = connectionDef.properties[prop];
           let inputType = 'text';
-          if (propDef.type === 'string') {
+          if (prop === 'players' && type === 'chess') {
+            inputType = 'csv';
+          } else if (propDef.type === 'string') {
             inputType = 'text';
           } else if (propDef.type === 'integer') {
             inputType = 'number';
