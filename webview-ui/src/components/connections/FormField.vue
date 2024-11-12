@@ -103,8 +103,9 @@
           :cols="cols"
         />
         <p class="mt-2 text-sm text-inputPlaceholderForeground">
-          You can use these chess players: "MagnusCarlsen", "HikaruNakamura", "ArjunErigaisi"
-        </p>
+            These top three players are set by default. You can also upload your own CSV file.
+          </p>
+
         <div>
           <input type="file" @change="handleCSVUpload" accept=".csv" style="display: none" />
           <vscode-button
