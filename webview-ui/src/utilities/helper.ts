@@ -176,16 +176,8 @@ export const transformColumnData = (columns) => {
       name: column.name,
       type: column.type,
       description: column.description,
-      checks: column.checks
-       .filter((check) => check.blocking.enabled)
-       .map((check) => ({
-          id: check.id,
-          name: check.name,
-          value: check.value,
-          blocking: check.blocking,
-        })),
+      checks: column.checks 
     };
-
     return newColumn;
   });
 };

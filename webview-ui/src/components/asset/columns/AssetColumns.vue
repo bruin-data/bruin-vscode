@@ -7,13 +7,13 @@
     </div>
     <!-- Header Row -->
     <div
-      class="flex p-2 sm:p-2 font-semibold text-editor-fg text-md opacity-65 border-b-2 border-editor-fg"
+      class="flex px-2 py-1 font-semibold text-editor-fg text-md opacity-65 border-b-2 border-editor-fg"
     >
-      <div class="flex-[2] min-w-0 px-2 text-left">Name</div>
-      <div class="flex-1 min-w-0 px-2 text-left">Type</div>
-      <div class="flex-[2] min-w-0 px-2 text-left">Description</div>
-      <div class="flex-[2] min-w-0 px-2 text-left">Checks</div>
-      <div class="flex-[1/2] min-w-0 px-2 text-left">Actions</div>
+      <div class="flex-1 min-w-0 text-left">Name</div>
+      <div class="flex-1 min-w-0 text-left">Type</div>
+      <div class="flex-[2] min-w-0 text-left">Description</div>
+      <div class="flex-1 min-w-0 text-left">Checks</div>
+      <div class="flex-[1/2] min-w-0 text-left">Actions</div>
     </div>
 
     <!-- Column Rows -->
@@ -22,18 +22,18 @@
         v-if="localColumns.length"
         v-for="(column, index) in localColumns"
         :key="index"
-        class="flex p-1 border-b border-commandCenter-border items-center relative"
+        class="flex px-1 py-1 border-b border-commandCenter-border items-center relative text-xs"
       >
         <!-- Column Details -->
-        <div class="flex-[2] min-w-0 px-2 text-left font-medium font-mono">
+        <div class="flex-1 min-w-0 text-left font-medium font-mono mr-1">
           <input
             v-if="editingIndex === index"
             v-model="editingColumn.name"
             class="w-full bg-editorWidget-bg text-editor-fg"
           />
-          <div v-else class="truncate" :title="column.name">{{ column.name }}</div>
+          <div v-else class="w-full px-1 truncate" :title="column.name">{{ column.name }}</div>
         </div>
-        <div class="flex-1 min-w-0 px-2 text-left">
+        <div class="flex-1 min-w-0 text-left mr-1">
           <input
             v-if="editingIndex === index"
             v-model="editingColumn.type"
@@ -41,13 +41,13 @@
           />
           <div
             v-else
-            class="text-[0.7rem] opacity-70 truncate font-mono"
+            class="w-full opacity-70 truncate font-mono px-1"
             :title="column.type.toUpperCase()"
           >
             {{ column.type.toUpperCase() }}
           </div>
         </div>
-        <div class="flex-[2] min-w-0 px-2 text-left">
+        <div class="flex-[2] min-w-0 text-left">
           <input
             v-if="editingIndex === index"
             v-model="editingColumn.description"
@@ -55,7 +55,7 @@
           />
           <div
             v-else
-            class="flex-[2] min-w-0 px-2 text-left text-xs text-input-foreground opacity-70 font-light"
+            class="flex-[2] min-w-0 text-left px-1 text-input-foreground opacity-70 font-light"
             :class="!column.description ? 'opacity-60 italic' : ''"
             :title="column.description || 'undefined'"
           >
@@ -64,16 +64,14 @@
         </div>
 
         <!-- Checks Column -->
-        <div
-          class="flex-[2] pr-6 min-w-0 text-left flex flex-wrap gap-2 whitespace-nowrap font-mono overflow-visible"
-        >
-          <template v-if="editingIndex === index">
-            <div class="flex flex-wrap gap-2 max-w-full overflow-hidden">
+        <div class="flex-1 min-w-0 text-left flex flex-wrap gap-2 whitespace-nowrap font-mono">
+          <!-- <template v-if="editingIndex === index">
+             <div class="flex flex-wrap gap-2 max-w-full overflow-hidden">
               <vscode-badge
-                v-for="check in getActiveChecks(editingColumn)"
-                :key="check.name"
+                v-for="check in editingColumn.checks"
+                :key="check.id"
                 :class="{
-                  'elative cursor-pointer':
+                  'relative cursor-pointer':
                     check.name === 'accepted_values' || check.name === 'pattern',
                 }"
                 :title="getCheckTooltip(check, editingColumn)"
@@ -97,7 +95,7 @@
               </vscode-button>
               <div
                 v-if="showAddCheckDropdown === index"
-                class="absolute z-50 mt-1 bg-editorWidget-bg border border-commandCenter-border rounded bottom-full mb-1"
+                class="absolute z-50 mt-1 bg-editorWidget-bg border border-commandCenter-border rounded shadow-lg max-h-52 overflow-y-auto"
               >
                 <div
                   v-for="check in availableChecks(editingColumn)"
@@ -108,20 +106,18 @@
                   {{ check }}
                 </div>
               </div>
-            </div>
-          </template>
-          <template v-else>
-            <div class="flex flex-wrap gap-2 max-w-full overflow-hidden">
+            </div> 
+          </template> -->
+            <div class="flex flex-wrap gap-2 max-w-full">
               <vscode-badge
-                v-for="check in getActiveChecks(column)"
-                :key="check"
+                v-for="(check, checkIndex) in column.checks"
+                :key="check.id || checkIndex"
                 :title="getCheckTooltip(check, column)"
                 class="max-w-[100px]"
               >
-                <span class="truncate inline-block w-full">{{ check }}</span>
+                <span class="truncate inline-block w-full">{{ check.name }}</span>
               </vscode-badge>
             </div>
-          </template>
         </div>
 
         <div class="flex-[1/2] justify-end space-x-2">
@@ -190,7 +186,7 @@ const addColumn = () => {
     name: "New Column",
     type: "string",
     description: "Description for the new column",
-    checks: [], // Initialize checks as an empty object
+    checks: [],
   };
 
   // Add new column to local columns
@@ -198,30 +194,18 @@ const addColumn = () => {
   editingIndex.value = localColumns.value.length - 1;
   editingColumn.value = JSON.parse(JSON.stringify(newColumn));
 
-  // Create clean data for ALL columns
-  const allColumnsData = localColumns.value.map((column) => ({
-    name: column.name,
-    type: column.type,
-    description: column.description,
-    checks: formatChecks(column.checks),
-  }));
+  const payload = JSON.parse(JSON.stringify({ columns: editingColumn }));
 
-  // Ensure data is cloneable
-  const cloneableData = JSON.parse(JSON.stringify({ columns: allColumnsData }));
-
-  // Send ALL columns data
   vscode.postMessage({
     command: "bruin.setAssetDetails",
-    payload: cloneableData,
+    payload: payload,
   });
-
   emitUpdateColumns();
 };
 
 const saveChanges = (index) => {
   localColumns.value[index] = JSON.parse(JSON.stringify(editingColumn.value));
   editingIndex.value = null;
-
   // Create clean data for ALL columns
   const allColumnsData = localColumns.value.map((column) => ({
     name: column.name,
@@ -230,41 +214,38 @@ const saveChanges = (index) => {
     checks: formatChecks(column.checks),
   }));
 
-  // Ensure data is cloneable
-  const cloneableData = JSON.parse(JSON.stringify({ columns: allColumnsData }));
+  const payload = JSON.parse(JSON.stringify({ columns: allColumnsData }));
 
-  // Send ALL columns data
   vscode.postMessage({
     command: "bruin.setAssetDetails",
-    payload: cloneableData,
+    payload: payload,
   });
-
   emitUpdateColumns();
 };
 
 const formatChecks = (checks) => {
   const formattedChecks = [];
-  Object.entries(checks).forEach(([key, value]) => {
-    if (key === "accepted_values" && Array.isArray(value)) {
+  checks.forEach((check) => {
+    if (check.name === "accepted_values" && Array.isArray(check.value)) {
       formattedChecks.push({
-        id: uuidv4(),
-        name: key,
-        value: { values: value }, // Wrap the array in an object
-        blocking: { enabled: true },
+        id: check.id,
+        name: check.name,
+        value: { values: check.value },
+        blocking: {"enabled": check.blocking || true},
       });
-    } else if (key === "pattern" && typeof value === "string") {
+    } else if (check.name === "pattern" && typeof check.value === "string") {
       formattedChecks.push({
-        id: uuidv4(),
-        name: key,
-        value: { pattern: value }, // Wrap the string in an object
-        blocking: { enabled: true },
+        id: check.id,
+        name: check.name,
+        value: { pattern: check.value },
+        blocking: {"enabled": check.blocking || true},
       });
-    } else if (typeof value === "boolean" && value === true) {
+    } else {
       formattedChecks.push({
-        id: uuidv4(),
-        name: key,
-        value: null,
-        blocking: { enabled: true },
+        id: check.id,
+        name: check.name,
+        value: check.value,
+        blocking: {"enabled": check.blocking || true},
       });
     }
   });
@@ -272,57 +253,46 @@ const formatChecks = (checks) => {
 };
 
 const getActiveChecks = computed(() => (column) => {
-  return Array.isArray(column.checks)? column.checks.filter((check) => check.blocking.enabled) : [];
-  });
+  return Array.isArray(column.checks) ? column.checks : [];
+});
 
-  const availableChecks = computed(() => (column) => {
-    const activeCheckNames = getActiveChecks.value(column).map((check) => check.name);
-    const allChecks = [
-      "unique",
-      "not_null",
-      "positive",
-      "negative",
-      "not_negative",
-      "accepted_values",
-      "pattern",
-    ];
-    return allChecks.filter((check) =>!activeCheckNames.includes(check));
-  });
+const availableChecks = computed(() => (column) => {
+  const activeCheckNames = getActiveChecks.value(column).map((check) => check.name);
+  const allChecks = [
+    "unique",
+    "not_null",
+    "positive",
+    "negative",
+    "not_negative",
+    "accepted_values",
+    "pattern",
+  ];
+  return allChecks.filter((check) => !activeCheckNames.includes(check));
+});
 
-  const addCheck = (checkName) => {
-    const newCheck = {
-      id: uuidv4(),
-      name: checkName,
-      value: checkName === "accepted_values"? { values: [] } : checkName === "pattern"? { pattern: "" } : null,
-      blocking: { enabled: true },
-    };
-    editingColumn.value.checks.push(newCheck);
-    if (checkName === "accepted_values") {
-      showNotification("Please specify the accepted values in the asset file.");
-    } else if (checkName === "pattern") {
-      showNotification("Please specify the regex pattern in the asset file.");
-    }
-    showAddCheckDropdown.value = null;
+const addCheck = (checkName) => {
+  const newCheck = {
+    id: uuidv4(),
+    name: checkName,
+    value: checkName === "accepted_values" ? [] : checkName === "pattern" ? "" : null,
+    blocking:  {"enabled": false},
   };
+  editingColumn.value.checks.push(newCheck);
+  showAddCheckDropdown.value = null;
+  saveChanges(editingIndex.value);
+  emitUpdateColumns();
+};
 
-  const removeCheck = (checkName) => {
-    editingColumn.value.checks = editingColumn.value.checks.filter((check) => check.name!== checkName);
-  };
-
+const removeCheck = (checkName) => {
+  editingColumn.value.checks = editingColumn.value.checks.filter(
+    (check) => check.name !== checkName
+  );
+  saveChanges(editingIndex.value);
+  emitUpdateColumns();
+};
 
 const showAddCheckDropdown = ref(null);
 const notification = ref(null);
-
-const allChecks = [
-  "not_null",
-  "unique",
-  "accepted_values",
-  "pattern",
-  "positive",
-  "negative",
-  "not_negative",
-];
-
 
 const toggleAddCheckDropdown = (index) => {
   if (showAddCheckDropdown.value === index) {
@@ -346,17 +316,21 @@ const showNotification = (message) => {
 };
 
 const getCheckTooltip = (check, column) => {
-  if (check === "accepted_values") {
-    const values = column.checks.accepted_values?.values;
+  if (check.name === "accepted_values") {
+    const values = check.value.values;
     return `Accepted values: ${Array.isArray(values) ? values.join(", ") : "Not specified"}`;
-  } else if (check === "pattern") {
-    return `Pattern: ${column.checks.pattern?.pattern || "Not specified"}`;
+  } else if (check.name === "pattern") {
+    return `Pattern: ${check.value.pattern || "Not specified"}`;
   }
   return "";
 };
 
 const emitUpdateColumns = () => {
-  emit("update:columns", localColumns.value);
+  const formattedColumns = localColumns.value.map((column) => ({
+    ...column,
+    checks: formatChecks(column.checks),
+  }));
+  emit("update:columns", formattedColumns);
 };
 
 const startEditing = (index) => {
@@ -373,7 +347,10 @@ const deleteColumn = (index) => {
 watch(
   () => props.columns,
   (newColumns) => {
-    localColumns.value = JSON.parse(JSON.stringify(newColumns));
+    localColumns.value = newColumns.map((column) => ({
+      ...column,
+      checks: column.checks || [],
+    }));
   },
   { deep: true }
 );
@@ -381,14 +358,15 @@ watch(
 
 <style scoped>
 vscode-badge::part(control) {
-  background-color: transparent;
+  background-color: var(--vscode-badge-background);
   border: 1px solid var(--vscode-commandCenter-border);
-  color: var(--vscode-editor-foreground);
+  color: var(--vscode-badge-foreground);
   font-family: monospace;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  padding: 0.25rem;
 }
 
 vscode-button::part(control) {
@@ -398,12 +376,7 @@ vscode-button::part(control) {
 
 input,
 select {
-  background-color: var(--vscode-input-background);
-  color: var(--vscode-input-foreground);
-  border: none;
-  outline: none;
-  padding: 0.25rem;
-  font-size: 0.875rem;
+  @apply text-xs bg-input-background text-input-foreground border-none outline-none p-1;
 }
 
 input:focus,

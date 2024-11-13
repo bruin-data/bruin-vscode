@@ -51,6 +51,7 @@
                   :title="getCheckTooltip(check, column)"
                 >
                   {{ check.name }}
+                  <template v-if="check.value"> ({{ check.value.join(", ") }}) </template>
                 </vscode-badge>
               </div>
             </div>
@@ -60,19 +61,12 @@
             <div class="flex flex-wrap gap-2">
               <vscode-checkbox
                 v-for="check in availableChecks(column)"
-                :key="check"
+                :key="check.id"
                 :checked="false"
                 @change="
                   updateColumnCheck(index, check, $event.target.checked, null, {
-                    id: uuidv4(),
                     name: check,
-                    value:
-                      check === 'accepted_values'
-                        ? { values: [] }
-                        : check === 'pattern'
-                          ? { pattern: '' }
-                          : null,
-                    blocking: { enabled: true },
+                    value: check === 'accepted_values' ? [] : null,
                   })
                 "
               >
@@ -87,11 +81,11 @@
                 class="flex items-start"
               >
                 <vscode-checkbox
-                  :checked="check.blocking.enabled"
+                  :checked="check.blocking"
                   class="w-40 flex-shrink-0"
                   @change="
                     updateColumnCheck(index, check.name, $event.target.checked, null, {
-                      blocking: { enabled: $event.target.checked },
+                      blocking: $event.target.checked,
                     })
                   "
                 >
@@ -99,7 +93,7 @@
                 </vscode-checkbox>
                 <div v-if="check.name === 'accepted_values'" class="flex flex-col space-y-2 w-full">
                   <div
-                    v-for="(value, valueIndex) in check.value.values"
+                    v-for="(value, valueIndex) in check.value"
                     :key="valueIndex"
                     class="flex items-center space-x-2"
                   >
@@ -114,10 +108,10 @@
                           $event.target.value,
                           valueIndex,
                           {
-                            values: [
-                              ...check.value.values.slice(0, valueIndex),
+                            value: [
+                              ...check.value.slice(0, valueIndex),
                               $event.target.value,
-                              ...check.value.values.slice(valueIndex + 1),
+                              ...check.value.slice(valueIndex + 1),
                             ],
                           }
                         )
@@ -131,7 +125,7 @@
                       <PlusIcon class="h-4 w-4" />
                     </vscode-button>
                     <vscode-button
-                      v-if="check.value.values.length > 1 && valueIndex > 0"
+                      v-if="check.value.length > 1 && valueIndex > 0"
                       @click="removeAcceptedValue(index, checkIndex, valueIndex)"
                       appearance="secondary"
                       class="p-1 hover:bg-editor-button-hover-bg rounded"
@@ -139,18 +133,6 @@
                       <MinusIcon class="h-4 w-4" />
                     </vscode-button>
                   </div>
-                </div>
-                <div v-else-if="check.name === 'pattern'" class="flex items-center w-full">
-                  <vscode-text-field
-                    :value="check.value.pattern"
-                    class="bg-transparent border-none w-full"
-                    placeholder="Pattern"
-                    @input="
-                      updateColumnCheck(index, 'pattern', $event.target.value, null, {
-                        pattern: $event.target.value,
-                      })
-                    "
-                  />
                 </div>
               </div>
             </div>
@@ -179,7 +161,6 @@ import {
   ChevronDownIcon,
   ChevronUpIcon,
 } from "@heroicons/vue/20/solid";
-import { v4 as uuidv4 } from "uuid";
 
 const props = defineProps({
   columns: {
@@ -195,19 +176,52 @@ const expandedColumns = reactive({});
 
 const availableChecks = [
   "unique",
-  "notNull",
+  "not_null",
   "positive",
   "negative",
-  "notNegative",
+  "not_negative",
   "accepted_values",
   "pattern",
 ];
+
+const updateColumnCheck = (columnIndex, checkName, checked, valueIndex, checkUpdate) => {
+  const column = localColumns.value[columnIndex];
+  const existingCheck = column.checks.find((check) => check.name === checkName);
+  if (existingCheck) {
+    if (checkUpdate) {
+      Object.assign(existingCheck, checkUpdate);
+    }
+    if (checked!== undefined) {
+      existingCheck.blocking = {"enabled": checked};
+    }
+    if (valueIndex!== null && existingCheck.value) {
+      existingCheck.value[valueIndex] = checked;
+    }
+  } else {
+    column.checks.push({
+      name: checkName,
+     ...checkUpdate,
+      blocking: {"enabled": checked},
+    });
+  }
+  emitUpdate();
+};
+
+const addAcceptedValue = (index, checkIndex) => {
+  localColumns.value[index].checks[checkIndex].value.push("");
+  emitUpdate();
+};
+
+const removeAcceptedValue = (columnIndex, checkIndex, valueIndex) => {
+  localColumns.value[columnIndex].checks[checkIndex].value.splice(valueIndex, 1);
+  emitUpdate();
+};
 
 onMounted(() => {
   localColumns.value = JSON.parse(JSON.stringify(props.columns));
   localColumns.value.forEach((column) => {
     if (!Array.isArray(column.checks)) {
-      column.checks = [];
+      column.checks = column.checks || [];
     }
   });
 });
@@ -236,58 +250,16 @@ const updateColumn = (index, key, value) => {
   emitUpdate();
 };
 
-const updateColumnCheck = (columnIndex, checkName, checked, valueIndex, checkUpdate) => {
-  const column = localColumns.value[columnIndex];
-  if (!Array.isArray(column.checks)) {
-    column.checks = [];
-  }
-
-  const existingCheck = column.checks.find((check) => check.name === checkName);
-  if (existingCheck) {
-    if (checkUpdate) {
-      Object.assign(existingCheck, checkUpdate);
-    }
-    if (checked !== undefined) {
-      existingCheck.blocking.enabled = checked;
-    }
-    if (valueIndex !== null && existingCheck.value) {
-      if (Array.isArray(existingCheck.value.values)) {
-        existingCheck.value.values[valueIndex] = checked;
-      } else if (typeof existingCheck.value.pattern === "string") {
-        existingCheck.value.pattern = checked;
-      }
-    }
-  } else {
-    column.checks.push({
-      id: uuidv4(),
-      name: checkName,
-      ...checkUpdate,
-      blocking: { enabled: checked },
-    });
-  }
-  emitUpdate();
-};
-
-const addAcceptedValue = (index, checkIndex) => {
-  localColumns.value[index].checks[checkIndex].value.values.push("");
-  emitUpdate();
-};
-
-const removeAcceptedValue = (columnIndex, checkIndex, valueIndex) => {
-  localColumns.value[columnIndex].checks[checkIndex].value.values.splice(valueIndex, 1);
-  emitUpdate();
-};
 
 const emitUpdate = () => {
   const formattedColumns = localColumns.value.map((column) => ({
     ...column,
     checks: column.checks
-      .filter((check) => check.blocking.enabled)
       .map((check) => ({
         id: check.id,
         name: check.name,
         value: check.value,
-        blocking: check.blocking,
+        blocking: {"enabled": check.blocking || true},
       })),
   }));
   emit("update:columns", formattedColumns);
