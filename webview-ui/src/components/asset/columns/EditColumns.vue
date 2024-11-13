@@ -192,7 +192,7 @@ const updateColumnCheck = (columnIndex, checkName, checked, valueIndex, checkUpd
       Object.assign(existingCheck, checkUpdate);
     }
     if (checked!== undefined) {
-      existingCheck.blocking = {"enabled": checked};
+      existingCheck.blocking =  checked;
     }
     if (valueIndex!== null && existingCheck.value) {
       existingCheck.value[valueIndex] = checked;
@@ -201,7 +201,7 @@ const updateColumnCheck = (columnIndex, checkName, checked, valueIndex, checkUpd
     column.checks.push({
       name: checkName,
      ...checkUpdate,
-      blocking: {"enabled": checked},
+      blocking:  checked,
     });
   }
   emitUpdate();
@@ -259,7 +259,7 @@ const emitUpdate = () => {
         id: check.id,
         name: check.name,
         value: check.value,
-        blocking: {"enabled": check.blocking || true},
+        blocking: check.blocking || true,
       })),
   }));
   emit("update:columns", formattedColumns);
