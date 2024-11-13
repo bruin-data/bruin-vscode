@@ -40,79 +40,66 @@
         </button>
       </div>
       <div class="space-y-4">
-        <vscode-text-area
-          :value="column.description"
-          cols="50"
-          resize="vertical"
-          rows="1"
-          placeholder="Description"
-          class="w-11/12"
-          @input="updateColumn(index, 'description', $event.target.value)"
-        >
-        </vscode-text-area>
         <div class="flex flex-col space-y-2 w-11/12">
           <div class="flex justify-between items-center mb-2">
             <div class="flex items-center space-x-4">
               <h3 class="text-lg font-semibold mr-2">Checks</h3>
               <div class="flex flex-wrap gap-2">
-                <div v-for="(value, key) in column.checks" :key="key">
-                  <vscode-badge
-                    v-if="
-                      value === true &&
-                      key !== 'accepted_values' &&
-                      !['blocking', 'acceptedValuesEnabled', 'patternEnabled'].includes(key)
-                    "
-                  >
-                    {{ key }}
-                  </vscode-badge>
-                </div>
-                <vscode-badge v-if="column.checks.acceptedValuesEnabled">
-                  accepted_values
-                </vscode-badge>
-
-                <vscode-badge v-if="column.checks.patternEnabled && column.checks.pattern">
-                  pattern
+                <vscode-badge
+                  v-for="(check, index) in column.checks"
+                  :key="index"
+                  :title="getCheckTooltip(check, column)"
+                >
+                  {{ check.name }}
                 </vscode-badge>
               </div>
-            </div>
-
-            <div class="flex items-center space-x-2">
-              <vscode-label for="blocking">Blocking</vscode-label>
-              <vscode-checkbox
-                id="blocking"
-                :checked="column.checks.blocking"
-                @change="updateColumnCheck(index, 'blocking', $event.target.checked)"
-              ></vscode-checkbox>
             </div>
           </div>
 
           <div v-if="expandedColumns[index]" class="flex flex-col space-y-2">
             <div class="flex flex-wrap gap-2">
               <vscode-checkbox
-                v-for="check in availableChecks"
+                v-for="check in availableChecks(column)"
                 :key="check"
-                :checked="column.checks[check]"
-                @change="updateColumnCheck(index, check, $event.target.checked)"
+                :checked="false"
+                @change="
+                  updateColumnCheck(index, check, $event.target.checked, null, {
+                    id: uuidv4(),
+                    name: check,
+                    value:
+                      check === 'accepted_values'
+                        ? { values: [] }
+                        : check === 'pattern'
+                          ? { pattern: '' }
+                          : null,
+                    blocking: { enabled: true },
+                  })
+                "
               >
                 {{ check }}
               </vscode-checkbox>
             </div>
 
             <div class="flex flex-col space-y-4 mt-2 w-3/4">
-              <div class="flex items-start">
+              <div
+                v-for="(check, checkIndex) in column.checks"
+                :key="checkIndex"
+                class="flex items-start"
+              >
                 <vscode-checkbox
-                  :checked="column.checks.acceptedValuesEnabled"
+                  :checked="check.blocking.enabled"
                   class="w-40 flex-shrink-0"
-                  @change="updateColumnCheck(index, 'acceptedValuesEnabled', $event.target.checked)"
+                  @change="
+                    updateColumnCheck(index, check.name, $event.target.checked, null, {
+                      blocking: { enabled: $event.target.checked },
+                    })
+                  "
                 >
-                  Accepted Values
+                  {{ check.name }}
                 </vscode-checkbox>
-                <div
-                  v-if="column.checks.acceptedValuesEnabled"
-                  class="flex flex-col space-y-2 w-full"
-                >
+                <div v-if="check.name === 'accepted_values'" class="flex flex-col space-y-2 w-full">
                   <div
-                    v-for="(value, valueIndex) in column.checks.accepted_values"
+                    v-for="(value, valueIndex) in check.value.values"
                     :key="valueIndex"
                     class="flex items-center space-x-2"
                   >
@@ -121,19 +108,31 @@
                       class="bg-transparent border-none flex-grow"
                       placeholder="Accepted Values"
                       @input="
-                        updateColumnCheck(index, 'accepted_values', $event.target.value, valueIndex)
+                        updateColumnCheck(
+                          index,
+                          'accepted_values',
+                          $event.target.value,
+                          valueIndex,
+                          {
+                            values: [
+                              ...check.value.values.slice(0, valueIndex),
+                              $event.target.value,
+                              ...check.value.values.slice(valueIndex + 1),
+                            ],
+                          }
+                        )
                       "
                     />
                     <vscode-button
-                      @click="addAcceptedValue(index)"
+                      @click="addAcceptedValue(index, checkIndex)"
                       appearance="secondary"
                       class="p-1 hover:bg-editor-button-hover-bg rounded"
                     >
                       <PlusIcon class="h-4 w-4" />
                     </vscode-button>
                     <vscode-button
-                      v-if="column.checks.accepted_values.length > 1 && valueIndex > 0"
-                      @click="removeAcceptedValue(index, valueIndex)"
+                      v-if="check.value.values.length > 1 && valueIndex > 0"
+                      @click="removeAcceptedValue(index, checkIndex, valueIndex)"
                       appearance="secondary"
                       class="p-1 hover:bg-editor-button-hover-bg rounded"
                     >
@@ -141,23 +140,18 @@
                     </vscode-button>
                   </div>
                 </div>
-              </div>
-
-              <div class="flex items-center">
-                <vscode-checkbox
-                  :checked="column.checks.patternEnabled"
-                  class="w-40 flex-shrink-0"
-                  @change="updateColumnCheck(index, 'patternEnabled', $event.target.checked)"
-                >
-                  Pattern
-                </vscode-checkbox>
-                <vscode-text-field
-                  v-if="column.checks.patternEnabled"
-                  :value="column.checks.pattern"
-                  class="bg-transparent border-none w-full"
-                  placeholder="Pattern"
-                  @input="updateColumnCheck(index, 'pattern', $event.target.value)"
-                />
+                <div v-else-if="check.name === 'pattern'" class="flex items-center w-full">
+                  <vscode-text-field
+                    :value="check.value.pattern"
+                    class="bg-transparent border-none w-full"
+                    placeholder="Pattern"
+                    @input="
+                      updateColumnCheck(index, 'pattern', $event.target.value, null, {
+                        pattern: $event.target.value,
+                      })
+                    "
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -175,6 +169,7 @@
     </div>
   </div>
 </template>
+
 <script setup>
 import { ref, watch, onMounted, defineEmits, defineProps, reactive } from "vue";
 import {
@@ -184,6 +179,7 @@ import {
   ChevronDownIcon,
   ChevronUpIcon,
 } from "@heroicons/vue/20/solid";
+import { v4 as uuidv4 } from "uuid";
 
 const props = defineProps({
   columns: {
@@ -195,37 +191,37 @@ const props = defineProps({
 const emit = defineEmits(["update:columns"]);
 
 const localColumns = ref([]);
-console.log("localColumns", props.columns);
+const expandedColumns = reactive({});
+
+const availableChecks = [
+  "unique",
+  "notNull",
+  "positive",
+  "negative",
+  "notNegative",
+  "accepted_values",
+  "pattern",
+];
 
 onMounted(() => {
   localColumns.value = JSON.parse(JSON.stringify(props.columns));
+  localColumns.value.forEach((column) => {
+    if (!Array.isArray(column.checks)) {
+      column.checks = [];
+    }
+  });
 });
-
-const expandedColumns = reactive({});
-
-const availableChecks = ["unique", "notNull", "positive", "negative", "notNegative"];
 
 const toggleExpand = (index) => {
   expandedColumns[index] = !expandedColumns[index];
 };
 
 const addColumn = () => {
-  console.log("addColumn", JSON.parse(JSON.stringify(props.columns)));
   localColumns.value.push({
     name: "",
     type: "string",
     description: "",
-    checks: {
-      unique: false,
-      notNull: false,
-      positive: false,
-      negative: false,
-      notNegative: false,
-      acceptedValuesEnabled: false,
-      accepted_values: [""],
-      patternEnabled: false,
-      pattern: "",
-    },
+    checks: [],
   });
   emitUpdate();
 };
@@ -240,31 +236,61 @@ const updateColumn = (index, key, value) => {
   emitUpdate();
 };
 
-const updateColumnCheck = (columnIndex, key, value, valueIndex = null) => {
-  if (key === "accepted_values") {
-    if (valueIndex !== null) {
-      localColumns.value[columnIndex].checks.accepted_values[valueIndex] = value;
-    } else {
-      localColumns.value[columnIndex].checks.accepted_values.push(value);
+const updateColumnCheck = (columnIndex, checkName, checked, valueIndex, checkUpdate) => {
+  const column = localColumns.value[columnIndex];
+  if (!Array.isArray(column.checks)) {
+    column.checks = [];
+  }
+
+  const existingCheck = column.checks.find((check) => check.name === checkName);
+  if (existingCheck) {
+    if (checkUpdate) {
+      Object.assign(existingCheck, checkUpdate);
+    }
+    if (checked !== undefined) {
+      existingCheck.blocking.enabled = checked;
+    }
+    if (valueIndex !== null && existingCheck.value) {
+      if (Array.isArray(existingCheck.value.values)) {
+        existingCheck.value.values[valueIndex] = checked;
+      } else if (typeof existingCheck.value.pattern === "string") {
+        existingCheck.value.pattern = checked;
+      }
     }
   } else {
-    localColumns.value[columnIndex].checks[key] = value;
+    column.checks.push({
+      id: uuidv4(),
+      name: checkName,
+      ...checkUpdate,
+      blocking: { enabled: checked },
+    });
   }
   emitUpdate();
 };
 
-const addAcceptedValue = (index) => {
-  localColumns.value[index].checks.accepted_values.push("");
+const addAcceptedValue = (index, checkIndex) => {
+  localColumns.value[index].checks[checkIndex].value.values.push("");
   emitUpdate();
 };
 
-const removeAcceptedValue = (columnIndex, valueIndex) => {
-  localColumns.value[columnIndex].checks.accepted_values.splice(valueIndex, 1);
+const removeAcceptedValue = (columnIndex, checkIndex, valueIndex) => {
+  localColumns.value[columnIndex].checks[checkIndex].value.values.splice(valueIndex, 1);
   emitUpdate();
 };
 
 const emitUpdate = () => {
-  emit("update:columns", localColumns.value);
+  const formattedColumns = localColumns.value.map((column) => ({
+    ...column,
+    checks: column.checks
+      .filter((check) => check.blocking.enabled)
+      .map((check) => ({
+        id: check.id,
+        name: check.name,
+        value: check.value,
+        blocking: check.blocking,
+      })),
+  }));
+  emit("update:columns", formattedColumns);
 };
 
 watch(

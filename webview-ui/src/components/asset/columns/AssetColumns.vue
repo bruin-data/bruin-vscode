@@ -71,16 +71,17 @@
             <div class="flex flex-wrap gap-2 max-w-full overflow-hidden">
               <vscode-badge
                 v-for="check in getActiveChecks(editingColumn)"
-                :key="check"
+                :key="check.name"
                 :class="{
-                  'relative cursor-pointer': check === 'accepted_values' || check === 'pattern',
+                  'elative cursor-pointer':
+                    check.name === 'accepted_values' || check.name === 'pattern',
                 }"
                 :title="getCheckTooltip(check, editingColumn)"
               >
                 <span class="flex items-center max-w-[100px]">
-                  <span class="truncate font-mono">{{ check }}</span>
+                  <span class="truncate font-mono">{{ check.name }}</span>
                   <XMarkIcon
-                    @click="removeCheck(check)"
+                    @click="removeCheck(check.name)"
                     class="h-3 w-3 text-editor-fg ml-[0.1rem] cursor-pointer flex-shrink-0"
                   />
                 </span>
@@ -169,6 +170,7 @@ import { ref, watch, computed, nextTick } from "vue";
 import { TrashIcon, PencilIcon, XMarkIcon, CheckIcon, PlusIcon } from "@heroicons/vue/20/solid";
 import DeleteAlert from "@/components/ui/alerts/AlertWithActions.vue";
 import { vscode } from "@/utilities/vscode";
+import { v4 as uuidv4 } from "uuid"; // Import UUID library to generate unique IDs
 
 const props = defineProps({
   columns: {
@@ -188,10 +190,7 @@ const addColumn = () => {
     name: "New Column",
     type: "string",
     description: "Description for the new column",
-    checks: {
-      acceptedValuesEnabled: false,
-      patternEnabled: false,
-    },
+    checks: [], // Initialize checks as an empty object
   };
 
   // Add new column to local columns
@@ -204,38 +203,16 @@ const addColumn = () => {
     name: column.name,
     type: column.type,
     description: column.description,
-    checks: Object.entries(column.checks).reduce((acc, [key, value]) => {
-      // Handle special cases for accepted_values and pattern
-      if (key === "acceptedValuesEnabled" && value === true) {
-        acc.push({
-          name: "accepted_values",
-          value: column.checks.accepted_values || [],
-        });
-      } else if (key === "patternEnabled" && value === true) {
-        acc.push({
-          name: "pattern",
-          value: column.checks.pattern || "",
-        });
-      }
-      // Handle boolean checks
-      else if (
-        typeof value === "boolean" &&
-        value === true &&
-        !["acceptedValuesEnabled", "patternEnabled"].includes(key)
-      ) {
-        acc.push({
-          name: key,
-          value: true,
-        });
-      }
-      return acc;
-    }, []),
+    checks: formatChecks(column.checks),
   }));
+
+  // Ensure data is cloneable
+  const cloneableData = JSON.parse(JSON.stringify({ columns: allColumnsData }));
 
   // Send ALL columns data
   vscode.postMessage({
     command: "bruin.setAssetDetails",
-    payload: { columns: allColumnsData },
+    payload: cloneableData,
   });
 
   emitUpdateColumns();
@@ -250,59 +227,88 @@ const saveChanges = (index) => {
     name: column.name,
     type: column.type,
     description: column.description,
-    checks: Object.entries(column.checks).reduce((acc, [key, value]) => {
-      // Handle special cases for accepted_values and pattern
-      if (key === "acceptedValuesEnabled" && value === true) {
-        acc.push({
-          name: "accepted_values",
-          value: column.checks.accepted_values || [],
-        });
-      } else if (key === "patternEnabled" && value === true) {
-        acc.push({
-          name: "pattern",
-          value: column.checks.pattern || "",
-        });
-      }
-      // Handle boolean checks
-      else if (
-        typeof value === "boolean" &&
-        value === true &&
-        !["acceptedValuesEnabled", "patternEnabled"].includes(key)
-      ) {
-        acc.push({
-          name: key,
-          value: true,
-        });
-      }
-      return acc;
-    }, []),
+    checks: formatChecks(column.checks),
   }));
+
+  // Ensure data is cloneable
+  const cloneableData = JSON.parse(JSON.stringify({ columns: allColumnsData }));
 
   // Send ALL columns data
   vscode.postMessage({
     command: "bruin.setAssetDetails",
-    payload: { columns: allColumnsData },
+    payload: cloneableData,
   });
 
   emitUpdateColumns();
 };
 
+const formatChecks = (checks) => {
+  const formattedChecks = [];
+  Object.entries(checks).forEach(([key, value]) => {
+    if (key === "accepted_values" && Array.isArray(value)) {
+      formattedChecks.push({
+        id: uuidv4(),
+        name: key,
+        value: { values: value }, // Wrap the array in an object
+        blocking: { enabled: true },
+      });
+    } else if (key === "pattern" && typeof value === "string") {
+      formattedChecks.push({
+        id: uuidv4(),
+        name: key,
+        value: { pattern: value }, // Wrap the string in an object
+        blocking: { enabled: true },
+      });
+    } else if (typeof value === "boolean" && value === true) {
+      formattedChecks.push({
+        id: uuidv4(),
+        name: key,
+        value: null,
+        blocking: { enabled: true },
+      });
+    }
+  });
+  return formattedChecks;
+};
+
 const getActiveChecks = computed(() => (column) => {
-  const activeChecks = Object.entries(column.checks)
-    .filter(
-      ([key, value]) => value === true && !["acceptedValuesEnabled", "patternEnabled"].includes(key)
-    )
-    .map(([key]) => key);
+  return Array.isArray(column.checks)? column.checks.filter((check) => check.blocking.enabled) : [];
+  });
 
-  if (column.checks.acceptedValuesEnabled) {
-    activeChecks.push("accepted_values");
-  }
-  if (column.checks.patternEnabled && column.checks.pattern) {
-    activeChecks.push("pattern");
-  }
+  const availableChecks = computed(() => (column) => {
+    const activeCheckNames = getActiveChecks.value(column).map((check) => check.name);
+    const allChecks = [
+      "unique",
+      "not_null",
+      "positive",
+      "negative",
+      "not_negative",
+      "accepted_values",
+      "pattern",
+    ];
+    return allChecks.filter((check) =>!activeCheckNames.includes(check));
+  });
 
-  return activeChecks;
-});
+  const addCheck = (checkName) => {
+    const newCheck = {
+      id: uuidv4(),
+      name: checkName,
+      value: checkName === "accepted_values"? { values: [] } : checkName === "pattern"? { pattern: "" } : null,
+      blocking: { enabled: true },
+    };
+    editingColumn.value.checks.push(newCheck);
+    if (checkName === "accepted_values") {
+      showNotification("Please specify the accepted values in the asset file.");
+    } else if (checkName === "pattern") {
+      showNotification("Please specify the regex pattern in the asset file.");
+    }
+    showAddCheckDropdown.value = null;
+  };
+
+  const removeCheck = (checkName) => {
+    editingColumn.value.checks = editingColumn.value.checks.filter((check) => check.name!== checkName);
+  };
+
 
 const showAddCheckDropdown = ref(null);
 const notification = ref(null);
@@ -317,10 +323,6 @@ const allChecks = [
   "not_negative",
 ];
 
-const availableChecks = computed(() => (column) => {
-  const activeChecks = getActiveChecks.value(column);
-  return allChecks.filter((check) => !activeChecks.includes(check));
-});
 
 const toggleAddCheckDropdown = (index) => {
   if (showAddCheckDropdown.value === index) {
@@ -336,33 +338,6 @@ const toggleAddCheckDropdown = (index) => {
   }
 };
 
-const addCheck = (check) => {
-  if (check === "accepted_values") {
-    editingColumn.value.checks.acceptedValuesEnabled = true;
-    editingColumn.value.checks.accepted_values = [];
-    showNotification("Please specify the accepted values in the asset file.");
-  } else if (check === "pattern") {
-    editingColumn.value.checks.patternEnabled = true;
-    editingColumn.value.checks.pattern = " ";
-    showNotification("Please specify the regex pattern in the asset file.");
-  } else {
-    editingColumn.value.checks[check] = true;
-  }
-  showAddCheckDropdown.value = null;
-};
-
-const removeCheck = (check) => {
-  if (check === "accepted_values") {
-    editingColumn.value.checks.acceptedValuesEnabled = false;
-    editingColumn.value.checks.accepted_values = [];
-  } else if (check === "pattern") {
-    editingColumn.value.checks.patternEnabled = false;
-    editingColumn.value.checks.pattern = "";
-  } else {
-    editingColumn.value.checks[check] = false;
-  }
-};
-
 const showNotification = (message) => {
   notification.value = message;
   setTimeout(() => {
@@ -372,9 +347,10 @@ const showNotification = (message) => {
 
 const getCheckTooltip = (check, column) => {
   if (check === "accepted_values") {
-    return `Accepted values: ${column.checks.accepted_values?.join(", ") || "Not specified"}`;
+    const values = column.checks.accepted_values?.values;
+    return `Accepted values: ${Array.isArray(values) ? values.join(", ") : "Not specified"}`;
   } else if (check === "pattern") {
-    return `Pattern: ${column.checks.pattern || "Not specified"}`;
+    return `Pattern: ${column.checks.pattern?.pattern || "Not specified"}`;
   }
   return "";
 };
@@ -409,9 +385,9 @@ vscode-badge::part(control) {
   border: 1px solid var(--vscode-commandCenter-border);
   color: var(--vscode-editor-foreground);
   font-family: monospace;
-  max-width: 100%; 
+  max-width: 100%;
   overflow: hidden;
-  text-overflow: ellipsis; 
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -426,8 +402,8 @@ select {
   color: var(--vscode-input-foreground);
   border: none;
   outline: none;
-  padding: 0.25rem; 
-  font-size: 0.875rem; 
+  padding: 0.25rem;
+  font-size: 0.875rem;
 }
 
 input:focus,

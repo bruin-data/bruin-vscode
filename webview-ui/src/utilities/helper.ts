@@ -171,38 +171,20 @@ export const getUpstreams = (data) => {
 
 export const transformColumnData = (columns) => {
   if (!columns) return [];
-  return columns.map(column => {
+  return columns.map((column) => {
     const newColumn = {
       name: column.name,
       type: column.type,
       description: column.description,
-      checks: {
-        unique: false,
-        not_null: false,
-        positive: false,
-        negative: false,
-        not_negative: false,
-        acceptedValuesEnabled: false,
-        accepted_values: [],
-        patternEnabled: false,
-        pattern: "",
-      },
+      checks: column.checks
+       .filter((check) => check.blocking.enabled)
+       .map((check) => ({
+          id: check.id,
+          name: check.name,
+          value: check.value,
+          blocking: check.blocking,
+        })),
     };
-
-    column.checks.forEach(check => {
-      if (newColumn.checks.hasOwnProperty(check.name)) {
-        newColumn.checks[check.name] = true;
-        if (check.name === 'accepted_values') {
-          newColumn.checks.acceptedValuesEnabled = true;
-          newColumn.checks.accepted_values = check.value ? check.value.map(val => val.toString()) : [];
-        } else if (check.name === 'pattern') {
-          newColumn.checks.patternEnabled = true;
-          newColumn.checks.pattern = check.value || "";
-        }
-      } else {
-        console.warn(`Unexpected check name: ${check.name}`);
-      }
-    });
 
     return newColumn;
   });
