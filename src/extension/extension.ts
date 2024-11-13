@@ -12,9 +12,10 @@ import { setupFoldingOnOpen, subscribeToConfigurationChanges } from "./configura
 import * as os from "os";
 import { renderCommand } from "./commands/renderCommand";
 import { LineagePanel } from "../panels/LineagePanel";
-import { installOrUpdateCli } from "./commands/updateBruinCLI";
+import { checkBruinCliVersion, installOrUpdateCli } from "./commands/updateBruinCLI";
+import { BruinInstallCLI } from "../bruin";
 
-export function activate(context: ExtensionContext) {
+export async function activate(context: ExtensionContext) {
   // Automatically focus editor when extension starts
 
   const config = workspace.getConfiguration("bruin");
@@ -47,11 +48,11 @@ export function activate(context: ExtensionContext) {
 
   context.subscriptions.push(
     commands.registerCommand("bruin.renderSQL", async () => {
-      try{
-      await renderCommand(context.extensionUri);
-      }
-      catch (error) {
-        const errorMessage = (error instanceof Error) ? error.message : String(error);
+      try {
+        await renderCommand(context.extensionUri);
+        await checkBruinCliVersion();
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
         vscode.window.showErrorMessage(`Error rendering SQL: ${errorMessage}`);
       }
     }),
@@ -59,7 +60,7 @@ export function activate(context: ExtensionContext) {
       try {
         await installOrUpdateCli();
       } catch (error) {
-        const errorMessage = (error instanceof Error) ? error.message : String(error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
         vscode.window.showErrorMessage(`Error installing/updating Bruin CLI: ${errorMessage}`);
       }
     }),

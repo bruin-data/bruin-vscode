@@ -173,5 +173,18 @@ export const createIntegratedTerminal = async (workingDir: string | undefined): 
   return terminal;
 };
 
+export const compareVersions = (current: string, latest: string): boolean => {
+  const currentParts = current.replace('v', '').split('.').map(Number);
+  const latestParts = latest.replace('v', '').split('.').map(Number);
 
+  for (let i = 0; i < currentParts.length; i++) {
+    if (currentParts[i] < latestParts[i]) {
+      return false;
+    } else if (currentParts[i] > latestParts[i]) {
+      return true;
+    }
+  }
+
+  return true; // Versions are equal
+};
 export { BruinInstallCLI } from './bruinInstallCli';

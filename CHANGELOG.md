@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.26.2] - [2024-11-13]
+- Add version check for Bruin CLI to compare current and latest versions and notify the user if an update is available
+
 ## [0.26.1] - [2024-11-13]
 - Adjusted the column checks' blocking property type to align with the CLI output.
 
