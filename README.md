@@ -106,10 +106,11 @@ Use the new connections section from `Settings` tab to view, add, or delete conn
 Access the Bruin CLI management tab `Settings` in the side panel for easy installation and updates.
 
 ## Release Notes
-### Latest Release: 0.26.1
-- Adjusted the column checks' blocking property type to align with the CLI output.
+### Latest Release: 0.26.2
+- Add version check for Bruin CLI to compare current and latest versions and notify the user if an update is available
 
 ### Previous Highlights
+- **0.26.1**: Adjusted the column checks' blocking property type to align with the CLI output.
 - **0.26.0**: Added functionality to add and update columns directly from the UI in the Columns tab.
 - **0.25.29**: Added functionality to retrieve all connections from the json schema using internal and introduced CSV upload support for custom chess players.
 - **0.25.28**: Update Terminal Creation to Default to Git Bash on Windows.
