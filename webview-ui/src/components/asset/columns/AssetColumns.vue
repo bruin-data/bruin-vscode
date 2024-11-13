@@ -176,21 +176,21 @@ const formatChecks = (checks) => {
         id: check.id,
         name: check.name,
         value: { values: check.value },
-        blocking: { enabled: check.blocking || true },
+        blocking: check.blocking || true ,
       });
     } else if (check.name === "pattern" && typeof check.value === "string") {
       formattedChecks.push({
         id: check.id,
         name: check.name,
         value: { pattern: check.value },
-        blocking: { enabled: check.blocking || true },
+        blocking: check.blocking || true ,
       });
     } else {
       formattedChecks.push({
         id: check.id,
         name: check.name,
         value: check.value,
-        blocking: { enabled: check.blocking || true },
+        blocking: check.blocking || true,
       });
     }
   });
@@ -220,7 +220,7 @@ const addCheck = (checkName) => {
     id: uuidv4(),
     name: checkName,
     value: checkName === "accepted_values" ? [] : checkName === "pattern" ? "" : null,
-    blocking: { enabled: false },
+    blocking: true,
   };
   editingColumn.value.checks.push(newCheck);
   showAddCheckDropdown.value = null;
