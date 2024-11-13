@@ -7,13 +7,14 @@
     </div>
     <!-- Header Row -->
     <div
-      class="grid grid-cols-[1fr_1fr_2fr_1.5fr_1fr] gap-x-2 px-2 py-1 font-semibold text-editor-fg text-md opacity-65 border-b-2 border-editor-fg"
+      class="grid grid-cols-6 gap-x-2 px-2 py-1 font-semibold text-editor-fg text-md opacity-65 border-b-2 border-editor-fg"
     >
-      <div class="text-left ml-1">Name</div>
-      <div class="text-left">Type</div>
-      <div class="text-left">Description</div>
-      <div class="text-left">Checks</div>
-      <div class="text-left">Actions</div>
+      <div class="text-left w-full">Name</div>
+      <div class="text-left w-full">Type</div>
+      <div class="col-span-2 text-left w-full">Description</div>
+      <div class="text-left w-full">Checks</div>
+      <div class="text-center w-full">Actions</div>
+      <!-- Now correctly placed within the 6-column grid -->
     </div>
 
     <!-- Column Rows -->
@@ -22,7 +23,7 @@
         v-if="localColumns.length"
         v-for="(column, index) in localColumns"
         :key="index"
-        class="grid grid-cols-[1fr_1fr_2fr_1.5fr_1fr] gap-x-2 px-1 py-1 border-b border-commandCenter-border items-center text-xs"
+        class="grid grid-cols-6 gap-x-2 px-1 py-1 border-b border-commandCenter-border items-center text-xs"
       >
         <!-- Column Details -->
         <div class="text-left font-medium font-mono mr-1">
@@ -47,7 +48,7 @@
             {{ column.type.toUpperCase() }}
           </div>
         </div>
-        <div class="text-left">
+        <div class="col-span-2 text-left">
           <input
             v-if="editingIndex === index"
             v-model="editingColumn.description"
@@ -64,7 +65,7 @@
         </div>
 
         <!-- Checks Column -->
-        <div class="flex flex-wrap gap-2 font-mono max-w-[150px]">
+        <div class="flex flex-wrap gap-2 font-mono max-w-[100px]">
           <vscode-badge
             v-for="(check, checkIndex) in column.checks"
             :key="check.id || checkIndex"
@@ -74,7 +75,6 @@
           </vscode-badge>
         </div>
 
-        <!-- Actions Column with Centered Icons -->
         <div class="flex justify-center space-x-2">
           <vscode-button
             v-if="editingIndex === index"
