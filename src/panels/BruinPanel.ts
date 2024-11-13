@@ -466,6 +466,7 @@ export class BruinPanel {
             // After creating the connection, fetch the updated list
             await getConnections(this._lastRenderedDocumentUri);
             break;
+
         }
       },
       undefined,

@@ -176,7 +176,7 @@ const columnsProps = computed(() => {
 });
 
 const columns = ref([...columnsProps.value]); // Reactive reference for columns
-
+console.debug("Columns:", columns.value);
 // Define tabs for the application
 const tabs = ref([
   {
