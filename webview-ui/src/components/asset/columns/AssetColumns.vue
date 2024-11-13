@@ -7,13 +7,13 @@
     </div>
     <!-- Header Row -->
     <div
-      class="flex px-2 py-1 font-semibold text-editor-fg text-md opacity-65 border-b-2 border-editor-fg"
+      class="grid grid-cols-[1fr_1fr_2fr_1.5fr_1fr] gap-x-2 px-2 py-1 font-semibold text-editor-fg text-md opacity-65 border-b-2 border-editor-fg"
     >
-      <div class="flex-1 min-w-0 text-left">Name</div>
-      <div class="flex-1 min-w-0 text-left">Type</div>
-      <div class="flex-[2] min-w-0 text-left">Description</div>
-      <div class="flex-1 min-w-0 text-left">Checks</div>
-      <div class="flex-[1/2] min-w-0 text-left">Actions</div>
+      <div class="text-left ml-1">Name</div>
+      <div class="text-left">Type</div>
+      <div class="text-left">Description</div>
+      <div class="text-left">Checks</div>
+      <div class="text-left">Actions</div>
     </div>
 
     <!-- Column Rows -->
@@ -22,22 +22,22 @@
         v-if="localColumns.length"
         v-for="(column, index) in localColumns"
         :key="index"
-        class="flex px-1 py-1 border-b border-commandCenter-border items-center relative text-xs"
+        class="grid grid-cols-[1fr_1fr_2fr_1.5fr_1fr] gap-x-2 px-1 py-1 border-b border-commandCenter-border items-center text-xs"
       >
         <!-- Column Details -->
-        <div class="flex-1 min-w-0 text-left font-medium font-mono mr-1">
+        <div class="text-left font-medium font-mono mr-1">
           <input
             v-if="editingIndex === index"
             v-model="editingColumn.name"
-            class="w-full bg-editorWidget-bg text-editor-fg"
+            class="w-full bg-editorWidget-bg text-editor-fg p-1"
           />
           <div v-else class="w-full px-1 truncate" :title="column.name">{{ column.name }}</div>
         </div>
-        <div class="flex-1 min-w-0 text-left mr-1">
+        <div class="text-left mr-1">
           <input
             v-if="editingIndex === index"
             v-model="editingColumn.type"
-            class="w-full bg-editorWidget-bg text-editor-fg font-mono"
+            class="w-full bg-editorWidget-bg text-editor-fg font-mono p-1"
           />
           <div
             v-else
@@ -47,15 +47,15 @@
             {{ column.type.toUpperCase() }}
           </div>
         </div>
-        <div class="flex-[2] min-w-0 text-left">
+        <div class="text-left">
           <input
             v-if="editingIndex === index"
             v-model="editingColumn.description"
-            class="w-full bg-editorWidget-bg text-editor-fg"
+            class="w-full bg-editorWidget-bg text-editor-fg p-1"
           />
           <div
             v-else
-            class="flex-[2] min-w-0 text-left px-1 text-input-foreground opacity-70 font-light"
+            class="w-full px-1 text-input-foreground opacity-70 font-light truncate"
             :class="!column.description ? 'opacity-60 italic' : ''"
             :title="column.description || 'undefined'"
           >
@@ -64,63 +64,18 @@
         </div>
 
         <!-- Checks Column -->
-        <div class="flex-1 min-w-0 text-left flex flex-wrap gap-2 whitespace-nowrap font-mono">
-          <!-- <template v-if="editingIndex === index">
-             <div class="flex flex-wrap gap-2 max-w-full overflow-hidden">
-              <vscode-badge
-                v-for="check in editingColumn.checks"
-                :key="check.id"
-                :class="{
-                  'relative cursor-pointer':
-                    check.name === 'accepted_values' || check.name === 'pattern',
-                }"
-                :title="getCheckTooltip(check, editingColumn)"
-              >
-                <span class="flex items-center max-w-[100px]">
-                  <span class="truncate font-mono">{{ check.name }}</span>
-                  <XMarkIcon
-                    @click="removeCheck(check.name)"
-                    class="h-3 w-3 text-editor-fg ml-[0.1rem] cursor-pointer flex-shrink-0"
-                  />
-                </span>
-              </vscode-badge>
-            </div>
-            <div class="relative">
-              <vscode-button
-                appearance="icon"
-                @click="toggleAddCheckDropdown(index)"
-                aria-label="Add Check"
-              >
-                <PlusIcon class="h-4 w-4" />
-              </vscode-button>
-              <div
-                v-if="showAddCheckDropdown === index"
-                class="absolute z-50 mt-1 bg-editorWidget-bg border border-commandCenter-border rounded shadow-lg max-h-52 overflow-y-auto"
-              >
-                <div
-                  v-for="check in availableChecks(editingColumn)"
-                  :key="check"
-                  @click="addCheck(check)"
-                  class="px-4 py-2 hover:bg-commandCenter-border cursor-pointer whitespace-nowrap"
-                >
-                  {{ check }}
-                </div>
-              </div>
-            </div> 
-          </template> -->
-            <div class="flex flex-wrap gap-2 max-w-full">
-              <vscode-badge
-                v-for="(check, checkIndex) in column.checks"
-                :key="check.id || checkIndex"
-                :title="getCheckTooltip(check, column)"
-                class="max-w-[100px]"
-              >
-                <span class="truncate inline-block w-full">{{ check.name }}</span>
-              </vscode-badge>
-            </div>
+        <div class="flex flex-wrap gap-2 font-mono max-w-[150px]">
+          <vscode-badge
+            v-for="(check, checkIndex) in column.checks"
+            :key="check.id || checkIndex"
+            :title="getCheckTooltip(check, column)"
+          >
+            <span class="truncate inline-block w-full">{{ check.name }}</span>
+          </vscode-badge>
         </div>
 
-        <div class="flex-[1/2] justify-end space-x-2">
+        <!-- Actions Column with Centered Icons -->
+        <div class="flex justify-center space-x-2">
           <vscode-button
             v-if="editingIndex === index"
             appearance="icon"
@@ -132,16 +87,6 @@
           <vscode-button v-else appearance="icon" @click="startEditing(index)" aria-label="Edit">
             <PencilIcon class="h-4 w-4" />
           </vscode-button>
-          <vscode-button appearance="icon" @click="showDeleteAlert = true" aria-label="Delete">
-            <TrashIcon class="h-4 w-4" />
-          </vscode-button>
-          <DeleteAlert
-            v-if="showDeleteAlert"
-            :elementName="column.name"
-            elementType="column"
-            @confirm="deleteColumn(index)"
-            @cancel="showDeleteAlert = false"
-          />
         </div>
       </div>
       <div v-else>
@@ -231,21 +176,21 @@ const formatChecks = (checks) => {
         id: check.id,
         name: check.name,
         value: { values: check.value },
-        blocking: {"enabled": check.blocking || true},
+        blocking: { enabled: check.blocking || true },
       });
     } else if (check.name === "pattern" && typeof check.value === "string") {
       formattedChecks.push({
         id: check.id,
         name: check.name,
         value: { pattern: check.value },
-        blocking: {"enabled": check.blocking || true},
+        blocking: { enabled: check.blocking || true },
       });
     } else {
       formattedChecks.push({
         id: check.id,
         name: check.name,
         value: check.value,
-        blocking: {"enabled": check.blocking || true},
+        blocking: { enabled: check.blocking || true },
       });
     }
   });
@@ -275,7 +220,7 @@ const addCheck = (checkName) => {
     id: uuidv4(),
     name: checkName,
     value: checkName === "accepted_values" ? [] : checkName === "pattern" ? "" : null,
-    blocking:  {"enabled": false},
+    blocking: { enabled: false },
   };
   editingColumn.value.checks.push(newCheck);
   showAddCheckDropdown.value = null;
