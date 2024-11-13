@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.26.0] - [2024-11-13]
+- Added functionality to add and update columns directly from the UI in the Columns tab.
+
 ## [0.25.29] - [2024-11-12]
 - Added functionality to retrieve all connections from the json schema using internal and introduced CSV upload support for custom chess players.
 
