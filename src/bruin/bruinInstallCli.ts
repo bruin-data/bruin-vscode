@@ -3,7 +3,7 @@ import { exec } from "child_process";
 import * as os from "os";
 import { promisify } from "util";
 import { getDefaultBruinExecutablePath } from "../extension/configuration";
-import { createIntegratedTerminal } from "./bruinUtils";
+import { compareVersions, createIntegratedTerminal } from "./bruinUtils";
 
 const execAsync = promisify(exec);
 
@@ -34,6 +34,31 @@ export class BruinInstallCLI {
 
     return command;
   }
+
+  public async checkBruinCLIVersion(): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      const bruinExecutable = getDefaultBruinExecutablePath();
+      exec(`${bruinExecutable} version -o json`, (error, stdout, stderr) => {
+        if (error) {
+          reject(`Error executing command: ${stderr}`);
+          return;
+        }
+  
+        try {
+          const output = JSON.parse(stdout.trim());
+          const currentVersion = output.version;
+          const latestVersion = output.latest;
+  
+          const isUpToDate = compareVersions(currentVersion, latestVersion);
+          resolve(isUpToDate);
+        } catch (parseError) {
+          reject('Failed to parse version information');
+        }
+      });
+    });
+  };
+  
+  
 
   public async installBruinCli(): Promise<void> {
     const installCommand = await this.getCommand(false);
