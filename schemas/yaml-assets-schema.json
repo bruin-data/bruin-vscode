@@ -107,6 +107,38 @@
             "query": {
               "type": "string",
               "description": "The query for this asset"
+            },
+            "incremental_strategy": {
+              "type": "string",
+              "description": "The incremental strategy used for loading data into the destination",
+              "enum": ["delete+insert", "merge", "replace", "append", "scd2"]
+            },
+            "incremental_key": {
+              "type": "string",
+              "description": "The incremental key for this asset, must be an existing column in the source table"
+            },
+            "loader_file_format": {
+              "type": "string",
+              "description": "The file format to use when loading data",
+              "enum": ["parquet", "jsonl", "csv", "insert_values"]
+            },
+            "loader_file_size": {
+              "type": "integer",
+              "description": "The file size to be used by the loader to split the data into multiple files. This can be set independent of the page size, since page size is used for fetching the data from the sources whereas this is used for the processing/loading part.",
+            },
+            "page_size": {
+              "type": "integer",
+              "description": "The page size to be used when fetching data from SQL sources"
+            },
+            "sql_backend": {
+              "type": "string",
+              "description": "The SQL backend to use when fetching data from SQL sources",
+              "enum": ["sqlalchemy", "pyarrow", "connectorx"]
+            },
+            "schema_naming": {
+              "type": "string",
+              "description": "The naming convention to use when moving the tables from source to destination. The default behavior is explained here: https://dlthub.com/docs/general-usage/schema#naming-convention",
+              "enum": ["default", "direct"]
             }
           },
           "additionalProperties": true,
