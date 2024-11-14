@@ -57,7 +57,9 @@
           <div
             v-else
             class="w-full px-1 text-input-placeholderForeground font-light truncate"
-            :class="!column.description ? 'text-input-placeholderForeground text-opacity-40 italic' : ''"
+            :class="
+              !column.description ? 'text-input-placeholderForeground text-opacity-40 italic' : ''
+            "
             :title="column.description || 'undefined'"
           >
             {{ column.description || "No description provided." }}
@@ -65,16 +67,64 @@
         </div>
 
         <!-- Checks Column -->
-        <div class="flex flex-wrap gap-2 font-mono max-w-[100px]">
-          <vscode-badge
-            v-for="(check, checkIndex) in column.checks"
-            :key="check.id || checkIndex"
-            :title="getCheckTooltip(check, column)"
-          >
-            <span class="truncate inline-block w-full">{{ check.name }}</span>
-          </vscode-badge>
+        <div
+          class="flex-[2] min-w-0 text-left flex flex-wrap gap-2 whitespace-nowrap font-mono overflow-visible"
+        >
+          <template v-if="editingIndex === index">
+            <div class="flex flex-wrap gap-2 max-w-full overflow-hidden">
+              <vscode-badge
+                v-for="check in getActiveChecks(editingColumn)"
+                :key="check.id"
+                :title="getCheckTooltip(check, editingColumn)"
+              >
+                <span class="truncate inline-block w-full">{{ check.name }}</span>
+                <vscode-button
+                  v-for="check in getActiveChecks(editingColumn)"
+                  :key="check.id"
+                  appearance="icon"
+                  @click="removeCheck(check.name)"
+                  aria-label="Remove check"
+                >
+                  <XMarkIcon class="h-3 w-3" />
+                </vscode-button>
+              </vscode-badge>
+            </div>
+            <vscode-dropdown
+              v-if="showAddCheckDropdown === index"
+              :data-dropdown-index="index"
+              class="flex gap-2 bg-transparent shadow-none border-none focus:outline-none p-0 m-0"
+              @close="showAddCheckDropdown = null"
+            >
+              <vscode-dropdown-item
+                v-for="check in availableChecks(editingColumn)"
+                :key="check"
+                class="px-2 py-1 hover:bg-editorWidget-bg cursor-pointer text-input-foreground"
+                @click="addCheck(check)"
+              >
+                {{ check }}
+              </vscode-dropdown-item>
+            </vscode-dropdown>
+            <vscode-button
+              v-if="showAddCheckDropdown !== index"
+              appearance="icon"
+              @click="toggleAddCheckDropdown(index)"
+              aria-label="Add check"
+            >
+              <PlusIcon class="h-4 w-4" />
+            </vscode-button>
+          </template>
+          <template v-else>
+            <div class="flex flex-wrap gap-2 max-w-[100px]">
+              <vscode-badge
+                v-for="(check, checkIndex) in column.checks"
+                :key="check.id || checkIndex"
+                :title="getCheckTooltip(check, column)"
+              >
+                <span class="truncate inline-block w-full">{{ check.name }}</span>
+              </vscode-badge>
+            </div>
+          </template>
         </div>
-
         <div class="flex justify-center space-x-2">
           <vscode-button
             v-if="editingIndex === index"
