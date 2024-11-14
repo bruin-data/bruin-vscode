@@ -1,5 +1,5 @@
 <template>
-  <div class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+  <div class="fixed inset-0 flex items-center justify-center bg-editor-bg bg-opacity-75">
     <div class="bg-editorWidget-bg rounded-lg p-6">
       <h3 class="text-lg font-medium text-editor-fg">Delete {{ elementType }}</h3>
       <p class="mt-2 text-sm text-descriptionFg">
@@ -16,7 +16,7 @@
         </button>
         <button
           @click="$emit('confirm')"
-          class="bg-errorForeground hover:bg-editorError-foreground hover:text-white px-4 py-1 rounded text-white"
+          class="bg-errorForeground hover:bg-editorError-foreground hover:text-editor-fg px-4 py-1 rounded text-editor-fg"
         >
           Delete
         </button>
@@ -24,7 +24,6 @@
     </div>
   </div>
 </template>
-
 <script setup>
 defineProps({
   elementName: String,
