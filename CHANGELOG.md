@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.26.3] - [2024-11-14]
+- Added delete column functionality with confirmation alert and expanded supported destinations in yaml-assets-schema.json.
+
 ## [0.26.2] - [2024-11-13]
 - Add version check for Bruin CLI to compare current and latest versions and notify the user if an update is available
 
