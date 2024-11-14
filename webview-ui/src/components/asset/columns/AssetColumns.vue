@@ -42,7 +42,7 @@
           />
           <div
             v-else
-            class="w-full opacity-70 truncate font-mono px-1"
+            class="w-full text-input-placeholderForeground truncate font-mono px-1"
             :title="column.type.toUpperCase()"
           >
             {{ column.type.toUpperCase() }}
@@ -56,8 +56,8 @@
           />
           <div
             v-else
-            class="w-full px-1 text-input-foreground opacity-70 font-light truncate"
-            :class="!column.description ? 'opacity-60 italic' : ''"
+            class="w-full px-1 text-input-placeholderForeground font-light truncate"
+            :class="!column.description ? 'text-input-placeholderForeground text-opacity-40 italic' : ''"
             :title="column.description || 'undefined'"
           >
             {{ column.description || "No description provided." }}
@@ -90,13 +90,15 @@
           <vscode-button appearance="icon" @click="showDeleteAlert = index" aria-label="Delete">
             <TrashIcon class="h-4 w-4" />
           </vscode-button>
-          <DeleteAlert
-            v-if="showDeleteAlert === index"
-            :elementName="column.name"
-            elementType="column"
-            @confirm="deleteColumn(index)"
-            @cancel="showDeleteAlert = false"
-          />
+          <div class="flex flex-col space-y-6 bg-editorWidget-bg bg-opacity-100">
+            <DeleteAlert
+              v-if="showDeleteAlert === index"
+              :elementName="column.name"
+              elementType="column"
+              @confirm="deleteColumn(index)"
+              @cancel="showDeleteAlert = false"
+            />
+          </div>
         </div>
       </div>
       <div v-else>
