@@ -87,6 +87,16 @@
           <vscode-button v-else appearance="icon" @click="startEditing(index)" aria-label="Edit">
             <PencilIcon class="h-4 w-4" />
           </vscode-button>
+          <vscode-button appearance="icon" @click="showDeleteAlert = index" aria-label="Delete">
+            <TrashIcon class="h-4 w-4" />
+          </vscode-button>
+          <DeleteAlert
+            v-if="showDeleteAlert === index"
+            :elementName="column.name"
+            elementType="column"
+            @confirm="deleteColumn(index)"
+            @cancel="showDeleteAlert = false"
+          />
         </div>
       </div>
       <div v-else>
@@ -176,14 +186,14 @@ const formatChecks = (checks) => {
         id: check.id,
         name: check.name,
         value: { values: check.value },
-        blocking: check.blocking || true ,
+        blocking: check.blocking || true,
       });
     } else if (check.name === "pattern" && typeof check.value === "string") {
       formattedChecks.push({
         id: check.id,
         name: check.name,
         value: { pattern: check.value },
-        blocking: check.blocking || true ,
+        blocking: check.blocking || true,
       });
     } else {
       formattedChecks.push({
@@ -287,6 +297,12 @@ const deleteColumn = (index) => {
   localColumns.value.splice(index, 1);
   showDeleteAlert.value = false;
   emitUpdateColumns();
+
+  const payload = JSON.parse(JSON.stringify({ columns: localColumns.value }));
+  vscode.postMessage({
+    command: "bruin.setAssetDetails",
+    payload: payload,
+  });
 };
 
 watch(
