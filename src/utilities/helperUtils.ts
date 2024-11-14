@@ -40,22 +40,27 @@ export const isFileExtensionSQL = (fileName: string): boolean => {
 };
 
 export const getFileExtension = (fileName: string) => {
-  const match = fileName.match(/\.(.+)/);
+  // If file starts with a dot, return everything
+  if (fileName.startsWith(".")) {
+    return fileName.toLowerCase();
+  }
+
+  const match = fileName.match(/(\.[^.]+(?:\.[^.]+)?$)/);
   return match ? match[1].toLowerCase() : "";
 };
 
 export const isPythonBruinAsset = async (fileName: string): Promise<boolean> =>
-  isBruinAsset(fileName, ["py"]);
+  isBruinAsset(fileName, [".py"]);
 
 export const isBruinPipeline = async (fileName: string): Promise<boolean> => {
   console.log("this is a pipleine" + path.basename(fileName) === "pipeline.yml" ? true : false);
   return path.basename(fileName) === "pipeline.yml" ? true : false;
 };
 export const isYamlBruinAsset = async (fileName: string): Promise<boolean> =>
-  isBruinAsset(fileName, ["asset.yml", "asset.yaml"]);
+  isBruinAsset(fileName, [".asset.yml", ".asset.yaml"]);
 
 export const isBruinYaml = async (fileName: string): Promise<boolean> => {
-  return getFileExtension(fileName) === "bruin.yml" ? true : false;
+  return getFileExtension(fileName) === ".bruin.yml" ? true : false;
 };
 
 export const isBruinAsset = async (
@@ -78,8 +83,8 @@ export const isBruinAsset = async (
     const assetContent = fs.readFileSync(fileName, "utf8");
     const bruinAsset =
       bruinPattern.test(assetContent) ||
-      fileExtension === "asset.yml" ||
-      fileExtension === "asset.yaml";
+      fileExtension === ".asset.yml" ||
+      fileExtension === ".asset.yaml";
 
     return bruinAsset;
   } catch (err) {

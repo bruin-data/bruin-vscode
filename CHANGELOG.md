@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.26.4] - [2024-11-14]
+- Fixed an issue where non-SQL Shopify assets were incorrectly displayed in the SQL preview.
+
 ## [0.26.3] - [2024-11-14]
 - Added delete column functionality with confirmation alert and expanded supported destinations in yaml-assets-schema.json.
 

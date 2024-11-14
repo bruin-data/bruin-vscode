@@ -47,8 +47,8 @@ suite("Render Command Helper functions", () => {
   });
 
   test("getFileExtension should return the file extension", () => {
-    assert.strictEqual(getFileExtension("example.txt"), "txt");
-    assert.strictEqual(getFileExtension("example.sql"), "sql");
+    assert.strictEqual(getFileExtension("example.txt"), ".txt");
+    assert.strictEqual(getFileExtension("example.sql"), ".sql");
     assert.strictEqual(getFileExtension("example"), "");
   });
 
