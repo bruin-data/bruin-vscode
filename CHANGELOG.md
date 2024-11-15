@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.26.5] - [2024-11-15]
+- Added new parameters to the YAML asset completion and validation schema.
+
 ## [0.26.4] - [2024-11-14]
 - Fixed an issue where non-SQL Shopify assets were incorrectly displayed in the SQL preview.
 
