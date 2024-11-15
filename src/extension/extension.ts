@@ -29,9 +29,9 @@ export async function activate(context: ExtensionContext) {
   const newPathSeparator = isWindows ? "\\" : "/";
   config.update("pathSeparator", newPathSeparator, ConfigurationTarget.Global);
   const bruinExecutable = getDefaultBruinExecutablePath();
-  if (bruinExecutable) {
+   /* if (bruinExecutable) {
     await checkBruinCliVersion();
-  }
+  }  */
   const activeEditor = window.activeTextEditor;
   if (activeEditor) {
     // Focus the active editor if it exists
@@ -61,14 +61,14 @@ export async function activate(context: ExtensionContext) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         vscode.window.showErrorMessage(`Error rendering SQL: ${errorMessage}`);
       }
-      if (bruinExecutable) {
+      /* if (bruinExecutable) {
         try {
           await checkBruinCliVersion();
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error);
           vscode.window.showErrorMessage(`Error checking Bruin CLI version: ${errorMessage}`);
         }
-      }
+      } */
     }),
     commands.registerCommand("bruin.installCli", async () => {
       try {
