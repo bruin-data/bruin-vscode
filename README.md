@@ -107,7 +107,7 @@ Access the Bruin CLI management tab `Settings` in the side panel for easy instal
 
 ## Release Notes
 ### Latest Release: 0.26.7
-- Remove bruin.executablepath configuration from the exetnsion settings
+- Remove bruin.executablepath configuration from the exetnsion settings.
 
 ### Previous Highlights
 - **0.26.6**: Fix the render error when the CLI is not installed or the path is not found.
