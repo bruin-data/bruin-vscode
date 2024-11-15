@@ -107,6 +107,56 @@
             "query": {
               "type": "string",
               "description": "The query for this asset"
+            },
+            "incremental_strategy": {
+              "type": "string",
+              "description": "The incremental strategy used for loading data into the destination",
+              "enum": [
+                "delete+insert",
+                "merge",
+                "replace",
+                "append",
+                "scd2"
+              ]
+            },
+            "incremental_key": {
+              "type": "string",
+              "description": "The incremental key for this asset, must be an existing column in the source table"
+            },
+            "loader_file_format": {
+              "type": "string",
+              "description": "The file format to use when loading data",
+              "enum": [
+                "parquet",
+                "jsonl",
+                "csv",
+                "insert_values"
+              ]
+            },
+            "loader_file_size": {
+              "type": "integer",
+              "description": "The file size to be used by the loader to split the data into multiple files. This can be set independent of the page size, since page size is used for fetching the data from the sources whereas this is used for the processing/loading part."
+            },
+            "page_size": {
+              "type": "integer",
+              "description": "The page size to be used when fetching data from SQL sources"
+            },
+            "sql_backend": {
+              "type": "string",
+              "description": "The SQL backend to use when fetching data from SQL sources",
+              "enum": [
+                "sqlalchemy",
+                "pyarrow",
+                "connectorx"
+              ]
+            },
+            "schema_naming": {
+              "type": "string",
+              "description": "The naming convention to use when moving the tables from source to destination. The default behavior is explained here: https://dlthub.com/docs/general-usage/schema#naming-convention",
+              "enum": [
+                "default",
+                "direct"
+              ]
             }
           },
           "additionalProperties": true,
@@ -172,7 +222,9 @@
           "description": "Snowflake configuration for this asset"
         }
       },
-      "required": ["name"],
+      "required": [
+        "name"
+      ],
       "additionalProperties": false
     },
     "depends": {
@@ -190,18 +242,23 @@
                 "$ref": "#/$defs/uri"
               }
             },
-            "required": ["uri"],
+            "required": [
+              "uri"
+            ],
             "description": "A URI dependency"
           }
         ]
       }
     },
-   "materialization": {
+    "materialization": {
       "type": "object",
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["table", "view"],
+          "enum": [
+            "table",
+            "view"
+          ],
           "description": "Materialization type"
         },
         "strategy": {
@@ -221,12 +278,16 @@
           "description": "Incremental key, applicable if strategy is delete+insert"
         }
       },
-      "required": ["type"],
+      "required": [
+        "type"
+      ],
       "allOf": [
         {
           "if": {
             "properties": {
-              "type": { "const": "table" }
+              "type": {
+                "const": "table"
+              }
             }
           },
           "then": {
@@ -234,12 +295,18 @@
               {
                 "if": {
                   "properties": {
-                    "strategy": { "const": "delete+insert" }
+                    "strategy": {
+                      "const": "delete+insert"
+                    }
                   },
-                  "required": ["strategy"]
+                  "required": [
+                    "strategy"
+                  ]
                 },
                 "then": {
-                  "required": ["incremental_key"]
+                  "required": [
+                    "incremental_key"
+                  ]
                 }
               }
             ]
@@ -248,12 +315,16 @@
         {
           "if": {
             "properties": {
-              "type": { "const": "view" }
+              "type": {
+                "const": "view"
+              }
             }
           },
           "then": {
             "not": {
-              "required": ["strategy"]
+              "required": [
+                "strategy"
+              ]
             }
           }
         }
@@ -261,7 +332,12 @@
     },
     "strategy": {
       "type": "string",
-      "enum": ["create+replace", "delete+insert", "append", "merge"],
+      "enum": [
+        "create+replace",
+        "delete+insert",
+        "append",
+        "merge"
+      ],
       "description": "Materialization strategy"
     },
     "uri": {
@@ -301,7 +377,7 @@
         "update_on_merge": {
           "type": "boolean"
         }
-      }    
+      }
     },
     "columnCheck": {
       "type": "object",
@@ -316,7 +392,9 @@
           "type": "boolean"
         }
       },
-      "required": ["name"]
+      "required": [
+        "name"
+      ]
     },
     "columnCheckValue": {
       "type": "object",
@@ -366,7 +444,9 @@
           "type": "boolean"
         }
       },
-      "required": ["name"]
+      "required": [
+        "name"
+      ]
     },
     "secretMapping": {
       "type": "object",
@@ -378,7 +458,10 @@
           "type": "string"
         }
       },
-      "required": ["key", "inject_as"]
+      "required": [
+        "key",
+        "inject_as"
+      ]
     },
     "snowflake": {
       "type": "object",
@@ -387,7 +470,9 @@
           "type": "string"
         }
       },
-      "required": ["warehouse"]
+      "required": [
+        "warehouse"
+      ]
     }
   }
 }
