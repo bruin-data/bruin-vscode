@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.26.7] - [2024-11-15]
+- Remove bruin.executablepath configuration from the exetnsion settings
+
 ## [0.26.6] - [2024-11-15]
 - Fix the render error when the CLI is not installed or the path is not found.
 
