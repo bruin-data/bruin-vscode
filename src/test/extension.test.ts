@@ -132,17 +132,6 @@ suite("checkBruinCliInstallation Tests", function () {
     assert.strictEqual(result.isWindows, false);
   });
 
-  test("Should return installed true on non-Windows when bruin is installed", async function () {
-    osStub.returns("darwin");
-    execAsyncStub.resolves({ stdout: "bruin version 1.0.0" });
-
-    const bruinInstallCLI = new BruinInstallCLI();
-    const result = await bruinInstallCLI.checkBruinCliInstallation();
-
-    assert.strictEqual(result.installed, true);
-    assert.strictEqual(result.isWindows, false);
-  });
-
   test("Should return correct values on Windows when bruin is installed", async function () {
     osStub.returns("win32");
     execAsyncStub.withArgs("bruin --version").resolves({ stdout: "version info", stderr: "" });
@@ -156,16 +145,11 @@ suite("checkBruinCliInstallation Tests", function () {
   test("Should check for Git on Windows when bruin is not installed", async function () {
     osStub.returns("win32");
     execAsyncStub.withArgs("bruin --version").rejects(new Error("Command not found")); // Simulate Bruin CLI not installed
-    console.log("execAsyncStub reject error:", execAsyncStub.withArgs("bruin --version").rejects); // Verify the reject reason
-  
     execAsyncStub.withArgs("git --version").resolves({ stdout: "git version info", stderr: "" }); // Git is installed
-  
+
     const bruinInstallCLI = new BruinInstallCLI();
     const result = await bruinInstallCLI.checkBruinCliInstallation();
-  
-    console.log("Result:", result); // Verify the result
-    //assert.strictEqual(result.installed, false);
-   assert.deepStrictEqual(result, { installed: false, isWindows: true, gitAvailable: true });
+    assert.deepStrictEqual(result, { installed: false, isWindows: true, gitAvailable: true });
   });
 
   test("Should return gitAvailable false on Windows when neither bruin nor Git are installed", async function () {

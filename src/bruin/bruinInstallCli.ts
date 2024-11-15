@@ -9,7 +9,8 @@ const execAsync = promisify(exec);
 
 export class BruinInstallCLI {
   private platform: string;
-  private scriptPath = "https://raw.githubusercontent.com/bruin-data/bruin/refs/heads/main/install.sh";
+  private scriptPath =
+    "https://raw.githubusercontent.com/bruin-data/bruin/refs/heads/main/install.sh";
 
   constructor() {
     this.platform = os.platform();
@@ -26,7 +27,7 @@ export class BruinInstallCLI {
 
   private async getCommand(isUpdate: boolean): Promise<string> {
     let command = "";
-    if(os.platform() === "win32") {
+    if (os.platform() === "win32") {
       command = "curl -LsSf " + this.scriptPath + " | sh";
     } else {
       command = "curl -LsSL " + this.scriptPath + " | sh";
@@ -43,22 +44,20 @@ export class BruinInstallCLI {
           reject(`Error executing command: ${stderr}`);
           return;
         }
-  
+
         try {
           const output = JSON.parse(stdout.trim());
           const currentVersion = output.version;
           const latestVersion = output.latest;
-  
+
           const isUpToDate = compareVersions(currentVersion, latestVersion);
           resolve(isUpToDate);
         } catch (parseError) {
-          reject('Failed to parse version information');
+          reject("Failed to parse version information");
         }
       });
     });
-  };
-  
-  
+  }
 
   public async installBruinCli(): Promise<void> {
     const installCommand = await this.getCommand(false);
@@ -79,7 +78,6 @@ export class BruinInstallCLI {
       await this.installBruinCli();
     }
   }
-
   public async checkBruinCliInstallation(): Promise<{
     installed: boolean;
     isWindows: boolean;
@@ -87,12 +85,17 @@ export class BruinInstallCLI {
   }> {
     let installed = false;
     let gitAvailable = false;
-    let bruinExecutable = getDefaultBruinExecutablePath();
+    const bruinExecutable = getDefaultBruinExecutablePath();
     try {
       // Check if Bruin CLI is installed
       await execAsync(`${bruinExecutable} --version`);
       installed = true;
-    } catch {
+    } catch (error) {
+      if (error instanceof Error) {
+        console.log(`Bruin CLI not installed: ${error.message}`);
+      } else {
+        console.log(`Bruin CLI not installed: ${String(error)}`);
+      }
       installed = false;
     }
 
@@ -101,7 +104,12 @@ export class BruinInstallCLI {
         // Check if Git is available on Windows
         await execAsync("git --version");
         gitAvailable = true;
-      } catch {
+      } catch (error) {
+        if (error instanceof Error) {
+          console.log(`Git not available: ${error.message}`);
+        } else {
+          console.log(`Git not available: ${String(error)}`);
+        }
         gitAvailable = false;
       }
     } else {
