@@ -91,11 +91,6 @@
     },
     "configuration": {
       "properties": {
-        "bruin.executable": {
-          "type": "string",
-          "default": "bruin",
-          "description": "The path to the Bruin executable."
-        },
         "bruin.defaultFoldingState": {
           "type": "string",
           "enum": [
