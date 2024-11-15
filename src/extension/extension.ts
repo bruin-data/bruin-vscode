@@ -8,11 +8,16 @@ import {
 } from "vscode";
 import * as vscode from "vscode";
 import { bruinFoldingRangeProvider } from "../providers/bruinFoldingRangeProvider";
-import { setupFoldingOnOpen, subscribeToConfigurationChanges } from "./configuration";
+import {
+  getDefaultBruinExecutablePath,
+  setupFoldingOnOpen,
+  subscribeToConfigurationChanges,
+} from "./configuration";
 import * as os from "os";
 import { renderCommand } from "./commands/renderCommand";
 import { LineagePanel } from "../panels/LineagePanel";
 import { checkBruinCliVersion, installOrUpdateCli } from "./commands/updateBruinCLI";
+import { get } from "http";
 
 export async function activate(context: ExtensionContext) {
   // Automatically focus editor when extension starts
@@ -23,8 +28,10 @@ export async function activate(context: ExtensionContext) {
   const isWindows = os.platform() === "win32";
   const newPathSeparator = isWindows ? "\\" : "/";
   config.update("pathSeparator", newPathSeparator, ConfigurationTarget.Global);
-  await checkBruinCliVersion();
-
+  const bruinExecutable = getDefaultBruinExecutablePath();
+  if (bruinExecutable) {
+    await checkBruinCliVersion();
+  }
   const activeEditor = window.activeTextEditor;
   if (activeEditor) {
     // Focus the active editor if it exists
@@ -50,10 +57,17 @@ export async function activate(context: ExtensionContext) {
     commands.registerCommand("bruin.renderSQL", async () => {
       try {
         await renderCommand(context.extensionUri);
-        await checkBruinCliVersion();
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         vscode.window.showErrorMessage(`Error rendering SQL: ${errorMessage}`);
+      }
+      if (bruinExecutable) {
+        try {
+          await checkBruinCliVersion();
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          vscode.window.showErrorMessage(`Error checking Bruin CLI version: ${errorMessage}`);
+        }
       }
     }),
     commands.registerCommand("bruin.installCli", async () => {
