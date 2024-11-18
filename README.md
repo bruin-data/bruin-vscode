@@ -106,10 +106,11 @@ Use the new connections section from `Settings` tab to view, add, or delete conn
 Access the Bruin CLI management tab `Settings` in the side panel for easy installation and updates.
 
 ## Release Notes
-### Latest Release: 0.26.8
-- Add support for detecting Git Bash in different on Windows.
+### Latest Release: 0.26.9
+- Improved Git Bash detection on Windows by dynamically resolving its path based on the Git executable location.
 
 ### Previous Highlights
+- **0.26.8**: Add support for detecting Git Bash in different on Windows.
 - **0.26.7**: Fix the issue causing bruin.renderSQL to fail.
 - **0.26.6**: Fix the render error when the CLI is not installed or the path is not found.
 - **0.26.5**: Added new parameters to the YAML asset completion and validation schema.
