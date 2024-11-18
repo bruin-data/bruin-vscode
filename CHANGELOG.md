@@ -2,6 +2,8 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.26.10] - [2024-11-18]
+- Removed the Bruin Executable Path from the extension settings.
 
 ## [0.26.9] - [2024-11-18]
 - Improved Git Bash detection on Windows by dynamically resolving its path based on the Git executable location.
