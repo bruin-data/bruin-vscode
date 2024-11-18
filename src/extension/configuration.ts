@@ -12,7 +12,7 @@ import * as os from "os";
  * will be searched).
  */
 export function getDefaultBruinExecutablePath(): string {
-  const bruinConfig = vscode.workspace.getConfiguration("bruin");
+  const bruinConfig = vscode.workspace.getConfiguration("bruin") ;
   const bruinExecutable = bruinConfig.get<string>("executable") || "";
 
   if (bruinExecutable.length > 0) {
@@ -46,7 +46,7 @@ export function getDefaultBruinExecutablePath(): string {
       }
     }
     // If all else fails, provide a meaningful message or default
-    return "";
+    return "bruin";
   }
 }
 export function getPathSeparator(): string {

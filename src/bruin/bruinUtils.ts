@@ -1,7 +1,7 @@
 import { BRUIN_RUN_SQL_COMMAND, BRUIN_WHERE_COMMAND, BRUIN_WHICH_COMMAND } from "../constants";
 
 import * as os from "os";
-import { exec } from "child_process";
+import { exec, execSync } from "child_process";
 import { promisify } from "util";
 import * as fs from "fs";
 import * as path from "path";
@@ -98,8 +98,42 @@ const escapeFilePath = (filePath: string): string => {
   return `"${filePath}"`;
 };
 
+
 export const getCurrentPipelinePath = async (fsPath: string): Promise<string | undefined> => {
   return await bruinWorkspaceDirectory(fsPath, ["pipeline.yaml", "pipeline.yml"]);
+};
+
+export const homedir = os.homedir();
+export const commonGitPaths = [
+  path.join(homedir, "AppData", "Local", "Programs", "Git", "bin", "bash.exe"),
+  path.join(homedir, "AppData", "Local", "Programs", "Git", "usr", "bin", "bash.exe"),
+  "C:\\Program Files\\Git\\bin\\bash.exe",
+  "C:\\Program Files\\Git\\usr\\bin\\bash.exe"  
+];
+
+export const findGitBashPath = (): string | undefined => {
+  for (const gitPath of commonGitPaths) {
+    if (fs.existsSync(gitPath)) {
+      return gitPath;
+    }
+  } 
+
+  try {
+    // Run the 'where git' command to find the Git installation path
+    const gitPath = execSync('where git').toString().trim();
+    const gitDir = path.dirname(gitPath);
+
+    // Adjust the path to point to the 'bin' directory instead of 'cmd'
+    const bashPath = path.join(gitDir, '..', 'bin', 'bash.exe');
+    vscode.window.showInformationMessage(`Git Bash path: ${bashPath}`);
+    if (fs.existsSync(bashPath)) {
+      return bashPath;
+    }
+  } catch (error) {
+    console.error('Error finding Git Bash path:', error);
+  }
+
+  return undefined;
 };
 /**
  * Runs the Bruin command "run" in the integrated terminal.
@@ -118,6 +152,7 @@ export const runInIntegratedTerminal = async (
   const bruinExecutable = getDefaultBruinExecutablePath();
   let command = "";
   const terminal = await createIntegratedTerminal(workingDir);
+  // if termianl is cmd or powershell, use bruin run sql command
   if((terminal.creationOptions as  vscode.TerminalOptions).shellPath?.includes("bash")){
     command = `bruin ${BRUIN_RUN_SQL_COMMAND} ${flags} ${escapedAssetPath}`;
   }
@@ -137,22 +172,20 @@ export const createIntegratedTerminal = async (workingDir: string | undefined): 
     let shellPath: string | undefined;
     let shellArgs: string[] | undefined;
 
-    // Check for Git Bash on Windows
+    // Check for Git Bash or MINGW64 on Windows
     if (process.platform === "win32") {
-      const gitBashPath = "C:\\Program Files\\Git\\bin\\bash.exe";
-      if (fs.existsSync(gitBashPath)) {
-        shellPath = gitBashPath;
-      } else {
+      shellPath = findGitBashPath();;
+      if (!shellPath) {
         // Check for WSL on Windows
         const wslPath = "wsl.exe";
         if (fs.existsSync(wslPath)) {
           shellPath = wslPath;
           shellArgs = ["-d", "Ubuntu"]; // Assuming Ubuntu as the default WSL distro
         } else {
-          // Neither Git Bash nor WSL is found, display an alert to the user
+          // Neither Git Bash, MINGW64, nor WSL is found, display an alert to the user
           vscode.window.showWarningMessage(
-            "Neither Git Bash nor Windows Subsystem for Linux (WSL) was found on your system. " +
-            "Please install one of them to use the integrated terminal. " 
+            "Neither Git Bash, MINGW64, nor Windows Subsystem for Linux (WSL) was found on your system. " +
+            "Please install one of them to use the integrated terminal."
           );
           return vscode.window.createTerminal({ name: terminalName }); // Exit the function without creating a terminal
         }
@@ -168,8 +201,10 @@ export const createIntegratedTerminal = async (workingDir: string | undefined): 
       shellPath,
       shellArgs,
     };
+
     terminal = vscode.window.createTerminal(terminalOptions);
   }
+
   return terminal;
 };
 
