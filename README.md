@@ -106,11 +106,12 @@ Use the new connections section from `Settings` tab to view, add, or delete conn
 Access the Bruin CLI management tab `Settings` in the side panel for easy installation and updates.
 
 ## Release Notes
-### Latest Release: 0.26.7
-- Fix the issue causing bruin.renderSQL to fail.
+### Latest Release: 0.26.8
+- Add support for detecting Git Bash in different on Windows.
 
 ### Previous Highlights
-- **0.26.6** Fix the render error when the CLI is not installed or the path is not found.
+- **0.26.7**: Fix the issue causing bruin.renderSQL to fail.
+- **0.26.6**: Fix the render error when the CLI is not installed or the path is not found.
 - **0.26.5**: Added new parameters to the YAML asset completion and validation schema.
 - **0.26.4**: Fixed an issue where non-SQL Shopify assets were incorrectly displayed in the SQL preview.
 - **0.26.3**: Added delete column functionality with confirmation alert and expanded supported destinations in yaml-assets-schema.json.

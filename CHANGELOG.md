@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.26.8] - [2024-11-18]
+- Add support for detecting Git Bash in different on Windows.
+
 ## [0.26.7] - [2024-11-15]
 - Fix the issue causing bruin.renderSQL to fail.
 
