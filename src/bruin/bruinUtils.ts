@@ -1,7 +1,7 @@
 import { BRUIN_RUN_SQL_COMMAND, BRUIN_WHERE_COMMAND, BRUIN_WHICH_COMMAND } from "../constants";
 
 import * as os from "os";
-import { exec } from "child_process";
+import { exec, execSync } from "child_process";
 import { promisify } from "util";
 import * as fs from "fs";
 import * as path from "path";
@@ -103,20 +103,36 @@ export const getCurrentPipelinePath = async (fsPath: string): Promise<string | u
   return await bruinWorkspaceDirectory(fsPath, ["pipeline.yaml", "pipeline.yml"]);
 };
 
-const homedir = os.homedir();
-const commonGitPaths = [
+export const homedir = os.homedir();
+export const commonGitPaths = [
   path.join(homedir, "AppData", "Local", "Programs", "Git", "bin", "bash.exe"),
   path.join(homedir, "AppData", "Local", "Programs", "Git", "usr", "bin", "bash.exe"),
   "C:\\Program Files\\Git\\bin\\bash.exe",
   "C:\\Program Files\\Git\\usr\\bin\\bash.exe"  
 ];
 
-const findGitBashPath = (): string | undefined => {
+export const findGitBashPath = (): string | undefined => {
   for (const gitPath of commonGitPaths) {
     if (fs.existsSync(gitPath)) {
       return gitPath;
     }
+  } 
+
+  try {
+    // Run the 'where git' command to find the Git installation path
+    const gitPath = execSync('where git').toString().trim();
+    const gitDir = path.dirname(gitPath);
+
+    // Adjust the path to point to the 'bin' directory instead of 'cmd'
+    const bashPath = path.join(gitDir, '..', 'bin', 'bash.exe');
+    vscode.window.showInformationMessage(`Git Bash path: ${bashPath}`);
+    if (fs.existsSync(bashPath)) {
+      return bashPath;
+    }
+  } catch (error) {
+    console.error('Error finding Git Bash path:', error);
   }
+
   return undefined;
 };
 /**
