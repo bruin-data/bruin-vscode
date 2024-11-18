@@ -18,6 +18,8 @@ import {
 import * as fs from "fs";
 import path = require("path");
 import sinon = require("sinon");
+import * as childProcess from "child_process";
+import { findGitBashPath } from "../bruin/bruinUtils";
 const proxyquire = require("proxyquire").noCallThru();
 
 suite("Extension Initialization", () => {
@@ -178,8 +180,112 @@ suite("checkBruinCliInstallation Tests", function () {
 
     assert.deepStrictEqual(result, { installed: false, isWindows: true, gitAvailable: false });
   });
+
 });
 
+
+/* suite('findGitBashPath Tests', () => {
+  let osStub: sinon.SinonStub;
+  let fsStub: sinon.SinonStub;
+  let childProcessExecSyncStub: sinon.SinonStub;
+  let pathDirnameStub: sinon.SinonStub;
+  let pathJoinStub: sinon.SinonStub;
+  let consoleErrorStub: sinon.SinonStub;
+  let findGitBashPath: () => string | undefined;
+  let commonGitPaths: string[];
+  const homedir = os.homedir();
+  setup(() => {
+    // Initialize stubs
+    osStub = sinon.stub(os, 'platform');
+    fsStub = sinon.stub(fs, 'existsSync');
+    childProcessExecSyncStub = sinon.stub(childProcess, 'execSync');
+    pathDirnameStub = sinon.stub(path, 'dirname');
+    pathJoinStub = sinon.stub(path, 'join');
+    consoleErrorStub = sinon.stub(console, 'error');
+
+    // Import findGitBashPath with proxyquire
+    const module = proxyquire('../bruin/bruinUtils', {
+      os: { platform: osStub },
+      fs: { existsSync: fsStub },
+      child_process: { execSync: childProcessExecSyncStub },
+      path: {
+        dirname: pathDirnameStub,
+        join: pathJoinStub,
+      }
+    });
+
+    // Assign imported functions/variables for testing
+    findGitBashPath = module.findGitBashPath;
+    commonGitPaths = [
+      path.join(homedir, "AppData", "Local", "Programs", "Git", "bin", "bash.exe"),
+      path.join(homedir, "AppData", "Local", "Programs", "Git", "usr", "bin", "bash.exe"),
+      "C:\\Program Files\\Git\\bin\\bash.exe",
+      "C:\\Program Files\\Git\\usr\\bin\\bash.exe"  
+    ];
+  });
+
+  teardown(() => {
+    // Restore stubs
+    osStub.restore();
+    fsStub.restore();
+    childProcessExecSyncStub.restore();
+    pathDirnameStub.restore();
+    pathJoinStub.restore();
+    consoleErrorStub.restore();
+  });
+
+  test('Returns first existing Git path from commonGitPaths', async () => {
+    fsStub.withArgs(commonGitPaths[0]).returns(true);
+    const result = findGitBashPath();
+    assert.deepStrictEqual(result, commonGitPaths[0]);
+  });
+
+  test('Finds Git Bash path on Windows when Git is installed', async () => {
+    // Arrange
+    osStub.returns('win32');
+    fsStub.withArgs(commonGitPaths[0]).returns(false); // None of the common paths exist
+    childProcessExecSyncStub.returns('C:\\Program Files\\Git\\cmd\\git.exe'); 
+    pathDirnameStub.returns('C:\\Program Files\\Git\\cmd');
+    pathJoinStub.returns('C:\\Program Files\\Git\\bin\\bash.exe');
+    fsStub.withArgs('C:\\Program Files\\Git\\bin\\bash.exe').returns(true); 
+
+    const result = findGitBashPath();
+
+    assert.deepStrictEqual(result, 'C:\\Program Files\\Git\\bin\\bash.exe');
+    assert.deepStrictEqual(consoleErrorStub.called, false);
+  });
+
+  test('Returns undefined on Windows when Git bash.exe does not exist', async () => {
+    // Arrange
+    osStub.returns('win32');
+    fsStub.withArgs(commonGitPaths[0]).returns(false); 
+    childProcessExecSyncStub.returns('C:\\Program Files\\Git\\cmd\\git.exe');
+    pathDirnameStub.returns('C:\\Program Files\\Git\\cmd');
+    pathJoinStub.returns('C:\\Program Files\\Git\\bin\\bash.exe');
+    fsStub.withArgs('C:\\Program Files\\Git\\bin\\bash.exe').returns(false); 
+
+    // Act
+    const result = findGitBashPath();
+
+    // Assert
+    assert.deepStrictEqual(result, undefined);
+    assert.deepStrictEqual(consoleErrorStub.called, false); 
+  });
+
+  test('Handles error when running execSync', async () => {
+    // Arrange
+    osStub.returns('win32');
+    fsStub.withArgs(commonGitPaths[0]).returns(false); 
+    childProcessExecSyncStub.throws(new Error('Mocked execSync error'));
+
+    // Act
+    const result = findGitBashPath();
+
+    // Assert
+    assert.deepStrictEqual(result, undefined);
+    assert.deepStrictEqual(consoleErrorStub.calledOnce, true);
+  });
+}); */
 suite("Manage Bruin Connections Tests", function () {
   test("Should return an empty array for all null connections", async () => {
     const singleEnvconnections = {
