@@ -179,7 +179,7 @@ const availableChecks = [
   "not_null",
   "positive",
   "negative",
-  "not_negative",
+  "non_negative",
   "accepted_values",
   "pattern",
 ];
