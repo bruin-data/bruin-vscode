@@ -86,11 +86,11 @@
                   </span>
                 </vscode-badge>
               </div>
-              <div class="relative">
+              <div v-if="availableChecks(editingColumn).length > 0" class="relative">
                 <vscode-dropdown
                   v-if="showAddCheckDropdown === index"
                   :data-dropdown-index="index"
-                  class="absolute top-full left-0 w-20 z-50"
+                  class="w-20 z-50"
                   @close="showAddCheckDropdown = null"
                 >
                   <vscode-dropdown-item
