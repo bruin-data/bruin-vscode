@@ -1,158 +1,173 @@
 <template>
-  <div class="flex flex-col py-4 sm:py-1 h-full">
-    <div class="flex justify-end mb-4">
+  <div class="flex flex-col py-4 sm:py-1 h-full w-full min-w-56 relative">
+    <div class="flex justify-end mb-4 px-4">
       <vscode-button @click="addColumn" class="py-1 rounded focus:outline-none">
         Add column
       </vscode-button>
     </div>
+    
     <!-- Header Row -->
-    <div
-      class="grid grid-cols-6 gap-x-2 px-2 py-1 font-semibold text-editor-fg text-md opacity-65 border-b-2 border-editor-fg"
-    >
-      <div class="text-left w-full">Name</div>
-      <div class="text-left w-full">Type</div>
-      <div class="col-span-2 text-left w-full">Description</div>
-      <div class="text-left w-full">Checks</div>
-      <div class="text-center w-full">Actions</div>
-      <!-- Now correctly placed within the 6-column grid -->
+    <div class="grid grid-cols-12 gap-2 px-2 py-1 font-semibold text-xs opacity-65 border-b-2 border-editor-fg items-center">
+      <div class="col-span-2">Name</div>
+      <div class="col-span-2">Type</div>
+      <div class="col-span-4">Description</div>
+      <div class="col-span-3">Checks</div>
+      <div class="col-span-1 text-center">Actions</div>
     </div>
 
     <!-- Column Rows -->
-    <div class="flex-1 min-h-0 overflow-y-auto">
+    <div class="flex-1 min-h-40 overflow-x-auto text-xs">
       <div
         v-if="localColumns.length"
         v-for="(column, index) in localColumns"
         :key="index"
-        class="grid grid-cols-6 gap-x-2 px-1 py-1 border-b border-commandCenter-border items-center text-xs"
+        class="grid grid-cols-12 gap-2 px-2 py-1 border-b items-center text-xs  border-commandCenter-border"
       >
-        <!-- Column Details -->
-        <div class="text-left font-medium font-mono mr-1">
+        <!-- Name -->
+        <div class="col-span-2 font-medium font-mono text-xs">
           <input
             v-if="editingIndex === index"
             v-model="editingColumn.name"
-            class="w-full bg-editorWidget-bg text-editor-fg p-1"
+            class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs"
           />
-          <div v-else class="w-full px-1 truncate" :title="column.name">{{ column.name }}</div>
+          <div v-else class="truncate" :title="column.name">{{ column.name }}</div>
         </div>
-        <div class="text-left mr-1">
+
+        <!-- Type -->
+        <div class="col-span-2 text-xs">
           <input
             v-if="editingIndex === index"
             v-model="editingColumn.type"
-            class="w-full bg-editorWidget-bg text-editor-fg font-mono p-1"
+            class="w-full p-1 rounded bg-editorWidget-bg text-editor-fg font-mono text-xs"
           />
-          <div
-            v-else
-            class="w-full text-input-placeholderForeground truncate font-mono px-1"
-            :title="column.type.toUpperCase()"
-          >
+          <div v-else class="truncate font-mono" :title="column.type.toUpperCase()">
             {{ column.type.toUpperCase() }}
           </div>
         </div>
-        <div class="col-span-2 text-left">
+
+        <!-- Description -->
+        <div class="col-span-4 text-xs">
           <input
             v-if="editingIndex === index"
             v-model="editingColumn.description"
-            class="w-full bg-editorWidget-bg text-editor-fg p-1"
+            class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs"
           />
           <div
             v-else
-            class="w-full px-1 text-input-placeholderForeground font-light truncate"
-            :class="
-              !column.description ? 'text-input-placeholderForeground text-opacity-40 italic' : ''
-            "
+            class="truncate font-light text-xs"
+            :class="!column.description ? 'italic opacity-50' : ''"
             :title="column.description || 'undefined'"
           >
             {{ column.description || "No description provided." }}
           </div>
         </div>
 
-        <!-- Checks Column -->
-        <div
-          class="flex-[2] min-w-0 text-left flex flex-wrap gap-2 whitespace-nowrap font-mono overflow-visible"
-        >
-          <template v-if="editingIndex === index">
-            <div class="flex flex-wrap gap-2 max-w-full overflow-hidden">
-              <vscode-badge
-                v-for="check in getActiveChecks(editingColumn)"
-                :key="check.id"
-                :title="getCheckTooltip(check, editingColumn)"
-              >
-                <span class="truncate inline-block w-full">{{ check.name }}</span>
-                <vscode-button
+        <!-- Checks -->
+        <div class="col-span-3">
+          <div class="flex flex-wrap gap-1">
+            <template v-if="editingIndex === index">
+              <div class="flex flex-wrap gap-1 max-w-full">
+                <vscode-badge
                   v-for="check in getActiveChecks(editingColumn)"
                   :key="check.id"
-                  appearance="icon"
-                  @click="removeCheck(check.name)"
-                  aria-label="Remove check"
+                  :title="getCheckTooltip(check, editingColumn)"
+                  class="inline-flex items-center"
                 >
-                  <XMarkIcon class="h-3 w-3" />
+                  <span class="flex items-center truncate">
+                    {{ check.name }}
+                    <vscode-button
+                      appearance="icon"
+                      @click="removeCheck(check.name)"
+                      aria-label="Remove check"
+                      class="flex items-center"
+                    >
+                      <XMarkIcon class="h-3 w-3 pr-0" />
+                    </vscode-button>
+                  </span>
+                </vscode-badge>
+              </div>
+              <div class="relative">
+                <vscode-dropdown
+                  v-if="showAddCheckDropdown === index"
+                  :data-dropdown-index="index"
+                  class="absolute top-full left-0 w-20 z-50"
+                  @close="showAddCheckDropdown = null"
+                >
+                  <vscode-dropdown-item
+                    v-for="check in availableChecks(editingColumn)"
+                    :key="check"
+                    class="px-2 py-1 cursor-pointer hover:bg-editorWidget-bg"
+                    @click="addCheck(check)"
+                  >
+                    {{ check }}
+                  </vscode-dropdown-item>
+                </vscode-dropdown>
+                <vscode-button
+                  v-if="showAddCheckDropdown !== index"
+                  appearance="icon"
+                  @click="toggleAddCheckDropdown(index)"
+                  aria-label="Add check"
+                  class="flex items-center"
+                >
+                  <PlusIcon class="h-3 w-3" />
                 </vscode-button>
-              </vscode-badge>
-            </div>
-            <vscode-dropdown
-              v-if="showAddCheckDropdown === index"
-              :data-dropdown-index="index"
-              class="flex gap-2 bg-transparent shadow-none border-none focus:outline-none p-0 m-0"
-              @close="showAddCheckDropdown = null"
-            >
-              <vscode-dropdown-item
-                v-for="check in availableChecks(editingColumn)"
-                :key="check"
-                class="px-2 py-1 hover:bg-editorWidget-bg cursor-pointer text-input-foreground"
-                @click="addCheck(check)"
-              >
-                {{ check }}
-              </vscode-dropdown-item>
-            </vscode-dropdown>
-            <vscode-button
-              v-if="showAddCheckDropdown !== index"
-              appearance="icon"
-              @click="toggleAddCheckDropdown(index)"
-              aria-label="Add check"
-            >
-              <PlusIcon class="h-4 w-4" />
-            </vscode-button>
-          </template>
-          <template v-else>
-            <div class="flex flex-wrap gap-2 max-w-[100px]">
-              <vscode-badge
-                v-for="(check, checkIndex) in column.checks"
-                :key="check.id || checkIndex"
-                :title="getCheckTooltip(check, column)"
-              >
-                <span class="truncate inline-block w-full">{{ check.name }}</span>
-              </vscode-badge>
-            </div>
-          </template>
+              </div>
+            </template>
+            <template v-else>
+              <div class="flex flex-wrap gap-1">
+                <vscode-badge
+                  v-for="(check, checkIndex) in column.checks"
+                  :key="check.id || checkIndex"
+                  :title="getCheckTooltip(check, column)"
+                  class="inline-flex items-center"
+                >
+                  <span class="truncate">{{ check.name }}</span>
+                </vscode-badge>
+              </div>
+            </template>
+          </div>
         </div>
-        <div class="flex justify-center space-x-2">
+
+        <!-- Actions -->
+        <div class="col-span-1 flex justify-center items-center space-x-1">
           <vscode-button
             v-if="editingIndex === index"
             appearance="icon"
             @click="saveChanges(index)"
             aria-label="Save"
+            class="flex items-center"
           >
-            <CheckIcon class="h-4 w-4" />
+            <CheckIcon class="h-3 w-3" />
           </vscode-button>
-          <vscode-button v-else appearance="icon" @click="startEditing(index)" aria-label="Edit">
-            <PencilIcon class="h-4 w-4" />
+          <vscode-button
+            v-else
+            appearance="icon"
+            @click="startEditing(index)"
+            aria-label="Edit"
+            class="flex items-center"
+          >
+            <PencilIcon class="h-3 w-3" />
           </vscode-button>
-          <vscode-button appearance="icon" @click="showDeleteAlert = index" aria-label="Delete">
-            <TrashIcon class="h-4 w-4" />
+          <vscode-button
+            appearance="icon"
+            @click="showDeleteAlert = index"
+            aria-label="Delete"
+            class="flex items-center"
+          >
+            <TrashIcon class="h-3 w-3" />
           </vscode-button>
-          <div class="flex flex-col space-y-6 bg-editorWidget-bg bg-opacity-100">
-            <DeleteAlert
-              v-if="showDeleteAlert === index"
-              :elementName="column.name"
-              elementType="column"
-              @confirm="deleteColumn(index)"
-              @cancel="showDeleteAlert = false"
-            />
-          </div>
+          <DeleteAlert
+            v-if="showDeleteAlert === index"
+            :elementName="column.name"
+            elementType="column"
+            @confirm="deleteColumn(index)"
+            @cancel="showDeleteAlert = false"
+            class="absolute z-50"
+          />
         </div>
       </div>
-      <div v-else>
-        <p class="flex text-md italic justify-start items-center text-editor-fg opacity-70 p-2">
+      <div v-else class="px-4">
+        <p class="flex text-md italic justify-start items-center opacity-70 p-2">
           No columns to display.
         </p>
       </div>
@@ -161,7 +176,7 @@
     <!-- Notification -->
     <div
       v-if="notification"
-      class="fixed bottom-4 right-4 bg-editorWidget-bg border border-commandCenter-border p-4 rounded shadow-lg"
+      class="fixed bottom-4 right-4 bg-black/5 border rounded shadow-lg z-50 p-4"
     >
       {{ notification }}
     </div>
@@ -270,7 +285,7 @@ const availableChecks = computed(() => (column) => {
     "not_null",
     "positive",
     "negative",
-    "not_negative",
+    "non_negative",
     "accepted_values",
     "pattern",
   ];
@@ -369,20 +384,23 @@ watch(
 );
 </script>
 
+
 <style scoped>
 vscode-badge::part(control) {
-  background-color: var(--vscode-badge-background);
-  border: 1px solid var(--vscode-commandCenter-border);
-  color: var(--vscode-badge-foreground);
-  font-family: monospace;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  padding: 0.25rem;
+  padding-left: 0.25rem;
+  display: inline-flex;
+  align-items: center;
 }
 
 vscode-button::part(control) {
+  border: none;
+  outline: none;
+}
+vscode-dropdown-item::part(control) {
   border: none;
   outline: none;
 }
