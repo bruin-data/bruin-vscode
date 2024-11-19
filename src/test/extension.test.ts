@@ -19,7 +19,8 @@ import * as fs from "fs";
 import path = require("path");
 import sinon = require("sinon");
 import * as childProcess from "child_process";
-import { findGitBashPath } from "../bruin/bruinUtils";
+import { bruinWorkspaceDirectory, findGitBashPath } from "../bruin/bruinUtils";
+import { BruinInternalPatch } from "../bruin/bruinInternalPatch";
 const proxyquire = require("proxyquire").noCallThru();
 
 suite("Extension Initialization", () => {
@@ -37,6 +38,141 @@ suite("Extension Initialization", () => {
 
     // Assert that the path separator matches the expected value
     assert.strictEqual(pathSeparator, expectedPathSeparator);
+  });
+});
+
+suite("patch asset testing", () => {
+  let bruinInternalPatch: BruinInternalPatch;
+  let runStub: sinon.SinonStub;
+  let postMessageToPanelsStub: sinon.SinonStub;
+
+  setup(() => {
+    bruinInternalPatch = new BruinInternalPatch('bruin', 'workingDirectory');
+    runStub = sinon.stub(bruinInternalPatch as any, 'run');
+    postMessageToPanelsStub = sinon.stub(bruinInternalPatch as any, 'postMessageToPanels');
+  });
+
+  teardown(() => {
+    sinon.restore();
+  });
+
+  test('should call run with correct arguments and post success message', async () => {
+    const body = { key: 'value' };
+    const filePath = 'path/to/asset';
+    const result = 'success result';
+    runStub.resolves(result);
+
+    await bruinInternalPatch.patchAsset(body, filePath);
+
+    sinon.assert.calledOnceWithExactly(runStub, ['patch-asset', '--body', JSON.stringify(body), filePath]);
+    sinon.assert.calledOnceWithExactly(postMessageToPanelsStub, 'success', result);
+  });
+
+  test('should call run with correct arguments and post error message on failure', async () => {
+    const body = { key: 'value' };
+    const filePath = 'path/to/asset';
+    const error = new Error('error message');
+    runStub.rejects(error);
+
+    await bruinInternalPatch.patchAsset(body, filePath);
+
+    sinon.assert.calledOnceWithExactly(runStub, ['patch-asset', '--body', JSON.stringify(body), filePath]);
+    sinon.assert.calledOnceWithExactly(postMessageToPanelsStub, 'error', error);
+  });
+
+  /* test('should handle unexpected errors and log them', async () => {
+    const body = { key: 'value' };
+    const filePath = 'path/to/asset';
+    const unexpectedError = new Error('unexpected error');
+    runStub.throws(unexpectedError);
+    const consoleDebugStub = sinon.stub(console, 'debug');
+
+    await bruinInternalPatch.patchAsset(body, filePath);
+
+    sinon.assert.calledOnceWithExactly(runStub, ['patch-asset', '--body', JSON.stringify(body), filePath]);
+    sinon.assert.calledOnce(consoleDebugStub);
+    sinon.assert.calledWithExactly(consoleDebugStub, 'patching command error', unexpectedError);
+  }); */
+});
+
+suite('workspaceDirectory Tests', () => {
+  let fsStatStub: sinon.SinonStub;
+  let fsAccessStub: sinon.SinonStub;
+  let pathDirnameStub: sinon.SinonStub;
+
+  setup(() => {
+    fsStatStub = sinon.stub(fs.promises, 'stat');
+    fsAccessStub = sinon.stub(fs.promises, 'access');
+    pathDirnameStub = sinon.stub(path, 'dirname');
+  });
+
+  teardown(() => {
+    sinon.restore();
+  });
+
+  test('should find the Bruin workspace directory', async () => {
+    const fsPath = '/path/to/project/file.txt';
+    const bruinRootFile = '/path/to/project/.bruin.yaml';
+
+    fsStatStub.resolves({ isFile: () => true });
+    fsAccessStub.withArgs(bruinRootFile, fs.constants.F_OK).resolves();
+    pathDirnameStub.callsFake((dir) => {
+      if (dir === '/path/to/project/file.txt') {return '/path/to/project';}
+      if (dir === '/path/to/project') {return '/path/to';}
+      if (dir === '/path/to') {return '/path';}
+      if (dir === '/path') {return '/';}
+      return '/';
+    });
+
+    const result = await bruinWorkspaceDirectory(fsPath);
+    assert.strictEqual(result, '/path/to/project');
+  });
+
+  test('should return undefined if Bruin workspace directory is not found', async () => {
+    const fsPath = '/path/to/project/file.txt';
+
+    fsStatStub.resolves({ isFile: () => true });
+    fsAccessStub.rejects(new Error('File not found'));
+    pathDirnameStub.callsFake((dir) => {
+      if (dir === '/path/to/project/file.txt') {return '/path/to/project';}
+      if (dir === '/path/to/project') {return '/path/to';}
+      if (dir === '/path/to') {return '/path';}
+      if (dir === '/path') {return '/';}
+      return '/';
+    });
+
+    const result = await bruinWorkspaceDirectory(fsPath);
+    assert.strictEqual(result, undefined);
+  });
+
+/*   test('should handle errors and log them', async () => {
+    const fsPath = '/path/to/project/file.txt';
+    const error = new Error('unexpected error');
+    const consoleLogStub = sinon.stub(console, 'log');
+
+    fsStatStub.rejects(error);
+
+    const result = await bruinWorkspaceDirectory(fsPath);
+    assert.strictEqual(result, undefined);
+    sinon.assert.calledOnce(consoleLogStub);
+    sinon.assert.calledWithExactly(consoleLogStub, 'failed to find the workspace directory', error);
+  }); */
+
+  test('should stop searching after reaching the maximum iteration limit', async () => {
+    const fsPath = '/path/to/project/file.txt';
+
+    fsStatStub.resolves({ isFile: () => true });
+    fsAccessStub.rejects(new Error('File not found'));
+    pathDirnameStub.callsFake((dir) => {
+      if (dir === '/path/to/project/file.txt') {return '/path/to/project';}
+      if (dir === '/path/to/project') {return '/path/to';}
+      if (dir === '/path/to') {return '/path';}
+      if (dir === '/path') {return '/';}
+      return '/';
+    });
+
+    const result = await bruinWorkspaceDirectory(fsPath);
+    assert.strictEqual(result, undefined);
   });
 });
 

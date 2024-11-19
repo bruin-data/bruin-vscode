@@ -73,7 +73,7 @@ export const bruinWorkspaceDirectory = async (
         await fs.promises.access(bruinWorkspace, fs.constants.F_OK);
         return dirname.replace(/\\/g, "/");
       } catch (err) {
-        // do nothing
+          console.log('failed to find the workspace directory', err);
       }
     }
     dirname = path.dirname(dirname);
