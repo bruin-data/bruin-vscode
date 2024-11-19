@@ -286,8 +286,8 @@ const availableChecks = computed(() => (column) => {
     "positive",
     "negative",
     "non_negative",
-    "accepted_values",
-    "pattern",
+/*     "accepted_values",
+    "pattern", */
   ];
   return allChecks.filter((check) => !activeCheckNames.includes(check));
 });
@@ -400,6 +400,7 @@ vscode-button::part(control) {
   border: none;
   outline: none;
 }
+
 vscode-dropdown-item::part(control) {
   border: none;
   outline: none;
