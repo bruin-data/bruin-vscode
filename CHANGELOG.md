@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.27.0] - [2024-11-19]
+- Added functionality to manage column checks from the UI, with the ability to remove all checks and add most checks (except `accepted_values` and `pattern`).
+
 ## [0.26.10] - [2024-11-18]
 - Removed the Bruin Executable Path from the extension settings.
 
