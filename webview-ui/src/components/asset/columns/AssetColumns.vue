@@ -182,7 +182,7 @@
     >
       {{ notification }}
     </div> -->
-    <ErrorAlert :errorMessage="notification" class="mb-4" @error-close="closeNotification">
+    <ErrorAlert :errorMessage="error" class="mb-4" @error-close="closeError">
     </ErrorAlert>
   </div>
 </template>
@@ -210,7 +210,7 @@ const editingColumn = ref({});
 
 const addColumn = () => {
   try {
-    throw new Error("Simulated error: Unable to add column.");
+    //throw new Error("Simulated error: Unable to add column.");
 
     const newColumn = {
       name: "New Column",
@@ -231,7 +231,7 @@ const addColumn = () => {
   } catch (error) {
     console.error("Error adding new column:", error);
     // Show an error message to the user
-    showNotification(`"Failed to add new column. Please try again. \n" ${error}`);
+    showError(`"Failed to add new column. Please try again. \n" ${error}`);
   }
 };
 
@@ -332,6 +332,7 @@ const removeCheck = (checkName) => {
 
 const showAddCheckDropdown = ref(null);
 const notification = ref(null);
+const error = ref(null);
 
 const toggleAddCheckDropdown = (index) => {
   if (showAddCheckDropdown.value === index) {
@@ -346,6 +347,13 @@ const toggleAddCheckDropdown = (index) => {
     });
   }
 };
+const showError = (message) => {
+  error.value = message;
+};
+
+const closeError = () =>{
+  error.value = null;
+}
 
 const showNotification = (message) => {
   notification.value = message;
