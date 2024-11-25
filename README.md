@@ -106,10 +106,11 @@ Use the new connections section from `Settings` tab to view, add, or delete conn
 Access the Bruin CLI management tab `Settings` in the side panel for easy installation and updates.
 
 ## Release Notes
-### Latest Release: 0.27.0
-- Added functionality to manage column checks from the UI, with the ability to remove all checks and add most checks (except `accepted_values` and `pattern`).
+### Latest Release: 0.27.1
+- Resolved the issue with adding new columns in assets by refactoring the accepted_value check structure.
 
 ### Previous Highlights
+- **0.27.0**: Added functionality to manage column checks from the UI, with the ability to remove all checks and add most checks (except `accepted_values` and `pattern`).
 - **0.26.10**: Removed the Bruin Executable Path from the extension settings.
 - **0.26.9**: Improved Git Bash detection on Windows by dynamically resolving its path based on the Git executable location.
 - **0.26.8**: Add support for detecting Git Bash in different on Windows.
