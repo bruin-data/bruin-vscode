@@ -66,22 +66,28 @@ export const bruinWorkspaceDirectory = async (
   if ((await fs.promises.stat(fsPath)).isFile()) {
     dirname = path.dirname(dirname);
   }
+
   do {
     for (const fileName of bruinRootFileNames) {
       const bruinWorkspace = path.join(dirname, fileName);
       try {
         await fs.promises.access(bruinWorkspace, fs.constants.F_OK);
         return dirname.replace(/\\/g, "/");
-      } catch (err) {
-          console.log('failed to find the workspace directory', err);
+      } catch (err: any) {
+        // Silently continue if file is not found
+        if (err.code !== 'ENOENT') {
+          console.error('Unexpected error:', err);
+          return undefined;
+        }
       }
     }
+    
+    // If no .bruin.yaml or .bruin.yml found, move up one directory
     dirname = path.dirname(dirname);
-  } while (++iteration < maxIterations && dirname!== "" && dirname!== "/");
+  } while (++iteration < maxIterations && dirname !== "" && dirname !== "/");
 
   return undefined;
 };
-
 
 const escapeFilePath = (filePath: string): string => {
   // Convert Windows-style paths to Unix-style paths for Git Bash
