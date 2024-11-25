@@ -264,14 +264,14 @@ const formatChecks = (checks) => {
       formattedChecks.push({
         id: check.id,
         name: check.name,
-        value: { values: check.value },
+        value: check.value,
         blocking: check.blocking || true,
       });
     } else if (check.name === "pattern" && typeof check.value === "string") {
       formattedChecks.push({
         id: check.id,
         name: check.name,
-        value: { pattern: check.value },
+        value: check.value,
         blocking: check.blocking || true,
       });
     } else {
