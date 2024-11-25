@@ -41,8 +41,8 @@ export const replacePathSeparator = (path: string): string => {
   const pathSeparator = getPathSeparator();
 
   if (process.platform === "win32") {
-    // Replace all occurrences of '\' with the user-defined path separator
-    path = path.replace(/\\/g, pathSeparator);
+    // Replace all occurrences of both '\' and '/' with the user-defined path separator
+    path = path.replace(/\\/g, pathSeparator).replace(/\//g, pathSeparator);
   }
 
   return path;
@@ -73,7 +73,7 @@ export const bruinWorkspaceDirectory = async (
         await fs.promises.access(bruinWorkspace, fs.constants.F_OK);
         return dirname.replace(/\\/g, "/");
       } catch (err) {
-        // do nothing
+          console.log('failed to find the workspace directory', err);
       }
     }
     dirname = path.dirname(dirname);
