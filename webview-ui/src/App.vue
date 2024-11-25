@@ -6,7 +6,6 @@
         <div
           class="flex items-baseline w-3/4 font-md text-editor-fg text-lg font-mono cursor-pointer"
         >
-          <!-- Hide the pipeline name and the slash when the panel is too small -->
           <div class="pipeline-name max-w-[40%] text-xs opacity-50 truncate inline-block">
             {{ assetDetailsProps?.pipeline.name }}
           </div>
@@ -15,7 +14,6 @@
             {{ assetDetailsProps?.name }}
           </div>
         </div>
-        <!--     hide the tags when the panel is too small -->
         <div class="tags flex w-1/4 items-center space-x-2 justify-end overflow-hidden">
           <DescriptionItem :value="assetDetailsProps?.type" :className="badgeClass.badgeStyle" />
           <DescriptionItem
@@ -27,7 +25,6 @@
       </div>
     </div>
     <vscode-panels :activeid="`tab-${activeTab}`" aria-label="Tabbed Content" class="pl-0">
-      <!-- Tab Headers -->
       <vscode-panel-tab
         v-for="(tab, index) in visibleTabs"
         :key="`tab-${index}`"
@@ -39,7 +36,6 @@
         </div>
       </vscode-panel-tab>
 
-      <!-- Tab Content -->
       <vscode-panel-view
         v-for="(tab, index) in visibleTabs"
         :key="`view-${index}`"
@@ -85,13 +81,6 @@ import AssetColumns from "@/components/asset/columns/AssetColumns.vue";
 import BruinSettings from "@/components/bruin-settings/BruinSettings.vue";
 import DescriptionItem from "./components/ui/description-item/DescriptionItem.vue";
 import { badgeStyles, defaultBadgeStyle } from "./components/ui/badges/CustomBadgesStyle";
-/**
- * App Component
- *
- * This component serves as the main application interface for managing assets.
- * It handles communication with the VSCode extension, manages the state of
- * asset data, and renders different tabs for asset details, columns, and settings.
- */
 
 const connectionsStore = useConnectionsStore();
 const parseError = ref(); // Holds any parsing errors
@@ -114,24 +103,28 @@ const lastRenderedDocument = ref(""); // Holds the last rendered document
 // Event listener for messages from the VSCode extension
 window.addEventListener("message", (event) => {
   const message = event.data;
+  console.log("Received message from VSCode extension:", message); // Log received messages
   switch (message.command) {
     case "init":
       lastRenderedDocument.value = message.lastRenderedDocument; // Update last rendered document
-      console.log("Last Rendered:", lastRenderedDocument.value);
+      console.log("Last Rendered Document:", lastRenderedDocument.value);
       break;
     case "environments-list-message":
       environments.value = updateValue(message, "success");
       connectionsStore.setDefaultEnvironment(selectedEnvironment.value); // Set the default environment in the store
+      console.log("Updated environments list:", environments.value);
       break;
     case "parse-message":
       parseError.value = updateValue(message, "error");
       if (!parseError.value) {
         data.value = updateValue(message, "success"); // Update asset data on success
+        console.log("Updated asset data:", data.value);
       }
       lastRenderedDocument.value = updateValue(message, "success");
       break;
     case "bruinCliInstallationStatus":
       isBruinInstalled.value = message.installed; // Update installation status
+      console.log("Bruin installation status updated:", isBruinInstalled.value);
       break;
   }
 });
@@ -140,30 +133,39 @@ const activeTab = ref(0); // Tracks the currently active tab
 
 // Computed property to check if the last rendered document is a Bruin YAML file
 const isBruinYml = computed(() => {
-  return lastRenderedDocument.value && lastRenderedDocument.value.endsWith(".bruin.yml");
+  const result = lastRenderedDocument.value && lastRenderedDocument.value.endsWith(".bruin.yml");
+  console.log("Is last rendered document a Bruin YAML file?", result);
+  return result;
 });
 
 // Computed property to parse the list of environments
 const environmentsList = computed(() => {
   if (!environments.value) return [];
-  return parseEnvironmentList(environments.value)?.environments || [];
+  const parsedEnvironments = parseEnvironmentList(environments.value)?.environments || [];
+  console.log("Parsed environments list:", parsedEnvironments);
+  return parsedEnvironments;
 });
 
 // Computed property to get the selected environment
 const selectedEnvironment = computed(() => {
   if (!environments.value) return [];
-  return parseEnvironmentList(environments.value)?.selectedEnvironment || "something went wrong";
+  const selected = parseEnvironmentList(environments.value)?.selectedEnvironment || "something went wrong";
+  console.log("Selected environment:", selected);
+  return selected;
 });
 
 // Computed property for asset details
 const assetDetailsProps = computed({
   get: () => {
     if (!data.value) return null;
-    return parseAssetDetails(data.value);
+    const parsedDetails = parseAssetDetails(data.value);
+    console.log("Parsed asset details:", parsedDetails);
+    return parsedDetails;
   },
   set: (newValue) => {
     if (newValue) {
       data.value = JSON.stringify({ asset: newValue }); // Update asset data
+      console.log("Updated asset data after setting:", data.value);
     }
   },
 });
@@ -172,11 +174,14 @@ const assetDetailsProps = computed({
 const columnsProps = computed(() => {
   if (!data.value) return [];
   const details = parseAssetDetails(data.value);
-  return details?.columns || [];
+  const columns = details?.columns || [];
+  console.log("Asset columns:", columns);
+  return columns;
 });
 
 const columns = ref([...columnsProps.value]); // Reactive reference for columns
-console.debug("Columns:", columns.value);
+console.debug("Initial Columns:", columns.value);
+
 // Define tabs for the application
 const tabs = ref([
   {
@@ -210,14 +215,17 @@ const tabs = ref([
 const visibleTabs = computed(() => {
   if (isBruinYml.value) {
     // Only show the "Settings" tab
+    console.log("Showing only Settings tab for Bruin YAML file.");
     return tabs.value.filter((tab) => tab.label === "Settings");
   }
   // Show all tabs
+  console.log("Showing all tabs.");
   return tabs.value;
 });
 
 // Lifecycle hook to load data when the component is mounted
 onMounted(() => {
+  console.log("Component mounted. Loading asset data and environments.");
   loadAssetData();
   loadEnvironmentsList();
   checkBruinCliInstallation();
@@ -226,6 +234,7 @@ onMounted(() => {
 
 // Function to check if Bruin CLI is installed
 function checkBruinCliInstallation() {
+  console.log("Checking Bruin CLI installation status.");
   vscode.postMessage({ command: "checkBruinCliInstallation" });
 }
 
@@ -246,6 +255,7 @@ const debounce = (func, wait) => {
 watch(
   columnsProps,
   (newColumns) => {
+    console.log("Columns props changed. Updating columns:", newColumns);
     columns.value = newColumns;
   },
   { deep: true }
@@ -253,21 +263,25 @@ watch(
 
 // Function to update columns
 const updateColumns = (newColumns) => {
+  console.log("Updating columns with new data:", newColumns);
   columns.value = newColumns;
 };
 
 // Function to load asset data
 function loadAssetData() {
+  console.log("Loading asset data from Bruin.");
   vscode.postMessage({ command: "bruin.getAssetDetails" });
 }
 
 // Function to load the list of environments
 function loadEnvironmentsList() {
+  console.log("Loading environments list from Bruin.");
   vscode.postMessage({ command: "bruin.getEnvironmentsList" });
 }
 
 // Function to update the asset name
 const updateAssetName = (newName) => {
+  console.log("Updating asset name to:", newName);
   if (assetDetailsProps.value) {
     assetDetailsProps.value.name = newName;
   }
@@ -290,6 +304,7 @@ const badgeClass = computed(() => {
   };
 });
 </script>
+
 <style>
 vscode-panels::part(tablist) {
   padding-left: 0 !important;
