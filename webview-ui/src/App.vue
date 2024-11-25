@@ -238,19 +238,6 @@ function checkBruinCliInstallation() {
   vscode.postMessage({ command: "checkBruinCliInstallation" });
 }
 
-// Debounce function to limit the rate at which a function can fire
-const debounce = (func, wait) => {
-  let timeout;
-  return function executedFunction(...args) {
-    const later = () => {
-      clearTimeout(timeout);
-      func(...args);
-    };
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-  };
-};
-
 // Watcher to update columns when columnsProps change
 watch(
   columnsProps,
