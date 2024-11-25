@@ -50,16 +50,17 @@ suite("Extension Initialization", () => {
 });
 suite("getPathSeparator Tests", () => {
   test("should return the path separator from the user configuration", () => {
+    const expectedPathSeparator = os.platform() === 'win32' ? '\\' : '/'; // Adjust based on OS
     const pathSeparator = getPathSeparator();
-    assert.strictEqual(pathSeparator, "/");
+    assert.strictEqual(pathSeparator, expectedPathSeparator);
   });
 });
 
 suite("replacePathSeparator Tests", () => {
   test("should replace path separators with the specified separator", () => {
     const input = "path/to/file";
+    const expectedSeparator = os.platform() === 'win32' ? '\\' : '/'; // Adjust based on OS
     const result = replacePathSeparator(input);
-    const expectedSeparator = getPathSeparator();
     assert.strictEqual(result, `path${expectedSeparator}to${expectedSeparator}file`);
   });
 
