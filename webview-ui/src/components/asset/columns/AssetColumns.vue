@@ -5,9 +5,11 @@
         Add column
       </vscode-button>
     </div>
-    
+
     <!-- Header Row -->
-    <div class="grid grid-cols-12 gap-2 px-2 py-1 font-semibold text-xs opacity-65 border-b-2 border-editor-fg items-center">
+    <div
+      class="grid grid-cols-12 gap-2 px-2 py-1 font-semibold text-xs opacity-65 border-b-2 border-editor-fg items-center"
+    >
       <div class="col-span-2">Name</div>
       <div class="col-span-2">Type</div>
       <div class="col-span-4">Description</div>
@@ -21,7 +23,7 @@
         v-if="localColumns.length"
         v-for="(column, index) in localColumns"
         :key="index"
-        class="grid grid-cols-12 gap-2 px-2 py-1 border-b items-center text-xs  border-commandCenter-border"
+        class="grid grid-cols-12 gap-2 px-2 py-1 border-b items-center text-xs border-commandCenter-border"
       >
         <!-- Name -->
         <div class="col-span-2 font-medium font-mono text-xs">
@@ -174,12 +176,14 @@
     </div>
 
     <!-- Notification -->
-    <div
+    <!-- <div
       v-if="notification"
-      class="fixed bottom-4 right-4 bg-black/5 border rounded shadow-lg z-50 p-4"
+      class="fixed bottom-4 right-1 left-1 bg-editorWidget-bg border border-errorForeground rounded shadow-lg z-50 p-2"
     >
       {{ notification }}
-    </div>
+    </div> -->
+    <ErrorAlert :errorMessage="notification" class="mb-4" @error-close="closeNotification">
+    </ErrorAlert>
   </div>
 </template>
 
@@ -189,6 +193,7 @@ import { TrashIcon, PencilIcon, XMarkIcon, CheckIcon, PlusIcon } from "@heroicon
 import DeleteAlert from "@/components/ui/alerts/AlertWithActions.vue";
 import { vscode } from "@/utilities/vscode";
 import { v4 as uuidv4 } from "uuid"; // Import UUID library to generate unique IDs
+import ErrorAlert from "@/components/ui/alerts/ErrorAlert.vue";
 
 const props = defineProps({
   columns: {
@@ -204,25 +209,30 @@ const editingIndex = ref(null);
 const editingColumn = ref({});
 
 const addColumn = () => {
-  const newColumn = {
-    name: "New Column",
-    type: "string",
-    description: "Description for the new column",
-    checks: [],
-  };
+  try {
+    throw new Error("Simulated error: Unable to add column.");
 
-  // Add new column to local columns
-  localColumns.value.push(newColumn);
-  editingIndex.value = localColumns.value.length - 1;
-  editingColumn.value = JSON.parse(JSON.stringify(newColumn));
+    const newColumn = {
+      name: "New Column",
+      type: "string",
+      description: "Description for the new column",
+      checks: [],
+    };
 
-  const payload = JSON.parse(JSON.stringify({ columns: editingColumn }));
+    // Log the action of adding a new column
+    console.log("Adding new column:", newColumn);
 
-  vscode.postMessage({
-    command: "bruin.setAssetDetails",
-    payload: payload,
-  });
-  emitUpdateColumns();
+    // Add new column to local columns
+    localColumns.value.push(newColumn);
+    editingIndex.value = localColumns.value.length - 1;
+    editingColumn.value = JSON.parse(JSON.stringify(newColumn));
+
+    console.log("Current columns after addition:", localColumns.value);
+  } catch (error) {
+    console.error("Error adding new column:", error);
+    // Show an error message to the user
+    showNotification(`"Failed to add new column. Please try again. \n" ${error}`);
+  }
 };
 
 const saveChanges = (index) => {
@@ -238,6 +248,8 @@ const saveChanges = (index) => {
 
   const payload = JSON.parse(JSON.stringify({ columns: allColumnsData }));
 
+  // Log the payload that will be sent
+  console.log("Payload to be sent on save columns:", payload);
   vscode.postMessage({
     command: "bruin.setAssetDetails",
     payload: payload,
@@ -271,6 +283,11 @@ const formatChecks = (checks) => {
       });
     }
   });
+  console.log(
+    "Formatted checks:",
+    formattedChecks,
+    " - Check if each column check has the correct structure and properties required for processing."
+  );
   return formattedChecks;
 };
 
@@ -286,7 +303,7 @@ const availableChecks = computed(() => (column) => {
     "positive",
     "negative",
     "non_negative",
-/*     "accepted_values",
+    /*     "accepted_values",
     "pattern", */
   ];
   return allChecks.filter((check) => !activeCheckNames.includes(check));
@@ -301,8 +318,8 @@ const addCheck = (checkName) => {
   };
   editingColumn.value.checks.push(newCheck);
   showAddCheckDropdown.value = null;
-  saveChanges(editingIndex.value);
-  emitUpdateColumns();
+
+  console.log("Current checks in editing column after addition:", editingColumn.value.checks);
 };
 
 const removeCheck = (checkName) => {
@@ -332,11 +349,11 @@ const toggleAddCheckDropdown = (index) => {
 
 const showNotification = (message) => {
   notification.value = message;
-  setTimeout(() => {
-    notification.value = null;
-  }, 5000); // Hide notification after 5 seconds
 };
 
+const closeNotification = () =>{
+  notification.value = null;
+}
 const getCheckTooltip = (check, column) => {
   if (check.name === "accepted_values") {
     const values = check.value.values;
@@ -383,7 +400,6 @@ watch(
   { deep: true }
 );
 </script>
-
 
 <style scoped>
 vscode-badge::part(control) {
