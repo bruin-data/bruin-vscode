@@ -53,9 +53,16 @@ export const isPythonBruinAsset = async (fileName: string): Promise<boolean> =>
   isBruinAsset(fileName, [".py"]);
 
 export const isBruinPipeline = async (fileName: string): Promise<boolean> => {
-  console.log("this is a pipleine" + path.basename(fileName) === "pipeline.yml" ? true : false);
-  return path.basename(fileName) === "pipeline.yml" ? true : false;
+  const baseName = path.basename(fileName);
+  const isPipelineFile = baseName === "pipeline.yml" || baseName === "pipeline.yaml"; // Check for both extensions
+  console.log(`Checking if ${fileName} is a Bruin pipeline:`, isPipelineFile); // Log the check
+
+  if (isPipelineFile) {
+    return true;
+  }
+  return false;
 };
+
 export const isYamlBruinAsset = async (fileName: string): Promise<boolean> =>
   isBruinAsset(fileName, [".asset.yml", ".asset.yaml"]);
 
