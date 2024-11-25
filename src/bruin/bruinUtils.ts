@@ -41,8 +41,8 @@ export const replacePathSeparator = (path: string): string => {
   const pathSeparator = getPathSeparator();
 
   if (process.platform === "win32") {
-    // Replace all occurrences of '\' with the user-defined path separator
-    path = path.replace(/\\/g, pathSeparator);
+    // Replace all occurrences of both '\' and '/' with the user-defined path separator
+    path = path.replace(/\\/g, pathSeparator).replace(/\//g, pathSeparator);
   }
 
   return path;
