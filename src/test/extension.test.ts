@@ -29,7 +29,14 @@ import {
 } from "../bruin/bruinUtils";
 import { BruinInternalPatch } from "../bruin/bruinInternalPatch";
 import { getPathSeparator } from "../extension/configuration";
-import { exec } from "child_process";
+import { BruinCommand } from "../bruin/bruinCommand";
+import {
+  BruinConnections,
+  BruinCreateConnection,
+  BruinDeleteConnection,
+  BruinGetAllBruinConnections,
+} from "../bruin/bruinConnections";
+import { BruinPanel } from "../panels/BruinPanel";
 
 suite("Extension Initialization", () => {
   test("should set default path separator based on platform", async () => {
@@ -50,7 +57,7 @@ suite("Extension Initialization", () => {
 });
 suite("getPathSeparator Tests", () => {
   test("should return the path separator from the user configuration", () => {
-    const expectedPathSeparator = os.platform() === 'win32' ? '\\' : '/'; // Adjust based on OS
+    const expectedPathSeparator = os.platform() === "win32" ? "\\" : "/"; // Adjust based on OS
     const pathSeparator = getPathSeparator();
     assert.strictEqual(pathSeparator, expectedPathSeparator);
   });
@@ -59,7 +66,7 @@ suite("getPathSeparator Tests", () => {
 suite("replacePathSeparator Tests", () => {
   test("should replace path separators with the specified separator", () => {
     const input = "path/to/file";
-    const expectedSeparator = os.platform() === 'win32' ? '\\' : '/'; // Adjust based on OS
+    const expectedSeparator = os.platform() === "win32" ? "\\" : "/"; // Adjust based on OS
     const result = replacePathSeparator(input);
     assert.strictEqual(result, `path${expectedSeparator}to${expectedSeparator}file`);
   });
@@ -204,7 +211,7 @@ suite("workspaceDirectory Tests", () => {
     assert.strictEqual(result, undefined, "Should return undefined after max iterations");
   }); */
 });
-suite('BruinInstallCLI Tests', () => {
+suite("BruinInstallCLI Tests", () => {
   let sandbox: sinon.SinonSandbox;
   let execAsyncStub: sinon.SinonStub;
   let execStub: sinon.SinonStub;
@@ -217,43 +224,46 @@ suite('BruinInstallCLI Tests', () => {
 
   setup(() => {
     sandbox = sinon.createSandbox();
-    
+
     // Setup stubs
     execAsyncStub = sandbox.stub();
     execStub = sandbox.stub();
-    sandbox.stub(util, 'promisify').returns(execAsyncStub);
-    osPlatformStub = sandbox.stub(os, 'platform');
-    getDefaultBruinExecutablePathStub = sandbox.stub(configuration, 'getDefaultBruinExecutablePath').returns('/mock/bruin');
-    compareVersionsStub = sandbox.stub(bruinUtils, 'compareVersions');
-    
+    sandbox.stub(util, "promisify").returns(execAsyncStub);
+    osPlatformStub = sandbox.stub(os, "platform");
+    getDefaultBruinExecutablePathStub = sandbox
+      .stub(configuration, "getDefaultBruinExecutablePath")
+      .returns("/mock/bruin");
+    compareVersionsStub = sandbox.stub(bruinUtils, "compareVersions");
+
     // Setup terminal stub
     terminalStub = {
       show: sandbox.stub(),
       sendText: sandbox.stub(),
-      dispose: sandbox.stub()
+      dispose: sandbox.stub(),
     };
-    createIntegratedTerminalStub = sandbox.stub(bruinUtils, 'createIntegratedTerminal').resolves(terminalStub as vscode.Terminal);
-    
+    createIntegratedTerminalStub = sandbox
+      .stub(bruinUtils, "createIntegratedTerminal")
+      .resolves(terminalStub as vscode.Terminal);
+
     // Setup workspace stub
-    workspaceFoldersStub = sandbox.stub(vscode.workspace, 'workspaceFolders').value([
-      { uri: { fsPath: '/mock/workspace' } }
-    ]);
+    workspaceFoldersStub = sandbox
+      .stub(vscode.workspace, "workspaceFolders")
+      .value([{ uri: { fsPath: "/mock/workspace" } }]);
   });
 
   teardown(() => {
     sandbox.restore();
   });
-  
 
-  suite('Constructor', () => {
-    test('should initialize with correct platform', () => {
-      osPlatformStub.returns('win32');
+  suite("Constructor", () => {
+    test("should initialize with correct platform", () => {
+      osPlatformStub.returns("win32");
       const cli = new BruinInstallCLI();
-      assert.equal((cli as any).platform, 'win32');
+      assert.equal((cli as any).platform, "win32");
     });
   });
-  suite('checkBruinCliInstallation', () => {
-/*     test('should detect installed CLI on Windows with Git available', async () => {
+  suite("checkBruinCliInstallation", () => {
+    /*     test('should detect installed CLI on Windows with Git available', async () => {
       osPlatformStub.returns('win32');
       execAsyncStub.withArgs('/mock/bruin --version').resolves({ stdout: 'v0.11.106' }); 
       execAsyncStub.withArgs('git --version').resolves({ stdout: 'git version 2.0.0' });
@@ -269,9 +279,9 @@ suite('BruinInstallCLI Tests', () => {
       });
     }); */
 
-    test('should detect non-installed CLI on non-Windows', async () => {
-      osPlatformStub.returns('darwin');
-      execAsyncStub.withArgs('/mock/bruin --version').rejects(new Error('not found'));
+    test("should detect non-installed CLI on non-Windows", async () => {
+      osPlatformStub.returns("darwin");
+      execAsyncStub.withArgs("/mock/bruin --version").rejects(new Error("not found"));
 
       const cli = new BruinInstallCLI();
       const result = await cli.checkBruinCliInstallation();
@@ -279,11 +289,11 @@ suite('BruinInstallCLI Tests', () => {
       assert.deepEqual(result, {
         installed: false,
         isWindows: false,
-        gitAvailable: true
+        gitAvailable: true,
       });
     });
 
-   /*  test('should handle missing Git on Windows', async () => {
+    /*  test('should handle missing Git on Windows', async () => {
       osPlatformStub.returns('win32');
       execAsyncStub.withArgs('/mock/bruin --version').rejects(new Error('not found'));
       execAsyncStub.withArgs('git --version').rejects(new Error('git not found'));
@@ -298,9 +308,9 @@ suite('BruinInstallCLI Tests', () => {
       });
     }); */
   });
-  suite('installBruinCli', () => {
-    test('should execute correct install command on Windows', async () => {
-      osPlatformStub.returns('win32');
+  suite("installBruinCli", () => {
+    test("should execute correct install command on Windows", async () => {
+      osPlatformStub.returns("win32");
       const cli = new BruinInstallCLI();
       await cli.installBruinCli();
 
@@ -309,12 +319,12 @@ suite('BruinInstallCLI Tests', () => {
       assert.strictEqual((terminalStub.sendText as sinon.SinonStub).callCount, 1);
       assert.strictEqual(
         (terminalStub.sendText as sinon.SinonStub).firstCall.args[0],
-        'curl -LsSf https://raw.githubusercontent.com/bruin-data/bruin/refs/heads/main/install.sh | sh'
+        "curl -LsSf https://raw.githubusercontent.com/bruin-data/bruin/refs/heads/main/install.sh | sh"
       );
     });
 
-    test('should execute correct install command on non-Windows', async () => {
-      osPlatformStub.returns('darwin');
+    test("should execute correct install command on non-Windows", async () => {
+      osPlatformStub.returns("darwin");
       const cli = new BruinInstallCLI();
       await cli.installBruinCli();
 
@@ -323,14 +333,14 @@ suite('BruinInstallCLI Tests', () => {
       assert.strictEqual((terminalStub.sendText as sinon.SinonStub).callCount, 1);
       assert.strictEqual(
         (terminalStub.sendText as sinon.SinonStub).firstCall.args[0],
-        'curl -LsSL https://raw.githubusercontent.com/bruin-data/bruin/refs/heads/main/install.sh | sh'
+        "curl -LsSL https://raw.githubusercontent.com/bruin-data/bruin/refs/heads/main/install.sh | sh"
       );
     });
   });
 
-  suite('updateBruinCli', () => {
-    test('should execute update command correctly', async () => {
-      osPlatformStub.returns('darwin');
+  suite("updateBruinCli", () => {
+    test("should execute update command correctly", async () => {
+      osPlatformStub.returns("darwin");
       const cli = new BruinInstallCLI();
       await cli.updateBruinCli();
 
@@ -339,16 +349,16 @@ suite('BruinInstallCLI Tests', () => {
       assert.strictEqual((terminalStub.sendText as sinon.SinonStub).callCount, 1);
       assert.strictEqual(
         (terminalStub.sendText as sinon.SinonStub).firstCall.args[0],
-        'curl -LsSL https://raw.githubusercontent.com/bruin-data/bruin/refs/heads/main/install.sh | sh'
+        "curl -LsSL https://raw.githubusercontent.com/bruin-data/bruin/refs/heads/main/install.sh | sh"
       );
     });
   });
 
-  suite('installOrUpdate', () => {
-    test('should call update when already installed', async () => {
+  suite("installOrUpdate", () => {
+    test("should call update when already installed", async () => {
       const cli = new BruinInstallCLI();
-      const updateStub = sandbox.stub(cli, 'updateBruinCli');
-      const installStub = sandbox.stub(cli, 'installBruinCli');
+      const updateStub = sandbox.stub(cli, "updateBruinCli");
+      const installStub = sandbox.stub(cli, "installBruinCli");
 
       await cli.installOrUpdate(true);
 
@@ -356,10 +366,10 @@ suite('BruinInstallCLI Tests', () => {
       assert.strictEqual(installStub.callCount, 0);
     });
 
-    test('should call install when not installed', async () => {
+    test("should call install when not installed", async () => {
       const cli = new BruinInstallCLI();
-      const updateStub = sandbox.stub(cli, 'updateBruinCli');
-      const installStub = sandbox.stub(cli, 'installBruinCli');
+      const updateStub = sandbox.stub(cli, "updateBruinCli");
+      const installStub = sandbox.stub(cli, "installBruinCli");
 
       await cli.installOrUpdate(false);
 
@@ -584,5 +594,290 @@ suite("Manage Bruin Connections Tests", function () {
         access_key_id: "aws_access_key",
       },
     ]);
+  });
+});
+
+suite("BruinCommand Tests", () => {
+  let execFileStub: sinon.SinonStub;
+  let bruinCommand: BruinCommand;
+
+  // Create a concrete implementation of BruinCommand for testing
+  class TestBruinCommand extends BruinCommand {
+    protected bruinCommand(): string {
+      return "test-command"; // Replace with the actual command you want to test
+    }
+  }
+
+  setup(() => {
+    execFileStub = sinon.stub(require("child_process"), "execFile");
+    bruinCommand = new TestBruinCommand("path/to/bruin", "path/to/working/directory");
+  });
+
+  teardown(() => {
+    sinon.restore();
+  });
+
+  test("execArgs should return correct arguments without additional flags", () => {
+    const expectedArgs = ["test-command"];
+    const result = (bruinCommand as any).execArgs([]);
+    assert.deepStrictEqual(result, expectedArgs);
+  });
+
+  test("execArgs should return correct arguments with additional flags", () => {
+    const flags = ["--flag1", "--flag2"];
+    const expectedArgs = ["test-command", ...flags];
+    const result = (bruinCommand as any).execArgs(flags);
+    assert.deepStrictEqual(result, expectedArgs);
+  });
+
+  test("run should resolve with stdout on success", async () => {
+    const query = ["--option"];
+    const stdout = "Command executed successfully";
+    execFileStub.yields(null, stdout, "");
+
+    const result = await (bruinCommand as any).run(query);
+    assert.strictEqual(result, stdout.trim());
+  });
+
+  test("run should reject with stderr on failure", async () => {
+    const query = ["--option"];
+    const stderr = "Error occurred";
+    execFileStub.yields(new Error("Command failed"), "", stderr);
+
+    try {
+      await (bruinCommand as any).run(query);
+      assert.fail("Expected promise to be rejected");
+    } catch (error) {
+      assert.strictEqual(error, stderr);
+    }
+  });
+
+  test("run should resolve with empty string if ignoresErrors is true", async () => {
+    const query = ["--option"];
+    execFileStub.yields(new Error("Command failed"), "", "Some error");
+
+    const result = await (bruinCommand as any).run(query, { ignoresErrors: true });
+    assert.strictEqual(result, "");
+  });
+
+  test("run should handle empty query array", async () => {
+    const query: string[] = [];
+    const stdout = "No options provided";
+    execFileStub.yields(null, stdout, "");
+
+    const result = await (bruinCommand as any).run(query);
+    assert.strictEqual(result, stdout.trim());
+  });
+
+  test("run should handle invalid command", async () => {
+    const query = ["--invalid"];
+    const stderr = "Command not found";
+    execFileStub.yields(new Error("Command not found"), "", stderr);
+
+    try {
+      await (bruinCommand as any).run(query);
+      assert.fail("Expected promise to be rejected");
+    } catch (error) {
+      assert.strictEqual(error, stderr);
+    }
+  });
+});
+
+suite("Bruin Connections Tests", () => {
+  let bruinConnections: BruinConnections;
+  let bruinDeleteConnection: BruinDeleteConnection;
+  let bruinCreateConnection: BruinCreateConnection;
+  let bruinGetAllBruinConnections: BruinGetAllBruinConnections;
+  let execFileStub: sinon.SinonStub;
+  let postMessageToPanelsStub: sinon.SinonStub;
+
+  setup(() => {
+    execFileStub = sinon.stub(require("child_process"), "execFile");
+    postMessageToPanelsStub = sinon.stub(BruinPanel, "postMessage");
+
+    bruinConnections = new BruinConnections("path/to/bruin", "path/to/working/directory");
+    bruinDeleteConnection = new BruinDeleteConnection("path/to/bruin", "path/to/working/directory");
+    bruinCreateConnection = new BruinCreateConnection("path/to/bruin", "path/to/working/directory");
+    bruinGetAllBruinConnections = new BruinGetAllBruinConnections(
+      "path/to/bruin",
+      "path/to/working/directory"
+    );
+  });
+
+  teardown(() => {
+    sinon.restore();
+  });
+
+  // BruinConnections Tests
+  test("BruinConnections getConnections should return connections on success", async () => {
+    const connectionsResult = {
+      default_environment_name: "default",
+      selected_environment_name: "default",
+      selected_environment: {
+        connections: {
+          adjust: [
+            {
+              name: "a",
+              api_key: "ss",
+            },
+          ],
+        },
+      },
+      environments: {
+        default: {
+          connections: {
+            adjust: [
+              {
+                name: "a",
+                api_key: "ss",
+              },
+            ],
+          },
+        },
+      },
+    };
+
+    const stdout = JSON.stringify(connectionsResult);
+    execFileStub.yields(null, stdout, "");
+
+    await bruinConnections.getConnections();
+    const expectedConnections = extractNonNullConnections(connectionsResult);
+    sinon.assert.calledWith(postMessageToPanelsStub, "connections-list-message", {
+      status: "success",
+      message: expectedConnections,
+    });
+  });
+
+  test("BruinConnections getConnections should return empty array when no connections", async () => {
+    const connections: any = {}; // Return an empty array
+    const stdout = JSON.stringify(connections);
+    execFileStub.yields(null, stdout, "");
+
+    await bruinConnections.getConnections();
+    const expectedConnections = extractNonNullConnections(connections);
+
+    sinon.assert.calledWith(postMessageToPanelsStub, "connections-list-message", {
+      status: "success",
+      message: expectedConnections,
+    });
+  });
+
+  test("BruinConnections getConnections should handle error on failure", async () => {
+    const stderr = "Error occurred";
+    execFileStub.yields(new Error("Command failed"), "", stderr);
+
+    await bruinConnections.getConnections();
+
+    sinon.assert.calledWith(postMessageToPanelsStub, "connections-list-message", {
+      status: "error",
+      message: stderr,
+    });
+  });
+
+  // BruinDeleteConnection Tests
+  test("BruinDeleteConnection deleteConnection should post success message on success", async () => {
+    const env = "staging";
+    const connectionName = "test-connection";
+    const flags = ["delete", "--env", env, "--name", connectionName];
+    execFileStub.yields(null, "", "");
+    await bruinDeleteConnection.deleteConnection(env, connectionName);
+    sinon.assert.calledWith(postMessageToPanelsStub, "connections-list-after-delete", {
+      status: "success",
+      message: `Connection "${connectionName}" deleted successfully.`,
+    });
+  });
+
+  test("BruinDeleteConnection deleteConnection should post error message on failure", async () => {
+    const env = "staging";
+    const connectionName = "test-connection";
+    const stderr = "Error occurred";
+    execFileStub.yields(new Error("Command failed"), "", stderr);
+
+    await bruinDeleteConnection.deleteConnection(env, connectionName);
+    sinon.assert.calledWith(postMessageToPanelsStub, "connections-list-after-delete", {
+      status: "error",
+      message: stderr,
+    });
+  });
+
+  // BruinCreateConnection Tests
+  test("BruinCreateConnection createConnection should post success message on success", async () => {
+    const env = "staging";
+    const connectionName = "test-connection";
+    const connectionType = "chess";
+    const credentials = { players: ["m", "d"] };
+    execFileStub.yields(null, "", "");
+
+    await bruinCreateConnection.createConnection(env, connectionName, connectionType, credentials);
+    sinon.assert.calledWith(postMessageToPanelsStub, "connection-created-message", {
+      status: "success",
+      message: {
+        name: connectionName,
+        type: connectionType,
+        environment: env,
+        credentials: credentials,
+      },
+    });
+  });
+
+  test("BruinCreateConnection createConnection should post error message on failure", async () => {
+    const env = "staging";
+    const connectionName = "test-connection";
+    const connectionType = "test-type";
+    const credentials = { key: "value" };
+    const stderr = "Error occurred";
+    execFileStub.yields(new Error("Command failed"), "", stderr);
+
+    await bruinCreateConnection.createConnection(env, connectionName, connectionType, credentials);
+    sinon.assert.calledWith(postMessageToPanelsStub, "connection-created-message", {
+      status: "error",
+      message: stderr,
+    });
+  });
+
+  // BruinGetAllBruinConnections Tests
+  test("BruinGetAllBruinConnections getConnectionsListFromSchema should return connections on success", async () => {
+    const connections = {
+      "$schema":
+        "https://github.com/bruin-data/bruin/blob/main/integration-tests/expected_connections_schema.json",
+        "Connections": {
+          "properties": {
+            "aws": {
+              "items": {
+                "$ref": "#/$defs/AwsConnection"
+              },
+              "type": "array"
+            },
+            "google_cloud_platform": {
+              "items": {
+                "$ref": "#/$defs/GcpConnection"
+              },
+              "type": "array"
+            },
+          },
+          "additionalProperties": false,
+          "type": "object"
+        },
+    
+    };
+    const stdout = JSON.stringify(connections);
+    execFileStub.yields(null, stdout, "");
+
+    await bruinGetAllBruinConnections.getConnectionsListFromSchema();
+    sinon.assert.calledWith(postMessageToPanelsStub, "connections-schema-message", {
+      status: "success",
+      message: connections,
+    });
+  });
+
+  test("BruinGetAllBruinConnections getConnectionsListFromSchema should handle error on failure", async () => {
+    const stderr = "Error occurred";
+    execFileStub.yields(new Error("Command failed"), "", stderr);
+
+    await bruinGetAllBruinConnections.getConnectionsListFromSchema();
+    sinon.assert.calledWith(postMessageToPanelsStub, "connections-schema-message", {
+      status: "error",
+      message: stderr,
+    });
   });
 });
