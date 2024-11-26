@@ -65,9 +65,11 @@ export class BruinValidate extends BruinCommand {
       }
     } catch (error) {
       // Handle the error and notify the user
+      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
+
       BruinPanel.postMessage("validation-message", {
         status: "error",
-        message: error || "An error occurred while validating the asset.",
+        message: errorMessage,
       });
       console.error("Validation error:", error);
     } finally {
