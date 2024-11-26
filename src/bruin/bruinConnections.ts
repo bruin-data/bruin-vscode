@@ -27,18 +27,23 @@ export class BruinConnections extends BruinCommand {
     flags = ["list", "-o", "json"],
     ignoresErrors = false,
   }: BruinCommandOptions = {}): Promise<void> {
+    console.log("\n==================\n Connections Commands \n==================\n"); // Section separation message
+    console.log("Starting to get connections with flags:", flags); // Debug message
     await this.run([...flags], { ignoresErrors })
       .then(
         (result) => {
           const connections = extractNonNullConnections(JSON.parse(result));
+          console.log("Extracted connections:", connections); // Debug message
           this.postMessageToPanels("success", connections);
           return connections;
         },
         (error) => {
+          console.error("Error occurred while getting connections:", error); // Debug message
           // Check if the error is related to an outdated or missing CLI
           if (error.includes("No help topic for")) {
             const cliError =
               "The Bruin CLI is out of date. Please update it to access your connections.";
+              console.error("CLI error message:", cliError); // Debug message
             this.postMessageToPanels("error", cliError);
           } else {
             this.postMessageToPanels("error", error);
@@ -83,16 +88,19 @@ export class BruinDeleteConnection extends BruinCommand {
       ignoresErrors = false,
     }: BruinCommandOptions = {}
   ): Promise<void> {
+    console.log(`Attempting to delete connection "${connectionName}" in environment "${env}" with flags:`, flags); // Debug message
     await this.run([...flags], { ignoresErrors })
       .then(
         () => {
           // Refresh the connections list
+          console.log(`Successfully deleted connection "${connectionName}".`); // Debug message
           this.postMessageToPanels(
             "success",
             `Connection "${connectionName}" deleted successfully.`
           );
         },
         (error) => {
+          console.error("Error occurred while deleting connection:", error); // Debug message
           this.postMessageToPanels("error", error);
         }
       )
@@ -134,6 +142,7 @@ export class BruinCreateConnection extends BruinCommand {
       "-o",
       "json",
     ];
+    console.log("Creating connection with flags:", flags); // Debug message
 
     await this.run(flags, { ignoresErrors })
       .then(
@@ -145,6 +154,7 @@ export class BruinCreateConnection extends BruinCommand {
               environment: env,
               credentials: credentials,
             };
+            console.log("Connection created successfully:", connection); 
             this.postMessageToPanels("success", connection);
           } else {
             this.postMessageToPanels("error", JSON.parse(result).error);
