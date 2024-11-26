@@ -15,6 +15,7 @@ import {
   processLineageData,
   getFileExtension,
   extractNonNullConnections,
+  prepareFlags,
 } from "../utilities/helperUtils";
 import * as configuration from "../extension/configuration";
 import * as bruinUtils from "../bruin/bruinUtils";
@@ -37,6 +38,9 @@ import {
   BruinGetAllBruinConnections,
 } from "../bruin/bruinConnections";
 import { BruinPanel } from "../panels/BruinPanel";
+import { BruinRender, BruinValidate } from "../bruin";
+import { renderCommand, renderCommandWithFlags } from "../extension/commands/renderCommand";
+import { createConnection, deleteConnection, getConnections, getConnectionsListFromSchema } from "../extension/commands/manageConnections";
 
 suite("Extension Initialization", () => {
   test("should set default path separator based on platform", async () => {
@@ -378,7 +382,272 @@ suite("BruinInstallCLI Tests", () => {
     });
   });
 });
+suite("Render Commands", () => {
+  let activeEditorStub: sinon.SinonStub<any[], any> = sinon.stub();
+  let renderStub: sinon.SinonStub;
+  let bruinRenderMock: sinon.SinonStubbedInstance<BruinRender>;
 
+  const mockExtensionUri = vscode.Uri.file("mockUri");
+
+  setup(() => {
+    activeEditorStub.callsFake(() => ({
+      document: {
+        fileName: "file/path/mock.sql"
+      }
+    }));
+    activeEditorStub.value = activeEditorStub(); 
+    bruinRenderMock = sinon.createStubInstance(BruinRender);
+    renderStub = sinon.stub(BruinRender.prototype, "render").resolves();
+    sinon.stub(BruinPanel, "render").callsFake(() => {});
+    sinon.stub(configuration, "getDefaultBruinExecutablePath").returns("path/to/executable");
+  });
+
+  teardown(() => {
+    sinon.restore();
+  });
+  suite("renderCommand", () => {
+    /* test("should call BruinPanel.render and BruinRender.render with the active editor file", async () => {
+      const mockFileName = "file/path/mock.sql";
+      activeEditorStub.callsFake(() => ({
+        document: { fileName: mockFileName }
+      }));
+
+      await renderCommand(mockExtensionUri);
+
+      // Assert renderStub was called once with the correct file name and default flags
+      sinon.assert.calledOnce(renderStub);
+      sinon.assert.calledWithExactly(renderStub, mockFileName, { flags: ["-o", "json"] });
+    }); */
+  
+    test("should not execute render if there is no active editor", async () => {
+      activeEditorStub.callsFake(() => null);
+  
+      await renderCommand(mockExtensionUri);
+  
+      sinon.assert.notCalled(renderStub);
+    });
+  });
+  
+  suite("renderCommandWithFlags", () => {
+   /*  test("should render the active editor file with flags", async () => {
+      const mockFileName = "file/path/mock.sql";
+      const mockFlags = "--downstream";
+      const mockTextEditor: vscode.TextEditor = { document: { fileName: mockFileName } } as vscode.TextEditor;
+
+      activeEditorStub.callsFake(() => mockTextEditor);
+
+      await renderCommandWithFlags(mockFlags);
+
+      // Assert renderStub was called once with the correct file name and flags
+      sinon.assert.calledOnce(renderStub);
+      sinon.assert.calledWithExactly(renderStub, mockFileName, {
+        flags: prepareFlags(mockFlags, ["--downstream", "--push-metadata"]),
+      });
+      sinon.assert.calledWith(renderStub, sinon.match.string, sinon.match.object);
+    }); */
+  
+  
+    test("should render the last rendered document if no active editor exists", async () => {
+      const lastRenderedDocument = "file/path/last-rendered.sql";
+      activeEditorStub.callsFake(() => null);
+  
+      await renderCommandWithFlags("--push-metadata", lastRenderedDocument);
+  
+      sinon.assert.calledOnce(renderStub);
+      sinon.assert.calledWithExactly(renderStub, lastRenderedDocument, {
+        flags: prepareFlags("--push-metadata", ["--downstream", "--push-metadata"]),
+      });
+    });
+  
+    test("should not execute render if no file path is available", async () => {
+      activeEditorStub.callsFake(() => ({
+        document: { fileName: undefined }
+      }));
+  
+      await renderCommandWithFlags("", undefined);
+  
+      sinon.assert.notCalled(renderStub); // Verify renderStub is not called
+    });
+  });
+  
+});
+suite("BruinRender Tests", () => {
+  let bruinRender: BruinRender;
+  let runStub: sinon.SinonStub;
+  let runWithoutJsonFlagStub: sinon.SinonStub;
+  let isValidAssetStub: sinon.SinonStub;
+  let detectBruinAssetStub: sinon.SinonStub;
+  let isBruinPipelineStub: sinon.SinonStub;
+  let isBruinYamlStub: sinon.SinonStub;
+  const bruinExecutablePath = "path/to/bruin/executable";
+  const workingDirectory = "path/to/working/directory";
+
+  setup(() => {
+    bruinRender = new BruinRender(bruinExecutablePath, workingDirectory);
+    runStub = sinon.stub(bruinRender as any, "run").resolves("SQL rendered successfully");
+    runWithoutJsonFlagStub = sinon.stub(bruinRender as any, "runWithoutJsonFlag").resolves("Non-SQL rendered successfully");
+    isValidAssetStub = sinon.stub(bruinRender as any, "isValidAsset");
+    detectBruinAssetStub = sinon.stub(bruinRender as any, "detectBruinAsset");
+    isBruinPipelineStub = sinon.stub(bruinRender as any, "isBruinPipeline");
+    isBruinYamlStub = sinon.stub(bruinRender as any, "isBruinYaml");
+  });
+
+  teardown(() => {
+    sinon.restore();
+  });
+
+  test("render should call run with correct flags for SQL assets", async () => {
+    const filePath = "path/to/sql/asset.sql";
+    isValidAssetStub.resolves(true);
+    detectBruinAssetStub.resolves(false);
+    isBruinPipelineStub.resolves(false);
+    isBruinYamlStub.resolves(false);
+
+    await bruinRender.render(filePath);
+
+    sinon.assert.calledOnceWithExactly(runStub, ["-o", "json", filePath], { ignoresErrors: false });
+  });
+
+  /* test("render should call runWithoutJsonFlag for non-SQL assets", async () => {
+    const filePath = "path/to/python/asset.py";
+    const runWithoutJsonFlagStub = sinon.stub(bruinRender as any, "runWithoutJsonFlag").resolves("Non-SQL rendered successfully");
+    isValidAssetStub.resolves(true);
+    detectBruinAssetStub.resolves(true);
+    isBruinPipelineStub.resolves(false);
+    isBruinYamlStub.resolves(false);
+  
+    await bruinRender.render(filePath);
+  
+    sinon.assert.calledOnce(runWithoutJsonFlagStub); // Assert the method was called once
+    const callArgs = runWithoutJsonFlagStub.args[0]; // Get the arguments of the first call
+    assert.strictEqual(callArgs[0], filePath); // Assert the first argument is the file path
+  }); */
+
+  test("handle error checking file type", async () => {
+    const filePath = "path/to/asset";
+    const error = new Error("Error checking asset type");
+    isValidAssetStub.rejects(error);
+
+    try {
+      await bruinRender.render(filePath);
+    } catch (err: any) {
+      assert.strictEqual(err.message, error.message);
+    }
+  });
+
+  test("render should handle error when checking asset type", async () => {
+    const filePath = "path/to/asset";
+    const error = new Error("Error checking asset type");
+    isValidAssetStub.rejects(error);
+
+    try {
+      await bruinRender.render(filePath);
+    } catch (err: any) {
+      assert.strictEqual(err.message, error.message);
+    }
+  });
+
+  test("render should handle error when running render command", async () => {
+    const filePath = "path/to/sql/asset.sql";
+    isValidAssetStub.resolves(true);
+    detectBruinAssetStub.resolves(false);
+    isBruinPipelineStub.resolves(false);
+    isBruinYamlStub.resolves(false);
+    runStub.rejects(new Error("Error rendering asset"));
+
+    try {
+      await bruinRender.render(filePath);
+    } catch (err: any) {
+      assert.strictEqual(err.message, "Error rendering asset");
+    }
+  });
+});
+
+suite("BruinValidate Tests", () => {
+  let bruinValidate: BruinValidate;
+  let runStub: sinon.SinonStub;
+  let postMessageStub: sinon.SinonStub;
+
+  setup(() => {
+    bruinValidate = new BruinValidate("path/to/bruin/executable", "path/to/working/directory");
+    runStub = sinon.stub(bruinValidate as any, "run");
+    postMessageStub = sinon.stub(BruinPanel, "postMessage");
+  });
+
+  teardown(() => {
+    sinon.restore();
+  });
+
+  test("validate should call run with correct flags", async () => {
+    const filePath = "path/to/asset";
+    const flags = ["-o", "json"];
+    runStub.resolves("{}");
+
+    await bruinValidate.validate(filePath, { flags });
+
+    sinon.assert.calledOnceWithExactly(runStub, [...flags, filePath], { ignoresErrors: false });
+  });
+
+  test("validate should handle error when running validation command", async () => {
+    const filePath = "path/to/asset";
+    const error = new Error("Validation command failed");
+    runStub.rejects(error);
+  
+    await bruinValidate.validate(filePath);
+  
+    sinon.assert.calledTwice(postMessageStub);
+  
+    sinon.assert.calledWithExactly(postMessageStub.firstCall, "validation-message", {
+      status: "loading",
+      message: "Validating asset...",
+    });
+  
+    sinon.assert.calledWithExactly(postMessageStub.secondCall, "validation-message", {
+      status: "error",
+      message: error.message,
+    });
+  });
+  
+  
+  test("validate should indicate loading state when validation is in progress", async () => {
+    const filePath = "path/to/asset";
+    runStub.resolves("{}");
+  
+    const validatePromise = bruinValidate.validate(filePath);
+  
+    // Assert loading state before completion
+    assert.strictEqual(bruinValidate.isLoading, true, "Loading state should be true during validation");
+  
+    await validatePromise;
+  
+    // Assert loading state after completion
+    assert.strictEqual(bruinValidate.isLoading, false, "Loading state should be false after validation");
+  });
+  
+
+  test("validate should handle multiple validation results", async () => {
+    const filePath = "path/to/asset";
+    const validationResults = JSON.stringify([
+      { issues: { error: "Error message 1" } },
+      { issues: { error: "Error message 2" } },
+    ]);
+    runStub.resolves(validationResults);
+  
+    await bruinValidate.validate(filePath);
+    // Assert the expected behavior
+    sinon.assert.calledTwice(postMessageStub);
+  });
+
+
+  test("validate should reset loading state after validation completes", async () => {
+    const filePath = "path/to/asset";
+    runStub.resolves("{}");
+
+    await bruinValidate.validate(filePath);
+
+    assert.strictEqual(bruinValidate.isLoading, false, "Loading state should be false after validation");
+  });
+});
 suite("patch asset testing", () => {
   let bruinInternalPatch: BruinInternalPatch;
   let runStub: sinon.SinonStub;
@@ -495,7 +764,135 @@ suite("Render Command Helper functions", () => {
     assert.strictEqual(processLineageData(lineageString), "example-name");
   });
 });
+suite("Connection Management Tests", () => {
+  let getDefaultBruinExecutablePathStub: sinon.SinonStub;
+  let bruinWorkspaceDirectoryStub: sinon.SinonStub;
+  let getConnectionsStub: sinon.SinonStub;
+  let getConnectionsListFromSchemaStub: sinon.SinonStub;
+  let deleteConnectionStub: sinon.SinonStub;
+  let createConnectionStub: sinon.SinonStub;
 
+  setup(() => {
+    getDefaultBruinExecutablePathStub = sinon.stub(configuration, "getDefaultBruinExecutablePath").returns("path/to/executable");
+    bruinWorkspaceDirectoryStub = sinon.stub(bruinUtils, "bruinWorkspaceDirectory").resolves("path/to/workspace");
+    getConnectionsStub = sinon.stub(BruinConnections.prototype, "getConnections").resolves();
+    getConnectionsListFromSchemaStub = sinon.stub(BruinGetAllBruinConnections.prototype, "getConnectionsListFromSchema").resolves();
+    deleteConnectionStub = sinon.stub(BruinDeleteConnection.prototype, "deleteConnection").resolves();
+    createConnectionStub = sinon.stub(BruinCreateConnection.prototype, "createConnection").resolves();
+  });
+
+  teardown(() => {
+    sinon.restore();
+  });
+
+  suite("getConnections", () => {
+    test("should call BruinConnections.getConnections with the correct arguments", async () => {
+      const lastRenderedDocumentUri = vscode.Uri.file("path/to/file");
+
+      await getConnections(lastRenderedDocumentUri);
+
+      sinon.assert.calledOnce(getConnectionsStub);
+      sinon.assert.calledOnceWithExactly(getDefaultBruinExecutablePathStub);
+      sinon.assert.calledOnceWithExactly(bruinWorkspaceDirectoryStub, lastRenderedDocumentUri.fsPath);
+    });
+
+    test("should handle error when getting connections", async () => {
+      const lastRenderedDocumentUri = vscode.Uri.file("path/to/file");
+      getConnectionsStub.rejects(new Error("Error getting connections"));
+
+      try {
+        await getConnections(lastRenderedDocumentUri);
+        assert.fail("Expected promise to be rejected");
+      } catch (err: any) {
+        assert.strictEqual(err.message, "Error getting connections");
+      }
+    });
+  });
+
+  suite("getConnectionsListFromSchema", () => {
+    test("should call BruinGetAllBruinConnections.getConnectionsListFromSchema with the correct arguments", async () => {
+      const lastRenderedDocumentUri = vscode.Uri.file("path/to/file");
+
+      await getConnectionsListFromSchema(lastRenderedDocumentUri);
+
+      sinon.assert.calledOnce(getConnectionsListFromSchemaStub);
+      sinon.assert.calledOnceWithExactly(getDefaultBruinExecutablePathStub);
+      sinon.assert.calledOnceWithExactly(bruinWorkspaceDirectoryStub, lastRenderedDocumentUri.fsPath);
+    });
+
+    test("should handle error when getting connections list from schema", async () => {
+      const lastRenderedDocumentUri = vscode.Uri.file("path/to/file");
+      getConnectionsListFromSchemaStub.rejects(new Error("Error getting connections list from schema"));
+
+      try {
+        await getConnectionsListFromSchema(lastRenderedDocumentUri);
+        assert.fail("Expected promise to be rejected");
+      } catch (err: any) {
+        assert.strictEqual(err.message, "Error getting connections list from schema");
+      }
+    });
+  });
+
+  suite("deleteConnection", () => {
+    test("should call BruinDeleteConnection.deleteConnection with the correct arguments", async () => {
+      const env = "env";
+      const connectionName = "connectionName";
+      const lastRenderedDocumentUri = vscode.Uri.file("path/to/file");
+
+      await deleteConnection(env, connectionName, lastRenderedDocumentUri);
+
+      sinon.assert.calledOnceWithExactly(deleteConnectionStub, env, connectionName);
+      sinon.assert.calledOnceWithExactly(getDefaultBruinExecutablePathStub);
+      sinon.assert.calledOnceWithExactly(bruinWorkspaceDirectoryStub, lastRenderedDocumentUri.fsPath);
+    });
+
+    test("should handle error when deleting connection", async () => {
+      const env = "env";
+      const connectionName = "connectionName";
+      const lastRenderedDocumentUri = vscode.Uri.file("path/to/file");
+      deleteConnectionStub.rejects(new Error("Error deleting connection"));
+
+      try {
+        await deleteConnection(env, connectionName, lastRenderedDocumentUri);
+        assert.fail("Expected promise to be rejected");
+      } catch (err: any) {
+        assert.strictEqual(err.message, "Error deleting connection");
+      }
+    });
+  });
+
+  suite("createConnection", () => {
+    test("should call BruinCreateConnection.createConnection with the correct arguments", async () => {
+      const env = "env";
+      const connectionName = "connectionName";
+      const connectionType = "connectionType";
+      const credentials = {};
+      const lastRenderedDocumentUri = vscode.Uri.file("path/to/file");
+
+      await createConnection(env, connectionName, connectionType, credentials, lastRenderedDocumentUri);
+
+      sinon.assert.calledOnceWithExactly(createConnectionStub, env, connectionName, connectionType, credentials);
+      sinon.assert.calledOnceWithExactly(getDefaultBruinExecutablePathStub);
+      sinon.assert.calledOnceWithExactly(bruinWorkspaceDirectoryStub, lastRenderedDocumentUri.fsPath);
+    });
+
+    test("should handle error when creating connection", async () => {
+      const env = "env";
+      const connectionName = "connectionName";
+      const connectionType = "connectionType";
+      const credentials = {};
+      const lastRenderedDocumentUri = vscode.Uri.file("path/to/file");
+      createConnectionStub.rejects(new Error("Error creating connection"));
+
+      try {
+        await createConnection(env, connectionName, connectionType, credentials, lastRenderedDocumentUri);
+        assert.fail("Expected promise to be rejected");
+      } catch (err: any) {
+        assert.strictEqual(err.message, "Error creating connection");
+      }
+    });
+  });
+});
 suite("Manage Bruin Connections Tests", function () {
   test("Should return an empty array for all null connections", async () => {
     const singleEnvconnections = {
