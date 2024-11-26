@@ -43,7 +43,7 @@ export class BruinConnections extends BruinCommand {
           if (error.includes("No help topic for")) {
             const cliError =
               "The Bruin CLI is out of date. Please update it to access your connections.";
-              console.error("CLI error message:", cliError); // Debug message
+           //   console.error("CLI error message:", cliError); // Debug message
             this.postMessageToPanels("error", cliError);
           } else {
             this.postMessageToPanels("error", error);
