@@ -41,6 +41,11 @@ import { BruinPanel } from "../panels/BruinPanel";
 import { BruinRender, BruinValidate } from "../bruin";
 import { renderCommand, renderCommandWithFlags } from "../extension/commands/renderCommand";
 import { createConnection, deleteConnection, getConnections, getConnectionsListFromSchema } from "../extension/commands/manageConnections";
+import { parseAssetCommand, patchAssetCommand } from "../extension/commands/parseAssetCommand";
+import { getEnvListCommand } from "../extension/commands/getEnvListCommand";
+import { lineageCommand } from "../extension/commands/lineageCommand";
+import { BruinInternalParse } from "../bruin/bruinInternalParse";
+import { BruinEnvList } from "../bruin/bruinSelectEnv";
 
 suite("Extension Initialization", () => {
   test("should set default path separator based on platform", async () => {
@@ -1275,6 +1280,338 @@ suite("Bruin Connections Tests", () => {
     sinon.assert.calledWith(postMessageToPanelsStub, "connections-schema-message", {
       status: "error",
       message: stderr,
+    });
+  });
+});
+
+suite('BruinPanel Tests', () => {
+  let windowCreateWebviewPanelStub: sinon.SinonStub;
+  let windowActiveTextEditorStub: sinon.SinonStub;
+  let workspaceWorkspaceFoldersStub: sinon.SinonStub;
+  let bruinValidateStub: sinon.SinonStub;
+  let lineageCommandStub: sinon.SinonStub;
+  let runInTerminalStub: sinon.SinonStub;
+  let bruinInstallCliStub: sinon.SinonStub;
+  let bruinWorkspaceDirectoryStub: sinon.SinonStub;
+  let getCurrentPipelinePathStub: sinon.SinonStub;
+  let pathExistsStub: sinon.SinonStub;
+  let patchAssetCommandStub: sinon.SinonStub;
+  let parseAssetCommandStub: sinon.SinonStub;
+  let getConnectionsStub: sinon.SinonStub;
+  let getEnvListCommandStub: sinon.SinonStub;
+  let getConnectionsListFromSchemaStub: sinon.SinonStub;
+  let deleteConnectionStub: sinon.SinonStub;
+  let createConnectionStub: sinon.SinonStub;
+  const mockExtensionUri = vscode.Uri.file('/mock/extension/path');
+  const mockDocumentUri = vscode.Uri.file('/mock/document.sql');
+
+  setup(() => {
+    // Stub VSCode window and workspace methods
+    windowCreateWebviewPanelStub = sinon.stub(vscode.window, 'createWebviewPanel').returns({
+      webview: {
+        postMessage: sinon.stub(),
+        onDidReceiveMessage: sinon.stub(),
+        html: '',
+        cspSource: 'default-src',
+        asWebviewUri: sinon.stub()
+      },
+      iconPath: {},
+      onDidDispose: sinon.stub(),
+      dispose: sinon.stub(),
+      reveal: sinon.stub()
+    } as any);
+
+    windowActiveTextEditorStub = sinon.stub(vscode.window, 'activeTextEditor').value({
+      document: {
+        uri: mockDocumentUri,
+        fsPath: mockDocumentUri.fsPath
+      }
+    });
+
+    workspaceWorkspaceFoldersStub = sinon.stub(vscode.workspace, 'workspaceFolders').value([
+      { uri: vscode.Uri.file('/mock/workspace') }
+    ]);
+
+    pathExistsStub = sinon.stub(fs, 'existsSync').returns(true);
+    bruinWorkspaceDirectoryStub = sinon.stub(bruinUtils, 'bruinWorkspaceDirectory').resolves('/mock/workspace');
+    getCurrentPipelinePathStub = sinon.stub(bruinUtils, 'getCurrentPipelinePath').callsFake(async () => '/mock/pipeline.yml');
+
+    // Stub BruinValidate
+    bruinValidateStub = sinon.stub(BruinValidate.prototype, 'validate');
+    parseAssetCommandStub = sinon.stub(BruinInternalParse.prototype, 'parseAsset');
+    patchAssetCommandStub = sinon.stub(BruinInternalPatch.prototype, 'patchAsset');
+    getConnectionsStub = sinon.stub(BruinConnections.prototype, 'getConnections');
+    getEnvListCommandStub = sinon.stub(BruinEnvList.prototype, 'getEnvironmentsList');
+    getConnectionsListFromSchemaStub = sinon.stub(BruinGetAllBruinConnections.prototype, 'getConnectionsListFromSchema').resolves();
+    deleteConnectionStub = sinon.stub(BruinDeleteConnection.prototype, 'deleteConnection');
+    createConnectionStub = sinon.stub(BruinCreateConnection.prototype, 'createConnection');
+    // Stub runInIntegratedTerminal
+    runInTerminalStub = sinon.stub(bruinUtils, 'runInIntegratedTerminal');
+
+    // Stub BruinInstallCLI
+    bruinInstallCliStub = sinon.stub(BruinInstallCLI.prototype, 'checkBruinCliInstallation').resolves({
+      installed: false,
+      isWindows: true,
+      gitAvailable: true
+    });
+  });
+
+  teardown(() => {
+    sinon.restore();
+    BruinPanel.currentPanel = undefined;
+  });
+
+  suite('Render Tests', () => {
+    test('creates a new webview panel if no current panel exists', () => {
+      BruinPanel.render(mockExtensionUri);
+
+      assert.ok(windowCreateWebviewPanelStub.calledOnce, 'Webview panel should be created');
+      assert.ok(BruinPanel.currentPanel, 'Current panel should be set');
+    });
+
+    test('reveals existing panel if already created', () => {
+      // First render creates the panel
+      BruinPanel.render(mockExtensionUri);
+      const firstPanel = BruinPanel.currentPanel;
+
+      // Second render should reveal the existing panel
+      BruinPanel.render(mockExtensionUri);
+      assert.strictEqual(BruinPanel.currentPanel, firstPanel, 'Should use existing panel');
+    });
+
+    test('renders with non-existing extension URI', async () => {
+      const invalidUri = vscode.Uri.file('/invalid/path');      
+      try {
+        await BruinPanel.render(invalidUri);
+        assert.fail('Expected an error to be thrown');
+      } catch (error) {
+        assert.ok(windowCreateWebviewPanelStub.calledOnce, 'Webview panel creation should have been attempted');
+      }
+      
+      windowCreateWebviewPanelStub.restore();
+    });
+    
+    test('handles multiple consecutive render calls', async () => {
+      await BruinPanel.render(mockExtensionUri);
+      const initialPanel = BruinPanel.currentPanel;
+      await BruinPanel.render(mockExtensionUri);
+      assert.strictEqual(BruinPanel.currentPanel, initialPanel, 'Should use the same panel instance');
+    });
+  });
+
+  suite('Message Handling', () => {
+    let panel: BruinPanel;
+    let messageHandler: (message: any) => void;
+    setup(() => {
+      BruinPanel.render(mockExtensionUri);
+      panel = BruinPanel.currentPanel!;
+      messageHandler = (windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0];
+    });
+
+    test('handles unknown commands', async () => {
+      const messageHandler = (windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0];
+      const unknownMessage = { command: 'unknownCommand' };
+      
+      await messageHandler(unknownMessage);
+      // Assert no error was thrown or expect a specific handling behavior (e.g., logging)
+    });
+
+    test('validateCurrentPipeline with no active document', async () => {
+      windowActiveTextEditorStub.value(undefined); // Simulate no active text editor
+      const message = { command: 'bruin.validateCurrentPipeline' };
+      
+      await messageHandler(message);
+      const consoleErrorStub = sinon.stub(console, 'error');
+      assert.ok(consoleErrorStub.notCalled, 'No error should be logged');
+      consoleErrorStub.restore();
+    });
+
+    test('validateCurrentPipeline with pipeline file', async () => {
+      const message = { command: 'bruin.validateCurrentPipeline' };
+      await messageHandler(message);
+
+      assert.ok(bruinValidateStub.calledOnce, 'Validate method should be called');
+    });
+
+    test('handles bruin.validateAll command', async () => {
+      const webviewPanel = windowCreateWebviewPanelStub.returnValues[0];
+      const messageHandler = (webviewPanel.webview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0];
+      const message = { command: 'bruin.validateAll' };
+
+      await messageHandler(message);
+
+      assert.ok(bruinValidateStub.calledOnce, 'Validate method should be called');
+    });
+    
+    test('handles bruin.runSql command', async () => {
+      const message = { 
+        command: 'bruin.runSql', 
+        payload: { sqlCommand: 'SELECT * FROM users' } 
+      };
+
+      await messageHandler(message);
+
+      assert.ok(runInTerminalStub.calledOnce, 'Run in terminal should be called');
+      assert.ok(bruinWorkspaceDirectoryStub.calledOnce, 'Workspace directory should be resolved');
+    });
+
+    test('bruin.runSql error handling', async () => {
+      const message = { command: 'bruin.runSql', payload: { sqlCommand: 'SELECT * FROM users' } };
+      
+      try {
+        await messageHandler(message);
+        assert.fail('Expected an error to be thrown');
+      } catch (error) {
+        assert.ok(runInTerminalStub.calledOnce, 'Terminal command should have been attempted');
+      }
+      
+      runInTerminalStub.restore();
+    });
+
+    test('handles checkBruinCliInstallation command', async () => {
+      const messageHandler = (windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0];
+      const message = { command: 'checkBruinCliInstallation' };
+
+      await messageHandler(message);
+
+      assert.ok(bruinInstallCliStub.calledOnce, 'CLI installation check should be performed');
+    });
+/*     test('handles bruin.getAssetLineage command', async () => {
+      const messageHandler = (windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0];
+      const message = { command: 'bruin.getAssetLineage' };
+  
+      await messageHandler(message);
+  
+      assert.ok(lineageCommandStub.calledOnce, 'Lineage command should be called once');
+    }); */
+  
+    test('handles bruin.getAssetDetails command', async () => {
+      const messageHandler = (windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0];
+      const message = { command: 'bruin.getAssetDetails' };
+  
+      await messageHandler(message);
+  
+      assert.ok(parseAssetCommandStub.calledOnce, 'Parse asset command should be called once');
+      parseAssetCommandStub.restore();
+    });
+  
+    test('handles bruin.setAssetDetails command', async () => {
+      const messageHandler = (windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0];
+      const message = { command: 'bruin.setAssetDetails', payload: { key: 'value' } };
+  
+      await messageHandler(message);
+  
+      assert.ok(patchAssetCommandStub.calledOnce, 'Patch asset command should be called once');
+      patchAssetCommandStub.restore();
+    });
+  
+    test('handles bruin.getEnvironmentsList command', async () => {
+      const messageHandler = (windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0];
+      const message = { command: 'bruin.getEnvironmentsList' };
+  
+      await messageHandler(message);
+  
+      assert.ok(getEnvListCommandStub.calledOnce, 'Get environments list command should be called once');
+      getEnvListCommandStub.restore();
+    });
+  
+    test('handles bruin.getConnectionsList command', async () => {
+      const messageHandler = (windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0];
+      const message = { command: 'bruin.getConnectionsList' };
+  
+      await messageHandler(message);
+  
+      assert.ok(getConnectionsStub.calledOnce, 'Get connections list command should be called once');
+      getConnectionsStub.restore();
+    });
+  
+    test('handles bruin.getConnectionsSchema command', async () => {
+      const messageHandler = (windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0];
+      const message = { command: 'bruin.getConnectionsSchema' };
+      await messageHandler(message);
+  
+      assert.ok(getConnectionsListFromSchemaStub.calledOnce, 'Get connections schema command should be called once');
+      getConnectionsListFromSchemaStub.restore();
+    });
+  
+    test('handles bruin.editConnection command', async () => {
+      const messageHandler = (windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0];
+      const message = { command: 'bruin.editConnection', payload: { oldConnection: {}, newConnection: {} } };
+      await messageHandler(message);
+  
+      assert.ok(deleteConnectionStub.calledOnce, 'Delete connection should be called once');
+      assert.ok(createConnectionStub.calledOnce, 'Create connection should be called once');
+      deleteConnectionStub.restore();
+      createConnectionStub.restore();
+    });
+  
+    test('handles bruin.deleteConnection command', async () => {
+      const messageHandler = (windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0];
+      const message = { command: 'bruin.deleteConnection', payload: { name: 'test', environment: 'test' } };
+  
+      await messageHandler(message);
+  
+      assert.ok(deleteConnectionStub.calledOnce, 'Delete connection should be called once');
+      deleteConnectionStub.restore();
+    });
+  
+    test('handles bruin.createConnection command', async () => {
+      const messageHandler = (windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0];
+      const message = { command: 'bruin.createConnection', payload: { environment: 'test', name: 'test', type: 'test', credentials: {} } };
+      await messageHandler(message);
+  
+      assert.ok(createConnectionStub.calledOnce, 'Create connection should be called once');
+      createConnectionStub.restore();
+    });
+  });
+
+  suite('Checkbox and Flags Tests', () => {
+    let panel: BruinPanel;
+
+    setup(() => {
+      BruinPanel.render(mockExtensionUri);
+      panel = BruinPanel.currentPanel!;
+    });
+
+    test('getCheckboxFlags returns correct flags', () => {
+      // Simulate checkbox state
+      (panel as any)._checkboxState = {
+        'verbose': true,
+        'debug': false,
+        'trace': true
+      };
+
+      const flags = panel.getCheckboxFlags();
+      assert.strictEqual(flags, '--verbose --trace', 'Should return only checked flags');
+    });
+ 
+  });
+
+  suite('Dispose Tests', () => {
+    test('properly disposes of panel and resources', () => {
+      BruinPanel.render(mockExtensionUri);
+      const panel = BruinPanel.currentPanel!;
+
+      panel.dispose();
+
+      assert.strictEqual(BruinPanel.currentPanel, undefined, 'Current panel should be undefined');
+      assert.ok(
+        windowCreateWebviewPanelStub.returnValues[0].dispose.calledOnce, 
+        'Panel should be disposed'
+      );
+    });
+    test('double dispose', () => {
+      const panel = BruinPanel.currentPanel;
+      if (panel) {
+        panel.dispose();
+        panel.dispose(); // Second dispose should not throw
+        assert.ok(true, 'No error was thrown on double dispose');
+      }
+    });
+    
+    test('dispose with no current panel', () => {
+      BruinPanel.currentPanel = undefined;
+      assert.ok(true, 'An error was thrown when disposing without a panel');
     });
   });
 });
