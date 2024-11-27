@@ -38,14 +38,27 @@ import {
   BruinGetAllBruinConnections,
 } from "../bruin/bruinConnections";
 import { BruinPanel } from "../panels/BruinPanel";
+import { LineagePanel } from "../panels/LineagePanel";
 import { BruinRender, BruinValidate } from "../bruin";
 import { renderCommand, renderCommandWithFlags } from "../extension/commands/renderCommand";
-import { createConnection, deleteConnection, getConnections, getConnectionsListFromSchema } from "../extension/commands/manageConnections";
+import {
+  createConnection,
+  deleteConnection,
+  getConnections,
+  getConnectionsListFromSchema,
+} from "../extension/commands/manageConnections";
 import { parseAssetCommand, patchAssetCommand } from "../extension/commands/parseAssetCommand";
 import { getEnvListCommand } from "../extension/commands/getEnvListCommand";
 import { lineageCommand } from "../extension/commands/lineageCommand";
 import { BruinInternalParse } from "../bruin/bruinInternalParse";
 import { BruinEnvList } from "../bruin/bruinSelectEnv";
+import { activate } from "../extension/extension";
+import { checkBruinCliVersion, installOrUpdateCli } from "../extension/commands/updateBruinCLI";
+import { getLanguageDelimiters } from "../utilities/delimiters";
+import { bruinDelimiterRegex } from "../constants";
+import { bruinFoldingRangeProvider } from "../providers/bruinFoldingRangeProvider";
+import { get } from "http";
+import exp = require("constants");
 
 suite("Extension Initialization", () => {
   test("should set default path separator based on platform", async () => {
@@ -64,162 +77,215 @@ suite("Extension Initialization", () => {
     assert.strictEqual(pathSeparator, expectedPathSeparator);
   });
 });
-suite("getPathSeparator Tests", () => {
-  test("should return the path separator from the user configuration", () => {
-    const expectedPathSeparator = os.platform() === "win32" ? "\\" : "/"; // Adjust based on OS
-    const pathSeparator = getPathSeparator();
-    assert.strictEqual(pathSeparator, expectedPathSeparator);
-  });
-});
-
-suite("replacePathSeparator Tests", () => {
-  test("should replace path separators with the specified separator", () => {
-    const input = "path/to/file";
-    const expectedSeparator = os.platform() === "win32" ? "\\" : "/"; // Adjust based on OS
-    const result = replacePathSeparator(input);
-    assert.strictEqual(result, `path${expectedSeparator}to${expectedSeparator}file`);
+suite("Bruin Utility Tests", () => {
+  suite("getPathSeparator Tests", () => {
+    test("should return the path separator from the user configuration", () => {
+      const expectedPathSeparator = os.platform() === "win32" ? "\\" : "/"; // Adjust based on OS
+      const pathSeparator = getPathSeparator();
+      assert.strictEqual(pathSeparator, expectedPathSeparator);
+    });
   });
 
-  test("should replace path separators with the default separator on Windows", () => {
-    const input = "path\\to\\file";
-    const platformStub = sinon.stub(process, "platform").value("win32"); // Override process.platform
-    try {
+  suite("replacePathSeparator Tests", () => {
+    test("should replace path separators with the specified separator", () => {
+      const input = "path/to/file";
+      const expectedSeparator = os.platform() === "win32" ? "\\" : "/"; // Adjust based on OS
       const result = replacePathSeparator(input);
-      const expectedSeparator = getPathSeparator();
       assert.strictEqual(result, `path${expectedSeparator}to${expectedSeparator}file`);
-    } finally {
-      platformStub.restore(); // Restore original process.platform value
-    }
+    });
+
+    test("should replace path separators with the default separator on Windows", () => {
+      const input = "path\\to\\file";
+      const platformStub = sinon.stub(process, "platform").value("win32"); // Override process.platform
+      try {
+        const result = replacePathSeparator(input);
+        const expectedSeparator = getPathSeparator();
+        assert.strictEqual(result, `path${expectedSeparator}to${expectedSeparator}file`);
+      } finally {
+        platformStub.restore(); // Restore original process.platform value
+      }
+    });
   });
+
+  suite("findGitBashPath Tests", () => {
+    let fsStub: sinon.SinonStub;
+    let execSyncStub: sinon.SinonStub;
+    let pathDirnameStub: sinon.SinonStub;
+    let pathJoinStub: sinon.SinonStub;
+
+    setup(() => {
+      fsStub = sinon.stub(fs, "existsSync");
+      execSyncStub = sinon.stub(require("child_process"), "execSync");
+      pathDirnameStub = sinon.stub(path, "dirname");
+      pathJoinStub = sinon.stub(path, "join");
+    });
+
+    teardown(() => {
+      sinon.restore();
+    });
+
+    teardown(() => {
+      sinon.restore();
+    });
+
+    test("Returns first existing Git path from commonGitPaths", () => {
+      const expectedPath = "C:\\Program Files\\Git\\bin\\bash.exe";
+      fsStub.withArgs(expectedPath).returns(true);
+      fsStub.returns(false); // Default behavior for other paths
+
+      const result = findGitBashPath();
+
+      assert.strictEqual(result, expectedPath);
+      assert.strictEqual(execSyncStub.called, false); // Should not try execSync if path found
+    });
+
+    test("Finds Git Bash path through execSync when common paths fail", () => {
+      const originalPlatform = process.platform;
+      sinon.stub(process, "platform").value("win32"); // Mock process.platform to return 'win32'
+
+      fsStub.returns(false); // All common paths fail
+      const gitExePath = "C:\\Program Files\\Git\\cmd\\git.exe";
+      const expectedBashPath = "C:\\Program Files\\Git\\bin\\bash.exe";
+
+      execSyncStub.returns(gitExePath);
+      pathDirnameStub.returns("C:\\Program Files\\Git\\cmd");
+      pathJoinStub.returns(expectedBashPath);
+      fsStub.withArgs(expectedBashPath).returns(true);
+
+      const result = findGitBashPath();
+
+      assert.strictEqual(result, expectedBashPath);
+    });
+
+    test("Returns undefined when Git bash.exe does not exist anywhere", () => {
+      fsStub.returns(false); // No paths exist
+      execSyncStub.throws(new Error("Git not found"));
+
+      const result = findGitBashPath();
+
+      assert.strictEqual(result, undefined);
+    });
+  });
+
+  suite("workspaceDirectory Tests", () => {
+    let fsStatStub: sinon.SinonStub;
+    let fsAccessStub: sinon.SinonStub;
+    let pathDirnameStub: sinon.SinonStub;
+    let consoleLogStub: sinon.SinonStub;
+    let originalPathDirname: typeof path.dirname;
+
+    setup(() => {
+      fsStatStub = sinon.stub(fs.promises, "stat");
+      fsAccessStub = sinon.stub(fs.promises, "access");
+      consoleLogStub = sinon.stub(console, "log");
+
+      // Store the original path.dirname before stubbing
+      originalPathDirname = path.dirname;
+      pathDirnameStub = sinon.stub(path, "dirname").callsFake(originalPathDirname);
+    });
+
+    teardown(() => {
+      sinon.restore();
+    });
+
+    /* test("should handle errors and log them", async () => {
+      const fsPath = "/path/to/project/file.txt";
+      const error = new Error("unexpected error");
+  
+      // Configure stub to reject
+      fsStatStub.rejects(error);
+  
+      const result = await bruinWorkspaceDirectory(fsPath);
+  
+      // Assertions
+      assert.strictEqual(result, undefined, "Expected undefined due to error");
+  
+      // Use sinon assertion to check console.log was called
+      sinon.assert.calledOnce(consoleLogStub);
+      sinon.assert.calledWith(
+        consoleLogStub,
+        "failed to find the workspace directory",
+        sinon.match.same(error)
+      );
+    }); */
+
+    test("should handle nested file paths correctly", async () => {
+      const fsPath = "/path/to/project/nested/file.txt";
+
+      fsStatStub.resolves({ isFile: () => true }); // Simulate file check
+      fsAccessStub.resolves(); // Simulate access success
+
+      const result = await bruinWorkspaceDirectory(fsPath);
+
+      // Validate the resulting path
+      assert.ok(result?.includes("/path/to/project"), "Should find the workspace directory");
+      sinon.assert.calledWith(pathDirnameStub, fsPath);
+    });
+
+    /* test("should return undefined for exceeding max iterations", async () => {
+      const fsPath = "/path/to/project/file.txt";
+      let callCount = 0;
+  
+      fsStatStub.resolves({ isFile: () => true });
+      fsAccessStub.rejects(new Error("access denied")); // Simulate access failure
+  
+      const result = await bruinWorkspaceDirectory(fsPath);
+  
+      assert.strictEqual(result, undefined, "Should return undefined after max iterations");
+    }); */
+  });
+
+  suite("isFileExtensionSQL Tests", () => {
+    test("should return true for valid SQL file extensions", async() => {
+      const validExtensions = ["test.sql", "Test.SQL"];
+     validExtensions.forEach(async (ext) => {
+        assert.strictEqual(await isFileExtensionSQL(ext), true);
+      }); 
+    });
+
+    test("should return false for invalid SQL file extensions", () => {
+      const invalidExtensions = [".py", ".yaml", ".json", ".csv"];
+      invalidExtensions.forEach((ext) => {
+        assert.strictEqual(isFileExtensionSQL(ext), false);
+      });
+    });
+  });
+  suite("isPythonBruinAsset Tests", () => {
+    test("should return true for valid Python Bruin asset files", () => {
+      const validFiles = ["file.py", "file.pyx", "file.PY", "file.PYX"];
+      validFiles.forEach(async(file) => {
+        assert.strictEqual(await isPythonBruinAsset(file), true);
+      });
+    });
+
+    test("should return false for invalid Python Bruin asset files", () => {
+      const invalidFiles = ["file.sql", "file.yaml", "file.json", "file.csv"];
+      invalidFiles.forEach(async (file) => {
+        assert.strictEqual(await isPythonBruinAsset(file), false);
+      });
+    });
+  });
+
+  suite('Compare versions tests', () => {
+    let compareVersions: (current: string, latest: string) => boolean;
+    compareVersions = bruinUtils.compareVersions;
+    
+    test('should return true for equal versions', () => {
+      assert.strictEqual(compareVersions('v1.0.0', 'v1.0.0'), true);
+    });
+
+    test('should return true for current version greater than latest version', () => {
+      assert.strictEqual(compareVersions('v1.0.0', 'v0.9.0'), true);
+    });
+
+    test('should return false for current version less than latest version', () => {
+      assert.strictEqual(compareVersions('v1.0.0', 'v1.1.0'), false);
+    });
+
+  });
+
 });
 
-suite("findGitBashPath Tests", () => {
-  let fsStub: sinon.SinonStub;
-  let execSyncStub: sinon.SinonStub;
-  let pathDirnameStub: sinon.SinonStub;
-  let pathJoinStub: sinon.SinonStub;
-
-  setup(() => {
-    fsStub = sinon.stub(fs, "existsSync");
-    execSyncStub = sinon.stub(require("child_process"), "execSync");
-    pathDirnameStub = sinon.stub(path, "dirname");
-    pathJoinStub = sinon.stub(path, "join");
-  });
-
-  teardown(() => {
-    sinon.restore();
-  });
-
-  teardown(() => {
-    sinon.restore();
-  });
-
-  test("Returns first existing Git path from commonGitPaths", () => {
-    const expectedPath = "C:\\Program Files\\Git\\bin\\bash.exe";
-    fsStub.withArgs(expectedPath).returns(true);
-    fsStub.returns(false); // Default behavior for other paths
-
-    const result = findGitBashPath();
-
-    assert.strictEqual(result, expectedPath);
-    assert.strictEqual(execSyncStub.called, false); // Should not try execSync if path found
-  });
-
-  test("Finds Git Bash path through execSync when common paths fail", () => {
-    const originalPlatform = process.platform;
-    sinon.stub(process, "platform").value("win32"); // Mock process.platform to return 'win32'
-
-    fsStub.returns(false); // All common paths fail
-    const gitExePath = "C:\\Program Files\\Git\\cmd\\git.exe";
-    const expectedBashPath = "C:\\Program Files\\Git\\bin\\bash.exe";
-
-    execSyncStub.returns(gitExePath);
-    pathDirnameStub.returns("C:\\Program Files\\Git\\cmd");
-    pathJoinStub.returns(expectedBashPath);
-    fsStub.withArgs(expectedBashPath).returns(true);
-
-    const result = findGitBashPath();
-
-    assert.strictEqual(result, expectedBashPath);
-  });
-
-  test("Returns undefined when Git bash.exe does not exist anywhere", () => {
-    fsStub.returns(false); // No paths exist
-    execSyncStub.throws(new Error("Git not found"));
-
-    const result = findGitBashPath();
-
-    assert.strictEqual(result, undefined);
-  });
-});
-
-suite("workspaceDirectory Tests", () => {
-  let fsStatStub: sinon.SinonStub;
-  let fsAccessStub: sinon.SinonStub;
-  let pathDirnameStub: sinon.SinonStub;
-  let consoleLogStub: sinon.SinonStub;
-  let originalPathDirname: typeof path.dirname;
-
-  setup(() => {
-    fsStatStub = sinon.stub(fs.promises, "stat");
-    fsAccessStub = sinon.stub(fs.promises, "access");
-    consoleLogStub = sinon.stub(console, "log");
-
-    // Store the original path.dirname before stubbing
-    originalPathDirname = path.dirname;
-    pathDirnameStub = sinon.stub(path, "dirname").callsFake(originalPathDirname);
-  });
-
-  teardown(() => {
-    sinon.restore();
-  });
-
-  /* test("should handle errors and log them", async () => {
-    const fsPath = "/path/to/project/file.txt";
-    const error = new Error("unexpected error");
-
-    // Configure stub to reject
-    fsStatStub.rejects(error);
-
-    const result = await bruinWorkspaceDirectory(fsPath);
-
-    // Assertions
-    assert.strictEqual(result, undefined, "Expected undefined due to error");
-
-    // Use sinon assertion to check console.log was called
-    sinon.assert.calledOnce(consoleLogStub);
-    sinon.assert.calledWith(
-      consoleLogStub,
-      "failed to find the workspace directory",
-      sinon.match.same(error)
-    );
-  }); */
-
-  test("should handle nested file paths correctly", async () => {
-    const fsPath = "/path/to/project/nested/file.txt";
-
-    fsStatStub.resolves({ isFile: () => true }); // Simulate file check
-    fsAccessStub.resolves(); // Simulate access success
-
-    const result = await bruinWorkspaceDirectory(fsPath);
-
-    // Validate the resulting path
-    assert.ok(result?.includes("/path/to/project"), "Should find the workspace directory");
-    sinon.assert.calledWith(pathDirnameStub, fsPath);
-  });
-
-  /* test("should return undefined for exceeding max iterations", async () => {
-    const fsPath = "/path/to/project/file.txt";
-    let callCount = 0;
-
-    fsStatStub.resolves({ isFile: () => true });
-    fsAccessStub.rejects(new Error("access denied")); // Simulate access failure
-
-    const result = await bruinWorkspaceDirectory(fsPath);
-
-    assert.strictEqual(result, undefined, "Should return undefined after max iterations");
-  }); */
-});
 suite("BruinInstallCLI Tests", () => {
   let sandbox: sinon.SinonSandbox;
   let execAsyncStub: sinon.SinonStub;
@@ -397,10 +463,10 @@ suite("Render Commands", () => {
   setup(() => {
     activeEditorStub.callsFake(() => ({
       document: {
-        fileName: "file/path/mock.sql"
-      }
+        fileName: "file/path/mock.sql",
+      },
     }));
-    activeEditorStub.value = activeEditorStub(); 
+    activeEditorStub.value = activeEditorStub();
     bruinRenderMock = sinon.createStubInstance(BruinRender);
     renderStub = sinon.stub(BruinRender.prototype, "render").resolves();
     sinon.stub(BruinPanel, "render").callsFake(() => {});
@@ -423,18 +489,18 @@ suite("Render Commands", () => {
       sinon.assert.calledOnce(renderStub);
       sinon.assert.calledWithExactly(renderStub, mockFileName, { flags: ["-o", "json"] });
     }); */
-  
+
     test("should not execute render if there is no active editor", async () => {
       activeEditorStub.callsFake(() => null);
-  
+
       await renderCommand(mockExtensionUri);
-  
+
       sinon.assert.notCalled(renderStub);
     });
   });
-  
+
   suite("renderCommandWithFlags", () => {
-   /*  test("should render the active editor file with flags", async () => {
+    /*  test("should render the active editor file with flags", async () => {
       const mockFileName = "file/path/mock.sql";
       const mockFlags = "--downstream";
       const mockTextEditor: vscode.TextEditor = { document: { fileName: mockFileName } } as vscode.TextEditor;
@@ -450,31 +516,29 @@ suite("Render Commands", () => {
       });
       sinon.assert.calledWith(renderStub, sinon.match.string, sinon.match.object);
     }); */
-  
-  
+
     test("should render the last rendered document if no active editor exists", async () => {
       const lastRenderedDocument = "file/path/last-rendered.sql";
       activeEditorStub.callsFake(() => null);
-  
+
       await renderCommandWithFlags("--push-metadata", lastRenderedDocument);
-  
+
       sinon.assert.calledOnce(renderStub);
       sinon.assert.calledWithExactly(renderStub, lastRenderedDocument, {
         flags: prepareFlags("--push-metadata", ["--downstream", "--push-metadata"]),
       });
     });
-  
+
     test("should not execute render if no file path is available", async () => {
       activeEditorStub.callsFake(() => ({
-        document: { fileName: undefined }
+        document: { fileName: undefined },
       }));
-  
+
       await renderCommandWithFlags("", undefined);
-  
+
       sinon.assert.notCalled(renderStub); // Verify renderStub is not called
     });
   });
-  
 });
 suite("BruinRender Tests", () => {
   let bruinRender: BruinRender;
@@ -490,7 +554,9 @@ suite("BruinRender Tests", () => {
   setup(() => {
     bruinRender = new BruinRender(bruinExecutablePath, workingDirectory);
     runStub = sinon.stub(bruinRender as any, "run").resolves("SQL rendered successfully");
-    runWithoutJsonFlagStub = sinon.stub(bruinRender as any, "runWithoutJsonFlag").resolves("Non-SQL rendered successfully");
+    runWithoutJsonFlagStub = sinon
+      .stub(bruinRender as any, "runWithoutJsonFlag")
+      .resolves("Non-SQL rendered successfully");
     isValidAssetStub = sinon.stub(bruinRender as any, "isValidAsset");
     detectBruinAssetStub = sinon.stub(bruinRender as any, "detectBruinAsset");
     isBruinPipelineStub = sinon.stub(bruinRender as any, "isBruinPipeline");
@@ -597,38 +663,44 @@ suite("BruinValidate Tests", () => {
     const filePath = "path/to/asset";
     const error = new Error("Validation command failed");
     runStub.rejects(error);
-  
+
     await bruinValidate.validate(filePath);
-  
+
     sinon.assert.calledTwice(postMessageStub);
-  
+
     sinon.assert.calledWithExactly(postMessageStub.firstCall, "validation-message", {
       status: "loading",
       message: "Validating asset...",
     });
-  
+
     sinon.assert.calledWithExactly(postMessageStub.secondCall, "validation-message", {
       status: "error",
       message: error.message,
     });
   });
-  
-  
+
   test("validate should indicate loading state when validation is in progress", async () => {
     const filePath = "path/to/asset";
     runStub.resolves("{}");
-  
+
     const validatePromise = bruinValidate.validate(filePath);
-  
+
     // Assert loading state before completion
-    assert.strictEqual(bruinValidate.isLoading, true, "Loading state should be true during validation");
-  
+    assert.strictEqual(
+      bruinValidate.isLoading,
+      true,
+      "Loading state should be true during validation"
+    );
+
     await validatePromise;
-  
+
     // Assert loading state after completion
-    assert.strictEqual(bruinValidate.isLoading, false, "Loading state should be false after validation");
+    assert.strictEqual(
+      bruinValidate.isLoading,
+      false,
+      "Loading state should be false after validation"
+    );
   });
-  
 
   test("validate should handle multiple validation results", async () => {
     const filePath = "path/to/asset";
@@ -637,12 +709,11 @@ suite("BruinValidate Tests", () => {
       { issues: { error: "Error message 2" } },
     ]);
     runStub.resolves(validationResults);
-  
+
     await bruinValidate.validate(filePath);
     // Assert the expected behavior
     sinon.assert.calledTwice(postMessageStub);
   });
-
 
   test("validate should reset loading state after validation completes", async () => {
     const filePath = "path/to/asset";
@@ -650,7 +721,11 @@ suite("BruinValidate Tests", () => {
 
     await bruinValidate.validate(filePath);
 
-    assert.strictEqual(bruinValidate.isLoading, false, "Loading state should be false after validation");
+    assert.strictEqual(
+      bruinValidate.isLoading,
+      false,
+      "Loading state should be false after validation"
+    );
   });
 });
 suite("patch asset testing", () => {
@@ -778,12 +853,22 @@ suite("Connection Management Tests", () => {
   let createConnectionStub: sinon.SinonStub;
 
   setup(() => {
-    getDefaultBruinExecutablePathStub = sinon.stub(configuration, "getDefaultBruinExecutablePath").returns("path/to/executable");
-    bruinWorkspaceDirectoryStub = sinon.stub(bruinUtils, "bruinWorkspaceDirectory").resolves("path/to/workspace");
+    getDefaultBruinExecutablePathStub = sinon
+      .stub(configuration, "getDefaultBruinExecutablePath")
+      .returns("path/to/executable");
+    bruinWorkspaceDirectoryStub = sinon
+      .stub(bruinUtils, "bruinWorkspaceDirectory")
+      .resolves("path/to/workspace");
     getConnectionsStub = sinon.stub(BruinConnections.prototype, "getConnections").resolves();
-    getConnectionsListFromSchemaStub = sinon.stub(BruinGetAllBruinConnections.prototype, "getConnectionsListFromSchema").resolves();
-    deleteConnectionStub = sinon.stub(BruinDeleteConnection.prototype, "deleteConnection").resolves();
-    createConnectionStub = sinon.stub(BruinCreateConnection.prototype, "createConnection").resolves();
+    getConnectionsListFromSchemaStub = sinon
+      .stub(BruinGetAllBruinConnections.prototype, "getConnectionsListFromSchema")
+      .resolves();
+    deleteConnectionStub = sinon
+      .stub(BruinDeleteConnection.prototype, "deleteConnection")
+      .resolves();
+    createConnectionStub = sinon
+      .stub(BruinCreateConnection.prototype, "createConnection")
+      .resolves();
   });
 
   teardown(() => {
@@ -798,7 +883,10 @@ suite("Connection Management Tests", () => {
 
       sinon.assert.calledOnce(getConnectionsStub);
       sinon.assert.calledOnceWithExactly(getDefaultBruinExecutablePathStub);
-      sinon.assert.calledOnceWithExactly(bruinWorkspaceDirectoryStub, lastRenderedDocumentUri.fsPath);
+      sinon.assert.calledOnceWithExactly(
+        bruinWorkspaceDirectoryStub,
+        lastRenderedDocumentUri.fsPath
+      );
     });
 
     test("should handle error when getting connections", async () => {
@@ -822,12 +910,17 @@ suite("Connection Management Tests", () => {
 
       sinon.assert.calledOnce(getConnectionsListFromSchemaStub);
       sinon.assert.calledOnceWithExactly(getDefaultBruinExecutablePathStub);
-      sinon.assert.calledOnceWithExactly(bruinWorkspaceDirectoryStub, lastRenderedDocumentUri.fsPath);
+      sinon.assert.calledOnceWithExactly(
+        bruinWorkspaceDirectoryStub,
+        lastRenderedDocumentUri.fsPath
+      );
     });
 
     test("should handle error when getting connections list from schema", async () => {
       const lastRenderedDocumentUri = vscode.Uri.file("path/to/file");
-      getConnectionsListFromSchemaStub.rejects(new Error("Error getting connections list from schema"));
+      getConnectionsListFromSchemaStub.rejects(
+        new Error("Error getting connections list from schema")
+      );
 
       try {
         await getConnectionsListFromSchema(lastRenderedDocumentUri);
@@ -848,7 +941,10 @@ suite("Connection Management Tests", () => {
 
       sinon.assert.calledOnceWithExactly(deleteConnectionStub, env, connectionName);
       sinon.assert.calledOnceWithExactly(getDefaultBruinExecutablePathStub);
-      sinon.assert.calledOnceWithExactly(bruinWorkspaceDirectoryStub, lastRenderedDocumentUri.fsPath);
+      sinon.assert.calledOnceWithExactly(
+        bruinWorkspaceDirectoryStub,
+        lastRenderedDocumentUri.fsPath
+      );
     });
 
     test("should handle error when deleting connection", async () => {
@@ -874,11 +970,26 @@ suite("Connection Management Tests", () => {
       const credentials = {};
       const lastRenderedDocumentUri = vscode.Uri.file("path/to/file");
 
-      await createConnection(env, connectionName, connectionType, credentials, lastRenderedDocumentUri);
+      await createConnection(
+        env,
+        connectionName,
+        connectionType,
+        credentials,
+        lastRenderedDocumentUri
+      );
 
-      sinon.assert.calledOnceWithExactly(createConnectionStub, env, connectionName, connectionType, credentials);
+      sinon.assert.calledOnceWithExactly(
+        createConnectionStub,
+        env,
+        connectionName,
+        connectionType,
+        credentials
+      );
       sinon.assert.calledOnceWithExactly(getDefaultBruinExecutablePathStub);
-      sinon.assert.calledOnceWithExactly(bruinWorkspaceDirectoryStub, lastRenderedDocumentUri.fsPath);
+      sinon.assert.calledOnceWithExactly(
+        bruinWorkspaceDirectoryStub,
+        lastRenderedDocumentUri.fsPath
+      );
     });
 
     test("should handle error when creating connection", async () => {
@@ -890,7 +1001,13 @@ suite("Connection Management Tests", () => {
       createConnectionStub.rejects(new Error("Error creating connection"));
 
       try {
-        await createConnection(env, connectionName, connectionType, credentials, lastRenderedDocumentUri);
+        await createConnection(
+          env,
+          connectionName,
+          connectionType,
+          credentials,
+          lastRenderedDocumentUri
+        );
         assert.fail("Expected promise to be rejected");
       } catch (err: any) {
         assert.strictEqual(err.message, "Error creating connection");
@@ -1240,27 +1357,26 @@ suite("Bruin Connections Tests", () => {
   // BruinGetAllBruinConnections Tests
   test("BruinGetAllBruinConnections getConnectionsListFromSchema should return connections on success", async () => {
     const connections = {
-      "$schema":
+      $schema:
         "https://github.com/bruin-data/bruin/blob/main/integration-tests/expected_connections_schema.json",
-        "Connections": {
-          "properties": {
-            "aws": {
-              "items": {
-                "$ref": "#/$defs/AwsConnection"
-              },
-              "type": "array"
+      Connections: {
+        properties: {
+          aws: {
+            items: {
+              $ref: "#/$defs/AwsConnection",
             },
-            "google_cloud_platform": {
-              "items": {
-                "$ref": "#/$defs/GcpConnection"
-              },
-              "type": "array"
-            },
+            type: "array",
           },
-          "additionalProperties": false,
-          "type": "object"
+          google_cloud_platform: {
+            items: {
+              $ref: "#/$defs/GcpConnection",
+            },
+            type: "array",
+          },
         },
-    
+        additionalProperties: false,
+        type: "object",
+      },
     };
     const stdout = JSON.stringify(connections);
     execFileStub.yields(null, stdout, "");
@@ -1284,7 +1400,7 @@ suite("Bruin Connections Tests", () => {
   });
 });
 
-suite('BruinPanel Tests', () => {
+suite("BruinPanel Tests", () => {
   let windowCreateWebviewPanelStub: sinon.SinonStub;
   let windowActiveTextEditorStub: sinon.SinonStub;
   let workspaceWorkspaceFoldersStub: sinon.SinonStub;
@@ -1302,58 +1418,66 @@ suite('BruinPanel Tests', () => {
   let getConnectionsListFromSchemaStub: sinon.SinonStub;
   let deleteConnectionStub: sinon.SinonStub;
   let createConnectionStub: sinon.SinonStub;
-  const mockExtensionUri = vscode.Uri.file('/mock/extension/path');
-  const mockDocumentUri = vscode.Uri.file('/mock/document.sql');
+  const mockExtensionUri = vscode.Uri.file("/mock/extension/path");
+  const mockDocumentUri = vscode.Uri.file("/mock/document.sql");
 
   setup(() => {
     // Stub VSCode window and workspace methods
-    windowCreateWebviewPanelStub = sinon.stub(vscode.window, 'createWebviewPanel').returns({
+    windowCreateWebviewPanelStub = sinon.stub(vscode.window, "createWebviewPanel").returns({
       webview: {
         postMessage: sinon.stub(),
         onDidReceiveMessage: sinon.stub(),
-        html: '',
-        cspSource: 'default-src',
-        asWebviewUri: sinon.stub()
+        html: "",
+        cspSource: "default-src",
+        asWebviewUri: sinon.stub(),
       },
       iconPath: {},
       onDidDispose: sinon.stub(),
       dispose: sinon.stub(),
-      reveal: sinon.stub()
+      reveal: sinon.stub(),
     } as any);
 
-    windowActiveTextEditorStub = sinon.stub(vscode.window, 'activeTextEditor').value({
+    windowActiveTextEditorStub = sinon.stub(vscode.window, "activeTextEditor").value({
       document: {
         uri: mockDocumentUri,
-        fsPath: mockDocumentUri.fsPath
-      }
+        fsPath: mockDocumentUri.fsPath,
+      },
     });
 
-    workspaceWorkspaceFoldersStub = sinon.stub(vscode.workspace, 'workspaceFolders').value([
-      { uri: vscode.Uri.file('/mock/workspace') }
-    ]);
+    workspaceWorkspaceFoldersStub = sinon
+      .stub(vscode.workspace, "workspaceFolders")
+      .value([{ uri: vscode.Uri.file("/mock/workspace") }]);
 
-    pathExistsStub = sinon.stub(fs, 'existsSync').returns(true);
-    bruinWorkspaceDirectoryStub = sinon.stub(bruinUtils, 'bruinWorkspaceDirectory').resolves('/mock/workspace');
-    getCurrentPipelinePathStub = sinon.stub(bruinUtils, 'getCurrentPipelinePath').callsFake(async () => '/mock/pipeline.yml');
+    pathExistsStub = sinon.stub(fs, "existsSync").returns(true);
+    bruinWorkspaceDirectoryStub = sinon
+      .stub(bruinUtils, "bruinWorkspaceDirectory")
+      .resolves("/mock/workspace");
+    getCurrentPipelinePathStub = sinon
+      .stub(bruinUtils, "getCurrentPipelinePath")
+      .callsFake(async () => "/mock/pipeline.yml");
 
     // Stub BruinValidate
-    bruinValidateStub = sinon.stub(BruinValidate.prototype, 'validate');
-    parseAssetCommandStub = sinon.stub(BruinInternalParse.prototype, 'parseAsset');
-    patchAssetCommandStub = sinon.stub(BruinInternalPatch.prototype, 'patchAsset');
-    getConnectionsStub = sinon.stub(BruinConnections.prototype, 'getConnections');
-    getEnvListCommandStub = sinon.stub(BruinEnvList.prototype, 'getEnvironmentsList');
-    getConnectionsListFromSchemaStub = sinon.stub(BruinGetAllBruinConnections.prototype, 'getConnectionsListFromSchema').resolves();
-    deleteConnectionStub = sinon.stub(BruinDeleteConnection.prototype, 'deleteConnection');
-    createConnectionStub = sinon.stub(BruinCreateConnection.prototype, 'createConnection');
+    bruinValidateStub = sinon.stub(BruinValidate.prototype, "validate");
+    parseAssetCommandStub = sinon.stub(BruinInternalParse.prototype, "parseAsset");
+    patchAssetCommandStub = sinon.stub(BruinInternalPatch.prototype, "patchAsset");
+    getConnectionsStub = sinon.stub(BruinConnections.prototype, "getConnections");
+    getEnvListCommandStub = sinon.stub(BruinEnvList.prototype, "getEnvironmentsList");
+    getConnectionsListFromSchemaStub = sinon
+      .stub(BruinGetAllBruinConnections.prototype, "getConnectionsListFromSchema")
+      .resolves();
+    deleteConnectionStub = sinon.stub(BruinDeleteConnection.prototype, "deleteConnection");
+    createConnectionStub = sinon.stub(BruinCreateConnection.prototype, "createConnection");
     // Stub runInIntegratedTerminal
-    runInTerminalStub = sinon.stub(bruinUtils, 'runInIntegratedTerminal');
+    runInTerminalStub = sinon.stub(bruinUtils, "runInIntegratedTerminal");
 
     // Stub BruinInstallCLI
-    bruinInstallCliStub = sinon.stub(BruinInstallCLI.prototype, 'checkBruinCliInstallation').resolves({
-      installed: false,
-      isWindows: true,
-      gitAvailable: true
-    });
+    bruinInstallCliStub = sinon
+      .stub(BruinInstallCLI.prototype, "checkBruinCliInstallation")
+      .resolves({
+        installed: false,
+        isWindows: true,
+        gitAvailable: true,
+      });
   });
 
   teardown(() => {
@@ -1361,122 +1485,136 @@ suite('BruinPanel Tests', () => {
     BruinPanel.currentPanel = undefined;
   });
 
-  suite('Render Tests', () => {
-    test('creates a new webview panel if no current panel exists', () => {
+  suite("Render Tests", () => {
+    test("creates a new webview panel if no current panel exists", () => {
       BruinPanel.render(mockExtensionUri);
 
-      assert.ok(windowCreateWebviewPanelStub.calledOnce, 'Webview panel should be created');
-      assert.ok(BruinPanel.currentPanel, 'Current panel should be set');
+      assert.ok(windowCreateWebviewPanelStub.calledOnce, "Webview panel should be created");
+      assert.ok(BruinPanel.currentPanel, "Current panel should be set");
     });
 
-    test('reveals existing panel if already created', () => {
+    test("reveals existing panel if already created", () => {
       // First render creates the panel
       BruinPanel.render(mockExtensionUri);
       const firstPanel = BruinPanel.currentPanel;
 
       // Second render should reveal the existing panel
       BruinPanel.render(mockExtensionUri);
-      assert.strictEqual(BruinPanel.currentPanel, firstPanel, 'Should use existing panel');
+      assert.strictEqual(BruinPanel.currentPanel, firstPanel, "Should use existing panel");
     });
 
-    test('renders with non-existing extension URI', async () => {
-      const invalidUri = vscode.Uri.file('/invalid/path');      
+    test("renders with non-existing extension URI", async () => {
+      const invalidUri = vscode.Uri.file("/invalid/path");
       try {
         await BruinPanel.render(invalidUri);
-        assert.fail('Expected an error to be thrown');
+        assert.fail("Expected an error to be thrown");
       } catch (error) {
-        assert.ok(windowCreateWebviewPanelStub.calledOnce, 'Webview panel creation should have been attempted');
+        assert.ok(
+          windowCreateWebviewPanelStub.calledOnce,
+          "Webview panel creation should have been attempted"
+        );
       }
-      
+
       windowCreateWebviewPanelStub.restore();
     });
-    
-    test('handles multiple consecutive render calls', async () => {
+
+    test("handles multiple consecutive render calls", async () => {
       await BruinPanel.render(mockExtensionUri);
       const initialPanel = BruinPanel.currentPanel;
       await BruinPanel.render(mockExtensionUri);
-      assert.strictEqual(BruinPanel.currentPanel, initialPanel, 'Should use the same panel instance');
+      assert.strictEqual(
+        BruinPanel.currentPanel,
+        initialPanel,
+        "Should use the same panel instance"
+      );
     });
   });
 
-  suite('Message Handling', () => {
+  suite("Message Handling", () => {
     let panel: BruinPanel;
     let messageHandler: (message: any) => void;
     setup(() => {
       BruinPanel.render(mockExtensionUri);
       panel = BruinPanel.currentPanel!;
-      messageHandler = (windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0];
+      messageHandler = (
+        windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub
+      ).firstCall.args[0];
     });
 
-    test('handles unknown commands', async () => {
-      const messageHandler = (windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0];
-      const unknownMessage = { command: 'unknownCommand' };
-      
+    test("handles unknown commands", async () => {
+      const messageHandler = (
+        windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub
+      ).firstCall.args[0];
+      const unknownMessage = { command: "unknownCommand" };
+
       await messageHandler(unknownMessage);
       // Assert no error was thrown or expect a specific handling behavior (e.g., logging)
     });
 
-    test('validateCurrentPipeline with no active document', async () => {
+    test("validateCurrentPipeline with no active document", async () => {
       windowActiveTextEditorStub.value(undefined); // Simulate no active text editor
-      const message = { command: 'bruin.validateCurrentPipeline' };
-      
+      const message = { command: "bruin.validateCurrentPipeline" };
+
       await messageHandler(message);
-      const consoleErrorStub = sinon.stub(console, 'error');
-      assert.ok(consoleErrorStub.notCalled, 'No error should be logged');
+      const consoleErrorStub = sinon.stub(console, "error");
+      assert.ok(consoleErrorStub.notCalled, "No error should be logged");
       consoleErrorStub.restore();
     });
 
-    test('validateCurrentPipeline with pipeline file', async () => {
-      const message = { command: 'bruin.validateCurrentPipeline' };
+    test("validateCurrentPipeline with pipeline file", async () => {
+      const message = { command: "bruin.validateCurrentPipeline" };
       await messageHandler(message);
 
-      assert.ok(bruinValidateStub.calledOnce, 'Validate method should be called');
+      assert.ok(bruinValidateStub.calledOnce, "Validate method should be called");
     });
 
-    test('handles bruin.validateAll command', async () => {
+    test("handles bruin.validateAll command", async () => {
       const webviewPanel = windowCreateWebviewPanelStub.returnValues[0];
-      const messageHandler = (webviewPanel.webview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0];
-      const message = { command: 'bruin.validateAll' };
+      const messageHandler = (webviewPanel.webview.onDidReceiveMessage as sinon.SinonStub).firstCall
+        .args[0];
+      const message = { command: "bruin.validateAll" };
 
       await messageHandler(message);
 
-      assert.ok(bruinValidateStub.calledOnce, 'Validate method should be called');
+      assert.ok(bruinValidateStub.calledOnce, "Validate method should be called");
     });
-    
-    test('handles bruin.runSql command', async () => {
-      const message = { 
-        command: 'bruin.runSql', 
-        payload: { sqlCommand: 'SELECT * FROM users' } 
+
+    test("handles bruin.runSql command", async () => {
+      const message = {
+        command: "bruin.runSql",
+        payload: { sqlCommand: "SELECT * FROM users" },
       };
 
       await messageHandler(message);
 
-      assert.ok(runInTerminalStub.calledOnce, 'Run in terminal should be called');
-      assert.ok(bruinWorkspaceDirectoryStub.calledOnce, 'Workspace directory should be resolved');
+      assert.ok(runInTerminalStub.calledOnce, "Run in terminal should be called");
+      assert.ok(bruinWorkspaceDirectoryStub.calledOnce, "Workspace directory should be resolved");
     });
 
-    test('bruin.runSql error handling', async () => {
-      const message = { command: 'bruin.runSql', payload: { sqlCommand: 'SELECT * FROM users' } };
-      
+    test("bruin.runSql error handling", async () => {
+      const message = { command: "bruin.runSql", payload: { sqlCommand: "SELECT * FROM users" } };
+
       try {
         await messageHandler(message);
-        assert.fail('Expected an error to be thrown');
+        assert.fail("Expected an error to be thrown");
       } catch (error) {
-        assert.ok(runInTerminalStub.calledOnce, 'Terminal command should have been attempted');
+        assert.ok(runInTerminalStub.calledOnce, "Terminal command should have been attempted");
       }
-      
+
       runInTerminalStub.restore();
     });
 
-    test('handles checkBruinCliInstallation command', async () => {
-      const messageHandler = (windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0];
-      const message = { command: 'checkBruinCliInstallation' };
+    test("handles checkBruinCliInstallation command", async () => {
+      const messageHandler = (
+        windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub
+      ).firstCall.args[0];
+      const message = { command: "checkBruinCliInstallation" };
 
       await messageHandler(message);
 
-      assert.ok(bruinInstallCliStub.calledOnce, 'CLI installation check should be performed');
+      assert.ok(bruinInstallCliStub.calledOnce, "CLI installation check should be performed");
     });
-/*     test('handles bruin.getAssetLineage command', async () => {
+    /*     test('handles bruin.getAssetLineage command', async () => {
       const messageHandler = (windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0];
       const message = { command: 'bruin.getAssetLineage' };
   
@@ -1484,88 +1622,122 @@ suite('BruinPanel Tests', () => {
   
       assert.ok(lineageCommandStub.calledOnce, 'Lineage command should be called once');
     }); */
-  
-    test('handles bruin.getAssetDetails command', async () => {
-      const messageHandler = (windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0];
-      const message = { command: 'bruin.getAssetDetails' };
-  
+
+    test("handles bruin.getAssetDetails command", async () => {
+      const messageHandler = (
+        windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub
+      ).firstCall.args[0];
+      const message = { command: "bruin.getAssetDetails" };
+
       await messageHandler(message);
-  
-      assert.ok(parseAssetCommandStub.calledOnce, 'Parse asset command should be called once');
+
+      assert.ok(parseAssetCommandStub.calledOnce, "Parse asset command should be called once");
       parseAssetCommandStub.restore();
     });
-  
-    test('handles bruin.setAssetDetails command', async () => {
-      const messageHandler = (windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0];
-      const message = { command: 'bruin.setAssetDetails', payload: { key: 'value' } };
-  
+
+    test("handles bruin.setAssetDetails command", async () => {
+      const messageHandler = (
+        windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub
+      ).firstCall.args[0];
+      const message = { command: "bruin.setAssetDetails", payload: { key: "value" } };
+
       await messageHandler(message);
-  
-      assert.ok(patchAssetCommandStub.calledOnce, 'Patch asset command should be called once');
+
+      assert.ok(patchAssetCommandStub.calledOnce, "Patch asset command should be called once");
       patchAssetCommandStub.restore();
     });
-  
-    test('handles bruin.getEnvironmentsList command', async () => {
-      const messageHandler = (windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0];
-      const message = { command: 'bruin.getEnvironmentsList' };
-  
+
+    test("handles bruin.getEnvironmentsList command", async () => {
+      const messageHandler = (
+        windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub
+      ).firstCall.args[0];
+      const message = { command: "bruin.getEnvironmentsList" };
+
       await messageHandler(message);
-  
-      assert.ok(getEnvListCommandStub.calledOnce, 'Get environments list command should be called once');
+
+      assert.ok(
+        getEnvListCommandStub.calledOnce,
+        "Get environments list command should be called once"
+      );
       getEnvListCommandStub.restore();
     });
-  
-    test('handles bruin.getConnectionsList command', async () => {
-      const messageHandler = (windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0];
-      const message = { command: 'bruin.getConnectionsList' };
-  
+
+    test("handles bruin.getConnectionsList command", async () => {
+      const messageHandler = (
+        windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub
+      ).firstCall.args[0];
+      const message = { command: "bruin.getConnectionsList" };
+
       await messageHandler(message);
-  
-      assert.ok(getConnectionsStub.calledOnce, 'Get connections list command should be called once');
+
+      assert.ok(
+        getConnectionsStub.calledOnce,
+        "Get connections list command should be called once"
+      );
       getConnectionsStub.restore();
     });
-  
-    test('handles bruin.getConnectionsSchema command', async () => {
-      const messageHandler = (windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0];
-      const message = { command: 'bruin.getConnectionsSchema' };
+
+    test("handles bruin.getConnectionsSchema command", async () => {
+      const messageHandler = (
+        windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub
+      ).firstCall.args[0];
+      const message = { command: "bruin.getConnectionsSchema" };
       await messageHandler(message);
-  
-      assert.ok(getConnectionsListFromSchemaStub.calledOnce, 'Get connections schema command should be called once');
+
+      assert.ok(
+        getConnectionsListFromSchemaStub.calledOnce,
+        "Get connections schema command should be called once"
+      );
       getConnectionsListFromSchemaStub.restore();
     });
-  
-    test('handles bruin.editConnection command', async () => {
-      const messageHandler = (windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0];
-      const message = { command: 'bruin.editConnection', payload: { oldConnection: {}, newConnection: {} } };
+
+    test("handles bruin.editConnection command", async () => {
+      const messageHandler = (
+        windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub
+      ).firstCall.args[0];
+      const message = {
+        command: "bruin.editConnection",
+        payload: { oldConnection: {}, newConnection: {} },
+      };
       await messageHandler(message);
-  
-      assert.ok(deleteConnectionStub.calledOnce, 'Delete connection should be called once');
-      assert.ok(createConnectionStub.calledOnce, 'Create connection should be called once');
+
+      assert.ok(deleteConnectionStub.calledOnce, "Delete connection should be called once");
+      assert.ok(createConnectionStub.calledOnce, "Create connection should be called once");
       deleteConnectionStub.restore();
       createConnectionStub.restore();
     });
-  
-    test('handles bruin.deleteConnection command', async () => {
-      const messageHandler = (windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0];
-      const message = { command: 'bruin.deleteConnection', payload: { name: 'test', environment: 'test' } };
-  
+
+    test("handles bruin.deleteConnection command", async () => {
+      const messageHandler = (
+        windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub
+      ).firstCall.args[0];
+      const message = {
+        command: "bruin.deleteConnection",
+        payload: { name: "test", environment: "test" },
+      };
+
       await messageHandler(message);
-  
-      assert.ok(deleteConnectionStub.calledOnce, 'Delete connection should be called once');
+
+      assert.ok(deleteConnectionStub.calledOnce, "Delete connection should be called once");
       deleteConnectionStub.restore();
     });
-  
-    test('handles bruin.createConnection command', async () => {
-      const messageHandler = (windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0];
-      const message = { command: 'bruin.createConnection', payload: { environment: 'test', name: 'test', type: 'test', credentials: {} } };
+
+    test("handles bruin.createConnection command", async () => {
+      const messageHandler = (
+        windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub
+      ).firstCall.args[0];
+      const message = {
+        command: "bruin.createConnection",
+        payload: { environment: "test", name: "test", type: "test", credentials: {} },
+      };
       await messageHandler(message);
-  
-      assert.ok(createConnectionStub.calledOnce, 'Create connection should be called once');
+
+      assert.ok(createConnectionStub.calledOnce, "Create connection should be called once");
       createConnectionStub.restore();
     });
   });
 
-  suite('Checkbox and Flags Tests', () => {
+  suite("Checkbox and Flags Tests", () => {
     let panel: BruinPanel;
 
     setup(() => {
@@ -1573,45 +1745,497 @@ suite('BruinPanel Tests', () => {
       panel = BruinPanel.currentPanel!;
     });
 
-    test('getCheckboxFlags returns correct flags', () => {
+    test("getCheckboxFlags returns correct flags", () => {
       // Simulate checkbox state
       (panel as any)._checkboxState = {
-        'verbose': true,
-        'debug': false,
-        'trace': true
+        verbose: true,
+        debug: false,
+        trace: true,
       };
 
       const flags = panel.getCheckboxFlags();
-      assert.strictEqual(flags, '--verbose --trace', 'Should return only checked flags');
+      assert.strictEqual(flags, "--verbose --trace", "Should return only checked flags");
     });
- 
   });
 
-  suite('Dispose Tests', () => {
-    test('properly disposes of panel and resources', () => {
+  suite("Dispose Tests", () => {
+    test("properly disposes of panel and resources", () => {
       BruinPanel.render(mockExtensionUri);
       const panel = BruinPanel.currentPanel!;
 
       panel.dispose();
 
-      assert.strictEqual(BruinPanel.currentPanel, undefined, 'Current panel should be undefined');
+      assert.strictEqual(BruinPanel.currentPanel, undefined, "Current panel should be undefined");
       assert.ok(
-        windowCreateWebviewPanelStub.returnValues[0].dispose.calledOnce, 
-        'Panel should be disposed'
+        windowCreateWebviewPanelStub.returnValues[0].dispose.calledOnce,
+        "Panel should be disposed"
       );
     });
-    test('double dispose', () => {
+    test("double dispose", () => {
       const panel = BruinPanel.currentPanel;
       if (panel) {
         panel.dispose();
         panel.dispose(); // Second dispose should not throw
-        assert.ok(true, 'No error was thrown on double dispose');
+        assert.ok(true, "No error was thrown on double dispose");
       }
     });
-    
-    test('dispose with no current panel', () => {
+
+    test("dispose with no current panel", () => {
       BruinPanel.currentPanel = undefined;
-      assert.ok(true, 'An error was thrown when disposing without a panel');
+      assert.ok(true, "An error was thrown when disposing without a panel");
     });
   });
+});
+suite("getLanguageDelimiters Tests", () => {
+  test("should return default delimiters for unknown language", () => {
+    const languageId = "unknown";
+    const { startFoldingRegionDelimiter, endFoldingRegionDelimiter } =
+      getLanguageDelimiters(languageId);
+
+    assert.strictEqual(
+      startFoldingRegionDelimiter.toString(),
+      "/$^/",
+      "Expected default start delimiter"
+    );
+    assert.strictEqual(
+      endFoldingRegionDelimiter.toString(),
+      "/$^/",
+      "Expected default end delimiter"
+    );
+  });
+
+  test("should return Python delimiters for Python language", () => {
+    const languageId = "python";
+    const { startFoldingRegionDelimiter, endFoldingRegionDelimiter } =
+      getLanguageDelimiters(languageId);
+    const expectedStartDelimiter = bruinDelimiterRegex.pyStartDelimiter.toString();
+    const expectedEndDelimiter = bruinDelimiterRegex.pyEndDelimiter.toString();
+
+    assert.strictEqual(
+      startFoldingRegionDelimiter.toString(),
+      expectedStartDelimiter,
+      "Expected Python start delimiter"
+    );
+    assert.strictEqual(
+      endFoldingRegionDelimiter.toString(),
+      expectedEndDelimiter,
+      "Expected Python end delimiter"
+    );
+  });
+
+  test("should return SQL delimiters for SQL language", () => {
+    const languageId = "sql";
+    const { startFoldingRegionDelimiter, endFoldingRegionDelimiter } =
+      getLanguageDelimiters(languageId);
+    const expectedStartDelimiter = bruinDelimiterRegex.sqlStartDelimiter.toString();
+    const expectedEndDelimiter = bruinDelimiterRegex.sqlEndDelimiter.toString();
+
+    assert.strictEqual(
+      startFoldingRegionDelimiter.toString(),
+      expectedStartDelimiter,
+      "Expected SQL start delimiter"
+    );
+    assert.strictEqual(
+      endFoldingRegionDelimiter.toString(),
+      expectedEndDelimiter,
+      "Expected SQL end delimiter"
+    );
+  });
+
+  test("should return default delimiters for language ID with different casing", () => {
+    const languageId = "PYTHON";
+    const { startFoldingRegionDelimiter, endFoldingRegionDelimiter } =
+      getLanguageDelimiters(languageId);
+    const expectedStartDelimiter = bruinDelimiterRegex.pyStartDelimiter.toString();
+    const expectedEndDelimiter = bruinDelimiterRegex.pyEndDelimiter.toString();
+    assert.strictEqual(
+      startFoldingRegionDelimiter.toString(),
+      "/$^/",
+      "Expected default start delimiter"
+    );
+    assert.strictEqual(
+      endFoldingRegionDelimiter.toString(),
+      "/$^/",
+      "Expected default end delimiter"
+    );
+  });
+
+  test("should return default delimiters for empty language ID", () => {
+    const languageId = "";
+    const { startFoldingRegionDelimiter, endFoldingRegionDelimiter } =
+      getLanguageDelimiters(languageId);
+
+    assert.strictEqual(
+      startFoldingRegionDelimiter.toString(),
+      "/$^/",
+      "Expected default start delimiter"
+    );
+    assert.strictEqual(
+      endFoldingRegionDelimiter.toString(),
+      "/$^/",
+      "Expected default end delimiter"
+    );
+  });
+
+  test("should return default delimiters for null language ID", () => {
+    const languageId = null as unknown as string;
+    const { startFoldingRegionDelimiter, endFoldingRegionDelimiter } =
+      getLanguageDelimiters(languageId);
+
+    assert.strictEqual(
+      startFoldingRegionDelimiter.toString(),
+      "/$^/",
+      "Expected default start delimiter"
+    );
+    assert.strictEqual(
+      endFoldingRegionDelimiter.toString(),
+      "/$^/",
+      "Expected default end delimiter"
+    );
+  });
+
+  test("should return default delimiters for undefined language ID", () => {
+    const languageId = undefined as unknown as string;
+    const { startFoldingRegionDelimiter, endFoldingRegionDelimiter } =
+      getLanguageDelimiters(languageId);
+
+    assert.strictEqual(
+      startFoldingRegionDelimiter.toString(),
+      "/$^/",
+      "Expected default start delimiter"
+    );
+    assert.strictEqual(
+      endFoldingRegionDelimiter.toString(),
+      "/$^/",
+      "Expected default end delimiter"
+    );
+  });
+});
+suite("bruinFoldingRangeProvider Tests", () => {
+  let document: vscode.TextDocument;
+  let getLanguageDelimitersStub: sinon.SinonStub<
+    [languageId: string],
+    { startFoldingRegionDelimiter: RegExp; endFoldingRegionDelimiter: RegExp }
+  >;
+  setup(() => {
+    document = {
+      languageId: "python",
+      lineCount: 10,
+      lineAt: (lineNumber: number) => {
+        return {
+          text: `Line ${lineNumber}`,
+        };
+      },
+    } as any;
+
+    getLanguageDelimitersStub = sinon
+      .stub<[string], { startFoldingRegionDelimiter: RegExp; endFoldingRegionDelimiter: RegExp }>()
+      .returns({
+        startFoldingRegionDelimiter: /$^/,
+        endFoldingRegionDelimiter: /$^/,
+      });
+  });
+
+  teardown(() => {
+    sinon.restore();
+  });
+
+  test("should return empty ranges for unknown language", () => {
+    const ranges = bruinFoldingRangeProvider(document);
+    assert.deepStrictEqual(ranges, [], "Expected empty ranges");
+  });
+
+  test("should return empty ranges when no end delimiter is found", () => {
+    const { startFoldingRegionDelimiter, endFoldingRegionDelimiter } =
+      getLanguageDelimiters("python");
+    getLanguageDelimitersStub = sinon
+      .stub<[string], { startFoldingRegionDelimiter: RegExp; endFoldingRegionDelimiter: RegExp }>()
+      .returns({
+        startFoldingRegionDelimiter: startFoldingRegionDelimiter,
+        endFoldingRegionDelimiter: /$^/,
+      });
+
+    (document as any).lineAt = (lineNumber: number) => {
+      switch (lineNumber) {
+        case 0:
+          return { text: startFoldingRegionDelimiter };
+        default:
+          return { text: `Line ${lineNumber}` };
+      }
+    };
+
+    const ranges = bruinFoldingRangeProvider(document);
+
+    assert.deepStrictEqual(ranges, [], "Expected empty ranges");
+  });
+
+  test("should return empty ranges when no start delimiter is found", () => {
+    const { startFoldingRegionDelimiter, endFoldingRegionDelimiter } =
+      getLanguageDelimiters("python");
+    getLanguageDelimitersStub = sinon
+      .stub<[string], { startFoldingRegionDelimiter: RegExp; endFoldingRegionDelimiter: RegExp }>()
+      .returns({
+        startFoldingRegionDelimiter: /$^/,
+        endFoldingRegionDelimiter: endFoldingRegionDelimiter,
+      });
+
+    (document as any).lineAt = (lineNumber: number) => {
+      switch (lineNumber) {
+        case 0:
+          return { text: endFoldingRegionDelimiter };
+        default:
+          return { text: `Line ${lineNumber}` };
+      }
+    };
+
+    const ranges = bruinFoldingRangeProvider(document);
+
+    assert.deepStrictEqual(ranges, [], "Expected empty ranges");
+  });
+});
+
+suite("CLI Installation and Update Tests", () => {
+  let bruinInstallCLICheckBruinCliInstallationStub: sinon.SinonStub;
+  let bruinInstallCLICheckBruinCLIVersionStub: sinon.SinonStub;
+  let bruinInstallCLIInstallOrUpdateStub: sinon.SinonStub;
+  let vscodeWindowShowWarningMessageStub: sinon.SinonStub;
+
+  setup(() => {
+    bruinInstallCLICheckBruinCliInstallationStub = sinon.stub(
+      BruinInstallCLI.prototype,
+      "checkBruinCliInstallation"
+    );
+    bruinInstallCLICheckBruinCLIVersionStub = sinon.stub(
+      BruinInstallCLI.prototype,
+      "checkBruinCLIVersion"
+    );
+    bruinInstallCLIInstallOrUpdateStub = sinon.stub(BruinInstallCLI.prototype, "installOrUpdate");
+    vscodeWindowShowWarningMessageStub = sinon.stub(vscode.window, "showWarningMessage");
+  });
+
+  teardown(() => {
+    bruinInstallCLICheckBruinCliInstallationStub.restore();
+    bruinInstallCLICheckBruinCLIVersionStub.restore();
+    bruinInstallCLIInstallOrUpdateStub.restore();
+    vscodeWindowShowWarningMessageStub.restore();
+  });
+
+  test("should install or update CLI when not installed", async () => {
+    const isInstalled = { installed: false };
+    bruinInstallCLICheckBruinCliInstallationStub.resolves(isInstalled);
+
+    await installOrUpdateCli();
+
+    assert.ok(
+      bruinInstallCLICheckBruinCliInstallationStub.calledOnce,
+      "Expected checkBruinCliInstallation to be called"
+    );
+    assert.ok(
+      bruinInstallCLIInstallOrUpdateStub.calledOnce,
+      "Expected installOrUpdate to be called with false"
+    );
+    assert.ok(
+      bruinInstallCLIInstallOrUpdateStub.calledWith(false),
+      "Expected installOrUpdate to be called with false"
+    );
+  });
+
+  test("should update CLI when already installed", async () => {
+    const isInstalled = { installed: true };
+    bruinInstallCLICheckBruinCliInstallationStub.resolves(isInstalled);
+
+    await installOrUpdateCli();
+
+    assert.ok(
+      bruinInstallCLICheckBruinCliInstallationStub.calledOnce,
+      "Expected checkBruinCliInstallation to be called"
+    );
+    assert.ok(
+      bruinInstallCLIInstallOrUpdateStub.calledOnce,
+      "Expected installOrUpdate to be called with true"
+    );
+    assert.ok(
+      bruinInstallCLIInstallOrUpdateStub.calledWith(true),
+      "Expected installOrUpdate to be called with true"
+    );
+  });
+
+  test("should not show warning message when CLI is up-to-date", async () => {
+    bruinInstallCLICheckBruinCLIVersionStub.resolves(true);
+
+    await checkBruinCliVersion();
+
+    assert.ok(
+      bruinInstallCLICheckBruinCLIVersionStub.calledOnce,
+      "Expected checkBruinCLIVersion to be called"
+    );
+    assert.ok(
+      vscodeWindowShowWarningMessageStub.notCalled,
+      "Expected no warning message to be shown"
+    );
+  });
+
+  test("should close warning message when close button is clicked", async () => {
+    const message = "Your CLI is outdated. Please update it to access all the latest features.";
+    const closeButton = "Close";
+    bruinInstallCLICheckBruinCLIVersionStub.resolves(false);
+    vscodeWindowShowWarningMessageStub.resolves(closeButton);
+
+    await checkBruinCliVersion();
+
+    assert.ok(
+      vscodeWindowShowWarningMessageStub.calledOnce,
+      "Expected warning message to be shown"
+    );
+    assert.ok(
+      vscodeWindowShowWarningMessageStub.firstCall.args[1].includes(closeButton),
+      "Expected close button to be present"
+    );
+  });
+});
+/* suite("BruinEnvList Tests", () => {
+  let bruinEnvList: BruinEnvList;
+  let runStub: sinon.SinonStub;
+  let postMessageToPanelsStub: sinon.SinonStub;
+  let BruinPanelPostMessageStub: sinon.SinonStub;
+
+  setup(() => {
+    bruinEnvList = new BruinEnvList();
+    runStub = sinon.stub(BruinCommand.prototype, "run");
+    postMessageToPanelsStub = sinon.stub(BruinEnvList.prototype, "postMessageToPanels");
+    BruinPanelPostMessageStub = sinon.stub(BruinPanel, "postMessage");
+  });
+
+  teardown(() => {
+    runStub.restore();
+    postMessageToPanelsStub.restore();
+    BruinPanelPostMessageStub.restore();
+  });
+
+  test("should return 'environments' as the Bruin command string", () => {
+    assert.strictEqual(bruinEnvList.bruinCommand(), "environments");
+  });
+
+  test("should get environments list successfully", async () => {
+    const result = "{ environments: [ { id: 1, name: 'env1' } ] }";
+    runStub.resolves(result);
+
+    await bruinEnvList.getEnvironmentsList();
+
+    assert.ok(runStub.calledOnce, "Expected run to be called");
+    assert.deepStrictEqual(runStub.firstCall.args, [["list", "-o", "json"]], "Expected correct flags to be passed");
+    assert.ok(postMessageToPanelsStub.calledOnce, "Expected postMessageToPanels to be called");
+    assert.deepStrictEqual(postMessageToPanelsStub.firstCall.args, ["success", result], "Expected success message to be posted");
+    assert.ok(BruinPanelPostMessageStub.calledOnce, "Expected BruinPanel.postMessage to be called");
+    assert.deepStrictEqual(BruinPanelPostMessageStub.firstCall.args, ["environments-list-message", { status: "success", message: result }], "Expected correct message to be posted to BruinPanel");
+  });
+
+  test("should handle errors when getting environments list", async () => {
+    const error = "Error getting environments list";
+    runStub.rejects(new Error(error));
+
+    await bruinEnvList.getEnvironmentsList();
+
+    assert.ok(runStub.calledOnce, "Expected run to be called");
+    assert.deepStrictEqual(runStub.firstCall.args, [["list", "-o", "json"]], "Expected correct flags to be passed");
+    assert.ok(postMessageToPanelsStub.calledOnce, "Expected postMessageToPanels to be called");
+    assert.deepStrictEqual(postMessageToPanelsStub.firstCall.args, ["error", error], "Expected error message to be posted");
+    assert.ok(BruinPanelPostMessageStub.calledOnce, "Expected BruinPanel.postMessage to be called");
+    assert.deepStrictEqual(BruinPanelPostMessageStub.firstCall.args, ["environments-list-message", { status: "error", message: error }], "Expected correct error message to be posted to BruinPanel");
+  });
+
+  test("should ignore errors when getting environments list with ignoresErrors option", async () => {
+    const error = "Error getting environments list";
+    runStub.rejects(new Error(error));
+
+    await bruinEnvList.getEnvironmentsList({ ignoresErrors: true });
+
+    assert.ok(runStub.calledOnce, "Expected run to be called");
+    assert.deepStrictEqual(runStub.firstCall.args, [["list", "-o", "json"]], "Expected correct flags to be passed");
+    assert.ok(postMessageToPanelsStub.notCalled, "Expected postMessageToPanels not to be called");
+    assert.ok(BruinPanelPostMessageStub.notCalled, "Expected BruinPanel.postMessage not to be called");
+  });
+
+  test("should post message to panels correctly", () => {
+    const status = "success";
+    const message = "Environments list retrieved successfully";
+
+    bruinEnvList.postMessageToPanels(status, message);
+
+    assert.ok(BruinPanelPostMessageStub.calledOnce, "Expected BruinPanel.postMessage to be called");
+    assert.deepStrictEqual(BruinPanelPostMessageStub.firstCall.args, ["environments-list-message", { status, message }], "Expected correct message to be posted to BruinPanel");
+  });
+}); */
+suite("Activate Tests", () => {
+  let context: vscode.ExtensionContext;
+  let setupFoldingOnOpenStub: sinon.SinonStub;
+  let subscribeToConfigurationChangesStub: sinon.SinonStub;
+  let getDefaultBruinExecutablePathStub: sinon.SinonStub;
+  let vscodeWindowActiveTextEditorStub: sinon.SinonStub;
+  let vscodeCommandsExecuteCommandStub: sinon.SinonStub;
+  let vscodeLanguagesRegisterFoldingRangeProviderStub: sinon.SinonStub;
+  let vscodeWindowRegisterWebviewViewProviderStub: sinon.SinonStub;
+
+  setup(() => {
+    context = {
+      extensionUri: vscode.Uri.file(""),
+      subscriptions: [],
+    } as any;
+    setupFoldingOnOpenStub = sinon.stub(configuration, "setupFoldingOnOpen");
+    subscribeToConfigurationChangesStub = sinon.stub(
+      configuration,
+      "subscribeToConfigurationChanges"
+    );
+    getDefaultBruinExecutablePathStub = sinon.stub(configuration, "getDefaultBruinExecutablePath");
+    vscodeWindowActiveTextEditorStub = sinon.stub(vscode.window, "activeTextEditor").value(null);
+    vscodeCommandsExecuteCommandStub = sinon.stub(vscode.commands, "executeCommand");
+    vscodeLanguagesRegisterFoldingRangeProviderStub = sinon.stub(
+      vscode.languages,
+      "registerFoldingRangeProvider"
+    );
+    vscodeWindowRegisterWebviewViewProviderStub = sinon.stub(
+      vscode.window,
+      "registerWebviewViewProvider"
+    );
+  });
+
+  teardown(() => {
+    setupFoldingOnOpenStub.restore();
+    subscribeToConfigurationChangesStub.restore();
+    getDefaultBruinExecutablePathStub.restore();
+    vscodeWindowActiveTextEditorStub.restore();
+    vscodeCommandsExecuteCommandStub.restore();
+    vscodeLanguagesRegisterFoldingRangeProviderStub.restore();
+    vscodeWindowRegisterWebviewViewProviderStub.restore();
+  });
+
+  test("should focus active editor on activation", async () => {
+    const activeTextEditor = {
+      document: {
+        uri: vscode.Uri.file("file:///example.py"),
+      },
+    };
+    vscodeWindowActiveTextEditorStub.value(activeTextEditor);
+
+    await activate(context);
+
+    assert.ok(vscodeCommandsExecuteCommandStub.calledOnce, "Expected command to be executed");
+    assert.strictEqual(
+      vscodeCommandsExecuteCommandStub.firstCall.args[0],
+      "workbench.action.focusActiveEditorGroup",
+      "Expected focus active editor group command"
+    );
+  });
+
+  /*   test('should setup folding on open', async () => {
+    await activate(context);
+
+    assert.ok(setupFoldingOnOpenStub.calledOnce, 'Expected setupFoldingOnOpen to be called');
+  });
+
+  test('should subscribe to configuration changes', async () => {
+    await activate(context);
+
+    assert.ok(subscribeToConfigurationChangesStub.calledOnce, 'Expected subscribeToConfigurationChanges to be called');
+  }); */
 });
