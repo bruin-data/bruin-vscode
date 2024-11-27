@@ -58,6 +58,7 @@ import { getLanguageDelimiters } from "../utilities/delimiters";
 import { bruinDelimiterRegex } from "../constants";
 import { bruinFoldingRangeProvider } from "../providers/bruinFoldingRangeProvider";
 import { get } from "http";
+import exp = require("constants");
 
 suite("Extension Initialization", () => {
   test("should set default path separator based on platform", async () => {
@@ -76,162 +77,215 @@ suite("Extension Initialization", () => {
     assert.strictEqual(pathSeparator, expectedPathSeparator);
   });
 });
-suite("getPathSeparator Tests", () => {
-  test("should return the path separator from the user configuration", () => {
-    const expectedPathSeparator = os.platform() === "win32" ? "\\" : "/"; // Adjust based on OS
-    const pathSeparator = getPathSeparator();
-    assert.strictEqual(pathSeparator, expectedPathSeparator);
-  });
-});
-
-suite("replacePathSeparator Tests", () => {
-  test("should replace path separators with the specified separator", () => {
-    const input = "path/to/file";
-    const expectedSeparator = os.platform() === "win32" ? "\\" : "/"; // Adjust based on OS
-    const result = replacePathSeparator(input);
-    assert.strictEqual(result, `path${expectedSeparator}to${expectedSeparator}file`);
+suite("Bruin Utility Tests", () => {
+  suite("getPathSeparator Tests", () => {
+    test("should return the path separator from the user configuration", () => {
+      const expectedPathSeparator = os.platform() === "win32" ? "\\" : "/"; // Adjust based on OS
+      const pathSeparator = getPathSeparator();
+      assert.strictEqual(pathSeparator, expectedPathSeparator);
+    });
   });
 
-  test("should replace path separators with the default separator on Windows", () => {
-    const input = "path\\to\\file";
-    const platformStub = sinon.stub(process, "platform").value("win32"); // Override process.platform
-    try {
+  suite("replacePathSeparator Tests", () => {
+    test("should replace path separators with the specified separator", () => {
+      const input = "path/to/file";
+      const expectedSeparator = os.platform() === "win32" ? "\\" : "/"; // Adjust based on OS
       const result = replacePathSeparator(input);
-      const expectedSeparator = getPathSeparator();
       assert.strictEqual(result, `path${expectedSeparator}to${expectedSeparator}file`);
-    } finally {
-      platformStub.restore(); // Restore original process.platform value
-    }
+    });
+
+    test("should replace path separators with the default separator on Windows", () => {
+      const input = "path\\to\\file";
+      const platformStub = sinon.stub(process, "platform").value("win32"); // Override process.platform
+      try {
+        const result = replacePathSeparator(input);
+        const expectedSeparator = getPathSeparator();
+        assert.strictEqual(result, `path${expectedSeparator}to${expectedSeparator}file`);
+      } finally {
+        platformStub.restore(); // Restore original process.platform value
+      }
+    });
   });
+
+  suite("findGitBashPath Tests", () => {
+    let fsStub: sinon.SinonStub;
+    let execSyncStub: sinon.SinonStub;
+    let pathDirnameStub: sinon.SinonStub;
+    let pathJoinStub: sinon.SinonStub;
+
+    setup(() => {
+      fsStub = sinon.stub(fs, "existsSync");
+      execSyncStub = sinon.stub(require("child_process"), "execSync");
+      pathDirnameStub = sinon.stub(path, "dirname");
+      pathJoinStub = sinon.stub(path, "join");
+    });
+
+    teardown(() => {
+      sinon.restore();
+    });
+
+    teardown(() => {
+      sinon.restore();
+    });
+
+    test("Returns first existing Git path from commonGitPaths", () => {
+      const expectedPath = "C:\\Program Files\\Git\\bin\\bash.exe";
+      fsStub.withArgs(expectedPath).returns(true);
+      fsStub.returns(false); // Default behavior for other paths
+
+      const result = findGitBashPath();
+
+      assert.strictEqual(result, expectedPath);
+      assert.strictEqual(execSyncStub.called, false); // Should not try execSync if path found
+    });
+
+    test("Finds Git Bash path through execSync when common paths fail", () => {
+      const originalPlatform = process.platform;
+      sinon.stub(process, "platform").value("win32"); // Mock process.platform to return 'win32'
+
+      fsStub.returns(false); // All common paths fail
+      const gitExePath = "C:\\Program Files\\Git\\cmd\\git.exe";
+      const expectedBashPath = "C:\\Program Files\\Git\\bin\\bash.exe";
+
+      execSyncStub.returns(gitExePath);
+      pathDirnameStub.returns("C:\\Program Files\\Git\\cmd");
+      pathJoinStub.returns(expectedBashPath);
+      fsStub.withArgs(expectedBashPath).returns(true);
+
+      const result = findGitBashPath();
+
+      assert.strictEqual(result, expectedBashPath);
+    });
+
+    test("Returns undefined when Git bash.exe does not exist anywhere", () => {
+      fsStub.returns(false); // No paths exist
+      execSyncStub.throws(new Error("Git not found"));
+
+      const result = findGitBashPath();
+
+      assert.strictEqual(result, undefined);
+    });
+  });
+
+  suite("workspaceDirectory Tests", () => {
+    let fsStatStub: sinon.SinonStub;
+    let fsAccessStub: sinon.SinonStub;
+    let pathDirnameStub: sinon.SinonStub;
+    let consoleLogStub: sinon.SinonStub;
+    let originalPathDirname: typeof path.dirname;
+
+    setup(() => {
+      fsStatStub = sinon.stub(fs.promises, "stat");
+      fsAccessStub = sinon.stub(fs.promises, "access");
+      consoleLogStub = sinon.stub(console, "log");
+
+      // Store the original path.dirname before stubbing
+      originalPathDirname = path.dirname;
+      pathDirnameStub = sinon.stub(path, "dirname").callsFake(originalPathDirname);
+    });
+
+    teardown(() => {
+      sinon.restore();
+    });
+
+    /* test("should handle errors and log them", async () => {
+      const fsPath = "/path/to/project/file.txt";
+      const error = new Error("unexpected error");
+  
+      // Configure stub to reject
+      fsStatStub.rejects(error);
+  
+      const result = await bruinWorkspaceDirectory(fsPath);
+  
+      // Assertions
+      assert.strictEqual(result, undefined, "Expected undefined due to error");
+  
+      // Use sinon assertion to check console.log was called
+      sinon.assert.calledOnce(consoleLogStub);
+      sinon.assert.calledWith(
+        consoleLogStub,
+        "failed to find the workspace directory",
+        sinon.match.same(error)
+      );
+    }); */
+
+    test("should handle nested file paths correctly", async () => {
+      const fsPath = "/path/to/project/nested/file.txt";
+
+      fsStatStub.resolves({ isFile: () => true }); // Simulate file check
+      fsAccessStub.resolves(); // Simulate access success
+
+      const result = await bruinWorkspaceDirectory(fsPath);
+
+      // Validate the resulting path
+      assert.ok(result?.includes("/path/to/project"), "Should find the workspace directory");
+      sinon.assert.calledWith(pathDirnameStub, fsPath);
+    });
+
+    /* test("should return undefined for exceeding max iterations", async () => {
+      const fsPath = "/path/to/project/file.txt";
+      let callCount = 0;
+  
+      fsStatStub.resolves({ isFile: () => true });
+      fsAccessStub.rejects(new Error("access denied")); // Simulate access failure
+  
+      const result = await bruinWorkspaceDirectory(fsPath);
+  
+      assert.strictEqual(result, undefined, "Should return undefined after max iterations");
+    }); */
+  });
+
+  suite("isFileExtensionSQL Tests", () => {
+    test("should return true for valid SQL file extensions", async() => {
+      const validExtensions = ["test.sql", "Test.SQL"];
+     validExtensions.forEach(async (ext) => {
+        assert.strictEqual(await isFileExtensionSQL(ext), true);
+      }); 
+    });
+
+    test("should return false for invalid SQL file extensions", () => {
+      const invalidExtensions = [".py", ".yaml", ".json", ".csv"];
+      invalidExtensions.forEach((ext) => {
+        assert.strictEqual(isFileExtensionSQL(ext), false);
+      });
+    });
+  });
+  suite("isPythonBruinAsset Tests", () => {
+    test("should return true for valid Python Bruin asset files", () => {
+      const validFiles = ["file.py", "file.pyx", "file.PY", "file.PYX"];
+      validFiles.forEach(async(file) => {
+        assert.strictEqual(await isPythonBruinAsset(file), true);
+      });
+    });
+
+    test("should return false for invalid Python Bruin asset files", () => {
+      const invalidFiles = ["file.sql", "file.yaml", "file.json", "file.csv"];
+      invalidFiles.forEach(async (file) => {
+        assert.strictEqual(await isPythonBruinAsset(file), false);
+      });
+    });
+  });
+
+  suite('Compare versions tests', () => {
+    let compareVersions: (current: string, latest: string) => boolean;
+    compareVersions = bruinUtils.compareVersions;
+    
+    test('should return true for equal versions', () => {
+      assert.strictEqual(compareVersions('v1.0.0', 'v1.0.0'), true);
+    });
+
+    test('should return true for current version greater than latest version', () => {
+      assert.strictEqual(compareVersions('v1.0.0', 'v0.9.0'), true);
+    });
+
+    test('should return false for current version less than latest version', () => {
+      assert.strictEqual(compareVersions('v1.0.0', 'v1.1.0'), false);
+    });
+
+  });
+
 });
 
-suite("findGitBashPath Tests", () => {
-  let fsStub: sinon.SinonStub;
-  let execSyncStub: sinon.SinonStub;
-  let pathDirnameStub: sinon.SinonStub;
-  let pathJoinStub: sinon.SinonStub;
-
-  setup(() => {
-    fsStub = sinon.stub(fs, "existsSync");
-    execSyncStub = sinon.stub(require("child_process"), "execSync");
-    pathDirnameStub = sinon.stub(path, "dirname");
-    pathJoinStub = sinon.stub(path, "join");
-  });
-
-  teardown(() => {
-    sinon.restore();
-  });
-
-  teardown(() => {
-    sinon.restore();
-  });
-
-  test("Returns first existing Git path from commonGitPaths", () => {
-    const expectedPath = "C:\\Program Files\\Git\\bin\\bash.exe";
-    fsStub.withArgs(expectedPath).returns(true);
-    fsStub.returns(false); // Default behavior for other paths
-
-    const result = findGitBashPath();
-
-    assert.strictEqual(result, expectedPath);
-    assert.strictEqual(execSyncStub.called, false); // Should not try execSync if path found
-  });
-
-  test("Finds Git Bash path through execSync when common paths fail", () => {
-    const originalPlatform = process.platform;
-    sinon.stub(process, "platform").value("win32"); // Mock process.platform to return 'win32'
-
-    fsStub.returns(false); // All common paths fail
-    const gitExePath = "C:\\Program Files\\Git\\cmd\\git.exe";
-    const expectedBashPath = "C:\\Program Files\\Git\\bin\\bash.exe";
-
-    execSyncStub.returns(gitExePath);
-    pathDirnameStub.returns("C:\\Program Files\\Git\\cmd");
-    pathJoinStub.returns(expectedBashPath);
-    fsStub.withArgs(expectedBashPath).returns(true);
-
-    const result = findGitBashPath();
-
-    assert.strictEqual(result, expectedBashPath);
-  });
-
-  test("Returns undefined when Git bash.exe does not exist anywhere", () => {
-    fsStub.returns(false); // No paths exist
-    execSyncStub.throws(new Error("Git not found"));
-
-    const result = findGitBashPath();
-
-    assert.strictEqual(result, undefined);
-  });
-});
-
-suite("workspaceDirectory Tests", () => {
-  let fsStatStub: sinon.SinonStub;
-  let fsAccessStub: sinon.SinonStub;
-  let pathDirnameStub: sinon.SinonStub;
-  let consoleLogStub: sinon.SinonStub;
-  let originalPathDirname: typeof path.dirname;
-
-  setup(() => {
-    fsStatStub = sinon.stub(fs.promises, "stat");
-    fsAccessStub = sinon.stub(fs.promises, "access");
-    consoleLogStub = sinon.stub(console, "log");
-
-    // Store the original path.dirname before stubbing
-    originalPathDirname = path.dirname;
-    pathDirnameStub = sinon.stub(path, "dirname").callsFake(originalPathDirname);
-  });
-
-  teardown(() => {
-    sinon.restore();
-  });
-
-  /* test("should handle errors and log them", async () => {
-    const fsPath = "/path/to/project/file.txt";
-    const error = new Error("unexpected error");
-
-    // Configure stub to reject
-    fsStatStub.rejects(error);
-
-    const result = await bruinWorkspaceDirectory(fsPath);
-
-    // Assertions
-    assert.strictEqual(result, undefined, "Expected undefined due to error");
-
-    // Use sinon assertion to check console.log was called
-    sinon.assert.calledOnce(consoleLogStub);
-    sinon.assert.calledWith(
-      consoleLogStub,
-      "failed to find the workspace directory",
-      sinon.match.same(error)
-    );
-  }); */
-
-  test("should handle nested file paths correctly", async () => {
-    const fsPath = "/path/to/project/nested/file.txt";
-
-    fsStatStub.resolves({ isFile: () => true }); // Simulate file check
-    fsAccessStub.resolves(); // Simulate access success
-
-    const result = await bruinWorkspaceDirectory(fsPath);
-
-    // Validate the resulting path
-    assert.ok(result?.includes("/path/to/project"), "Should find the workspace directory");
-    sinon.assert.calledWith(pathDirnameStub, fsPath);
-  });
-
-  /* test("should return undefined for exceeding max iterations", async () => {
-    const fsPath = "/path/to/project/file.txt";
-    let callCount = 0;
-
-    fsStatStub.resolves({ isFile: () => true });
-    fsAccessStub.rejects(new Error("access denied")); // Simulate access failure
-
-    const result = await bruinWorkspaceDirectory(fsPath);
-
-    assert.strictEqual(result, undefined, "Should return undefined after max iterations");
-  }); */
-});
 suite("BruinInstallCLI Tests", () => {
   let sandbox: sinon.SinonSandbox;
   let execAsyncStub: sinon.SinonStub;
@@ -1874,10 +1928,12 @@ suite("bruinFoldingRangeProvider Tests", () => {
       },
     } as any;
 
-    getLanguageDelimitersStub = sinon.stub<[string], { startFoldingRegionDelimiter: RegExp; endFoldingRegionDelimiter: RegExp }>().returns({
-      startFoldingRegionDelimiter: /$^/,
-      endFoldingRegionDelimiter: /$^/,
-    });
+    getLanguageDelimitersStub = sinon
+      .stub<[string], { startFoldingRegionDelimiter: RegExp; endFoldingRegionDelimiter: RegExp }>()
+      .returns({
+        startFoldingRegionDelimiter: /$^/,
+        endFoldingRegionDelimiter: /$^/,
+      });
   });
 
   teardown(() => {
@@ -1889,14 +1945,15 @@ suite("bruinFoldingRangeProvider Tests", () => {
     assert.deepStrictEqual(ranges, [], "Expected empty ranges");
   });
 
-
   test("should return empty ranges when no end delimiter is found", () => {
     const { startFoldingRegionDelimiter, endFoldingRegionDelimiter } =
-    getLanguageDelimiters("python");
-    getLanguageDelimitersStub = sinon.stub<[string], { startFoldingRegionDelimiter: RegExp; endFoldingRegionDelimiter: RegExp }>().returns({
-      startFoldingRegionDelimiter: startFoldingRegionDelimiter,
-      endFoldingRegionDelimiter: /$^/,
-    });
+      getLanguageDelimiters("python");
+    getLanguageDelimitersStub = sinon
+      .stub<[string], { startFoldingRegionDelimiter: RegExp; endFoldingRegionDelimiter: RegExp }>()
+      .returns({
+        startFoldingRegionDelimiter: startFoldingRegionDelimiter,
+        endFoldingRegionDelimiter: /$^/,
+      });
 
     (document as any).lineAt = (lineNumber: number) => {
       switch (lineNumber) {
@@ -1914,10 +1971,13 @@ suite("bruinFoldingRangeProvider Tests", () => {
 
   test("should return empty ranges when no start delimiter is found", () => {
     const { startFoldingRegionDelimiter, endFoldingRegionDelimiter } =
-    getLanguageDelimiters("python");    getLanguageDelimitersStub = sinon.stub<[string], { startFoldingRegionDelimiter: RegExp; endFoldingRegionDelimiter: RegExp }>().returns({
-      startFoldingRegionDelimiter: /$^/,
-      endFoldingRegionDelimiter: endFoldingRegionDelimiter,
-    });
+      getLanguageDelimiters("python");
+    getLanguageDelimitersStub = sinon
+      .stub<[string], { startFoldingRegionDelimiter: RegExp; endFoldingRegionDelimiter: RegExp }>()
+      .returns({
+        startFoldingRegionDelimiter: /$^/,
+        endFoldingRegionDelimiter: endFoldingRegionDelimiter,
+      });
 
     (document as any).lineAt = (lineNumber: number) => {
       switch (lineNumber) {
@@ -1934,6 +1994,178 @@ suite("bruinFoldingRangeProvider Tests", () => {
   });
 });
 
+suite("CLI Installation and Update Tests", () => {
+  let bruinInstallCLICheckBruinCliInstallationStub: sinon.SinonStub;
+  let bruinInstallCLICheckBruinCLIVersionStub: sinon.SinonStub;
+  let bruinInstallCLIInstallOrUpdateStub: sinon.SinonStub;
+  let vscodeWindowShowWarningMessageStub: sinon.SinonStub;
+
+  setup(() => {
+    bruinInstallCLICheckBruinCliInstallationStub = sinon.stub(
+      BruinInstallCLI.prototype,
+      "checkBruinCliInstallation"
+    );
+    bruinInstallCLICheckBruinCLIVersionStub = sinon.stub(
+      BruinInstallCLI.prototype,
+      "checkBruinCLIVersion"
+    );
+    bruinInstallCLIInstallOrUpdateStub = sinon.stub(BruinInstallCLI.prototype, "installOrUpdate");
+    vscodeWindowShowWarningMessageStub = sinon.stub(vscode.window, "showWarningMessage");
+  });
+
+  teardown(() => {
+    bruinInstallCLICheckBruinCliInstallationStub.restore();
+    bruinInstallCLICheckBruinCLIVersionStub.restore();
+    bruinInstallCLIInstallOrUpdateStub.restore();
+    vscodeWindowShowWarningMessageStub.restore();
+  });
+
+  test("should install or update CLI when not installed", async () => {
+    const isInstalled = { installed: false };
+    bruinInstallCLICheckBruinCliInstallationStub.resolves(isInstalled);
+
+    await installOrUpdateCli();
+
+    assert.ok(
+      bruinInstallCLICheckBruinCliInstallationStub.calledOnce,
+      "Expected checkBruinCliInstallation to be called"
+    );
+    assert.ok(
+      bruinInstallCLIInstallOrUpdateStub.calledOnce,
+      "Expected installOrUpdate to be called with false"
+    );
+    assert.ok(
+      bruinInstallCLIInstallOrUpdateStub.calledWith(false),
+      "Expected installOrUpdate to be called with false"
+    );
+  });
+
+  test("should update CLI when already installed", async () => {
+    const isInstalled = { installed: true };
+    bruinInstallCLICheckBruinCliInstallationStub.resolves(isInstalled);
+
+    await installOrUpdateCli();
+
+    assert.ok(
+      bruinInstallCLICheckBruinCliInstallationStub.calledOnce,
+      "Expected checkBruinCliInstallation to be called"
+    );
+    assert.ok(
+      bruinInstallCLIInstallOrUpdateStub.calledOnce,
+      "Expected installOrUpdate to be called with true"
+    );
+    assert.ok(
+      bruinInstallCLIInstallOrUpdateStub.calledWith(true),
+      "Expected installOrUpdate to be called with true"
+    );
+  });
+
+  test("should not show warning message when CLI is up-to-date", async () => {
+    bruinInstallCLICheckBruinCLIVersionStub.resolves(true);
+
+    await checkBruinCliVersion();
+
+    assert.ok(
+      bruinInstallCLICheckBruinCLIVersionStub.calledOnce,
+      "Expected checkBruinCLIVersion to be called"
+    );
+    assert.ok(
+      vscodeWindowShowWarningMessageStub.notCalled,
+      "Expected no warning message to be shown"
+    );
+  });
+
+  test("should close warning message when close button is clicked", async () => {
+    const message = "Your CLI is outdated. Please update it to access all the latest features.";
+    const closeButton = "Close";
+    bruinInstallCLICheckBruinCLIVersionStub.resolves(false);
+    vscodeWindowShowWarningMessageStub.resolves(closeButton);
+
+    await checkBruinCliVersion();
+
+    assert.ok(
+      vscodeWindowShowWarningMessageStub.calledOnce,
+      "Expected warning message to be shown"
+    );
+    assert.ok(
+      vscodeWindowShowWarningMessageStub.firstCall.args[1].includes(closeButton),
+      "Expected close button to be present"
+    );
+  });
+});
+/* suite("BruinEnvList Tests", () => {
+  let bruinEnvList: BruinEnvList;
+  let runStub: sinon.SinonStub;
+  let postMessageToPanelsStub: sinon.SinonStub;
+  let BruinPanelPostMessageStub: sinon.SinonStub;
+
+  setup(() => {
+    bruinEnvList = new BruinEnvList();
+    runStub = sinon.stub(BruinCommand.prototype, "run");
+    postMessageToPanelsStub = sinon.stub(BruinEnvList.prototype, "postMessageToPanels");
+    BruinPanelPostMessageStub = sinon.stub(BruinPanel, "postMessage");
+  });
+
+  teardown(() => {
+    runStub.restore();
+    postMessageToPanelsStub.restore();
+    BruinPanelPostMessageStub.restore();
+  });
+
+  test("should return 'environments' as the Bruin command string", () => {
+    assert.strictEqual(bruinEnvList.bruinCommand(), "environments");
+  });
+
+  test("should get environments list successfully", async () => {
+    const result = "{ environments: [ { id: 1, name: 'env1' } ] }";
+    runStub.resolves(result);
+
+    await bruinEnvList.getEnvironmentsList();
+
+    assert.ok(runStub.calledOnce, "Expected run to be called");
+    assert.deepStrictEqual(runStub.firstCall.args, [["list", "-o", "json"]], "Expected correct flags to be passed");
+    assert.ok(postMessageToPanelsStub.calledOnce, "Expected postMessageToPanels to be called");
+    assert.deepStrictEqual(postMessageToPanelsStub.firstCall.args, ["success", result], "Expected success message to be posted");
+    assert.ok(BruinPanelPostMessageStub.calledOnce, "Expected BruinPanel.postMessage to be called");
+    assert.deepStrictEqual(BruinPanelPostMessageStub.firstCall.args, ["environments-list-message", { status: "success", message: result }], "Expected correct message to be posted to BruinPanel");
+  });
+
+  test("should handle errors when getting environments list", async () => {
+    const error = "Error getting environments list";
+    runStub.rejects(new Error(error));
+
+    await bruinEnvList.getEnvironmentsList();
+
+    assert.ok(runStub.calledOnce, "Expected run to be called");
+    assert.deepStrictEqual(runStub.firstCall.args, [["list", "-o", "json"]], "Expected correct flags to be passed");
+    assert.ok(postMessageToPanelsStub.calledOnce, "Expected postMessageToPanels to be called");
+    assert.deepStrictEqual(postMessageToPanelsStub.firstCall.args, ["error", error], "Expected error message to be posted");
+    assert.ok(BruinPanelPostMessageStub.calledOnce, "Expected BruinPanel.postMessage to be called");
+    assert.deepStrictEqual(BruinPanelPostMessageStub.firstCall.args, ["environments-list-message", { status: "error", message: error }], "Expected correct error message to be posted to BruinPanel");
+  });
+
+  test("should ignore errors when getting environments list with ignoresErrors option", async () => {
+    const error = "Error getting environments list";
+    runStub.rejects(new Error(error));
+
+    await bruinEnvList.getEnvironmentsList({ ignoresErrors: true });
+
+    assert.ok(runStub.calledOnce, "Expected run to be called");
+    assert.deepStrictEqual(runStub.firstCall.args, [["list", "-o", "json"]], "Expected correct flags to be passed");
+    assert.ok(postMessageToPanelsStub.notCalled, "Expected postMessageToPanels not to be called");
+    assert.ok(BruinPanelPostMessageStub.notCalled, "Expected BruinPanel.postMessage not to be called");
+  });
+
+  test("should post message to panels correctly", () => {
+    const status = "success";
+    const message = "Environments list retrieved successfully";
+
+    bruinEnvList.postMessageToPanels(status, message);
+
+    assert.ok(BruinPanelPostMessageStub.calledOnce, "Expected BruinPanel.postMessage to be called");
+    assert.deepStrictEqual(BruinPanelPostMessageStub.firstCall.args, ["environments-list-message", { status, message }], "Expected correct message to be posted to BruinPanel");
+  });
+}); */
 suite("Activate Tests", () => {
   let context: vscode.ExtensionContext;
   let setupFoldingOnOpenStub: sinon.SinonStub;
