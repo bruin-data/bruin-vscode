@@ -1,6 +1,7 @@
 import { BruinCommand } from "./bruinCommand";
 import { BruinPanel } from "../panels/BruinPanel";
 import { BruinCommandOptions } from "../types";
+import { platform } from "os";
 /**
  * Extends the BruinCommand class to implement the bruin validate command on Bruin assets.
  */
@@ -36,8 +37,17 @@ export class BruinValidate extends BruinCommand {
 
     try {
       const result = await this.run([...flags, filePath], { ignoresErrors });
-      const validationResults = JSON.parse(result);
+      let validationResults = JSON.parse(result);
 
+      if (!Array.isArray(validationResults) && platform() === "win32") {
+        if (validationResults.error) {
+          // If it's an error object, throw it
+          throw new Error(validationResults.error);
+        }
+        // If not an array, wrap in an array
+        validationResults = [validationResults];
+      }
+  
       let hasErrors = false;
       const pipelinesWithIssues = [];
 
@@ -63,15 +73,38 @@ export class BruinValidate extends BruinCommand {
           message: validationResults,
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       // Handle the error and notify the user
-      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
+      let errorMessage: string;
+
+      // More comprehensive error handling
+      if (typeof error === "string") {
+        errorMessage = error;
+      } else if (error instanceof Error) {
+        errorMessage = JSON.stringify({
+          error: error.message || "An unknown error occurred",
+          stack: error.stack,
+        });
+      } else if (typeof error === "object" && error !== null) {
+        try {
+          // Attempt to extract meaningful error information
+          errorMessage = JSON.stringify({
+            error: error.error || error.message || JSON.stringify(error),
+          });
+        } catch {
+          errorMessage = JSON.stringify({ error: "An unknown error occurred" });
+        }
+      } else {
+        errorMessage = JSON.stringify({ error: "An unknown error occurred" });
+      }
+
+      console.error("Full validation error:", error); // Log original error
+      console.error("Processed error message:", errorMessage); // Log processed error
 
       BruinPanel.postMessage("validation-message", {
         status: "error",
         message: errorMessage,
       });
-      console.error("Validation error:", error);
     } finally {
       this.isLoading = false; // Reset loading state when validation completes or fails
     }
