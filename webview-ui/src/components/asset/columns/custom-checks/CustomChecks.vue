@@ -1,36 +1,37 @@
 <template>
-  <div class="flex flex-col py-4 sm:py-1 h-full w-56 relative">
-    <table class="min-w-full border-collapse">
+  <div class="flex flex-col py-2 sm:py-1 h-full w-56 relative">
+    <table class="min-w-full border-collapse border-editor-fg">
       <thead>
-        <tr class="text-xs font-semibold text-left">
-          <th class="px-4 py-2 border-b-2 border-editor-fg w-1/4">Name</th>
-          <th class="px-4 py-2 border-b-2 border-editor-fg w-1/6">Value</th>
-          <th class="px-4 py-2 border-b-2 border-editor-fg w-1/4">Description</th>
-          <th class="px-4 py-2 border-b-2 border-editor-fg w-1/2">Query</th>
+        <tr
+          class="border-opacity-test text-xs font-semibold text-left opacity-65 border-b-2"
+        >
+          <th class="px-2 py-1 w-1/4">Name</th>
+          <th class="px-2 py-1 w-1/6 text-center">Value</th>
+          <th class="px-2 py-1 w-1/4 text-center">Description</th>
+          <th class="px-2 py-1 w-1/2">Query</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody v-if="customChecks.length">
         <tr
-          v-if="customChecks.length"
           v-for="(check, index) in customChecks"
           :key="index"
           class="border-b border-commandCenter-border"
         >
           <!-- Check Name with improved handling -->
-          <td class="px-4 py-2 font-medium font-mono text-xs w-1/4">
+          <td class="px-2 py-1 font-medium font-mono text-xs w-1/4">
             <div class="break-words whitespace-normal truncate" :title="check.name">
               {{ check.name }}
             </div>
           </td>
           <!-- Value -->
-          <td class="px-4 py-2 font-medium font-mono text-xs w-1/6">
+          <td class="px-2 py-1 font-medium font-mono text-xs w-1/6 text-center">
             <div v-if="check.value" class="truncate" :title="check.value">
               {{ check.value }}
             </div>
             <div v-else class="italic opacity-70 truncate whitespace-normal">undefined</div>
           </td>
           <!-- Description -->
-          <td class="px-4 py-2 text-xs w-1/4">
+          <td class="px-2 py-1 text-xs w-1/4 text-center">
             <div
               v-if="check.description"
               class="truncate whitespace-normal"
@@ -43,14 +44,14 @@
             </div>
           </td>
           <!-- Query -->
-          <td class="px-4 py-2 text-xs w-1/2">
+          <td class="px-2 py-1 text-xs w-1/2">
             <div v-html="highlightedLines(check.query)" class="truncate" :title="check.query"></div>
           </td>
         </tr>
-        <tr v-else>
-          <td class="w-full text-center py-2 text-md italic opacity-70">No checks to display.</td>
-        </tr>
       </tbody>
+      <div class="w-56 text-left p-2 text-md italic opacity-70" v-else>
+        <span> No custom checks to display. </span>
+      </div>
     </table>
   </div>
 </template>
@@ -78,3 +79,10 @@ const highlightedLines = (query) => {
   return lines.map((line) => `<div>${line}</div>`).join(""); // Join lines with <div> for line breaks
 };
 </script>
+
+<style scoped>
+table thead tr.border-opacity-test {
+  border: 0.7!important; /* Adjust the opacity value as needed */
+}
+
+</style>
