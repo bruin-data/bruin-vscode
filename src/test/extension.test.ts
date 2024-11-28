@@ -57,8 +57,11 @@ import { checkBruinCliVersion, installOrUpdateCli } from "../extension/commands/
 import { getLanguageDelimiters } from "../utilities/delimiters";
 import { bruinDelimiterRegex } from "../constants";
 import { bruinFoldingRangeProvider } from "../providers/bruinFoldingRangeProvider";
-import { get } from "http";
+import { flowLineageCommand } from "../extension/commands/FlowLineageCommand";
+
 import exp = require("constants");
+import { BruinLineageInternalParse } from "../bruin/bruinFlowLineage";
+import { prototype } from "events";
 
 suite("Extension Initialization", () => {
   test("should set default path separator based on platform", async () => {
@@ -236,11 +239,11 @@ suite("Bruin Utility Tests", () => {
   });
 
   suite("isFileExtensionSQL Tests", () => {
-    test("should return true for valid SQL file extensions", async() => {
+    test("should return true for valid SQL file extensions", async () => {
       const validExtensions = ["test.sql", "Test.SQL"];
-     validExtensions.forEach(async (ext) => {
+      validExtensions.forEach(async (ext) => {
         assert.strictEqual(await isFileExtensionSQL(ext), true);
-      }); 
+      });
     });
 
     test("should return false for invalid SQL file extensions", () => {
@@ -253,7 +256,7 @@ suite("Bruin Utility Tests", () => {
   suite("isPythonBruinAsset Tests", () => {
     test("should return true for valid Python Bruin asset files", () => {
       const validFiles = ["file.py", "file.pyx", "file.PY", "file.PYX"];
-      validFiles.forEach(async(file) => {
+      validFiles.forEach(async (file) => {
         assert.strictEqual(await isPythonBruinAsset(file), true);
       });
     });
@@ -266,24 +269,22 @@ suite("Bruin Utility Tests", () => {
     });
   });
 
-  suite('Compare versions tests', () => {
+  suite("Compare versions tests", () => {
     let compareVersions: (current: string, latest: string) => boolean;
     compareVersions = bruinUtils.compareVersions;
-    
-    test('should return true for equal versions', () => {
-      assert.strictEqual(compareVersions('v1.0.0', 'v1.0.0'), true);
+
+    test("should return true for equal versions", () => {
+      assert.strictEqual(compareVersions("v1.0.0", "v1.0.0"), true);
     });
 
-    test('should return true for current version greater than latest version', () => {
-      assert.strictEqual(compareVersions('v1.0.0', 'v0.9.0'), true);
+    test("should return true for current version greater than latest version", () => {
+      assert.strictEqual(compareVersions("v1.0.0", "v0.9.0"), true);
     });
 
-    test('should return false for current version less than latest version', () => {
-      assert.strictEqual(compareVersions('v1.0.0', 'v1.1.0'), false);
+    test("should return false for current version less than latest version", () => {
+      assert.strictEqual(compareVersions("v1.0.0", "v1.1.0"), false);
     });
-
   });
-
 });
 
 suite("BruinInstallCLI Tests", () => {
@@ -1792,6 +1793,188 @@ suite("BruinPanel Tests", () => {
     });
   });
 });
+/* suite("LineagePanel Tests", () => {
+  let windowOnDidChangeActiveTextEditorStub: sinon.SinonStub;
+  let windowActiveTextEditorStub: sinon.SinonStub;
+  let flowLineageCommandStub: sinon.SinonStub;
+  let mockExtensionUri: vscode.Uri;
+  let mockDocumentUri: vscode.Uri;
+  let windowCreateWebviewPanelStub: sinon.SinonStub;
+  setup(() => {
+    // Create mock URIs
+    mockExtensionUri = vscode.Uri.file("/mock/extension/path");
+    mockDocumentUri = vscode.Uri.file("/mock/document.sql");
+    windowCreateWebviewPanelStub = sinon.stub(vscode.window, "createWebviewPanel").returns({
+      webview: {
+        postMessage: sinon.stub(),
+        onDidReceiveMessage: sinon.stub(),
+        html: "",
+        cspSource: "default-src",
+        asWebviewUri: sinon.stub(),
+      },
+      iconPath: {},
+      onDidDispose: sinon.stub(),
+      dispose: sinon.stub(),
+      reveal: sinon.stub(),
+    } as any);
+    // Stub VSCode window methods
+    windowActiveTextEditorStub = sinon.stub(vscode.window, "activeTextEditor").value({
+      document: {
+        uri: mockDocumentUri,
+        fsPath: mockDocumentUri.fsPath,
+      },
+    });
+
+    // Stub window events and lineage command
+    windowOnDidChangeActiveTextEditorStub = sinon.stub(vscode.window, "onDidChangeActiveTextEditor").returns({
+      dispose: sinon.stub()
+    });
+
+    flowLineageCommandStub = sinon.stub().resolves();
+  });
+
+  teardown(() => {
+    sinon.restore();
+    // Reset the static view
+    (LineagePanel as any)._view = undefined;
+  });
+
+  suite("Initialization Tests", () => {
+    test("creates LineagePanel instance", () => {
+      const lineagePanel = new LineagePanel(mockExtensionUri);
+      assert.ok(lineagePanel, "LineagePanel should be created");
+    });
+
+    test("sets up event listeners on construction", () => {
+      const lineagePanel = new LineagePanel(mockExtensionUri);
+      assert.ok(
+        windowOnDidChangeActiveTextEditorStub.calledOnce, 
+        "onDidChangeActiveTextEditor listener should be set up"
+      );
+    });
+  });
+
+  suite("Webview Resolution Tests", () => {
+    let lineagePanel: LineagePanel;
+    let webviewView: vscode.WebviewView;
+    let webviewStub: sinon.SinonStubbedInstance<vscode.Webview>;
+
+    setup(() => {
+      lineagePanel = new LineagePanel(mockExtensionUri);
+      
+      // Create webview stubs
+    });
+
+    test("resolves webview view with correct options", () => {
+      const context = {} as vscode.WebviewViewResolveContext;
+      const token = {} as vscode.CancellationToken;
+
+      lineagePanel.resolveWebviewView(webviewView, context, token);
+
+      assert.strictEqual(
+        webviewView.webview.options.enableScripts, 
+        true, 
+        "Scripts should be enabled"
+      );
+    });
+  });
+
+  suite("Message Handling Tests", () => {
+    let lineagePanel: LineagePanel;
+    let webviewStub: vscode.Webview;
+    let messageHandler: (message: any) => void;
+
+    setup(() => {
+      lineagePanel = new LineagePanel(mockExtensionUri);
+      
+      // Create a mock webview stub for message handling
+      webviewStub = {
+        onDidReceiveMessage: sinon.stub(),
+        postMessage: sinon.stub()
+      } as any;
+
+      // Capture the message handler
+      messageHandler = (
+        webviewStub.onDidReceiveMessage as sinon.SinonStub
+      ).firstCall.args[0];
+    });
+
+    test("handles pipeline lineage message", () => {
+      const consoleSpy = sinon.spy(console, 'log');
+      const message = { command: 'bruin.pipelineLineage' };
+      
+      messageHandler(message);
+
+      assert.ok(
+        consoleSpy.calledWith('Pipeline Lineage from webview in the Lineage panel, well received'),
+        'Should log pipeline lineage message'
+      );
+    });
+
+    test("handles asset details opening", () => {
+      const openTextDocumentStub = sinon.stub(vscode.workspace, 'openTextDocument').resolves({} as vscode.TextDocument);
+      const showTextDocumentStub = sinon.stub(vscode.window, 'showTextDocument').resolves({} as vscode.TextEditor);
+
+      const message = { 
+        command: 'bruin.openAssetDetails', 
+        payload: '/mock/asset/path.sql' 
+      };
+      
+      messageHandler(message);
+
+      assert.ok(
+        openTextDocumentStub.calledWith(vscode.Uri.file('/mock/asset/path.sql')),
+        'Should attempt to open text document'
+      );
+      assert.ok(showTextDocumentStub.called, 'Should show text document');
+    });
+  });
+
+  suite("Disposal Tests", () => {
+    test("properly disposes of resources", () => {
+      const lineagePanel = new LineagePanel(mockExtensionUri);
+      const disposeSpy = sinon.spy();
+      
+      (lineagePanel as any).disposables = [
+        { dispose: disposeSpy },
+        { dispose: disposeSpy }
+      ];
+
+      lineagePanel.dispose();
+
+      assert.strictEqual(disposeSpy.callCount, 2, 'All disposable resources should be disposed');
+    });
+  });
+
+  suite("Static Method Tests", () => {
+    test("posts message when view exists", () => {
+      // Mock the static _view
+      (LineagePanel as any)._view = {
+        webview: {
+          postMessage: sinon.stub()
+        }
+      };
+
+      LineagePanel.postMessage('test', 'data');
+
+      const view = (LineagePanel as any)._view;
+      assert.ok(
+        view.webview.postMessage.calledWith({ command: 'test', payload: 'data' }),
+        'Should post message to webview'
+      );
+    });
+
+    test("does not post message when view does not exist", () => {
+      // Ensure no view exists
+      (LineagePanel as any)._view = undefined;
+
+      const consoleLogSpy = sinon.spy(console, 'log');
+      LineagePanel.postMessage('test', 'data');
+
+      assert.ok(!consoleLogSpy.called, 'Should not attempt to post message');
+    });
+  });
+}); */
 suite("getLanguageDelimiters Tests", () => {
   test("should return default delimiters for unknown language", () => {
     const languageId = "unknown";
