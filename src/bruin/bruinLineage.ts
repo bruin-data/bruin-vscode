@@ -22,7 +22,7 @@ export class BruinLineage extends BruinCommand {
    * @returns {Promise<void>} A promise that resolves when the display process completes or errors are handled.
    */
 
-  public async diplayLineage(
+  public async displayLineage(
     filePath: string,
     { flags = [] }: BruinCommandOptions = {}
   ): Promise<void> {
