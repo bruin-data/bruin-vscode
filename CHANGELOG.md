@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.28.0] - [2024-11-29]
+- Added support for displaying custom checks in the UI.
+
 ## [0.27.2] - [2024-11-29]
 - Fix Error Handling in BruinValidate Class and Add Windows-Specific Validation
 
