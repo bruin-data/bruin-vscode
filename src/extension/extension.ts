@@ -17,7 +17,6 @@ import * as os from "os";
 import { renderCommand } from "./commands/renderCommand";
 import { LineagePanel } from "../panels/LineagePanel";
 import { checkBruinCliVersion, installOrUpdateCli } from "./commands/updateBruinCLI";
-import { get } from "http";
 
 export async function activate(context: ExtensionContext) {
   // Automatically focus editor when extension starts
