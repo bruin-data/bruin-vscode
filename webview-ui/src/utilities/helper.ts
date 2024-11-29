@@ -96,6 +96,7 @@ export const parseAssetDetails = (data: string) => {
     owner: asset.owner || "undefined",
     pipeline,
     columns: asset.columns ? transformColumnData(asset.columns) : [],
+    custom_checks: asset.custom_checks || [],
   };
 };
 
