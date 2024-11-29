@@ -64,7 +64,6 @@ export interface BruinNodeProps {
   nodeProps?: any;
 }
 
-
 export interface AssetDataset {
   id: string;
   name: string;
@@ -98,7 +97,6 @@ interface File {
   type: string;
 }
 
-
 interface Environment {
   name: string;
 }
@@ -121,6 +119,16 @@ export interface SimpleAsset {
   hasUpstreamForClicking?: boolean;
   hasDownstreamForClicking?: boolean;
   isFocusAsset?: boolean;
+}
+
+
+export interface CustomChecks {
+  blocking: boolean;
+  description: string;
+  id: string;
+  name: string;
+  value: string;
+  query: string;
 }
 
 export type ErrorPhase = "Validating" | "Rednering";

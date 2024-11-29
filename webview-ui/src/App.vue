@@ -78,6 +78,7 @@ import MessageAlert from "@/components/ui/alerts/AlertMessage.vue";
 import { useConnectionsStore } from "./store/bruinStore";
 import type { EnvironmentsList } from "./types";
 import AssetColumns from "@/components/asset/columns/AssetColumns.vue";
+import CustomChecks from "@/components/asset/columns/custom-checks/CustomChecks.vue";
 import BruinSettings from "@/components/bruin-settings/BruinSettings.vue";
 import DescriptionItem from "./components/ui/description-item/DescriptionItem.vue";
 import { badgeStyles, defaultBadgeStyle } from "./components/ui/badges/CustomBadgesStyle";
@@ -149,7 +150,8 @@ const environmentsList = computed(() => {
 // Computed property to get the selected environment
 const selectedEnvironment = computed(() => {
   if (!environments.value) return [];
-  const selected = parseEnvironmentList(environments.value)?.selectedEnvironment || "something went wrong";
+  const selected =
+    parseEnvironmentList(environments.value)?.selectedEnvironment || "something went wrong";
   console.log("Selected environment:", selected);
   return selected;
 });
@@ -182,6 +184,18 @@ const columnsProps = computed(() => {
 const columns = ref([...columnsProps.value]); // Reactive reference for columns
 console.debug("Initial Columns:", columns.value);
 
+// Computed property for asset columns
+const customChecksProps = computed(() => {
+  if (!data.value) {
+    console.log("No data found for custom checks");
+    return [];
+  }
+  const details = parseAssetDetails(data.value);
+  const customChecks = details?.custom_checks || [];
+  console.log("Asset Custom checks:", customChecks);
+  return customChecks;
+});
+
 // Define tabs for the application
 const tabs = ref([
   {
@@ -199,6 +213,13 @@ const tabs = ref([
     component: AssetColumns,
     props: computed(() => ({
       columns: columns.value,
+    })),
+  },
+  {
+    label: "Custom Checks",
+    component: CustomChecks,
+    props: computed(() => ({
+      customChecks: customChecksProps.value,
     })),
   },
   {
