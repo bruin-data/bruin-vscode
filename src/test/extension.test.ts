@@ -1444,12 +1444,12 @@ suite("BruinPanel Tests", () => {
       reveal: sinon.stub(),
     } as any);
 
-    windowActiveTextEditorStub = sinon.stub(vscode.window, "activeTextEditor").value({
+    windowActiveTextEditorStub = sinon.stub(vscode.window, "activeTextEditor").get(() => ({
       document: {
         uri: mockDocumentUri,
         fsPath: mockDocumentUri.fsPath,
       },
-    });
+    }));
 
     workspaceWorkspaceFoldersStub = sinon
       .stub(vscode.workspace, "workspaceFolders")
@@ -1793,7 +1793,7 @@ suite("BruinPanel Tests", () => {
     });
   });
 });
-/* suite("LineagePanel Tests", () => {
+ suite("LineagePanel Tests", () => {
   let windowOnDidChangeActiveTextEditorStub: sinon.SinonStub;
   let windowActiveTextEditorStub: sinon.SinonStub;
   let flowLineageCommandStub: sinon.SinonStub;
@@ -1856,7 +1856,18 @@ suite("BruinPanel Tests", () => {
 
   suite("Webview Resolution Tests", () => {
     let lineagePanel: LineagePanel;
-    let webviewView: vscode.WebviewView;
+    let webviewView: vscode.WebviewView = {
+      webview: {
+        postMessage: sinon.stub(),
+        onDidReceiveMessage: sinon.stub(),
+        html: "",
+        cspSource: "default-src",
+        asWebviewUri: sinon.stub(),
+        options: {
+          enableScripts: true,
+        },
+      },
+    } as any;
     let webviewStub: sinon.SinonStubbedInstance<vscode.Webview>;
 
     setup(() => {
@@ -1879,56 +1890,6 @@ suite("BruinPanel Tests", () => {
     });
   });
 
-  suite("Message Handling Tests", () => {
-    let lineagePanel: LineagePanel;
-    let webviewStub: vscode.Webview;
-    let messageHandler: (message: any) => void;
-
-    setup(() => {
-      lineagePanel = new LineagePanel(mockExtensionUri);
-      
-      // Create a mock webview stub for message handling
-      webviewStub = {
-        onDidReceiveMessage: sinon.stub(),
-        postMessage: sinon.stub()
-      } as any;
-
-      // Capture the message handler
-      messageHandler = (
-        webviewStub.onDidReceiveMessage as sinon.SinonStub
-      ).firstCall.args[0];
-    });
-
-    test("handles pipeline lineage message", () => {
-      const consoleSpy = sinon.spy(console, 'log');
-      const message = { command: 'bruin.pipelineLineage' };
-      
-      messageHandler(message);
-
-      assert.ok(
-        consoleSpy.calledWith('Pipeline Lineage from webview in the Lineage panel, well received'),
-        'Should log pipeline lineage message'
-      );
-    });
-
-    test("handles asset details opening", () => {
-      const openTextDocumentStub = sinon.stub(vscode.workspace, 'openTextDocument').resolves({} as vscode.TextDocument);
-      const showTextDocumentStub = sinon.stub(vscode.window, 'showTextDocument').resolves({} as vscode.TextEditor);
-
-      const message = { 
-        command: 'bruin.openAssetDetails', 
-        payload: '/mock/asset/path.sql' 
-      };
-      
-      messageHandler(message);
-
-      assert.ok(
-        openTextDocumentStub.calledWith(vscode.Uri.file('/mock/asset/path.sql')),
-        'Should attempt to open text document'
-      );
-      assert.ok(showTextDocumentStub.called, 'Should show text document');
-    });
-  });
 
   suite("Disposal Tests", () => {
     test("properly disposes of resources", () => {
@@ -1963,18 +1924,8 @@ suite("BruinPanel Tests", () => {
         'Should post message to webview'
       );
     });
-
-    test("does not post message when view does not exist", () => {
-      // Ensure no view exists
-      (LineagePanel as any)._view = undefined;
-
-      const consoleLogSpy = sinon.spy(console, 'log');
-      LineagePanel.postMessage('test', 'data');
-
-      assert.ok(!consoleLogSpy.called, 'Should not attempt to post message');
-    });
   });
-}); */
+}); 
 suite("getLanguageDelimiters Tests", () => {
   test("should return default delimiters for unknown language", () => {
     const languageId = "unknown";
