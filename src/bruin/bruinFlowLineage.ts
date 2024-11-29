@@ -28,44 +28,47 @@ export class BruinLineageInternalParse extends BruinCommand {
    */
   public async parseAssetLineage(
     filePath: string,
-
     { flags = ["parse-pipeline"], ignoresErrors = false }: BruinCommandOptions = {}
   ): Promise<void> {
-    await this.run([...flags, await getCurrentPipelinePath(filePath) as string], { ignoresErrors })
-      .then(
-        (result) => {
-          const pipelineData = JSON.parse(result);
-          const asset = pipelineData.assets.find(
-            (asset: any) => asset.definition_file.path === filePath
-          );
-
-          if (asset) {
-            LineagePanel.postMessage("flow-lineage-message", {
-              status: "success",
-              message: {
-                id: asset.id,
-                name: asset.name,
-                pipeline: result,
-              },
-            });
-          } else {
-            throw new Error("Asset not found in pipeline data");
-          }
-        },
-        (error) => {
-          if (error.includes("No help topic for")) {
-            error =
-              "Bruin CLI is not installed or is outdated. Please install or update Bruin CLI to use this feature.";
-            vscode.window.showErrorMessage(error);
-          }
-          LineagePanel.postMessage("flow-lineage-message", {
-            status: "error",
-            message: error,
-          });
-        }
-      )
-      .catch((err) => {
-        console.error("Parsing command error", err);
-      });
+    try {
+      const result = await this.run([...flags, await getCurrentPipelinePath(filePath) as string], { ignoresErrors });
+      const pipelineData = JSON.parse(result);
+      const asset = pipelineData.assets.find(
+        (asset: any) => asset.definition_file.path === filePath
+      );
+  
+      if (asset) {
+        LineagePanel.postMessage("flow-lineage-message", {
+          status: "success",
+          message: {
+            id: asset.id,
+            name: asset.name,
+            pipeline: result,
+          },
+        });
+      } else {
+        throw new Error("Asset not found in pipeline data");
+      }
+    } catch (error : any) {
+      const errorMessage =  typeof error === "object" && error.error
+        ? error.error 
+        : String(error);
+  
+      if (errorMessage.includes("No help topic for")) {
+        const formattedError = "Bruin CLI is not installed or is outdated. Please install or update Bruin CLI to use this feature.";
+        vscode.window.showErrorMessage(formattedError);
+        LineagePanel.postMessage("flow-lineage-message", {
+          status: "error",
+          message: formattedError,
+        });
+      } else {
+        LineagePanel.postMessage("flow-lineage-message", {
+          status: "error",
+          message: errorMessage,
+        });
+      }
+  
+      console.error("Parsing command error", error);
+    }
   }
 }

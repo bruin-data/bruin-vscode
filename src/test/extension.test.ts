@@ -29,7 +29,7 @@ import {
   replacePathSeparator,
 } from "../bruin/bruinUtils";
 import { BruinInternalPatch } from "../bruin/bruinInternalPatch";
-import { getPathSeparator } from "../extension/configuration";
+import { getDefaultBruinExecutablePath, getPathSeparator } from "../extension/configuration";
 import { BruinCommand } from "../bruin/bruinCommand";
 import {
   BruinConnections,
@@ -39,7 +39,7 @@ import {
 } from "../bruin/bruinConnections";
 import { BruinPanel } from "../panels/BruinPanel";
 import { LineagePanel } from "../panels/LineagePanel";
-import { BruinRender, BruinValidate } from "../bruin";
+import { BruinLineage, BruinRender, BruinValidate } from "../bruin";
 import { renderCommand, renderCommandWithFlags } from "../extension/commands/renderCommand";
 import {
   createConnection,
@@ -57,8 +57,11 @@ import { checkBruinCliVersion, installOrUpdateCli } from "../extension/commands/
 import { getLanguageDelimiters } from "../utilities/delimiters";
 import { bruinDelimiterRegex } from "../constants";
 import { bruinFoldingRangeProvider } from "../providers/bruinFoldingRangeProvider";
-import { get } from "http";
+import { flowLineageCommand } from "../extension/commands/FlowLineageCommand";
+
 import exp = require("constants");
+import { BruinLineageInternalParse } from "../bruin/bruinFlowLineage";
+import { prototype } from "events";
 
 suite("Extension Initialization", () => {
   test("should set default path separator based on platform", async () => {
@@ -236,11 +239,11 @@ suite("Bruin Utility Tests", () => {
   });
 
   suite("isFileExtensionSQL Tests", () => {
-    test("should return true for valid SQL file extensions", async() => {
+    test("should return true for valid SQL file extensions", async () => {
       const validExtensions = ["test.sql", "Test.SQL"];
-     validExtensions.forEach(async (ext) => {
+      validExtensions.forEach(async (ext) => {
         assert.strictEqual(await isFileExtensionSQL(ext), true);
-      }); 
+      });
     });
 
     test("should return false for invalid SQL file extensions", () => {
@@ -253,7 +256,7 @@ suite("Bruin Utility Tests", () => {
   suite("isPythonBruinAsset Tests", () => {
     test("should return true for valid Python Bruin asset files", () => {
       const validFiles = ["file.py", "file.pyx", "file.PY", "file.PYX"];
-      validFiles.forEach(async(file) => {
+      validFiles.forEach(async (file) => {
         assert.strictEqual(await isPythonBruinAsset(file), true);
       });
     });
@@ -266,24 +269,22 @@ suite("Bruin Utility Tests", () => {
     });
   });
 
-  suite('Compare versions tests', () => {
+  suite("Compare versions tests", () => {
     let compareVersions: (current: string, latest: string) => boolean;
     compareVersions = bruinUtils.compareVersions;
-    
-    test('should return true for equal versions', () => {
-      assert.strictEqual(compareVersions('v1.0.0', 'v1.0.0'), true);
+
+    test("should return true for equal versions", () => {
+      assert.strictEqual(compareVersions("v1.0.0", "v1.0.0"), true);
     });
 
-    test('should return true for current version greater than latest version', () => {
-      assert.strictEqual(compareVersions('v1.0.0', 'v0.9.0'), true);
+    test("should return true for current version greater than latest version", () => {
+      assert.strictEqual(compareVersions("v1.0.0", "v0.9.0"), true);
     });
 
-    test('should return false for current version less than latest version', () => {
-      assert.strictEqual(compareVersions('v1.0.0', 'v1.1.0'), false);
+    test("should return false for current version less than latest version", () => {
+      assert.strictEqual(compareVersions("v1.0.0", "v1.1.0"), false);
     });
-
   });
-
 });
 
 suite("BruinInstallCLI Tests", () => {
@@ -815,7 +816,7 @@ suite("Render Command Helper functions", () => {
   test("isPythonBruinAsset should return true for Python Bruin assets", async () => {
     const examplePythonAsset = `\"\"\" @bruin \nname: example\n type: python\n depends:\n - raw.example\n\"\"\"\nprint("Hello World")`;
     const examplePythonNoBruinAsset = `print("Hello World")`;
-    const filePath = "bruinPythonAsset.py";
+    const filePath =  "bruinPythonAsset.py";
     const noBruinFilePath = "example.txt";
     fs.writeFileSync(filePath, examplePythonAsset);
     assert.strictEqual(await isPythonBruinAsset("bruinPythonAsset.py"), true);
@@ -848,6 +849,52 @@ suite("Render Command Helper functions", () => {
   test("processLineageData should extract the name property", () => {
     const lineageString = { name: "example-name" };
     assert.strictEqual(processLineageData(lineageString), "example-name");
+  });
+});
+
+suite("BruinLineage Tests", () => {
+  let bruinLineage: BruinLineage;
+  let runStub: sinon.SinonStub;
+  let postMessageStub: sinon.SinonStub;
+
+  setup(() => {
+    bruinLineage = new BruinLineage("mock-executable-path", "mock-workspace-directory");
+    runStub = sinon.stub(bruinLineage as any, 'run'); // Stub the run method
+    postMessageStub = sinon.stub(BruinPanel, "postMessage");
+  });
+
+  teardown(() => {
+    sinon.restore();
+  });
+
+  test("displayLineage resolves with success message on successful run", async () => {
+    const filePath = "path/to/file";
+    const flags = ['-o', 'json'];
+    const lineageDisplayed = "mock-lineage-displayed";
+    
+    runStub.resolves(lineageDisplayed);
+    
+    await bruinLineage.displayLineage(filePath, { flags });
+    
+    sinon.assert.calledWith(postMessageStub, "lineage-message", {
+      status: "success",
+      message: lineageDisplayed,
+    });
+  });
+
+  test("displayLineage resolves with error message on failed run", async () => {
+    const filePath = "path/to/file";
+    const flags = ['-o', 'json'];
+    const error = new Error("mock-error");
+    
+    runStub.rejects(error);
+    
+    await bruinLineage.displayLineage(filePath, { flags });
+    
+    sinon.assert.calledWith(postMessageStub, "lineage-message", {
+      status: "error",
+      message: error, // Ensure we send the error message
+    });
   });
 });
 suite("Connection Management Tests", () => {
@@ -1021,6 +1068,7 @@ suite("Connection Management Tests", () => {
     });
   });
 });
+
 suite("Manage Bruin Connections Tests", function () {
   test("Should return an empty array for all null connections", async () => {
     const singleEnvconnections = {
@@ -1207,7 +1255,145 @@ suite("BruinCommand Tests", () => {
     }
   });
 });
+suite("Lineage Command Tests", () => {
+  let getDefaultBruinExecutablePathStub: sinon.SinonStub;
+  let bruinWorkspaceDirectoryStub: sinon.SinonStub;
+  let displayLineageStub: sinon.SinonStub;
 
+  setup(() => {
+    // Stub the configuration method
+    getDefaultBruinExecutablePathStub = sinon.stub(configuration, 'getDefaultBruinExecutablePath').returns("mock-executable-path");
+    
+    // Stub the bruinWorkspaceDirectory method
+    bruinWorkspaceDirectoryStub = sinon.stub(bruinUtils, 'bruinWorkspaceDirectory').resolves("mock-workspace-directory");
+
+    // Stub the displayLineage method of BruinLineage
+    displayLineageStub = sinon.stub(BruinLineage.prototype, 'displayLineage');
+  });
+
+  teardown(() => {
+    sinon.restore();
+  });
+
+  test("returns early when lastRenderedDocumentUri is undefined", async () => {
+    await lineageCommand(undefined);
+    sinon.assert.notCalled(displayLineageStub);
+  });
+
+  test("instantiates BruinLineage with correct parameters", async () => {
+    // Create a temporary file for testing
+    const tempFile = vscode.Uri.file('/tmp/test-document.txt');
+    
+    await lineageCommand(tempFile);
+    
+    // Check if the displayLineage method was called with the correct parameters
+    sinon.assert.calledOnce(displayLineageStub);
+    sinon.assert.calledWith(displayLineageStub, tempFile.fsPath, { flags: ['-o', 'json'] });
+  });
+
+  test("calls displayLineage on BruinLineage instance with correct parameters", async () => {
+    // Create a temporary file for testing
+    const tempFile = vscode.Uri.file('/tmp/test-document.txt');
+    
+    await lineageCommand(tempFile, ['-o', 'json']);
+    
+    sinon.assert.calledOnce(displayLineageStub);
+    sinon.assert.calledWith(displayLineageStub, tempFile.fsPath, { flags: ['-o', 'json'] });
+  });
+});
+suite("BruinLineageInternalParse Tests", () => {
+  let bruinLineageInternalParse: BruinLineageInternalParse;
+  let runStub: sinon.SinonStub;
+  let postMessageStub: sinon.SinonStub;
+  let getDefaultBruinExecutablePathStub: sinon.SinonStub;
+  let bruinWorkspaceDirectoryStub: sinon.SinonStub;
+  let getCurrentPipelinePathStub: sinon.SinonStub;
+
+  setup(() => {
+    const mockBruinExecutable = "mock-executable-path";
+    const mockWorkingDirectory = "mock-working-directory";
+
+    // Instantiate BruinLineageInternalParse with required parameters
+    bruinLineageInternalParse = new BruinLineageInternalParse(mockBruinExecutable, mockWorkingDirectory);
+    runStub = sinon.stub(bruinLineageInternalParse as any, "run");
+    postMessageStub = sinon.stub(LineagePanel, "postMessage");
+    getCurrentPipelinePathStub = sinon.stub(require("../bruin/bruinUtils"), "getCurrentPipelinePath").resolves("mock-pipeline-path");
+  });
+
+  teardown(() => {
+    sinon.restore();
+  });
+
+  test("parseAssetLineage resolves with success message on successful run", async () => {
+    const filePath = "path/to/asset";
+    const flags = ["parse-pipeline"];
+    const mockResult = JSON.stringify({
+      assets: [
+        { id: "asset-id", name: "Asset Name", definition_file: { path: filePath } }
+      ]
+    });
+
+    runStub.resolves(mockResult);
+
+    await bruinLineageInternalParse.parseAssetLineage(filePath, { flags });
+
+    sinon.assert.calledWith(postMessageStub, "flow-lineage-message", {
+      status: "success",
+      message: {
+        id: "asset-id",
+        name: "Asset Name",
+        pipeline: mockResult,
+      },
+    });
+  });
+
+  test("parseAssetLineage throws error when asset is not found", async () => {
+    const filePath = "path/to/asset";
+    const flags = ["parse-pipeline"];
+    const mockResult = JSON.stringify({
+      assets: [] // No assets found
+    });
+
+    runStub.resolves(mockResult);
+
+    try {
+      await bruinLineageInternalParse.parseAssetLineage(filePath, { flags });
+    } catch (error) {
+      sinon.assert.match((error as Error).message, "Asset not found in pipeline data");
+    }
+  });
+
+  test("parseAssetLineage handles error from run method", async () => {
+    const filePath = "path/to/asset";
+    const flags = ["parse-pipeline"];
+    const errorMessage = "Some error occurred";
+  
+    runStub.rejects(errorMessage);
+  
+    await bruinLineageInternalParse.parseAssetLineage(filePath, { flags });
+  
+    sinon.assert.calledWith(postMessageStub, "flow-lineage-message", {
+      status: "error",
+      message: errorMessage
+      ,
+    });
+  });
+  
+  test("parseAssetLineage handles specific error message for Bruin CLI", async () => {
+    const filePath = "path/to/asset";
+    const flags = ["parse-pipeline"];
+    const errorMessage = "No help topic for this command";
+  
+    runStub.rejects(errorMessage);
+  
+    await bruinLineageInternalParse.parseAssetLineage(filePath, { flags });
+  
+    sinon.assert.calledWith(postMessageStub, "flow-lineage-message", {
+      status: "error",
+      message: "Bruin CLI is not installed or is outdated. Please install or update Bruin CLI to use this feature.",
+    });
+  });
+});
 suite("Bruin Connections Tests", () => {
   let bruinConnections: BruinConnections;
   let bruinDeleteConnection: BruinDeleteConnection;
@@ -1443,12 +1629,12 @@ suite("BruinPanel Tests", () => {
       reveal: sinon.stub(),
     } as any);
 
-    windowActiveTextEditorStub = sinon.stub(vscode.window, "activeTextEditor").value({
+    windowActiveTextEditorStub = sinon.stub(vscode.window, "activeTextEditor").get(() => ({
       document: {
         uri: mockDocumentUri,
         fsPath: mockDocumentUri.fsPath,
       },
-    });
+    }));
 
     workspaceWorkspaceFoldersStub = sinon
       .stub(vscode.workspace, "workspaceFolders")
@@ -1792,6 +1978,140 @@ suite("BruinPanel Tests", () => {
     });
   });
 });
+
+ suite("LineagePanel Tests", () => {
+  let windowOnDidChangeActiveTextEditorStub: sinon.SinonStub;
+  let windowActiveTextEditorStub: sinon.SinonStub;
+  let flowLineageCommandStub: sinon.SinonStub;
+  let mockExtensionUri: vscode.Uri;
+  let mockDocumentUri: vscode.Uri;
+  let windowCreateWebviewPanelStub: sinon.SinonStub;
+  setup(() => {
+    // Create mock URIs
+    mockExtensionUri = vscode.Uri.file("/mock/extension/path");
+    mockDocumentUri = vscode.Uri.file("/mock/document.sql");
+    windowCreateWebviewPanelStub = sinon.stub(vscode.window, "createWebviewPanel").returns({
+      webview: {
+        postMessage: sinon.stub(),
+        onDidReceiveMessage: sinon.stub(),
+        html: "",
+        cspSource: "default-src",
+        asWebviewUri: sinon.stub(),
+      },
+      iconPath: {},
+      onDidDispose: sinon.stub(),
+      dispose: sinon.stub(),
+      reveal: sinon.stub(),
+    } as any);
+    // Stub VSCode window methods
+    windowActiveTextEditorStub = sinon.stub(vscode.window, "activeTextEditor").value({
+      document: {
+        uri: mockDocumentUri,
+        fsPath: mockDocumentUri.fsPath,
+      },
+    });
+
+    // Stub window events and lineage command
+    windowOnDidChangeActiveTextEditorStub = sinon.stub(vscode.window, "onDidChangeActiveTextEditor").returns({
+      dispose: sinon.stub()
+    });
+
+    flowLineageCommandStub = sinon.stub().resolves();
+  });
+
+  teardown(() => {
+    sinon.restore();
+    // Reset the static view
+    (LineagePanel as any)._view = undefined;
+  });
+
+  suite("Initialization Tests", () => {
+    test("creates LineagePanel instance", () => {
+      const lineagePanel = new LineagePanel(mockExtensionUri);
+      assert.ok(lineagePanel, "LineagePanel should be created");
+    });
+
+    test("sets up event listeners on construction", () => {
+      const lineagePanel = new LineagePanel(mockExtensionUri);
+      assert.ok(
+        windowOnDidChangeActiveTextEditorStub.calledOnce, 
+        "onDidChangeActiveTextEditor listener should be set up"
+      );
+    });
+  });
+
+  suite("Webview Resolution Tests", () => {
+    let lineagePanel: LineagePanel;
+    let webviewView: vscode.WebviewView = {
+      webview: {
+        postMessage: sinon.stub(),
+        onDidReceiveMessage: sinon.stub(),
+        html: "",
+        cspSource: "default-src",
+        asWebviewUri: sinon.stub(),
+        options: {
+          enableScripts: true,
+        },
+      },
+    } as any;
+    let webviewStub: sinon.SinonStubbedInstance<vscode.Webview>;
+
+    setup(() => {
+      lineagePanel = new LineagePanel(mockExtensionUri);
+      
+      // Create webview stubs
+    });
+
+    test("resolves webview view with correct options", () => {
+      const context = {} as vscode.WebviewViewResolveContext;
+      const token = {} as vscode.CancellationToken;
+
+      lineagePanel.resolveWebviewView(webviewView, context, token);
+
+      assert.strictEqual(
+        webviewView.webview.options.enableScripts, 
+        true, 
+        "Scripts should be enabled"
+      );
+    });
+  });
+
+
+  suite("Disposal Tests", () => {
+    test("properly disposes of resources", () => {
+      const lineagePanel = new LineagePanel(mockExtensionUri);
+      const disposeSpy = sinon.spy();
+      
+      (lineagePanel as any).disposables = [
+        { dispose: disposeSpy },
+        { dispose: disposeSpy }
+      ];
+
+      lineagePanel.dispose();
+
+      assert.strictEqual(disposeSpy.callCount, 2, 'All disposable resources should be disposed');
+    });
+  });
+
+  suite("Static Method Tests", () => {
+    test("posts message when view exists", () => {
+      // Mock the static _view
+      (LineagePanel as any)._view = {
+        webview: {
+          postMessage: sinon.stub()
+        }
+      };
+
+      LineagePanel.postMessage('test', 'data');
+
+      const view = (LineagePanel as any)._view;
+      assert.ok(
+        view.webview.postMessage.calledWith({ command: 'test', payload: 'data' }),
+        'Should post message to webview'
+      );
+    });
+  });
+}); 
 suite("getLanguageDelimiters Tests", () => {
   test("should return default delimiters for unknown language", () => {
     const languageId = "unknown";
