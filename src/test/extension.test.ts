@@ -29,7 +29,7 @@ import {
   replacePathSeparator,
 } from "../bruin/bruinUtils";
 import { BruinInternalPatch } from "../bruin/bruinInternalPatch";
-import { getPathSeparator } from "../extension/configuration";
+import { getDefaultBruinExecutablePath, getPathSeparator } from "../extension/configuration";
 import { BruinCommand } from "../bruin/bruinCommand";
 import {
   BruinConnections,
@@ -39,7 +39,7 @@ import {
 } from "../bruin/bruinConnections";
 import { BruinPanel } from "../panels/BruinPanel";
 import { LineagePanel } from "../panels/LineagePanel";
-import { BruinRender, BruinValidate } from "../bruin";
+import { BruinLineage, BruinRender, BruinValidate } from "../bruin";
 import { renderCommand, renderCommandWithFlags } from "../extension/commands/renderCommand";
 import {
   createConnection,
@@ -816,7 +816,7 @@ suite("Render Command Helper functions", () => {
   test("isPythonBruinAsset should return true for Python Bruin assets", async () => {
     const examplePythonAsset = `\"\"\" @bruin \nname: example\n type: python\n depends:\n - raw.example\n\"\"\"\nprint("Hello World")`;
     const examplePythonNoBruinAsset = `print("Hello World")`;
-    const filePath = "bruinPythonAsset.py";
+    const filePath =  "bruinPythonAsset.py";
     const noBruinFilePath = "example.txt";
     fs.writeFileSync(filePath, examplePythonAsset);
     assert.strictEqual(await isPythonBruinAsset("bruinPythonAsset.py"), true);
@@ -849,6 +849,52 @@ suite("Render Command Helper functions", () => {
   test("processLineageData should extract the name property", () => {
     const lineageString = { name: "example-name" };
     assert.strictEqual(processLineageData(lineageString), "example-name");
+  });
+});
+
+suite("BruinLineage Tests", () => {
+  let bruinLineage: BruinLineage;
+  let runStub: sinon.SinonStub;
+  let postMessageStub: sinon.SinonStub;
+
+  setup(() => {
+    bruinLineage = new BruinLineage("mock-executable-path", "mock-workspace-directory");
+    runStub = sinon.stub(bruinLineage as any, 'run'); // Stub the run method
+    postMessageStub = sinon.stub(BruinPanel, "postMessage");
+  });
+
+  teardown(() => {
+    sinon.restore();
+  });
+
+  test("displayLineage resolves with success message on successful run", async () => {
+    const filePath = "path/to/file";
+    const flags = ['-o', 'json'];
+    const lineageDisplayed = "mock-lineage-displayed";
+    
+    runStub.resolves(lineageDisplayed);
+    
+    await bruinLineage.displayLineage(filePath, { flags });
+    
+    sinon.assert.calledWith(postMessageStub, "lineage-message", {
+      status: "success",
+      message: lineageDisplayed,
+    });
+  });
+
+  test("displayLineage resolves with error message on failed run", async () => {
+    const filePath = "path/to/file";
+    const flags = ['-o', 'json'];
+    const error = new Error("mock-error");
+    
+    runStub.rejects(error);
+    
+    await bruinLineage.displayLineage(filePath, { flags });
+    
+    sinon.assert.calledWith(postMessageStub, "lineage-message", {
+      status: "error",
+      message: error, // Ensure we send the error message
+    });
   });
 });
 suite("Connection Management Tests", () => {
@@ -1022,6 +1068,7 @@ suite("Connection Management Tests", () => {
     });
   });
 });
+
 suite("Manage Bruin Connections Tests", function () {
   test("Should return an empty array for all null connections", async () => {
     const singleEnvconnections = {
@@ -1208,7 +1255,145 @@ suite("BruinCommand Tests", () => {
     }
   });
 });
+suite("Lineage Command Tests", () => {
+  let getDefaultBruinExecutablePathStub: sinon.SinonStub;
+  let bruinWorkspaceDirectoryStub: sinon.SinonStub;
+  let displayLineageStub: sinon.SinonStub;
 
+  setup(() => {
+    // Stub the configuration method
+    getDefaultBruinExecutablePathStub = sinon.stub(configuration, 'getDefaultBruinExecutablePath').returns("mock-executable-path");
+    
+    // Stub the bruinWorkspaceDirectory method
+    bruinWorkspaceDirectoryStub = sinon.stub(bruinUtils, 'bruinWorkspaceDirectory').resolves("mock-workspace-directory");
+
+    // Stub the displayLineage method of BruinLineage
+    displayLineageStub = sinon.stub(BruinLineage.prototype, 'displayLineage');
+  });
+
+  teardown(() => {
+    sinon.restore();
+  });
+
+  test("returns early when lastRenderedDocumentUri is undefined", async () => {
+    await lineageCommand(undefined);
+    sinon.assert.notCalled(displayLineageStub);
+  });
+
+  test("instantiates BruinLineage with correct parameters", async () => {
+    // Create a temporary file for testing
+    const tempFile = vscode.Uri.file('/tmp/test-document.txt');
+    
+    await lineageCommand(tempFile);
+    
+    // Check if the displayLineage method was called with the correct parameters
+    sinon.assert.calledOnce(displayLineageStub);
+    sinon.assert.calledWith(displayLineageStub, tempFile.fsPath, { flags: ['-o', 'json'] });
+  });
+
+  test("calls displayLineage on BruinLineage instance with correct parameters", async () => {
+    // Create a temporary file for testing
+    const tempFile = vscode.Uri.file('/tmp/test-document.txt');
+    
+    await lineageCommand(tempFile, ['-o', 'json']);
+    
+    sinon.assert.calledOnce(displayLineageStub);
+    sinon.assert.calledWith(displayLineageStub, tempFile.fsPath, { flags: ['-o', 'json'] });
+  });
+});
+suite("BruinLineageInternalParse Tests", () => {
+  let bruinLineageInternalParse: BruinLineageInternalParse;
+  let runStub: sinon.SinonStub;
+  let postMessageStub: sinon.SinonStub;
+  let getDefaultBruinExecutablePathStub: sinon.SinonStub;
+  let bruinWorkspaceDirectoryStub: sinon.SinonStub;
+  let getCurrentPipelinePathStub: sinon.SinonStub;
+
+  setup(() => {
+    const mockBruinExecutable = "mock-executable-path";
+    const mockWorkingDirectory = "mock-working-directory";
+
+    // Instantiate BruinLineageInternalParse with required parameters
+    bruinLineageInternalParse = new BruinLineageInternalParse(mockBruinExecutable, mockWorkingDirectory);
+    runStub = sinon.stub(bruinLineageInternalParse as any, "run");
+    postMessageStub = sinon.stub(LineagePanel, "postMessage");
+    getCurrentPipelinePathStub = sinon.stub(require("../bruin/bruinUtils"), "getCurrentPipelinePath").resolves("mock-pipeline-path");
+  });
+
+  teardown(() => {
+    sinon.restore();
+  });
+
+  test("parseAssetLineage resolves with success message on successful run", async () => {
+    const filePath = "path/to/asset";
+    const flags = ["parse-pipeline"];
+    const mockResult = JSON.stringify({
+      assets: [
+        { id: "asset-id", name: "Asset Name", definition_file: { path: filePath } }
+      ]
+    });
+
+    runStub.resolves(mockResult);
+
+    await bruinLineageInternalParse.parseAssetLineage(filePath, { flags });
+
+    sinon.assert.calledWith(postMessageStub, "flow-lineage-message", {
+      status: "success",
+      message: {
+        id: "asset-id",
+        name: "Asset Name",
+        pipeline: mockResult,
+      },
+    });
+  });
+
+  test("parseAssetLineage throws error when asset is not found", async () => {
+    const filePath = "path/to/asset";
+    const flags = ["parse-pipeline"];
+    const mockResult = JSON.stringify({
+      assets: [] // No assets found
+    });
+
+    runStub.resolves(mockResult);
+
+    try {
+      await bruinLineageInternalParse.parseAssetLineage(filePath, { flags });
+    } catch (error) {
+      sinon.assert.match((error as Error).message, "Asset not found in pipeline data");
+    }
+  });
+
+  test("parseAssetLineage handles error from run method", async () => {
+    const filePath = "path/to/asset";
+    const flags = ["parse-pipeline"];
+    const errorMessage = "Some error occurred";
+  
+    runStub.rejects(errorMessage);
+  
+    await bruinLineageInternalParse.parseAssetLineage(filePath, { flags });
+  
+    sinon.assert.calledWith(postMessageStub, "flow-lineage-message", {
+      status: "error",
+      message: errorMessage
+      ,
+    });
+  });
+  
+  test("parseAssetLineage handles specific error message for Bruin CLI", async () => {
+    const filePath = "path/to/asset";
+    const flags = ["parse-pipeline"];
+    const errorMessage = "No help topic for this command";
+  
+    runStub.rejects(errorMessage);
+  
+    await bruinLineageInternalParse.parseAssetLineage(filePath, { flags });
+  
+    sinon.assert.calledWith(postMessageStub, "flow-lineage-message", {
+      status: "error",
+      message: "Bruin CLI is not installed or is outdated. Please install or update Bruin CLI to use this feature.",
+    });
+  });
+});
 suite("Bruin Connections Tests", () => {
   let bruinConnections: BruinConnections;
   let bruinDeleteConnection: BruinDeleteConnection;
@@ -1793,6 +1978,7 @@ suite("BruinPanel Tests", () => {
     });
   });
 });
+
  suite("LineagePanel Tests", () => {
   let windowOnDidChangeActiveTextEditorStub: sinon.SinonStub;
   let windowActiveTextEditorStub: sinon.SinonStub;
