@@ -1,63 +1,110 @@
 <template>
   <div v-if="isBruinInstalled">
-    <div class="">
-      <div class="flex items-center space-x-2 w-full justify-between pt-2">
-        <!-- Name editing -->
-        <div
-          class="flex items-baseline w-3/4 font-md text-editor-fg text-lg font-mono cursor-pointer"
+    <div class="flex flex-col">
+      <!-- Top level actions -->
+      <div class="flex items-center justify-end">
+        <vscode-button
+          appearance="icon"
+          @click="toggleEditMode"
+          class="text-sm font-semibold"
+          :title="isEditMode ? 'Preview Mode' : 'Edit Mode'"
         >
-          <div class="pipeline-name max-w-[40%] text-xs opacity-50 truncate inline-block">
-            {{ assetDetailsProps?.pipeline.name }}
+          <component :is="isEditMode ? EyeIcon : PencilIcon" class="h-4 w-4 text-editor-fg" />
+        </vscode-button>
+        <vscode-button
+          appearance="icon"
+          @click="openBruinDocumentation"
+          title="Bruin Documentation"
+          class="text-sm font-semibold group relative"
+        >
+          <QuestionMarkCircleIcon class="h-4 w-4 text-editor-fg" />
+        </vscode-button>
+      </div>
+
+      <div class="">
+        <div class="flex items-center space-x-2 w-full justify-between pt-2">
+          <!-- Name editing -->
+          <div class="flex items-baseline w-3/4 font-md text-editor-fg text-lg font-mono">
+            <div class="pipeline-name max-w-[40%] text-xs opacity-50 truncate inline-block">
+              {{ assetDetailsProps?.pipeline.name }}
+            </div>
+            <span class="slash opacity-50 text-xs px-0.5">/</span>
+            <div class="flex-grow inline-block">
+              <div class="flex items-center">
+                <template v-if="!isEditMode">
+                  <span class="flex-grow inline-block">{{ assetDetailsProps?.name }}</span>
+                </template>
+                <template v-else>
+                  <input
+                    v-model="editingName"
+                    @keyup.enter="saveNameEdit"
+                    ref="nameInputRef"
+                    class="flex-grow inline-block w-full bg-input-background border-0 py-0 text-input-foreground text-xs"
+                  />
+                </template>
+              </div>
+            </div>
           </div>
-          <span class="slash opacity-50 text-xs px-0.5">/</span>
-          <div class="flex-grow inline-block">
-            {{ assetDetailsProps?.name }}
+
+          <div class="tags flex w-1/4 items-center space-x-2 justify-end overflow-hidden">
+            <template v-if="!isEditMode">
+              <DescriptionItem
+                :value="assetDetailsProps?.type"
+                :className="badgeClass.badgeStyle"
+              />
+            </template>
+            <template v-else>
+              <input
+                v-model="editingType"
+                @keyup.enter="saveTypeEdit"
+                ref="typeInputRef"
+                class="flex-grow inline-block w-full bg-input-background border-0 py-0 text-input-foreground text-xs"
+              />
+            </template>
+            <DescriptionItem
+              :value="assetDetailsProps?.pipeline.schedule"
+              :className="badgeClass.grayBadge"
+              class="xs:flex hidden overflow-hidden truncate"
+            />
           </div>
-        </div>
-        <div class="tags flex w-1/4 items-center space-x-2 justify-end overflow-hidden">
-          <DescriptionItem :value="assetDetailsProps?.type" :className="badgeClass.badgeStyle" />
-          <DescriptionItem
-            :value="assetDetailsProps?.pipeline.schedule"
-            :className="badgeClass.grayBadge"
-            class="xs:flex hidden overflow-hidden truncate"
-          />
         </div>
       </div>
-    </div>
-    <vscode-panels :activeid="`tab-${activeTab}`" aria-label="Tabbed Content" class="pl-0">
-      <vscode-panel-tab
-        v-for="(tab, index) in visibleTabs"
-        :key="`tab-${index}`"
-        :id="`tab-${index}`"
-        @click="activeTab = index"
-      >
-        <div class="flex items-center justify-center">
-          <span>{{ tab.label }}</span>
-        </div>
-      </vscode-panel-tab>
+      <!-- Rest of the existing template remains the same -->
+      <vscode-panels :activeid="`tab-${activeTab}`" aria-label="Tabbed Content" class="pl-0">
+        <vscode-panel-tab
+          v-for="(tab, index) in visibleTabs"
+          :key="`tab-${index}`"
+          :id="`tab-${index}`"
+          @click="activeTab = index"
+        >
+          <div class="flex items-center justify-center">
+            <span>{{ tab.label }}</span>
+          </div>
+        </vscode-panel-tab>
 
-      <vscode-panel-view
-        v-for="(tab, index) in visibleTabs"
-        :key="`view-${index}`"
-        :id="`view-${index}`"
-        v-show="activeTab === index"
-        class="px-0"
-      >
-        <component
-          v-if="tab.props"
-          :is="tab.component"
-          v-bind="tab.props"
-          class="flex w-full"
-          @update:assetName="updateAssetName"
-          @update:columns="updateColumns"
-        />
-        <div class="flex w-full" v-else-if="parseError">
-          <MessageAlert
-            message="This file is either not a Bruin Asset or has no data to display."
+        <vscode-panel-view
+          v-for="(tab, index) in visibleTabs"
+          :key="`view-${index}`"
+          :id="`view-${index}`"
+          v-show="activeTab === index"
+          class="px-0"
+        >
+          <component
+            v-if="tab.props"
+            :is="tab.component"
+            v-bind="tab.props"
+            class="flex w-full"
+            @update:assetName="updateAssetName"
+            @update:columns="updateColumns"
           />
-        </div>
-      </vscode-panel-view>
-    </vscode-panels>
+          <div class="flex w-full" v-else-if="parseError">
+            <MessageAlert
+              message="This file is either not a Bruin Asset or has no data to display."
+            />
+          </div>
+        </vscode-panel-view>
+      </vscode-panels>
+    </div>
   </div>
   <div class="flex items-center space-x-2 w-full justify-between pt-2" v-else>
     <BruinSettings
@@ -67,11 +114,10 @@
     />
   </div>
 </template>
-
 <script setup lang="ts">
 import AssetDetails from "@/components/asset/AssetDetails.vue";
 import { vscode } from "@/utilities/vscode";
-import { ref, onMounted, computed, watch } from "vue";
+import { ref, onMounted, computed, watch, nextTick, type VNodeRef } from "vue";
 import { parseAssetDetails, parseEnvironmentList } from "./utilities/helper";
 import { updateValue } from "./utilities/helper";
 import MessageAlert from "@/components/ui/alerts/AlertMessage.vue";
@@ -82,6 +128,9 @@ import CustomChecks from "@/components/asset/columns/custom-checks/CustomChecks.
 import BruinSettings from "@/components/bruin-settings/BruinSettings.vue";
 import DescriptionItem from "./components/ui/description-item/DescriptionItem.vue";
 import { badgeStyles, defaultBadgeStyle } from "./components/ui/badges/CustomBadgesStyle";
+import { PencilIcon, CheckIcon, XMarkIcon } from "@heroicons/vue/24/outline";
+import { EyeIcon } from "@heroicons/vue/20/solid";
+import { QuestionMarkCircleIcon } from "@heroicons/vue/24/solid";
 
 const connectionsStore = useConnectionsStore();
 const parseError = ref(); // Holds any parsing errors
@@ -100,7 +149,11 @@ const data = ref(
 );
 const isBruinInstalled = ref(true); // Tracks if Bruin is installed
 const lastRenderedDocument = ref(""); // Holds the last rendered document
-
+// New reactive variables for editing
+const editingName = ref("");
+const isEditMode = ref(false);
+const editingType = ref("");
+const nameInputRef = ref<HTMLInputElement | null>(null);
 // Event listener for messages from the VSCode extension
 window.addEventListener("message", (event) => {
   const message = event.data;
@@ -172,6 +225,60 @@ const assetDetailsProps = computed({
   },
 });
 
+const toggleEditMode = () => {
+  isEditMode.value = !isEditMode.value;
+
+  if (isEditMode.value) {
+    // Entering edit mode
+    editingName.value = assetDetailsProps.value?.name || "";
+    editingType.value = assetDetailsProps.value?.type || "undefined";
+    nextTick(() => {
+      nameInputRef.value?.focus();
+      nameInputRef.value?.select();
+    });
+  }
+};
+
+const saveNameEdit = () => {
+  if (editingName.value.trim() && editingName.value.trim() !== assetDetailsProps.value?.name) {
+    updateAssetName(editingName.value.trim());
+    vscode.postMessage({
+      command: "bruin.setAssetDetails",
+      payload: {
+        ...assetDetailsProps.value,
+        name: editingName.value.trim(),
+        type: editingType.value || assetDetailsProps.value?.type,
+      },
+    });
+    isEditMode.value = false;
+  } else {
+    // If no changes or empty, just exit edit mode
+    isEditMode.value = false;
+  }
+};
+const saveTypeEdit = () => {
+  if (editingType.value && editingType.value !== assetDetailsProps.value?.type) {
+    vscode.postMessage({
+      command: "bruin.setAssetDetails",
+      payload: {
+        ...assetDetailsProps.value,
+        name: editingName.value || assetDetailsProps.value?.name,
+        type: editingType.value,
+      },
+    });
+    if (assetDetailsProps.value) {
+      assetDetailsProps.value.type = editingType.value;
+    }
+    isEditMode.value = false;
+  } else {
+    // If no changes, just exit edit mode
+    isEditMode.value = false;
+  }
+};
+
+const openBruinDocumentation = () => {
+  vscode.postMessage({ command: "openBruinDocumentation" });
+};
 // Computed property for asset columns
 const columnsProps = computed(() => {
   if (!data.value) return [];
