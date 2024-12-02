@@ -6,7 +6,7 @@
         <vscode-button
           appearance="icon"
           @click="toggleEditMode"
-          class="text-sm font-semibold"
+          class="text-xs"
           :title="isEditMode ? 'Preview Mode' : 'Edit Mode'"
         >
           <component :is="isEditMode ? EyeIcon : PencilIcon" class="h-4 w-4 text-editor-fg" />
@@ -15,14 +15,14 @@
           appearance="icon"
           @click="openBruinDocumentation"
           title="Bruin Documentation"
-          class="text-sm font-semibold group relative"
+          class="text-xs group relative"
         >
           <QuestionMarkCircleIcon class="h-4 w-4 text-editor-fg" />
         </vscode-button>
       </div>
 
       <div class="">
-        <div class="flex items-center space-x-2 w-full justify-between pt-2">
+        <div class="flex items-center space-x-2 w-full justify-between">
           <!-- Name editing -->
           <div class="flex items-baseline w-3/4 font-md text-editor-fg text-lg font-mono">
             <div class="pipeline-name max-w-[40%] text-xs opacity-50 truncate inline-block">
@@ -128,8 +128,7 @@ import CustomChecks from "@/components/asset/columns/custom-checks/CustomChecks.
 import BruinSettings from "@/components/bruin-settings/BruinSettings.vue";
 import DescriptionItem from "./components/ui/description-item/DescriptionItem.vue";
 import { badgeStyles, defaultBadgeStyle } from "./components/ui/badges/CustomBadgesStyle";
-import { PencilIcon, CheckIcon, XMarkIcon } from "@heroicons/vue/24/outline";
-import { EyeIcon } from "@heroicons/vue/20/solid";
+import { PencilIcon, EyeIcon } from "@heroicons/vue/24/outline";
 import { QuestionMarkCircleIcon } from "@heroicons/vue/24/solid";
 
 const connectionsStore = useConnectionsStore();
@@ -276,9 +275,12 @@ const saveTypeEdit = () => {
   }
 };
 
-const openBruinDocumentation = () => {
-  vscode.postMessage({ command: "openBruinDocumentation" });
-};
+  const openBruinDocumentation = () => {
+  vscode.postMessage({
+    command: "bruin.openDocumentationLink",
+    payload: "https://bruin-data.github.io/bruin/"
+  });
+  };
 // Computed property for asset columns
 const columnsProps = computed(() => {
   if (!data.value) return [];

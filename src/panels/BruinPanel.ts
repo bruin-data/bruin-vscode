@@ -417,6 +417,7 @@ export class BruinPanel {
               message: this._lastRenderedDocumentUri?.fsPath,
             });
             break;
+
           case "bruin.editConnection":
             const { oldConnection, newConnection } = message.payload;
             try {
@@ -467,6 +468,9 @@ export class BruinPanel {
             await getConnections(this._lastRenderedDocumentUri);
             break;
 
+          case "bruin.openDocumentationLink":
+            vscode.env.openExternal(vscode.Uri.parse(message.payload));
+            break;
         }
       },
       undefined,
