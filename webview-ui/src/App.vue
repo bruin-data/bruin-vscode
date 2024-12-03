@@ -1,26 +1,6 @@
 <template>
   <div v-if="isBruinInstalled">
-    <div class="flex flex-col">
-      <!-- Top level actions -->
-      <div class="flex items-center justify-end">
-        <vscode-button
-          appearance="icon"
-          @click="toggleEditMode"
-          class="text-xs"
-          :title="isEditMode ? 'Preview Mode' : 'Edit Mode'"
-        >
-          <component :is="isEditMode ? EyeIcon : PencilIcon" class="h-4 w-4 text-editor-fg" />
-        </vscode-button>
-        <vscode-button
-          appearance="icon"
-          @click="openBruinDocumentation"
-          title="Bruin Documentation"
-          class="text-xs group relative"
-        >
-          <QuestionMarkCircleIcon class="h-4 w-4 text-editor-fg" />
-        </vscode-button>
-      </div>
-
+    <div class="flex flex-col pt-1">
       <div class="">
         <div class="flex items-center space-x-2 w-full justify-between">
           <!-- Name editing -->
@@ -31,36 +11,32 @@
             <span class="slash opacity-50 text-xs px-0.5">/</span>
             <div class="flex-grow inline-block">
               <div class="flex items-center">
-                <template v-if="!isEditMode">
-                  <span class="flex-grow inline-block">{{ assetDetailsProps?.name }}</span>
-                </template>
-                <template v-else>
-                  <input
-                    v-model="editingName"
-                    @keyup.enter="saveNameEdit"
-                    ref="nameInputRef"
-                    class="flex-grow inline-block w-full bg-input-background border-0 py-0 text-input-foreground text-xs"
-                  />
-                </template>
+                <div
+                  class="flex-grow font-mono text-lg text-editor-fg"
+                  @mouseenter="startNameEditing"
+                  @mouseleave="stopNameEditing"
+                >
+                  <template v-if="isEditingName">
+                    <input
+                      v-model="editingName"
+                      @blur="saveNameEdit"
+                      @keyup.enter="saveNameEdit"
+                      ref="nameInput"
+                      class="text-lg bg-input-background border-0 p-0 text-editor-fg font-mono"
+                    />
+                  </template>
+                  <template v-else>
+                    <span class="cursor-pointer" @click="focusName">{{
+                      assetDetailsProps?.name
+                    }}</span>
+                  </template>
+                </div>
               </div>
             </div>
           </div>
 
           <div class="tags flex w-1/4 items-center space-x-2 justify-end overflow-hidden">
-            <template v-if="!isEditMode">
-              <DescriptionItem
-                :value="assetDetailsProps?.type"
-                :className="badgeClass.badgeStyle"
-              />
-            </template>
-            <template v-else>
-              <input
-                v-model="editingType"
-                @keyup.enter="saveTypeEdit"
-                ref="typeInputRef"
-                class="flex-grow inline-block w-full bg-input-background border-0 py-0 text-input-foreground text-xs"
-              />
-            </template>
+            <DescriptionItem :value="assetDetailsProps?.type" :className="badgeClass.badgeStyle" />
             <DescriptionItem
               :value="assetDetailsProps?.pipeline.schedule"
               :className="badgeClass.grayBadge"
@@ -96,6 +72,7 @@
             class="flex w-full"
             @update:assetName="updateAssetName"
             @update:columns="updateColumns"
+            @update:description="updateDescription"
           />
           <div class="flex w-full" v-else-if="parseError">
             <MessageAlert
@@ -117,7 +94,7 @@
 <script setup lang="ts">
 import AssetDetails from "@/components/asset/AssetDetails.vue";
 import { vscode } from "@/utilities/vscode";
-import { ref, onMounted, computed, watch, nextTick, type VNodeRef } from "vue";
+import { ref, onMounted, computed, watch, nextTick } from "vue";
 import { parseAssetDetails, parseEnvironmentList } from "./utilities/helper";
 import { updateValue } from "./utilities/helper";
 import MessageAlert from "@/components/ui/alerts/AlertMessage.vue";
@@ -149,10 +126,6 @@ const data = ref(
 const isBruinInstalled = ref(true); // Tracks if Bruin is installed
 const lastRenderedDocument = ref(""); // Holds the last rendered document
 // New reactive variables for editing
-const editingName = ref("");
-const isEditMode = ref(false);
-const editingType = ref("");
-const nameInputRef = ref<HTMLInputElement | null>(null);
 // Event listener for messages from the VSCode extension
 window.addEventListener("message", (event) => {
   const message = event.data;
@@ -224,63 +197,48 @@ const assetDetailsProps = computed({
   },
 });
 
-const toggleEditMode = () => {
-  isEditMode.value = !isEditMode.value;
+const isEditingName = ref(false);
+const editingName = ref(assetDetailsProps.value?.name || "");
+const nameInput = ref<HTMLInputElement | null>(null);
 
-  if (isEditMode.value) {
-    // Entering edit mode
+const startNameEditing = () => {
+  isEditingName.value = true;
+  editingName.value = assetDetailsProps.value?.name || "";
+};
+
+const stopNameEditing = () => {
+  console.log("Stopping name editing.");
+  if (!editingName.value.trim()) {
     editingName.value = assetDetailsProps.value?.name || "";
-    editingType.value = assetDetailsProps.value?.type || "undefined";
-    nextTick(() => {
-      nameInputRef.value?.focus();
-      nameInputRef.value?.select();
-    });
   }
+  isEditingName.value = false;
 };
 
 const saveNameEdit = () => {
-  if (editingName.value.trim() && editingName.value.trim() !== assetDetailsProps.value?.name) {
+  if (editingName.value.trim() !== assetDetailsProps.value?.name) {
     updateAssetName(editingName.value.trim());
     vscode.postMessage({
       command: "bruin.setAssetDetails",
       payload: {
         ...assetDetailsProps.value,
         name: editingName.value.trim(),
-        type: editingType.value || assetDetailsProps.value?.type,
       },
     });
-    isEditMode.value = false;
-  } else {
-    // If no changes or empty, just exit edit mode
-    isEditMode.value = false;
   }
-};
-const saveTypeEdit = () => {
-  if (editingType.value && editingType.value !== assetDetailsProps.value?.type) {
-    vscode.postMessage({
-      command: "bruin.setAssetDetails",
-      payload: {
-        ...assetDetailsProps.value,
-        name: editingName.value || assetDetailsProps.value?.name,
-        type: editingType.value,
-      },
-    });
-    if (assetDetailsProps.value) {
-      assetDetailsProps.value.type = editingType.value;
-    }
-    isEditMode.value = false;
-  } else {
-    // If no changes, just exit edit mode
-    isEditMode.value = false;
-  }
+  stopNameEditing();
 };
 
-  const openBruinDocumentation = () => {
+const focusName = () => {
+  nextTick(() => {
+    nameInput.value?.focus();
+  });
+};
+const openBruinDocumentation = () => {
   vscode.postMessage({
     command: "bruin.openDocumentationLink",
-    payload: "https://bruin-data.github.io/bruin/"
+    payload: "https://bruin-data.github.io/bruin/",
   });
-  };
+};
 // Computed property for asset columns
 const columnsProps = computed(() => {
   if (!data.value) return [];
@@ -384,6 +342,21 @@ const updateColumns = (newColumns) => {
   columns.value = newColumns;
 };
 
+const updateDescription = (newDescription) => {
+  console.log("Updating description with new data:", newDescription);
+  if (assetDetailsProps.value) {
+    assetDetailsProps.value.description = newDescription;
+    vscode.postMessage({
+      command: "bruin.setAssetDetails",
+      payload: {
+        ...assetDetailsProps.value,
+        name: editingName.value || assetDetailsProps.value?.name,
+        description: newDescription,
+      },
+    });
+  }
+};
+
 // Function to load asset data
 function loadAssetData() {
   console.log("Loading asset data from Bruin.");
@@ -434,4 +407,5 @@ vscode-panels::part(tablist) {
     display: none;
   }
 }
+
 </style>
