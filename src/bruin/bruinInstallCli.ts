@@ -4,12 +4,15 @@ import * as os from "os";
 import { promisify } from "util";
 import { getDefaultBruinExecutablePath } from "../extension/configuration";
 import { compareVersions, createIntegratedTerminal } from "./bruinUtils";
+import * as fs from "fs";
 
 const execAsync = promisify(exec);
+const fsAccessAsync = promisify(fs.access);
 
 export class BruinInstallCLI {
   private platform: string;
-  private scriptPath = "https://raw.githubusercontent.com/bruin-data/bruin/refs/heads/main/install.sh";
+  private scriptPath =
+    "https://raw.githubusercontent.com/bruin-data/bruin/refs/heads/main/install.sh";
 
   constructor() {
     this.platform = os.platform();
@@ -26,7 +29,7 @@ export class BruinInstallCLI {
 
   private async getCommand(isUpdate: boolean): Promise<string> {
     let command = "";
-    if(os.platform() === "win32") {
+    if (os.platform() === "win32") {
       command = "curl -LsSf " + this.scriptPath + " | sh";
     } else {
       command = "curl -LsSL " + this.scriptPath + " | sh";
@@ -43,22 +46,20 @@ export class BruinInstallCLI {
           reject(`Error executing command: ${stderr}`);
           return;
         }
-  
+
         try {
           const output = JSON.parse(stdout.trim());
           const currentVersion = output.version;
           const latestVersion = output.latest;
-  
+
           const isUpToDate = compareVersions(currentVersion, latestVersion);
           resolve(isUpToDate);
         } catch (parseError) {
-          reject('Failed to parse version information');
+          reject("Failed to parse version information");
         }
       });
     });
-  };
-  
-  
+  }
 
   public async installBruinCli(): Promise<void> {
     const installCommand = await this.getCommand(false);
@@ -89,11 +90,25 @@ export class BruinInstallCLI {
     let gitAvailable = false;
     let bruinExecutable = getDefaultBruinExecutablePath();
     try {
-      // Check if Bruin CLI is installed
+      // Check if Bruin CLI is installed by running the --version command
       await execAsync(`${bruinExecutable} --version`);
       installed = true;
-    } catch {
-      installed = false;
+    } catch (error) {
+      // If the --version command fails, check if the executable file exists
+      console.log("Bruin CLI --version command failed:", error);
+      // If the --version command fails, check if the executable file exists
+      try {
+        if (this.platform !== "win32") {
+          // Use 'which' command to find the full path of the executable on Unix-based systems
+          const { stdout } = await execAsync(`which ${bruinExecutable}`);
+          bruinExecutable = stdout.trim();
+        }
+        await fsAccessAsync(bruinExecutable, fs.constants.X_OK);
+        installed = true;
+      } catch (error) {
+        console.log("Error checking Bruin CLI executable permissions:", error);
+        installed = false;
+      }
     }
 
     if (this.platform === "win32") {
