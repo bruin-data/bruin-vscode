@@ -106,10 +106,11 @@ Use the new connections section from `Settings` tab to view, add, or delete conn
 Access the Bruin CLI management tab `Settings` in the side panel for easy installation and updates.
 
 ## Release Notes
-### Latest Release: 0.29.0
-- Allow editing asset name and description in the side panel and add a Bruin documentation button in Settings.
+### Latest Release: 0.29.1
+- Fix CLI Installation Check in Offline Mode 
 
 ### Previous Highlights 
+- **0.29.0**: Allow editing asset name and description in the side panel and add a Bruin documentation button in Settings.
 - **0.28.0**: Added support for displaying custom checks in the UI.
 - **0.27.2**: Fix Error Handling in BruinValidate Class and Add Windows-Specific Validation.
 - **0.27.1**: Resolved the issue with adding new columns in assets by refactoring the accepted_value check structure.
