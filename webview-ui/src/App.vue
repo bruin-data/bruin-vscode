@@ -233,12 +233,7 @@ const focusName = () => {
     nameInput.value?.focus();
   });
 };
-const openBruinDocumentation = () => {
-  vscode.postMessage({
-    command: "bruin.openDocumentationLink",
-    payload: "https://bruin-data.github.io/bruin/",
-  });
-};
+
 // Computed property for asset columns
 const columnsProps = computed(() => {
   if (!data.value) return [];
