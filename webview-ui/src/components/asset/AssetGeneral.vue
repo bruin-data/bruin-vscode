@@ -162,8 +162,7 @@
                   <div class="p-1 bg-editorWidget-bg rounded-sm border border-commandCenter-border">
                     <MenuItem key="run-with-downstream" v-slot="{ active }">
                       <vscode-button
-                        class="block text-editor-fg rounded-sm w-full text-left text-2xs hover:bg-editor-button-hover-bg 
-                        hover:text-editor-button-fg bg-editorWidget-bg"
+                        class="block text-editor-fg rounded-sm w-full text-left text-2xs hover:bg-editor-button-hover-bg hover:text-editor-button-fg bg-editorWidget-bg"
                         @click="runAssetWithDownstream"
                       >
                         Run with downstream
@@ -362,9 +361,7 @@ const selectedEnv = ref<string>("");
 /**
  * Date state
  */
-const timezone = new Date().getTimezoneOffset();
-const today = new Date(Date.now() - timezone * 60000);
-
+const today = new Date(Date.now());
 const startDate = ref(
   new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate() - 1, 0, 0, 0, 0))
     .toISOString()
@@ -376,7 +373,6 @@ const endDate = ref(
     .toISOString()
     .slice(0, -1)
 );
-
 const endDateExclusive = ref("");
 
 watch(

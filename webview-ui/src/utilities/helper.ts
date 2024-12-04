@@ -1,7 +1,6 @@
 import type { CheckboxItems } from "@/types";
 import { DateTime } from "luxon";
 import * as cronParser from "cron-parser";
-
 const isExclusiveChecked = (checkboxesItems: CheckboxItems[]): boolean => {
   return checkboxesItems.some((item) => item.name === "Exclusive-End-Date" && item.checked);
 };
@@ -161,8 +160,9 @@ export const resetStartEndDate = (schedule: string, today: number, startDate: { 
   console.log("start date:", startDate.value, "end date:", endDate.value);
   console.log("today", today, "start time:", startTime, "end time:", endTime);
 
-  startDate.value = new Date(startTime).toISOString().slice(0, -1);
-  endDate.value = new Date(endTime).toISOString().slice(0, -1);
+  startDate.value = DateTime.fromMillis(startTime).toUTC().toISO({ includeMillis: false });
+  endDate.value = DateTime.fromMillis(endTime).toUTC().toISO({ includeMillis: false });
+  
   console.log("start:", startDate.value, "end:", endDate.value);
 };
 
