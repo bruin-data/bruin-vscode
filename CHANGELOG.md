@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.29.0] - [2024-12-04]
+- Allow editing asset name and description in the side panel and add a Bruin documentation button in Settings.
+
 ## [0.28.0] - [2024-11-29]
 - Added support for displaying custom checks in the UI.
 
