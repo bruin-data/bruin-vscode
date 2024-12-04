@@ -13,12 +13,20 @@
           }}
         </p>
       </div>
-      <div class="mt-5">
+      <div class="flex items-center justify-between mt-5">
         <vscode-button
           @click="installOrUpdateBruinCli"
           class="inline-flex items-center rounded-md px-3 py-2 text-lg font-semibold shadow-sm"
         >
           {{ isBruinCliInstalled ? "Update" : "Install" }} Bruin CLI
+        </vscode-button>
+        <vscode-button
+          appearance="icon"
+          @click="openBruinDocumentation"
+          title="Bruin Documentation"
+          class="text-md font-semibold"
+        >
+          <QuestionMarkCircleIcon class="h-5 w-5 text-editor-fg" />
         </vscode-button>
       </div>
     </div>
@@ -28,6 +36,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { vscode } from "@/utilities/vscode";
+import { QuestionMarkCircleIcon } from "@heroicons/vue/20/solid";
 
 const isBruinCliInstalled = ref(false);
 const isWindows = ref(false);
@@ -46,6 +55,12 @@ onMounted(() => {
   });
 });
 
+const openBruinDocumentation = () => {
+  vscode.postMessage({
+    command: "bruin.openDocumentationLink",
+    payload: "https://bruin-data.github.io/bruin/",
+  });
+};
 function checkBruinCliInstallation() {
   vscode.postMessage({ command: "checkBruinCliInstallation" });
 }

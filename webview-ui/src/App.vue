@@ -1,63 +1,87 @@
 <template>
   <div v-if="isBruinInstalled">
-    <div class="">
-      <div class="flex items-center space-x-2 w-full justify-between pt-2">
-        <!-- Name editing -->
-        <div
-          class="flex items-baseline w-3/4 font-md text-editor-fg text-lg font-mono cursor-pointer"
-        >
-          <div class="pipeline-name max-w-[40%] text-xs opacity-50 truncate inline-block">
-            {{ assetDetailsProps?.pipeline.name }}
+    <div class="flex flex-col pt-1">
+      <div class="">
+        <div class="flex items-center space-x-2 w-full justify-between">
+          <!-- Name editing -->
+          <div class="flex items-baseline w-3/4 font-md text-editor-fg text-lg font-mono">
+            <div class="pipeline-name max-w-[40%] text-xs opacity-50 truncate inline-block">
+              {{ assetDetailsProps?.pipeline.name }}
+            </div>
+            <span class="slash opacity-50 text-xs px-0.5">/</span>
+            <div class="flex-grow inline-block">
+              <div class="flex items-center">
+                <div
+                  class="flex-grow font-mono text-lg text-editor-fg"
+                  @mouseenter="startNameEditing"
+                  @mouseleave="stopNameEditing"
+                >
+                  <template v-if="isEditingName">
+                    <input
+                      v-model="editingName"
+                      @blur="saveNameEdit"
+                      @keyup.enter="saveNameEdit"
+                      ref="nameInput"
+                      class="text-lg bg-input-background border-0 p-0 text-editor-fg font-mono"
+                    />
+                  </template>
+                  <template v-else>
+                    <span class="cursor-pointer" @click="focusName">{{
+                      assetDetailsProps?.name
+                    }}</span>
+                  </template>
+                </div>
+              </div>
+            </div>
           </div>
-          <span class="slash opacity-50 text-xs px-0.5">/</span>
-          <div class="flex-grow inline-block">
-            {{ assetDetailsProps?.name }}
+
+          <div class="tags flex w-1/4 items-center space-x-2 justify-end overflow-hidden">
+            <DescriptionItem :value="assetDetailsProps?.type" :className="badgeClass.badgeStyle" />
+            <DescriptionItem
+              :value="assetDetailsProps?.pipeline.schedule"
+              :className="badgeClass.grayBadge"
+              class="xs:flex hidden overflow-hidden truncate"
+            />
           </div>
-        </div>
-        <div class="tags flex w-1/4 items-center space-x-2 justify-end overflow-hidden">
-          <DescriptionItem :value="assetDetailsProps?.type" :className="badgeClass.badgeStyle" />
-          <DescriptionItem
-            :value="assetDetailsProps?.pipeline.schedule"
-            :className="badgeClass.grayBadge"
-            class="xs:flex hidden overflow-hidden truncate"
-          />
         </div>
       </div>
-    </div>
-    <vscode-panels :activeid="`tab-${activeTab}`" aria-label="Tabbed Content" class="pl-0">
-      <vscode-panel-tab
-        v-for="(tab, index) in visibleTabs"
-        :key="`tab-${index}`"
-        :id="`tab-${index}`"
-        @click="activeTab = index"
-      >
-        <div class="flex items-center justify-center">
-          <span>{{ tab.label }}</span>
-        </div>
-      </vscode-panel-tab>
+      <!-- Rest of the existing template remains the same -->
+      <vscode-panels :activeid="`tab-${activeTab}`" aria-label="Tabbed Content" class="pl-0">
+        <vscode-panel-tab
+          v-for="(tab, index) in visibleTabs"
+          :key="`tab-${index}`"
+          :id="`tab-${index}`"
+          @click="activeTab = index"
+        >
+          <div class="flex items-center justify-center">
+            <span>{{ tab.label }}</span>
+          </div>
+        </vscode-panel-tab>
 
-      <vscode-panel-view
-        v-for="(tab, index) in visibleTabs"
-        :key="`view-${index}`"
-        :id="`view-${index}`"
-        v-show="activeTab === index"
-        class="px-0"
-      >
-        <component
-          v-if="tab.props"
-          :is="tab.component"
-          v-bind="tab.props"
-          class="flex w-full"
-          @update:assetName="updateAssetName"
-          @update:columns="updateColumns"
-        />
-        <div class="flex w-full" v-else-if="parseError">
-          <MessageAlert
-            message="This file is either not a Bruin Asset or has no data to display."
+        <vscode-panel-view
+          v-for="(tab, index) in visibleTabs"
+          :key="`view-${index}`"
+          :id="`view-${index}`"
+          v-show="activeTab === index"
+          class="px-0"
+        >
+          <component
+            v-if="tab.props"
+            :is="tab.component"
+            v-bind="tab.props"
+            class="flex w-full"
+            @update:assetName="updateAssetName"
+            @update:columns="updateColumns"
+            @update:description="updateDescription"
           />
-        </div>
-      </vscode-panel-view>
-    </vscode-panels>
+          <div class="flex w-full" v-else-if="parseError">
+            <MessageAlert
+              message="This file is either not a Bruin Asset or has no data to display."
+            />
+          </div>
+        </vscode-panel-view>
+      </vscode-panels>
+    </div>
   </div>
   <div class="flex items-center space-x-2 w-full justify-between pt-2" v-else>
     <BruinSettings
@@ -67,11 +91,10 @@
     />
   </div>
 </template>
-
 <script setup lang="ts">
 import AssetDetails from "@/components/asset/AssetDetails.vue";
 import { vscode } from "@/utilities/vscode";
-import { ref, onMounted, computed, watch } from "vue";
+import { ref, onMounted, computed, watch, nextTick } from "vue";
 import { parseAssetDetails, parseEnvironmentList } from "./utilities/helper";
 import { updateValue } from "./utilities/helper";
 import MessageAlert from "@/components/ui/alerts/AlertMessage.vue";
@@ -82,6 +105,8 @@ import CustomChecks from "@/components/asset/columns/custom-checks/CustomChecks.
 import BruinSettings from "@/components/bruin-settings/BruinSettings.vue";
 import DescriptionItem from "./components/ui/description-item/DescriptionItem.vue";
 import { badgeStyles, defaultBadgeStyle } from "./components/ui/badges/CustomBadgesStyle";
+import { PencilIcon, EyeIcon } from "@heroicons/vue/24/outline";
+import { QuestionMarkCircleIcon } from "@heroicons/vue/24/solid";
 
 const connectionsStore = useConnectionsStore();
 const parseError = ref(); // Holds any parsing errors
@@ -100,7 +125,7 @@ const data = ref(
 );
 const isBruinInstalled = ref(true); // Tracks if Bruin is installed
 const lastRenderedDocument = ref(""); // Holds the last rendered document
-
+// New reactive variables for editing
 // Event listener for messages from the VSCode extension
 window.addEventListener("message", (event) => {
   const message = event.data;
@@ -171,6 +196,43 @@ const assetDetailsProps = computed({
     }
   },
 });
+
+const isEditingName = ref(false);
+const editingName = ref(assetDetailsProps.value?.name || "");
+const nameInput = ref<HTMLInputElement | null>(null);
+
+const startNameEditing = () => {
+  isEditingName.value = true;
+  editingName.value = assetDetailsProps.value?.name || "";
+};
+
+const stopNameEditing = () => {
+  console.log("Stopping name editing.");
+  if (!editingName.value.trim()) {
+    editingName.value = assetDetailsProps.value?.name || "";
+  }
+  isEditingName.value = false;
+};
+
+const saveNameEdit = () => {
+  if (editingName.value.trim() !== assetDetailsProps.value?.name) {
+    updateAssetName(editingName.value.trim());
+    vscode.postMessage({
+      command: "bruin.setAssetDetails",
+      payload: {
+        ...assetDetailsProps.value,
+        name: editingName.value.trim(),
+      },
+    });
+  }
+  stopNameEditing();
+};
+
+const focusName = () => {
+  nextTick(() => {
+    nameInput.value?.focus();
+  });
+};
 
 // Computed property for asset columns
 const columnsProps = computed(() => {
@@ -275,6 +337,21 @@ const updateColumns = (newColumns) => {
   columns.value = newColumns;
 };
 
+const updateDescription = (newDescription) => {
+  console.log("Updating description with new data:", newDescription);
+  if (assetDetailsProps.value) {
+    assetDetailsProps.value.description = newDescription;
+    vscode.postMessage({
+      command: "bruin.setAssetDetails",
+      payload: {
+        ...assetDetailsProps.value,
+        name: editingName.value || assetDetailsProps.value?.name,
+        description: newDescription,
+      },
+    });
+  }
+};
+
 // Function to load asset data
 function loadAssetData() {
   console.log("Loading asset data from Bruin.");
@@ -325,4 +402,5 @@ vscode-panels::part(tablist) {
     display: none;
   }
 }
+
 </style>
