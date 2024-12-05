@@ -2,8 +2,11 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.29.2] - [2024-12-05]
+- Refactored the DateInput component to handle dates in UTC rather than local time.
+
 ## [0.29.1] - [2024-12-04]
-- Fix CLI Installation Check in Offline Mode 
+- Fix CLI Installation Check in Offline Mode.
 
 ## [0.29.0] - [2024-12-04]
 - Allow editing asset name and description in the side panel and add a Bruin documentation button in Settings.
