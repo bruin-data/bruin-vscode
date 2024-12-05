@@ -14,9 +14,7 @@ import {
   processAssetDependencies,
 } from "../utilities/getPipelineLineage";
 import * as pipelineData from "../utilities/pipeline.json";
-import AssetDetails from "../components/asset/AssetDetails.vue";
-import { mount } from '@vue/test-utils'
-import MarkdownIt from "markdown-it";
+
 
 vi.mock("markdown-it");
 
@@ -231,8 +229,8 @@ suite("testing webview", () => {
   test('test reset Start End Date for "hourly" schedule', () => {
     schedule = "hourly";
     resetStartEndDate(schedule, today, startDate, endDate);
-    assert.strictEqual(startDate.value, "2024-07-08T04:00:00.000");
-    assert.strictEqual(endDate.value, "2024-07-08T05:00:00.000");
+    assert.strictEqual(startDate.value, "2024-07-08T04:00:00.000Z");
+    assert.strictEqual(endDate.value, "2024-07-08T05:00:00.000Z");
 
     const endDateExclusive = adjustEndDateForExclusive(endDate.value);
     assert.strictEqual(endDateExclusive, "2024-07-08T04:59:59.999999999Z");
@@ -240,8 +238,8 @@ suite("testing webview", () => {
   test('test reset Start End Date for "daily" schedule', () => {
     schedule = "daily";
     resetStartEndDate(schedule, today, startDate, endDate);
-    assert.strictEqual(startDate.value, "2024-07-07T00:00:00.000");
-    assert.strictEqual(endDate.value, "2024-07-08T00:00:00.000");
+    assert.strictEqual(startDate.value, "2024-07-07T00:00:00.000Z");
+    assert.strictEqual(endDate.value, "2024-07-08T00:00:00.000Z");
 
     const endDateExclusive = adjustEndDateForExclusive(endDate.value);
     assert.strictEqual(endDateExclusive, "2024-07-07T23:59:59.999999999Z");
@@ -250,8 +248,8 @@ suite("testing webview", () => {
   test('test reset Start End Date for "weekly" schedule', () => {
     schedule = "weekly";
     resetStartEndDate(schedule, today, startDate, endDate);
-    assert.strictEqual(startDate.value, "2024-07-01T00:00:00.000");
-    assert.strictEqual(endDate.value, "2024-07-08T00:00:00.000");
+    assert.strictEqual(startDate.value, "2024-07-01T00:00:00.000Z");
+    assert.strictEqual(endDate.value, "2024-07-08T00:00:00.000Z");
 
     const endDateExclusive = adjustEndDateForExclusive(endDate.value);
     assert.strictEqual(endDateExclusive, "2024-07-07T23:59:59.999999999Z");
@@ -260,8 +258,8 @@ suite("testing webview", () => {
   test('test reset Start End Date for "monthly" schedule', () => {
     schedule = "monthly";
     resetStartEndDate(schedule, today, startDate, endDate);
-    assert.strictEqual(startDate.value, "2024-06-01T00:00:00.000");
-    assert.strictEqual(endDate.value, "2024-07-01T00:00:00.000");
+    assert.strictEqual(startDate.value, "2024-06-01T00:00:00.000Z");
+    assert.strictEqual(endDate.value, "2024-07-01T00:00:00.000Z");
 
     const endDateExclusive = adjustEndDateForExclusive(endDate.value);
     assert.strictEqual(endDateExclusive, "2024-06-30T23:59:59.999999999Z");
@@ -270,8 +268,8 @@ suite("testing webview", () => {
   test('test reset Start End Date for "2 17 * * *"', () => {
     schedule = "2 17 * * *";
     resetStartEndDate(schedule, today, startDate, endDate);
-    assert.strictEqual(startDate.value, "2024-07-06T17:02:00.000");
-    assert.strictEqual(endDate.value, "2024-07-07T17:02:00.000");
+    assert.strictEqual(startDate.value, "2024-07-06T17:02:00.000Z");
+    assert.strictEqual(endDate.value, "2024-07-07T17:02:00.000Z");
 
     const endDateExclusive = adjustEndDateForExclusive(endDate.value);
     assert.strictEqual(endDateExclusive, "2024-07-07T17:01:59.999999999Z");
@@ -280,8 +278,8 @@ suite("testing webview", () => {
   test('test reset Start End Date for "30 17 * * *"', () => {
     schedule = "30 17 * * *";
     resetStartEndDate(schedule, today, startDate, endDate);
-    assert.strictEqual(startDate.value, "2024-07-06T17:30:00.000");
-    assert.strictEqual(endDate.value, "2024-07-07T17:30:00.000");
+    assert.strictEqual(startDate.value, "2024-07-06T17:30:00.000Z");
+    assert.strictEqual(endDate.value, "2024-07-07T17:30:00.000Z");
 
     const endDateExclusive = adjustEndDateForExclusive(endDate.value);
     assert.strictEqual(endDateExclusive, "2024-07-07T17:29:59.999999999Z");
@@ -290,8 +288,8 @@ suite("testing webview", () => {
   test('test reset Start End Date for "0 18 * * *"', () => {
     schedule = "0 18 * * *";
     resetStartEndDate(schedule, today, startDate, endDate);
-    assert.strictEqual(startDate.value, "2024-07-06T18:00:00.000");
-    assert.strictEqual(endDate.value, "2024-07-07T18:00:00.000");
+    assert.strictEqual(startDate.value, "2024-07-06T18:00:00.000Z");
+    assert.strictEqual(endDate.value, "2024-07-07T18:00:00.000Z");
 
     const endDateExclusive = adjustEndDateForExclusive(endDate.value);
     assert.strictEqual(endDateExclusive, "2024-07-07T17:59:59.999999999Z");
@@ -300,8 +298,8 @@ suite("testing webview", () => {
   test('test reset Start End Date for "2 * * * *"', () => {
     schedule = "2 * * * *";
     resetStartEndDate(schedule, today, startDate, endDate);
-    assert.strictEqual(startDate.value, "2024-07-08T04:02:00.000");
-    assert.strictEqual(endDate.value, "2024-07-08T05:02:00.000");
+    assert.strictEqual(startDate.value, "2024-07-08T04:02:00.000Z");
+    assert.strictEqual(endDate.value, "2024-07-08T05:02:00.000Z");
 
     const endDateExclusive = adjustEndDateForExclusive(endDate.value);
     assert.strictEqual(endDateExclusive, "2024-07-08T05:01:59.999999999Z");
@@ -310,8 +308,8 @@ suite("testing webview", () => {
   test('test reset Start End Date for "0 19 * 6 *"', () => {
     schedule = "0 19 * 6 *"; // June
     resetStartEndDate(schedule, today, startDate, endDate);
-    assert.strictEqual(startDate.value, "2024-06-29T19:00:00.000");
-    assert.strictEqual(endDate.value, "2024-06-30T19:00:00.000");
+    assert.strictEqual(startDate.value, "2024-06-29T19:00:00.000Z");
+    assert.strictEqual(endDate.value, "2024-06-30T19:00:00.000Z");
 
     const endDateExclusive = adjustEndDateForExclusive(endDate.value);
     assert.strictEqual(endDateExclusive, "2024-06-30T18:59:59.999999999Z");
@@ -320,8 +318,8 @@ suite("testing webview", () => {
   test('test reset Start End Date for "0 20 * * 1-5"', () => {
     schedule = "0 20 * * 1-5"; // Weekdays (Monday to Friday)
     resetStartEndDate(schedule, today, startDate, endDate);
-    assert.strictEqual(startDate.value, "2024-07-04T20:00:00.000");
-    assert.strictEqual(endDate.value, "2024-07-05T20:00:00.000");
+    assert.strictEqual(startDate.value, "2024-07-04T20:00:00.000Z");
+    assert.strictEqual(endDate.value, "2024-07-05T20:00:00.000Z");
 
     const endDateExclusive = adjustEndDateForExclusive(endDate.value);
     assert.strictEqual(endDateExclusive, "2024-07-05T19:59:59.999999999Z");
@@ -330,8 +328,8 @@ suite("testing webview", () => {
   test('test reset Start End Date for "0 20 * * 6,7"', () => {
     schedule = "0 20 * * 6,7"; // Saturday and Sunday
     resetStartEndDate(schedule, today, startDate, endDate);
-    assert.strictEqual(startDate.value, "2024-07-06T20:00:00.000");
-    assert.strictEqual(endDate.value, "2024-07-07T20:00:00.000");
+    assert.strictEqual(startDate.value, "2024-07-06T20:00:00.000Z");
+    assert.strictEqual(endDate.value, "2024-07-07T20:00:00.000Z");
 
     const endDateExclusive = adjustEndDateForExclusive(endDate.value);
     assert.strictEqual(endDateExclusive, "2024-07-07T19:59:59.999999999Z");
@@ -340,8 +338,8 @@ suite("testing webview", () => {
   test('test reset Start End Date for "0 20 10 7 *"', () => {
     schedule = "0 20 10 7 *"; // July 10th
     resetStartEndDate(schedule, today, startDate, endDate);
-    assert.strictEqual(startDate.value, "2022-07-10T20:00:00.000");
-    assert.strictEqual(endDate.value, "2023-07-10T20:00:00.000");
+    assert.strictEqual(startDate.value, "2022-07-10T20:00:00.000Z");
+    assert.strictEqual(endDate.value, "2023-07-10T20:00:00.000Z");
 
     const endDateExclusive = adjustEndDateForExclusive(endDate.value);
     assert.strictEqual(endDateExclusive, "2023-07-10T19:59:59.999999999Z");
