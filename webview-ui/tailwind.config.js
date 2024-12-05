@@ -66,6 +66,7 @@ module.exports = {
       }),
       fontSize: {
         "2xs": ["0.75rem", { lineHeight: "1rem" }],
+        "3xs": ["0.7rem", { lineHeight: "1rem" }],
       },
       colors: {
         "border": "hsl(var(--border))",
