@@ -409,7 +409,27 @@ export class BruinPanel {
           case "bruin.getConnectionsSchema":
             getConnectionsListFromSchema(this._lastRenderedDocumentUri);
             break;
-
+          case "bruinConnections.fileSelected":
+            const fileUri = await vscode.window.showOpenDialog({
+              canSelectFiles: true,
+              canSelectFolders: false,
+              canSelectMany: false,
+              filters: {
+                "serviceAccountFiles": ["json"],
+              },
+            });
+             console.log("Selected file URI", fileUri);
+            if (fileUri && fileUri.length > 0) {
+              const selectedFileUri = fileUri[0];
+              BruinPanel.postMessage("selectedFilePath",{
+                status: "success",
+                message: {
+                  fileName: vscode.workspace.asRelativePath(selectedFileUri),
+                  filePath: selectedFileUri.fsPath,
+                },
+              });
+            }
+            break;
           case "getLastRenderedDocument":
             console.log("Sending last rendered document to webview", this._lastRenderedDocumentUri);
             BruinPanel.postMessage("lastRenderedDocument", {

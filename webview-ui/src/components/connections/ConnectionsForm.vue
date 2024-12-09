@@ -53,6 +53,7 @@ import FormField from "./FormField.vue";
 import { XMarkIcon } from "@heroicons/vue/20/solid";
 import { useConnectionsStore } from "@/store/bruinStore";
 import { generateConnectionConfig } from "./connectionUtility";
+import { vscode } from "@/utilities/vscode";
 const connectionsStore = useConnectionsStore();
 
 const connectionSchema = connectionsStore.connectionsSchema;
@@ -184,14 +185,15 @@ watch(
 );
 
 const handleFileSelected = (file) => {
-  selectedFile.value = file.name; // Use file name
+  selectedFile.value = file; // Use file name
+
   // Clear the service_account_json field if a file is selected
-  if (file) {
-    form.value.service_account_json = "";
-  }
+  form.value.service_account_json = "";
+
   // Clear the error for service_account_json when a file is selected
   validationErrors.value.service_account_json = null;
 };
+
 
 const updateField = (fieldId, value) => {
   form.value[fieldId] = value;
@@ -241,9 +243,10 @@ const submitForm = () => {
       // Special handling for Google Cloud Platform service account
       if (form.value.connection_type === "google_cloud_platform") {
         if (selectedFile.value) {
-          console.log("selected file", selectedFile.value);
-          connectionData.credentials.service_account_file = selectedFile.value;
+          console.log("selected file =====", selectedFile.value);
+          connectionData.credentials.service_account_file = selectedFile.value.path;
         }
+        
         connectionData.credentials[field.id] = form.value[field.id];
       } else {
         // For other connection types, add fields as before
