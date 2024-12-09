@@ -4,7 +4,7 @@
       {{ label }}{{ !required ? " (Optional)" : "" }}
     </label>
     <div class="mt-2 relative">
-      <div class="relative" v-if="id !== 'service_account_json'">
+      <div class="relative" v-if="!service_account.includes(id)">
         <input
           v-if="type === 'text' || type === 'password' || type === 'number'"
           :id="id"
@@ -29,7 +29,7 @@
         </button>
       </div>
 
-      <div v-if="type === 'textarea' && id !== 'service_account_json'" class="flex flex-col">
+      <div v-if="type === 'textarea' && !service_account.includes(id)" class="flex flex-col">
         <textarea
           :id="id"
           :value="internalValue"
@@ -186,7 +186,7 @@ const internalValue = ref(props.modelValue ?? props.defaultValue ?? "");
 const showPassword = ref(false);
 const selectedFile = ref(null);
 const serviceAccountInputMethod = ref("file");
-
+const service_account = ["service_account_json", "service_account_file"];
 const inputType = computed(() => {
   return props.type === "password" ? (showPassword.value ? "text" : "password") : props.type;
 });
@@ -269,12 +269,11 @@ const handleCSVUpload = (event) => {
 const handleFileSelection = (event) => {
   const file = event.target.files[0];
   if (file) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      internalValue.value = e.target.result;
-      emit("update:modelValue", internalValue.value);
-    };
-    reader.readAsText(file);
+    selectedFile.value = file;
+    internalValue.value = file.name;
+    emit("update:modelValue", internalValue.value);
+    emit("fileSelected", file);
+    console.log("Selected file path:", internalValue.value);
   }
 };
 

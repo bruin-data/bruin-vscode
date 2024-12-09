@@ -12,7 +12,7 @@ export const generateConnectionConfig = (schema: any) => {
     const connectionDef = schema.$defs[connectionDefKey];
 if (connectionDef) {
       connectionConfig[type] = Object.keys(connectionDef.properties)
-        .filter((prop) => prop !== 'name') // Exclude the 'name' field
+        .filter((prop) => prop !== 'name' && prop !== 'service_account_file') // Exclude the 'name' field
         .map((prop) => {
           const propDef = connectionDef.properties[prop];
           let inputType = 'text';
