@@ -46,7 +46,7 @@ import DeleteAlert from "@/components/ui/alerts/AlertWithActions.vue";
 import { useConnectionsStore } from "@/store/bruinStore";
 import { vscode } from "@/utilities/vscode";
 import { v4 as uuidv4 } from "uuid";
-import { connect } from "http2";
+
 
 const props = defineProps({
   isBruinInstalled: Boolean,
@@ -159,14 +159,14 @@ const showConnectionForm = (connection = null, duplicate = false) => {
   if (connection) {
     const duplicatedName = duplicate ? `${connection.name} (Copy)` : connection.name;
     if (connection.type === "google_cloud_platform") {
-      console.log("Connection to edit:--------", connection);
+      console.log("Connection to edit:--------", connection.service_account_file);
       connectionToEdit.value = {
         ...connection,
         name: duplicatedName,
         credentials: {
-          ...connection,
-          service_account_json: connection.service_account_json || "",
           service_account_file: connection.service_account_file || "",
+          service_account_json: connection.service_account_json || "",
+          ...connection,
         },
       };
     } else {
@@ -213,6 +213,11 @@ const handleConnectionSubmit = async (connectionData) => {
     const sanitizedConnectionData = JSON.parse(JSON.stringify(connectionData)); // Ensure no circular refs
 
     if (isEditing.value) {
+      if (connectionToEdit.value.type === "google_cloud_platform") {
+        //ensure service_account_file is not overwritten
+        sanitizedConnectionData.credentials.service_account_file =
+          connectionToEdit.value.credentials.service_account_file;
+      }
       await vscode.postMessage({
         command: "bruin.editConnection",
         payload: {
