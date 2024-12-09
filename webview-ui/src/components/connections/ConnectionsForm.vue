@@ -53,7 +53,7 @@ import FormField from "./FormField.vue";
 import { XMarkIcon } from "@heroicons/vue/20/solid";
 import { useConnectionsStore } from "@/store/bruinStore";
 import { generateConnectionConfig } from "./connectionUtility";
-import { vscode } from "@/utilities/vscode";
+
 const connectionsStore = useConnectionsStore();
 
 const connectionSchema = connectionsStore.connectionsSchema;
@@ -154,6 +154,10 @@ watch(
         environment: newConnection.environment || defaultEnvironment.value,
         ...newConnection.credentials,
       };
+      // Set selectedFile if service_account_file is present in credentials
+      if (newConnection.credentials.service_account_file) {
+        selectedFile.value = { path: newConnection.credentials.service_account_file };
+      }
     } else {
       // Reset form when creating a new connection
       form.value = {
@@ -167,6 +171,7 @@ watch(
   },
   { immediate: true, deep: true }
 );
+
 
 watch(
   () => form.value.connection_type,
@@ -226,7 +231,7 @@ const submitForm = () => {
   if (!validateForm()) {
     return;
   }
-
+  
   const connectionData = {
     name: form.value.connection_name,
     type: form.value.connection_type,
