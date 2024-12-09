@@ -4,7 +4,7 @@
       {{ label }}{{ !required ? " (Optional)" : "" }}
     </label>
     <div class="mt-2 relative">
-      <div class="relative" v-if="id !== 'service_account_json'">
+      <div class="relative" v-if="!service_account.includes(id)">
         <input
           v-if="type === 'text' || type === 'password' || type === 'number'"
           :id="id"
@@ -29,7 +29,7 @@
         </button>
       </div>
 
-      <div v-if="type === 'textarea' && id !== 'service_account_json'" class="flex flex-col">
+      <div v-if="type === 'textarea' && !service_account.includes(id)" class="flex flex-col">
         <textarea
           :id="id"
           :value="internalValue"
@@ -56,10 +56,15 @@
         </div>
 
         <div v-if="serviceAccountInputMethod === 'file'" class="flex items-center">
-          <input type="file" ref="fileInput" @change="handleFileSelection" style="display: none" />
+          <input
+            type="file"
+            ref="fileInput"
+            @change="handleFileSelectionMessage"
+            style="display: none"
+          />
           <vscode-button
             appearance="icon"
-            @click="$refs.fileInput.click()"
+            @click="triggerFileSelection"
             class="inline-flex items-center py-1 text-sm font-medium rounded-md"
           >
             <div class="flex items-center">
@@ -103,8 +108,8 @@
           :cols="cols"
         />
         <p class="mt-2 text-sm text-inputPlaceholderForeground">
-            These top three players are set by default. You can also upload your own CSV file.
-          </p>
+          These top three players are set by default. You can also upload your own CSV file.
+        </p>
 
         <div>
           <input type="file" @change="handleCSVUpload" accept=".csv" style="display: none" />
@@ -159,9 +164,9 @@
 
 <script setup>
 import { ChevronDownIcon, EyeIcon, EyeSlashIcon, FolderIcon } from "@heroicons/vue/24/outline";
-import { defineProps, defineEmits, ref, watch, computed } from "vue";
+import { defineProps, defineEmits, ref, watch, computed, onMounted, onUnmounted } from "vue";
 import { formatConnectionName } from "./connectionUtility";
-
+import { vscode } from "@/utilities/vscode";
 const props = defineProps({
   errorMessage: String,
   id: String,
@@ -186,10 +191,16 @@ const internalValue = ref(props.modelValue ?? props.defaultValue ?? "");
 const showPassword = ref(false);
 const selectedFile = ref(null);
 const serviceAccountInputMethod = ref("file");
-
+const service_account = ["service_account_json", "service_account_file"];
 const inputType = computed(() => {
   return props.type === "password" ? (showPassword.value ? "text" : "password") : props.type;
 });
+
+const triggerFileSelection = () => {
+  vscode.postMessage({
+    command: "bruinConnections.fileSelected",
+  });
+};
 
 const displayValue = computed(() => {
   return internalValue.value !== "" ? internalValue.value : props.defaultValue ?? "";
@@ -244,7 +255,7 @@ const updateValue = (event) => {
   emit("update:modelValue", value);
   emit("clearError");
   // Clear the selected file when text is entered in the textarea
-  if (props.id === "service_account_json" && value) {
+  if (props.id === "service_account_json" && value && serviceAccountInputMethod.value === "text") {
     selectedFile.value = null;
   }
 
@@ -266,18 +277,29 @@ const handleCSVUpload = (event) => {
   }
 };
 
-const handleFileSelection = (event) => {
-  const file = event.target.files[0];
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      internalValue.value = e.target.result;
-      emit("update:modelValue", internalValue.value);
-    };
-    reader.readAsText(file);
-  }
-};
+const handleFileSelectionMessage = (event) => {
+  const message = event.data;
 
+  if (message.command === "selectedFilePath") {
+    const payload = message.payload;
+
+    switch (payload.status) {
+      case "success":
+        console.log("File selected successfully", payload);
+        selectedFile.value = {
+          name: payload.message.fileName,
+          path: payload.message.filePath,
+        };
+        internalValue.value = payload.message.fileName;
+        emit("fileSelected", {
+          name: payload.message.fileName,
+          path: payload.message.filePath,
+        });
+        break;
+    }
+  }
+  internalValue.value = "";
+};
 const isValidInput = computed(() => {
   return !!internalValue.value || !!selectedFile.value;
 });
@@ -299,6 +321,16 @@ const handleInputMethodChange = (event) => {
   emit("update:modelValue", "");
   emit("clearError");
 };
+
+// Add event listener when component mounts
+onMounted(() => {
+  window.addEventListener("message", handleFileSelectionMessage);
+});
+
+// Remove event listener when component unmounts to prevent memory leaks
+onUnmounted(() => {
+  window.removeEventListener("message", handleFileSelectionMessage);
+});
 </script>
 
 <style scoped>

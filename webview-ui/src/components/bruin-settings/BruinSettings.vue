@@ -47,6 +47,7 @@ import { useConnectionsStore } from "@/store/bruinStore";
 import { vscode } from "@/utilities/vscode";
 import { v4 as uuidv4 } from "uuid";
 
+
 const props = defineProps({
   isBruinInstalled: Boolean,
   environments: Array,
@@ -92,7 +93,7 @@ const handleMessage = (event) => {
 };
 
 const getConnectionsListFromSchema = (payload) => {
-  console.log("Received connections schema payload:", payload); 
+  console.log("Received connections schema payload:", payload);
   connectionsStore.updateConnectionsSchema(payload.message);
   console.log("Connections schema:", connectionsStore.connectionsSchema);
 };
@@ -157,12 +158,26 @@ const handleConnectionEdited = (payload) => {
 const showConnectionForm = (connection = null, duplicate = false) => {
   if (connection) {
     const duplicatedName = duplicate ? `${connection.name} (Copy)` : connection.name;
-    connectionToEdit.value = {
-      ...connection,
-      name: duplicatedName,
-      // Ensure credentials and other fields are preserved
-      credentials: { ...connection },
-    };
+    if (connection.type === "google_cloud_platform") {
+      console.log("Connection to edit:--------", connection.service_account_file);
+      connectionToEdit.value = {
+        ...connection,
+        name: duplicatedName,
+        credentials: {
+          service_account_file: connection.service_account_file || "",
+          service_account_json: connection.service_account_json || "",
+          ...connection,
+        },
+      };
+    } else {
+      const duplicatedName = duplicate ? `${connection.name} (Copy)` : connection.name;
+      connectionToEdit.value = {
+        ...connection,
+        name: duplicatedName,
+        // Ensure credentials and other fields are preserved
+        credentials: { ...connection },
+      };
+    }
 
     // Set isEditing to true only if not duplicating
     isEditing.value = !duplicate;
@@ -198,6 +213,11 @@ const handleConnectionSubmit = async (connectionData) => {
     const sanitizedConnectionData = JSON.parse(JSON.stringify(connectionData)); // Ensure no circular refs
 
     if (isEditing.value) {
+      if (connectionToEdit.value.type === "google_cloud_platform") {
+        //ensure service_account_file is not overwritten
+        sanitizedConnectionData.credentials.service_account_file =
+          connectionToEdit.value.credentials.service_account_file;
+      }
       await vscode.postMessage({
         command: "bruin.editConnection",
         payload: {

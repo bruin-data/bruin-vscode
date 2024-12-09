@@ -53,6 +53,7 @@ import FormField from "./FormField.vue";
 import { XMarkIcon } from "@heroicons/vue/20/solid";
 import { useConnectionsStore } from "@/store/bruinStore";
 import { generateConnectionConfig } from "./connectionUtility";
+
 const connectionsStore = useConnectionsStore();
 
 const connectionSchema = connectionsStore.connectionsSchema;
@@ -97,7 +98,6 @@ watch(defaultEnvironment, (newDefault) => {
     form.value.environment = newDefault; // Set it only if not already set
   }
 });
-
 
 const validationErrors = ref({});
 const selectedFile = ref(null);
@@ -154,6 +154,10 @@ watch(
         environment: newConnection.environment || defaultEnvironment.value,
         ...newConnection.credentials,
       };
+      // Set selectedFile if service_account_file is present in credentials
+      if (newConnection.credentials.service_account_file) {
+        selectedFile.value = { path: newConnection.credentials.service_account_file };
+      }
     } else {
       // Reset form when creating a new connection
       form.value = {
@@ -169,28 +173,32 @@ watch(
 );
 
 
-watch(() => form.value.connection_type, (newType) => {
-  console.log(connectionConfig, connectionTypes)
-  if (newType) {
-    const config = connectionConfig[newType] || [];
-    config.forEach(field => {
-      if (field.defaultValue !== undefined) {
-        form.value[field.id] = field.defaultValue;
-      }
-    });
-  }
-}, { immediate: true });
-
+watch(
+  () => form.value.connection_type,
+  (newType) => {
+    console.log(connectionConfig, connectionTypes);
+    if (newType) {
+      const config = connectionConfig[newType] || [];
+      config.forEach((field) => {
+        if (field.defaultValue !== undefined) {
+          form.value[field.id] = field.defaultValue;
+        }
+      });
+    }
+  },
+  { immediate: true }
+);
 
 const handleFileSelected = (file) => {
-  selectedFile.value = file;
+  selectedFile.value = file; // Use file name
+
   // Clear the service_account_json field if a file is selected
-  if (file) {
-    form.value.service_account_json = "";
-  }
+  form.value.service_account_json = "";
+
   // Clear the error for service_account_json when a file is selected
   validationErrors.value.service_account_json = null;
 };
+
 
 const updateField = (fieldId, value) => {
   form.value[fieldId] = value;
@@ -237,19 +245,27 @@ const submitForm = () => {
       field.id !== "connection_name" &&
       field.id !== "environment"
     ) {
-      connectionData.credentials[field.id] = form.value[field.id];
+      // Special handling for Google Cloud Platform service account
+      if (form.value.connection_type === "google_cloud_platform") {
+        if (selectedFile.value) {
+          console.log("selected file =====", selectedFile.value);
+          connectionData.credentials.service_account_file = selectedFile.value.path;
+        }
+        
+        connectionData.credentials[field.id] = form.value[field.id];
+      } else {
+        // For other connection types, add fields as before
+        connectionData.credentials[field.id] = form.value[field.id];
+      }
     }
   });
 
-  // Handle the file upload for service_account_json
-  if (selectedFile.value && form.value.connection_type === "google_cloud_platform") {
-    connectionData.credentials.service_account_file = selectedFile.value.path;
-  }
+  console.log("============connection credentials============");
+  console.log(connectionData.credentials);
 
   emit("submit", connectionData);
 };
 </script>
-
 <style scoped>
 vscode-button::part(control) {
   border: none;
