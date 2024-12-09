@@ -46,6 +46,7 @@ import DeleteAlert from "@/components/ui/alerts/AlertWithActions.vue";
 import { useConnectionsStore } from "@/store/bruinStore";
 import { vscode } from "@/utilities/vscode";
 import { v4 as uuidv4 } from "uuid";
+import { connect } from "http2";
 
 const props = defineProps({
   isBruinInstalled: Boolean,
@@ -92,7 +93,7 @@ const handleMessage = (event) => {
 };
 
 const getConnectionsListFromSchema = (payload) => {
-  console.log("Received connections schema payload:", payload); 
+  console.log("Received connections schema payload:", payload);
   connectionsStore.updateConnectionsSchema(payload.message);
   console.log("Connections schema:", connectionsStore.connectionsSchema);
 };
@@ -157,12 +158,26 @@ const handleConnectionEdited = (payload) => {
 const showConnectionForm = (connection = null, duplicate = false) => {
   if (connection) {
     const duplicatedName = duplicate ? `${connection.name} (Copy)` : connection.name;
-    connectionToEdit.value = {
-      ...connection,
-      name: duplicatedName,
-      // Ensure credentials and other fields are preserved
-      credentials: { ...connection },
-    };
+    if (connection.type === "google_cloud_platform") {
+      console.log("Connection to edit:--------", connection);
+      connectionToEdit.value = {
+        ...connection,
+        name: duplicatedName,
+        credentials: {
+          ...connection,
+          service_account_json: connection.service_account_json || "",
+          service_account_file: connection.service_account_file || "",
+        },
+      };
+    } else {
+      const duplicatedName = duplicate ? `${connection.name} (Copy)` : connection.name;
+      connectionToEdit.value = {
+        ...connection,
+        name: duplicatedName,
+        // Ensure credentials and other fields are preserved
+        credentials: { ...connection },
+      };
+    }
 
     // Set isEditing to true only if not duplicating
     isEditing.value = !duplicate;

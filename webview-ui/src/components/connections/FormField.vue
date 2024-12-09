@@ -255,7 +255,7 @@ const updateValue = (event) => {
   emit("update:modelValue", value);
   emit("clearError");
   // Clear the selected file when text is entered in the textarea
-  if (props.id === "service_account_json" && value) {
+  if (props.id === "service_account_json" && value && serviceAccountInputMethod.value === "text") {
     selectedFile.value = null;
   }
 
@@ -299,7 +299,6 @@ const handleFileSelectionMessage = (event) => {
     }
   }
   internalValue.value = "";
-
 };
 const isValidInput = computed(() => {
   return !!internalValue.value || !!selectedFile.value;

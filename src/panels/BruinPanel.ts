@@ -439,6 +439,7 @@ export class BruinPanel {
             break;
 
           case "bruin.editConnection":
+            
             const { oldConnection, newConnection } = message.payload;
             try {
               // Delete the old connection

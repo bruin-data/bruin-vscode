@@ -231,7 +231,7 @@ const submitForm = () => {
   if (!validateForm()) {
     return;
   }
-  
+
   const connectionData = {
     name: form.value.connection_name,
     type: form.value.connection_type,
