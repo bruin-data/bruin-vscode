@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.29.3] - [2024-12-09]
+- Hid the file input when selecting `service_account_json` for GCP connections.
+
 ## [0.29.2] - [2024-12-05]
 - Refactored the DateInput component to handle dates in UTC rather than local time.
 
