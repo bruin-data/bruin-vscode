@@ -106,10 +106,11 @@ Use the new connections section from `Settings` tab to view, add, or delete conn
 Access the Bruin CLI management tab `Settings` in the side panel for easy installation and updates.
 
 ## Release Notes
-### Latest Release: 0.29.3
-- Hid the file input when selecting `service_account_json` for GCP connections.
+### Latest Release: 0.29.4
+- Improved layout and styling for inputs and buttons for better responsiveness and consistency.
 
 ### Previous Highlights 
+- **0.29.3**: Hid the file input when selecting `service_account_json` for GCP connections.
 - **0.29.2**: Refactored the DateInput component to handle dates in UTC rather than local time.
 - **0.29.1**: Fix CLI Installation Check in Offline Mode 
 - **0.29.0**: Allow editing asset name and description in the side panel and add a Bruin documentation button in Settings.

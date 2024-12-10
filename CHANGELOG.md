@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.29.4] - [2024-12-10]
+- Improved layout and styling for inputs and buttons for better responsiveness and consistency.
+
 ## [0.29.3] - [2024-12-09]
 - Hid the file input when selecting `service_account_json` for GCP connections.
 
