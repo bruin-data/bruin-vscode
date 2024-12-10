@@ -9,12 +9,14 @@
               {{ assetDetailsProps?.pipeline.name }}
             </div>
             <span class="slash opacity-50 text-xs px-0.5">/</span>
-            <div class="flex-grow inline-block">
-              <div class="flex items-center">
+            <div class="flex-grow inline-block w-full">
+              <div class="flex items-center w-full">
                 <div
-                  class="flex-grow font-mono text-lg text-editor-fg"
+                  class="flex-grow font-mono text-lg text-editor-fg w-full"
+                  :class="{ 'cursor-pointer': !isEditingName }"
                   @mouseenter="startNameEditing"
                   @mouseleave="stopNameEditing"
+                  @click="focusName"
                 >
                   <template v-if="isEditingName">
                     <input
@@ -22,13 +24,13 @@
                       @blur="saveNameEdit"
                       @keyup.enter="saveNameEdit"
                       ref="nameInput"
-                      class="text-lg bg-input-background border-0 p-0 text-editor-fg font-mono"
+                      class="w-full text-lg bg-input-background border-0 p-0 text-editor-fg font-mono truncate"
                     />
                   </template>
                   <template v-else>
-                    <span class="cursor-pointer" @click="focusName">{{
-                      assetDetailsProps?.name
-                    }}</span>
+                    <span class="block w-full truncate">
+                      {{ assetDetailsProps?.name }}
+                    </span>
                   </template>
                 </div>
               </div>
@@ -395,12 +397,27 @@ vscode-panels::part(tablist) {
   padding-left: 0 !important;
 }
 /* Media query to hide the pipeline name, slash, and tags when the panel is too small */
-@media (max-width: 320px) {
+@media (max-width: 480px) {
   .pipeline-name,
   .slash,
   .tags {
     display: none;
   }
+
+  .flex-grow {
+    @apply w-full;
+  }
+
+  .flex-grow span,
+  .flex-grow input {
+    @apply block w-full truncate;
+  }
 }
 
+@media (max-width: 320px) {
+  .flex-grow span,
+  .flex-grow input {
+    @apply text-sm;
+  }
+}
 </style>

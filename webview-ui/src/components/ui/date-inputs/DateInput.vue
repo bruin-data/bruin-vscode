@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col w-full xs:w-32">
+  <div class="flex flex-col w-full xs:w-36">
     <label class="text-xs mb-1 font-medium">{{ label }}
       <span class="text-3xs italic font-mono opacity-65 text-editor-fg">(UTC)</span>
     </label>
@@ -37,9 +37,8 @@ const utcModelValue = computed(() => {
 const updateValue = (event: Event) => {
   const input = event.target as HTMLInputElement;
   // Treat the input value as UTC without converting
-  const utcDt = DateTime.fromISO(input.value, { zone: "utc" });
-  // Emit the UTC datetime in ISO format
-  emit("update:modelValue", utcDt.toISO());
+  const dt = DateTime.fromFormat(input.value, "yyyy-MM-dd'T'HH:mm", { zone: "utc" });
+  emit("update:modelValue", dt.toISO());
 };
 </script>
 
