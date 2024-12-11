@@ -146,12 +146,13 @@ export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposab
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta http-equiv="Content-Security-Policy" content="
-          default-src 'none';
-          img-src ${webview.cspSource} https:;
-          script-src 'nonce-${nonce}' ${webview.cspSource};
-          style-src ${webview.cspSource} 'unsafe-inline';
-          font-src ${webview.cspSource};
-        ">        
+            default-src 'none';
+            img-src ${webview.cspSource} https:;
+            script-src 'nonce-${nonce}' ${webview.cspSource} https://cdn.rudderlabs.com/ https://cdn.rudderstack.com/ https://api.rudderstack.com;
+            connect-src https://api.rudderstack.com https://getbruinbumlky.dataplane.rudderstack.com;
+            style-src ${webview.cspSource} 'unsafe-inline';
+            font-src ${webview.cspSource};
+         ">      
         <link rel="stylesheet" href="${stylesUri}">
         <link rel="stylesheet" href="${stylesUriCustomElt}">
         <link rel="stylesheet" href="${stylesUriIndex}">
