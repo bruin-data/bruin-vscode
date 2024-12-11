@@ -107,9 +107,9 @@ import CustomChecks from "@/components/asset/columns/custom-checks/CustomChecks.
 import BruinSettings from "@/components/bruin-settings/BruinSettings.vue";
 import DescriptionItem from "./components/ui/description-item/DescriptionItem.vue";
 import { badgeStyles, defaultBadgeStyle } from "./components/ui/badges/CustomBadgesStyle";
+import RudderStackService from "./services/RudderStackService";
 
-const instance = getCurrentInstance();
-const rudderStack = instance?.appContext.config.globalProperties.$rudderStack;
+const rudderStack = RudderStackService.getInstance();
 const connectionsStore = useConnectionsStore();
 const parseError = ref(); // Holds any parsing errors
 const environments = ref<EnvironmentsList | null>(null); // Holds the list of environments
@@ -217,7 +217,7 @@ const stopNameEditing = () => {
 };
 
 const saveNameEdit = () => {
-  rudderStack.track("Asset Name Updated", {
+  rudderStack.trackEvent("Asset Name Updated", {
     assetName: editingName.value.trim(),
   });
   if (editingName.value.trim() !== assetDetailsProps.value?.name) {
@@ -321,7 +321,7 @@ onMounted(() => {
 
   // Track page view
   try {
-    rudderStack.page("Asset Details Page", {
+    rudderStack.trackPageView("Asset Details Page", {
       path: window.location.pathname,
       url: window.location.href,
     });
@@ -330,9 +330,17 @@ onMounted(() => {
   }
 
   // Track a custom event
-  rudderStack.track("Asset Viewed", {
-    assetName: "Example Asset",
-    assetType: "Data Pipeline",
+  rudderStack.trackEvent("Asset Viewed", {
+    assetName: assetDetailsProps.value?.name,
+    assetType: assetDetailsProps.value?.type,
+  });
+
+  rudderStack.trackEvent("Asset Parsing Status", {
+    parseError: parseError.value ? `Error ${parseError.value}` : "Success",
+  });
+
+  rudderStack.trackEvent("Loading environments list", {
+    environments: environmentsList.value,
   });
 
   console.log("Custom event tracked.");
