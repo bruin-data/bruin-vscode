@@ -14,9 +14,9 @@ class RudderStackService {
           All: true,
         },
         storage: {
-          type: 'localStorage'
+          type: "localStorage",
         },
-        logLevel: 'DEBUG'
+        logLevel: 'DEBUG',
       });
       console.log("RudderStack initialized:", this.rudderAnalytics);
     } catch (error) {

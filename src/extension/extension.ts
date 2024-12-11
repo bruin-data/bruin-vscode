@@ -22,17 +22,17 @@ import { installOrUpdateCli } from "./commands/updateBruinCLI";
 console.log("RudderStack package:", Analytics);
 console.log("RudderStack keys:", Object.keys(Analytics));
 
-const WRITE_KEY="2q3zybBJRd9ErKIpkTRSdIahQ0C";
-const DATA_PLANE_URL="https://getbruinbumlky.dataplane.rudderstack.com";
+const WRITE_KEY = "2q3zybBJRd9ErKIpkTRSdIahQ0C";
+const DATA_PLANE_URL = "https://getbruinbumlky.dataplane.rudderstack.com";
 export async function activate(context: ExtensionContext) {
-
   try {
     // Alternative initialization approach
     const client = new Analytics(WRITE_KEY, {
       dataPlaneUrl: DATA_PLANE_URL,
-      flushAt: 1,
-      flushInterval: 1000,
       logLevel: "debug",
+      storage: {
+        type: "localStorage",
+      },
     });
 
     client.track({
@@ -55,7 +55,9 @@ export async function activate(context: ExtensionContext) {
     console.debug("RudderStack client initialized successfully");
   } catch (error) {
     console.error("RudderStack initialization failed:", error);
-    vscode.window.showErrorMessage(`RudderStack initialization error: ${error instanceof Error ? error.message : String(error)}`);
+    vscode.window.showErrorMessage(
+      `RudderStack initialization error: ${error instanceof Error ? error.message : String(error)}`
+    );
   }
 
   const config = workspace.getConfiguration("bruin");
@@ -121,4 +123,3 @@ export async function activate(context: ExtensionContext) {
 
   console.debug("Bruin activated successfully");
 }
-

@@ -132,28 +132,42 @@ const lastRenderedDocument = ref(""); // Holds the last rendered document
 window.addEventListener("message", (event) => {
   const message = event.data;
   console.log("Received message from VSCode extension:", message); // Log received messages
-  switch (message.command) {
-    case "init":
-      lastRenderedDocument.value = message.lastRenderedDocument; // Update last rendered document
-      console.log("Last Rendered Document:", lastRenderedDocument.value);
-      break;
-    case "environments-list-message":
-      environments.value = updateValue(message, "success");
-      connectionsStore.setDefaultEnvironment(selectedEnvironment.value); // Set the default environment in the store
-      console.log("Updated environments list:", environments.value);
-      break;
-    case "parse-message":
-      parseError.value = updateValue(message, "error");
-      if (!parseError.value) {
-        data.value = updateValue(message, "success"); // Update asset data on success
-        console.log("Updated asset data:", data.value);
-      }
-      lastRenderedDocument.value = updateValue(message, "success");
-      break;
-    case "bruinCliInstallationStatus":
-      isBruinInstalled.value = message.installed; // Update installation status
-      console.log("Bruin installation status updated:", isBruinInstalled.value);
-      break;
+  try {
+    switch (message.command) {
+      case "init":
+        lastRenderedDocument.value = message.lastRenderedDocument; // Update last rendered document
+        console.log("Last Rendered Document:", lastRenderedDocument.value);
+        break;
+      case "environments-list-message":
+        environments.value = updateValue(message, "success");
+        connectionsStore.setDefaultEnvironment(selectedEnvironment.value); // Set the default environment in the store
+        console.log("Updated environments list:", environments.value);
+        break;
+      case "parse-message":
+        parseError.value = updateValue(message, "error");
+        if (!parseError.value) {
+          data.value = updateValue(message, "success"); // Update asset data on success
+          console.log("Updated asset data:", data.value);
+        }
+        lastRenderedDocument.value = updateValue(message, "success");
+
+        // Track asset parsing status
+        rudderStack.trackEvent("Asset Parsing Status", {
+          parseError: parseError.value ? `Error ${parseError.value}` : "No Error Found",
+        });
+
+        break;
+      case "bruinCliInstallationStatus":
+        isBruinInstalled.value = message.installed; // Update installation status
+        console.log("Bruin installation status updated:", isBruinInstalled.value);
+        break;
+    }
+  } catch (error) {
+    console.error("Error handling message:", error);
+    rudderStack.trackEvent("Error Handling Message", {
+      errorMessage: (error as Error).message,
+      message: message,
+    });
   }
 });
 
@@ -331,16 +345,17 @@ onMounted(() => {
 
   // Track a custom event
   rudderStack.trackEvent("Asset Viewed", {
-    assetName: assetDetailsProps.value?.name,
     assetType: assetDetailsProps.value?.type,
   });
 
-  rudderStack.trackEvent("Asset Parsing Status", {
-    parseError: parseError.value ? `Error ${parseError.value}` : "Success",
+  rudderStack.trackEvent("Loading environments list onMounted", {
+    environments: environmentsList.value,
   });
 
-  rudderStack.trackEvent("Loading environments list", {
-    environments: environmentsList.value,
+  // Track custom checks interactions
+  rudderStack.trackEvent("Custom Checks Interaction", {
+    assetName: assetDetailsProps.value?.name,
+    customChecksCount: customChecksProps.value.length,
   });
 
   console.log("Custom event tracked.");
@@ -358,10 +373,21 @@ watch(
   (newColumns) => {
     console.log("Columns props changed. Updating columns:", newColumns);
     columns.value = newColumns;
+    // Track column modifications
+    rudderStack.trackEvent("Columns Modified", {
+      columnCount: columns.value.length,
+    });
   },
   { deep: true }
 );
 
+watch(activeTab, (newTab, oldTab) => {
+  rudderStack.trackEvent("Tab Switched", {
+    fromTab: tabs.value[oldTab]?.label,
+    toTab: tabs.value[newTab]?.label,
+    assetName: assetDetailsProps.value?.name,
+  });
+});
 // Function to update columns
 const updateColumns = (newColumns) => {
   console.log("Updating columns with new data:", newColumns);
