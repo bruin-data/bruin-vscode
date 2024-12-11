@@ -96,7 +96,7 @@
 <script setup lang="ts">
 import AssetDetails from "@/components/asset/AssetDetails.vue";
 import { vscode } from "@/utilities/vscode";
-import { ref, onMounted, computed, watch, nextTick } from "vue";
+import { ref, onMounted, computed, watch, nextTick, getCurrentInstance } from "vue";
 import { parseAssetDetails, parseEnvironmentList } from "./utilities/helper";
 import { updateValue } from "./utilities/helper";
 import MessageAlert from "@/components/ui/alerts/AlertMessage.vue";
@@ -107,9 +107,9 @@ import CustomChecks from "@/components/asset/columns/custom-checks/CustomChecks.
 import BruinSettings from "@/components/bruin-settings/BruinSettings.vue";
 import DescriptionItem from "./components/ui/description-item/DescriptionItem.vue";
 import { badgeStyles, defaultBadgeStyle } from "./components/ui/badges/CustomBadgesStyle";
-import { PencilIcon, EyeIcon } from "@heroicons/vue/24/outline";
-import { QuestionMarkCircleIcon } from "@heroicons/vue/24/solid";
 
+const instance = getCurrentInstance();
+const rudderStack = instance?.appContext.config.globalProperties.$rudderStack;
 const connectionsStore = useConnectionsStore();
 const parseError = ref(); // Holds any parsing errors
 const environments = ref<EnvironmentsList | null>(null); // Holds the list of environments
@@ -217,6 +217,9 @@ const stopNameEditing = () => {
 };
 
 const saveNameEdit = () => {
+  rudderStack.track("Asset Name Updated", {
+    assetName: editingName.value.trim(),
+  });
   if (editingName.value.trim() !== assetDetailsProps.value?.name) {
     updateAssetName(editingName.value.trim());
     vscode.postMessage({
@@ -315,6 +318,24 @@ onMounted(() => {
   loadEnvironmentsList();
   checkBruinCliInstallation();
   vscode.postMessage({ command: "getLastRenderedDocument" });
+
+  // Track page view
+  try {
+    rudderStack.page("Asset Details Page", {
+      path: window.location.pathname,
+      url: window.location.href,
+    });
+  } catch (error) {
+    console.error("RudderStack page tracking error:", error);
+  }
+
+  // Track a custom event
+  rudderStack.track("Asset Viewed", {
+    assetName: "Example Asset",
+    assetType: "Data Pipeline",
+  });
+
+  console.log("Custom event tracked.");
 });
 
 // Function to check if Bruin CLI is installed
