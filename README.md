@@ -106,10 +106,11 @@ Use the new connections section from `Settings` tab to view, add, or delete conn
 Access the Bruin CLI management tab `Settings` in the side panel for easy installation and updates.
 
 ## Release Notes
-### Latest Release: 0.30.0
-- Integrated RudderStack analytics to monitor extension performance, with support for user-controlled telemetry preferences.
+### Latest Release: 0.30.1
+- Enabled telemetry by default to improve performance monitoring and user experience.
 
 ### Previous Highlights 
+- **0.30.0**: Integrated RudderStack analytics to monitor extension performance, with support for user-controlled telemetry preferences.
 - **0.29.4**: Improved layout and styling for inputs and buttons for better responsiveness and consistency.
 - **0.29.3**: Hid the file input when selecting `service_account_json` for GCP connections.
 - **0.29.2**: Refactored the DateInput component to handle dates in UTC rather than local time.
