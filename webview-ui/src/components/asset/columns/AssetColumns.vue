@@ -126,6 +126,37 @@
                   />
                 </div>
               </div>
+              <div
+                v-if="showAcceptedValuesInput && editingIndex === index"
+                class="col-span-full mt-2 px-2"
+              >
+                <div class="flex items-center space-x-2">
+                  <input
+                    v-model="newAcceptedValuesInput"
+                    @keyup.enter="addAcceptedValue"
+                    placeholder="Enter value and press Enter"
+                    class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs border border-commandCenter-border rounded"
+                  />
+                  <div class="flex flex-wrap gap-1">
+                    <vscode-badge
+                      v-for="(value, valueIndex) in editingColumn.checks.find(
+                        (c) => c.name === 'accepted_values'
+                      )?.value || []"
+                      :key="valueIndex"
+                      class="inline-flex items-center"
+                    >
+                      <span class="truncate mr-1">{{ value }}</span>
+                      <vscode-button
+                        appearance="icon"
+                        @click="removeAcceptedValue(valueIndex)"
+                        class="flex items-center"
+                      >
+                        <XMarkIcon class="h-3 w-3 pr-0" />
+                      </vscode-button>
+                    </vscode-badge>
+                  </div>
+                </div>
+              </div>
             </template>
             <template v-else>
               <div class="flex flex-wrap gap-1">
@@ -213,6 +244,8 @@ const editingIndex = ref(null);
 const editingColumn = ref({});
 const showPatternInput = ref(false);
 const newPatternValue = ref("");
+const showAcceptedValuesInput = ref(false);
+const newAcceptedValuesInput = ref("");
 const updatePatternValue = () => {
   const patternCheck = editingColumn.value.checks.find((check) => check.name === "pattern");
   if (patternCheck) {
@@ -240,7 +273,6 @@ const confirmPatternInput = () => {
   // Hide the input and reset the value
   showPatternInput.value = false;
   newPatternValue.value = "";
-
 };
 
 const addColumn = () => {
@@ -281,6 +313,7 @@ const saveChanges = (index) => {
   }));
 
   const payload = JSON.parse(JSON.stringify({ columns: allColumnsData }));
+  showAcceptedValuesInput.value = false;
 
   // Log the payload that will be sent
   console.log("Payload to be sent on save columns:", payload);
@@ -331,7 +364,7 @@ const getActiveChecks = computed(() => (column) => {
 
 const availableChecks = computed(() => (column) => {
   const activeCheckNames = getActiveChecks.value(column).map((check) => check.name);
-  const allChecks = ["unique", "not_null", "positive", "negative", "non_negative", "pattern"];
+  const allChecks = ["unique", "not_null", "positive", "negative", "non_negative", "pattern", "accepted_values"];
   return allChecks.filter((check) => !activeCheckNames.includes(check));
 });
 
@@ -339,6 +372,25 @@ const addCheck = (checkName) => {
   if (checkName === "pattern") {
     showPatternInput.value = true;
     newPatternValue.value = ""; // Reset input when adding pattern check
+    showAddCheckDropdown.value = null;
+    return;
+  }
+  if (checkName === "accepted_values") {
+    // Find existing accepted_values check or create a new one
+    const existingAcceptedValuesCheck = editingColumn.value.checks.find(
+      (check) => check.name === "accepted_values"
+    );
+
+    if (!existingAcceptedValuesCheck) {
+      const newCheck = {
+        id: uuidv4(),
+        name: "accepted_values",
+        value: [], // Initialize as an empty array
+        blocking: true,
+      };
+      editingColumn.value.checks.push(newCheck);
+    }
+    showAcceptedValuesInput.value = true;
     showAddCheckDropdown.value = null;
     return;
   }
@@ -358,7 +410,6 @@ const removeCheck = (checkName) => {
   editingColumn.value.checks = editingColumn.value.checks.filter(
     (check) => check.name !== checkName
   );
-  //saveChanges(editingIndex.value);
   emitUpdateColumns();
 };
 
@@ -376,6 +427,37 @@ const toggleAddCheckDropdown = (index) => {
         dropdown.scrollIntoView({ block: "nearest", inline: "nearest" });
       }
     });
+  }
+};
+
+const addAcceptedValue = () => {
+  // Find the accepted_values check
+  const acceptedValuesCheck = editingColumn.value.checks.find(
+    check => check.name === "accepted_values"
+  );
+  
+  if (acceptedValuesCheck) {
+    // Split input by comma, trim whitespace, and remove duplicates
+    const newValues = newAcceptedValuesInput.value
+      .split(',')
+      .map(val => val.trim())
+      .filter(val => val && !acceptedValuesCheck.value.includes(val));
+    
+    // Add new values
+    acceptedValuesCheck.value.push(...newValues);
+    
+    // Reset input
+    newAcceptedValuesInput.value = "";
+  }
+};
+
+const removeAcceptedValue = (index) => {
+  const acceptedValuesCheck = editingColumn.value.checks.find(
+    check => check.name === "accepted_values"
+  );
+  
+  if (acceptedValuesCheck) {
+    acceptedValuesCheck.value.splice(index, 1);
   }
 };
 
