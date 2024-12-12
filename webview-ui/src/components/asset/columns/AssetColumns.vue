@@ -175,13 +175,6 @@
       </div>
     </div>
 
-    <!-- Notification -->
-    <!-- <div
-      v-if="notification"
-      class="fixed bottom-4 right-1 left-1 bg-editorWidget-bg border border-errorForeground rounded shadow-lg z-50 p-2"
-    >
-      {{ notification }}
-    </div> -->
     <ErrorAlert :errorMessage="error" class="mb-4" @error-close="closeError">
     </ErrorAlert>
   </div>
@@ -355,19 +348,12 @@ const closeError = () =>{
   error.value = null;
 }
 
-const showNotification = (message) => {
-  notification.value = message;
-};
-
-const closeNotification = () =>{
-  notification.value = null;
-}
 const getCheckTooltip = (check, column) => {
   if (check.name === "accepted_values") {
-    const values = check.value.values;
-    return `Accepted values: ${Array.isArray(values) ? values.join(", ") : "Not specified"}`;
+    const values = check.value;
+    return `Accepted values: ${Array.isArray(values) ? values.join("\n ") : "Not specified"}`;
   } else if (check.name === "pattern") {
-    return `Pattern: ${check.value.pattern || "Not specified"}`;
+    return `Pattern: ${check.value || "Not specified"}`;
   }
   return "";
 };
