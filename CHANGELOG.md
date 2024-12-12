@@ -1,6 +1,8 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
+## [0.30.2] - [2024-12-12]
+- Added the ability to add pattern checks with input values.
 
 ## [0.30.1] - [2024-12-12]
 - Enabled telemetry by default to improve performance monitoring and user experience.
