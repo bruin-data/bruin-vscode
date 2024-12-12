@@ -96,7 +96,7 @@
 <script setup lang="ts">
 import AssetDetails from "@/components/asset/AssetDetails.vue";
 import { vscode } from "@/utilities/vscode";
-import { ref, onMounted, computed, watch, nextTick } from "vue";
+import { ref, onMounted, computed, watch, nextTick, getCurrentInstance } from "vue";
 import { parseAssetDetails, parseEnvironmentList } from "./utilities/helper";
 import { updateValue } from "./utilities/helper";
 import MessageAlert from "@/components/ui/alerts/AlertMessage.vue";
@@ -107,9 +107,9 @@ import CustomChecks from "@/components/asset/columns/custom-checks/CustomChecks.
 import BruinSettings from "@/components/bruin-settings/BruinSettings.vue";
 import DescriptionItem from "./components/ui/description-item/DescriptionItem.vue";
 import { badgeStyles, defaultBadgeStyle } from "./components/ui/badges/CustomBadgesStyle";
-import { PencilIcon, EyeIcon } from "@heroicons/vue/24/outline";
-import { QuestionMarkCircleIcon } from "@heroicons/vue/24/solid";
+import RudderStackService from "./services/RudderStackService";
 
+const rudderStack = RudderStackService.getInstance();
 const connectionsStore = useConnectionsStore();
 const parseError = ref(); // Holds any parsing errors
 const environments = ref<EnvironmentsList | null>(null); // Holds the list of environments
@@ -132,28 +132,42 @@ const lastRenderedDocument = ref(""); // Holds the last rendered document
 window.addEventListener("message", (event) => {
   const message = event.data;
   console.log("Received message from VSCode extension:", message); // Log received messages
-  switch (message.command) {
-    case "init":
-      lastRenderedDocument.value = message.lastRenderedDocument; // Update last rendered document
-      console.log("Last Rendered Document:", lastRenderedDocument.value);
-      break;
-    case "environments-list-message":
-      environments.value = updateValue(message, "success");
-      connectionsStore.setDefaultEnvironment(selectedEnvironment.value); // Set the default environment in the store
-      console.log("Updated environments list:", environments.value);
-      break;
-    case "parse-message":
-      parseError.value = updateValue(message, "error");
-      if (!parseError.value) {
-        data.value = updateValue(message, "success"); // Update asset data on success
-        console.log("Updated asset data:", data.value);
-      }
-      lastRenderedDocument.value = updateValue(message, "success");
-      break;
-    case "bruinCliInstallationStatus":
-      isBruinInstalled.value = message.installed; // Update installation status
-      console.log("Bruin installation status updated:", isBruinInstalled.value);
-      break;
+  try {
+    switch (message.command) {
+      case "init":
+        lastRenderedDocument.value = message.lastRenderedDocument; // Update last rendered document
+        console.log("Last Rendered Document:", lastRenderedDocument.value);
+        break;
+      case "environments-list-message":
+        environments.value = updateValue(message, "success");
+        connectionsStore.setDefaultEnvironment(selectedEnvironment.value); // Set the default environment in the store
+        console.log("Updated environments list:", environments.value);
+        break;
+      case "parse-message":
+        parseError.value = updateValue(message, "error");
+        if (!parseError.value) {
+          data.value = updateValue(message, "success"); // Update asset data on success
+          console.log("Updated asset data:", data.value);
+        }
+        lastRenderedDocument.value = updateValue(message, "success");
+
+        // Track asset parsing status
+        rudderStack.trackEvent("Asset Parsing Status", {
+          parseError: parseError.value ? `Error ${parseError.value}` : "No Error Found",
+        });
+
+        break;
+      case "bruinCliInstallationStatus":
+        isBruinInstalled.value = message.installed; // Update installation status
+        console.log("Bruin installation status updated:", isBruinInstalled.value);
+        break;
+    }
+  } catch (error) {
+    console.error("Error handling message:", error);
+    rudderStack.trackEvent("Error Handling Message", {
+      errorMessage: (error as Error).message,
+      message: message,
+    });
   }
 });
 
@@ -217,6 +231,9 @@ const stopNameEditing = () => {
 };
 
 const saveNameEdit = () => {
+  rudderStack.trackEvent("Asset Name Updated", {
+    assetName: editingName.value.trim(),
+  });
   if (editingName.value.trim() !== assetDetailsProps.value?.name) {
     updateAssetName(editingName.value.trim());
     vscode.postMessage({
@@ -315,6 +332,33 @@ onMounted(() => {
   loadEnvironmentsList();
   checkBruinCliInstallation();
   vscode.postMessage({ command: "getLastRenderedDocument" });
+  vscode.postMessage({ command: "bruin.checkTelemtryPreference" });
+  // Track page view
+  try {
+    rudderStack.trackPageView("Asset Details Page", {
+      path: window.location.pathname,
+      url: window.location.href,
+    });
+  } catch (error) {
+    console.error("RudderStack page tracking error:", error);
+  }
+
+  // Track a custom event
+  rudderStack.trackEvent("Asset Viewed", {
+    assetType: assetDetailsProps.value?.type,
+  });
+
+  rudderStack.trackEvent("Loading environments list onMounted", {
+    environments: environmentsList.value,
+  });
+
+  // Track custom checks interactions
+  rudderStack.trackEvent("Custom Checks Interaction", {
+    assetName: assetDetailsProps.value?.name,
+    customChecksCount: customChecksProps.value.length,
+  });
+
+  console.log("Custom event tracked.");
 });
 
 // Function to check if Bruin CLI is installed
@@ -329,10 +373,21 @@ watch(
   (newColumns) => {
     console.log("Columns props changed. Updating columns:", newColumns);
     columns.value = newColumns;
+    // Track column modifications
+    rudderStack.trackEvent("Columns Modified", {
+      columnCount: columns.value.length,
+    });
   },
   { deep: true }
 );
 
+watch(activeTab, (newTab, oldTab) => {
+  rudderStack.trackEvent("Tab Switched", {
+    fromTab: tabs.value[oldTab]?.label,
+    toTab: tabs.value[newTab]?.label,
+    assetName: assetDetailsProps.value?.name,
+  });
+});
 // Function to update columns
 const updateColumns = (newColumns) => {
   console.log("Updating columns with new data:", newColumns);

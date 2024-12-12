@@ -238,6 +238,7 @@ import {
 import { SparklesIcon, PlayIcon, ArrowPathRoundedSquareIcon } from "@heroicons/vue/24/outline";
 import type { FormattedErrorMessage } from "@/types";
 import { Transition } from "vue";
+import RudderStackService from "@/services/RudderStackService";
 
 /**
  * Define component props
@@ -265,6 +266,8 @@ const errorState = computed(() => handleError(validationError.value, renderSQLAs
 const isError = computed(() => errorState.value?.errorCaptured);
 const errorMessage = computed(() => errorState.value?.errorMessage);
 const toggled = ref(false);
+const rudderStack = RudderStackService.getInstance();
+
 /**
  * Computed properties for error handling and warnings
  */
@@ -479,7 +482,14 @@ function sendInitialMessage() {
  */
 function setSelectedEnv(env: string) {
   selectedEnv.value = env;
+  handleEnvironmentChange(env);
 }
+
+const handleEnvironmentChange = (env) => {
+  rudderStack.trackEvent("Environment Selected", {
+    selectedEnvironment: env
+  });
+};
 
 /**
  * Functions to handle run and validate actions

@@ -216,10 +216,11 @@ export class BruinPanel {
           <meta http-equiv="Content-Security-Policy" content="
             default-src 'none';
             img-src ${webview.cspSource} https:;
-            script-src 'nonce-${nonce}' ${webview.cspSource};
+            script-src 'nonce-${nonce}' ${webview.cspSource} https://cdn.rudderlabs.com/ https://cdn.rudderstack.com/ https://api.rudderstack.com;
+            connect-src https://api.rudderstack.com https://getbruinbumlky.dataplane.rudderstack.com;
             style-src ${webview.cspSource} 'unsafe-inline';
             font-src ${webview.cspSource};
-          ">
+         ">
           <link rel="stylesheet" type="text/css" href="${stylesUri}">
           <link rel="stylesheet" href="${stylesUriCustomElt}">
           <title>Bruin Panel</title>
@@ -277,7 +278,14 @@ export class BruinPanel {
 
             await validatorAll.validate(workspaceFolder.uri.fsPath);
             break;
-
+          case "bruin.checkTelemtryPreference":
+            const config = workspace.getConfiguration("bruin");
+            const telemetryEnabled = config.get<boolean>('telemetry.enabled');
+            this._panel.webview.postMessage({
+              command: "setTelemetryPreference",
+              payload: telemetryEnabled,
+            });
+            break;
           case "bruin.validateCurrentPipeline":
             if (!this._lastRenderedDocumentUri) {
               console.error("No active document to validate.");
@@ -415,13 +423,13 @@ export class BruinPanel {
               canSelectFolders: false,
               canSelectMany: false,
               filters: {
-                "serviceAccountFiles": ["json"],
+                serviceAccountFiles: ["json"],
               },
             });
-             console.log("Selected file URI", fileUri);
+            console.log("Selected file URI", fileUri);
             if (fileUri && fileUri.length > 0) {
               const selectedFileUri = fileUri[0];
-              BruinPanel.postMessage("selectedFilePath",{
+              BruinPanel.postMessage("selectedFilePath", {
                 status: "success",
                 message: {
                   fileName: vscode.workspace.asRelativePath(selectedFileUri),
@@ -439,7 +447,6 @@ export class BruinPanel {
             break;
 
           case "bruin.editConnection":
-            
             const { oldConnection, newConnection } = message.payload;
             try {
               // Delete the old connection
