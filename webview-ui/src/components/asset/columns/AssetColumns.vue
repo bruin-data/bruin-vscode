@@ -113,6 +113,18 @@
                 >
                   <PlusIcon class="h-3 w-3" />
                 </vscode-button>
+                <div
+                  v-if="showPatternInput && editingIndex === index"
+                  class="col-span-full mt-2 px-2"
+                >
+                  <input
+                    v-model="newPatternValue"
+                    @input="updatePatternValue"
+                    @keyup.enter="confirmPatternInput"
+                    placeholder="Enter regex pattern"
+                    class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs border border-commandCenter-border rounded"
+                  />
+                </div>
               </div>
             </template>
             <template v-else>
@@ -175,8 +187,7 @@
       </div>
     </div>
 
-    <ErrorAlert :errorMessage="error" class="mb-4" @error-close="closeError">
-    </ErrorAlert>
+    <ErrorAlert :errorMessage="error" class="mb-4" @error-close="closeError"> </ErrorAlert>
   </div>
 </template>
 
@@ -200,11 +211,40 @@ const showDeleteAlert = ref(false);
 const localColumns = ref([...props.columns]);
 const editingIndex = ref(null);
 const editingColumn = ref({});
+const showPatternInput = ref(false);
+const newPatternValue = ref("");
+const updatePatternValue = () => {
+  const patternCheck = editingColumn.value.checks.find((check) => check.name === "pattern");
+  if (patternCheck) {
+    patternCheck.value = newPatternValue.value;
+  }
+};
+
+const confirmPatternInput = () => {
+  const patternCheck = editingColumn.value.checks.find((check) => check.name === "pattern");
+
+  if (!patternCheck) {
+    // If no pattern check exists, create one
+    const newPatternCheck = {
+      id: uuidv4(),
+      name: "pattern",
+      value: newPatternValue.value,
+      blocking: true,
+    };
+    editingColumn.value.checks.push(newPatternCheck);
+  } else {
+    // Update existing pattern check
+    patternCheck.value = newPatternValue.value;
+  }
+
+  // Hide the input and reset the value
+  showPatternInput.value = false;
+  newPatternValue.value = "";
+
+};
 
 const addColumn = () => {
   try {
-    //throw new Error("Simulated error: Unable to add column.");
-
     const newColumn = {
       name: "New Column",
       type: "string",
@@ -231,6 +271,7 @@ const addColumn = () => {
 const saveChanges = (index) => {
   localColumns.value[index] = JSON.parse(JSON.stringify(editingColumn.value));
   editingIndex.value = null;
+
   // Create clean data for ALL columns
   const allColumnsData = localColumns.value.map((column) => ({
     name: column.name,
@@ -290,23 +331,21 @@ const getActiveChecks = computed(() => (column) => {
 
 const availableChecks = computed(() => (column) => {
   const activeCheckNames = getActiveChecks.value(column).map((check) => check.name);
-  const allChecks = [
-    "unique",
-    "not_null",
-    "positive",
-    "negative",
-    "non_negative",
-    /*     "accepted_values",
-    "pattern", */
-  ];
+  const allChecks = ["unique", "not_null", "positive", "negative", "non_negative", "pattern"];
   return allChecks.filter((check) => !activeCheckNames.includes(check));
 });
 
 const addCheck = (checkName) => {
+  if (checkName === "pattern") {
+    showPatternInput.value = true;
+    newPatternValue.value = ""; // Reset input when adding pattern check
+    showAddCheckDropdown.value = null;
+    return;
+  }
   const newCheck = {
     id: uuidv4(),
     name: checkName,
-    value: checkName === "accepted_values" ? [] : checkName === "pattern" ? "" : null,
+    value: checkName === "accepted_values" ? [] : "",
     blocking: true,
   };
   editingColumn.value.checks.push(newCheck);
@@ -319,12 +358,11 @@ const removeCheck = (checkName) => {
   editingColumn.value.checks = editingColumn.value.checks.filter(
     (check) => check.name !== checkName
   );
-  saveChanges(editingIndex.value);
+  //saveChanges(editingIndex.value);
   emitUpdateColumns();
 };
 
 const showAddCheckDropdown = ref(null);
-const notification = ref(null);
 const error = ref(null);
 
 const toggleAddCheckDropdown = (index) => {
@@ -340,13 +378,14 @@ const toggleAddCheckDropdown = (index) => {
     });
   }
 };
+
 const showError = (message) => {
   error.value = message;
 };
 
-const closeError = () =>{
+const closeError = () => {
   error.value = null;
-}
+};
 
 const getCheckTooltip = (check, column) => {
   if (check.name === "accepted_values") {
@@ -419,6 +458,9 @@ vscode-dropdown-item::part(control) {
 input,
 select {
   @apply text-xs bg-input-background text-input-foreground border-none outline-none p-1;
+}
+.pattern-input-container {
+  @apply flex items-center space-x-2 w-full;
 }
 
 input:focus,
