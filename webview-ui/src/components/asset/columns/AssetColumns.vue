@@ -1,9 +1,7 @@
 <template>
   <div class="flex flex-col py-4 sm:py-1 h-full w-full min-w-56 relative">
     <div class="flex justify-end mb-4 px-4">
-      <vscode-button @click="addColumn" class="py-1 rounded focus:outline-none">
-        Add column
-      </vscode-button>
+      <vscode-button @click="addColumn" class="py-1 focus:outline-none"> Add column </vscode-button>
     </div>
 
     <!-- Header Row -->
@@ -68,7 +66,7 @@
         <div class="col-span-3">
           <div class="flex flex-wrap gap-1">
             <template v-if="editingIndex === index">
-              <div class="flex flex-wrap gap-1 max-w-full">
+              <div class="flex flex-wrap gap-1">
                 <vscode-badge
                   v-for="check in getActiveChecks(editingColumn)"
                   :key="check.id"
@@ -113,29 +111,23 @@
                 >
                   <PlusIcon class="h-3 w-3" />
                 </vscode-button>
-                <div
-                  v-if="showPatternInput && editingIndex === index"
-                  class="col-span-full mt-2 px-2"
-                >
+                <div v-if="showPatternInput && editingIndex === index" class="mt-1 px-1">
                   <input
                     v-model="newPatternValue"
                     @input="updatePatternValue"
                     @keyup.enter="confirmPatternInput"
-                    placeholder="Enter regex pattern"
-                    class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs border border-commandCenter-border rounded"
+                    placeholder="Enter regex"
+                    class="w-full px-1 min-w-28 bg-editorWidget-bg text-editor-fg text-xs border border-commandCenter-border"
                   />
                 </div>
               </div>
-              <div
-                v-if="showAcceptedValuesInput && editingIndex === index"
-                class="col-span-full mt-2 px-2"
-              >
-                <div class="flex items-center space-x-2">
+              <div v-if="showAcceptedValuesInput && editingIndex === index" class="mt-1 px-1">
+                <div class="flex flex-col justify-start space-y-1">
                   <input
                     v-model="newAcceptedValuesInput"
                     @keyup.enter="addAcceptedValue"
-                    placeholder="Enter value and press Enter"
-                    class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs border border-commandCenter-border rounded"
+                    placeholder="Enter value & Press Enter"
+                    class="w-full min-w-32 px-1 bg-editorWidget-bg text-editor-fg text-xs border border-commandCenter-border"
                   />
                   <div class="flex flex-wrap gap-1">
                     <vscode-badge
@@ -174,41 +166,43 @@
         </div>
 
         <!-- Actions -->
-        <div class="col-span-1 flex justify-center items-center space-x-1">
-          <vscode-button
-            v-if="editingIndex === index"
-            appearance="icon"
-            @click="saveChanges(index)"
-            aria-label="Save"
-            class="flex items-center"
-          >
-            <CheckIcon class="h-3 w-3" />
-          </vscode-button>
-          <vscode-button
-            v-else
-            appearance="icon"
-            @click="startEditing(index)"
-            aria-label="Edit"
-            class="flex items-center"
-          >
-            <PencilIcon class="h-3 w-3" />
-          </vscode-button>
-          <vscode-button
-            appearance="icon"
-            @click="showDeleteAlert = index"
-            aria-label="Delete"
-            class="flex items-center"
-          >
-            <TrashIcon class="h-3 w-3" />
-          </vscode-button>
-          <DeleteAlert
-            v-if="showDeleteAlert === index"
-            :elementName="column.name"
-            elementType="column"
-            @confirm="deleteColumn(index)"
-            @cancel="showDeleteAlert = false"
-            class="absolute z-50"
-          />
+        <div class="col-span-1 ">
+          <div class="flex justify-center items-center space-x-1">
+            <vscode-button
+              v-if="editingIndex === index"
+              appearance="icon"
+              @click="saveChanges(index)"
+              aria-label="Save"
+              class="flex items-center"
+            >
+              <CheckIcon class="h-3 w-3" />
+            </vscode-button>
+            <vscode-button
+              v-else
+              appearance="icon"
+              @click="startEditing(index)"
+              aria-label="Edit"
+              class="flex items-center"
+            >
+              <PencilIcon class="h-3 w-3" />
+            </vscode-button>
+            <vscode-button
+              appearance="icon"
+              @click="showDeleteAlert = index"
+              aria-label="Delete"
+              class="flex items-center"
+            >
+              <TrashIcon class="h-3 w-3" />
+            </vscode-button>
+            <DeleteAlert
+              v-if="showDeleteAlert === index"
+              :elementName="column.name"
+              elementType="column"
+              @confirm="deleteColumn(index)"
+              @cancel="showDeleteAlert = false"
+              class="absolute z-50"
+            />
+          </div>
         </div>
       </div>
       <div v-else class="px-4">
@@ -314,7 +308,7 @@ const saveChanges = (index) => {
 
   const payload = JSON.parse(JSON.stringify({ columns: allColumnsData }));
   showAcceptedValuesInput.value = false;
-
+  showPatternInput.value = false;
   // Log the payload that will be sent
   console.log("Payload to be sent on save columns:", payload);
   vscode.postMessage({
@@ -364,7 +358,15 @@ const getActiveChecks = computed(() => (column) => {
 
 const availableChecks = computed(() => (column) => {
   const activeCheckNames = getActiveChecks.value(column).map((check) => check.name);
-  const allChecks = ["unique", "not_null", "positive", "negative", "non_negative", "pattern", "accepted_values"];
+  const allChecks = [
+    "unique",
+    "not_null",
+    "positive",
+    "negative",
+    "non_negative",
+    "pattern",
+    "accepted_values",
+  ];
   return allChecks.filter((check) => !activeCheckNames.includes(check));
 });
 
@@ -433,19 +435,19 @@ const toggleAddCheckDropdown = (index) => {
 const addAcceptedValue = () => {
   // Find the accepted_values check
   const acceptedValuesCheck = editingColumn.value.checks.find(
-    check => check.name === "accepted_values"
+    (check) => check.name === "accepted_values"
   );
-  
+
   if (acceptedValuesCheck) {
     // Split input by comma, trim whitespace, and remove duplicates
     const newValues = newAcceptedValuesInput.value
-      .split(',')
-      .map(val => val.trim())
-      .filter(val => val && !acceptedValuesCheck.value.includes(val));
-    
+      .split(",")
+      .map((val) => val.trim())
+      .filter((val) => val && !acceptedValuesCheck.value.includes(val));
+
     // Add new values
     acceptedValuesCheck.value.push(...newValues);
-    
+
     // Reset input
     newAcceptedValuesInput.value = "";
   }
@@ -453,9 +455,9 @@ const addAcceptedValue = () => {
 
 const removeAcceptedValue = (index) => {
   const acceptedValuesCheck = editingColumn.value.checks.find(
-    check => check.name === "accepted_values"
+    (check) => check.name === "accepted_values"
   );
-  
+
   if (acceptedValuesCheck) {
     acceptedValuesCheck.value.splice(index, 1);
   }
