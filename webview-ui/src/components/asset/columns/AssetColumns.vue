@@ -18,7 +18,7 @@
     </div>
 
     <!-- Column Rows -->
-    <div class="flex-1 min-h-40 overflow-x-auto text-xs">
+    <div class="flex-1 min-h-72 overflow-x-auto text-xs">
       <div
         v-if="localColumns.length"
         v-for="(column, index) in localColumns"
@@ -92,13 +92,13 @@
                 <vscode-dropdown
                   v-if="showAddCheckDropdown === index"
                   :data-dropdown-index="index"
-                  class="w-20 z-50"
+                  class="w-28 z-50"
                   @close="showAddCheckDropdown = null"
                 >
                   <vscode-dropdown-item
                     v-for="check in availableChecks(editingColumn)"
                     :key="check"
-                    class="px-2 py-1 cursor-pointer hover:bg-editorWidget-bg"
+                    class="p-1 cursor-pointer hover:bg-editorWidget-bg"
                     @click="addCheck(check)"
                   >
                     {{ check }}
