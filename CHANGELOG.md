@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.30.0] - [2024-12-12]
+- Integrated RudderStack analytics to monitor extension performance, with support for user-controlled telemetry preferences.
+
 ## [0.29.4] - [2024-12-10]
 - Improved layout and styling for inputs and buttons for better responsiveness and consistency.
 
