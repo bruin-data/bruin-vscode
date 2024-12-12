@@ -2,7 +2,7 @@
   "name": "bruin",
   "displayName": "Bruin",
   "description": "Manage your Bruin data assets from within VS Code.",
-  "version": "0.30.0",
+  "version": "0.30.1",
   "engines": {
     "vscode": "^1.87.0"
   },
@@ -93,7 +93,7 @@
       "properties": {
         "bruin.telemetry.enabled": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "Enable anonymous usage data collection to help improve the extension."
         },
         "bruin.defaultFoldingState": {

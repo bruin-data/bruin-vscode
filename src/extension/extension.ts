@@ -18,7 +18,6 @@ import * as os from "os";
 import { renderCommand } from "./commands/renderCommand";
 import { LineagePanel } from "../panels/LineagePanel";
 import { installOrUpdateCli } from "./commands/updateBruinCLI";
-import { promptForTelemetryConsent } from "../bruin/bruinTelemetry";
 //import { RudderTyperAnalytics } from '../analytics/index';
 console.log("RudderStack package:", Analytics);
 console.log("RudderStack keys:", Object.keys(Analytics));
@@ -26,7 +25,6 @@ console.log("RudderStack keys:", Object.keys(Analytics));
 const WRITE_KEY = "2q3zybBJRd9ErKIpkTRSdIahQ0C";
 const DATA_PLANE_URL = "https://getbruinbumlky.dataplane.rudderstack.com";
 export async function activate(context: ExtensionContext) {
-  promptForTelemetryConsent();
 
   const config = workspace.getConfiguration("bruin");
   const telemetryEnabled = config.get<boolean>('telemetry.enabled');
