@@ -332,7 +332,7 @@ onMounted(() => {
   loadEnvironmentsList();
   checkBruinCliInstallation();
   vscode.postMessage({ command: "getLastRenderedDocument" });
-
+  vscode.postMessage({ command: "bruin.checkTelemtryPreference" });
   // Track page view
   try {
     rudderStack.trackPageView("Asset Details Page", {

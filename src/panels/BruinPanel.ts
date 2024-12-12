@@ -278,7 +278,14 @@ export class BruinPanel {
 
             await validatorAll.validate(workspaceFolder.uri.fsPath);
             break;
-
+          case "bruin.checkTelemtryPreference":
+            const config = workspace.getConfiguration("bruin");
+            const telemetryEnabled = config.get<boolean>('telemetry.enabled');
+            this._panel.webview.postMessage({
+              command: "setTelemetryPreference",
+              payload: telemetryEnabled,
+            });
+            break;
           case "bruin.validateCurrentPipeline":
             if (!this._lastRenderedDocumentUri) {
               console.error("No active document to validate.");

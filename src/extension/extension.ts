@@ -51,14 +51,7 @@ export async function activate(context: ExtensionContext) {
           version: vscode.version,
         },
       });
-
-      client.identify({
-        userId: "user-id",
-        traits: {
-          name: "John Doe",
-          email: "test@test.com",
-        },
-      });
+        
       console.debug("RudderStack client initialized successfully");
     } catch (error) {
       console.error("RudderStack initialization failed:", error);
