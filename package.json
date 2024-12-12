@@ -93,7 +93,7 @@
       "properties": {
         "bruin.telemetry.enabled": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "Enable anonymous usage data collection to help improve the extension."
         },
         "bruin.defaultFoldingState": {
