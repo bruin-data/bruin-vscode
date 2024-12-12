@@ -91,6 +91,11 @@
     },
     "configuration": {
       "properties": {
+        "bruin.telemetry.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable anonymous usage data collection to help improve the extension."
+        },
         "bruin.defaultFoldingState": {
           "type": "string",
           "enum": [
