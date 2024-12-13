@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.31.0] - [2024-12-13]
+- Linked asset columns to glossary entries for quick navigation.
+
 ## [0.30.3] - [2024-12-13]
 - Implemented the ability to add accepted values for asset columns.
 
