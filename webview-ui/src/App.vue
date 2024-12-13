@@ -71,7 +71,7 @@
             v-if="tab.props"
             :is="tab.component"
             v-bind="tab.props"
-            class="flex w-full"
+            class="flex w-full h-full"
             @update:assetName="updateAssetName"
             @update:columns="updateColumns"
             @update:description="updateDescription"
