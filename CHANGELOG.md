@@ -1,6 +1,10 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
+
+## [0.30.3] - [2024-12-13]
+- Implemented the ability to add accepted values for asset columns.
+
 ## [0.30.2] - [2024-12-12]
 - Added the ability to add pattern checks with input values.
 
