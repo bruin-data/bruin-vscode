@@ -30,7 +30,20 @@
             v-model="editingColumn.name"
             class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs"
           />
-          <div v-else class="truncate" :title="column.name">{{ column.name }}</div>
+          <div v-else class="flex items-center">
+            <span class="truncate" :title="column.name">
+              {{ column.name }}
+            </span>
+            <vscode-button
+              v-if="column.entity_attribute"
+              appearance="icon"
+              @click="openGlossaryLink(column.entity_attribute)"
+              class="ml-2 flex items-center"
+              title="View in Glossary"
+            >
+              <LinkIcon class="h-3 w-3" />
+            </vscode-button>
+          </div>
         </div>
 
         <!-- Type -->
@@ -166,7 +179,7 @@
         </div>
 
         <!-- Actions -->
-        <div class="col-span-1 ">
+        <div class="col-span-1">
           <div class="flex justify-center items-center space-x-1">
             <vscode-button
               v-if="editingIndex === index"
@@ -218,7 +231,14 @@
 
 <script setup>
 import { ref, watch, computed, nextTick } from "vue";
-import { TrashIcon, PencilIcon, XMarkIcon, CheckIcon, PlusIcon } from "@heroicons/vue/20/solid";
+import {
+  TrashIcon,
+  PencilIcon,
+  XMarkIcon,
+  CheckIcon,
+  PlusIcon,
+  LinkIcon,
+} from "@heroicons/vue/20/solid";
 import DeleteAlert from "@/components/ui/alerts/AlertWithActions.vue";
 import { vscode } from "@/utilities/vscode";
 import { v4 as uuidv4 } from "uuid"; // Import UUID library to generate unique IDs
@@ -231,7 +251,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(["update:columns"]);
+const emit = defineEmits(["update:columns", "open-glossary"]);
 const showDeleteAlert = ref(false);
 const localColumns = ref([...props.columns]);
 const editingIndex = ref(null);
@@ -245,6 +265,11 @@ const updatePatternValue = () => {
   if (patternCheck) {
     patternCheck.value = newPatternValue.value;
   }
+};
+
+const openGlossaryLink = (entityAttribute) => {
+  emit("open-glossary", entityAttribute);
+  console.log("Opening glossary for entity:", entityAttribute);
 };
 
 const confirmPatternInput = () => {
@@ -276,6 +301,7 @@ const addColumn = () => {
       type: "string",
       description: "Description for the new column",
       checks: [],
+      entity_attribute: null,
     };
 
     // Log the action of adding a new column
@@ -295,7 +321,10 @@ const addColumn = () => {
 };
 
 const saveChanges = (index) => {
-  localColumns.value[index] = JSON.parse(JSON.stringify(editingColumn.value));
+  localColumns.value[index] = {
+    ...JSON.parse(JSON.stringify(editingColumn.value)),
+    entity_attribute: localColumns.value[index].entity_attribute || null,
+  };
   editingIndex.value = null;
 
   // Create clean data for ALL columns
@@ -304,6 +333,7 @@ const saveChanges = (index) => {
     type: column.type,
     description: column.description,
     checks: formatChecks(column.checks),
+    entity_attribute: column.entity_attribute || null,
   }));
 
   const payload = JSON.parse(JSON.stringify({ columns: allColumnsData }));
@@ -485,6 +515,7 @@ const emitUpdateColumns = () => {
   const formattedColumns = localColumns.value.map((column) => ({
     ...column,
     checks: formatChecks(column.checks),
+    entity_attribute: column.entity_attribute || null,
   }));
   emit("update:columns", formattedColumns);
 };
