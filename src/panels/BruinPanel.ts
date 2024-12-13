@@ -20,6 +20,7 @@ import {
   getConnections,
   getConnectionsListFromSchema,
 } from "../extension/commands/manageConnections";
+import { openGlossary } from "../bruin/bruinGlossaryUtility";
 
 /**
  * This class manages the state and behavior of Bruin webview panels.
@@ -280,7 +281,7 @@ export class BruinPanel {
             break;
           case "bruin.checkTelemtryPreference":
             const config = workspace.getConfiguration("bruin");
-            const telemetryEnabled = config.get<boolean>('telemetry.enabled');
+            const telemetryEnabled = config.get<boolean>("telemetry.enabled");
             this._panel.webview.postMessage({
               command: "setTelemetryPreference",
               payload: telemetryEnabled,
@@ -498,6 +499,53 @@ export class BruinPanel {
 
           case "bruin.openDocumentationLink":
             vscode.env.openExternal(vscode.Uri.parse(message.payload));
+            break;
+          case "bruin.openGlossary":
+            const activeTextEditor = vscode.window.activeTextEditor;
+            console.log("Active Text Editor:", activeTextEditor);
+
+            const workspaceDir = this._lastRenderedDocumentUri
+              ? await bruinWorkspaceDirectory(this._lastRenderedDocumentUri.fsPath)
+              : undefined;
+            console.log("Workspace Directory:", workspaceDir);
+
+            if (!workspaceDir) {
+              console.error("Cannot determine Bruin workspace directory.");
+              vscode.window.showErrorMessage("Unable to determine the Bruin workspace directory.");
+              return;
+            }
+
+            if (!activeTextEditor) {
+              // Fallback to using the first workspace folder if no active text editor
+              const workspaceFolders = vscode.workspace.workspaceFolders;
+              if (workspaceFolders && workspaceFolders.length > 0) {
+                try {
+                  openGlossary(
+                    workspaceDir,
+                    { viewColumn: ViewColumn.Two }, // Default to ViewColumn.Two
+                    message.payload
+                  );
+                } catch (error) {
+                  console.error("Error opening glossary with fallback:", error);
+                  vscode.window.showErrorMessage("Failed to open glossary.");
+                }
+              } else {
+                console.error("No workspace folders available.");
+                vscode.window.showErrorMessage("No workspace is currently open.");
+              }
+              return;
+            }
+
+            try {
+              openGlossary(
+                workspaceDir,
+                { viewColumn: activeTextEditor.viewColumn ?? ViewColumn.One },
+                message.payload
+              );
+            } catch (error) {
+              console.error("Error opening glossary:", error);
+              vscode.window.showErrorMessage("Failed to open glossary file.");
+            }
             break;
         }
       },

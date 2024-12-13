@@ -74,6 +74,7 @@
             class="flex w-full h-full"
             @update:assetName="updateAssetName"
             @update:columns="updateColumns"
+            @open-glossary="navigateToGlossary"
             @update:description="updateDescription"
           />
           <div class="flex w-full" v-else-if="parseError">
@@ -172,7 +173,10 @@ window.addEventListener("message", (event) => {
 });
 
 const activeTab = ref(0); // Tracks the currently active tab
-
+const navigateToGlossary = () => {
+  console.log("Opening glossary.");
+  vscode.postMessage({ command: "bruin.openGlossary" });
+};
 // Computed property to check if the last rendered document is a Bruin YAML file
 const isBruinYml = computed(() => {
   const result = lastRenderedDocument.value && lastRenderedDocument.value.endsWith(".bruin.yml");
