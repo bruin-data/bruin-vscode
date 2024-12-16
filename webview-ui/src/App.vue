@@ -148,7 +148,7 @@ window.addEventListener("message", (event) => {
         parseError.value = updateValue(message, "error");
         if (!parseError.value) {
           data.value = updateValue(message, "success"); // Update asset data on success
-          console.log("Updated asset data:", data.value);
+         // console.log("Updated asset data:", data.value);
         }
         lastRenderedDocument.value = updateValue(message, "success");
 
@@ -212,7 +212,7 @@ const assetDetailsProps = computed({
   set: (newValue) => {
     if (newValue) {
       data.value = JSON.stringify({ asset: newValue }); // Update asset data
-      console.log("Updated asset data after setting:", data.value);
+     // console.log("Updated asset data after setting:", data.value);
     }
   },
 });

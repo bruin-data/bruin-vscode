@@ -19,21 +19,23 @@
             :defaultValue="getDefaultValue(field)"
           />
         </div>
+        <vscode-button
+          appearance="secondary"
+          @click="$emit('test')"
+          class="p-1 text-sm font-semibold"
+        >
+          Test Connection
+        </vscode-button>
       </div>
-
-      <div class="mt-6 flex justify-end w-full">
+      <div class="mt-6 flex justify-end space-x-1 w-full">
         <vscode-button
           appearance="secondary"
           @click="$emit('cancel')"
-          class="mr-2 rounded-md px-4 py-2 text-sm font-semibold"
+          class="p-1 text-sm font-semibold"
         >
           Cancel
         </vscode-button>
-        <vscode-button
-          type="submit"
-          class="rounded-md px-4 py-2 text-sm font-semibold"
-          @click="submitForm"
-        >
+        <vscode-button type="submit" class="p-1 text-sm font-semibold" @click="submitForm">
           {{ isEditing ? "Save Changes" : "Create" }}
         </vscode-button>
       </div>
@@ -59,7 +61,7 @@ const connectionsStore = useConnectionsStore();
 const connectionSchema = connectionsStore.connectionsSchema;
 const { connectionConfig, connectionTypes } = generateConnectionConfig(connectionSchema);
 
-const emit = defineEmits(["submit", "cancel"]);
+const emit = defineEmits(["submit", "cancel", "test"]);
 
 const props = defineProps({
   connection: {
@@ -172,7 +174,6 @@ watch(
   { immediate: true, deep: true }
 );
 
-
 watch(
   () => form.value.connection_type,
   (newType) => {
@@ -198,7 +199,6 @@ const handleFileSelected = (file) => {
   // Clear the error for service_account_json when a file is selected
   validationErrors.value.service_account_json = null;
 };
-
 
 const updateField = (fieldId, value) => {
   form.value[fieldId] = value;
@@ -251,7 +251,7 @@ const submitForm = () => {
           console.log("selected file =====", selectedFile.value);
           connectionData.credentials.service_account_file = selectedFile.value.path;
         }
-        
+
         connectionData.credentials[field.id] = form.value[field.id];
       } else {
         // For other connection types, add fields as before

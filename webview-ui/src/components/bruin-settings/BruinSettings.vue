@@ -23,6 +23,7 @@
         :environments="environments"
         @submit="handleConnectionSubmit"
         @cancel="closeConnectionForm"
+        @test="testConnection"  
         :error="formError"
       />
     </div>
@@ -233,6 +234,20 @@ const handleConnectionSubmit = async (connectionData) => {
     }
   } catch (error) {
     console.error("Error submitting connection:", error);
+    formError.value = { field: "connection_name", message: error.message };
+  }
+};
+
+const testConnection = async (connectionData) => {
+  clearFormError();
+  const sanitizedConnectionData = JSON.parse(JSON.stringify(connectionData)); // Ensure no circular refs
+  try {
+    await vscode.postMessage({
+      command: "bruin.testConnection",
+      payload: sanitizedConnectionData,
+    });
+  } catch (error) {
+    console.error("Error testing connection:", error);
     formError.value = { field: "connection_name", message: error.message };
   }
 };
