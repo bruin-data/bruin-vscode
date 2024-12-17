@@ -106,10 +106,11 @@ Use the new connections section from `Settings` tab to view, add, or delete conn
 Access the Bruin CLI management tab `Settings` in the side panel for easy installation and updates.
 
 ## Release Notes
-### Latest Release: 0.31.2
-- Correct Path Handling for Bruin Executable in Configuration.
+### Latest Release: 0.31.3
+- Fix Asset Name Falling to Default Value After Editing Description.
 
 ### Previous Highlights 
+- **0.31.2**: Correct Path Handling for Bruin Executable in Configuration.
 - **0.31.1**: Improved error handling, logging, and CLI path resolution for better command execution.
 - **0.31.0**: Linked asset columns to glossary entries for quick navigation.
 - **0.30.3**: Implemented the ability to add accepted values for asset columns.
