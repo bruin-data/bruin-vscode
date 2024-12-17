@@ -58,7 +58,7 @@ export function getDefaultBruinExecutablePath(): string {
     // look for bruin in the PATH
     const homePath = os.homedir();
     const localBinPath = path.join(homePath, ".local", "bin");
-    bruinExecutable = useBruinFromPath ? localBinPath : "bruin";
+    bruinExecutable = useBruinFromPath ? path.join(localBinPath, "bruin") : "bruin";
     console.log(`Using 'bruin' by joining the path: ${localBinPath}`);
     return bruinExecutable;
   }
