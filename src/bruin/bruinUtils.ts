@@ -152,10 +152,11 @@ export const findGitBashPath = (): string | undefined => {
 export const runInIntegratedTerminal = async (
   workingDir: string | undefined,
   assetPath?: string,
-  flags?: string
+  flags?: string,
+  bruinExecutablePath?: string
 ): Promise<void> => {
   const escapedAssetPath = assetPath? escapeFilePath(assetPath) : "";
-  const bruinExecutable = getDefaultBruinExecutablePath();
+  const bruinExecutable = bruinExecutablePath ? "bruin" : getDefaultBruinExecutablePath();
   let command = "";
   const terminal = await createIntegratedTerminal(workingDir);
   // if termianl is cmd or powershell, use bruin run sql command
