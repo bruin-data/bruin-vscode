@@ -55,10 +55,11 @@ export abstract class BruinCommand {
       child_process.execFile(
         this.bruinExecutable,
         this.execArgs(query),
-        execOptions,
+        execOptions,                       
         (error: Error | null, stdout: string, stderr: string) => {
           if (error) {
             console.error("Error executing command:", error); // Debug message
+            console.error("Bruin executable", this.bruinExecutable); // Debug message
             if (ignoresErrors) {
               resolve("");
             } else {

@@ -43,7 +43,7 @@ export class BruinInstallCLI {
       const bruinExecutable = getDefaultBruinExecutablePath();
       exec(`${bruinExecutable} version -o json`, (error, stdout, stderr) => {
         if (error) {
-          reject(`Error executing command: ${stderr}`);
+          reject(`Error executing command checkBruinCLIVersion ${stderr}`);
           return;
         }
 
