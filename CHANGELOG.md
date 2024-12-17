@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.31.3] - [2024-12-17]
+- Fix Asset Name Falling to Default Value After Editing Description.
+
 ## [0.31.2] - [2024-12-17]
 - Correct Path Handling for Bruin Executable in Configuration.
 
