@@ -406,7 +406,7 @@ const updateDescription = (newDescription) => {
       command: "bruin.setAssetDetails",
       payload: {
         ...assetDetailsProps.value,
-        name: editingName.value || assetDetailsProps.value?.name,
+        name: assetDetailsProps.value.name, 
         description: newDescription,
       },
     });
