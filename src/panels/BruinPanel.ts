@@ -329,7 +329,14 @@ export class BruinPanel {
 
             const filePath = this._lastRenderedDocumentUri.fsPath;
             const bruinWorkspaceDir = await bruinWorkspaceDirectory(filePath || "");
-
+            console.log(
+              "Validating asset:",
+              filePath,
+              "in workspace:",
+              bruinWorkspaceDir,
+              "with bruin exec:",
+              getDefaultBruinExecutablePath()
+            );
             const validator = new BruinValidate(
               getDefaultBruinExecutablePath(),
               bruinWorkspaceDir!!
@@ -341,7 +348,12 @@ export class BruinPanel {
               return;
             }
             const fPath = this._lastRenderedDocumentUri?.fsPath;
-            runInIntegratedTerminal(await bruinWorkspaceDirectory(fPath), fPath, message.payload);
+            runInIntegratedTerminal(
+              await bruinWorkspaceDirectory(fPath),
+              fPath,
+              message.payload,
+              "bruin"
+            );
 
             setTimeout(() => {
               this._panel.webview.postMessage({
@@ -360,7 +372,8 @@ export class BruinPanel {
             runInIntegratedTerminal(
               await bruinWorkspaceDirectory(currfilePath),
               await currentPipeline,
-              message.payload
+              message.payload,
+              "bruin"
             );
 
             setTimeout(() => {

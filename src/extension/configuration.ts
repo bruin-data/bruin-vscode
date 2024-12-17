@@ -12,11 +12,14 @@ import * as os from "os";
  * will be searched).
  */
 export function getDefaultBruinExecutablePath(): string {
+  let bruinExecutable = "";
+  const useBruinFromPath = vscode.workspace.getConfiguration("bruin").get<boolean>("useBruinFromPath") || false;
   const bruinConfig = vscode.workspace.getConfiguration("bruin") ;
-  const bruinExecutable = bruinConfig.get<string>("executable") || "";
+  bruinExecutable = bruinConfig.get<string>("executable") || "";
 
   if (bruinExecutable.length > 0) {
     // If a path is provided, use it
+    console.log(`Using custom Bruin executable at ${bruinExecutable}`);
     return bruinExecutable;
   } else {
     // Attempt to find 'bruin' in the system's PATH (works for Git Bash)
@@ -26,9 +29,12 @@ export function getDefaultBruinExecutablePath(): string {
       try {
         // Test if the file exists and is executable
         fs.accessSync(executablePath, fs.constants.X_OK);
-        return "bruin";
+        console.log(`Found 'bruin' at ${executablePath}`);
+        bruinExecutable = useBruinFromPath ? executablePath : "bruin";
+        return bruinExecutable;
       } catch (err) {
         // Continue searching if not found or not executable
+        console.log(`Could not find 'bruin' at ${executablePath}`);
         continue;
       }
     }
@@ -39,13 +45,22 @@ export function getDefaultBruinExecutablePath(): string {
       const executablePathLocal = path.join(localBinPath, "bruin.exe");
       try {
         fs.accessSync(executablePathLocal, fs.constants.X_OK);
-        return executablePathLocal;
+        bruinExecutable =  executablePathLocal ;
+        console.log(`Found 'bruin' in windows platform at ${bruinExecutable}`);
+        return bruinExecutable;
       } catch (err) {
         // Continue searching if not found or not executable
+        console.log(`Could not find 'bruin' at ${bruinExecutable}`);
       }
     }
     // If all else fails, provide a meaningful message or default
-    return "bruin";
+    console.log("Could not find 'bruin' in PATH. Using 'bruin' as the default executable.");
+    // look for bruin in the PATH
+    const homePath = os.homedir();
+    const localBinPath = path.join(homePath, ".local", "bin");
+    bruinExecutable = useBruinFromPath ? localBinPath : "bruin";
+    console.log(`Using 'bruin' by joining the path: ${localBinPath}`);
+    return bruinExecutable;
   }
 }
 export function getPathSeparator(): string {

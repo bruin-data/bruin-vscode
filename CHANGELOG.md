@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.31.1] - [2024-12-17]
+- Improved error handling, logging, and CLI path resolution for better command execution.
+
 ## [0.31.0] - [2024-12-13]
 - Linked asset columns to glossary entries for quick navigation.
 
