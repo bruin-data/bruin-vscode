@@ -23,7 +23,7 @@
         :environments="environments"
         @submit="handleConnectionSubmit"
         @cancel="closeConnectionForm"
-        @test="testConnection"  
+        @test="testConnection"
         :error="formError"
       />
     </div>
@@ -47,7 +47,6 @@ import DeleteAlert from "@/components/ui/alerts/AlertWithActions.vue";
 import { useConnectionsStore } from "@/store/bruinStore";
 import { vscode } from "@/utilities/vscode";
 import { v4 as uuidv4 } from "uuid";
-
 
 const props = defineProps({
   isBruinInstalled: Boolean,
@@ -83,6 +82,10 @@ const handleMessage = (event) => {
       break;
     case "connection-created-message":
       handleConnectionCreated(message.payload);
+      break;
+    case "connection-tested-message":
+      console.log("Connection tested:", message.payload);
+      handleConnectionTested(message.payload);
       break;
     case "connection-edited-message":
       handleConnectionEdited(message.payload);
@@ -125,6 +128,14 @@ const handleConnectionDeleted = async (payload) => {
   }
 };
 
+const handleConnectionTested = (payload) => {
+  if (payload.status === "success") {
+    console.log("Connection tested successfully:", payload.message);
+  } else {
+    console.error("Failed to test connection:", payload.message);
+  }
+};
+
 const handleConnectionCreated = (payload) => {
   if (payload.status === "success") {
     try {
@@ -147,6 +158,7 @@ const handleConnectionCreated = (payload) => {
     formError.value = { field: "connection_name", message: payload.message };
   }
 };
+
 const handleConnectionEdited = (payload) => {
   if (payload.status === "success") {
     connectionsStore.updateConnection(payload.connection);
@@ -171,7 +183,6 @@ const showConnectionForm = (connection = null, duplicate = false) => {
         },
       };
     } else {
-      const duplicatedName = duplicate ? `${connection.name} (Copy)` : connection.name;
       connectionToEdit.value = {
         ...connection,
         name: duplicatedName,
@@ -238,9 +249,11 @@ const handleConnectionSubmit = async (connectionData) => {
   }
 };
 
-const testConnection = async (connectionData) => {
+const testConnection = async () => {
   clearFormError();
-  const sanitizedConnectionData = JSON.parse(JSON.stringify(connectionData)); // Ensure no circular refs
+
+  const sanitizedConnectionData = JSON.parse(JSON.stringify(connectionToEdit.value)); // Ensure no circular refs
+  console.log("connection to test", sanitizedConnectionData);
   try {
     await vscode.postMessage({
       command: "bruin.testConnection",
@@ -290,4 +303,3 @@ const cancelDeleteConnection = () => {
   connectionToDelete.value = null;
 };
 </script>
-@/store/bruinStore

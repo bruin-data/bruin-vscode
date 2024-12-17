@@ -19,6 +19,7 @@ import {
   deleteConnection,
   getConnections,
   getConnectionsListFromSchema,
+  testConnection,
 } from "../extension/commands/manageConnections";
 import { openGlossary } from "../bruin/bruinGlossaryUtility";
 
@@ -498,7 +499,13 @@ export class BruinPanel {
             break;
           case "bruin.testConnection":
             const connectionData = message.payload;
-            
+            await testConnection(
+              connectionData.environment,
+              connectionData.name,
+              connectionData.type,
+              this._lastRenderedDocumentUri
+            );
+            console.log("Testing connection:", connectionData);
             break;
           case "bruin.openDocumentationLink":
             vscode.env.openExternal(vscode.Uri.parse(message.payload));

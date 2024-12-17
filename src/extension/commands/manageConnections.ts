@@ -6,8 +6,8 @@ import {
   BruinCreateConnection,
   BruinDeleteConnection,
   BruinGetAllBruinConnections,
+  BruinTestConnection,
 } from "../../bruin/bruinConnections";
-import { env } from "process";
 
 export const getConnections = async (lastRenderedDocumentUri: Uri | undefined) => {
   const bruinConnections = new BruinConnections(
@@ -54,17 +54,17 @@ export const createConnection = async (
 };
 
 
-/* export const testConnection = async ( 
+ export const testConnection = async ( 
   env: string,
   connectionName: string,
-  type: string,
+  connectionType: string,
+  lastRenderedDocumentUri: Uri | undefined
 ) => {
   console.log("Testing connection");
-  const bruinConnections = new BruinCreateConnection(
+  const bruinConnection = new BruinTestConnection(
     getDefaultBruinExecutablePath(),
     (await bruinWorkspaceDirectory(lastRenderedDocumentUri!.fsPath)!!) as string
   );
-  await bruinConnections.testConnection(env, connectionName);
-}
+  await bruinConnection.testConnection(env, connectionName, connectionType);
+};
 
- */

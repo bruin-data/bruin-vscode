@@ -25,7 +25,6 @@ export function getDefaultBruinExecutablePath(): string {
       const executablePath = path.join(p, process.platform === "win32"? "bruin.exe" : "bruin");
       try {
         // Test if the file exists and is executable
-        // NOTE: Git Bash's `which` command doesn't work as expected, so we use `fs.accessSync` instead
         fs.accessSync(executablePath, fs.constants.X_OK);
         return "bruin";
       } catch (err) {
