@@ -199,6 +199,7 @@ const inputType = computed(() => {
 const triggerFileSelection = () => {
   vscode.postMessage({
     command: "bruinConnections.fileSelected",
+
   });
 };
 
@@ -290,7 +291,6 @@ const handleFileSelectionMessage = (event) => {
           name: payload.message.fileName,
           path: payload.message.filePath,
         };
-        internalValue.value = payload.message.fileName;
         emit("fileSelected", {
           name: payload.message.fileName,
           path: payload.message.filePath,
@@ -298,7 +298,6 @@ const handleFileSelectionMessage = (event) => {
         break;
     }
   }
-  internalValue.value = "";
 };
 const isValidInput = computed(() => {
   return !!internalValue.value || !!selectedFile.value;

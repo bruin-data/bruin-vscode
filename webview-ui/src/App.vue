@@ -38,9 +38,13 @@
           </div>
 
           <div class="tags flex w-1/4 items-center space-x-2 justify-end overflow-hidden">
-            <DescriptionItem :value="assetDetailsProps?.type" :className="badgeClass.badgeStyle" />
             <DescriptionItem
-              :value="assetDetailsProps?.pipeline.schedule"
+              :value="assetDetailsProps?.type ?? 'undefined'"
+              :className="assetDetailsProps?.type ? badgeClass.badgeStyle : badgeClass.grayBadge"
+            />
+
+            <DescriptionItem
+              :value="assetDetailsProps?.pipeline?.schedule ?? 'undefined'"
               :className="badgeClass.grayBadge"
               class="xs:flex hidden overflow-hidden truncate"
             />
@@ -406,7 +410,7 @@ const updateDescription = (newDescription) => {
       command: "bruin.setAssetDetails",
       payload: {
         ...assetDetailsProps.value,
-        name: editingName.value || assetDetailsProps.value?.name,
+        name: assetDetailsProps.value.name,
         description: newDescription,
       },
     });
