@@ -32,4 +32,6 @@ jobs:
       
     - name: Run webview tests
       run: npm run test:webview
-    
+          
+    - name: Run integration tests
+      run: npm run selenium:run-tests
