@@ -211,11 +211,11 @@
     "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "^2.4.0",
     "eslint": "^8.57.0",
+    "mocha": "^11.0.1",
     "prettier": "^3.2.5",
     "typescript": "^5.4.3",
     "vscode-extension-tester": "^8.10.0",
-    "vscode-test": "^1.6.1",
-    "mocha": "^11.0.1"
+    "vscode-test": "^1.6.1"
   },
   "dependencies": {
     "@rudderstack/analytics-js": "^3.11.15",
