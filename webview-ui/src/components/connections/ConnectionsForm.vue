@@ -148,30 +148,26 @@ watch(
   () => props.connection,
   (newConnection) => {
     if (Object.keys(newConnection).length > 0) {
-      form.value = {
-        connection_type: newConnection.type || "",
-        connection_name: newConnection.name || "",
-        environment: newConnection.environment || defaultEnvironment.value,
-        ...newConnection.credentials,
-      };
+      // Only update form if not already populated
+      if (!form.value.connection_name) {
+        form.value = {
+          connection_type: newConnection.type || "",
+          connection_name: newConnection.name || "",
+          environment: newConnection.environment || defaultEnvironment.value,
+          ...newConnection.credentials,
+        };
+      }
+      
       // Set selectedFile if service_account_file is present in credentials
       if (newConnection.credentials.service_account_file) {
         selectedFile.value = { path: newConnection.credentials.service_account_file };
       }
-    } else {
-      // Reset form when creating a new connection
-      form.value = {
-        connection_type: "",
-        connection_name: "",
-        environment: defaultEnvironment.value,
-      };
     }
+    
     validationErrors.value = {};
-    selectedFile.value = null;
   },
   { immediate: true, deep: true }
 );
-
 
 watch(
   () => form.value.connection_type,
