@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import { Workbench } from 'vscode-extension-tester';
 import { suite, test } from 'mocha';
-import { BottomBarPanel, TerminalView } from 'vscode-extension-tester';
+import { TerminalView } from 'vscode-extension-tester';
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 suite('Sample Command palette tests', function (this: Mocha.Suite) {
