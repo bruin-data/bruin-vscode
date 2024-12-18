@@ -23,7 +23,6 @@
         :environments="environments"
         @submit="handleConnectionSubmit"
         @cancel="closeConnectionForm"
-        @test="testConnection"
         :error="formError"
       />
     </div>
@@ -83,10 +82,6 @@ const handleMessage = (event) => {
     case "connection-created-message":
       handleConnectionCreated(message.payload);
       break;
-    case "connection-tested-message":
-      console.log("Connection tested:", message.payload);
-      handleConnectionTested(message.payload);
-      break;
     case "connection-edited-message":
       handleConnectionEdited(message.payload);
       break;
@@ -128,13 +123,7 @@ const handleConnectionDeleted = async (payload) => {
   }
 };
 
-const handleConnectionTested = (payload) => {
-  if (payload.status === "success") {
-    console.log("Connection tested successfully:", payload.message);
-  } else {
-    console.error("Failed to test connection:", payload.message);
-  }
-};
+
 
 const handleConnectionCreated = (payload) => {
   if (payload.status === "success") {
@@ -249,21 +238,7 @@ const handleConnectionSubmit = async (connectionData) => {
   }
 };
 
-const testConnection = async () => {
-  clearFormError();
 
-  const sanitizedConnectionData = JSON.parse(JSON.stringify(connectionToEdit.value)); // Ensure no circular refs
-  console.log("connection to test", sanitizedConnectionData);
-  try {
-    await vscode.postMessage({
-      command: "bruin.testConnection",
-      payload: sanitizedConnectionData,
-    });
-  } catch (error) {
-    console.error("Error testing connection:", error);
-    formError.value = { field: "connection_name", message: error.message };
-  }
-};
 
 const closeConnectionForm = () => {
   showForm.value = false;
