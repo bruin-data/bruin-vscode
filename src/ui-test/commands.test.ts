@@ -3,6 +3,7 @@ import { Workbench } from 'vscode-extension-tester';
 import { TerminalView } from 'vscode-extension-tester';
 import 'mocha';
 import { describe, it } from 'mocha';
+import { getDefaultBruinExecutablePath } from '../extension/configuration';
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -12,7 +13,8 @@ describe('Sample Command palette tests', function () {
         await sleep(5000);
         const terminalView = await new TerminalView();
         await terminalView.selectChannel("Bruin Terminal");
-        await terminalView.executeCommand("bruin --version");
+        const executablePath = getDefaultBruinExecutablePath();
+        await terminalView.executeCommand(`${executablePath} --version`);
         const terminalOutput = await terminalView.getText();
         console.log(terminalOutput);
         const versionAvailble = terminalOutput.includes('Current: ') && terminalOutput.includes('Latest: ');
