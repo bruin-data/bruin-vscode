@@ -6,7 +6,7 @@ const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 describe('Sample Command palette tests', function () {
     this.timeout(150000); 
 
-    it('using executeCommand', async () => {
+    it('Testing install Bruin CLI command', async () => {
 		await new Workbench().executeCommand('Install Bruin CLI');
         await sleep(5000);
         const terminalView = await new TerminalView();
