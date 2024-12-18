@@ -192,7 +192,7 @@
     "build:webview": "cd webview-ui && npm run build-only",
     "vscode:prepublish": "npm run compile",
     "selenium:setup-tests": "extest setup-tests",
-    "selenium:run-tests": "extest setup-and-run './out/test/ui/*.test.js' --code_version max --code_settings .vscode/settings.json",
+    "selenium:run-tests": "extest setup-and-run './out/ui-test/*.test.js' --code_version max --code_settings .vscode/settings.json",
     "test": "vscode-test",
     "test:webview": "cd webview-ui && npm run test",
     "compile": "tsc -p ./",
