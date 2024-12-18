@@ -61,7 +61,6 @@ import { flowLineageCommand } from "../extension/commands/FlowLineageCommand";
 
 import exp = require("constants");
 import { BruinLineageInternalParse } from "../bruin/bruinFlowLineage";
-import { prototype } from "events";
 
 suite("Extension Initialization", () => {
   test("should set default path separator based on platform", async () => {
