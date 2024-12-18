@@ -1,6 +1,5 @@
 import * as assert from 'assert';
 import { Workbench } from 'vscode-extension-tester';
-const { describe, it } = require('mocha');
 import { BottomBarPanel, TerminalView } from 'vscode-extension-tester';
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
