@@ -107,10 +107,11 @@ Access the Bruin CLI management tab `Settings` in the side panel for easy instal
 
 ## Release Notes
 
-### Latest Release: 0.31.4
-- Fixed an issue where updating an asset's name would reset its description, owner, and type fields.
+### Latest Release: 0.31.5
+- Prevented form resets when uploading a GCP json file in the ConnectionsForm component.
 
 ### Previous Highlights
+- **0.31.4** Fixed an issue where updating an asset's name would reset its description, owner, and type fields.
 - **0.31.3**: Fix Asset Name Falling to Default Value After Editing Description.
 - **0.31.2**: Correct Path Handling for Bruin Executable in Configuration.
 - **0.31.1**: Improved error handling, logging, and CLI path resolution for better command execution.
