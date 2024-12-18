@@ -1,7 +1,11 @@
 import * as assert from 'assert';
 import { Workbench } from 'vscode-extension-tester';
 import { TerminalView } from 'vscode-extension-tester';
+import 'mocha';
+
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+declare function describe(description: string, callback: () => void): void;
+declare function it(description: string, callback: () => void): void;
 
 describe('Sample Command palette tests', function (this: Mocha.Suite) {
     this.timeout(150000); 
