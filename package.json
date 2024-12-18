@@ -203,6 +203,7 @@
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.13",
+    "@types/mocha": "^10.0.10",
     "@types/node": "^20.11.30",
     "@types/sinon": "^17.0.3",
     "@types/vscode": "^1.46.0",
@@ -212,7 +213,6 @@
     "@vscode/test-electron": "^2.4.0",
     "eslint": "^8.57.0",
     "mocha": "^11.0.1",
-    "@types/mocha": "^10.0.10",
     "prettier": "^3.2.5",
     "typescript": "^5.4.3",
     "vscode-extension-tester": "^8.10.0",
