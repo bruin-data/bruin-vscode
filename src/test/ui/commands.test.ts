@@ -1,10 +1,10 @@
 import * as assert from 'assert';
 import { Workbench } from 'vscode-extension-tester';
-import { describe, it } from 'mocha';
+const { describe, it } = require('mocha');
 import { BottomBarPanel, TerminalView } from 'vscode-extension-tester';
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-describe('Sample Command palette tests', function () {
+describe('Sample Command palette tests', function (this: Mocha.Suite) {
     this.timeout(150000); 
 
     it('Testing install Bruin CLI command', async () => {
