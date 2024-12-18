@@ -106,10 +106,12 @@ Use the new connections section from `Settings` tab to view, add, or delete conn
 Access the Bruin CLI management tab `Settings` in the side panel for easy installation and updates.
 
 ## Release Notes
-### Latest Release: 0.31.3
-- Fix Asset Name Falling to Default Value After Editing Description.
 
-### Previous Highlights 
+### Latest Release: 0.31.4
+- Fixed an issue where updating an asset's name would reset its description, owner, and type fields.
+
+### Previous Highlights
+- **0.31.3**: Fix Asset Name Falling to Default Value After Editing Description.
 - **0.31.2**: Correct Path Handling for Bruin Executable in Configuration.
 - **0.31.1**: Improved error handling, logging, and CLI path resolution for better command execution.
 - **0.31.0**: Linked asset columns to glossary entries for quick navigation.
@@ -120,7 +122,7 @@ Access the Bruin CLI management tab `Settings` in the side panel for easy instal
 - **0.29.4**: Improved layout and styling for inputs and buttons for better responsiveness and consistency.
 - **0.29.3**: Hid the file input when selecting `service_account_json` for GCP connections.
 - **0.29.2**: Refactored the DateInput component to handle dates in UTC rather than local time.
-- **0.29.1**: Fix CLI Installation Check in Offline Mode 
+- **0.29.1**: Fix CLI Installation Check in Offline Mode
 - **0.29.0**: Allow editing asset name and description in the side panel and add a Bruin documentation button in Settings.
 - **0.28.0**: Added support for displaying custom checks in the UI.
 - **0.27.2**: Fix Error Handling in BruinValidate Class and Add Windows-Specific Validation.
@@ -139,11 +141,11 @@ Access the Bruin CLI management tab `Settings` in the side panel for easy instal
 - **0.26.0**: Added functionality to add and update columns directly from the UI in the Columns tab.
 - **0.25.29**: Added functionality to retrieve all connections from the json schema using internal and introduced CSV upload support for custom chess players.
 - **0.25.28**: Update Terminal Creation to Default to Git Bash on Windows.
-- **0.25.27**: Fixed the validate and run buttons hover colors to match the vscode themes. 
-- **0.25.26**: Fixed the validate and run buttons height. 
-- **0.25.25**: Added excetuable path to the bruin commands to run on the powershell. 
-- **0.25.24**: Added excetuable path option to the configuration for windows. 
-- **0.25.23**: Updated the logic to look fo bruin executable path on windows and add debugging informations. 
+- **0.25.27**: Fixed the validate and run buttons hover colors to match the vscode themes.
+- **0.25.26**: Fixed the validate and run buttons height.
+- **0.25.25**: Added excetuable path to the bruin commands to run on the powershell.
+- **0.25.24**: Added excetuable path option to the configuration for windows.
+- **0.25.23**: Updated the logic to look fo bruin executable path on windows and add debugging informations.
 - **0.25.22**: Used the install script on all the platforms.
 - **0.25.21**: Removed the git check for windows.
 - **0.25.20**: Fixed Bruin Render command to run properly from the command palette.

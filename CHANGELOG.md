@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.31.4] - [2024-12-18]
+- Fixed an issue where updating an asset's name would reset its description, owner, and type fields.
+
 ## [0.31.3] - [2024-12-17]
 - Fix Asset Name Falling to Default Value After Editing Description.
 
