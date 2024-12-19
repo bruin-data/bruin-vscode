@@ -74,45 +74,93 @@
               </td>
               <td class="w-1/5 whitespace-nowrap px-2 py-2 text-right text-sm font-medium">
                 <button
-                  @click="$emit('duplicate-connection', connection)"
-                  class="text-descriptionFg hover:text-editor-fg mr-3"
-                  title="Duplicate"
-                >
-                  <DocumentDuplicateIcon class="h-5 w-5 inline-block" />
-                </button>
-                <button
                   @click="$emit('edit-connection', connection)"
                   class="text-descriptionFg hover:text-editor-fg mr-3"
                   title="Edit"
                 >
-                  <PencilIcon class="h-5 w-5 inline-block" />
+                  <PencilIcon class="h-4 w-4 inline-block" />
                 </button>
                 <button
                   @click="$emit('delete-connection', { name: connection.name, environment })"
                   class="text-descriptionFg opacity-70 hover:text-editorError-foreground"
                   title="Delete"
                 >
-                  <TrashIcon class="h-5 w-5 inline-block" />
+                  <TrashIcon class="h-4 w-4 inline-block" />
                 </button>
+                <div class="relative inline-block align-middle">
+                  <button
+                    @click="toggleMenu(connection.name)"
+                    class="text-descriptionFg hover:text-editor-fg align-middle"
+                  >
+                    <EllipsisVerticalIcon class="h-5 w-5 inline-block" />
+                  </button>
+                  <div
+                    v-if="activeMenu === connection.name"
+                    class="absolute right-0 mt-2 w-48 bg-editorWidget-bg border border-commandCenter-border rounded shadow-lg z-10"
+                  >
+                    <button
+                      @click="handleTestConnection(connection)"
+                      class="flex items-center space-x-1 w-full text-left px-2 py-1 text-sm text-editor-fg hover:bg-editor-button-hover-bg"
+                    >
+                      <BeakerIcon class="h-4 w-4 inline-block" />
+                      <span> Test </span>
+                    </button>
+                    <button
+                      @click="handleDuplicateConnection(connection)"
+                      class="flex items-center space-x-1 w-full text-left px-2 py-1 text-sm text-editor-fg hover:bg-editor-button-hover-bg"
+                    >
+                      <DocumentDuplicateIcon class="h-5 w-5 inline-block" />
+
+                      <span> Duplicate </span>
+                    </button>
+                  </div>
+                </div>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
     </div>
+    <TestStatus
+      v-if="connectionTestStatus"
+      :status="connectionTestStatus"
+      @dismiss="connectionTestStatus = null"
+      :successMessage="successMessage"
+      :failureMessage="failureMessage"
+    />
   </div>
 </template>
 
 <script setup>
 import { useConnectionsStore } from "@/store/bruinStore";
-import { computed } from "vue";
-import { TrashIcon, PencilIcon, DocumentDuplicateIcon } from "@heroicons/vue/24/outline";
+import { computed, onMounted, ref, defineEmits, onUnmounted } from "vue";
+import {
+  TrashIcon,
+  PencilIcon,
+  EllipsisVerticalIcon,
+  DocumentDuplicateIcon,
+  BeakerIcon,
+} from "@heroicons/vue/24/outline";
 import AlertMessage from "@/components/ui/alerts/AlertMessage.vue";
+import { vscode } from "@/utilities/vscode";
+import TestStatus from "@/components/ui/alerts/TestStatus.vue";
 
 const connectionsStore = useConnectionsStore();
 const connections = computed(() => connectionsStore.connections);
 const error = computed(() => connectionsStore.error);
 const defaultEnvironment = computed(() => connectionsStore.getDefaultEnvironment());
+const emit = defineEmits([
+  "new-connection",
+  "edit-connection",
+  "delete-connection",
+  "duplicate-connection",
+]);
+
+// Track which menu is currently active
+const activeMenu = ref(null);
+const connectionTestStatus = ref(null);
+const failureMessage = ref(null);
+const successMessage = ref(null);
 
 const groupedConnections = computed(() => {
   return connections.value.reduce((grouped, connection) => {
@@ -122,7 +170,80 @@ const groupedConnections = computed(() => {
   }, {});
 });
 
-defineEmits(["new-connection", "edit-connection", "delete-connection", "duplicate-connection"]);
+
+const toggleMenu = (connectionName) => {
+  // Close menu if clicking the same connection, open it if clicking a different one
+  activeMenu.value = activeMenu.value === connectionName ? null : connectionName;
+};
+
+// Close menu when clicking outside
+const closeMenuOnClickOutside = (event) => {
+  if (activeMenu.value && !event.target.closest(".relative")) {
+    activeMenu.value = null;
+  }
+};
+const testConnection = (connection) => {
+  try {
+    console.log("Testing connection:", connection);
+    const connectionData = {
+      name: connection.name,
+      type: connection.type,
+      environment: connection.environment,
+      credentials: connection.credentials,
+    };
+    vscode.postMessage({
+      command: "bruin.testConnection",
+      payload: connectionData,
+    });
+  } catch (error) {
+    console.error("Error testing connection:", error);
+  }
+};
+
+
+const handleConnectionTested = (payload) => {
+  if (payload.status === "success") {
+    console.log("Connection tested successfully:", payload.message);
+    connectionTestStatus.value = "success";
+    successMessage.value = payload.message;
+  } else {
+    console.error("Failed to test connection:", payload.message);
+    connectionTestStatus.value = "failure";
+    failureMessage.value = JSON.parse(payload.message).error;
+  }
+};
+
+const handleTestConnection = (connection) => {
+  testConnection(connection);
+  activeMenu.value = null; // Close menu after action
+};
+
+const handleDuplicateConnection = (connection) => {
+  emit("duplicate-connection", connection);
+  activeMenu.value = null; // Close menu after action
+};
+
+const handleMessage = (event) => {
+  const message = event.data;
+  console.log("Message received in connection form:", message);
+  switch (message.command) {
+    case "connection-tested-message":
+      console.log("Connection tested:", message.payload);
+      handleConnectionTested(message.payload);
+      break;
+    default:
+      break;
+  }
+};
+onMounted(() => {
+  window.addEventListener("message", handleMessage);
+  document.addEventListener("click", closeMenuOnClickOutside);
+});
+
+onUnmounted(() => {
+  window.removeEventListener("message", handleMessage);
+  document.removeEventListener("click", closeMenuOnClickOutside);
+});
 </script>
 
 <style scoped>
