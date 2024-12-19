@@ -21,7 +21,7 @@ describe("Sample Command palette tests", function () {
 
     // Use Git Bash on Windows
     if (process.platform === "win32") {
-      //await terminalView.executeCommand(`"${bruinExecutable}" --version`);
+      await terminalView.executeCommand(`"${bruinExecutable}" --version`);
     } else {
       await terminalView.executeCommand(`${bruinExecutable} --version`);
     }
