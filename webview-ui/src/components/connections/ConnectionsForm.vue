@@ -19,13 +19,13 @@
             :defaultValue="getDefaultValue(field)"
           />
         </div>
-        <vscode-button
+   <!--      <vscode-button
           appearance="secondary"
           @click="testConnection"
           class="p-1 text-sm font-semibold"
         >
           Test Connection
-        </vscode-button>
+        </vscode-button> -->
       </div>
       <div class="mt-6 flex justify-end space-x-1 w-full">
         <vscode-button
@@ -55,7 +55,6 @@ import FormField from "./FormField.vue";
 import { XMarkIcon } from "@heroicons/vue/20/solid";
 import { useConnectionsStore } from "@/store/bruinStore";
 import { generateConnectionConfig } from "./connectionUtility";
-import { vscode } from "@/utilities/vscode";
 
 const connectionsStore = useConnectionsStore();
 
@@ -132,11 +131,7 @@ const formFields = computed(() => [
     value: form.value[field.id] || "",
   })),
 ]);
-/* case "connection-tested-message":
-      console.log("Connection tested:", message.payload);
-      handleConnectionTested(message.payload);
-      break; */
-// Watch for error updates
+
 watch(
   () => props.error,
   (newError) => {
@@ -149,64 +144,6 @@ watch(
   { deep: true }
 );
 
-const handleConnectionTested = (payload) => {
-  if (payload.status === "success") {
-    console.log("Connection tested successfully:", payload.message);
-  } else {
-    console.error("Failed to test connection:", payload.message);
-  }
-};
-
-const testConnection = () => {
-  if (!validateForm()) {
-    return;
-  }
-
-  const connectionData = {
-    name: form.value.connection_name,
-    type: form.value.connection_type,
-    environment: form.value.environment,
-    credentials: {},
-  };
-
-  formFields.value.forEach((field) => {
-    if (
-      field.id !== "connection_type" &&
-      field.id !== "connection_name" &&
-      field.id !== "environment"
-    ) {
-      // Special handling for Google Cloud Platform service account
-      if (form.value.connection_type === "google_cloud_platform") {
-        if (selectedFile.value) {
-          connectionData.credentials.service_account_file = selectedFile.value.path;
-        }
-
-        connectionData.credentials[field.id] = form.value[field.id];
-      } else {
-        // For other connection types, add fields as before
-        connectionData.credentials[field.id] = form.value[field.id];
-      }
-    }
-    try {
-      console.log("Testing connection:", connectionData);
-      vscode.postMessage({
-        command: "bruin.testConnection",
-        payload: connectionData,
-      });      
-    } catch (error) {
-      console.error("Error testing connection:", error);
-    }
-  });
-
-  console.log("Testing connection:", connectionData);
-  window.parent.postMessage(
-    {
-      command: "test-connection",
-      payload: connectionData,
-    },
-    "*"
-  );
-};
 // Watch for connection updates
 watch(
   () => props.connection,
@@ -325,21 +262,7 @@ const submitForm = () => {
   emit("submit", connectionData);
 };
 
-const handleMessage = (event) => {
-  const message = event.data;
-  console.log("Message received in connection form:", message);
-  switch (message.command) {
-    case "connection-tested-message":
-      console.log("Connection tested:", message.payload);
-      handleConnectionTested(message.payload);
-      break;
-    default:
-      break;
-  }
-};
-onMounted(() => {
-  window.addEventListener("message", handleMessage);
-});
+
 </script>
 <style scoped>
 vscode-button::part(control) {
