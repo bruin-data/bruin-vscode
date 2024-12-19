@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.32.0] - [2024-12-19]
+- Added a test connection feature to test existing connections.
+
 ## [0.31.5] - [2024-12-18]
 - Prevented form resets when uploading a GCP json file in the ConnectionsForm component.
 
