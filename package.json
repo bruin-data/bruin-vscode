@@ -191,6 +191,8 @@
     "dev:watch": "concurrently \"tsc -watch -p ./\" \"cd webview-ui && npm run build-only\" \"code --extensionDevelopmentPath=$PWD\"",
     "build:webview": "cd webview-ui && npm run build-only",
     "vscode:prepublish": "npm run compile",
+    "selenium:setup-tests": "extest setup-tests",
+    "selenium:run-tests": "extest setup-and-run './out/ui-test/*.test.js' --code_version max --code_settings .vscode/settings.json",
     "test": "vscode-test",
     "test:webview": "cd webview-ui && npm run test",
     "compile": "tsc -p ./",
@@ -201,6 +203,7 @@
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.13",
+    "@types/mocha": "^10.0.10",
     "@types/node": "^20.11.30",
     "@types/sinon": "^17.0.3",
     "@types/vscode": "^1.46.0",
@@ -209,8 +212,11 @@
     "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "^2.4.0",
     "eslint": "^8.57.0",
+    "mocha": "^11.0.1",
     "prettier": "^3.2.5",
+    "ts-node": "^10.9.2",
     "typescript": "^5.4.3",
+    "vscode-extension-tester": "^8.10.0",
     "vscode-test": "^1.6.1"
   },
   "dependencies": {

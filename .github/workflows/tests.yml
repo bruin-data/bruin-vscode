@@ -28,8 +28,15 @@ jobs:
 
     - name: Run extension tests
       if: runner.os != 'Linux'
-      run: npm run test --security-revert
+      run: npm run test
       
     - name: Run webview tests
       run: npm run test:webview
-    
+
+    - name: Run integration tests
+      if: runner.os == 'Linux'
+      run: xvfb-run -a npm run selenium:run-tests 
+
+    - name: Run integration tests
+      if: runner.os != 'Linux'
+      run: npm run selenium:run-tests 
