@@ -150,8 +150,13 @@ export class BruinTestConnection extends BruinCommand {
     try {
       await this.run(flags, { ignoresErrors })
         .then(
-          () => {
+          (result) => {
+            if(result.includes("support")){
+              this.postMessageToPanels("unsupported", result);
+              return;
+            }
             console.log(`Successfully tested connection "${connectionName}".`); // Debug message
+            
             this.postMessageToPanels(
               "success",
               `Connection "${connectionName}" tested successfully.`
