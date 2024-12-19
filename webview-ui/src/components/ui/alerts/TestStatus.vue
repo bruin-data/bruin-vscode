@@ -2,7 +2,7 @@ import { CheckCircleIcon, XCircleIcon } from '@heroicons/vue/24/outline';
 
 <template>
   <div
-    v-if="status" 
+    v-if="status"
     class="fixed bottom-4 right-10 max-w-md p-2 border transition-all duration-300 transform"
     :class="statusClasses"
   >
@@ -32,7 +32,7 @@ import { CheckCircleIcon, XCircleIcon } from '@heroicons/vue/24/outline';
       </template>
       <CheckCircleIcon v-if="status === 'success'" class="h-6 w-6 text-green-500" />
       <XCircleIcon v-if="status === 'failure'" class="h-6 w-6 text-red-500" />
-
+      <ExclamationCircleIcon v-if="status === 'unsupported'" class="h-6 w-6 text-editor-fg" />
       <div class="flex-1">
         <p class="text-sm font-medium" :class="textColorClass">
           {{ message }}
@@ -48,17 +48,21 @@ import { CheckCircleIcon, XCircleIcon } from '@heroicons/vue/24/outline';
 
 <script setup>
 import { computed, watch, onUnmounted } from "vue";
-import { XMarkIcon, CheckCircleIcon, XCircleIcon } from "@heroicons/vue/24/outline";
+import { XMarkIcon, CheckCircleIcon, XCircleIcon, ExclamationCircleIcon } from "@heroicons/vue/24/outline";
 const props = defineProps({
   status: {
     type: String,
-    validator: (value) => ["success", "failure", null].includes(value),
+    validator: (value) => ["success", "failure", 'unsupported', null].includes(value),
     required: true,
   },
   // Optional custom messages
   successMessage: {
     type: String,
     default: "Connection test successful",
+  },
+  supportMessage: {
+    type: String,
+    default: "Connection test unsupported",
   },
   failureMessage: {
     type: String,
@@ -78,6 +82,7 @@ const statusClasses = computed(() => ({
   "bg-editorWidget-bg border-green-500": props.status === "success",
   "bg-editorWidget-bg border-red-500": props.status === "failure",
   "bg-editorWidget-bg border-editorWidget-fg": props.status === "loading",
+  "bg-editorWidget-bg border-editorWidget-fg": props.status === "unsupported",
 }));
 
 const textColorClass = computed(() => ({
@@ -93,6 +98,8 @@ const message = computed(() => {
       return props.successMessage;
     case "failure":
       return props.failureMessage;
+    case "unsupported":
+      return props.supportMessage;
     default:
       return "";
   }

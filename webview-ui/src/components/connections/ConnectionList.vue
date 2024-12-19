@@ -105,14 +105,14 @@
                         @click="handleTestConnection(connection)"
                         class="flex items-center space-x-1 w-full text-left px-2 py-1 text-sm text-editor-fg hover:bg-editor-button-hover-bg"
                       >
-                        <BeakerIcon class="h-4 w-4 inline-block" />
+                        <BeakerIcon class="h-4 w-4 inline-block mr-1" />
                         <span> Test </span>
                       </button>
                       <button
                         @click="handleDuplicateConnection(connection)"
                         class="flex items-center space-x-1 w-full text-left px-2 py-1 text-sm text-editor-fg hover:bg-editor-button-hover-bg"
                       >
-                        <DocumentDuplicateIcon class="h-5 w-5 inline-block" />
+                        <DocumentDuplicateIcon class="h-4 w-4 inline-block mr-1" />
 
                         <span> Duplicate </span>
                       </button>
@@ -132,6 +132,7 @@
       :successMessage="successMessage"
       :isLoading="loadingMessage"
       :failureMessage="failureMessage"
+      :supportMessage="supportMessage"
     />
   </div>
 </template>
@@ -167,6 +168,7 @@ const activeMenu = ref(null);
 const connectionTestStatus = ref(null);
 const failureMessage = ref(null);
 const successMessage = ref(null);
+const supportMessage = ref(null);
 const loadingMessage = ref(null);
 const menuPosition = ref({});
 const menuRef = ref(null);
@@ -234,18 +236,26 @@ const testConnection = (connection) => {
 };
 
 const handleConnectionTested = (payload) => {
-  if (payload.status === "success") {
-    console.log("Connection tested successfully:", payload.message);
-    connectionTestStatus.value = "success";
-    successMessage.value = payload.message;
-  } else if (payload.status === "loading") {
-    console.log("Connection test in progress:", payload.message);
-    connectionTestStatus.value = "loading";
-    loadingMessage.value = payload.message;
-  } else {
-    console.error("Failed to test connection:", payload.message);
-    connectionTestStatus.value = "failure";
-    failureMessage.value = JSON.parse(payload.message).error;
+  switch (payload.status) {
+    case "success":
+      console.log("Connection tested successfully:", payload.message);
+      connectionTestStatus.value = "success";
+      successMessage.value = payload.message;
+      break;
+    case "loading":
+      console.log("Connection test in progress:", payload.message);
+      connectionTestStatus.value = "loading";
+      loadingMessage.value = payload.message;
+      break;
+    case "unsupported":
+    console.log("Connection test :", payload.message);
+      connectionTestStatus.value = "unsupported";
+      supportMessage.value = payload.message;  
+    break;
+    default:
+      console.error("Failed to test connection:", payload.message);
+      connectionTestStatus.value = "failure";
+      failureMessage.value = JSON.parse(payload.message).error;
   }
 };
 
