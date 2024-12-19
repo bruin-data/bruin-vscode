@@ -105,14 +105,14 @@
                         @click="handleTestConnection(connection)"
                         class="flex items-center space-x-1 w-full text-left px-2 py-1 text-sm text-editor-fg hover:bg-editor-button-hover-bg"
                       >
-                        <BeakerIcon class="h-4 w-4 inline-block" />
+                        <BeakerIcon class="h-4 w-4 inline-block mr-1" />
                         <span> Test </span>
                       </button>
                       <button
                         @click="handleDuplicateConnection(connection)"
                         class="flex items-center space-x-1 w-full text-left px-2 py-1 text-sm text-editor-fg hover:bg-editor-button-hover-bg"
                       >
-                        <DocumentDuplicateIcon class="h-5 w-5 inline-block" />
+                        <DocumentDuplicateIcon class="h-4 w-4 inline-block mr-1" />
 
                         <span> Duplicate </span>
                       </button>
