@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-7xl mx-auto p-4">
+  <div class="max-w-7xl h-full mx-auto p-4">
     <div class="flex-col items-center">
       <div class="flex flex-col items-start space-y-2 mb-2">
         <h2 class="text-xl font-semibold text-editor-fg">Connections</h2>
@@ -33,86 +33,143 @@
       <h3 class="text-lg font-medium text-editor-fg mb-2 font-mono">
         {{ environment === defaultEnvironment ? `${environment} (default)` : environment }}
       </h3>
-      <div class="overflow-hidden bg-editorWidget-bg sm:rounded-lg">
-        <table class="min-w-full divide-y divide-commandCenter-border">
-          <thead>
-            <tr>
-              <th
-                scope="col"
-                class="w-2/5 px-2 py-2 text-left text-sm font-semibold text-editor-fg opacity-70"
-              >
-                Name
-              </th>
-              <th
-                scope="col"
-                class="w-2/5 px-2 py-2 text-left text-sm font-semibold text-editor-fg opacity-70"
-              >
-                Type
-              </th>
-              <th
-                scope="col"
-                class="w-1/5 px-2 py-2 text-right text-sm font-semibold text-editor-fg opacity-70"
-              >
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="connection in connections"
-              :key="connection.name"
-              class="hover:bg-editor-hoverBackground"
-            >
-              <td
-                class="w-2/5 whitespace-nowrap px-2 py-2 text-sm font-medium text-editor-fg font-mono"
-                :class="{ 'opacity-80 italic': !connection.name }"
-              >
-                {{ connection.name || "undefined" }}
-              </td>
-              <td class="w-2/5 whitespace-nowrap px-2 py-2 text-sm text-descriptionFg font-mono">
-                {{ connection.type }}
-              </td>
-              <td class="w-1/5 whitespace-nowrap px-2 py-2 text-right text-sm font-medium">
-                <button
-                  @click="$emit('duplicate-connection', connection)"
-                  class="text-descriptionFg hover:text-editor-fg mr-3"
-                  title="Duplicate"
+      <div class="relative bg-editorWidget-bg">
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-commandCenter-border">
+            <thead>
+              <tr>
+                <th
+                  scope="col"
+                  class="w-2/5 px-2 py-2 text-left text-sm font-semibold text-editor-fg opacity-70"
                 >
-                  <DocumentDuplicateIcon class="h-5 w-5 inline-block" />
-                </button>
-                <button
-                  @click="$emit('edit-connection', connection)"
-                  class="text-descriptionFg hover:text-editor-fg mr-3"
-                  title="Edit"
+                  Name
+                </th>
+                <th
+                  scope="col"
+                  class="w-2/5 px-2 py-2 text-left text-sm font-semibold text-editor-fg opacity-70"
                 >
-                  <PencilIcon class="h-5 w-5 inline-block" />
-                </button>
-                <button
-                  @click="$emit('delete-connection', { name: connection.name, environment })"
-                  class="text-descriptionFg opacity-70 hover:text-editorError-foreground"
-                  title="Delete"
+                  Type
+                </th>
+                <th
+                  scope="col"
+                  class="w-1/5 px-2 py-2 text-right text-sm font-semibold text-editor-fg opacity-70"
                 >
-                  <TrashIcon class="h-5 w-5 inline-block" />
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="connection in connections"
+                :key="connection.name"
+                class="hover:bg-editor-hoverBackground"
+              >
+                <td
+                  class="w-2/5 whitespace-nowrap px-2 py-2 text-sm font-medium text-editor-fg font-mono"
+                  :class="{ 'opacity-80 italic': !connection.name }"
+                >
+                  {{ connection.name || "undefined" }}
+                </td>
+                <td class="w-2/5 whitespace-nowrap px-2 py-2 text-sm text-descriptionFg font-mono">
+                  {{ connection.type }}
+                </td>
+                <td class="w-1/5 whitespace-nowrap px-2 py-2 text-right text-sm font-medium">
+                  <button
+                    @click="$emit('edit-connection', connection)"
+                    class="text-descriptionFg hover:text-editor-fg mr-3"
+                    title="Edit"
+                  >
+                    <PencilIcon class="h-4 w-4 inline-block" />
+                  </button>
+                  <button
+                    @click="$emit('delete-connection', { name: connection.name, environment })"
+                    class="text-descriptionFg opacity-70 hover:text-editorError-foreground"
+                    title="Delete"
+                  >
+                    <TrashIcon class="h-4 w-4 inline-block" />
+                  </button>
+                  <div class="relative inline-block align-middle">
+                    <button
+                      @click="toggleMenu(connection.name, $event)"
+                      class="text-descriptionFg hover:text-editor-fg align-middle"
+                    >
+                      <EllipsisVerticalIcon class="h-5 w-5 inline-block" />
+                    </button>
+                    <div
+                      v-if="activeMenu === connection.name"
+                      class="absolute right-0 mt-2 w-48 bg-editorWidget-bg border border-commandCenter-border rounded shadow-lg z-10"
+                      :style="menuPosition"
+                      ref="menuRef"
+                    >
+                      <button
+                        @click="handleTestConnection(connection)"
+                        class="flex items-center space-x-1 w-full text-left px-2 py-1 text-sm text-editor-fg hover:bg-editor-button-hover-bg"
+                      >
+                        <BeakerIcon class="h-4 w-4 inline-block" />
+                        <span> Test </span>
+                      </button>
+                      <button
+                        @click="handleDuplicateConnection(connection)"
+                        class="flex items-center space-x-1 w-full text-left px-2 py-1 text-sm text-editor-fg hover:bg-editor-button-hover-bg"
+                      >
+                        <DocumentDuplicateIcon class="h-5 w-5 inline-block" />
+
+                        <span> Duplicate </span>
+                      </button>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
+    <TestStatus
+      v-if="connectionTestStatus"
+      :status="connectionTestStatus"
+      @dismiss="connectionTestStatus = null"
+      :successMessage="successMessage"
+      :isLoading="loadingMessage"
+      :failureMessage="failureMessage"
+    />
   </div>
 </template>
 
 <script setup>
 import { useConnectionsStore } from "@/store/bruinStore";
-import { computed } from "vue";
-import { TrashIcon, PencilIcon, DocumentDuplicateIcon } from "@heroicons/vue/24/outline";
+import { computed, onMounted, ref, defineEmits, onUnmounted, useTemplateRef } from "vue";
+import {
+  TrashIcon,
+  PencilIcon,
+  EllipsisVerticalIcon,
+  DocumentDuplicateIcon,
+  BeakerIcon,
+} from "@heroicons/vue/24/outline";
 import AlertMessage from "@/components/ui/alerts/AlertMessage.vue";
+import { vscode } from "@/utilities/vscode";
+import TestStatus from "@/components/ui/alerts/TestStatus.vue";
+import { onClickOutside } from '@vueuse/core'
 
 const connectionsStore = useConnectionsStore();
 const connections = computed(() => connectionsStore.connections);
 const error = computed(() => connectionsStore.error);
 const defaultEnvironment = computed(() => connectionsStore.getDefaultEnvironment());
+const emit = defineEmits([
+  "new-connection",
+  "edit-connection",
+  "delete-connection",
+  "duplicate-connection",
+]);
+
+// Track which menu is currently active
+const activeMenu = ref(null);
+const connectionTestStatus = ref(null);
+const failureMessage = ref(null);
+const successMessage = ref(null);
+const loadingMessage = ref(null);
+const menuPosition = ref({});
+const menuRef = ref(null);
 
 const groupedConnections = computed(() => {
   return connections.value.reduce((grouped, connection) => {
@@ -122,7 +179,105 @@ const groupedConnections = computed(() => {
   }, {});
 });
 
-defineEmits(["new-connection", "edit-connection", "delete-connection", "duplicate-connection"]);
+const toggleMenu = (connectionName, event) => {
+  activeMenu.value = activeMenu.value === connectionName ? null : connectionName;
+  if (activeMenu.value) {
+    menuPosition.value = getMenuPosition(event); // Calculate position using the event
+  }
+};
+
+const getMenuPosition = (event) => {
+  const buttonRect = event.target.getBoundingClientRect(); // Get button dimensions
+  const viewportHeight = window.innerHeight;
+
+  const dropdownHeight = 100;
+
+  // Check for overflow
+  const willOverflow = buttonRect.bottom + dropdownHeight > viewportHeight;
+
+  // Adjust position based on overflow
+  if (willOverflow) {
+    return {
+      bottom: "100%",
+      right: "4",
+      top: "auto",
+    };
+  }
+
+  return {
+    top: "100%",
+    right: "4",
+    bottom: "auto",
+  };
+};
+
+onClickOutside(menuRef, () => {
+  activeMenu.value = null; 
+});
+
+const testConnection = (connection) => {
+  try {
+    console.log("Testing connection:", connection);
+    const connectionData = {
+      name: connection.name,
+      type: connection.type,
+      environment: connection.environment,
+      credentials: connection.credentials,
+    };
+    vscode.postMessage({
+      command: "bruin.testConnection",
+      payload: connectionData,
+    });
+  } catch (error) {
+    console.error("Error testing connection:", error);
+  }
+};
+
+const handleConnectionTested = (payload) => {
+  if (payload.status === "success") {
+    console.log("Connection tested successfully:", payload.message);
+    connectionTestStatus.value = "success";
+    successMessage.value = payload.message;
+  } else if (payload.status === "loading") {
+    console.log("Connection test in progress:", payload.message);
+    connectionTestStatus.value = "loading";
+    loadingMessage.value = payload.message;
+  } else {
+    console.error("Failed to test connection:", payload.message);
+    connectionTestStatus.value = "failure";
+    failureMessage.value = JSON.parse(payload.message).error;
+  }
+};
+
+const handleTestConnection = (connection) => {
+  testConnection(connection);
+  activeMenu.value = null; // Close menu after action
+};
+
+const handleDuplicateConnection = (connection) => {
+  emit("duplicate-connection", connection);
+  activeMenu.value = null; // Close menu after action
+};
+
+const handleMessage = (event) => {
+  const message = event.data;
+  console.log("Message received in connection form:", message);
+  switch (message.command) {
+    case "connection-tested-message":
+      console.log("Connection tested:", message.payload);
+      handleConnectionTested(message.payload);
+      break;
+    default:
+      break;
+  }
+};
+onMounted(() => {
+  window.addEventListener("message", handleMessage);
+});
+
+onUnmounted(() => {
+  window.removeEventListener("message", handleMessage);
+});
 </script>
 
 <style scoped>

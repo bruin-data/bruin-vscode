@@ -1,5 +1,10 @@
 export const generateConnectionConfig = (schema: any) => {
-  if (!schema || !schema.$defs || !schema.$defs.Connections || !schema.$defs.Connections.properties) {
+  if (
+    !schema ||
+    !schema.$defs ||
+    !schema.$defs.Connections ||
+    !schema.$defs.Connections.properties
+  ) {
     throw new Error("Invalid schema format");
   }
 
@@ -8,28 +13,30 @@ export const generateConnectionConfig = (schema: any) => {
 
   connectionTypes.forEach((type) => {
     const connectionRef = schema.$defs.Connections.properties[type].items.$ref;
-    const connectionDefKey = connectionRef.split('/').pop();
+    const connectionDefKey = connectionRef.split("/").pop();
     const connectionDef = schema.$defs[connectionDefKey];
-if (connectionDef) {
+    if (connectionDef) {
       connectionConfig[type] = Object.keys(connectionDef.properties)
-        .filter((prop) => prop !== 'name' && prop !== 'service_account_file') // Exclude the 'name' field
+        .filter((prop) => prop !== "name" && prop !== "service_account_file") // Exclude the 'name' field
         .map((prop) => {
           const propDef = connectionDef.properties[prop];
-          let inputType = 'text';
-          if (prop === 'players' && type === 'chess') {
-            inputType = 'csv';
-          } else if (propDef.type === 'string') {
-            inputType = 'text';
-          } else if (propDef.type === 'integer') {
-            inputType = 'number';
-          } else if (propDef.type === 'array' && propDef.items.type === 'string') {
-            inputType = 'multi-select';
+          let inputType = "text";
+          if (prop === "players" && type === "chess") {
+            inputType = "csv";
+          } else if (prop === "password" || prop === "secret") {
+            inputType = "password";
+          } else if (propDef.type === "string") {
+            inputType = "text";
+          } else if (propDef.type === "integer") {
+            inputType = "number";
+          } else if (propDef.type === "array" && propDef.items.type === "string") {
+            inputType = "multi-select";
           } else {
             inputType = propDef.type;
           }
           return {
             id: prop,
-            label: prop.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
+            label: prop.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()),
             type: inputType,
             required: connectionDef.required.includes(prop),
             defaultValue: propDef.default,
@@ -74,4 +81,3 @@ export const formatConnectionName = (option) => {
 
   return map[option] || option;
 };
-

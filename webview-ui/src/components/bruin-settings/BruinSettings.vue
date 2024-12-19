@@ -47,7 +47,6 @@ import { useConnectionsStore } from "@/store/bruinStore";
 import { vscode } from "@/utilities/vscode";
 import { v4 as uuidv4 } from "uuid";
 
-
 const props = defineProps({
   isBruinInstalled: Boolean,
   environments: Array,
@@ -124,6 +123,8 @@ const handleConnectionDeleted = async (payload) => {
   }
 };
 
+
+
 const handleConnectionCreated = (payload) => {
   if (payload.status === "success") {
     try {
@@ -146,6 +147,7 @@ const handleConnectionCreated = (payload) => {
     formError.value = { field: "connection_name", message: payload.message };
   }
 };
+
 const handleConnectionEdited = (payload) => {
   if (payload.status === "success") {
     connectionsStore.updateConnection(payload.connection);
@@ -170,7 +172,6 @@ const showConnectionForm = (connection = null, duplicate = false) => {
         },
       };
     } else {
-      const duplicatedName = duplicate ? `${connection.name} (Copy)` : connection.name;
       connectionToEdit.value = {
         ...connection,
         name: duplicatedName,
@@ -237,6 +238,8 @@ const handleConnectionSubmit = async (connectionData) => {
   }
 };
 
+
+
 const closeConnectionForm = () => {
   showForm.value = false;
   connectionToEdit.value = null;
@@ -275,4 +278,3 @@ const cancelDeleteConnection = () => {
   connectionToDelete.value = null;
 };
 </script>
-@/store/bruinStore

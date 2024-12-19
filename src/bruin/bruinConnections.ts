@@ -43,7 +43,7 @@ export class BruinConnections extends BruinCommand {
           if (error.includes("No help topic for")) {
             const cliError =
               "The Bruin CLI is out of date. Please update it to access your connections.";
-           //   console.error("CLI error message:", cliError); // Debug message
+            //   console.error("CLI error message:", cliError); // Debug message
             this.postMessageToPanels("error", cliError);
           } else {
             this.postMessageToPanels("error", error);
@@ -88,7 +88,10 @@ export class BruinDeleteConnection extends BruinCommand {
       ignoresErrors = false,
     }: BruinCommandOptions = {}
   ): Promise<void> {
-    console.log(`Attempting to delete connection "${connectionName}" in environment "${env}" with flags:`, flags); // Debug message
+    console.log(
+      `Attempting to delete connection "${connectionName}" in environment "${env}" with flags:`,
+      flags
+    ); // Debug message
     await this.run([...flags], { ignoresErrors })
       .then(
         () => {
@@ -111,6 +114,64 @@ export class BruinDeleteConnection extends BruinCommand {
 
   private postMessageToPanels(status: string, message: string | any) {
     BruinPanel.postMessage("connections-list-after-delete", { status, message });
+  }
+}
+export class BruinTestConnection extends BruinCommand {
+  bruinWorkspace: string = "";
+
+  protected bruinCommand(): string {
+    return "connections";
+  }
+  public isLoading: boolean = false;
+
+  public async testConnection(
+    env: string,
+    connectionName: string,
+    connectionType: string,
+    { ignoresErrors = false }: BruinCommandOptions = {}
+  ): Promise<void> {
+    this.isLoading = true;
+    const flags = [
+      "test",
+      "--env",
+      env,
+      "--type",
+      connectionType,
+      "--name",
+      connectionName,
+      "-o",
+      "json",
+    ];
+    console.log("Testing connection with flags:", flags); // Debug message
+    BruinPanel.postMessage("connection-tested-message", {
+      status: "loading",
+      message: "Testing connection...",
+    });
+    try {
+      await this.run(flags, { ignoresErrors })
+        .then(
+          () => {
+            console.log(`Successfully tested connection "${connectionName}".`); // Debug message
+            this.postMessageToPanels(
+              "success",
+              `Connection "${connectionName}" tested successfully.`
+            );
+          },
+          (error) => {
+            console.error("Error occurred while testing connection:", error); // Debug message
+            this.postMessageToPanels("error", error);
+          }
+        )
+        .catch((err) => {
+          console.error("Connections test command error", err);
+        });
+    } finally {
+      this.isLoading = false;
+    }
+  }
+
+  private postMessageToPanels(status: string, message: any) {
+    BruinPanel.postMessage("connection-tested-message", { status, message });
   }
 }
 
@@ -154,7 +215,7 @@ export class BruinCreateConnection extends BruinCommand {
               environment: env,
               credentials: credentials,
             };
-            console.log("Connection created successfully:", connection); 
+            console.log("Connection created successfully:", connection);
             this.postMessageToPanels("success", connection);
           } else {
             this.postMessageToPanels("error", JSON.parse(result).error);
