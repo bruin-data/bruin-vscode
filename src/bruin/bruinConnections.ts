@@ -122,6 +122,7 @@ export class BruinTestConnection extends BruinCommand {
   protected bruinCommand(): string {
     return "connections";
   }
+  public isLoading: boolean = false;
 
   public async testConnection(
     env: string,
@@ -129,6 +130,7 @@ export class BruinTestConnection extends BruinCommand {
     connectionType: string,
     { ignoresErrors = false }: BruinCommandOptions = {}
   ): Promise<void> {
+    this.isLoading = true;
     const flags = [
       "test",
       "--env",
@@ -141,24 +143,31 @@ export class BruinTestConnection extends BruinCommand {
       "json",
     ];
     console.log("Testing connection with flags:", flags); // Debug message
-
-    await this.run(flags, { ignoresErrors })
-      .then(
-        () => {
-          console.log(`Successfully tested connection "${connectionName}".`); // Debug message
-          this.postMessageToPanels(
-            "success",
-            `Connection "${connectionName}" tested successfully.`
-          );
-        },
-        (error) => {
-          console.error("Error occurred while testing connection:", error); // Debug message
-          this.postMessageToPanels("error", error);
-        }
-      )
-      .catch((err) => {
-        console.error("Connections test command error", err);
-      });
+    BruinPanel.postMessage("connection-tested-message", {
+      status: "loading",
+      message: "Testing connection...",
+    });
+    try {
+      await this.run(flags, { ignoresErrors })
+        .then(
+          () => {
+            console.log(`Successfully tested connection "${connectionName}".`); // Debug message
+            this.postMessageToPanels(
+              "success",
+              `Connection "${connectionName}" tested successfully.`
+            );
+          },
+          (error) => {
+            console.error("Error occurred while testing connection:", error); // Debug message
+            this.postMessageToPanels("error", error);
+          }
+        )
+        .catch((err) => {
+          console.error("Connections test command error", err);
+        });
+    } finally {
+      this.isLoading = false;
+    }
   }
 
   private postMessageToPanels(status: string, message: any) {

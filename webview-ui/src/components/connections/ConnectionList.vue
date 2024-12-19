@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-7xl mx-auto p-4">
+  <div class="max-w-7xl h-full mx-auto p-4">
     <div class="flex-col items-center">
       <div class="flex flex-col items-start space-y-2 mb-2">
         <h2 class="text-xl font-semibold text-editor-fg">Connections</h2>
@@ -33,92 +33,96 @@
       <h3 class="text-lg font-medium text-editor-fg mb-2 font-mono">
         {{ environment === defaultEnvironment ? `${environment} (default)` : environment }}
       </h3>
-      <div class="overflow-hidden bg-editorWidget-bg sm:rounded-lg">
-        <table class="min-w-full divide-y divide-commandCenter-border">
-          <thead>
-            <tr>
-              <th
-                scope="col"
-                class="w-2/5 px-2 py-2 text-left text-sm font-semibold text-editor-fg opacity-70"
-              >
-                Name
-              </th>
-              <th
-                scope="col"
-                class="w-2/5 px-2 py-2 text-left text-sm font-semibold text-editor-fg opacity-70"
-              >
-                Type
-              </th>
-              <th
-                scope="col"
-                class="w-1/5 px-2 py-2 text-right text-sm font-semibold text-editor-fg opacity-70"
-              >
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="connection in connections"
-              :key="connection.name"
-              class="hover:bg-editor-hoverBackground"
-            >
-              <td
-                class="w-2/5 whitespace-nowrap px-2 py-2 text-sm font-medium text-editor-fg font-mono"
-                :class="{ 'opacity-80 italic': !connection.name }"
-              >
-                {{ connection.name || "undefined" }}
-              </td>
-              <td class="w-2/5 whitespace-nowrap px-2 py-2 text-sm text-descriptionFg font-mono">
-                {{ connection.type }}
-              </td>
-              <td class="w-1/5 whitespace-nowrap px-2 py-2 text-right text-sm font-medium">
-                <button
-                  @click="$emit('edit-connection', connection)"
-                  class="text-descriptionFg hover:text-editor-fg mr-3"
-                  title="Edit"
+      <div class="relative bg-editorWidget-bg">
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-commandCenter-border">
+            <thead>
+              <tr>
+                <th
+                  scope="col"
+                  class="w-2/5 px-2 py-2 text-left text-sm font-semibold text-editor-fg opacity-70"
                 >
-                  <PencilIcon class="h-4 w-4 inline-block" />
-                </button>
-                <button
-                  @click="$emit('delete-connection', { name: connection.name, environment })"
-                  class="text-descriptionFg opacity-70 hover:text-editorError-foreground"
-                  title="Delete"
+                  Name
+                </th>
+                <th
+                  scope="col"
+                  class="w-2/5 px-2 py-2 text-left text-sm font-semibold text-editor-fg opacity-70"
                 >
-                  <TrashIcon class="h-4 w-4 inline-block" />
-                </button>
-                <div class="relative inline-block align-middle">
+                  Type
+                </th>
+                <th
+                  scope="col"
+                  class="w-1/5 px-2 py-2 text-right text-sm font-semibold text-editor-fg opacity-70"
+                >
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="connection in connections"
+                :key="connection.name"
+                class="hover:bg-editor-hoverBackground"
+              >
+                <td
+                  class="w-2/5 whitespace-nowrap px-2 py-2 text-sm font-medium text-editor-fg font-mono"
+                  :class="{ 'opacity-80 italic': !connection.name }"
+                >
+                  {{ connection.name || "undefined" }}
+                </td>
+                <td class="w-2/5 whitespace-nowrap px-2 py-2 text-sm text-descriptionFg font-mono">
+                  {{ connection.type }}
+                </td>
+                <td class="w-1/5 whitespace-nowrap px-2 py-2 text-right text-sm font-medium">
                   <button
-                    @click="toggleMenu(connection.name)"
-                    class="text-descriptionFg hover:text-editor-fg align-middle"
+                    @click="$emit('edit-connection', connection)"
+                    class="text-descriptionFg hover:text-editor-fg mr-3"
+                    title="Edit"
                   >
-                    <EllipsisVerticalIcon class="h-5 w-5 inline-block" />
+                    <PencilIcon class="h-4 w-4 inline-block" />
                   </button>
-                  <div
-                    v-if="activeMenu === connection.name"
-                    class="absolute right-0 mt-2 w-48 bg-editorWidget-bg border border-commandCenter-border rounded shadow-lg z-10"
+                  <button
+                    @click="$emit('delete-connection', { name: connection.name, environment })"
+                    class="text-descriptionFg opacity-70 hover:text-editorError-foreground"
+                    title="Delete"
                   >
+                    <TrashIcon class="h-4 w-4 inline-block" />
+                  </button>
+                  <div class="relative inline-block align-middle">
                     <button
-                      @click="handleTestConnection(connection)"
-                      class="flex items-center space-x-1 w-full text-left px-2 py-1 text-sm text-editor-fg hover:bg-editor-button-hover-bg"
+                      @click="toggleMenu(connection.name, $event)"
+                      class="text-descriptionFg hover:text-editor-fg align-middle"
                     >
-                      <BeakerIcon class="h-4 w-4 inline-block" />
-                      <span> Test </span>
+                      <EllipsisVerticalIcon class="h-5 w-5 inline-block" />
                     </button>
-                    <button
-                      @click="handleDuplicateConnection(connection)"
-                      class="flex items-center space-x-1 w-full text-left px-2 py-1 text-sm text-editor-fg hover:bg-editor-button-hover-bg"
+                    <div
+                      v-if="activeMenu === connection.name"
+                      class="absolute right-0 mt-2 w-48 bg-editorWidget-bg border border-commandCenter-border rounded shadow-lg z-10"
+                      :style="menuPosition"
+                      ref="menuRef"
                     >
-                      <DocumentDuplicateIcon class="h-5 w-5 inline-block" />
+                      <button
+                        @click="handleTestConnection(connection)"
+                        class="flex items-center space-x-1 w-full text-left px-2 py-1 text-sm text-editor-fg hover:bg-editor-button-hover-bg"
+                      >
+                        <BeakerIcon class="h-4 w-4 inline-block" />
+                        <span> Test </span>
+                      </button>
+                      <button
+                        @click="handleDuplicateConnection(connection)"
+                        class="flex items-center space-x-1 w-full text-left px-2 py-1 text-sm text-editor-fg hover:bg-editor-button-hover-bg"
+                      >
+                        <DocumentDuplicateIcon class="h-5 w-5 inline-block" />
 
-                      <span> Duplicate </span>
-                    </button>
+                        <span> Duplicate </span>
+                      </button>
+                    </div>
                   </div>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
     <TestStatus
@@ -126,6 +130,7 @@
       :status="connectionTestStatus"
       @dismiss="connectionTestStatus = null"
       :successMessage="successMessage"
+      :isLoading="loadingMessage"
       :failureMessage="failureMessage"
     />
   </div>
@@ -133,7 +138,7 @@
 
 <script setup>
 import { useConnectionsStore } from "@/store/bruinStore";
-import { computed, onMounted, ref, defineEmits, onUnmounted } from "vue";
+import { computed, onMounted, ref, defineEmits, onUnmounted, useTemplateRef } from "vue";
 import {
   TrashIcon,
   PencilIcon,
@@ -144,6 +149,7 @@ import {
 import AlertMessage from "@/components/ui/alerts/AlertMessage.vue";
 import { vscode } from "@/utilities/vscode";
 import TestStatus from "@/components/ui/alerts/TestStatus.vue";
+import { onClickOutside } from '@vueuse/core'
 
 const connectionsStore = useConnectionsStore();
 const connections = computed(() => connectionsStore.connections);
@@ -161,6 +167,9 @@ const activeMenu = ref(null);
 const connectionTestStatus = ref(null);
 const failureMessage = ref(null);
 const successMessage = ref(null);
+const loadingMessage = ref(null);
+const menuPosition = ref({});
+const menuRef = ref(null);
 
 const groupedConnections = computed(() => {
   return connections.value.reduce((grouped, connection) => {
@@ -170,18 +179,42 @@ const groupedConnections = computed(() => {
   }, {});
 });
 
-
-const toggleMenu = (connectionName) => {
-  // Close menu if clicking the same connection, open it if clicking a different one
+const toggleMenu = (connectionName, event) => {
   activeMenu.value = activeMenu.value === connectionName ? null : connectionName;
-};
-
-// Close menu when clicking outside
-const closeMenuOnClickOutside = (event) => {
-  if (activeMenu.value && !event.target.closest(".relative")) {
-    activeMenu.value = null;
+  if (activeMenu.value) {
+    menuPosition.value = getMenuPosition(event); // Calculate position using the event
   }
 };
+
+const getMenuPosition = (event) => {
+  const buttonRect = event.target.getBoundingClientRect(); // Get button dimensions
+  const viewportHeight = window.innerHeight;
+
+  const dropdownHeight = 100;
+
+  // Check for overflow
+  const willOverflow = buttonRect.bottom + dropdownHeight > viewportHeight;
+
+  // Adjust position based on overflow
+  if (willOverflow) {
+    return {
+      bottom: "100%",
+      right: "4",
+      top: "auto",
+    };
+  }
+
+  return {
+    top: "100%",
+    right: "4",
+    bottom: "auto",
+  };
+};
+
+onClickOutside(menuRef, () => {
+  activeMenu.value = null; 
+});
+
 const testConnection = (connection) => {
   try {
     console.log("Testing connection:", connection);
@@ -200,12 +233,15 @@ const testConnection = (connection) => {
   }
 };
 
-
 const handleConnectionTested = (payload) => {
   if (payload.status === "success") {
     console.log("Connection tested successfully:", payload.message);
     connectionTestStatus.value = "success";
     successMessage.value = payload.message;
+  } else if (payload.status === "loading") {
+    console.log("Connection test in progress:", payload.message);
+    connectionTestStatus.value = "loading";
+    loadingMessage.value = payload.message;
   } else {
     console.error("Failed to test connection:", payload.message);
     connectionTestStatus.value = "failure";
@@ -237,12 +273,10 @@ const handleMessage = (event) => {
 };
 onMounted(() => {
   window.addEventListener("message", handleMessage);
-  document.addEventListener("click", closeMenuOnClickOutside);
 });
 
 onUnmounted(() => {
   window.removeEventListener("message", handleMessage);
-  document.removeEventListener("click", closeMenuOnClickOutside);
 });
 </script>
 
