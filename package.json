@@ -110,11 +110,6 @@
           "default": "folded",
           "description": "Sets the default folding state for custom Bruin foldable regions in Python and SQL files."
         },
-        "bruin.useBruinFromPath": {
-          "type": "boolean",
-          "default": false,
-          "description": "Use the Bruin CLI from the full path"
-        },
         "bruin.pathSeparator": {
           "type": "string",
           "default": "/",
