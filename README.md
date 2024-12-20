@@ -107,10 +107,12 @@ Access the Bruin CLI management tab `Settings` in the side panel for easy instal
 
 ## Release Notes
 
-### Latest Release: 0.32.1
-- Added a link to Bruin documentation in the extension settings.
+### Latest Release: 0.32.2
+- Made Full Path Usage Default for Bruin CLI.
+
 
 ### Previous Highlights
+- **0.32.1**: Added a link to Bruin documentation in the extension settings.
 - **0.32.0**: Added a test connection feature to test existing connections.
 - **0.31.5**: Prevented form resets when uploading a GCP json file in the ConnectionsForm component.
 - **0.31.4**: Fixed an issue where updating an asset's name would reset its description, owner, and type fields.

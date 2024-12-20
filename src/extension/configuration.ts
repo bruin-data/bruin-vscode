@@ -13,8 +13,8 @@ import * as os from "os";
  */
 export function getDefaultBruinExecutablePath(): string {
   let bruinExecutable = "";
-  const useBruinFromPath = vscode.workspace.getConfiguration("bruin").get<boolean>("useBruinFromPath") || false;
-  const bruinConfig = vscode.workspace.getConfiguration("bruin") ;
+  //const useBruinFromPath = vscode.workspace.getConfiguration("bruin").get<boolean>("useBruinFromPath") || false;
+  const bruinConfig = vscode.workspace.getConfiguration("bruin");
   bruinExecutable = bruinConfig.get<string>("executable") || "";
 
   if (bruinExecutable.length > 0) {
@@ -25,12 +25,12 @@ export function getDefaultBruinExecutablePath(): string {
     // Attempt to find 'bruin' in the system's PATH (works for Git Bash)
     const paths = (process.env.PATH || "").split(path.delimiter);
     for (const p of paths) {
-      const executablePath = path.join(p, process.platform === "win32"? "bruin.exe" : "bruin");
+      const executablePath = path.join(p, process.platform === "win32" ? "bruin.exe" : "bruin");
       try {
         // Test if the file exists and is executable
         fs.accessSync(executablePath, fs.constants.X_OK);
         console.log(`Found 'bruin' at ${executablePath}`);
-        bruinExecutable = useBruinFromPath ? executablePath : "bruin";
+        bruinExecutable = executablePath;
         return bruinExecutable;
       } catch (err) {
         // Continue searching if not found or not executable
@@ -45,7 +45,7 @@ export function getDefaultBruinExecutablePath(): string {
       const executablePathLocal = path.join(localBinPath, "bruin.exe");
       try {
         fs.accessSync(executablePathLocal, fs.constants.X_OK);
-        bruinExecutable =  executablePathLocal ;
+        bruinExecutable = executablePathLocal;
         console.log(`Found 'bruin' in windows platform at ${bruinExecutable}`);
         return bruinExecutable;
       } catch (err) {
@@ -58,7 +58,7 @@ export function getDefaultBruinExecutablePath(): string {
     // look for bruin in the PATH
     const homePath = os.homedir();
     const localBinPath = path.join(homePath, ".local", "bin");
-    bruinExecutable = useBruinFromPath ? path.join(localBinPath, "bruin") : "bruin";
+    bruinExecutable = path.join(localBinPath, "bruin");
     console.log(`Using 'bruin' by joining the path: ${localBinPath}`);
     return bruinExecutable;
   }
