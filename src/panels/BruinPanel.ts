@@ -362,6 +362,25 @@ export class BruinPanel {
               });
             }, 1500);
             break;
+          case "bruin.runContinue":
+            if (!this._lastRenderedDocumentUri) {
+              return;
+            }
+            const runPath = this._lastRenderedDocumentUri?.fsPath;
+            runInIntegratedTerminal(
+              await bruinWorkspaceDirectory(runPath),
+              runPath,
+              message.payload,
+              "bruin"
+            );
+
+            setTimeout(() => {
+              this._panel.webview.postMessage({
+                command: "runCompleted",
+                message: "",
+              });
+            }, 1500);
+            break;
           case "bruin.runCurrentPipeline":
             if (!this._lastRenderedDocumentUri) {
               return;

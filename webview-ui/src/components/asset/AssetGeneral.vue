@@ -176,6 +176,14 @@
                         Run the whole pipeline
                       </vscode-button>
                     </MenuItem>
+                    <MenuItem key="run-with-continue" v-slot="{ active }">
+                      <vscode-button
+                        class="block text-editor-fg border-0 rounded-sm w-full text-left text-2xs hover:bg-editor-button-hover-bg hover:text-editor-button-fg bg-editorWidget-bg"
+                        @click="runPipelineWithContinue"
+                      >
+                        Run with continue
+                      </vscode-button>
+                    </MenuItem>
                   </div>
                 </MenuItems>
               </transition>
@@ -511,6 +519,19 @@ function runAssetWithDownstream() {
     payload: payload,
   });
 }
+
+
+
+function runPipelineWithContinue() {
+  let payload = getCheckboxChangePayload();
+  payload = payload + " --downstream" + " --environment " + selectedEnv.value + " --continue";
+  vscode.postMessage({
+    command: "bruin.runContinue",
+    payload: payload,
+  });
+}
+
+
 
 function runCurrentPipeline() {
   let payload = getCheckboxChangePayload();
