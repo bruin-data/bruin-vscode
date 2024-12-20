@@ -83,7 +83,7 @@ export function applyFoldingStateBasedOnConfiguration(editor: vscode.TextEditor 
   if (editor) {
     const docUri = editor.document.uri.toString();
     const config = vscode.workspace.getConfiguration();
-    const defaultFoldingState = config.get("bruin.defaultFoldingState", "folded");
+    const defaultFoldingState = config.get("bruin.FoldingState", "folded");
 
     // Check if the document has already been initialized
     if (!documentInitState.has(docUri)) {
@@ -128,7 +128,7 @@ function resetDocumentStates(): void {
 */
 export function subscribeToConfigurationChanges() {
   vscode.workspace.onDidChangeConfiguration((e) => {
-    if (e.affectsConfiguration("bruin.defaultFoldingState")) {
+    if (e.affectsConfiguration("bruin.FoldingState")) {
       resetDocumentStates();
     }
   });
