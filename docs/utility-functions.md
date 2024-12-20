@@ -131,3 +131,240 @@ const context = {};  // Example context
 activate(context);
 ```
 
+---------
+**utilities/helperUtils.ts**
+
+### **Bruin VSCode Extension Utility Functions Documentation** 
+
+#### **`isEditorActive()`**
+
+Checks whether there is an active text editor in the VSCode window.
+
+**Returns**:  
+- `boolean` - `true` if an editor is active, otherwise `false`.
+
+---
+
+#### **Interfaces**
+
+**`Environment`**  
+Represents an environment with a name property.
+
+```typescript
+export interface Environment {
+  name: string;
+}
+```
+
+**`Input`**  
+Represents input data that includes the selected environment and a list of environments.
+
+```typescript
+export interface Input {
+  selectedEnvironment: string;
+  environments: Environment[];
+}
+```
+
+---
+
+#### **`transformToEnvironmentsArray(input: string)`**
+
+Transforms the input string (assumed to be a JSON string) into an array of environment names.
+
+**Parameters**:  
+- `input` (string) - A JSON string containing environment data.
+
+**Returns**:  
+- `string[]` - An array of environment names.
+
+---
+
+#### **`isFileExtensionSQL(fileName: string)`**
+
+Checks if the file has a `.sql` extension.
+
+**Parameters**:  
+- `fileName` (string) - The name of the file to check.
+
+**Returns**:  
+- `boolean` - `true` if the file extension is `.sql`, otherwise `false`.
+
+---
+
+#### **`getFileExtension(fileName: string)`**
+
+Extracts and returns the file extension from the given filename.
+
+**Parameters**:  
+- `fileName` (string) - The name of the file.
+
+**Returns**:  
+- `string` - The file extension, including the dot (`.`).
+
+---
+
+#### **`isPythonBruinAsset(fileName: string)`**
+
+Checks if a file is a Python-based Bruin asset (i.e., has a `.py` extension and contains Bruin asset content).
+
+**Parameters**:  
+- `fileName` (string) - The name of the file.
+
+**Returns**:  
+- `Promise<boolean>` - `true` if the file is a Python Bruin asset, otherwise `false`.
+
+---
+
+#### **`isBruinPipeline(fileName: string)`**
+
+Checks if the file is a Bruin pipeline file (i.e., `pipeline.yml` or `pipeline.yaml`).
+
+**Parameters**:  
+- `fileName` (string) - The name of the file.
+
+**Returns**:  
+- `Promise<boolean>` - `true` if the file is a Bruin pipeline, otherwise `false`.
+
+---
+
+#### **`isYamlBruinAsset(fileName: string)`**
+
+Checks if the file is a YAML-based Bruin asset (i.e., `.asset.yml` or `.asset.yaml`).
+
+**Parameters**:  
+- `fileName` (string) - The name of the file.
+
+**Returns**:  
+- `Promise<boolean>` - `true` if the file is a YAML Bruin asset, otherwise `false`.
+
+---
+
+#### **`isBruinYaml(fileName: string)`**
+
+Checks if the file is a `.bruin.yml` file.
+
+**Parameters**:  
+- `fileName` (string) - The name of the file.
+
+**Returns**:  
+- `Promise<boolean>` - `true` if the file has a `.bruin.yml` extension, otherwise `false`.
+
+---
+
+#### **`isBruinAsset(fileName: string, validAssetExtensions: string[])`**
+
+Checks if the file is a Bruin asset by validating the file extension and searching for Bruin-specific content.
+
+**Parameters**:  
+- `fileName` (string) - The name of the file.
+- `validAssetExtensions` (string[]) - A list of valid file extensions for Bruin assets.
+
+**Returns**:  
+- `Promise<boolean>` - `true` if the file is a Bruin asset, otherwise `false`.
+
+---
+
+#### **`encodeHTML(str: string)`**
+
+Encodes special HTML characters in the given string.
+
+**Parameters**:  
+- `str` (string) - The string to encode.
+
+**Returns**:  
+- `string` - The encoded string.
+
+---
+
+#### **`removeAnsiColors(str: string)`**
+
+Removes ANSI color codes from a given string.
+
+**Parameters**:  
+- `str` (string) - The string containing ANSI color codes.
+
+**Returns**:  
+- `string` - The string with the ANSI color codes removed.
+
+---
+
+#### **`processLineageData(lineageString: { name: any })`**
+
+Processes the lineage data, extracting the name from the lineage string.
+
+**Parameters**:  
+- `lineageString` (object) - The lineage string object containing a `name` property.
+
+**Returns**:  
+- `any` - The extracted name from the lineage string.
+
+---
+
+#### **`getDependsSectionOffsets(document: vscode.TextDocument)`**
+
+Finds the start and end offsets for the `depends:` section in a YAML file.
+
+**Parameters**:  
+- `document` (vscode.TextDocument) - The VSCode document containing the text to check.
+
+**Returns**:  
+- `Object` - An object containing the `start` and `end` offsets of the `depends:` section.
+
+---
+
+#### **`isChangeInDependsSection(change: vscode.TextDocumentContentChangeEvent, document: vscode.TextDocument)`**
+
+Checks if the change occurred within the `depends:` section of the YAML file.
+
+**Parameters**:  
+- `change` (vscode.TextDocumentContentChangeEvent) - The change event.
+- `document` (vscode.TextDocument) - The document being checked.
+
+**Returns**:  
+- `boolean` - `true` if the change is in the `depends:` section, otherwise `false`.
+
+---
+
+#### **`prepareFlags(flags: string, excludeFlags: string[])`**
+
+Filters and prepares flags for a command by excluding specific flags.
+
+**Parameters**:  
+- `flags` (string) - A space-separated string of flags.
+- `excludeFlags` (string[]) - Flags to exclude from the result.
+
+**Returns**:  
+- `string[]` - An array of concatenated flags, including default flags (`-o`, `json`).
+
+---
+
+#### **Connection Type and Interfaces**
+
+**`ConnectionType`**  
+Represents the different types of connections available in the extension (e.g., AWS, Athena, Snowflake, etc.).
+
+**`Connection`**  
+Defines a connection object, which contains the type, name, environment, and any additional properties.
+
+```typescript
+export interface Connection {
+  type: ConnectionType;
+  name: string | null;
+  environment: string;
+  [key: string]: any;
+}
+```
+
+---
+
+#### **`extractNonNullConnections(json: any)`**
+
+Extracts non-null connections from a JSON object containing environment data.
+
+**Parameters**:  
+- `json` (any) - The JSON object containing environment and connection data.
+
+**Returns**:  
+- `Connection[]` - An array of non-null connections, each associated with its environment.
+
