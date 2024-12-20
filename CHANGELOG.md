@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.32.1] - [2024-12-20]
+- Added a link to Bruin documentation in the extension settings.
+
 ## [0.32.0] - [2024-12-19]
 - Added a test connection feature to test existing connections.
 
