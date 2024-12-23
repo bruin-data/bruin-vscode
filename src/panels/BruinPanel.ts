@@ -373,13 +373,6 @@ export class BruinPanel {
               message.payload,
               "bruin"
             );
-
-            setTimeout(() => {
-              this._panel.webview.postMessage({
-                command: "runCompleted",
-                message: "",
-              });
-            }, 1500);
             break;
           case "bruin.runCurrentPipeline":
             if (!this._lastRenderedDocumentUri) {

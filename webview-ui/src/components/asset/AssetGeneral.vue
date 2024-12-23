@@ -181,7 +181,7 @@
                         class="block text-editor-fg border-0 rounded-sm w-full text-left text-2xs hover:bg-editor-button-hover-bg hover:text-editor-button-fg bg-editorWidget-bg"
                         @click="runPipelineWithContinue"
                       >
-                        Run with continue
+                        Continue from last failure
                       </vscode-button>
                     </MenuItem>
                   </div>
@@ -524,7 +524,7 @@ function runAssetWithDownstream() {
 
 function runPipelineWithContinue() {
   let payload = getCheckboxChangePayload();
-  payload = payload + " --downstream" + " --environment " + selectedEnv.value + " --continue";
+  payload = payload + " --continue";
   vscode.postMessage({
     command: "bruin.runContinue",
     payload: payload,
