@@ -64,10 +64,7 @@ export async function activate(context: ExtensionContext) {
   const newPathSeparator = isWindows ? "\\" : "/";
   config.update("pathSeparator", newPathSeparator, ConfigurationTarget.Global);
 
-  const bruinExecutable = getDefaultBruinExecutablePath();
-  /* if (bruinExecutable) {
-    await checkBruinCliVersion();
-  }  */
+
   const activeEditor = window.activeTextEditor;
   if (activeEditor) {
     // Focus the active editor if it exists
