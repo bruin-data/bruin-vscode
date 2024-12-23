@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.32.3] - [2024-12-23]
+- Added support for running pipeline from last failure.
+
 ## [0.32.2] - [2024-12-20]
 - Made Full Path Usage Default for Bruin CLI.
 
