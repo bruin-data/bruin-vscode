@@ -7,26 +7,98 @@ Due to the fact that the `webview-ui` directory holds a self-contained Vue appli
 - UI development and iteration cycles can happen much more quickly by using Vite
 - Dependency management and project configuration is hugely simplified
 
-## UI development cycle
 
-Since we can take advantage of the much faster Vite dev server, it is encouraged to begin developing webview UI by running the `npm run start:webview` command and then editing the code in the `webview-ui/src` directory.
+# Communication between Webview and Extension
 
-_Tip: Open the command palette and run the `Simple Browser` command and fill in `http://localhost:3000/` when prompted. This will open a simple browser environment right inside VS Code._
+The extension uses message passing to communicate between the webview front end and the backend. This is done using the `postMessage` method provided by the VS Code API. The webview can send messages to the extension, and the extension can send messages to the webview.
 
-### Message passing
+## Sending Messages from Webview to Extension
 
-If you need to implement message passing between the webview context and extension context via the VS Code API, a helpful utility is provided in the `webview-ui/src/utilities/vscode.ts` file.
+To send a message from the webview to the extension, use the `postMessage` method provided by the `acquireVsCodeApi` function. Here is an example:
 
-This file contains a utility wrapper around the `acquireVsCodeApi()` function, which enables message passing and state management between the webview and extension contexts.
+```typescript
+// In the webview JavaScript code
+const vscode = acquireVsCodeApi();
 
-This utility also enables webview code to be run in the Vite dev server by using native web browser features that mock the functionality enabled by acquireVsCodeApi. This means you can keep building your webview UI with the Vite dev server even when using the VS Code API.
+// Send a message to the extension
+vscode.postMessage({
+  command: 'bruin.testConnection',
+  payload: {
+    environment: 'default',
+    name: 'MyConnection',
+    type: 'sql',
+  }
+});
+```
 
-### Move to traditional extension development
+## Handling Messages in the Extension
 
-Once you're ready to start building other parts of your extension, simply shift to a development model where you run the `npm run build:webview` command as you make changes, press `F5` to compile your extension and open a new Extension Development Host window. Inside the host window, open the command palette (`Ctrl+Shift+P` or `Cmd+Shift+P` on Mac) and type `Hello World (Vue): Show`.
+To handle messages sent from the webview, set up an event listener in the extension. Here is an example:
 
-## Dependency management and project configuration
+```typescript
+// In the extension TypeScript code
+import * as vscode from 'vscode';
 
-As mentioned above, the `webview-ui` directory holds a self-contained and isolated Vue application meaning you can (for the most part) treat the development of your webview UI in the same way you would treat the development of a regular Vue application.
+...
+  // Create and show a new webview panel
+  const panel = vscode.window.createWebviewPanel(
+    'bruin',
+    'Bruin',
+    vscode.ViewColumn.One,
+    {
+      enableScripts: true,
+    }
+  );
 
-To install webview-specific dependencies simply navigate (i.e. `cd`) into the `webview-ui` directory and install any packages you need or set up any Vue specific configurations you want.
+  // Handle messages from the webview
+  panel.webview.onDidReceiveMessage(
+    async (message) => {
+      switch (message.command) {
+        case 'bruin.testConnection':
+          const { environment, name, type } = message.payload;
+          // Handle the test connection command
+          await testConnection(environment, name, type);
+          break;
+      }
+    },
+  );
+}
+
+async function testConnection(environment: string, name: string, type: string) {
+  // Implement the logic to test the connection
+  console.log(`Testing connection: ${name} in ${environment} of type ${type}`);
+}
+```
+
+## Sending Messages from Extension to Webview
+
+To send a message from the extension to the webview, use the `postMessage` method of the webview. Here is an example:
+
+```typescript
+// In the extension TypeScript code
+panel.webview.postMessage({
+  command: 'connectionTested',
+  payload: {
+    status: 'success',
+    message: 'Connection tested successfully',
+  }
+});
+```
+
+## Handling Messages in the Webview
+
+To handle messages sent from the extension, set up an event listener in the webview. Here is an example:
+
+```typescript
+// In the webview JavaScript code
+window.addEventListener('message', (event) => {
+  const message = event.data;
+  switch (message.command) {
+    case 'connectionTested':
+      const { status, message: msg } = message.payload;
+      // Handle the connection tested message
+      console.log(`Connection test status: ${status}, message: ${msg}`);
+      break;
+  }
+});
+```
