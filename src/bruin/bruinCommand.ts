@@ -50,6 +50,7 @@ export abstract class BruinCommand {
     return new Promise((resolve, reject) => {
       const execOptions = {
         cwd: this.workingDirectory,
+        maxBuffer: 1024 * 1024 * 10, // 10MB
       };
       console.log("Executing command in directory:", this.workingDirectory); // Debug message
       child_process.execFile(
