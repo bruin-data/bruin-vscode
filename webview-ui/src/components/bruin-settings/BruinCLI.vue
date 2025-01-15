@@ -41,23 +41,25 @@
           </vscode-button>
         </div>
       </div>
-      <div v-if="showInfoCard" class="bg-editorWidget-bg shadow sm:rounded-lg mt-4 p-4">
+      <div v-if="showInfoCard" class="bg-editorWidget-bg shadow sm:rounded-lg mt-2 p-2 relative">
+        <div class="absolute top-4 right-4">
+          <vscode-button
+            appearance="icon"
+            v-if="!copied"
+            @click="copySystemInfo"
+            title="Copy System Info"
+            class=" text-md font-semibold"
+          >
+            <DocumentDuplicateIcon class="h-5 w-5 text-editor-fg" />
+          </vscode-button>
+          <span v-if="copied" class="text-sm">Copied!</span>
+        </div>
         <h4 class="text-lg font-semibold leading-6 text-editor-fg">System Info</h4>
         <div class="mt-2 max-w-xl text-sm">
-          <ul class="list-none m-0 p-0">
-            <li class="flex items-center mb-2">
-              <span class="text-editor-fg-secondary font-medium mr-2">Platform:</span>
-              <span class="text-editor-fg">{{ currentPlatform }}</span>
-            </li>
-            <li class="flex items-center mb-2">
-              <span class="text-editor-fg-secondary font-medium mr-2">Bruin CLI:</span>
-              <span class="text-editor-fg">{{ bruinCliVersion }}</span>
-            </li>
-            <li class="flex items-center">
-              <span class="text-editor-fg-secondary font-medium mr-2">Bruin Extension:</span>
-              <span class="text-editor-fg">{{ bruinVscodeVersion }}</span>
-            </li>
-          </ul>
+          <pre
+            class="bg-editorWidget-bg-secondary overflow-x-auto text-editor-fg-secondary"
+            ref="systemInfoContent"
+            >{{ formattedSystemInfo }}</pre>
         </div>
       </div>
     </div>
@@ -65,9 +67,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { vscode } from "@/utilities/vscode";
 import { ChevronUpIcon, QuestionMarkCircleIcon, ChevronDownIcon } from "@heroicons/vue/20/solid";
+import { DocumentDuplicateIcon } from "@heroicons/vue/24/outline";
 
 const isBruinCliInstalled = ref(false);
 const isWindows = ref(false);
@@ -76,6 +79,8 @@ const currentPlatform = ref("");
 const bruinCliVersion = ref("");
 const showInfoCard = ref(false);
 const bruinVscodeVersion = ref("");
+const copied = ref(false);
+
 onMounted(() => {
   checkBruinCliInstallation();
   window.addEventListener("message", (event) => {
@@ -107,7 +112,30 @@ const openBruinDocumentation = () => {
 function checkBruinCliInstallation() {
   vscode.postMessage({ command: "checkBruinCliInstallation" });
 }
+const systemInfoContent = ref<HTMLElement | null>(null);
 
+function copySystemInfo() {
+  if (systemInfoContent.value) {
+    navigator.clipboard.writeText(systemInfoContent.value.innerText);
+    copied.value = true;
+  }
+  setTimeout(() => {
+    copied.value = false;
+  }, 2000);
+}
+
+const formattedSystemInfo = computed(() => {
+  return (
+    "Platform: " +
+    currentPlatform.value +
+    "\n" +
+    "Bruin CLI: " +
+    bruinCliVersion.value +
+    "\n" +
+    "Bruin Extension: " +
+    bruinVscodeVersion.value
+  );
+});
 function CheckInstallationsInfo() {
   vscode.postMessage({ command: "checkInstallationsInfo" });
   showInfoCard.value = !showInfoCard.value;
@@ -121,5 +149,10 @@ function installOrUpdateBruinCli() {
 vscode-button::part(control) {
   border: none;
   outline: none;
+}
+
+pre {
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 </style>
