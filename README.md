@@ -107,11 +107,11 @@ Access the Bruin CLI management tab `Settings` in the side panel for easy instal
 
 ## Release Notes
 
-### Latest Release: 0.32.4
-- Increase maxBuffer limit
-
+### Latest Release: 0.32.5
+- Added system information display to show Bruin CLI and extension versions, along with OS name.
 
 ### Previous Highlights
+- **0.32.4**: Increase maxBuffer limit.
 - **0.32.3**: Added support for running pipeline from last failure.
 - **0.32.2**: Made Full Path Usage Default for Bruin CLI.
 - **0.32.1**: Added a link to Bruin documentation in the extension settings.
