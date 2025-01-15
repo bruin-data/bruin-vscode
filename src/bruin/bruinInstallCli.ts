@@ -38,6 +38,25 @@ export class BruinInstallCLI {
     return command;
   }
 
+  public async getBruinCliVersion (): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const bruinExecutable = getDefaultBruinExecutablePath();
+      exec(`${bruinExecutable} version -o json`, (error, stdout, stderr) => {
+        if (error) {
+          reject(`Error executing command getBruinCliVersion ${stderr}`);
+          return;
+        }
+
+        try {
+          const output = JSON.parse(stdout.trim());
+          const currentVersion = output.version;
+          resolve(currentVersion);
+        } catch (parseError) {
+          reject("Failed to parse version information");
+        }
+      });
+    });
+  }
   public async checkBruinCLIVersion(): Promise<boolean> {
     return new Promise((resolve, reject) => {
       const bruinExecutable = getDefaultBruinExecutablePath();
