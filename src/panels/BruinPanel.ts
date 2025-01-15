@@ -432,7 +432,9 @@ export class BruinPanel {
           case "checkBruinCliInstallation":
             this.checkAndUpdateBruinCliStatus();
             break;
-
+          case "checkInstallationsInfo":
+            this.checkInstallationsInfo();
+            break;
           case "bruinInstallOrUpdateCLI":
             await this.installOrUpdateBruinCli();
             break;
@@ -588,6 +590,23 @@ export class BruinPanel {
       this._disposables
     );
   }
+
+  // check the OS if its windows or mac or linux
+  private async checkInstallationsInfo() {
+    const platform = process.platform;
+    const packageJson = require("../../package.json");
+    const extensionVersion = packageJson.version;
+
+    const bruinInstaller = new BruinInstallCLI();
+    const cliVersion = await bruinInstaller.getBruinCliVersion();
+    this._panel.webview.postMessage({
+      command: "installationInfo",
+      platform,
+      cliVersion,
+      extensionVersion,
+    });
+  }
+
   private async checkAndUpdateBruinCliStatus() {
     const bruinInstaller = new BruinInstallCLI();
     const { installed, isWindows, gitAvailable } = await bruinInstaller.checkBruinCliInstallation();
