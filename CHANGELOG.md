@@ -2,8 +2,11 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.32.5] - [2024-01-15]
+- Added system information display to show Bruin CLI and extension versions, along with OS name.
+
 ## [0.32.4] - [2024-12-28]
-- Increase maxBuffer limit
+- Increase maxBuffer limit.
 
 ## [0.32.3] - [2024-12-23]
 - Added support for running pipeline from last failure.
