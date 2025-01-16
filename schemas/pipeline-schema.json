@@ -119,9 +119,7 @@
     {
       "type": "object",
       "required": [
-        "name",
-        "schedule",
-        "default_connections"
+        "name"
       ],
       "not": {
         "required": [
@@ -132,9 +130,7 @@
     {
       "type": "object",
       "required": [
-        "id",
-        "schedule",
-        "default_connections"
+        "id"
       ],
       "not": {
         "required": [
