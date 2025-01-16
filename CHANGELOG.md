@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.32.6] - [2024-01-16]
+- Update the pipeline autocomplete schema to make name the only required field.
+
 ## [0.32.5] - [2024-01-15]
 - Added system information display to show Bruin CLI and extension versions, along with OS name.
 
