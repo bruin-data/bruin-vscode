@@ -107,10 +107,11 @@ Access the Bruin CLI management tab `Settings` in the side panel for easy instal
 
 ## Release Notes
 
-### Latest Release: 0.32.6
-- Update the pipeline autocomplete schema to make name the only required field.
+### Latest Release: 0.32.7
+- Updated config schema to support more SSL modes and revised Athena schema.
 
 ### Previous Highlights
+- **0.32.6**: Update the pipeline autocomplete schema to make name the only required field.
 - **0.32.5**: Added system information display to show Bruin CLI and extension versions, along with OS name.
 - **0.32.4**: Increase maxBuffer limit.
 - **0.32.3**: Added support for running pipeline from last failure.

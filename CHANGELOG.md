@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.32.7] - [2024-01-20]
+- Updated config schema to support more SSL modes and revised Athena schema.
+
 ## [0.32.6] - [2024-01-16]
 - Update the pipeline autocomplete schema to make name the only required field.
 

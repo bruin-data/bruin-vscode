@@ -276,11 +276,6 @@
                 },
                 "ssl_mode": {
                     "type": "string",
-                    "enum": [
-                        "enable",
-                        "disable",
-                        ""
-                    ],
                     "default": "disable"
                 }
             },
@@ -512,7 +507,7 @@
             ],
             "additionalProperties": false
         },
-        "aws":{
+        "aws": {
             "type": "object",
             "properties": {
                 "name": {
@@ -547,10 +542,13 @@
                 "name": {
                     "type": "string"
                 },
-                "access_key": {
+                "access_key_id": {
                     "type": "string"
                 },
-                "secret_key": {
+                "secret_access_key": {
+                    "type": "string"
+                },
+                "query_results_path": {
                     "type": "string"
                 },
                 "region": {
@@ -558,15 +556,13 @@
                 },
                 "database": {
                     "type": "string"
-                },
-                "output_bucket": {
-                    "type": "string"
                 }
             },
             "required": [
                 "name",
-                "access_key",
-                "secret_key",
+                "access_key_id",
+                "secret_access_key",
+                "query_results_path",
                 "region"
             ],
             "additionalProperties": true
