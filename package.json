@@ -227,6 +227,7 @@
     "@vue-flow/controls": "^1.1.1",
     "@vue-flow/core": "^1.33.6",
     "@vue-flow/minimap": "^1.4.0",
+    "chokidar": "^4.0.3",
     "concurrently": "^9.0.1",
     "cron-parser": "^4.9.0",
     "dotenv": "^16.4.7",
