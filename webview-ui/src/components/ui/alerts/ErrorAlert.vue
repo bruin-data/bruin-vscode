@@ -66,7 +66,6 @@
               </h4>
               <p class="text-sm text-red-600">{{ issue.description }}</p>
               <div v-if="issue.context.length" class="flex items-center space-x-1 mt-2 justify-end">
-                <!-- Button to toggle the expansion of issue details -->
                 <button
                   @click="toggleIssueExpansion(index, issueIndex)"
                   class="text-xs text-red-700 flex items-center"
@@ -108,78 +107,16 @@ import type {
   FormattedIssue,
 } from "@/types";
 
-// Define the props for the component
 const props = defineProps<{
-  errorMessage: string | any | null; // The error message to display
-  errorPhase: "Validation" | "Rendering" | "Unknown"; // The phase of the error
+  errorMessage: string | any | null;
+  errorPhase: "Validation" | "Rendering" | "Unknown";
 }>();
 
-// Define the events emitted by the component
 defineEmits(["errorClose"]);
 
-// State variables
-const isExpanded = ref(true); // Tracks whether the error details are expanded
-const processedErrors = ref<FormattedErrorMessage[]>([]); // Holds the formatted error messages
+const isExpanded = ref(true);
+const processedErrors = ref<FormattedErrorMessage[]>([]);
 
-// Function to parse the error message and format it
-const parseErrorMessage = (): FormattedErrorMessage[] => {
-  if (!props.errorMessage) return []; // Return empty if no error message
-
-  try {
-    const errorObject = JSON.parse(props.errorMessage); // Parse the error message
-    if (errorObject.error) {
-      return createErrorMessage("Unknown", errorObject.error); // Handle unknown errors
-    }
-    if (Array.isArray(errorObject)) {
-      // Process validation errors
-      return errorObject
-        .map((validationError: ParsedValidationErrorMessage) => ({
-          pipeline: validationError.pipeline || null,
-          expanded: false,
-          issues: extractCriticalIssues(validationError.issues), // Extract critical issues
-        }))
-        .filter((error) => error.issues.length > 0); // Filter out errors with no issues
-    }
-    return [];
-  } catch (e) {
-    console.error("Failed to parse error message:", e); // Log parsing errors
-    return createErrorMessage("Error", String(props.errorMessage)); // Handle parsing errors
-  }
-};
-
-// Helper function to create a formatted error message
-const createErrorMessage = (pipeline: string, description: string) => [
-  {
-    pipeline,
-    expanded: true,
-    issues: [
-      {
-        asset: null,
-        description,
-        context: [],
-        expanded: false,
-        severity: "critical",
-      },
-    ],
-  },
-];
-
-// Helper function to extract critical issues from validation errors
-const extractCriticalIssues = (issues: any) => {
-  return Object.entries(issues || {}).flatMap(([test, issueList]) =>
-    (issueList as Issue[])
-      .filter((issue: Issue) => issue.severity === "critical")
-      .map(
-        (issue: Issue): FormattedIssue => ({
-          asset: issue.asset || null,
-          description: issue.description,
-          context: issue.context || [],
-          expanded: false,
-          severity: issue.severity,
-        })
-      )
-  );
-};
 const isSingleAsset = computed(() => {
   if (props.errorPhase !== "Validation") return false;
   const firstError = processedErrors.value[0];
@@ -194,31 +131,95 @@ const singleAssetName = computed(() => {
   return processedErrors.value[0].issues[0].asset || "Unknown Asset";
 });
 
-// Watch for changes in the errorMessage prop and reprocess the errors
+const parseErrorMessage = (): FormattedErrorMessage[] => {
+  if (!props.errorMessage) return [];
+
+  try {
+    const errorObject = JSON.parse(props.errorMessage);
+    if (errorObject.error) {
+      return createErrorMessage("Unknown", errorObject.error);
+    }
+    if (Array.isArray(errorObject)) {
+      const formattedErrors = errorObject
+        .map((validationError: ParsedValidationErrorMessage) => ({
+          pipeline: validationError.pipeline || null,
+          expanded: false, // Set initially to false, will be updated after processing
+          issues: extractCriticalIssues(validationError.issues),
+        }))
+        .filter((error) => error.issues.length > 0);
+
+      // Set expansion state based on number of pipelines
+      const isOneError = formattedErrors.length === 1;
+      return formattedErrors.map(error => ({
+        ...error,
+        expanded: isOneError, // Expand if there's only one pipeline
+        issues: error.issues.map(issue => ({
+          ...issue,
+          expanded: isOneError && isSingleAsset.value // Expand issues for single asset/pipeline
+        }))
+      }));
+    }
+    return [];
+  } catch (e) {
+    console.error("Failed to parse error message:", e);
+    return createErrorMessage("Error", String(props.errorMessage));
+  }
+};
+
+const createErrorMessage = (pipeline: string, description: string) => [
+  {
+    pipeline,
+    expanded: true,
+    issues: [
+      {
+        asset: null,
+        description,
+        context: [],
+        expanded: true,
+        severity: "critical",
+      },
+    ],
+  },
+];
+
+const extractCriticalIssues = (issues: any) => {
+  return Object.entries(issues || {}).flatMap(([test, issueList]) =>
+    (issueList as Issue[])
+      .filter((issue: Issue) => issue.severity === "critical")
+      .map(
+        (issue: Issue): FormattedIssue => ({
+          asset: issue.asset || null,
+          description: issue.description,
+          context: issue.context || [],
+          expanded: false, // Will be updated after initial processing
+          severity: issue.severity,
+        })
+      )
+  );
+};
+
 watch(
   () => props.errorMessage,
   () => {
-    processedErrors.value = parseErrorMessage(); // Update processed errors on prop change
+    processedErrors.value = parseErrorMessage();
   },
   { immediate: true }
 );
 
-// Function to toggle the expansion state of an error message
 const toggleExpansion = (index: number) => {
-  processedErrors.value[index].expanded = !processedErrors.value[index].expanded; // Toggle expansion
+  processedErrors.value[index].expanded = !processedErrors.value[index].expanded;
 };
 
-// Function to toggle the expansion state of an issue within an error message
 const toggleIssueExpansion = (pipelineIndex: number, issueIndex: number) => {
   processedErrors.value[pipelineIndex].issues[issueIndex].expanded =
-    !processedErrors.value[pipelineIndex].issues[issueIndex].expanded; // Toggle issue expansion
+    !processedErrors.value[pipelineIndex].issues[issueIndex].expanded;
 };
 </script>
 
 <style scoped>
 pre {
-  white-space: pre-wrap; /* Allow text to wrap */
-  word-wrap: break-word; /* Break long words */
-  line-height: 1.5; /* Set line height for readability */
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  line-height: 1.5;
 }
 </style>
