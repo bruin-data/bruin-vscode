@@ -118,7 +118,7 @@ const props = defineProps<{
 defineEmits(["errorClose"]);
 
 // State variables
-const isExpanded = ref(false); // Tracks whether the error details are expanded
+const isExpanded = ref(true); // Tracks whether the error details are expanded
 const processedErrors = ref<FormattedErrorMessage[]>([]); // Holds the formatted error messages
 
 // Function to parse the error message and format it
