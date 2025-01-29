@@ -3,16 +3,20 @@
     <div class="flex flex-col pt-1">
       <div class="">
         <div class="flex items-center space-x-2 w-full justify-between">
-          <!-- Name editing -->
-          <div class="flex items-baseline w-3/4 font-md text-editor-fg text-lg font-mono">
-            <div class="pipeline-name max-w-[40%] text-xs opacity-50 truncate inline-block">
-              {{ assetDetailsProps?.pipeline.name }}
+          <div class="flex items-baseline w-3/4 min-w-0 font-md text-editor-fg text-lg font-mono">
+            <div class="flex-shrink overflow-hidden min-w-[1px]">
+              <div class="pipeline-name text-xs opacity-50 truncate">
+                {{ assetDetailsProps?.pipeline.name }}
+              </div>
             </div>
-            <span class="slash opacity-50 text-xs px-0.5">/</span>
-            <div class="flex-grow inline-block w-full">
+
+            <span class="slash opacity-50 text-xs px-0.5 flex-shrink-0">/</span>
+
+            <!-- Asset name -->
+            <div class="flex-grow min-w-0 overflow-hidden">
               <div class="flex items-center w-full">
                 <div
-                  class="flex-grow font-mono text-lg text-editor-fg w-full"
+                  class="w-full font-mono text-lg text-editor-fg"
                   :class="{ 'cursor-pointer': !isEditingName }"
                   @mouseenter="startNameEditing"
                   @mouseleave="handleMouseLeave"
@@ -28,7 +32,7 @@
                     />
                   </template>
                   <template v-else>
-                    <span class="block w-full truncate">
+                    <span class="block truncate">
                       {{ assetDetailsProps?.name }}
                     </span>
                   </template>
@@ -37,7 +41,7 @@
             </div>
           </div>
 
-          <div class="tags flex w-1/4 items-center space-x-2 justify-end overflow-hidden">
+          <div class="tags flex w-1/4 items-center space-x-2 justify-end overflow-hidden flex-shrink-0">
             <DescriptionItem
               :value="assetDetailsProps?.type ?? 'undefined'"
               :className="assetDetailsProps?.type ? badgeClass.badgeStyle : badgeClass.grayBadge"
@@ -153,7 +157,7 @@ window.addEventListener("message", (event) => {
         parseError.value = updateValue(message, "error");
         if (!parseError.value) {
           data.value = updateValue(message, "success"); // Update asset data on success
-         // console.log("Updated asset data:", data.value);
+          // console.log("Updated asset data:", data.value);
         }
         lastRenderedDocument.value = updateValue(message, "success");
 
@@ -217,7 +221,7 @@ const assetDetailsProps = computed({
   set: (newValue) => {
     if (newValue) {
       data.value = JSON.stringify({ asset: newValue }); // Update asset data
-     // console.log("Updated asset data after setting:", data.value);
+      // console.log("Updated asset data after setting:", data.value);
     }
   },
 });
