@@ -24,10 +24,32 @@ console.log("RudderStack keys:", Object.keys(Analytics));
 
 const WRITE_KEY = "2q3zybBJRd9ErKIpkTRSdIahQ0C";
 const DATA_PLANE_URL = "https://getbruinbumlky.dataplane.rudderstack.com";
+
+const ensureAutoLockEnabled = async () => {
+  const config: vscode.WorkspaceConfiguration = workspace.getConfiguration("workbench.editor");
+  const autoLockGroups: Record<string, boolean> = config.get("autoLockGroups") || {};
+
+  // Check if the setting needs to be updated
+  if (!autoLockGroups["mainThreadWebview-markdown.preview"]) {
+    // Update the setting while preserving existing auto-lock groups
+    const updatedAutoLockGroups = {
+      ...autoLockGroups,
+      "mainThreadWebview-markdown.preview": true,
+    };
+
+    try {
+      await config.update("autoLockGroups", updatedAutoLockGroups, true);
+      console.log("Successfully updated autoLockGroups setting");
+    } catch (error) {
+      console.error("Failed to update autoLockGroups setting:", error);
+    }
+  }
+};
+
 export async function activate(context: ExtensionContext) {
 
   const config = workspace.getConfiguration("bruin");
-  const telemetryEnabled = config.get<boolean>('telemetry.enabled');
+  const telemetryEnabled = config.get<boolean>("telemetry.enabled");
 
   if (telemetryEnabled) {
     try {
@@ -49,7 +71,7 @@ export async function activate(context: ExtensionContext) {
           version: vscode.version,
         },
       });
-        
+
       console.debug("RudderStack client initialized successfully");
     } catch (error) {
       console.error("RudderStack initialization failed:", error);
@@ -64,7 +86,6 @@ export async function activate(context: ExtensionContext) {
   const newPathSeparator = isWindows ? "\\" : "/";
   config.update("pathSeparator", newPathSeparator, ConfigurationTarget.Global);
 
-
   const activeEditor = window.activeTextEditor;
   if (activeEditor) {
     // Focus the active editor if it exists
@@ -78,6 +99,8 @@ export async function activate(context: ExtensionContext) {
   setupFoldingOnOpen();
 
   subscribeToConfigurationChanges();
+
+  await ensureAutoLockEnabled();
 
   const lineageWebviewProvider = new LineagePanel(context.extensionUri);
 
