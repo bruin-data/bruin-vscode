@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.32.9] - [2024-01-29]
+- Asset validation errors now expand for single assets and pipelines, while multiple pipeline errors stay collapsed.
+
 ## [0.32.8] - [2024-01-29]
 - Fixed an issue where new files opened in the side panel's group, causing confusion; the panel now locks by default.
 
