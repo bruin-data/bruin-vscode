@@ -15,7 +15,7 @@
                   class="flex-grow font-mono text-lg text-editor-fg w-full"
                   :class="{ 'cursor-pointer': !isEditingName }"
                   @mouseenter="startNameEditing"
-                  @mouseleave="stopNameEditing"
+                  @mouseleave="handleMouseLeave"
                   @click="focusName"
                 >
                   <template v-if="isEditingName">
@@ -101,7 +101,7 @@
 <script setup lang="ts">
 import AssetDetails from "@/components/asset/AssetDetails.vue";
 import { vscode } from "@/utilities/vscode";
-import { ref, onMounted, computed, watch, nextTick, getCurrentInstance } from "vue";
+import { ref, onMounted, computed, watch, nextTick, onBeforeUnmount } from "vue";
 import { parseAssetDetails, parseEnvironmentList } from "./utilities/helper";
 import { updateValue } from "./utilities/helper";
 import MessageAlert from "@/components/ui/alerts/AlertMessage.vue";
@@ -132,6 +132,7 @@ const data = ref(
 );
 const isBruinInstalled = ref(true); // Tracks if Bruin is installed
 const lastRenderedDocument = ref(""); // Holds the last rendered document
+const hoverTimeout = ref<ReturnType<typeof setTimeout> | null>(null); // Timeout for hover events
 // New reactive variables for editing
 // Event listener for messages from the VSCode extension
 window.addEventListener("message", (event) => {
@@ -226,6 +227,7 @@ const editingName = ref(assetDetailsProps.value?.name || "");
 const nameInput = ref<HTMLInputElement | null>(null);
 
 const startNameEditing = () => {
+  if (hoverTimeout.value) clearTimeout(hoverTimeout.value);
   isEditingName.value = true;
   editingName.value = assetDetailsProps.value?.name || "";
 };
@@ -253,6 +255,13 @@ const saveNameEdit = () => {
     });
   }
   stopNameEditing();
+};
+
+const handleMouseLeave = () => {
+  // Delay closing to avoid flickering if mouse quickly leaves
+  hoverTimeout.value = setTimeout(() => {
+    stopNameEditing();
+  }, 100);
 };
 
 const focusName = () => {
@@ -369,6 +378,10 @@ onMounted(() => {
   console.log("Custom event tracked.");
 });
 
+// Lifecycle hook to clean up hover timeout
+onBeforeUnmount(() => {
+  if (hoverTimeout.value) clearTimeout(hoverTimeout.value);
+});
 // Function to check if Bruin CLI is installed
 function checkBruinCliInstallation() {
   console.log("Checking Bruin CLI installation status.");
