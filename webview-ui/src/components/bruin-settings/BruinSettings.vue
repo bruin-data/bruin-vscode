@@ -123,8 +123,6 @@ const handleConnectionDeleted = async (payload) => {
   }
 };
 
-
-
 const handleConnectionCreated = (payload) => {
   if (payload.status === "success") {
     try {
@@ -237,8 +235,6 @@ const handleConnectionSubmit = async (connectionData) => {
     formError.value = { field: "connection_name", message: error.message };
   }
 };
-
-
 
 const closeConnectionForm = () => {
   showForm.value = false;
