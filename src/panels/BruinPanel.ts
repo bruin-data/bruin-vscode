@@ -35,7 +35,7 @@ import { openGlossary } from "../bruin/bruinGlossaryUtility";
  */
 export class BruinPanel {
   public static currentPanel: BruinPanel | undefined;
-  public static readonly viewId = "vscodebruin:panel";
+  public static readonly viewId = "markdown.preview";
   private readonly _panel: WebviewPanel;
   private _disposables: Disposable[] = [];
   private _lastRenderedDocumentUri: Uri | undefined;
