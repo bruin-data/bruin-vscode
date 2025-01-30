@@ -107,10 +107,11 @@ Access the Bruin CLI management tab `Settings` in the side panel for easy instal
 
 ## Release Notes
 
-### Latest Release: 0.32.10
-- Improved truncation behavior for pipeline and asset names and ensured asset name edit mode closes on mouse leave.
+### Latest Release: 0.32.11
+- Fixed ConnectionForm not resetting when switching between edit and new connection.
 
 ### Previous Highlights
+- **0.32.10**: Improved truncation behavior for pipeline and asset names and ensured asset name edit mode closes on mouse leave.
 - **0.32.9**: Asset validation errors now expand for single assets and pipelines, while multiple pipeline errors stay collapsed.
 - **0.32.8**: Fixed an issue where new files opened in the side panel's group, causing confusion; the panel now locks by default.
 - **0.32.7**: Updated config schema to support more SSL modes and revised Athena schema.
