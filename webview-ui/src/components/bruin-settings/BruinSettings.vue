@@ -18,6 +18,7 @@
 
     <div v-if="showForm" class="mt-6 bg-editorWidget-bg shadow sm:rounded-lg p-6" ref="formRef">
       <ConnectionForm
+        :key="connectionFormKey"
         :connection="connectionToEdit"
         :isEditing="isEditing"
         :environments="environments"
@@ -38,7 +39,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, nextTick } from "vue";
 import BruinCLI from "@/components/bruin-settings/BruinCLI.vue";
 import ConnectionsList from "@/components/connections/ConnectionList.vue";
 import ConnectionForm from "@/components/connections/ConnectionsForm.vue";
@@ -63,6 +64,10 @@ const showDeleteAlert = ref(false);
 const connectionToDelete = ref(null);
 const formError = ref(null);
 const formRef = ref(null);
+
+const connectionFormKey = computed(() => {
+  return connectionToEdit.value?.id ? `edit-${connectionToEdit.value.id}` : "new-connection";
+});
 
 onMounted(() => {
   window.addEventListener("message", handleMessage);
@@ -123,8 +128,6 @@ const handleConnectionDeleted = async (payload) => {
   }
 };
 
-
-
 const handleConnectionCreated = (payload) => {
   if (payload.status === "success") {
     try {
@@ -158,44 +161,47 @@ const handleConnectionEdited = (payload) => {
 };
 
 const showConnectionForm = (connection = null, duplicate = false) => {
-  if (connection) {
-    const duplicatedName = duplicate ? `${connection.name} (Copy)` : connection.name;
-    if (connection.type === "google_cloud_platform") {
-      console.log("Connection to edit:--------", connection.service_account_file);
-      connectionToEdit.value = {
-        ...connection,
-        name: duplicatedName,
-        credentials: {
-          service_account_file: connection.service_account_file || "",
-          service_account_json: connection.service_account_json || "",
+  // Reset form state before showing new data
+  closeConnectionForm();
+  nextTick(() => {
+    if (connection) {
+      const duplicatedName = duplicate ? `${connection.name} (Copy)` : connection.name;
+      if (connection.type === "google_cloud_platform") {
+        console.log("Connection to edit:--------", connection.service_account_file);
+        connectionToEdit.value = {
           ...connection,
-        },
-      };
+          name: duplicatedName,
+          credentials: {
+            service_account_file: connection.service_account_file || "",
+            service_account_json: connection.service_account_json || "",
+            ...connection,
+          },
+        };
+      } else {
+        connectionToEdit.value = {
+          ...connection,
+          name: duplicatedName,
+          // Ensure credentials and other fields are preserved
+          credentials: { ...connection },
+        };
+      }
+
+      // Set isEditing to true only if not duplicating
+      isEditing.value = !duplicate;
     } else {
+      // Default empty connection object if creating a new connection
       connectionToEdit.value = {
-        ...connection,
-        name: duplicatedName,
-        // Ensure credentials and other fields are preserved
-        credentials: { ...connection },
+        name: "",
+        type: "",
+        environment: "",
+        credentials: {},
       };
+      isEditing.value = false;
     }
 
-    // Set isEditing to true only if not duplicating
-    isEditing.value = !duplicate;
-  } else {
-    // Default empty connection object if creating a new connection
-    connectionToEdit.value = {
-      name: "",
-      type: "",
-      environment: "",
-      credentials: {},
-    };
-    isEditing.value = false;
-  }
-
-  // Show the form
-  showForm.value = true;
-
+    // Show the form
+    showForm.value = true;
+  });
   // Scroll to form
   setTimeout(() => {
     if (formRef.value) {
@@ -237,8 +243,6 @@ const handleConnectionSubmit = async (connectionData) => {
     formError.value = { field: "connection_name", message: error.message };
   }
 };
-
-
 
 const closeConnectionForm = () => {
   showForm.value = false;

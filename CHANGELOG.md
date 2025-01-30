@@ -1,6 +1,8 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
+## [0.32.11] - [2024-01-30]
+- Fixed ConnectionForm not resetting when switching between edit and new connection.
 
 ## [0.32.10] - [2024-01-30]
 - Improved truncation behavior for pipeline and asset names and ensured asset name edit mode closes on mouse leave.
