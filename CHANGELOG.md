@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.32.10] - [2024-01-30]
+- Improved truncation behavior for pipeline and asset names and ensured asset name edit mode closes on mouse leave.
+
 ## [0.32.9] - [2024-01-29]
 - Asset validation errors now expand for single assets and pipelines, while multiple pipeline errors stay collapsed.
 
