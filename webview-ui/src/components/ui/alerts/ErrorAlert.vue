@@ -13,7 +13,7 @@
       </div>
       <div class="flex items-center">
         <!-- Toggle button for expanding/collapsing the error details -->
-        <button @click="isExpanded = !isExpanded" class="text-red-500 mr-2">
+        <button v-if="errorPhase !== 'Rendering'" @click="isExpanded = !isExpanded" class="text-red-500 mr-2">
           <component
             :is="isExpanded ? ChevronUpIcon : ChevronDownIcon"
             class="h-5 w-5"
@@ -27,7 +27,7 @@
       </div>
     </div>
     <!-- Expanded section to display detailed error messages -->
-    <div v-if="isExpanded" class="overflow-y-auto" style="max-height: 200px">
+    <div v-if="isExpanded && errorPhase !== 'Rendering'" class="overflow-y-auto" style="max-height: 200px">
       <template v-for="(errorMessage, index) in processedErrors" :key="index">
         <!-- Single Asset Validation Display -->
         <div v-if="isSingleAsset" class="mt-4">
@@ -98,6 +98,10 @@
           </div>
         </div>
       </template>
+    </div>
+    <!-- Display only the error message for Rendering phase -->
+    <div v-if="errorPhase === 'Rendering'" class="mt-2">
+      <p class="text-sm text-red-600">{{ processedErrors[0]?.issues[0]?.description }}</p>
     </div>
   </div>
 </template>
