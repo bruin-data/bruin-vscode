@@ -9,3 +9,13 @@ export type BruinCommandOptions = {
   flags?: string[];
   ignoresErrors?: boolean;
 };
+
+export interface ParseResponse {
+  asset: {
+    id: string;
+    uri: string;
+    name: string;
+    type: string;
+  } | null;
+  pipeline?: any;
+}
