@@ -1,6 +1,9 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
+## [0.32.12] - [2024-02-04]
+- Format the rendering error message to display differently based on the phase (rendering or validation).
+
 ## [0.32.11] - [2024-01-30]
 - Fixed ConnectionForm not resetting when switching between edit and new connection.
 
