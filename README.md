@@ -107,10 +107,11 @@ Access the Bruin CLI management tab `Settings` in the side panel for easy instal
 
 ## Release Notes
 
-### Latest Release: 0.32.12
-- Format the rendering error message to display differently based on the phase (rendering or validation).
+### Latest Release: 0.32.13
+- Resolved an issue where terminal commands occasionally missed the first letter, causing execution failures.
 
 ### Previous Highlights
+- **0.32.12**: Format the rendering error message to display differently based on the phase (rendering or validation).
 - **0.32.11**: Fixed ConnectionForm not resetting when switching between edit and new connection.
 - **0.32.10**: Improved truncation behavior for pipeline and asset names and ensured asset name edit mode closes on mouse leave.
 - **0.32.9**: Asset validation errors now expand for single assets and pipelines, while multiple pipeline errors stay collapsed.

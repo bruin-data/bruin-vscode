@@ -1,7 +1,10 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
-## [0.32.12] - [2024-02-04]
+## [0.32.12] - [2024-02-05]
+- Resolved an issue where terminal commands occasionally missed the first letter, causing execution failures.
+
+## [0.32.12] - [2024-02-05]
 - Format the rendering error message to display differently based on the phase (rendering or validation).
 
 ## [0.32.11] - [2024-01-30]
