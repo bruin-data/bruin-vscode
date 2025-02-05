@@ -25,11 +25,24 @@ describe("Sample Command palette tests", function () {
     } else {
       await terminalView.executeCommand(`${bruinExecutable} --version`);
     }
-    //await terminalView.executeCommand("bruin --version");
+
     const terminalOutput = await terminalView.getText();
     console.log(terminalOutput);
     const versionAvailble =
       terminalOutput.includes("Current: ") && terminalOutput.includes("Latest: ");
-    //assert.strictEqual(versionAvailble, true);
+    assert.strictEqual(versionAvailble, true);
+  });
+
+  //test run command with dummy input and delay 
+  it("Testing run command with dummy call and delay", async () => {
+    const terminalView = await new TerminalView();
+    await terminalView.selectChannel("Bruin Terminal");
+    await terminalView.executeCommand(" ");
+    await sleep(1000);
+    await terminalView.executeCommand("bruin run --help");
+    const terminalOutput = await terminalView.getText();
+    console.log("terminal output", terminalOutput);
+    const helpAvailable = terminalOutput.includes("bruin run - run a Bruin pipeline");        
+    assert.strictEqual(helpAvailable, true);
   });
 });
