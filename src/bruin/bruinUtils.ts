@@ -167,7 +167,13 @@ export const runInIntegratedTerminal = async (
     command = `${bruinExecutable} ${BRUIN_RUN_SQL_COMMAND} ${flags} ${escapedAssetPath}`;
   }
   terminal.show(true);
+  // send a dummy call to the terminal to ensure it is ready to accept the command
+  terminal.sendText(" ");
+  // send the command to the terminal after a delay
+  setTimeout(() => {
   terminal.sendText(command);
+}, 500);
+  // wait for the command to be executed 
   await new Promise((resolve) => setTimeout(resolve, 1000));
 };
 
