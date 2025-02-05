@@ -1,7 +1,7 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
-## [0.32.12] - [2024-02-05]
+## [0.32.13] - [2024-02-05]
 - Resolved an issue where terminal commands occasionally missed the first letter, causing execution failures.
 
 ## [0.32.12] - [2024-02-05]
