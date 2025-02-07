@@ -107,104 +107,20 @@ Access the Bruin CLI management tab `Settings` in the side panel for easy instal
 
 ## Release Notes
 
-### Latest Release: 0.32.13
-- Resolved an issue where terminal commands occasionally missed the first letter, causing execution failures.
+### Latest Release: 0.33.0
+- Added a Control panel with zoom, view fit, and lock buttons and reduced top gap in the lineage flow.
 
-### Previous Highlights
+### Recent Updates
+
+- **0.32.13**: Resolved an issue where terminal commands occasionally missed the first letter, causing execution failures.
 - **0.32.12**: Format the rendering error message to display differently based on the phase (rendering or validation).
 - **0.32.11**: Fixed ConnectionForm not resetting when switching between edit and new connection.
 - **0.32.10**: Improved truncation behavior for pipeline and asset names and ensured asset name edit mode closes on mouse leave.
 - **0.32.9**: Asset validation errors now expand for single assets and pipelines, while multiple pipeline errors stay collapsed.
 - **0.32.8**: Fixed an issue where new files opened in the side panel's group, causing confusion; the panel now locks by default.
-- **0.32.7**: Updated config schema to support more SSL modes and revised Athena schema.
-- **0.32.6**: Update the pipeline autocomplete schema to make name the only required field.
-- **0.32.5**: Added system information display to show Bruin CLI and extension versions, along with OS name.
-- **0.32.4**: Increase maxBuffer limit.
-- **0.32.3**: Added support for running pipeline from last failure.
-- **0.32.2**: Made Full Path Usage Default for Bruin CLI.
-- **0.32.1**: Added a link to Bruin documentation in the extension settings.
-- **0.32.0**: Added a test connection feature to test existing connections.
-- **0.31.5**: Prevented form resets when uploading a GCP json file in the ConnectionsForm component.
-- **0.31.4**: Fixed an issue where updating an asset's name would reset its description, owner, and type fields.
-- **0.31.3**: Fix Asset Name Falling to Default Value After Editing Description.
-- **0.31.2**: Correct Path Handling for Bruin Executable in Configuration.
-- **0.31.1**: Improved error handling, logging, and CLI path resolution for better command execution.
-- **0.31.0**: Linked asset columns to glossary entries for quick navigation.
-- **0.30.3**: Implemented the ability to add accepted values for asset columns.
-- **0.30.2**: Added the ability to add pattern checks with input values.
-- **0.30.1**: Enabled telemetry by default to improve performance monitoring and user experience.
-- **0.30.0**: Integrated RudderStack analytics to monitor extension performance, with support for user-controlled telemetry preferences.
-- **0.29.4**: Improved layout and styling for inputs and buttons for better responsiveness and consistency.
-- **0.29.3**: Hid the file input when selecting `service_account_json` for GCP connections.
-- **0.29.2**: Refactored the DateInput component to handle dates in UTC rather than local time.
-- **0.29.1**: Fix CLI Installation Check in Offline Mode
-- **0.29.0**: Allow editing asset name and description in the side panel and add a Bruin documentation button in Settings.
-- **0.28.0**: Added support for displaying custom checks in the UI.
-- **0.27.2**: Fix Error Handling in BruinValidate Class and Add Windows-Specific Validation.
-- **0.27.1**: Resolved the issue with adding new columns in assets by refactoring the accepted_value check structure.
-- **0.27.0**: Added functionality to manage column checks from the UI, with the ability to remove all checks and add most checks (except `accepted_values` and `pattern`).
-- **0.26.10**: Removed the Bruin Executable Path from the extension settings.
-- **0.26.9**: Improved Git Bash detection on Windows by dynamically resolving its path based on the Git executable location.
-- **0.26.8**: Add support for detecting Git Bash in different on Windows.
-- **0.26.7**: Fix the issue causing bruin.renderSQL to fail.
-- **0.26.6**: Fix the render error when the CLI is not installed or the path is not found.
-- **0.26.5**: Added new parameters to the YAML asset completion and validation schema.
-- **0.26.4**: Fixed an issue where non-SQL Shopify assets were incorrectly displayed in the SQL preview.
-- **0.26.3**: Added delete column functionality with confirmation alert and expanded supported destinations in yaml-assets-schema.json.
-- **0.26.2**: Add version check for Bruin CLI to compare current and latest versions and notify the user if an update is available.
-- **0.26.1**: Adjusted the column checks' blocking property type to align with the CLI output.
-- **0.26.0**: Added functionality to add and update columns directly from the UI in the Columns tab.
-- **0.25.29**: Added functionality to retrieve all connections from the json schema using internal and introduced CSV upload support for custom chess players.
-- **0.25.28**: Update Terminal Creation to Default to Git Bash on Windows.
-- **0.25.27**: Fixed the validate and run buttons hover colors to match the vscode themes.
-- **0.25.26**: Fixed the validate and run buttons height.
-- **0.25.25**: Added excetuable path to the bruin commands to run on the powershell.
-- **0.25.24**: Added excetuable path option to the configuration for windows.
-- **0.25.23**: Updated the logic to look fo bruin executable path on windows and add debugging informations.
-- **0.25.22**: Used the install script on all the platforms.
-- **0.25.21**: Removed the git check for windows.
-- **0.25.20**: Fixed Bruin Render command to run properly from the command palette.
-- **0.25.19**: Clarified Windows installation message to specify Git requirement and fixed CLI installation command to run from the command palette.
-- **0.25.18**: Enhanced Bruin CLI installation process with a new shell script for Windows and Linux, and Homebrew support for macOS.
-- **0.25.17**: Refactored asset validation and run button styles to improve consistency with the VSCode editor.
-- **0.25.16**: Adjust the position of the environment dropdown menu, moving it from the top to the bottom.
-- **0.25.15**: Adjust date input background color to align with GitHub's dimmed dark theme.
-- **0.25.14**: Removed the connections from the `fullasset` snippet.
-- **0.25.13**: Replaced ellipsis icon with arrow icon to toggle checkbox group.
-- **0.25.12**: Improved UI consistency for DateInput and CheckboxGroup components, including updated styling and layout adjustments.
-- **0.25.11**: Improved error handling to display 'panic' errors more clearly.
-- **0.25.10**: Added 'Show More' for long descriptions, displayed pipeline names before asset titles, and optimized view by hiding tags and pipeline names on smaller screens.
-- **0.25.9**: Rearrange asset details layout: move asset name and tags to the top with tabs positioned below for improved UI structure
-- **0.25.8**: Moved Lineage Panel to a dedicated component for improved organization and performance.
-- **0.25.7**: Updated Content-Security-Policy for BruinPanel and LineagePanel, and refactored initialization logic for improved security and performance.
-- **0.25.6**: Added support for Athena connections in the Bruin configuration schema and connection form.
-- **0.25.5**: Ensured proper visibility of the lineage panel when focusing on the side panel and improved focus handling during extension activation.
-- **0.25.4**: Refactored error handling to prevent UI from crashing when parsing errors occur, ensuring graceful error display.
-- **0.25.3**: Introduced separate handling and display of warnings and critical errors, providing a clearer distinction between the two and improving overall user experience.
-- **0.25.2**: Fixed an issue where the GCP service account file was incorrectly saved as `service_account_json` instead of `service_account_file`.
-- **0.25.1**: Added YAML syntax highlighting support with "redhat.vscode-yaml" extension and updated regex patterns for improved parsing.
-- **0.25.0**: Added the ability to edit asset names and descriptions directly in the UI, integrating the Bruin CLI patchAssetCommand for updates
-- **0.24.1**: Highlighted the default environment in the UI and updated the asset parameters schema with location and query properties.
-- **0.24.0**: Added the ability to duplicate connections with a prefilled form and " (Copy)" appended to the name.
-- **0.23.1**: Reorganized the connection form by moving optional fields to the bottom and updated the color of the delete icon for better visual consistency.
-- **0.23.0**: Added a radio button in the GCP connection form, to choose between a file picker for service_account_json or a text area.
-- **0.22.4**: Added a file picker for `service_account_json` in GPC connections, with fixed keywords and default values for improved usability.
-- **0.22.3**: Added validation for duplicate connection names in the same environment and made the port field editable.
-- **0.22.2**: Introduced an eye icon for password visibility in the input field.
-- **0.22.1**: Made the port field editable, resolved PostgreSQL connection issues, and allowed empty strings for `ssl_mode`.
-- **0.22.0**: Enabled editing of existing connections directly from the UI with Bruin CLI integration.
-- **0.21.x**: Introduced new connection addition via the UI and updated autocomplete schema for Databricks.
-- **0.20.x**: Added connection deletion capability in the UI.
-- **0.19.x**: Enhanced connection display, data fetching integration with Bruin CLI, and ensured proper alerting for the latest CLI version.
-- **0.18.x**: Improved UI styling and readability for asset columns and descriptions.
-- **0.17.x**: Introduced a Bruin CLI management tab and resolved datepicker issues.
-- **0.16.x**: Added popup asset information display and improved asset name tooltips.
-- **0.15.x**: Enhanced metadata push feature, fixed visual and functional issues in the lineage panel, and ensured date consistency in asset management.
-- **0.14.x - 0.13.x**: Various fixes for file handling, node dragging, indentation, and autocomplete.
-- **0.12.x - 0.9.x**: Enhancements for asset upstream formats, SQL preview, pipeline validation, and asset tab consolidation.
-- **0.8.x - 0.7.x**: Markdown rendering for AssetDetails, error handling, and styling improvements.
-- **0.6.x - 0.5.x**: SQL preview visibility, tabbed interface, and line numbers.
-- **0.4.x - 0.1.x**: Initial features including SQL validation, auto-folding, syntax coloring, and dynamic content viewing.
+
+For a full changelog, see Bruin Extension [Changelog](https://marketplace.visualstudio.com/items/bruin.bruin/changelog).
+
 
 ### How to Update
 

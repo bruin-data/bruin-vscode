@@ -1,6 +1,9 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
+## [0.33.0] - [2024-02-05]
+- Adde a Control panel with zoom, view fit, and lock buttons and reduced top gap in the lineage flow.
+
 ## [0.32.13] - [2024-02-05]
 - Resolved an issue where terminal commands occasionally missed the first letter, causing execution failures.
 
