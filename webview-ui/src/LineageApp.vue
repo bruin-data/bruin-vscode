@@ -134,3 +134,8 @@ function loadLineageData() {
   vscode.postMessage({ command: "bruin.getAssetLineage" });
 }
 </script>
+<style>
+vscode-panel-view {
+  padding: 0 !important;
+}
+</style>

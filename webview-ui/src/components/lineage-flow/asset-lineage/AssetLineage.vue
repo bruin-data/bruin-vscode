@@ -32,17 +32,18 @@
         />
       </template>
 
-      <Controls />
+      <Controls :position="controlsPosition" />
     </VueFlow>
   </div>
 </template>
 
 <script setup lang="ts">
-import { VueFlow, useVueFlow } from "@vue-flow/core";
+import { PanelPosition, VueFlow, useVueFlow } from "@vue-flow/core";
 import { Background } from "@vue-flow/background";
 import { Controls } from "@vue-flow/controls";
+import "@vue-flow/controls/dist/style.css";
 import type { NodeDragEvent, XYPosition } from "@vue-flow/core";
-import { computed, onMounted, defineProps, watch, ref } from "vue";
+import { computed, onMounted, defineProps, watch, ref, nextTick } from "vue";
 import ELK from "elkjs/lib/elk.bundled.js";
 import CustomNode from "@/components/lineage-flow/custom-nodes/CustomNodes.vue";
 import {
@@ -53,14 +54,14 @@ import {
 import type { AssetDataset } from "@/types";
 
 const props = defineProps<{
-  assetDataset?: AssetDataset | null;  // Change this to accept null
+  assetDataset?: AssetDataset | null; // Change this to accept null
   pipelineData: any;
   isLoading: boolean;
   LineageError: string | null;
 }>();
 
 const selectedNodeId = ref<string | null>(null);
-
+const controlsPosition = PanelPosition.TopRight;
 const onNodeClick = (nodeId: string, event: MouseEvent) => {
   console.log("Node clicked:", nodeId);
   if (selectedNodeId.value === nodeId) {
@@ -72,8 +73,7 @@ const onNodeClick = (nodeId: string, event: MouseEvent) => {
   }
 };
 
-
-const { nodes, edges, addNodes, addEdges, setNodes } = useVueFlow();
+const { nodes, edges, addNodes, addEdges, setNodes, fitView } = useVueFlow();
 const elements = computed(() => [...nodes.value, ...edges.value]);
 const onPaneReady = () => {
   updateLayout();
@@ -146,7 +146,6 @@ const updateLayout = async () => {
 // Function to process the asset properties and update nodes and edges
 const processProperties = () => {
   if (!props.assetDataset || !props.pipelineData) {
-
     isLoading.value = error.value === null ? true : false;
     return;
   }
@@ -154,7 +153,7 @@ const processProperties = () => {
   isLoading.value = error.value === null ? true : false;
   error.value = null;
 
- try {
+  try {
     const { nodes: generatedNodes, edges: generatedEdges } = generateGraphFromJSON(
       props.assetDataset
     );
@@ -183,7 +182,11 @@ watch(
 
 // Event handlers for adding upstream and downstream nodes
 const onAddUpstream = async (nodeId: string) => {
-  const { nodes: newNodes, edges: newEdges } = generateGraphForUpstream(nodeId, props.pipelineData, props.assetDataset?.id ?? "");
+  const { nodes: newNodes, edges: newEdges } = generateGraphForUpstream(
+    nodeId,
+    props.pipelineData,
+    props.assetDataset?.id ?? ""
+  );
   addNodes(newNodes);
   addEdges(newEdges);
   await updateLayout();
@@ -196,7 +199,7 @@ const onAddDownstream = async (nodeId: string) => {
   );
   addNodes(newNodes);
   addEdges(newEdges);
-  await updateLayout();  
+  await updateLayout();
 };
 
 // Handle node dragging
@@ -211,7 +214,6 @@ const onNodesDragged = (draggedNodes: NodeDragEvent[]) => {
   setNodes(updatedNodes);
 };
 
-
 onMounted(() => {
   processProperties();
 });
@@ -222,11 +224,18 @@ onMounted(() => {
 @import "@vue-flow/core/dist/theme-default.css";
 
 .flow {
-  display: flex;
-  padding: 1rem;
-  height: 100vh;
-  width: 100%;
+  @apply flex h-screen w-full p-0 !important;
 }
+
+.vue-flow__controls {
+  background-color: var(--vscode-editorWidget-background) !important;
+  color: var(--vscode-editor-background) !important;
+}
+.vue-flow__controls-button {
+  background-color: var(--vscode-editor-foreground) !important; 
+  color: var(--vscode-editor-background) !important; 
+}
+
 .loading-overlay,
 .error-message {
   position: absolute;
@@ -244,5 +253,4 @@ onMounted(() => {
 .error-message {
   flex-direction: column;
 }
-
 </style>
