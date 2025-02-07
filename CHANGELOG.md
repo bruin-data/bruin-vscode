@@ -1,7 +1,10 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
-## [0.33.0] - [2024-02-05]
+## [0.33.1] - [2024-02-07]
+- Display render button for all file extensions, ensuring Bruin render is always visible.
+
+## [0.33.0] - [2024-02-07]
 - Adde a Control panel with zoom, view fit, and lock buttons and reduced top gap in the lineage flow.
 
 ## [0.32.13] - [2024-02-05]

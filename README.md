@@ -107,11 +107,11 @@ Access the Bruin CLI management tab `Settings` in the side panel for easy instal
 
 ## Release Notes
 
-### Latest Release: 0.33.0
-- Added a Control panel with zoom, view fit, and lock buttons and reduced top gap in the lineage flow.
+### Latest Release: 0.33.1
+- Display render button for all file extensions, ensuring Bruin render is always visible.
 
 ### Recent Updates
-
+- **0.33.0**: Added a Control panel with zoom, view fit, and lock buttons and reduced top gap in the lineage flow.
 - **0.32.13**: Resolved an issue where terminal commands occasionally missed the first letter, causing execution failures.
 - **0.32.12**: Format the rendering error message to display differently based on the phase (rendering or validation).
 - **0.32.11**: Fixed ConnectionForm not resetting when switching between edit and new connection.
