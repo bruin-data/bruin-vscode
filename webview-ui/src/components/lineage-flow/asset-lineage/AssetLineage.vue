@@ -32,8 +32,8 @@
         />
       </template>
       <Panel position="top-left" class="flex flex-col bg-editor-bg border border-commandCenter-border px-2 text-editor-fg">
-          <vscode-checkbox> Show All Upstreams </vscode-checkbox>
-          <vscode-checkbox v-model="expandAllDownstreams" @change="handleExpandDownstreams"> Show All Doswnstreams </vscode-checkbox>
+          <vscode-checkbox v-model="expandAllUpstreams" @change=""> Show All Upstreams </vscode-checkbox>
+          <vscode-checkbox v-model="expandAllDownstreams" @change="handleExpandAllDownstreams"> Show All Doswnstreams </vscode-checkbox>
       </Panel>
       <Controls :position="controlsPosition" />
     </VueFlow>
@@ -55,6 +55,7 @@ import {
   generateGraphFromJSON,
 } from "@/utilities/graphGenerator";
 import type { AssetDataset } from "@/types";
+import { getAssetDataset } from "./useAssetLineage";
 
 const props = defineProps<{
   assetDataset?: AssetDataset | null; // Change this to accept null
@@ -86,6 +87,7 @@ const elk = new ELK();
 const isLoading = ref(true);
 const error = ref<string | null>(props.LineageError);
 const expandAllDownstreams = ref(false);
+const expandAllUpstreams = ref(false);
 error.value = !props.assetDataset ? "No Lineage Data Available" : null;
 
 // Function to update node positions based on ELK layout
@@ -205,23 +207,52 @@ const onAddDownstream = async (nodeId: string) => {
   await updateLayout();
 };
 
-const handleExpandDownstreams = async () => {
+const handleExpandAllDownstreams = async () => {
   console.log("Expanding downstream nodes", expandAllDownstreams.value);
   expandAllDownstreams.value = !expandAllDownstreams.value;
+
   if (expandAllDownstreams.value) {
-    props.assetDataset?.downstream?.forEach((downstream) => {
-      console.log("Adding downstream nodes for:", downstream.name);
+    // Recursively fetch all downstream assets
+    const fetchAllDownstreams = (assetName: string, downstreamAssets: any[] = []): any[] => {
+      const currentAsset = props.pipelineData.assets.find((asset: any) => asset.name === assetName);
+      if (!currentAsset) return downstreamAssets;
+
+      const asset = getAssetDataset(props.pipelineData, currentAsset.id);
+      downstreamAssets.push(asset);
+
+      asset?.downstream?.forEach((downstreamAsset) => {
+        fetchAllDownstreams(downstreamAsset.name, downstreamAssets);
+      });
+
+      return downstreamAssets;
+    };
+
+    // Start with the current asset's downstream
+    const allDownstreams = props.assetDataset?.downstream?.reduce((acc: any[], downstream: any) => {
+      return acc.concat(fetchAllDownstreams(downstream.name));
+    }, []);
+
+    // Add all downstream nodes and edges to the graph
+    allDownstreams?.forEach((downstream) => {
       const { nodes: newNodes, edges: newEdges } = generateGraphForDownstream(
         downstream.name,
         props.pipelineData
       );
       addNodes(newNodes);
       addEdges(newEdges);
-    }
-  );
+    });
+
     await updateLayout();
   } else {
-    // Collapse downstream nodes
+    // Collapse downstream nodes to only show direct downstreams
+    const directDownstreams = props.assetDataset?.downstream || [];
+    const { nodes: newNodes, edges: newEdges } = generateGraphFromJSON({
+      ...props.assetDataset,
+      downstream: directDownstreams,
+    });
+    setNodes(newNodes);
+    setEdges(newEdges);
+    await updateLayout();
   }
 };
 
