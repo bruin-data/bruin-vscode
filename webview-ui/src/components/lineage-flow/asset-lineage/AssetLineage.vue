@@ -9,7 +9,7 @@
     </div>
     <VueFlow
       v-model:elements="elements"
-      :default-viewport="{ x: 50, y: 50, zoom: 0.7 }"
+      :default-viewport="{ x: 250, y: 100, zoom: 0.7 }"
       :min-zoom="0.2"
       :max-zoom="4"
       class="basic-flow"
@@ -31,14 +31,17 @@
           :selected-node-id="selectedNodeId"
         />
       </template>
-
+      <Panel position="top-left" class="flex flex-col bg-editor-bg border border-commandCenter-border px-2 text-editor-fg">
+          <vscode-checkbox v-model="expandAllUpstreams" @change=""> Show All Upstreams </vscode-checkbox>
+          <vscode-checkbox v-model="expandAllDownstreams" @change="handleExpandAllDownstreams"> Show All Downstreams </vscode-checkbox>
+      </Panel>
       <Controls :position="controlsPosition" />
     </VueFlow>
   </div>
 </template>
 
 <script setup lang="ts">
-import { PanelPosition, VueFlow, useVueFlow } from "@vue-flow/core";
+import { PanelPosition, VueFlow, useVueFlow, Panel } from "@vue-flow/core";
 import { Background } from "@vue-flow/background";
 import { Controls } from "@vue-flow/controls";
 import "@vue-flow/controls/dist/style.css";
@@ -52,6 +55,7 @@ import {
   generateGraphFromJSON,
 } from "@/utilities/graphGenerator";
 import type { AssetDataset } from "@/types";
+import { getAssetDataset } from "./useAssetLineage";
 
 const props = defineProps<{
   assetDataset?: AssetDataset | null; // Change this to accept null
@@ -73,7 +77,7 @@ const onNodeClick = (nodeId: string, event: MouseEvent) => {
   }
 };
 
-const { nodes, edges, addNodes, addEdges, setNodes, fitView } = useVueFlow();
+const { nodes, edges, addNodes, addEdges, setNodes, setEdges, fitView } = useVueFlow();
 const elements = computed(() => [...nodes.value, ...edges.value]);
 const onPaneReady = () => {
   updateLayout();
@@ -82,7 +86,8 @@ const elk = new ELK();
 
 const isLoading = ref(true);
 const error = ref<string | null>(props.LineageError);
-
+const expandAllDownstreams = ref(false);
+const expandAllUpstreams = ref(false);
 error.value = !props.assetDataset ? "No Lineage Data Available" : null;
 
 // Function to update node positions based on ELK layout
@@ -202,6 +207,55 @@ const onAddDownstream = async (nodeId: string) => {
   await updateLayout();
 };
 
+const handleExpandAllDownstreams = async () => {
+  console.log("Expanding downstream nodes", expandAllDownstreams.value);
+  expandAllDownstreams.value = !expandAllDownstreams.value;
+
+  if (expandAllDownstreams.value) {
+    // Recursively fetch all downstream assets
+    const fetchAllDownstreams = (assetName: string, downstreamAssets: any[] = []): any[] => {
+      const currentAsset = props.pipelineData.assets.find((asset: any) => asset.name === assetName);
+      if (!currentAsset) return downstreamAssets;
+
+      const asset = getAssetDataset(props.pipelineData, currentAsset.id);
+      downstreamAssets.push(asset);
+
+      asset?.downstream?.forEach((downstreamAsset) => {
+        fetchAllDownstreams(downstreamAsset.name, downstreamAssets);
+      });
+
+      return downstreamAssets;
+    };
+
+    // Start with the current asset's downstream
+    const allDownstreams = props.assetDataset?.downstream?.reduce((acc: any[], downstream: any) => {
+      return acc.concat(fetchAllDownstreams(downstream.name));
+    }, []);
+
+    // Add all downstream nodes and edges to the graph
+    allDownstreams?.forEach((downstream) => {
+      const { nodes: newNodes, edges: newEdges } = generateGraphForDownstream(
+        downstream.name,
+        props.pipelineData
+      );
+      addNodes(newNodes);
+      addEdges(newEdges);
+    });
+
+    await updateLayout();
+  } else {
+    // Collapse downstream nodes to only show direct downstreams
+    const directDownstreams = props.assetDataset?.downstream || [];
+    const { nodes: newNodes, edges: newEdges } = generateGraphFromJSON({
+      ...props.assetDataset,
+      downstream: directDownstreams,
+    });
+    setNodes(newNodes);
+    setEdges(newEdges);
+    await updateLayout();
+  }
+};
+
 // Handle node dragging
 const onNodesDragged = (draggedNodes: NodeDragEvent[]) => {
   const updatedNodes = nodes.value.map((node) => {
@@ -232,8 +286,8 @@ onMounted(() => {
   color: var(--vscode-editor-background) !important;
 }
 .vue-flow__controls-button {
-  background-color: var(--vscode-editor-foreground) !important; 
-  color: var(--vscode-editor-background) !important; 
+  background-color: var(--vscode-editor-foreground) !important;
+  color: var(--vscode-editor-background) !important;
 }
 
 .loading-overlay,
