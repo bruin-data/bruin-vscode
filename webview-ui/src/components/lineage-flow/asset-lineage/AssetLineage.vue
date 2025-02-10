@@ -32,7 +32,7 @@
         />
       </template>
       <Panel position="top-left" class="flex flex-col bg-editor-bg border border-commandCenter-border px-2 text-editor-fg">
-          <vscode-checkbox v-model="expandAllUpstreams" @change=""> Show All Upstreams </vscode-checkbox>
+          <vscode-checkbox v-model="expandAllUpstreams" @change="handleExpandAllUpstreams"> Show All Upstreams </vscode-checkbox>
           <vscode-checkbox v-model="expandAllDownstreams" @change="handleExpandAllDownstreams"> Show All Downstreams </vscode-checkbox>
       </Panel>
       <Controls :position="controlsPosition" />
@@ -46,7 +46,7 @@ import { Background } from "@vue-flow/background";
 import { Controls } from "@vue-flow/controls";
 import "@vue-flow/controls/dist/style.css";
 import type { NodeDragEvent, XYPosition } from "@vue-flow/core";
-import { computed, onMounted, defineProps, watch, ref, nextTick } from "vue";
+import { computed, onMounted, defineProps, watch, ref } from "vue";
 import ELK from "elkjs/lib/elk.bundled.js";
 import CustomNode from "@/components/lineage-flow/custom-nodes/CustomNodes.vue";
 import {
@@ -77,7 +77,7 @@ const onNodeClick = (nodeId: string, event: MouseEvent) => {
   }
 };
 
-const { nodes, edges, addNodes, addEdges, setNodes, setEdges, fitView } = useVueFlow();
+const { nodes, edges, addNodes, addEdges, setNodes, setEdges } = useVueFlow();
 const elements = computed(() => [...nodes.value, ...edges.value]);
 const onPaneReady = () => {
   updateLayout();
@@ -256,6 +256,55 @@ const handleExpandAllDownstreams = async () => {
   }
 };
 
+const handleExpandAllUpstreams = async () => {
+  console.log("Expanding upstream nodes", expandAllUpstreams.value);
+  expandAllUpstreams.value = !expandAllUpstreams.value;
+
+  if (expandAllUpstreams.value) {
+    // Recursively fetch all upstream assets
+    const fetchAllUpstreams = (assetName: string, upstreamAssets: any[] = []): any[] => {
+      const currentAsset = props.pipelineData.assets.find((asset: any) => asset.name === assetName);
+      if (!currentAsset) return upstreamAssets;
+
+      const asset = getAssetDataset(props.pipelineData, currentAsset.id);
+      upstreamAssets.push(asset);
+
+      asset?.upstreams?.forEach((upstreamAsset) => {
+        fetchAllUpstreams(upstreamAsset.name, upstreamAssets);
+      });
+
+      return upstreamAssets;
+    };
+
+    // Start with the current asset's upstream
+    const allUpstreams = props.assetDataset?.upstreams?.reduce((acc: any[], upstream: any) => {
+      return acc.concat(fetchAllUpstreams(upstream.name));
+    }, []);
+
+    // Add all upstream nodes and edges to the graph
+    allUpstreams?.forEach((upstream) => {
+      const { nodes: newNodes, edges: newEdges } = generateGraphForUpstream(
+        upstream.name,
+        props.pipelineData,
+        props.assetDataset?.id ?? ""
+      );
+      addNodes(newNodes);
+      addEdges(newEdges);
+    });
+
+    await updateLayout();
+  } else {
+    // Collapse upstream nodes to only show direct upstreams
+    const directUpstreams = props.assetDataset?.upstreams || [];
+    const { nodes: newNodes, edges: newEdges } = generateGraphFromJSON({
+      ...props.assetDataset,
+      upstream: directUpstreams,
+    });
+    setNodes(newNodes);
+    setEdges(newEdges);
+    await updateLayout();
+  }
+};
 // Handle node dragging
 const onNodesDragged = (draggedNodes: NodeDragEvent[]) => {
   const updatedNodes = nodes.value.map((node) => {
