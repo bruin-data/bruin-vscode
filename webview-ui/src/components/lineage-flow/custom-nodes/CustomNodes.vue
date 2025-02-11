@@ -105,6 +105,8 @@ import {
 
 const props = defineProps<BruinNodeProps & {
   selectedNodeId: string | null;
+  expandAllDownstreams: boolean;
+  expandAllUpstreams: boolean;
 }>();
 const emit = defineEmits(["add-upstream", "add-downstream", "node-click"]);
 
@@ -115,8 +117,8 @@ const isAsset = computed(() => props.data.type === "asset");
 const assetHasUpstreams = computed(() => isAsset.value && props.data.asset?.hasUpstreams !== undefined);
 const assetHasDownstreams = computed(() => isAsset.value && props.data.asset?.hasDownstreams);
 
-const showUpstreamIcon = computed(() => isAsset.value && props.data?.hasUpstreamForClicking);
-const showDownstreamIcon = computed(() => isAsset.value && props.data?.hasDownstreamForClicking);
+const showUpstreamIcon = computed(() => isAsset.value && props.data?.hasUpstreamForClicking && !props.expandAllUpstreams);
+const showDownstreamIcon = computed(() => isAsset.value && props.data?.hasDownstreamForClicking && !props.expandAllDownstreams);
 
 const isTruncated = computed(() => (props.data.asset?.name?.length || 0) > 26);
 const assetClass = computed(() => `rounded w-56 ${props.status ? selectedStatusStyle.value : ''}`);
