@@ -1,18 +1,6 @@
 <template>
   <vscode-panels :activeid="`tab-${activeTab}`" aria-label="Tabbed Content">
-    <!-- Tab Headers -->
-    <vscode-panel-tab :id="`tab-lineage`">
-      <div class="flex items-center justify-center">
-        <span> Lineage </span>
-        <ArrowPathIcon
-          @click="refreshGraphLineage"
-          class="ml-2 w-4 h-4 text-link-activeForeground hover:text-progressBar-bg focus:outline-none"
-          title="Refresh"
-        />
-      </div>
-    </vscode-panel-tab>
 
-    <!-- Tab Content -->
     <vscode-panel-view
       v-for="(tab, index) in tabs"
       :key="`view-${index}`"
@@ -35,7 +23,6 @@ import { vscode } from "@/utilities/vscode";
 import { ref, onMounted, onUnmounted, computed } from "vue";
 import { updateValue } from "./utilities/helper";
 import { getAssetDataset } from "@/components/lineage-flow/asset-lineage/useAssetLineage";
-import { ArrowPathIcon } from "@heroicons/vue/20/solid";
 
 /**
  * LineageApp Component
@@ -102,30 +89,13 @@ onUnmounted(() => {
   window.removeEventListener("message", handleMessage);
 });
 
-/**
- * Debounce function to limit the rate at which a function can fire.
- * 
- * @param {Function} func - The function to debounce.
- * @param {number} wait - The number of milliseconds to wait before calling the function.
- * @returns {Function} - A debounced version of the function.
- */
-const debounce = (func, wait) => {
-  let timeout;
-  return function executedFunction(...args) {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func(...args), wait);
-  };
-};
+
 
 /**
  * Refreshes the lineage graph by sending a message to the VSCode extension.
  * 
  * @param {Event} event - The click event that triggered the refresh.
  */
-const refreshGraphLineage = debounce((event: Event) => {
-  event.stopPropagation(); // Prevent event bubbling
-  vscode.postMessage({ command: "bruin.assetGraphLineage" });
-}, 300); // 300ms debounce time
 
 /**
  * Loads lineage data by sending a message to the VSCode extension.
