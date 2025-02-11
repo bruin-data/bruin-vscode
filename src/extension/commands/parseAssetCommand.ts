@@ -25,3 +25,14 @@ export const patchAssetCommand = async (body: object, lastRenderedDocumentUri: U
   );
   await patched.patchAsset(body, lastRenderedDocumentUri.fsPath);
 };
+
+export const checkAssetValidityCommand = async (lastRenderedDocumentUri: Uri | undefined) => {
+  if (!lastRenderedDocumentUri) {
+    return;
+  }
+  const parsedAsset = new BruinInternalParse(
+    getDefaultBruinExecutablePath(),
+    await bruinWorkspaceDirectory(lastRenderedDocumentUri.fsPath)!! as string
+  );
+  return await parsedAsset.checkAssetValidity(lastRenderedDocumentUri.fsPath);
+};

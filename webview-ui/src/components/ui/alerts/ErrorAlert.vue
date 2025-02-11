@@ -100,7 +100,7 @@
       </template>
     </div>
     <!-- Display only the error message for Rendering phase -->
-    <div v-if="errorPhase === 'Rendering'" class="mt-2">
+    <div v-if="errorPhase === 'Rendering'" class="mt-2 pl-3">
       <p class="text-sm text-red-600">{{ processedErrors[0]?.issues[0]?.description }}</p>
     </div>
   </div>

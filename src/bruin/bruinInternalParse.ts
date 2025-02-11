@@ -1,4 +1,4 @@
-import { BruinCommandOptions } from "../types";
+import { BruinCommandOptions, ParseResponse } from "../types";
 import { BruinCommand } from "./bruinCommand";
 import { BruinPanel } from "../panels/BruinPanel";
 
@@ -44,6 +44,20 @@ export class BruinInternalParse extends BruinCommand {
       .catch((err) => {
         console.debug("parsing command error", err);
       });
+  }
+
+  public async checkAssetValidity(
+    filePath: string,
+    { ignoresErrors = false }: Pick<BruinCommandOptions, 'ignoresErrors'> = {}
+  ): Promise<boolean> {
+    try {
+      const result = await this.run(["parse-asset", filePath], { ignoresErrors });
+      const parsedResult = JSON.parse(result) as ParseResponse;
+      return parsedResult.asset !== null;
+    } catch (err) {
+      console.debug("Error checking asset validity:", err);
+      return true;
+    }
   }
 
   private postMessageToPanels(status: string, message: string | any) {
