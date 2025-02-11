@@ -109,6 +109,7 @@ module.exports = {
         "commandCenter-bg":"var(--vscode-commandCenter-background)",
         "icon-forground": "var(--vscode-icon-foreground)",
         "dropdown-bg": "var(--vscode-dropdown-background)",
+        "notificationCenter-border": "var(--vscode-notificationCenter-border)",
 
         "primary": {
           DEFAULT: "hsl(var(--primary))",
