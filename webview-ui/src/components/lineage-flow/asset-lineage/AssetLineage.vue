@@ -9,7 +9,7 @@
     </div>
     <VueFlow
       v-model:elements="elements"
-      :default-viewport="{ x: 250, y: 100, zoom: 0.7 }"
+      :default-viewport="{ x: 250, y: 0, zoom: 0.7 }"
       :min-zoom="0.2"
       :max-zoom="4"
       class="basic-flow"
@@ -33,16 +33,36 @@
           :selected-node-id="selectedNodeId"
         />
       </template>
-      <Panel
-        position="top-left"
-        class="flex flex-col bg-editor-bg border border-commandCenter-border px-2 text-editor-fg"
-      >
-        <vscode-checkbox v-model="expandAllUpstreams" @change="handleExpandAllUpstreams">
-          Show All Upstreams
-        </vscode-checkbox>
-        <vscode-checkbox v-model="expandAllDownstreams" @change="handleExpandAllDownstreams">
-          Show All Downstreams
-        </vscode-checkbox>
+      <Panel position="top-right" class="mr-20">
+        <div
+          v-if="!expandPanel"
+          @click="expandPanel = !expandPanel"
+          class="flex space-x-1 p-2 bg-editor-bg border border-notificationCenter-border cursor-pointer hover:bg-editorWidget-bg"
+        >
+          <AdjustmentsHorizontalIcon class="w-4 h-4 text-progressBar-bg" />
+          <span> Direct only </span>
+        </div>
+        <div
+          v-else
+          class="relative flex flex-col gap-1 p-1 bg-editorWidget-bg/80 transition-all duration-300 hover:bg-editorWidget-bg"
+        >
+          <XMarkIcon class="w-4 h-4 text-progressBar-bg absolute right-0" @click="expandPanel = !expandPanel" />
+          <div class="flex flex-col text-xs">
+            <vscode-checkbox v-model="expandAllUpstreams" @change="handleExpandAllUpstreams">
+              Show All Upstreams
+            </vscode-checkbox>
+            <vscode-checkbox v-model="expandAllDownstreams" @change="handleExpandAllDownstreams">
+              Show All Downstreams
+            </vscode-checkbox>
+          </div>
+          <vscode-link
+            @click="refreshGraphLineage"
+            class="text-sm hover:text-progressBar-bg hover:outline-none focus:outline-none"
+            title="Refresh"
+          >
+            Reset
+          </vscode-link>
+        </div>
       </Panel>
       <Controls :position="controlsPosition" />
     </VueFlow>
@@ -65,6 +85,8 @@ import {
 } from "@/utilities/graphGenerator";
 import type { AssetDataset } from "@/types";
 import { getAssetDataset } from "./useAssetLineage";
+import { ArrowPathIcon, XMarkIcon, AdjustmentsHorizontalIcon } from "@heroicons/vue/20/solid";
+import { vscode } from "@/utilities/vscode";
 
 const props = defineProps<{
   assetDataset?: AssetDataset | null; // Change this to accept null
@@ -72,7 +94,7 @@ const props = defineProps<{
   isLoading: boolean;
   LineageError: string | null;
 }>();
-
+const expandPanel = ref(false);
 const selectedNodeId = ref<string | null>(null);
 const controlsPosition = PanelPosition.TopRight;
 const onNodeClick = (nodeId: string, event: MouseEvent) => {
@@ -300,6 +322,7 @@ const handleExpandAllDownstreams = async () => {
     expandedDownstreamNodes.value = [];
     expandedDownstreamEdges.value = [];
   }
+
   updateGraph();
   await updateLayout();
 };
@@ -375,6 +398,24 @@ watch(
   },
   { immediate: true }
 );
+/**
+ * Debounce function to limit the rate at which a function can fire.
+ *
+ * @param {Function} func - The function to debounce.
+ * @param {number} wait - The number of milliseconds to wait before calling the function.
+ * @returns {Function} - A debounced version of the function.
+ */
+const debounce = (func, wait) => {
+  let timeout;
+  return function executedFunction(...args) {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+};
+const refreshGraphLineage = debounce((event: Event) => {
+  event.stopPropagation(); // Prevent event bubbling
+  vscode.postMessage({ command: "bruin.assetGraphLineage" });
+}, 300); // 300ms debounce time
 
 onMounted(() => {
   processProperties();
