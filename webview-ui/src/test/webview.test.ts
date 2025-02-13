@@ -14,7 +14,10 @@ import {
   processAssetDependencies,
 } from "../utilities/getPipelineLineage";
 import * as pipelineData from "../utilities/pipeline.json";
-
+import LineageFlow from "@/components/lineage-flow/asset-lineage/AssetLineage.vue";
+import { mount } from "@vue/test-utils";
+import "./mocks/vueFlow"; // Import the mocks
+import { ref } from "vue";
 
 vi.mock("markdown-it");
 
@@ -357,7 +360,9 @@ suite("testing webview", () => {
       );
     }
   });
+});
 
+suite("test lineage panel", () => {
   test("test get lineage text for old and new upstream format", () => {
     const oldFormatasset = {
       name: "asset1",
@@ -552,69 +557,152 @@ suite("testing webview", () => {
     const assetDependencies = processAssetDependencies(assetId, pipelineAssets);
     assert.deepStrictEqual(assetDependencies, expectedOutput);
   });
-});
 
-/* suite("AssetDetails", () => {
-  const defaultProps = {
-    name: "Test Asset",
-    description: "This is a **test** description",
-    type: "dataset",
-    owner: "John Doe",
-    id: "123",
-    pipeline: { schedule: "daily" },
-    environments: ["dev", "prod"],
-    selectedEnvironment: "dev",
+  let wrapper;
+  let mockUpdateGraph;
+  let mockUpdateLayout;
+
+  // Mock props
+  const props = {
+    assetDataset: {
+      id: "asset-1",
+      name: "asset-name",
+      type: "asset-type",
+      isFocusAsset: false,
+      upstreams: [],
+      downstream: [],
+    },
+    pipelineData: {
+      assets: [],
+    },
+    isLoading: false,
+    LineageError: null,
   };
-  test("renders correctly with all props", () => {
-    const wrapper = mount(AssetDetails, { props: defaultProps });
-    assert.match(wrapper.text(), /Test Asset/);
-    assert.match(wrapper.text(), /John Doe/);
-    assert.match(wrapper.text(), /dataset/);
-    assert.match(wrapper.text(), /daily/);
+
+  // Update the component setup in the test file
+  beforeEach(() => {
+    mockUpdateGraph = vi.fn();
+    mockUpdateLayout = vi.fn();
+
+    wrapper = mount(LineageFlow, {
+      props,
+      global: {
+        provide: {
+          updateGraph: mockUpdateGraph,
+          updateLayout: mockUpdateLayout,
+        },
+        stubs: {
+          VueFlow: {
+            template: '<div class="vue-flow"><slot></slot></div>',
+            setup() {
+              return {
+                filterType: ref("direct"),
+                expandAllUpstreams: ref(false),
+                expandAllDownstreams: ref(false),
+                nodes: ref([]),
+                edges: ref([]),
+              };
+            },
+          },
+          Panel: true,
+          Controls: true,
+          MiniMap: true,
+          Background: true,
+        },
+      },
+    });
   });
 
-  test("computes ownerExists correctly",async () => {
-    const wrapper = mount(AssetDetails, { props: defaultProps })
-    expect(wrapper.find('.font-semibold.text-editor-fg.opacity-30').exists()).toBe(true)
+  test('sets filterType to "all" when handleAllFilter is called', async () => {
+    // Set initial state
+    wrapper.vm.filterType = "direct";
+    // Call handleAllFilter
+    await wrapper.vm.handleAllFilter(new Event("click"));
 
-    await wrapper.setProps({ owner: '' })
-    expect(wrapper.find('.font-semibold.text-editor-fg.opacity-30').exists()).toBe(false)
+    // Check the state
+    assert.equal(wrapper.vm.filterType, "all");
   });
 
-  test("computes scheduleExists correctly", async () => {
-    const wrapper = mount(AssetDetails, { props: defaultProps });
-    expect(wrapper.findComponent({ name: 'AssetGeneral' }).props('schedule')).toBe('daily')
+  test('sets filterType to "direct" and clears expanded nodes when handleDirectFilter is called', async () => {
+    // Set initial state
+    wrapper.vm.filterType = "all";
+    wrapper.vm.expandAllUpstreams = true;
+    wrapper.vm.expandAllDownstreams = true;
+    wrapper.vm.expandedUpstreamNodes = [{ id: "node-1" }];
+    wrapper.vm.expandedDownstreamNodes = [{ id: "node-2" }];
 
-    await wrapper.setProps({ pipeline: { schedule: "" } });
-    expect(wrapper.findComponent({ name: 'AssetGeneral' }).props('schedule')).toBe('')
+    // Call handleDirectFilter with a proper event object
+    await wrapper.vm.handleDirectFilter({ stopPropagation: () => {} });
+
+    // Check the state
+    assert.equal(wrapper.vm.filterType, "direct");
+    assert.isFalse(wrapper.vm.expandAllUpstreams);
+    assert.isFalse(wrapper.vm.expandAllDownstreams);
+    assert.isEmpty(wrapper.vm.expandedUpstreamNodes);
+    assert.isEmpty(wrapper.vm.expandedDownstreamNodes);
   });
 
-  test("renders markdown description correctly", () => {
-    const mockRender = vi.fn().mockReturnValue('<p>This is a <strong>test</strong> description</p>')
-    vi.mocked(MarkdownIt).mockImplementation(() => ({
-      render: mockRender
-    }))
+  test("toggles expandAllUpstreams when toggleUpstream is called", async () => {
+    // Set filterType to 'all' to enable the toggle
+    wrapper.vm.filterType = "all";
 
-    const wrapper = mount(AssetDetails, { props: defaultProps })
-    expect(wrapper.html()).toContain('<p>This is a <strong>test</strong> description</p>')
-    expect(mockRender).toHaveBeenCalledWith('This is a **test** description')
+    // Initial state should be false
+    assert.isFalse(wrapper.vm.expandAllUpstreams);
+
+    // Call toggleUpstream
+    await wrapper.vm.toggleUpstream(new Event("click"));
+
+    // State should be toggled to true
+    assert.isTrue(wrapper.vm.expandAllUpstreams);
+
+    // Call toggleUpstream again
+    await wrapper.vm.toggleUpstream(new Event("click"));
+
+    // State should be toggled back to false
+    assert.isFalse(wrapper.vm.expandAllUpstreams);
+  });
+  test("toggles expandAllDownstreams when toggleDownstream is called", async () => {
+    // Set filterType to 'all' to enable the toggle
+    wrapper.vm.filterType = "all";
+
+    // Initial state should be false
+    assert.isFalse(wrapper.vm.expandAllDownstreams);
+
+    // Call toggleDownstream
+    await wrapper.vm.toggleDownstream(new Event("click"));
+
+    // State should be toggled to true
+    assert.isTrue(wrapper.vm.expandAllDownstreams);
+
+    // Call toggleDownstream again
+    await wrapper.vm.toggleDownstream(new Event("click"));
+
+    // State should be toggled back to false
+    assert.isFalse(wrapper.vm.expandAllDownstreams);
   });
 
-  test("toggles name editing mode", async () => {
-    const wrapper = mount(AssetDetails, { props: defaultProps })
+  // testing onNodeClick
+  test("sets selectedNodeId when onNodeClick is called", async () => {
+    const nodeId = "node-1";
+    await wrapper.vm.onNodeClick(nodeId, new Event("click"));
 
-    const nameElement = wrapper.find('.font-md.text-editor-fg.text-lg.font-mono')
-    await nameElement.trigger('dblclick')
+    // Check that selectedNodeId is updated
+    assert.equal(wrapper.vm.selectedNodeId, nodeId);
 
-    expect(wrapper.find('input.font-md.text-editor-fg.text-lg.font-mono').exists()).toBe(true)
+    // Call again to deselect
+    await wrapper.vm.onNodeClick(nodeId, new Event("click"));
+    assert.isNull(wrapper.vm.selectedNodeId);
   });
 
-  test("toggles description editing mode", async () => {
-    const wrapper = mount(AssetDetails, { props: defaultProps })
+  test("sets selectedNodeId when onNodeClick is called", async () => {
+    const nodeId = "node-1";
+    await wrapper.vm.onNodeClick(nodeId, new Event("click"));
 
-    const descriptionElement = wrapper.find('.text-sm.text-editor-fg.opacity-65.prose.prose-sm.pt-4')
-    await descriptionElement.trigger('dblclick')
+    // Check that selectedNodeId is updated
+    assert.equal(wrapper.vm.selectedNodeId, nodeId);
 
-    expect(wrapper.find('textarea.text-sm.text-editor-fg.opacity-65.prose.prose-sm.pt-4').exists()).toBe(true)
+    // Call again to deselect
+    await wrapper.vm.onNodeClick(nodeId, new Event("click"));
+    assert.isNull(wrapper.vm.selectedNodeId);
   });
-}); */
+});
