@@ -125,7 +125,6 @@ import type { AssetDataset } from "@/types";
 import { getAssetDataset } from "./useAssetLineage";
 import { XMarkIcon } from "@heroicons/vue/20/solid";
 import { FunnelIcon } from "@heroicons/vue/24/outline";
-import { vscode } from "@/utilities/vscode";
 
 const props = defineProps<{
   assetDataset?: AssetDataset | null; // Change this to accept null
@@ -145,15 +144,24 @@ const expandedUpstreamNodes = ref<any[]>([]);
 const expandedUpstreamEdges = ref<any[]>([]);
 const selectedNodeId = ref<string | null>(null);
 const filterType = ref<"direct" | "all">("direct");
-const filterLabel = computed(() =>
-  filterType.value === "direct" ? "Direct only" : "All Dependencies"
-);
+const filterLabel = computed(() => {
+  if (filterType.value === "direct") {
+    return "Direct only";
+  }
+  if (expandAllUpstreams.value && expandAllDownstreams.value) {
+    return "All Dependencies";
+  }
+  if (expandAllDownstreams.value) {
+    return "All Downstreams";
+  }
+  return "All Upstreams";
+});
 const elk = new ELK();
 
 const isLoading = ref(true);
 const error = ref<string | null>(props.LineageError);
-const expandAllDownstreams = ref(false);
-const expandAllUpstreams = ref(false);
+const expandAllDownstreams = ref(true);
+const expandAllUpstreams = ref(true);
 error.value = !props.assetDataset ? "No Lineage Data Available" : null;
 const isUpdating = ref(false);
 
