@@ -8,10 +8,10 @@
       <span class="ml-2">{{ error }}</span>
     </div>
     <VueFlow
+      v-if="!isUpdating"
       v-model:elements="elements"
-      :default-viewport="{ x: 250, y: 100, zoom: 0.7 }"
-      :min-zoom="0.2"
-      :max-zoom="4"
+      :default-viewport="{ x: 150, y: 10 }"
+      showFitView
       class="basic-flow"
       :draggable="true"
       :node-draggable="true"
@@ -33,19 +33,77 @@
           :selected-node-id="selectedNodeId"
         />
       </template>
-      <Panel
-        position="top-left"
-        class="flex flex-col bg-editor-bg border border-commandCenter-border px-2 text-editor-fg"
-      >
-        <vscode-checkbox v-model="expandAllUpstreams" @change="handleExpandAllUpstreams">
-          Show All Upstreams
-        </vscode-checkbox>
-        <vscode-checkbox v-model="expandAllDownstreams" @change="handleExpandAllDownstreams">
-          Show All Downstreams
-        </vscode-checkbox>
+      <Panel position="top-right">
+        <div
+          v-if="!expandPanel"
+          @click="expandPanel = !expandPanel"
+          class="flex items-center p-2 gap-1 bg-editorWidget-bg border border-notificationCenter-border rounded cursor-pointer hover:bg-editorWidget-bg transition-colors"
+        >
+          <FunnelIcon class="w-4 h-4 text-progressBar-bg" />
+          <span class="text-[0.65rem]">{{ filterLabel }}</span>
+        </div>
+        <div v-else class="bg-editorWidget-bg border border-notificationCenter-border rounded">
+          <div
+            class="flex items-center text-[0.65rem] justify-between border-b border-notificationCenter-border"
+          >
+            <div class="flex items-center gap-1">
+              <FunnelIcon class="w-4 h-4 text-progressBar-bg" />
+              <span class="text-[0.65rem] uppercase p-1">dependencies filter</span>
+            </div>
+            <vscode-button appearance="icon" @click="expandPanel = false">
+              <XMarkIcon class="w-4 h-4 text-progressBar-bg" />
+            </vscode-button>
+          </div>
+
+          <vscode-radio-group :value="filterType" orientation="vertical" class="radio-group">
+            <vscode-radio value="direct" class="radio-item" @click="handleDirectFilter">
+              <span class="radio-label">Direct only</span>
+            </vscode-radio>
+
+            <vscode-radio value="all" class="radio-item" @click="handleAllFilter">
+              <div class="all-options">
+                <span class="radio-label">All</span>
+                <div class="toggle-buttons">
+                  <button
+                    class="toggle-btn"
+                    :class="{ active: expandAllUpstreams }"
+                    @click.stop="toggleUpstream"
+                  >
+                    U
+                  </button>
+                  <button
+                    class="toggle-btn"
+                    :class="{ active: expandAllDownstreams }"
+                    @click.stop="toggleDownstream"
+                  >
+                    D
+                  </button>
+                </div>
+              </div>
+            </vscode-radio>
+          </vscode-radio-group>
+          <div class="flex justify-end px-2 pb-1">
+            <vscode-link
+              @click="handleReset"
+              class="text-xs text-editor-fg hover:text-progressBar-bg transition-colorseset-link"
+            >
+              Reset
+            </vscode-link>
+          </div>
+        </div>
       </Panel>
-      <Controls :position="controlsPosition" />
+      <Controls
+        :position="PanelPosition.BottomLeft"
+        showZoom
+        showFitView
+        showInteractive
+        class="custom-controls"
+      />
     </VueFlow>
+    <div v-else>
+      <vscode-progress-ring></vscode-progress-ring>
+      <span class="ml-2">Updating graph...</span>
+    </div>
   </div>
 </template>
 
@@ -65,6 +123,9 @@ import {
 } from "@/utilities/graphGenerator";
 import type { AssetDataset } from "@/types";
 import { getAssetDataset } from "./useAssetLineage";
+import { XMarkIcon } from "@heroicons/vue/20/solid";
+import { FunnelIcon } from "@heroicons/vue/24/outline";
+import { vscode } from "@/utilities/vscode";
 
 const props = defineProps<{
   assetDataset?: AssetDataset | null; // Change this to accept null
@@ -73,8 +134,29 @@ const props = defineProps<{
   LineageError: string | null;
 }>();
 
+const { nodes, edges, addNodes, addEdges, setNodes, setEdges } = useVueFlow();
+const baseNodes = ref<any[]>([]);
+const baseEdges = ref<any[]>([]);
+const elements = computed(() => [...nodes.value, ...edges.value]);
+const expandPanel = ref(false);
+const expandedDownstreamNodes = ref<any[]>([]);
+const expandedDownstreamEdges = ref<any[]>([]);
+const expandedUpstreamNodes = ref<any[]>([]);
+const expandedUpstreamEdges = ref<any[]>([]);
 const selectedNodeId = ref<string | null>(null);
-const controlsPosition = PanelPosition.TopRight;
+const filterType = ref<"direct" | "all">("direct");
+const filterLabel = computed(() =>
+  filterType.value === "direct" ? "Direct only" : "All Dependencies"
+);
+const elk = new ELK();
+
+const isLoading = ref(true);
+const error = ref<string | null>(props.LineageError);
+const expandAllDownstreams = ref(false);
+const expandAllUpstreams = ref(false);
+error.value = !props.assetDataset ? "No Lineage Data Available" : null;
+const isUpdating = ref(false);
+
 const onNodeClick = (nodeId: string, event: MouseEvent) => {
   console.log("Node clicked:", nodeId);
   if (selectedNodeId.value === nodeId) {
@@ -86,18 +168,9 @@ const onNodeClick = (nodeId: string, event: MouseEvent) => {
   }
 };
 
-const { nodes, edges, addNodes, addEdges, setNodes, setEdges } = useVueFlow();
-const elements = computed(() => [...nodes.value, ...edges.value]);
 const onPaneReady = () => {
   updateLayout();
 };
-const elk = new ELK();
-
-const isLoading = ref(true);
-const error = ref<string | null>(props.LineageError);
-const expandAllDownstreams = ref(false);
-const expandAllUpstreams = ref(false);
-error.value = !props.assetDataset ? "No Lineage Data Available" : null;
 
 // Function to update node positions based on ELK layout
 const updateNodePositions = (layout: any) => {
@@ -156,12 +229,7 @@ const updateLayout = async () => {
     console.error("Failed to apply ELK layout:", error);
   }
 };
-const baseNodes = ref<any[]>([]);
-const baseEdges = ref<any[]>([]);
-const expandedDownstreamNodes = ref<any[]>([]);
-const expandedDownstreamEdges = ref<any[]>([]);
-const expandedUpstreamNodes = ref<any[]>([]);
-const expandedUpstreamEdges = ref<any[]>([]);
+
 // Function to process the asset properties and update nodes and edges
 const processProperties = () => {
   if (!props.assetDataset || !props.pipelineData) {
@@ -190,7 +258,6 @@ const processProperties = () => {
     isLoading.value = false;
   }
 };
-
 const updateGraph = () => {
   const allNodes = [
     ...baseNodes.value,
@@ -204,9 +271,6 @@ const updateGraph = () => {
     ...expandedUpstreamEdges.value,
   ];
 
-  console.log("All Nodes:", allNodes);
-  console.log("All Edges:", allEdges);
-
   // Remove duplicates
   const uniqueNodes = allNodes.filter(
     (node, index, self) => index === self.findIndex((n) => n.id === node.id)
@@ -216,23 +280,10 @@ const updateGraph = () => {
     (edge, index, self) => index === self.findIndex((e) => e.id === edge.id)
   );
 
-  console.log("Unique Nodes:", uniqueNodes);
-  console.log("Unique Edges:", uniqueEdges);
-
+  // Update nodes and edges atomically
   setNodes(uniqueNodes);
   setEdges(uniqueEdges);
 };
-
-// Watch for changes in props and update nodes and edges
-watch(
-  () => [props.assetDataset, props.pipelineData],
-  ([newAssetDataset, newPipelineData]) => {
-    if (newAssetDataset && newPipelineData) {
-      processProperties();
-    }
-  },
-  { immediate: true }
-);
 
 // Event handlers for adding upstream and downstream nodes
 const onAddUpstream = async (nodeId: string) => {
@@ -257,9 +308,6 @@ const onAddDownstream = async (nodeId: string) => {
 };
 
 const handleExpandAllDownstreams = async () => {
-  console.log("Expanding downstream nodes", expandAllDownstreams.value);
-  expandAllDownstreams.value = !expandAllDownstreams.value;
-
   if (expandAllDownstreams.value) {
     // Recursively fetch all downstream assets
     const fetchAllDownstreams = (assetName: string, downstreamAssets: any[] = []): any[] => {
@@ -300,14 +348,12 @@ const handleExpandAllDownstreams = async () => {
     expandedDownstreamNodes.value = [];
     expandedDownstreamEdges.value = [];
   }
+
   updateGraph();
   await updateLayout();
 };
 
 const handleExpandAllUpstreams = async () => {
-  console.log("Expanding upstream nodes", expandAllUpstreams.value);
-  expandAllUpstreams.value = !expandAllUpstreams.value;
-
   if (expandAllUpstreams.value) {
     // Recursively fetch all upstream assets
     const fetchAllUpstreams = (assetName: string, upstreamAssets: any[] = []): any[] => {
@@ -375,9 +421,121 @@ watch(
   },
   { immediate: true }
 );
+/**
+ * Debounce function to limit the rate at which a function can fire.
+ *
+ * @param {Function} func - The function to debounce.
+ * @param {number} wait - The number of milliseconds to wait before calling the function.
+ * @returns {Function} - A debounced version of the function.
+ */
+const debounce = (func, wait) => {
+  let timeout;
+  return function executedFunction(...args) {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+};
 
+const debouncedUpdateGraph = debounce(async () => {
+  isUpdating.value = true; // Show loading state
+  await updateGraph();
+  await updateLayout();
+  isUpdating.value = false; // Hide loading state
+}, 100);
+
+const toggleUpstream = async (event: Event) => {
+  event.stopPropagation();
+  if (filterType.value === "all") {
+    expandAllUpstreams.value = !expandAllUpstreams.value;
+    await handleExpandAllUpstreams();
+    debouncedUpdateGraph(); // Use debounced update
+  }
+};
+
+const toggleDownstream = async (event: Event) => {
+  event.stopPropagation();
+  if (filterType.value === "all") {
+    expandAllDownstreams.value = !expandAllDownstreams.value;
+    await handleExpandAllDownstreams();
+    debouncedUpdateGraph(); // Use debounced update
+  }
+};
+
+const handleDirectFilter = async (event: Event) => {
+  event.stopPropagation();
+  filterType.value = "direct";
+  expandAllUpstreams.value = false;
+  expandAllDownstreams.value = false;
+
+  // Clear expanded nodes
+  expandedUpstreamNodes.value = [];
+  expandedUpstreamEdges.value = [];
+  expandedDownstreamNodes.value = [];
+  expandedDownstreamEdges.value = [];
+
+  debouncedUpdateGraph(); // Use debounced update
+};
+
+const handleAllFilter = async (event: Event) => {
+  event.stopPropagation();
+  filterType.value = "all";
+  debouncedUpdateGraph(); // Use debounced update
+};
+
+const handleReset = async (event: Event) => {
+  event.stopPropagation();
+  filterType.value = "direct";
+  expandAllUpstreams.value = false;
+  expandAllDownstreams.value = false;
+  expandedUpstreamNodes.value = [];
+  expandedUpstreamEdges.value = [];
+  expandedDownstreamNodes.value = [];
+  expandedDownstreamEdges.value = [];
+  await updateGraph();
+  await updateLayout();
+};
+
+// Update the onMounted hook
 onMounted(() => {
   processProperties();
+  try {
+    const savedState = localStorage.getItem("graphFilterState");
+    if (savedState) {
+      const { filterType: savedFilter, upstream, downstream } = JSON.parse(savedState);
+      filterType.value = savedFilter;
+      expandAllUpstreams.value = upstream;
+      expandAllDownstreams.value = downstream;
+      // If we have expanded states, trigger the appropriate updates
+      if (upstream) {
+        handleExpandAllUpstreams();
+      }
+      if (downstream) {
+        handleExpandAllDownstreams();
+      }
+    }
+  } catch (error) {
+    console.error("Error loading saved state:", error);
+  }
+});
+// Watch for changes in props and update nodes and edges
+watch(
+  () => [props.assetDataset, props.pipelineData],
+  ([newAssetDataset, newPipelineData]) => {
+    if (newAssetDataset && newPipelineData) {
+      processProperties();
+    }
+  },
+  { immediate: true }
+);
+watch([filterType, expandAllUpstreams, expandAllDownstreams], () => {
+  localStorage.setItem(
+    "graphFilterState",
+    JSON.stringify({
+      filterType: filterType.value,
+      upstream: expandAllUpstreams.value,
+      downstream: expandAllDownstreams.value,
+    })
+  );
 });
 </script>
 
@@ -389,30 +547,62 @@ onMounted(() => {
   @apply flex h-screen w-full p-0 !important;
 }
 
+
 .vue-flow__controls {
-  background-color: var(--vscode-editorWidget-background) !important;
-  color: var(--vscode-editor-background) !important;
-}
-.vue-flow__controls-button {
-  background-color: var(--vscode-editor-foreground) !important;
-  color: var(--vscode-editor-background) !important;
+  bottom: 1rem !important;
+  left: 1rem !important;
+  top: auto !important;
+  right: auto !important;
+  background-color: transparent !important;
+  /* Force horizontal layout of buttons */
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 0.3rem;
 }
 
-.loading-overlay,
-.error-message {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background-color: rgba(0, 0, 0, 0.1);
-  z-index: 1000;
+.vue-flow__controls-button {
+  @apply flex justify-center items-center p-0 border-solid border-notificationCenter-border bg-transparent rounded-md w-6 h-6 cursor-pointer hover:bg-editor-bg  !important;
+}
+.vue-flow__controls-button svg {
+  @apply fill-current text-editor-fg !important;
+}
+.custom-controls .vue-flow__controls-button:hover {
+  background-color: #444 !important;
 }
 
 .error-message {
   flex-direction: column;
+}
+
+/* Radio group styling */
+.radio-group {
+  @apply px-1;
+}
+
+.radio-label {
+  @apply text-[0.65rem] font-normal;
+}
+
+/* Toggle buttons */
+.all-options {
+  @apply flex items-center justify-center w-full gap-1;
+}
+
+.toggle-buttons {
+  @apply flex gap-2;
+}
+
+.toggle-btn {
+  @apply w-6 h-6 rounded-full border-2 border-notificationCenter-border bg-transparent 
+         text-xs font-medium flex items-center justify-center cursor-pointer
+         transition-all duration-200;
+}
+
+.toggle-btn.active {
+  @apply bg-progressBar-bg border-progressBar-bg text-editor-fg;
+}
+
+vscode-checkbox {
+  @apply text-xs;
 }
 </style>
