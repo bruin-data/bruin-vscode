@@ -10,7 +10,7 @@
     <VueFlow
       v-if="!isUpdating"
       v-model:elements="elements"
-      :default-viewport="{ x: 150, y: 10 }"
+      :default-viewport="{ x: 150, y: 10, zoom: 1 }"
       showFitView
       class="basic-flow"
       :draggable="true"
@@ -157,6 +157,8 @@ const expandAllUpstreams = ref(false);
 error.value = !props.assetDataset ? "No Lineage Data Available" : null;
 const isUpdating = ref(false);
 
+const { viewport, setViewport } = useVueFlow();
+
 const onNodeClick = (nodeId: string, event: MouseEvent) => {
   console.log("Node clicked:", nodeId);
   if (selectedNodeId.value === nodeId) {
@@ -170,6 +172,9 @@ const onNodeClick = (nodeId: string, event: MouseEvent) => {
 
 const onPaneReady = () => {
   updateLayout();
+  // Store the initial viewport state
+  const initialViewport = { x: 150, y: 10, zoom: 1 };
+  setViewport(initialViewport);
 };
 
 // Function to update node positions based on ELK layout
@@ -348,9 +353,6 @@ const handleExpandAllDownstreams = async () => {
     expandedDownstreamNodes.value = [];
     expandedDownstreamEdges.value = [];
   }
-
-  updateGraph();
-  await updateLayout();
 };
 
 const handleExpandAllUpstreams = async () => {
@@ -397,8 +399,6 @@ const handleExpandAllUpstreams = async () => {
     expandedUpstreamNodes.value = [];
     expandedUpstreamEdges.value = [];
   }
-  updateGraph();
-  await updateLayout();
 };
 // Handle node dragging
 const onNodesDragged = (draggedNodes: NodeDragEvent[]) => {
@@ -438,8 +438,10 @@ const debounce = (func, wait) => {
 
 const debouncedUpdateGraph = debounce(async () => {
   isUpdating.value = true; // Show loading state
+  const currentViewport = viewport.value; // Store current viewport
   await updateGraph();
   await updateLayout();
+  setViewport(currentViewport); // Restore viewport
   isUpdating.value = false; // Hide loading state
 }, 100);
 
@@ -536,6 +538,7 @@ watch([filterType, expandAllUpstreams, expandAllDownstreams], () => {
       downstream: expandAllDownstreams.value,
     })
   );
+  debouncedUpdateGraph(); // Use debounced update
 });
 </script>
 
@@ -546,7 +549,6 @@ watch([filterType, expandAllUpstreams, expandAllDownstreams], () => {
 .flow {
   @apply flex h-screen w-full p-0 !important;
 }
-
 
 .vue-flow__controls {
   bottom: 1rem !important;
