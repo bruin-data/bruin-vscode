@@ -37,12 +37,12 @@
         <div
           v-if="!expandPanel"
           @click="expandPanel = !expandPanel"
-          class="flex items-center p-2 gap-1 bg-editorWidget-bg border border-notificationCenter-border rounded cursor-pointer hover:bg-editorWidget-bg transition-colors"
+          class="flex items-center p-2 gap-1 bg-transparent border border-notificationCenter-border rounded cursor-pointer hover:bg-editorWidget-bg transition-colors"
         >
           <FunnelIcon class="w-4 h-4 text-progressBar-bg" />
           <span class="text-[0.65rem]">{{ filterLabel }}</span>
         </div>
-        <div v-else class="bg-editorWidget-bg border border-notificationCenter-border rounded">
+        <div v-else class="bg-transparent hover:bg-editorWidget-bg border border-notificationCenter-border rounded">
           <div
             class="flex items-center text-[0.65rem] justify-between border-b border-notificationCenter-border"
           >
@@ -160,8 +160,8 @@ const elk = new ELK();
 
 const isLoading = ref(true);
 const error = ref<string | null>(props.LineageError);
-const expandAllDownstreams = ref(true);
-const expandAllUpstreams = ref(true);
+const expandAllDownstreams = ref(false);
+const expandAllUpstreams = ref(false);
 error.value = !props.assetDataset ? "No Lineage Data Available" : null;
 const isUpdating = ref(false);
 
@@ -488,6 +488,10 @@ const handleDirectFilter = async (event: Event) => {
 
 const handleAllFilter = async (event: Event) => {
   event.stopPropagation();
+  expandAllUpstreams.value = true;
+  expandAllDownstreams.value = true;
+  await handleExpandAllUpstreams();
+  await handleExpandAllDownstreams();
   filterType.value = "all";
   debouncedUpdateGraph(); // Use debounced update
 };
