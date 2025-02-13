@@ -8,6 +8,7 @@
       <span class="ml-2">{{ error }}</span>
     </div>
     <VueFlow
+      v-if="!isUpdating"
       v-model:elements="elements"
       :default-viewport="{ x: 150, y: 10 }"
       showFitView
@@ -99,6 +100,10 @@
         class="custom-controls"
       />
     </VueFlow>
+    <div v-else>
+      <vscode-progress-ring></vscode-progress-ring>
+      <span class="ml-2">Updating graph...</span>
+    </div>
   </div>
 </template>
 
@@ -150,6 +155,7 @@ const error = ref<string | null>(props.LineageError);
 const expandAllDownstreams = ref(false);
 const expandAllUpstreams = ref(false);
 error.value = !props.assetDataset ? "No Lineage Data Available" : null;
+const isUpdating = ref(false);
 
 const onNodeClick = (nodeId: string, event: MouseEvent) => {
   console.log("Node clicked:", nodeId);
@@ -252,7 +258,6 @@ const processProperties = () => {
     isLoading.value = false;
   }
 };
-
 const updateGraph = () => {
   const allNodes = [
     ...baseNodes.value,
@@ -266,9 +271,6 @@ const updateGraph = () => {
     ...expandedUpstreamEdges.value,
   ];
 
-  console.log("All Nodes:", allNodes);
-  console.log("All Edges:", allEdges);
-
   // Remove duplicates
   const uniqueNodes = allNodes.filter(
     (node, index, self) => index === self.findIndex((n) => n.id === node.id)
@@ -278,36 +280,9 @@ const updateGraph = () => {
     (edge, index, self) => index === self.findIndex((e) => e.id === edge.id)
   );
 
-  console.log("Unique Nodes:", uniqueNodes);
-  console.log("Unique Edges:", uniqueEdges);
-
+  // Update nodes and edges atomically
   setNodes(uniqueNodes);
   setEdges(uniqueEdges);
-};
-
-
-// Update handler methods
-const handleDirectFilter = async (event: Event) => {
-  event.stopPropagation();
-  filterType.value = "direct";
-  expandAllUpstreams.value = false;
-  expandAllDownstreams.value = false;
-
-  // Clear expanded nodes
-  expandedUpstreamNodes.value = [];
-  expandedUpstreamEdges.value = [];
-  expandedDownstreamNodes.value = [];
-  expandedDownstreamEdges.value = [];
-
-  await updateGraph();
-  await updateLayout();
-};
-
-const handleAllFilter = async (event: Event) => {
-  event.stopPropagation();
-  filterType.value = "all";
-  await updateGraph();
-  await updateLayout();
 };
 
 // Event handlers for adding upstream and downstream nodes
@@ -461,22 +436,50 @@ const debounce = (func, wait) => {
   };
 };
 
+const debouncedUpdateGraph = debounce(async () => {
+  isUpdating.value = true; // Show loading state
+  await updateGraph();
+  await updateLayout();
+  isUpdating.value = false; // Hide loading state
+}, 100);
+
 const toggleUpstream = async (event: Event) => {
   event.stopPropagation();
   if (filterType.value === "all") {
-    console.log("Toggling upstreams");
     expandAllUpstreams.value = !expandAllUpstreams.value;
     await handleExpandAllUpstreams();
+    debouncedUpdateGraph(); // Use debounced update
   }
 };
 
 const toggleDownstream = async (event: Event) => {
   event.stopPropagation();
   if (filterType.value === "all") {
-    console.log("Toggling downstreams");
     expandAllDownstreams.value = !expandAllDownstreams.value;
-     await handleExpandAllDownstreams();
+    await handleExpandAllDownstreams();
+    debouncedUpdateGraph(); // Use debounced update
   }
+};
+
+const handleDirectFilter = async (event: Event) => {
+  event.stopPropagation();
+  filterType.value = "direct";
+  expandAllUpstreams.value = false;
+  expandAllDownstreams.value = false;
+
+  // Clear expanded nodes
+  expandedUpstreamNodes.value = [];
+  expandedUpstreamEdges.value = [];
+  expandedDownstreamNodes.value = [];
+  expandedDownstreamEdges.value = [];
+
+  debouncedUpdateGraph(); // Use debounced update
+};
+
+const handleAllFilter = async (event: Event) => {
+  event.stopPropagation();
+  filterType.value = "all";
+  debouncedUpdateGraph(); // Use debounced update
 };
 
 const handleReset = async (event: Event) => {
@@ -544,19 +547,6 @@ watch([filterType, expandAllUpstreams, expandAllDownstreams], () => {
   @apply flex h-screen w-full p-0 !important;
 }
 
-.loading-overlay,
-.error-message {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background-color: rgba(0, 0, 0, 0.1);
-  z-index: 1000;
-}
 
 .vue-flow__controls {
   bottom: 1rem !important;
@@ -605,7 +595,11 @@ watch([filterType, expandAllUpstreams, expandAllDownstreams], () => {
 .toggle-btn {
   @apply w-6 h-6 rounded-full border-2 border-notificationCenter-border bg-transparent 
          text-xs font-medium flex items-center justify-center cursor-pointer
-         transition-all duration-200 active:bg-rose-400;
+         transition-all duration-200;
+}
+
+.toggle-btn.active {
+  @apply bg-progressBar-bg border-progressBar-bg text-editor-fg;
 }
 
 vscode-checkbox {
