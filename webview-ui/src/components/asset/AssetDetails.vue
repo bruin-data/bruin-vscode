@@ -29,7 +29,6 @@
               v-model="editableDescription"
               class="w-full h-40 bg-input-background border-0 text-input-foreground text-xs"
               ref="descriptionInput"
-              @blur="cancelDescriptionEdit"
               :class="{ 'truncate-description': shouldTruncate && !isExpanded }"
             ></textarea>
             <div class="absolute top-0 right-0 mt-1 mr-1 flex gap-2">
@@ -75,7 +74,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, defineProps, computed, watch, onMounted, nextTick } from "vue";
+import { ref, defineProps, computed, watch, onMounted, nextTick, onBeforeUnmount } from "vue";
 import MessageAlert from "@/components/ui/alerts/AlertMessage.vue";
 import MarkdownIt from "markdown-it";
 import AssetGeneral from "./AssetGeneral.vue";
@@ -122,6 +121,10 @@ const toggleExpand = () => {
   isExpanded.value = !isExpanded.value;
 };
 
+onBeforeUnmount(() => {
+  document.removeEventListener("click", handleClickOutside);
+});
+
 onMounted(async () => {
   window.addEventListener("message", handleMessage);
   vscode.postMessage({ command: "bruin.getConnectionsList" });
@@ -134,7 +137,12 @@ onMounted(async () => {
     resizeObserver.observe(descriptionRef.value);
   }
 });
-
+const handleClickOutside = (event: MouseEvent) => {
+  if (descriptionInput.value && !descriptionInput.value.contains(event.target as Node)) {
+    cancelDescriptionEdit();
+    document.removeEventListener("click", handleClickOutside);
+  }
+}
 const startEditingDescription = () => {
   isEditingDescription.value = true;
   showEditButton.value = false;
@@ -142,6 +150,7 @@ const startEditingDescription = () => {
   nextTick(() => {
     descriptionInput.value?.focus();
   });
+  document.addEventListener("click", handleClickOutside);
 };
 
 const emit = defineEmits(["update:description"]);
@@ -159,6 +168,7 @@ const cancelDescriptionEdit = () => {
   editableDescription.value = props.description; // Reset to original value
   isEditingDescription.value = false;
   showEditButton.value = false;
+  document.removeEventListener("click", handleClickOutside);
 };
 
 watch(
