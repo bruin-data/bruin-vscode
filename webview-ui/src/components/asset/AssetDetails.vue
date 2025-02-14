@@ -23,14 +23,23 @@
           >
             <PencilIcon class="h-4 w-4" aria-hidden="true" />
           </vscode-button>
-          <textarea
-            v-if="isEditingDescription"
-            v-model="editableDescription"
-            class="w-full h-40 bg-input-background border-0 text-input-foreground text-xs"
-            ref="descriptionInput"
-            @blur="saveDescriptionEdit"
-            :class="{ 'truncate-description': shouldTruncate && !isExpanded }"
-          ></textarea>
+
+          <div v-if="isEditingDescription" class="relative">
+            <textarea
+              v-model="editableDescription"
+              class="w-full h-40 bg-input-background border-0 text-input-foreground text-xs"
+              ref="descriptionInput"
+              :class="{ 'truncate-description': shouldTruncate && !isExpanded }"
+            ></textarea>
+            <div class="absolute top-0 right-0 mt-1 mr-1 flex gap-2">
+              <vscode-button title="cancel" appearance="icon" @click.stop="cancelDescriptionEdit">
+                <XIcon class="h-4 w-4" aria-hidden="true" />
+              </vscode-button>
+              <vscode-button title="save" appearance="icon" @click.stop="saveDescriptionEdit">
+                <CheckIcon class="h-4 w-4" aria-hidden="true" />
+              </vscode-button>
+            </div>
+          </div>
         </div>
 
         <button
@@ -65,12 +74,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, defineProps, computed, watch, onMounted, nextTick } from "vue";
+import { ref, defineProps, computed, watch, onMounted, nextTick, onBeforeUnmount } from "vue";
 import MessageAlert from "@/components/ui/alerts/AlertMessage.vue";
 import MarkdownIt from "markdown-it";
 import AssetGeneral from "./AssetGeneral.vue";
 import { vscode } from "@/utilities/vscode";
-import {  ChevronDownIcon, ChevronUpIcon, PencilIcon } from "@heroicons/vue/20/solid";
+import { ChevronDownIcon, ChevronUpIcon, PencilIcon } from "@heroicons/vue/20/solid";
+import { CheckIcon, XIcon } from "lucide-vue-next";
 
 const props = defineProps<{
   name: string;
@@ -86,13 +96,12 @@ const props = defineProps<{
 const descriptionRef = ref<HTMLElement | null>(null);
 const isExpanded = ref(false);
 const contentHeight = ref(0);
-const maxHeight = 160; // 40px * 4 lines
+const maxHeight = 160;
 const editableDescription = ref(props.description);
 const isEditingDescription = ref(false);
 const showEditButton = ref(false);
 const descriptionInput = ref<HTMLTextAreaElement | null>(null);
 
-// Update content height measurement
 const updateContentHeight = async () => {
   await nextTick();
   if (descriptionRef.value) {
@@ -100,12 +109,10 @@ const updateContentHeight = async () => {
   }
 };
 
-// Check if content height exceeds max-height
 const shouldTruncate = computed(() => {
   return contentHeight.value > maxHeight && props.description;
 });
 
-// Only show button if there's content that needs truncating
 const shouldShowButton = computed(() => {
   return shouldTruncate.value;
 });
@@ -114,12 +121,15 @@ const toggleExpand = () => {
   isExpanded.value = !isExpanded.value;
 };
 
+onBeforeUnmount(() => {
+  document.removeEventListener("click", handleClickOutside);
+});
+
 onMounted(async () => {
   window.addEventListener("message", handleMessage);
   vscode.postMessage({ command: "bruin.getConnectionsList" });
   await updateContentHeight();
 
-  // Add resize observer to handle dynamic content changes
   if (descriptionRef.value) {
     const resizeObserver = new ResizeObserver(() => {
       updateContentHeight();
@@ -127,27 +137,40 @@ onMounted(async () => {
     resizeObserver.observe(descriptionRef.value);
   }
 });
-
-
-// Functions for editing description
+const handleClickOutside = (event: MouseEvent) => {
+  if (descriptionInput.value && !descriptionInput.value.contains(event.target as Node)) {
+    cancelDescriptionEdit();
+    document.removeEventListener("click", handleClickOutside);
+  }
+}
 const startEditingDescription = () => {
   isEditingDescription.value = true;
-  showEditButton.value = false; // Hide button in edit mode
+  showEditButton.value = false;
+  editableDescription.value = props.description; // Reset to original value when starting edit
   nextTick(() => {
     descriptionInput.value?.focus();
   });
+  document.addEventListener("click", handleClickOutside);
 };
+
 const emit = defineEmits(["update:description"]);
+
 const saveDescriptionEdit = () => {
   if (editableDescription.value.trim() !== props.description) {
     emit("update:description", editableDescription.value.trim());
     console.log("Updating description:", editableDescription.value.trim());
   }
   isEditingDescription.value = false;
-  showEditButton.value = true; // Show button again after edit mode
+  showEditButton.value = false;
 };
 
-// Watch for description changes and update height
+const cancelDescriptionEdit = () => {
+  editableDescription.value = props.description; // Reset to original value
+  isEditingDescription.value = false;
+  showEditButton.value = false;
+  document.removeEventListener("click", handleClickOutside);
+};
+
 watch(
   () => props.description,
   async () => {
@@ -181,7 +204,6 @@ const markdownDescription = computed(() => {
   return md.render(props.description);
 });
 
-// State for description editing
 watch(
   () => props.description,
   (newDescription) => {

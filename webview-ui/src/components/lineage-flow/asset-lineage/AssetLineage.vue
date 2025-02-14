@@ -33,7 +33,7 @@
           :selected-node-id="selectedNodeId"
         />
       </template>
-      <Panel position="top-right">
+      <!-- <Panel position="top-right">
         <div
           v-if="!expandPanel"
           @click="expandPanel = !expandPanel"
@@ -91,7 +91,7 @@
             </vscode-link>
           </div>
         </div>
-      </Panel>
+      </Panel> -->
       <Controls
         :position="PanelPosition.BottomLeft"
         showZoom
