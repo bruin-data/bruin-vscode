@@ -29,6 +29,7 @@
               v-model="editableDescription"
               class="w-full h-40 bg-input-background border-0 text-input-foreground text-xs"
               ref="descriptionInput"
+              @blur="cancelDescriptionEdit"
               :class="{ 'truncate-description': shouldTruncate && !isExpanded }"
             ></textarea>
             <div class="absolute top-0 right-0 mt-1 mr-1 flex gap-2">
