@@ -33,7 +33,8 @@
             "rs.sql",
             "ms.sql",
             "synapse.sql",
-            "ingestr"
+            "ingestr",
+            "duckdb.seed"
           ],
           "description": "The type of the asset"
         },

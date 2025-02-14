@@ -1,6 +1,9 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
+## [0.33.2] - [2024-02-14]
+- Improve description editing by adding clear Save and Cancel buttons.
+
 ## [0.33.1] - [2024-02-07]
 - Display render button for all file extensions, ensuring Bruin render is always visible.
 
