@@ -25,6 +25,7 @@ export default defineConfig({
       input: {
         index: resolve(__dirname, 'index.html'),
         lineage: resolve(__dirname, 'lineage/index.html'),
+        queryPreview: resolve(__dirname, 'query-preview/index.html'),
       },
       output: {
         entryFileNames: `assets/[name].js`,

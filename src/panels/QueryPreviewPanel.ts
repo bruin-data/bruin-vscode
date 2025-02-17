@@ -116,7 +116,7 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
       "webview-ui",
       "build",
       "assets",
-      "query-preview.css",
+      "queryPreview.css",
     ]);
     const stylesUriCustomElt = getUri(webview, this._extensionUri, [
       "webview-ui",
@@ -131,7 +131,7 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
       "index.css",
     ]);
     const scriptUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, "webview-ui", "build", "assets", "query-preview.js")
+      vscode.Uri.joinPath(this._extensionUri, "webview-ui", "build", "assets", "queryPreview.js")
     );
     const scriptUriCustomElt = webview.asWebviewUri(
       vscode.Uri.joinPath(this._extensionUri, "webview-ui", "build", "assets", "custom-elements.js")
@@ -162,23 +162,23 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
       <body>
         <div id="app"></div>
         <script type="module" nonce="${nonce}" src="${scriptUri}">
-                window.onerror = function(message, source, lineno, colno, error) {
-                console.error('Webview error:', message, 'at line:', lineno, 'source:', source, 'error:', error);
-              };
-          </script>
-          <script type="module" nonce="${nonce}" src="${scriptUriCustomElt}">
-                window.onerror = function(message, source, lineno, colno, error) {
-                console.error('Webview error:', message, 'at line:', lineno, 'source:', source, 'error:', error);
-              };
-          </script>
-        </body>
+          window.onerror = function(message, source, lineno, colno, error) {
+            console.error('Webview error:', message, 'at line:', lineno, 'source:', source, 'error:', error);
+          };
+        </script>
+        <script type="module" nonce="${nonce}" src="${scriptUriCustomElt}">
+          window.onerror = function(message, source, lineno, colno, error) {
+            console.error('Webview error:', message, 'at line:', lineno, 'source:', source, 'error:', error);
+          };
+        </script>
+      </body>
       </html>
     `;
   }
   private _setWebviewMessageListener(webview: vscode.Webview) {
     webview.onDidReceiveMessage((message) => {
       switch (message.command) {
-        case "bruin.queryPreview":
+        case "bruin.getQueryOutput":
           console.log("Query from webview in the Query Preview panel, well received");
           break;
       }
