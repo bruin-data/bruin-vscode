@@ -246,6 +246,7 @@ const updateLayout = async () => {
     const layout = await elk.layout(elkGraph);
     if (layout.children && layout.children.length) {
       updateNodePositions(layout);
+      nextTick(() => fitView({ padding: 0.1 }));
     }
   } catch (error) {
     console.error("Failed to apply ELK layout:", error);
