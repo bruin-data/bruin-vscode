@@ -1,6 +1,13 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
+
+## [0.34.1] - [2024-02-17]
+- Reset filter panel state on file change and improve graph viewport adjustments for expanded nodes.
+
+## [0.34.0] - [2024-02-17]
+- Add options panel to the lineage view with choices to display either all upstream & downstream dependencies or only direct dependencies.
+
 ## [0.33.2] - [2024-02-14]
 - Improve description editing by adding clear Save and Cancel buttons.
 

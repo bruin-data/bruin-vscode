@@ -8,15 +8,16 @@
       <span class="ml-2">{{ error }}</span>
     </div>
     <VueFlow
-      v-if="!isUpdating"
+      v-else
       v-model:elements="elements"
-      :default-viewport="{ x: 150, y: 10 }"
-      showFitView
+      :default-viewport="{ x: 150, y: 10, zoom: 1 }"
+      :fit-view-on-init="true"
       class="basic-flow"
       :draggable="true"
       :node-draggable="true"
       @paneReady="onPaneReady"
       @nodesDragged="onNodesDragged"
+      ref="flowRef"
     >
       <Background />
 
@@ -33,16 +34,19 @@
           :selected-node-id="selectedNodeId"
         />
       </template>
-      <!-- <Panel position="top-right">
+      <Panel position="top-right">
         <div
           v-if="!expandPanel"
           @click="expandPanel = !expandPanel"
-          class="flex items-center p-2 gap-1 bg-editorWidget-bg border border-notificationCenter-border rounded cursor-pointer hover:bg-editorWidget-bg transition-colors"
+          class="flex items-center p-2 gap-1 bg-transparent border border-notificationCenter-border rounded cursor-pointer hover:bg-editorWidget-bg transition-colors"
         >
           <FunnelIcon class="w-4 h-4 text-progressBar-bg" />
           <span class="text-[0.65rem]">{{ filterLabel }}</span>
         </div>
-        <div v-else class="bg-editorWidget-bg border border-notificationCenter-border rounded">
+        <div
+          v-else
+          class="bg-transparent hover:bg-editorWidget-bg border border-notificationCenter-border rounded"
+        >
           <div
             class="flex items-center text-[0.65rem] justify-between border-b border-notificationCenter-border"
           >
@@ -91,7 +95,7 @@
             </vscode-link>
           </div>
         </div>
-      </Panel> -->
+      </Panel>
       <Controls
         :position="PanelPosition.BottomLeft"
         showZoom
@@ -100,10 +104,6 @@
         class="custom-controls"
       />
     </VueFlow>
-    <div v-else>
-      <vscode-progress-ring></vscode-progress-ring>
-      <span class="ml-2">Updating graph...</span>
-    </div>
   </div>
 </template>
 
@@ -113,7 +113,7 @@ import { Background } from "@vue-flow/background";
 import { Controls } from "@vue-flow/controls";
 import "@vue-flow/controls/dist/style.css";
 import type { NodeDragEvent, XYPosition } from "@vue-flow/core";
-import { computed, onMounted, defineProps, watch, ref } from "vue";
+import { computed, onMounted, defineProps, watch, ref, nextTick } from "vue";
 import ELK from "elkjs/lib/elk.bundled.js";
 import CustomNode from "@/components/lineage-flow/custom-nodes/CustomNodes.vue";
 import {
@@ -125,7 +125,6 @@ import type { AssetDataset } from "@/types";
 import { getAssetDataset } from "./useAssetLineage";
 import { XMarkIcon } from "@heroicons/vue/20/solid";
 import { FunnelIcon } from "@heroicons/vue/24/outline";
-import { vscode } from "@/utilities/vscode";
 
 const props = defineProps<{
   assetDataset?: AssetDataset | null; // Change this to accept null
@@ -134,7 +133,8 @@ const props = defineProps<{
   LineageError: string | null;
 }>();
 
-const { nodes, edges, addNodes, addEdges, setNodes, setEdges } = useVueFlow();
+const flowRef = ref(null);
+const { nodes, edges, addNodes, addEdges, setNodes, setEdges, fitView } = useVueFlow();
 const baseNodes = ref<any[]>([]);
 const baseEdges = ref<any[]>([]);
 const elements = computed(() => [...nodes.value, ...edges.value]);
@@ -145,9 +145,18 @@ const expandedUpstreamNodes = ref<any[]>([]);
 const expandedUpstreamEdges = ref<any[]>([]);
 const selectedNodeId = ref<string | null>(null);
 const filterType = ref<"direct" | "all">("direct");
-const filterLabel = computed(() =>
-  filterType.value === "direct" ? "Direct only" : "All Dependencies"
-);
+const filterLabel = computed(() => {
+  if (filterType.value === "direct") {
+    return "Direct only";
+  }
+  if (expandAllUpstreams.value && expandAllDownstreams.value) {
+    return "All Dependencies";
+  }
+  if (expandAllDownstreams.value) {
+    return "All Downstreams";
+  }
+  return "All Upstreams";
+});
 const elk = new ELK();
 
 const isLoading = ref(true);
@@ -156,6 +165,8 @@ const expandAllDownstreams = ref(false);
 const expandAllUpstreams = ref(false);
 error.value = !props.assetDataset ? "No Lineage Data Available" : null;
 const isUpdating = ref(false);
+
+const { viewport, setViewport } = useVueFlow();
 
 const onNodeClick = (nodeId: string, event: MouseEvent) => {
   console.log("Node clicked:", nodeId);
@@ -170,8 +181,19 @@ const onNodeClick = (nodeId: string, event: MouseEvent) => {
 
 const onPaneReady = () => {
   updateLayout();
+  fitView({ duration: 500, padding: 0.2 });
 };
 
+// Reset filter state when new data is loaded
+const resetFilterState = () => {
+  filterType.value = "direct";
+  expandAllUpstreams.value = false;
+  expandAllDownstreams.value = false;
+  expandedUpstreamNodes.value = [];
+  expandedUpstreamEdges.value = [];
+  expandedDownstreamNodes.value = [];
+  expandedDownstreamEdges.value = [];
+};
 // Function to update node positions based on ELK layout
 const updateNodePositions = (layout: any) => {
   const updatedNodes = nodes.value.map((node) => {
@@ -224,6 +246,7 @@ const updateLayout = async () => {
     const layout = await elk.layout(elkGraph);
     if (layout.children && layout.children.length) {
       updateNodePositions(layout);
+      nextTick(() => fitView({ padding: 0.1 }));
     }
   } catch (error) {
     console.error("Failed to apply ELK layout:", error);
@@ -231,7 +254,7 @@ const updateLayout = async () => {
 };
 
 // Function to process the asset properties and update nodes and edges
-const processProperties = () => {
+const processProperties = async () => {
   if (!props.assetDataset || !props.pipelineData) {
     isLoading.value = error.value === null ? true : false;
     return;
@@ -241,16 +264,16 @@ const processProperties = () => {
   error.value = null;
 
   try {
+    resetFilterState(); // Reset filter state when new data is loaded
     const { nodes: generatedNodes, edges: generatedEdges } = generateGraphFromJSON(
       props.assetDataset
     );
-    console.log("Base Nodes:", generatedNodes);
-    console.log("Base Edges:", generatedEdges);
 
     baseNodes.value = generatedNodes;
     baseEdges.value = generatedEdges;
-    updateGraph();
-    updateLayout();
+    await updateGraph();
+    await updateLayout();
+    fitView({ duration: 500, padding: 0.2 }); // Fit view after loading new data
   } catch (err) {
     console.error("Error processing properties:", err);
     error.value = "Failed to generate lineage graph. Please try again.";
@@ -258,6 +281,7 @@ const processProperties = () => {
     isLoading.value = false;
   }
 };
+
 const updateGraph = () => {
   const allNodes = [
     ...baseNodes.value,
@@ -348,9 +372,6 @@ const handleExpandAllDownstreams = async () => {
     expandedDownstreamNodes.value = [];
     expandedDownstreamEdges.value = [];
   }
-
-  updateGraph();
-  await updateLayout();
 };
 
 const handleExpandAllUpstreams = async () => {
@@ -397,8 +418,6 @@ const handleExpandAllUpstreams = async () => {
     expandedUpstreamNodes.value = [];
     expandedUpstreamEdges.value = [];
   }
-  updateGraph();
-  await updateLayout();
 };
 // Handle node dragging
 const onNodesDragged = (draggedNodes: NodeDragEvent[]) => {
@@ -438,8 +457,10 @@ const debounce = (func, wait) => {
 
 const debouncedUpdateGraph = debounce(async () => {
   isUpdating.value = true; // Show loading state
+  const currentViewport = viewport.value; // Store current viewport
   await updateGraph();
   await updateLayout();
+  setViewport(currentViewport); // Restore viewport
   isUpdating.value = false; // Hide loading state
 }, 100);
 
@@ -478,6 +499,10 @@ const handleDirectFilter = async (event: Event) => {
 
 const handleAllFilter = async (event: Event) => {
   event.stopPropagation();
+  expandAllUpstreams.value = true;
+  expandAllDownstreams.value = true;
+  await handleExpandAllUpstreams();
+  await handleExpandAllDownstreams();
   filterType.value = "all";
   debouncedUpdateGraph(); // Use debounced update
 };
@@ -536,6 +561,7 @@ watch([filterType, expandAllUpstreams, expandAllDownstreams], () => {
       downstream: expandAllDownstreams.value,
     })
   );
+  debouncedUpdateGraph(); // Use debounced update
 });
 </script>
 
@@ -546,7 +572,6 @@ watch([filterType, expandAllUpstreams, expandAllDownstreams], () => {
 .flow {
   @apply flex h-screen w-full p-0 !important;
 }
-
 
 .vue-flow__controls {
   bottom: 1rem !important;
@@ -585,16 +610,16 @@ watch([filterType, expandAllUpstreams, expandAllDownstreams], () => {
 
 /* Toggle buttons */
 .all-options {
-  @apply flex items-center justify-center w-full gap-1;
+  @apply flex items-center justify-center w-full gap-2;
 }
 
 .toggle-buttons {
-  @apply flex gap-2;
+  @apply flex gap-1;
 }
 
 .toggle-btn {
-  @apply w-6 h-6 rounded-full border-2 border-notificationCenter-border bg-transparent 
-         text-xs font-medium flex items-center justify-center cursor-pointer
+  @apply w-5 h-5 text-center rounded-full border-2 border-notificationCenter-border bg-transparent 
+         text-[0.5rem] font-medium flex items-center justify-center cursor-pointer
          transition-all duration-200;
 }
 
