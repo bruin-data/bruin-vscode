@@ -18,6 +18,7 @@ import * as os from "os";
 import { renderCommand } from "./commands/renderCommand";
 import { LineagePanel } from "../panels/LineagePanel";
 import { installOrUpdateCli } from "./commands/updateBruinCLI";
+import { QueryPreviewPanel } from "../panels/QueryPreviewPanel";
 //import { RudderTyperAnalytics } from '../analytics/index';
 console.log("RudderStack package:", Analytics);
 console.log("RudderStack keys:", Object.keys(Analytics));
@@ -103,7 +104,7 @@ export async function activate(context: ExtensionContext) {
   await ensureAutoLockEnabled();
 
   const lineageWebviewProvider = new LineagePanel(context.extensionUri);
-
+  const queryPreviewWebviewProvider = new QueryPreviewPanel(context.extensionUri);
   // Register the folding range provider for Python and SQL files
   const foldingDisposable = languages.registerFoldingRangeProvider(["python", "sql"], {
     provideFoldingRanges: bruinFoldingRangeProvider,
@@ -135,7 +136,9 @@ export async function activate(context: ExtensionContext) {
       }
     }),
     foldingDisposable,
-    window.registerWebviewViewProvider(LineagePanel.viewId, lineageWebviewProvider)
+    window.registerWebviewViewProvider(LineagePanel.viewId, lineageWebviewProvider),
+    window.registerWebviewViewProvider(QueryPreviewPanel.viewId, queryPreviewWebviewProvider)
+
   );
 
   console.debug("Bruin activated successfully");
