@@ -1,10 +1,10 @@
 import * as vscode from "vscode";
 import { getNonce } from "../utilities/getNonce";
 import { getUri } from "../utilities/getUri";
-import { flowLineageCommand } from "../extension/commands/FlowLineageCommand";
 
-export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposable {
-  public static readonly viewId = "bruin.lineageView";
+
+export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Disposable {
+  public static readonly viewId = "bruin.QueryPreviewView";
   public static _view?: vscode.WebviewView | undefined;
   private _lastRenderedDocumentUri: vscode.Uri | undefined =
     vscode.window.activeTextEditor?.document.uri;
@@ -14,12 +14,12 @@ export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposab
   private disposables: vscode.Disposable[] = [];
   private isRefreshing = false;
 
-  private async loadAndSendLineageData() {
+  private async loadAndSendQueryOutput() {
     if (this._lastRenderedDocumentUri) {
       try {
-        await flowLineageCommand(this._lastRenderedDocumentUri);
+        console.log("sending query output");
       } catch (error) {
-        console.error("Error loading lineage data:", error);
+        console.error("Error loading query data:", error);
       }
     }
   }
@@ -38,7 +38,7 @@ export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposab
       vscode.window.onDidChangeActiveTextEditor((event: vscode.TextEditor | undefined) => {
         if (event && event.document.uri.scheme !== "vscodebruin:panel") {
           this._lastRenderedDocumentUri = event?.document.uri;
-          flowLineageCommand(this._lastRenderedDocumentUri);
+          
           this.initPanel(event);
         }
       })
@@ -55,11 +55,11 @@ export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposab
   }
 
   private init = async () => {
-    if (!LineagePanel._view) {
+    if (!QueryPreviewPanel._view) {
       console.log("View is not initialized yet");
       return;
     }
-    await this.resolveWebviewView(LineagePanel._view, this.context!, this.token!);
+    await this.resolveWebviewView(QueryPreviewPanel._view, this.context!, this.token!);
   };
 
   public resolveWebviewView(
@@ -68,7 +68,7 @@ export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposab
     _token: vscode.CancellationToken
   ) {
     try {
-      LineagePanel._view = webviewView;
+      QueryPreviewPanel._view = webviewView;
       this.context = context;
       this.token = _token;
 
@@ -81,33 +81,33 @@ export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposab
         localResourceRoots: [this._extensionUri],
       };
 
-      this._setWebviewMessageListener(LineagePanel._view!.webview);
-      this.loadAndSendLineageData(); // Load lineage data when view is resolved
+      this._setWebviewMessageListener(QueryPreviewPanel._view!.webview);
+      this.loadAndSendQueryOutput(); // Load Query data when view is resolved
 
       setTimeout(() => {
-        if (LineagePanel._view && LineagePanel._view.visible) {
-          LineagePanel._view.webview.postMessage({ command: "init", panelType: "Lineage" });
-          this.loadAndSendLineageData(); // Ensure lineage data is reloaded when the panel becomes visible
+        if (QueryPreviewPanel._view && QueryPreviewPanel._view.visible) {
+          QueryPreviewPanel._view.webview.postMessage({ command: "init", panelType: "Query Preview" });
+          this.loadAndSendQueryOutput(); // Ensure Query data is reloaded when the panel becomes visible
         }
       }, 100);
 
       vscode.window.onDidChangeVisibleTextEditors((editors) => {
         if (editors.some((editor) => editor.viewColumn === vscode.ViewColumn.Active)) {
-          webviewView.webview.postMessage({ command: "init", panelType: "Lineage" });
-          this.loadAndSendLineageData(); // Load lineage data when panel becomes visible
+          webviewView.webview.postMessage({ command: "init", panelType: "Query Preview" });
+          this.loadAndSendQueryOutput(); // Load Query data when panel becomes visible
         }
       });
-      // Reload lineage data when webview becomes visible
+      // Reload Query data when webview becomes visible
       webviewView.onDidChangeVisibility(() => {
-        if (LineagePanel._view!.visible) {
-          LineagePanel._view!.webview.postMessage({ command: "init", panelType: "Lineage" });
-          this.loadAndSendLineageData(); // Load lineage data when visible
+        if (QueryPreviewPanel._view!.visible) {
+          QueryPreviewPanel._view!.webview.postMessage({ command: "init", panelType: "Query Preview" });
+          this.loadAndSendQueryOutput(); // Load Query data when visible
         }
       });
 
       webviewView.webview.html = this._getWebviewContent(webviewView.webview);
     } catch (error) {
-      console.error("Error loading lineage data:", error);
+      console.error("Error loading Query Preview data:", error);
     }
   }
 
@@ -116,7 +116,7 @@ export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposab
       "webview-ui",
       "build",
       "assets",
-      "lineage.css",
+      "query-preview.css",
     ]);
     const stylesUriCustomElt = getUri(webview, this._extensionUri, [
       "webview-ui",
@@ -131,7 +131,7 @@ export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposab
       "index.css",
     ]);
     const scriptUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, "webview-ui", "build", "assets", "lineage.js")
+      vscode.Uri.joinPath(this._extensionUri, "webview-ui", "build", "assets", "query-preview.js")
     );
     const scriptUriCustomElt = webview.asWebviewUri(
       vscode.Uri.joinPath(this._extensionUri, "webview-ui", "build", "assets", "custom-elements.js")
@@ -156,7 +156,7 @@ export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposab
         <link rel="stylesheet" href="${stylesUri}">
         <link rel="stylesheet" href="${stylesUriCustomElt}">
         <link rel="stylesheet" href="${stylesUriIndex}">
-        <title>Bruin Lineage</title>
+        <title>Bruin Query Preview</title>
       </head>
   
       <body>
@@ -178,24 +178,8 @@ export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposab
   private _setWebviewMessageListener(webview: vscode.Webview) {
     webview.onDidReceiveMessage((message) => {
       switch (message.command) {
-        case "bruin.pipelineLineage":
-          console.log("Pipeline Lineage from webview in the Lineage panel, well received");
-          break;
-        case "bruin.openAssetDetails":
-          console.log("Asset Details from webview in the Lineage panel, well received");
-          const assetFilePath = message.payload;
-          vscode.workspace.openTextDocument(vscode.Uri.file(assetFilePath)).then((doc) => {
-            vscode.window.showTextDocument(doc);
-          });
-          break;
-        case "bruin.assetGraphLineage":
-          console.log("Asset Lineage from webview in the Lineage panel, well received");
-          this._lastRenderedDocumentUri = vscode.window.activeTextEditor?.document.uri;
-          if (!this._lastRenderedDocumentUri) {
-            console.debug("No active document found.");
-            return;
-          }
-          this.refresh(vscode.window.activeTextEditor!!);
+        case "bruin.queryPreview":
+          console.log("Query from webview in the Query Preview panel, well received");
           break;
       }
     });
@@ -206,7 +190,7 @@ export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposab
     data: string | { status: string; message: string | any }
   ) {
     if (this._view) {
-      console.log("Posting message to webview in the Lineage panel", name, data);
+      console.log("Posting message to webview in the Query Preview panel", name, data);
 
       this._view.webview.postMessage({
         command: name,
