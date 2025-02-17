@@ -77,6 +77,11 @@
           "id": "lineagePanel",
           "title": "Lineage",
           "icon": "$(graph)"
+        },
+        {
+          "id": "QueryPreview",
+          "title": "Query Preview",
+          "icon": "$(preview)"
         }
       ]
     },
@@ -84,8 +89,15 @@
       "lineagePanel": [
         {
           "type": "webview",
-          "id": "lineageView",
+          "id": "bruin.lineageView",
           "name": "Lineage Graph"
+        }
+      ],
+      "QueryPreview":[
+        {
+          "type": "webview",
+          "id": "bruin.QueryPreviewView",
+          "name": "Query Preview"
         }
       ]
     },
