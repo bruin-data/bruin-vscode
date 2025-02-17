@@ -11,12 +11,13 @@
       v-else
       v-model:elements="elements"
       :default-viewport="{ x: 150, y: 10, zoom: 1 }"
-      showFitView
+      :fit-view-on-init="true"
       class="basic-flow"
       :draggable="true"
       :node-draggable="true"
       @paneReady="onPaneReady"
       @nodesDragged="onNodesDragged"
+      ref="flowRef"
     >
       <Background />
 
@@ -33,7 +34,7 @@
           :selected-node-id="selectedNodeId"
         />
       </template>
-       <Panel position="top-right">
+      <Panel position="top-right">
         <div
           v-if="!expandPanel"
           @click="expandPanel = !expandPanel"
@@ -42,7 +43,10 @@
           <FunnelIcon class="w-4 h-4 text-progressBar-bg" />
           <span class="text-[0.65rem]">{{ filterLabel }}</span>
         </div>
-        <div v-else class="bg-transparent hover:bg-editorWidget-bg border border-notificationCenter-border rounded">
+        <div
+          v-else
+          class="bg-transparent hover:bg-editorWidget-bg border border-notificationCenter-border rounded"
+        >
           <div
             class="flex items-center text-[0.65rem] justify-between border-b border-notificationCenter-border"
           >
@@ -91,7 +95,7 @@
             </vscode-link>
           </div>
         </div>
-      </Panel> 
+      </Panel>
       <Controls
         :position="PanelPosition.BottomLeft"
         showZoom
@@ -109,7 +113,7 @@ import { Background } from "@vue-flow/background";
 import { Controls } from "@vue-flow/controls";
 import "@vue-flow/controls/dist/style.css";
 import type { NodeDragEvent, XYPosition } from "@vue-flow/core";
-import { computed, onMounted, defineProps, watch, ref } from "vue";
+import { computed, onMounted, defineProps, watch, ref, nextTick } from "vue";
 import ELK from "elkjs/lib/elk.bundled.js";
 import CustomNode from "@/components/lineage-flow/custom-nodes/CustomNodes.vue";
 import {
@@ -129,7 +133,8 @@ const props = defineProps<{
   LineageError: string | null;
 }>();
 
-const { nodes, edges, addNodes, addEdges, setNodes, setEdges } = useVueFlow();
+const flowRef = ref(null);
+const { nodes, edges, addNodes, addEdges, setNodes, setEdges, fitView } = useVueFlow();
 const baseNodes = ref<any[]>([]);
 const baseEdges = ref<any[]>([]);
 const elements = computed(() => [...nodes.value, ...edges.value]);
@@ -176,11 +181,19 @@ const onNodeClick = (nodeId: string, event: MouseEvent) => {
 
 const onPaneReady = () => {
   updateLayout();
-  // Store the initial viewport state
-  const initialViewport = { x: 150, y: 10, zoom: 1 };
-  setViewport(initialViewport);
+  fitView({ duration: 500, padding: 0.2 });
 };
 
+// Reset filter state when new data is loaded
+const resetFilterState = () => {
+  filterType.value = "direct";
+  expandAllUpstreams.value = false;
+  expandAllDownstreams.value = false;
+  expandedUpstreamNodes.value = [];
+  expandedUpstreamEdges.value = [];
+  expandedDownstreamNodes.value = [];
+  expandedDownstreamEdges.value = [];
+};
 // Function to update node positions based on ELK layout
 const updateNodePositions = (layout: any) => {
   const updatedNodes = nodes.value.map((node) => {
@@ -240,7 +253,7 @@ const updateLayout = async () => {
 };
 
 // Function to process the asset properties and update nodes and edges
-const processProperties = () => {
+const processProperties = async () => {
   if (!props.assetDataset || !props.pipelineData) {
     isLoading.value = error.value === null ? true : false;
     return;
@@ -250,16 +263,16 @@ const processProperties = () => {
   error.value = null;
 
   try {
+    resetFilterState(); // Reset filter state when new data is loaded
     const { nodes: generatedNodes, edges: generatedEdges } = generateGraphFromJSON(
       props.assetDataset
     );
-    console.log("Base Nodes:", generatedNodes);
-    console.log("Base Edges:", generatedEdges);
 
     baseNodes.value = generatedNodes;
     baseEdges.value = generatedEdges;
-    updateGraph();
-    updateLayout();
+    await updateGraph();
+    await updateLayout();
+    fitView({ duration: 500, padding: 0.2 }); // Fit view after loading new data
   } catch (err) {
     console.error("Error processing properties:", err);
     error.value = "Failed to generate lineage graph. Please try again.";
@@ -267,6 +280,7 @@ const processProperties = () => {
     isLoading.value = false;
   }
 };
+
 const updateGraph = () => {
   const allNodes = [
     ...baseNodes.value,
