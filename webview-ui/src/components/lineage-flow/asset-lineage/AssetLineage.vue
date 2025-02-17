@@ -33,7 +33,7 @@
           :selected-node-id="selectedNodeId"
         />
       </template>
-      <!-- <Panel position="top-right">
+       <Panel position="top-right">
         <div
           v-if="!expandPanel"
           @click="expandPanel = !expandPanel"
@@ -91,7 +91,7 @@
             </vscode-link>
           </div>
         </div>
-      </Panel> -->
+      </Panel> 
       <Controls
         :position="PanelPosition.BottomLeft"
         showZoom
@@ -599,16 +599,16 @@ watch([filterType, expandAllUpstreams, expandAllDownstreams], () => {
 
 /* Toggle buttons */
 .all-options {
-  @apply flex items-center justify-center w-full gap-1;
+  @apply flex items-center justify-center w-full gap-2;
 }
 
 .toggle-buttons {
-  @apply flex gap-2;
+  @apply flex gap-1;
 }
 
 .toggle-btn {
-  @apply w-6 h-6 rounded-full border-2 border-notificationCenter-border bg-transparent 
-         text-xs font-medium flex items-center justify-center cursor-pointer
+  @apply w-5 h-5 text-center rounded-full border-2 border-notificationCenter-border bg-transparent 
+         text-[0.5rem] font-medium flex items-center justify-center cursor-pointer
          transition-all duration-200;
 }
 
