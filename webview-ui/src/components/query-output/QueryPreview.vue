@@ -3,32 +3,16 @@
     <table class="min-w-full divide-y divide-commandCenter-border">
       <thead class="bg-editor-bg">
         <tr>
-          <th scope="col" class="px-6 py-3 text-left text-xs font-medium tracking-wider text-editor-fg uppercase">
-            Column 1
-          </th>
-          <th scope="col" class="px-6 py-3 text-left text-xs font-medium tracking-wider text-editor-fg uppercase">
-            Column 2
-          </th>
-          <th scope="col" class="px-6 py-3 text-left text-xs font-medium tracking-wider text-editor-fg uppercase">
-            Column 3
+          <th v-for="header in headers" :key="header" class="px-6 py-3 text-left text-xs font-medium tracking-wider text-editor-fg uppercase">
+            {{ header }}
           </th>
         </tr>
       </thead>
       <tbody class="bg-editor-bg divide-y divide-commandCenter-border">
-        <tr v-for="row in output.split('\n')" :key="row">
-          <td class="px-6 py-4 whitespace-nowrap">
+        <tr v-for="(row, index) in rows" :key="index">
+          <td v-for="(column, colIndex) in row" :key="colIndex" class="px-6 py-4 whitespace-nowrap">
             <div class="text-sm font-medium text-editor-fg">
-              {{ row.split(',')[0] }}
-            </div>
-          </td>
-          <td class="px-6 py-4 whitespace-nowrap">
-            <div class="text-sm font-medium text-editor-fg">
-              {{ row.split(',')[1] }}
-            </div>
-          </td>
-          <td class="px-6 py-4 whitespace-nowrap">
-            <div class="text-sm font-medium text-editor-fg">
-              {{ row.split(',')[2] }}
+              {{ column }}
             </div>
           </td>
         </tr>
@@ -39,8 +23,14 @@
 
 
 <script setup lang="ts">
+import {ref} from "vue"
 
 const props = defineProps<{
    output: string
 }>();
+
+const rows = ref(props.output.split('\n').slice(1).map(row => row.split(','))); // Skip header row
+const headers = ref(props.output.split('\n')[0].split(',')); // Get the header row
+
+
 </script>
