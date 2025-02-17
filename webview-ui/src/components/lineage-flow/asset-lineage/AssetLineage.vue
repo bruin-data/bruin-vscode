@@ -8,7 +8,7 @@
       <span class="ml-2">{{ error }}</span>
     </div>
     <VueFlow
-      v-if="!isUpdating"
+      v-else
       v-model:elements="elements"
       :default-viewport="{ x: 150, y: 10, zoom: 1 }"
       showFitView
@@ -100,10 +100,6 @@
         class="custom-controls"
       />
     </VueFlow>
-    <div v-else>
-      <vscode-progress-ring></vscode-progress-ring>
-      <span class="ml-2">Updating graph...</span>
-    </div>
   </div>
 </template>
 
