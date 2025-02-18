@@ -8,6 +8,7 @@ import {
   isPythonBruinAsset,
   isYamlBruinAsset,
 } from "../utilities/helperUtils";
+import { QueryPreviewPanel } from "../panels/QueryPreviewPanel";
 
 /**
  * Extends the BruinCommand class to implement the rendering process specific to Bruin assets.
@@ -177,5 +178,26 @@ export class BruinRender extends BruinCommand {
         console.error("Error rendering SQL asset without JSON", err);
       }
     );
+  }
+}
+
+// this class only perfor the render command and return the query output
+export class BruinRenderUnmaterliazed extends BruinRender {
+  protected bruinCommand(): string {
+    return "render";
+  }
+
+  public async getRenderedQuery(
+    filePath: string,
+    { flags = ["-o", "json"], ignoresErrors = false }: BruinCommandOptions = {}
+  ): Promise<{ query: string }> {
+    try {
+      const result = await this.run([...flags, filePath], { ignoresErrors });
+      console.log("SQL rendered successfully", result);
+      return JSON.parse(result);
+    } catch (err) {
+      console.error("Error rendering SQL asset", err);
+      throw err;
+    }
   }
 }

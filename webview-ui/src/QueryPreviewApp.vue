@@ -6,14 +6,19 @@
       :id="`view-${index}`"
       v-show="activeTab === index"
     >
-      <component v-if="tab.props" :is="tab.component" v-bind="tab.props" class="flex w-full" />
+      <component 
+        v-if="tab.props" 
+        :is="tab.component" 
+        :output="QueryOutput"
+        class="flex w-full" 
+      />
     </vscode-panel-view>
   </vscode-panels>
 </template>
 
 <script setup lang="ts">
 import { vscode } from "@/utilities/vscode";
-import { ref, onMounted, onUnmounted, computed } from "vue";
+import { ref, onMounted, onUnmounted, watch, computed } from "vue";
 import { updateValue } from "./utilities/helper";
 import QueryPreview from "@/components/query-output/QueryPreview.vue";
 /**
@@ -39,10 +44,12 @@ const handleMessage = (event) => {
     case "query-output-message":
       QueryOutput.value = updateValue(message, "success");
       QueryError.value = updateValue(message, "error");
+      console.log("data recieved for the query output", QueryOutput.value, typeof QueryOutput.value);
       break;
   }
 };
 
+// add event listener 
 window.addEventListener("message", handleMessage);
 const queryOutput = `id,name,email,age,city
 1,John Doe,johndoe@example.com,30,New York
@@ -53,8 +60,15 @@ const queryOutput = `id,name,email,age,city
 6,Diana Prince,dianap@example.com,32,San Francisco`;
 
 const output = computed(() => {
-  if (!QueryOutput.value) return queryOutput;
-  return QueryOutput.value;
+  if (!QueryOutput.value) return null;
+  try {
+    const parsed = typeof QueryOutput.value === 'string' ? JSON.parse(QueryOutput.value) : QueryOutput.value;
+    console.log('Parsed output:', parsed);
+    return parsed;
+  } catch (e) {
+    console.error('Error parsing output:', e);
+    return null;
+  }
 });
 
 // Define tabs for the application
@@ -63,7 +77,7 @@ const tabs = ref([
     label: "QueryPreview",
     component: QueryPreview,
     props: {
-      output: output,
+      output: computed(() => output.value),
     },
   },
 ]);
