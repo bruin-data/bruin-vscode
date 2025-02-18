@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { getNonce } from "../utilities/getNonce";
 import { getUri } from "../utilities/getUri";
+import { getQueryOutput } from "../extension/commands/queryCommand";
 
 
 export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Disposable {
@@ -17,21 +18,13 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
   private async loadAndSendQueryOutput() {
     if (this._lastRenderedDocumentUri) {
       try {
-        console.log("sending query output");
+        getQueryOutput('djamila-dev', "select 1 as one", this._lastRenderedDocumentUri)
       } catch (error) {
         console.error("Error loading query data:", error);
       }
     }
   }
 
-  private refresh = (event: vscode.TextEditor) => {
-    if (event.document.uri === this._lastRenderedDocumentUri && !this.isRefreshing) {
-      this.isRefreshing = true;
-      this.initPanel(event).then(() => {
-        this.isRefreshing = false;
-      });
-    }
-  };
 
   constructor(private readonly _extensionUri: vscode.Uri) {
     this.disposables.push(
@@ -179,7 +172,7 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
     webview.onDidReceiveMessage((message) => {
       switch (message.command) {
         case "bruin.getQueryOutput":
-          console.log("Query from webview in the Query Preview panel, well received");
+          this.loadAndSendQueryOutput();
           break;
       }
     });

@@ -12,6 +12,7 @@ export const getQueryOutput = async (connection: string, query: string, lastRend
     getDefaultBruinExecutablePath(),
     await bruinWorkspaceDirectory(lastRenderedDocumentUri.fsPath)!! as string
   );
-  await output.getOutput(connection, query );
+  const queryResult = await output.getOutput(connection, query);
+  return queryResult;
 };
 

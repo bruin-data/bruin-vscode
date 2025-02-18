@@ -34,7 +34,7 @@ export class BruinQueryOutput extends BruinCommand {
     await this.run([...flags], { ignoresErrors })
       .then(
         (result) => {
-          const output = JSON.parse(result);
+          const output = result;
           console.log("SQL query output:", output); // Debug message
           this.postMessageToPanels("success", output);
           return output;
