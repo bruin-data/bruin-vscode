@@ -1,8 +1,7 @@
 import * as vscode from "vscode";
 import { getNonce } from "../utilities/getNonce";
 import { getUri } from "../utilities/getUri";
-import { getQueryOutput } from "../extension/commands/queryCommand";
-
+import { getQueryOutput, getRenderedQuery } from "../extension/commands/queryCommand";
 
 export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Disposable {
   public static readonly viewId = "bruin.QueryPreviewView";
@@ -13,25 +12,31 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
   private token: vscode.CancellationToken | undefined;
 
   private disposables: vscode.Disposable[] = [];
-  private isRefreshing = false;
 
   private async loadAndSendQueryOutput() {
-    if (this._lastRenderedDocumentUri) {
-      try {
-        getQueryOutput('djamila-dev', "select 1 as one", this._lastRenderedDocumentUri)
-      } catch (error) {
-        console.error("Error loading query data:", error);
+    if (!this._lastRenderedDocumentUri) {
+      return;
+    }
+
+    try {
+      const query = await getRenderedQuery(this._lastRenderedDocumentUri);
+      if (!query) {
+        console.warn("No valid query was returned");
+        return;
       }
+      // Only proceed if we got a valid query string
+      await getQueryOutput("djamila-dev", query.query, this._lastRenderedDocumentUri);
+    } catch (error) {
+      console.error("Error loading query data:", error);
     }
   }
-
 
   constructor(private readonly _extensionUri: vscode.Uri) {
     this.disposables.push(
       vscode.window.onDidChangeActiveTextEditor((event: vscode.TextEditor | undefined) => {
         if (event && event.document.uri.scheme !== "vscodebruin:panel") {
           this._lastRenderedDocumentUri = event?.document.uri;
-          
+
           this.initPanel(event);
         }
       })
@@ -79,7 +84,10 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
 
       setTimeout(() => {
         if (QueryPreviewPanel._view && QueryPreviewPanel._view.visible) {
-          QueryPreviewPanel._view.webview.postMessage({ command: "init", panelType: "Query Preview" });
+          QueryPreviewPanel._view.webview.postMessage({
+            command: "init",
+            panelType: "Query Preview",
+          });
           this.loadAndSendQueryOutput(); // Ensure Query data is reloaded when the panel becomes visible
         }
       }, 100);
@@ -93,7 +101,10 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
       // Reload Query data when webview becomes visible
       webviewView.onDidChangeVisibility(() => {
         if (QueryPreviewPanel._view!.visible) {
-          QueryPreviewPanel._view!.webview.postMessage({ command: "init", panelType: "Query Preview" });
+          QueryPreviewPanel._view!.webview.postMessage({
+            command: "init",
+            panelType: "Query Preview",
+          });
           this.loadAndSendQueryOutput(); // Load Query data when visible
         }
       });

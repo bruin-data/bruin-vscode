@@ -1,5 +1,5 @@
 import { Uri } from "vscode";
-import { bruinWorkspaceDirectory } from "../../bruin";
+import { BruinRender, BruinRenderUnmaterliazed, bruinWorkspaceDirectory } from "../../bruin";
 import { getDefaultBruinExecutablePath } from "../configuration";
 import { BruinQueryOutput } from "../../bruin/queryCommand";
 
@@ -16,3 +16,17 @@ export const getQueryOutput = async (connection: string, query: string, lastRend
   return queryResult;
 };
 
+
+export const getRenderedQuery = async (lastRenderedDocumentUri: Uri | undefined) => {
+  if (!lastRenderedDocumentUri) {
+    return undefined;
+  }
+
+  const render = new BruinRenderUnmaterliazed(
+    getDefaultBruinExecutablePath(),
+    await bruinWorkspaceDirectory(lastRenderedDocumentUri.fsPath)!! as string
+  );
+
+  const result = await render.getRenderedQuery(lastRenderedDocumentUri.fsPath);
+  return { query: result.query };
+};

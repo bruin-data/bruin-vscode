@@ -27,7 +27,14 @@ export class BruinQueryOutput extends BruinCommand {
     connection: string,
     query: string,
     {
-      flags = ["--connection", connection, "--query", query, "-o", "json"],
+      flags = [
+        "-c", 
+        connection, 
+        "-q", 
+        query.replace(/'/g, "\'"), // Just escape single quotes
+        "-o", 
+        "json"
+      ],
       ignoresErrors = false,
     }: BruinCommandOptions = {}
   ): Promise<void> {
