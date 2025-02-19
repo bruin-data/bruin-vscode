@@ -31,7 +31,7 @@ export class BruinQueryOutput extends BruinCommand {
         "-c", 
         connection, 
         "-q", 
-        query.replace(/'/g, "\'"), // Just escape single quotes
+        query,
         "-o", 
         "json"
       ],
