@@ -1,8 +1,17 @@
 <template>
   <div class="flex flex-col space-y-2 w-full">
-    <div class="header flex items-center justify-between border-b-2 border-commandCenter-border p-2">
+    <div
+      class="header flex items-center justify-between border-b-2 border-commandCenter-border p-2"
+    >
       <div class="flex items-center w-full justify-start space-x-2">
-        <input type="number" v-model="limit" class="w-16 h-6 text-sm rounded bg-editorWidget-bg text-editor-fg"/>
+        <div class="flex items-center space-x-2">
+          <span class="text-sm text-editor-fg">LIMIT</span>
+          <input
+            type="number"
+            v-model="limit"
+            class="w-16 h-6 text-sm rounded bg-editorWidget-bg text-editor-fg border border-commandCenter-border px-1"
+          />
+        </div>
         <vscode-button title="Run Query" appearance="icon" @click="runQuery">
           <PlayIcon class="h-4 w-4" />
         </vscode-button>
@@ -13,8 +22,17 @@
         </vscode-button>
       </div>
     </div>
-    <div class="overflow-x-auto">
-      <table v-if="parsedOutput" class="min-w-full divide-y divide-commandCenter-border">
+
+    <!-- Query Output Area -->
+    <div class="overflow-x-auto p-2">
+      <!-- Error Message -->
+      <div  class="text-red-500">
+        <div class="font-medium mb-1">Query failed:</div>
+        <div class="text-sm font-mono whitespace-pre-wrap">{{ props.error }}</div>
+      </div>
+
+      <!-- Results Table -->
+      <table v-if="parsedOutput && !error" class="min-w-full divide-y divide-commandCenter-border">
         <thead class="bg-editor-bg">
           <tr>
             <th
@@ -46,30 +64,46 @@ import { XMarkIcon } from "@heroicons/vue/20/solid";
 import { PlayIcon } from "@heroicons/vue/24/outline";
 import { vscode } from "@/utilities/vscode";
 
-interface QueryOutput {
-  columns: { name: string }[];
-  rows: (string | number)[][];
-}
-
 const props = defineProps<{
   output: any;
+  error: any;
 }>();
 
+const error = computed(() => {
+  if (!props.error) return null;
+  
+  if (typeof props.error === "string") {
+    try {
+      const parsed = JSON.parse(props.error);
+      return parsed.error || parsed;
+    } catch (e) {
+      return props.error;
+    }
+  }
+  return props.error?.error || props.error || "Something went wrong";
+});
+
 const parsedOutput = computed(() => {
-  if (!props.output) return null;
+  if (error.value) return null;
   try {
-    return typeof props.output === "string" ? JSON.parse(props.output) : props.output;
+    if (typeof props.output === "string") {
+      return JSON.parse(props.output);
+    }
+    if (props.output?.data?.status === "success") {
+      return JSON.parse(props.output.data.message);
+    }
+    return props.output;
   } catch (e) {
     console.error("Error parsing output:", e);
     return null;
   }
 });
 
-const limit = ref(10);
+const limit = ref(100);
 const runQuery = () => {
   vscode.postMessage({ command: "bruin.getQueryOutput", payload: { limit: limit.value } });
 };
 const clearQueryOutput = () => {
-  console.log("Clearing query output");
+  vscode.postMessage({ command: "bruin.clearQueryOutput" });
 };
 </script>
