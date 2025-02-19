@@ -17,7 +17,6 @@
 </template>
 
 <script setup lang="ts">
-import { vscode } from "@/utilities/vscode";
 import { ref, onMounted, onUnmounted, watch, computed } from "vue";
 import { updateValue } from "./utilities/helper";
 import QueryPreview from "@/components/query-output/QueryPreview.vue";
@@ -82,26 +81,13 @@ const tabs = ref([
   },
 ]);
 
-onMounted(() => {
-  loadQueryOutput();
-});
 
 onUnmounted(() => {
   window.removeEventListener("message", handleMessage);
 });
 
-/**
- * Refreshes the lineage graph by sending a message to the VSCode extension.
- *
- * @param {Event} event - The click event that triggered the refresh.
- */
 
-/**
- * Loads lineage data by sending a message to the VSCode extension.
- */
-function loadQueryOutput() {
-  vscode.postMessage({ command: "bruin.getQueryOutput" });
-}
+
 </script>
 <style>
 vscode-panel-view {
