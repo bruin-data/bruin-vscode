@@ -31,16 +31,13 @@
             >
               <div class="flex items-center justify-between space-x-1">
                 <TableCellsIcon class="h-4 w-4" />
-               <span> {{ tab.label }} </span>
+                <span> {{ tab.label }} </span>
               </div>
             </button>
           </div>
         </div>
 
         <div class="flex items-center space-x-2">
-          <vscode-button title="Copy as CSV" appearance="icon" @click="copyAsCSV">
-            <DocumentDuplicateIcon class="h-4 w-4" />
-          </vscode-button>
           <vscode-button title="Clear Results" appearance="icon" @click="clearQueryOutput">
             <XMarkIcon class="h-4 w-4" />
           </vscode-button>
@@ -53,11 +50,16 @@
       <!-- Query Output Tab -->
       <div v-if="activeTab === 'output'">
         <!-- Error Message -->
-        <div v-if="error" class="text-red-500">
-          <div class="font-medium mb-1">Query failed:</div>
-          <div class="text-sm font-mono whitespace-pre-wrap">{{ error }}</div>
+        <div v-if="error" class="my-2 border border-commandCenter-border rounded text-errorForeground bg-editorWidget-bg p-2">
+          <div class="text-sm font-medium mb-2 pb-1 border-b border-commandCenter-border">
+            ⚠️ Query Execution Failed
+          </div>
+          <div
+            class="text-xs font-mono text-red-300 bg-editorWidget-bg p-2 rounded-sm border border-commandCenter-border whitespace-pre-wrap break-all leading-relaxed"
+          >
+            {{ error }}
+          </div>
         </div>
-
         <!-- Results Table -->
         <table
           v-if="parsedOutput && !error"
@@ -139,13 +141,9 @@ const parsedOutput = computed(() => {
     return null;
   }
 });
-// Add CSV export functionality
-const copyAsCSV = () => {
-  console.log("Copy as a csv");
-};
 
 const runQuery = () => {
-  if(limit.value > 1000 || limit.value < 1) {
+  if (limit.value > 1000 || limit.value < 1) {
     limit.value = 1000;
   }
   vscode.postMessage({ command: "bruin.getQueryOutput", payload: { limit: limit.value } });
@@ -159,12 +157,10 @@ input[type="number"] {
   border: none;
   outline: none;
   appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: textfield;
 }
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
-  -webkit-appearance: none;
   margin: 0;
+  appearance: none;
 }
 </style>
