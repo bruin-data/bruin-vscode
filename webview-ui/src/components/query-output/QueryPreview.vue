@@ -46,13 +46,16 @@
     </div>
 
     <!-- Content Area -->
-    <div class="flex-1 overflow-auto p-2">
+    <div class="flex-1">
       <!-- Query Output Tab -->
-      <div v-if="activeTab === 'output'">
+      <div v-if="activeTab === 'output'" class="overflow-auto h-[calc(100vh-100px)] relative">
         <!-- Error Message -->
-        <div v-if="error" class="my-2 border border-commandCenter-border rounded text-errorForeground bg-editorWidget-bg p-2">
+        <div
+          v-if="error"
+          class="my-2 border border-commandCenter-border rounded text-errorForeground bg-editorWidget-bg p-2"
+        >
           <div class="text-sm font-medium mb-2 pb-1 border-b border-commandCenter-border">
-            ⚠️ Query Execution Failed
+           Query Execution Failed
           </div>
           <div
             class="text-xs font-mono text-red-300 bg-editorWidget-bg p-2 rounded-sm border border-commandCenter-border whitespace-pre-wrap break-all leading-relaxed"
@@ -61,40 +64,39 @@
           </div>
         </div>
         <!-- Results Table -->
-        <table
-          v-if="parsedOutput && !error"
-          class="min-w-full divide-y divide-commandCenter-border"
-        >
-          <!-- Results Table -->
-          <table
-            v-if="parsedOutput && !error"
-            class="min-w-full divide-y divide-commandCenter-border"
-          >
-            <thead class="bg-editor-bg">
+          <table v-if="parsedOutput && !error" class="w-full border-collapse">
+            <thead class="bg-editor-bg sticky top-0">
               <tr>
                 <th
                   v-for="column in parsedOutput.columns"
                   :key="column.name"
-                  class="p-2 text-left text-xs font-medium tracking-wider text-editor-fg uppercase"
+                  class="p-2 text-left text-xs font-semibold text-editor-fg uppercase bg-editor-bg border-b border-commandCenter-border"
                 >
-                  {{ column.name }}
+                  <div class="flex items-center">
+                    <span class="truncate">{{ column.name }}</span>
+                  </div>
                 </th>
               </tr>
             </thead>
             <tbody class="bg-editor-bg divide-y divide-commandCenter-border">
-              <tr v-for="(row, index) in parsedOutput.rows" :key="index">
-                <td v-for="(value, colIndex) in row" :key="colIndex" class="p-2 whitespace-nowrap">
-                  <div class="text-sm text-editor-fg">
-                    {{ value }}
-                  </div>
+              <tr
+                v-for="(row, index) in parsedOutput.rows"
+                :key="index"
+                class="hover:bg-menu-hoverBackground transition-colors duration-150"
+              >
+                <td
+                  v-for="(value, colIndex) in row"
+                  :key="colIndex"
+                  class="p-2 whitespace-nowrap text-xs text-editor-fg font-mono"
+                >
+                  <div class="truncate max-w-[200px]">{{ value }}</div>
                 </td>
               </tr>
             </tbody>
           </table>
-        </table>
+        </div>
       </div>
     </div>
-  </div>
 </template>
 
 <script setup lang="ts">
