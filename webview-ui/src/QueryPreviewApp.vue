@@ -6,7 +6,7 @@
       :id="`view-${index}`"
       v-show="activeTab === index"
     >
-      <component v-if="tab.props" :is="tab.component" :output="QueryOutput" class="flex w-full" />
+      <component v-if="tab.props" :is="tab.component" :output="QueryOutput" :error="QueryError" class="flex w-full" />
     </vscode-panel-view>
   </vscode-panels>
 </template>
