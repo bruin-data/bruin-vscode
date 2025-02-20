@@ -6,21 +6,16 @@
       :id="`view-${index}`"
       v-show="activeTab === index"
     >
-      <component 
-        v-if="tab.props" 
-        :is="tab.component" 
-        :output="QueryOutput"
-        class="flex w-full" 
-      />
+      <component v-if="tab.props" :is="tab.component" :output="QueryOutput" :error="QueryError" class="flex w-full" />
     </vscode-panel-view>
   </vscode-panels>
 </template>
 
 <script setup lang="ts">
-import { vscode } from "@/utilities/vscode";
 import { ref, onMounted, onUnmounted, watch, computed } from "vue";
 import { updateValue } from "./utilities/helper";
 import QueryPreview from "@/components/query-output/QueryPreview.vue";
+import { vscode } from "@/utilities/vscode";
 /**
  * QueryPreview Component
  *
@@ -44,12 +39,11 @@ const handleMessage = (event) => {
     case "query-output-message":
       QueryOutput.value = updateValue(message, "success");
       QueryError.value = updateValue(message, "error");
-      console.log("data recieved for the query output", QueryOutput.value, typeof QueryOutput.value);
       break;
   }
 };
 
-// add event listener 
+// add event listener
 window.addEventListener("message", handleMessage);
 const queryOutput = `id,name,email,age,city
 1,John Doe,johndoe@example.com,30,New York
@@ -60,13 +54,23 @@ const queryOutput = `id,name,email,age,city
 6,Diana Prince,dianap@example.com,32,San Francisco`;
 
 const output = computed(() => {
+  if (QueryError.value) return null;
   if (!QueryOutput.value) return null;
   try {
-    const parsed = typeof QueryOutput.value === 'string' ? JSON.parse(QueryOutput.value) : QueryOutput.value;
-    console.log('Parsed output:', parsed);
-    return parsed;
+    return typeof QueryOutput.value === "string" ? JSON.parse(QueryOutput.value) : QueryOutput.value;
   } catch (e) {
-    console.error('Error parsing output:', e);
+    console.error("Error parsing output:", e);
+    return null;
+  }
+});
+
+const errorValue = computed(() => {
+  if (!QueryError.value) return null;
+  try {
+    return typeof QueryError.value === "string" ? JSON.parse(QueryError.value) : QueryError.value;
+  }
+  catch (e) {
+    console.error("Error parsing error output:", e);
     return null;
   }
 });
@@ -78,30 +82,14 @@ const tabs = ref([
     component: QueryPreview,
     props: {
       output: computed(() => output.value),
+      error: computed(() => errorValue.value),
     },
   },
 ]);
 
-onMounted(() => {
-  loadQueryOutput();
-});
-
 onUnmounted(() => {
   window.removeEventListener("message", handleMessage);
 });
-
-/**
- * Refreshes the lineage graph by sending a message to the VSCode extension.
- *
- * @param {Event} event - The click event that triggered the refresh.
- */
-
-/**
- * Loads lineage data by sending a message to the VSCode extension.
- */
-function loadQueryOutput() {
-  vscode.postMessage({ command: "bruin.getQueryOutput" });
-}
 </script>
 <style>
 vscode-panel-view {

@@ -36,8 +36,6 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
       vscode.window.onDidChangeActiveTextEditor((event: vscode.TextEditor | undefined) => {
         if (event && event.document.uri.scheme !== "vscodebruin:panel") {
           this._lastRenderedDocumentUri = event?.document.uri;
-
-          this.initPanel(event);
         }
       })
     );
@@ -105,7 +103,6 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
             command: "init",
             panelType: "Query Preview",
           });
-          this.loadAndSendQueryOutput(); // Load Query data when visible
         }
       });
 
@@ -184,6 +181,7 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
       switch (message.command) {
         case "bruin.getQueryOutput":
           this.loadAndSendQueryOutput();
+          console.log("Received limit from webview in the Query Preview panel", message.payload);
           break;
       }
     });
