@@ -1,10 +1,8 @@
 <template>
-  <div class="flex flex-col space-y-2 w-full h-full">
-    <div
-      class="header flex items-center justify-between border-b-2 border-commandCenter-border p-2"
-    >
+  <div class="flex flex-col w-full h-full">
+    <div class="flex items-center justify-between border-b border-t border-commandCenter-border">
       <div class="flex items-center w-full justify-between space-x-4">
-        <div class="flex items-center space-x-4">
+        <div class="flex items-center space-x-4 py-1">
           <div class="flex items-center space-x-2">
             <vscode-button title="Run Query" appearance="icon" @click="runQuery">
               <PlayIcon class="h-4 w-4" />
@@ -44,60 +42,67 @@
         </div>
       </div>
     </div>
-
-    <!-- Content Area -->
-    <div class="flex-1">
-      <!-- Query Output Tab -->
-      <div v-if="activeTab === 'output'" class="overflow-auto h-[calc(100vh-100px)] relative">
-        <!-- Error Message -->
-        <div
-          v-if="error"
-          class="my-2 border border-commandCenter-border rounded text-errorForeground bg-editorWidget-bg p-2"
-        >
-          <div class="text-sm font-medium mb-2 pb-1 border-b border-commandCenter-border">
-           Query Execution Failed
-          </div>
-          <div
-            class="text-xs font-mono text-red-300 bg-editorWidget-bg p-2 rounded-sm border border-commandCenter-border whitespace-pre-wrap break-all leading-relaxed"
-          >
-            {{ error }}
-          </div>
+    <!-- Query Output Tab -->
+    <div v-if="activeTab === 'output'" class="relative">
+      <!-- Error Message -->
+      <div
+        v-if="error"
+        class="my-2 border border-commandCenter-border rounded text-errorForeground bg-editorWidget-bg p-2"
+      >
+        <div class="text-sm font-medium mb-2 pb-1 border-b border-commandCenter-border">
+          Query Execution Failed
         </div>
-        <!-- Results Table -->
-          <table v-if="parsedOutput && !error" class="w-full border-collapse">
-            <thead class="bg-editor-bg sticky top-0">
-              <tr>
-                <th
-                  v-for="column in parsedOutput.columns"
-                  :key="column.name"
-                  class="p-2 text-left text-xs font-semibold text-editor-fg uppercase bg-editor-bg border-b border-commandCenter-border"
-                >
-                  <div class="flex items-center">
-                    <span class="truncate">{{ column.name }}</span>
-                  </div>
-                </th>
-              </tr>
-            </thead>
-            <tbody class="bg-editor-bg divide-y divide-commandCenter-border">
-              <tr
-                v-for="(row, index) in parsedOutput.rows"
-                :key="index"
-                class="hover:bg-menu-hoverBackground transition-colors duration-150"
-              >
-                <td
-                  v-for="(value, colIndex) in row"
-                  :key="colIndex"
-                  class="p-2 whitespace-nowrap text-xs text-editor-fg font-mono"
-                >
-                  <div class="truncate max-w-[200px]">{{ value }}</div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div
+          class="text-xs font-mono text-red-300 bg-editorWidget-bg p-2 rounded-sm border border-commandCenter-border whitespace-pre-wrap break-all leading-relaxed"
+        >
+          {{ error }}
         </div>
       </div>
+      <!-- Results Table -->
+      <div v-if="parsedOutput && !error" class="overflow-auto h-[calc(100vh-33px)] w-full">
+        <table class="w-[calc(100vw-100px)] bg-editor-bg font-mono font-normal text-xs border-t-0 border-collapse">
+          <thead class="bg-editor-bg border-y-0">
+            <tr>
+              <th
+                class="sticky top-0 p-1 text-left font-semibold text-editor-fg bg-editor-bg border-x border-commandCenter-border before:absolute before:bottom-0 before:left-0 before:w-full before:border-b before:border-commandCenter-border"
+              ></th>
+              <th
+                v-for="column in parsedOutput.columns"
+                :key="column.name"
+                class="sticky top-0 p-1 text-left font-semibold text-editor-fg bg-editor-bg border-x border-commandCenter-border before:absolute before:bottom-0 before:left-0 before:w-full before:border-b before:border-commandCenter-border"
+              >
+                <div class="flex items-center">
+                  <span class="truncate">{{ column.name }}</span>
+                </div>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="(row, index) in parsedOutput.rows"
+              :key="index"
+              class="hover:bg-menu-hoverBackground transition-colors duration-150"
+            >
+              <td
+                class="p-1 whitespace-nowrap text-editor-fg font-mono border border-commandCenter-border"
+              >
+                {{ index + 1 }}
+              </td>
+              <td
+                v-for="(value, colIndex) in row"
+                :key="colIndex"
+                class="p-1 whitespace-nowrap text-editor-fg font-mono border border-commandCenter-border"
+              >
+                <div class="truncate max-w-[200px]">{{ value }}</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
+  </div>
 </template>
+
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
@@ -164,5 +169,21 @@ input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
   margin: 0;
   appearance: none;
+}
+thead th {
+  position: sticky !important;
+  top: 0;
+  z-index: 2;
+  background-color: var(--vscode-editor-background) !important;
+}
+
+thead th::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  border-bottom: 1px solid var(--vscode-commandCenter-border);
+  z-index: 1;
 }
 </style>
