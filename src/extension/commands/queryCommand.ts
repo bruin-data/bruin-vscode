@@ -4,7 +4,7 @@ import { getDefaultBruinExecutablePath } from "../configuration";
 import { BruinQueryOutput } from "../../bruin/queryCommand";
 
 
-export const getQueryOutput = async (connection: string, query: string, lastRenderedDocumentUri: Uri | undefined) => {
+export const getQueryOutput = async (environment: string, limit: string, lastRenderedDocumentUri: Uri | undefined) => {
   if (!lastRenderedDocumentUri) {
     return;
   }
@@ -12,21 +12,7 @@ export const getQueryOutput = async (connection: string, query: string, lastRend
     getDefaultBruinExecutablePath(),
     await bruinWorkspaceDirectory(lastRenderedDocumentUri.fsPath)!! as string
   );
-  const queryResult = await output.getOutput(connection, query);
+  const queryResult = await output.getOutput(environment, lastRenderedDocumentUri.fsPath, limit);
   return queryResult;
 };
 
-
-export const getRenderedQuery = async (lastRenderedDocumentUri: Uri | undefined) => {
-  if (!lastRenderedDocumentUri) {
-    return undefined;
-  }
-
-  const render = new BruinRenderUnmaterliazed(
-    getDefaultBruinExecutablePath(),
-    await bruinWorkspaceDirectory(lastRenderedDocumentUri.fsPath)!! as string
-  );
-
-  const result = await render.getRenderedQuery(lastRenderedDocumentUri.fsPath);
-  return { query: result.query };
-};

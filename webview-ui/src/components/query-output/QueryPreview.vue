@@ -58,9 +58,23 @@
           {{ error }}
         </div>
       </div>
+      <div v-if="!parsedOutput && !error" class="flex items-center justify-center h-[100vh] w-full">
+        <div class="flex items-center space-x-2 text-sm text-editor-fg">
+          <vscode-button appearance="icon" @click="runQuery">
+            <PlayIcon class="h-4 w-4" />
+          </vscode-button>
+          <span class="opacity-50">Run query preview</span>
+          <span class="px-2 py-1 bg-editorWidget-bg rounded">
+            ⌘
+          </span>
+          <span class="px-2 py-1 bg-editorWidget-bg rounded">Enter</span>
+        </div>
+      </div>
       <!-- Results Table -->
       <div v-if="parsedOutput && !error" class="overflow-auto h-[calc(100vh-33px)] w-full">
-        <table class="w-[calc(100vw-100px)] bg-editor-bg font-mono font-normal text-xs border-t-0 border-collapse">
+        <table
+          class="w-[calc(100vw-100px)] bg-editor-bg font-mono font-normal text-xs border-t-0 border-collapse"
+        >
           <thead class="bg-editor-bg border-y-0">
             <tr>
               <th
@@ -103,10 +117,9 @@
   </div>
 </template>
 
-
 <script setup lang="ts">
-import { computed, ref } from "vue";
-import { XMarkIcon, DocumentDuplicateIcon } from "@heroicons/vue/20/solid";
+import { computed, onMounted, onUnmounted, ref } from "vue";
+import { XMarkIcon } from "@heroicons/vue/20/solid";
 import { PlayIcon, TableCellsIcon } from "@heroicons/vue/24/outline";
 import { vscode } from "@/utilities/vscode";
 
@@ -118,7 +131,7 @@ const props = defineProps<{
 const limit = ref(100);
 const tabs = ref([{ id: "output", label: "Output" }]);
 const activeTab = ref("output");
-
+const environment = ref("");
 const error = computed(() => {
   if (!props.error) return null;
 
@@ -153,11 +166,28 @@ const runQuery = () => {
   if (limit.value > 1000 || limit.value < 1) {
     limit.value = 1000;
   }
-  vscode.postMessage({ command: "bruin.getQueryOutput", payload: { limit: limit.value } });
+  vscode.postMessage({
+    command: "bruin.getQueryOutput",
+    payload: { environment: environment.value, limit: limit.value.toString() },
+  });
 };
 const clearQueryOutput = () => {
   vscode.postMessage({ command: "bruin.clearQueryOutput" });
 };
+const handleKeyDown = (event) => {
+  if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+    runQuery();
+  }
+};
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeyDown);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeyDown);
+});
+
 </script>
 <style scoped>
 input[type="number"] {
@@ -178,7 +208,7 @@ thead th {
 }
 
 thead th::after {
-  content: '';
+  content: "";
   position: absolute;
   left: 0;
   bottom: 0;

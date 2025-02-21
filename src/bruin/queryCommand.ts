@@ -24,20 +24,33 @@ export class BruinQueryOutput extends BruinCommand {
    * @returns {Promise<void>} A promise that resolves when the execution is complete or an error is caught.
    */
   public async getOutput(
-    connection: string,
-    query: string,
+    environment: string,
+    asset: string,
+    limit: string,
     {
       flags = [
-        "-c", 
-        connection, 
-        "-q", 
-        query,
         "-o", 
-        "json"
+        "json",
+        "-env", 
+        environment, 
+        "-asset", 
+        asset,
+        "-limit",
+        limit
       ],
       ignoresErrors = false,
     }: BruinCommandOptions = {}
   ): Promise<void> {
+    if(!environment) {
+      flags = [
+        "-o", 
+        "json",
+        "-asset", 
+        asset,
+        "-limit",
+        limit
+      ]
+    }
     await this.run([...flags], { ignoresErrors })
       .then(
         (result) => {
