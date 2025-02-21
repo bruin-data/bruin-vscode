@@ -58,6 +58,18 @@
           {{ error }}
         </div>
       </div>
+      <div v-if="!parsedOutput && !error" class="flex items-center justify-center h-[100vh] w-full">
+        <div class="flex items-center space-x-2 text-sm text-editor-fg">
+          <vscode-button appearance="icon" @click="runQuery">
+            <PlayIcon class="h-4 w-4" />
+          </vscode-button>
+          <span class="opacity-50">Run query preview</span>
+          <span class="px-2 py-1 bg-editorWidget-bg rounded">
+            ⌘
+          </span>
+          <span class="px-2 py-1 bg-editorWidget-bg rounded">Enter</span>
+        </div>
+      </div>
       <!-- Results Table -->
       <div v-if="parsedOutput && !error" class="overflow-auto h-[calc(100vh-33px)] w-full">
         <table
@@ -106,16 +118,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { XMarkIcon } from "@heroicons/vue/20/solid";
 import { PlayIcon, TableCellsIcon } from "@heroicons/vue/24/outline";
 import { vscode } from "@/utilities/vscode";
-import { storeToRefs } from "pinia";
-import { useConnectionsStore } from "@/store/bruinStore"; // Add this import
-
-const connectionsStore = useConnectionsStore();
-// Initialize the store
-const { defaultEnvironment } = storeToRefs(connectionsStore); // Use storeToRefs to maintain reactivity
 
 const props = defineProps<{
   output: any;
@@ -125,6 +131,7 @@ const props = defineProps<{
 const limit = ref(100);
 const tabs = ref([{ id: "output", label: "Output" }]);
 const activeTab = ref("output");
+const environment = ref("");
 const error = computed(() => {
   if (!props.error) return null;
 
@@ -161,12 +168,26 @@ const runQuery = () => {
   }
   vscode.postMessage({
     command: "bruin.getQueryOutput",
-    payload: { environment: defaultEnvironment.value, limit: limit.value.toString() },
+    payload: { environment: environment.value, limit: limit.value.toString() },
   });
 };
 const clearQueryOutput = () => {
   vscode.postMessage({ command: "bruin.clearQueryOutput" });
 };
+const handleKeyDown = (event) => {
+  if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+    runQuery();
+  }
+};
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeyDown);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeyDown);
+});
+
 </script>
 <style scoped>
 input[type="number"] {
