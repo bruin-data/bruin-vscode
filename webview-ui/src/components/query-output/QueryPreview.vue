@@ -60,7 +60,9 @@
       </div>
       <!-- Results Table -->
       <div v-if="parsedOutput && !error" class="overflow-auto h-[calc(100vh-33px)] w-full">
-        <table class="w-[calc(100vw-100px)] bg-editor-bg font-mono font-normal text-xs border-t-0 border-collapse">
+        <table
+          class="w-[calc(100vw-100px)] bg-editor-bg font-mono font-normal text-xs border-t-0 border-collapse"
+        >
           <thead class="bg-editor-bg border-y-0">
             <tr>
               <th
@@ -103,12 +105,17 @@
   </div>
 </template>
 
-
 <script setup lang="ts">
-import { computed, ref } from "vue";
-import { XMarkIcon, DocumentDuplicateIcon } from "@heroicons/vue/20/solid";
+import { computed, onMounted, ref } from "vue";
+import { XMarkIcon } from "@heroicons/vue/20/solid";
 import { PlayIcon, TableCellsIcon } from "@heroicons/vue/24/outline";
 import { vscode } from "@/utilities/vscode";
+import { storeToRefs } from "pinia";
+import { useConnectionsStore } from "@/store/bruinStore"; // Add this import
+
+const connectionsStore = useConnectionsStore();
+// Initialize the store
+const { defaultEnvironment } = storeToRefs(connectionsStore); // Use storeToRefs to maintain reactivity
 
 const props = defineProps<{
   output: any;
@@ -118,7 +125,6 @@ const props = defineProps<{
 const limit = ref(100);
 const tabs = ref([{ id: "output", label: "Output" }]);
 const activeTab = ref("output");
-
 const error = computed(() => {
   if (!props.error) return null;
 
@@ -153,7 +159,10 @@ const runQuery = () => {
   if (limit.value > 1000 || limit.value < 1) {
     limit.value = 1000;
   }
-  vscode.postMessage({ command: "bruin.getQueryOutput", payload: { limit: limit.value } });
+  vscode.postMessage({
+    command: "bruin.getQueryOutput",
+    payload: { environment: defaultEnvironment.value, limit: limit.value.toString() },
+  });
 };
 const clearQueryOutput = () => {
   vscode.postMessage({ command: "bruin.clearQueryOutput" });
@@ -178,7 +187,7 @@ thead th {
 }
 
 thead th::after {
-  content: '';
+  content: "";
   position: absolute;
   left: 0;
   bottom: 0;
