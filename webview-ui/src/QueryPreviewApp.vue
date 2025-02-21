@@ -12,10 +12,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch, computed } from "vue";
+import { ref, onUnmounted, computed } from "vue";
 import { updateValue } from "./utilities/helper";
 import QueryPreview from "@/components/query-output/QueryPreview.vue";
-import { vscode } from "@/utilities/vscode";
 /**
  * QueryPreview Component
  *
@@ -91,8 +90,16 @@ onUnmounted(() => {
   window.removeEventListener("message", handleMessage);
 });
 </script>
-<style>
+<style scoped>
 vscode-panel-view {
+  padding: 0px !important;
+}
+</style>
+
+<style>
+body {
   padding: 0 !important;
+  margin: 0 !important;
+  overflow: hidden !important;
 }
 </style>
