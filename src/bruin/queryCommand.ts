@@ -23,6 +23,8 @@ export class BruinQueryOutput extends BruinCommand {
    * @param {BruinCommandOptions} [options={}] - Optional parameters for execution, including flags and errors.
    * @returns {Promise<void>} A promise that resolves when the execution is complete or an error is caught.
    */
+  public isLoading: boolean = false;
+
   public async getOutput(
     environment: string,
     asset: string,
@@ -30,6 +32,8 @@ export class BruinQueryOutput extends BruinCommand {
     { flags = [], ignoresErrors = false }: BruinCommandOptions = {}
   ): Promise<void> {
     // Construct base flags dynamically
+    this.isLoading = true;
+    this.postMessageToPanels("loading", this.isLoading);
     const constructedFlags = ["-o", "json"];
     if (environment) {
       constructedFlags.push("-env", environment);
@@ -52,13 +56,15 @@ export class BruinQueryOutput extends BruinCommand {
         return;
       }
       console.log("SQL query output:", result);
-
       this.postMessageToPanels("success", result);
     } catch (error: any) {
       console.error("Error occurred while running query:", error);
       const errorMessage = error.message || error.toString();
-
       this.postMessageToPanels("error", errorMessage);
+    }
+    finally {
+      this.isLoading = false;
+      this.postMessageToPanels("loading", this.isLoading);
     }
   }
 
