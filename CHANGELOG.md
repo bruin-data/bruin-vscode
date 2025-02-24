@@ -2,6 +2,10 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.35.0] - [2024-02-24]
+- Introduce a new **Query Preview Panel** to display the output of SQL `query` execution.  
+- This feature currently uses the **default** environment with a maximum limit of **1000**.
+
 ## [0.34.1] - [2024-02-17]
 - Reset filter panel state on file change and improve graph viewport adjustments for expanded nodes.
 
