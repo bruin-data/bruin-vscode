@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.35.1] - [2024-02-24]
+- Add loading state to the query preview.
+
 ## [0.35.0] - [2024-02-24]
 - Introduce a new **Query Preview Panel** to display the output of SQL `query` execution.  
 - This feature currently uses the **default** environment with a maximum limit of **1000**.
