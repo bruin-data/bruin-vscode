@@ -58,9 +58,11 @@ import { getLanguageDelimiters } from "../utilities/delimiters";
 import { bruinDelimiterRegex } from "../constants";
 import { bruinFoldingRangeProvider } from "../providers/bruinFoldingRangeProvider";
 import { flowLineageCommand } from "../extension/commands/FlowLineageCommand";
-
-import exp = require("constants");
 import { BruinLineageInternalParse } from "../bruin/bruinFlowLineage";
+import { BruinCommandOptions } from "../types";
+import { BruinQueryOutput } from "../bruin/queryCommand";
+import { QueryPreviewPanel } from "../panels/QueryPreviewPanel";
+import { getQueryOutput } from "../extension/commands/queryCommand";
 
 suite("Extension Initialization", () => {
   test("should set default path separator based on platform", async () => {
@@ -1962,6 +1964,7 @@ suite("BruinPanel Tests", () => {
         "Panel should be disposed"
       );
     });
+
     test("double dispose", () => {
       const panel = BruinPanel.currentPanel;
       if (panel) {
@@ -1978,7 +1981,7 @@ suite("BruinPanel Tests", () => {
   });
 });
 
- suite("LineagePanel Tests", () => {
+suite("LineagePanel Tests", () => {
   let windowOnDidChangeActiveTextEditorStub: sinon.SinonStub;
   let windowActiveTextEditorStub: sinon.SinonStub;
   let flowLineageCommandStub: sinon.SinonStub;
@@ -2317,6 +2320,129 @@ suite("bruinFoldingRangeProvider Tests", () => {
 
     assert.deepStrictEqual(ranges, [], "Expected empty ranges");
   });
+});
+// Test-specific subclass to expose the protected `run` method
+class TestableBruinQueryOutput extends BruinQueryOutput {
+  public run(query: string[], options?: { ignoresErrors?: boolean }): Promise<string> {
+    return super.run(query, options);
+  }
+}
+suite("BruinQueryOutput", () => {
+  let bruinQueryOutput: TestableBruinQueryOutput;
+  let bruinExecutablePath: string = "bruin";
+  let workspace = "path/to/workspace";
+  let queryPreviewPanelStub: sinon.SinonStub;
+
+  setup(() => {
+    bruinQueryOutput = new TestableBruinQueryOutput(bruinExecutablePath, workspace);
+    // Stub the QueryPreviewPanel.postMessage method
+    queryPreviewPanelStub = sinon.stub(QueryPreviewPanel, "postMessage");
+  });
+
+  teardown(() => {
+    queryPreviewPanelStub.restore();
+  });
+
+  test("should use correct flags for newer CLI versions", async () => {
+    const environment = "dev";
+    const asset = "exampleAsset";
+    const limit = "10";
+
+    // Mock the run method to simulate newer CLI behavior
+    bruinQueryOutput.run = async (flags: string[]) => {
+      assert.deepStrictEqual(flags, [
+        "-o",
+        "json",
+        "-env",
+        environment,
+        "-asset",
+        asset,
+        "-limit",
+        limit,
+      ]);
+      return "success";
+    };
+
+    await bruinQueryOutput.getOutput(environment, asset, limit);
+  });
+
+  test("should use correct flags when environment is not provided", async () => {
+    const environment = "";
+    const asset = "exampleAsset";
+    const limit = "10";
+
+    // Mock the run method to simulate newer CLI behavior
+    bruinQueryOutput.run = async (flags: string[]) => {
+      assert.deepStrictEqual(flags, [
+        "-o",
+        "json",
+        "-asset",
+        asset,
+        "-limit",
+        limit,
+      ]);
+      return "success";
+    };
+
+    await bruinQueryOutput.getOutput(environment, asset, limit);
+  });
+
+  test("should use correct flags when limit is not provided", async () => {
+    const environment = "env";
+    const asset = "exampleAsset";
+    const limit = "";
+
+    // Mock the run method to simulate newer CLI behavior
+    bruinQueryOutput.run = async (flags: string[]) => {
+      assert.deepStrictEqual(flags, [
+        "-o",
+        "json",
+        "-asset",
+        asset,
+      ]);
+      return "success";
+    };
+
+    await bruinQueryOutput.getOutput(environment, asset, limit);
+  });
+
+  test("should handle older CLI versions by detecting 'flag provided but not defined' error", async () => {
+    const environment = "dev";
+    const asset = "exampleAsset";
+    const limit = "10";
+
+    // Mock the run method to simulate older CLI behavior
+    bruinQueryOutput.run = async (flags: string[]) => {
+      return "Incorrect Usage: flag provided but not defined: -env";
+    };
+
+    await bruinQueryOutput.getOutput(environment, asset, limit);
+
+    // Verify that postMessage was called with the correct error message
+    sinon.assert.calledWith(queryPreviewPanelStub, "query-output-message", {
+      status: "error",
+      message: "This feature requires the latest Bruin CLI version. Please update your CLI.",
+    });
+  });
+
+  test("should handle errors during command execution", async () => {
+    const environment = "dev";
+    const asset = "exampleAsset";
+    const limit = "10";
+
+    // Mock the run method to simulate an error
+    bruinQueryOutput.run = async () => {
+      throw new Error("Mock error");
+    };
+
+    await bruinQueryOutput.getOutput(environment, asset, limit);
+
+    sinon.assert.calledWith(queryPreviewPanelStub, "query-output-message", {
+      status: "error",
+      message: "Mock error",
+    });
+  });  
+
 });
 
 suite("CLI Installation and Update Tests", () => {
