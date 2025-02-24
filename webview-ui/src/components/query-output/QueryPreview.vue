@@ -44,6 +44,18 @@
     </div>
     <!-- Query Output Tab -->
     <div v-if="activeTab === 'output'" class="relative">
+      <div
+        v-if="isLoading"
+        class="fixed inset-0 flex items-center justify-center bg-editor-bg bg-opacity-50 z-50"
+      >
+        <div class="relative w-8 h-8">
+          <!-- Gradient Spinner -->
+          <div
+            class="w-8 h-8 border-4 border-t-transparent border-solid rounded-full animate-spin"
+            style="border-image: linear-gradient(to right, #e05f5f, #fff) 1"
+          ></div>
+        </div>
+      </div>
       <!-- Error Message -->
       <div
         v-if="error"
@@ -58,15 +70,16 @@
           {{ error }}
         </div>
       </div>
-      <div v-if="!parsedOutput && !error" class="flex items-center justify-center h-[100vh] w-full">
+      <div
+        v-if="!parsedOutput && !error && !isLoading"
+        class="flex items-center justify-center h-[100vh] w-full"
+      >
         <div class="flex items-center space-x-2 text-sm text-editor-fg">
           <vscode-button appearance="icon" @click="runQuery">
             <PlayIcon class="h-4 w-4" />
           </vscode-button>
           <span class="opacity-50">Run query preview</span>
-          <span class="px-2 py-1 bg-editorWidget-bg rounded">
-            ⌘
-          </span>
+          <span class="px-2 py-1 bg-editorWidget-bg rounded"> ⌘ </span>
           <span class="px-2 py-1 bg-editorWidget-bg rounded">Enter</span>
         </div>
       </div>
@@ -126,6 +139,7 @@ import { vscode } from "@/utilities/vscode";
 const props = defineProps<{
   output: any;
   error: any;
+  isLoading: boolean;
 }>();
 
 const limit = ref(100);
@@ -175,19 +189,18 @@ const clearQueryOutput = () => {
   vscode.postMessage({ command: "bruin.clearQueryOutput" });
 };
 const handleKeyDown = (event) => {
-  if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+  if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
     runQuery();
   }
 };
 
 onMounted(() => {
-  window.addEventListener('keydown', handleKeyDown);
+  window.addEventListener("keydown", handleKeyDown);
 });
 
 onUnmounted(() => {
-  window.removeEventListener('keydown', handleKeyDown);
+  window.removeEventListener("keydown", handleKeyDown);
 });
-
 </script>
 <style scoped>
 input[type="number"] {

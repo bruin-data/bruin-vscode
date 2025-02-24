@@ -6,7 +6,7 @@
       :id="`view-${index}`"
       v-show="activeTab === index"
     >
-      <component v-if="tab.props" :is="tab.component" :output="QueryOutput" :error="QueryError" class="flex w-full" />
+      <component v-if="tab.props" :is="tab.component" :output="QueryOutput" :error="QueryError" :is-loading="isLoading" class="flex w-full" />
     </vscode-panel-view>
   </vscode-panels>
 </template>
@@ -32,12 +32,19 @@ const activeTab = ref(0); // Tracks the currently active tab
  *
  * @param {MessageEvent} event - The message event containing data from the extension.
  */
+
+const isLoading = ref(false); // Create a direct ref instead of computed
+
 const handleMessage = (event) => {
   const message = event.data;
   switch (message.command) {
     case "query-output-message":
-      QueryOutput.value = updateValue(message, "success");
-      QueryError.value = updateValue(message, "error");
+      if (message.payload.status === "loading") {
+        isLoading.value = message.payload.message; // true or false
+      } else {
+        QueryOutput.value = updateValue(message, "success");
+        QueryError.value = updateValue(message, "error");
+      }
       break;
   }
 };
@@ -82,6 +89,8 @@ const tabs = ref([
     props: {
       output: computed(() => output.value),
       error: computed(() => errorValue.value),
+      isLoading: computed(() => isLoading.value),
+
     },
   },
 ]);
