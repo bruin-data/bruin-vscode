@@ -1,31 +1,32 @@
 import * as vscode from "vscode";
 import { getNonce } from "../utilities/getNonce";
 import { getUri } from "../utilities/getUri";
-import { getQueryOutput, getRenderedQuery } from "../extension/commands/queryCommand";
+import { getQueryOutput } from "../extension/commands/queryCommand";
 
 export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Disposable {
   public static readonly viewId = "bruin.QueryPreviewView";
   public static _view?: vscode.WebviewView | undefined;
   private _lastRenderedDocumentUri: vscode.Uri | undefined =
     vscode.window.activeTextEditor?.document.uri;
+  private environment: string = "";
+  private limit: string = "";
   private context: vscode.WebviewViewResolveContext<unknown> | undefined;
   private token: vscode.CancellationToken | undefined;
 
   private disposables: vscode.Disposable[] = [];
 
-  private async loadAndSendQueryOutput() {
+  private async loadAndSendQueryOutput(environment: string, limit: string) {
     if (!this._lastRenderedDocumentUri) {
       return;
     }
 
     try {
-      const query = await getRenderedQuery(this._lastRenderedDocumentUri);
-      if (!query) {
+      if (!this._lastRenderedDocumentUri.fsPath) {
         console.warn("No valid query was returned");
         return;
       }
       // Only proceed if we got a valid query string
-      await getQueryOutput("djamila-dev", query.query, this._lastRenderedDocumentUri);
+      await getQueryOutput(environment, limit, this._lastRenderedDocumentUri);
     } catch (error) {
       console.error("Error loading query data:", error);
     }
@@ -78,7 +79,7 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
       };
 
       this._setWebviewMessageListener(QueryPreviewPanel._view!.webview);
-      this.loadAndSendQueryOutput(); // Load Query data when view is resolved
+      this.loadAndSendQueryOutput(this.environment, this.limit); // Load Query data when view is resolved
 
       setTimeout(() => {
         if (QueryPreviewPanel._view && QueryPreviewPanel._view.visible) {
@@ -86,14 +87,14 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
             command: "init",
             panelType: "Query Preview",
           });
-          this.loadAndSendQueryOutput(); // Ensure Query data is reloaded when the panel becomes visible
+          this.loadAndSendQueryOutput(this.environment, this.limit); // Ensure Query data is reloaded when the panel becomes visible
         }
       }, 100);
 
       vscode.window.onDidChangeVisibleTextEditors((editors) => {
         if (editors.some((editor) => editor.viewColumn === vscode.ViewColumn.Active)) {
           webviewView.webview.postMessage({ command: "init", panelType: "Query Preview" });
-          this.loadAndSendQueryOutput(); // Load Query data when panel becomes visible
+          this.loadAndSendQueryOutput(this.environment, this.limit); // Load Query data when panel becomes visible
         }
       });
       // Reload Query data when webview becomes visible
@@ -180,7 +181,9 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
     webview.onDidReceiveMessage((message) => {
       switch (message.command) {
         case "bruin.getQueryOutput":
-          this.loadAndSendQueryOutput();
+          this.environment = message.payload.environment;
+          this.limit = message.payload.limit;
+          this.loadAndSendQueryOutput(this.environment, this.limit);
           console.log("Received limit from webview in the Query Preview panel", message.payload);
           break;
       }

@@ -24,36 +24,39 @@ export class BruinQueryOutput extends BruinCommand {
    * @returns {Promise<void>} A promise that resolves when the execution is complete or an error is caught.
    */
   public async getOutput(
-    connection: string,
-    query: string,
-    {
-      flags = [
-        "-c", 
-        connection, 
-        "-q", 
-        query,
-        "-o", 
-        "json"
-      ],
-      ignoresErrors = false,
-    }: BruinCommandOptions = {}
+    environment: string,
+    asset: string,
+    limit: string,
+    { flags = [], ignoresErrors = false }: BruinCommandOptions = {}
   ): Promise<void> {
-    await this.run([...flags], { ignoresErrors })
-      .then(
-        (result) => {
-          const output = result;
-          console.log("SQL query output:", output); // Debug message
-          this.postMessageToPanels("success", output);
-          return output;
-        },
-        (error) => {
-          console.error("Error occurred while running query:", error); // Debug message
-          this.postMessageToPanels("error", error);
-        }
-      )
-      .catch((err) => {
-        console.error("Query command error", err);
-      });
+    // Construct base flags dynamically
+    const constructedFlags = ["-o", "json"];
+    if (environment) {
+      constructedFlags.push("-env", environment);
+    }
+    constructedFlags.push("-asset", asset, "-limit", limit);
+
+    // Use provided flags or fallback to constructed flags
+    const finalFlags = flags.length > 0 ? flags : constructedFlags;
+  
+    try {
+      const result = await this.run(finalFlags, { ignoresErrors });
+      if (result.includes("flag provided but not defined")) {
+        this.postMessageToPanels(
+          "error",
+          "This feature requires the latest Bruin CLI version. Please update your CLI."
+        );
+        return;
+      }
+      console.log("SQL query output:", result);
+
+      this.postMessageToPanels("success", result);
+    } catch (error: any) {
+      console.error("Error occurred while running query:", error);
+      const errorMessage = error.message || error.toString();
+
+      this.postMessageToPanels("error", errorMessage);
+    }
   }
 
   /**
