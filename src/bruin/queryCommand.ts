@@ -34,11 +34,14 @@ export class BruinQueryOutput extends BruinCommand {
     if (environment) {
       constructedFlags.push("-env", environment);
     }
-    constructedFlags.push("-asset", asset, "-limit", limit);
+    if (limit) {
+      constructedFlags.push("-limit", limit);
+    }
+    constructedFlags.push("-asset", asset);
 
     // Use provided flags or fallback to constructed flags
     const finalFlags = flags.length > 0 ? flags : constructedFlags;
-  
+
     try {
       const result = await this.run(finalFlags, { ignoresErrors });
       if (result.includes("flag provided but not defined")) {
