@@ -178,18 +178,13 @@ export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposab
   private _setWebviewMessageListener(webview: vscode.Webview) {
     webview.onDidReceiveMessage((message) => {
       switch (message.command) {
-        case "bruin.pipelineLineage":
-          console.log("Pipeline Lineage from webview in the Lineage panel, well received");
-          break;
         case "bruin.openAssetDetails":
-          console.log("Asset Details from webview in the Lineage panel, well received");
           const assetFilePath = message.payload;
           vscode.workspace.openTextDocument(vscode.Uri.file(assetFilePath)).then((doc) => {
             vscode.window.showTextDocument(doc);
           });
           break;
         case "bruin.assetGraphLineage":
-          console.log("Asset Lineage from webview in the Lineage panel, well received");
           this._lastRenderedDocumentUri = vscode.window.activeTextEditor?.document.uri;
           if (!this._lastRenderedDocumentUri) {
             console.debug("No active document found.");
@@ -206,7 +201,6 @@ export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposab
     data: string | { status: string; message: string | any }
   ) {
     if (this._view) {
-      console.log("Posting message to webview in the Lineage panel", name, data);
 
       this._view.webview.postMessage({
         command: name,

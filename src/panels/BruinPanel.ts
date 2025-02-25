@@ -77,7 +77,6 @@ export class BruinPanel {
           renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri?.fsPath);
           lineageCommand(this._lastRenderedDocumentUri);
           parseAssetCommand(this._lastRenderedDocumentUri);
-          console.log("Document URI onDidChangeTextDocument", this._lastRenderedDocumentUri);
         }
       }),
       window.onDidChangeActiveTextEditor((editor) => {
@@ -404,18 +403,14 @@ export class BruinPanel {
 
           case "bruin.getAssetDetails":
             if (!this._lastRenderedDocumentUri) {
-              console.log("Loading asset data impossible without an active document.");
               return;
             }
-            console.log("Loading asset data for:", this._lastRenderedDocumentUri);
             parseAssetCommand(this._lastRenderedDocumentUri);
             break;
 
           case "bruin.setAssetDetails":
-            console.log("Setting asset data from payload :", message.payload);
             const assetData = message.payload;
             if (!this._lastRenderedDocumentUri) {
-              console.log("Setting asset data impossible without an active document.");
               return;
             }
             console.log("Setting asset data :", assetData);
@@ -424,7 +419,6 @@ export class BruinPanel {
 
           case "bruin.getEnvironmentsList":
             if (!this._lastRenderedDocumentUri) {
-              console.log("Loading asset data impossible without an active document.");
               return;
             }
             getEnvListCommand(this._lastRenderedDocumentUri);
@@ -468,7 +462,6 @@ export class BruinPanel {
             }
             break;
           case "getLastRenderedDocument":
-            console.log("Sending last rendered document to webview", this._lastRenderedDocumentUri);
             BruinPanel.postMessage("lastRenderedDocument", {
               status: "success",
               message: this._lastRenderedDocumentUri?.fsPath,
@@ -539,12 +532,10 @@ export class BruinPanel {
             break;
           case "bruin.openGlossary":
             const activeTextEditor = vscode.window.activeTextEditor;
-            console.log("Active Text Editor:", activeTextEditor);
 
             const workspaceDir = this._lastRenderedDocumentUri
               ? await bruinWorkspaceDirectory(this._lastRenderedDocumentUri.fsPath)
               : undefined;
-            console.log("Workspace Directory:", workspaceDir);
 
             if (!workspaceDir) {
               console.error("Cannot determine Bruin workspace directory.");

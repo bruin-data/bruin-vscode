@@ -20,8 +20,6 @@ import { LineagePanel } from "../panels/LineagePanel";
 import { installOrUpdateCli } from "./commands/updateBruinCLI";
 import { QueryPreviewPanel } from "../panels/QueryPreviewPanel";
 //import { RudderTyperAnalytics } from '../analytics/index';
-console.log("RudderStack package:", Analytics);
-console.log("RudderStack keys:", Object.keys(Analytics));
 
 const WRITE_KEY = "2q3zybBJRd9ErKIpkTRSdIahQ0C";
 const DATA_PLANE_URL = "https://getbruinbumlky.dataplane.rudderstack.com";

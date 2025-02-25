@@ -28,7 +28,7 @@ export class BruinConnections extends BruinCommand {
     ignoresErrors = false,
   }: BruinCommandOptions = {}): Promise<void> {
     console.log("\n==================\n Connections Commands \n==================\n"); // Section separation message
-    console.log("Starting to get connections with flags:", flags); // Debug message
+
     await this.run([...flags], { ignoresErrors })
       .then(
         (result) => {
