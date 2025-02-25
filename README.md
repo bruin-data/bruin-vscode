@@ -107,10 +107,11 @@ Access the Bruin CLI management tab `Settings` in the side panel for easy instal
 
 ## Release Notes
 
-### Latest Release: 0.35.1
-- Add loading state to the query preview.
+### Latest Release: 0.35.2
+- Adjust the styling of the save and cancel buttons in the description editing.
 
 ### Recent Updates
+- **0.35.1**: Add loading state to the query preview.
 - **0.35.0**: Introduce a new **Query Preview Panel** to display the output of SQL `query` execution. This feature currently uses the **default** environment with a maximum limit of **1000**.
 - **0.34.1**: Reset filter panel state on file change and improve graph viewport adjustments for expanded nodes.
 - **0.34.0**: Add options panel to the lineage view with choices to display either all upstream & downstream dependencies or only direct dependencies.
