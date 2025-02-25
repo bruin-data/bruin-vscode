@@ -141,17 +141,14 @@ const hoverTimeout = ref<ReturnType<typeof setTimeout> | null>(null); // Timeout
 // Event listener for messages from the VSCode extension
 window.addEventListener("message", (event) => {
   const message = event.data;
-  console.log("Received message from VSCode extension:", message); // Log received messages
   try {
     switch (message.command) {
       case "init":
         lastRenderedDocument.value = message.lastRenderedDocument; // Update last rendered document
-        console.log("Last Rendered Document:", lastRenderedDocument.value);
         break;
       case "environments-list-message":
         environments.value = updateValue(message, "success");
         connectionsStore.setDefaultEnvironment(selectedEnvironment.value); // Set the default environment in the store
-        console.log("Updated environments list:", environments.value);
         break;
       case "parse-message":
         parseError.value = updateValue(message, "error");
@@ -189,7 +186,6 @@ const navigateToGlossary = () => {
 // Computed property to check if the last rendered document is a Bruin YAML file
 const isBruinYml = computed(() => {
   const result = lastRenderedDocument.value && lastRenderedDocument.value.endsWith(".bruin.yml");
-  console.log("Is last rendered document a Bruin YAML file?", result);
   return result;
 });
 
@@ -197,7 +193,6 @@ const isBruinYml = computed(() => {
 const environmentsList = computed(() => {
   if (!environments.value) return [];
   const parsedEnvironments = parseEnvironmentList(environments.value)?.environments || [];
-  console.log("Parsed environments list:", parsedEnvironments);
   return parsedEnvironments;
 });
 

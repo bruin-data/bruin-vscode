@@ -271,7 +271,6 @@ const handleDuplicateConnection = (connection) => {
 
 const handleMessage = (event) => {
   const message = event.data;
-  console.log("Message received in connection form:", message);
   switch (message.command) {
     case "connection-tested-message":
       console.log("Connection tested:", message.payload);
