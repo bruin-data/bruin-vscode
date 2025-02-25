@@ -27,15 +27,25 @@
           <div v-if="isEditingDescription" class="relative">
             <textarea
               v-model="editableDescription"
-              class="w-full h-40 bg-input-background border-0 text-input-foreground text-xs"
+              class="w-full h-40 bg-input-background border border-editor-border rounded p-2 pr-16 text-input-foreground text-xs"
               ref="descriptionInput"
               :class="{ 'truncate-description': shouldTruncate && !isExpanded }"
             ></textarea>
-            <div class="absolute top-0 right-0 mt-1 mr-1 flex gap-2">
-              <vscode-button title="cancel" appearance="icon" @click.stop="cancelDescriptionEdit">
+            <div class="absolute top-2 right-2 flex gap-0.5">
+              <vscode-button 
+                title="cancel" 
+                appearance="icon" 
+                @click.stop="cancelDescriptionEdit"
+                class="opacity-80 hover:opacity-100 transition-opacity"
+              >
                 <XIcon class="h-4 w-4" aria-hidden="true" />
               </vscode-button>
-              <vscode-button title="save" appearance="icon" @click.stop="saveDescriptionEdit">
+              <vscode-button 
+                title="save" 
+                appearance="icon" 
+                @click.stop="saveDescriptionEdit"
+                class="opacity-80 hover:opacity-100 transition-opacity"
+              >
                 <CheckIcon class="h-4 w-4" aria-hidden="true" />
               </vscode-button>
             </div>

@@ -27,7 +27,6 @@ export abstract class BruinCommand {
   /** The args used to execute the for the command. */
   protected execArgs(flags: string[] = []) {
     const args = this.options.concat([this.bruinCommand()]).concat(flags);
-    console.log("Executing command with args:", args); // Debug message
     return args;
   }
 
@@ -46,13 +45,11 @@ export abstract class BruinCommand {
     query: string[],
     { ignoresErrors = false }: { ignoresErrors?: boolean } = {}
   ): Promise<string> {
-    console.log("Running command with query:", query); // Debug message
     return new Promise((resolve, reject) => {
       const execOptions = {
         cwd: this.workingDirectory,
         maxBuffer: 1024 * 1024 * 10, // 10MB
       };
-      console.log("Executing command in directory:", this.workingDirectory); // Debug message
       child_process.execFile(
         this.bruinExecutable,
         this.execArgs(query),

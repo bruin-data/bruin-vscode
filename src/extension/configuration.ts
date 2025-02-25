@@ -34,7 +34,6 @@ export function getDefaultBruinExecutablePath(): string {
         return bruinExecutable;
       } catch (err) {
         // Continue searching if not found or not executable
-        console.log(`Could not find 'bruin' at ${executablePath}`);
         continue;
       }
     }
@@ -46,11 +45,9 @@ export function getDefaultBruinExecutablePath(): string {
       try {
         fs.accessSync(executablePathLocal, fs.constants.X_OK);
         bruinExecutable = executablePathLocal;
-        console.log(`Found 'bruin' in windows platform at ${bruinExecutable}`);
         return bruinExecutable;
       } catch (err) {
         // Continue searching if not found or not executable
-        console.log(`Could not find 'bruin' at ${bruinExecutable}`);
       }
     }
     // If all else fails, provide a meaningful message or default

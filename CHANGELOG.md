@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.35.2] - [2024-02-25]
+- Adjust the styling of the save and cancel buttons in the description editing.
+
 ## [0.35.1] - [2024-02-24]
 - Add loading state to the query preview.
 
