@@ -114,11 +114,23 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
   }
 
   private _getWebviewContent(webview: vscode.Webview) {
+    const codiconsUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(
+        this._extensionUri,
+        "webview-ui",
+        "node_modules",
+        "@vscode/codicons",
+        "dist",
+        "codicon.css"
+      )
+    );
+
     const stylesUri = getUri(webview, this._extensionUri, [
       "webview-ui",
       "build",
       "assets",
       "queryPreview.css",
+      "codicon.css",
     ]);
     const stylesUriCustomElt = getUri(webview, this._extensionUri, [
       "webview-ui",
@@ -158,6 +170,7 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
         <link rel="stylesheet" href="${stylesUri}">
         <link rel="stylesheet" href="${stylesUriCustomElt}">
         <link rel="stylesheet" href="${stylesUriIndex}">
+        <link rel="stylesheet" href="${codiconsUri}">
         <title>Bruin Query Preview</title>
       </head>
   
@@ -185,6 +198,12 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
           this.limit = message.payload.limit;
           this.loadAndSendQueryOutput(this.environment, this.limit);
           console.log("Received limit from webview in the Query Preview panel", message.payload);
+          break;
+        case "bruin.clearQueryOutput":
+          console.log(
+            "Received clear query output from webview in the Query Preview panel",
+            message.payload
+          );
           break;
       }
     });

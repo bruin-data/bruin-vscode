@@ -37,7 +37,8 @@
 
         <div class="flex items-center space-x-2">
           <vscode-button title="Clear Results" appearance="icon" @click="clearQueryOutput">
-            <XMarkIcon class="h-4 w-4" />
+            <!-- Use the VS Code codicon for clear-all -->
+            <span class="codicon codicon-clear-all" style="font-size: 1.2em"></span>
           </vscode-button>
         </div>
       </div>
@@ -131,8 +132,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from "vue";
-import { XMarkIcon } from "@heroicons/vue/20/solid";
+import { computed, onMounted, onUnmounted, ref, defineEmits } from "vue";
 import { PlayIcon, TableCellsIcon } from "@heroicons/vue/24/outline";
 import { vscode } from "@/utilities/vscode";
 
@@ -185,7 +185,10 @@ const runQuery = () => {
     payload: { environment: environment.value, limit: limit.value.toString(), query: "" },
   });
 };
+const emit = defineEmits(["resetData"]);
 const clearQueryOutput = () => {
+  emit("resetData");
+
   vscode.postMessage({ command: "bruin.clearQueryOutput" });
 };
 const handleKeyDown = (event) => {
@@ -230,5 +233,12 @@ thead th::after {
   width: 100%;
   border-bottom: 1px solid var(--vscode-commandCenter-border);
   z-index: 1;
+}
+</style>
+
+<style>
+body {
+  padding: 0 !important;
+  margin: 0 !important;
 }
 </style>

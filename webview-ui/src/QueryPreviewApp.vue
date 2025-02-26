@@ -6,7 +6,7 @@
       :id="`view-${index}`"
       v-show="activeTab === index"
     >
-      <component v-if="tab.props" :is="tab.component" :output="QueryOutput" :error="QueryError" :is-loading="isLoading" class="flex w-full" />
+      <component v-if="tab.props" :is="tab.component" :output="QueryOutput" :error="QueryError" :is-loading="isLoading" @resetData="clearQueryOutput" class="flex w-full" />
     </vscode-panel-view>
   </vscode-panels>
 </template>
@@ -74,6 +74,11 @@ const errorValue = computed(() => {
   }
 });
 
+const clearQueryOutput = () => {
+  QueryOutput.value = null;
+  QueryError.value = null;
+  isLoading.value = false;
+}
 // Define tabs for the application
 const tabs = ref([
   {
