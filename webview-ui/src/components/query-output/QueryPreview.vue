@@ -1,41 +1,43 @@
 <template>
   <div class="flex flex-col w-full h-full">
-    <div class="flex items-center justify-between border-b border-t border-commandCenter-border">
-      <div class="flex items-center w-full justify-between space-x-4">
-        <div class="flex items-center space-x-4 py-1">
-          <div class="flex items-center space-x-2">
+    <div
+      class="flex items-center justify-between border-b border-t border-panel-border bg-sideBarSectionHeader-bg"
+    >
+      <div class="flex items-center w-full justify-between h-8">
+        <div class="flex items-center gap-1 ml-2">
+          <div class="flex items-center">
             <vscode-button title="Run Query" appearance="icon" @click="runQuery">
-              <PlayIcon class="h-4 w-4" />
+              <span class="codicon codicon-play" style="font-size: 1.2em"></span>
             </vscode-button>
-            <span class="text-sm text-editor-fg">Limit</span>
+            <span class="text-3xs text-editor-fg uppercase px-1">Limit</span>
             <input
               type="number"
               v-model="limit"
-              class="w-16 h-6 text-sm rounded bg-editorWidget-bg text-editor-fg hover:bg-input-background focus:bg-input-background focus:outline-none px-1"
+              class="w-12 h-6 text-3xs rounded bg-editorWidget-bg text-editor-fg hover:bg-input-background focus:bg-input-background focus:outline-none px-1"
               min="1"
               max="1000"
             />
           </div>
-          <div class="flex items-center space-x-2">
+          <div class="flex items-center space-x-2 opacity-50">
             <button
               v-for="tab in tabs"
               :key="tab.id"
               @click="activeTab = tab.id"
-              class="p-1 text-xm rounded transition-colors"
+              class="p-1 text-3xs rounded transition-colors uppercase"
               :class="{
                 'bg-input-background text-editor-fg': activeTab === tab.id,
-                'text-editor-fg hover:bg-editorWidget-bg': activeTab !== tab.id,
+                'text-editor-fg hover:bg-editorWidget-bg px-2': activeTab !== tab.id,
               }"
             >
-              <div class="flex items-center justify-between space-x-1">
-                <TableCellsIcon class="h-4 w-4" />
+              <div class="flex items-center justify-between">
+                <TableCellsIcon class="h-4 w-4 mr-1" />
                 <span> {{ tab.label }} </span>
               </div>
             </button>
           </div>
         </div>
 
-        <div class="flex items-center space-x-2">
+        <div class="flex items-center gap-1 mr-2">
           <vscode-button title="Clear Results" appearance="icon" @click="clearQueryOutput">
             <!-- Use the VS Code codicon for clear-all -->
             <span class="codicon codicon-clear-all" style="font-size: 1.2em"></span>
@@ -77,11 +79,13 @@
       >
         <div class="flex items-center space-x-2 text-sm text-editor-fg">
           <vscode-button appearance="icon" @click="runQuery">
-            <PlayIcon class="h-4 w-4" />
+            <span class="codicon codicon-play" style="font-size: 1.2em"></span>
           </vscode-button>
           <span class="opacity-50">Run query preview</span>
-          <span class="px-2 py-1 bg-editorWidget-bg rounded"> ⌘ </span>
-          <span class="px-2 py-1 bg-editorWidget-bg rounded">Enter</span>
+          <div class="flex items-center">
+            <span class="keybinding"> ⌘ </span>
+            <span class="keybinding">Enter</span>
+          </div>
         </div>
       </div>
       <!-- Results Table -->
@@ -133,7 +137,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, defineEmits } from "vue";
-import { PlayIcon, TableCellsIcon } from "@heroicons/vue/24/outline";
+import { TableCellsIcon } from "@heroicons/vue/24/outline";
 import { vscode } from "@/utilities/vscode";
 
 const props = defineProps<{
@@ -240,5 +244,25 @@ thead th::after {
 body {
   padding: 0 !important;
   margin: 0 !important;
+}
+
+.keybinding {
+  background-color: var(--vscode-keybindingLabel-background);
+  border-top: 1px solid transparent;
+  border-right: 1px solid transparent;
+  border-bottom-color: var(--vscode-keybindingLabel-bottomBorder);
+  border-left: 1px solid transparent;
+  box-shadow: inset 0 -1px 0 var(--vscode-widget-shadow);
+  display: inline-block;
+  border-bottom-style: solid;
+  border-bottom-width: 1px;
+  border-radius: 3px;
+  vertical-align: middle;
+  font-size: 11px;
+  padding: 3px 5px;
+  margin: 0px 2px;
+  color: var(--vscode-keybindingLabel-foreground);
+  align-items: center;
+  line-height: 10px;
 }
 </style>

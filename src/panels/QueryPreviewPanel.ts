@@ -130,7 +130,6 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
       "build",
       "assets",
       "queryPreview.css",
-      "codicon.css",
     ]);
     const stylesUriCustomElt = getUri(webview, this._extensionUri, [
       "webview-ui",

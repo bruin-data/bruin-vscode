@@ -111,6 +111,10 @@ module.exports = {
         "dropdown-bg": "var(--vscode-dropdown-background)",
         "notificationCenter-border": "var(--vscode-notificationCenter-border)",
         "badge-bg": "var(--vscode-badge-background)",
+        "panel-border": "var(--vscode-panel-border)",
+        "sideBarSectionHeader-bg": "var(--vscode-sideBarSectionHeader-background)",
+        "keybindingLabel-background": "var(--vscode-keybindingLabel-background)",
+        "keybindingLabel-bottom-border": "var(--vscode-keybindingLabel-bottomBorder)",
 
         "primary": {
           DEFAULT: "hsl(var(--primary))",
