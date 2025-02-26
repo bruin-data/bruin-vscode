@@ -248,7 +248,6 @@ const saveNameEdit = () => {
     vscode.postMessage({
       command: "bruin.setAssetDetails",
       payload: {
-        ...assetDetailsProps.value,
         name: editingName.value.trim(),
       },
     });
@@ -421,8 +420,6 @@ const updateDescription = (newDescription) => {
     vscode.postMessage({
       command: "bruin.setAssetDetails",
       payload: {
-        ...assetDetailsProps.value,
-        name: assetDetailsProps.value.name,
         description: newDescription,
       },
     });
