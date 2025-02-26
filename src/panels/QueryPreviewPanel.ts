@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { getNonce } from "../utilities/getNonce";
 import { getUri } from "../utilities/getUri";
-import { getQueryOutput } from "../extension/commands/queryCommand";
+import { executeDirectQuery, getQueryOutput } from "../extension/commands/queryCommand";
 
 export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Disposable {
   public static readonly viewId = "bruin.QueryPreviewView";
@@ -27,6 +27,11 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
       }
       // Only proceed if we got a valid query string
       await getQueryOutput(environment, limit, this._lastRenderedDocumentUri);
+      await executeDirectQuery(
+        environment,
+        limit,
+        this._lastRenderedDocumentUri,
+      );
     } catch (error) {
       console.error("Error loading query data:", error);
     }

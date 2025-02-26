@@ -184,6 +184,10 @@ const runQuery = () => {
     command: "bruin.getQueryOutput",
     payload: { environment: environment.value, limit: limit.value.toString() },
   });
+  vscode.postMessage({
+    command: "bruin.executeDirectQuery",
+    payload: { query: "" },
+  });
 };
 const clearQueryOutput = () => {
   vscode.postMessage({ command: "bruin.clearQueryOutput" });
