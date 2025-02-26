@@ -166,12 +166,20 @@ const startEditingDescription = () => {
 const emit = defineEmits(["update:description"]);
 
 const saveDescriptionEdit = () => {
-  if (editableDescription.value.trim() !== props.description) {
-    emit("update:description", editableDescription.value.trim());
-    console.log("Updating description:", editableDescription.value.trim());
+  try {
+    // Ensure we have a string and normalize it
+    const normalizedDescription = String(editableDescription.value || '').trim();
+    // Only emit if there's an actual change
+    if (normalizedDescription !== props.description) {
+      emit("update:description", normalizedDescription);
+      console.log("Updating description:", normalizedDescription);
+    }
+  } catch (error) {
+    console.error("Error saving description:", error);
+  } finally {
+    isEditingDescription.value = false;
+    showEditButton.value = false;
   }
-  isEditingDescription.value = false;
-  showEditButton.value = false;
 };
 
 const cancelDescriptionEdit = () => {
