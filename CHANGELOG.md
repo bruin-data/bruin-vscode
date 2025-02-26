@@ -2,6 +2,9 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
+## [0.35.3] - [2024-02-26]
+- Optimize payload size for description and asset name updates and improve error handling.
+
 ## [0.35.2] - [2024-02-25]
 - Adjust the styling of the save and cancel buttons in the description editing.
 
