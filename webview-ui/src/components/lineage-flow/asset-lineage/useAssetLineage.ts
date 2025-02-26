@@ -58,6 +58,7 @@ export const getAssetDataset = (
      return populatedDownstream
   }
 
+  // Bit hard to understand the complexity, optimize this 
   const getDownstreamAssets = (asset) => {
     return pipelineData.assets.filter(a => a.upstreams.some(up => up.value === asset.name))
       .map(a => ({
@@ -68,6 +69,7 @@ export const getAssetDataset = (
         isFocusAsset: false,
         hasUpstreamForClicking: false,
         hasDownstreamForClicking: deduceDownstream(a) && deduceDownstream(a).length > 0,
+        // This is too complex, simplify it 
       }));
   };
 

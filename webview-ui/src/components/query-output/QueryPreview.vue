@@ -182,11 +182,7 @@ const runQuery = () => {
   }
   vscode.postMessage({
     command: "bruin.getQueryOutput",
-    payload: { environment: environment.value, limit: limit.value.toString() },
-  });
-  vscode.postMessage({
-    command: "bruin.executeDirectQuery",
-    payload: { query: "" },
+    payload: { environment: environment.value, limit: limit.value.toString(), query: "" },
   });
 };
 const clearQueryOutput = () => {
@@ -204,6 +200,8 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener("keydown", handleKeyDown);
+  clearQueryOutput();
+  window.removeEventListener("message", postMessage);
 });
 </script>
 <style scoped>

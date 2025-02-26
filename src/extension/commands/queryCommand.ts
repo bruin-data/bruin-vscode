@@ -4,25 +4,18 @@ import { getDefaultBruinExecutablePath } from "../configuration";
 import { BruinQueryOutput } from "../../bruin/queryCommand";
 import * as vscode from "vscode";
 
-export const executeDirectQuery = async (environment: string, limit: string, lastRenderedDocumentUri: Uri | undefined) => {
+export const getQueryOutput = async (environment: string, limit: string, lastRenderedDocumentUri: Uri | undefined) => {
   const editor = window.activeTextEditor;
   if (!editor) {
     window.showErrorMessage('No active editor found');
     return;
   }
 
-  let query: string;
+  // Get the selected text (if any)
   const selection = editor.selection;
-  if (selection && !selection.isEmpty) {
-    const selectionRange = new vscode.Range(selection.start.line, selection.start.character, selection.end.line, selection.end.character);
-    query = editor.document.getText(selectionRange);
-  } else {
-    query = "";
-  }
-
-  if (!query.trim()) {
-    return;
-  }
+  const selectedQuery = selection && !selection.isEmpty 
+    ? editor.document.getText(new vscode.Range(selection.start, selection.end))
+    : "";
 
   const workspaceFolder = workspace.getWorkspaceFolder(editor.document.uri);
   if (!workspaceFolder) {
@@ -32,23 +25,13 @@ export const executeDirectQuery = async (environment: string, limit: string, las
   if (!lastRenderedDocumentUri) {
     return;
   }
+
   const output = new BruinQueryOutput(
     getDefaultBruinExecutablePath(),
-    await bruinWorkspaceDirectory(workspaceFolder.uri.fsPath)!! as string
+    await bruinWorkspaceDirectory(workspaceFolder.uri.fsPath) as string
   );
 
-  await output.getOutput(environment, lastRenderedDocumentUri.fsPath, limit, { query });
-};
-
-export const getQueryOutput = async (environment: string, limit: string, lastRenderedDocumentUri: Uri | undefined) => {
-  if (!lastRenderedDocumentUri) {
-    return;
-  }
-  const output = new BruinQueryOutput(
-    getDefaultBruinExecutablePath(),
-    await bruinWorkspaceDirectory(lastRenderedDocumentUri.fsPath)!! as string
-  );
-  const queryResult = await output.getOutput(environment, lastRenderedDocumentUri.fsPath, limit);
-  return queryResult;
+  // Pass the query only if there is a valid selection, otherwise leave it empty.
+  await output.getOutput(environment, lastRenderedDocumentUri.fsPath, limit, { query: selectedQuery });
 };
 
