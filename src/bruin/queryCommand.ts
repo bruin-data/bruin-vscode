@@ -29,18 +29,24 @@ export class BruinQueryOutput extends BruinCommand {
     environment: string,
     asset: string,
     limit: string,
-    { flags = [], ignoresErrors = false }: BruinCommandOptions = {}
+    { flags = [], ignoresErrors = false, query = "" }: BruinCommandOptions & { query?: string } = {}
   ): Promise<void> {
     // Construct base flags dynamically
     this.isLoading = true;
     this.postMessageToPanels("loading", this.isLoading);
     const constructedFlags = ["-o", "json"];
+
+    if (query) {
+      // If we have a direct query, use the query flag
+      constructedFlags.push("-q", query);
+    }
     if (environment) {
       constructedFlags.push("-env", environment);
     }
     if (limit) {
       constructedFlags.push("-limit", limit);
     }
+    // we always need to push the other flags including the asset flag
     constructedFlags.push("-asset", asset);
 
     // Use provided flags or fallback to constructed flags

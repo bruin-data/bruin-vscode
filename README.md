@@ -107,10 +107,12 @@ Access the Bruin CLI management tab `Settings` in the side panel for easy instal
 
 ## Release Notes
 
-### Latest Release: 0.35.3
-- Optimize payload size for description and asset name updates and improve error handling.
+### Latest Release: 0.36.0
+- Added support for executing `selected queries` in the Query Preview Panel.
+- The selected queries should belong to a valid `bruin` asset.
 
 ### Recent Updates
+- **0.35.3**: Optimize payload size for description and asset name updates and improve error handling.
 - **0.35.2**: Adjust the styling of the save and cancel buttons in the description editing.
 - **0.35.1**: Add loading state to the query preview.
 - **0.35.0**: Introduce a new **Query Preview Panel** to display the output of SQL `query` execution. This feature currently uses the **default** environment with a maximum limit of **1000**.

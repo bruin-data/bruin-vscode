@@ -6,7 +6,7 @@
       :id="`view-${index}`"
       v-show="activeTab === index"
     >
-      <component v-if="tab.props" :is="tab.component" :output="QueryOutput" :error="QueryError" :is-loading="isLoading" class="flex w-full" />
+      <component v-if="tab.props" :is="tab.component" :output="QueryOutput" :error="QueryError" :is-loading="isLoading" @resetData="clearQueryOutput" class="flex w-full" />
     </vscode-panel-view>
   </vscode-panels>
 </template>
@@ -51,13 +51,6 @@ const handleMessage = (event) => {
 
 // add event listener
 window.addEventListener("message", handleMessage);
-const queryOutput = `id,name,email,age,city
-1,John Doe,johndoe@example.com,30,New York
-2,Jane Smith,janesmith@example.com,25,Los Angeles
-3,Alice Johnson,alicej@example.com,28,Chicago
-4,Bob Brown,bobb@example.com,35,Houston
-5,Charlie Black,charlieb@example.com,22,Miami
-6,Diana Prince,dianap@example.com,32,San Francisco`;
 
 const output = computed(() => {
   if (QueryError.value) return null;
@@ -81,6 +74,11 @@ const errorValue = computed(() => {
   }
 });
 
+const clearQueryOutput = () => {
+  QueryOutput.value = null;
+  QueryError.value = null;
+  isLoading.value = false;
+}
 // Define tabs for the application
 const tabs = ref([
   {
