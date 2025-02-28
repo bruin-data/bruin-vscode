@@ -1,6 +1,8 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
+## [0.37.1] - [2024-02-28]
+- Fixed CustomChecks to correctly recognize `0` as a valid check value instead `undefined`.
 
 ## [0.37.0] - [2024-02-28]
 - Added search functionality to the Query Preview Panel.
