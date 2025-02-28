@@ -25,7 +25,7 @@
           </td>
           <!-- Value -->
           <td class="px-2 py-1 font-medium font-mono text-xs w-1/6 text-center">
-            <div v-if="check.value" class="truncate" :title="check.value">
+            <div v-if="check.value !== null && check.value !== undefined" class="truncate" :title="String(check.value)">
               {{ check.value }}
             </div>
             <div v-else class="italic opacity-70 truncate whitespace-normal">undefined</div>
