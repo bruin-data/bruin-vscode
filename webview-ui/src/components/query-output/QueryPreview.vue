@@ -38,7 +38,21 @@
         </div>
 
         <div class="relative flex items-center gap-1 mr-2">
-          <vscode-button title="Search (Ctrl+F)" appearance="icon" @click="toggleSearchInput">
+           <!-- Search Component -->
+           <QuerySearch
+            :visible="showSearchInput"
+            :total-count="totalRowCount"
+            :filtered-count="filteredRowCount"
+            @update:visible="showSearchInput = $event"
+            @update:searchTerm="searchInput = $event"
+            @close="showSearchInput = false"
+          />
+          <vscode-button
+            v-if="!showSearchInput"
+            title="Search (Ctrl+F)"
+            appearance="icon"
+            @click="toggleSearchInput"
+          >
             <span class="codicon codicon-search"></span>
           </vscode-button>
           <vscode-button title="Clear Results" appearance="icon" @click="clearQueryOutput">
@@ -49,16 +63,6 @@
     </div>
     <!-- Query Output Tab -->
     <div v-if="activeTab === 'output'" class="relative">
-      <!-- Search Component -->
-      <QuerySearch
-        :visible="showSearchInput"
-        :total-count="totalRowCount"
-        :filtered-count="filteredRowCount"
-        @update:visible="showSearchInput = $event"
-        @update:searchTerm="searchInput = $event"
-        @close="showSearchInput = false"
-      />
-      
       <div
         v-if="isLoading"
         class="fixed inset-0 flex items-center justify-center bg-editor-bg bg-opacity-50 z-50"
@@ -128,7 +132,7 @@
               class="hover:bg-menu-hoverBackground transition-colors duration-150"
             >
               <td
-                class="p-1 whitespace-nowrap text-editor-fg font-mono border border-commandCenter-border"
+                class="p-1 opacity-50 text-editor-fg font-mono border border-commandCenter-border"
               >
                 {{ index + 1 }}
               </td>
@@ -215,12 +219,10 @@ const filteredRows = computed(() => {
   }
 
   const searchTerm = searchInput.value.toLowerCase();
-  const filtered = parsedOutput.value.rows.filter(row => {
-    return row.some(cell => 
-      cell !== null && String(cell).toLowerCase().includes(searchTerm)
-    );
+  const filtered = parsedOutput.value.rows.filter((row) => {
+    return row.some((cell) => cell !== null && String(cell).toLowerCase().includes(searchTerm));
   });
-  
+
   filteredRowCount.value = filtered.length;
   return filtered;
 });
@@ -230,22 +232,22 @@ const highlightMatch = (value) => {
   if (!searchInput.value.trim() || value === null) {
     return String(value);
   }
-  
+
   const searchTerm = searchInput.value;
   const stringValue = String(value);
-  
+
   if (!stringValue.toLowerCase().includes(searchTerm.toLowerCase())) {
     return stringValue;
   }
-  
+
   // Use regex with 'i' flag for case-insensitive matching
-  const regex = new RegExp(`(${escapeRegExp(searchTerm)})`, 'gi');
+  const regex = new RegExp(`(${escapeRegExp(searchTerm)})`, "gi");
   return stringValue.replace(regex, '<span class="bg-yellow-500 text-black">$1</span>');
 };
 
 // Helper function to escape regex special characters
 const escapeRegExp = (string) => {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 };
 
 const runQuery = () => {
@@ -273,7 +275,7 @@ const handleKeyDown = (event) => {
   if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
     runQuery();
   }
-  
+
   // Toggle search with Cmd+F or Ctrl+F
   if ((event.ctrlKey || event.metaKey) && event.key === "f") {
     event.preventDefault();
