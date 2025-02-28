@@ -37,16 +37,28 @@
           </div>
         </div>
 
-        <div class="flex items-center gap-1 mr-2">
+        <div class="relative flex items-center gap-1 mr-2">
+          <vscode-button title="Search (Ctrl+F)" appearance="icon" @click="toggleSearchInput">
+            <span class="codicon codicon-search"></span>
+          </vscode-button>
           <vscode-button title="Clear Results" appearance="icon" @click="clearQueryOutput">
-            <!-- Use the VS Code codicon for clear-all -->
-            <span class="codicon codicon-clear-all" style="font-size: 1.2em"></span>
+            <span class="codicon codicon-clear-all"></span>
           </vscode-button>
         </div>
       </div>
     </div>
     <!-- Query Output Tab -->
     <div v-if="activeTab === 'output'" class="relative">
+      <!-- Search Component -->
+      <QuerySearch
+        :visible="showSearchInput"
+        :total-count="totalRowCount"
+        :filtered-count="filteredRowCount"
+        @update:visible="showSearchInput = $event"
+        @update:searchTerm="searchInput = $event"
+        @close="showSearchInput = false"
+      />
+      
       <div
         v-if="isLoading"
         class="fixed inset-0 flex items-center justify-center bg-editor-bg bg-opacity-50 z-50"
@@ -111,7 +123,7 @@
           </thead>
           <tbody>
             <tr
-              v-for="(row, index) in parsedOutput.rows"
+              v-for="(row, index) in filteredRows"
               :key="index"
               class="hover:bg-menu-hoverBackground transition-colors duration-150"
             >
@@ -125,7 +137,7 @@
                 :key="colIndex"
                 class="p-1 whitespace-nowrap text-editor-fg font-mono border border-commandCenter-border"
               >
-                <div class="truncate max-w-[200px]">{{ value }}</div>
+                <div class="truncate max-w-[200px]" v-html="highlightMatch(value)"></div>
               </td>
             </tr>
           </tbody>
@@ -136,10 +148,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, defineEmits } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { TableCellsIcon } from "@heroicons/vue/24/outline";
 import { vscode } from "@/utilities/vscode";
-
+import QuerySearch from "../ui/query-preview/QuerySearch.vue";
 const props = defineProps<{
   output: any;
   error: any;
@@ -150,6 +162,11 @@ const limit = ref(100);
 const tabs = ref([{ id: "output", label: "Output" }]);
 const activeTab = ref("output");
 const environment = ref("");
+const searchInput = ref("");
+const showSearchInput = ref(false);
+const filteredRowCount = ref(0);
+const totalRowCount = ref(0);
+
 const error = computed(() => {
   if (!props.error) return null;
 
@@ -180,6 +197,57 @@ const parsedOutput = computed(() => {
   }
 });
 
+// Update total row count when data changes
+watch(parsedOutput, (newValue) => {
+  if (newValue && newValue.rows) {
+    totalRowCount.value = newValue.rows.length;
+  } else {
+    totalRowCount.value = 0;
+  }
+});
+
+const filteredRows = computed(() => {
+  if (!parsedOutput.value || !parsedOutput.value.rows) return [];
+
+  if (!searchInput.value.trim()) {
+    filteredRowCount.value = totalRowCount.value;
+    return parsedOutput.value.rows;
+  }
+
+  const searchTerm = searchInput.value.toLowerCase();
+  const filtered = parsedOutput.value.rows.filter(row => {
+    return row.some(cell => 
+      cell !== null && String(cell).toLowerCase().includes(searchTerm)
+    );
+  });
+  
+  filteredRowCount.value = filtered.length;
+  return filtered;
+});
+
+// Highlight matching text in search results
+const highlightMatch = (value) => {
+  if (!searchInput.value.trim() || value === null) {
+    return String(value);
+  }
+  
+  const searchTerm = searchInput.value;
+  const stringValue = String(value);
+  
+  if (!stringValue.toLowerCase().includes(searchTerm.toLowerCase())) {
+    return stringValue;
+  }
+  
+  // Use regex with 'i' flag for case-insensitive matching
+  const regex = new RegExp(`(${escapeRegExp(searchTerm)})`, 'gi');
+  return stringValue.replace(regex, '<span class="bg-yellow-500 text-black">$1</span>');
+};
+
+// Helper function to escape regex special characters
+const escapeRegExp = (string) => {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
 const runQuery = () => {
   if (limit.value > 1000 || limit.value < 1) {
     limit.value = 1000;
@@ -189,15 +257,27 @@ const runQuery = () => {
     payload: { environment: environment.value, limit: limit.value.toString(), query: "" },
   });
 };
+
+const toggleSearchInput = () => {
+  showSearchInput.value = !showSearchInput.value;
+};
+
 const emit = defineEmits(["resetData"]);
 const clearQueryOutput = () => {
   emit("resetData");
-
   vscode.postMessage({ command: "bruin.clearQueryOutput" });
 };
+
 const handleKeyDown = (event) => {
+  // Run query with Cmd+Enter or Ctrl+Enter
   if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
     runQuery();
+  }
+  
+  // Toggle search with Cmd+F or Ctrl+F
+  if ((event.ctrlKey || event.metaKey) && event.key === "f") {
+    event.preventDefault();
+    toggleSearchInput();
   }
 };
 
