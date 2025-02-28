@@ -18,7 +18,7 @@
               max="1000"
             />
           </div>
-          <div class="flex items-center space-x-2 opacity-50">
+          <div class="flex items-center space-x-1 opacity-50">
             <button
               v-for="tab in tabs"
               :key="tab.id"
@@ -34,6 +34,9 @@
                 <span> {{ tab.label }} </span>
               </div>
             </button>
+            <vscode-button title="Add Tab" appearance="icon" @click="addTab">
+              <span class="codicon codicon-add"></span>
+            </vscode-button>
           </div>
         </div>
 
@@ -62,7 +65,7 @@
       </div>
     </div>
     <!-- Query Output Tab -->
-    <div v-if="activeTab === 'output'" class="relative">
+    <div v-if="activeTab" class="relative">
       <div
         v-if="isLoading"
         class="fixed inset-0 flex items-center justify-center bg-editor-bg bg-opacity-50 z-50"
@@ -156,6 +159,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { TableCellsIcon } from "@heroicons/vue/24/outline";
 import { vscode } from "@/utilities/vscode";
 import QuerySearch from "../ui/query-preview/QuerySearch.vue";
+import type { Tab } from "@/types";
 const props = defineProps<{
   output: any;
   error: any;
@@ -163,14 +167,25 @@ const props = defineProps<{
 }>();
 
 const limit = ref(100);
-const tabs = ref([{ id: "output", label: "Output" }]);
-const activeTab = ref("output");
+const tabs = ref<Tab[]>([]);
+const activeTab = ref<string>("");
 const environment = ref("");
 const searchInput = ref("");
 const showSearchInput = ref(false);
 const filteredRowCount = ref(0);
 const totalRowCount = ref(0);
 
+const addTab = () => {
+  tabs.value.push({
+    id: `tab-${tabs.value.length}`, label: `Tab ${tabs.value.length + 1}`,
+    parsedOutput: undefined,
+    error: undefined,
+    isLoading: false,
+    searchInput: "",
+    totalRowCount: 0,
+    filteredRowCount: 0
+  });
+};
 const error = computed(() => {
   if (!props.error) return null;
 
