@@ -2,7 +2,10 @@
 
 All notable changes to the Bruin extension will be documented in this file.
 
-## [0.36.0] - [2024-02-26]
+## [0.37.0] - [2024-02-28]
+- Added search functionality to the Query Preview Panel.
+
+## [0.36.0] - [2024-02-27]
 - Added support for executing `selected queries` in the Query Preview Panel.
 - The selected queries should belong to a valid `bruin` asset.
 
