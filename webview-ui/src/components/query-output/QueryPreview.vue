@@ -68,7 +68,7 @@
           Query Execution Failed
         </div>
         <div
-          class="text-xs font-mono text-red-300 bg-editorWidget-bg p-2 rounded-sm border border-commandCenter-border whitespace-pre-wrap break-all leading-relaxed"
+          class="text-xs font-mono text-red-300 bg-editorWidget-bg whitespace-pre-wrap break-all leading-relaxed"
         >
           {{ error }}
         </div>
