@@ -118,9 +118,8 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
       vscode.Uri.joinPath(
         this._extensionUri,
         "webview-ui",
-        "node_modules",
-        "@vscode/codicons",
-        "dist",
+        "build",
+        "assets",
         "codicon.css"
       )
     );

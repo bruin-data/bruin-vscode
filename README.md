@@ -107,10 +107,11 @@ Access the Bruin CLI management tab `Settings` in the side panel for easy instal
 
 ## Release Notes
 
-### Latest Release: 0.37.1
-- Fixed CustomChecks to correctly recognize `0` as a valid check value instead `undefined`.
+### Latest Release: 0.37.2
+- Resolved the visibility issue with icons in the Query Preview Panel.
 
 ### Recent Updates
+- **0.37.1**: Fixed CustomChecks to correctly recognize `0` as a valid check value instead `undefined`.
 - **0.37.0**: Added search functionality to the Query Preview Panel.
 - **0.36.0**: Added support for executing `selected queries` in the Query Preview Panel. The selected queries should belong to a valid `bruin` asset.
 - **0.35.3**: Optimize payload size for description and asset name updates and improve error handling.
