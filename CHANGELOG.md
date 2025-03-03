@@ -1,69 +1,72 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
-## [0.37.1] - [2024-02-28]
+## [0.37.2] - [2025-03-03]
+- Resolved the visibility issue with icons in the Query Preview Panel.
+
+## [0.37.1] - [2025-02-28]
 - Fixed CustomChecks to correctly recognize `0` as a valid check value instead `undefined`.
 
-## [0.37.0] - [2024-02-28]
+## [0.37.0] - [2025-02-28]
 - Added search functionality to the Query Preview Panel.
 
-## [0.36.0] - [2024-02-27]
+## [0.36.0] - [2025-02-27]
 - Added support for executing `selected queries` in the Query Preview Panel.
 - The selected queries should belong to a valid `bruin` asset.
 
-## [0.35.3] - [2024-02-26]
+## [0.35.3] - [2025-02-26]
 - Optimize payload size for description and asset name updates and improve error handling.
 
-## [0.35.2] - [2024-02-25]
+## [0.35.2] - [2025-02-25]
 - Adjust the styling of the save and cancel buttons in the description editing.
 
-## [0.35.1] - [2024-02-24]
+## [0.35.1] - [2025-02-24]
 - Add loading state to the query preview.
 
-## [0.35.0] - [2024-02-24]
+## [0.35.0] - [2025-02-24]
 - Introduce a new **Query Preview Panel** to display the output of SQL `query` execution.  
 - This feature currently uses the **default** environment with a maximum limit of **1000**.
 
-## [0.34.1] - [2024-02-17]
+## [0.34.1] - [2025-02-17]
 - Reset filter panel state on file change and improve graph viewport adjustments for expanded nodes.
 
-## [0.34.0] - [2024-02-17]
+## [0.34.0] - [2025-02-17]
 - Add options panel to the lineage view with choices to display either all upstream & downstream dependencies or only direct dependencies.
 
-## [0.33.2] - [2024-02-14]
+## [0.33.2] - [2025-02-14]
 - Improve description editing by adding clear Save and Cancel buttons.
 
-## [0.33.1] - [2024-02-07]
+## [0.33.1] - [2025-02-07]
 - Display render button for all file extensions, ensuring Bruin render is always visible.
 
-## [0.33.0] - [2024-02-07]
+## [0.33.0] - [2025-02-07]
 - Adde a Control panel with zoom, view fit, and lock buttons and reduced top gap in the lineage flow.
 
-## [0.32.13] - [2024-02-05]
+## [0.32.13] - [2025-02-05]
 - Resolved an issue where terminal commands occasionally missed the first letter, causing execution failures.
 
-## [0.32.12] - [2024-02-05]
+## [0.32.12] - [2025-02-05]
 - Format the rendering error message to display differently based on the phase (rendering or validation).
 
-## [0.32.11] - [2024-01-30]
+## [0.32.11] - [2025-01-30]
 - Fixed ConnectionForm not resetting when switching between edit and new connection.
 
-## [0.32.10] - [2024-01-30]
+## [0.32.10] - [2025-01-30]
 - Improved truncation behavior for pipeline and asset names and ensured asset name edit mode closes on mouse leave.
 
-## [0.32.9] - [2024-01-29]
+## [0.32.9] - [2025-01-29]
 - Asset validation errors now expand for single assets and pipelines, while multiple pipeline errors stay collapsed.
 
-## [0.32.8] - [2024-01-29]
+## [0.32.8] - [2025-01-29]
 - Fixed an issue where new files opened in the side panel's group, causing confusion; the panel now locks by default.
 
-## [0.32.7] - [2024-01-20]
+## [0.32.7] - [2025-01-20]
 - Updated config schema to support more SSL modes and revised Athena schema.
 
-## [0.32.6] - [2024-01-16]
+## [0.32.6] - [2025-01-16]
 - Update the pipeline autocomplete schema to make name the only required field.
 
-## [0.32.5] - [2024-01-15]
+## [0.32.5] - [2025-01-15]
 - Added system information display to show Bruin CLI and extension versions, along with OS name.
 
 ## [0.32.4] - [2024-12-28]

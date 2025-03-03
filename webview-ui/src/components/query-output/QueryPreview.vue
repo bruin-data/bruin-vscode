@@ -53,10 +53,10 @@
             appearance="icon"
             @click="toggleSearchInput"
           >
-            <span class="codicon codicon-search"></span>
+            <span class="codicon codicon-search text-editor-fg"></span>
           </vscode-button>
           <vscode-button title="Clear Results" appearance="icon" @click="clearQueryOutput">
-            <span class="codicon codicon-clear-all"></span>
+            <span class="codicon codicon-clear-all text-editor-fg"></span>
           </vscode-button>
         </div>
       </div>
@@ -95,7 +95,7 @@
       >
         <div class="flex items-center space-x-2 text-sm text-editor-fg">
           <vscode-button appearance="icon" @click="runQuery">
-            <span class="codicon codicon-play" style="font-size: 1.2em"></span>
+            <span class="codicon codicon-play text-editor-fg" style="font-size: 1.2em"></span>
           </vscode-button>
           <span class="opacity-50">Run query preview</span>
           <div class="flex items-center">
