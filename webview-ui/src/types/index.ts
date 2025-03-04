@@ -132,3 +132,24 @@ export interface CustomChecks {
 }
 
 export type ErrorPhase = "Validating" | "Rednering";
+
+export interface Tab {
+  id: string;
+  label: string;
+  parsedOutput: any;
+  error: any;
+  isLoading: boolean;
+  searchInput: string;
+  totalRowCount: number;
+  filteredRowCount: number;
+}
+
+export interface TabData extends Tab {
+  parsedOutput: any | undefined;
+  error: string | null;
+  isLoading: boolean;
+  searchInput: string;
+  filteredRows: any[];
+  totalRowCount: number;
+  filteredRowCount: number;
+}
