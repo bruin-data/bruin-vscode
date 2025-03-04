@@ -1,6 +1,9 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
+## [0.38.0] - [2025-03-04]
+- Added multi-tab support to the QueryPreview component, allowing users to manage multiple query results simultaneously.
+
 ## [0.37.2] - [2025-03-03]
 - Resolved the visibility issue with icons in the Query Preview Panel.
 
