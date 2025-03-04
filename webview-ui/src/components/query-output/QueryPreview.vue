@@ -37,9 +37,9 @@
                 <span
                   v-if="tab.id !== 'output' && (hoveredTab === tab.id || activeTab === tab.id)"
                   @click.stop="closeTab(tab.id)"
-                  class="ml-1 px-1 rounded hover:bg-editorWidget-bg"
+                  class="flex items-center hover:bg-editorWidget-bg"
                 >
-                  <span class="codicon codicon-close"></span>
+                  <span class="ml-1 text-center codicon codicon-close"></span>
                 </span>
               </button>
             </div>
@@ -168,7 +168,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { TableCellsIcon } from "@heroicons/vue/24/outline";
 import { vscode } from "@/utilities/vscode";
 import QuerySearch from "../ui/query-preview/QuerySearch.vue";
-import type { Tab } from "@/types";
+import type { TabData } from "@/types";
 
 const props = defineProps<{
   output: any;
@@ -180,17 +180,6 @@ const limit = ref(100);
 const showSearchInput = ref(false);
 const hoveredTab = ref("");
 const environment = ref("");
-
-// Tab system
-interface TabData extends Tab {
-  parsedOutput: any | undefined;
-  error: string | null;
-  isLoading: boolean;
-  searchInput: string;
-  filteredRows: any[];
-  totalRowCount: number;
-  filteredRowCount: number;
-}
 
 const tabs = ref<TabData[]>([
   {

@@ -143,3 +143,13 @@ export interface Tab {
   totalRowCount: number;
   filteredRowCount: number;
 }
+
+export interface TabData extends Tab {
+  parsedOutput: any | undefined;
+  error: string | null;
+  isLoading: boolean;
+  searchInput: string;
+  filteredRows: any[];
+  totalRowCount: number;
+  filteredRowCount: number;
+}
