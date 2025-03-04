@@ -6,15 +6,22 @@
       :id="`view-${index}`"
       v-show="activeTab === index"
     >
-      <component v-if="tab.props" :is="tab.component" :output="QueryOutput" :error="QueryError" :is-loading="isLoading" @resetData="clearQueryOutput" class="flex w-full" />
+      <component
+        v-if="tab.props"
+        :is="tab.component"
+        v-bind="tab.props"
+        @resetData="clearQueryOutput"
+        class="flex w-full"
+      />
     </vscode-panel-view>
   </vscode-panels>
 </template>
 
 <script setup lang="ts">
-import { ref, onUnmounted, computed } from "vue";
+import { ref, onUnmounted, computed, onMounted, watch, triggerRef } from "vue";
 import { updateValue } from "./utilities/helper";
 import QueryPreview from "@/components/query-output/QueryPreview.vue";
+
 /**
  * QueryPreview Component
  *
@@ -43,20 +50,21 @@ const handleMessage = (event) => {
         isLoading.value = message.payload.message; // true or false
       } else {
         QueryOutput.value = updateValue(message, "success");
+        triggerRef(QueryOutput);
+        console.log("QueryOutput.value inside message handler", QueryOutput.value);
         QueryError.value = updateValue(message, "error");
       }
       break;
   }
 };
 
-// add event listener
-window.addEventListener("message", handleMessage);
-
 const output = computed(() => {
-  if (QueryError.value) return null;
+  console.log("QueryOutput.value in output", QueryOutput.value);
   if (!QueryOutput.value) return null;
   try {
-    return typeof QueryOutput.value === "string" ? JSON.parse(QueryOutput.value) : QueryOutput.value;
+    return typeof QueryOutput.value === "string"
+      ? JSON.parse(QueryOutput.value)
+      : QueryOutput.value;
   } catch (e) {
     console.error("Error parsing output:", e);
     return null;
@@ -67,8 +75,7 @@ const errorValue = computed(() => {
   if (!QueryError.value) return null;
   try {
     return typeof QueryError.value === "string" ? JSON.parse(QueryError.value) : QueryError.value;
-  }
-  catch (e) {
+  } catch (e) {
     console.error("Error parsing error output:", e);
     return null;
   }
@@ -78,21 +85,29 @@ const clearQueryOutput = () => {
   QueryOutput.value = null;
   QueryError.value = null;
   isLoading.value = false;
-}
+};
 // Define tabs for the application
 const tabs = ref([
   {
     label: "QueryPreview",
     component: QueryPreview,
-    props: {
-      output: computed(() => output.value),
-      error: computed(() => errorValue.value),
-      isLoading: computed(() => isLoading.value),
-
-    },
+    props: computed(() => ({
+      output: output.value,
+      error: errorValue.value,
+      isLoading: isLoading.value,
+    })),
   },
 ]);
 
+watch(output, (newValue) => {
+  if (newValue) {
+    console.log("output changed", newValue);
+  }
+});
+
+onMounted(() => {
+  window.addEventListener("message", handleMessage);
+});
 onUnmounted(() => {
   window.removeEventListener("message", handleMessage);
 });
