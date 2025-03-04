@@ -37,9 +37,9 @@
                 <span
                   v-if="tab.id !== 'output' && (hoveredTab === tab.id || activeTab === tab.id)"
                   @click.stop="closeTab(tab.id)"
-                  class="flex items-center hover:bg-editorWidget-bg"
+                  class="flex items-center hover:bg-editorWidget-bg ml-1"
                 >
-                  <span class="ml-1 text-center codicon codicon-close"></span>
+                  <span class="text-3xs codicon codicon-close"></span>
                 </span>
               </button>
             </div>
