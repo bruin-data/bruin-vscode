@@ -24,6 +24,7 @@
                 v-for="tab in tabs"
                 :key="tab.id"
                 @click="switchToTab(tab.id)"
+                @dblclick="startEdit(tab)"
                 @mouseover="hoveredTab = tab.id"
                 @mouseleave="hoveredTab = ''"
                 class="px-2 py-1 text-3xs rounded transition-colors uppercase flex items-center whitespace-nowrap"
@@ -32,15 +33,28 @@
                   'text-editor-fg hover:bg-editorWidget-bg': activeTab !== tab.id,
                 }"
               >
-                <TableCellsIcon class="h-4 w-4 mr-1" />
-                <span>{{ tab.label }}</span>
-                <span
-                  v-if="tab.id !== 'output' && (hoveredTab === tab.id || activeTab === tab.id)"
-                  @click.stop="closeTab(tab.id)"
-                  class="flex items-center hover:bg-editorWidget-bg ml-1"
-                >
-                  <span class="text-3xs codicon codicon-close"></span>
-                </span>
+                <div v-if="editingState?.tabId === tab.id" class="flex items-center">
+                  <input
+                    v-model="editingState.currentLabel"
+                    @keyup.enter="saveEdit"
+                    @keyup.escape="cancelEdit"
+                    @blur="saveEdit"
+                    class="bg-transparent text-current outline-none border-none text-3xs w-auto p-0 m-0"
+                    v-focus
+                    @click.stop
+                  />
+                </div>
+                <div v-else class="flex items-center">
+                  <TableCellsIcon class="h-4 w-4 mr-1" />
+                  <span>{{ tab.label }}</span>
+                  <span
+                    v-if="tab.id !== 'output' && (hoveredTab === tab.id || activeTab === tab.id)"
+                    @click.stop="closeTab(tab.id)"
+                    class="flex items-center hover:bg-editorWidget-bg ml-1"
+                  >
+                    <span class="text-3xs codicon codicon-close"></span>
+                  </span>
+                </div>
               </button>
             </div>
             <vscode-button title="Add Tab" appearance="icon" @click="addTab">
@@ -168,7 +182,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { TableCellsIcon } from "@heroicons/vue/24/outline";
 import { vscode } from "@/utilities/vscode";
 import QuerySearch from "../ui/query-preview/QuerySearch.vue";
-import type { TabData } from "@/types";
+import type { EditingState, TabData } from "@/types";
 
 const props = defineProps<{
   output: any;
@@ -191,8 +205,9 @@ const tabs = ref<TabData[]>([
     searchInput: "",
     filteredRows: [],
     totalRowCount: 0,
-    filteredRowCount: 0
-  }
+    filteredRowCount: 0,
+    isEditing: false,
+  },
 ]);
 
 const activeTab = ref<string>("output");
@@ -222,7 +237,8 @@ const addTab = () => {
     searchInput: "",
     filteredRows: [],
     totalRowCount: 0,
-    filteredRowCount: 0
+    filteredRowCount: 0,
+    isEditing: false,
   });
   
   tabCounter.value++;
@@ -235,7 +251,11 @@ const closeTab = (tabId: string) => {
   
   if (tabIndex !== -1) {
     tabs.value.splice(tabIndex, 1);
-    
+
+    // Clear editing state if closing edited tab
+    if (editingState.value?.tabId === tabId) {
+      cancelEdit();
+    }
     // If we closed the active tab, switch to the first available tab
     if (activeTab.value === tabId) {
       activeTab.value = tabs.value[0]?.id || "";
@@ -393,6 +413,35 @@ const handleKeyDown = (event) => {
     event.preventDefault();
     toggleSearchInput();
   }
+};
+
+const editingState = ref<EditingState | null>(null);
+
+const startEdit = (tab: TabData) => {
+  editingState.value = {
+    tabId: tab.id,
+    originalLabel: tab.label,
+    currentLabel: tab.label,
+  };
+};
+
+const saveEdit = () => {
+  if (!editingState.value) return;
+
+  const tab = tabs.value.find((t) => t.id === editingState.value!.tabId);
+  if (tab) {
+    tab.label = editingState.value.currentLabel.trim() || editingState.value.originalLabel;
+  }
+  editingState.value = null;
+};
+
+const cancelEdit = () => {
+  editingState.value = null;
+};
+
+// Add focus directive
+const vFocus = {
+  mounted: (el: HTMLInputElement) => el.focus(),
 };
 
 // Lifecycle hooks
