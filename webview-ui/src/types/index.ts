@@ -152,4 +152,11 @@ export interface TabData extends Tab {
   filteredRows: any[];
   totalRowCount: number;
   filteredRowCount: number;
+  isEditing: boolean;
+}
+
+export interface EditingState {
+  tabId: string;
+  originalLabel: string;
+  currentLabel: string;
 }
