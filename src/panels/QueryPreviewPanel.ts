@@ -79,24 +79,7 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
       };
 
       this._setWebviewMessageListener(QueryPreviewPanel._view!.webview);
-      this.loadAndSendQueryOutput(this.environment, this.limit); // Load Query data when view is resolved
 
-      setTimeout(() => {
-        if (QueryPreviewPanel._view && QueryPreviewPanel._view.visible) {
-          QueryPreviewPanel._view.webview.postMessage({
-            command: "init",
-            panelType: "Query Preview",
-          });
-          this.loadAndSendQueryOutput(this.environment, this.limit); // Ensure Query data is reloaded when the panel becomes visible
-        }
-      }, 100);
-
-      vscode.window.onDidChangeVisibleTextEditors((editors) => {
-        if (editors.some((editor) => editor.viewColumn === vscode.ViewColumn.Active)) {
-          webviewView.webview.postMessage({ command: "init", panelType: "Query Preview" });
-          this.loadAndSendQueryOutput(this.environment, this.limit); // Load Query data when panel becomes visible
-        }
-      });
       // Reload Query data when webview becomes visible
       webviewView.onDidChangeVisibility(() => {
         if (QueryPreviewPanel._view!.visible) {
