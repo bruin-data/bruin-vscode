@@ -2,62 +2,49 @@
 
 Bruin is a unified analytics platform that enables data professionals to work end-to-end for their data pipelines. This extension is built to improve the development experience of data products on Bruin using Visual Studio Code.
 
-## Features
+## 🚀 Key Features
 
-### Syntax Coloring
-
-- Applies YAML syntax coloring to Bruin code in SQL files (enclosed between `/* @bruin ... @bruin */`) and Python files (enclosed between `""" @bruin ... @bruin """`).
-
-![Screenshot of Syntax Coloring](https://github.com/bruin-data/bruin-vscode/blob/main/screenshots/syntaxe-coloring.png?raw=true)
-
-### Folding Range Provider
-
-- Allows folding and unfolding Bruin code regions in SQL and Python files for a cleaner workspace.
-- Auto Folding: Configure this setting through the Settings UI under Extensions > Bruin.
-
-![Screenshot of Bruin Extension Settings](https://github.com/bruin-data/bruin-vscode/blob/main/screenshots/bruin_extension_settings.png?raw=true)
-
-**Note**: The Pylance extension may affect the auto-folding feature. If you encounter inconsistencies, review your Pylance settings or temporarily disable it.
-
-### Dynamic SQL Content Viewer
-
-- Renders SQL content within a VS Code Webview, enabling content copying and automatic refreshing on file updates.
-- Adapts to theme changes (dark/light/Dark high contrast)
-
-![Screenshot of Bruin Extension Features](https://github.com/bruin-data/bruin-vscode/blob/main/screenshots/bruin_extension_features.gif?raw=true)
-
-![Screenshot of SQL viewer Theme Updates](https://github.com/bruin-data/bruin-vscode/blob/main/screenshots/theme-updates.gif?raw=true)
-
-### SQL Validation and Execution
-
-- Introduces SQL validation and execution capabilities.
-- Custom messages for invalid SQL queries.
-- Ability to run SQL with additional flags such as `--downstream` and `--full-refresh`.
+### Assets Details viewer
+- Show and update asset details from the UI.
+- Renders SQL content within a VS Code Webview.
+- Copy SQL content with a single click.
+- Auto-refreshes when the file is updated.
+- Supports running and validating assets with options like `--downstream` and `--full-refresh` via checkboxes.
 - Date inputs for selecting start and end dates for the `run` command.
-- `Exclusive End Date` checkbox to adjust the end date to the end of the selected day.
 
-![Screenshot of SQL Validation and Execution](https://github.com/bruin-data/bruin-vscode/blob/main/screenshots/validation-and-execution.gif?raw=true)
 
-### Asset Lineage
-
-- New panel to display the lineage of a single asset.
-- Ability to expand properties in the lineage view to see further upstream and downstream elements.
+![GIF of Asset Details Panel](https://github.com/bruin-data/bruin-vscode/blob/main/screenshots/asset-details-tab-new.gif?raw=true)
 
 ### Connections Management
-
 - Display and manage connections integrated with Bruin CLI.
-- Add new connections directly from the UI.
-- Delete existing connections via the UI.
+- Add, remove or duplicate connections directly from the UI.
+- Test exsiting connections to ensure their validity.
 
-### Bruin CLI Management
+![GIF of Connection Manager](https://github.com/bruin-data/bruin-vscode/blob/main/screenshots/manage-connections.gif?raw=true)
 
-- New tab in the side panel for easy installation and updates of Bruin CLI.
-- Windows-specific Go check, with a link to documentation if Go is missing.
+### Bruin Settings
+- The *Settings* tab in the side panel provides a straightforward way to install and update the Bruin CLI.
+- Access Bruin documentation or view system information with a single click.
+![Screenshot of Settings Tab](https://github.com/bruin-data/bruin-vscode/blob/main/screenshots/bruin-settings.png?raw=true)
+
+### Asset Lineage
+- View and interact with the lineage of assets.
+- Expand each node to see dependencies and easily access asset files.
+- Toggle visibility for upstream and downstream assets.
+
+![GIF of Lineage Panel](https://github.com/bruin-data/bruin-vscode/blob/main/screenshots/lineage-panel-with-options.gif?raw=true)
+
+# Query Preview Panel
+- Visualizes query execution results in a new panel.
+- Displays formatted output for easier analysis.
+- Supports multi-tab functionality to run different queries separately.
+
+![GIF of Lineage Panel](https://github.com/bruin-data/bruin-vscode/blob/main/screenshots/query-preview-options.gif?raw=true)
 
 ### Autocomplete and Snippets
-
 - Autocomplete support for `.bruin.yml`, `pipeline.yml`, and `*.asset.yml` files with predefined options and schema validations.
 - Snippets for creating Bruin root configuration, pipelines, and assets.
+
 
 ## Installation
 
@@ -67,50 +54,14 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 **Note**: Ensure that you have the Bruin CLI installed on your system before using the new features. For guidance on installing the Bruin CLI, please refer to the [official documentation](https://github.com/bruin-data/bruin).
 
-## Usage
-
-### Syntax Coloring
-
-Enclose Bruin code with delimiters:
-
-- In **SQL files**: `/* @bruin` and `@bruin */`
-- In **Python files**: `""" @bruin` and `@bruin """`
-
-### Folding Range
-
-Bruin code regions are automatically foldable.
-
-### Dynamic SQL Content Viewer
-
-1. Open any SQL file.
-2. Click the Bruin logo icon in the top right menu.
-3. A Webview will open, previewing the SQL content.
-4. Click the "Copy" icon to copy the content.
-5. The theme color of the view matches the current VS Code theme.
-
-### SQL Validation and Execution
-
-- **Validation**: Click the "Validate" button to validate the current SQL or entire pipeline.
-- **Run with Flags**: Click the "Run" button to execute the SQL command in an integrated terminal, with optional flags and date inputs.
-
-### Asset Lineage
-
-Access the new lineage panel to view and interact with asset lineages.
-
-### Connections Management
-
-Use the new connections section from `Settings` tab to view, add, or delete connections directly from the UI.
-
-### Bruin CLI Management
-
-Access the Bruin CLI management tab `Settings` in the side panel for easy installation and updates.
 
 ## Release Notes
 
-### Latest Release: 0.38.0
-- Added multi-tab support to the QueryPreview component, allowing users to manage multiple query results simultaneously.
+### Latest Release: 0.38.1
+- Added support for tab label editing via double-click and refactored query data loading to prevent automatic execution on mount.
 
 ### Recent Updates
+- **0.38.0**: Added multi-tab support to the QueryPreview component, allowing users to manage multiple query results simultaneously.
 - **0.37.2**: Resolved the visibility issue with icons in the Query Preview Panel.
 - **0.37.1**: Fixed CustomChecks to correctly recognize `0` as a valid check value instead `undefined`.
 - **0.37.0**: Added search functionality to the Query Preview Panel.

@@ -1,6 +1,9 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
+## [0.38.0] - [2025-03-05]
+- Added support for tab label editing via double-click and refactored query data loading to prevent automatic execution on mount.
+
 ## [0.38.0] - [2025-03-04]
 - Added multi-tab support to the QueryPreview component, allowing users to manage multiple query results simultaneously.
 
