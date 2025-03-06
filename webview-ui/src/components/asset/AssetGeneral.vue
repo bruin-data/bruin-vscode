@@ -509,6 +509,7 @@ function buildCommandPayload(basePayload, options = {}) {
   
   if (continueFlag) {
     payload += " --continue";
+    return payload;
   }
   
   if (selectedEnv.value && selectedEnv.value.trim() !== "") {
