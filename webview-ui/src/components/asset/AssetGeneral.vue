@@ -499,46 +499,62 @@ const handleEnvironmentChange = (env) => {
   });
 };
 
+function buildCommandPayload(basePayload, options = {}) {
+  const { downstream = false, continue: continueFlag = false } = options;
+  let payload = basePayload;
+  
+  if (downstream) {
+    payload += " --downstream";
+  }
+  
+  if (continueFlag) {
+    payload += " --continue";
+    return payload;
+  }
+  
+  if (selectedEnv.value && selectedEnv.value.trim() !== "") {
+    payload += " --environment " + selectedEnv.value;
+  }
+  
+  return payload;
+}
+
 /**
  * Functions to handle run and validate actions
  */
 function runAssetOnly() {
-  let payload = getCheckboxChangePayload();
-  payload = payload + " --environment " + selectedEnv.value;
+  const payload = buildCommandPayload(getCheckboxChangePayload());
+  
   vscode.postMessage({
     command: "bruin.runSql",
-    payload: payload,
+    payload
   });
 }
 
 function runAssetWithDownstream() {
-  let payload = getCheckboxChangePayload();
-  payload = payload + " --downstream" + " --environment " + selectedEnv.value;
+  const payload = buildCommandPayload(getCheckboxChangePayload(), { downstream: true });
+  
   vscode.postMessage({
     command: "bruin.runSql",
-    payload: payload,
+    payload
   });
 }
-
-
 
 function runPipelineWithContinue() {
-  let payload = getCheckboxChangePayload();
-  payload = payload + " --continue";
+  const payload = buildCommandPayload(getCheckboxChangePayload(), { continue: true });
+  
   vscode.postMessage({
     command: "bruin.runContinue",
-    payload: payload,
+    payload
   });
 }
 
-
-
 function runCurrentPipeline() {
-  let payload = getCheckboxChangePayload();
-  payload = payload + " --downstream" + " --environment " + selectedEnv.value;
+  const payload = buildCommandPayload(getCheckboxChangePayload(), { downstream: true });
+  
   vscode.postMessage({
     command: "bruin.runCurrentPipeline",
-    payload: payload,
+    payload
   });
 }
 
