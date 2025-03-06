@@ -1,7 +1,10 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
-## [0.38.0] - [2025-03-05]
+## [0.38.2] - [2025-03-06]
+- Refactored command payload to handle undefined environment values.
+
+## [0.38.1] - [2025-03-05]
 - Added support for tab label editing via double-click and refactored query data loading to prevent automatic execution on mount.
 
 ## [0.38.0] - [2025-03-04]

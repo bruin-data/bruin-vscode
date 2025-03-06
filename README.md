@@ -57,10 +57,11 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: 0.38.1
-- Added support for tab label editing via double-click and refactored query data loading to prevent automatic execution on mount.
+### Latest Release: 0.38.2
+- Refactored command payload to handle undefined environment values.
 
 ### Recent Updates
+- **0.38.1**: Added support for tab label editing via double-click and refactored query data loading to prevent automatic execution on mount.
 - **0.38.0**: Added multi-tab support to the QueryPreview component, allowing users to manage multiple query results simultaneously.
 - **0.37.2**: Resolved the visibility issue with icons in the Query Preview Panel.
 - **0.37.1**: Fixed CustomChecks to correctly recognize `0` as a valid check value instead `undefined`.
