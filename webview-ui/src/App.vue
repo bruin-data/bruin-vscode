@@ -200,7 +200,7 @@ const environmentsList = computed(() => {
 const selectedEnvironment = computed(() => {
   if (!environments.value) return [];
   const selected =
-    parseEnvironmentList(environments.value)?.selectedEnvironment || "something went wrong";
+    parseEnvironmentList(environments.value)?.selectedEnvironment || "";
   console.log("Selected environment:", selected);
   return selected;
 });
