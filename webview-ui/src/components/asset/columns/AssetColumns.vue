@@ -569,6 +569,12 @@ vscode-dropdown-item::part(control) {
   border: none;
   outline: none;
 }
+vscode-dropdown::part(control) {
+  position: absolute;
+  left: 0;
+  z-index: 1000; /* Ensure it's above other elements */
+}
+
 
 input,
 select {
