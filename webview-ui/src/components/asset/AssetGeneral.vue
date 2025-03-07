@@ -139,8 +139,10 @@
           <!-- Run Button Group -->
           <div class="inline-flex sm:mt-0">
             <vscode-button @click="runAssetOnly" :disabled="isNotAsset || isError">
-              <PlayIcon class="h-4 w-4 mr-1"></PlayIcon>
-              Run
+              <div class="flex items-center">
+                <PlayIcon class="h-4 w-4 mr-1" aria-hidden="true" />
+                <span>Run</span>
+              </div>
             </vscode-button>
             <Menu as="div" class="relative -ml-px block">
               <MenuButton
@@ -495,27 +497,27 @@ function setSelectedEnv(env: string) {
 
 const handleEnvironmentChange = (env) => {
   rudderStack.trackEvent("Environment Selected", {
-    selectedEnvironment: env
+    selectedEnvironment: env,
   });
 };
 
 function buildCommandPayload(basePayload, options = {}) {
   const { downstream = false, continue: continueFlag = false } = options;
   let payload = basePayload;
-  
+
   if (downstream) {
     payload += " --downstream";
   }
-  
+
   if (continueFlag) {
     payload += " --continue";
     return payload;
   }
-  
+
   if (selectedEnv.value && selectedEnv.value.trim() !== "") {
     payload += " --environment " + selectedEnv.value;
   }
-  
+
   return payload;
 }
 
@@ -524,37 +526,37 @@ function buildCommandPayload(basePayload, options = {}) {
  */
 function runAssetOnly() {
   const payload = buildCommandPayload(getCheckboxChangePayload());
-  
+
   vscode.postMessage({
     command: "bruin.runSql",
-    payload
+    payload,
   });
 }
 
 function runAssetWithDownstream() {
   const payload = buildCommandPayload(getCheckboxChangePayload(), { downstream: true });
-  
+
   vscode.postMessage({
     command: "bruin.runSql",
-    payload
+    payload,
   });
 }
 
 function runPipelineWithContinue() {
   const payload = buildCommandPayload(getCheckboxChangePayload(), { continue: true });
-  
+
   vscode.postMessage({
     command: "bruin.runContinue",
-    payload
+    payload,
   });
 }
 
 function runCurrentPipeline() {
   const payload = buildCommandPayload(getCheckboxChangePayload(), { downstream: true });
-  
+
   vscode.postMessage({
     command: "bruin.runCurrentPipeline",
-    payload
+    payload,
   });
 }
 

@@ -57,10 +57,11 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: 0.38.3
-- Replaced markdown-preview auto-lock workaround with a custom preview to fix serialization errors and enable auto-refresh.
+### Latest Release: 0.38.4
+- Improved columns checks Dropdown positioning and run button UI on windows.
 
 ### Recent Updates
+- **0.38.3** Replaced markdown-preview auto-lock workaround with a custom preview to fix serialization errors and enable auto-refresh.
 - **0.38.2**: Refactored command payload to handle undefined environment values.
 - **0.38.1**: Added support for tab label editing via double-click and refactored query data loading to prevent automatic execution on mount.
 - **0.38.0**: Added multi-tab support to the QueryPreview component, allowing users to manage multiple query results simultaneously.
