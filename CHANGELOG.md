@@ -1,6 +1,9 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
+## [0.38.3] - [2025-03-07]
+- Replaced markdown-preview auto-lock workaround with a custom preview to fix serialization errors and enable auto-refresh.
+
 ## [0.38.2] - [2025-03-06]
 - Refactored command payload to handle undefined environment values.
 

@@ -35,7 +35,7 @@ import { openGlossary } from "../bruin/bruinGlossaryUtility";
  */
 export class BruinPanel {
   public static currentPanel: BruinPanel | undefined;
-  public static readonly viewId = "markdown.preview";
+  public static readonly viewId = "bruin.panel";
   private readonly _panel: WebviewPanel;
   private _disposables: Disposable[] = [];
   private _lastRenderedDocumentUri: Uri | undefined;
@@ -113,7 +113,10 @@ export class BruinPanel {
     // Set an event listener to listen for messages passed from the webview context
     this._setWebviewMessageListener(this._panel.webview);
   }
-
+   public static restore(panel: WebviewPanel, extensionUri: Uri): BruinPanel {
+    return new BruinPanel(panel, extensionUri);
+  }
+ 
   public static postMessage(
     name: string,
     data: string | { status: string; message: string | any },
