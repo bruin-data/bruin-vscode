@@ -20,26 +20,28 @@ import { renderCommand } from "./commands/renderCommand";
 import { LineagePanel } from "../panels/LineagePanel";
 import { installOrUpdateCli } from "./commands/updateBruinCLI";
 import { QueryPreviewPanel } from "../panels/QueryPreviewPanel";
+import { BruinPanel } from "../panels/BruinPanel";
 //import { RudderTyperAnalytics } from '../analytics/index';
 
 const WRITE_KEY = "2q3zybBJRd9ErKIpkTRSdIahQ0C";
 const DATA_PLANE_URL = "https://getbruinbumlky.dataplane.rudderstack.com";
 
+// In your activation function
 const ensureAutoLockEnabled = async () => {
   const config: vscode.WorkspaceConfiguration = workspace.getConfiguration("workbench.editor");
   const autoLockGroups: Record<string, boolean> = config.get("autoLockGroups") || {};
 
-  // Check if the setting needs to be updated
-  if (!autoLockGroups["mainThreadWebview-markdown.preview"]) {
-    // Update the setting while preserving existing auto-lock groups
+  // Use custom view type in the autoLockGroups key
+  const viewTypeKey = `mainThreadWebview-${BruinPanel.viewId}`;
+  
+  if (!autoLockGroups[viewTypeKey]) {
     const updatedAutoLockGroups = {
       ...autoLockGroups,
-      "mainThreadWebview-markdown.preview": true,
+      [viewTypeKey]: true
     };
 
     try {
       await config.update("autoLockGroups", updatedAutoLockGroups, true);
-      console.log("Successfully updated autoLockGroups setting");
     } catch (error) {
       console.error("Failed to update autoLockGroups setting:", error);
     }
@@ -102,6 +104,20 @@ export async function activate(context: ExtensionContext) {
 
   await ensureAutoLockEnabled();
 
+  if (vscode.window.registerWebviewPanelSerializer) {
+    vscode.window.registerWebviewPanelSerializer(BruinPanel.viewId, {
+      async deserializeWebviewPanel(webviewPanel, state) {
+        try {
+          BruinPanel.currentPanel = BruinPanel.restore(webviewPanel, context.extensionUri);
+          console.debug("Bruin panel restored from state:", state);
+        } catch (error) {
+          console.error("Failed to restore Bruin panel:", error);
+        }
+      }
+    });
+  }
+  
+  
   const lineageWebviewProvider = new LineagePanel(context.extensionUri);
   const queryPreviewWebviewProvider = new QueryPreviewPanel(context.extensionUri);
   // Register the folding range provider for Python and SQL files
