@@ -501,7 +501,7 @@ const handleEnvironmentChange = (env) => {
   });
 };
 
-function buildCommandPayload(basePayload, options = {}) {
+function buildCommandPayload(basePayload, options: { downstream?: boolean; continue?: boolean } = {}) {
   const { downstream = false, continue: continueFlag = false } = options;
   let payload = basePayload;
 
