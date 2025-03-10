@@ -179,6 +179,7 @@ export const transformColumnData = (columns) => {
       description: column.description,
       checks: column.checks,
       entity_attribute: column.entity_attribute,
+      primary_key: column.primary_key,
     };
     return newColumn;
   });
