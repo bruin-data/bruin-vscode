@@ -125,8 +125,8 @@
           </vscode-button>
           <span class="opacity-50">Run query preview</span>
           <div class="flex items-center">
-            <span class="keybinding"> ⌘ </span>
-            <span class="keybinding">Enter</span>
+            <span class="keybinding">{{ modifierKey }}</span>
+            <span class="keybinding"> Enter </span>
           </div>
         </div>
       </div>
@@ -488,7 +488,15 @@ onMounted(() => {
     tabs.value[0].isLoading = props.isLoading;
   }
 });
+const modifierKey = ref('⌘'); // Default to Mac symbol
 
+onMounted(() => {
+  // Detect if running on Windows or macOS
+  const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+  
+  // Update the modifier key symbol based on platform
+  modifierKey.value = isMac ? '⌘' : 'Ctrl';
+});
 onUnmounted(() => {
   window.removeEventListener("keydown", handleKeyDown);
   window.removeEventListener("message", postMessage);
