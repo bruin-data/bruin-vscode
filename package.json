@@ -232,7 +232,8 @@
     "vscode-test": "^1.6.1"
   },
   "overrides": {
-    "undici": "^6.21.1"
+    "undici": "^6.21.1",
+    "axios": ">=1.8.2"
   },
   "dependencies": {
     "@rudderstack/analytics-js": "^3.11.15",
