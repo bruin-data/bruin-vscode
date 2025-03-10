@@ -492,8 +492,7 @@ const modifierKey = ref('⌘'); // Default to Mac symbol
 
 onMounted(() => {
   // Detect if running on Windows or macOS
-  const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-  
+  const isMac = navigator.platform.toUpperCase().startsWith('MAC');  
   // Update the modifier key symbol based on platform
   modifierKey.value = isMac ? '⌘' : 'Ctrl';
 });
