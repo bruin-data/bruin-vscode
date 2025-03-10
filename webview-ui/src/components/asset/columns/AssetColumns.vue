@@ -369,7 +369,6 @@ const formatChecks = (checks) => {
       formattedChecks.push({
         id: check.id,
         name: check.name,
-        value: check.value,
         blocking: check.blocking || true,
       });
     }
