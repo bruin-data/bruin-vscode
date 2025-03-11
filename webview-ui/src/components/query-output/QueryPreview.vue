@@ -176,7 +176,7 @@
                       'max-h-6 overflow-hidden': !isExpanded(index, colIndex),
                       'max-h-12 overflow-y-auto': isExpanded(index, colIndex),
                     }"
-                    class="transition-all duration-200 pr-6"
+                    class="transition-all duration-75 pr-6"
                   >
                     <!-- Cell content with word-wrapping when expanded -->
                     <div
