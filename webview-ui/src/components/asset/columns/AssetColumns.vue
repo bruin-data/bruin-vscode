@@ -6,16 +6,16 @@
 
     <!-- Header Row -->
     <div
-      class="grid grid-cols-12 gap-2 px-2 py-1 font-semibold text-xs opacity-65 border-b-2 border-editor-fg items-center"
+      class="grid grid-cols-21 gap-2 px-2 py-1 font-semibold text-xs opacity-65 border-b-2 border-editor-fg items-center"
     >
-      <div class="col-span-1 flex justify-center" title="Primary key">
+      <div class="col-span-1" title="Primary key">
         <KeyIcon class="h-4 w-4 text-editor-fg opacity-60" />
       </div>
-      <div class="col-span-2">Name</div>
-      <div class="col-span-2">Type</div>
-      <div class="col-span-3">Description</div>
-      <div class="col-span-3">Checks</div>
-      <div class="col-span-1 text-center">Actions</div>
+      <div class="col-span-4">Name</div>
+      <div class="col-span-4">Type</div>
+      <div class="col-span-6">Description</div>
+      <div class="col-span-4">Checks</div>
+      <div class="col-span-2 text-center">Actions</div>
     </div>
 
     <!-- Column Rows -->
@@ -24,9 +24,9 @@
         v-if="localColumns.length"
         v-for="(column, index) in localColumns"
         :key="index"
-        class="grid grid-cols-12 gap-2 px-2 py-1 border-b items-center text-xs border-commandCenter-border"
+        class="grid grid-cols-21 gap-2 px-2 py-1 border-b items-center text-xs border-commandCenter-border"
       >
-        <div class="col-span-1 flex justify-center">
+        <div class="col-span-1">
           <vscode-checkbox
             :checked="column.primary_key"
             :disabled="editingIndex !== index"
@@ -36,7 +36,7 @@
           </vscode-checkbox>
         </div>
         <!-- Name -->
-        <div class="col-span-2 font-medium font-mono text-xs">
+        <div class="col-span-4 font-medium font-mono text-xs">
           <div v-if="editingIndex === index" class="flex flex-col gap-1">
             <input
               v-model="editingColumn.name"
@@ -65,7 +65,7 @@
         </div>
 
         <!-- Type -->
-        <div class="col-span-2 text-xs">
+        <div class="col-span-4 text-xs">
           <div v-if="editingIndex === index" class="flex flex-col gap-1">
             <div class="flex items-center">
               <input
@@ -82,7 +82,7 @@
         </div>
 
         <!-- Description -->
-        <div class="col-span-3 text-xs">
+        <div class="col-span-6 text-xs">
           <input
             v-if="editingIndex === index"
             v-model="editingColumn.description"
@@ -99,7 +99,7 @@
         </div>
 
         <!-- Checks -->
-        <div class="col-span-3">
+        <div class="col-span-4">
           <div class="flex flex-wrap gap-1">
             <template v-if="editingIndex === index">
               <div class="flex flex-wrap gap-1">
@@ -202,7 +202,7 @@
         </div>
 
         <!-- Actions -->
-        <div class="col-span-1">
+        <div class="col-span-2">
           <div class="flex justify-center items-center space-x-1">
             <vscode-button
               v-if="editingIndex === index"
