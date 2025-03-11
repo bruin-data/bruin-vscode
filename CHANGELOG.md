@@ -1,6 +1,9 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
+## [0.39.0] - [2025-03-11]
+- Added primary_key to column data with support for composite primary keys.
+
 ## [0.38.5] - [2025-03-10]
 - Update keybinding display for platforms and remove unused 'value' property in columns checks.
 
