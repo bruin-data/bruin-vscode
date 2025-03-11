@@ -67,7 +67,6 @@
               @change="
                 (e) => {
                   editingColumn.primary_key = e.target.checked;
-                  handlePrimaryKeyChange();
                 }
               "
               title="Set as primary key"
@@ -345,24 +344,9 @@ const addColumn = () => {
   }
 };
 
-const handlePrimaryKeyChange = () => {
-  // If this column is now set as primary key, unset all others
-  if (editingColumn.value.primary_key) {
-  }
-};
-
 const saveChanges = (index) => {
   try {
     const updatedColumn = JSON.parse(JSON.stringify(editingColumn.value));
-
-    // If making this column a primary key, update all other columns in localColumns to not be primary keys
-    if (updatedColumn.primary_key) {
-      localColumns.value.forEach((col, idx) => {
-        if (idx !== index) {
-          col.primary_key = false;
-        }
-      });
-    }
 
     // Update the column in localColumns
     localColumns.value[index] = {

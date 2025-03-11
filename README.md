@@ -57,10 +57,11 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: 0.38.5
-- Update keybinding display for platforms and remove unused 'value' property in columns checks.
+### Latest Release: 0.39.0
+- Added primary_key to column data with support for composite primary keys.
 
 ### Recent Updates
+- **0.38.5**: Update keybinding display for platforms and remove unused 'value' property in columns checks.
 - **0.38.4**: Improved columns checks Dropdown positioning and run button UI on windows.
 - **0.38.3**: Replaced markdown-preview auto-lock workaround with a custom preview to fix serialization errors and enable auto-refresh.
 - **0.38.2**: Refactored command payload to handle undefined environment values.
@@ -76,15 +77,6 @@ Bruin is a unified analytics platform that enables data professionals to work en
 - **0.35.0**: Introduce a new **Query Preview Panel** to display the output of SQL `query` execution. This feature currently uses the **default** environment with a maximum limit of **1000**.
 - **0.34.1**: Reset filter panel state on file change and improve graph viewport adjustments for expanded nodes.
 - **0.34.0**: Add options panel to the lineage view with choices to display either all upstream & downstream dependencies or only direct dependencies.
-- **0.33.2**: Improve description editing by adding clear Save and Cancel buttons.
-- **0.33.1**: Display render button for all file extensions, ensuring Bruin render is always visible.
-- **0.33.0**: Added a Control panel with zoom, view fit, and lock buttons and reduced top gap in the lineage flow.
-- **0.32.13**: Resolved an issue where terminal commands occasionally missed the first letter, causing execution failures.
-- **0.32.12**: Format the rendering error message to display differently based on the phase (rendering or validation).
-- **0.32.11**: Fixed ConnectionForm not resetting when switching between edit and new connection.
-- **0.32.10**: Improved truncation behavior for pipeline and asset names and ensured asset name edit mode closes on mouse leave.
-- **0.32.9**: Asset validation errors now expand for single assets and pipelines, while multiple pipeline errors stay collapsed.
-- **0.32.8**: Fixed an issue where new files opened in the side panel's group, causing confusion; the panel now locks by default.
 
 For a full changelog, see Bruin Extension [Changelog](https://marketplace.visualstudio.com/items/bruin.bruin/changelog).
 
