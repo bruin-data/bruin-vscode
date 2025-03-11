@@ -8,8 +8,8 @@
     <div
       class="grid grid-cols-12 gap-2 px-2 py-1 font-semibold text-xs opacity-65 border-b-2 border-editor-fg items-center"
     >
-      <div class="col-span-1">
-        <KeyIcon title="Primary key" class="h-4 w-4 text-editor-fg opacity-60" />
+      <div class="col-span-1" title="Primary key">
+        <KeyIcon class="h-4 w-4 text-editor-fg opacity-60" />
       </div>
       <div class="col-span-2">Name</div>
       <div class="col-span-2">Type</div>
