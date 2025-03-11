@@ -21,19 +21,26 @@
         v-if="localColumns.length"
         v-for="(column, index) in localColumns"
         :key="index"
-        class="grid grid-cols-12 gap-2 px-2 py-1 border-b items-center text-xs border-commandCenter-border"
+        class="grid grid-cols-12 gap-2 px-2 py-1 border-b items-start text-xs border-commandCenter-border"
       >
         <!-- Name -->
         <div class="col-span-2 font-medium font-mono text-xs">
-          <input
-            v-if="editingIndex === index"
-            v-model="editingColumn.name"
-            class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs"
-          />
-          <div v-else class="flex items-center">
-            <span class="truncate" :title="column.name">
+          <div v-if="editingIndex === index" class="flex flex-col gap-1">
+            <input
+              v-model="editingColumn.name"
+              class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs"
+              :class="{ 'font-bold': editingColumn.primary_key }"
+            />
+          </div>
+          <div v-else class="flex items-center space-x-1">
+            <span
+              class="truncate"
+              :title="column.name"
+              :class="{ 'font-bold': column.primary_key }"
+            >
               {{ column.name }}
             </span>
+            <KeyIcon v-if="column.primary_key" class="h-4 w-4 text-editor-fg opacity-60" />
             <vscode-button
               v-if="column.entity_attribute"
               appearance="icon"
@@ -48,13 +55,30 @@
 
         <!-- Type -->
         <div class="col-span-2 text-xs">
-          <input
-            v-if="editingIndex === index"
-            v-model="editingColumn.type"
-            class="w-full p-1 rounded bg-editorWidget-bg text-editor-fg font-mono text-xs"
-          />
-          <div v-else class="truncate font-mono" :title="column.type.toUpperCase()">
-            {{ column.type.toUpperCase() }}
+          <div v-if="editingIndex === index" class="flex flex-col gap-1">
+            <div class="flex items-center">
+              <input
+                v-model="editingColumn.type"
+                class="w-full p-1 bg-editorWidget-bg text-editor-fg font-mono text-xs"
+              />
+            </div>
+            <vscode-checkbox
+              :checked="editingColumn.primary_key"
+              @change="
+                (e) => {
+                  editingColumn.primary_key = e.target.checked;
+                  handlePrimaryKeyChange();
+                }
+              "
+              title="Set as primary key"
+            >
+              Primary Key
+            </vscode-checkbox>
+          </div>
+          <div v-else class="flex items-center">
+            <div class="truncate font-mono" :title="column.type.toUpperCase()">
+              {{ column.type.toUpperCase() }}
+            </div>
           </div>
         </div>
 
@@ -238,6 +262,7 @@ import {
   CheckIcon,
   PlusIcon,
   LinkIcon,
+  KeyIcon
 } from "@heroicons/vue/20/solid";
 import DeleteAlert from "@/components/ui/alerts/AlertWithActions.vue";
 import { vscode } from "@/utilities/vscode";
@@ -260,6 +285,9 @@ const showPatternInput = ref(false);
 const newPatternValue = ref("");
 const showAcceptedValuesInput = ref(false);
 const newAcceptedValuesInput = ref("");
+const error = ref(null);
+const showAddCheckDropdown = ref(null);
+
 const updatePatternValue = () => {
   const patternCheck = editingColumn.value.checks.find((check) => check.name === "pattern");
   if (patternCheck) {
@@ -302,17 +330,14 @@ const addColumn = () => {
       description: "Description for the new column",
       checks: [],
       entity_attribute: null,
+      primary_key: false,
     };
-
-    // Log the action of adding a new column
-    console.log("Adding new column:", newColumn);
 
     // Add new column to local columns
     localColumns.value.push(newColumn);
     editingIndex.value = localColumns.value.length - 1;
     editingColumn.value = JSON.parse(JSON.stringify(newColumn));
 
-    console.log("Current columns after addition:", localColumns.value);
   } catch (error) {
     console.error("Error adding new column:", error);
     // Show an error message to the user
@@ -320,32 +345,57 @@ const addColumn = () => {
   }
 };
 
+const handlePrimaryKeyChange = () => {
+  // If this column is now set as primary key, unset all others
+  if (editingColumn.value.primary_key) {
+  }
+};
+
 const saveChanges = (index) => {
-  localColumns.value[index] = {
-    ...JSON.parse(JSON.stringify(editingColumn.value)),
-    entity_attribute: localColumns.value[index].entity_attribute || null,
-  };
-  editingIndex.value = null;
+  try {
+    const updatedColumn = JSON.parse(JSON.stringify(editingColumn.value));
 
-  // Create clean data for ALL columns
-  const allColumnsData = localColumns.value.map((column) => ({
-    name: column.name,
-    type: column.type,
-    description: column.description,
-    checks: formatChecks(column.checks),
-    entity_attribute: column.entity_attribute || null,
-  }));
+    // If making this column a primary key, update all other columns in localColumns to not be primary keys
+    if (updatedColumn.primary_key) {
+      localColumns.value.forEach((col, idx) => {
+        if (idx !== index) {
+          col.primary_key = false;
+        }
+      });
+    }
 
-  const payload = JSON.parse(JSON.stringify({ columns: allColumnsData }));
-  showAcceptedValuesInput.value = false;
-  showPatternInput.value = false;
-  // Log the payload that will be sent
-  console.log("Payload to be sent on save columns:", payload);
-  vscode.postMessage({
-    command: "bruin.setAssetDetails",
-    payload: payload,
-  });
-  emitUpdateColumns();
+    // Update the column in localColumns
+    localColumns.value[index] = {
+      ...updatedColumn,
+      entity_attribute: localColumns.value[index].entity_attribute || null,
+    };
+
+    // Reset editing state
+    editingIndex.value = null;
+    showAcceptedValuesInput.value = false;
+    showPatternInput.value = false;
+
+    // Prepare and send data
+    const formattedColumns = localColumns.value.map((column) => ({
+      ...column,
+      checks: formatChecks(column.checks),
+      entity_attribute: column.entity_attribute || null,
+      primary_key: column.primary_key,
+    }));
+
+    const payload = { columns: formattedColumns };
+
+    // Send to panel
+    vscode.postMessage({
+      command: "bruin.setAssetDetails",
+      payload: payload,
+    });
+
+    emit("update:columns", formattedColumns);
+  } catch (error) {
+    console.error("Error saving column changes:", error);
+    showError(`Failed to save column changes. Please try again. \n ${error}`);
+  }
 };
 
 const formatChecks = (checks) => {
@@ -373,11 +423,6 @@ const formatChecks = (checks) => {
       });
     }
   });
-  console.log(
-    "Formatted checks:",
-    formattedChecks,
-    " - Check if each column check has the correct structure and properties required for processing."
-  );
   return formattedChecks;
 };
 
@@ -434,7 +479,6 @@ const addCheck = (checkName) => {
   editingColumn.value.checks.push(newCheck);
   showAddCheckDropdown.value = null;
 
-  console.log("Current checks in editing column after addition:", editingColumn.value.checks);
 };
 
 const removeCheck = (checkName) => {
@@ -443,9 +487,6 @@ const removeCheck = (checkName) => {
   );
   emitUpdateColumns();
 };
-
-const showAddCheckDropdown = ref(null);
-const error = ref(null);
 
 const toggleAddCheckDropdown = (index) => {
   if (showAddCheckDropdown.value === index) {
@@ -515,21 +556,24 @@ const emitUpdateColumns = () => {
     ...column,
     checks: formatChecks(column.checks),
     entity_attribute: column.entity_attribute || null,
+    primary_key: column.primary_key,
   }));
   emit("update:columns", formattedColumns);
 };
 
 const startEditing = (index) => {
   editingIndex.value = index;
+  // Create a deep copy to avoid reference issues
   editingColumn.value = JSON.parse(JSON.stringify(localColumns.value[index]));
+  // Ensure primary_key is properly set in the editing copy
+  editingColumn.value.primary_key = !!localColumns.value[index].primary_key;
 };
 
 const deleteColumn = (index) => {
   localColumns.value.splice(index, 1);
   showDeleteAlert.value = false;
   emitUpdateColumns();
-
-  const payload = JSON.parse(JSON.stringify({ columns: localColumns.value }));
+  const payload = { columns: JSON.parse(JSON.stringify(localColumns.value)) };
   vscode.postMessage({
     command: "bruin.setAssetDetails",
     payload: payload,
@@ -542,6 +586,7 @@ watch(
     localColumns.value = newColumns.map((column) => ({
       ...column,
       checks: column.checks || [],
+      primary_key: !!column.primary_key,
     }));
   },
   { deep: true }
