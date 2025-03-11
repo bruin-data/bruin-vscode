@@ -175,6 +175,11 @@ module.exports = {
         "collapsible-down": "collapsible-down 0.2s ease-in-out",
         "collapsible-up": "collapsible-up 0.2s ease-in-out",
       },
+      gridTemplateColumns: {
+        '16': 'repeat(16, minmax(0, 1fr))',
+        '24': 'repeat(24, minmax(0, 1fr))',
+        '21': 'repeat(21, minmax(0, 1fr))',
+      },
     },
   },
   plugins: [typography, animate, require("@tailwindcss/forms")],

@@ -57,10 +57,11 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: 0.39.1
-- Adjust column layout to set primary key as a separate column.
+### Latest Release: 0.39.2
+- Added expandable cells in Query Preview for long text, with `copy` support and `ESC` to close all expanded cells.
 
 ### Recent Updates
+- **0.39.1**: Adjust column layout to set primary key as a separate column.
 - **0.39.0**: Added primary_key to column data with support for composite primary keys.
 - **0.38.5**: Update keybinding display for platforms and remove unused 'value' property in columns checks.
 - **0.38.4**: Improved columns checks Dropdown positioning and run button UI on windows.

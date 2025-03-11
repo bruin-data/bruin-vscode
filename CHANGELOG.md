@@ -1,6 +1,9 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
+## [0.39.2] - [2025-03-11]
+- Added expandable cells in Query Preview for long text, with `copy` support and `ESC` to close all expanded cells.
+
 ## [0.39.1] - [2025-03-11]
 - Adjust column layout to set primary key as a separate column.
 
