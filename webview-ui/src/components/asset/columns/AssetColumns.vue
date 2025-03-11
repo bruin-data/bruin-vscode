@@ -21,7 +21,7 @@
         v-if="localColumns.length"
         v-for="(column, index) in localColumns"
         :key="index"
-        class="grid grid-cols-12 gap-2 px-2 py-1 border-b items-center text-xs border-commandCenter-border"
+        class="grid grid-cols-12 gap-2 px-2 py-1 border-b items-start text-xs border-commandCenter-border"
       >
         <!-- Name -->
         <div class="col-span-2 font-medium font-mono text-xs">
@@ -29,14 +29,18 @@
             <input
               v-model="editingColumn.name"
               class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs"
-              :class="{ 'font-bold': column.primary_key }"
+              :class="{ 'font-bold': editingColumn.primary_key }"
             />
           </div>
           <div v-else class="flex items-center space-x-1">
-            <span class="truncate" :title="column.name" :class="{ 'font-bold': column.primary_key }">
+            <span
+              class="truncate"
+              :title="column.name"
+              :class="{ 'font-bold': column.primary_key }"
+            >
               {{ column.name }}
             </span>
-            <KeyIcon v-if="column.primary_key" class="h-4 w-4 text-editor-fg opacity-60" />  
+            <KeyIcon v-if="column.primary_key" class="h-4 w-4 text-editor-fg opacity-60" />
             <vscode-button
               v-if="column.entity_attribute"
               appearance="icon"
@@ -58,16 +62,18 @@
                 class="w-full p-1 bg-editorWidget-bg text-editor-fg font-mono text-xs"
               />
             </div>
-            <div class="flex items-center mt-1">
-              <input
-                type="checkbox"
-                :checked="editingColumn.primary_key"
-                @change="togglePrimaryKey(index)"
-                class="cursor-pointer mr-2"
-                title="Set as primary key"
-              />
-              <span class="text-xs">Primary Key</span>
-            </div>
+            <vscode-checkbox
+              :checked="editingColumn.primary_key"
+              @change="
+                (e) => {
+                  editingColumn.primary_key = e.target.checked;
+                  handlePrimaryKeyChange();
+                }
+              "
+              title="Set as primary key"
+            >
+              Primary Key
+            </vscode-checkbox>
           </div>
           <div v-else class="flex items-center">
             <div class="truncate font-mono" :title="column.type.toUpperCase()">
@@ -339,55 +345,18 @@ const addColumn = () => {
   }
 };
 
-const saveChanges = (index) => {
-  // If we're making this a primary key, no other column should be primary key
+const handlePrimaryKeyChange = () => {
+  // If this column is now set as primary key, unset all others
   if (editingColumn.value.primary_key) {
-    localColumns.value.forEach((col, idx) => {
-      if (idx !== index) {
-        col.primary_key = false;
-      }
-    });
   }
-  
-  localColumns.value[index] = {
-    ...JSON.parse(JSON.stringify(editingColumn.value)),
-    entity_attribute: localColumns.value[index].entity_attribute || null,
-    primary_key: localColumns.value[index].primary_key || false,
-  };
-  editingIndex.value = null;
-  
-  // Create clean data for ALL columns
-  const allColumnsData = localColumns.value.map((column) => ({
-    name: column.name,
-    type: column.type,
-    description: column.description,
-    checks: formatChecks(column.checks),
-    entity_attribute: column.entity_attribute || null,
-    primary_key: column.primary_key || false,
-  }));
-
-  const payload = JSON.parse(JSON.stringify({ columns: allColumnsData }));
-  showAcceptedValuesInput.value = false;
-  showPatternInput.value = false;
-  
-  // Log the payload that will be sent
-  vscode.postMessage({
-    command: "bruin.setAssetDetails",
-    payload: payload,
-  });
-  emitUpdateColumns();
 };
 
-const togglePrimaryKey = (index) => {
-  // If we're editing, update the editing column object
-  if (editingIndex.value === index) {
-    editingColumn.value.primary_key = !editingColumn.value.primary_key;
-  } else {
-    // If not in editing mode, toggle directly on the localColumns
-    const newValue = !localColumns.value[index].primary_key;
+const saveChanges = (index) => {
+  try {
+    const updatedColumn = JSON.parse(JSON.stringify(editingColumn.value));
 
-    // If setting as primary key, first unset any existing primary keys
-    if (newValue) {
+    // If making this column a primary key, update all other columns in localColumns to not be primary keys
+    if (updatedColumn.primary_key) {
       localColumns.value.forEach((col, idx) => {
         if (idx !== index) {
           col.primary_key = false;
@@ -395,10 +364,37 @@ const togglePrimaryKey = (index) => {
       });
     }
 
-    localColumns.value[index].primary_key = newValue;
+    // Update the column in localColumns
+    localColumns.value[index] = {
+      ...updatedColumn,
+      entity_attribute: localColumns.value[index].entity_attribute || null,
+    };
 
-    // Save changes
-    emitUpdateColumns();
+    // Reset editing state
+    editingIndex.value = null;
+    showAcceptedValuesInput.value = false;
+    showPatternInput.value = false;
+
+    // Prepare and send data
+    const formattedColumns = localColumns.value.map((column) => ({
+      ...column,
+      checks: formatChecks(column.checks),
+      entity_attribute: column.entity_attribute || null,
+      primary_key: column.primary_key,
+    }));
+
+    const payload = { columns: formattedColumns };
+
+    // Send to panel
+    vscode.postMessage({
+      command: "bruin.setAssetDetails",
+      payload: payload,
+    });
+
+    emit("update:columns", formattedColumns);
+  } catch (error) {
+    console.error("Error saving column changes:", error);
+    showError(`Failed to save column changes. Please try again. \n ${error}`);
   }
 };
 
@@ -560,22 +556,24 @@ const emitUpdateColumns = () => {
     ...column,
     checks: formatChecks(column.checks),
     entity_attribute: column.entity_attribute || null,
-    primary_key: column.primary_key || false,
+    primary_key: column.primary_key,
   }));
   emit("update:columns", formattedColumns);
 };
 
 const startEditing = (index) => {
   editingIndex.value = index;
+  // Create a deep copy to avoid reference issues
   editingColumn.value = JSON.parse(JSON.stringify(localColumns.value[index]));
+  // Ensure primary_key is properly set in the editing copy
+  editingColumn.value.primary_key = !!localColumns.value[index].primary_key;
 };
 
 const deleteColumn = (index) => {
   localColumns.value.splice(index, 1);
   showDeleteAlert.value = false;
   emitUpdateColumns();
-
-  const payload = JSON.parse(JSON.stringify({ columns: localColumns.value }));
+  const payload = { columns: JSON.parse(JSON.stringify(localColumns.value)) };
   vscode.postMessage({
     command: "bruin.setAssetDetails",
     payload: payload,
@@ -588,7 +586,7 @@ watch(
     localColumns.value = newColumns.map((column) => ({
       ...column,
       checks: column.checks || [],
-      primary_key: column.primary_key || false,
+      primary_key: !!column.primary_key,
     }));
   },
   { deep: true }
