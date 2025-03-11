@@ -165,9 +165,51 @@
               <td
                 v-for="(value, colIndex) in row"
                 :key="colIndex"
-                class="p-1 whitespace-nowrap text-editor-fg font-mono border border-commandCenter-border"
+                class="p-1 text-editor-fg font-mono border border-commandCenter-border relative max-w-40"
+                :class="{ 'cursor-pointer': cellHasOverflow(value) }"
               >
-                <div class="truncate max-w-[200px]" v-html="highlightMatch(value, currentTab.searchInput)"></div>
+                <!-- Cell with in-place expansion -->
+                <div class="flex flex-col">
+                  <!-- Content container with conditional height -->
+                  <div
+                    :class="{
+                      'max-h-6 overflow-hidden': !isExpanded(index, colIndex),
+                      'max-h-12 overflow-y-auto': isExpanded(index, colIndex),
+                    }"
+                    class="transition-all duration-200 pr-6"
+                  >
+                    <!-- Cell content with word-wrapping when expanded -->
+                    <div
+                      :class="{
+                        'whitespace-nowrap overflow-hidden text-ellipsis': !isExpanded(
+                          index,
+                          colIndex
+                        ),
+                        'whitespace-pre-wrap break-words': isExpanded(index, colIndex),
+                      }"
+                      v-html="highlightMatch(value, currentTab.searchInput)"
+                    ></div>
+                  </div>
+                  <!-- (expand/collapse) -->
+                  <div class="absolute right-2 top-0 flex items-center">
+                    <vscode-button
+                      appearance="icon"
+                      v-if="cellHasOverflow(value)"
+                      @click.stop="toggleCellExpansion(index, colIndex)"
+                      class="text-editor-fg opacity-70 hover:opacity-100"
+                      :title="isExpanded(index, colIndex) ? 'Collapse' : 'Expand'"
+                    >
+                      <span
+                        class="codicon text-xs"
+                        :class="
+                          isExpanded(index, colIndex)
+                            ? 'codicon-chevron-down'
+                            : 'codicon-chevron-right'
+                        "
+                      ></span>
+                    </vscode-button>
+                  </div>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -195,6 +237,9 @@ const showSearchInput = ref(false);
 const hoveredTab = ref("");
 const environment = ref("");
 
+// State for expanded cells
+const expandedCells = ref(new Set<string>());
+
 const tabs = ref<TabData[]>([
   {
     id: "output",
@@ -215,11 +260,13 @@ const tabCounter = ref(1);
 
 // Get current active tab
 const currentTab = computed(() => {
-  return tabs.value.find(tab => tab.id === activeTab.value);
+  return tabs.value.find((tab) => tab.id === activeTab.value);
 });
 
 // Handle tab switching
 const switchToTab = (tabId: string) => {
+  // Reset cell expansions when switching tabs
+  expandedCells.value.clear();
   activeTab.value = tabId;
 };
 
@@ -247,8 +294,10 @@ const addTab = () => {
 
 // Close a tab
 const closeTab = (tabId: string) => {
-  const tabIndex = tabs.value.findIndex(tab => tab.id === tabId);
-  
+  // Reset cell expansions
+  expandedCells.value.clear();
+  const tabIndex = tabs.value.findIndex((tab) => tab.id === tabId);
+
   if (tabIndex !== -1) {
     tabs.value.splice(tabIndex, 1);
 
@@ -265,6 +314,8 @@ const closeTab = (tabId: string) => {
 
 // Clear results for the current tab
 const clearTabResults = () => {
+  // Reset cell expansions
+  expandedCells.value.clear();
   if (currentTab.value) {
     currentTab.value.parsedOutput = undefined;
     currentTab.value.error = null;
@@ -274,6 +325,34 @@ const clearTabResults = () => {
   }
   
   vscode.postMessage({ command: "bruin.clearQueryOutput" });
+};
+
+// Check if a cell has overflow (needs expand button)
+const cellHasOverflow = (value) => {
+  if (value === null || value === undefined) return false;
+  const stringValue = String(value);
+  // Show expand button if content is longer than 30 chars
+  return stringValue.length > 30;
+};
+
+// Create a unique key for tracking expanded cells
+const getCellKey = (rowIndex, colIndex) => {
+  return `${activeTab.value}-${rowIndex}-${colIndex}`;
+};
+
+// Check if a specific cell is expanded
+const isExpanded = (rowIndex, colIndex) => {
+  return expandedCells.value.has(getCellKey(rowIndex, colIndex));
+};
+
+// Toggle cell expansion
+const toggleCellExpansion = (rowIndex, colIndex) => {
+  const cellKey = getCellKey(rowIndex, colIndex);
+  if (expandedCells.value.has(cellKey)) {
+    expandedCells.value.delete(cellKey);
+  } else {
+    expandedCells.value.add(cellKey);
+  }
 };
 
 // Parse output for the current tab
@@ -330,6 +409,8 @@ watch(() => props.isLoading, (newIsLoading) => {
 
 // Update search term and filtered rows
 const updateSearchTerm = (term: string) => {
+  // Reset cell expansions when searching
+  expandedCells.value.clear();
   if (currentTab.value) {
     currentTab.value.searchInput = term;
     updateFilteredRows();
@@ -364,6 +445,8 @@ const updateFilteredRows = () => {
 
 // Run query and store results in the current tab
 const runQuery = () => {
+  // Reset cell expansions when running a new query
+  expandedCells.value.clear();
   if (limit.value > 1000 || limit.value < 1) {
     limit.value = 1000;
   }
@@ -412,6 +495,12 @@ const handleKeyDown = (event) => {
   if ((event.ctrlKey || event.metaKey) && event.key === "f") {
     event.preventDefault();
     toggleSearchInput();
+  }
+
+  // Close all expanded cells with Escape
+  if (event.key === "Escape" && expandedCells.value.size > 0) {
+    expandedCells.value.clear();
+    event.preventDefault();
   }
 };
 
