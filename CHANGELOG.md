@@ -1,6 +1,9 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
+## [0.39.1] - [2025-03-11]
+- Adjust column layout to set primary key as a separate column.
+
 ## [0.39.0] - [2025-03-11]
 - Added primary_key to column data with support for composite primary keys.
 

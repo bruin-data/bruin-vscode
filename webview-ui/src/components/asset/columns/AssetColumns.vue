@@ -8,9 +8,12 @@
     <div
       class="grid grid-cols-12 gap-2 px-2 py-1 font-semibold text-xs opacity-65 border-b-2 border-editor-fg items-center"
     >
+      <div class="col-span-1 flex justify-center" title="Primary key">
+        <KeyIcon class="h-4 w-4 text-editor-fg opacity-60" />
+      </div>
       <div class="col-span-2">Name</div>
       <div class="col-span-2">Type</div>
-      <div class="col-span-4">Description</div>
+      <div class="col-span-3">Description</div>
       <div class="col-span-3">Checks</div>
       <div class="col-span-1 text-center">Actions</div>
     </div>
@@ -21,8 +24,17 @@
         v-if="localColumns.length"
         v-for="(column, index) in localColumns"
         :key="index"
-        class="grid grid-cols-12 gap-2 px-2 py-1 border-b items-start text-xs border-commandCenter-border"
+        class="grid grid-cols-12 gap-2 px-2 py-1 border-b items-center text-xs border-commandCenter-border"
       >
+        <div class="col-span-1 flex justify-center">
+          <vscode-checkbox
+            :checked="column.primary_key"
+            :disabled="editingIndex !== index"
+            @change="(e) => togglePrimaryKey(e, index)"
+            title="Set as primary key"
+          >
+          </vscode-checkbox>
+        </div>
         <!-- Name -->
         <div class="col-span-2 font-medium font-mono text-xs">
           <div v-if="editingIndex === index" class="flex flex-col gap-1">
@@ -40,7 +52,6 @@
             >
               {{ column.name }}
             </span>
-            <KeyIcon v-if="column.primary_key" class="h-4 w-4 text-editor-fg opacity-60" />
             <vscode-button
               v-if="column.entity_attribute"
               appearance="icon"
@@ -62,17 +73,6 @@
                 class="w-full p-1 bg-editorWidget-bg text-editor-fg font-mono text-xs"
               />
             </div>
-            <vscode-checkbox
-              :checked="editingColumn.primary_key"
-              @change="
-                (e) => {
-                  editingColumn.primary_key = e.target.checked;
-                }
-              "
-              title="Set as primary key"
-            >
-              Primary Key
-            </vscode-checkbox>
           </div>
           <div v-else class="flex items-center">
             <div class="truncate font-mono" :title="column.type.toUpperCase()">
@@ -82,7 +82,7 @@
         </div>
 
         <!-- Description -->
-        <div class="col-span-4 text-xs">
+        <div class="col-span-3 text-xs">
           <input
             v-if="editingIndex === index"
             v-model="editingColumn.description"
@@ -261,7 +261,7 @@ import {
   CheckIcon,
   PlusIcon,
   LinkIcon,
-  KeyIcon
+  KeyIcon,
 } from "@heroicons/vue/20/solid";
 import DeleteAlert from "@/components/ui/alerts/AlertWithActions.vue";
 import { vscode } from "@/utilities/vscode";
@@ -336,14 +336,22 @@ const addColumn = () => {
     localColumns.value.push(newColumn);
     editingIndex.value = localColumns.value.length - 1;
     editingColumn.value = JSON.parse(JSON.stringify(newColumn));
-
   } catch (error) {
     console.error("Error adding new column:", error);
     // Show an error message to the user
     showError(`"Failed to add new column. Please try again. \n" ${error}`);
   }
 };
-
+const togglePrimaryKey = (e, index) => {
+  const isChecked = event.target.checked;
+  if (editingIndex.value === index) {
+    editingColumn.value.primary_key = isChecked;
+  } else {
+    const updatedColumn = { ...localColumns.value[index], primary_key: isChecked };
+    localColumns.value[index] = updatedColumn;
+    emitUpdateColumns();
+  }
+};
 const saveChanges = (index) => {
   try {
     const updatedColumn = JSON.parse(JSON.stringify(editingColumn.value));
@@ -462,7 +470,6 @@ const addCheck = (checkName) => {
   };
   editingColumn.value.checks.push(newCheck);
   showAddCheckDropdown.value = null;
-
 };
 
 const removeCheck = (checkName) => {
@@ -602,7 +609,6 @@ vscode-dropdown::part(control) {
   left: 0;
   z-index: 1000; /* Ensure it's above other elements */
 }
-
 
 input,
 select {
