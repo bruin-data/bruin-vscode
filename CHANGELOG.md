@@ -1,6 +1,9 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
+## [0.39.3] - [2025-03-12]
+- Added environment display to the query preview panel, showing the selected environment from the side panel dropdown.
+
 ## [0.39.2] - [2025-03-11]
 - Added expandable cells in Query Preview for long text, with `copy` support and `ESC` to close all expanded cells.
 
