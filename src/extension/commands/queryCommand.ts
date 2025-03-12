@@ -5,12 +5,14 @@ import { BruinQueryOutput } from "../../bruin/queryCommand";
 import * as vscode from "vscode";
 
 export const getQueryOutput = async (environment: string, limit: string, lastRenderedDocumentUri: Uri | undefined) => {
-  const editor = window.activeTextEditor;
+  let editor = window.activeTextEditor;
+  if (!editor) {
+    editor = lastRenderedDocumentUri && await window.showTextDocument(lastRenderedDocumentUri);
+  }
   if (!editor) {
     window.showErrorMessage('No active editor found');
     return;
   }
-
   // Get the selected text (if any)
   const selection = editor.selection;
   const selectedQuery = selection && !selection.isEmpty 
