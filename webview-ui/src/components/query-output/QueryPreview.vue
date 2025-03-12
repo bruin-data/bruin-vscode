@@ -65,9 +65,12 @@
 
         <div class="relative flex items-center gap-1 mr-2">
           <!-- Search Component -->
-           <div>
-            Selected Environment: {{ currentEnvironment }}
-           </div>
+          <div class="flex items-center space-x-2">
+            <span class="text-2xs text-editor-fg opacity-65">Running in:</span>
+            <vscode-badge :class="badgeClass">
+              {{ environment }}
+            </vscode-badge>
+          </div>
           <QuerySearch
             :visible="showSearchInput"
             :total-count="currentTab?.totalRowCount || 0"
@@ -605,6 +608,22 @@ watch(
 watch(currentEnvironment, (newVal) => {
   console.log("Computed environment updated:", newVal);
 });
+
+const badgeClass = computed(() => {
+  switch (props.environment?.toLowerCase()) {
+    case "production":
+    case "prod":
+      return "production-badge";
+    case "staging":
+    case "stg":
+      return "staging-badge";
+    case "development":
+    case "dev":
+      return "development-badge"; 
+    default:
+      return "default-badge"; 
+  }
+});
 </script>
 
 <style scoped>
@@ -660,5 +679,24 @@ body {
   color: var(--vscode-keybindingLabel-foreground);
   align-items: center;
   line-height: 10px;
+}
+.production-badge {
+  --badge-background: var(--vscode-gitDecoration-addedResourceForeground); 
+  --badge-foreground: var(--vscode-editor-background);
+}
+
+.staging-badge {
+  --badge-background: var(--vscode-gitDecoration-conflictingResourceForeground); 
+  --badge-foreground: var(--vscode-editor-background); 
+}
+
+.development-badge {
+  --badge-background:#5945f3; 
+  --badge-foreground: var(--vscode-editor-foreground);
+}
+
+.default-badge {
+  --badge-background: var(--vscode-input-background); 
+  --badge-foreground: var(--vscode-editor-foreground); 
 }
 </style>
