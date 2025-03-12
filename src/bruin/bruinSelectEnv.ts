@@ -50,9 +50,9 @@ export class BruinEnvList extends BruinCommand {
   }
   public static sendEnvironmentToQueryPreview(status:string, environment: string) {
     const message = {
-      command: "set-environment",
+      command: "init-environment",
       payload: environment,
     };
-    QueryPreviewPanel.postMessage("set-environment", { status, message });
+    QueryPreviewPanel.postMessage("init-environment", { status, message });
   }
 }
