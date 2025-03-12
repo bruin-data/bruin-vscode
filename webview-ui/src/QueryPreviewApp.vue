@@ -2,7 +2,7 @@
   <vscode-panels :activeid="`tab-${activeTab}`" aria-label="Tabbed Content">
     <vscode-panel-view
       v-for="(tab, index) in tabs"
-      :key="`view-${index}-${Date.now()}`"
+      :key="`view-${index}`"
       :id="`view-${index}`"
       v-show="activeTab === index"
     >
