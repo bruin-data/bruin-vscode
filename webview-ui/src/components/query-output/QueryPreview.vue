@@ -65,6 +65,9 @@
 
         <div class="relative flex items-center gap-1 mr-2">
           <!-- Search Component -->
+           <div>
+            Selected Environment: {{ currentEnvironment }}
+           </div>
           <QuerySearch
             :visible="showSearchInput"
             :total-count="currentTab?.totalRowCount || 0"
@@ -230,12 +233,14 @@ const props = defineProps<{
   output: any;
   error: any;
   isLoading: boolean;
+  environment: string;
 }>();
+
+const currentEnvironment = computed(() => props.environment || "");
 
 const limit = ref(100);
 const showSearchInput = ref(false);
 const hoveredTab = ref("");
-const environment = ref("");
 
 // State for expanded cells
 const expandedCells = ref(new Set<string>());
@@ -450,10 +455,10 @@ const runQuery = () => {
   if (limit.value > 1000 || limit.value < 1) {
     limit.value = 1000;
   }
-  
+  const selectedEnvironment = currentEnvironment.value;
   vscode.postMessage({
     command: "bruin.getQueryOutput",
-    payload: { environment: environment.value, limit: limit.value.toString(), query: "" },
+    payload: { environment: selectedEnvironment, limit: limit.value.toString(), query: "" },
   });
 };
 
@@ -588,6 +593,17 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener("keydown", handleKeyDown);
   window.removeEventListener("message", postMessage);
+});
+
+watch(
+  () => props.environment,
+  (newEnv) => {
+    console.log("Environment updated:", newEnv);
+  },
+  { immediate: true , deep: true} 
+);
+watch(currentEnvironment, (newVal) => {
+  console.log("Computed environment updated:", newVal);
 });
 </script>
 

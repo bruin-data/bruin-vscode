@@ -2,7 +2,7 @@
   <vscode-panels :activeid="`tab-${activeTab}`" aria-label="Tabbed Content">
     <vscode-panel-view
       v-for="(tab, index) in tabs"
-      :key="`view-${index}`"
+      :key="`view-${index}-${Date.now()}`"
       :id="`view-${index}`"
       v-show="activeTab === index"
     >
@@ -41,7 +41,8 @@ const activeTab = ref(0); // Tracks the currently active tab
  */
 
 const isLoading = ref(false); // Create a direct ref instead of computed
-
+const initEnvironment = ref();
+const currentEnvironment = ref();
 const handleMessage = (event) => {
   const message = event.data;
   switch (message.command) {
@@ -55,9 +56,23 @@ const handleMessage = (event) => {
         QueryError.value = updateValue(message, "error");
       }
       break;
+    case "init-environment":
+      const payload = updateValue(message, "success").payload;
+      initEnvironment.value = JSON.parse(payload);
+      currentEnvironment.value = initEnvironment.value?.selected_environment;
+      break;
+    case "set-environment":
+    currentEnvironment.value = updateValue(message, "success");
+      console.log("Setting environment", currentEnvironment.value);
+      break;
   }
 };
 
+const selectedEnvironment = computed(() => {
+  if(!currentEnvironment.value) return "";
+  const selected = currentEnvironment.value;
+  return selected || "";
+});
 const output = computed(() => {
   console.log("QueryOutput.value in output", QueryOutput.value);
   if (!QueryOutput.value) return null;
@@ -95,6 +110,7 @@ const tabs = ref([
       output: output.value,
       error: errorValue.value,
       isLoading: isLoading.value,
+      environment: selectedEnvironment.value,
     })),
   },
 ]);
