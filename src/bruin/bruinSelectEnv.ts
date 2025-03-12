@@ -1,6 +1,7 @@
 import { BruinCommandOptions } from "../types";
 import { BruinCommand } from "./bruinCommand";
 import { BruinPanel } from "../panels/BruinPanel";
+import { QueryPreviewPanel } from "../panels/QueryPreviewPanel";
 
 /**
  * Extends the BruinCommand class to implement the bruin select run environement command.
@@ -32,9 +33,11 @@ export class BruinEnvList extends BruinCommand {
       .then(
         (result) => {
           this.postMessageToPanels("success", result);
+          BruinEnvList.sendEnvironmentToQueryPreview("success", result);
         },
         (error) => {
           this.postMessageToPanels("error", error);
+          BruinEnvList.sendEnvironmentToQueryPreview("error", error);
         }
       )
       .catch((err) => {
@@ -44,5 +47,12 @@ export class BruinEnvList extends BruinCommand {
 
   private postMessageToPanels(status: string, message: string | any) {
     BruinPanel.postMessage("environments-list-message", { status, message });
+  }
+  public static sendEnvironmentToQueryPreview(status:string, environment: string) {
+    const message = {
+      command: "init-environment",
+      payload: environment,
+    };
+    QueryPreviewPanel.postMessage("init-environment", { status, message });
   }
 }

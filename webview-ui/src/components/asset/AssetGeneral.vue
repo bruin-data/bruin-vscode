@@ -493,6 +493,10 @@ function sendInitialMessage() {
 function setSelectedEnv(env: string) {
   selectedEnv.value = env;
   handleEnvironmentChange(env);
+  vscode.postMessage({
+    command: "bruin.setSelectedEnvironment",
+    payload: env,
+  });
 }
 
 const handleEnvironmentChange = (env) => {

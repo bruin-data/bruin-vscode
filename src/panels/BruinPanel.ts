@@ -22,6 +22,7 @@ import {
   testConnection,
 } from "../extension/commands/manageConnections";
 import { openGlossary } from "../bruin/bruinGlossaryUtility";
+import { QueryPreviewPanel } from "./QueryPreviewPanel";
 
 /**
  * This class manages the state and behavior of Bruin webview panels.
@@ -113,10 +114,10 @@ export class BruinPanel {
     // Set an event listener to listen for messages passed from the webview context
     this._setWebviewMessageListener(this._panel.webview);
   }
-   public static restore(panel: WebviewPanel, extensionUri: Uri): BruinPanel {
+  public static restore(panel: WebviewPanel, extensionUri: Uri): BruinPanel {
     return new BruinPanel(panel, extensionUri);
   }
- 
+
   public static postMessage(
     name: string,
     data: string | { status: string; message: string | any },
@@ -425,6 +426,14 @@ export class BruinPanel {
               return;
             }
             getEnvListCommand(this._lastRenderedDocumentUri);
+            break;
+          case "bruin.setSelectedEnvironment":
+            const envData = message.payload;
+            console.log("Setting selected environment :", envData);
+            QueryPreviewPanel.postMessage("set-environment", {
+              status: "success",
+              message: envData,
+            });
             break;
           case "checkBruinCliInstallation":
             this.checkAndUpdateBruinCliStatus();
