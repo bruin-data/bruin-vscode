@@ -12,7 +12,7 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
   private limit: string = "";
   private context: vscode.WebviewViewResolveContext<unknown> | undefined;
   private token: vscode.CancellationToken | undefined;
-
+  private _extensionConetxt: vscode.ExtensionContext | undefined;
   private disposables: vscode.Disposable[] = [];
 
   private async loadAndSendQueryOutput(environment: string, limit: string) {
@@ -32,7 +32,8 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
     }
   }
 
-  constructor(private readonly _extensionUri: vscode.Uri) {
+  constructor(private readonly _extensionUri: vscode.Uri, context: vscode.ExtensionContext) {
+    this._extensionConetxt = context;
     this.disposables.push(
       vscode.window.onDidChangeActiveTextEditor((event: vscode.TextEditor | undefined) => {
         if (event && event.document.uri.scheme !== "vscodebruin:panel") {
@@ -172,8 +173,19 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
     `;
   }
   private _setWebviewMessageListener(webview: vscode.Webview) {
-    webview.onDidReceiveMessage((message) => {
+    webview.onDidReceiveMessage(async (message) => {
       switch (message.command) {
+        case "bruin.saveState":
+          await this._persistState(message.payload);
+          break;
+          
+        case "bruin.requestState":
+          const state = await this._restoreState();
+          webview.postMessage({
+            command: "bruin.restoreState",
+            payload: state
+          });
+          break;
         case "bruin.getQueryOutput":
           this.environment = message.payload.environment;
           this.limit = message.payload.limit;
@@ -203,7 +215,30 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
       });
     }
   }
-
+  private async _persistState(state: any) {
+    if(!this._extensionConetxt) {
+      throw new Error("Extension context not found");
+    }
+    try {
+      const sanitizedState = JSON.parse(JSON.stringify(state));
+      await this._extensionConetxt.globalState.update('queryPreviewState', sanitizedState);
+    }
+    catch (error) {
+      console.error("Error persisting state:", error);
+    }
+  }
+  
+  private async _restoreState(): Promise<any> {
+   if(!this._extensionConetxt) {
+     throw new Error("Extension context not found");
+   }
+   try {
+     return this._extensionConetxt.globalState.get('queryPreviewState') || null;
+   }
+   catch (error) {
+     console.error("Error restoring state:", error);
+   }
+  }
   public async initPanel(event: vscode.TextEditor | vscode.TextDocumentChangeEvent | undefined) {
     if (event) {
       this._lastRenderedDocumentUri = event.document.uri;
