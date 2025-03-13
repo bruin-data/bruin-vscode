@@ -226,7 +226,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, onMounted, onUnmounted, watch, ref, watchEffect } from "vue";
 import { TableCellsIcon } from "@heroicons/vue/24/outline";
 import { vscode } from "@/utilities/vscode";
 import QuerySearch from "../ui/query-preview/QuerySearch.vue";
@@ -276,6 +276,7 @@ const switchToTab = (tabId: string) => {
   // Reset cell expansions when switching tabs
   expandedCells.value.clear();
   activeTab.value = tabId;
+  saveState();
 };
 
 // Add a new tab
@@ -298,8 +299,89 @@ const addTab = () => {
   
   tabCounter.value++;
   activeTab.value = newTabId;
+  saveState();
+};
+const saveState = () => {
+  // Sanitize data before sending
+  const sanitizedTabs = tabs.value.map(tab => ({
+    id: tab.id,
+    label: tab.label,
+    parsedOutput: tab.parsedOutput ? JSON.parse(JSON.stringify(tab.parsedOutput)) : null,
+    error: tab.error ? {
+      message: tab.error,
+    } : null,
+    searchInput: tab.searchInput,
+    totalRowCount: tab.totalRowCount,
+    filteredRowCount: tab.filteredRowCount
+  }));
+
+  const state = {
+    limit: limit.value,
+    tabs: sanitizedTabs,
+    activeTab: activeTab.value,
+    expandedCells: Array.from(expandedCells.value),
+    environment: currentEnvironment.value,
+    showSearchInput: showSearchInput.value
+  };
+
+  try {
+    // Verify serializability
+    JSON.parse(JSON.stringify(state));
+    vscode.postMessage({
+      command: "bruin.saveState",
+      payload: state
+    });
+  } catch (e) {
+    console.error("State serialization failed:", e);
+  }
 };
 
+// Watch for state changes with debounce
+let saveTimeout: NodeJS.Timeout;
+watchEffect(() => {
+  clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(saveState, 500);
+});
+
+// Request initial state when mounted
+onMounted(() => {
+  vscode.postMessage({ command: "bruin.requestState" });
+});
+const reviveParsedOutput = (parsedOutput: any) => {
+  try {
+    return {
+      ...parsedOutput,
+      rows: parsedOutput.rows || [],
+      columns: parsedOutput.columns || []
+    };
+  } catch (e) {
+    console.error("Error reviving parsed output:", e);
+    return undefined;
+  }
+};
+// Handle state restoration
+window.addEventListener("message", (event) => {
+  const message = event.data;
+  if (message.command === "bruin.restoreState") {
+    const state = message.payload;
+    
+    if (state) {
+      // Revive complex objects
+      tabs.value = (state.tabs || []).map(t => ({
+        ...t,
+        parsedOutput: t.parsedOutput ? reviveParsedOutput(t.parsedOutput) : undefined,
+        error: t.error ? new Error(t.error.message) : null,
+        isLoading: false,
+        isEditing: false,
+        filteredRows: t.parsedOutput?.rows || []
+      }));
+      
+      activeTab.value = state.activeTab || "output";
+      expandedCells.value = new Set(state.expandedCells || []);
+      showSearchInput.value = state.showSearchInput || false;
+    }
+  }
+});
 // Close a tab
 const closeTab = (tabId: string) => {
   // Reset cell expansions
@@ -318,6 +400,7 @@ const closeTab = (tabId: string) => {
       activeTab.value = tabs.value[0]?.id || "";
     }
   }
+  saveState();
 };
 
 // Clear results for the current tab
@@ -331,7 +414,7 @@ const clearTabResults = () => {
     currentTab.value.totalRowCount = 0;
     currentTab.value.filteredRowCount = 0;
   }
-  
+  saveState();
   vscode.postMessage({ command: "bruin.clearQueryOutput" });
 };
 
@@ -340,21 +423,25 @@ const cellHasOverflow = (value) => {
   if (value === null || value === undefined) return false;
   const stringValue = String(value);
   // Show expand button if content is longer than 30 chars
+  saveState();
   return stringValue.length > 30;
 };
 
 // Create a unique key for tracking expanded cells
 const getCellKey = (rowIndex, colIndex) => {
+  saveState();
   return `${activeTab.value}-${rowIndex}-${colIndex}`;
 };
 
 // Check if a specific cell is expanded
 const isExpanded = (rowIndex, colIndex) => {
+  saveState();
   return expandedCells.value.has(getCellKey(rowIndex, colIndex));
 };
 
 // Toggle cell expansion
 const toggleCellExpansion = (rowIndex, colIndex) => {
+  saveState();
   const cellKey = getCellKey(rowIndex, colIndex);
   if (expandedCells.value.has(cellKey)) {
     expandedCells.value.delete(cellKey);
@@ -463,6 +550,7 @@ const runQuery = () => {
     command: "bruin.getQueryOutput",
     payload: { environment: selectedEnvironment, limit: limit.value.toString(), query: "" },
   });
+  saveState();
 };
 
 // Toggle search input visibility
@@ -596,6 +684,7 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener("keydown", handleKeyDown);
   window.removeEventListener("message", postMessage);
+  clearTimeout(saveTimeout);
 });
 
 watch(
