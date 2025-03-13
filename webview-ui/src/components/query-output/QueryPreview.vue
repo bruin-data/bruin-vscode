@@ -95,138 +95,145 @@
     </div>
     <!-- Query Output Tab -->
     <div v-if="activeTab" class="relative">
-      <div
-        v-if="currentTab?.isLoading"
-        class="fixed inset-0 flex items-center justify-center bg-editor-bg bg-opacity-50 z-50"
-      >
-        <div class="relative w-8 h-8">
-          <!-- Gradient Spinner -->
+      <template v-for="tab in tabs" :key="tab.id">
+        <div v-show="activeTab === tab.id" class="tab-content">
           <div
-            class="w-8 h-8 border-4 border-t-transparent border-solid rounded-full animate-spin"
-            style="border-image: linear-gradient(to right, #e05f5f, #fff) 1"
-          ></div>
-        </div>
-      </div>
-      <!-- Error Message -->
-      <div
-        v-if="currentTab?.error"
-        class="my-2 border border-commandCenter-border rounded text-errorForeground bg-editorWidget-bg p-2"
-      >
-        <div class="text-sm font-medium mb-2 pb-1 border-b border-commandCenter-border">
-          Query Execution Failed
-        </div>
-        <div
-          class="text-xs font-mono text-red-300 bg-editorWidget-bg whitespace-pre-wrap break-all leading-relaxed"
-        >
-          {{ currentTab.error }}
-        </div>
-      </div>
-      <div
-        v-if="!currentTab?.parsedOutput && !currentTab?.error && !currentTab?.isLoading"
-        class="flex items-center justify-center h-[100vh] w-full"
-      >
-        <div class="flex items-center space-x-2 text-sm text-editor-fg">
-          <vscode-button appearance="icon" @click="runQuery">
-            <span class="codicon codicon-play text-editor-fg" style="font-size: 1.2em"></span>
-          </vscode-button>
-          <span class="opacity-50">Run query preview</span>
-          <div class="flex items-center">
-            <span class="keybinding">{{ modifierKey }}</span>
-            <span class="keybinding"> Enter </span>
+            v-if="currentTab?.isLoading"
+            class="fixed inset-0 flex items-center justify-center bg-editor-bg bg-opacity-50 z-50"
+          >
+            <div class="relative w-8 h-8">
+              <!-- Gradient Spinner -->
+              <div
+                class="w-8 h-8 border-4 border-t-transparent border-solid rounded-full animate-spin"
+                style="border-image: linear-gradient(to right, #e05f5f, #fff) 1"
+              ></div>
+            </div>
+          </div>
+          <!-- Error Message -->
+          <div
+            v-if="currentTab?.error"
+            class="my-2 border border-commandCenter-border rounded text-errorForeground bg-editorWidget-bg p-2"
+          >
+            <div class="text-sm font-medium mb-2 pb-1 border-b border-commandCenter-border">
+              Query Execution Failed
+            </div>
+            <div
+              class="text-xs font-mono text-red-300 bg-editorWidget-bg whitespace-pre-wrap break-all leading-relaxed"
+            >
+              {{ currentTab.error }}
+            </div>
+          </div>
+          <div
+            v-if="!currentTab?.parsedOutput && !currentTab?.error && !currentTab?.isLoading"
+            class="flex items-center justify-center h-[100vh] w-full"
+          >
+            <div class="flex items-center space-x-2 text-sm text-editor-fg">
+              <vscode-button appearance="icon" @click="runQuery">
+                <span class="codicon codicon-play text-editor-fg" style="font-size: 1.2em"></span>
+              </vscode-button>
+              <span class="opacity-50">Run query preview</span>
+              <div class="flex items-center">
+                <span class="keybinding">{{ modifierKey }}</span>
+                <span class="keybinding"> Enter </span>
+              </div>
+            </div>
+          </div>
+          <!-- Results Table -->
+          <div
+            v-if="currentTab?.parsedOutput && !currentTab?.error"
+            class="overflow-auto h-[calc(100vh-33px)] w-full"
+          >
+            <table
+              class="w-[calc(100vw-100px)] bg-editor-bg font-mono font-normal text-xs border-t-0 border-collapse"
+            >
+              <thead class="bg-editor-bg border-y-0">
+                <tr>
+                  <th
+                    class="sticky top-0 p-1 text-left font-semibold text-editor-fg bg-editor-bg border-x border-commandCenter-border before:absolute before:bottom-0 before:left-0 before:w-full before:border-b before:border-commandCenter-border"
+                  ></th>
+                  <th
+                    v-for="column in currentTab.parsedOutput.columns"
+                    :key="column.name"
+                    class="sticky top-0 p-1 text-left font-semibold text-editor-fg bg-editor-bg border-x border-commandCenter-border before:absolute before:bottom-0 before:left-0 before:w-full before:border-b before:border-commandCenter-border"
+                  >
+                    <div class="flex items-center">
+                      <span class="truncate">{{ column.name }}</span>
+                    </div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="(row, index) in currentTab.filteredRows"
+                  :key="index"
+                  class="hover:bg-menu-hoverBackground transition-colors duration-150"
+                >
+                  <td
+                    class="p-1 opacity-50 text-editor-fg font-mono border border-commandCenter-border"
+                  >
+                    {{ index + 1 }}
+                  </td>
+                  <td
+                    v-for="(value, colIndex) in row"
+                    :key="colIndex"
+                    class="p-1 text-editor-fg font-mono border border-commandCenter-border relative max-w-40"
+                    :class="{ 'cursor-pointer': cellHasOverflow(value) }"
+                  >
+                    <!-- Cell with in-place expansion -->
+                    <div class="flex flex-col">
+                      <!-- Content container with conditional height -->
+                      <div
+                        :class="{
+                          'max-h-6 overflow-hidden': !isExpanded(index, colIndex),
+                          'max-h-12 overflow-y-auto': isExpanded(index, colIndex),
+                        }"
+                        class="transition-all duration-75 pr-6"
+                      >
+                        <!-- Cell content with word-wrapping when expanded -->
+                        <div
+                          :class="{
+                            'whitespace-nowrap overflow-hidden text-ellipsis': !isExpanded(
+                              index,
+                              colIndex
+                            ),
+                            'whitespace-pre-wrap break-words': isExpanded(index, colIndex),
+                          }"
+                          v-html="highlightMatch(value, currentTab.searchInput)"
+                        ></div>
+                      </div>
+                      <!-- (expand/collapse) -->
+                      <div class="absolute right-2 top-0 flex items-center">
+                        <vscode-button
+                          appearance="icon"
+                          v-if="cellHasOverflow(value)"
+                          @click.stop="toggleCellExpansion(index, colIndex)"
+                          class="text-editor-fg opacity-70 hover:opacity-100"
+                          :title="isExpanded(index, colIndex) ? 'Collapse' : 'Expand'"
+                        >
+                          <span
+                            class="codicon text-xs"
+                            :class="
+                              isExpanded(index, colIndex)
+                                ? 'codicon-chevron-down'
+                                : 'codicon-chevron-right'
+                            "
+                          ></span>
+                        </vscode-button>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
-      </div>
-      <!-- Results Table -->
-      <div v-if="currentTab?.parsedOutput && !currentTab?.error" class="overflow-auto h-[calc(100vh-33px)] w-full">
-        <table
-          class="w-[calc(100vw-100px)] bg-editor-bg font-mono font-normal text-xs border-t-0 border-collapse"
-        >
-          <thead class="bg-editor-bg border-y-0">
-            <tr>
-              <th
-                class="sticky top-0 p-1 text-left font-semibold text-editor-fg bg-editor-bg border-x border-commandCenter-border before:absolute before:bottom-0 before:left-0 before:w-full before:border-b before:border-commandCenter-border"
-              ></th>
-              <th
-                v-for="column in currentTab.parsedOutput.columns"
-                :key="column.name"
-                class="sticky top-0 p-1 text-left font-semibold text-editor-fg bg-editor-bg border-x border-commandCenter-border before:absolute before:bottom-0 before:left-0 before:w-full before:border-b before:border-commandCenter-border"
-              >
-                <div class="flex items-center">
-                  <span class="truncate">{{ column.name }}</span>
-                </div>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="(row, index) in currentTab.filteredRows"
-              :key="index"
-              class="hover:bg-menu-hoverBackground transition-colors duration-150"
-            >
-              <td
-                class="p-1 opacity-50 text-editor-fg font-mono border border-commandCenter-border"
-              >
-                {{ index + 1 }}
-              </td>
-              <td
-                v-for="(value, colIndex) in row"
-                :key="colIndex"
-                class="p-1 text-editor-fg font-mono border border-commandCenter-border relative max-w-40"
-                :class="{ 'cursor-pointer': cellHasOverflow(value) }"
-              >
-                <!-- Cell with in-place expansion -->
-                <div class="flex flex-col">
-                  <!-- Content container with conditional height -->
-                  <div
-                    :class="{
-                      'max-h-6 overflow-hidden': !isExpanded(index, colIndex),
-                      'max-h-12 overflow-y-auto': isExpanded(index, colIndex),
-                    }"
-                    class="transition-all duration-75 pr-6"
-                  >
-                    <!-- Cell content with word-wrapping when expanded -->
-                    <div
-                      :class="{
-                        'whitespace-nowrap overflow-hidden text-ellipsis': !isExpanded(
-                          index,
-                          colIndex
-                        ),
-                        'whitespace-pre-wrap break-words': isExpanded(index, colIndex),
-                      }"
-                      v-html="highlightMatch(value, currentTab.searchInput)"
-                    ></div>
-                  </div>
-                  <!-- (expand/collapse) -->
-                  <div class="absolute right-2 top-0 flex items-center">
-                    <vscode-button
-                      appearance="icon"
-                      v-if="cellHasOverflow(value)"
-                      @click.stop="toggleCellExpansion(index, colIndex)"
-                      class="text-editor-fg opacity-70 hover:opacity-100"
-                      :title="isExpanded(index, colIndex) ? 'Collapse' : 'Expand'"
-                    >
-                      <span
-                        class="codicon text-xs"
-                        :class="
-                          isExpanded(index, colIndex)
-                            ? 'codicon-chevron-down'
-                            : 'codicon-chevron-right'
-                        "
-                      ></span>
-                    </vscode-button>
-                  </div>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      </template>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, watch, ref, watchEffect } from "vue";
+import { computed, onMounted, onUnmounted, watch, ref, watchEffect, nextTick, shallowRef } from "vue";
 import { TableCellsIcon } from "@heroicons/vue/24/outline";
 import { vscode } from "@/utilities/vscode";
 import QuerySearch from "../ui/query-preview/QuerySearch.vue";
@@ -248,7 +255,7 @@ const hoveredTab = ref("");
 // State for expanded cells
 const expandedCells = ref(new Set<string>());
 
-const tabs = ref<TabData[]>([
+const tabs = shallowRef<TabData[]>([
   {
     id: "output",
     label: "Output",
@@ -272,8 +279,9 @@ const currentTab = computed(() => {
 });
 
 // Handle tab switching
-const switchToTab = (tabId: string) => {
+const switchToTab = async(tabId: string) => {
   // Reset cell expansions when switching tabs
+  await nextTick();
   expandedCells.value.clear();
   activeTab.value = tabId;
   saveState();
@@ -283,7 +291,7 @@ const switchToTab = (tabId: string) => {
 const addTab = () => {
   const newTabId = `tab-${tabCounter.value}`;
   const newTabLabel = `Tab ${tabCounter.value}`;
-  
+
   tabs.value.push({
     id: newTabId,
     label: newTabLabel,
@@ -296,23 +304,25 @@ const addTab = () => {
     filteredRowCount: 0,
     isEditing: false,
   });
-  
+
   tabCounter.value++;
   activeTab.value = newTabId;
   saveState();
 };
 const saveState = () => {
   // Sanitize data before sending
-  const sanitizedTabs = tabs.value.map(tab => ({
+  const sanitizedTabs = tabs.value.map((tab) => ({
     id: tab.id,
     label: tab.label,
     parsedOutput: tab.parsedOutput ? JSON.parse(JSON.stringify(tab.parsedOutput)) : null,
-    error: tab.error ? {
-      message: tab.error,
-    } : null,
+    error: tab.error
+      ? {
+          message: tab.error,
+        }
+      : null,
     searchInput: tab.searchInput,
     totalRowCount: tab.totalRowCount,
-    filteredRowCount: tab.filteredRowCount
+    filteredRowCount: tab.filteredRowCount,
   }));
 
   const state = {
@@ -321,7 +331,7 @@ const saveState = () => {
     activeTab: activeTab.value,
     expandedCells: Array.from(expandedCells.value),
     environment: currentEnvironment.value,
-    showSearchInput: showSearchInput.value
+    showSearchInput: showSearchInput.value,
   };
 
   try {
@@ -329,7 +339,7 @@ const saveState = () => {
     JSON.parse(JSON.stringify(state));
     vscode.postMessage({
       command: "bruin.saveState",
-      payload: state
+      payload: state,
     });
   } catch (e) {
     console.error("State serialization failed:", e);
@@ -352,7 +362,7 @@ const reviveParsedOutput = (parsedOutput: any) => {
     return {
       ...parsedOutput,
       rows: parsedOutput.rows || [],
-      columns: parsedOutput.columns || []
+      columns: parsedOutput.columns || [],
     };
   } catch (e) {
     console.error("Error reviving parsed output:", e);
@@ -364,18 +374,18 @@ window.addEventListener("message", (event) => {
   const message = event.data;
   if (message.command === "bruin.restoreState") {
     const state = message.payload;
-    
+
     if (state) {
       // Revive complex objects
-      tabs.value = (state.tabs || []).map(t => ({
+      tabs.value = (state.tabs || []).map((t) => ({
         ...t,
         parsedOutput: t.parsedOutput ? reviveParsedOutput(t.parsedOutput) : undefined,
         error: t.error ? new Error(t.error.message) : null,
         isLoading: false,
         isEditing: false,
-        filteredRows: t.parsedOutput?.rows || []
+        filteredRows: t.parsedOutput?.rows || [],
       }));
-      
+
       activeTab.value = state.activeTab || "output";
       expandedCells.value = new Set(state.expandedCells || []);
       showSearchInput.value = state.showSearchInput || false;
@@ -451,56 +461,65 @@ const toggleCellExpansion = (rowIndex, colIndex) => {
 };
 
 // Parse output for the current tab
-watch(() => props.output, (newOutput) => {
-  if (!currentTab.value) return;
-  
-  try {
-    let parsedData;
-    if (typeof newOutput === "string") {
-      parsedData = JSON.parse(newOutput);
-    } else if (newOutput?.data?.status === "success") {
-      parsedData = JSON.parse(newOutput.data.message);
-    } else {
-      parsedData = newOutput;
+watch(
+  () => props.output,
+  (newOutput) => {
+    if (!currentTab.value) return;
+
+    try {
+      let parsedData;
+      if (typeof newOutput === "string") {
+        parsedData = JSON.parse(newOutput);
+      } else if (newOutput?.data?.status === "success") {
+        parsedData = JSON.parse(newOutput.data.message);
+      } else {
+        parsedData = newOutput;
+      }
+
+      if (parsedData) {
+        currentTab.value.parsedOutput = parsedData;
+        currentTab.value.totalRowCount = parsedData.rows?.length || 0;
+        updateFilteredRows();
+      }
+    } catch (e) {
+      console.error("Error parsing output:", e);
     }
-    
-    if (parsedData) {
-      currentTab.value.parsedOutput = parsedData;
-      currentTab.value.totalRowCount = parsedData.rows?.length || 0;
-      updateFilteredRows();
-    }
-  } catch (e) {
-    console.error("Error parsing output:", e);
   }
-});
+);
 
 // Update error state for the current tab
-watch(() => props.error, (newError) => {
-  if (!currentTab.value) return;
-  
-  if (!newError) {
-    currentTab.value.error = null;
-    return;
-  }
-  
-  if (typeof newError === "string") {
-    try {
-      const parsed = JSON.parse(newError);
-      currentTab.value.error = parsed.error || parsed;
-    } catch (e) {
-      currentTab.value.error = newError;
+watch(
+  () => props.error,
+  (newError) => {
+    if (!currentTab.value) return;
+
+    if (!newError) {
+      currentTab.value.error = null;
+      return;
     }
-  } else {
-    currentTab.value.error = newError?.error || newError || "Something went wrong";
+
+    if (typeof newError === "string") {
+      try {
+        const parsed = JSON.parse(newError);
+        currentTab.value.error = parsed.error || parsed;
+      } catch (e) {
+        currentTab.value.error = newError;
+      }
+    } else {
+      currentTab.value.error = newError?.error || newError || "Something went wrong";
+    }
   }
-});
+);
 
 // Update loading state for the current tab
-watch(() => props.isLoading, (newIsLoading) => {
-  if (currentTab.value) {
-    currentTab.value.isLoading = newIsLoading;
+watch(
+  () => props.isLoading,
+  (newIsLoading) => {
+    if (currentTab.value) {
+      currentTab.value.isLoading = newIsLoading;
+    }
   }
-});
+);
 
 // Update search term and filtered rows
 const updateSearchTerm = (term: string) => {
@@ -521,19 +540,19 @@ const updateFilteredRows = () => {
     }
     return;
   }
-  
+
   const searchTerm = currentTab.value.searchInput.trim().toLowerCase();
-  
+
   if (!searchTerm) {
     currentTab.value.filteredRows = currentTab.value.parsedOutput.rows;
     currentTab.value.filteredRowCount = currentTab.value.totalRowCount;
     return;
   }
-  
+
   const filtered = currentTab.value.parsedOutput.rows.filter((row) => {
     return row.some((cell) => cell !== null && String(cell).toLowerCase().includes(searchTerm));
   });
-  
+
   currentTab.value.filteredRows = filtered;
   currentTab.value.filteredRowCount = filtered.length;
 };
@@ -563,13 +582,13 @@ const highlightMatch = (value, searchTerm) => {
   if (!searchTerm || !searchTerm.trim() || value === null) {
     return String(value);
   }
-  
+
   const stringValue = String(value);
-  
+
   if (!stringValue.toLowerCase().includes(searchTerm.toLowerCase())) {
     return stringValue;
   }
-  
+
   // Use regex with 'i' flag for case-insensitive matching
   const regex = new RegExp(`(${escapeRegExp(searchTerm)})`, "gi");
   return stringValue.replace(regex, '<span class="bg-yellow-500 text-black">$1</span>');
@@ -586,7 +605,7 @@ const handleKeyDown = (event) => {
   if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
     runQuery();
   }
-  
+
   // Toggle search with Cmd+F or Ctrl+F
   if ((event.ctrlKey || event.metaKey) && event.key === "f") {
     event.preventDefault();
@@ -632,7 +651,7 @@ const vFocus = {
 // Lifecycle hooks
 onMounted(() => {
   window.addEventListener("keydown", handleKeyDown);
-  
+
   // Initialize the Output tab with current data
   if (props.output && tabs.value[0]) {
     try {
@@ -644,7 +663,7 @@ onMounted(() => {
       } else {
         parsedData = props.output;
       }
-      
+
       if (parsedData) {
         tabs.value[0].parsedOutput = parsedData;
         tabs.value[0].totalRowCount = parsedData.rows?.length || 0;
@@ -655,7 +674,7 @@ onMounted(() => {
       console.error("Error initializing tab with data:", e);
     }
   }
-  
+
   if (props.error && tabs.value[0]) {
     if (typeof props.error === "string") {
       try {
@@ -668,18 +687,18 @@ onMounted(() => {
       tabs.value[0].error = props.error?.error || props.error || "Something went wrong";
     }
   }
-  
+
   if (tabs.value[0]) {
     tabs.value[0].isLoading = props.isLoading;
   }
 });
-const modifierKey = ref('⌘'); // Default to Mac symbol
+const modifierKey = ref("⌘"); // Default to Mac symbol
 
 onMounted(() => {
   // Detect if running on Windows or macOS
-  const isMac = navigator.platform.toUpperCase().startsWith('MAC');  
+  const isMac = navigator.platform.toUpperCase().startsWith("MAC");
   // Update the modifier key symbol based on platform
-  modifierKey.value = isMac ? '⌘' : 'Ctrl';
+  modifierKey.value = isMac ? "⌘" : "Ctrl";
 });
 onUnmounted(() => {
   window.removeEventListener("keydown", handleKeyDown);
@@ -692,7 +711,7 @@ watch(
   (newEnv) => {
     console.log("Environment updated:", newEnv);
   },
-  { immediate: true , deep: true} 
+  { immediate: true, deep: true }
 );
 watch(currentEnvironment, (newVal) => {
   console.log("Computed environment updated:", newVal);
@@ -708,9 +727,9 @@ const badgeClass = computed(() => {
       return "staging-badge";
     case "development":
     case "dev":
-      return "development-badge"; 
+      return "development-badge";
     default:
-      return "default-badge"; 
+      return "default-badge";
   }
 });
 </script>
@@ -770,22 +789,22 @@ body {
   line-height: 10px;
 }
 .production-badge {
-  --badge-background: var(--vscode-gitDecoration-addedResourceForeground); 
+  --badge-background: var(--vscode-gitDecoration-addedResourceForeground);
   --badge-foreground: var(--vscode-editor-background);
 }
 
 .staging-badge {
-  --badge-background: var(--vscode-gitDecoration-conflictingResourceForeground); 
-  --badge-foreground: var(--vscode-editor-background); 
+  --badge-background: var(--vscode-gitDecoration-conflictingResourceForeground);
+  --badge-foreground: var(--vscode-editor-background);
 }
 
 .development-badge {
-  --badge-background:#5945f3; 
+  --badge-background: #5945f3;
   --badge-foreground: var(--vscode-editor-foreground);
 }
 
 .default-badge {
-  --badge-background: var(--vscode-input-background); 
-  --badge-foreground: var(--vscode-editor-foreground); 
+  --badge-background: var(--vscode-input-background);
+  --badge-foreground: var(--vscode-editor-foreground);
 }
 </style>
