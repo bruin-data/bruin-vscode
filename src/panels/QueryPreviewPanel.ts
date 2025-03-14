@@ -12,7 +12,7 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
   private limit: string = "";
   private context: vscode.WebviewViewResolveContext<unknown> | undefined;
   private token: vscode.CancellationToken | undefined;
-  private _extensionConetxt: vscode.ExtensionContext | undefined;
+  private _extensionContext: vscode.ExtensionContext | undefined;
   private disposables: vscode.Disposable[] = [];
 
   private async loadAndSendQueryOutput(environment: string, limit: string) {
@@ -33,7 +33,7 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
   }
 
   constructor(private readonly _extensionUri: vscode.Uri, context: vscode.ExtensionContext) {
-    this._extensionConetxt = context;
+    this._extensionContext = context;
     this.disposables.push(
       vscode.window.onDidChangeActiveTextEditor((event: vscode.TextEditor | undefined) => {
         if (event && event.document.uri.scheme !== "vscodebruin:panel") {
@@ -218,12 +218,12 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
     }
   }
   private async _persistState(state: any) {
-    if(!this._extensionConetxt) {
+    if(!this._extensionContext) {
       throw new Error("Extension context not found");
     }
     try {
       const sanitizedState = JSON.parse(JSON.stringify(state));
-      await this._extensionConetxt.globalState.update('queryPreviewState', sanitizedState);
+      await this._extensionContext.globalState.update('queryPreviewState', sanitizedState);
     }
     catch (error) {
       console.error("Error persisting state:", error);
@@ -231,11 +231,11 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
   }
   
   private async _restoreState(): Promise<any> {
-   if(!this._extensionConetxt) {
+   if(!this._extensionContext) {
      throw new Error("Extension context not found");
    }
    try {
-     return this._extensionConetxt.globalState.get('queryPreviewState') || null;
+     return this._extensionContext.globalState.get('queryPreviewState') || null;
    }
    catch (error) {
      console.error("Error restoring state:", error);
