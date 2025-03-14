@@ -12,7 +12,7 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
   private limit: string = "";
   private context: vscode.WebviewViewResolveContext<unknown> | undefined;
   private token: vscode.CancellationToken | undefined;
-
+  private _extensionContext: vscode.ExtensionContext | undefined;
   private disposables: vscode.Disposable[] = [];
 
   private async loadAndSendQueryOutput(environment: string, limit: string) {
@@ -32,7 +32,8 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
     }
   }
 
-  constructor(private readonly _extensionUri: vscode.Uri) {
+  constructor(private readonly _extensionUri: vscode.Uri, context: vscode.ExtensionContext) {
+    this._extensionContext = context;
     this.disposables.push(
       vscode.window.onDidChangeActiveTextEditor((event: vscode.TextEditor | undefined) => {
         if (event && event.document.uri.scheme !== "vscodebruin:panel") {
@@ -172,8 +173,19 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
     `;
   }
   private _setWebviewMessageListener(webview: vscode.Webview) {
-    webview.onDidReceiveMessage((message) => {
+    webview.onDidReceiveMessage(async (message) => {
       switch (message.command) {
+        case "bruin.saveState":
+          await this._persistState(message.payload);
+          break;
+          
+        case "bruin.requestState":
+          const state = await this._restoreState();
+          webview.postMessage({
+            command: "bruin.restoreState",
+            payload: state
+          });
+          break;
         case "bruin.getQueryOutput":
           this.environment = message.payload.environment;
           this.limit = message.payload.limit;
@@ -181,10 +193,12 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
           console.log("Received limit from webview in the Query Preview panel", message.payload);
           break;
         case "bruin.clearQueryOutput":
-          console.log(
-            "Received clear query output from webview in the Query Preview panel",
-            message.payload
-          );
+          const tabId = message.payload?.tabId || null;
+          // Send a clear message back to the webview with the specific tab ID
+          QueryPreviewPanel.postMessage("query-output-clear", {
+            status: "success",
+            message: {tabId : tabId},
+          });
           break;
       }
     });
@@ -203,7 +217,30 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
       });
     }
   }
-
+  private async _persistState(state: any) {
+    if(!this._extensionContext) {
+      throw new Error("Extension context not found");
+    }
+    try {
+      const sanitizedState = JSON.parse(JSON.stringify(state));
+      await this._extensionContext.globalState.update('queryPreviewState', sanitizedState);
+    }
+    catch (error) {
+      console.error("Error persisting state:", error);
+    }
+  }
+  
+  private async _restoreState(): Promise<any> {
+   if(!this._extensionContext) {
+     throw new Error("Extension context not found");
+   }
+   try {
+     return this._extensionContext.globalState.get('queryPreviewState') || null;
+   }
+   catch (error) {
+     console.error("Error restoring state:", error);
+   }
+  }
   public async initPanel(event: vscode.TextEditor | vscode.TextDocumentChangeEvent | undefined) {
     if (event) {
       this._lastRenderedDocumentUri = event.document.uri;

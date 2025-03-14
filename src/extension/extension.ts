@@ -119,7 +119,7 @@ export async function activate(context: ExtensionContext) {
   
   
   const lineageWebviewProvider = new LineagePanel(context.extensionUri);
-  const queryPreviewWebviewProvider = new QueryPreviewPanel(context.extensionUri);
+  const queryPreviewWebviewProvider = new QueryPreviewPanel(context.extensionUri, context);
   // Register the folding range provider for Python and SQL files
   const foldingDisposable = languages.registerFoldingRangeProvider(["python", "sql"], {
     provideFoldingRanges: bruinFoldingRangeProvider,

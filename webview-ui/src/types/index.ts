@@ -153,6 +153,8 @@ export interface TabData extends Tab {
   totalRowCount: number;
   filteredRowCount: number;
   isEditing: boolean;
+  limit: number;
+  environment: string;
 }
 
 export interface EditingState {
