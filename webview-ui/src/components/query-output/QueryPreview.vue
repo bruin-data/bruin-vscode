@@ -556,13 +556,17 @@ watch(
   }
 );
 
-// Update search term and filtered rows
 const updateSearchTerm = (term: string) => {
   // Reset cell expansions when searching
   expandedCells.value.clear();
   if (currentTab.value) {
     currentTab.value.searchInput = term;
-    updateFilteredRows();
+    // Force immediate update of filtered rows with the new term
+    nextTick(() => {
+      updateFilteredRows();
+      // Force component update after updating filtered rows
+      triggerRef(tabs);
+    });
   }
 };
 
@@ -579,19 +583,28 @@ const updateFilteredRows = () => {
   const searchTerm = currentTab.value.searchInput.trim().toLowerCase();
 
   if (!searchTerm) {
+    // When search term is empty, immediately restore all rows
     currentTab.value.filteredRows = currentTab.value.parsedOutput.rows;
     currentTab.value.filteredRowCount = currentTab.value.totalRowCount;
     return;
   }
 
+  // Don't use requestAnimationFrame for filtering to ensure immediate updates
   const filtered = currentTab.value.parsedOutput.rows.filter((row) => {
-    return row.some((cell) => cell !== null && String(cell).toLowerCase().includes(searchTerm));
+    for (let i = 0; i < row.length; i++) {
+      const cell = row[i];
+      if (cell !== null && String(cell).toLowerCase().includes(searchTerm)) {
+        return true;
+      }
+    }
+    return false;
   });
 
-  currentTab.value.filteredRows = filtered;
-  currentTab.value.filteredRowCount = filtered.length;
-};
-
+  if (currentTab.value) {
+    currentTab.value.filteredRows = filtered;
+    currentTab.value.filteredRowCount = filtered.length;
+  }
+}
 // Run query and store results in the current tab
 const runQuery = () => {
   // Reset cell expansions when running a new query
@@ -614,20 +627,29 @@ const toggleSearchInput = () => {
 
 // Highlight matching text in search results
 const highlightMatch = (value, searchTerm) => {
-  if (!searchTerm || !searchTerm.trim() || value === null) {
-    return String(value);
+  if (!searchTerm || !searchTerm.trim() || value === null || value === undefined) {
+    return String(value === null || value === undefined ? '' : value);
   }
 
   const stringValue = String(value);
+  const searchTermLower = searchTerm.toLowerCase();
 
-  if (!stringValue.toLowerCase().includes(searchTerm.toLowerCase())) {
+  if (!stringValue.toLowerCase().includes(searchTermLower)) {
     return stringValue;
   }
 
-  // Use regex with 'i' flag for case-insensitive matching
-  const regex = new RegExp(`(${escapeRegExp(searchTerm)})`, "gi");
-  return stringValue.replace(regex, '<span class="bg-yellow-500 text-black">$1</span>');
+  // Cache regex for better performance
+  if (!highlightMatchRegexCache[searchTerm]) {
+    highlightMatchRegexCache[searchTerm] = new RegExp(`(${escapeRegExp(searchTerm)})`, "gi");
+  }
+  
+  return stringValue.replace(
+    highlightMatchRegexCache[searchTerm], 
+    '<span class="bg-yellow-500 text-black">$1</span>'
+  );
 };
+const highlightMatchRegexCache = {};
+
 
 // Helper function to escape regex special characters
 const escapeRegExp = (string) => {
