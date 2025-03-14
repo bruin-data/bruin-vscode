@@ -233,7 +233,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, watch, ref, watchEffect, nextTick, shallowRef } from "vue";
+import { computed, onMounted, onUnmounted, watch, ref, watchEffect, nextTick, shallowRef, triggerRef } from "vue";
 import { TableCellsIcon } from "@heroicons/vue/24/outline";
 import { vscode } from "@/utilities/vscode";
 import QuerySearch from "../ui/query-preview/QuerySearch.vue";
@@ -263,10 +263,12 @@ const tabs = shallowRef<TabData[]>([
     error: null,
     isLoading: false,
     searchInput: "",
+    limit: 100,
     filteredRows: [],
     totalRowCount: 0,
     filteredRowCount: 0,
     isEditing: false,
+    environment: currentEnvironment.value,
   },
 ]);
 
@@ -284,7 +286,6 @@ const switchToTab = async(tabId: string) => {
   await nextTick();
   expandedCells.value.clear();
   activeTab.value = tabId;
-  saveState();
 };
 
 // Add a new tab
@@ -297,12 +298,14 @@ const addTab = () => {
     label: newTabLabel,
     parsedOutput: undefined,
     error: null,
+    limit: 100,
     isLoading: false,
     searchInput: "",
     filteredRows: [],
     totalRowCount: 0,
     filteredRowCount: 0,
     isEditing: false,
+    environment: currentEnvironment.value,
   });
 
   tabCounter.value++;
@@ -391,6 +394,24 @@ window.addEventListener("message", (event) => {
       showSearchInput.value = state.showSearchInput || false;
     }
   }
+  if (message.command === "query-output-clear" && message.payload?.status === "success") {
+    const tabId = message.payload.tabId;
+    if (!tabId || tabId === activeTab.value) {
+      if (currentTab.value) {
+        currentTab.value.parsedOutput = undefined;
+        currentTab.value.error = null;
+        currentTab.value.filteredRows = [];
+        currentTab.value.totalRowCount = 0;
+        currentTab.value.filteredRowCount = 0;
+      }
+      // Force a UI update
+      nextTick(() => {
+        if (tabs.value) {
+          triggerRef(tabs);
+        }
+      });
+    }
+  }
 });
 // Close a tab
 const closeTab = (tabId: string) => {
@@ -417,15 +438,33 @@ const closeTab = (tabId: string) => {
 const clearTabResults = () => {
   // Reset cell expansions
   expandedCells.value.clear();
+  
+  // Immediately clear local state
   if (currentTab.value) {
-    currentTab.value.parsedOutput = undefined;
-    currentTab.value.error = null;
-    currentTab.value.filteredRows = [];
-    currentTab.value.totalRowCount = 0;
-    currentTab.value.filteredRowCount = 0;
+    // Create a completely new object instead of modifying properties
+    const index = tabs.value.findIndex(tab => tab.id === currentTab.value?.id);
+    if (index !== -1) {
+      const newTab = {
+        ...tabs.value[index],
+        parsedOutput: undefined,
+        error: null,
+        filteredRows: [],
+        totalRowCount: 0,
+        filteredRowCount: 0
+      };
+      tabs.value.splice(index, 1, newTab);
+    }
   }
+  // Force a UI update
+  nextTick(() => {
+    triggerRef(tabs);
+  });  
+  vscode.postMessage({ 
+    command: "bruin.clearQueryOutput",
+    payload: { tabId: activeTab.value } 
+  });
+  
   saveState();
-  vscode.postMessage({ command: "bruin.clearQueryOutput" });
 };
 
 // Check if a cell has overflow (needs expand button)
@@ -433,25 +472,21 @@ const cellHasOverflow = (value) => {
   if (value === null || value === undefined) return false;
   const stringValue = String(value);
   // Show expand button if content is longer than 30 chars
-  saveState();
   return stringValue.length > 30;
 };
 
 // Create a unique key for tracking expanded cells
 const getCellKey = (rowIndex, colIndex) => {
-  saveState();
   return `${activeTab.value}-${rowIndex}-${colIndex}`;
 };
 
 // Check if a specific cell is expanded
 const isExpanded = (rowIndex, colIndex) => {
-  saveState();
   return expandedCells.value.has(getCellKey(rowIndex, colIndex));
 };
 
 // Toggle cell expansion
 const toggleCellExpansion = (rowIndex, colIndex) => {
-  saveState();
   const cellKey = getCellKey(rowIndex, colIndex);
   if (expandedCells.value.has(cellKey)) {
     expandedCells.value.delete(cellKey);

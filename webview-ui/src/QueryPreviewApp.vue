@@ -21,6 +21,7 @@
 import { ref, onUnmounted, computed, onMounted, watch, triggerRef } from "vue";
 import { updateValue } from "./utilities/helper";
 import QueryPreview from "@/components/query-output/QueryPreview.vue";
+import { vscode } from "./utilities/vscode";
 
 /**
  * QueryPreview Component
@@ -100,6 +101,7 @@ const clearQueryOutput = () => {
   QueryOutput.value = null;
   QueryError.value = null;
   isLoading.value = false;
+  vscode.postMessage({ command: "bruin.clearQueryOutput" });
 };
 // Define tabs for the application
 const tabs = ref([
