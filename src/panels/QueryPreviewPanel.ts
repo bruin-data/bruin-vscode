@@ -193,10 +193,12 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
           console.log("Received limit from webview in the Query Preview panel", message.payload);
           break;
         case "bruin.clearQueryOutput":
-          console.log(
-            "Received clear query output from webview in the Query Preview panel",
-            message.payload
-          );
+          const tabId = message.payload?.tabId || null;
+          // Send a clear message back to the webview with the specific tab ID
+          QueryPreviewPanel.postMessage("query-output-clear", {
+            status: "success",
+            message: {tabId : tabId},
+          });
           break;
       }
     });
