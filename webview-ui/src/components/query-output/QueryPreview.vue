@@ -326,6 +326,8 @@ const saveState = () => {
     searchInput: tab.searchInput,
     totalRowCount: tab.totalRowCount,
     filteredRowCount: tab.filteredRowCount,
+    environment: currentEnvironment.value,
+    tabCounter: tabCounter.value,
   }));
 
   const state = {
@@ -335,6 +337,7 @@ const saveState = () => {
     expandedCells: Array.from(expandedCells.value),
     environment: currentEnvironment.value,
     showSearchInput: showSearchInput.value,
+    tabCounter: tabCounter.value,
   };
 
   try {
@@ -356,10 +359,6 @@ watchEffect(() => {
   saveTimeout = setTimeout(saveState, 500);
 });
 
-// Request initial state when mounted
-onMounted(() => {
-  vscode.postMessage({ command: "bruin.requestState" });
-});
 const reviveParsedOutput = (parsedOutput: any) => {
   try {
     return {
@@ -379,6 +378,9 @@ window.addEventListener("message", (event) => {
     const state = message.payload;
 
     if (state) {
+      if (state.tabCounter) {
+        tabCounter.value = state.tabCounter;
+      }
       // Revive complex objects
       tabs.value = (state.tabs || []).map((t) => ({
         ...t,
@@ -387,16 +389,48 @@ window.addEventListener("message", (event) => {
         isLoading: false,
         isEditing: false,
         filteredRows: t.parsedOutput?.rows || [],
+        environment: t.environment || currentEnvironment.value,
       }));
 
       activeTab.value = state.activeTab || "output";
       expandedCells.value = new Set(state.expandedCells || []);
       showSearchInput.value = state.showSearchInput || false;
+      // If no tabs were restored, ensure we have at least the default tab
+      if (tabs.value.length === 0) {
+        tabs.value = [
+          {
+            id: "output",
+            label: "Output",
+            parsedOutput: undefined,
+            error: null,
+            isLoading: false,
+            searchInput: "",
+            limit: limit.value,
+            filteredRows: [],
+            totalRowCount: 0,
+            filteredRowCount: 0,
+            isEditing: false,
+            environment: currentEnvironment.value,
+          },
+        ];
+      }
     }
   }
+
   if (message.command === "query-output-clear" && message.payload?.status === "success") {
-    const tabId = message.payload.tabId;
-    if (!tabId || tabId === activeTab.value) {
+    const tabId = message.payload.message?.tabId;
+    // Find the specific tab to clear if tabId is provided
+    if (tabId) {
+      const tabToClear = tabs.value.find((tab) => tab.id === tabId);
+      if (tabToClear) {
+        tabToClear.parsedOutput = undefined;
+        tabToClear.error = null;
+        tabToClear.filteredRows = [];
+        tabToClear.totalRowCount = 0;
+        tabToClear.filteredRowCount = 0;
+      }
+    } else {
+      // If no tabId specified, clear the current tab
       if (currentTab.value) {
         currentTab.value.parsedOutput = undefined;
         currentTab.value.error = null;
@@ -404,13 +438,13 @@ window.addEventListener("message", (event) => {
         currentTab.value.totalRowCount = 0;
         currentTab.value.filteredRowCount = 0;
       }
-      // Force a UI update
-      nextTick(() => {
-        if (tabs.value) {
-          triggerRef(tabs);
-        }
-      });
     }
+    // Force a UI update
+    nextTick(() => {
+      if (tabs.value) {
+        triggerRef(tabs);
+      }
+    });
   }
 });
 // Close a tab
@@ -514,7 +548,9 @@ watch(
       if (parsedData) {
         currentTab.value.parsedOutput = parsedData;
         currentTab.value.totalRowCount = parsedData.rows?.length || 0;
+        triggerRef(tabs);
         updateFilteredRows();
+        saveState();
       }
     } catch (e) {
       console.error("Error parsing output:", e);
@@ -708,55 +744,15 @@ const vFocus = {
 // Lifecycle hooks
 onMounted(() => {
   window.addEventListener("keydown", handleKeyDown);
-
-  // Initialize the Output tab with current data
-  if (props.output && tabs.value[0]) {
-    try {
-      let parsedData;
-      if (typeof props.output === "string") {
-        parsedData = JSON.parse(props.output);
-      } else if (props.output?.data?.status === "success") {
-        parsedData = JSON.parse(props.output.data.message);
-      } else {
-        parsedData = props.output;
-      }
-
-      if (parsedData) {
-        tabs.value[0].parsedOutput = parsedData;
-        tabs.value[0].totalRowCount = parsedData.rows?.length || 0;
-        tabs.value[0].filteredRows = parsedData.rows || [];
-        tabs.value[0].filteredRowCount = tabs.value[0].totalRowCount;
-      }
-    } catch (e) {
-      console.error("Error initializing tab with data:", e);
-    }
-  }
-
-  if (props.error && tabs.value[0]) {
-    if (typeof props.error === "string") {
-      try {
-        const parsed = JSON.parse(props.error);
-        tabs.value[0].error = parsed.error || parsed;
-      } catch (e) {
-        tabs.value[0].error = props.error;
-      }
-    } else {
-      tabs.value[0].error = props.error?.error || props.error || "Something went wrong";
-    }
-  }
-
-  if (tabs.value[0]) {
-    tabs.value[0].isLoading = props.isLoading;
-  }
-});
-const modifierKey = ref("⌘"); // Default to Mac symbol
-
-onMounted(() => {
   // Detect if running on Windows or macOS
   const isMac = navigator.platform.toUpperCase().startsWith("MAC");
   // Update the modifier key symbol based on platform
   modifierKey.value = isMac ? "⌘" : "Ctrl";
+
+  vscode.postMessage({ command: "bruin.requestState" });
 });
+const modifierKey = ref("⌘"); // Default to Mac symbol
+
 onUnmounted(() => {
   window.removeEventListener("keydown", handleKeyDown);
   window.removeEventListener("message", postMessage);
