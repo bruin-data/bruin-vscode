@@ -19,7 +19,7 @@
             />
           </div>
           <div class="flex items-center space-x-1">
-            <div class="flex items-center overflow-x-auto max-w-lg">
+            <div class="flex items-center">
               <button
                 v-for="tab in tabs"
                 :key="tab.id"
