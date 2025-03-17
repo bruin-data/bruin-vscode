@@ -68,7 +68,7 @@
           <div class="flex items-center space-x-2">
             <span class="text-2xs text-editor-fg opacity-65">Running in:</span>
             <vscode-badge :class="badgeClass">
-              {{ environment }}
+              {{ currentEnvironment }}
             </vscode-badge>
           </div>
           <QuerySearch
@@ -246,7 +246,7 @@ const props = defineProps<{
   environment: string;
 }>();
 
-const currentEnvironment = computed(() => props.environment || "");
+const currentEnvironment = ref<string>(props.environment);
 
 const limit = ref(100);
 const showSearchInput = ref(false);
@@ -381,6 +381,10 @@ window.addEventListener("message", (event) => {
       if (state.tabCounter) {
         tabCounter.value = state.tabCounter;
       }
+      if(state.environment) {
+        currentEnvironment.value = state.environment;
+        console.log("Current environment set to", currentEnvironment.value);
+      }
       // Revive complex objects
       tabs.value = (state.tabs || []).map((t) => ({
         ...t,
@@ -389,7 +393,6 @@ window.addEventListener("message", (event) => {
         isLoading: false,
         isEditing: false,
         filteredRows: t.parsedOutput?.rows || [],
-        environment: t.environment || currentEnvironment.value,
       }));
 
       activeTab.value = state.activeTab || "output";
@@ -761,17 +764,31 @@ onUnmounted(() => {
 
 watch(
   () => props.environment,
-  (newEnv) => {
-    console.log("Environment updated:", newEnv);
+  (newEnvironment) => {
+    if (!newEnvironment) return;
+    
+    // Update current environment
+    currentEnvironment.value = newEnvironment;
+    
+    // Update environment for all tabs
+    tabs.value.forEach(tab => {
+      tab.environment = newEnvironment;
+    });
+    
+    // Force reactive update
+    triggerRef(tabs);
+    
+    // Save state with updated environment
+    saveState();
+    
+    console.log("Environment updated across all tabs:", newEnvironment);
   },
-  { immediate: true, deep: true }
+  { immediate: true }
 );
-watch(currentEnvironment, (newVal) => {
-  console.log("Computed environment updated:", newVal);
-});
+
 
 const badgeClass = computed(() => {
-  switch (props.environment?.toLowerCase()) {
+  switch (currentEnvironment.value?.toLowerCase()) {
     case "production":
     case "prod":
       return "production-badge";
