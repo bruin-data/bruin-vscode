@@ -233,7 +233,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, watch, ref, watchEffect, nextTick, shallowRef, triggerRef } from "vue";
+import {
+  computed,
+  onMounted,
+  onUnmounted,
+  watch,
+  ref,
+  watchEffect,
+  nextTick,
+  shallowRef,
+  triggerRef,
+} from "vue";
 import { TableCellsIcon } from "@heroicons/vue/24/outline";
 import { vscode } from "@/utilities/vscode";
 import QuerySearch from "../ui/query-preview/QuerySearch.vue";
@@ -247,6 +257,7 @@ const props = defineProps<{
 }>();
 
 const currentEnvironment = ref<string>(props.environment);
+const modifierKey = ref("⌘"); // Default to Mac symbol
 
 const limit = ref(100);
 const showSearchInput = ref(false);
@@ -281,7 +292,7 @@ const currentTab = computed(() => {
 });
 
 // Handle tab switching
-const switchToTab = async(tabId: string) => {
+const switchToTab = async (tabId: string) => {
   // Reset cell expansions when switching tabs
   await nextTick();
   expandedCells.value.clear();
@@ -381,9 +392,8 @@ window.addEventListener("message", (event) => {
       if (state.tabCounter) {
         tabCounter.value = state.tabCounter;
       }
-      if(state.environment) {
+      if (state.environment) {
         currentEnvironment.value = state.environment;
-        console.log("Current environment set to", currentEnvironment.value);
       }
       // Revive complex objects
       tabs.value = (state.tabs || []).map((t) => ({
@@ -398,25 +408,6 @@ window.addEventListener("message", (event) => {
       activeTab.value = state.activeTab || "output";
       expandedCells.value = new Set(state.expandedCells || []);
       showSearchInput.value = state.showSearchInput || false;
-      // If no tabs were restored, ensure we have at least the default tab
-      if (tabs.value.length === 0) {
-        tabs.value = [
-          {
-            id: "output",
-            label: "Output",
-            parsedOutput: undefined,
-            error: null,
-            isLoading: false,
-            searchInput: "",
-            limit: limit.value,
-            filteredRows: [],
-            totalRowCount: 0,
-            filteredRowCount: 0,
-            isEditing: false,
-            environment: currentEnvironment.value,
-          },
-        ];
-      }
     }
   }
 
@@ -475,11 +466,11 @@ const closeTab = (tabId: string) => {
 const clearTabResults = () => {
   // Reset cell expansions
   expandedCells.value.clear();
-  
+
   // Immediately clear local state
   if (currentTab.value) {
     // Create a completely new object instead of modifying properties
-    const index = tabs.value.findIndex(tab => tab.id === currentTab.value?.id);
+    const index = tabs.value.findIndex((tab) => tab.id === currentTab.value?.id);
     if (index !== -1) {
       const newTab = {
         ...tabs.value[index],
@@ -487,7 +478,7 @@ const clearTabResults = () => {
         error: null,
         filteredRows: [],
         totalRowCount: 0,
-        filteredRowCount: 0
+        filteredRowCount: 0,
       };
       tabs.value.splice(index, 1, newTab);
     }
@@ -495,12 +486,12 @@ const clearTabResults = () => {
   // Force a UI update
   nextTick(() => {
     triggerRef(tabs);
-  });  
-  vscode.postMessage({ 
-    command: "bruin.clearQueryOutput",
-    payload: { tabId: activeTab.value } 
   });
-  
+  vscode.postMessage({
+    command: "bruin.clearQueryOutput",
+    payload: { tabId: activeTab.value },
+  });
+
   saveState();
 };
 
@@ -643,7 +634,7 @@ const updateFilteredRows = () => {
     currentTab.value.filteredRows = filtered;
     currentTab.value.filteredRowCount = filtered.length;
   }
-}
+};
 // Run query and store results in the current tab
 const runQuery = () => {
   // Reset cell expansions when running a new query
@@ -667,7 +658,7 @@ const toggleSearchInput = () => {
 // Highlight matching text in search results
 const highlightMatch = (value, searchTerm) => {
   if (!searchTerm || !searchTerm.trim() || value === null || value === undefined) {
-    return String(value === null || value === undefined ? '' : value);
+    return String(value === null || value === undefined ? "" : value);
   }
 
   const stringValue = String(value);
@@ -681,14 +672,13 @@ const highlightMatch = (value, searchTerm) => {
   if (!highlightMatchRegexCache[searchTerm]) {
     highlightMatchRegexCache[searchTerm] = new RegExp(`(${escapeRegExp(searchTerm)})`, "gi");
   }
-  
+
   return stringValue.replace(
-    highlightMatchRegexCache[searchTerm], 
+    highlightMatchRegexCache[searchTerm],
     '<span class="bg-yellow-500 text-black">$1</span>'
   );
 };
 const highlightMatchRegexCache = {};
-
 
 // Helper function to escape regex special characters
 const escapeRegExp = (string) => {
@@ -754,8 +744,6 @@ onMounted(() => {
 
   vscode.postMessage({ command: "bruin.requestState" });
 });
-const modifierKey = ref("⌘"); // Default to Mac symbol
-
 onUnmounted(() => {
   window.removeEventListener("keydown", handleKeyDown);
   window.removeEventListener("message", postMessage);
@@ -766,26 +754,15 @@ watch(
   () => props.environment,
   (newEnvironment) => {
     if (!newEnvironment) return;
-    
-    // Update current environment
     currentEnvironment.value = newEnvironment;
-    
-    // Update environment for all tabs
-    tabs.value.forEach(tab => {
+    tabs.value.forEach((tab) => {
       tab.environment = newEnvironment;
     });
-    
-    // Force reactive update
     triggerRef(tabs);
-    
-    // Save state with updated environment
     saveState();
-    
-    console.log("Environment updated across all tabs:", newEnvironment);
   },
   { immediate: true }
 );
-
 
 const badgeClass = computed(() => {
   switch (currentEnvironment.value?.toLowerCase()) {
