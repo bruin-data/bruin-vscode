@@ -27,7 +27,7 @@
                 @dblclick="startEdit(tab)"
                 @mouseover="hoveredTab = tab.id"
                 @mouseleave="hoveredTab = ''"
-                class="px-2 py-1 text-3xs rounded transition-colors uppercase flex items-center whitespace-nowrap"
+                class="px-2 py-1 text-3xs rounded transition-colors uppercase flex items-center whitespace-nowrap relative"
                 :class="{
                   'bg-input-background text-editor-fg': activeTab === tab.id,
                   'text-editor-fg hover:bg-editorWidget-bg': activeTab !== tab.id,
@@ -48,9 +48,13 @@
                   <TableCellsIcon class="h-4 w-4 mr-1" />
                   <span>{{ tab.label }}</span>
                   <span
-                    v-if="tab.id !== 'output' && (hoveredTab === tab.id || activeTab === tab.id)"
+                    v-if="tab.id !== 'output'"
                     @click.stop="closeTab(tab.id)"
-                    class="flex items-center hover:bg-editorWidget-bg ml-1"
+                    class="flex items-center hover:bg-editorWidget-bg ml-1 w-4 h-4 justify-center transition-opacity duration-150"
+                    :class="{
+                      'opacity-0': hoveredTab !== tab.id && activeTab !== tab.id,
+                      'opacity-100': hoveredTab === tab.id || activeTab === tab.id,
+                    }"
                   >
                     <span class="text-3xs codicon codicon-close"></span>
                   </span>
@@ -448,17 +452,41 @@ const closeTab = (tabId: string) => {
   const tabIndex = tabs.value.findIndex((tab) => tab.id === tabId);
 
   if (tabIndex !== -1) {
+    // If we're closing the active tab, determine which tab to activate next
+    if (activeTab.value === tabId) {
+      // If there's a tab to the right, use that
+      if (tabIndex < tabs.value.length - 1) {
+        activeTab.value = tabs.value[tabIndex + 1].id;
+      }
+      // Otherwise use the tab to the left (previous tab)
+      else if (tabIndex > 0) {
+        activeTab.value = tabs.value[tabIndex - 1].id;
+      }
+      // If no tabs left, default to "output"
+      else {
+        activeTab.value = "output";
+      }
+    }
+
+    // Remove tab
     tabs.value.splice(tabIndex, 1);
+
+    if (tabs.value.length === 1 && tabs.value[0].id === "output") {
+      // Reset the counter when all custom tabs are closed
+      tabCounter.value = 1;
+    }
 
     // Clear editing state if closing edited tab
     if (editingState.value?.tabId === tabId) {
       cancelEdit();
     }
-    // If we closed the active tab, switch to the first available tab
-    if (activeTab.value === tabId) {
-      activeTab.value = tabs.value[0]?.id || "";
-    }
+
+    // Force Vue to update immediately
+    nextTick(() => {
+      triggerRef(tabs);
+    });
   }
+
   saveState();
 };
 
