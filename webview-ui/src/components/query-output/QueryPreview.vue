@@ -272,25 +272,25 @@ const hoveredTab = ref("");
 
 // State for expanded cells
 const expandedCells = ref(new Set<string>());
-
+const defaultTab = {
+  id: "tab-1",
+  label: "Tab 1",
+  parsedOutput: undefined,
+  error: null,
+  isLoading: false,
+  searchInput: "",
+  limit: 100,
+  filteredRows: [],
+  totalRowCount: 0,
+  filteredRowCount: 0,
+  isEditing: false,
+  environment: currentEnvironment.value,
+};
 const tabs = shallowRef<TabData[]>([
-  {
-    id: "tab-1", 
-    label: "Tab 1", 
-    parsedOutput: undefined,
-    error: null,
-    isLoading: false,
-    searchInput: "",
-    limit: 100,
-    filteredRows: [],
-    totalRowCount: 0,
-    filteredRowCount: 0,
-    isEditing: false,
-    environment: currentEnvironment.value,
-  },
+  defaultTab,
 ]);
 
-const activeTab = ref<string>("tab-1"); 
+const activeTab = ref<string>("tab-1");
 const tabCounter = ref(2); // Start from 2 since we already have "Tab 1"
 
 // Get current active tab
@@ -334,37 +334,24 @@ const addTab = () => {
 // Reset the entire panel
 const resetPanel = () => {
   // Clear all tabs except the first one
-  tabs.value = [
-    {
-      id: "tab-1",
-      label: "Tab 1",
-      parsedOutput: undefined,
-      error: null,
-      isLoading: false,
-      searchInput: "",
-      limit: 100,
-      filteredRows: [],
-      totalRowCount: 0,
-      filteredRowCount: 0,
-      isEditing: false,
-      environment: currentEnvironment.value,
-    },
-  ];
-  
+  tabs.value = [defaultTab];
+
   // Reset tab counter
   tabCounter.value = 2;
-  
+
   // Set active tab to the first tab
   activeTab.value = "tab-1";
-  
+
   // Reset expanded cells
   expandedCells.value.clear();
-  
+
+  // Hide search input
+  showSearchInput.value = false;
   // Clear state from storage
   vscode.postMessage({
     command: "bruin.resetState",
   });
-  
+
   // Force UI update
   nextTick(() => {
     triggerRef(tabs);
@@ -453,7 +440,7 @@ window.addEventListener("message", (event) => {
         filteredRows: t.parsedOutput?.rows || [],
       }));
 
-      activeTab.value = state.activeTab || "tab-1"; 
+      activeTab.value = state.activeTab || "tab-1";
       expandedCells.value = new Set(state.expandedCells || []);
       showSearchInput.value = state.showSearchInput || false;
     }
@@ -508,16 +495,16 @@ const closeTab = (tabId: string) => {
       }
       // If no tabs left, default to "tab-1"
       else {
-        activeTab.value = "tab-1"; 
+        activeTab.value = "tab-1";
       }
     }
 
     // Remove tab
     tabs.value.splice(tabIndex, 1);
 
-    if (tabs.value.length === 1 && tabs.value[0].id === "tab-1") { 
+    if (tabs.value.length === 1 && tabs.value[0].id === "tab-1") {
       // Reset the counter when all custom tabs are closed
-      tabCounter.value = 2; 
+      tabCounter.value = 2;
     }
 
     // Clear editing state if closing edited tab
