@@ -19,7 +19,7 @@
             />
           </div>
           <div class="flex items-center space-x-1">
-            <div class="flex items-center overflow-x-auto max-w-lg">
+            <div class="flex items-center">
               <button
                 v-for="tab in tabs"
                 :key="tab.id"
@@ -27,7 +27,7 @@
                 @dblclick="startEdit(tab)"
                 @mouseover="hoveredTab = tab.id"
                 @mouseleave="hoveredTab = ''"
-                class="px-2 py-1 text-3xs rounded transition-colors uppercase flex items-center whitespace-nowrap"
+                class="px-2 py-1 text-3xs rounded transition-colors uppercase flex items-center whitespace-nowrap relative"
                 :class="{
                   'bg-input-background text-editor-fg': activeTab === tab.id,
                   'text-editor-fg hover:bg-editorWidget-bg': activeTab !== tab.id,
@@ -48,9 +48,13 @@
                   <TableCellsIcon class="h-4 w-4 mr-1" />
                   <span>{{ tab.label }}</span>
                   <span
-                    v-if="tab.id !== 'output' && (hoveredTab === tab.id || activeTab === tab.id)"
+                    v-if="tab.id !== 'output'"
                     @click.stop="closeTab(tab.id)"
-                    class="flex items-center hover:bg-editorWidget-bg ml-1"
+                    class="flex items-center hover:bg-editorWidget-bg ml-1 w-4 h-4 justify-center transition-opacity duration-150"
+                    :class="{
+                      'opacity-0': hoveredTab !== tab.id && activeTab !== tab.id,
+                      'opacity-100': hoveredTab === tab.id || activeTab === tab.id,
+                    }"
                   >
                     <span class="text-3xs codicon codicon-close"></span>
                   </span>
@@ -68,7 +72,7 @@
           <div class="flex items-center space-x-2">
             <span class="text-2xs text-editor-fg opacity-65">Running in:</span>
             <vscode-badge :class="badgeClass">
-              {{ environment }}
+              {{ currentEnvironment }}
             </vscode-badge>
           </div>
           <QuerySearch
@@ -233,7 +237,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, watch, ref, watchEffect, nextTick, shallowRef, triggerRef } from "vue";
+import {
+  computed,
+  onMounted,
+  onUnmounted,
+  watch,
+  ref,
+  watchEffect,
+  nextTick,
+  shallowRef,
+  triggerRef,
+} from "vue";
 import { TableCellsIcon } from "@heroicons/vue/24/outline";
 import { vscode } from "@/utilities/vscode";
 import QuerySearch from "../ui/query-preview/QuerySearch.vue";
@@ -246,7 +260,8 @@ const props = defineProps<{
   environment: string;
 }>();
 
-const currentEnvironment = computed(() => props.environment || "");
+const currentEnvironment = ref<string>(props.environment);
+const modifierKey = ref("⌘"); // Default to Mac symbol
 
 const limit = ref(100);
 const showSearchInput = ref(false);
@@ -281,7 +296,7 @@ const currentTab = computed(() => {
 });
 
 // Handle tab switching
-const switchToTab = async(tabId: string) => {
+const switchToTab = async (tabId: string) => {
   // Reset cell expansions when switching tabs
   await nextTick();
   expandedCells.value.clear();
@@ -326,6 +341,8 @@ const saveState = () => {
     searchInput: tab.searchInput,
     totalRowCount: tab.totalRowCount,
     filteredRowCount: tab.filteredRowCount,
+    environment: currentEnvironment.value,
+    tabCounter: tabCounter.value,
   }));
 
   const state = {
@@ -335,6 +352,7 @@ const saveState = () => {
     expandedCells: Array.from(expandedCells.value),
     environment: currentEnvironment.value,
     showSearchInput: showSearchInput.value,
+    tabCounter: tabCounter.value,
   };
 
   try {
@@ -356,10 +374,6 @@ watchEffect(() => {
   saveTimeout = setTimeout(saveState, 500);
 });
 
-// Request initial state when mounted
-onMounted(() => {
-  vscode.postMessage({ command: "bruin.requestState" });
-});
 const reviveParsedOutput = (parsedOutput: any) => {
   try {
     return {
@@ -379,6 +393,12 @@ window.addEventListener("message", (event) => {
     const state = message.payload;
 
     if (state) {
+      if (state.tabCounter) {
+        tabCounter.value = state.tabCounter;
+      }
+      if (state.environment) {
+        currentEnvironment.value = state.environment;
+      }
       // Revive complex objects
       tabs.value = (state.tabs || []).map((t) => ({
         ...t,
@@ -394,9 +414,21 @@ window.addEventListener("message", (event) => {
       showSearchInput.value = state.showSearchInput || false;
     }
   }
+
   if (message.command === "query-output-clear" && message.payload?.status === "success") {
-    const tabId = message.payload.tabId;
-    if (!tabId || tabId === activeTab.value) {
+    const tabId = message.payload.message?.tabId;
+    // Find the specific tab to clear if tabId is provided
+    if (tabId) {
+      const tabToClear = tabs.value.find((tab) => tab.id === tabId);
+      if (tabToClear) {
+        tabToClear.parsedOutput = undefined;
+        tabToClear.error = null;
+        tabToClear.filteredRows = [];
+        tabToClear.totalRowCount = 0;
+        tabToClear.filteredRowCount = 0;
+      }
+    } else {
+      // If no tabId specified, clear the current tab
       if (currentTab.value) {
         currentTab.value.parsedOutput = undefined;
         currentTab.value.error = null;
@@ -404,13 +436,13 @@ window.addEventListener("message", (event) => {
         currentTab.value.totalRowCount = 0;
         currentTab.value.filteredRowCount = 0;
       }
-      // Force a UI update
-      nextTick(() => {
-        if (tabs.value) {
-          triggerRef(tabs);
-        }
-      });
     }
+    // Force a UI update
+    nextTick(() => {
+      if (tabs.value) {
+        triggerRef(tabs);
+      }
+    });
   }
 });
 // Close a tab
@@ -420,17 +452,41 @@ const closeTab = (tabId: string) => {
   const tabIndex = tabs.value.findIndex((tab) => tab.id === tabId);
 
   if (tabIndex !== -1) {
+    // If we're closing the active tab, determine which tab to activate next
+    if (activeTab.value === tabId) {
+      // If there's a tab to the right, use that
+      if (tabIndex < tabs.value.length - 1) {
+        activeTab.value = tabs.value[tabIndex + 1].id;
+      }
+      // Otherwise use the tab to the left (previous tab)
+      else if (tabIndex > 0) {
+        activeTab.value = tabs.value[tabIndex - 1].id;
+      }
+      // If no tabs left, default to "output"
+      else {
+        activeTab.value = "output";
+      }
+    }
+
+    // Remove tab
     tabs.value.splice(tabIndex, 1);
+
+    if (tabs.value.length === 1 && tabs.value[0].id === "output") {
+      // Reset the counter when all custom tabs are closed
+      tabCounter.value = 1;
+    }
 
     // Clear editing state if closing edited tab
     if (editingState.value?.tabId === tabId) {
       cancelEdit();
     }
-    // If we closed the active tab, switch to the first available tab
-    if (activeTab.value === tabId) {
-      activeTab.value = tabs.value[0]?.id || "";
-    }
+
+    // Force Vue to update immediately
+    nextTick(() => {
+      triggerRef(tabs);
+    });
   }
+
   saveState();
 };
 
@@ -438,11 +494,11 @@ const closeTab = (tabId: string) => {
 const clearTabResults = () => {
   // Reset cell expansions
   expandedCells.value.clear();
-  
+
   // Immediately clear local state
   if (currentTab.value) {
     // Create a completely new object instead of modifying properties
-    const index = tabs.value.findIndex(tab => tab.id === currentTab.value?.id);
+    const index = tabs.value.findIndex((tab) => tab.id === currentTab.value?.id);
     if (index !== -1) {
       const newTab = {
         ...tabs.value[index],
@@ -450,7 +506,7 @@ const clearTabResults = () => {
         error: null,
         filteredRows: [],
         totalRowCount: 0,
-        filteredRowCount: 0
+        filteredRowCount: 0,
       };
       tabs.value.splice(index, 1, newTab);
     }
@@ -458,12 +514,12 @@ const clearTabResults = () => {
   // Force a UI update
   nextTick(() => {
     triggerRef(tabs);
-  });  
-  vscode.postMessage({ 
-    command: "bruin.clearQueryOutput",
-    payload: { tabId: activeTab.value } 
   });
-  
+  vscode.postMessage({
+    command: "bruin.clearQueryOutput",
+    payload: { tabId: activeTab.value },
+  });
+
   saveState();
 };
 
@@ -514,7 +570,9 @@ watch(
       if (parsedData) {
         currentTab.value.parsedOutput = parsedData;
         currentTab.value.totalRowCount = parsedData.rows?.length || 0;
+        triggerRef(tabs);
         updateFilteredRows();
+        saveState();
       }
     } catch (e) {
       console.error("Error parsing output:", e);
@@ -604,7 +662,7 @@ const updateFilteredRows = () => {
     currentTab.value.filteredRows = filtered;
     currentTab.value.filteredRowCount = filtered.length;
   }
-}
+};
 // Run query and store results in the current tab
 const runQuery = () => {
   // Reset cell expansions when running a new query
@@ -628,7 +686,7 @@ const toggleSearchInput = () => {
 // Highlight matching text in search results
 const highlightMatch = (value, searchTerm) => {
   if (!searchTerm || !searchTerm.trim() || value === null || value === undefined) {
-    return String(value === null || value === undefined ? '' : value);
+    return String(value === null || value === undefined ? "" : value);
   }
 
   const stringValue = String(value);
@@ -642,14 +700,13 @@ const highlightMatch = (value, searchTerm) => {
   if (!highlightMatchRegexCache[searchTerm]) {
     highlightMatchRegexCache[searchTerm] = new RegExp(`(${escapeRegExp(searchTerm)})`, "gi");
   }
-  
+
   return stringValue.replace(
-    highlightMatchRegexCache[searchTerm], 
+    highlightMatchRegexCache[searchTerm],
     '<span class="bg-yellow-500 text-black">$1</span>'
   );
 };
 const highlightMatchRegexCache = {};
-
 
 // Helper function to escape regex special characters
 const escapeRegExp = (string) => {
@@ -708,54 +765,12 @@ const vFocus = {
 // Lifecycle hooks
 onMounted(() => {
   window.addEventListener("keydown", handleKeyDown);
-
-  // Initialize the Output tab with current data
-  if (props.output && tabs.value[0]) {
-    try {
-      let parsedData;
-      if (typeof props.output === "string") {
-        parsedData = JSON.parse(props.output);
-      } else if (props.output?.data?.status === "success") {
-        parsedData = JSON.parse(props.output.data.message);
-      } else {
-        parsedData = props.output;
-      }
-
-      if (parsedData) {
-        tabs.value[0].parsedOutput = parsedData;
-        tabs.value[0].totalRowCount = parsedData.rows?.length || 0;
-        tabs.value[0].filteredRows = parsedData.rows || [];
-        tabs.value[0].filteredRowCount = tabs.value[0].totalRowCount;
-      }
-    } catch (e) {
-      console.error("Error initializing tab with data:", e);
-    }
-  }
-
-  if (props.error && tabs.value[0]) {
-    if (typeof props.error === "string") {
-      try {
-        const parsed = JSON.parse(props.error);
-        tabs.value[0].error = parsed.error || parsed;
-      } catch (e) {
-        tabs.value[0].error = props.error;
-      }
-    } else {
-      tabs.value[0].error = props.error?.error || props.error || "Something went wrong";
-    }
-  }
-
-  if (tabs.value[0]) {
-    tabs.value[0].isLoading = props.isLoading;
-  }
-});
-const modifierKey = ref("⌘"); // Default to Mac symbol
-
-onMounted(() => {
   // Detect if running on Windows or macOS
   const isMac = navigator.platform.toUpperCase().startsWith("MAC");
   // Update the modifier key symbol based on platform
   modifierKey.value = isMac ? "⌘" : "Ctrl";
+
+  vscode.postMessage({ command: "bruin.requestState" });
 });
 onUnmounted(() => {
   window.removeEventListener("keydown", handleKeyDown);
@@ -765,17 +780,20 @@ onUnmounted(() => {
 
 watch(
   () => props.environment,
-  (newEnv) => {
-    console.log("Environment updated:", newEnv);
+  (newEnvironment) => {
+    if (!newEnvironment) return;
+    currentEnvironment.value = newEnvironment;
+    tabs.value.forEach((tab) => {
+      tab.environment = newEnvironment;
+    });
+    triggerRef(tabs);
+    saveState();
   },
-  { immediate: true, deep: true }
+  { immediate: true }
 );
-watch(currentEnvironment, (newVal) => {
-  console.log("Computed environment updated:", newVal);
-});
 
 const badgeClass = computed(() => {
-  switch (props.environment?.toLowerCase()) {
+  switch (currentEnvironment.value?.toLowerCase()) {
     case "production":
     case "prod":
       return "production-badge";
