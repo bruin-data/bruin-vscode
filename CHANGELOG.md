@@ -1,7 +1,7 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
-## [0.39.4] - [2025-03-14]
+## [0.39.4] - [2025-03-18]
 - Enable state persistence in `Query Preview` to retain query output when switching between VS Code panels.
 
 ## [0.39.3] - [2025-03-12]
