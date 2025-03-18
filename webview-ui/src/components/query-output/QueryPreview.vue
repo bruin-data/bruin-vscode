@@ -48,7 +48,7 @@
                   <TableCellsIcon class="h-4 w-4 mr-1" />
                   <span>{{ tab.label }}</span>
                   <span
-                    v-if="tab.id !== 'output'"
+                    v-if="tab.id !== 'tab-1'"
                     @click.stop="closeTab(tab.id)"
                     class="flex items-center hover:bg-editorWidget-bg ml-1 w-4 h-4 justify-center transition-opacity duration-150"
                     :class="{
@@ -93,6 +93,9 @@
           </vscode-button>
           <vscode-button title="Clear Results" appearance="icon" @click="clearTabResults">
             <span class="codicon codicon-clear-all text-editor-fg"></span>
+          </vscode-button>
+          <vscode-button title="Reset Panel" appearance="icon" @click="resetPanel">
+            <span class="codicon codicon-refresh text-editor-fg"></span>
           </vscode-button>
         </div>
       </div>
@@ -272,8 +275,8 @@ const expandedCells = ref(new Set<string>());
 
 const tabs = shallowRef<TabData[]>([
   {
-    id: "output",
-    label: "Output",
+    id: "tab-1", 
+    label: "Tab 1", 
     parsedOutput: undefined,
     error: null,
     isLoading: false,
@@ -287,8 +290,8 @@ const tabs = shallowRef<TabData[]>([
   },
 ]);
 
-const activeTab = ref<string>("output");
-const tabCounter = ref(1);
+const activeTab = ref<string>("tab-1"); 
+const tabCounter = ref(2); // Start from 2 since we already have "Tab 1"
 
 // Get current active tab
 const currentTab = computed(() => {
@@ -327,6 +330,47 @@ const addTab = () => {
   activeTab.value = newTabId;
   saveState();
 };
+
+// Reset the entire panel
+const resetPanel = () => {
+  // Clear all tabs except the first one
+  tabs.value = [
+    {
+      id: "tab-1",
+      label: "Tab 1",
+      parsedOutput: undefined,
+      error: null,
+      isLoading: false,
+      searchInput: "",
+      limit: 100,
+      filteredRows: [],
+      totalRowCount: 0,
+      filteredRowCount: 0,
+      isEditing: false,
+      environment: currentEnvironment.value,
+    },
+  ];
+  
+  // Reset tab counter
+  tabCounter.value = 2;
+  
+  // Set active tab to the first tab
+  activeTab.value = "tab-1";
+  
+  // Reset expanded cells
+  expandedCells.value.clear();
+  
+  // Clear state from storage
+  vscode.postMessage({
+    command: "bruin.resetState",
+  });
+  
+  // Force UI update
+  nextTick(() => {
+    triggerRef(tabs);
+  });
+};
+
 const saveState = () => {
   // Sanitize data before sending
   const sanitizedTabs = tabs.value.map((tab) => ({
@@ -409,7 +453,7 @@ window.addEventListener("message", (event) => {
         filteredRows: t.parsedOutput?.rows || [],
       }));
 
-      activeTab.value = state.activeTab || "output";
+      activeTab.value = state.activeTab || "tab-1"; 
       expandedCells.value = new Set(state.expandedCells || []);
       showSearchInput.value = state.showSearchInput || false;
     }
@@ -462,18 +506,18 @@ const closeTab = (tabId: string) => {
       else if (tabIndex > 0) {
         activeTab.value = tabs.value[tabIndex - 1].id;
       }
-      // If no tabs left, default to "output"
+      // If no tabs left, default to "tab-1"
       else {
-        activeTab.value = "output";
+        activeTab.value = "tab-1"; 
       }
     }
 
     // Remove tab
     tabs.value.splice(tabIndex, 1);
 
-    if (tabs.value.length === 1 && tabs.value[0].id === "output") {
+    if (tabs.value.length === 1 && tabs.value[0].id === "tab-1") { 
       // Reset the counter when all custom tabs are closed
-      tabCounter.value = 1;
+      tabCounter.value = 2; 
     }
 
     // Clear editing state if closing edited tab
