@@ -11,9 +11,11 @@ import * as vscode from "vscode";
 import { bruinFoldingRangeProvider } from "../providers/bruinFoldingRangeProvider";
 const Analytics = require("@rudderstack/rudder-sdk-node");
 import {
+  applyFoldingStateBasedOnConfiguration,
   getDefaultBruinExecutablePath,
   setupFoldingOnOpen,
   subscribeToConfigurationChanges,
+  toggleFoldingsCommand,
 } from "./configuration";
 import * as os from "os";
 import { renderCommand } from "./commands/renderCommand";
@@ -101,7 +103,8 @@ export async function activate(context: ExtensionContext) {
   setupFoldingOnOpen();
 
   subscribeToConfigurationChanges();
-
+  const defaultFoldingState = config.get("bruin.FoldingState", "folded");
+  let toggled = defaultFoldingState === "folded" ? true : false;
   await ensureAutoLockEnabled();
 
   if (vscode.window.registerWebviewPanelSerializer) {
@@ -148,6 +151,15 @@ export async function activate(context: ExtensionContext) {
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         vscode.window.showErrorMessage(`Error installing/updating Bruin CLI: ${errorMessage}`);
+      }
+    }),
+    commands.registerCommand("bruin.toggleFoldings", async () => {
+      try {
+        toggled = ! toggled;
+        await toggleFoldingsCommand(toggled); 
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error toggling foldings: ${errorMessage}`); 
       }
     }),
     foldingDisposable,

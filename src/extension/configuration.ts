@@ -92,7 +92,6 @@ export async function toggleFoldingsCommand(toggled: boolean): Promise<void> {
   } else {
     // Unfold only Bruin regions
     if (bruinRanges.length > 0) {
-      // For unfolding, we need to create text selections at each folded region
       const selections: vscode.Selection[] = bruinRanges.map(range => 
         new vscode.Selection(range.start, 0, range.start, 0)
       );
