@@ -1,6 +1,9 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
+## [0.39.5] - [2025-03-20]
+- Set 'tab-1' as the default tab in QueryPreview and added a reset panel functionality.
+
 ## [0.39.4] - [2025-03-18]
 - Enable state persistence in `Query Preview` to retain query output when switching between VS Code panels.
 
