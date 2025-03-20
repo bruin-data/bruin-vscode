@@ -48,7 +48,9 @@ export const generateConnectionConfig = (schema: any) => {
 
   return { connectionTypes, connectionConfig };
 };
-
+const capitalized = (connName: string) : string => {
+return connName.charAt(0).toUpperCase() + connName.slice(1); 
+}
 export const formatConnectionName = (option) => {
   const map = {
     mongo: "MongoDB",
@@ -79,5 +81,5 @@ export const formatConnectionName = (option) => {
     slack: "Slack",
   };
 
-  return map[option] || option;
+  return map[option] || capitalized(option);
 };
