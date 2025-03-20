@@ -57,10 +57,12 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: 0.39.4
-- Enable state persistence in `Query Preview` to retain query output when switching between VS Code panels.
+### Latest Release: 0.39.5
+- Set 'tab-1' as the default tab in QueryPreview and added a reset panel functionality.
+
 
 ### Recent Updates
+- **0.39.4**: Enable state persistence in `Query Preview` to retain query output when switching between VS Code panels.
 - **0.39.3**: Added environment display to the query preview panel, showing the selected environment from the side panel dropdown.
 - **0.39.2**: Added expandable cells in Query Preview for long text, with `copy` support and `ESC` to close all expanded cells.
 - **0.39.1**: Adjust column layout to set primary key as a separate column.
