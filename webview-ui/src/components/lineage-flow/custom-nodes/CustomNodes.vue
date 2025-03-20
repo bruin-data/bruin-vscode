@@ -48,7 +48,7 @@
             <!-- Tooltip -->
             <div
               v-if="isTruncated"
-              class="absolute left-0 top-0 w-max px-2 text-sm rounded opacity-0 py-1 group-hover:opacity-100 transition-opacity duration-200 group-hover:cursor-pointer"
+              class="absolute left-0 top-0 w-max font-mono rounded opacity-0 whitespace-nowrap group-hover:opacity-100 transition-opacity duration-200 group-hover:cursor-pointer"
               :class="selectedStyle.main"
             >
               {{ label }}
