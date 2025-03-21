@@ -2,6 +2,7 @@ import path = require("path");
 import * as vscode from "vscode";
 import * as fs from "fs";
 import * as os from "os";
+import { bruinFoldingRangeProvider } from "../providers/bruinFoldingRangeProvider";
 
 /**
  * Gets the path to the Bruin executable specified by the workspace
@@ -67,6 +68,49 @@ export function getPathSeparator(): string {
 }
 
 let documentInitState = new Map();
+
+export async function toggleFoldingsCommand(toggled: boolean): Promise<void> {
+  const editor = vscode.window.activeTextEditor;
+  if (!editor) {
+    return;
+  }
+  
+  const docUri = editor.document.uri.toString();
+  
+  // Get the Bruin-specific folding ranges using the provider
+  const bruinRanges = bruinFoldingRangeProvider(editor.document);
+  
+  if (toggled) {
+    // Fold only Bruin regions
+    if (bruinRanges.length > 0) {
+      await vscode.commands.executeCommand("editor.fold", {
+        selectionLines: bruinRanges.map(range => range.start),
+        levels: 1
+      });
+      console.log(`Folded ${bruinRanges.length} Bruin regions in ${editor.document.uri}`);
+    }
+  } else {
+    // Unfold only Bruin regions
+    if (bruinRanges.length > 0) {
+      const selections: vscode.Selection[] = bruinRanges.map(range => 
+        new vscode.Selection(range.start, 0, range.start, 0)
+      );
+      
+      editor.selections = selections;
+      await vscode.commands.executeCommand("editor.unfold");
+      
+      // Restore original selection
+      const originalSelection = editor.selection;
+      editor.selection = originalSelection;
+      
+      console.log(`Unfolded ${bruinRanges.length} Bruin regions in ${editor.document.uri}`);
+    }
+  }
+
+  // Mark this document as initialized
+  documentInitState.set(docUri, true);
+}
+
 
 /**
  * Applies the initial folding state to a document based on the user's configuration settings.
