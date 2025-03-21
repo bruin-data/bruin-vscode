@@ -297,4 +297,3 @@ vscode-button::part(control) {
   border: 0.5;
 }
 </style>
-@/store/bruinStore
