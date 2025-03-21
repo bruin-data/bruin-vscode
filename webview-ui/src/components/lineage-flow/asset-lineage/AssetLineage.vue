@@ -113,7 +113,7 @@ import { Background } from "@vue-flow/background";
 import { Controls } from "@vue-flow/controls";
 import "@vue-flow/controls/dist/style.css";
 import type { NodeDragEvent, XYPosition } from "@vue-flow/core";
-import { computed, onMounted, defineProps, watch, ref, nextTick } from "vue";
+import { computed, onMounted, defineProps, watch, ref, nextTick, onUnmounted } from "vue";
 import ELK from "elkjs/lib/elk.bundled.js";
 import CustomNode from "@/components/lineage-flow/custom-nodes/CustomNodes.vue";
 import {
@@ -166,6 +166,9 @@ const expandAllUpstreams = ref(false);
 const isUpdating = ref(false);
 const graphInitialized = ref(false);
 const initialLayoutComplete = ref(false); 
+const showLoading = ref(false);
+let loadingTimeout: ReturnType<typeof setTimeout>;
+let fitViewTimeout: ReturnType<typeof setTimeout>;
 const { viewport, setViewport } = useVueFlow();
 
 const onNodeClick = (nodeId: string, event: MouseEvent) => {
@@ -260,11 +263,9 @@ const updateLayout = async () => {
       await nextTick();
       
       // Manual fit view with proper padding
-      fitView({
-        padding: 0.2,
-        duration: 300,
-        includeHiddenNodes: false,
-      });
+      fitViewTimeout = setTimeout(() => {
+        fitView({ padding: 0.2, duration: 200 });
+      }, 300);
       
       // Mark layout as complete and graph as initialized
       initialLayoutComplete.value = true;
@@ -604,6 +605,9 @@ watch([filterType, expandAllUpstreams, expandAllDownstreams], () => {
     })
   );
   debouncedUpdateGraph(); // Use debounced update
+});
+onUnmounted(() => {
+  clearTimeout(fitViewTimeout);
 });
 </script>
 
