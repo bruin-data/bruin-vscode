@@ -57,11 +57,11 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: 0.39.5
-- Set 'tab-1' as the default tab in QueryPreview and added a reset panel functionality.
-
+### Latest Release: 0.39.6
+- Added  `Toggle Folding` Command, enabling users to manage custom foldable regions in Bruin directly from the command palette.
 
 ### Recent Updates
+- **0.39.5**: Set 'tab-1' as the default tab in QueryPreview and added a reset panel functionality.
 - **0.39.4**: Enable state persistence in `Query Preview` to retain query output when switching between VS Code panels.
 - **0.39.3**: Added environment display to the query preview panel, showing the selected environment from the side panel dropdown.
 - **0.39.2**: Added expandable cells in Query Preview for long text, with `copy` support and `ESC` to close all expanded cells.
@@ -77,12 +77,6 @@ Bruin is a unified analytics platform that enables data professionals to work en
 - **0.37.1**: Fixed CustomChecks to correctly recognize `0` as a valid check value instead `undefined`.
 - **0.37.0**: Added search functionality to the Query Preview Panel.
 - **0.36.0**: Added support for executing `selected queries` in the Query Preview Panel. The selected queries should belong to a valid `bruin` asset.
-- **0.35.3**: Optimize payload size for description and asset name updates and improve error handling.
-- **0.35.2**: Adjust the styling of the save and cancel buttons in the description editing.
-- **0.35.1**: Add loading state to the query preview.
-- **0.35.0**: Introduce a new **Query Preview Panel** to display the output of SQL `query` execution. This feature currently uses the **default** environment with a maximum limit of **1000**.
-- **0.34.1**: Reset filter panel state on file change and improve graph viewport adjustments for expanded nodes.
-- **0.34.0**: Add options panel to the lineage view with choices to display either all upstream & downstream dependencies or only direct dependencies.
 
 For a full changelog, see Bruin Extension [Changelog](https://marketplace.visualstudio.com/items/bruin.bruin/changelog).
 
