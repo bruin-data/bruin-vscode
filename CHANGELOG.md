@@ -1,6 +1,9 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
+## [0.39.6] - [2025-03-21]
+- Added  `Toggle Folding` Command, enabling users to manage custom foldable regions in Bruin directly from the command palette.
+
 ## [0.39.5] - [2025-03-20]
 - Set 'tab-1' as the default tab in QueryPreview and added a reset panel functionality.
 

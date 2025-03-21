@@ -2,7 +2,7 @@
   "name": "bruin",
   "displayName": "Bruin",
   "description": "Manage your Bruin data assets from within VS Code.",
-  "version": "0.39.5",
+  "version": "0.39.6",
   "engines": {
     "vscode": "^1.87.0"
   },
@@ -193,7 +193,7 @@
         "title": "Install Bruin CLI",
         "category": "Bruin",
         "description": "Install the Bruin CLI."
-      }, 
+      },
       {
         "command": "bruin.toggleFoldings",
         "title": "Toggle Folding",
