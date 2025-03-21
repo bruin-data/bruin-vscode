@@ -193,6 +193,12 @@
         "title": "Install Bruin CLI",
         "category": "Bruin",
         "description": "Install the Bruin CLI."
+      }, 
+      {
+        "command": "bruin.toggleFoldings",
+        "title": "Toggle Folding",
+        "category": "Bruin",
+        "description": "Toggle the folding state of custom Bruin foldable regions in Python and SQL files."
       }
     ]
   },
