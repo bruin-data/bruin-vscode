@@ -139,7 +139,7 @@
 
 <script setup>
 import { useConnectionsStore } from "@/store/bruinStore";
-import { computed, onMounted, ref, defineEmits, onUnmounted, useTemplateRef } from "vue";
+import { computed, onMounted, ref, defineEmits, onUnmounted } from "vue";
 import {
   TrashIcon,
   PencilIcon,
@@ -151,7 +151,6 @@ import AlertMessage from "@/components/ui/alerts/AlertMessage.vue";
 import { vscode } from "@/utilities/vscode";
 import TestStatus from "@/components/ui/alerts/TestStatus.vue";
 import { onClickOutside } from '@vueuse/core'
-
 const connectionsStore = useConnectionsStore();
 const connections = computed(() => connectionsStore.connections);
 const error = computed(() => connectionsStore.error);
@@ -298,4 +297,3 @@ vscode-button::part(control) {
   border: 0.5;
 }
 </style>
-@/store/bruinStore

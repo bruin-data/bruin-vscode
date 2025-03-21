@@ -61,6 +61,10 @@ const connectionsStore = useConnectionsStore();
 const connectionSchema = connectionsStore.connectionsSchema;
 const { connectionConfig, connectionTypes } = generateConnectionConfig(connectionSchema);
 
+const orderedConnectionTypes = computed(() => {
+  return connectionTypes.sort((a, b) => a.localeCompare(b));
+});
+
 const emit = defineEmits(["submit", "cancel"]);
 
 const props = defineProps({
@@ -110,7 +114,7 @@ const formFields = computed(() => [
     id: "connection_type",
     label: "Connection Type",
     type: "select",
-    options: connectionTypes,
+    options: orderedConnectionTypes.value,
     required: true,
   },
   {
@@ -173,7 +177,6 @@ watch(
 watch(
   () => form.value.connection_type,
   (newType) => {
-    console.log(connectionConfig, connectionTypes);
     if (newType) {
       const config = connectionConfig[newType] || [];
       config.forEach((field) => {

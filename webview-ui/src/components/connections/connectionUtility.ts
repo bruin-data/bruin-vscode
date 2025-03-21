@@ -48,36 +48,31 @@ export const generateConnectionConfig = (schema: any) => {
 
   return { connectionTypes, connectionConfig };
 };
-
+const titleCase = (str: string) : string => {
+  return str.toLowerCase().split(' ')
+  .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+  .join(' ');
+}
 export const formatConnectionName = (option) => {
   const map = {
     mongo: "MongoDB",
     aws: "Amazon Web Services (AWS)",
-    athena: "Athena",
     mssql: "Microsoft SQL Server",
     mysql: "MySQL",
     google_cloud_platform: "Google Cloud Platform",
     synapse: "Azure Synapse",
-    databricks: "Databricks",
-    chess: "Chess",
     hana: "HANA",
-    shopify: "Shopify",
-    gorgias: "Gorgias",
-    klaviyo: "Klaviyo",
-    adjust: "Adjust",
-    generic: "Generic",
     facebookads: "Facebook Ads",
-    stripe: "Stripe",
-    appsflyer: "Appsflyer",
-    kafka: "Kafka",
     duckdb: "DuckDB",
-    hubspot: "Hubspot",
     google_sheets: "Google Sheets",
-    airtable: "Airtable",
-    zendesk: "Zendesk",
-    s3: "S3",
-    slack: "Slack",
   };
 
-  return map[option] || option;
+  return map[option] || titleCase(option);
 };
+
+export const orderConnectionsAsc = (connections: any[]) => {
+  connections.sort((a, b) => {
+    return a.name.localeCompare(b.name);
+  });
+};
+

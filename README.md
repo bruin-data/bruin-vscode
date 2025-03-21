@@ -57,10 +57,11 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 
-### Latest Release: 0.39.6
-- Added  `Toggle Folding` Command, enabling users to manage custom foldable regions in Bruin directly from the command palette.
+### Latest Release: 0.39.7
+- Sorted connection types alphabetically and refactored their formatting to use title case.
 
 ### Recent Updates
+- **0.39.6**: Added  `Toggle Folding` Command, enabling users to manage custom foldable regions in Bruin directly from the command palette.
 - **0.39.5**: Set 'tab-1' as the default tab in QueryPreview and added a reset panel functionality.
 - **0.39.4**: Enable state persistence in `Query Preview` to retain query output when switching between VS Code panels.
 - **0.39.3**: Added environment display to the query preview panel, showing the selected environment from the side panel dropdown.
@@ -76,7 +77,6 @@ Bruin is a unified analytics platform that enables data professionals to work en
 - **0.37.2**: Resolved the visibility issue with icons in the Query Preview Panel.
 - **0.37.1**: Fixed CustomChecks to correctly recognize `0` as a valid check value instead `undefined`.
 - **0.37.0**: Added search functionality to the Query Preview Panel.
-- **0.36.0**: Added support for executing `selected queries` in the Query Preview Panel. The selected queries should belong to a valid `bruin` asset.
 
 For a full changelog, see Bruin Extension [Changelog](https://marketplace.visualstudio.com/items/bruin.bruin/changelog).
 

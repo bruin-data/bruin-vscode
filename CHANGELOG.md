@@ -1,6 +1,10 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
+
+## [0.39.7] - [2025-03-21]
+- Sorted connection types alphabetically and refactored their formatting to use title case.
+
 ## [0.39.6] - [2025-03-21]
 - Added  `Toggle Folding` Command, enabling users to manage custom foldable regions in Bruin directly from the command palette.
 
