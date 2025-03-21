@@ -83,3 +83,10 @@ export const formatConnectionName = (option) => {
 
   return map[option] || capitalized(option);
 };
+
+export const orderConnectionsAsc = (connections: any[]) => {
+  connections.sort((a, b) => {
+    return a.name.localeCompare(b.name);
+  });
+};
+
