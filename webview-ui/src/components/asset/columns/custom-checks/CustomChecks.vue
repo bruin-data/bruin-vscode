@@ -1,5 +1,8 @@
 <template>
   <div class="flex flex-col py-2 sm:py-1 h-full w-56 relative">
+    <div class="flex justify-end mb-4 px-4">
+      <vscode-button @click="addCustomCheck" class="py-1 focus:outline-none"> Add Check </vscode-button>
+    </div>
     <table class="min-w-full border-collapse border-editor-fg">
       <thead>
         <tr
@@ -11,9 +14,9 @@
           <th class="px-2 py-1 w-1/2">Query</th>
         </tr>
       </thead>
-      <tbody v-if="customChecks.length">
+      <tbody v-if="localCustomChecks.length">
         <tr
-          v-for="(check, index) in customChecks"
+          v-for="(check, index) in localCustomChecks"
           :key="index"
           class="border-b border-commandCenter-border"
         >
@@ -60,10 +63,37 @@
 import type { CustomChecks } from "@/types";
 import "highlight.js/styles/default.css";
 import hljs from "highlight.js/lib/core";
+import { ref, watch } from "vue";
+import { v4 as uuidv4 } from "uuid";
 
 const props = defineProps<{
   customChecks: CustomChecks[];
 }>();
+
+const localCustomChecks = ref<CustomChecks[]>([]);
+const editingIndex = ref<number | null>(null);
+const editingCustomCheck = ref<CustomChecks | null>(null);
+
+const addCustomCheck = () => {
+  // Add custom check logic here
+  try {
+    const newCustomCheck = {
+      id: uuidv4(),
+      name: "New Custom Check",
+      value: "",
+      description: "Description for the new custom check",
+      query: "",
+    };
+
+    // Add new custom check to local custom checks
+    localCustomChecks.value.push(newCustomCheck);
+    editingIndex.value = localCustomChecks.value.length - 1;
+    editingCustomCheck.value = JSON.parse(JSON.stringify(newCustomCheck));
+
+  } catch (error) {
+    console.error("Error adding new custom check:", error);
+  }
+};
 
 const highlightedLines = (query) => {
   if (!query) return []; // Return an empty array if no query is provided
@@ -78,6 +108,17 @@ const highlightedLines = (query) => {
   // Return each line wrapped in a <div> for proper formatting
   return lines.map((line) => `<div>${line}</div>`).join(""); // Join lines with <div> for line breaks
 };
+
+watch(
+  () => props.customChecks,
+  (newCustomChecks) => {
+    localCustomChecks.value = newCustomChecks.map((check) => ({
+      ...check,
+    }));
+  },
+  { deep: true }
+);
+
 </script>
 
 <style scoped>
