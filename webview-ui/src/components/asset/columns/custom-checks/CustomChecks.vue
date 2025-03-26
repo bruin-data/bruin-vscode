@@ -22,21 +22,39 @@
         >
           <!-- Check Name with improved handling -->
           <td class="px-2 py-1 font-medium font-mono text-xs w-1/4">
-            <div class="break-words whitespace-normal truncate" :title="check.name">
+            <div v-if="editingIndex === index" class="flex flex-col gap-1">
+              <input
+                v-model="(editingCustomCheck as CustomChecks).name"
+                class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs"
+              />
+            </div>
+            <div v-else class="break-words whitespace-normal truncate" :title="check.name">
               {{ check.name }}
             </div>
           </td>
           <!-- Value -->
           <td class="px-2 py-1 font-medium font-mono text-xs w-1/6 text-center">
-            <div v-if="check.value !== null && check.value !== undefined" class="truncate" :title="String(check.value)">
+            <div v-if="editingIndex === index" class="flex flex-col gap-1">
+              <input
+                v-model="(editingCustomCheck as CustomChecks).value"
+                class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs"
+              />
+            </div>
+            <div v-else-if="check.value !== null && check.value !== undefined" class="truncate" :title="String(check.value)">
               {{ check.value }}
             </div>
             <div v-else class="italic opacity-70 truncate whitespace-normal">undefined</div>
           </td>
           <!-- Description -->
           <td class="px-2 py-1 text-xs w-1/4 text-center">
+            <div v-if="editingIndex === index" class="flex flex-col gap-1">
+              <input
+                v-model="(editingCustomCheck as CustomChecks).description"
+                class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs"
+              />
+            </div>
             <div
-              v-if="check.description"
+              v-else-if="check.description"
               class="truncate whitespace-normal"
               :title="check.description"
             >
@@ -48,7 +66,13 @@
           </td>
           <!-- Query -->
           <td class="px-2 py-1 text-xs w-1/2">
-            <div v-html="highlightedLines(check.query)" class="truncate" :title="check.query"></div>
+            <div v-if="editingIndex === index" class="flex flex-col gap-1">
+              <input
+                v-model="(editingCustomCheck as CustomChecks).query"
+                class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs"
+              />
+            </div>
+            <div v-else v-html="highlightedLines(check.query)" class="truncate" :title="check.query"></div>
           </td>
         </tr>
       </tbody>
@@ -88,7 +112,7 @@ const addCustomCheck = () => {
     // Add new custom check to local custom checks
     localCustomChecks.value.push(newCustomCheck);
     editingIndex.value = localCustomChecks.value.length - 1;
-    editingCustomCheck.value = JSON.parse(JSON.stringify(newCustomCheck));
+    editingCustomCheck.value = JSON.parse(JSON.stringify(newCustomCheck)) as CustomChecks;
 
   } catch (error) {
     console.error("Error adding new custom check:", error);
