@@ -1,7 +1,7 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
-## [0.39.8] - [2025-03-21]
+## [0.39.8] - [2025-03-27]
 - Fix flickering issue, optimize data loading in LineagePanel, and improve cleanup.
 
 ## [0.39.7] - [2025-03-21]
