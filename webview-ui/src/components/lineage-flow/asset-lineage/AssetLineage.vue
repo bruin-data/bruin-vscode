@@ -1,8 +1,8 @@
 <template>
   <div class="flow">
-    <div v-if="isLoading" class="loading-overlay">
+    <div v-if="isLoading || isUpdating" class="loading-overlay">
       <vscode-progress-ring></vscode-progress-ring>
-      <span class="ml-2">Loading lineage data...</span>
+      <span class="ml-2">{{ isLoading ? 'Loading lineage data...' : 'Updating layout...' }}</span>
     </div>
     <div v-else-if="error" class="error-message">
       <span class="ml-2">{{ error }}</span>
@@ -11,7 +11,7 @@
       v-else
       v-model:elements="elements"
       :default-viewport="{ x: 150, y: 10, zoom: 1 }"
-      :fit-view-on-init="true"
+      :fit-view-on-init="false"
       class="basic-flow"
       :draggable="true"
       :node-draggable="true"
@@ -113,7 +113,7 @@ import { Background } from "@vue-flow/background";
 import { Controls } from "@vue-flow/controls";
 import "@vue-flow/controls/dist/style.css";
 import type { NodeDragEvent, XYPosition } from "@vue-flow/core";
-import { computed, onMounted, defineProps, watch, ref, nextTick } from "vue";
+import { computed, onMounted, defineProps, watch, ref, nextTick, onUnmounted } from "vue";
 import ELK from "elkjs/lib/elk.bundled.js";
 import CustomNode from "@/components/lineage-flow/custom-nodes/CustomNodes.vue";
 import {
@@ -163,9 +163,12 @@ const isLoading = ref(true);
 const error = ref<string | null>(props.LineageError);
 const expandAllDownstreams = ref(false);
 const expandAllUpstreams = ref(false);
-error.value = !props.assetDataset ? "No Lineage Data Available" : null;
 const isUpdating = ref(false);
-
+const graphInitialized = ref(false);
+const initialLayoutComplete = ref(false); 
+const showLoading = ref(false);
+let loadingTimeout: ReturnType<typeof setTimeout>;
+let fitViewTimeout: ReturnType<typeof setTimeout>;
 const { viewport, setViewport } = useVueFlow();
 
 const onNodeClick = (nodeId: string, event: MouseEvent) => {
@@ -180,8 +183,10 @@ const onNodeClick = (nodeId: string, event: MouseEvent) => {
 };
 
 const onPaneReady = () => {
-  updateLayout();
-  fitView({ duration: 500, padding: 0.2 });
+  // Only perform initial layout once
+  if (!initialLayoutComplete.value && nodes.value.length > 0) {
+    updateLayout();
+  }
 };
 
 // Reset filter state when new data is loaded
@@ -210,8 +215,15 @@ const updateNodePositions = (layout: any) => {
   setNodes(updatedNodes);
 };
 
+
 // Function to update the layout using ELK
 const updateLayout = async () => {
+  if (nodes.value.length === 0) {
+    return;
+  }
+  
+  isUpdating.value = true;
+  
   const elkGraph = {
     id: "root",
     layoutOptions: {
@@ -233,7 +245,7 @@ const updateLayout = async () => {
       width: 150,
       height: 70,
       labels: [{ text: node.data.label }],
-      position: { x: node.position.x, y: node.position.y },
+      //position: { x: node.position.x, y: node.position.y },
     })),
     edges: edges.value.map((edge) => ({
       id: edge.id,
@@ -246,10 +258,28 @@ const updateLayout = async () => {
     const layout = await elk.layout(elkGraph);
     if (layout.children && layout.children.length) {
       updateNodePositions(layout);
-      nextTick(() => fitView({ padding: 0.1 }));
+      
+      // Wait for node positions to be applied before fit view
+      await nextTick();
+      
+      // Manual fit view with proper padding
+      fitViewTimeout = setTimeout(() => {
+        fitView({ padding: 0.2, duration: 200 });
+      }, 300);
+      
+      // Mark layout as complete and graph as initialized
+      initialLayoutComplete.value = true;
+      graphInitialized.value = true;
+      
+      // Allow a short delay before removing the loading state
+      setTimeout(() => {
+        isUpdating.value = false;
+      }, 100);
     }
   } catch (error) {
     console.error("Failed to apply ELK layout:", error);
+    isUpdating.value = false;
+    //error.value = "Failed to calculate layout. Please try again.";
   }
 };
 
@@ -260,24 +290,42 @@ const processProperties = async () => {
     return;
   }
 
-  isLoading.value = error.value === null ? true : false;
+  // Keep isLoading true while processing
+  isLoading.value = true;
   error.value = null;
+  
+  // Reset layout completion flags
+  initialLayoutComplete.value = false;
+  graphInitialized.value = false;
 
   try {
-    resetFilterState(); // Reset filter state when new data is loaded
+    resetFilterState();
+    
+    // Clear any existing nodes/edges
+    setNodes([]);
+    setEdges([]);
+    
     const { nodes: generatedNodes, edges: generatedEdges } = generateGraphFromJSON(
       props.assetDataset
     );
 
     baseNodes.value = generatedNodes;
     baseEdges.value = generatedEdges;
+    
+    // Update the graph data but don't render yet (still in loading state)
     await updateGraph();
+    
+    // Let the DOM update before trying to calculate layout
+    await nextTick();
+    
+    // Only now apply layout (still in loading state)
     await updateLayout();
-    fitView({ duration: 500, padding: 0.2 }); // Fit view after loading new data
+    
+    // Loading is complete after layout is done
+    isLoading.value = false;
   } catch (err) {
     console.error("Error processing properties:", err);
     error.value = "Failed to generate lineage graph. Please try again.";
-  } finally {
     isLoading.value = false;
   }
 };
@@ -307,10 +355,13 @@ const updateGraph = () => {
   // Update nodes and edges atomically
   setNodes(uniqueNodes);
   setEdges(uniqueEdges);
+   // Reset layout completion when graph changes
+   initialLayoutComplete.value = false;
 };
 
 // Event handlers for adding upstream and downstream nodes
 const onAddUpstream = async (nodeId: string) => {
+  isUpdating.value = true;
   const { nodes: newNodes, edges: newEdges } = generateGraphForUpstream(
     nodeId,
     props.pipelineData,
@@ -322,6 +373,7 @@ const onAddUpstream = async (nodeId: string) => {
 };
 
 const onAddDownstream = async (nodeId: string) => {
+  isUpdating.value = true;
   const { nodes: newNodes, edges: newEdges } = generateGraphForDownstream(
     nodeId,
     props.pipelineData
@@ -431,15 +483,6 @@ const onNodesDragged = (draggedNodes: NodeDragEvent[]) => {
   setNodes(updatedNodes);
 };
 
-watch(
-  () => [props.assetDataset, props.pipelineData],
-  ([newAssetDataset, newPipelineData]) => {
-    if (newAssetDataset && newPipelineData) {
-      processProperties();
-    }
-  },
-  { immediate: true }
-);
 /**
  * Debounce function to limit the rate at which a function can fire.
  *
@@ -447,7 +490,7 @@ watch(
  * @param {number} wait - The number of milliseconds to wait before calling the function.
  * @returns {Function} - A debounced version of the function.
  */
-const debounce = (func, wait) => {
+ const debounce = (func, wait) => {
   let timeout;
   return function executedFunction(...args) {
     clearTimeout(timeout);
@@ -563,6 +606,9 @@ watch([filterType, expandAllUpstreams, expandAllDownstreams], () => {
   );
   debouncedUpdateGraph(); // Use debounced update
 });
+onUnmounted(() => {
+  clearTimeout(fitViewTimeout);
+});
 </script>
 
 <style>
@@ -629,5 +675,11 @@ watch([filterType, expandAllUpstreams, expandAllDownstreams], () => {
 
 vscode-checkbox {
   @apply text-xs;
+}
+.loading-overlay {
+  @apply flex items-center justify-center w-full h-full bg-editor-bg;
+}
+.error-message {
+  @apply flex items-center justify-center w-full h-full bg-editor-bg;
 }
 </style>

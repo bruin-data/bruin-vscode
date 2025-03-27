@@ -56,11 +56,11 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 
 ## Release Notes
-
-### Latest Release: 0.39.7
-- Sorted connection types alphabetically and refactored their formatting to use title case.
+### Latest Release: 0.39.8
+- Fix flickering issue, optimize data loading in LineagePanel, and improve cleanup.
 
 ### Recent Updates
+- **0.39.6**: Sorted connection types alphabetically and refactored their formatting to use title case.
 - **0.39.6**: Added  `Toggle Folding` Command, enabling users to manage custom foldable regions in Bruin directly from the command palette.
 - **0.39.5**: Set 'tab-1' as the default tab in QueryPreview and added a reset panel functionality.
 - **0.39.4**: Enable state persistence in `Query Preview` to retain query output when switching between VS Code panels.
