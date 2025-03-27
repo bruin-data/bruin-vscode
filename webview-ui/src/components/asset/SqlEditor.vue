@@ -16,7 +16,7 @@
     <div id="sql-editor" class="code-container pb-0">
       <pre id="editor-pre">
         <div v-for="(line, index) in highlightedLines" :key="index" class="line">
-          <span class="line-number">{{ index + 1 }}</span>
+          <span class="line-number pl-1 pr-4 min-w-10 user-select-none text-right">{{ index + 1 }}</span>
           <span v-html="line"></span>
         </div>
       </pre>
@@ -95,11 +95,6 @@ const highlightedLines = computed(() => {
 
 .line-number {
   color: var(--vscode-disabledForeground);
-  user-select: none; /* Prevents line number from being selected */
-}
-
-.line-number {
-  @apply pr-4 pl-4 text-right
 }
 
 .code-content {
@@ -114,6 +109,7 @@ const highlightedLines = computed(() => {
   max-width: 100%;
   color: var(--vscode-icon-foreground);
   margin-bottom: -1em;
+  padding: 0 8px;
 }
   
 
