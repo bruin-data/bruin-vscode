@@ -12,6 +12,7 @@
           <th class="px-2 py-1 w-1/6 text-center">Value</th>
           <th class="px-2 py-1 w-1/4 text-center">Description</th>
           <th class="px-2 py-1 w-1/2">Query</th>
+          <th class="px-2 py-1 w-1/2"></th>
         </tr>
       </thead>
       <tbody v-if="localCustomChecks.length">
@@ -94,6 +95,16 @@
               <CheckIcon class="h-3 w-3" />
             </vscode-button>
           </td>
+          <td class="px-2 py-1 text-xs w-1/2">
+            <vscode-button
+              appearance="icon"
+              @click="deleteCustomCheck(index)"
+              aria-label="Delete"
+              class="flex items-center"
+            >
+              <TrashIcon class="h-3 w-3 " />
+            </vscode-button>
+          </td>
         </tr>
       </tbody>
       <div class="w-56 text-left p-2 text-md italic opacity-70" v-else>
@@ -110,7 +121,7 @@ import hljs from "highlight.js/lib/core";
 import { ref, watch } from "vue";
 import { v4 as uuidv4 } from "uuid";
 import { vscode } from "@/utilities/vscode";
-import { CheckIcon } from "@heroicons/vue/24/solid";
+import { CheckIcon, TrashIcon } from "@heroicons/vue/24/solid";
 
 const props = defineProps<{
   customChecks: CustomChecks[];
@@ -119,6 +130,7 @@ const props = defineProps<{
 const localCustomChecks = ref<CustomChecks[]>([]);
 const editingIndex = ref<number | null>(null);
 const editingCustomCheck = ref<CustomChecks | null>(null);
+const emit = defineEmits(["update:customChecks"]);
 
 const addCustomCheck = () => {
   // Add custom check logic here
@@ -139,7 +151,18 @@ const addCustomCheck = () => {
     console.error("Error adding new custom check:", error);
   }
 };
-const emit = defineEmits(["update:customChecks"]);
+
+const deleteCustomCheck = (index: number) => {
+  try {
+    // Remove the custom check from local custom checks
+    localCustomChecks.value.splice(index, 1);
+   
+    saveCustomChecks();
+
+  } catch (error) {
+    console.error("Error deleting custom check:", error);
+  }
+};
 
 const saveCustomChecks = () => {
   try {
