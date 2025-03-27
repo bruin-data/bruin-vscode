@@ -1,5 +1,3 @@
-remove eevrything related to add custom check and leave only remove 
-
 <template>
   <div class="flex flex-col py-2 sm:py-1 h-full w-56 relative">
     <table class="min-w-full border-collapse border-editor-fg">
