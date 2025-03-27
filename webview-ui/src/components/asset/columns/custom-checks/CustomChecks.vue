@@ -1,13 +1,13 @@
 <template>
   <div class="flex flex-col py-2 sm:py-1 h-full w-56 relative">
     <div class="flex justify-end mb-4 px-4">
-      <vscode-button @click="addCustomCheck" class="py-1 focus:outline-none"> Add Check </vscode-button>
+      <vscode-button @click="addCustomCheck" class="py-1 focus:outline-none">
+        Add Check
+      </vscode-button>
     </div>
     <table class="min-w-full border-collapse border-editor-fg">
       <thead>
-        <tr
-          class="border-opacity-test text-xs font-semibold text-left opacity-65 border-b-2"
-        >
+        <tr class="border-opacity-test text-xs font-semibold text-left opacity-65 border-b-2">
           <th class="px-2 py-1 w-1/4">Name</th>
           <th class="px-2 py-1 w-1/6 text-center">Value</th>
           <th class="px-2 py-1 w-1/4 text-center">Description</th>
@@ -40,7 +40,11 @@
                 class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs"
               />
             </div>
-            <div v-else-if="check.value !== null && check.value !== undefined" class="truncate" :title="String(check.value)">
+            <div
+              v-else-if="check.value !== null && check.value !== undefined"
+              class="truncate"
+              :title="String(check.value)"
+            >
               {{ check.value }}
             </div>
             <div v-else class="italic opacity-70 truncate whitespace-normal">undefined</div>
@@ -72,7 +76,23 @@
                 class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs"
               />
             </div>
-            <div v-else v-html="highlightedLines(check.query)" class="truncate" :title="check.query"></div>
+            <div
+              v-else
+              v-html="highlightedLines(check.query)"
+              class="truncate"
+              :title="check.query"
+            ></div>
+          </td>
+          <td class="px-2 py-1 text-xs w-1/2">
+            <vscode-button
+              appearance="icon"
+              v-if="editingIndex === index"
+              @click="saveCustomChecks"
+              aria-label="Save"
+              class="flex items-center"
+            >
+              <CheckIcon class="h-3 w-3" />
+            </vscode-button>
           </td>
         </tr>
       </tbody>
@@ -89,6 +109,8 @@ import "highlight.js/styles/default.css";
 import hljs from "highlight.js/lib/core";
 import { ref, watch } from "vue";
 import { v4 as uuidv4 } from "uuid";
+import { vscode } from "@/utilities/vscode";
+import { CheckIcon } from "@heroicons/vue/24/solid";
 
 const props = defineProps<{
   customChecks: CustomChecks[];
@@ -104,7 +126,7 @@ const addCustomCheck = () => {
     const newCustomCheck = {
       id: uuidv4(),
       name: "New Custom Check",
-      value: "",
+      value: 1,
       description: "Description for the new custom check",
       query: "",
     };
@@ -113,9 +135,32 @@ const addCustomCheck = () => {
     localCustomChecks.value.push(newCustomCheck);
     editingIndex.value = localCustomChecks.value.length - 1;
     editingCustomCheck.value = JSON.parse(JSON.stringify(newCustomCheck)) as CustomChecks;
-
   } catch (error) {
     console.error("Error adding new custom check:", error);
+  }
+};
+const emit = defineEmits(["update:customChecks"]);
+
+const saveCustomChecks = () => {
+  // Save custom checks logic here
+  try {
+    const formattedCustomChecks = localCustomChecks.value.map((check) => ({
+      ...check,
+    }));
+
+    // Reset editing state
+    editingIndex.value = null;
+    editingCustomCheck.value = null;
+
+    // Send to panel
+    vscode.postMessage({
+      command: "bruin.setAssetDetails",
+      payload: { custom_checks: formattedCustomChecks },
+    });
+
+    emit("update:customChecks", formattedCustomChecks);
+  } catch (error) {
+    console.error("Error saving custom checks:", error);
   }
 };
 
@@ -142,12 +187,10 @@ watch(
   },
   { deep: true }
 );
-
 </script>
 
 <style scoped>
 table thead tr.border-opacity-test {
-  border: 0.7!important; /* Adjust the opacity value as needed */
+  border: 0.7 !important; /* Adjust the opacity value as needed */
 }
-
 </style>
