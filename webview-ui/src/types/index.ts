@@ -127,7 +127,7 @@ export interface CustomChecks {
   description: string;
   id: string;
   name: string;
-  value: string | number;
+  value: number;
   query: string;
 }
 
