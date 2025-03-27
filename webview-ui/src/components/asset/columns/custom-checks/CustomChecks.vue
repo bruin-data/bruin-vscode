@@ -98,14 +98,25 @@
           <td class="px-2 py-1 text-xs w-1/2">
             <vscode-button
               appearance="icon"
-              @click="deleteCustomCheck(index)"
+              @click="showDeleteAlert = index"
               aria-label="Delete"
               class="flex items-center"
             >
               <TrashIcon class="h-3 w-3 " />
             </vscode-button>
           </td>
+          <div>
+          <DeleteAlert
+              v-if="showDeleteAlert === index"
+              :elementName="check.name"
+              elementType="custom check"
+              @confirm="deleteCustomCheck(index)"
+              @cancel="showDeleteAlert = null"
+              class="absolute z-50"
+            />
+        </div>
         </tr>
+
       </tbody>
       <div class="w-56 text-left p-2 text-md italic opacity-70" v-else>
         <span> No custom checks to display. </span>
@@ -122,6 +133,7 @@ import { ref, watch } from "vue";
 import { v4 as uuidv4 } from "uuid";
 import { vscode } from "@/utilities/vscode";
 import { CheckIcon, TrashIcon } from "@heroicons/vue/24/solid";
+import DeleteAlert from "@/components/ui/alerts/AlertWithActions.vue";
 
 const props = defineProps<{
   customChecks: CustomChecks[];
@@ -131,7 +143,7 @@ const localCustomChecks = ref<CustomChecks[]>([]);
 const editingIndex = ref<number | null>(null);
 const editingCustomCheck = ref<CustomChecks | null>(null);
 const emit = defineEmits(["update:customChecks"]);
-
+const showDeleteAlert = ref<number | null>(null);
 const addCustomCheck = () => {
   // Add custom check logic here
   try {
@@ -156,7 +168,7 @@ const deleteCustomCheck = (index: number) => {
   try {
     // Remove the custom check from local custom checks
     localCustomChecks.value.splice(index, 1);
-   
+    showDeleteAlert.value = null;
     saveCustomChecks();
 
   } catch (error) {
@@ -214,6 +226,9 @@ const highlightedLines = (query) => {
 watch(
   () => props.customChecks,
   (newCustomChecks) => {
+    editingIndex.value = null;
+    editingCustomCheck.value = null;
+    showDeleteAlert.value = null;
     localCustomChecks.value = newCustomChecks.map((check) => ({
       ...check,
     }));
