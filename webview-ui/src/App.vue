@@ -82,6 +82,7 @@
             class="flex w-full h-full"
             @update:assetName="updateAssetName"
             @update:columns="updateColumns"
+            @update:customChecks="updateCustomChecks"
             @open-glossary="navigateToGlossary"
             @update:description="updateDescription"
           />
@@ -291,6 +292,7 @@ const customChecksProps = computed(() => {
   console.log("Asset Custom checks:", customChecks);
   return customChecks;
 });
+const customChecks = ref([...customChecksProps.value]); // Reactive reference for custom checks
 
 // Define tabs for the application
 const tabs = ref([
@@ -411,6 +413,11 @@ watch(activeTab, (newTab, oldTab) => {
 const updateColumns = (newColumns) => {
   console.log("Updating columns with new data:", newColumns);
   columns.value = newColumns;
+};
+
+const updateCustomChecks = (newCustomChecks) => {
+  console.log("Updating custom checks with new data:", newCustomChecks);
+  customChecks.value = newCustomChecks;
 };
 
 const updateDescription = (newDescription) => {
