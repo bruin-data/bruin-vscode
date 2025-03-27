@@ -142,17 +142,28 @@ const addCustomCheck = () => {
 const emit = defineEmits(["update:customChecks"]);
 
 const saveCustomChecks = () => {
-  // Save custom checks logic here
   try {
-    const formattedCustomChecks = localCustomChecks.value.map((check) => ({
-      ...check,
-    }));
+    if (editingIndex.value !== null && editingCustomCheck.value) {
+      // Convert value to number explicitly
+      const updatedCheck = {
+        ...editingCustomCheck.value,
+        value: Number(editingCustomCheck.value.value) || 0,
+      };
+
+      // Update local checks
+      localCustomChecks.value[editingIndex.value] = updatedCheck;
+    }
 
     // Reset editing state
     editingIndex.value = null;
     editingCustomCheck.value = null;
 
-    // Send to panel
+    // Post-process and emit checks
+    const formattedCustomChecks = localCustomChecks.value.map((check) => ({
+      ...check,
+      value: Number(check.value) || 0, // Ensure value is numeric
+    }));
+
     vscode.postMessage({
       command: "bruin.setAssetDetails",
       payload: { custom_checks: formattedCustomChecks },
@@ -163,7 +174,6 @@ const saveCustomChecks = () => {
     console.error("Error saving custom checks:", error);
   }
 };
-
 const highlightedLines = (query) => {
   if (!query) return []; // Return an empty array if no query is provided
   const highlighted = hljs.highlight(query, { language: "sql" }).value;
