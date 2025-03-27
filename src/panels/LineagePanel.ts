@@ -12,8 +12,7 @@ export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposab
   private token: vscode.CancellationToken | undefined;
 
   private disposables: vscode.Disposable[] = [];
-  private isRefreshing = false;
-
+  private isRefreshing = false;  
   private async loadAndSendLineageData() {
     if (this._lastRenderedDocumentUri) {
       try {
@@ -82,7 +81,6 @@ export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposab
       };
 
       this._setWebviewMessageListener(LineagePanel._view!.webview);
-      this.loadAndSendLineageData(); // Load lineage data when view is resolved
 
       setTimeout(() => {
         if (LineagePanel._view && LineagePanel._view.visible) {
@@ -91,12 +89,6 @@ export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposab
         }
       }, 100);
 
-      vscode.window.onDidChangeVisibleTextEditors((editors) => {
-        if (editors.some((editor) => editor.viewColumn === vscode.ViewColumn.Active)) {
-          webviewView.webview.postMessage({ command: "init", panelType: "Lineage" });
-          this.loadAndSendLineageData(); // Load lineage data when panel becomes visible
-        }
-      });
       // Reload lineage data when webview becomes visible
       webviewView.onDidChangeVisibility(() => {
         if (LineagePanel._view!.visible) {

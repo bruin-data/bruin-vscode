@@ -66,6 +66,9 @@ const pipeline = computed(() => {
 
 const lineageErr = computed(() => lineageError.value);
 const assetId = computed(() => lineageData.value?.id ?? null);
+const assetDataset = computed(() => {
+  return getAssetDataset(pipeline.value, assetId.value)
+});
 
 // Define tabs for the application
 const tabs = ref([
@@ -73,7 +76,7 @@ const tabs = ref([
     label: "Lineage",
     component: AssetLineageFlow,
     props: {
-      assetDataset: computed(() => getAssetDataset(pipeline.value, assetId.value)),
+      assetDataset,
       pipelineData: computed(() => pipeline.value),
       LineageError: lineageErr.value,
       isLoading: computed(() => !lineageData.value && !lineageError.value),
