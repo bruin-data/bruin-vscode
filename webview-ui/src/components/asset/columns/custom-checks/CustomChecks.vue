@@ -85,17 +85,24 @@
             ></div>
           </td>
           <td class="px-2 py-1 text-xs w-1/2">
-            <vscode-button
-              appearance="icon"
-              v-if="editingIndex === index"
-              @click="saveCustomChecks"
-              aria-label="Save"
-              class="flex items-center"
-            >
-              <CheckIcon class="h-3 w-3" />
-            </vscode-button>
-          </td>
-          <td class="px-2 py-1 text-xs w-1/2">
+            <div v-if="editingIndex === index" class="flex items-center gap-1">
+              <vscode-button
+                appearance="icon"
+                @click="saveCustomChecks"
+                aria-label="Save"
+                class="flex items-center"
+              >
+                <CheckIcon class="h-3 w-3" />
+              </vscode-button>
+              <vscode-button
+                appearance="icon"
+                @click="resetEditing"
+                aria-label="Cancel"
+                class="flex items-center"
+              >
+                <XMarkIcon class="h-3 w-3" />
+              </vscode-button>
+            </div>
             <div v-if="editingIndex !== index" class="flex items-center gap-1">
               <vscode-button
                 appearance="icon"
@@ -141,7 +148,7 @@ import hljs from "highlight.js/lib/core";
 import { ref, watch } from "vue";
 import { v4 as uuidv4 } from "uuid";
 import { vscode } from "@/utilities/vscode";
-import { CheckIcon, TrashIcon, PencilIcon } from "@heroicons/vue/24/solid";
+import { CheckIcon, TrashIcon, PencilIcon, XMarkIcon } from "@heroicons/vue/24/solid";
 import DeleteAlert from "@/components/ui/alerts/AlertWithActions.vue";
 
 const props = defineProps<{
@@ -266,5 +273,4 @@ table thead tr.border-opacity-test {
 td:nth-child(4) {
   overflow-wrap: break-word;
 }
-
 </style>
