@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col py-2 sm:py-1 h-full w-56 relative">
-    <div class="flex justify-end mb-4 px-4">
+    <div class="flex justify-end mb-4">
       <vscode-button @click="addCustomCheck" class="py-1 focus:outline-none">
         Add Check
       </vscode-button>
@@ -71,16 +71,16 @@
           </td>
           <!-- Query -->
           <td class="px-2 py-1 text-xs w-1/2">
-            <div v-if="editingIndex === index" class="flex flex-col gap-1">
-              <input
+            <div v-if="editingIndex === index">
+              <textarea
                 v-model="(editingCustomCheck as CustomChecks).query"
-                class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs"
-              />
+                class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs resize-none"
+              ></textarea>
             </div>
             <div
               v-else
               v-html="highlightedLines(check.query)"
-              class="truncate"
+              class="break-words whitespace-normal truncate"
               :title="check.query"
             ></div>
           </td>
@@ -96,17 +96,27 @@
             </vscode-button>
           </td>
           <td class="px-2 py-1 text-xs w-1/2">
-            <vscode-button
-              appearance="icon"
-              @click="showDeleteAlert = index"
-              aria-label="Delete"
-              class="flex items-center"
-            >
-              <TrashIcon class="h-3 w-3 " />
-            </vscode-button>
+            <div v-if="editingIndex !== index" class="flex items-center gap-1">
+              <vscode-button
+                appearance="icon"
+                @click="showDeleteAlert = index"
+                aria-label="Delete"
+                class="flex items-center"
+              >
+                <TrashIcon class="h-3 w-3" />
+              </vscode-button>
+              <vscode-button
+                appearance="icon"
+                @click="startEditing(index)"
+                aria-label="Edit"
+                class="flex items-center"
+              >
+                <PencilIcon class="h-3 w-3" />
+              </vscode-button>
+            </div>
           </td>
           <div>
-          <DeleteAlert
+            <DeleteAlert
               v-if="showDeleteAlert === index"
               :elementName="check.name"
               elementType="custom check"
@@ -114,9 +124,8 @@
               @cancel="showDeleteAlert = null"
               class="absolute z-50"
             />
-        </div>
+          </div>
         </tr>
-
       </tbody>
       <div class="w-56 text-left p-2 text-md italic opacity-70" v-else>
         <span> No custom checks to display. </span>
@@ -132,7 +141,7 @@ import hljs from "highlight.js/lib/core";
 import { ref, watch } from "vue";
 import { v4 as uuidv4 } from "uuid";
 import { vscode } from "@/utilities/vscode";
-import { CheckIcon, TrashIcon } from "@heroicons/vue/24/solid";
+import { CheckIcon, TrashIcon, PencilIcon } from "@heroicons/vue/24/solid";
 import DeleteAlert from "@/components/ui/alerts/AlertWithActions.vue";
 
 const props = defineProps<{
@@ -164,13 +173,24 @@ const addCustomCheck = () => {
   }
 };
 
+const startEditing = (index: number) => {
+  editingIndex.value = index;
+  editingCustomCheck.value = JSON.parse(
+    JSON.stringify(localCustomChecks.value[index])
+  ) as CustomChecks;
+};
+
+const resetEditing = () => {
+  editingIndex.value = null;
+  editingCustomCheck.value = null;
+};
+
 const deleteCustomCheck = (index: number) => {
   try {
     // Remove the custom check from local custom checks
     localCustomChecks.value.splice(index, 1);
     showDeleteAlert.value = null;
     saveCustomChecks();
-
   } catch (error) {
     console.error("Error deleting custom check:", error);
   }
@@ -241,4 +261,10 @@ watch(
 table thead tr.border-opacity-test {
   border: 0.7 !important; /* Adjust the opacity value as needed */
 }
+
+/* Query cell specific styling */
+td:nth-child(4) {
+  overflow-wrap: break-word;
+}
+
 </style>
