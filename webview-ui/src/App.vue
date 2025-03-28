@@ -10,7 +10,7 @@
               </div>
             </div>
 
-            <span class="slash opacity-50 text-xs px-0.5 flex-shrink-0">/</span>
+            <span v-if="assetDetailsProps?.pipeline.name" class="slash opacity-50 text-xs px-0.5 flex-shrink-0">/</span>
 
             <!-- Asset name -->
             <div class="flex-grow min-w-0 overflow-hidden">
