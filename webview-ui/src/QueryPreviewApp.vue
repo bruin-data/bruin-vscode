@@ -74,8 +74,9 @@ const selectedEnvironment = computed(() => {
   const selected = currentEnvironment.value;
   return selected || "";
 });
+
+
 const output = computed(() => {
-  console.log("QueryOutput.value in output", QueryOutput.value);
   if (!QueryOutput.value) return null;
   try {
     return typeof QueryOutput.value === "string"
@@ -113,13 +114,14 @@ const tabs = ref([
       error: errorValue.value,
       isLoading: isLoading.value,
       environment: selectedEnvironment.value,
+      connectionName:output.value?.connectionName || "",
     })),
   },
 ]);
 
 watch(output, (newValue) => {
   if (newValue) {
-    console.log("output changed", newValue);
+    //currentConnectionName.value = newValue?.connectionName || "";
   }
 });
 
