@@ -10,7 +10,6 @@ import {
 import { getDefaultBruinExecutablePath } from "../extension/configuration";
 import * as vscode from "vscode";
 import { renderCommandWithFlags } from "../extension/commands/renderCommand";
-import { lineageCommand } from "../extension/commands/lineageCommand";
 import { parseAssetCommand, patchAssetCommand } from "../extension/commands/parseAssetCommand";
 import { getEnvListCommand } from "../extension/commands/getEnvListCommand";
 import { BruinInstallCLI } from "../bruin/bruinInstallCli";
@@ -76,7 +75,6 @@ export class BruinPanel {
 
           //renderCommand(extensionUri);
           renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri?.fsPath);
-          lineageCommand(this._lastRenderedDocumentUri);
           parseAssetCommand(this._lastRenderedDocumentUri);
         }
       }),
@@ -95,7 +93,6 @@ export class BruinPanel {
 
           //renderCommand(extensionUri);
           renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri?.fsPath);
-          lineageCommand(this._lastRenderedDocumentUri);
           parseAssetCommand(this._lastRenderedDocumentUri);
         }
       })
@@ -397,12 +394,6 @@ export class BruinPanel {
                 message: "",
               });
             }, 1500);
-            break;
-          case "bruin.getAssetLineage":
-            if (!this._lastRenderedDocumentUri) {
-              return;
-            }
-            lineageCommand(this._lastRenderedDocumentUri);
             break;
 
           case "bruin.getAssetDetails":
