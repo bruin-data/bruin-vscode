@@ -269,8 +269,18 @@ table thead tr.border-opacity-test {
   border: 0.7 !important; /* Adjust the opacity value as needed */
 }
 
-/* Query cell specific styling */
-td:nth-child(4) {
-  overflow-wrap: break-word;
+vscode-button::part(control) {
+  border: none;
+  outline: none;
+}
+
+input,
+textarea {
+  @apply text-xs bg-input-background text-input-foreground border-none outline-none p-1;
+}
+
+input:focus,
+textarea:focus {
+  outline: none;
 }
 </style>
