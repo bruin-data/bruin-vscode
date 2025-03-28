@@ -123,11 +123,11 @@ export interface SimpleAsset {
 
 
 export interface CustomChecks {
-  blocking: boolean;
+  blocking?: boolean;
   description: string;
   id: string;
   name: string;
-  value: string | number;
+  value: number;
   query: string;
 }
 
