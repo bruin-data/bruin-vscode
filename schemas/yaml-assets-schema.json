@@ -34,7 +34,8 @@
             "ms.sql",
             "synapse.sql",
             "ingestr",
-            "duckdb.seed"
+            "duckdb.seed",
+            "emr_serverless.spark"
           ],
           "description": "The type of the asset"
         },
