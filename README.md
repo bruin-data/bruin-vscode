@@ -56,10 +56,11 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 
 ## Release Notes
-### Latest Release: 0.40.0
-- Enable adding, removing, and editing custom checks in asset columns.
+### Latest Release: 0.40.1
+- Implement debounce mechanism for rendering command in BruinPanel.
 
 ### Recent Updates
+- **0.40.0**: Enable adding, removing, and editing custom checks in asset columns.
 - **0.39.8**: Fix flickering issue, optimize data loading in LineagePanel, and improve cleanup.
 - **0.39.7**: Sorted connection types alphabetically and refactored their formatting to use title case.
 - **0.39.6**: Added  `Toggle Folding` Command, enabling users to manage custom foldable regions in Bruin directly from the command palette.

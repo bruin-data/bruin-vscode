@@ -19,8 +19,7 @@
 
 <script setup lang="ts">
 import AssetLineageFlow from "@/components/lineage-flow/asset-lineage/AssetLineage.vue";
-import { vscode } from "@/utilities/vscode";
-import { ref, onMounted, onUnmounted, computed } from "vue";
+import { ref, onUnmounted, computed } from "vue";
 import { updateValue } from "./utilities/helper";
 import { getAssetDataset } from "@/components/lineage-flow/asset-lineage/useAssetLineage";
 
@@ -84,28 +83,11 @@ const tabs = ref([
   },
 ]);
 
-onMounted(() => {
-  loadLineageData();
-});
 
 onUnmounted(() => {
   window.removeEventListener("message", handleMessage);
 });
 
-
-
-/**
- * Refreshes the lineage graph by sending a message to the VSCode extension.
- * 
- * @param {Event} event - The click event that triggered the refresh.
- */
-
-/**
- * Loads lineage data by sending a message to the VSCode extension.
- */
-function loadLineageData() {
-  vscode.postMessage({ command: "bruin.getAssetLineage" });
-}
 </script>
 <style>
 vscode-panel-view {
