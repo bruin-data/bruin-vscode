@@ -4,14 +4,14 @@
       <div class="">
         <div class="flex items-center space-x-2 w-full justify-between">
           <div class="flex items-baseline w-3/4 min-w-0 font-md text-editor-fg text-lg font-mono">
-            <div class="flex-shrink overflow-hidden min-w-[1px]">
+          <!--   <div class="flex-shrink overflow-hidden min-w-[1px]">
               <div class="pipeline-name text-xs opacity-50 truncate">
                 {{ assetDetailsProps?.pipeline.name }}
               </div>
             </div>
 
             <span v-if="assetDetailsProps?.pipeline.name" class="slash opacity-50 text-xs px-0.5 flex-shrink-0">/</span>
-
+ -->
             <!-- Asset name -->
             <div class="flex-grow min-w-0 overflow-hidden">
               <div class="flex items-center w-full">
