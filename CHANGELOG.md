@@ -1,6 +1,9 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
+## [0.40.1] - [2025-03-28]
+- Implement debounce mechanism for rendering command in BruinPanel.
+
 ## [0.40.0] - [2025-03-28]
 - Enable adding, removing, and editing custom checks in asset columns.
 
