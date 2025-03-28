@@ -155,6 +155,7 @@ export interface TabData extends Tab {
   isEditing: boolean;
   limit: number;
   environment: string;
+  connectionName: string;
 }
 
 export interface EditingState {

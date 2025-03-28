@@ -1,14 +1,18 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
+
+## [0.40.2] - [2025-03-28]
+- Displayed connection name in QueryPreview.
+
 ## [0.40.1] - [2025-03-28]
-- Implement debounce mechanism for rendering command in BruinPanel.
+- Implemented debounce mechanism for rendering command in BruinPanel.
 
 ## [0.40.0] - [2025-03-28]
-- Enable adding, removing, and editing custom checks in asset columns.
+- Enabled adding, removing, and editing custom checks in asset columns.
 
 ## [0.39.8] - [2025-03-27]
-- Fix flickering issue, optimize data loading in LineagePanel, and improve cleanup.
+- Fixed flickering issue, optimize data loading in LineagePanel, and improve cleanup.
 
 ## [0.39.7] - [2025-03-21]
 - Sorted connection types alphabetically and refactored their formatting to use title case.

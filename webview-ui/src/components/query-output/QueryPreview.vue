@@ -71,8 +71,11 @@
           <!-- Search Component -->
           <div class="flex items-center space-x-2">
             <span class="text-2xs text-editor-fg opacity-65">Running in:</span>
-            <vscode-badge :class="badgeClass">
+            <vscode-badge :class="badgeClass" class="truncate">
               {{ currentEnvironment }}
+            </vscode-badge>
+            <vscode-badge v-if="currentTab?.parsedOutput?.connectionName" :class="badgeClass" class="truncate">
+              {{ currentTab?.parsedOutput.connectionName  }}
             </vscode-badge>
           </div>
           <QuerySearch
@@ -261,11 +264,12 @@ const props = defineProps<{
   error: any;
   isLoading: boolean;
   environment: string;
+  connectionName: string;
 }>();
 
 const currentEnvironment = ref<string>(props.environment);
 const modifierKey = ref("⌘"); // Default to Mac symbol
-
+const currentConnectionName = ref("");
 const limit = ref(100);
 const showSearchInput = ref(false);
 const hoveredTab = ref("");
@@ -285,10 +289,9 @@ const defaultTab = {
   filteredRowCount: 0,
   isEditing: false,
   environment: currentEnvironment.value,
+  connectionName: props.connectionName,
 };
-const tabs = shallowRef<TabData[]>([
-  defaultTab,
-]);
+const tabs = shallowRef<TabData[]>([defaultTab]);
 
 const activeTab = ref<string>("tab-1");
 const tabCounter = ref(2); // Start from 2 since we already have "Tab 1"
@@ -324,6 +327,7 @@ const addTab = () => {
     filteredRowCount: 0,
     isEditing: false,
     environment: currentEnvironment.value,
+    connectionName: currentConnectionName.value,
   });
 
   tabCounter.value++;
@@ -373,6 +377,7 @@ const saveState = () => {
     totalRowCount: tab.totalRowCount,
     filteredRowCount: tab.filteredRowCount,
     environment: currentEnvironment.value,
+    connectionName: tab.connectionName,
     tabCounter: tabCounter.value,
   }));
 
@@ -382,6 +387,7 @@ const saveState = () => {
     activeTab: activeTab.value,
     expandedCells: Array.from(expandedCells.value),
     environment: currentEnvironment.value,
+    connectionName: currentConnectionName.value,
     showSearchInput: showSearchInput.value,
     tabCounter: tabCounter.value,
   };
@@ -411,6 +417,7 @@ const reviveParsedOutput = (parsedOutput: any) => {
       ...parsedOutput,
       rows: parsedOutput.rows || [],
       columns: parsedOutput.columns || [],
+      connectionName: parsedOutput.connectionName || parsedOutput.meta?.connectionName || null,
     };
   } catch (e) {
     console.error("Error reviving parsed output:", e);
@@ -422,7 +429,6 @@ window.addEventListener("message", (event) => {
   const message = event.data;
   if (message.command === "bruin.restoreState") {
     const state = message.payload;
-
     if (state) {
       if (state.tabCounter) {
         tabCounter.value = state.tabCounter;
@@ -430,16 +436,20 @@ window.addEventListener("message", (event) => {
       if (state.environment) {
         currentEnvironment.value = state.environment;
       }
+
       // Revive complex objects
       tabs.value = (state.tabs || []).map((t) => ({
         ...t,
         parsedOutput: t.parsedOutput ? reviveParsedOutput(t.parsedOutput) : undefined,
+        connectionName: reviveParsedOutput(t.parsedOutput)?.connectionName || t.connectionName,
         error: t.error ? new Error(t.error.message) : null,
         isLoading: false,
         isEditing: false,
         filteredRows: t.parsedOutput?.rows || [],
       }));
 
+      currentConnectionName.value =
+        tabs.value.find((t) => t.id === state.activeTab)?.connectionName || state.connectionName;
       activeTab.value = state.activeTab || "tab-1";
       expandedCells.value = new Set(state.expandedCells || []);
       showSearchInput.value = state.showSearchInput || false;
@@ -601,6 +611,7 @@ watch(
       if (parsedData) {
         currentTab.value.parsedOutput = parsedData;
         currentTab.value.totalRowCount = parsedData.rows?.length || 0;
+        currentTab.value.connectionName = parsedData.connectionName;
         triggerRef(tabs);
         updateFilteredRows();
         saveState();
@@ -867,6 +878,15 @@ thead th::after {
   border-bottom: 1px solid var(--vscode-commandCenter-border);
   z-index: 1;
 }
+vscode-badge {
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+vscode-badge::part(control) {
+  max-width: 100%;
+  overflow: hidden;
+}
 </style>
 
 <style>
@@ -874,7 +894,6 @@ body {
   padding: 0 !important;
   margin: 0 !important;
 }
-
 .keybinding {
   background-color: var(--vscode-keybindingLabel-background);
   border-top: 1px solid transparent;
