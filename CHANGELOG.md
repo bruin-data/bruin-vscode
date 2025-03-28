@@ -1,6 +1,9 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
+## [0.40.0] - [2025-03-28]
+- Enable adding, removing, and editing custom checks in asset columns.
+
 ## [0.39.8] - [2025-03-27]
 - Fix flickering issue, optimize data loading in LineagePanel, and improve cleanup.
 
