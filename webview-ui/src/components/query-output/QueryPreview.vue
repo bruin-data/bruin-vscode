@@ -71,10 +71,10 @@
           <!-- Search Component -->
           <div class="flex items-center space-x-2">
             <span class="text-2xs text-editor-fg opacity-65">Running in:</span>
-            <vscode-badge :class="badgeClass">
+            <vscode-badge :class="badgeClass" class="truncate">
               {{ currentEnvironment }}
             </vscode-badge>
-            <vscode-badge v-if="currentTab?.parsedOutput?.connectionName" :class="badgeClass">
+            <vscode-badge v-if="currentTab?.parsedOutput?.connectionName" :class="badgeClass" class="truncate">
               {{ currentTab?.parsedOutput.connectionName  }}
             </vscode-badge>
           </div>
@@ -878,6 +878,15 @@ thead th::after {
   border-bottom: 1px solid var(--vscode-commandCenter-border);
   z-index: 1;
 }
+vscode-badge {
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+vscode-badge::part(control) {
+  max-width: 100%;
+  overflow: hidden;
+}
 </style>
 
 <style>
@@ -885,7 +894,6 @@ body {
   padding: 0 !important;
   margin: 0 !important;
 }
-
 .keybinding {
   background-color: var(--vscode-keybindingLabel-background);
   border-top: 1px solid transparent;
