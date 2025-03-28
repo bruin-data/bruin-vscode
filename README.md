@@ -56,10 +56,12 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 
 ## Release Notes
-### Latest Release: 0.40.2
-- Displayed connection name in QueryPreview.
+### Latest Release: 0.40.3
+- Added support for `emr_serverless.spark` type in asset yaml schema.
 
 ### Recent Updates
+
+- **0.40.2**: Displayed connection name in QueryPreview.
 - **0.40.1**: Implement debounce mechanism for rendering command in BruinPanel.
 - **0.40.0**: Enable adding, removing, and editing custom checks in asset columns.
 - **0.39.8**: Fix flickering issue, optimize data loading in LineagePanel, and improve cleanup.
