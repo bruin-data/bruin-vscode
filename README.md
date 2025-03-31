@@ -56,11 +56,12 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 
 ## Release Notes
-### Latest Release: 0.40.3
-- Added support for `emr_serverless.spark` type in asset yaml schema.
+### Latest Release: 0.40.4
+- Remove `downstream` flag from `runWholetPipeline` command.
 
 ### Recent Updates
 
+- **0.40.3**: Added support for `emr_serverless.spark` type in asset yaml schema.
 - **0.40.2**: Displayed connection name in QueryPreview.
 - **0.40.1**: Implement debounce mechanism for rendering command in BruinPanel.
 - **0.40.0**: Enable adding, removing, and editing custom checks in asset columns.
