@@ -1,6 +1,8 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
+## [0.40.4] - [2025-03-31]
+- Remove `downstream` flag from `runWholetPipeline` command.
 
 ## [0.40.3] - [2025-03-31]
 - Added support for `emr_serverless.spark` type in asset yaml schema.
