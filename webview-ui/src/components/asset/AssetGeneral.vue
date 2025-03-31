@@ -556,7 +556,7 @@ function runPipelineWithContinue() {
 }
 
 function runCurrentPipeline() {
-  const payload = buildCommandPayload(getCheckboxChangePayload(), { downstream: true });
+  const payload = buildCommandPayload(getCheckboxChangePayload(), { downstream: false });
 
   vscode.postMessage({
     command: "bruin.runCurrentPipeline",
