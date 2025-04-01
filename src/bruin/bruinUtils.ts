@@ -236,3 +236,33 @@ export const compareVersions = (current: string, latest: string): boolean => {
   return true; // Versions are equal
 };
 export { BruinInstallCLI } from './bruinInstallCli';
+
+export function getBruinVersion(): { version: string; latest: string } | null {
+  try {
+    const bruinExecutable = getDefaultBruinExecutablePath();
+    const result = execSync(`${bruinExecutable} version -o json`);
+    // bruin version -o json
+    // {"version":"v0.11.171","commit":"39b51d8339280c48f9499781381afc112a8fd43d","latest":"v0.11.171"}
+    const version = JSON.parse(result.toString()).version;
+    const latest = JSON.parse(result.toString()).latest;
+    return { version, latest };
+  } catch (error) {
+    console.error(`Failed to get Bruin version: ${error}`);
+    return null;
+  }
+}
+
+export async function checkCliVersion(): Promise<boolean> {
+  const { version, latest } = getBruinVersion() || {};
+  if (version && latest) {
+    if (!compareVersions(version, latest)) {
+      return true;
+    }
+    else{
+      vscode.window.showInformationMessage(`Bruin CLI version ${version} is up to date.`);
+      return false;
+    }
+  }
+  return false;
+}
+

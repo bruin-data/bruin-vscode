@@ -4,6 +4,7 @@ import { getNonce } from "../utilities/getNonce";
 import {
   BruinValidate,
   bruinWorkspaceDirectory,
+  checkCliVersion,
   getCurrentPipelinePath,
   runInIntegratedTerminal,
 } from "../bruin";
@@ -210,9 +211,13 @@ export class BruinPanel {
   private _getWebviewContent(webview: Webview, extensionUri: Uri) {
     const stylesUri = getUri(webview, extensionUri, ["webview-ui", "build", "assets", "index.css"]);
     const scriptUri = getUri(webview, extensionUri, ["webview-ui", "build", "assets", "index.js"]);
+    const codiconsUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(extensionUri, "webview-ui", "build", "assets", "codicon.css")
+    );
     const scriptUriCustomElt = webview.asWebviewUri(
       vscode.Uri.joinPath(extensionUri, "webview-ui", "build", "assets", "custom-elements.js")
     );
+
     const stylesUriCustomElt = getUri(webview, extensionUri, [
       "webview-ui",
       "build",
@@ -238,6 +243,7 @@ export class BruinPanel {
          ">
           <link rel="stylesheet" type="text/css" href="${stylesUri}">
           <link rel="stylesheet" href="${stylesUriCustomElt}">
+          <link rel="stylesheet" href="${codiconsUri}">
           <title>Bruin Panel</title>
         </head>
         <body>
@@ -590,6 +596,14 @@ export class BruinPanel {
               console.error("Error opening glossary:", error);
               vscode.window.showErrorMessage("Failed to open glossary file.");
             }
+            break;
+          case "bruin.checkBruinCLIVersion":
+            const isUpToDate = await checkCliVersion();
+            console.log("Is Bruin CLI up to date:", isUpToDate);
+            this._panel.webview.postMessage({
+              command: "bruinCliVersionStatus",
+              isUpToDate,
+            });
             break;
         }
       },
