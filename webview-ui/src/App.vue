@@ -2,9 +2,16 @@
   <div v-if="isBruinInstalled">
     <div class="flex flex-col pt-1">
       <div class="">
+        <InfoBanner
+            class="w-full"
+            :message="'Your CLI is not up to date'"
+            @infoClose="closeInfoBanner"
+            @updateCLI="updateBruinCli"
+          />
+
         <div class="flex items-center space-x-2 w-full justify-between">
           <div class="flex items-baseline w-3/4 min-w-0 font-md text-editor-fg text-lg font-mono">
-          <!--   <div class="flex-shrink overflow-hidden min-w-[1px]">
+            <!--   <div class="flex-shrink overflow-hidden min-w-[1px]">
               <div class="pipeline-name text-xs opacity-50 truncate">
                 {{ assetDetailsProps?.pipeline.name }}
               </div>
@@ -41,7 +48,9 @@
             </div>
           </div>
 
-          <div class="tags flex w-1/4 items-center space-x-2 justify-end overflow-hidden flex-shrink-0">
+          <div
+            class="tags flex w-1/4 items-center space-x-2 justify-end overflow-hidden flex-shrink-0"
+          >
             <DescriptionItem
               :value="assetDetailsProps?.type ?? 'undefined'"
               :className="assetDetailsProps?.type ? badgeClass.badgeStyle : badgeClass.grayBadge"
@@ -112,6 +121,7 @@ import { updateValue } from "./utilities/helper";
 import MessageAlert from "@/components/ui/alerts/AlertMessage.vue";
 import { useConnectionsStore } from "./store/bruinStore";
 import type { EnvironmentsList } from "./types";
+import InfoBanner from "@/components/ui/alerts/banner/InfoBanner.vue";
 import AssetColumns from "@/components/asset/columns/AssetColumns.vue";
 import CustomChecks from "@/components/asset/columns/custom-checks/CustomChecks.vue";
 import BruinSettings from "@/components/bruin-settings/BruinSettings.vue";
@@ -169,6 +179,11 @@ window.addEventListener("message", (event) => {
         isBruinInstalled.value = message.installed; // Update installation status
         console.log("Bruin installation status updated:", isBruinInstalled.value);
         break;
+
+      case "bruinCliUpdateStatus":
+        isUpdated.value = message.updated; // Update update status
+        console.log("Bruin update status updated:", isUpdated.value);
+        break;
     }
   } catch (error) {
     console.error("Error handling message:", error);
@@ -178,7 +193,10 @@ window.addEventListener("message", (event) => {
     });
   }
 });
-
+const isUpdated = ref(false);
+const closeInfoBanner = () => {
+  isUpdated.value = true;
+};
 const activeTab = ref(0); // Tracks the currently active tab
 const navigateToGlossary = () => {
   console.log("Opening glossary.");
@@ -197,11 +215,13 @@ const environmentsList = computed(() => {
   return parsedEnvironments;
 });
 
+const updateBruinCli = () => {
+  vscode.postMessage({ command: "bruin.updateBruinCli" });
+};
 // Computed property to get the selected environment
 const selectedEnvironment = computed(() => {
   if (!environments.value) return [];
-  const selected =
-    parseEnvironmentList(environments.value)?.selectedEnvironment || "";
+  const selected = parseEnvironmentList(environments.value)?.selectedEnvironment || "";
   console.log("Selected environment:", selected);
   return selected;
 });
@@ -350,6 +370,7 @@ onMounted(() => {
   checkBruinCliInstallation();
   vscode.postMessage({ command: "getLastRenderedDocument" });
   vscode.postMessage({ command: "bruin.checkTelemtryPreference" });
+  vscode.postMessage({ command: "bruin.checkBruinCLIVersion" });
   // Track page view
   try {
     rudderStack.trackPageView("Asset Details Page", {
