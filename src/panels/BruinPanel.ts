@@ -604,6 +604,9 @@ export class BruinPanel {
               versionStatus,
             }); 
             break;
+          case "bruin.updateBruinCli":
+            await this.updateBruinCli();
+            break;
         }
       },
       undefined,
@@ -655,5 +658,17 @@ export class BruinPanel {
       vscode.window.showErrorMessage("Failed to install/update Bruin CLI. Please try again.");
     }
   }
+  private async updateBruinCli() {
+    try {
+      const bruinInstaller = new BruinInstallCLI();
+      // Skip the installation check and directly call updateBruinCli
+      await bruinInstaller.updateBruinCli();
+      await this.checkAndUpdateBruinCliStatus();
+    } catch (error) {
+      console.error("Error updating Bruin CLI:", error);
+      vscode.window.showErrorMessage("Failed to update Bruin CLI. Please try again.");
+    }
+  }
   private _checkboxState: { [key: string]: boolean } = {};
 }
+
