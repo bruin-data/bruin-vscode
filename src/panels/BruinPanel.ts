@@ -598,12 +598,11 @@ export class BruinPanel {
             }
             break;
           case "bruin.checkBruinCLIVersion":
-            const isUpToDate = await checkCliVersion();
-            console.log("Is Bruin CLI up to date:", isUpToDate);
+            const versionStatus = await checkCliVersion();
             this._panel.webview.postMessage({
               command: "bruinCliVersionStatus",
-              isUpToDate,
-            });
+              versionStatus,
+            }); 
             break;
         }
       },

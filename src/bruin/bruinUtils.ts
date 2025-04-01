@@ -253,13 +253,23 @@ export function getBruinVersion(): { version: string; latest: string } | null {
   }
 }
 
-export async function checkCliVersion(): Promise<boolean | null> {
+export async function checkCliVersion(): Promise<{
+  status: 'outdated' | 'current' | 'error';
+  current?: string;
+  latest?: string;
+}> {
   const versionInfo = getBruinVersion();
-
+  
   if (!versionInfo) {
-    return null;
+    return { status: 'error' };
   }
 
   const { version, latest } = versionInfo;
-  return compareVersions(version, latest); // true=outdated, false=up-to-date
+  const isOutdated = compareVersions(version, latest);
+  
+  return {
+    status: isOutdated ? 'outdated' : 'current',
+    current: version,
+    latest: latest
+  };
 }

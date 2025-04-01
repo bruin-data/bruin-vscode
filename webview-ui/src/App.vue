@@ -1,9 +1,11 @@
 <template>
   <div v-if="isBruinInstalled">
     <InfoBanner
-      v-if="showInfoBanner"
+      v-if="versionStatus.status === 'outdated' && showInfoBanner"
       class="w-full"
-      :message="'Your Bruin CLI is not up to date.'"
+      message="Bruin CLI is outdated."
+      :current-version="versionStatus.current"
+      :latest-version="versionStatus.latest"
       @infoClose="closeInfoBanner"
       @updateCLI="updateBruinCli"
     />
@@ -134,6 +136,11 @@ const rudderStack = RudderStackService.getInstance();
 const connectionsStore = useConnectionsStore();
 const parseError = ref(); // Holds any parsing errors
 const environments = ref<EnvironmentsList | null>(null); // Holds the list of environments
+const versionStatus = ref({ 
+  status: 'current',
+  current: '',
+  latest: ''
+});
 const data = ref(
   JSON.stringify({
     asset: {
@@ -181,9 +188,9 @@ window.addEventListener("message", (event) => {
         console.log("Bruin installation status updated:", isBruinInstalled.value);
         break;
 
-      case "bruinCliUpdateStatus":
-        isUpdated.value = message.updated; // Update update status
-        console.log("Bruin update status updated:", isUpdated.value);
+      case "bruinCliVersionStatus":
+        versionStatus.value = message.versionStatus;
+        console.log("Bruin update status updated:", versionStatus.value);
         break;
     }
   } catch (error) {
