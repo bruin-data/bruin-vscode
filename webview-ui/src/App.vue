@@ -1,14 +1,15 @@
 <template>
   <div v-if="isBruinInstalled">
+    <InfoBanner
+      v-if="showInfoBanner"
+      class="w-full"
+      :message="'Your Bruin CLI is not up to date.'"
+      @infoClose="closeInfoBanner"
+      @updateCLI="updateBruinCli"
+    />
+
     <div class="flex flex-col pt-1">
       <div class="">
-        <InfoBanner
-            class="w-full"
-            :message="'Your CLI is not up to date'"
-            @infoClose="closeInfoBanner"
-            @updateCLI="updateBruinCli"
-          />
-
         <div class="flex items-center space-x-2 w-full justify-between">
           <div class="flex items-baseline w-3/4 min-w-0 font-md text-editor-fg text-lg font-mono">
             <!--   <div class="flex-shrink overflow-hidden min-w-[1px]">
@@ -17,7 +18,7 @@
               </div>
             </div>
 
-            <span v-if="assetDetailsProps?.pipeline.name" class="slash opacity-50 text-xs px-0.5 flex-shrink-0">/</span>
+            <span v-if="assetDetailsProps?.pipeline.name" class="slash opacity-50 text-xs px-0.5 flex-shrink-0">/</span>d
  -->
             <!-- Asset name -->
             <div class="flex-grow min-w-0 overflow-hidden">
@@ -194,8 +195,9 @@ window.addEventListener("message", (event) => {
   }
 });
 const isUpdated = ref(false);
+const showInfoBanner = ref(true);
 const closeInfoBanner = () => {
-  isUpdated.value = true;
+  showInfoBanner.value = false;
 };
 const activeTab = ref(0); // Tracks the currently active tab
 const navigateToGlossary = () => {
