@@ -215,6 +215,10 @@ const environmentsList = computed(() => {
 
 const updateBruinCli = () => {
   vscode.postMessage({ command: "bruin.updateBruinCli" });
+  setTimeout(() => {
+    vscode.postMessage({ command: "bruin.checkBruinCLIVersion" });
+    console.log("Checking Bruin CLI version after update");
+  }, 15000);
 };
 // Computed property to get the selected environment
 const selectedEnvironment = computed(() => {

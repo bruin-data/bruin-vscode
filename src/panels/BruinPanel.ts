@@ -663,7 +663,6 @@ export class BruinPanel {
       const bruinInstaller = new BruinInstallCLI();
       // Skip the installation check and directly call updateBruinCli
       await bruinInstaller.updateBruinCli();
-      await this.checkAndUpdateBruinCliStatus();
     } catch (error) {
       console.error("Error updating Bruin CLI:", error);
       vscode.window.showErrorMessage("Failed to update Bruin CLI. Please try again.");
