@@ -397,6 +397,11 @@ onMounted(() => {
   console.log("Custom event tracked.");
 });
 
+// send the message to check the bruin version every 30 minutes
+setInterval(() => {
+  vscode.postMessage({ command: "bruin.checkBruinCLIVersion" });
+}, 1800000);
+
 // Lifecycle hook to clean up hover timeout
 onBeforeUnmount(() => {
   if (hoverTimeout.value) clearTimeout(hoverTimeout.value);
