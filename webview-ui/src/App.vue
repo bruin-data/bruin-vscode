@@ -1,27 +1,9 @@
 <template>
   <div v-if="isBruinInstalled">
-    <InfoBanner
-      v-if="versionStatus.status === 'outdated' && showInfoBanner"
-      class="w-full"
-      message="Bruin CLI is outdated."
-      :current-version="versionStatus.current"
-      :latest-version="versionStatus.latest"
-      @infoClose="closeInfoBanner"
-      @updateCLI="updateBruinCli"
-    />
-
     <div class="flex flex-col pt-1">
       <div class="">
         <div class="flex items-center space-x-2 w-full justify-between">
           <div class="flex items-baseline w-3/4 min-w-0 font-md text-editor-fg text-lg font-mono">
-            <!--   <div class="flex-shrink overflow-hidden min-w-[1px]">
-              <div class="pipeline-name text-xs opacity-50 truncate">
-                {{ assetDetailsProps?.pipeline.name }}
-              </div>
-            </div>
-
-            <span v-if="assetDetailsProps?.pipeline.name" class="slash opacity-50 text-xs px-0.5 flex-shrink-0">/</span>d
- -->
             <!-- Asset name -->
             <div class="flex-grow min-w-0 overflow-hidden">
               <div class="flex items-center w-full">
@@ -51,19 +33,31 @@
             </div>
           </div>
 
-          <div
-            class="tags flex w-1/4 items-center space-x-2 justify-end overflow-hidden flex-shrink-0"
-          >
-            <DescriptionItem
-              :value="assetDetailsProps?.type ?? 'undefined'"
-              :className="assetDetailsProps?.type ? badgeClass.badgeStyle : badgeClass.grayBadge"
-            />
+          <div class="flex w-1/4 items-center space-x-2 justify-end flex-shrink-0">
+            <vscode-button
+              appearance="secondary"
+              v-if="versionStatus.status === 'outdated'"
+              @click="updateBruinCli"
+              class="flex-shrink-0"
+            >
+              <div class="flex items-center space-x-1 whitespace-nowrap">
+                <span class="codicon codicon-circle-filled text-editorLink-activeFg"></span>
+                Update CLI
+              </div>
+            </vscode-button>
 
-            <DescriptionItem
-              :value="assetDetailsProps?.pipeline?.schedule ?? 'undefined'"
-              :className="badgeClass.grayBadge"
-              class="xs:flex hidden overflow-hidden truncate"
-            />
+            <!-- Tags div that will be hidden on small screens -->
+            <div class="flex items-center tags">
+              <DescriptionItem
+                :value="assetDetailsProps?.type ?? 'undefined'"
+                :className="assetDetailsProps?.type ? badgeClass.badgeStyle : badgeClass.grayBadge"
+              />
+              <DescriptionItem
+                :value="assetDetailsProps?.pipeline?.schedule ?? 'undefined'"
+                :className="badgeClass.grayBadge"
+                class="xs:flex hidden overflow-hidden truncate"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -124,7 +118,6 @@ import { updateValue } from "./utilities/helper";
 import MessageAlert from "@/components/ui/alerts/AlertMessage.vue";
 import { useConnectionsStore } from "./store/bruinStore";
 import type { EnvironmentsList } from "./types";
-import InfoBanner from "@/components/ui/alerts/banner/InfoBanner.vue";
 import AssetColumns from "@/components/asset/columns/AssetColumns.vue";
 import CustomChecks from "@/components/asset/columns/custom-checks/CustomChecks.vue";
 import BruinSettings from "@/components/bruin-settings/BruinSettings.vue";
@@ -136,10 +129,10 @@ const rudderStack = RudderStackService.getInstance();
 const connectionsStore = useConnectionsStore();
 const parseError = ref(); // Holds any parsing errors
 const environments = ref<EnvironmentsList | null>(null); // Holds the list of environments
-const versionStatus = ref({ 
-  status: 'current',
-  current: '',
-  latest: ''
+const versionStatus = ref({
+  status: "current",
+  current: "",
+  latest: "",
 });
 const data = ref(
   JSON.stringify({
@@ -201,11 +194,7 @@ window.addEventListener("message", (event) => {
     });
   }
 });
-const isUpdated = ref(false);
-const showInfoBanner = ref(true);
-const closeInfoBanner = () => {
-  showInfoBanner.value = false;
-};
+
 const activeTab = ref(0); // Tracks the currently active tab
 const navigateToGlossary = () => {
   console.log("Opening glossary.");
@@ -505,7 +494,7 @@ const badgeClass = computed(() => {
 vscode-panels::part(tablist) {
   padding-left: 0 !important;
 }
-/* Media query to hide the pipeline name, slash, and tags when the panel is too small */
+
 @media (max-width: 480px) {
   .pipeline-name,
   .slash,
@@ -521,6 +510,10 @@ vscode-panels::part(tablist) {
   .flex-grow input {
     @apply block w-full truncate;
   }
+
+  vscode-button {
+    @apply flex-shrink-0 block;
+  }
 }
 
 @media (max-width: 320px) {
@@ -528,5 +521,22 @@ vscode-panels::part(tablist) {
   .flex-grow input {
     @apply text-sm;
   }
+
+  vscode-button::part(control) {
+    font-size: 9px;
+    padding: 3px;
+  }
+}
+</style>
+<style scoped>
+vscode-button::part(control) {
+  border: none;
+  outline: none;
+  font-size: 10px;
+  padding: 4px;
+}
+vscode-button .codicon {
+  font-size: 12px;
+  padding-right: 2px;
 }
 </style>
