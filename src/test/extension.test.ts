@@ -25,7 +25,10 @@ import sinon = require("sinon");
 import {
   BruinInstallCLI,
   bruinWorkspaceDirectory,
+  checkCliVersion,
+  compareVersions,
   findGitBashPath,
+  getBruinVersion,
   replacePathSeparator,
 } from "../bruin/bruinUtils";
 import { BruinInternalPatch } from "../bruin/bruinInternalPatch";
@@ -82,117 +85,179 @@ suite("Extension Initialization", () => {
   });
 });
 suite("Bruin Utility Tests", () => {
-  suite("getPathSeparator Tests", () => {
-    test("should return the path separator from the user configuration", () => {
-      const expectedPathSeparator = os.platform() === "win32" ? "\\" : "/"; // Adjust based on OS
-      const pathSeparator = getPathSeparator();
-      assert.strictEqual(pathSeparator, expectedPathSeparator);
-    });
+  let execSyncStub: sinon.SinonStub;
+
+  setup(() => {
+    execSyncStub = sinon.stub(require("child_process"), "execSync");
   });
 
-  suite("replacePathSeparator Tests", () => {
-    test("should replace path separators with the specified separator", () => {
-      const input = "path/to/file";
-      const expectedSeparator = os.platform() === "win32" ? "\\" : "/"; // Adjust based on OS
+  teardown(() => {
+    sinon.restore();
+  });
+  suite("Compare versions tests", () => {
+    test("should return false for equal versions", () => {
+      assert.strictEqual(compareVersions("v1.0.0", "v1.0.0"), false);
+    });
+  
+    test("should return false when current > latest", () => {
+      assert.strictEqual(compareVersions("v1.1.0", "v1.0.0"), false);
+    });
+  
+    test("should return true when current < latest", () => {
+      assert.strictEqual(compareVersions("v1.0.0", "v1.1.0"), true);
+    });
+    test("getBruinVersion returns valid version data", () => {
+      // Set a valid return value for execSync
+      execSyncStub.returns(Buffer.from('{"version": "v1.0.0", "latest": "v1.1.0"}'));
+      
+      const versionInfo = getBruinVersion();
+      assert.strictEqual(versionInfo?.version, "v1.0.0");
+      assert.strictEqual(versionInfo?.latest, "v1.1.0");
+    });
+    test("getBruinVersion returns null when execSync fails", () => {
+      execSyncStub.throws(new Error("Failed to get Bruin version"));
+      const versionInfo = getBruinVersion();
+      assert.strictEqual(versionInfo, null);
+    });
+    
+  });
+  suite("Check CLI Version tests", () => {
+    test("should return 'outdated' when current version is less than latest", async () => {
+      execSyncStub.returns(Buffer.from('{"version": "v1.0.0", "latest": "v1.1.0"}'));
+      const result = await checkCliVersion();
+      assert.strictEqual(result.status, "outdated");
+      assert.strictEqual(result.current, "v1.0.0");
+      assert.strictEqual(result.latest, "v1.1.0");
+    });
+  
+    test("should return 'current' when current version is equal to latest", async () => {
+      execSyncStub.returns(Buffer.from('{"version": "v1.1.0", "latest": "v1.1.0"}'));
+      const result = await checkCliVersion();
+      assert.strictEqual(result.status, "current");
+      assert.strictEqual(result.current, "v1.1.0");
+      assert.strictEqual(result.latest, "v1.1.0");
+    });
+  
+    test("should return 'error' when getBruinVersion returns null", async () => {
+      execSyncStub.throws(new Error("Failed to get Bruin version"));
+      const result = await checkCliVersion();
+      assert.strictEqual(result.status, "error");
+    });
+  });
+  
+  
+});
+suite("getPathSeparator Tests", () => {
+  test("should return the path separator from the user configuration", () => {
+    const expectedPathSeparator = os.platform() === "win32" ? "\\" : "/"; // Adjust based on OS
+    const pathSeparator = getPathSeparator();
+    assert.strictEqual(pathSeparator, expectedPathSeparator);
+  });
+});
+
+suite("replacePathSeparator Tests", () => {
+  test("should replace path separators with the specified separator", () => {
+    const input = "path/to/file";
+    const expectedSeparator = os.platform() === "win32" ? "\\" : "/"; // Adjust based on OS
+    const result = replacePathSeparator(input);
+    assert.strictEqual(result, `path${expectedSeparator}to${expectedSeparator}file`);
+  });
+
+  test("should replace path separators with the default separator on Windows", () => {
+    const input = "path\\to\\file";
+    const platformStub = sinon.stub(process, "platform").value("win32"); // Override process.platform
+    try {
       const result = replacePathSeparator(input);
+      const expectedSeparator = getPathSeparator();
       assert.strictEqual(result, `path${expectedSeparator}to${expectedSeparator}file`);
-    });
+    } finally {
+      platformStub.restore(); // Restore original process.platform value
+    }
+  });
+});
 
-    test("should replace path separators with the default separator on Windows", () => {
-      const input = "path\\to\\file";
-      const platformStub = sinon.stub(process, "platform").value("win32"); // Override process.platform
-      try {
-        const result = replacePathSeparator(input);
-        const expectedSeparator = getPathSeparator();
-        assert.strictEqual(result, `path${expectedSeparator}to${expectedSeparator}file`);
-      } finally {
-        platformStub.restore(); // Restore original process.platform value
-      }
-    });
+suite("findGitBashPath Tests", () => {
+  let fsStub: sinon.SinonStub;
+  let execSyncStub: sinon.SinonStub;
+  let pathDirnameStub: sinon.SinonStub;
+  let pathJoinStub: sinon.SinonStub;
+
+  setup(() => {
+    fsStub = sinon.stub(fs, "existsSync");
+    execSyncStub = sinon.stub(require("child_process"), "execSync");
+    pathDirnameStub = sinon.stub(path, "dirname");
+    pathJoinStub = sinon.stub(path, "join");
   });
 
-  suite("findGitBashPath Tests", () => {
-    let fsStub: sinon.SinonStub;
-    let execSyncStub: sinon.SinonStub;
-    let pathDirnameStub: sinon.SinonStub;
-    let pathJoinStub: sinon.SinonStub;
-
-    setup(() => {
-      fsStub = sinon.stub(fs, "existsSync");
-      execSyncStub = sinon.stub(require("child_process"), "execSync");
-      pathDirnameStub = sinon.stub(path, "dirname");
-      pathJoinStub = sinon.stub(path, "join");
-    });
-
-    teardown(() => {
-      sinon.restore();
-    });
-
-    teardown(() => {
-      sinon.restore();
-    });
-
-    test("Returns first existing Git path from commonGitPaths", () => {
-      const expectedPath = "C:\\Program Files\\Git\\bin\\bash.exe";
-      fsStub.withArgs(expectedPath).returns(true);
-      fsStub.returns(false); // Default behavior for other paths
-
-      const result = findGitBashPath();
-
-      assert.strictEqual(result, expectedPath);
-      assert.strictEqual(execSyncStub.called, false); // Should not try execSync if path found
-    });
-
-    test("Finds Git Bash path through execSync when common paths fail", () => {
-      const originalPlatform = process.platform;
-      sinon.stub(process, "platform").value("win32"); // Mock process.platform to return 'win32'
-
-      fsStub.returns(false); // All common paths fail
-      const gitExePath = "C:\\Program Files\\Git\\cmd\\git.exe";
-      const expectedBashPath = "C:\\Program Files\\Git\\bin\\bash.exe";
-
-      execSyncStub.returns(gitExePath);
-      pathDirnameStub.returns("C:\\Program Files\\Git\\cmd");
-      pathJoinStub.returns(expectedBashPath);
-      fsStub.withArgs(expectedBashPath).returns(true);
-
-      const result = findGitBashPath();
-
-      assert.strictEqual(result, expectedBashPath);
-    });
-
-    test("Returns undefined when Git bash.exe does not exist anywhere", () => {
-      fsStub.returns(false); // No paths exist
-      execSyncStub.throws(new Error("Git not found"));
-
-      const result = findGitBashPath();
-
-      assert.strictEqual(result, undefined);
-    });
+  teardown(() => {
+    sinon.restore();
   });
 
-  suite("workspaceDirectory Tests", () => {
-    let fsStatStub: sinon.SinonStub;
-    let fsAccessStub: sinon.SinonStub;
-    let pathDirnameStub: sinon.SinonStub;
-    let consoleLogStub: sinon.SinonStub;
-    let originalPathDirname: typeof path.dirname;
+  teardown(() => {
+    sinon.restore();
+  });
 
-    setup(() => {
-      fsStatStub = sinon.stub(fs.promises, "stat");
-      fsAccessStub = sinon.stub(fs.promises, "access");
-      consoleLogStub = sinon.stub(console, "log");
+  test("Returns first existing Git path from commonGitPaths", () => {
+    const expectedPath = "C:\\Program Files\\Git\\bin\\bash.exe";
+    fsStub.withArgs(expectedPath).returns(true);
+    fsStub.returns(false); // Default behavior for other paths
 
-      // Store the original path.dirname before stubbing
-      originalPathDirname = path.dirname;
-      pathDirnameStub = sinon.stub(path, "dirname").callsFake(originalPathDirname);
-    });
+    const result = findGitBashPath();
 
-    teardown(() => {
-      sinon.restore();
-    });
+    assert.strictEqual(result, expectedPath);
+    assert.strictEqual(execSyncStub.called, false); // Should not try execSync if path found
+  });
 
-    /* test("should handle errors and log them", async () => {
+  test("Finds Git Bash path through execSync when common paths fail", () => {
+    const originalPlatform = process.platform;
+    sinon.stub(process, "platform").value("win32"); // Mock process.platform to return 'win32'
+
+    fsStub.returns(false); // All common paths fail
+    const gitExePath = "C:\\Program Files\\Git\\cmd\\git.exe";
+    const expectedBashPath = "C:\\Program Files\\Git\\bin\\bash.exe";
+
+    execSyncStub.returns(gitExePath);
+    pathDirnameStub.returns("C:\\Program Files\\Git\\cmd");
+    pathJoinStub.returns(expectedBashPath);
+    fsStub.withArgs(expectedBashPath).returns(true);
+
+    const result = findGitBashPath();
+
+    assert.strictEqual(result, expectedBashPath);
+  });
+
+  test("Returns undefined when Git bash.exe does not exist anywhere", () => {
+    fsStub.returns(false); // No paths exist
+    execSyncStub.throws(new Error("Git not found"));
+
+    const result = findGitBashPath();
+
+    assert.strictEqual(result, undefined);
+  });
+});
+
+suite("workspaceDirectory Tests", () => {
+  let fsStatStub: sinon.SinonStub;
+  let fsAccessStub: sinon.SinonStub;
+  let pathDirnameStub: sinon.SinonStub;
+  let consoleLogStub: sinon.SinonStub;
+  let originalPathDirname: typeof path.dirname;
+
+  setup(() => {
+    fsStatStub = sinon.stub(fs.promises, "stat");
+    fsAccessStub = sinon.stub(fs.promises, "access");
+    consoleLogStub = sinon.stub(console, "log");
+
+    // Store the original path.dirname before stubbing
+    originalPathDirname = path.dirname;
+    pathDirnameStub = sinon.stub(path, "dirname").callsFake(originalPathDirname);
+  });
+
+  teardown(() => {
+    sinon.restore();
+  });
+
+  /* test("should handle errors and log them", async () => {
       const fsPath = "/path/to/project/file.txt";
       const error = new Error("unexpected error");
   
@@ -213,20 +278,20 @@ suite("Bruin Utility Tests", () => {
       );
     }); */
 
-    test("should handle nested file paths correctly", async () => {
-      const fsPath = "/path/to/project/nested/file.txt";
+  test("should handle nested file paths correctly", async () => {
+    const fsPath = "/path/to/project/nested/file.txt";
 
-      fsStatStub.resolves({ isFile: () => true }); // Simulate file check
-      fsAccessStub.resolves(); // Simulate access success
+    fsStatStub.resolves({ isFile: () => true }); // Simulate file check
+    fsAccessStub.resolves(); // Simulate access success
 
-      const result = await bruinWorkspaceDirectory(fsPath);
+    const result = await bruinWorkspaceDirectory(fsPath);
 
-      // Validate the resulting path
-      assert.ok(result?.includes("/path/to/project"), "Should find the workspace directory");
-      sinon.assert.calledWith(pathDirnameStub, fsPath);
-    });
+    // Validate the resulting path
+    assert.ok(result?.includes("/path/to/project"), "Should find the workspace directory");
+    sinon.assert.calledWith(pathDirnameStub, fsPath);
+  });
 
-    /* test("should return undefined for exceeding max iterations", async () => {
+  /* test("should return undefined for exceeding max iterations", async () => {
       const fsPath = "/path/to/project/file.txt";
       let callCount = 0;
   
@@ -237,53 +302,35 @@ suite("Bruin Utility Tests", () => {
   
       assert.strictEqual(result, undefined, "Should return undefined after max iterations");
     }); */
-  });
+});
 
-  suite("isFileExtensionSQL Tests", () => {
-    test("should return true for valid SQL file extensions", async () => {
-      const validExtensions = ["test.sql", "Test.SQL"];
-      validExtensions.forEach(async (ext) => {
-        assert.strictEqual(await isFileExtensionSQL(ext), true);
-      });
-    });
-
-    test("should return false for invalid SQL file extensions", () => {
-      const invalidExtensions = [".py", ".yaml", ".json", ".csv"];
-      invalidExtensions.forEach((ext) => {
-        assert.strictEqual(isFileExtensionSQL(ext), false);
-      });
-    });
-  });
-  suite("isPythonBruinAsset Tests", () => {
-    test("should return true for valid Python Bruin asset files", () => {
-      const validFiles = ["file.py", "file.pyx", "file.PY", "file.PYX"];
-      validFiles.forEach(async (file) => {
-        assert.strictEqual(await isPythonBruinAsset(file), true);
-      });
-    });
-
-    test("should return false for invalid Python Bruin asset files", () => {
-      const invalidFiles = ["file.sql", "file.yaml", "file.json", "file.csv"];
-      invalidFiles.forEach(async (file) => {
-        assert.strictEqual(await isPythonBruinAsset(file), false);
-      });
+suite("isFileExtensionSQL Tests", () => {
+  test("should return true for valid SQL file extensions", async () => {
+    const validExtensions = ["test.sql", "Test.SQL"];
+    validExtensions.forEach(async (ext) => {
+      assert.strictEqual(await isFileExtensionSQL(ext), true);
     });
   });
 
-  suite("Compare versions tests", () => {
-    let compareVersions: (current: string, latest: string) => boolean;
-    compareVersions = bruinUtils.compareVersions;
-
-    test("should return true for equal versions", () => {
-      assert.strictEqual(compareVersions("v1.0.0", "v1.0.0"), true);
+  test("should return false for invalid SQL file extensions", () => {
+    const invalidExtensions = [".py", ".yaml", ".json", ".csv"];
+    invalidExtensions.forEach((ext) => {
+      assert.strictEqual(isFileExtensionSQL(ext), false);
     });
-
-    test("should return true for current version greater than latest version", () => {
-      assert.strictEqual(compareVersions("v1.0.0", "v0.9.0"), true);
+  });
+});
+suite("isPythonBruinAsset Tests", () => {
+  test("should return true for valid Python Bruin asset files", () => {
+    const validFiles = ["file.py", "file.pyx", "file.PY", "file.PYX"];
+    validFiles.forEach(async (file) => {
+      assert.strictEqual(await isPythonBruinAsset(file), true);
     });
+  });
 
-    test("should return false for current version less than latest version", () => {
-      assert.strictEqual(compareVersions("v1.0.0", "v1.1.0"), false);
+  test("should return false for invalid Python Bruin asset files", () => {
+    const invalidFiles = ["file.sql", "file.yaml", "file.json", "file.csv"];
+    invalidFiles.forEach(async (file) => {
+      assert.strictEqual(await isPythonBruinAsset(file), false);
     });
   });
 });
@@ -665,23 +712,23 @@ suite("BruinValidate Tests", () => {
     const filePath = "path/to/asset";
     const error = new Error("Validation command failed");
     runStub.rejects(error);
-  
+
     await bruinValidate.validate(filePath);
-  
+
     sinon.assert.calledTwice(postMessageStub);
-  
+
     sinon.assert.calledWithExactly(postMessageStub.firstCall, "validation-message", {
       status: "loading",
       message: "Validating asset...",
     });
-  
+
     // Update the second assertion to match the new error message structure
     const secondCallArgs = postMessageStub.secondCall.args[1];
     assert.strictEqual(secondCallArgs.status, "error");
     assert.strictEqual(typeof secondCallArgs.message, "string"); // Assert message is a string
-  
-    // To check for specific content in the error message, 
-    // you could use strictEqual with a regex or a substring, 
+
+    // To check for specific content in the error message,
+    // you could use strictEqual with a regex or a substring,
     // but keep in mind the exact error message format might vary.
     // For example, to check if the error message contains a certain text:
     true === secondCallArgs.message.includes("Validation command failed"); // Note: This isn't strictly an assertion, but a truthy check. For strict assertions, consider the message format more precisely.
@@ -817,7 +864,7 @@ suite("Render Command Helper functions", () => {
   test("isPythonBruinAsset should return true for Python Bruin assets", async () => {
     const examplePythonAsset = `\"\"\" @bruin \nname: example\n type: python\n depends:\n - raw.example\n\"\"\"\nprint("Hello World")`;
     const examplePythonNoBruinAsset = `print("Hello World")`;
-    const filePath =  "bruinPythonAsset.py";
+    const filePath = "bruinPythonAsset.py";
     const noBruinFilePath = "example.txt";
     fs.writeFileSync(filePath, examplePythonAsset);
     assert.strictEqual(await isPythonBruinAsset("bruinPythonAsset.py"), true);
@@ -860,7 +907,7 @@ suite("BruinLineage Tests", () => {
 
   setup(() => {
     bruinLineage = new BruinLineage("mock-executable-path", "mock-workspace-directory");
-    runStub = sinon.stub(bruinLineage as any, 'run'); // Stub the run method
+    runStub = sinon.stub(bruinLineage as any, "run"); // Stub the run method
     postMessageStub = sinon.stub(BruinPanel, "postMessage");
   });
 
@@ -870,13 +917,13 @@ suite("BruinLineage Tests", () => {
 
   test("displayLineage resolves with success message on successful run", async () => {
     const filePath = "path/to/file";
-    const flags = ['-o', 'json'];
+    const flags = ["-o", "json"];
     const lineageDisplayed = "mock-lineage-displayed";
-    
+
     runStub.resolves(lineageDisplayed);
-    
+
     await bruinLineage.displayLineage(filePath, { flags });
-    
+
     sinon.assert.calledWith(postMessageStub, "lineage-message", {
       status: "success",
       message: lineageDisplayed,
@@ -885,13 +932,13 @@ suite("BruinLineage Tests", () => {
 
   test("displayLineage resolves with error message on failed run", async () => {
     const filePath = "path/to/file";
-    const flags = ['-o', 'json'];
+    const flags = ["-o", "json"];
     const error = new Error("mock-error");
-    
+
     runStub.rejects(error);
-    
+
     await bruinLineage.displayLineage(filePath, { flags });
-    
+
     sinon.assert.calledWith(postMessageStub, "lineage-message", {
       status: "error",
       message: error, // Ensure we send the error message
@@ -1263,13 +1310,17 @@ suite("Lineage Command Tests", () => {
 
   setup(() => {
     // Stub the configuration method
-    getDefaultBruinExecutablePathStub = sinon.stub(configuration, 'getDefaultBruinExecutablePath').returns("mock-executable-path");
-    
+    getDefaultBruinExecutablePathStub = sinon
+      .stub(configuration, "getDefaultBruinExecutablePath")
+      .returns("mock-executable-path");
+
     // Stub the bruinWorkspaceDirectory method
-    bruinWorkspaceDirectoryStub = sinon.stub(bruinUtils, 'bruinWorkspaceDirectory').resolves("mock-workspace-directory");
+    bruinWorkspaceDirectoryStub = sinon
+      .stub(bruinUtils, "bruinWorkspaceDirectory")
+      .resolves("mock-workspace-directory");
 
     // Stub the displayLineage method of BruinLineage
-    displayLineageStub = sinon.stub(BruinLineage.prototype, 'displayLineage');
+    displayLineageStub = sinon.stub(BruinLineage.prototype, "displayLineage");
   });
 
   teardown(() => {
@@ -1283,23 +1334,23 @@ suite("Lineage Command Tests", () => {
 
   test("instantiates BruinLineage with correct parameters", async () => {
     // Create a temporary file for testing
-    const tempFile = vscode.Uri.file('/tmp/test-document.txt');
-    
+    const tempFile = vscode.Uri.file("/tmp/test-document.txt");
+
     await lineageCommand(tempFile);
-    
+
     // Check if the displayLineage method was called with the correct parameters
     sinon.assert.calledOnce(displayLineageStub);
-    sinon.assert.calledWith(displayLineageStub, tempFile.fsPath, { flags: ['-o', 'json'] });
+    sinon.assert.calledWith(displayLineageStub, tempFile.fsPath, { flags: ["-o", "json"] });
   });
 
   test("calls displayLineage on BruinLineage instance with correct parameters", async () => {
     // Create a temporary file for testing
-    const tempFile = vscode.Uri.file('/tmp/test-document.txt');
-    
-    await lineageCommand(tempFile, ['-o', 'json']);
-    
+    const tempFile = vscode.Uri.file("/tmp/test-document.txt");
+
+    await lineageCommand(tempFile, ["-o", "json"]);
+
     sinon.assert.calledOnce(displayLineageStub);
-    sinon.assert.calledWith(displayLineageStub, tempFile.fsPath, { flags: ['-o', 'json'] });
+    sinon.assert.calledWith(displayLineageStub, tempFile.fsPath, { flags: ["-o", "json"] });
   });
 });
 suite("BruinLineageInternalParse Tests", () => {
@@ -1315,10 +1366,15 @@ suite("BruinLineageInternalParse Tests", () => {
     const mockWorkingDirectory = "mock-working-directory";
 
     // Instantiate BruinLineageInternalParse with required parameters
-    bruinLineageInternalParse = new BruinLineageInternalParse(mockBruinExecutable, mockWorkingDirectory);
+    bruinLineageInternalParse = new BruinLineageInternalParse(
+      mockBruinExecutable,
+      mockWorkingDirectory
+    );
     runStub = sinon.stub(bruinLineageInternalParse as any, "run");
     postMessageStub = sinon.stub(LineagePanel, "postMessage");
-    getCurrentPipelinePathStub = sinon.stub(require("../bruin/bruinUtils"), "getCurrentPipelinePath").resolves("mock-pipeline-path");
+    getCurrentPipelinePathStub = sinon
+      .stub(require("../bruin/bruinUtils"), "getCurrentPipelinePath")
+      .resolves("mock-pipeline-path");
   });
 
   teardown(() => {
@@ -1329,9 +1385,7 @@ suite("BruinLineageInternalParse Tests", () => {
     const filePath = "path/to/asset";
     const flags = ["parse-pipeline"];
     const mockResult = JSON.stringify({
-      assets: [
-        { id: "asset-id", name: "Asset Name", definition_file: { path: filePath } }
-      ]
+      assets: [{ id: "asset-id", name: "Asset Name", definition_file: { path: filePath } }],
     });
 
     runStub.resolves(mockResult);
@@ -1352,7 +1406,7 @@ suite("BruinLineageInternalParse Tests", () => {
     const filePath = "path/to/asset";
     const flags = ["parse-pipeline"];
     const mockResult = JSON.stringify({
-      assets: [] // No assets found
+      assets: [], // No assets found
     });
 
     runStub.resolves(mockResult);
@@ -1368,30 +1422,30 @@ suite("BruinLineageInternalParse Tests", () => {
     const filePath = "path/to/asset";
     const flags = ["parse-pipeline"];
     const errorMessage = "Some error occurred";
-  
+
     runStub.rejects(errorMessage);
-  
+
     await bruinLineageInternalParse.parseAssetLineage(filePath, { flags });
-  
+
     sinon.assert.calledWith(postMessageStub, "flow-lineage-message", {
       status: "error",
-      message: errorMessage
-      ,
+      message: errorMessage,
     });
   });
-  
+
   test("parseAssetLineage handles specific error message for Bruin CLI", async () => {
     const filePath = "path/to/asset";
     const flags = ["parse-pipeline"];
     const errorMessage = "No help topic for this command";
-  
+
     runStub.rejects(errorMessage);
-  
+
     await bruinLineageInternalParse.parseAssetLineage(filePath, { flags });
-  
+
     sinon.assert.calledWith(postMessageStub, "flow-lineage-message", {
       status: "error",
-      message: "Bruin CLI is not installed or is outdated. Please install or update Bruin CLI to use this feature.",
+      message:
+        "Bruin CLI is not installed or is outdated. Please install or update Bruin CLI to use this feature.",
     });
   });
 });
@@ -2014,9 +2068,11 @@ suite("LineagePanel Tests", () => {
     });
 
     // Stub window events and lineage command
-    windowOnDidChangeActiveTextEditorStub = sinon.stub(vscode.window, "onDidChangeActiveTextEditor").returns({
-      dispose: sinon.stub()
-    });
+    windowOnDidChangeActiveTextEditorStub = sinon
+      .stub(vscode.window, "onDidChangeActiveTextEditor")
+      .returns({
+        dispose: sinon.stub(),
+      });
 
     flowLineageCommandStub = sinon.stub().resolves();
   });
@@ -2036,7 +2092,7 @@ suite("LineagePanel Tests", () => {
     test("sets up event listeners on construction", () => {
       const lineagePanel = new LineagePanel(mockExtensionUri);
       assert.ok(
-        windowOnDidChangeActiveTextEditorStub.calledOnce, 
+        windowOnDidChangeActiveTextEditorStub.calledOnce,
         "onDidChangeActiveTextEditor listener should be set up"
       );
     });
@@ -2060,7 +2116,7 @@ suite("LineagePanel Tests", () => {
 
     setup(() => {
       lineagePanel = new LineagePanel(mockExtensionUri);
-      
+
       // Create webview stubs
     });
 
@@ -2071,27 +2127,23 @@ suite("LineagePanel Tests", () => {
       lineagePanel.resolveWebviewView(webviewView, context, token);
 
       assert.strictEqual(
-        webviewView.webview.options.enableScripts, 
-        true, 
+        webviewView.webview.options.enableScripts,
+        true,
         "Scripts should be enabled"
       );
     });
   });
 
-
   suite("Disposal Tests", () => {
     test("properly disposes of resources", () => {
       const lineagePanel = new LineagePanel(mockExtensionUri);
       const disposeSpy = sinon.spy();
-      
-      (lineagePanel as any).disposables = [
-        { dispose: disposeSpy },
-        { dispose: disposeSpy }
-      ];
+
+      (lineagePanel as any).disposables = [{ dispose: disposeSpy }, { dispose: disposeSpy }];
 
       lineagePanel.dispose();
 
-      assert.strictEqual(disposeSpy.callCount, 2, 'All disposable resources should be disposed');
+      assert.strictEqual(disposeSpy.callCount, 2, "All disposable resources should be disposed");
     });
   });
 
@@ -2100,20 +2152,20 @@ suite("LineagePanel Tests", () => {
       // Mock the static _view
       (LineagePanel as any)._view = {
         webview: {
-          postMessage: sinon.stub()
-        }
+          postMessage: sinon.stub(),
+        },
       };
 
-      LineagePanel.postMessage('test', 'data');
+      LineagePanel.postMessage("test", "data");
 
       const view = (LineagePanel as any)._view;
       assert.ok(
-        view.webview.postMessage.calledWith({ command: 'test', payload: 'data' }),
-        'Should post message to webview'
+        view.webview.postMessage.calledWith({ command: "test", payload: "data" }),
+        "Should post message to webview"
       );
     });
   });
-}); 
+});
 suite("getLanguageDelimiters Tests", () => {
   test("should return default delimiters for unknown language", () => {
     const languageId = "unknown";
@@ -2373,14 +2425,7 @@ suite("BruinQueryOutput", () => {
 
     // Mock the run method to simulate newer CLI behavior
     bruinQueryOutput.run = async (flags: string[]) => {
-      assert.deepStrictEqual(flags, [
-        "-o",
-        "json",
-        "-asset",
-        asset,
-        "-limit",
-        limit,
-      ]);
+      assert.deepStrictEqual(flags, ["-o", "json", "-asset", asset, "-limit", limit]);
       return "success";
     };
 
@@ -2394,12 +2439,7 @@ suite("BruinQueryOutput", () => {
 
     // Mock the run method to simulate newer CLI behavior
     bruinQueryOutput.run = async (flags: string[]) => {
-      assert.deepStrictEqual(flags, [
-        "-o",
-        "json",
-        "-asset",
-        asset,
-      ]);
+      assert.deepStrictEqual(flags, ["-o", "json", "-asset", asset]);
       return "success";
     };
 
@@ -2441,8 +2481,7 @@ suite("BruinQueryOutput", () => {
       status: "error",
       message: "Mock error",
     });
-  });  
-
+  });
 });
 
 suite("CLI Installation and Update Tests", () => {

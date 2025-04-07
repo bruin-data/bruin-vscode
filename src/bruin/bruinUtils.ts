@@ -223,13 +223,10 @@ export const createIntegratedTerminal = async (
 export { BruinInstallCLI } from "./bruinInstallCli";
 
 export function compareVersions(current: string, latest: string): boolean {
-  // Remove 'v' prefix and split into [major, minor, patch]
-  const parse = (v: string) => v.replace(/^v/, "").split(".").map(Number);
+  const normalize = (v: string) => v.replace(/^v/, '').split('.').map(Number);
+  const [currMajor, currMinor, currPatch] = normalize(current);
+  const [latestMajor, latestMinor, latestPatch] = normalize(latest);
 
-  const [currMajor, currMinor, currPatch] = parse(current);
-  const [latestMajor, latestMinor, latestPatch] = parse(latest);
-
-  // Compare segments left-to-right
   return (
     currMajor < latestMajor ||
     (currMajor === latestMajor && currMinor < latestMinor) ||
