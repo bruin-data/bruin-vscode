@@ -1,6 +1,9 @@
 # Changelog
 
 All notable changes to the Bruin extension will be documented in this file.
+## [0.40.5] - [2025-04-07]
+- Remove Debounce from BruinPanel and Add Timeout for Rendering Errors Only.
+
 ## [0.40.4] - [2025-03-31]
 - Remove `downstream` flag from `runWholetPipeline` command.
 
