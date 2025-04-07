@@ -9,6 +9,7 @@ import {
   isYamlBruinAsset,
 } from "../utilities/helperUtils";
 import { QueryPreviewPanel } from "../panels/QueryPreviewPanel";
+import { time } from "console";
 
 /**
  * Extends the BruinCommand class to implement the rendering process specific to Bruin assets.
@@ -71,30 +72,34 @@ export class BruinRender extends BruinCommand {
     }
 
     await this.run([...flags, filePath], { ignoresErrors })
-      .then(
-        (sqlRendered) => {
+      .then((sqlRendered) => {
+        setTimeout(() => {
           BruinPanel?.postMessage("render-message", {
             status: "success",
             message: JSON.parse(sqlRendered).query,
           });
           console.log("SQL rendered successfully");
-        },
-        (error) => {
-          console.error("Error rendering SQL asset in the reject", this.parseError(error));
+        }, 0);
+        console.log("SQL rendered successfully", sqlRendered);
+      })
+      .catch((error) => {
+        console.error("Error rendering SQL asset", this.parseError(error));
+        setTimeout(() => {
           BruinPanel?.postMessage("render-message", {
             status: "error",
-            message: this.parseError(error),
+            message: this.parseError(error)
           });
-        }
-      )
-      .catch((err) => {
-        if (err.toString().includes("Incorrect")) {
+        }, 1000);
+    
+        if (error.toString().includes("Incorrect")) {
           this.runWithoutJsonFlag(filePath, ignoresErrors);
         } else {
-          console.error("Error rendering SQL asset from catch", err);
+          console.error("Error rendering SQL asset from catch", error);
         }
       });
   }
+
+
 
   private parseError(error: string): string {
     if (error.startsWith("{")) {
