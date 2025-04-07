@@ -99,15 +99,17 @@ export class BruinRender extends BruinCommand {
       });
   }
 
-
-
-  private parseError(error: string): string {
-    if (error.startsWith("{")) {
-      return error;
-    } else {
-      return JSON.stringify({ error: error });
+  private parseError(error: unknown): string {
+    if (typeof error === 'object' && error !== null) {
+      const err = error as Error;
+      return JSON.stringify({ error: err.message });
     }
+    if (typeof error === 'string') {
+      return error.startsWith("{") ? error : JSON.stringify({ error });
+    }
+    return JSON.stringify({ error: String(error) });
   }
+  
   private async isBruinPipeline(filePath: string): Promise<boolean> {
     return await isBruinPipeline(filePath);
   }

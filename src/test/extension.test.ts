@@ -552,10 +552,13 @@ suite("BruinRender Tests", () => {
   let isBruinYamlStub: sinon.SinonStub;
   const bruinExecutablePath = "path/to/bruin/executable";
   const workingDirectory = "path/to/working/directory";
-
   setup(() => {
     bruinRender = new BruinRender(bruinExecutablePath, workingDirectory);
-    runStub = sinon.stub(bruinRender as any, "run").resolves("SQL rendered successfully");
+    runStub = sinon
+    .stub(bruinRender as any, "run")
+    .resolves(JSON.stringify({ query: "SELECT * FROM table" }));
+    runStub.rejects(new Error("Error rendering asset"));
+
     runWithoutJsonFlagStub = sinon
       .stub(bruinRender as any, "runWithoutJsonFlag")
       .resolves("Non-SQL rendered successfully");
