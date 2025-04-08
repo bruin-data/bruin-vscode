@@ -1,8 +1,9 @@
 import { Uri, window, workspace } from "vscode";
 import { bruinWorkspaceDirectory } from "../../bruin";
 import { getDefaultBruinExecutablePath } from "../configuration";
-import { BruinQueryOutput } from "../../bruin/queryCommand";
+import { BruinQueryOutput } from "../../bruin/queryOutput";
 import * as vscode from "vscode";
+import { BruinExportQueryOutput } from "../../bruin/exportQueryOutput";
 
 export const getQueryOutput = async (environment: string, limit: string, lastRenderedDocumentUri: Uri | undefined) => {
   let editor = window.activeTextEditor;
@@ -37,3 +38,22 @@ export const getQueryOutput = async (environment: string, limit: string, lastRen
   await output.getOutput(environment, lastRenderedDocumentUri.fsPath, limit, { query: selectedQuery });
 };
 
+export const exportQueryResults = async (tabid: string, lastRenderedDocumentUri: Uri | undefined) => {
+  if (!lastRenderedDocumentUri) {
+    return;
+  }
+  try {
+    const workspaceFolder = workspace.getWorkspaceFolder(lastRenderedDocumentUri);
+    if (!workspaceFolder) {
+      window.showErrorMessage('No workspace folder found');
+      return;
+    }
+    const output = new BruinExportQueryOutput(
+      getDefaultBruinExecutablePath(),
+      await bruinWorkspaceDirectory(workspaceFolder.uri.fsPath) as string
+    );
+    await output.exportResults(tabid, lastRenderedDocumentUri.fsPath);
+  } catch (error) {
+    console.error("Error exporting query data:", error);
+  }
+};
