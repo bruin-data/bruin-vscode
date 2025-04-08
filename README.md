@@ -56,10 +56,11 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 
 ## Release Notes
-### Latest Release: 0.40.5
-- Remove Debounce from BruinPanel and Add Timeout for Rendering Errors Only.
+### Latest Release: 0.41.0
+- Added auto CLI Version Check and Update Functionality to trigger a CLI update interactively.
 
 ### Recent Updates
+- **0.40.5**: Remove Debounce from BruinPanel and Add Timeout for Rendering Errors Only.
 - **0.40.4**: Remove `downstream` flag from `runWholetPipeline` command.
 - **0.40.3**: Added support for `emr_serverless.spark` type in asset yaml schema.
 - **0.40.2**: Displayed connection name in QueryPreview.
