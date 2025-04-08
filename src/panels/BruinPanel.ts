@@ -41,7 +41,6 @@ export class BruinPanel {
   private _disposables: Disposable[] = [];
   private _lastRenderedDocumentUri: Uri | undefined;
   private _flags: string = "";
-  private _debounceTimeout: NodeJS.Timeout | undefined;
   /**
    * The BruinPanel class private constructor (called only from the render method).
    *
@@ -60,10 +59,6 @@ export class BruinPanel {
 
     this._disposables.push(
       workspace.onDidChangeTextDocument((editor) => {
-        if (this._debounceTimeout) {
-          clearTimeout(this._debounceTimeout);
-        }
-
         if (editor && editor.document.uri.fsPath.endsWith(".bruin.yml")) {
           getEnvListCommand(this._lastRenderedDocumentUri);
           getConnections(this._lastRenderedDocumentUri);
@@ -78,16 +73,10 @@ export class BruinPanel {
             ? this._lastRenderedDocumentUri
             : editor.document.uri;
           parseAssetCommand(this._lastRenderedDocumentUri);
-
-          this._debounceTimeout = setTimeout(() => {
-            renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri?.fsPath);
-          }, 2000);
+          renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri?.fsPath);
         }
       }),
       window.onDidChangeActiveTextEditor((editor) => {
-        if (this._debounceTimeout) {
-          clearTimeout(this._debounceTimeout);
-        }
         if (editor && editor.document.uri) {
           if (editor.document.uri.fsPath === "tasks") {
             return;
@@ -171,11 +160,6 @@ export class BruinPanel {
 
     // Dispose of the current webview panel
     this._panel.dispose();
-
-    // Clear the timeout
-    if (this._debounceTimeout) {
-      clearTimeout(this._debounceTimeout);
-    }
 
     // Dispose of all disposables (i.e. commands) for the current webview panel
     while (this._disposables.length) {
