@@ -376,11 +376,12 @@ const saveChanges = (index) => {
     }));
 
     const payload = { columns: formattedColumns };
-
+    const payloadStr = JSON.stringify(payload);
+    const safePayload = JSON.parse(payloadStr);
     // Send to panel
     vscode.postMessage({
       command: "bruin.setAssetDetails",
-      payload: payload,
+      payload: safePayload,
     });
 
     emit("update:columns", formattedColumns);
