@@ -315,7 +315,13 @@ const customChecksProps = computed(() => {
 });
 
 const customChecks = ref([...customChecksProps.value]); // Reactive reference for custom checks
-
+const settingsLabel =computed(() => {
+  if (versionStatus.value.status === 'outdated') {
+    return "Settings ⚠️";
+  }
+  return "Settings";
+});
+;
 // Define tabs for the application
 const tabs = ref([
   {
@@ -343,7 +349,7 @@ const tabs = ref([
     })),
   },
   {
-    label: "Settings",
+    label: settingsLabel,
     component: BruinSettings,
     props: {
       isBruinInstalled: computed(() => isBruinInstalled.value),
