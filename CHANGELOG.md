@@ -1,6 +1,7 @@
 # Changelog
+## [0.41.0] - [2025-04-08]
+- Added auto CLI Version Check and Update Functionality to trigger a CLI update interactively.
 
-All notable changes to the Bruin extension will be documented in this file.
 ## [0.40.5] - [2025-04-07]
 - Remove Debounce from BruinPanel and Add Timeout for Rendering Errors Only.
 
