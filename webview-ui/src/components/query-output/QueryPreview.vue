@@ -98,7 +98,7 @@
             <span class="codicon codicon-clear-all text-editor-fg"></span>
           </vscode-button>
           <vscode-button title="Export Results" appearance="icon" @click="exportTabResults">
-            <span class="codicon codicon-export text-editor-fg"></span>
+            <span class="codicon codicon-desktop-download text-editor-fg"></span>
           </vscode-button>
           <vscode-button title="Reset Panel" appearance="icon" @click="resetPanel">
             <span class="codicon codicon-refresh text-editor-fg"></span>

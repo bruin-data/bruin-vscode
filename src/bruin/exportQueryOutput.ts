@@ -26,7 +26,7 @@ export class BruinExportQueryOutput extends BruinCommand {
   public isLoading: boolean = false;
 
   public async exportResults(
-    environment: string,
+    tabId: string,
     asset: string,
     { flags = [], ignoresErrors = false, query = "" }: BruinCommandOptions & { query?: string } = {}
   ): Promise<void> {
@@ -39,9 +39,7 @@ export class BruinExportQueryOutput extends BruinCommand {
       // If we have a direct query, use the query flag
       constructedFlags.push("-q", query);
     }
-    if (environment) {
-      constructedFlags.push("-env", environment);
-    }
+
     // we always need to push the other flags including the asset flag
     constructedFlags.push("-asset", asset, "-o", "json");
 

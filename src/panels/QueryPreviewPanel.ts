@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { getNonce } from "../utilities/getNonce";
 import { getUri } from "../utilities/getUri";
-import { getQueryOutput } from "../extension/commands/queryCommands";
+import { exportQueryResults, getQueryOutput } from "../extension/commands/queryCommands";
 
 export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Disposable {
   public static readonly viewId = "bruin.QueryPreviewView";
@@ -36,7 +36,7 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
       return;
     }
     try {
-      
+      exportQueryResults(tabid, this._lastRenderedDocumentUri);
     } catch (error) {
       console.error("Error exporting query data:", error);
     }
