@@ -4,29 +4,29 @@ import { BruinCommand } from "./bruinCommand";
 
 
 /**
- * Extends the BruinCommand class to implement the Bruin 'query' command.
+ * Extends the BruinCommand class to implement the Bruin 'query -export' command.
  */
 export class BruinExportQueryOutput extends BruinCommand {
   /**
    * Specifies the Bruin command string.
    *
-   * @returns {string} Returns the 'query -c connection -q query -o json' command string.
+   * @returns {string} Returns the 'query -export' command json and exports query output.
    */
   protected bruinCommand(): string {
     return "query";
   }
 
   /**
-   * Return the query output.
+   * Export the query output.
    * Communicates the results of the execution or errors back to the BruinPanel.
    *
+   * @param {string} asset - The asset name associated with the export.
    * @param {BruinCommandOptions} [options={}] - Optional parameters for execution, including flags and errors.
    * @returns {Promise<void>} A promise that resolves when the execution is complete or an error is caught.
    */
   public isLoading: boolean = false;
 
   public async exportResults(
-    tabId: string,
     asset: string,
     { flags = [], ignoresErrors = false, query = "" }: BruinCommandOptions & { query?: string } = {}
   ): Promise<void> {

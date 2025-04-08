@@ -38,7 +38,7 @@ export const getQueryOutput = async (environment: string, limit: string, lastRen
   await output.getOutput(environment, lastRenderedDocumentUri.fsPath, limit, { query: selectedQuery });
 };
 
-export const exportQueryResults = async (tabid: string, lastRenderedDocumentUri: Uri | undefined) => {
+export const exportQueryResults = async (lastRenderedDocumentUri: Uri | undefined) => {
   if (!lastRenderedDocumentUri) {
     return;
   }
@@ -52,7 +52,7 @@ export const exportQueryResults = async (tabid: string, lastRenderedDocumentUri:
       getDefaultBruinExecutablePath(),
       await bruinWorkspaceDirectory(workspaceFolder.uri.fsPath) as string
     );
-    await output.exportResults(tabid, lastRenderedDocumentUri.fsPath);
+    await output.exportResults(lastRenderedDocumentUri.fsPath);
   } catch (error) {
     console.error("Error exporting query data:", error);
   }

@@ -31,16 +31,6 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
       console.error("Error loading query data:", error);
     }
   }
-  private exportQueryResults(tabid: string) {
-    if (!this._lastRenderedDocumentUri) {
-      return;
-    }
-    try {
-      exportQueryResults(tabid, this._lastRenderedDocumentUri);
-    } catch (error) {
-      console.error("Error exporting query data:", error);
-    }
-  }
   constructor(private readonly _extensionUri: vscode.Uri, context: vscode.ExtensionContext) {
     this._extensionContext = context;
     this.disposables.push(
@@ -210,8 +200,7 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
           });
           break;
         case "bruin.exportQueryOutput":
-          const tabid = message.payload?.tabId || null;
-          this.exportQueryResults(tabid);
+          exportQueryResults(this._lastRenderedDocumentUri);
           break;
       }
     });
