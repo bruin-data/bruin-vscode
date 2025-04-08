@@ -97,6 +97,9 @@
           <vscode-button title="Clear Results" appearance="icon" @click="clearTabResults">
             <span class="codicon codicon-clear-all text-editor-fg"></span>
           </vscode-button>
+          <vscode-button title="Export Results" appearance="icon" @click="exportTabResults">
+            <span class="codicon codicon-export text-editor-fg"></span>
+          </vscode-button>
           <vscode-button title="Reset Panel" appearance="icon" @click="resetPanel">
             <span class="codicon codicon-refresh text-editor-fg"></span>
           </vscode-button>
@@ -273,6 +276,7 @@ const currentConnectionName = ref("");
 const limit = ref(100);
 const showSearchInput = ref(false);
 const hoveredTab = ref("");
+const exportResults = ref(false);
 
 // State for expanded cells
 const expandedCells = ref(new Set<string>());
@@ -290,6 +294,7 @@ const defaultTab = {
   isEditing: false,
   environment: currentEnvironment.value,
   connectionName: props.connectionName,
+  exportResults: false,
 };
 const tabs = shallowRef<TabData[]>([defaultTab]);
 
@@ -328,6 +333,7 @@ const addTab = () => {
     isEditing: false,
     environment: currentEnvironment.value,
     connectionName: currentConnectionName.value,
+    exportResults: false,
   });
 
   tabCounter.value++;
@@ -388,6 +394,7 @@ const saveState = () => {
     expandedCells: Array.from(expandedCells.value),
     environment: currentEnvironment.value,
     connectionName: currentConnectionName.value,
+    exportResults: exportResults.value,
     showSearchInput: showSearchInput.value,
     tabCounter: tabCounter.value,
   };
@@ -418,6 +425,7 @@ const reviveParsedOutput = (parsedOutput: any) => {
       rows: parsedOutput.rows || [],
       columns: parsedOutput.columns || [],
       connectionName: parsedOutput.connectionName || parsedOutput.meta?.connectionName || null,
+      exportResults: parsedOutput.exportResults || false,
     };
   } catch (e) {
     console.error("Error reviving parsed output:", e);
@@ -446,6 +454,7 @@ window.addEventListener("message", (event) => {
         isLoading: false,
         isEditing: false,
         filteredRows: t.parsedOutput?.rows || [],
+        exportResults: t.exportResults || false,
       }));
 
       currentConnectionName.value =
@@ -467,6 +476,7 @@ window.addEventListener("message", (event) => {
         tabToClear.filteredRows = [];
         tabToClear.totalRowCount = 0;
         tabToClear.filteredRowCount = 0;
+        tabToClear.exportResults = false;
       }
     } else {
       // If no tabId specified, clear the current tab
@@ -476,6 +486,7 @@ window.addEventListener("message", (event) => {
         currentTab.value.filteredRows = [];
         currentTab.value.totalRowCount = 0;
         currentTab.value.filteredRowCount = 0;
+        currentTab.value.exportResults = false;
       }
     }
     // Force a UI update
@@ -720,6 +731,15 @@ const runQuery = () => {
   saveState();
 };
 
+const exportTabResults = () => {
+  // send a message to the panel to export currenttab results
+  vscode.postMessage({
+    command: "bruin.exportQueryOutput",
+    payload: { tabId: activeTab.value },
+  });
+
+  saveState();
+};
 // Toggle search input visibility
 const toggleSearchInput = () => {
   showSearchInput.value = !showSearchInput.value;
