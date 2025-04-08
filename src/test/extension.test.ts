@@ -63,9 +63,9 @@ import { bruinFoldingRangeProvider } from "../providers/bruinFoldingRangeProvide
 import { flowLineageCommand } from "../extension/commands/FlowLineageCommand";
 import { BruinLineageInternalParse } from "../bruin/bruinFlowLineage";
 import { BruinCommandOptions } from "../types";
-import { BruinQueryOutput } from "../bruin/queryCommand";
+import { BruinQueryOutput } from "../bruin/queryOutput";
 import { QueryPreviewPanel } from "../panels/QueryPreviewPanel";
-import { getQueryOutput } from "../extension/commands/queryCommand";
+import { getQueryOutput } from "../extension/commands/queryCommands";
 
 suite("Extension Initialization", () => {
   test("should set default path separator based on platform", async () => {

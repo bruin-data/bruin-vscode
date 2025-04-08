@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { getNonce } from "../utilities/getNonce";
 import { getUri } from "../utilities/getUri";
-import { getQueryOutput } from "../extension/commands/queryCommand";
+import { getQueryOutput } from "../extension/commands/queryCommands";
 
 export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Disposable {
   public static readonly viewId = "bruin.QueryPreviewView";
@@ -31,7 +31,16 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
       console.error("Error loading query data:", error);
     }
   }
-
+  private exportQueryResults(tabid: string) {
+    if (!this._lastRenderedDocumentUri) {
+      return;
+    }
+    try {
+      
+    } catch (error) {
+      console.error("Error exporting query data:", error);
+    }
+  }
   constructor(private readonly _extensionUri: vscode.Uri, context: vscode.ExtensionContext) {
     this._extensionContext = context;
     this.disposables.push(
@@ -199,6 +208,10 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
             status: "success",
             message: {tabId : tabId},
           });
+          break;
+        case "bruin.exportQueryOutput":
+          const tabid = message.payload?.tabId || null;
+          this.exportQueryResults(tabid);
           break;
       }
     });
