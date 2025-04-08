@@ -14,7 +14,17 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
   private token: vscode.CancellationToken | undefined;
   private _extensionContext: vscode.ExtensionContext | undefined;
   private disposables: vscode.Disposable[] = [];
+  private static lastExecutedQuery: string = "";
 
+  // Getter and setter for lastExecutedQuery
+  public static setLastExecutedQuery(query: string): void {
+    this.lastExecutedQuery = query;
+  }
+
+  public static getLastExecutedQuery(): string {
+    return this.lastExecutedQuery;
+  }
+  
   private async loadAndSendQueryOutput(environment: string, limit: string) {
     if (!this._lastRenderedDocumentUri) {
       return;

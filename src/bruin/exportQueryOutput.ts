@@ -28,6 +28,7 @@ export class BruinExportQueryOutput extends BruinCommand {
 
   public async exportResults(
     asset: string,
+
     { flags = [], ignoresErrors = false, query = "" }: BruinCommandOptions & { query?: string } = {}
   ): Promise<void> {
     // Construct base flags dynamically
@@ -35,7 +36,7 @@ export class BruinExportQueryOutput extends BruinCommand {
     this.postMessageToPanels("export-loading", this.isLoading);
     const constructedFlags = ["-export"];
 
-    if (query) {
+    if (query && query.trim().length > 0) {
       // If we have a direct query, use the query flag
       constructedFlags.push("-q", query);
     }

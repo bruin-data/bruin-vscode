@@ -4,6 +4,10 @@ import { getDefaultBruinExecutablePath } from "../configuration";
 import { BruinQueryOutput } from "../../bruin/queryOutput";
 import * as vscode from "vscode";
 import { BruinExportQueryOutput } from "../../bruin/exportQueryOutput";
+import { QueryPreviewPanel } from "../../panels/QueryPreviewPanel";
+
+// Store the last executed query for each document URI
+const lastQueriesMap = new Map<string, string>();
 
 export const getQueryOutput = async (environment: string, limit: string, lastRenderedDocumentUri: Uri | undefined) => {
   let editor = window.activeTextEditor;
@@ -14,6 +18,7 @@ export const getQueryOutput = async (environment: string, limit: string, lastRen
     window.showErrorMessage('No active editor found');
     return;
   }
+  
   // Get the selected text (if any)
   const selection = editor.selection;
   const selectedQuery = selection && !selection.isEmpty 
@@ -28,6 +33,12 @@ export const getQueryOutput = async (environment: string, limit: string, lastRen
   if (!lastRenderedDocumentUri) {
     return;
   }
+
+  // Store the selected query for this document URI so we can use it for export later
+  lastQueriesMap.set(lastRenderedDocumentUri.fsPath, selectedQuery);
+  
+  // Store the query in the preview panel
+  QueryPreviewPanel.setLastExecutedQuery(selectedQuery);
 
   const output = new BruinQueryOutput(
     getDefaultBruinExecutablePath(),
@@ -48,11 +59,19 @@ export const exportQueryResults = async (lastRenderedDocumentUri: Uri | undefine
       window.showErrorMessage('No workspace folder found');
       return;
     }
+    
+    // Get the last executed query for this document
+    const lastQuery = lastQueriesMap.get(lastRenderedDocumentUri.fsPath) || 
+                      QueryPreviewPanel.getLastExecutedQuery() || 
+                      "";
+
     const output = new BruinExportQueryOutput(
       getDefaultBruinExecutablePath(),
       await bruinWorkspaceDirectory(workspaceFolder.uri.fsPath) as string
     );
-    await output.exportResults(lastRenderedDocumentUri.fsPath);
+    
+    // Use the stored query for export to ensure consistency
+    await output.exportResults(lastRenderedDocumentUri.fsPath, { query: lastQuery });
   } catch (error) {
     console.error("Error exporting query data:", error);
   }
