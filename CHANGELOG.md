@@ -1,4 +1,7 @@
 # Changelog
+## [0.41.1] - [2025-04-08]
+- Fixed payload sanitization for columns details.
+
 ## [0.41.0] - [2025-04-08]
 - Added auto CLI Version Check and Update Functionality to trigger a CLI update interactively.
 
