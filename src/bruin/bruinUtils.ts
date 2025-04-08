@@ -16,7 +16,7 @@ import { getDefaultBruinExecutablePath, getPathSeparator } from "../extension/co
 
 export const isBruinBinaryAvailable = async (): Promise<boolean> => {
   try {
-    const command = process.platform === "win32"? BRUIN_WHERE_COMMAND : BRUIN_WHICH_COMMAND;
+    const command = process.platform === "win32" ? BRUIN_WHERE_COMMAND : BRUIN_WHICH_COMMAND;
     const output = await promisify(exec)(command);
     console.log(output.stdout);
 
@@ -29,7 +29,6 @@ export const isBruinBinaryAvailable = async (): Promise<boolean> => {
   }
   return true;
 };
-
 
 /**
  * Replaces path separators in a given path string based on the user configuration and platform.
@@ -75,13 +74,13 @@ export const bruinWorkspaceDirectory = async (
         return dirname.replace(/\\/g, "/");
       } catch (err: any) {
         // Silently continue if file is not found
-        if (err.code !== 'ENOENT') {
-          console.error('Unexpected error:', err);
+        if (err.code !== "ENOENT") {
+          console.error("Unexpected error:", err);
           return undefined;
         }
       }
     }
-    
+
     // If no .bruin.yaml or .bruin.yml found, move up one directory
     dirname = path.dirname(dirname);
   } while (++iteration < maxIterations && dirname !== "" && dirname !== "/");
@@ -91,9 +90,9 @@ export const bruinWorkspaceDirectory = async (
 
 const escapeFilePath = (filePath: string): string => {
   // Convert Windows-style paths to Unix-style paths for Git Bash
-  if (process.platform === 'win32' && process.env.SHELL?.includes('bash')) {
-    filePath = filePath.replace(/\\/g, '/');
-    if (filePath[1] === ':') {
+  if (process.platform === "win32" && process.env.SHELL?.includes("bash")) {
+    filePath = filePath.replace(/\\/g, "/");
+    if (filePath[1] === ":") {
       filePath = `/${filePath[0].toLowerCase()}${filePath.slice(2)}`;
     }
   }
@@ -104,7 +103,6 @@ const escapeFilePath = (filePath: string): string => {
   return `"${filePath}"`;
 };
 
-
 export const getCurrentPipelinePath = async (fsPath: string): Promise<string | undefined> => {
   return await bruinWorkspaceDirectory(fsPath, ["pipeline.yaml", "pipeline.yml"]);
 };
@@ -114,7 +112,7 @@ export const commonGitPaths = [
   path.join(homedir, "AppData", "Local", "Programs", "Git", "bin", "bash.exe"),
   path.join(homedir, "AppData", "Local", "Programs", "Git", "usr", "bin", "bash.exe"),
   "C:\\Program Files\\Git\\bin\\bash.exe",
-  "C:\\Program Files\\Git\\usr\\bin\\bash.exe"  
+  "C:\\Program Files\\Git\\usr\\bin\\bash.exe",
 ];
 
 export const findGitBashPath = (): string | undefined => {
@@ -122,21 +120,21 @@ export const findGitBashPath = (): string | undefined => {
     if (fs.existsSync(gitPath)) {
       return gitPath;
     }
-  } 
+  }
 
   try {
     // Run the 'where git' command to find the Git installation path
-    const gitPath = execSync('where git').toString().trim();
+    const gitPath = execSync("where git").toString().trim();
     const gitDir = path.dirname(gitPath);
 
     // Adjust the path to point to the 'bin' directory instead of 'cmd'
-    const bashPath = path.join(gitDir, '..', 'bin', 'bash.exe');
+    const bashPath = path.join(gitDir, "..", "bin", "bash.exe");
     vscode.window.showInformationMessage(`Git Bash path: ${bashPath}`);
     if (fs.existsSync(bashPath)) {
       return bashPath;
     }
   } catch (error) {
-    console.error('Error finding Git Bash path:', error);
+    console.error("Error finding Git Bash path:", error);
   }
 
   return undefined;
@@ -155,15 +153,14 @@ export const runInIntegratedTerminal = async (
   flags?: string,
   bruinExecutablePath?: string
 ): Promise<void> => {
-  const escapedAssetPath = assetPath? escapeFilePath(assetPath) : "";
+  const escapedAssetPath = assetPath ? escapeFilePath(assetPath) : "";
   const bruinExecutable = bruinExecutablePath ? "bruin" : getDefaultBruinExecutablePath();
   let command = "";
   const terminal = await createIntegratedTerminal(workingDir);
   // if termianl is cmd or powershell, use bruin run sql command
-  if((terminal.creationOptions as  vscode.TerminalOptions).shellPath?.includes("bash")){
+  if ((terminal.creationOptions as vscode.TerminalOptions).shellPath?.includes("bash")) {
     command = `bruin ${BRUIN_RUN_SQL_COMMAND} ${flags} ${escapedAssetPath}`;
-  }
-  else{
+  } else {
     command = `${bruinExecutable} ${BRUIN_RUN_SQL_COMMAND} ${flags} ${escapedAssetPath}`;
   }
   terminal.show(true);
@@ -171,13 +168,15 @@ export const runInIntegratedTerminal = async (
   terminal.sendText(" ");
   // send the command to the terminal after a delay
   setTimeout(() => {
-  terminal.sendText(command);
-}, 500);
-  // wait for the command to be executed 
+    terminal.sendText(command);
+  }, 500);
+  // wait for the command to be executed
   await new Promise((resolve) => setTimeout(resolve, 1000));
 };
 
-export const createIntegratedTerminal = async (workingDir: string | undefined): Promise<vscode.Terminal> => {
+export const createIntegratedTerminal = async (
+  workingDir: string | undefined
+): Promise<vscode.Terminal> => {
   const terminalName = "Bruin Terminal";
   let terminal = vscode.window.terminals.find((t) => t.name === terminalName);
 
@@ -187,7 +186,7 @@ export const createIntegratedTerminal = async (workingDir: string | undefined): 
 
     // Check for Git Bash or MINGW64 on Windows
     if (process.platform === "win32") {
-      shellPath = findGitBashPath();;
+      shellPath = findGitBashPath();
       if (!shellPath) {
         // Check for WSL on Windows
         const wslPath = "wsl.exe";
@@ -198,7 +197,7 @@ export const createIntegratedTerminal = async (workingDir: string | undefined): 
           // Neither Git Bash, MINGW64, nor WSL is found, display an alert to the user
           vscode.window.showWarningMessage(
             "Neither Git Bash, MINGW64, nor Windows Subsystem for Linux (WSL) was found on your system. " +
-            "Please install one of them to use the integrated terminal."
+              "Please install one of them to use the integrated terminal."
           );
           return vscode.window.createTerminal({ name: terminalName }); // Exit the function without creating a terminal
         }
@@ -221,18 +220,53 @@ export const createIntegratedTerminal = async (workingDir: string | undefined): 
   return terminal;
 };
 
-export const compareVersions = (current: string, latest: string): boolean => {
-  const currentParts = current.replace('v', '').split('.').map(Number);
-  const latestParts = latest.replace('v', '').split('.').map(Number);
+export { BruinInstallCLI } from "./bruinInstallCli";
 
-  for (let i = 0; i < currentParts.length; i++) {
-    if (currentParts[i] < latestParts[i]) {
-      return false;
-    } else if (currentParts[i] > latestParts[i]) {
-      return true;
+export function compareVersions(current: string, latest: string): boolean {
+  const normalize = (v: string) => v.replace(/^v/, '').split('.').map(Number);
+  const [currMajor, currMinor, currPatch] = normalize(current);
+  const [latestMajor, latestMinor, latestPatch] = normalize(latest);
+
+  return (
+    currMajor < latestMajor ||
+    (currMajor === latestMajor && currMinor < latestMinor) ||
+    (currMajor === latestMajor && currMinor === latestMinor && currPatch < latestPatch)
+  );
+}
+
+export function getBruinVersion(): { version: string; latest: string } | null {
+  try {
+    const bruinExecutable = getDefaultBruinExecutablePath();
+    const result = execSync(`${bruinExecutable} version -o json`);
+    const { version, latest } = JSON.parse(result.toString());
+
+    if (!version || !latest) {
+      throw new Error("Missing version data");
     }
+    return { version, latest };
+  } catch (error) {
+    console.error(`Version check failed: ${error instanceof Error ? error.message : error}`);
+    return null;
+  }
+}
+
+export async function checkCliVersion(): Promise<{
+  status: 'outdated' | 'current' | 'error';
+  current?: string;
+  latest?: string;
+}> {
+  const versionInfo = getBruinVersion();
+  
+  if (!versionInfo) {
+    return { status: 'error' };
   }
 
-  return true; // Versions are equal
-};
-export { BruinInstallCLI } from './bruinInstallCli';
+  const { version, latest } = versionInfo;
+  const isOutdated = compareVersions(version, latest);
+  
+  return {
+    status: isOutdated ? 'outdated' : 'current',
+    current: version,
+    latest: latest
+  };
+}

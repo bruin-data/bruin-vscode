@@ -4,6 +4,7 @@ import { getNonce } from "../utilities/getNonce";
 import {
   BruinValidate,
   bruinWorkspaceDirectory,
+  checkCliVersion,
   getCurrentPipelinePath,
   runInIntegratedTerminal,
 } from "../bruin";
@@ -194,9 +195,13 @@ export class BruinPanel {
   private _getWebviewContent(webview: Webview, extensionUri: Uri) {
     const stylesUri = getUri(webview, extensionUri, ["webview-ui", "build", "assets", "index.css"]);
     const scriptUri = getUri(webview, extensionUri, ["webview-ui", "build", "assets", "index.js"]);
+    const codiconsUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(extensionUri, "webview-ui", "build", "assets", "codicon.css")
+    );
     const scriptUriCustomElt = webview.asWebviewUri(
       vscode.Uri.joinPath(extensionUri, "webview-ui", "build", "assets", "custom-elements.js")
     );
+
     const stylesUriCustomElt = getUri(webview, extensionUri, [
       "webview-ui",
       "build",
@@ -222,6 +227,7 @@ export class BruinPanel {
          ">
           <link rel="stylesheet" type="text/css" href="${stylesUri}">
           <link rel="stylesheet" href="${stylesUriCustomElt}">
+          <link rel="stylesheet" href="${codiconsUri}">
           <title>Bruin Panel</title>
         </head>
         <body>
@@ -575,6 +581,16 @@ export class BruinPanel {
               vscode.window.showErrorMessage("Failed to open glossary file.");
             }
             break;
+          case "bruin.checkBruinCLIVersion":
+            const versionStatus = await checkCliVersion();
+            this._panel.webview.postMessage({
+              command: "bruinCliVersionStatus",
+              versionStatus,
+            }); 
+            break;
+          case "bruin.updateBruinCli":
+            await this.updateBruinCli();
+            break;
         }
       },
       undefined,
@@ -626,5 +642,16 @@ export class BruinPanel {
       vscode.window.showErrorMessage("Failed to install/update Bruin CLI. Please try again.");
     }
   }
+  private async updateBruinCli() {
+    try {
+      const bruinInstaller = new BruinInstallCLI();
+      // Skip the installation check and directly call updateBruinCli
+      await bruinInstaller.updateBruinCli();
+    } catch (error) {
+      console.error("Error updating Bruin CLI:", error);
+      vscode.window.showErrorMessage("Failed to update Bruin CLI. Please try again.");
+    }
+  }
   private _checkboxState: { [key: string]: boolean } = {};
 }
+

@@ -4,14 +4,6 @@
       <div class="">
         <div class="flex items-center space-x-2 w-full justify-between">
           <div class="flex items-baseline w-3/4 min-w-0 font-md text-editor-fg text-lg font-mono">
-          <!--   <div class="flex-shrink overflow-hidden min-w-[1px]">
-              <div class="pipeline-name text-xs opacity-50 truncate">
-                {{ assetDetailsProps?.pipeline.name }}
-              </div>
-            </div>
-
-            <span v-if="assetDetailsProps?.pipeline.name" class="slash opacity-50 text-xs px-0.5 flex-shrink-0">/</span>
- -->
             <!-- Asset name -->
             <div class="flex-grow min-w-0 overflow-hidden">
               <div class="flex items-center w-full">
@@ -41,17 +33,31 @@
             </div>
           </div>
 
-          <div class="tags flex w-1/4 items-center space-x-2 justify-end overflow-hidden flex-shrink-0">
-            <DescriptionItem
-              :value="assetDetailsProps?.type ?? 'undefined'"
-              :className="assetDetailsProps?.type ? badgeClass.badgeStyle : badgeClass.grayBadge"
-            />
+          <div class="flex w-1/4 items-center space-x-2 justify-end flex-shrink-0">
+            <vscode-button
+              appearance="secondary"
+              v-if="versionStatus.status === 'outdated'"
+              @click="updateBruinCli"
+              class="flex-shrink-0"
+            >
+              <div class="flex items-center space-x-1 whitespace-nowrap">
+                <span class="codicon codicon-circle-filled text-editorLink-activeFg"></span>
+                Update CLI
+              </div>
+            </vscode-button>
 
-            <DescriptionItem
-              :value="assetDetailsProps?.pipeline?.schedule ?? 'undefined'"
-              :className="badgeClass.grayBadge"
-              class="xs:flex hidden overflow-hidden truncate"
-            />
+            <!-- Tags div that will be hidden on small screens -->
+            <div class="flex items-center tags">
+              <DescriptionItem
+                :value="assetDetailsProps?.type ?? 'undefined'"
+                :className="assetDetailsProps?.type ? badgeClass.badgeStyle : badgeClass.grayBadge"
+              />
+              <DescriptionItem
+                :value="assetDetailsProps?.pipeline?.schedule ?? 'undefined'"
+                :className="badgeClass.grayBadge"
+                class="xs:flex hidden overflow-hidden truncate"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -123,6 +129,11 @@ const rudderStack = RudderStackService.getInstance();
 const connectionsStore = useConnectionsStore();
 const parseError = ref(); // Holds any parsing errors
 const environments = ref<EnvironmentsList | null>(null); // Holds the list of environments
+const versionStatus = ref({
+  status: "current",
+  current: "",
+  latest: "",
+});
 const data = ref(
   JSON.stringify({
     asset: {
@@ -169,6 +180,11 @@ window.addEventListener("message", (event) => {
         isBruinInstalled.value = message.installed; // Update installation status
         console.log("Bruin installation status updated:", isBruinInstalled.value);
         break;
+
+      case "bruinCliVersionStatus":
+        versionStatus.value = message.versionStatus;
+        console.log("Bruin update status updated:", versionStatus.value);
+        break;
     }
   } catch (error) {
     console.error("Error handling message:", error);
@@ -197,11 +213,17 @@ const environmentsList = computed(() => {
   return parsedEnvironments;
 });
 
+const updateBruinCli = () => {
+  vscode.postMessage({ command: "bruin.updateBruinCli" });
+  setTimeout(() => {
+    vscode.postMessage({ command: "bruin.checkBruinCLIVersion" });
+    console.log("Checking Bruin CLI version after update");
+  }, 15000);
+};
 // Computed property to get the selected environment
 const selectedEnvironment = computed(() => {
   if (!environments.value) return [];
-  const selected =
-    parseEnvironmentList(environments.value)?.selectedEnvironment || "";
+  const selected = parseEnvironmentList(environments.value)?.selectedEnvironment || "";
   console.log("Selected environment:", selected);
   return selected;
 });
@@ -293,7 +315,13 @@ const customChecksProps = computed(() => {
 });
 
 const customChecks = ref([...customChecksProps.value]); // Reactive reference for custom checks
-
+const settingsLabel =computed(() => {
+  if (versionStatus.value.status === 'outdated') {
+    return "Settings ⚠️";
+  }
+  return "Settings";
+});
+;
 // Define tabs for the application
 const tabs = ref([
   {
@@ -321,7 +349,7 @@ const tabs = ref([
     })),
   },
   {
-    label: "Settings",
+    label: settingsLabel,
     component: BruinSettings,
     props: {
       isBruinInstalled: computed(() => isBruinInstalled.value),
@@ -350,6 +378,7 @@ onMounted(() => {
   checkBruinCliInstallation();
   vscode.postMessage({ command: "getLastRenderedDocument" });
   vscode.postMessage({ command: "bruin.checkTelemtryPreference" });
+  vscode.postMessage({ command: "bruin.checkBruinCLIVersion" });
   // Track page view
   try {
     rudderStack.trackPageView("Asset Details Page", {
@@ -377,6 +406,11 @@ onMounted(() => {
 
   console.log("Custom event tracked.");
 });
+
+// send the message to check the bruin version every 30 minutes
+setInterval(() => {
+  vscode.postMessage({ command: "bruin.checkBruinCLIVersion" });
+}, 1800000);
 
 // Lifecycle hook to clean up hover timeout
 onBeforeUnmount(() => {
@@ -475,7 +509,7 @@ const badgeClass = computed(() => {
 vscode-panels::part(tablist) {
   padding-left: 0 !important;
 }
-/* Media query to hide the pipeline name, slash, and tags when the panel is too small */
+
 @media (max-width: 480px) {
   .pipeline-name,
   .slash,
@@ -491,6 +525,10 @@ vscode-panels::part(tablist) {
   .flex-grow input {
     @apply block w-full truncate;
   }
+
+  vscode-button {
+    @apply flex-shrink-0 block;
+  }
 }
 
 @media (max-width: 320px) {
@@ -498,5 +536,22 @@ vscode-panels::part(tablist) {
   .flex-grow input {
     @apply text-sm;
   }
+
+  vscode-button::part(control) {
+    font-size: 9px;
+    padding: 3px;
+  }
+}
+</style>
+<style scoped>
+vscode-button::part(control) {
+  border: none;
+  outline: none;
+  font-size: 10px;
+  padding: 4px;
+}
+vscode-button .codicon {
+  font-size: 12px;
+  padding-right: 2px;
 }
 </style>
