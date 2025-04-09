@@ -97,6 +97,9 @@
           <vscode-button title="Clear Results" appearance="icon" @click="clearTabResults">
             <span class="codicon codicon-clear-all text-editor-fg"></span>
           </vscode-button>
+          <vscode-button title="Export Results" appearance="icon" @click="exportTabResults">
+            <span class="codicon codicon-desktop-download text-editor-fg"></span>
+          </vscode-button>
           <vscode-button title="Reset Panel" appearance="icon" @click="resetPanel">
             <span class="codicon codicon-refresh text-editor-fg"></span>
           </vscode-button>
@@ -720,6 +723,14 @@ const runQuery = () => {
   saveState();
 };
 
+const exportTabResults = () => {
+  // send a message to the panel to export currenttab results
+  vscode.postMessage({
+    command: "bruin.exportQueryOutput",
+  });
+
+  saveState();
+};
 // Toggle search input visibility
 const toggleSearchInput = () => {
   showSearchInput.value = !showSearchInput.value;

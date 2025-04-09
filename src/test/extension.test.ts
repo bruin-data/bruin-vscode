@@ -63,9 +63,10 @@ import { bruinFoldingRangeProvider } from "../providers/bruinFoldingRangeProvide
 import { flowLineageCommand } from "../extension/commands/FlowLineageCommand";
 import { BruinLineageInternalParse } from "../bruin/bruinFlowLineage";
 import { BruinCommandOptions } from "../types";
-import { BruinQueryOutput } from "../bruin/queryCommand";
+import { BruinQueryOutput } from "../bruin/queryOutput";
 import { QueryPreviewPanel } from "../panels/QueryPreviewPanel";
-import { getQueryOutput } from "../extension/commands/queryCommand";
+import { getQueryOutput } from "../extension/commands/queryCommands";
+import { BruinExportQueryOutput } from "../bruin/exportQueryOutput";
 
 suite("Extension Initialization", () => {
   test("should set default path separator based on platform", async () => {
@@ -2382,6 +2383,107 @@ class TestableBruinQueryOutput extends BruinQueryOutput {
     return super.run(query, options);
   }
 }
+
+class TestableBruinQueryExport extends BruinExportQueryOutput {
+  public run(query: string[], options?: { ignoresErrors?: boolean }): Promise<string> {
+    return super.run(query, options);
+  }
+}
+suite("Query Output Tests", () => {
+  let getWorkspaceFolderStub: sinon.SinonStub;
+  let getExecutablePathStub: sinon.SinonStub;
+  let bruinDirStub: sinon.SinonStub;
+  let getOutputStub: sinon.SinonStub;
+  let showErrorStub: sinon.SinonStub;
+  let setQueryStub: sinon.SinonStub;
+
+  setup(() => {
+    getWorkspaceFolderStub = sinon.stub(vscode.workspace, "getWorkspaceFolder");
+    getExecutablePathStub = sinon.stub(configuration, "getDefaultBruinExecutablePath").returns("bruin");
+    bruinDirStub = sinon.stub(bruinUtils, "bruinWorkspaceDirectory").resolves("/mocked/workspace");
+    getOutputStub = sinon.stub(BruinQueryOutput.prototype, "getOutput").resolves();
+    showErrorStub = sinon.stub(vscode.window, "showErrorMessage");
+    setQueryStub = sinon.stub(QueryPreviewPanel, "setLastExecutedQuery");
+  });
+
+  teardown(() => {
+    sinon.restore();
+  });
+
+  test("should show error if no active editor and no URI", async () => {
+    sinon.stub(vscode.window, "activeTextEditor").value(undefined);
+    const showTextDocumentStub = sinon.stub(vscode.window, "showTextDocument").resolves(undefined as any);
+
+    await getQueryOutput("dev", "100", undefined);
+    
+    assert.strictEqual(showTextDocumentStub.called, false); // showTextDocument shouldn't be called without URI
+    assert.strictEqual(showErrorStub.calledWith("No active editor found"), true);
+  });
+
+  test("should show error if no workspace folder", async () => {
+    const uri = vscode.Uri.file("/some/file.sql");
+    const fakeDoc = { uri, getText: () => "" } as vscode.TextDocument;
+    const fakeEditor = { document: fakeDoc, selection: { isEmpty: true } } as vscode.TextEditor;
+
+    sinon.stub(vscode.window, "activeTextEditor").value(fakeEditor);
+    getWorkspaceFolderStub.returns(undefined);
+
+    await getQueryOutput("dev", "100", uri);
+
+    assert.strictEqual(showErrorStub.calledWith("No workspace folder found"), true);
+  });
+
+  test("should store query and call getOutput with selected query", async () => {
+    const uri = vscode.Uri.file("/some/file.sql");
+    const fakeQuery = "SELECT * FROM table";
+    const fakeDoc = {
+      uri,
+      getText: () => fakeQuery,
+    } as unknown as vscode.TextDocument;
+
+    const fakeEditor = {
+      document: fakeDoc,
+      selection: {
+        isEmpty: false,
+        start: new vscode.Position(0, 0),
+        end: new vscode.Position(0, 10),
+      },
+    } as vscode.TextEditor;
+
+    sinon.stub(vscode.window, "activeTextEditor").value(fakeEditor);
+    getWorkspaceFolderStub.returns({ uri: { fsPath: "/mocked/workspace" } });
+
+    await getQueryOutput("dev", "10", uri);
+
+    assert.strictEqual(setQueryStub.calledWith(fakeQuery), true);
+    assert.strictEqual(getOutputStub.calledWith("dev", uri.fsPath, "10", { query: fakeQuery }), true);
+  });
+
+  test("should send empty query when selection is empty", async () => {
+    const uri = vscode.Uri.file("/no/selection.sql");
+    const fakeDoc = {
+      uri,
+      getText: () => "ignored", // should not be used when selection is empty
+    } as unknown as vscode.TextDocument;
+
+    const fakeEditor = {
+      document: fakeDoc,
+      selection: {
+        isEmpty: true,
+        start: new vscode.Position(0, 0),
+        end: new vscode.Position(0, 0),
+      },
+    } as vscode.TextEditor;
+
+    sinon.stub(vscode.window, "activeTextEditor").value(fakeEditor);
+    getWorkspaceFolderStub.returns({ uri: { fsPath: "/mocked/workspace" } });
+
+    await getQueryOutput("dev", "50", uri);
+
+    assert.strictEqual(setQueryStub.calledWith(""), true);
+    assert.strictEqual(getOutputStub.calledWith("dev", uri.fsPath, "50", { query: "" }), true);
+  });
+});
 suite("BruinQueryOutput", () => {
   let bruinQueryOutput: TestableBruinQueryOutput;
   let bruinExecutablePath: string = "bruin";
@@ -2486,7 +2588,71 @@ suite("BruinQueryOutput", () => {
     });
   });
 });
+suite(" Query export Tests", () => {
+  let bruinQueryExport: TestableBruinQueryExport;
+  let bruinExecutablePath: string = "bruin";
+  let workspace = "path/to/workspace";
+  let queryPreviewPanelStub: sinon.SinonStub;
 
+  setup(() => {
+    bruinQueryExport = new TestableBruinQueryExport(bruinExecutablePath, workspace);
+    // Stub the QueryPreviewPanel.postMessage method
+    queryPreviewPanelStub = sinon.stub(QueryPreviewPanel, "postMessage");
+  });
+
+  teardown(() => {
+    queryPreviewPanelStub.restore();
+  });
+
+  test("should export query output", async () => {
+    const asset = "exampleAsset";
+    const flags = ["-o", "json"];
+    const ignoresErrors = false;
+    const query = "SELECT * FROM table";
+
+    // Mock the run method to simulate successful export
+    bruinQueryExport.run = async (flags: string[]) => {
+      assert.deepStrictEqual(flags, ["-export", "-asset", asset, "-q", query, "-o", "json"]);
+      return "success";
+    };
+
+    await bruinQueryExport.exportResults(asset, { flags, ignoresErrors, query });
+  });
+
+  test("should handle errors and reset isLoading", async () => {
+    const asset = "exampleAsset";
+    const error = new Error("Mock error");
+
+    bruinQueryExport.run = async () => {
+      throw error;
+    };
+
+    await bruinQueryExport.exportResults(asset, {});
+
+    // Ensure error message is sent to the panel
+    sinon.assert.calledWith(queryPreviewPanelStub, "query-export-message", {
+      status: "error",
+      message: error.message,
+    });
+    // Ensure isLoading is reset to false
+    assert.deepStrictEqual(bruinQueryExport.isLoading, false);
+  });
+
+  test("should exclude -q when query is empty", async () => {
+    const asset = "exampleAsset";
+    const options = { ignoresErrors: false };
+
+    bruinQueryExport.run = async (flags: string[]) => {
+      const includeQuery = flags.includes("-q");
+      assert.deepStrictEqual(includeQuery, false);
+      assert.deepStrictEqual(flags, ["-export", "-asset", asset, "-o", "json"]);
+      return "success";
+    };
+
+    await bruinQueryExport.exportResults(asset, options);
+  });
+
+});
 suite("CLI Installation and Update Tests", () => {
   let bruinInstallCLICheckBruinCliInstallationStub: sinon.SinonStub;
   let bruinInstallCLICheckBruinCLIVersionStub: sinon.SinonStub;

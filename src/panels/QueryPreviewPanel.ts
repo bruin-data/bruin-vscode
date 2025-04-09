@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { getNonce } from "../utilities/getNonce";
 import { getUri } from "../utilities/getUri";
-import { getQueryOutput } from "../extension/commands/queryCommand";
+import { exportQueryResults, getQueryOutput } from "../extension/commands/queryCommands";
 
 export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Disposable {
   public static readonly viewId = "bruin.QueryPreviewView";
@@ -14,7 +14,17 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
   private token: vscode.CancellationToken | undefined;
   private _extensionContext: vscode.ExtensionContext | undefined;
   private disposables: vscode.Disposable[] = [];
+  private static lastExecutedQuery: string = "";
 
+  // Getter and setter for lastExecutedQuery
+  public static setLastExecutedQuery(query: string): void {
+    this.lastExecutedQuery = query;
+  }
+
+  public static getLastExecutedQuery(): string {
+    return this.lastExecutedQuery;
+  }
+  
   private async loadAndSendQueryOutput(environment: string, limit: string) {
     if (!this._lastRenderedDocumentUri) {
       return;
@@ -31,7 +41,6 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
       console.error("Error loading query data:", error);
     }
   }
-
   constructor(private readonly _extensionUri: vscode.Uri, context: vscode.ExtensionContext) {
     this._extensionContext = context;
     this.disposables.push(
@@ -199,6 +208,9 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
             status: "success",
             message: {tabId : tabId},
           });
+          break;
+        case "bruin.exportQueryOutput":
+          exportQueryResults(this._lastRenderedDocumentUri);
           break;
       }
     });
