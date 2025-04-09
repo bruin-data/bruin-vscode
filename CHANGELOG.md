@@ -1,4 +1,7 @@
 # Changelog
+## [0.41.2] - [2025-04-09]
+- Fix Editing Behavior When Adding or Deleting Columns
+
 ## [0.41.1] - [2025-04-08]
 - Fixed payload sanitization for columns details.
 
