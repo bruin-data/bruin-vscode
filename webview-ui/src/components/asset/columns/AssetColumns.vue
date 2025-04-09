@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col py-4 sm:py-1 h-full w-full min-w-56 relative">
     <div class="flex justify-end mb-4 px-4">
-      <vscode-button @click="addColumn" class="py-1 focus:outline-none"> Add column </vscode-button>
+      <vscode-button @click="handleAddColumn" class="py-1 focus:outline-none"> Add column </vscode-button>
     </div>
 
     <!-- Header Row -->
@@ -320,7 +320,23 @@ const confirmPatternInput = () => {
   showPatternInput.value = false;
   newPatternValue.value = "";
 };
+const handleAddColumn = () => {
+  // If already editing a column, save those changes first
+  if (editingIndex.value !== null) {
+    // Apply the current edits to the localColumns
+    const currentEditIndex = editingIndex.value;
+    const updatedColumn = JSON.parse(JSON.stringify(editingColumn.value));
+    
+    // Update the column in localColumns
+    localColumns.value[currentEditIndex] = {
+      ...updatedColumn,
+      entity_attribute: localColumns.value[currentEditIndex].entity_attribute || null,
+    };
+  }
 
+  // Now add the new column
+  addColumn();
+};
 const addColumn = () => {
   try {
     const newColumn = {
