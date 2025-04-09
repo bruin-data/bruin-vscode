@@ -34,7 +34,8 @@ import { vscode } from "./utilities/vscode";
 const QueryOutput = ref(); // Holds the lineage data received from the extension
 const QueryError = ref(); // Holds any errors related to lineage data
 const activeTab = ref(0); // Tracks the currently active tab
-
+const QueryExport = ref();
+const QueryExportError = ref();
 /**
  * Handles incoming messages from the VSCode extension.
  *
@@ -42,6 +43,7 @@ const activeTab = ref(0); // Tracks the currently active tab
  */
 
 const isLoading = ref(false); // Create a direct ref instead of computed
+const isExportLoading = ref(false);
 const initEnvironment = ref();
 const currentEnvironment = ref();
 const handleMessage = (event) => {
@@ -65,6 +67,14 @@ const handleMessage = (event) => {
     case "set-environment":
     currentEnvironment.value = updateValue(message, "success");
       console.log("Setting environment", currentEnvironment.value);
+      break;
+    case "query-export-message":
+      if (message.payload.status === "export-loading") {
+        isExportLoading.value = message.payload.message; // true or false
+      } else {
+        QueryExport.value = updateValue(message, "success");
+        QueryExportError.value = updateValue(message, "error");
+      }
       break;
   }
 };
@@ -115,6 +125,9 @@ const tabs = ref([
       isLoading: isLoading.value,
       environment: selectedEnvironment.value,
       connectionName:output.value?.connectionName || "",
+      isExportLoading: isExportLoading.value,
+      exportOutput: QueryExport.value,
+      exportError: QueryExportError.value
     })),
   },
 ]);

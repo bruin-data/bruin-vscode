@@ -2,7 +2,6 @@ import { QueryPreviewPanel } from "../panels/QueryPreviewPanel";
 import { BruinCommandOptions } from "../types";
 import { BruinCommand } from "./bruinCommand";
 
-
 /**
  * Extends the BruinCommand class to implement the Bruin 'query -export' command.
  */
@@ -49,20 +48,42 @@ export class BruinExportQueryOutput extends BruinCommand {
 
     try {
       const result = await this.run(finalFlags, { ignoresErrors });
-      if (result.includes("flag provided but not defined")) {
+      let parsedResult: any;
+      try {
+        parsedResult = JSON.parse(result);
+      } catch {
+        parsedResult = result;
+      }
+      const message = (() => {
+        if (typeof parsedResult === "string") {
+          return parsedResult;
+        }
+
+        if (
+          parsedResult &&
+          typeof parsedResult === "object" &&
+          Object.keys(parsedResult).length === 1
+        ) {
+          const [key] = Object.keys(parsedResult);
+          return `${key}: ${parsedResult[key]}`;
+        }
+
+        return JSON.stringify(parsedResult);
+      })();
+
+      if (message.includes("flag provided but not defined")) {
         this.postMessageToPanels(
           "error",
           "This feature requires the latest Bruin CLI version. Please update your CLI."
         );
         return;
       }
-      this.postMessageToPanels("success", result);
+      this.postMessageToPanels("success", message);
     } catch (error: any) {
       console.error("Error occurred while exporting query results:", error);
       const errorMessage = error.message || error.toString();
       this.postMessageToPanels("error", errorMessage);
-    }
-    finally {
+    } finally {
       this.isLoading = false;
       this.postMessageToPanels("export-loading", this.isLoading);
     }

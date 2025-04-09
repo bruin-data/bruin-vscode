@@ -115,6 +115,8 @@ module.exports = {
         "sideBarSectionHeader-bg": "var(--vscode-sideBarSectionHeader-background)",
         "keybindingLabel-background": "var(--vscode-keybindingLabel-background)",
         "keybindingLabel-bottom-border": "var(--vscode-keybindingLabel-bottomBorder)",
+        "notification-bg": "var(--vscode-notification-background)",
+        "notification-fg": "var(--vscode-notification-foreground)",
 
         "primary": {
           DEFAULT: "hsl(var(--primary))",
