@@ -759,7 +759,7 @@ const runQuery = () => {
   const selectedEnvironment = currentEnvironment.value;
   vscode.postMessage({
     command: "bruin.getQueryOutput",
-    payload: { environment: selectedEnvironment, limit: limit.value.toString(), query: "" },
+    payload: { environment: selectedEnvironment, limit: limit.value.toString(), query: "", tabId: activeTab.value },
   });
   saveState();
 };
@@ -768,7 +768,9 @@ const exportTabResults = () => {
   // send a message to the panel to export currenttab results
   vscode.postMessage({
     command: "bruin.exportQueryOutput",
+    payload: { tabId: activeTab.value },
   });
+
 
   saveState();
 };

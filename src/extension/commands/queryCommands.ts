@@ -6,10 +6,7 @@ import * as vscode from "vscode";
 import { BruinExportQueryOutput } from "../../bruin/exportQueryOutput";
 import { QueryPreviewPanel } from "../../panels/QueryPreviewPanel";
 
-// Store the last executed query for each document URI
-const lastQueriesMap = new Map<string, string>();
-
-export const getQueryOutput = async (environment: string, limit: string, lastRenderedDocumentUri: Uri | undefined) => {
+export const getQueryOutput = async (environment: string, limit: string, lastRenderedDocumentUri: Uri | undefined, tabId?: string) => {
   let editor = window.activeTextEditor;
   if (!editor) {
     editor = lastRenderedDocumentUri && await window.showTextDocument(lastRenderedDocumentUri);
@@ -34,11 +31,8 @@ export const getQueryOutput = async (environment: string, limit: string, lastRen
     return;
   }
 
-  // Store the selected query for this document URI so we can use it for export later
-  lastQueriesMap.set(lastRenderedDocumentUri.fsPath, selectedQuery);
-  
-  // Store the query in the preview panel
-  QueryPreviewPanel.setLastExecutedQuery(selectedQuery);
+  // Store the query in the preview panel for the specific tab
+  QueryPreviewPanel.setTabQuery(tabId || 'tab-1', selectedQuery);
 
   const output = new BruinQueryOutput(
     getDefaultBruinExecutablePath(),
@@ -49,7 +43,7 @@ export const getQueryOutput = async (environment: string, limit: string, lastRen
   await output.getOutput(environment, lastRenderedDocumentUri.fsPath, limit, { query: selectedQuery });
 };
 
-export const exportQueryResults = async (lastRenderedDocumentUri: Uri | undefined) => {
+export const exportQueryResults = async (lastRenderedDocumentUri: Uri | undefined, tabId?: string) => {
   if (!lastRenderedDocumentUri) {
     return;
   }
@@ -60,18 +54,16 @@ export const exportQueryResults = async (lastRenderedDocumentUri: Uri | undefine
       return;
     }
     
-    // Get the last executed query for this document
-    const lastQuery = lastQueriesMap.get(lastRenderedDocumentUri.fsPath) || 
-                      QueryPreviewPanel.getLastExecutedQuery() || 
-                      "";
+    // Get the query for the specific tab
+    const tabQuery = QueryPreviewPanel.getTabQuery(tabId || 'tab-1');
 
     const output = new BruinExportQueryOutput(
       getDefaultBruinExecutablePath(),
       await bruinWorkspaceDirectory(workspaceFolder.uri.fsPath) as string
     );
     
-    // Use the stored query for export to ensure consistency
-    await output.exportResults(lastRenderedDocumentUri.fsPath, { query: lastQuery });
+    // Use the stored query for the specific tab
+    await output.exportResults(lastRenderedDocumentUri.fsPath, { query: tabQuery });
   } catch (error) {
     console.error("Error exporting query data:", error);
   }

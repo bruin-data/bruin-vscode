@@ -14,18 +14,34 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
   private token: vscode.CancellationToken | undefined;
   private _extensionContext: vscode.ExtensionContext | undefined;
   private disposables: vscode.Disposable[] = [];
+  
+  // Map to store queries by tab ID
+  private static tabQueries: Map<string, string> = new Map();
+  
+  // For backward compatibility
   private static lastExecutedQuery: string = "";
 
-  // Getter and setter for lastExecutedQuery
+  // Getter and setter for lastExecutedQuery (for backward compatibility)
   public static setLastExecutedQuery(query: string): void {
     this.lastExecutedQuery = query;
+    // Also store in the default tab
+    this.setTabQuery('tab-1', query);
   }
 
   public static getLastExecutedQuery(): string {
     return this.lastExecutedQuery;
   }
   
-  private async loadAndSendQueryOutput(environment: string, limit: string) {
+  // Methods to manage per-tab queries
+  public static setTabQuery(tabId: string, query: string): void {
+    this.tabQueries.set(tabId, query);
+  }
+
+  public static getTabQuery(tabId: string): string {
+    return this.tabQueries.get(tabId) || this.lastExecutedQuery || "";
+  }
+  
+  private async loadAndSendQueryOutput(environment: string, limit: string, tabId: string) {
     if (!this._lastRenderedDocumentUri) {
       return;
     }
@@ -35,8 +51,8 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
         console.warn("No valid query was returned");
         return;
       }
-      // Only proceed if we got a valid query string
-      await getQueryOutput(environment, limit, this._lastRenderedDocumentUri);
+      // Pass the tabId to associate the query with the specific tab
+      await getQueryOutput(environment, limit, this._lastRenderedDocumentUri, tabId);
     } catch (error) {
       console.error("Error loading query data:", error);
     }
@@ -198,19 +214,21 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
         case "bruin.getQueryOutput":
           this.environment = message.payload.environment;
           this.limit = message.payload.limit;
-          this.loadAndSendQueryOutput(this.environment, this.limit);
-          console.log("Received limit from webview in the Query Preview panel", message.payload);
+          const tabId = message.payload.tabId || 'tab-1';
+          this.loadAndSendQueryOutput(this.environment, this.limit, tabId);
+          console.log("Received limit and tabId from webview in the Query Preview panel", message.payload);
           break;
         case "bruin.clearQueryOutput":
-          const tabId = message.payload?.tabId || null;
+          const tabId2 = message.payload?.tabId || null;
           // Send a clear message back to the webview with the specific tab ID
           QueryPreviewPanel.postMessage("query-output-clear", {
             status: "success",
-            message: {tabId : tabId},
+            message: {tabId : tabId2},
           });
           break;
         case "bruin.exportQueryOutput":
-          exportQueryResults(this._lastRenderedDocumentUri);
+          const exportTabId = message.payload?.tabId || 'tab-1';
+          exportQueryResults(this._lastRenderedDocumentUri, exportTabId);
           break;
       }
     });
@@ -235,6 +253,15 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
     }
     try {
       const sanitizedState = JSON.parse(JSON.stringify(state));
+      
+      // Store query for each tab as part of the state
+      if (sanitizedState.tabs && Array.isArray(sanitizedState.tabs)) {
+        sanitizedState.tabs.forEach((tab: { id: string; query: string }) => {
+          // Add the current query from our static map to each tab's state
+          tab.query = QueryPreviewPanel.getTabQuery(tab.id);
+        });
+      }
+      
       await this._extensionContext.globalState.update('queryPreviewState', sanitizedState);
     }
     catch (error) {
@@ -247,7 +274,18 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
      throw new Error("Extension context not found");
    }
    try {
-     return this._extensionContext.globalState.get('queryPreviewState') || null;
+     const state: any = this._extensionContext.globalState.get('queryPreviewState') || null;
+     
+     // Restore queries for each tab from the state
+     if (state && state.tabs && Array.isArray(state.tabs)) {
+       state.tabs.forEach((tab: { id: string; query: string }) => {
+         if (tab.id && tab.query) {
+           QueryPreviewPanel.setTabQuery(tab.id, tab.query);
+         }
+       });
+     }
+     
+     return state;
    }
    catch (error) {
      console.error("Error restoring state:", error);
