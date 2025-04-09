@@ -563,6 +563,13 @@ const startEditing = (index) => {
 
 const deleteColumn = (index) => {
   localColumns.value.splice(index, 1);
+  if (editingIndex.value !== null) {
+    if (index < editingIndex.value) {
+      editingIndex.value -= 1; // Decrement if deleted column was before
+    } else if (index === editingIndex.value) {
+      editingIndex.value = null; // Clear if deleted the edited column
+    }
+  }
   showDeleteAlert.value = false;
   emitUpdateColumns();
   const payload = { columns: JSON.parse(JSON.stringify(localColumns.value)) };
