@@ -1,4 +1,7 @@
 # Changelog
+## [0.42.0] - [2025-04-10]
+- Added export functionality to export query output to a CSV file.
+
 ## [0.41.2] - [2025-04-09]
 - Fix Editing Behavior When Adding or Deleting Columns
 
