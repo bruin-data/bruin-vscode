@@ -228,7 +228,8 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
           break;
         case "bruin.exportQueryOutput":
           const exportTabId = message.payload?.tabId || 'tab-1';
-          exportQueryResults(this._lastRenderedDocumentUri, exportTabId);
+          const connectionName = message.payload?.connectionName || null;
+          exportQueryResults(this._lastRenderedDocumentUri, exportTabId, connectionName);
           break;
       }
     });
@@ -281,6 +282,9 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
        state.tabs.forEach((tab: { id: string; query: string }) => {
          if (tab.id && tab.query) {
            QueryPreviewPanel.setTabQuery(tab.id, tab.query);
+         }
+         else {
+           QueryPreviewPanel.setTabQuery(tab.id, state.lastExecutedQuery);
          }
        });
      }

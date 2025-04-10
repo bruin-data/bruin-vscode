@@ -768,7 +768,7 @@ const exportTabResults = () => {
   // send a message to the panel to export currenttab results
   vscode.postMessage({
     command: "bruin.exportQueryOutput",
-    payload: { tabId: activeTab.value },
+    payload: { tabId: activeTab.value, connectionName: currentConnectionName.value },
   });
 
 

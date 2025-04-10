@@ -2616,7 +2616,7 @@ suite(" Query export Tests", () => {
       return "success";
     };
 
-    await bruinQueryExport.exportResults(asset, { flags, ignoresErrors, query });
+    await bruinQueryExport.exportResults(asset, undefined, { flags, ignoresErrors, query });
   });
 
   test("should handle errors and reset isLoading", async () => {
@@ -2627,7 +2627,7 @@ suite(" Query export Tests", () => {
       throw error;
     };
 
-    await bruinQueryExport.exportResults(asset, {});
+    await bruinQueryExport.exportResults(asset, undefined, {});
 
     // Ensure error message is sent to the panel
     sinon.assert.calledWith(queryPreviewPanelStub, "query-export-message", {
@@ -2649,7 +2649,7 @@ suite(" Query export Tests", () => {
       return "success";
     };
 
-    await bruinQueryExport.exportResults(asset, options);
+    await bruinQueryExport.exportResults(asset, undefined, options);
   });
 
 });

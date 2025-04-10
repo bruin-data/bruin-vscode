@@ -43,7 +43,7 @@ export const getQueryOutput = async (environment: string, limit: string, lastRen
   await output.getOutput(environment, lastRenderedDocumentUri.fsPath, limit, { query: selectedQuery });
 };
 
-export const exportQueryResults = async (lastRenderedDocumentUri: Uri | undefined, tabId?: string) => {
+export const exportQueryResults = async (lastRenderedDocumentUri: Uri | undefined, tabId?: string, connectionName?: string) => {
   if (!lastRenderedDocumentUri) {
     return;
   }
@@ -63,7 +63,7 @@ export const exportQueryResults = async (lastRenderedDocumentUri: Uri | undefine
     );
     
     // Use the stored query for the specific tab
-    await output.exportResults(lastRenderedDocumentUri.fsPath, { query: tabQuery });
+    await output.exportResults(lastRenderedDocumentUri.fsPath, connectionName, { query: tabQuery });
   } catch (error) {
     console.error("Error exporting query data:", error);
   }
