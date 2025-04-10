@@ -1,4 +1,7 @@
 # Changelog
+## [0.42.1] - [2025-04-10]
+- Improved `CLI install` and `update` UX in Settings Tab.
+
 ## [0.42.0] - [2025-04-10]
 - Added export functionality to export query output to a CSV file.
 

@@ -183,7 +183,7 @@ window.addEventListener("message", (event) => {
 
       case "bruinCliVersionStatus":
         versionStatus.value = message.versionStatus;
-        console.log("Bruin update status updated:", versionStatus.value);
+        console.log("Bruin update status updated in App.vue:", versionStatus.value);
         break;
     }
   } catch (error) {
@@ -354,6 +354,7 @@ const tabs = ref([
     props: {
       isBruinInstalled: computed(() => isBruinInstalled.value),
       environments: computed(() => environmentsList.value),
+      versionStatus: computed(() => versionStatus.value),
     },
   },
 ]);

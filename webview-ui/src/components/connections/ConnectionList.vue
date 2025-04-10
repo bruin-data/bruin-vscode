@@ -11,11 +11,11 @@
         </div>
       </div>
       <div class="flex items-center justify-end">
-        <vscode-button
-          @click="$emit('new-connection')"
-          class="mt-2 rounded-md px-1 py-2 text-sm font-semibold"
-        >
-          New connection
+        <vscode-button @click="$emit('new-connection')" class="mt-2 font-semibold">
+          <div class="flex items-center">
+            <span class="codicon codicon-plus"></span> 
+            <span class="ml-1">Connection</span>
+          </div>
         </vscode-button>
       </div>
     </div>
@@ -150,7 +150,7 @@ import {
 import AlertMessage from "@/components/ui/alerts/AlertMessage.vue";
 import { vscode } from "@/utilities/vscode";
 import TestStatus from "@/components/ui/alerts/TestStatus.vue";
-import { onClickOutside } from '@vueuse/core'
+import { onClickOutside } from "@vueuse/core";
 const connectionsStore = useConnectionsStore();
 const connections = computed(() => connectionsStore.connections);
 const error = computed(() => connectionsStore.error);
@@ -213,7 +213,7 @@ const getMenuPosition = (event) => {
 };
 
 onClickOutside(menuRef, () => {
-  activeMenu.value = null; 
+  activeMenu.value = null;
 });
 
 const testConnection = (connection) => {
@@ -247,10 +247,10 @@ const handleConnectionTested = (payload) => {
       loadingMessage.value = payload.message;
       break;
     case "unsupported":
-    console.log("Connection test :", payload.message);
+      console.log("Connection test :", payload.message);
       connectionTestStatus.value = "unsupported";
-      supportMessage.value = payload.message;  
-    break;
+      supportMessage.value = payload.message;
+      break;
     default:
       console.error("Failed to test connection:", payload.message);
       connectionTestStatus.value = "failure";
@@ -293,6 +293,12 @@ vscode-button::part(control) {
   border: none;
   outline: none;
 }
+
+.codicon.codicon-plus {
+  font-size: 1em;
+  font-weight: 500;
+}
+
 .divide-y-opacity {
   border: 0.5;
 }
