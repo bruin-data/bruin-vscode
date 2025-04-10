@@ -15,12 +15,14 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
   private _extensionContext: vscode.ExtensionContext | undefined;
   private disposables: vscode.Disposable[] = [];
   
-  // Map to store queries by tab ID
+  // Maps to store queries by tab ID
   private static tabQueries: Map<string, string> = new Map();
-  
+  private static tabAssetPaths: Map<string, string> = new Map();
+
   // For backward compatibility
   private static lastExecutedQuery: string = "";
-
+  private static lastAssetPath: string = "";
+  
   // Getter and setter for lastExecutedQuery (for backward compatibility)
   public static setLastExecutedQuery(query: string): void {
     this.lastExecutedQuery = query;
@@ -41,6 +43,17 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
     return this.tabQueries.get(tabId) || this.lastExecutedQuery || "";
   }
   
+  // Methods to manage per-tab asset paths
+  public static setTabAssetPath(tabId: string, assetPath: string): void {
+    this.tabAssetPaths.set(tabId, assetPath);
+    if (tabId === 'tab-1') {
+      this.lastAssetPath = assetPath;
+    }
+  }
+
+  public static getTabAssetPath(tabId: string): string {
+    return this.tabAssetPaths.get(tabId) || this.lastAssetPath || "";
+  }
   private async loadAndSendQueryOutput(environment: string, limit: string, tabId: string) {
     if (!this._lastRenderedDocumentUri) {
       return;
@@ -53,6 +66,7 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
       }
       // Pass the tabId to associate the query with the specific tab
       await getQueryOutput(environment, limit, this._lastRenderedDocumentUri, tabId);
+      QueryPreviewPanel.setTabAssetPath(tabId, this._lastRenderedDocumentUri.fsPath);
     } catch (error) {
       console.error("Error loading query data:", error);
     }
@@ -229,7 +243,20 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
         case "bruin.exportQueryOutput":
           const exportTabId = message.payload?.tabId || 'tab-1';
           const connectionName = message.payload?.connectionName || null;
-          exportQueryResults(this._lastRenderedDocumentUri, exportTabId, connectionName);
+          const assetPath = QueryPreviewPanel.getTabAssetPath(exportTabId);
+          if (assetPath) {
+            exportQueryResults(
+              vscode.Uri.file(assetPath), 
+              exportTabId, 
+              connectionName
+            );
+          } else if (this._lastRenderedDocumentUri) {
+            exportQueryResults(
+              this._lastRenderedDocumentUri,
+              exportTabId,
+              connectionName
+            );
+          }
           break;
       }
     });
@@ -257,9 +284,10 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
       
       // Store query for each tab as part of the state
       if (sanitizedState.tabs && Array.isArray(sanitizedState.tabs)) {
-        sanitizedState.tabs.forEach((tab: { id: string; query: string }) => {
+        sanitizedState.tabs.forEach((tab: { id: string; query: string; assetPath: string }) => {
           // Add the current query from our static map to each tab's state
           tab.query = QueryPreviewPanel.getTabQuery(tab.id);
+          tab.assetPath = QueryPreviewPanel.getTabAssetPath(tab.id);
         });
       }
       
@@ -279,13 +307,17 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
      
      // Restore queries for each tab from the state
      if (state && state.tabs && Array.isArray(state.tabs)) {
-       state.tabs.forEach((tab: { id: string; query: string }) => {
-         if (tab.id && tab.query) {
-           QueryPreviewPanel.setTabQuery(tab.id, tab.query);
-         }
-         else {
-           QueryPreviewPanel.setTabQuery(tab.id, state.lastExecutedQuery);
-         }
+       state.tabs.forEach((tab: { id: string; query: string; assetPath: string }) => {
+        if (tab.id && tab.query) {
+          QueryPreviewPanel.setTabQuery(tab.id, tab.query);
+        } else {
+          QueryPreviewPanel.setTabQuery(tab.id, state.lastExecutedQuery || "");
+        }
+        if (tab.id && tab.assetPath) {
+          QueryPreviewPanel.setTabAssetPath(tab.id, tab.assetPath);
+        } else {
+          QueryPreviewPanel.setTabAssetPath(tab.id, state.lastAssetPath || "");
+        }
        });
      }
      

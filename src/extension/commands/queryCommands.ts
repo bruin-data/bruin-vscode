@@ -32,7 +32,9 @@ export const getQueryOutput = async (environment: string, limit: string, lastRen
   }
 
   // Store the query in the preview panel for the specific tab
-  QueryPreviewPanel.setTabQuery(tabId || 'tab-1', selectedQuery);
+  const currentTabId = tabId || 'tab-1';
+  QueryPreviewPanel.setTabQuery(currentTabId, selectedQuery);
+  QueryPreviewPanel.setTabAssetPath(currentTabId, lastRenderedDocumentUri.fsPath);
 
   const output = new BruinQueryOutput(
     getDefaultBruinExecutablePath(),
@@ -44,18 +46,30 @@ export const getQueryOutput = async (environment: string, limit: string, lastRen
 };
 
 export const exportQueryResults = async (lastRenderedDocumentUri: Uri | undefined, tabId?: string, connectionName?: string) => {
-  if (!lastRenderedDocumentUri) {
+  const currentTabId = tabId || 'tab-1';
+  
+  // Try to get the asset path associated with this tab
+  let assetPath = QueryPreviewPanel.getTabAssetPath(currentTabId);
+  
+  // If no asset path is found for this tab, use the lastRenderedDocumentUri if available
+  if (!assetPath && lastRenderedDocumentUri) {
+    assetPath = lastRenderedDocumentUri.fsPath;
+  }
+  
+  if (!assetPath) {
+    window.showErrorMessage('No file is associated with this tab');
     return;
   }
+  
   try {
-    const workspaceFolder = workspace.getWorkspaceFolder(lastRenderedDocumentUri);
+    const workspaceFolder = workspace.getWorkspaceFolder(Uri.file(assetPath));
     if (!workspaceFolder) {
       window.showErrorMessage('No workspace folder found');
       return;
     }
     
     // Get the query for the specific tab
-    const tabQuery = QueryPreviewPanel.getTabQuery(tabId || 'tab-1');
+    const tabQuery = QueryPreviewPanel.getTabQuery(currentTabId);
 
     const output = new BruinExportQueryOutput(
       getDefaultBruinExecutablePath(),
@@ -63,7 +77,7 @@ export const exportQueryResults = async (lastRenderedDocumentUri: Uri | undefine
     );
     
     // Use the stored query for the specific tab
-    await output.exportResults(lastRenderedDocumentUri.fsPath, connectionName, { query: tabQuery });
+    await output.exportResults(assetPath, connectionName, { query: tabQuery });
   } catch (error) {
     console.error("Error exporting query data:", error);
   }
