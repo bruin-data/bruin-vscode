@@ -6,10 +6,7 @@ import * as vscode from "vscode";
 import { BruinExportQueryOutput } from "../../bruin/exportQueryOutput";
 import { QueryPreviewPanel } from "../../panels/QueryPreviewPanel";
 
-// Store the last executed query for each document URI
-const lastQueriesMap = new Map<string, string>();
-
-export const getQueryOutput = async (environment: string, limit: string, lastRenderedDocumentUri: Uri | undefined) => {
+export const getQueryOutput = async (environment: string, limit: string, lastRenderedDocumentUri: Uri | undefined, tabId?: string) => {
   let editor = window.activeTextEditor;
   if (!editor) {
     editor = lastRenderedDocumentUri && await window.showTextDocument(lastRenderedDocumentUri);
@@ -34,11 +31,10 @@ export const getQueryOutput = async (environment: string, limit: string, lastRen
     return;
   }
 
-  // Store the selected query for this document URI so we can use it for export later
-  lastQueriesMap.set(lastRenderedDocumentUri.fsPath, selectedQuery);
-  
-  // Store the query in the preview panel
-  QueryPreviewPanel.setLastExecutedQuery(selectedQuery);
+  // Store the query in the preview panel for the specific tab
+  const currentTabId = tabId || 'tab-1';
+  QueryPreviewPanel.setTabQuery(currentTabId, selectedQuery);
+  QueryPreviewPanel.setTabAssetPath(currentTabId, lastRenderedDocumentUri.fsPath);
 
   const output = new BruinQueryOutput(
     getDefaultBruinExecutablePath(),
@@ -49,29 +45,39 @@ export const getQueryOutput = async (environment: string, limit: string, lastRen
   await output.getOutput(environment, lastRenderedDocumentUri.fsPath, limit, { query: selectedQuery });
 };
 
-export const exportQueryResults = async (lastRenderedDocumentUri: Uri | undefined) => {
-  if (!lastRenderedDocumentUri) {
+export const exportQueryResults = async (lastRenderedDocumentUri: Uri | undefined, tabId?: string, connectionName?: string) => {
+  const currentTabId = tabId || 'tab-1';
+  
+  // Try to get the asset path associated with this tab
+  let assetPath = QueryPreviewPanel.getTabAssetPath(currentTabId);
+  
+  // If no asset path is found for this tab, use the lastRenderedDocumentUri if available
+  if (!assetPath && lastRenderedDocumentUri) {
+    assetPath = lastRenderedDocumentUri.fsPath;
+  }
+  
+  if (!assetPath) {
+    window.showErrorMessage('No file is associated with this tab');
     return;
   }
+  
   try {
-    const workspaceFolder = workspace.getWorkspaceFolder(lastRenderedDocumentUri);
+    const workspaceFolder = workspace.getWorkspaceFolder(Uri.file(assetPath));
     if (!workspaceFolder) {
       window.showErrorMessage('No workspace folder found');
       return;
     }
     
-    // Get the last executed query for this document
-    const lastQuery = lastQueriesMap.get(lastRenderedDocumentUri.fsPath) || 
-                      QueryPreviewPanel.getLastExecutedQuery() || 
-                      "";
+    // Get the query for the specific tab
+    const tabQuery = QueryPreviewPanel.getTabQuery(currentTabId);
 
     const output = new BruinExportQueryOutput(
       getDefaultBruinExecutablePath(),
       await bruinWorkspaceDirectory(workspaceFolder.uri.fsPath) as string
     );
     
-    // Use the stored query for export to ensure consistency
-    await output.exportResults(lastRenderedDocumentUri.fsPath, { query: lastQuery });
+    // Use the stored query for the specific tab
+    await output.exportResults(assetPath, connectionName, { query: tabQuery });
   } catch (error) {
     console.error("Error exporting query data:", error);
   }

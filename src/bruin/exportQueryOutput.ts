@@ -1,7 +1,7 @@
 import { QueryPreviewPanel } from "../panels/QueryPreviewPanel";
 import { BruinCommandOptions } from "../types";
+import { isBruinAsset, isBruinYaml } from "../utilities/helperUtils";
 import { BruinCommand } from "./bruinCommand";
-
 
 /**
  * Extends the BruinCommand class to implement the Bruin 'query -export' command.
@@ -25,44 +25,110 @@ export class BruinExportQueryOutput extends BruinCommand {
    * @returns {Promise<void>} A promise that resolves when the execution is complete or an error is caught.
    */
   public isLoading: boolean = false;
+  private readonly relevantFileExtensions = [
+    "sql",
+    "py",
+    "asset.yml",
+    "asset.yaml",
+    "pipeline.yml",
+    "pipeline.yaml",
+  ];
 
+  private async isValidAsset(filePath: string): Promise<boolean> {
+    if (
+      !isBruinAsset(filePath, this.relevantFileExtensions) ||
+      (await isBruinYaml(filePath)) ||
+      !this.relevantFileExtensions.some((ext) => filePath.endsWith(ext))
+    ) {
+      return false;
+    }
+    return true;
+  }
+  
   public async exportResults(
     asset: string,
-
+    connectionName?: string | null,
     { flags = [], ignoresErrors = false, query = "" }: BruinCommandOptions & { query?: string } = {}
   ): Promise<void> {
     // Construct base flags dynamically
     this.isLoading = true;
     this.postMessageToPanels("export-loading", this.isLoading);
     const constructedFlags = ["-export"];
+    
+    const hasExplicitQuery = query && query.trim().length > 0;
 
-    if (query && query.trim().length > 0) {
+    if (hasExplicitQuery) {
       // If we have a direct query, use the query flag
       constructedFlags.push("-q", query);
+      console.log("Using explicit query:", query);
+      
+      // When using explicit query, use connection if provided
+      if (connectionName) {
+        constructedFlags.push("-connection", connectionName);
+        console.log("Using connection for explicit query:", connectionName);
+      }
+    } else {
+      // No explicit query, use the asset
+      const isAssetValid = await this.isValidAsset(asset);
+      
+      if (isAssetValid) {
+        constructedFlags.push("-asset", asset);
+        console.log("Using asset path:", asset);
+      } else {
+        this.postMessageToPanels(
+          "error", 
+          "Invalid asset type. Please use a valid SQL, Python file, or Bruin asset."
+        );
+        this.isLoading = false;
+        this.postMessageToPanels("export-loading", this.isLoading);
+        return;
+      }
     }
-
-    // we always need to push the other flags including the asset flag
-    constructedFlags.push("-asset", asset, "-o", "json");
+    
+    // Add output format
+    constructedFlags.push("-o", "json");
 
     // Use provided flags or fallback to constructed flags
     const finalFlags = flags.length > 0 ? flags : constructedFlags;
 
     try {
       const result = await this.run(finalFlags, { ignoresErrors });
-      if (result.includes("flag provided but not defined")) {
+      let parsedResult: any;
+      try {
+        parsedResult = JSON.parse(result);
+      } catch {
+        parsedResult = result;
+      }
+      const message = (() => {
+        if (typeof parsedResult === "string") {
+          return parsedResult;
+        }
+
+        if (
+          parsedResult &&
+          typeof parsedResult === "object" &&
+          Object.keys(parsedResult).length === 1
+        ) {
+          const [key] = Object.keys(parsedResult);
+          return `${key}: ${parsedResult[key]}`;
+        }
+
+        return JSON.stringify(parsedResult);
+      })();
+
+      if (message.includes("flag provided but not defined")) {
         this.postMessageToPanels(
           "error",
           "This feature requires the latest Bruin CLI version. Please update your CLI."
         );
         return;
       }
-      this.postMessageToPanels("success", result);
+      this.postMessageToPanels("success", message);
     } catch (error: any) {
       console.error("Error occurred while exporting query results:", error);
       const errorMessage = error.message || error.toString();
       this.postMessageToPanels("error", errorMessage);
-    }
-    finally {
+    } finally {
       this.isLoading = false;
       this.postMessageToPanels("export-loading", this.isLoading);
     }

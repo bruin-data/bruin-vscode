@@ -74,8 +74,12 @@
             <vscode-badge :class="badgeClass" class="truncate">
               {{ currentEnvironment }}
             </vscode-badge>
-            <vscode-badge v-if="currentTab?.parsedOutput?.connectionName" :class="badgeClass" class="truncate">
-              {{ currentTab?.parsedOutput.connectionName  }}
+            <vscode-badge
+              v-if="currentTab?.parsedOutput?.connectionName"
+              :class="badgeClass"
+              class="truncate"
+            >
+              {{ currentTab?.parsedOutput.connectionName }}
             </vscode-badge>
           </div>
           <QuerySearch
@@ -98,10 +102,44 @@
             <span class="codicon codicon-clear-all text-editor-fg"></span>
           </vscode-button>
           <vscode-button title="Export Results" appearance="icon" @click="exportTabResults">
-            <span class="codicon codicon-desktop-download text-editor-fg"></span>
+            <span
+              v-if="!isExportLoading"
+              class="codicon codicon-desktop-download text-editor-fg"
+            ></span>
+            <span v-else class="spinner"></span>
           </vscode-button>
           <vscode-button title="Reset Panel" appearance="icon" @click="resetPanel">
             <span class="codicon codicon-refresh text-editor-fg"></span>
+          </vscode-button>
+        </div>
+      </div>
+      <div
+        v-if="showNotification"
+        :class="[
+          'fixed bottom-4 right-4 z-50 max-w-[80%] rounded-md shadow-md overflow-hidden',
+          props.exportOutput ? 'bg-notification-bg border border-commandCenter-border hover:bg-commandCenter-bg' : '',
+          props.exportError
+            ? 'bg-notification-bg border border-commandCenter-border hover:bg-commandCenter-bg'
+            : '',
+        ]"
+      >
+        <div class="flex items-center px-2 py-1">
+          <span
+            class="codicon mr-2"
+            :class="[
+              props.exportOutput ? 'codicon-pass-filled text-[--vscode-testing-iconPassed]' : '',
+              props.exportError ? 'codicon-error text-[--vscode-testing-iconFailed]' : '',
+            ]"
+          ></span>
+          <div class="flex-1 p-2 text-sm text-notification-fg">
+            {{ props.exportOutput || props.exportError }}
+          </div>
+          <vscode-button
+            appearance="icon"
+            class="ml-2 text-inherit opacity-70 hover:opacity-100 transition-opacity duration-200"
+            @click="dismissNotification"
+          >
+            <span class="codicon codicon-close"></span>
           </vscode-button>
         </div>
       </div>
@@ -268,6 +306,9 @@ const props = defineProps<{
   isLoading: boolean;
   environment: string;
   connectionName: string;
+  isExportLoading: boolean;
+  exportOutput: any;
+  exportError: any;
 }>();
 
 const currentEnvironment = ref<string>(props.environment);
@@ -718,7 +759,7 @@ const runQuery = () => {
   const selectedEnvironment = currentEnvironment.value;
   vscode.postMessage({
     command: "bruin.getQueryOutput",
-    payload: { environment: selectedEnvironment, limit: limit.value.toString(), query: "" },
+    payload: { environment: selectedEnvironment, limit: limit.value.toString(), query: "", tabId: activeTab.value },
   });
   saveState();
 };
@@ -727,7 +768,9 @@ const exportTabResults = () => {
   // send a message to the panel to export currenttab results
   vscode.postMessage({
     command: "bruin.exportQueryOutput",
+    payload: { tabId: activeTab.value, connectionName: currentConnectionName.value },
   });
+
 
   saveState();
 };
@@ -860,6 +903,23 @@ const badgeClass = computed(() => {
       return "default-badge";
   }
 });
+const showNotification = ref(false);
+
+const dismissNotification = () => {
+  showNotification.value = false;
+};
+
+watch(
+  () => [props.exportOutput, props.exportError],
+  () => {
+    if (props.exportOutput || props.exportError) {
+      showNotification.value = true;
+      setTimeout(() => {
+        showNotification.value = false;
+      }, 5000);
+    }
+  }
+);
 </script>
 
 <style scoped>
@@ -897,6 +957,24 @@ vscode-badge {
 vscode-badge::part(control) {
   max-width: 100%;
   overflow: hidden;
+}
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--vscode-commandCenter-border);
+  border-radius: 50%;
+  border-right-color: transparent;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 </style>
 
