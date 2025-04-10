@@ -914,6 +914,9 @@ watch(
   () => {
     if (props.exportOutput || props.exportError) {
       showNotification.value = true;
+      setTimeout(() => {
+        showNotification.value = false;
+      }, 5000);
     }
   }
 );
