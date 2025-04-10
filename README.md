@@ -45,7 +45,6 @@ Bruin is a unified analytics platform that enables data professionals to work en
 - Autocomplete support for `.bruin.yml`, `pipeline.yml`, and `*.asset.yml` files with predefined options and schema validations.
 - Snippets for creating Bruin root configuration, pipelines, and assets.
 
-
 ## Installation
 
 1. Open Visual Studio Code.
@@ -56,10 +55,11 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 
 ## Release Notes
-### Latest Release: 0.41.2
-- Fixed Editing Behavior When Adding or Deleting Columns
+### Latest Release: 0.42.0
+- Added export functionality to export query output to a CSV file.
 
 ### Recent Updates
+- **0.41.2**: Fixed Editing Behavior When Adding or Deleting Columns.
 - **0.41.1**: Fixed payload sanitization for columns details.
 - **0.41.0**: Added auto CLI Version Check and Update Functionality to trigger a CLI update interactively.
 - **0.40.5**: Remove Debounce from BruinPanel and Add Timeout for Rendering Errors Only.
@@ -68,24 +68,6 @@ Bruin is a unified analytics platform that enables data professionals to work en
 - **0.40.2**: Displayed connection name in QueryPreview.
 - **0.40.1**: Implement debounce mechanism for rendering command in BruinPanel.
 - **0.40.0**: Enable adding, removing, and editing custom checks in asset columns.
-- **0.39.8**: Fix flickering issue, optimize data loading in LineagePanel, and improve cleanup.
-- **0.39.7**: Sorted connection types alphabetically and refactored their formatting to use title case.
-- **0.39.6**: Added  `Toggle Folding` Command, enabling users to manage custom foldable regions in Bruin directly from the command palette.
-- **0.39.5**: Set 'tab-1' as the default tab in QueryPreview and added a reset panel functionality.
-- **0.39.4**: Enable state persistence in `Query Preview` to retain query output when switching between VS Code panels.
-- **0.39.3**: Added environment display to the query preview panel, showing the selected environment from the side panel dropdown.
-- **0.39.2**: Added expandable cells in Query Preview for long text, with `copy` support and `ESC` to close all expanded cells.
-- **0.39.1**: Adjust column layout to set primary key as a separate column.
-- **0.39.0**: Added primary_key to column data with support for composite primary keys.
-- **0.38.5**: Update keybinding display for platforms and remove unused 'value' property in columns checks.
-- **0.38.4**: Improved columns checks Dropdown positioning and run button UI on windows.
-- **0.38.3**: Replaced markdown-preview auto-lock workaround with a custom preview to fix serialization errors and enable auto-refresh.
-- **0.38.2**: Refactored command payload to handle undefined environment values.
-- **0.38.1**: Added support for tab label editing via double-click and refactored query data loading to prevent automatic execution on mount.
-- **0.38.0**: Added multi-tab support to the QueryPreview component, allowing users to manage multiple query results simultaneously.
-- **0.37.2**: Resolved the visibility issue with icons in the Query Preview Panel.
-- **0.37.1**: Fixed CustomChecks to correctly recognize `0` as a valid check value instead `undefined`.
-- **0.37.0**: Added search functionality to the Query Preview Panel.
 
 For a full changelog, see Bruin Extension [Changelog](https://marketplace.visualstudio.com/items/bruin.bruin/changelog).
 
