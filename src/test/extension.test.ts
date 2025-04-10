@@ -2395,7 +2395,7 @@ suite("Query Output Tests", () => {
   let bruinDirStub: sinon.SinonStub;
   let getOutputStub: sinon.SinonStub;
   let showErrorStub: sinon.SinonStub;
-  let setQueryStub: sinon.SinonStub;
+  let setTabQueryStub: sinon.SinonStub;
 
   setup(() => {
     getWorkspaceFolderStub = sinon.stub(vscode.workspace, "getWorkspaceFolder");
@@ -2403,7 +2403,7 @@ suite("Query Output Tests", () => {
     bruinDirStub = sinon.stub(bruinUtils, "bruinWorkspaceDirectory").resolves("/mocked/workspace");
     getOutputStub = sinon.stub(BruinQueryOutput.prototype, "getOutput").resolves();
     showErrorStub = sinon.stub(vscode.window, "showErrorMessage");
-    setQueryStub = sinon.stub(QueryPreviewPanel, "setLastExecutedQuery");
+    setTabQueryStub = sinon.stub(QueryPreviewPanel, "setTabQuery");
   });
 
   teardown(() => {
@@ -2455,8 +2455,8 @@ suite("Query Output Tests", () => {
 
     await getQueryOutput("dev", "10", uri);
 
-    assert.strictEqual(setQueryStub.calledWith(fakeQuery), true);
-    assert.strictEqual(getOutputStub.calledWith("dev", uri.fsPath, "10", { query: fakeQuery }), true);
+    assert.strictEqual(setTabQueryStub.calledWith("tab-1", fakeQuery), true);
+    assert.strictEqual(getOutputStub.calledWithMatch("dev", uri.fsPath, "10", { query: fakeQuery }), true);
   });
 
   test("should send empty query when selection is empty", async () => {
@@ -2480,8 +2480,8 @@ suite("Query Output Tests", () => {
 
     await getQueryOutput("dev", "50", uri);
 
-    assert.strictEqual(setQueryStub.calledWith(""), true);
-    assert.strictEqual(getOutputStub.calledWith("dev", uri.fsPath, "50", { query: "" }), true);
+    assert.strictEqual(setTabQueryStub.calledWith("tab-1", ""), true);
+    assert.strictEqual(getOutputStub.calledWithMatch("dev", uri.fsPath, "50", { query: "" }), true);
   });
 });
 suite("BruinQueryOutput", () => {
@@ -2620,14 +2620,14 @@ suite(" Query export Tests", () => {
   });
 
   test("should handle errors and reset isLoading", async () => {
-    const asset = "exampleAsset";
+    const asset = "exampleAsset.sql";
     const error = new Error("Mock error");
-
+    const connectionName = "";
     bruinQueryExport.run = async () => {
       throw error;
     };
 
-    await bruinQueryExport.exportResults(asset, undefined, {});
+    await bruinQueryExport.exportResults(asset, connectionName, {});
 
     // Ensure error message is sent to the panel
     sinon.assert.calledWith(queryPreviewPanelStub, "query-export-message", {
@@ -2636,7 +2636,7 @@ suite(" Query export Tests", () => {
     });
     // Ensure isLoading is reset to false
     assert.deepStrictEqual(bruinQueryExport.isLoading, false);
-  });
+  }); 
 
   test("should exclude -q when query is empty", async () => {
     const asset = "exampleAsset";
