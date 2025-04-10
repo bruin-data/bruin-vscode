@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col space-y-6">
     <div>
-      <BruinCLI />
+      <BruinCLI :versionStatus="versionStatus" />
     </div>
 
     <div class="bg-editorWidget-bg shadow sm:rounded-lg">
@@ -39,7 +39,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from "vue";
+import { ref, computed, onMounted, nextTick, watch } from "vue";
 import BruinCLI from "@/components/bruin-settings/BruinCLI.vue";
 import ConnectionsList from "@/components/connections/ConnectionList.vue";
 import ConnectionForm from "@/components/connections/ConnectionsForm.vue";
@@ -51,6 +51,7 @@ import { v4 as uuidv4 } from "uuid";
 const props = defineProps({
   isBruinInstalled: Boolean,
   environments: Array,
+  versionStatus: Object,
 });
 
 const connectionsStore = useConnectionsStore();
