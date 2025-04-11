@@ -8,6 +8,7 @@
             <div class="flex-grow min-w-0 overflow-hidden">
               <div class="flex items-center w-full">
                 <div
+                  id="asset-name-container"
                   class="w-full font-mono text-lg text-editor-fg"
                   :class="{ 'cursor-pointer': !isEditingName }"
                   @mouseenter="startNameEditing"
@@ -16,6 +17,7 @@
                 >
                   <template v-if="isEditingName">
                     <input
+                    id="asset-name-input"
                       v-model="editingName"
                       @blur="saveNameEdit"
                       @keyup.enter="saveNameEdit"
@@ -24,7 +26,7 @@
                     />
                   </template>
                   <template v-else>
-                    <span class="block truncate">
+                    <span id="input-name" class="block truncate">
                       {{ assetDetailsProps?.name }}
                     </span>
                   </template>
@@ -315,13 +317,12 @@ const customChecksProps = computed(() => {
 });
 
 const customChecks = ref([...customChecksProps.value]); // Reactive reference for custom checks
-const settingsLabel =computed(() => {
-  if (versionStatus.value.status === 'outdated') {
+const settingsLabel = computed(() => {
+  if (versionStatus.value.status === "outdated") {
     return "Settings ⚠️";
   }
   return "Settings";
 });
-;
 // Define tabs for the application
 const tabs = ref([
   {
