@@ -55,10 +55,11 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 
 ## Release Notes
-### Latest Release: 0.42.1
-- Improved `CLI install` and `update` UX in Settings Tab.
+### Latest Release: 0.42.2
+- Support multiline input for column and custom check fields.
 
 ### Recent Updates
+- **0.42.1**: Improved `CLI install` and `update` UX in Settings Tab.
 - **0.42.0**: Added export functionality to export query output to a CSV file.
 - **0.41.2**: Fixed Editing Behavior When Adding or Deleting Columns.
 - **0.41.1**: Fixed payload sanitization for columns details.
