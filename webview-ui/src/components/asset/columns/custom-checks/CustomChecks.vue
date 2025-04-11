@@ -12,7 +12,7 @@
           <th class="px-2 py-1 w-1/6 text-center">Value</th>
           <th class="px-2 py-1 w-1/4 text-center">Description</th>
           <th class="px-2 py-1 w-1/2">Query</th>
-          <th class="px-2 py-1 w-1/2"></th>
+          <th class="px-2 py-1 w-1/4"></th>
         </tr>
       </thead>
       <tbody v-if="localCustomChecks.length">
@@ -87,7 +87,7 @@
               :title="check.query"
             ></div>
           </td>
-          <td class="px-2 py-1 text-xs w-1/2">
+          <td class="px-2 py-1 text-xs w-1/4">
             <div v-if="editingIndex === index" class="flex items-center gap-1">
               <vscode-button
                 appearance="icon"
