@@ -1,4 +1,7 @@
 # Changelog
+## [0.42.1] - [2025-04-11]
+- Support multiline input for column and custom check fields.
+
 ## [0.42.1] - [2025-04-10]
 - Improved `CLI install` and `update` UX in Settings Tab.
 
