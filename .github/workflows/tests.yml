@@ -4,6 +4,7 @@ on:
   pull_request:
   push:
     branches:
+      - test/integration-tests-edit-asset
       - main
 jobs:
   test:
