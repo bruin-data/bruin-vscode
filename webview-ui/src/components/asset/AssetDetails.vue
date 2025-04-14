@@ -10,6 +10,7 @@
           <div
             v-if="!isEditingDescription"
             ref="descriptionRef"
+            id="asset-description-container"
             class="text-xs text-editor-fg opacity-65 prose prose-sm max-w-none"
             :class="{ 'max-h-40 overflow-hidden': shouldTruncate && !isExpanded }"
             v-html="markdownDescription"
@@ -17,6 +18,7 @@
 
           <vscode-button
             v-if="!isEditingDescription && showEditButton"
+            id="description-edit"
             appearance="icon"
             @click.stop="startEditingDescription"
             class="absolute top-0 right-0 mt-1 mr-1"
@@ -26,8 +28,9 @@
 
           <div v-if="isEditingDescription" class="relative">
             <textarea
+              id="description-input"
               v-model="editableDescription"
-              class="w-full h-40 bg-input-background border border-editor-border rounded p-2 pr-16 text-input-foreground text-xs"
+              class="description-input w-full h-40 bg-input-background border border-editor-border rounded p-2 pr-16 text-input-foreground text-xs"
               ref="descriptionInput"
               :class="{ 'truncate-description': shouldTruncate && !isExpanded }"
             ></textarea>
