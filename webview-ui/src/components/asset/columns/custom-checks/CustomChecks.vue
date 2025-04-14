@@ -12,7 +12,7 @@
           <th class="px-2 py-1 w-1/6 text-center">Value</th>
           <th class="px-2 py-1 w-1/4 text-center">Description</th>
           <th class="px-2 py-1 w-1/2">Query</th>
-          <th class="px-2 py-1 w-1/2"></th>
+          <th class="px-2 py-1 w-1/4"></th>
         </tr>
       </thead>
       <tbody v-if="localCustomChecks.length">
@@ -24,10 +24,11 @@
           <!-- Check Name with improved handling -->
           <td class="px-2 py-1 font-medium font-mono text-xs w-1/4">
             <div v-if="editingIndex === index" class="flex flex-col gap-1">
-              <input
+              <textarea
                 v-model="(editingCustomCheck as CustomChecks).name"
                 class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs"
-              />
+                rows="2"
+                ></textarea>
             </div>
             <div v-else class="break-words whitespace-normal truncate" :title="check.name">
               {{ check.name }}
@@ -53,9 +54,10 @@
           <!-- Description -->
           <td class="px-2 py-1 text-xs w-1/4 text-center">
             <div v-if="editingIndex === index" class="flex flex-col gap-1">
-              <input
+              <textarea
                 v-model="(editingCustomCheck as CustomChecks).description"
                 class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs"
+                rows="2"
               />
             </div>
             <div
@@ -74,7 +76,8 @@
             <div v-if="editingIndex === index">
               <textarea
                 v-model="(editingCustomCheck as CustomChecks).query"
-                class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs resize-none"
+                class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs"
+                rows="4"
               ></textarea>
             </div>
             <div
@@ -84,7 +87,7 @@
               :title="check.query"
             ></div>
           </td>
-          <td class="px-2 py-1 text-xs w-1/2">
+          <td class="px-2 py-1 text-xs w-1/4">
             <div v-if="editingIndex === index" class="flex items-center gap-1">
               <vscode-button
                 appearance="icon"

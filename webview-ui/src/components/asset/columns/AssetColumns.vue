@@ -83,10 +83,11 @@
 
         <!-- Description -->
         <div class="col-span-6 text-xs">
-          <input
+          <textarea
             v-if="editingIndex === index"
             v-model="editingColumn.description"
             class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs"
+            rows="2"
           />
           <div
             v-else
