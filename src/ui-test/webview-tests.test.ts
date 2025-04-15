@@ -36,20 +36,22 @@ describe("Bruin Webview Test", function () {
     // Wait for the webview to be created and stabilize
     await new Promise((resolve) => setTimeout(resolve, 6000));
 
-  // Get the WebDriver instance
-  driver = VSBrowser.instance.driver;
+    // Get the WebDriver instance
+    driver = VSBrowser.instance.driver;
 
-  // Explicitly wait for the webview's iframe to be present
-  await driver.wait(
-    until.elementLocated(By.className('editor-instance')),
-    30000,
-    'Webview iframe did not appear within 30 seconds'
-  );
+    // Explicitly wait for the webview's iframe to be present
+    await driver.wait(
+      until.elementLocated(By.className("editor-instance")),
+      30000,
+      "Webview iframe did not appear within 30 seconds"
+    );
 
-  // Initialize and switch to the webview frame
-  webview = new WebView();
-  await webview.switchToFrame();
+    // Initialize and switch to the webview frame
+    webview = new WebView();
+    // Wait for the editor to render
+    await driver.wait(until.elementLocated(By.css(".editor-instance")), 10000);
 
+    await webview.switchToFrame();
   });
 
   after(async function () {
