@@ -54,9 +54,6 @@ jobs:
     - name: Run webview tests
       run: npm run test:webview
 
-    - name: List out dir
-      run: ls -la out/ui-test
-
     - name: Run integration tests
       run: |
         if [ "${{ runner.os }}" = "Linux" ]; then
