@@ -23,13 +23,29 @@ const copyCodiconsPlugin = () => {
   };
 };
 
+const copyTestAssetsPlugin = () => {
+  return {
+    name: 'copy-test-assets',
+    closeBundle: async () => {
+      const sourceTestFolder = resolve(__dirname, '../src/ui-test/test-pipeline');
+      const destTestFolder = resolve(__dirname, '../out/ui-test/test-pipeline');
+      try {
+        await fs.copy(sourceTestFolder, destTestFolder);
+        console.log('Test assets copied successfully');
+      } catch (err) {
+        console.error('Error copying test assets:', err);
+      }
+    }
+  };
+};
+
 export default defineConfig({
   css: {
     postcss: {
       plugins: [tailwind(), autoprefixer()],
     },
   },
-  plugins: [vue(), copyCodiconsPlugin()],
+  plugins: [vue(), copyCodiconsPlugin(), copyTestAssetsPlugin()],
   resolve: {
     alias: {
       "@": resolve(__dirname, "./src"),

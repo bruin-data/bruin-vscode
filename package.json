@@ -209,7 +209,7 @@
     "build:webview": "cd webview-ui && npm run build-only && node scripts/copy-codicons.js",
     "vscode:prepublish": "npm run compile",
     "selenium:setup-tests": "extest setup-tests",
-    "selenium:run-tests": "extest setup-and-run './out/ui-test/*.test.js' --code_version max --code_settings .vscode/settings.json",
+    "selenium:run-tests": "node webview-ui/scripts/copy-test-assets.js && extest setup-and-run './out/ui-test/*.test.js' --code_version max --code_settings settings.json",
     "test": "vscode-test",
     "test:webview": "cd webview-ui && npm run test",
     "compile": "tsc -p ./",
@@ -234,7 +234,7 @@
     "prettier": "^3.2.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.3",
-    "vscode-extension-tester": "^8.10.0",
+    "vscode-extension-tester": "^8.14.0",
     "vscode-test": "^1.6.1"
   },
   "overrides": {

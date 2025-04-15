@@ -1,42 +1,110 @@
-name: tests
+name: Test
 
 on: 
   pull_request:
   push:
     branches:
       - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
 
     steps:
     - uses: actions/checkout@v4
-    - name: Node.js
+
+    - name: Setup Node.js with cache
       uses: actions/setup-node@v4
       with:
         node-version: '20'
+        cache: 'npm'
+
+    - name: npm-ci
+      run: npm ci
+
+    - name: Allow unprivileged user namespace (ubuntu)
+      if: ${{ startsWith(matrix.os, 'ubuntu') }}
+      run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
 
     - name: Install dependencies
       run: npm run install:all
 
-    - name: Run extension tests
-      if: runner.os == 'Linux'
-      run: xvfb-run -a npm run test
+    # install bruin cli for linux, mac and windows
+    - name: Install Bruin CLI
+      run: |
+        if [ "${{ runner.os }}" = "Windows" ]; then
+          curl -LsSf https://raw.githubusercontent.com/bruin-data/bruin/refs/heads/main/install.sh | sh
+        else
+          curl -LsSL https://raw.githubusercontent.com/bruin-data/bruin/refs/heads/main/install.sh | sh
+        fi
+      shell: bash
+
+    - name: Compile
+      run: npm run compile
+
+    - name: Build Webview
+      run: npm run build:webview
 
     - name: Run extension tests
-      if: runner.os != 'Linux'
-      run: npm run test
-      
+      run: |
+        if [ "${{ runner.os }}" = "Linux" ]; then
+          xvfb-run -a npm run test
+        else
+          npm run test
+        fi
+      shell: bash
+
     - name: Run webview tests
       run: npm run test:webview
 
     - name: Run integration tests
-      if: runner.os == 'Linux'
-      run: xvfb-run -a npm run selenium:run-tests 
+      run: |
+        if [ "${{ runner.os }}" = "Linux" ]; then
+          xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' npm run selenium:run-tests
+        else
+          npm run selenium:run-tests
+        fi
+      shell: bash
+      env:
+        REPO_ROOT: ${{ github.workspace }}
 
-    - name: Run integration tests
-      if: runner.os != 'Linux'
-      run: npm run selenium:run-tests 
+    - name: Store UI test logs
+      uses: actions/upload-artifact@v4
+      if: failure() || cancelled()
+      with:
+        name: logs-${{ matrix.os }}
+        path: test-resources/settings/logs/*
+
+    - name: Store UI Test screenshots
+      uses: actions/upload-artifact@v4
+      if: failure() || cancelled()
+      with:
+        name: screenshots-${{ matrix.os }}
+        path: test-resources/screenshots/*.png
+
+  check:
+    if: always()
+    runs-on: ubuntu-latest
+    name: 🚦 Status Check
+    needs: [test]
+    steps:
+      - name: ℹ️ Test Matrix Result
+        run: |
+          echo result = ${{ needs.test.result }}
+      - name: ✅ Status Check - success
+        if: ${{ needs.test.result == 'success' }}
+        run: |
+          echo "All tests successfully completed!"
+          exit 0
+      - name: ❌ Status Check - failure
+        if: ${{ needs.test.result != 'success' }}
+        run: |
+          echo "Status Check failed!"
+          exit 1

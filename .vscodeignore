@@ -7,7 +7,7 @@
 # Ignore test files
 .vscode-test/**
 out/test/**
-
+!out/ui-test/test-pipeline/assets/**
 # Ignore source code
 src/**
 
