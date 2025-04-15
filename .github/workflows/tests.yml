@@ -36,7 +36,11 @@ jobs:
     - name: Run integration tests
       if: runner.os == 'Linux'
       run: xvfb-run -a npm run selenium:run-tests 
+      env:
+        REPO_ROOT: ${{ github.workspace }}
 
     - name: Run integration tests
       if: runner.os != 'Linux'
       run: npm run selenium:run-tests 
+      env:
+        REPO_ROOT: ${{ github.workspace }}
