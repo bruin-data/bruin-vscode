@@ -1,6 +1,7 @@
 import * as assert from "assert";
 import { Workbench, InputBox, WebDriver, By, WebView, VSBrowser } from "vscode-extension-tester";
 import { Key, until, WebElement } from "selenium-webdriver";
+import * as child_process from "child_process";
 import "mocha";
 import * as path from "path";
 import * as fs from "fs";
@@ -20,11 +21,12 @@ describe("Bruin Webview Test", function () {
     workbench = new Workbench();
     const repoRoot = process.env.REPO_ROOT || path.resolve(__dirname, "../../");
     testAssetFilePath = path.join(repoRoot, "out", "ui-test", "test-pipeline", "assets", "example.sql");
-  
+    const testWorkspacePath = path.join(repoRoot, "out", "ui-test");
     console.log("Current __dirname:", __dirname);
     console.log("Test asset file path:", testAssetFilePath);
     console.log("Does file exist?", fs.existsSync(testAssetFilePath));
-  
+    console.log("Contents of assets directory:", child_process.execSync("ls -la " + testWorkspacePath).toString());
+
     await VSBrowser.instance.openResources(testAssetFilePath);
     await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait longer in CI
   
