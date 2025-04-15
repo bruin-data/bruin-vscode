@@ -20,26 +20,43 @@ describe("Bruin Webview Test", function () {
     testAssetFilePath = path.join(testWorkspacePath, "example.sql");
 
     await workbench.executeCommand("workbench.action.quickOpen");
-    await sleep(1000);
+    await sleep(2000); // Increased sleep time
 
     const quickOpenBox = await InputBox.create();
     await quickOpenBox.setText(testAssetFilePath);
-    await sleep(2000);
+    await sleep(3000); // Increased sleep time
     await quickOpenBox.confirm();
 
-    // Allow time for the file to open
-    await sleep(3000);
+    // Allow more time for the file to open
+    await sleep(5000);
 
     // Open the Bruin extension's webview
     await workbench.executeCommand("bruin.renderSQL");
 
-    // Wait for the webview to be created and stabilize
-    await new Promise((resolve) => setTimeout(resolve, 5000));
+    // Wait longer for the webview to be created and stabilize
+    await sleep(10000);
 
-    // Initialize the WebView page object
-    webview = new WebView();
-    // Switch to the webview iframe
-    await webview.switchToFrame();
+    try {
+      // Log the page source for debugging in CI
+      driver = VSBrowser.instance.driver;
+      console.log("Page source before webview switch:", await driver.getPageSource());
+
+      // Initialize the WebView page object with explicit wait
+      webview = new WebView();
+
+      // More robust approach to finding webview
+      await driver.wait(until.elementLocated(By.css(".webview.ready")), 15000);
+
+      // Switch to the webview iframe with better error handling
+      await webview.switchToFrame().catch(async (error) => {
+        console.error("Error switching to frame:", error);
+        console.log("Current page source:", await driver.getPageSource());
+        throw error;
+      });
+    } catch (error) {
+      console.error("Setup error:", error);
+      throw error;
+    }
   });
 
   after(async function () {
