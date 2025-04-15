@@ -45,7 +45,7 @@ jobs:
           curl -LsSL https://raw.githubusercontent.com/bruin-data/bruin/refs/heads/main/install.sh | sh
         fi
       shell: bash
-      
+
     - name: Compile
       run: npm run compile
 
@@ -97,14 +97,14 @@ jobs:
     steps:
       - name: ℹ️ Test Matrix Result
         run: |
-          echo result = ${{ needs.main.result }}
+          echo result = ${{ needs.test.result }}
       - name: ✅ Status Check - success
-        if: ${{ needs.main.result == 'success' }}
+        if: ${{ needs.test.result == 'success' }}
         run: |
           echo "All tests successfully completed!"
           exit 0
       - name: ❌ Status Check - failure
-        if: ${{ needs.main.result != 'success' }}
+        if: ${{ needs.test.result != 'success' }}
         run: |
           echo "Status Check failed!"
           exit 1

@@ -23,16 +23,6 @@ describe("Bruin Webview Test", function () {
     testWorkspacePath = path.join(repoRoot, "out", "ui-test", "test-pipeline");
     testAssetFilePath = path.join(testWorkspacePath, "assets", "example.sql");
 
-    console.log("Current __dirname:", __dirname);
-    console.log("Test asset file path:", testAssetFilePath);
-    console.log("Does file exist?", fs.existsSync(testAssetFilePath));
-    console.log("REPO_ROOT:", process.env.REPO_ROOT);
-    console.log("Test workspace path:", testWorkspacePath);
-    console.log("Does test workspace path exist?", fs.existsSync(testWorkspacePath));
-
-    // Install Bruin CLI
-    //await installBruinCLI();
-
     await VSBrowser.instance.openResources(testAssetFilePath);
     await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait longer in CI
 
@@ -193,32 +183,3 @@ describe("Bruin Webview Test", function () {
     });
   });
 });
-
-async function installBruinCLI() {
-  const workbench = new Workbench();
-  await workbench.executeCommand("Install Bruin CLI");
-  await sleep(5000);
-
-  const terminalView = await new TerminalView();
-  await terminalView.selectChannel("Bruin Terminal");
-
-  // Determine the full path to the bruin executable
-  const bruinExecutable =
-    process.platform === "win32"
-      ? path.join(os.homedir(), ".local", "bin", "bruin.exe")
-      : "bruin";
-
-  if (process.platform === "win32") {
-    console.log("Installing Bruin CLI on Windows");
-    //await terminalView.executeCommand`$ curl -LsSf https://raw.githubusercontent.com/bruin-data/bruin/refs/heads/main/install.sh | sh`);
-    await sleep(10000); // Wait for installation to complete
-  } else {
-    await terminalView.executeCommand(`${bruinExecutable} --version`);
-  }
-  await sleep(1000);
-  const terminalOutput = await terminalView.getText();
-  console.log("Terminal output:", terminalOutput);
-  const versionAvailable =
-    terminalOutput.includes("Current: ") && terminalOutput.includes("Latest: ");
-  assert.strictEqual(versionAvailable, true, "Bruin CLI should be installed and available");
-}
