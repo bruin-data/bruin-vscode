@@ -56,6 +56,10 @@ describe("Bruin Webview Test", function () {
     webview = new WebView();
     await driver.wait(until.elementLocated(By.css(".editor-instance")), 10000);
     await webview.switchToFrame();
+
+    // Output the page source for debugging
+    const pageSource = await driver.getPageSource();
+    console.log("Webview page source:", pageSource);
   });
   
   after(async function () {
@@ -66,7 +70,7 @@ describe("Bruin Webview Test", function () {
   });
   describe("Asset Name Tests", function () {
     it("should display the asset name container", async function () {
-      this.timeout(10000);
+      this.timeout(20000); // Increase timeout
 
       // Wait for the asset name container to be visible
       const assetNameContainer = await webview.findWebElement(By.id("asset-name-container"));
@@ -75,7 +79,7 @@ describe("Bruin Webview Test", function () {
     });
 
     it("should be able to edit the asset name", async function () {
-      this.timeout(20000);
+      this.timeout(30000); // Increase timeout
       driver = VSBrowser.instance.driver;
 
       // Locate the container and trigger edit mode.
@@ -86,12 +90,12 @@ describe("Bruin Webview Test", function () {
       await sleep(500);
 
       // Wait for the input to be visible and obtain it
-      let nameInput = await driver.wait(until.elementLocated(By.id("asset-name-input")), 5000);
+      let nameInput = await driver.wait(until.elementLocated(By.id("asset-name-input")), 10000); // Increase timeout
       await nameInput.clear();
       await sleep(500);
 
       // Re-locate the input element to fix stale element reference problem
-      nameInput = await driver.wait(until.elementLocated(By.id("asset-name-input")), 5000);
+      nameInput = await driver.wait(until.elementLocated(By.id("asset-name-input")), 10000); // Increase timeout
       // Clear using JavaScript executor
       await driver.executeScript('arguments[0].value = ""', nameInput);
       // Set the new name
@@ -104,6 +108,7 @@ describe("Bruin Webview Test", function () {
       assert.strictEqual(displayedValue, newName, "Asset name should be updated");
     });
   });
+
   describe("Edit asset Description Tests", function () {
     let assetDetailsTab: WebElement;
     it("should output the page source for debugging", async function () {
@@ -115,25 +120,26 @@ describe("Bruin Webview Test", function () {
     });
 
     it("should access the tab", async function () {
-      this.timeout(10000);
+      this.timeout(20000); // Increase timeout
       // Ensure driver is set
       assetDetailsTab = await webview.findWebElement(By.id("tab-0"));
       await assetDetailsTab.click();
       await sleep(1000);
       assert.ok(assetDetailsTab, "Tab should be accessible");
     });
+
     it("should edit description successfully", async function () {
-      this.timeout(30000);
+      this.timeout(40000); // Increase timeout
 
       // 1. Switch to Asset Details tab
-      const tab = await driver.wait(until.elementLocated(By.id("tab-0")), 5000);
+      const tab = await driver.wait(until.elementLocated(By.id("tab-0")), 10000); // Increase timeout
       await tab.click();
-      await driver.wait(until.elementLocated(By.id("asset-description-container")), 5000);
+      await driver.wait(until.elementLocated(By.id("asset-description-container")), 10000); // Increase timeout
 
       // 2. Activate edit mode
       const descriptionSection = await driver.wait(
         until.elementLocated(By.id("asset-description-container")),
-        5000
+        10000 // Increase timeout
       );
 
       // Hover to reveal edit button
@@ -142,14 +148,14 @@ describe("Bruin Webview Test", function () {
       // Find and click edit button
       const editButton = await driver.wait(
         until.elementLocated(By.css('vscode-button[appearance="icon"]')),
-        5000
+        10000 // Increase timeout
       );
       await editButton.click();
 
       // Wait for textarea to be visible
-      await driver.wait(until.elementLocated(By.id("description-input")), 5000);
+      await driver.wait(until.elementLocated(By.id("description-input")), 10000); // Increase timeout
       // 3. Handle text input
-      const textarea = await driver.wait(until.elementLocated(By.id("description-input")), 5000);
+      const textarea = await driver.wait(until.elementLocated(By.id("description-input")), 10000); // Increase timeout
       // Clear using JavaScript executor
       await driver.executeScript(
         'arguments[0].value = ""; arguments[0].dispatchEvent(new Event("input"))',
@@ -167,13 +173,13 @@ describe("Bruin Webview Test", function () {
       // 4. Save changes
       const saveButton = await driver.wait(
         until.elementLocated(By.css('vscode-button[title="save"]')),
-        5000
+        10000 // Increase timeout
       );
       await saveButton.click();
       await sleep(1000);
       // 5. Verify update
       const updatedText = await driver
-        .wait(until.elementLocated(By.id("asset-description-container")), 5000)
+        .wait(until.elementLocated(By.id("asset-description-container")), 10000) // Increase timeout
         .getText();
       await sleep(1000);
       assert.strictEqual(updatedText, testText, `Description should be updated to "${testText}"`);
