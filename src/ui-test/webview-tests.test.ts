@@ -18,8 +18,8 @@ describe("Bruin Webview Test", function () {
   
     // Initialize Workbench and compute paths
     workbench = new Workbench();
-    testWorkspacePath = path.resolve(__dirname, "test-pipeline", "assets");
-    testAssetFilePath = path.join(testWorkspacePath, "example.sql");
+    const repoRoot = process.env.REPO_ROOT || path.resolve(__dirname, "../../");
+    testAssetFilePath = path.join(repoRoot, "out", "ui-test", "test-pipeline", "assets", "example.sql");
   
     console.log("Current __dirname:", __dirname);
     console.log("Test asset file path:", testAssetFilePath);
