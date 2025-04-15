@@ -36,6 +36,16 @@ jobs:
     - name: Install dependencies
       run: npm run install:all
 
+    # install bruin cli for linux, mac and windows
+    - name: Install Bruin CLI
+      run: |
+        if [ "${{ runner.os }}" = "Windows" ]; then
+          curl -LsSf https://raw.githubusercontent.com/bruin-data/bruin/refs/heads/main/install.sh | sh
+        else
+          curl -LsSL https://raw.githubusercontent.com/bruin-data/bruin/refs/heads/main/install.sh | sh
+        fi
+      shell: bash
+      
     - name: Compile
       run: npm run compile
 

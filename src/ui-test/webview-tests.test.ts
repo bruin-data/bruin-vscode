@@ -31,7 +31,7 @@ describe("Bruin Webview Test", function () {
     console.log("Does test workspace path exist?", fs.existsSync(testWorkspacePath));
 
     // Install Bruin CLI
-    await installBruinCLI();
+    //await installBruinCLI();
 
     await VSBrowser.instance.openResources(testAssetFilePath);
     await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait longer in CI
@@ -210,7 +210,7 @@ async function installBruinCLI() {
 
   if (process.platform === "win32") {
     console.log("Installing Bruin CLI on Windows");
-    await terminalView.executeCommand("Install Bruin CLI");
+    //await terminalView.executeCommand`$ curl -LsSf https://raw.githubusercontent.com/bruin-data/bruin/refs/heads/main/install.sh | sh`);
     await sleep(10000); // Wait for installation to complete
   } else {
     await terminalView.executeCommand(`${bruinExecutable} --version`);
