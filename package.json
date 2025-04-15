@@ -206,7 +206,7 @@
     "install:all": "npm install && cd webview-ui && npm install",
     "start:webview": "cd webview-ui && npm run start",
     "dev:watch": "concurrently \"tsc -watch -p ./\" \"cd webview-ui && npm run build-only\" \"code --extensionDevelopmentPath=$PWD\"",
-    "build:webview": "cd webview-ui && npm run build-only && node scripts/copy-codicons.js",
+    "build:webview": "cd webview-ui && npm run build-only && node scripts/copy-codicons.js && node scripts/copy-test-assets.js",
     "vscode:prepublish": "npm run compile",
     "selenium:setup-tests": "extest setup-tests",
     "selenium:run-tests": "extest setup-and-run './out/ui-test/*.test.js' --code_version max --code_settings .vscode/settings.json",
