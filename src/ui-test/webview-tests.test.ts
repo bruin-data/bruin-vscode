@@ -3,7 +3,7 @@ import { Workbench, InputBox, WebDriver, By, WebView, VSBrowser } from "vscode-e
 import { Key, until, WebElement } from "selenium-webdriver";
 import "mocha";
 import * as path from "path";
-
+import * as fs from "fs";
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 describe("Bruin Webview Test", function () {
@@ -14,54 +14,45 @@ describe("Bruin Webview Test", function () {
   let testAssetFilePath: string;
 
   before(async function () {
-    this.timeout(120000); // Increase timeout for setup
+    this.timeout(180000); // Increase timeout for CI
+  
+    // Initialize Workbench and compute paths
     workbench = new Workbench();
     testWorkspacePath = path.resolve(__dirname, "test-pipeline", "assets");
     testAssetFilePath = path.join(testWorkspacePath, "example.sql");
-    await workbench.executeCommand("workbench.action.quickOpen");
-    await sleep(1000);
-    
-    const quickOpenBox = await InputBox.create();
-    await quickOpenBox.setText(testAssetFilePath);
-    await sleep(2000);
-    await quickOpenBox.confirm();
-    await sleep(3000);
-
+  
+    console.log("Current __dirname:", __dirname);
+    console.log("Test asset file path:", testAssetFilePath);
+    console.log("Does file exist?", fs.existsSync(testAssetFilePath));
+  
+    await VSBrowser.instance.openResources(testAssetFilePath);
+    await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait longer in CI
+  
+    // Log the open editor titles for debugging
     const editorView = workbench.getEditorView();
-    const activeEditor = await editorView.openEditor("example.sql");
-    
-    assert.ok(activeEditor, "example.sql should be opened in the editor");
-
-    const openEditor = await editorView.getOpenEditorTitles();
-    const editorTitle = openEditor[0];
-    
-    assert.strictEqual(editorTitle, "example.sql", "example.sql should be the open editor");
-    
-
-    // Open the Bruin extension's webview
+    const openEditorTitles = await editorView.getOpenEditorTitles();
+    console.log("Open editor titles:", openEditorTitles);
+  
+    if (!openEditorTitles.includes("example.sql")) {
+      throw new Error(`example.sql not found in open editors. Current titles: ${openEditorTitles.join(", ")}`);
+    }
+  
     await workbench.executeCommand("bruin.renderSQL");
-
-    // Wait for the webview to be created and stabilize
     await new Promise((resolve) => setTimeout(resolve, 6000));
-
-    // Get the WebDriver instance
     driver = VSBrowser.instance.driver;
-
-    // Explicitly wait for the webview's iframe to be present
+  
+    // Wait for the webview iframe to be present
     await driver.wait(
       until.elementLocated(By.className("editor-instance")),
       30000,
       "Webview iframe did not appear within 30 seconds"
     );
-
-    // Initialize and switch to the webview frame
+  
     webview = new WebView();
-    // Wait for the editor to render
     await driver.wait(until.elementLocated(By.css(".editor-instance")), 10000);
-
     await webview.switchToFrame();
   });
-
+  
   after(async function () {
     // Switch back to the main VS Code window after tests
     if (webview) {
