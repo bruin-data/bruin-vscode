@@ -18,16 +18,13 @@ describe("Bruin Webview Test", function () {
     workbench = new Workbench();
     testWorkspacePath = path.resolve(__dirname, "test-pipeline", "assets");
     testAssetFilePath = path.join(testWorkspacePath, "example.sql");
-
     await workbench.executeCommand("workbench.action.quickOpen");
     await sleep(1000);
-
+    
     const quickOpenBox = await InputBox.create();
     await quickOpenBox.setText(testAssetFilePath);
     await sleep(2000);
     await quickOpenBox.confirm();
-
-    // Allow time for the file to open
     await sleep(3000);
 
     const editorView = workbench.getEditorView();
