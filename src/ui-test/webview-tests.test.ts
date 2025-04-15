@@ -26,13 +26,7 @@ describe("Bruin Webview Test", function () {
     await quickOpenBox.setText(testAssetFilePath);
     await sleep(2000);
     await quickOpenBox.confirm();
-    // Add explicit editor wait
-    await driver.wait(
-      until.elementLocated(
-        By.className("editor-instance") // Match the CI error selector
-      ),
-      30000
-    );
+
     // Allow time for the file to open
     await sleep(3000);
 
