@@ -30,6 +30,17 @@ describe("Bruin Webview Test", function () {
     // Allow time for the file to open
     await sleep(3000);
 
+    const editorView = workbench.getEditorView();
+    const activeEditor = await editorView.openEditor("example.sql");
+    
+    assert.ok(activeEditor, "example.sql should be opened in the editor");
+
+    const openEditor = await editorView.getOpenEditorTitles();
+    const editorTitle = openEditor[0];
+    
+    assert.strictEqual(editorTitle, "example.sql", "example.sql should be the open editor");
+    
+
     // Open the Bruin extension's webview
     await workbench.executeCommand("bruin.renderSQL");
 
