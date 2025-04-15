@@ -25,6 +25,9 @@ describe("Bruin Webview Test", function () {
     console.log("Current __dirname:", __dirname);
     console.log("Test asset file path:", testAssetFilePath);
     console.log("Does file exist?", fs.existsSync(testAssetFilePath));
+    console.log("REPO_ROOT:", process.env.REPO_ROOT);
+    console.log("Test workspace path:", testWorkspacePath);
+    console.log("Does test workspace path exist?", fs.existsSync(testWorkspacePath));
     
   
     await VSBrowser.instance.openResources(testAssetFilePath);
