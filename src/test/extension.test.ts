@@ -462,23 +462,39 @@ suite("BruinInstallCLI Tests", () => {
       });
     });
     test("should execute install command on Windows", async () => {
+      // Stub os.platform() to return "win32"
       osPlatformStub.returns("win32");
+    
+      // Stub findGitBashPath to return a valid Git Bash path.
+      const fakeGitBashPath = "C:\\Program Files\\Git\\bin\\bash.exe";
+      const findGitBashStub = sinon.stub(bruinUtils, "findGitBashPath").returns(fakeGitBashPath);
+    
+      // Create instance of your CLI installer
       const cli = new BruinInstallCLI();
       
       await cli.installBruinCli();
-  
+    
+      // Verify that the task was executed
       assert.strictEqual(tasksExecuteTaskStub.callCount, 1);
       // Check that a task was executed with the right name
       assert.strictEqual(
         tasksExecuteTaskStub.firstCall.args[0].name,
         "Bruin Install/Update"
       );
-      // Check the shell execution command contains the right curl command
+      
+      // For Windows, getCommand returns a path to a temporary batch file.
       const shellExecution = tasksExecuteTaskStub.firstCall.args[0].execution as vscode.ShellExecution;
+      const batchFilePath = shellExecution.commandLine as string;
+    
+      // Read the content of the batch file and verify it contains the expected curl command.
+      const batchContent = fs.readFileSync(batchFilePath, "utf8");
       assert.match(
-        shellExecution.commandLine as string,
-        /curl -LsSf https:\/\/raw\.githubusercontent\.com\/bruin-data\/bruin\/refs\/heads\/main\/install\.sh \| sh/
+        batchContent,
+        /curl -LsSL https:\/\/raw\.githubusercontent\.com\/bruin-data\/bruin\/refs\/heads\/main\/install\.sh \| sh/
       );
+    
+      // Restore stub after test if needed
+      findGitBashStub.restore();
     });
   
     test("should execute install command on non-Windows", async () => {

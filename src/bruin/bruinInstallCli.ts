@@ -3,8 +3,9 @@ import { exec } from "child_process";
 import * as os from "os";
 import { promisify } from "util";
 import { getDefaultBruinExecutablePath } from "../extension/configuration";
-import { compareVersions, createIntegratedTerminal } from "./bruinUtils";
+import { compareVersions, createIntegratedTerminal, findGitBashPath } from "./bruinUtils";
 import * as fs from "fs";
+import path = require("path");
 
 const execAsync = promisify(exec);
 const fsAccessAsync = promisify(fs.access);
@@ -52,19 +53,34 @@ export class BruinInstallCLI {
       vscode.tasks.executeTask(task);
     });
   }
-  
 
   private async getCommand(isUpdate: boolean): Promise<string> {
-    let command = "";
     if (os.platform() === "win32") {
-      command = "curl -LsSf " + this.scriptPath + " | sh";
+      // Use your existing function to find Git Bash
+      const gitBashPath = findGitBashPath();
+      
+      if (!gitBashPath) {
+        throw new Error("Git Bash not found. Please install Git or configure the Git Bash path in settings.");
+      }
+      
+      // Create a temporary batch file
+      const tempDir = os.tmpdir();
+      const batchFilePath = path.join(tempDir, 'bruin-install.bat');
+      
+      // Create batch file content that calls Git Bash
+      const batchContent = 
+        '@echo off\r\n' +
+        `"${gitBashPath}" -c "curl -LsSL ${this.scriptPath} | sh"\r\n`;
+      
+      // Write the batch file
+      fs.writeFileSync(batchFilePath, batchContent);
+      
+      // Return the command to execute the batch file
+      return batchFilePath;
     } else {
-      command = "curl -LsSL " + this.scriptPath + " | sh";
+      return "curl -LsSL " + this.scriptPath + " | sh";
     }
-
-    return command;
   }
-
   public async getBruinCliVersion (): Promise<string> {
     return new Promise((resolve, reject) => {
       const bruinExecutable = getDefaultBruinExecutablePath();
