@@ -3,7 +3,7 @@ import { exec } from "child_process";
 import * as os from "os";
 import { promisify } from "util";
 import { getDefaultBruinExecutablePath } from "../extension/configuration";
-import { compareVersions, createIntegratedTerminal, findGitBashPath } from "./bruinUtils";
+import { compareVersions, findGitBashPath } from "./bruinUtils";
 import * as fs from "fs";
 import path = require("path");
 
@@ -30,7 +30,6 @@ export class BruinInstallCLI {
       new vscode.ShellExecution(command, { cwd: workingDir })
     );
   
-    // Optional: show terminal output
     task.presentationOptions = {
       reveal: vscode.TaskRevealKind.Always,
       panel: vscode.TaskPanelKind.Shared,
@@ -56,7 +55,6 @@ export class BruinInstallCLI {
 
   private async getCommand(isUpdate: boolean): Promise<string> {
     if (os.platform() === "win32") {
-      // Use your existing function to find Git Bash
       const gitBashPath = findGitBashPath();
       
       if (!gitBashPath) {
