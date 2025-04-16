@@ -1,4 +1,7 @@
 # Changelog
+## [0.43.0] - [2025-04-16]
+- Automatically refresh the CLI status after update.
+
 ## [0.42.3] - [2025-04-16]
 - Added support for `bq.seed` type in asset yaml schema.
 

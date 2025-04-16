@@ -174,7 +174,11 @@ function CheckInstallationsInfo() {
 }
 
 function installOrUpdateBruinCli() {
-  vscode.postMessage({ command: "bruinInstallOrUpdateCLI" });
+  if(isBruinCliInstalled.value) {
+    vscode.postMessage({ command: "bruin.updateBruinCli" });
+  } else {
+    vscode.postMessage({ command: "bruin.installBruinCli" });
+  }
 }
 
 watch(
