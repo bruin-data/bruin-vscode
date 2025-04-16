@@ -93,8 +93,16 @@ export class BruinPanel {
           renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri?.fsPath);
           parseAssetCommand(this._lastRenderedDocumentUri);
         }
+      }),
+      vscode.workspace.onDidRenameFiles((e) => {
+        e.files.forEach((file) => {
+          if (this._lastRenderedDocumentUri?.fsPath === file.oldUri.fsPath) {
+            this._lastRenderedDocumentUri = file.newUri;
+            console.log(`File renamed from ${file.oldUri.fsPath} to ${file.newUri.fsPath}`);
+          }
+        });
       })
-    );
+    ); 
 
     // Ensure initial state is set based on the currently active editor
     if (window.activeTextEditor) {
