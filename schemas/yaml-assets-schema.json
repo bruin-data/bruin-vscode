@@ -35,7 +35,8 @@
             "synapse.sql",
             "ingestr",
             "duckdb.seed",
-            "emr_serverless.spark"
+            "emr_serverless.spark",
+            "bq.seed"
           ],
           "description": "The type of the asset"
         },

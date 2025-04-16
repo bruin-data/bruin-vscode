@@ -1,5 +1,8 @@
 # Changelog
-## [0.42.1] - [2025-04-11]
+## [0.42.3] - [2025-04-16]
+- Added support for `bq.seed` type in asset yaml schema.
+
+## [0.42.2] - [2025-04-11]
 - Support multiline input for column and custom check fields.
 
 ## [0.42.1] - [2025-04-10]
