@@ -20,12 +20,38 @@ export class BruinInstallCLI {
 
   private async executeCommand(command: string): Promise<void> {
     const workingDir = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-    const terminal = await createIntegratedTerminal(workingDir);
-    console.log("executeCommand:", { command });
-    console.log("terminal:", { terminal });
-    terminal.show(true);
-    terminal.sendText(command);
+  
+    const task = new vscode.Task(
+      { type: 'shell' },
+      vscode.TaskScope.Workspace,
+      'Bruin Install/Update',
+      'bruin',
+      new vscode.ShellExecution(command, { cwd: workingDir })
+    );
+  
+    // Optional: show terminal output
+    task.presentationOptions = {
+      reveal: vscode.TaskRevealKind.Always,
+      panel: vscode.TaskPanelKind.Shared,
+      showReuseMessage: true,
+    };
+  
+    return new Promise<void>((resolve, reject) => {
+      const disposable = vscode.tasks.onDidEndTaskProcess((e) => {
+        if (e.execution.task.name === 'Bruin Install/Update') {
+          disposable.dispose();
+          if (e.exitCode === 0) {
+            resolve();
+          } else {
+            reject(new Error(`Bruin install failed with exit code ${e.exitCode}`));
+          }
+        }
+      });
+  
+      vscode.tasks.executeTask(task);
+    });
   }
+  
 
   private async getCommand(isUpdate: boolean): Promise<string> {
     let command = "";
@@ -86,10 +112,14 @@ export class BruinInstallCLI {
     await this.executeCommand(installCommand);
   }
 
-  public async updateBruinCli(): Promise<void> {
+  public async updateBruinCli(onDone?: () => void): Promise<void> {
     const updateCommand = await this.getCommand(true);
     console.log("updateBruinCli:", { updateCommand });
     await this.executeCommand(updateCommand);
+
+    if (onDone) {
+      onDone(); // Notify the caller
+    }
   }
 
   public async installOrUpdate(isInstalled: boolean): Promise<void> {

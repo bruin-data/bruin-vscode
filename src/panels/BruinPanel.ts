@@ -645,13 +645,20 @@ export class BruinPanel {
   private async updateBruinCli() {
     try {
       const bruinInstaller = new BruinInstallCLI();
-      // Skip the installation check and directly call updateBruinCli
-      await bruinInstaller.updateBruinCli();
+  
+      await bruinInstaller.updateBruinCli(() => {
+        this._panel.webview.postMessage({
+          command: "bruinCliVersionStatus",
+          versionStatus: "updated",
+        });
+      });
+  
     } catch (error) {
       console.error("Error updating Bruin CLI:", error);
       vscode.window.showErrorMessage("Failed to update Bruin CLI. Please try again.");
     }
   }
+  
   private _checkboxState: { [key: string]: boolean } = {};
 }
 

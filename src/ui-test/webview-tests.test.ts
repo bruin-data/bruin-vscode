@@ -3,8 +3,7 @@ import { Workbench, InputBox, WebDriver, By, WebView, VSBrowser, TerminalView } 
 import { Key, until, WebElement } from "selenium-webdriver";
 import "mocha";
 import * as path from "path";
-import * as fs from "fs";
-import * as os from "os";
+
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 describe("Bruin Webview Test", function () {
