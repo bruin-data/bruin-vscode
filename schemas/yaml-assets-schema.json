@@ -260,7 +260,8 @@
           "type": "string",
           "enum": [
             "table",
-            "view"
+            "view",
+            "time_interval"
           ],
           "description": "Materialization type"
         },
@@ -339,7 +340,8 @@
         "create+replace",
         "delete+insert",
         "append",
-        "merge"
+        "merge",
+        "interval_modifiers"
       ],
       "description": "Materialization strategy"
     },
