@@ -485,7 +485,7 @@ suite("BruinInstallCLI Tests", () => {
       const updateStub = sandbox.stub(cli, "updateBruinCli");
       const installStub = sandbox.stub(cli, "installBruinCli");
 
-      await cli.installOrUpdate(true);
+      await cli.installBruinCli();
 
       assert.strictEqual(updateStub.callCount, 1);
       assert.strictEqual(installStub.callCount, 0);
@@ -496,7 +496,7 @@ suite("BruinInstallCLI Tests", () => {
       const updateStub = sandbox.stub(cli, "updateBruinCli");
       const installStub = sandbox.stub(cli, "installBruinCli");
 
-      await cli.installOrUpdate(false);
+      await cli.installBruinCli();
 
       assert.strictEqual(installStub.callCount, 1);
       assert.strictEqual(updateStub.callCount, 0);
@@ -2668,7 +2668,7 @@ suite("CLI Installation and Update Tests", () => {
       BruinInstallCLI.prototype,
       "checkBruinCLIVersion"
     );
-    bruinInstallCLIInstallOrUpdateStub = sinon.stub(BruinInstallCLI.prototype, "installOrUpdate");
+    bruinInstallCLIInstallOrUpdateStub = sinon.stub(BruinInstallCLI.prototype, "installBruinCli");
     vscodeWindowShowWarningMessageStub = sinon.stub(vscode.window, "showWarningMessage");
   });
 

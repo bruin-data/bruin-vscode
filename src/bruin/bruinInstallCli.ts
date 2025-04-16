@@ -107,10 +107,14 @@ export class BruinInstallCLI {
     });
   }
 
-  public async installBruinCli(): Promise<void> {
+  public async installBruinCli(onDone?: () => void): Promise<void> {
     const installCommand = await this.getCommand(false);
     console.log("installBruinCli:", { installCommand });
     await this.executeCommand(installCommand);
+
+    if (onDone) {
+      onDone();
+    }
   }
 
   public async updateBruinCli(onDone?: () => void): Promise<void> {
@@ -123,13 +127,6 @@ export class BruinInstallCLI {
     }
   }
 
-  public async installOrUpdate(isInstalled: boolean): Promise<void> {
-    if (isInstalled) {
-      await this.updateBruinCli();
-    } else {
-      await this.installBruinCli();
-    }
-  }
 
   public async checkBruinCliInstallation(): Promise<{
     installed: boolean;
