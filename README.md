@@ -55,10 +55,11 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 
 ## Release Notes
-### Latest Release: 0.43.0
-- Automatically refresh the CLI status after update.
+### Latest Release: 0.43.1
+- Handle file renaming in BruinPanel to update last rendered document URI.
 
 ### Recent Updates
+- **0.43.0**: Automatically refresh the CLI status after update.
 - **0.42.3**: Added support for `bq.seed` type in asset yaml schema.
 - **0.42.2**: Support multiline input for column and custom check fields.
 - **0.42.1**: Improved `CLI install` and `update` UX in Settings Tab.

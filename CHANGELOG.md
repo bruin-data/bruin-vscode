@@ -1,4 +1,7 @@
 # Changelog
+## [0.43.1] - [2025-04-16]
+- Handle file renaming in BruinPanel to update last rendered document URI.
+
 ## [0.43.0] - [2025-04-16]
 - Automatically refresh the CLI status after update.
 
