@@ -88,23 +88,3 @@ jobs:
       with:
         name: screenshots-${{ matrix.os }}
         path: test-resources/screenshots/*.png
-
-  check:
-    if: always()
-    runs-on: ubuntu-latest
-    name: 🚦 Status Check
-    needs: [test]
-    steps:
-      - name: ℹ️ Test Matrix Result
-        run: |
-          echo result = ${{ needs.test.result }}
-      - name: ✅ Status Check - success
-        if: ${{ needs.test.result == 'success' }}
-        run: |
-          echo "All tests successfully completed!"
-          exit 0
-      - name: ❌ Status Check - failure
-        if: ${{ needs.test.result != 'success' }}
-        run: |
-          echo "Status Check failed!"
-          exit 1
