@@ -44,6 +44,15 @@
             <div class="dynamic-text" :style="{ fontSize: computedFontSize }" @click.stop="toggleExpand">
               {{ isExpanded ? label : truncatedLabel }}
             </div>
+            <!-- Tooltip -->
+            <div
+              v-if="isTruncated && !isExpanded"
+              class="absolute left-0 top-0 w-max font-mono rounded opacity-0 whitespace-nowrap group-hover:opacity-100 transition-opacity duration-200 group-hover:cursor-pointer"
+              :class="selectedStyle.main"
+              @click.stop="toggleExpand"
+            >
+              {{ label }}
+            </div>
           </div>
         </div>
       </div>
@@ -141,6 +150,7 @@ const handleGoToDetails = (asset: any) => {
 const label = computed(() => props.data.asset?.name || '');
 const isExpanded = computed(() => props.expandedNodes[props.data.asset?.name || ''] || false);
 
+const isTruncated = computed(() => label.value.length > 26);
 const truncatedLabel = computed(() => {
   const maxLength = 26;
   const name = label.value;
