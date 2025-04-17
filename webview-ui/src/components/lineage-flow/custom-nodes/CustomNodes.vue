@@ -100,8 +100,9 @@ const props = defineProps<BruinNodeProps & {
   selectedNodeId: string | null;
   expandAllDownstreams: boolean;
   expandAllUpstreams: boolean;
+  expandedNodes: { [key: string]: boolean };
 }>();
-const emit = defineEmits(["add-upstream", "add-downstream", "node-click"]);
+const emit = defineEmits(["add-upstream", "add-downstream", "node-click", "toggle-node-expand"]);
 
 const selectedStyle = computed(() => styles[props.data?.asset?.type || "default"] || defaultStyle);
 const selectedStatusStyle = computed(() => statusStyles[props.status || ""]);
@@ -138,7 +139,7 @@ const handleGoToDetails = (asset: any) => {
 };
 
 const label = computed(() => props.data.asset?.name || '');
-const isExpanded = ref(false);
+const isExpanded = computed(() => props.expandedNodes[props.data.asset?.name || ''] || false);
 
 const truncatedLabel = computed(() => {
   const maxLength = 26;
@@ -147,12 +148,11 @@ const truncatedLabel = computed(() => {
 });
 
 const toggleExpand = () => {
-  isExpanded.value = !isExpanded.value;
+  emit("toggle-node-expand", props.data.asset?.name);
 };
 
 const handleClickOutside = (event: MouseEvent) => {
   if (showPopup.value) closePopup();
-  isExpanded.value = false; // Collapse the node on outside click
 };
 
 const computedFontSize = computed(() => {
