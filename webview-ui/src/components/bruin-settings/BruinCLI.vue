@@ -45,17 +45,70 @@
           </div>
         </div>
 
+        <div class="relative flex items-center">
+          <div class="flex items-center">
+            <vscode-button
+              @click="installOrUpdateBruinCli(false)"
+              :appearance="
+                props.versionStatus?.status === 'outdated' || !isBruinCliInstalled
+                  ? 'primary'
+                  : 'secondary'
+              "
+              class="text-sm font-semibold rounded-r-none"
+            >
+              {{ isBruinCliInstalled ? "Update" : "Install" }} CLI
+            </vscode-button>
+
+            <vscode-button
+              appearance="icon"
+              @click="toggleVersionOptions"
+              title="Version Options"
+              class="border-l p-[1px] border-commandCenter-border text-sm font-semibold rounded-none bg-input-background text-input-foreground"
+            >
+              <span class="codicon codicon-chevron-down"></span>
+            </vscode-button>
+          </div>
+
+          <div
+            v-if="showVersionOptions"
+            class="absolute right-2 mt-12 w-44 bg-input-background shadow-lg rounded-sm z-10"
+            ref="versionOptionsDropdown"
+          >
+            <div
+              class="p-1 cursor-pointer hover:bg-inputOption-hoverBackground"
+              @click="showSpecificVersionInput = true; showVersionOptions = false"
+            >
+              Specific Version...
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="showSpecificVersionInput" class="mt-2 flex items-center justify-end space-x-1">
+        <input
+          v-model="specificVersion"
+          type="text"
+          placeholder="Enter version"
+          class="border rounded-sm text-sm w-36 h-6 bg-input-background text-input-foreground"
+        />
         <vscode-button
-          @click="installOrUpdateBruinCli"
-          :appearance="
-            props.versionStatus?.status === 'outdated' || !isBruinCliInstalled
-              ? 'primary'
-              : 'secondary'
-          "
-          class="text-sm font-semibold"
+          @click="installOrUpdateBruinCli(true)"
+          appearance="icon"
+          class="text-xs bg-input-background text-input-foreground"
         >
-          {{ isBruinCliInstalled ? "Update" : "Install" }} CLI
+          <span class="codicon codicon-check"></span>
         </vscode-button>
+        <vscode-button
+          @click="showSpecificVersionInput = false"
+          appearance="icon"
+          class="text-xs bg-input-background text-input-foreground"
+        >
+          <span class="codicon codicon-x"></span>
+        </vscode-button>
+      </div>
+
+      <div v-if="errorMessage" class="text-errorForeground text-sm mt-2">
+        {{ errorMessage }}
       </div>
 
       <div v-if="showInfoCard" class="bg-editorWidget-bg shadow sm:rounded-lg mt-4 p-3 relative">
@@ -87,7 +140,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from "vue";
 import { vscode } from "@/utilities/vscode";
-import { ChevronUpIcon, QuestionMarkCircleIcon, ChevronDownIcon } from "@heroicons/vue/20/solid";
 import { DocumentDuplicateIcon } from "@heroicons/vue/24/outline";
 
 const props = defineProps({
@@ -106,6 +158,11 @@ const bruinCliVersion = ref("");
 const showInfoCard = ref(false);
 const bruinVscodeVersion = ref("");
 const copied = ref(false);
+const specificVersion = ref("");
+const errorMessage = ref("");
+const showVersionOptions = ref(false);
+const showSpecificVersionInput = ref(false);
+const versionOptionsDropdown = ref<HTMLElement | null>(null);
 
 onMounted(() => {
   checkBruinCliInstallation();
@@ -173,12 +230,40 @@ function CheckInstallationsInfo() {
   showInfoCard.value = !showInfoCard.value;
 }
 
-function installOrUpdateBruinCli() {
-  if(isBruinCliInstalled.value) {
-    vscode.postMessage({ command: "bruin.updateBruinCli" });
+function toggleVersionOptions() {
+  showVersionOptions.value = !showVersionOptions.value;
+  showSpecificVersionInput.value = false;
+  specificVersion.value = "";
+  errorMessage.value = "";
+}
+
+function installOrUpdateBruinCli(isSpecificVersion: boolean) {
+  if (isSpecificVersion && specificVersion.value) {
+    // Validate the version format
+    const versionPattern = /^v?\d+(\.\d+){0,2}$/;
+    if (!versionPattern.test(specificVersion.value)) {
+      errorMessage.value = "Invalid version format. Please enter a valid version (e.g., 1.0.0).";
+      return;
+    }
+
+    // Send command to install or update to the specific version
+    vscode.postMessage({
+      command: "bruin.installSpecificVersion",
+      version: specificVersion.value,
+    });
   } else {
-    vscode.postMessage({ command: "bruin.installBruinCli" });
+    // Install or update to the latest version
+    if (isBruinCliInstalled.value) {
+      vscode.postMessage({ command: "bruin.updateBruinCli" });
+    } else {
+      vscode.postMessage({ command: "bruin.installBruinCli" });
+    }
   }
+
+  // Clear the error message
+  errorMessage.value = "";
+  showVersionOptions.value = false;
+  showSpecificVersionInput.value = false;
 }
 
 watch(
@@ -201,5 +286,19 @@ pre {
   word-break: break-word;
   font-size: 0.85rem;
   line-height: 1.4;
+}
+
+.rounded-r-none {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.rounded-l-none {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.border-editor-fg {
+  border-color: var(--vscode-editor-foreground);
 }
 </style>
