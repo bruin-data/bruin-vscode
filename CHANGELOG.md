@@ -1,4 +1,8 @@
 # Changelog
+
+## [0.43.2] - [2025-04-17]
+- Added expandable labels for truncated asset names in lineage view.
+
 ## [0.43.1] - [2025-04-16]
 - Handle file renaming in BruinPanel to update last rendered document URI.
 

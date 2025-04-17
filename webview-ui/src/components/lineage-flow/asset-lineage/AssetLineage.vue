@@ -23,6 +23,8 @@
 
       <template #node-custom="nodeProps">
         <CustomNode
+          :expanded-nodes="expandedNodes"
+          @toggle-node-expand="toggleNodeExpand"
           :data="nodeProps.data"
           :node-props="nodeProps"
           :label="nodeProps.data.label"
@@ -165,11 +167,14 @@ const expandAllDownstreams = ref(false);
 const expandAllUpstreams = ref(false);
 const isUpdating = ref(false);
 const graphInitialized = ref(false);
-const initialLayoutComplete = ref(false); 
+const initialLayoutComplete = ref(false);
 const showLoading = ref(false);
 let loadingTimeout: ReturnType<typeof setTimeout>;
 let fitViewTimeout: ReturnType<typeof setTimeout>;
 const { viewport, setViewport } = useVueFlow();
+
+// State to track expanded nodes
+const expandedNodes = ref<{ [key: string]: boolean }>({});
 
 const onNodeClick = (nodeId: string, event: MouseEvent) => {
   console.log("Node clicked:", nodeId);
@@ -214,7 +219,6 @@ const updateNodePositions = (layout: any) => {
   });
   setNodes(updatedNodes);
 };
-
 
 // Function to update the layout using ELK
 const updateLayout = async () => {
@@ -559,6 +563,7 @@ const handleReset = async (event: Event) => {
   expandedUpstreamEdges.value = [];
   expandedDownstreamNodes.value = [];
   expandedDownstreamEdges.value = [];
+  expandedNodes.value = {};
   await updateGraph();
   await updateLayout();
 };
@@ -609,7 +614,17 @@ watch([filterType, expandAllUpstreams, expandAllDownstreams], () => {
 onUnmounted(() => {
   clearTimeout(fitViewTimeout);
 });
+
+// Method to toggle the expanded state of a node
+const toggleNodeExpand = (nodeId: string) => {
+  if (expandedNodes.value[nodeId]) {
+    expandedNodes.value[nodeId] = false;
+  } else {
+    expandedNodes.value[nodeId] = true;
+  }
+};
 </script>
+
 
 <style>
 @import "@vue-flow/core/dist/style.css";
