@@ -75,7 +75,7 @@
             <span>{{ tab.label }}</span>
             <span
               v-if="tab.label === 'Settings' && versionStatus.status === 'outdated'"
-              class="h-1 w-1 rounded-full bg-yellow-400 mt-0.5"
+              class="h-[3px] w-[3px] rounded-full bg-yellow-400 mt-0.5"
             ></span>
           </div>
         </vscode-panel-tab>
