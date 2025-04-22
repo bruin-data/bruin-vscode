@@ -60,6 +60,7 @@
             </vscode-button>
 
             <vscode-button
+              v-if="isBruinCliInstalled"
               appearance="icon"
               @click="toggleVersionOptions"
               title="Version Options"
@@ -286,19 +287,5 @@ pre {
   word-break: break-word;
   font-size: 0.85rem;
   line-height: 1.4;
-}
-
-.rounded-r-none {
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
-}
-
-.rounded-l-none {
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
-}
-
-.border-editor-fg {
-  border-color: var(--vscode-editor-foreground);
 }
 </style>
