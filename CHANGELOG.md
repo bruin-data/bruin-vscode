@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.43.3] - [2025-04-22]
+- Added Version Selection for Bruin CLI Update in Settings Tab.
+
 ## [0.43.2] - [2025-04-17]
 - Added expandable labels for truncated asset names in lineage view.
 
