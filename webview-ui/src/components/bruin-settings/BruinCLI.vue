@@ -54,7 +54,7 @@
                   ? 'primary'
                   : 'secondary'
               "
-              class="text-sm font-semibold rounded-r-none"
+              class="text-sm font-semibold rounded-r-none h-7"
             >
               {{ isBruinCliInstalled ? "Update" : "Install" }} CLI
             </vscode-button>
@@ -63,7 +63,7 @@
               appearance="icon"
               @click="toggleVersionOptions"
               title="Version Options"
-              class="border-l p-[1px] border-commandCenter-border text-sm font-semibold rounded-none bg-input-background text-input-foreground"
+              class="flex items-center justify-center h-7 w-7 border-l border-commandCenter-border text-sm font-semibold rounded-none bg-input-background text-input-foreground hover:bg-inputOption-hoverBackground"
             >
               <span class="codicon codicon-chevron-down"></span>
             </vscode-button>
