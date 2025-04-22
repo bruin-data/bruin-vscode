@@ -17,7 +17,7 @@
                 >
                   <template v-if="isEditingName">
                     <input
-                    id="asset-name-input"
+                      id="asset-name-input"
                       v-model="editingName"
                       @blur="saveNameEdit"
                       @keyup.enter="saveNameEdit"
@@ -71,8 +71,12 @@
           :id="`tab-${index}`"
           @click="activeTab = index"
         >
-          <div class="flex items-center justify-center">
+          <div class="flex items-center justify-center gap-1">
             <span>{{ tab.label }}</span>
+            <span
+              v-if="tab.label === 'Settings' && versionStatus.status === 'outdated'"
+              class="h-[3px] w-[3px] rounded-full bg-yellow-400 mt-0.5"
+            ></span>
           </div>
         </vscode-panel-tab>
 
@@ -317,12 +321,7 @@ const customChecksProps = computed(() => {
 });
 
 const customChecks = ref([...customChecksProps.value]); // Reactive reference for custom checks
-const settingsLabel = computed(() => {
-  if (versionStatus.value.status === "outdated") {
-    return "Settings ⚠️";
-  }
-  return "Settings";
-});
+
 // Define tabs for the application
 const tabs = ref([
   {
@@ -350,7 +349,7 @@ const tabs = ref([
     })),
   },
   {
-    label: settingsLabel,
+    label: "Settings",
     component: BruinSettings,
     props: {
       isBruinInstalled: computed(() => isBruinInstalled.value),

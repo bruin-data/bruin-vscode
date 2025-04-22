@@ -12,6 +12,8 @@ const fsAccessAsync = promisify(fs.access);
 
 export class BruinInstallCLI {
   private platform: string;
+  private scriptPathSpecificVersion =
+    "https://raw.githubusercontent.com/bruin-data/bruin/main/install.sh";
   private scriptPath =
     "https://raw.githubusercontent.com/bruin-data/bruin/refs/heads/main/install.sh";
 
@@ -53,30 +55,33 @@ export class BruinInstallCLI {
     });
   }
 
-  private async getCommand(isUpdate: boolean): Promise<string> {
+  private async getCommand(isUpdate: boolean, version?: string): Promise<string> {
+    console.debug("getCommand called with", { isUpdate, version });
+    this.scriptPath = version ? this.scriptPathSpecificVersion : this.scriptPath;
+    const specificVersion = version ? ` v${version}` : "";
     if (os.platform() === "win32") {
       const gitBashPath = findGitBashPath();
-      
+
       if (!gitBashPath) {
         throw new Error("Git Bash not found. Please install Git or configure the Git Bash path in settings.");
       }
-      
+
       // Create a temporary batch file
       const tempDir = os.tmpdir();
       const batchFilePath = path.join(tempDir, 'bruin-install.bat');
-      
+
       // Create batch file content that calls Git Bash
-      const batchContent = 
+      const batchContent =
         '@echo off\r\n' +
-        `"${gitBashPath}" -c "curl -LsSL ${this.scriptPath} | sh"\r\n`;
-      
+        `"${gitBashPath}" -c "curl -LsSL ${this.scriptPath} | sh -s --${specificVersion}"\r\n`;
+
       // Write the batch file
       fs.writeFileSync(batchFilePath, batchContent);
-      
+
       // Return the command to execute the batch file
       return batchFilePath;
     } else {
-      return "curl -LsSL " + this.scriptPath + " | sh";
+      return `curl -LsSL ${this.scriptPath} | sh -s --${specificVersion}`;
     }
   }
   public async getBruinCliVersion (): Promise<string> {
@@ -131,9 +136,8 @@ export class BruinInstallCLI {
     }
   }
 
-  public async updateBruinCli(onDone?: () => void): Promise<void> {
-    const updateCommand = await this.getCommand(true);
-    console.log("updateBruinCli:", { updateCommand });
+  public async updateBruinCli(version?: string, onDone?: () => void): Promise<void> {
+    const updateCommand = await this.getCommand(true, version);
     await this.executeCommand(updateCommand);
 
     if (onDone) {

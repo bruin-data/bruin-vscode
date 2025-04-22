@@ -599,6 +599,11 @@ export class BruinPanel {
           case "bruin.updateBruinCli":
             await this.updateBruinCli();
             break;
+          case "bruin.installSpecificVersion":
+            const version = message.version;
+            console.log("Installing specific version:", version);
+            await this.updateBruinCli(version);
+            break;
         }
       },
       undefined,
@@ -638,13 +643,14 @@ export class BruinPanel {
       .map(([name, _]) => `--${name.toLowerCase()}`)
       .join(" ");
   }
-  private async installBruinCli() {
+  private async installBruinCli(  ) {
     try {
       const bruinInstaller = new BruinInstallCLI();
-      await bruinInstaller.installBruinCli(() => {
+      await bruinInstaller.installBruinCli(async () => {
+        const versionStatus = await checkCliVersion();
         this._panel.webview.postMessage({
           command: "bruinCliVersionStatus",
-          versionStatus: "updated",
+          versionStatus,
         });
       });
       await this.checkAndUpdateBruinCliStatus();
@@ -653,14 +659,14 @@ export class BruinPanel {
       vscode.window.showErrorMessage("Failed to install/update Bruin CLI. Please try again.");
     }
   }
-  private async updateBruinCli() {
+  private async updateBruinCli(version?: string) {
     try {
       const bruinInstaller = new BruinInstallCLI();
-  
-      await bruinInstaller.updateBruinCli(() => {
+      await bruinInstaller.updateBruinCli(version ?? "", async () => {
+        const versionStatus = await checkCliVersion();
         this._panel.webview.postMessage({
           command: "bruinCliVersionStatus",
-          versionStatus: "updated",
+          versionStatus,
         });
       });
   
