@@ -1,6 +1,16 @@
 <template>
   <vscode-panels :activeid="`tab-${activeTab}`" aria-label="Tabbed Content">
+    <!-- Tab Headers -->
+    <vscode-panel-tab
+      v-for="(tab, index) in tabs"
+      :key="`tab-${index}`"
+      :id="`tab-${index}`"
+      @click="activeTab = index"
+    >
+      {{ tab.label }}
+    </vscode-panel-tab>
 
+    <!-- Tab Content -->
     <vscode-panel-view
       v-for="(tab, index) in tabs"
       :key="`view-${index}`"
@@ -19,6 +29,7 @@
 
 <script setup lang="ts">
 import AssetLineageFlow from "@/components/lineage-flow/asset-lineage/AssetLineage.vue";
+import PipelineLineageFlow from "@/components/lineage-flow/pipeline-lineage/PipelineLineage.vue";
 import { ref, onUnmounted, computed } from "vue";
 import { updateValue } from "./utilities/helper";
 import { getAssetDataset } from "@/components/lineage-flow/asset-lineage/useAssetLineage";
@@ -31,7 +42,6 @@ import { getAssetDataset } from "@/components/lineage-flow/asset-lineage/useAsse
  * lineage data, and renders the lineage flow component.
  */
 
-const parseError = ref(); // Holds any parsing errors
 const lineageData = ref(); // Holds the lineage data received from the extension
 const lineageError = ref(); // Holds any errors related to lineage data
 const activeTab = ref(0); // Tracks the currently active tab
@@ -72,8 +82,18 @@ const assetDataset = computed(() => {
 // Define tabs for the application
 const tabs = ref([
   {
-    label: "Lineage",
+    label: "Asset Lineage",
     component: AssetLineageFlow,
+    props: {
+      assetDataset,
+      pipelineData: computed(() => pipeline.value),
+      LineageError: lineageErr.value,
+      isLoading: computed(() => !lineageData.value && !lineageError.value),
+    },
+  },
+  {
+    label: "Pipeline Lineage",
+    component: PipelineLineageFlow,
     props: {
       assetDataset,
       pipelineData: computed(() => pipeline.value),
