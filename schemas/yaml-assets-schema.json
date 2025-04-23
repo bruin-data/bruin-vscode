@@ -36,6 +36,7 @@
             "ingestr",
             "duckdb.seed",
             "emr_serverless.spark",
+            "emr_serverless.pyspark",
             "bq.seed"
           ],
           "description": "The type of the asset"
