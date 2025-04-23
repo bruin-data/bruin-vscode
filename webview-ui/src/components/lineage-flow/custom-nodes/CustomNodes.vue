@@ -23,8 +23,11 @@
             >
               <div class="h-1 w-1 rounded-full bg-yellow-500" />
             </div>
+            <div v-else-if="status === 'failed'" class="flex-none rounded-full p-0.5 bg-red-500">
+              <div class="h-1 w-1 rounded-full bg-red-600" />
+            </div>
             <div>
-              <p class="">{{ status }}</p>
+              <p class="">{{ status || '' }}</p>
             </div>
           </div>
           <div
@@ -90,13 +93,10 @@
   />
 </template>
 
-
-
 <script lang="ts" setup>
 import { computed, defineProps, defineEmits, onMounted, onUnmounted, ref } from "vue";
 import { Handle, Position } from "@vue-flow/core";
 import { PlusIcon } from "@heroicons/vue/20/solid";
-import type { BruinNodeProps } from "@/types";
 import AssetProperties from "@/components/ui/asset/AssetProperties.vue";
 import { vscode } from "@/utilities/vscode";
 import {
@@ -104,6 +104,7 @@ import {
   statusStyles,
   styles,
 } from "@/components/lineage-flow/custom-nodes/CustomNodeStyles";
+import type { BruinNodeProps } from "@/types";
 
 const props = defineProps<BruinNodeProps & {
   selectedNodeId: string | null;
@@ -135,14 +136,14 @@ const onAddUpstream = () => emit("add-upstream", props.data.asset?.name);
 const onAddDownstream = () => emit("add-downstream", props.data.asset?.name);
 
 const showPopup = computed(() => props.selectedNodeId === props.data.asset?.name && !props.data.asset?.isFocusAsset);
-const togglePopup = (event: MouseEvent) => {
+const togglePopup = (event) => {
   event.stopPropagation();
   emit("node-click", props.data.asset?.name, event);
 };
 
 const closePopup = () => emit("node-click", null, new MouseEvent('click'));
 
-const handleGoToDetails = (asset: any) => {
+const handleGoToDetails = (asset) => {
   vscode.postMessage({ command: "bruin.openAssetDetails", payload: asset.path });
   closePopup();
 };
@@ -161,7 +162,7 @@ const toggleExpand = () => {
   emit("toggle-node-expand", props.data.asset?.name);
 };
 
-const handleClickOutside = (event: MouseEvent) => {
+const handleClickOutside = (event) => {
   if (showPopup.value) closePopup();
 };
 
@@ -185,9 +186,6 @@ onUnmounted(() => {
   document.removeEventListener("click", handleClickOutside);
 });
 </script>
-
-
-
 
 <style scoped>
 .custom-node-wrapper {
@@ -241,6 +239,3 @@ onUnmounted(() => {
   right: -28px;
 }
 </style>
-
-
-
