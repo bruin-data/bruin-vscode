@@ -3,6 +3,7 @@ import { BruinCommand } from "./bruinCommand";
 import { LineagePanel } from "../panels/LineagePanel";
 import { getCurrentPipelinePath } from "./bruinUtils";
 import * as vscode from "vscode";
+import { isConfigFile } from "../utilities/helperUtils";
 /**
  * Extends the BruinCommand class to implement the bruin run command on Bruin assets.
  */
@@ -51,6 +52,9 @@ export class BruinLineageInternalParse extends BruinCommand {
     { flags = ["parse-pipeline"], ignoresErrors = false }: BruinCommandOptions = {}
   ): Promise<void> {
     try {
+      if(isConfigFile(filePath)) {
+        return;
+      }
       const result = await this.run([...flags, await getCurrentPipelinePath(filePath) as string], { ignoresErrors });
       const pipelineData = JSON.parse(result);
       const asset = pipelineData.assets.find(

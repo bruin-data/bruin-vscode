@@ -31,14 +31,14 @@ export class BruinInternalParse extends BruinCommand {
     { flags = ["parse-asset"], ignoresErrors = false }: BruinCommandOptions = {}
   ): Promise<void> {
     try {
-      if (filePath.endsWith("pipeline.yml")) {
+      if (filePath.endsWith("pipeline.yml") || filePath.endsWith("pipeline.yaml")) {
         // Use the new parsePipelineConfig method for pipeline.yml
         const parser = new BruinLineageInternalParse(this.bruinExecutable, this.workingDirectory);
         const pipelineMeta = await parser.parsePipelineConfig(filePath);
         this.postMessageToPanels("success", JSON.stringify({ type: "pipelineConfig", ...pipelineMeta, filePath }));
         return;
       }
-      if (filePath.endsWith(".bruin.yml")) {
+      if (filePath.endsWith(".bruin.yml") || filePath.endsWith(".bruin.yaml")) {
         // Do not throw error, just send minimal message for the panel/UI to handle
         this.postMessageToPanels("success", JSON.stringify({ type: "bruinConfig", filePath }));
         return;
