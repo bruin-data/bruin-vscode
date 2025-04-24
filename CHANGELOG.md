@@ -1,4 +1,6 @@
 # Changelog
+## [0.43.4] - [2025-04-24]
+- Fix rendering for pipeline.yml and .bruin.yml in side panel
 
 ## [0.43.3] - [2025-04-22]
 - Added Version Selection for Bruin CLI Update in Settings Tab.

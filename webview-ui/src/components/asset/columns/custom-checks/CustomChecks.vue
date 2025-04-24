@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col py-2 sm:py-1 h-full w-56 relative">
     <div class="flex justify-end mb-4">
-      <vscode-button @click="addCustomCheck" class="py-1 focus:outline-none">
+      <vscode-button :disabled="isConfigFile" @click="addCustomCheck" class="py-1 focus:outline-none disabled:cursor-not-allowed">
         Add Check
       </vscode-button>
     </div>
@@ -156,6 +156,7 @@ import DeleteAlert from "@/components/ui/alerts/AlertWithActions.vue";
 
 const props = defineProps<{
   customChecks: CustomChecks[];
+  isConfigFile: boolean;
 }>();
 
 const localCustomChecks = ref<CustomChecks[]>([]);

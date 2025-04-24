@@ -62,7 +62,15 @@ export const isBruinPipeline = async (fileName: string): Promise<boolean> => {
   }
   return false;
 };
-
+export function isConfigFile(filePath: string): boolean {
+  const configSuffixes = [
+    "pipeline.yml",
+    "pipeline.yaml",
+    ".bruin.yml",
+    ".bruin.yaml"
+  ];
+  return configSuffixes.some(suffix => filePath.endsWith(suffix));
+}
 export const isYamlBruinAsset = async (fileName: string): Promise<boolean> =>
   isBruinAsset(fileName, [".asset.yml", ".asset.yaml"]);
 
