@@ -1,13 +1,15 @@
 <template>
   <div class="custom-node-wrapper">
-    <div
-      v-if="showUpstreamIcon"
-      @click.stop="onAddUpstream"
-      class="icon-wrapper left-icon bg-commandCenter-border"
-      :class="{ invisible: !props.data.hasUpstreamForClicking }"
-      title="Show Upstreams"
-    >
-      <PlusIcon class="h-4 w-4 fill-gray-300 text-gray-700/50 hover:text-gray-700" />
+    <div v-if="props.showExpandButtons">
+      <div
+        v-if="showUpstreamIcon"
+        @click.stop="onAddUpstream"
+        class="icon-wrapper left-icon bg-commandCenter-border"
+        :class="{ invisible: !props.data.hasUpstreamForClicking }"
+        title="Show Upstreams"
+      >
+        <PlusIcon class="h-4 w-4 fill-gray-300 text-gray-700/50 hover:text-gray-700" />
+      </div>
     </div>
 
     <div class="node-content" :class="[assetClass, { expanded: isExpanded }]" @click="togglePopup">
@@ -61,13 +63,15 @@
       </div>
     </div>
 
-    <div
-      v-if="showDownstreamIcon"
-      @click.stop="onAddDownstream"
-      class="icon-wrapper right-icon bg-commandCenter-border"
-      title="Show Downstreams"
-    >
-      <PlusIcon class="h-4 w-4 fill-gray-300 text-gray-700/50 hover:text-gray-700" />
+    <div v-if="props.showExpandButtons">
+      <div
+        v-if="showDownstreamIcon"
+        @click.stop="onAddDownstream"
+        class="icon-wrapper right-icon bg-commandCenter-border"
+        title="Show Downstreams"
+      >
+        <PlusIcon class="h-4 w-4 fill-gray-300 text-gray-700/50 hover:text-gray-700" />
+      </div>
     </div>
     <AssetProperties
       v-if="!data.asset?.isFocusAsset"
@@ -108,9 +112,10 @@ import type { BruinNodeProps } from "@/types";
 
 const props = defineProps<BruinNodeProps & {
   selectedNodeId: string | null;
-  expandAllDownstreams: boolean;
-  expandAllUpstreams: boolean;
-  expandedNodes: { [key: string]: boolean };
+  expandAllDownstreams?: boolean;
+  expandAllUpstreams?: boolean;
+  expandedNodes?: { [key: string]: boolean };
+  showExpandButtons: boolean;
 }>();
 const emit = defineEmits(["add-upstream", "add-downstream", "node-click", "toggle-node-expand"]);
 
@@ -149,7 +154,7 @@ const handleGoToDetails = (asset) => {
 };
 
 const label = computed(() => props.data.asset?.name || '');
-const isExpanded = computed(() => props.expandedNodes[props.data.asset?.name || ''] || false);
+const isExpanded = computed(() => props.expandedNodes?.[props.data.asset?.name || ''] || false);
 
 const isTruncated = computed(() => label.value.length > 26);
 const truncatedLabel = computed(() => {

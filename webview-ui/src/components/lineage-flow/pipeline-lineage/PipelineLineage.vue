@@ -26,6 +26,7 @@
           :label="nodeProps.data.label"
           :selected-node-id="selectedNodeId"
           @node-click="onNodeClick"
+          :show-expand-buttons="false"
         />
       </template>
       <Controls

@@ -34,6 +34,7 @@
           @addDownstream="onAddDownstream"
           @node-click="onNodeClick"
           :selected-node-id="selectedNodeId"
+          :show-expand-buttons="true"
         />
       </template>
       <Panel position="top-right">
