@@ -32,16 +32,15 @@ export interface FormattedErrorMessage {
 }
 
 export interface Asset {
-  id: string;
   name: string;
   type: string;
   pipeline: string;
-  project: string;
-  description: string;
+  path: string;
+  upstreams: Array<{ type: string; value: string }>;
+  downstreams: Array<{ type: string; value: string }>;
   hasUpstreams: boolean;
   hasDownstreams: boolean;
   isFocusAsset?: boolean;
-  path: string;
 }
 
 export interface Project {
@@ -114,6 +113,8 @@ export interface SimpleAsset {
   id: string;
   name: string;
   type: string;
+  pipeline: string;
+  path: string;
   upstreams: string[];
   downstream: string[];
   hasUpstreamForClicking?: boolean;
