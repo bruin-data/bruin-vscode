@@ -38,8 +38,9 @@ export class BruinInternalParse extends BruinCommand {
         this.postMessageToPanels("success", JSON.stringify({ type: "pipelineConfig", ...pipelineMeta, filePath }));
         return;
       }
-      if (filePath.endsWith(".bruin.yml") || filePath.endsWith(".bruin.yaml")) {
+      if (filePath.endsWith("bruin.yml") || filePath.endsWith("bruin.yaml")) {
         // Do not throw error, just send minimal message for the panel/UI to handle
+        console.log("Bruin config parsed:", filePath);
         this.postMessageToPanels("success", JSON.stringify({ type: "bruinConfig", filePath }));
         return;
       }

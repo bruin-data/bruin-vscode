@@ -51,10 +51,12 @@
             <!-- Tags div that will be hidden on small screens -->
             <div class="flex items-center tags">
               <DescriptionItem
-                :value="assetDetailsProps?.type ?? 'undefined'"
+                v-if="displayType"
+                :value="displayType"
                 :className="assetDetailsProps?.type ? badgeClass.badgeStyle : badgeClass.grayBadge"
               />
               <DescriptionItem
+                v-if="displaySchedule"
                 :value="displaySchedule"
                 :className="badgeClass.grayBadge"
                 class="xs:flex hidden overflow-hidden truncate"
@@ -182,6 +184,8 @@ window.addEventListener("message", (event) => {
           // Handle bruinConfig (from .bruin.yml)
           if (parsed && parsed.type === "bruinConfig") {
             // Only settings tab should be open
+            console.log("Bruin config parsed:", parsed);
+            isBruinYml.value = true;
             activeTab.value = 3; 
             break;
           }
@@ -214,17 +218,12 @@ window.addEventListener("message", (event) => {
   }
 });
 
+const isBruinYml = ref(false); 
 const activeTab = ref(0); // Tracks the currently active tab
 const navigateToGlossary = () => {
   console.log("Opening glossary.");
   vscode.postMessage({ command: "bruin.openGlossary" });
 };
-// Computed property to check if the last rendered document is a Bruin YAML file
-const isBruinYml = computed(() => {
-  const result = lastRenderedDocument.value && lastRenderedDocument.value.endsWith(".bruin.yml");
-  return result;
-});
-
 // Computed property to parse the list of environments
 const environmentsList = computed(() => {
   if (!environments.value) return [];
@@ -257,9 +256,10 @@ const parsedData = computed(() => {
 });
 
 const isPipelineConfig = computed(() => parsedData.value?.type === "pipelineConfig");
-
+const isBruinConfig = computed(() => parsedData.value?.type === "bruinConfig");
 const displayName = computed(() => {
   if (isPipelineConfig.value) return parsedData.value?.name || "";
+  if (isBruinConfig.value) return "Bruin Config";
   return assetDetailsProps.value?.name || "";
 });
 
@@ -270,6 +270,7 @@ const displaySchedule = computed(() => {
 
 const displayType = computed(() => {
   if (isPipelineConfig.value) return parsedData.value?.type || "";
+  if (isBruinConfig.value) return "config";
   return assetDetailsProps.value?.type || "";
 });
 // Computed property for asset details
