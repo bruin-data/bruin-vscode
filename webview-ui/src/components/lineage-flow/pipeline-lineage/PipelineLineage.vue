@@ -29,6 +29,7 @@
           :show-expand-buttons="false"
         />
       </template>
+      <MiniMap pannable zoomable />
       <Controls
         :position="PanelPosition.BottomLeft"
         showZoom
@@ -44,8 +45,10 @@
 import { PanelPosition, VueFlow, useVueFlow } from "@vue-flow/core";
 import { Background } from "@vue-flow/background";
 import { Controls } from "@vue-flow/controls";
+import { MiniMap } from "@vue-flow/minimap";
 import "@vue-flow/controls/dist/style.css";
 import { computed, onMounted, ref, watch, nextTick } from "vue";
+
 import ELK from "elkjs/lib/elk.bundled.js";
 import CustomNode from "@/components/lineage-flow/custom-nodes/CustomNodes.vue";
 import {
@@ -53,7 +56,6 @@ import {
   generateGraph,
 } from "@/components/lineage-flow/pipeline-lineage/pipelineLineageBuilder";
 import type { AssetDataset } from "@/types";
-import type { Node, Edge } from "@vue-flow/core";
 
 const props = defineProps<{
   assetDataset?: AssetDataset | null;
@@ -62,7 +64,7 @@ const props = defineProps<{
   LineageError: string | null;
 }>();
 
-const flowRef = ref(null);
+const flowRef = ref<InstanceType<typeof VueFlow> | null>(null);
 const { nodes, edges, setNodes, setEdges, fitView } = useVueFlow();
 const elements = computed(() => [...nodes.value, ...edges.value]);
 const selectedNodeId = ref<string | null>(null);
@@ -118,7 +120,7 @@ async function applyLayout() {
     layoutOptions: {
       "elk.algorithm": "layered",
       "elk.direction": "RIGHT",
-      "elk.layered.spacing.nodeNodeBetweenLayers": "5",
+      "elk.layered.spacing.nodeNodeBetweenLayers": "100",
       "elk.spacing.nodeNode": "0.0",
       "elk.layered.nodePlacement.strategy": "NETWORK_SIMPLEX",
       "elk.layered.nodePlacement.bk.fixedAlignment": "BALANCED",
@@ -145,7 +147,6 @@ async function applyLayout() {
     const layout = await elk.layout(elkGraph);
     if (layout.children && layout.children.length) {
       updateNodePositions(layout);
-
       // Mark layout as complete
       initialLayoutComplete.value = true;
       isUpdating.value = false;
