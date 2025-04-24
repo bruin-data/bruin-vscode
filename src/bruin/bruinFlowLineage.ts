@@ -22,7 +22,6 @@ export class BruinLineageInternalParse extends BruinCommand {
     console.log("Pipeline data from parsePipelineConfig", pipelineData);
     return {
       name: pipelineData.name || '',
-      type: 'pipeline',
       schedule: pipelineData.schedule || '',
       description: pipelineData.description || '',
       raw: pipelineData

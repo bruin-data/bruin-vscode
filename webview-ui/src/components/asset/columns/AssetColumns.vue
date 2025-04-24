@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col py-4 sm:py-1 h-full w-full min-w-56 relative">
     <div class="flex justify-end mb-4 px-4">
-      <vscode-button @click="handleAddColumn" class="py-1 focus:outline-none"> Add column </vscode-button>
+      <vscode-button @click="handleAddColumn" class="py-1 focus:outline-none disabled:cursor-not-allowed" :disabled="isConfigFile"> Add column </vscode-button>
     </div>
 
     <!-- Header Row -->
@@ -274,6 +274,10 @@ const props = defineProps({
     type: Array,
     required: true,
   },
+  isConfigFile: {
+    type: Boolean,
+    required: true,
+  },
 });
 
 const emit = defineEmits(["update:columns", "open-glossary"]);
@@ -287,7 +291,7 @@ const showAcceptedValuesInput = ref(false);
 const newAcceptedValuesInput = ref("");
 const error = ref(null);
 const showAddCheckDropdown = ref(null);
-
+const isConfigFile = computed(() => props.isConfigFile);
 const updatePatternValue = () => {
   const patternCheck = editingColumn.value.checks.find((check) => check.name === "pattern");
   if (patternCheck) {

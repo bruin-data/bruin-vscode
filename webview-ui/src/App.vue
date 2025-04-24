@@ -171,12 +171,13 @@ window.addEventListener("message", (event) => {
         connectionsStore.setDefaultEnvironment(selectedEnvironment.value); // Set the default environment in the store
         break;
       case "parse-message": {
+        console.log("Webview received message:", message);
+
         parseError.value = updateValue(message, "error");
         const parsed = updateValue(message, "success");
         if (!parseError.value) {
           // Handle pipelineConfig (from pipeline.yml)
           if (parsed && parsed.type === "pipelineConfig") {
-            console.log("Pipeline config parsed:", parsed);
             data.value = parsed;
             lastRenderedDocument.value = parsed.filePath;
             break;
@@ -256,7 +257,8 @@ const parsedData = computed(() => {
 });
 
 const isPipelineConfig = computed(() => parsedData.value?.type === "pipelineConfig");
-const isBruinConfig = computed(() => parsedData.value?.type === "bruinConfig");
+const isBruinConfig = computed(() => parsedData.value?.type === "bruinConfig")
+const isConfigFile = computed(() => isBruinConfig.value || isPipelineConfig.value);
 const displayName = computed(() => {
   if (isPipelineConfig.value) return parsedData.value?.name || "";
   if (isBruinConfig.value) return "Bruin Config";
@@ -269,16 +271,15 @@ const displaySchedule = computed(() => {
 });
 
 const displayType = computed(() => {
-  if (isPipelineConfig.value) return parsedData.value?.type || "";
+  if (isPipelineConfig.value) return "pipeline";
   if (isBruinConfig.value) return "config";
   return assetDetailsProps.value?.type || "";
 });
 // Computed property for asset details
 const assetDetailsProps = computed({
   get: () => {
-    if (!data.value) return null;
+    if (!data.value ) return null;
     const parsedDetails = parseAssetDetails(data.value);
-    console.log("Parsed asset details:", parsedDetails);
     return parsedDetails;
   },
   set: (newValue) => {
@@ -378,6 +379,7 @@ const tabs = ref([
     component: AssetColumns,
     props: computed(() => ({
       columns: columns.value,
+      isConfigFile: isConfigFile.value,
     })),
   },
   {
@@ -385,6 +387,7 @@ const tabs = ref([
     component: CustomChecks,
     props: computed(() => ({
       customChecks: customChecksProps.value,
+      isConfigFile: isConfigFile.value,
     })),
   },
   {
