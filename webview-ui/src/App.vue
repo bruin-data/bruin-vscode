@@ -27,7 +27,7 @@
                   </template>
                   <template v-else>
                     <span id="input-name" class="block truncate">
-                      {{ assetDetailsProps?.name }}
+                      {{ displayName }}
                     </span>
                   </template>
                 </div>
@@ -55,7 +55,7 @@
                 :className="assetDetailsProps?.type ? badgeClass.badgeStyle : badgeClass.grayBadge"
               />
               <DescriptionItem
-                :value="assetDetailsProps?.pipeline?.schedule ?? 'undefined'"
+                :value="displaySchedule"
                 :className="badgeClass.grayBadge"
                 class="xs:flex hidden overflow-hidden truncate"
               />
@@ -168,20 +168,33 @@ window.addEventListener("message", (event) => {
         environments.value = updateValue(message, "success");
         connectionsStore.setDefaultEnvironment(selectedEnvironment.value); // Set the default environment in the store
         break;
-      case "parse-message":
+      case "parse-message": {
         parseError.value = updateValue(message, "error");
+        const parsed = updateValue(message, "success");
         if (!parseError.value) {
-          data.value = updateValue(message, "success"); // Update asset data on success
-          // console.log("Updated asset data:", data.value);
+          // Handle pipelineConfig (from pipeline.yml)
+          if (parsed && parsed.type === "pipelineConfig") {
+            console.log("Pipeline config parsed:", parsed);
+            data.value = parsed;
+            lastRenderedDocument.value = parsed.filePath;
+            break;
+          }
+          // Handle bruinConfig (from .bruin.yml)
+          if (parsed && parsed.type === "bruinConfig") {
+            // Only settings tab should be open
+            activeTab.value = 3; 
+            break;
+          }
+          data.value = parsed;
         }
-        lastRenderedDocument.value = updateValue(message, "success");
+        lastRenderedDocument.value = parsed;
 
         // Track asset parsing status
         rudderStack.trackEvent("Asset Parsing Status", {
           parseError: parseError.value ? `Error ${parseError.value}` : "No Error Found",
         });
-
         break;
+      }
       case "bruinCliInstallationStatus":
         isBruinInstalled.value = message.installed; // Update installation status
         console.log("Bruin installation status updated:", isBruinInstalled.value);
@@ -234,6 +247,31 @@ const selectedEnvironment = computed(() => {
   return selected;
 });
 
+const parsedData = computed(() => {
+  if (!data.value) return null;
+  try {
+    return typeof data.value === "string" ? JSON.parse(data.value) : data.value;
+  } catch {
+    return null;
+  }
+});
+
+const isPipelineConfig = computed(() => parsedData.value?.type === "pipelineConfig");
+
+const displayName = computed(() => {
+  if (isPipelineConfig.value) return parsedData.value?.name || "";
+  return assetDetailsProps.value?.name || "";
+});
+
+const displaySchedule = computed(() => {
+  if (isPipelineConfig.value) return parsedData.value?.schedule || "";
+  return assetDetailsProps.value?.pipeline?.schedule || "";
+});
+
+const displayType = computed(() => {
+  if (isPipelineConfig.value) return parsedData.value?.type || "";
+  return assetDetailsProps.value?.type || "";
+});
 // Computed property for asset details
 const assetDetailsProps = computed({
   get: () => {

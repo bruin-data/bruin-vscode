@@ -9,6 +9,26 @@ import * as vscode from "vscode";
 
 export class BruinLineageInternalParse extends BruinCommand {
   /**
+   * Parses pipeline.yml and returns pipeline-level metadata (name, schedule, etc).
+   * Does NOT look for assets or post to LineagePanel.
+   */
+  public async parsePipelineConfig(
+    filePath: string,
+    { flags = ["parse-pipeline"], ignoresErrors = false }: BruinCommandOptions = {}
+  ): Promise<any> {
+    const result = await this.run([...flags, filePath], { ignoresErrors });
+    const pipelineData = JSON.parse(result);
+    console.log("Pipeline data from parsePipelineConfig", pipelineData);
+    return {
+      name: pipelineData.name || '',
+      type: 'pipeline',
+      schedule: pipelineData.schedule || '',
+      description: pipelineData.description || '',
+      raw: pipelineData
+    };
+  }
+
+  /**
    * Specifies the Bruin command string.
    *
    * @returns {string} Returns the 'run' command string.

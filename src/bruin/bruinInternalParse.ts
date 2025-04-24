@@ -1,15 +1,13 @@
 import { BruinCommandOptions } from "../types";
 import { BruinCommand } from "./bruinCommand";
 import { BruinPanel } from "../panels/BruinPanel";
+import { BruinLineageInternalParse } from "./bruinFlowLineage";
 
 /**
  * Extends the BruinCommand class to implement the bruin run command on Bruin assets.
  */
 
 export class BruinInternalParse extends BruinCommand {
-  parseAssetLineage(fsPath: string) {
-    throw new Error("Method not implemented.");
-  }
   /**
    * Specifies the Bruin command string.
    *
@@ -32,18 +30,35 @@ export class BruinInternalParse extends BruinCommand {
     filePath: string,
     { flags = ["parse-asset"], ignoresErrors = false }: BruinCommandOptions = {}
   ): Promise<void> {
-    await this.run([...flags, filePath], { ignoresErrors })
-      .then(
-        (result) => {
-          this.postMessageToPanels("success", result);
-        },
-        (error) => {
-          this.postMessageToPanels("error", error);
-        }
-      )
-      .catch((err) => {
-        console.debug("parsing command error", err);
-      });
+    try {
+      if (filePath.endsWith("pipeline.yml")) {
+        // Use the new parsePipelineConfig method for pipeline.yml
+        const parser = new BruinLineageInternalParse(this.bruinExecutable, this.workingDirectory);
+        const pipelineMeta = await parser.parsePipelineConfig(filePath);
+        this.postMessageToPanels("success", JSON.stringify({ type: "pipelineConfig", ...pipelineMeta, filePath }));
+        return;
+      }
+      if (filePath.endsWith(".bruin.yml")) {
+        // Do not throw error, just send minimal message for the panel/UI to handle
+        this.postMessageToPanels("success", JSON.stringify({ type: "bruinConfig", filePath }));
+        return;
+      }
+      // Default: original asset logic
+      await this.run([...flags, filePath], { ignoresErrors })
+        .then(
+          (result) => {
+            this.postMessageToPanels("success", result);
+          },
+          (error) => {
+            this.postMessageToPanels("error", error);
+          }
+        )
+        .catch((err) => {
+          console.debug("parsing command error", err);
+        });
+    } catch (err) {
+      this.postMessageToPanels("error", err instanceof Error ? err.message : String(err));
+    }
   }
 
   private postMessageToPanels(status: string, message: string | any) {
