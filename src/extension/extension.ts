@@ -19,7 +19,7 @@ import {
 } from "./configuration";
 import * as os from "os";
 import { renderCommand } from "./commands/renderCommand";
-import { LineagePanel } from "../panels/LineagePanel";
+import { AssetLineagePanel, LineagePanel, PipelineLineagePanel } from "../panels/LineagePanel";
 import { installOrUpdateCli } from "./commands/updateBruinCLI";
 import { QueryPreviewPanel } from "../panels/QueryPreviewPanel";
 import { BruinPanel } from "../panels/BruinPanel";
@@ -121,8 +121,22 @@ export async function activate(context: ExtensionContext) {
   }
   
   
-  const lineageWebviewProvider = new LineagePanel(context.extensionUri);
-  const queryPreviewWebviewProvider = new QueryPreviewPanel(context.extensionUri, context);
+  const assetLineagePanel = new AssetLineagePanel(context.extensionUri);
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(
+      AssetLineagePanel.viewId,
+      assetLineagePanel
+    )
+  );
+
+  // Register the Pipeline Lineage Panel
+  const pipelineLineagePanel = new PipelineLineagePanel(context.extensionUri);
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(
+      PipelineLineagePanel.viewId,
+      pipelineLineagePanel
+    )
+  );  const queryPreviewWebviewProvider = new QueryPreviewPanel(context.extensionUri, context);
   // Register the folding range provider for Python and SQL files
   const foldingDisposable = languages.registerFoldingRangeProvider(["python", "sql"], {
     provideFoldingRanges: bruinFoldingRangeProvider,
@@ -163,7 +177,6 @@ export async function activate(context: ExtensionContext) {
       }
     }),
     foldingDisposable,
-    window.registerWebviewViewProvider(LineagePanel.viewId, lineageWebviewProvider),
     window.registerWebviewViewProvider(QueryPreviewPanel.viewId, queryPreviewWebviewProvider)
 
   );
