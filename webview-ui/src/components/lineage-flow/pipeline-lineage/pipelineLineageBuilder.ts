@@ -1,5 +1,6 @@
 import type { Asset } from '@/types';
 import type { Node, Edge } from "@vue-flow/core";
+import ELK from "elkjs/lib/elk.bundled.js";
 
 /**
  * Process pipeline data to generate a complete lineage graph
@@ -121,9 +122,71 @@ function createNode(asset: Asset, isFocusAsset: boolean = false): Node {
     }
   };
 }
+// simplify this from o2, use a dictionary instead of two loops
+function updateNodePositions(layout: any, nodes: Node[]) {
+  const updatedNodes = nodes.map((node) => {
+    const layoutNode = layout.children.find((child: any) => child.id === node.id);
+    if (layoutNode) {
+      return {
+        ...node,
+        position: { x: layoutNode.x, y: layoutNode.y },
+        zIndex: 1,
+      };
+    }
+    return node;
+  });
+  return updatedNodes;
+};
+// Function to apply ELK layout
+async function applyLayout(nodes: Node[], edges: Edge[]) : Promise<{ nodes: Node[], edges: Edge[] }> {
+  const elk = new ELK();
 
+  if (nodes.length === 0) {
+    return { nodes: [], edges: [] };
+  }
+
+  const elkGraph = {
+    id: "root",
+    layoutOptions: {
+      "elk.algorithm": "layered",
+      "elk.direction": "RIGHT",
+      "elk.layered.spacing.nodeNodeBetweenLayers": "100",
+      "elk.spacing.nodeNode": "0.0",
+      "elk.layered.nodePlacement.strategy": "NETWORK_SIMPLEX",
+      "elk.layered.nodePlacement.bk.fixedAlignment": "BALANCED",
+      "elk.layered.crossingMinimization.strategy": "LAYER_SWEEP",
+      "elk.layered.cycleBreaking.strategy": "DEPTH_FIRST",
+      "elk.layered.layering.strategy": "NETWORK_SIMPLEX",
+      "elk.layered.considerModelOrder.strategy": "PREFER_NODES",
+      "elk.layered.crossingMinimization.semiInteractive": "true",
+      "elk.layered.unnecessaryBendpoints": "true",
+    },
+    children: nodes.map((node) => ({
+      id: node.id,
+      width: 224, // Same as node-content width
+      height: 80, // Approximate height
+    })),
+    edges: edges.map((edge) => ({
+      id: edge.id,
+      sources: [edge.source],
+      targets: [edge.target],
+    })),
+  };
+
+  try {
+    const layout = await elk.layout(elkGraph);
+    if (layout.children && layout.children.length) {
+      const updatedNodes = updateNodePositions(layout, nodes);
+      return { nodes: updatedNodes, edges };
+    }
+  } catch (error) {
+    console.error("Error applying ELK layout:", error);
+  }
+  return { nodes, edges };
+}
 // Export the utility functions
 export {
   buildPipelineLineage,
-  generateGraph
+  generateGraph,
+  applyLayout,
 };
