@@ -1,22 +1,13 @@
 <template>
   <div class="flow">
-    <div v-if="isLoading || isUpdating" class="loading-overlay">
-      <vscode-progress-ring></vscode-progress-ring>
-      <span class="ml-2">{{ isLoading ? "Loading lineage data..." : "Updating layout..." }}</span>
-    </div>
-    <div v-else-if="error" class="error-message">
-      <span class="ml-2">{{ error }}</span>
-    </div>
     <VueFlow
-      v-else
-      v-model:elements="elements"
-      :default-viewport="{ x: 150, y: 10, zoom: 1 }"
-      :fit-view-on-init="false"
+      :nodes="elements.nodes"
+      :edges="elements.edges"
+      @nodesInitialized="onNodesInitialized"
+      :min-zoom="0.1"
       class="basic-flow"
       :draggable="true"
       :node-draggable="true"
-      @paneReady="onPaneReady"
-      ref="flowRef"
     >
       <Background />
 
@@ -42,21 +33,19 @@
 </template>
 
 <script setup lang="ts">
-import { PanelPosition, VueFlow, useVueFlow } from "@vue-flow/core";
+import { PanelPosition, VueFlow, useVueFlow, type Edge } from "@vue-flow/core";
 import { Background } from "@vue-flow/background";
 import { Controls } from "@vue-flow/controls";
 import { MiniMap } from "@vue-flow/minimap";
 import "@vue-flow/controls/dist/style.css";
-import { computed, onMounted, ref, watch, nextTick } from "vue";
-
-import ELK from "elkjs/lib/elk.bundled.js";
+import { ref, watch } from "vue";
 import CustomNode from "@/components/lineage-flow/custom-nodes/CustomNodes.vue";
 import {
+  applyLayout,
   buildPipelineLineage,
   generateGraph,
 } from "@/components/lineage-flow/pipeline-lineage/pipelineLineageBuilder";
 import type { AssetDataset } from "@/types";
-
 const props = defineProps<{
   assetDataset?: AssetDataset | null;
   pipelineData: any;
@@ -64,128 +53,40 @@ const props = defineProps<{
   LineageError: string | null;
 }>();
 
-const flowRef = ref<InstanceType<typeof VueFlow> | null>(null);
-const { nodes, edges, setNodes, setEdges, fitView } = useVueFlow();
-const elements = computed(() => [...nodes.value, ...edges.value]);
+const { fitView } = useVueFlow();
 const selectedNodeId = ref<string | null>(null);
-const elk = new ELK();
 
-const isUpdating = ref(false);
-const initialLayoutComplete = ref(false);
 const error = ref<string | null>(props.LineageError);
+const elements = ref<any>({ nodes: [], edges: [] });
 
-// Watch for changes in pipelineData
 watch(
   () => props.pipelineData,
-  (newVal) => {
-    if (newVal) {
-      initializeGraph();
+  async (newPipelineData) => {
+    if (!newPipelineData) {
+      elements.value = { nodes: [], edges: [] };
+      return;
     }
+    const lineageData = buildPipelineLineage(newPipelineData);
+    const { nodes: initialNodes, edges: initialEdges } = generateGraph(
+      lineageData,
+      props.assetDataset?.name || ""
+    );
+    const { nodes: layoutNodes, edges: layoutEdges } = await applyLayout(initialNodes, initialEdges);
+    elements.value = { nodes: layoutNodes, edges: layoutEdges};
+    //fitView();
   },
   { immediate: true }
 );
 
-// Initialize graph with focus asset
-const initializeGraph = async () => {
-  if (!props.pipelineData) return;
-  // Build complete lineage data with calculated downstream relationships
-  const lineageData = buildPipelineLineage(props.pipelineData);
-
-  // Generate initial graph focused on the specified asset
-  const { nodes: initialNodes, edges: initialEdges } = generateGraph(
-    lineageData,
-    props.assetDataset?.name || ""
-  );
-
-  setNodes(initialNodes);
-  setEdges(initialEdges);
-
-  // Apply initial layout
-  await applyLayout();
-
-  // Fit view after initial render
-  setTimeout(() => {
-    fitView({ padding: 0.2 });
-  }, 50);
-};
-
-// Function to apply ELK layout
-async function applyLayout() {
-  if (nodes.value.length === 0) return;
-
-  isUpdating.value = true;
-
-  const elkGraph = {
-    id: "root",
-    layoutOptions: {
-      "elk.algorithm": "layered",
-      "elk.direction": "RIGHT",
-      "elk.layered.spacing.nodeNodeBetweenLayers": "100",
-      "elk.spacing.nodeNode": "0.0",
-      "elk.layered.nodePlacement.strategy": "NETWORK_SIMPLEX",
-      "elk.layered.nodePlacement.bk.fixedAlignment": "BALANCED",
-      "elk.layered.crossingMinimization.strategy": "LAYER_SWEEP",
-      "elk.layered.cycleBreaking.strategy": "DEPTH_FIRST",
-      "elk.layered.layering.strategy": "NETWORK_SIMPLEX",
-      "elk.layered.considerModelOrder.strategy": "PREFER_NODES",
-      "elk.layered.crossingMinimization.semiInteractive": "true",
-      "elk.layered.unnecessaryBendpoints": "true",
-    },
-    children: nodes.value.map((node) => ({
-      id: node.id,
-      width: 224, // Same as node-content width
-      height: 80, // Approximate height
-    })),
-    edges: edges.value.map((edge) => ({
-      id: edge.id,
-      sources: [edge.source],
-      targets: [edge.target],
-    })),
-  };
-
-  try {
-    const layout = await elk.layout(elkGraph);
-    if (layout.children && layout.children.length) {
-      updateNodePositions(layout);
-      // Mark layout as complete
-      initialLayoutComplete.value = true;
-      isUpdating.value = false;
-    }
-  } catch (error) {
-    console.error("Error applying ELK layout:", error);
-    isUpdating.value = false;
-  }
+const onNodesInitialized = () => {
+  // instance is the same as the return of `useVueFlow`
+  console.log("onInit is called")
+  fitView()
 }
-
-// Function to update node positions based on ELK layout
-const updateNodePositions = (layout: any) => {
-  const updatedNodes = nodes.value.map((node) => {
-    const layoutNode = layout.children.find((child: any) => child.id === node.id);
-    if (layoutNode) {
-      return {
-        ...node,
-        position: { x: layoutNode.x, y: layoutNode.y },
-        zIndex: 1,
-      };
-    }
-    return node;
-  });
-  setNodes(updatedNodes);
-};
-
 const onNodeClick = (nodeId: string) => {
   selectedNodeId.value = selectedNodeId.value === nodeId ? null : nodeId;
 };
 
-const onPaneReady = () => {
-  if (!initialLayoutComplete.value && nodes.value.length > 0) {
-    applyLayout();
-  }
-};
-
-onMounted(() => {
-  initializeGraph();
-});
 </script>
 
 <style>
