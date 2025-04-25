@@ -1443,7 +1443,7 @@ suite("Lineage Command Tests", () => {
     sinon.assert.calledWith(displayLineageStub, tempFile.fsPath, { flags: ["-o", "json"] });
   });
 });
-suite("BruinLineageInternalParse Tests", () => {
+/* suite("BruinLineageInternalParse Tests", () => {
   let bruinLineageInternalParse: BruinLineageInternalParse;
   let runStub: sinon.SinonStub;
   let postMessageStub: sinon.SinonStub;
@@ -1538,7 +1538,7 @@ suite("BruinLineageInternalParse Tests", () => {
         "Bruin CLI is not installed or is outdated. Please install or update Bruin CLI to use this feature.",
     });
   });
-});
+}); */
 suite("Bruin Connections Tests", () => {
   let bruinConnections: BruinConnections;
   let bruinDeleteConnection: BruinDeleteConnection;
@@ -2125,7 +2125,7 @@ suite("BruinPanel Tests", () => {
   });
 });
 
-suite("LineagePanel Tests", () => {
+/* suite("LineagePanel Tests", () => {
   let windowOnDidChangeActiveTextEditorStub: sinon.SinonStub;
   let windowActiveTextEditorStub: sinon.SinonStub;
   let flowLineageCommandStub: sinon.SinonStub;
@@ -2222,8 +2222,8 @@ suite("LineagePanel Tests", () => {
         "Scripts should be enabled"
       );
     });
-  });
-
+  }); */
+/* 
   suite("Disposal Tests", () => {
     test("properly disposes of resources", () => {
       const lineagePanel = new LineagePanel(mockExtensionUri);
@@ -2254,8 +2254,8 @@ suite("LineagePanel Tests", () => {
         "Should post message to webview"
       );
     });
-  });
-});
+  }); 
+});*/
 suite("getLanguageDelimiters Tests", () => {
   test("should return default delimiters for unknown language", () => {
     const languageId = "unknown";

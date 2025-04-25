@@ -74,8 +74,13 @@
     "viewsContainers": {
       "panel": [
         {
-          "id": "lineagePanel",
+          "id": "bruin-assetLineageView",
           "title": "Lineage",
+          "icon": "$(graph)"
+        },
+        {
+          "id": "bruin-pipelineLineageView",
+          "title": "Pipeline",
           "icon": "$(graph)"
         },
         {
@@ -86,11 +91,19 @@
       ]
     },
     "views": {
-      "lineagePanel": [
+      "bruin-assetLineageView": [
         {
           "type": "webview",
-          "id": "bruin.lineageView",
-          "name": "Lineage Graph"
+          "id": "bruin.assetLineageView",
+          "name": "Asset Lineage"
+        }
+       
+      ],
+      "bruin-pipelineLineageView": [
+        {
+          "type": "webview",
+          "id": "bruin.pipelineLineageView",
+          "name": "Pipeline Lineage"
         }
       ],
       "QueryPreview": [
