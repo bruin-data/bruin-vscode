@@ -18,6 +18,7 @@ import LineageFlow from "@/components/lineage-flow/asset-lineage/AssetLineage.vu
 import { mount } from "@vue/test-utils";
 import "./mocks/vueFlow"; // Import the mocks
 import { ref } from "vue";
+import { buildPipelineLineage, generateGraph } from "@/components/lineage-flow/pipeline-lineage/pipelineLineageBuilder";
 
 vi.mock("markdown-it");
 
@@ -705,4 +706,301 @@ suite("test lineage panel", () => {
     await wrapper.vm.onNodeClick(nodeId, new Event("click"));
     assert.isNull(wrapper.vm.selectedNodeId);
   });
+});
+
+
+suite('buildPipelineLineage', () => {
+  test('should properly process pipeline data and build upstream/downstream relationships', () => {
+    // Arrange
+    const pipelineData = {
+      assets: [
+        {
+          name: 'myschema.examplesomethingtoolong',
+          type: 'bq.sql',
+          upstreams: [],
+          downstreams: [],
+          hasUpstreams: false,
+          hasDownstreams: false,
+          pipeline: 'pipeline1',
+          path: '/some/path',
+        },
+        {
+          name: 'asset-example-1',
+          type: 'bq.seed',
+          upstreams: [],
+          downstreams: [],
+          hasUpstreams: false,
+          hasDownstreams: false,
+          pipeline: 'pipeline1',
+          path: '/some/path',
+        },
+        {
+          name: 'myschema.country_list',
+          type: 'python',
+          upstreams: [
+            {
+              type: 'asset',
+              value: 'myschema.example',
+              columns: [],
+              mode: 'full'
+            }
+          ],
+          downstreams: [],
+          hasUpstreams: true,
+          hasDownstreams: false,
+          pipeline: 'pipeline1',
+          path: '/some/path',
+        }
+      ]
+    };
+
+    const result = buildPipelineLineage(pipelineData);
+
+    expect(result.assets).toHaveLength(3);
+    expect(result.assetMap).toBeDefined();
+    
+    // Verify the assets are in the map
+    expect(result.assetMap['myschema.examplesomethingtoolong']).toBeDefined();
+    expect(result.assetMap['asset-example-1']).toBeDefined();
+    expect(result.assetMap['myschema.country_list']).toBeDefined();
+    
+    // Check upstream relationship exists
+    const countryListAsset = result.assetMap['myschema.country_list'];
+    expect(countryListAsset.upstreams).toHaveLength(1);
+    expect(countryListAsset.upstreams[0].value).toBe('myschema.example');
+    expect(countryListAsset.hasUpstreams).toBe(true);
+    
+    // No downstreams should exist for this test data as the upstream 'myschema.example' doesn't exist
+    expect(countryListAsset.downstreams).toHaveLength(0);
+  });
+
+  test('should handle missing assets gracefully', () => {
+    // Arrange
+    const pipelineData = {
+      assets: []
+    };
+
+    // Act
+    const result = buildPipelineLineage(pipelineData);
+
+    // Assert
+    expect(result.assets).toHaveLength(0);
+    expect(result.assetMap).toEqual({});
+  });
+
+  test('should correctly build downstream relationships', () => {
+    // Arrange
+    const pipelineData = {
+      assets: [
+        {
+          name: 'source',
+          type: 'bq.sql',
+          upstreams: [],
+          downstreams: [],
+          hasUpstreams: false,
+          hasDownstreams: false,
+          pipeline: 'pipeline1',
+          path: '/some/path',
+        },
+        {
+          name: 'middle',
+          type: 'bq.sql',
+          upstreams: [
+            {
+              type: 'asset',
+              value: 'source',
+              columns: [],
+              mode: 'full'
+            }
+          ],
+          downstreams: [],
+          hasUpstreams: true,
+          hasDownstreams: false,
+          pipeline: 'pipeline1',
+          path: '/some/path',
+        },
+        {
+          name: 'destination',
+          type: 'bq.sql',
+          upstreams: [
+            {
+              type: 'asset',
+              value: 'middle',
+              columns: [],
+              mode: 'full'
+            }
+          ],
+          downstreams: [],
+          hasUpstreams: true,
+          hasDownstreams: false,
+          pipeline: 'pipeline1',
+          path: '/some/path',
+        }
+      ]
+    };
+
+    // Act
+    const result = buildPipelineLineage(pipelineData);
+
+    // Assert
+    // Check source has downstream to middle
+    expect(result.assetMap['source'].downstreams).toHaveLength(1);
+    expect(result.assetMap['source'].downstreams[0].value).toBe('middle');
+    expect(result.assetMap['source'].hasDownstreams).toBe(true);
+    expect(result.assetMap['source'].hasUpstreams).toBe(false);
+    
+    // Check middle has upstream from source and downstream to destination
+    expect(result.assetMap['middle'].upstreams).toHaveLength(1);
+    expect(result.assetMap['middle'].upstreams[0].value).toBe('source');
+    expect(result.assetMap['middle'].downstreams).toHaveLength(1);
+    expect(result.assetMap['middle'].downstreams[0].value).toBe('destination');
+    expect(result.assetMap['middle'].hasUpstreams).toBe(true);
+    expect(result.assetMap['middle'].hasDownstreams).toBe(true);
+    
+    // Check destination has upstream from middle and no downstreams
+    expect(result.assetMap['destination'].upstreams).toHaveLength(1);
+    expect(result.assetMap['destination'].upstreams[0].value).toBe('middle');
+    expect(result.assetMap['destination'].downstreams).toHaveLength(0);
+    expect(result.assetMap['destination'].hasUpstreams).toBe(true);
+    expect(result.assetMap['destination'].hasDownstreams).toBe(false);
+  });
+
+  test('should handle non-asset type upstreams', () => {
+    // Arrange
+    const pipelineData = {
+      assets: [
+        {
+          name: 'asset1',
+          type: 'bq.sql',
+          upstreams: [
+            {
+              type: 'file', // non-asset type
+              value: 'some-file.csv',
+              columns: [],
+              mode: 'full'
+            }
+          ],
+          downstreams: [],
+          hasUpstreams: true,
+          hasDownstreams: false,
+          pipeline: 'pipeline1',
+          path: '/some/path',
+        },
+        {
+          name: 'asset2',
+          type: 'bq.sql',
+          upstreams: [
+            {
+              type: 'asset',
+              value: 'asset1',
+              columns: [],
+              mode: 'full'
+            }
+          ],
+          downstreams: [],
+          hasUpstreams: true,
+          hasDownstreams: false,
+          pipeline: 'pipeline1',
+          path: '/some/path',
+        }
+      ]
+    };
+
+    // Act
+    const result = buildPipelineLineage(pipelineData);
+
+    // Assert
+    expect(result.assetMap['asset1'].hasUpstreams).toBe(true); // Has a non-asset upstream
+    expect(result.assetMap['asset1'].downstreams).toHaveLength(1);
+    expect(result.assetMap['asset1'].downstreams[0].value).toBe('asset2');
+  });
+});
+
+suite('generateGraph', () => {
+  test('should generate nodes and edges from lineage data', () => {
+    // Arrange
+    const lineageData = {
+      assets: [
+        {
+          name: 'asset1',
+          type: 'bq.sql',
+          upstreams: [],
+          downstreams: [
+            {
+              type: 'asset',
+              value: 'asset2'
+            }
+          ],
+          hasUpstreams: false,
+          hasDownstreams: true,
+          pipeline: 'pipeline1',
+          path: '/some/path',
+        },
+        {
+          name: 'asset2',
+          type: 'bq.sql',
+          upstreams: [
+            {
+              type: 'asset',
+              value: 'asset1'
+            }
+          ],
+          downstreams: [],
+          hasUpstreams: true,
+          hasDownstreams: false,
+          pipeline: 'pipeline1',
+          path: '/some/path',
+        }
+      ],
+      assetMap: {
+        'asset1': {
+          name: 'asset1',
+          type: 'bq.sql',
+          upstreams: [],
+          downstreams: [
+            {
+              type: 'asset',
+              value: 'asset2'
+            }
+          ],
+          hasUpstreams: false,
+          hasDownstreams: true,
+          pipeline: 'pipeline1',
+          path: '/some/path',
+        },
+        'asset2': {
+          name: 'asset2',
+          type: 'bq.sql',
+          upstreams: [
+            {
+              type: 'asset',
+              value: 'asset1'
+            }
+          ],
+          downstreams: [],
+          hasUpstreams: true,
+          hasDownstreams: false,
+          pipeline: 'pipeline1',
+          path: '/some/path',
+        }
+      }
+    };
+
+    // Act
+    const result = generateGraph(lineageData, 'asset1');
+    
+    // Check node properties
+    const asset1Node = result.nodes.find(n => n.id === 'asset1');
+    const asset2Node = result.nodes.find(n => n.id === 'asset2');
+    
+    expect(asset1Node).toBeDefined();
+    expect(asset2Node).toBeDefined();
+    expect(asset1Node?.data.asset.isFocusAsset).toBe(true);
+    expect(asset2Node?.data.asset.isFocusAsset).toBe(false);
+    
+    // Check edge
+    expect(result.edges[0].source).toBe('asset1');
+    expect(result.edges[0].target).toBe('asset2');
+  });
+
 });
