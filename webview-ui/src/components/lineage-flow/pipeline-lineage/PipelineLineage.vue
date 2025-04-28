@@ -10,7 +10,18 @@
       :node-draggable="true"
     >
       <Background />
-
+      <Panel position="top-right">
+      <div class="navigation-controls">
+        <vscode-button 
+          @click="handleViewSwitch()"
+          appearance="secondary"
+          class="view-switch-btn"
+        >
+          <ArrowLeftIcon class="w-4 h-4 mr-1" />
+          Asset View
+        </vscode-button>
+      </div>
+    </Panel>
       <template #node-custom="nodeProps">
         <CustomNode
           :data="nodeProps.data"
@@ -33,12 +44,12 @@
 </template>
 
 <script setup lang="ts">
-import { PanelPosition, VueFlow, useVueFlow, type Edge } from "@vue-flow/core";
+import { PanelPosition, VueFlow, useVueFlow, type Edge, Panel } from "@vue-flow/core";
 import { Background } from "@vue-flow/background";
 import { Controls } from "@vue-flow/controls";
 import { MiniMap } from "@vue-flow/minimap";
 import "@vue-flow/controls/dist/style.css";
-import { ref, watch } from "vue";
+import { ref, watch, defineEmits } from "vue";
 import CustomNode from "@/components/lineage-flow/custom-nodes/CustomNodes.vue";
 import {
   applyLayout,
@@ -55,7 +66,12 @@ const props = defineProps<{
 
 const { fitView } = useVueFlow();
 const selectedNodeId = ref<string | null>(null);
+const emit = defineEmits<{
+  showAssetView}>();
 
+const handleViewSwitch = () => {
+  emit('showAssetView');
+};
 const error = ref<string | null>(props.LineageError);
 const elements = ref<any>({ nodes: [], edges: [] });
 

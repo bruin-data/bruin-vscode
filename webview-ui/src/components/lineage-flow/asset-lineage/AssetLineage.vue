@@ -7,8 +7,10 @@
     <div v-else-if="error" class="error-message">
       <span class="ml-2">{{ error }}</span>
     </div>
+    
+    <!-- Asset View -->
     <VueFlow
-      v-else
+      v-if="!showPipelineView"
       v-model:elements="elements"
       :default-viewport="{ x: 150, y: 10, zoom: 1 }"
       :fit-view-on-init="false"
@@ -37,6 +39,8 @@
           :show-expand-buttons="true"
         />
       </template>
+      
+      <!-- Filter Panel -->
       <Panel position="top-right">
         <div
           v-if="!expandPanel"
@@ -44,7 +48,7 @@
           class="flex items-center p-2 gap-1 bg-transparent border border-notificationCenter-border rounded cursor-pointer hover:bg-editorWidget-bg transition-colors"
         >
           <FunnelIcon class="w-4 h-4 text-progressBar-bg" />
-          <span class="text-[0.65rem]">{{ filterLabel }}</span>
+          <span class="text-[0.65rem] text-editor-fg">{{ showPipelineView ? 'Pipeline View' : filterLabel }}</span>
         </div>
         <div
           v-else
@@ -55,40 +59,56 @@
           >
             <div class="flex items-center gap-1">
               <FunnelIcon class="w-4 h-4 text-progressBar-bg" />
-              <span class="text-[0.65rem] uppercase p-1">dependencies filter</span>
+              <span class="text-[0.65rem] text-editor-fg uppercase p-1">view options</span>
             </div>
             <vscode-button appearance="icon" @click="expandPanel = false">
               <XMarkIcon class="w-4 h-4 text-progressBar-bg" />
             </vscode-button>
           </div>
 
-          <vscode-radio-group :value="filterType" orientation="vertical" class="radio-group">
-            <vscode-radio value="direct" class="radio-item" @click="handleDirectFilter">
-              <span class="radio-label">Direct only</span>
+          <!-- View Type Radio Group -->
+          <vscode-radio-group :value="showPipelineView ? 'pipeline' : 'asset'" orientation="vertical" class="radio-group">
+            <vscode-radio value="asset" class="radio-item" @click="handleAssetView">
+              <span class="radio-label">Asset View</span>
             </vscode-radio>
-
-            <vscode-radio value="all" class="radio-item" @click="handleAllFilter">
-              <div class="all-options">
-                <span class="radio-label">All</span>
-                <div class="toggle-buttons">
-                  <button
-                    class="toggle-btn"
-                    :class="{ active: expandAllUpstreams }"
-                    @click.stop="toggleUpstream"
-                  >
-                    U
-                  </button>
-                  <button
-                    class="toggle-btn"
-                    :class="{ active: expandAllDownstreams }"
-                    @click.stop="toggleDownstream"
-                  >
-                    D
-                  </button>
-                </div>
-              </div>
+            
+            <vscode-radio value="pipeline" class="radio-item" @click="handlePipelineView">
+              <span class="radio-label">Pipeline View</span>
             </vscode-radio>
           </vscode-radio-group>
+
+          <!-- Filter Options (only shown for Asset View) -->
+          <div v-if="!showPipelineView" class="mt-2 pt-2 border-t border-notificationCenter-border">
+            <div class="text-[0.65rem] text-editor-fg uppercase px-2 mb-1">dependency filter</div>
+            <vscode-radio-group :value="filterType" orientation="vertical" class="radio-group">
+              <vscode-radio value="direct" class="radio-item" @click="handleDirectFilter">
+                <span class="radio-label text-editor-fg">Direct only</span>
+              </vscode-radio>
+
+              <vscode-radio value="all" class="radio-item" @click="handleAllFilter">
+                <div class="all-options">
+                  <span class="radio-label text-editor-fg">All</span>
+                  <div class="toggle-buttons">
+                    <button
+                      class="toggle-btn"
+                      :class="{ active: expandAllUpstreams }"
+                      @click.stop="toggleUpstream"
+                    >
+                      U
+                    </button>
+                    <button
+                      class="toggle-btn"
+                      :class="{ active: expandAllDownstreams }"
+                      @click.stop="toggleDownstream"
+                    >
+                      D
+                    </button>
+                  </div>
+                </div>
+              </vscode-radio>
+            </vscode-radio-group>
+          </div>
+          
           <div class="flex justify-end px-2 pb-1">
             <vscode-link
               @click="handleReset"
@@ -99,6 +119,7 @@
           </div>
         </div>
       </Panel>
+      
       <Controls
         :position="PanelPosition.BottomLeft"
         showZoom
@@ -107,6 +128,16 @@
         class="custom-controls"
       />
     </VueFlow>
+    
+    <!-- Pipeline View - Using the separate PipelineLineage component -->
+    <PipelineLineage
+      v-if="showPipelineView"
+      :assetDataset="props.assetDataset"
+      :pipelineData="props.pipelineData"
+      :isLoading="isLoading"
+      :LineageError="props.LineageError"
+      @showAssetView="handleAssetView"
+    />
   </div>
 </template>
 
@@ -119,6 +150,7 @@ import type { NodeDragEvent, XYPosition } from "@vue-flow/core";
 import { computed, onMounted, defineProps, watch, ref, nextTick, onUnmounted } from "vue";
 import ELK from "elkjs/lib/elk.bundled.js";
 import CustomNode from "@/components/lineage-flow/custom-nodes/CustomNodes.vue";
+import PipelineLineage from "@/components/lineage-flow/pipeline-lineage/PipelineLineage.vue";
 import {
   generateGraphForDownstream,
   generateGraphForUpstream,
@@ -130,7 +162,7 @@ import { XMarkIcon } from "@heroicons/vue/20/solid";
 import { FunnelIcon } from "@heroicons/vue/24/outline";
 
 const props = defineProps<{
-  assetDataset?: AssetDataset | null; // Change this to accept null
+  assetDataset?: AssetDataset | null;
   pipelineData: any;
   isLoading: boolean;
   LineageError: string | null;
@@ -148,6 +180,7 @@ const expandedUpstreamNodes = ref<any[]>([]);
 const expandedUpstreamEdges = ref<any[]>([]);
 const selectedNodeId = ref<string | null>(null);
 const filterType = ref<"direct" | "all">("direct");
+const showPipelineView = ref(false);
 const filterLabel = computed(() => {
   if (filterType.value === "direct") {
     return "Direct only";
@@ -169,8 +202,6 @@ const expandAllUpstreams = ref(false);
 const isUpdating = ref(false);
 const graphInitialized = ref(false);
 const initialLayoutComplete = ref(false);
-const showLoading = ref(false);
-let loadingTimeout: ReturnType<typeof setTimeout>;
 let fitViewTimeout: ReturnType<typeof setTimeout>;
 const { viewport, setViewport } = useVueFlow();
 
@@ -205,6 +236,7 @@ const resetFilterState = () => {
   expandedDownstreamNodes.value = [];
   expandedDownstreamEdges.value = [];
 };
+
 // Function to update node positions based on ELK layout
 const updateNodePositions = (layout: any) => {
   const updatedNodes = nodes.value.map((node) => {
@@ -250,7 +282,6 @@ const updateLayout = async () => {
       width: 150,
       height: 70,
       labels: [{ text: node.data.label }],
-      //position: { x: node.position.x, y: node.position.y },
     })),
     edges: edges.value.map((edge) => ({
       id: edge.id,
@@ -284,7 +315,6 @@ const updateLayout = async () => {
   } catch (error) {
     console.error("Failed to apply ELK layout:", error);
     isUpdating.value = false;
-    //error.value = "Failed to calculate layout. Please try again.";
   }
 };
 
@@ -476,6 +506,7 @@ const handleExpandAllUpstreams = async () => {
     expandedUpstreamEdges.value = [];
   }
 };
+
 // Handle node dragging
 const onNodesDragged = (draggedNodes: NodeDragEvent[]) => {
   const updatedNodes = nodes.value.map((node) => {
@@ -555,6 +586,17 @@ const handleAllFilter = async (event: Event) => {
   debouncedUpdateGraph(); // Use debounced update
 };
 
+// View switching handlers
+const handleAssetView = async (event?: Event) => {
+  if (event) event.stopPropagation();
+  showPipelineView.value = false;
+};
+
+const handlePipelineView = async (event?: Event) => {
+  if (event) event.stopPropagation();
+  showPipelineView.value = true;
+};
+
 const handleReset = async (event: Event) => {
   event.stopPropagation();
   filterType.value = "direct";
@@ -565,6 +607,10 @@ const handleReset = async (event: Event) => {
   expandedDownstreamNodes.value = [];
   expandedDownstreamEdges.value = [];
   expandedNodes.value = {};
+  
+  // Reset to asset view
+  showPipelineView.value = false;
+  
   await updateGraph();
   await updateLayout();
 };
@@ -572,13 +618,16 @@ const handleReset = async (event: Event) => {
 // Update the onMounted hook
 onMounted(() => {
   processProperties();
+  
   try {
     const savedState = localStorage.getItem("graphFilterState");
     if (savedState) {
-      const { filterType: savedFilter, upstream, downstream } = JSON.parse(savedState);
+      const { filterType: savedFilter, upstream, downstream, viewType: savedViewType } = JSON.parse(savedState);
       filterType.value = savedFilter;
       expandAllUpstreams.value = upstream;
       expandAllDownstreams.value = downstream;
+      showPipelineView.value = savedViewType === 'pipeline';
+      
       // If we have expanded states, trigger the appropriate updates
       if (upstream) {
         handleExpandAllUpstreams();
@@ -591,27 +640,34 @@ onMounted(() => {
     console.error("Error loading saved state:", error);
   }
 });
+
 // Watch for changes in props and update nodes and edges
 watch(
   () => [props.assetDataset, props.pipelineData],
   ([newAssetDataset, newPipelineData]) => {
-    if (newAssetDataset && newPipelineData) {
+    if (newAssetDataset && newPipelineData && !showPipelineView.value) {
       processProperties();
     }
   },
   { immediate: true }
 );
-watch([filterType, expandAllUpstreams, expandAllDownstreams], () => {
+
+watch([filterType, expandAllUpstreams, expandAllDownstreams, showPipelineView], () => {
   localStorage.setItem(
     "graphFilterState",
     JSON.stringify({
       filterType: filterType.value,
       upstream: expandAllUpstreams.value,
       downstream: expandAllDownstreams.value,
+      viewType: showPipelineView.value ? 'pipeline' : 'asset',
     })
   );
-  debouncedUpdateGraph(); // Use debounced update
+  
+  if (!showPipelineView.value) {
+    debouncedUpdateGraph(); // Use debounced update for asset view
+  }
 });
+
 onUnmounted(() => {
   clearTimeout(fitViewTimeout);
 });
@@ -625,7 +681,6 @@ const toggleNodeExpand = (nodeId: string) => {
   }
 };
 </script>
-
 
 <style>
 @import "@vue-flow/core/dist/style.css";
@@ -641,7 +696,6 @@ const toggleNodeExpand = (nodeId: string) => {
   top: auto !important;
   right: auto !important;
   background-color: transparent !important;
-  /* Force horizontal layout of buttons */
   display: flex !important;
   flex-direction: row !important;
   gap: 0.3rem;
@@ -650,9 +704,11 @@ const toggleNodeExpand = (nodeId: string) => {
 .vue-flow__controls-button {
   @apply flex justify-center items-center p-0 border-solid border-notificationCenter-border bg-transparent rounded-md w-6 h-6 cursor-pointer hover:bg-editor-bg  !important;
 }
+
 .vue-flow__controls-button svg {
   @apply fill-current text-editor-fg !important;
 }
+
 .custom-controls .vue-flow__controls-button:hover {
   background-color: #444 !important;
 }
@@ -692,9 +748,11 @@ const toggleNodeExpand = (nodeId: string) => {
 vscode-checkbox {
   @apply text-xs;
 }
+
 .loading-overlay {
   @apply flex items-center justify-center w-full h-full bg-editor-bg;
 }
+
 .error-message {
   @apply flex items-center justify-center w-full h-full bg-editor-bg;
 }
