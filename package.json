@@ -79,11 +79,6 @@
           "icon": "$(graph)"
         },
         {
-          "id": "bruin-pipelineLineageView",
-          "title": "Pipeline",
-          "icon": "$(graph)"
-        },
-        {
           "id": "QueryPreview",
           "title": "Query Preview",
           "icon": "$(preview)"
@@ -98,13 +93,6 @@
           "name": "Asset Lineage"
         }
        
-      ],
-      "bruin-pipelineLineageView": [
-        {
-          "type": "webview",
-          "id": "bruin.pipelineLineageView",
-          "name": "Pipeline Lineage"
-        }
       ],
       "QueryPreview": [
         {
