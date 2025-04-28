@@ -66,8 +66,7 @@
           </div>
 
           <!-- Filter Options (only shown for Asset View) -->
-          <div v-if="!showPipelineView" class="mt-2 pt-2 border-t border-notificationCenter-border">
-            <div class="text-[0.65rem] text-editor-fg uppercase px-2 mb-1">dependency filter</div>
+          <div v-if="!showPipelineView">
             <vscode-radio-group :value="filterType" orientation="vertical" class="radio-group">
               <vscode-radio value="pipeline" class="radio-item" @click="handlePipelineView">
               <span class="radio-label">Pipeline View</span>
@@ -322,9 +321,12 @@ const processProperties = async () => {
   try {
     resetFilterState();
     
-    // Clear any existing nodes/edges
+    // Clear existing nodes/edges completely
     setNodes([]);
     setEdges([]);
+    
+    // Wait for state update to ensure clean slate
+    await nextTick();
     
     const { nodes: generatedNodes, edges: generatedEdges } = generateGraphFromJSON(
       props.assetDataset
@@ -333,14 +335,16 @@ const processProperties = async () => {
     baseNodes.value = generatedNodes;
     baseEdges.value = generatedEdges;
     
-    // Update the graph data but don't render yet (still in loading state)
+    // Update the graph with new data
     await updateGraph();
-  
     
-    // Only now apply layout (still in loading state)
+    // Wait for graph update to complete
+    await nextTick();
+    
+    // Now apply layout with the fresh data
     await updateLayout();
     
-    // Loading is complete after layout is done
+    // Loading is complete
     isLoading.value = false;
   } catch (err) {
     console.error("Error processing properties:", err);
