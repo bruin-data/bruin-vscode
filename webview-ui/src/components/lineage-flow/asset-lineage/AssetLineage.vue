@@ -17,7 +17,6 @@
       class="basic-flow"
       :draggable="true"
       :node-draggable="true"
-      @paneReady="onPaneReady"
       @nodesDragged="onNodesDragged"
       ref="flowRef"
     >
@@ -66,21 +65,13 @@
             </vscode-button>
           </div>
 
-          <!-- View Type Radio Group -->
-          <vscode-radio-group :value="showPipelineView ? 'pipeline' : 'asset'" orientation="vertical" class="radio-group">
-            <vscode-radio value="asset" class="radio-item" @click="handleAssetView">
-              <span class="radio-label">Asset View</span>
-            </vscode-radio>
-            
-            <vscode-radio value="pipeline" class="radio-item" @click="handlePipelineView">
-              <span class="radio-label">Pipeline View</span>
-            </vscode-radio>
-          </vscode-radio-group>
-
           <!-- Filter Options (only shown for Asset View) -->
           <div v-if="!showPipelineView" class="mt-2 pt-2 border-t border-notificationCenter-border">
             <div class="text-[0.65rem] text-editor-fg uppercase px-2 mb-1">dependency filter</div>
             <vscode-radio-group :value="filterType" orientation="vertical" class="radio-group">
+              <vscode-radio value="pipeline" class="radio-item" @click="handlePipelineView">
+              <span class="radio-label">Pipeline View</span>
+            </vscode-radio>
               <vscode-radio value="direct" class="radio-item" @click="handleDirectFilter">
                 <span class="radio-label text-editor-fg">Direct only</span>
               </vscode-radio>
@@ -160,6 +151,7 @@ import type { AssetDataset } from "@/types";
 import { getAssetDataset } from "./useAssetLineage";
 import { XMarkIcon } from "@heroicons/vue/20/solid";
 import { FunnelIcon } from "@heroicons/vue/24/outline";
+import { updateValue } from "@/utilities/helper";
 
 const props = defineProps<{
   assetDataset?: AssetDataset | null;
@@ -219,12 +211,6 @@ const onNodeClick = (nodeId: string, event: MouseEvent) => {
   }
 };
 
-const onPaneReady = () => {
-  // Only perform initial layout once
-  if (!initialLayoutComplete.value && nodes.value.length > 0) {
-    updateLayout();
-  }
-};
 
 // Reset filter state when new data is loaded
 const resetFilterState = () => {
@@ -349,9 +335,7 @@ const processProperties = async () => {
     
     // Update the graph data but don't render yet (still in loading state)
     await updateGraph();
-    
-    // Let the DOM update before trying to calculate layout
-    await nextTick();
+  
     
     // Only now apply layout (still in loading state)
     await updateLayout();
@@ -596,6 +580,7 @@ const handlePipelineView = async (event?: Event) => {
   if (event) event.stopPropagation();
   showPipelineView.value = true;
 };
+
 
 const handleReset = async (event: Event) => {
   event.stopPropagation();
