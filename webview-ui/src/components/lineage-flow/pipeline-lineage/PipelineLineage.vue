@@ -17,7 +17,6 @@
           appearance="secondary"
           class="view-switch-btn"
         >
-          <ArrowLeftIcon class="w-4 h-4 mr-1" />
           Asset View
         </vscode-button>
       </div>
@@ -66,11 +65,23 @@ const props = defineProps<{
 
 const { fitView } = useVueFlow();
 const selectedNodeId = ref<string | null>(null);
-const emit = defineEmits<{
-  showAssetView}>();
+  const emit = defineEmits<{
+  (e: 'showAssetView', data: {
+    assetId?: string;
+    assetDataset?: AssetDataset | null;
+    pipelineData: any;
+    LineageError: string | null;
+  }): void;
+}>();
+
 
 const handleViewSwitch = () => {
-  emit('showAssetView');
+  emit('showAssetView', {
+    assetId: props.assetDataset?.id,
+    assetDataset: props.assetDataset,
+    pipelineData: props.pipelineData,
+    LineageError: props.LineageError
+  });
 };
 const error = ref<string | null>(props.LineageError);
 const elements = ref<any>({ nodes: [], edges: [] });

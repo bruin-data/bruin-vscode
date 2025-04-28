@@ -209,8 +209,18 @@ const onNodeClick = (nodeId: string, event: MouseEvent) => {
     selectedNodeId.value = nodeId;
   }
 };
+const internalAssetDataset = ref<AssetDataset | null>(props.assetDataset || null);
+const internalPipelineData = ref<any>(props.pipelineData);
+const internalLineageError = ref<string | null>(props.LineageError);
 
+watch(
+  () => internalPipelineData.value,
+  async (newPipelineData) => {
 
+  },
+   
+  { immediate: true }
+);
 // Reset filter state when new data is loaded
 const resetFilterState = () => {
   filterType.value = "direct";
@@ -575,9 +585,27 @@ const handleAllFilter = async (event: Event) => {
 };
 
 // View switching handlers
-const handleAssetView = async (event?: Event) => {
-  if (event) event.stopPropagation();
+const handleAssetView = (emittedData: {
+  assetId?: string;
+  assetDataset?: AssetDataset | null;
+  pipelineData: any;
+  LineageError: string | null;
+}) => {
   showPipelineView.value = false;
+  
+  // Update internal state with emitted data
+  internalAssetDataset.value = emittedData.assetDataset || null;
+  internalPipelineData.value = emittedData.pipelineData;
+  internalLineageError.value = emittedData.LineageError;
+
+  // Force re-render by resetting elements
+  setNodes([]);
+  setEdges([]);
+  
+  // Process new data after next tick
+  nextTick(() => {
+    processProperties();
+  });
 };
 
 const handlePipelineView = async (event?: Event) => {
