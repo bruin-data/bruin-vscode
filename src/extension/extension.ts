@@ -11,15 +11,13 @@ import * as vscode from "vscode";
 import { bruinFoldingRangeProvider } from "../providers/bruinFoldingRangeProvider";
 const Analytics = require("@rudderstack/rudder-sdk-node");
 import {
-  applyFoldingStateBasedOnConfiguration,
-  getDefaultBruinExecutablePath,
   setupFoldingOnOpen,
   subscribeToConfigurationChanges,
   toggleFoldingsCommand,
 } from "./configuration";
 import * as os from "os";
 import { renderCommand } from "./commands/renderCommand";
-import { AssetLineagePanel, LineagePanel, PipelineLineagePanel } from "../panels/LineagePanel";
+import { AssetLineagePanel } from "../panels/LineagePanel";
 import { installOrUpdateCli } from "./commands/updateBruinCLI";
 import { QueryPreviewPanel } from "../panels/QueryPreviewPanel";
 import { BruinPanel } from "../panels/BruinPanel";
@@ -129,14 +127,7 @@ export async function activate(context: ExtensionContext) {
     )
   );
 
-  // Register the Pipeline Lineage Panel
-  const pipelineLineagePanel = new PipelineLineagePanel(context.extensionUri);
-  context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider(
-      PipelineLineagePanel.viewId,
-      pipelineLineagePanel
-    )
-  );  const queryPreviewWebviewProvider = new QueryPreviewPanel(context.extensionUri, context);
+ const queryPreviewWebviewProvider = new QueryPreviewPanel(context.extensionUri, context);
   // Register the folding range provider for Python and SQL files
   const foldingDisposable = languages.registerFoldingRangeProvider(["python", "sql"], {
     provideFoldingRanges: bruinFoldingRangeProvider,

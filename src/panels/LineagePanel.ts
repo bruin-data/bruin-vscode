@@ -303,19 +303,6 @@ export class AssetLineagePanel extends BaseLineagePanel {
   }
 }
 
-// Pipeline Lineage Panel
-export class PipelineLineagePanel extends BaseLineagePanel {
-  public static readonly viewId = "bruin.pipelineLineageView";
-
-  constructor(extensionUri: vscode.Uri) {
-    super(extensionUri, "PipelineLineage");
-  }
-
-  protected getComponentName(): string {
-    return "PipelineLineageFlow";
-  }
-}
-
 // This function is called from the extension command to update lineage data
 export function updateLineageData(data: any) {
   const dataStore = LineagePanel.getInstance();
