@@ -9,7 +9,9 @@
         class="w-full text-2xs px-1 border-0 py-0.5 bg-dropdown-bg pr-6"
         :value="displayValue"
         @input="handleTextInput"
+        @blur="validateInput"
         placeholder="YYYY-MM-DD HH:mm"
+        :class="{ 'border-red-500': error }"
       />
       <input
         type="datetime-local"
@@ -38,6 +40,9 @@
         </svg>
       </div>
     </div>
+    <div v-if="error" class="text-red-500 text-2xs mt-1">
+      {{ error }}
+    </div>
   </div>
 </template>
 
@@ -56,8 +61,14 @@ const props = defineProps({
 const emit = defineEmits(["update:modelValue"]);
 
 const dateTimeInput = ref<HTMLInputElement | null>(null);
+const error = ref<string | null>(null);
+const userInput = ref('');
 
 const displayValue = computed(() => {
+  if (document.activeElement === document.querySelector('input[type="text"]')) {
+    return userInput.value;
+  }
+  
   const dt = DateTime.fromISO(props.modelValue, { zone: "utc" });
   return dt.isValid ? dt.toFormat("yyyy-MM-dd HH:mm") : '';
 });
@@ -69,11 +80,31 @@ const utcModelValue = computed(() => {
 
 const handleTextInput = (event: Event) => {
   const input = event.target as HTMLInputElement;
-  const dt = DateTime.fromFormat(input.value.trim(), "yyyy-MM-dd HH:mm", { zone: "utc" });
-  
-  if (dt.isValid) {
-    emit("update:modelValue", dt.toISO());
+  userInput.value = input.value;
+  tryParseDate(input.value);
+};
+
+const validateInput = (event: Event) => {
+  const input = event.target as HTMLInputElement;
+  if (!tryParseDate(input.value)) {
+    error.value = "Invalid date format.";
   }
+};
+
+const tryParseDate = (value: string): boolean => {
+  if (!value.trim()) {
+    error.value = null;
+    return false;
+  }
+
+  const dt = DateTime.fromFormat(value.trim(), "yyyy-MM-dd HH:mm", { zone: "utc" });
+  if (!dt.isValid) {
+    return false;
+  }
+
+  error.value = null;
+  emit("update:modelValue", dt.toISO());
+  return true;
 };
 
 const updateFromPicker = (event: Event) => {
@@ -81,6 +112,7 @@ const updateFromPicker = (event: Event) => {
   const dt = DateTime.fromISO(input.value, { zone: "utc" });
   
   if (dt.isValid) {
+    error.value = null;
     emit("update:modelValue", dt.toISO());
   }
 };
@@ -103,5 +135,10 @@ input[type="datetime-local"] {
   padding: 0;
   border: none;
   cursor: pointer;
+  z-index: 1;
+}
+
+.border-red-500 {
+  border: 1px solid #ef4444;
 }
 </style>
