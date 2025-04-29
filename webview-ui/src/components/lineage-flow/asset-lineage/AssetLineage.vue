@@ -69,15 +69,15 @@
           <div v-if="!showPipelineView">
             <vscode-radio-group :value="filterType" orientation="vertical" class="radio-group">
               <vscode-radio value="pipeline" class="radio-item" @click="handlePipelineView">
-              <span class="radio-label">Pipeline View</span>
+              <span class="radio-label">Full Pipeline</span>
             </vscode-radio>
               <vscode-radio value="direct" class="radio-item" @click="handleDirectFilter">
-                <span class="radio-label text-editor-fg">Direct only</span>
+                <span class="radio-label text-editor-fg">Direct Dependencies</span>
               </vscode-radio>
 
               <vscode-radio value="all" class="radio-item" @click="handleAllFilter">
                 <div class="all-options">
-                  <span class="radio-label text-editor-fg">All</span>
+                  <span class="radio-label text-editor-fg">All Dependencies</span>
                   <div class="toggle-buttons">
                     <button
                       class="toggle-btn"
@@ -191,7 +191,7 @@ let fitViewTimeout: ReturnType<typeof setTimeout>;
 
 // Computed filter label
 const filterLabel = computed(() => {
-  if (filterType.value === "direct") return "Direct only";
+  if (filterType.value === "direct") return "Direct Dependencies";
   if (expandAllUpstreams.value && expandAllDownstreams.value) return "All Dependencies";
   if (expandAllDownstreams.value) return "All Downstreams";
   return "All Upstreams";
