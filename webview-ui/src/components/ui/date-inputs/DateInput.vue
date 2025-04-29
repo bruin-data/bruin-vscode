@@ -109,10 +109,11 @@ const tryParseDate = (value: string): boolean => {
 
 const updateFromPicker = (event: Event) => {
   const input = event.target as HTMLInputElement;
-  const dt = DateTime.fromISO(input.value, { zone: "utc" });
-  
+  const dt = DateTime.fromFormat(input.value, "yyyy-MM-dd'T'HH:mm", { zone: "utc" });
+
   if (dt.isValid) {
     error.value = null;
+    userInput.value = dt.toFormat("yyyy-MM-dd HH:mm");
     emit("update:modelValue", dt.toISO());
   }
 };
