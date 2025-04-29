@@ -1,4 +1,7 @@
 # Changelog
+## [0.44.1] - [2025-04-29]
+- Enhanced the date input component to support both manual text entry and calendar-based selection.
+
 ## [0.44.0] - [2025-04-29]
 - Add full pipeline view to the lineage panel.
 
