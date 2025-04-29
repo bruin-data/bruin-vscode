@@ -1,4 +1,7 @@
 # Changelog
+## [0.44.0] - [2025-04-29]
+- Add full pipeline view to the lineage panel.
+
 ## [0.43.4] - [2025-04-24]
 - Fix rendering for pipeline.yml and .bruin.yml in side panel
 
