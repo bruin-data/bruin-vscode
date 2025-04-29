@@ -56,9 +56,10 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Latest Release: 0.43.4
-- Fix rendering for pipeline.yml and .bruin.yml in side panel.
+- Added full pipeline view to the lineage panel.
 
 ### Recent Updates
+- **0.43.4**: Fix rendering for pipeline.yml and .bruin.yml in side panel.
 - **0.43.3**: Added Version Selection for Bruin CLI Update in Settings Tab.
 - **0.43.2**: Added expandable labels for truncated asset names in lineage view.
 - **0.43.1**: Handle file renaming in BruinPanel to update last rendered document URI.
