@@ -74,7 +74,7 @@
     "viewsContainers": {
       "panel": [
         {
-          "id": "lineagePanel",
+          "id": "bruin-assetLineageView",
           "title": "Lineage",
           "icon": "$(graph)"
         },
@@ -86,12 +86,13 @@
       ]
     },
     "views": {
-      "lineagePanel": [
+      "bruin-assetLineageView": [
         {
           "type": "webview",
-          "id": "bruin.lineageView",
-          "name": "Lineage Graph"
+          "id": "bruin.assetLineageView",
+          "name": "Asset Lineage"
         }
+       
       ],
       "QueryPreview": [
         {
@@ -246,8 +247,8 @@
     "@tailwindcss/forms": "^0.5.7",
     "@vue-flow/background": "^1.3.0",
     "@vue-flow/controls": "^1.1.1",
-    "@vue-flow/core": "^1.33.6",
-    "@vue-flow/minimap": "^1.4.0",
+    "@vue-flow/core": "^1.43.1",
+    "@vue-flow/minimap": "^1.5.3",
     "chokidar": "^4.0.3",
     "concurrently": "^9.0.1",
     "cron-parser": "^4.9.0",

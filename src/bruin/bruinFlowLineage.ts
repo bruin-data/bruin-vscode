@@ -1,6 +1,6 @@
 import { BruinCommandOptions } from "../types";
 import { BruinCommand } from "./bruinCommand";
-import { LineagePanel } from "../panels/LineagePanel";
+import { updateLineageData } from "../panels/LineagePanel";
 import { getCurrentPipelinePath } from "./bruinUtils";
 import * as vscode from "vscode";
 import { isConfigFile } from "../utilities/helperUtils";
@@ -61,7 +61,7 @@ export class BruinLineageInternalParse extends BruinCommand {
       );
   
       if (asset) {
-        LineagePanel.postMessage("flow-lineage-message", {
+        updateLineageData({
           status: "success",
           message: {
             id: asset.id,
@@ -80,12 +80,12 @@ export class BruinLineageInternalParse extends BruinCommand {
       if (errorMessage.includes("No help topic for")) {
         const formattedError = "Bruin CLI is not installed or is outdated. Please install or update Bruin CLI to use this feature.";
         vscode.window.showErrorMessage(formattedError);
-        LineagePanel.postMessage("flow-lineage-message", {
+        updateLineageData({
           status: "error",
           message: formattedError,
         });
       } else {
-        LineagePanel.postMessage("flow-lineage-message", {
+        updateLineageData({
           status: "error",
           message: errorMessage,
         });

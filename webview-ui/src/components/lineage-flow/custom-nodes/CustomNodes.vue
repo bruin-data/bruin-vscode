@@ -1,13 +1,15 @@
 <template>
   <div class="custom-node-wrapper">
-    <div
-      v-if="showUpstreamIcon"
-      @click.stop="onAddUpstream"
-      class="icon-wrapper left-icon bg-commandCenter-border"
-      :class="{ invisible: !props.data.hasUpstreamForClicking }"
-      title="Show Upstreams"
-    >
-      <PlusIcon class="h-4 w-4 fill-gray-300 text-gray-700/50 hover:text-gray-700" />
+    <div v-if="props.showExpandButtons">
+      <div
+        v-if="showUpstreamIcon"
+        @click.stop="onAddUpstream"
+        class="icon-wrapper left-icon bg-commandCenter-border"
+        :class="{ invisible: !props.data.hasUpstreamForClicking }"
+        title="Show Upstreams"
+      >
+        <PlusIcon class="h-4 w-4 fill-gray-300 text-gray-700/50 hover:text-gray-700" />
+      </div>
     </div>
 
     <div class="node-content" :class="[assetClass, { expanded: isExpanded }]" @click="togglePopup">
@@ -23,8 +25,11 @@
             >
               <div class="h-1 w-1 rounded-full bg-yellow-500" />
             </div>
+            <div v-else-if="status === 'failed'" class="flex-none rounded-full p-0.5 bg-red-500">
+              <div class="h-1 w-1 rounded-full bg-red-600" />
+            </div>
             <div>
-              <p class="">{{ status }}</p>
+              <p class="">{{ status || '' }}</p>
             </div>
           </div>
           <div
@@ -58,13 +63,15 @@
       </div>
     </div>
 
-    <div
-      v-if="showDownstreamIcon"
-      @click.stop="onAddDownstream"
-      class="icon-wrapper right-icon bg-commandCenter-border"
-      title="Show Downstreams"
-    >
-      <PlusIcon class="h-4 w-4 fill-gray-300 text-gray-700/50 hover:text-gray-700" />
+    <div v-if="props.showExpandButtons">
+      <div
+        v-if="showDownstreamIcon"
+        @click.stop="onAddDownstream"
+        class="icon-wrapper right-icon bg-commandCenter-border"
+        title="Show Downstreams"
+      >
+        <PlusIcon class="h-4 w-4 fill-gray-300 text-gray-700/50 hover:text-gray-700" />
+      </div>
     </div>
     <AssetProperties
       v-if="!data.asset?.isFocusAsset"
@@ -90,13 +97,10 @@
   />
 </template>
 
-
-
 <script lang="ts" setup>
 import { computed, defineProps, defineEmits, onMounted, onUnmounted, ref } from "vue";
 import { Handle, Position } from "@vue-flow/core";
 import { PlusIcon } from "@heroicons/vue/20/solid";
-import type { BruinNodeProps } from "@/types";
 import AssetProperties from "@/components/ui/asset/AssetProperties.vue";
 import { vscode } from "@/utilities/vscode";
 import {
@@ -104,12 +108,14 @@ import {
   statusStyles,
   styles,
 } from "@/components/lineage-flow/custom-nodes/CustomNodeStyles";
+import type { BruinNodeProps } from "@/types";
 
 const props = defineProps<BruinNodeProps & {
   selectedNodeId: string | null;
-  expandAllDownstreams: boolean;
-  expandAllUpstreams: boolean;
-  expandedNodes: { [key: string]: boolean };
+  expandAllDownstreams?: boolean;
+  expandAllUpstreams?: boolean;
+  expandedNodes?: { [key: string]: boolean };
+  showExpandButtons: boolean;
 }>();
 const emit = defineEmits(["add-upstream", "add-downstream", "node-click", "toggle-node-expand"]);
 
@@ -135,20 +141,20 @@ const onAddUpstream = () => emit("add-upstream", props.data.asset?.name);
 const onAddDownstream = () => emit("add-downstream", props.data.asset?.name);
 
 const showPopup = computed(() => props.selectedNodeId === props.data.asset?.name && !props.data.asset?.isFocusAsset);
-const togglePopup = (event: MouseEvent) => {
+const togglePopup = (event) => {
   event.stopPropagation();
   emit("node-click", props.data.asset?.name, event);
 };
 
 const closePopup = () => emit("node-click", null, new MouseEvent('click'));
 
-const handleGoToDetails = (asset: any) => {
+const handleGoToDetails = (asset) => {
   vscode.postMessage({ command: "bruin.openAssetDetails", payload: asset.path });
   closePopup();
 };
 
 const label = computed(() => props.data.asset?.name || '');
-const isExpanded = computed(() => props.expandedNodes[props.data.asset?.name || ''] || false);
+const isExpanded = computed(() => props.expandedNodes?.[props.data.asset?.name || ''] || false);
 
 const isTruncated = computed(() => label.value.length > 26);
 const truncatedLabel = computed(() => {
@@ -161,7 +167,7 @@ const toggleExpand = () => {
   emit("toggle-node-expand", props.data.asset?.name);
 };
 
-const handleClickOutside = (event: MouseEvent) => {
+const handleClickOutside = (event) => {
   if (showPopup.value) closePopup();
 };
 
@@ -185,9 +191,6 @@ onUnmounted(() => {
   document.removeEventListener("click", handleClickOutside);
 });
 </script>
-
-
-
 
 <style scoped>
 .custom-node-wrapper {
@@ -241,6 +244,3 @@ onUnmounted(() => {
   right: -28px;
 }
 </style>
-
-
-
