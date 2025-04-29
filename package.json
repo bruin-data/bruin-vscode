@@ -2,7 +2,7 @@
   "name": "bruin",
   "displayName": "Bruin",
   "description": "Manage your Bruin data assets from within VS Code.",
-  "version": "0.43.4",
+  "version": "0.44.0",
   "engines": {
     "vscode": "^1.87.0"
   },
@@ -92,7 +92,6 @@
           "id": "bruin.assetLineageView",
           "name": "Asset Lineage"
         }
-       
       ],
       "QueryPreview": [
         {
