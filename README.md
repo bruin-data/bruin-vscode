@@ -55,10 +55,11 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 
 ## Release Notes
-### Latest Release: 0.43.4
-- Added full pipeline view to the lineage panel.
+### Latest Release: 0.44.1
+- Enhanced the date input component to support both manual text entry and calendar-based selection.
 
 ### Recent Updates
+- **0.44.0**: Added full pipeline view to the lineage panel.
 - **0.43.4**: Fix rendering for pipeline.yml and .bruin.yml in side panel.
 - **0.43.3**: Added Version Selection for Bruin CLI Update in Settings Tab.
 - **0.43.2**: Added expandable labels for truncated asset names in lineage view.
@@ -71,12 +72,6 @@ Bruin is a unified analytics platform that enables data professionals to work en
 - **0.41.2**: Fixed Editing Behavior When Adding or Deleting Columns.
 - **0.41.1**: Fixed payload sanitization for columns details.
 - **0.41.0**: Added auto CLI Version Check and Update Functionality to trigger a CLI update interactively.
-- **0.40.5**: Remove Debounce from BruinPanel and Add Timeout for Rendering Errors Only.
-- **0.40.4**: Remove `downstream` flag from `runWholetPipeline` command.
-- **0.40.3**: Added support for `emr_serverless.spark` type in asset yaml schema.
-- **0.40.2**: Displayed connection name in QueryPreview.
-- **0.40.1**: Implement debounce mechanism for rendering command in BruinPanel.
-- **0.40.0**: Enable adding, removing, and editing custom checks in asset columns.
 
 For a full changelog, see Bruin Extension [Changelog](https://marketplace.visualstudio.com/items/bruin.bruin/changelog).
 
