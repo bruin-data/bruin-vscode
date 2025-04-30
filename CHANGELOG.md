@@ -1,4 +1,7 @@
 # Changelog
+## [0.44.2] - [2025-04-30]
+- Added support for `interval_modifiers` in asset schema and makes the name field optional.
+
 ## [0.44.1] - [2025-04-29]
 - Enhanced the date input component to support both manual text entry and calendar-based selection.
 
