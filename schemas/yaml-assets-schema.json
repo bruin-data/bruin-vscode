@@ -193,7 +193,7 @@
           "description": "The instance type for this asset"
         },
         "interval_modifiers": {
-          "type": "array",
+          "type": "object",
           "properties": {
             "start": {
               "type": "string",
@@ -240,9 +240,6 @@
           "description": "Snowflake configuration for this asset"
         }
       },
-      "required": [
-        "name"
-      ],
       "additionalProperties": false
     },
     "depends": {
