@@ -192,6 +192,20 @@
           "type": "string",
           "description": "The instance type for this asset"
         },
+        "interval_modifiers": {
+          "type": "array",
+          "properties": {
+            "start": {
+              "type": "string",
+              "description": "Shift start time"
+            },
+            "end": {
+              "type": "string",
+              "description": "Shift end time"
+            }
+          },
+          "description": "Interval modifiers for this asset"
+        },
         "materialization": {
           "$ref": "#/$defs/materialization",
           "description": "Materialization details for this asset"
@@ -341,9 +355,7 @@
         "create+replace",
         "delete+insert",
         "append",
-        "merge",
-        "interval_modifiers"
-      ],
+        "merge"      ],
       "description": "Materialization strategy"
     },
     "uri": {
