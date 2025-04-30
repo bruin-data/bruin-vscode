@@ -1,4 +1,7 @@
 # Changelog
+## [0.44.3] - [2025-04-30]
+- Fixed SQL editor line display and improved layout styling for DateInput components.
+
 ## [0.44.2] - [2025-04-30]
 - Added support for `interval_modifiers` in asset schema and makes the name field optional.
 
