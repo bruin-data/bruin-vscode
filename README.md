@@ -55,10 +55,11 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 
 ## Release Notes
-### Latest Release: 0.44.1
-- Enhanced the date input component to support both manual text entry and calendar-based selection.
+### Latest Release: 0.44.2
+- Added support for `interval_modifiers` in asset schema and makes the name field optional.
 
 ### Recent Updates
+- **0.44.1**: Enhanced the date input component to support both manual text entry and calendar-based selection.
 - **0.44.0**: Added full pipeline view to the lineage panel.
 - **0.43.4**: Fix rendering for pipeline.yml and .bruin.yml in side panel.
 - **0.43.3**: Added Version Selection for Bruin CLI Update in Settings Tab.
