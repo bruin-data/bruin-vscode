@@ -42,7 +42,7 @@ export const getQueryOutput = async (environment: string, limit: string, lastRen
   );
 
   // Pass the query only if there is a valid selection, otherwise leave it empty.
-  await output.getOutput(environment, lastRenderedDocumentUri.fsPath, limit, { query: selectedQuery });
+  await output.getOutput(environment, lastRenderedDocumentUri.fsPath, limit, tabId, { query: selectedQuery });
 };
 
 export const exportQueryResults = async (lastRenderedDocumentUri: Uri | undefined, tabId?: string, connectionName?: string) => {
