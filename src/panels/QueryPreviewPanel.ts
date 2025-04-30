@@ -58,17 +58,34 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
     if (!this._lastRenderedDocumentUri) {
       return;
     }
-
+  
     try {
       if (!this._lastRenderedDocumentUri.fsPath) {
         console.warn("No valid query was returned");
         return;
       }
-      // Pass the tabId to associate the query with the specific tab
+      
+      // First, set loading state for the specific tab
+      QueryPreviewPanel.postMessage("query-output-message", {
+        status: "loading",
+        message: true,
+        tabId: tabId // Include the tab ID with the loading message
+      });
+      
+      // Then execute the query and get the results
       await getQueryOutput(environment, limit, this._lastRenderedDocumentUri, tabId);
+      
+      // Store the asset path for this tab
       QueryPreviewPanel.setTabAssetPath(tabId, this._lastRenderedDocumentUri.fsPath);
     } catch (error) {
       console.error("Error loading query data:", error);
+      
+      // If there's an error, explicitly send an error message with the tab ID
+      QueryPreviewPanel.postMessage("query-output-message", {
+        status: "error",
+        message: error instanceof Error ? error.message : "Failed to execute query",
+        tabId: tabId
+      });
     }
   }
   constructor(private readonly _extensionUri: vscode.Uri, context: vscode.ExtensionContext) {
@@ -264,24 +281,28 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
 
   public static postMessage(
     name: string,
-    data: string | { status: string; message: string | any }
+    data: string | { status: string; message: string | any; tabId?: string },
   ) {
     if (this._view) {
       console.log("Posting message to webview in the Query Preview panel", name, data);
-
+  
+      // Ensure the data is serializable
+      const serializedData = JSON.parse(JSON.stringify(data));
+  
       this._view.webview.postMessage({
         command: name,
-        payload: data,
+        payload: serializedData,
       });
     }
   }
+  
   private async _persistState(state: any) {
-    if(!this._extensionContext) {
+    if (!this._extensionContext) {
       throw new Error("Extension context not found");
     }
     try {
       const sanitizedState = JSON.parse(JSON.stringify(state));
-      
+  
       // Store query for each tab as part of the state
       if (sanitizedState.tabs && Array.isArray(sanitizedState.tabs)) {
         sanitizedState.tabs.forEach((tab: { id: string; query: string; assetPath: string }) => {
@@ -290,43 +311,42 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
           tab.assetPath = QueryPreviewPanel.getTabAssetPath(tab.id);
         });
       }
-      
+  
       await this._extensionContext.globalState.update('queryPreviewState', sanitizedState);
-    }
-    catch (error) {
+    } catch (error) {
       console.error("Error persisting state:", error);
     }
   }
   
   private async _restoreState(): Promise<any> {
-   if(!this._extensionContext) {
-     throw new Error("Extension context not found");
-   }
-   try {
-     const state: any = this._extensionContext.globalState.get('queryPreviewState') || null;
-     
-     // Restore queries for each tab from the state
-     if (state && state.tabs && Array.isArray(state.tabs)) {
-       state.tabs.forEach((tab: { id: string; query: string; assetPath: string }) => {
-        if (tab.id && tab.query) {
-          QueryPreviewPanel.setTabQuery(tab.id, tab.query);
-        } else {
-          QueryPreviewPanel.setTabQuery(tab.id, state.lastExecutedQuery || "");
-        }
-        if (tab.id && tab.assetPath) {
-          QueryPreviewPanel.setTabAssetPath(tab.id, tab.assetPath);
-        } else {
-          QueryPreviewPanel.setTabAssetPath(tab.id, state.lastAssetPath || "");
-        }
-       });
-     }
-     
-     return state;
-   }
-   catch (error) {
-     console.error("Error restoring state:", error);
-   }
+    if (!this._extensionContext) {
+      throw new Error("Extension context not found");
+    }
+    try {
+      const state: any = this._extensionContext.globalState.get('queryPreviewState') || null;
+  
+      // Restore queries for each tab from the state
+      if (state && state.tabs && Array.isArray(state.tabs)) {
+        state.tabs.forEach((tab: { id: string; query: string; assetPath: string }) => {
+          if (tab.id && tab.query) {
+            QueryPreviewPanel.setTabQuery(tab.id, tab.query);
+          } else {
+            QueryPreviewPanel.setTabQuery(tab.id, state.lastExecutedQuery || "");
+          }
+          if (tab.id && tab.assetPath) {
+            QueryPreviewPanel.setTabAssetPath(tab.id, tab.assetPath);
+          } else {
+            QueryPreviewPanel.setTabAssetPath(tab.id, state.lastAssetPath || "");
+          }
+        });
+      }
+  
+      return state;
+    } catch (error) {
+      console.error("Error restoring state:", error);
+    }
   }
+  
   public async initPanel(event: vscode.TextEditor | vscode.TextDocumentChangeEvent | undefined) {
     if (event) {
       this._lastRenderedDocumentUri = event.document.uri;
