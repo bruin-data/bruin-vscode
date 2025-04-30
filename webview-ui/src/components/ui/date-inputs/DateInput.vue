@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col w-full xs:w-36">
+  <div class="flex flex-col w-full xs:min-w-32">
     <label class="text-xs mb-1 font-medium whitespace-nowrap">
       {{ label }}
       <span class="text-3xs italic font-mono opacity-65 text-editor-fg">(UTC)</span>
