@@ -1,6 +1,7 @@
 <template>
-  <div class="flex flex-col w-full xs:w-36">
-    <label class="text-xs mb-1 font-medium">{{ label }}
+  <div class="flex flex-col w-full xs:min-w-32">
+    <label class="text-xs mb-1 font-medium whitespace-nowrap">
+      {{ label }}
       <span class="text-3xs italic font-mono opacity-65 text-editor-fg">(UTC)</span>
     </label>
     <div class="relative flex items-center">
@@ -20,10 +21,7 @@
         :value="utcModelValue"
         @input="updateFromPicker"
       />
-      <div 
-        class="absolute right-1 pointer-events-none"
-        @click.stop="openPicker"
-      >
+      <div class="absolute right-1 pointer-events-none" @click.stop="openPicker">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           class="h-4 w-4 text-editor-fg opacity-65"
@@ -62,20 +60,20 @@ const emit = defineEmits(["update:modelValue"]);
 
 const dateTimeInput = ref<HTMLInputElement | null>(null);
 const error = ref<string | null>(null);
-const userInput = ref('');
+const userInput = ref("");
 
 const displayValue = computed(() => {
   if (document.activeElement === document.querySelector('input[type="text"]')) {
     return userInput.value;
   }
-  
+
   const dt = DateTime.fromISO(props.modelValue, { zone: "utc" });
-  return dt.isValid ? dt.toFormat("yyyy-MM-dd HH:mm") : '';
+  return dt.isValid ? dt.toFormat("yyyy-MM-dd HH:mm") : "";
 });
 
 const utcModelValue = computed(() => {
   const dt = DateTime.fromISO(props.modelValue, { zone: "utc" });
-  return dt.isValid ? dt.toFormat("yyyy-MM-dd'T'HH:mm") : '';
+  return dt.isValid ? dt.toFormat("yyyy-MM-dd'T'HH:mm") : "";
 });
 
 const handleTextInput = (event: Event) => {
