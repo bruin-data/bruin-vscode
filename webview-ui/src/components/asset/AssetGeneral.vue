@@ -5,7 +5,7 @@
     <div class="flex flex-col space-y-3">
       <div class="flex flex-col">
         <!-- Checkbox and Date Controls Row -->
-        <div class="flex flex-col xs:flex-row gap-2 w-full justify-between">
+        <div class="flex flex-col xs:flex-row gap-1 w-full justify-between">
           <EnvSelectMenu
             :options="environments"
             @selected-env="setSelectedEnv"
