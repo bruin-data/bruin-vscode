@@ -16,8 +16,8 @@
     <div id="sql-editor" class="code-container pb-0">
       <pre id="editor-pre">
         <div v-for="(line, index) in highlightedLines" :key="index" class="line">
-          <span class="line-number pl-1 pr-4 min-w-10 user-select-none text-right">{{ index + 1 }}</span>
-          <span v-html="line"></span>
+          <span class="line-number">{{ index + 1 }}</span>
+          <span class="line-content" v-html="line"></span>
         </div>
       </pre>
     </div>
@@ -89,28 +89,48 @@ const highlightedLines = computed(() => {
 }
 
 .line {
-  display: flex;
-  white-space: pre-wrap; 
+  display: grid;
+  grid-template-columns: 60px 1fr;
+  min-height: 1.2em;
+  line-height: 1.2;
 }
 
 .line-number {
   color: var(--vscode-disabledForeground);
+  user-select: none;
+  text-align: right;
+  padding-right: 1rem;
+  white-space: nowrap;
+  position: sticky;
+  left: 0;
+  background: inherit;
 }
 
+.line-content {
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  padding-right: 1rem;
+}
+
+#editor-pre {
+  background-color: var(--vscode-sideBar-background);
+  padding: 8px 0;
+  counter-reset: line;
+  overflow-x: auto;
+}
+
+.highlight-container {
+  position: relative;
+  font-family: var(--vscode-editor-font-family);
+  font-size: var(--vscode-editor-font-size);
+}
 .code-content {
   flex-grow: 1;
   overflow: hidden;
 }
 
-#editor-pre {
-  overflow: auto;
-  word-wrap: break-word;
-  white-space: pre-wrap;
-  max-width: 100%;
-  color: var(--vscode-icon-foreground);
-  margin-bottom: -1em;
-  padding: 0 8px;
-}
+
   
 
 
