@@ -98,6 +98,14 @@
           >
             <span class="codicon codicon-search text-editor-fg"></span>
           </vscode-button>
+          <vscode-button
+            title="Show Query"
+            appearance="icon"
+            @click="toggleQueryVisibility"
+            :class="{ 'is-active': currentTab?.showQuery }"
+          >
+            <span class="codicon codicon-code"></span>
+          </vscode-button>
           <vscode-button title="Clear Results" appearance="icon" @click="clearTabResults">
             <span class="codicon codicon-clear-all text-editor-fg"></span>
           </vscode-button>
@@ -176,6 +184,40 @@
             >
               {{ currentTab.error }}
             </div>
+          </div>
+          <!-- Display the executed query -->
+          <div
+            v-if="currentTab?.showQuery && currentTab?.parsedOutput?.query"
+            class="query-panel bg-editorWidget-background border-b border-panel-border"
+          >
+            <div class="flex items-center justify-end gap-1">
+              <vscode-button
+                v-if="!copied"
+                appearance="icon"
+                title="Copy Query"
+                @click="copyQuery(currentTab.parsedOutput.query)"
+                class="text-xs hover:bg-panel-border"
+              >
+                <span class="codicon codicon-copy text-xs"></span>
+              </vscode-button>
+              <span
+                v-else
+                class="text-xs text-editor-fg opacity-70 hover:opacity-100 transition-opacity duration-200"
+                >Copied!</span
+              >
+              <vscode-button
+                appearance="icon"
+                title="Close"
+                @click="toggleQueryVisibility"
+                class="text-xs hover:bg-panel-border"
+              >
+                <span class="codicon codicon-close text-xs"></span>
+              </vscode-button>
+            </div>
+            <pre
+              class="query-content px-3 pb-1 font-mono text-3xs leading-tight overflow-auto max-h-[150px]"
+              >{{ formatQuery(currentTab.parsedOutput.query) }}</pre
+            >
           </div>
           <div
             v-if="!currentTab?.parsedOutput && !currentTab?.error && !currentTab?.isLoading"
@@ -320,7 +362,7 @@ const currentConnectionName = ref("");
 const limit = ref(100);
 const showSearchInput = ref(false);
 const hoveredTab = ref("");
-
+const copied = ref(false);
 // State for expanded cells
 const expandedCells = ref(new Set<string>());
 const defaultTab = {
@@ -337,12 +379,43 @@ const defaultTab = {
   isEditing: false,
   environment: currentEnvironment.value,
   connectionName: props.connectionName,
+  showQuery: false,
 };
 const tabs = shallowRef<TabData[]>([defaultTab]);
+const copyQuery = (query: string) => {
+  navigator.clipboard.writeText(query);
+  copied.value = true;
+  setTimeout(() => {
+    copied.value = false;
+  }, 2000);
+};
+
+const toggleQueryVisibility = () => {
+  if (!currentTab.value) return;
+
+  const newTabs = tabs.value.map((tab) => {
+    if (tab.id === currentTab.value?.id) {
+      return { ...tab, showQuery: !tab.showQuery };
+    }
+    return tab;
+  });
+
+  tabs.value = newTabs;
+  triggerRef(tabs);
+  nextTick(() => {
+    if (currentTab.value?.showQuery) {
+      const panel = document.querySelector(".query-content");
+      panel?.scrollTo(0, 0);
+    }
+  });
+};
 
 const activeTab = ref<string>("tab-1");
 const tabCounter = ref(2); // Start from 2 since we already have "Tab 1"
-
+const formatQuery = (query: string) => {
+  const lines = query.split("\n");
+  return lines.map((line, index) => (index === 0 ? line.trimStart() : line)).join("\n");
+};
 // Get current active tab
 const currentTab = computed(() => {
   return tabs.value.find((tab) => tab.id === activeTab.value);
@@ -380,6 +453,7 @@ const addTab = () => {
     isEditing: false,
     environment: currentEnvironment.value,
     connectionName: currentConnectionName.value,
+    showQuery: false,
   });
 
   tabCounter.value++;
@@ -429,6 +503,7 @@ const saveState = () => {
     totalRowCount: tab.totalRowCount,
     filteredRowCount: tab.filteredRowCount,
     environment: currentEnvironment.value,
+    showQuery: tab.showQuery,
     connectionName: tab.connectionName,
     tabCounter: tabCounter.value,
   }));
@@ -494,6 +569,7 @@ window.addEventListener("message", (event) => {
         ...t,
         parsedOutput: t.parsedOutput ? reviveParsedOutput(t.parsedOutput) : undefined,
         connectionName: reviveParsedOutput(t.parsedOutput)?.connectionName || t.connectionName,
+        showQuery: !!t.showQuery,
         error: t.error ? new Error(t.error.message) : null,
         isLoading: false,
         isEditing: false,
@@ -958,6 +1034,33 @@ watch(
 </script>
 
 <style scoped>
+.query-panel {
+  background-color: var(--vscode-edito-background);
+  border-color: var(--vscode-panel-border);
+}
+
+.query-content {
+  color: var(--vscode-descriptionForeground);
+  white-space: pre-wrap;
+  tab-size: 2;
+  line-height: 1.4;
+  font-family: var(--vscode-editor-font-family);
+}
+
+.is-active {
+  color: var(--vscode-button-foreground);
+  background-color: var(--vscode-button-background);
+}
+
+.is-active:hover {
+  background-color: var(--vscode-button-hoverBackground);
+}
+.query-content:hover {
+  background-color: var(--vscode-editorWidget-background);
+}
+.text-editor-foreground {
+  color: var(--vscode-editor-foreground);
+}
 input[type="number"] {
   border: none;
   outline: none;
