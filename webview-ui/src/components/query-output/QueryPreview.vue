@@ -190,34 +190,27 @@
             v-if="currentTab?.showQuery && currentTab?.parsedOutput?.query"
             class="query-panel bg-editorWidget-background border-b border-panel-border"
           >
-            <div class="flex items-center justify-between px-3 py-1">
-              <span class="text-3xs text-editor-foreground opacity-75 font-mono"
-                >Executed Query:</span
+            <div class="flex items-center justify-end gap-1">
+              <vscode-button
+                appearance="icon"
+                title="Copy Query"
+                @click="copyQuery(currentTab.parsedOutput.query)"
+                class="text-xs hover:bg-panel-border"
               >
-              <div class="flex items-center gap-1">
-                <vscode-button
-                  appearance="icon"
-                  title="Copy Query"
-                  @click="copyQuery(currentTab.parsedOutput.query)"
-                  class="text-xs hover:bg-panel-border"
-                >
-                  <span class="codicon codicon-copy text-xs"></span>
-                </vscode-button>
-                <vscode-button
-                  appearance="icon"
-                  title="Close"
-                  @click="toggleQueryVisibility"
-                  class="text-xs hover:bg-panel-border"
-                >
-                  <span class="codicon codicon-close text-xs"></span>
-                </vscode-button>
-              </div>
+                <span class="codicon codicon-copy text-xs"></span>
+              </vscode-button>
+              <vscode-button
+                appearance="icon"
+                title="Close"
+                @click="toggleQueryVisibility"
+                class="text-xs hover:bg-panel-border"
+              >
+                <span class="codicon codicon-close text-xs"></span>
+              </vscode-button>
             </div>
             <pre
               class="query-content px-3 pb-1 font-mono text-3xs leading-tight overflow-auto max-h-[150px]"
-            >
-    {{ formatQuery(currentTab.parsedOutput.query) }}
-  </pre
+              >{{ formatQuery(currentTab.parsedOutput.query) }}</pre
             >
           </div>
           <div
@@ -391,21 +384,6 @@ const copyQuery = (query: string) => {
   });
 };
 
-const formatQuery = (query: string) => {
-  return query
-    .replace(
-      /(WITH|SELECT|FROM|WHERE|GROUP BY|HAVING|ORDER BY|LIMIT|UNION ALL|JOIN|LEFT JOIN|INNER JOIN|OUTER JOIN|ON)\b/gi,
-      "\n$1"
-    )
-    .replace(/,(\s*)/g, ",\n  ")
-    .replace(/(\n)(\w+)(\s+AS\s+)/gi, "$1  $2$3")
-    .replace(/(\()\s*/g, "$1\n  ")
-    .replace(/(\))/g, "\n$1")
-    .replace(/\b(AND|OR)\b/gi, "\n  $1")
-    .replace(/\s+/, " ")
-    .trim();
-};
-
 const toggleQueryVisibility = () => {
   if (!currentTab.value) return;
 
@@ -428,7 +406,10 @@ const toggleQueryVisibility = () => {
 
 const activeTab = ref<string>("tab-1");
 const tabCounter = ref(2); // Start from 2 since we already have "Tab 1"
-
+const formatQuery = (query: string) => {
+  const lines = query.split("\n");
+  return lines.map((line, index) => (index === 0 ? line.trimStart() : line)).join("\n");
+};
 // Get current active tab
 const currentTab = computed(() => {
   return tabs.value.find((tab) => tab.id === activeTab.value);
@@ -516,7 +497,7 @@ const saveState = () => {
     totalRowCount: tab.totalRowCount,
     filteredRowCount: tab.filteredRowCount,
     environment: currentEnvironment.value,
-    isQueryExpanded: tab.showQuery,
+    showQuery: tab.showQuery,
     connectionName: tab.connectionName,
     tabCounter: tabCounter.value,
   }));
@@ -582,7 +563,7 @@ window.addEventListener("message", (event) => {
         ...t,
         parsedOutput: t.parsedOutput ? reviveParsedOutput(t.parsedOutput) : undefined,
         connectionName: reviveParsedOutput(t.parsedOutput)?.connectionName || t.connectionName,
-        isQueryExpanded: !!t.isQueryExpanded,
+        showQuery: !!t.showQuery,
         error: t.error ? new Error(t.error.message) : null,
         isLoading: false,
         isEditing: false,
@@ -1048,7 +1029,7 @@ watch(
 
 <style scoped>
 .query-panel {
-  background-color: var(--vscode-editorWidget-background);
+  background-color: var(--vscode-edito-background);
   border-color: var(--vscode-panel-border);
 }
 
@@ -1069,7 +1050,7 @@ watch(
   background-color: var(--vscode-button-hoverBackground);
 }
 .query-content:hover {
-  background-color: var(--vscode-editorWidget-border);
+  background-color: var(--vscode-editorWidget-background);
 }
 .text-editor-foreground {
   color: var(--vscode-editor-foreground);
