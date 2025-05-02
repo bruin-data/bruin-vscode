@@ -98,6 +98,14 @@
           >
             <span class="codicon codicon-search text-editor-fg"></span>
           </vscode-button>
+          <vscode-button
+            title="Show Query"
+            appearance="icon"
+            @click="toggleQueryVisibility"
+            :class="{ 'is-active': currentTab?.showQuery }"
+          >
+            <span class="codicon codicon-code"></span>
+          </vscode-button>
           <vscode-button title="Clear Results" appearance="icon" @click="clearTabResults">
             <span class="codicon codicon-clear-all text-editor-fg"></span>
           </vscode-button>
@@ -179,40 +187,38 @@
           </div>
           <!-- Display the executed query -->
           <div
-            v-if="currentTab?.parsedOutput?.query"
-            class="query-container border-t border-panel-border"
+            v-if="currentTab?.showQuery && currentTab?.parsedOutput?.query"
+            class="query-panel bg-editorWidget-background border-b border-panel-border"
           >
-            <div class="flex flex-col">
-              <button
-                @click="toggleQueryExpansion(currentTab)"
-                class="flex items-center gap-1 px-2 py-1 hover:bg-panel-border transition-colors group"
+            <div class="flex items-center justify-between px-3 py-1">
+              <span class="text-3xs text-editor-foreground opacity-75 font-mono"
+                >Executed Query:</span
               >
-                <span
-                  class="codicon text-xs"
-                  :class="
-                    currentTab.isQueryExpanded ? 'codicon-chevron-down' : 'codicon-chevron-right'
-                  "
-                ></span>
-                <span
-                  class="text-3xs text-editor-foreground opacity-75 group-hover:opacity-100 transition-opacity"
-                >
-                  Executed Query
-                </span>
+              <div class="flex items-center gap-1">
                 <vscode-button
                   appearance="icon"
                   title="Copy Query"
-                  @click.stop="copyQuery(currentTab.parsedOutput.query)"
-                  class="ml-auto opacity-50 hover:opacity-100"
+                  @click="copyQuery(currentTab.parsedOutput.query)"
+                  class="text-xs hover:bg-panel-border"
                 >
                   <span class="codicon codicon-copy text-xs"></span>
                 </vscode-button>
-              </button>
-              <pre
-                v-if="currentTab.isQueryExpanded"
-                class="query-content px-3 py-1 bg-editorWidget-background text-editor-foreground overflow-auto font-mono text-3xs leading-snug"
-                >{{ formatQuery(currentTab.parsedOutput.query) }}</pre
-              >
+                <vscode-button
+                  appearance="icon"
+                  title="Close"
+                  @click="toggleQueryVisibility"
+                  class="text-xs hover:bg-panel-border"
+                >
+                  <span class="codicon codicon-close text-xs"></span>
+                </vscode-button>
+              </div>
             </div>
+            <pre
+              class="query-content px-3 pb-1 font-mono text-3xs leading-tight overflow-auto max-h-[150px]"
+            >
+    {{ formatQuery(currentTab.parsedOutput.query) }}
+  </pre
+            >
           </div>
           <div
             v-if="!currentTab?.parsedOutput && !currentTab?.error && !currentTab?.isLoading"
@@ -374,7 +380,7 @@ const defaultTab = {
   isEditing: false,
   environment: currentEnvironment.value,
   connectionName: props.connectionName,
-  isQueryExpanded: false,
+  showQuery: false,
 };
 const tabs = shallowRef<TabData[]>([defaultTab]);
 const copyQuery = (query: string) => {
@@ -386,33 +392,40 @@ const copyQuery = (query: string) => {
 };
 
 const formatQuery = (query: string) => {
-  // Enhanced SQL formatting
   return query
     .replace(
-      /(SELECT|FROM|WHERE|GROUP BY|HAVING|ORDER BY|LIMIT|UNION ALL|JOIN|LEFT JOIN|INNER JOIN)/gi,
+      /(WITH|SELECT|FROM|WHERE|GROUP BY|HAVING|ORDER BY|LIMIT|UNION ALL|JOIN|LEFT JOIN|INNER JOIN|OUTER JOIN|ON)\b/gi,
       "\n$1"
     )
-    .replace(/,(\s+)?/g, ",\n  ")
+    .replace(/,(\s*)/g, ",\n  ")
     .replace(/(\n)(\w+)(\s+AS\s+)/gi, "$1  $2$3")
-    .replace(/(ON\s+)(\w+\.\w+\s*=\s*\w+\.\w+)/gi, "$1\n    $2")
-    .replace(/\bAND\b/gi, "\n    AND")
-    .replace(/\bOR\b/gi, "\n    OR");
+    .replace(/(\()\s*/g, "$1\n  ")
+    .replace(/(\))/g, "\n$1")
+    .replace(/\b(AND|OR)\b/gi, "\n  $1")
+    .replace(/\s+/, " ")
+    .trim();
 };
 
-const toggleQueryExpansion = (tab: TabData | undefined) => {
-  if (!tab) return;
+const toggleQueryVisibility = () => {
+  if (!currentTab.value) return;
 
-  // Create a new array to trigger reactivity
-  const newTabs = tabs.value.map((t) => {
-    if (t.id === tab.id) {
-      return { ...t, isQueryExpanded: !t.isQueryExpanded };
+  const newTabs = tabs.value.map((tab) => {
+    if (tab.id === currentTab.value?.id) {
+      return { ...tab, showQuery: !tab.showQuery };
     }
-    return t;
+    return tab;
   });
 
   tabs.value = newTabs;
   triggerRef(tabs);
+  nextTick(() => {
+    if (currentTab.value?.showQuery) {
+      const panel = document.querySelector(".query-content");
+      panel?.scrollTo(0, 0);
+    }
+  });
 };
+
 const activeTab = ref<string>("tab-1");
 const tabCounter = ref(2); // Start from 2 since we already have "Tab 1"
 
@@ -453,7 +466,7 @@ const addTab = () => {
     isEditing: false,
     environment: currentEnvironment.value,
     connectionName: currentConnectionName.value,
-    isQueryExpanded: false,
+    showQuery: false,
   });
 
   tabCounter.value++;
@@ -503,7 +516,7 @@ const saveState = () => {
     totalRowCount: tab.totalRowCount,
     filteredRowCount: tab.filteredRowCount,
     environment: currentEnvironment.value,
-    isQueryExpanded: tab.isQueryExpanded,
+    isQueryExpanded: tab.showQuery,
     connectionName: tab.connectionName,
     tabCounter: tabCounter.value,
   }));
@@ -1034,22 +1047,30 @@ watch(
 </script>
 
 <style scoped>
-.query-container {
-  background-color: var(--vscode-sideBar-background);
+.query-panel {
+  background-color: var(--vscode-editorWidget-background);
   border-color: var(--vscode-panel-border);
 }
 
 .query-content {
-  max-height: 200px;
-  border-top: 1px solid var(--vscode-panelSection-border);
   color: var(--vscode-descriptionForeground);
-  margin-top: 2px;
+  white-space: pre-wrap;
+  tab-size: 2;
+  line-height: 1.4;
+  font-family: var(--vscode-editor-font-family);
 }
 
+.is-active {
+  color: var(--vscode-button-foreground);
+  background-color: var(--vscode-button-background);
+}
+
+.is-active:hover {
+  background-color: var(--vscode-button-hoverBackground);
+}
 .query-content:hover {
   background-color: var(--vscode-editorWidget-border);
 }
-
 .text-editor-foreground {
   color: var(--vscode-editor-foreground);
 }
