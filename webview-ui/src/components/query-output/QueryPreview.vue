@@ -117,7 +117,9 @@
         v-if="showNotification"
         :class="[
           'fixed bottom-4 right-4 z-50 max-w-[80%] rounded-md shadow-md overflow-hidden',
-          props.exportOutput ? 'bg-notification-bg border border-commandCenter-border hover:bg-commandCenter-bg' : '',
+          props.exportOutput
+            ? 'bg-notification-bg border border-commandCenter-border hover:bg-commandCenter-bg'
+            : '',
           props.exportError
             ? 'bg-notification-bg border border-commandCenter-border hover:bg-commandCenter-bg'
             : '',
@@ -145,12 +147,13 @@
       </div>
     </div>
     <!-- Query Output Tab -->
-    <div v-if="activeTab" class="relative">
+    <div v-if="activeTab" class="relative h-[calc(100vh-33px)]">
       <template v-for="tab in tabs" :key="tab.id">
-        <div v-show="activeTab === tab.id" class="tab-content">
+        <div v-show="activeTab === tab.id" class="tab-content h-full">
+          <!-- Tab-specific loading overlay - Fixed positioning to always be centered -->
           <div
-            v-if="currentTab?.isLoading"
-            class="fixed inset-0 flex items-center justify-center bg-editor-bg bg-opacity-50 z-50"
+            v-if="activeTab === tab.id && tab.isLoading"
+            class="absolute inset-0 flex items-center justify-center bg-editor-bg bg-opacity-50 z-50"
           >
             <div class="relative w-8 h-8">
               <!-- Gradient Spinner -->
@@ -176,7 +179,7 @@
           </div>
           <div
             v-if="!currentTab?.parsedOutput && !currentTab?.error && !currentTab?.isLoading"
-            class="flex items-center justify-center h-[100vh] w-full"
+            class="flex items-center justify-center h-full w-full"
           >
             <div class="flex items-center space-x-2 text-sm text-editor-fg">
               <vscode-button appearance="icon" @click="runQuery">
@@ -192,7 +195,7 @@
           <!-- Results Table -->
           <div
             v-if="currentTab?.parsedOutput && !currentTab?.error"
-            class="overflow-auto h-[calc(100vh-33px)] w-full"
+            class="overflow-auto h-full w-full"
           >
             <table
               class="w-[calc(100vw-100px)] bg-editor-bg font-mono font-normal text-xs border-t-0 border-collapse"
@@ -350,7 +353,12 @@ const switchToTab = async (tabId: string) => {
   // Reset cell expansions when switching tabs
   await nextTick();
   expandedCells.value.clear();
+  // Set the active tab
   activeTab.value = tabId;
+
+  nextTick(() => {
+    triggerRef(tabs);
+  });
 };
 
 // Add a new tab
@@ -500,6 +508,57 @@ window.addEventListener("message", (event) => {
     }
   }
 
+  // Handle tab-specific query results
+  if (message.command === "query-output-message") {
+    // Extract the tab ID from the message if available
+    const tabId = message.payload?.tabId;
+    if (!tabId) {
+      console.error("Received query output message without tabId");
+      return;
+    }
+
+    // Find the specific tab to update
+    const tabToUpdate = tabs.value.find((tab) => tab.id === tabId);
+
+    if (tabToUpdate) {
+      if (message.payload.status === "loading") {
+        // Update loading state for this specific tab only
+        tabToUpdate.isLoading = message.payload.message;
+
+        // Force UI update immediately
+        triggerRef(tabs);
+      } else if (message.payload.status === "success") {
+        try {
+          // Process successful response for this specific tab
+          const outputData =
+            typeof message.payload.message === "string"
+              ? JSON.parse(message.payload.message)
+              : message.payload.message;
+
+          tabToUpdate.parsedOutput = outputData;
+          tabToUpdate.totalRowCount = outputData.rows?.length || 0;
+          tabToUpdate.filteredRows = outputData.rows || [];
+          tabToUpdate.error = null;
+          tabToUpdate.isLoading = false; // Always ensure loading is set to false
+
+          if (outputData.connectionName) {
+            tabToUpdate.connectionName = outputData.connectionName;
+          }
+        } catch (e) {
+          console.error("Error processing tab output:", e);
+          tabToUpdate.error = "Error processing query results: " + (e as Error).message;
+          tabToUpdate.isLoading = false; // Always ensure loading is set to false
+        }
+      } else if (message.payload.status === "error") {
+        // Process error for this specific tab
+        tabToUpdate.error = message.payload.message;
+        tabToUpdate.isLoading = false; // Always ensure loading is set to false
+      }
+
+      // Force a UI update for this tab
+      triggerRef(tabs);
+    }
+  }
   if (message.command === "query-output-clear" && message.payload?.status === "success") {
     const tabId = message.payload.message?.tabId;
     // Find the specific tab to clear if tabId is provided
@@ -530,6 +589,7 @@ window.addEventListener("message", (event) => {
     });
   }
 });
+
 // Close a tab
 const closeTab = (tabId: string) => {
   // Reset cell expansions
@@ -636,33 +696,12 @@ const toggleCellExpansion = (rowIndex, colIndex) => {
   }
 };
 
-// Parse output for the current tab
+// Modified to only process when the tab matches
 watch(
   () => props.output,
   (newOutput) => {
-    if (!currentTab.value) return;
-
-    try {
-      let parsedData;
-      if (typeof newOutput === "string") {
-        parsedData = JSON.parse(newOutput);
-      } else if (newOutput?.data?.status === "success") {
-        parsedData = JSON.parse(newOutput.data.message);
-      } else {
-        parsedData = newOutput;
-      }
-
-      if (parsedData) {
-        currentTab.value.parsedOutput = parsedData;
-        currentTab.value.totalRowCount = parsedData.rows?.length || 0;
-        currentTab.value.connectionName = parsedData.connectionName;
-        triggerRef(tabs);
-        updateFilteredRows();
-        saveState();
-      }
-    } catch (e) {
-      console.error("Error parsing output:", e);
-    }
+    if (!newOutput) return;
+    // We don't need to process this here anymore since we handle it in the message handler
   }
 );
 
@@ -670,33 +709,16 @@ watch(
 watch(
   () => props.error,
   (newError) => {
-    if (!currentTab.value) return;
-
-    if (!newError) {
-      currentTab.value.error = null;
-      return;
-    }
-
-    if (typeof newError === "string") {
-      try {
-        const parsed = JSON.parse(newError);
-        currentTab.value.error = parsed.error || parsed;
-      } catch (e) {
-        currentTab.value.error = newError;
-      }
-    } else {
-      currentTab.value.error = newError?.error || newError || "Something went wrong";
-    }
+    if (!newError) return;
+    // We don't need to process this here anymore since we handle it in the message handler
   }
 );
 
-// Update loading state for the current tab
+// Update loading state for the current tab - we don't use this anymore
 watch(
   () => props.isLoading,
   (newIsLoading) => {
-    if (currentTab.value) {
-      currentTab.value.isLoading = newIsLoading;
-    }
+    // We don't need this anymore since loading is tab-specific
   }
 );
 
@@ -749,6 +771,7 @@ const updateFilteredRows = () => {
     currentTab.value.filteredRowCount = filtered.length;
   }
 };
+
 // Run query and store results in the current tab
 const runQuery = () => {
   // Reset cell expansions when running a new query
@@ -756,12 +779,25 @@ const runQuery = () => {
   if (limit.value > 1000 || limit.value < 1) {
     limit.value = 1000;
   }
-  const selectedEnvironment = currentEnvironment.value;
-  vscode.postMessage({
-    command: "bruin.getQueryOutput",
-    payload: { environment: selectedEnvironment, limit: limit.value.toString(), query: "", tabId: activeTab.value },
-  });
-  saveState();
+  // Set the loading state for the current tab only
+  if (currentTab.value) {
+    currentTab.value.isLoading = true;
+    currentTab.value.error = null;
+
+    triggerRef(tabs);
+    const selectedEnvironment = currentEnvironment.value;
+    vscode.postMessage({
+      command: "bruin.getQueryOutput",
+      payload: {
+        environment: selectedEnvironment,
+        limit: limit.value.toString(),
+        query: "",
+        tabId: activeTab.value,
+      },
+    });
+
+    saveState();
+  }
 };
 
 const exportTabResults = () => {
@@ -770,10 +806,9 @@ const exportTabResults = () => {
     command: "bruin.exportQueryOutput",
     payload: { tabId: activeTab.value, connectionName: currentConnectionName.value },
   });
-
-
   saveState();
 };
+
 // Toggle search input visibility
 const toggleSearchInput = () => {
   showSearchInput.value = !showSearchInput.value;

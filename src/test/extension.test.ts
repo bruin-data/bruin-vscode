@@ -2521,37 +2521,50 @@ suite("Query Output Tests", () => {
 
   test("should store query and call getOutput with selected query", async () => {
     const uri = vscode.Uri.file("/some/file.sql");
-    const fakeQuery = "SELECT * FROM table";
+    const selectedQuery = "SELECT *"; 
+    const fullQuery = "SELECT * FROM table";
+    const tabId = "tab-1";
+  
     const fakeDoc = {
       uri,
-      getText: () => fakeQuery,
+      getText: (range?: vscode.Range) => {
+        // Return selected query if range is provided
+        if (range) return selectedQuery;
+        return fullQuery;
+      },
     } as unknown as vscode.TextDocument;
-
+  
     const fakeEditor = {
       document: fakeDoc,
       selection: {
         isEmpty: false,
         start: new vscode.Position(0, 0),
-        end: new vscode.Position(0, 10),
+        end: new vscode.Position(0, 8),
       },
     } as vscode.TextEditor;
-
+  
     sinon.stub(vscode.window, "activeTextEditor").value(fakeEditor);
     getWorkspaceFolderStub.returns({ uri: { fsPath: "/mocked/workspace" } });
-
-    await getQueryOutput("dev", "10", uri);
-
-    assert.strictEqual(setTabQueryStub.calledWith("tab-1", fakeQuery), true);
-    assert.strictEqual(getOutputStub.calledWithMatch("dev", uri.fsPath, "10", { query: fakeQuery }), true);
+  
+    await getQueryOutput("dev", "10", uri, tabId);
+  
+    assert.strictEqual(setTabQueryStub.calledWith("tab-1", selectedQuery), true);
+    assert.strictEqual(
+      getOutputStub.calledWithMatch("dev", uri.fsPath, "10", "tab-1", { query: selectedQuery }),
+      true
+    );
   });
-
+  
   test("should send empty query when selection is empty", async () => {
     const uri = vscode.Uri.file("/no/selection.sql");
+  
     const fakeDoc = {
       uri,
-      getText: () => "ignored", // should not be used when selection is empty
+      getText: (range?: vscode.Range) => {
+        throw new Error("getText with range should not be called when selection is empty");
+      },
     } as unknown as vscode.TextDocument;
-
+  
     const fakeEditor = {
       document: fakeDoc,
       selection: {
@@ -2560,15 +2573,19 @@ suite("Query Output Tests", () => {
         end: new vscode.Position(0, 0),
       },
     } as vscode.TextEditor;
-
+  
     sinon.stub(vscode.window, "activeTextEditor").value(fakeEditor);
     getWorkspaceFolderStub.returns({ uri: { fsPath: "/mocked/workspace" } });
-
-    await getQueryOutput("dev", "50", uri);
-
+  
+    await getQueryOutput("dev", "50", uri, "tab-1");
+  
     assert.strictEqual(setTabQueryStub.calledWith("tab-1", ""), true);
-    assert.strictEqual(getOutputStub.calledWithMatch("dev", uri.fsPath, "50", { query: "" }), true);
+    assert.strictEqual(
+      getOutputStub.calledWithMatch("dev", uri.fsPath, "50", "tab-1", { query: "" }),
+      true
+    );
   });
+  
 });
 suite("BruinQueryOutput", () => {
   let bruinQueryOutput: TestableBruinQueryOutput;
@@ -2641,38 +2658,35 @@ suite("BruinQueryOutput", () => {
     const environment = "dev";
     const asset = "exampleAsset";
     const limit = "10";
-
-    // Mock the run method to simulate older CLI behavior
-    bruinQueryOutput.run = async (flags: string[]) => {
-      return "Incorrect Usage: flag provided but not defined: -env";
-    };
-
+  
+    // Stub the `run` method on the actual instance
+    sinon.stub(bruinQueryOutput, "run").resolves("Incorrect Usage: flag provided but not defined: -env");
+  
     await bruinQueryOutput.getOutput(environment, asset, limit);
-
-    // Verify that postMessage was called with the correct error message
+  
     sinon.assert.calledWith(queryPreviewPanelStub, "query-output-message", {
       status: "error",
       message: "This feature requires the latest Bruin CLI version. Please update your CLI.",
+      tabId: undefined,
     });
   });
-
+  
   test("should handle errors during command execution", async () => {
     const environment = "dev";
     const asset = "exampleAsset";
     const limit = "10";
-
-    // Mock the run method to simulate an error
-    bruinQueryOutput.run = async () => {
-      throw new Error("Mock error");
-    };
-
+  
+    // Stub the `run` method to throw an error
+    sinon.stub(bruinQueryOutput, "run").rejects(new Error("Mock error"));
+  
     await bruinQueryOutput.getOutput(environment, asset, limit);
-
+  
     sinon.assert.calledWith(queryPreviewPanelStub, "query-output-message", {
       status: "error",
       message: "Mock error",
+      tabId: undefined,
     });
-  });
+  });  
 });
 suite(" Query export Tests", () => {
   let bruinQueryExport: TestableBruinQueryExport;

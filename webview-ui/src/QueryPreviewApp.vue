@@ -1,19 +1,19 @@
 <template>
-  <vscode-panels :activeid="`tab-${activeTab}`" aria-label="Tabbed Content">
-    <vscode-panel-view
-      v-for="(tab, index) in tabs"
-      :key="`view-${index}`"
-      :id="`view-${index}`"
-      v-show="activeTab === index"
-    >
-      <component
-        v-if="tab.props"
-        :is="tab.component"
-        v-bind="tab.props"
-        @resetData="clearQueryOutput"
-        class="flex w-full"
-      />
-    </vscode-panel-view>
+  <vscode-panels aria-label="Tabbed Content">
+  <vscode-panel-view>
+    <QueryPreview
+      :output="output"
+      :error="errorValue"
+      :isLoading="isLoading"
+      :environment="selectedEnvironment"
+      :connectionName="output?.connectionName || ''"
+      :isExportLoading="isExportLoading"
+      :exportOutput="QueryExport"
+      :exportError="QueryExportError"
+      @resetData="clearQueryOutput"
+      class="flex w-full"
+    />
+  </vscode-panel-view>
   </vscode-panels>
 </template>
 
@@ -33,19 +33,14 @@ import { vscode } from "./utilities/vscode";
 
 const QueryOutput = ref(); // Holds the lineage data received from the extension
 const QueryError = ref(); // Holds any errors related to lineage data
-const activeTab = ref(0); // Tracks the currently active tab
 const QueryExport = ref();
 const QueryExportError = ref();
-/**
- * Handles incoming messages from the VSCode extension.
- *
- * @param {MessageEvent} event - The message event containing data from the extension.
- */
 
 const isLoading = ref(false); // Create a direct ref instead of computed
 const isExportLoading = ref(false);
 const initEnvironment = ref();
 const currentEnvironment = ref();
+
 const handleMessage = (event) => {
   const message = event.data;
   switch (message.command) {
@@ -65,7 +60,7 @@ const handleMessage = (event) => {
       currentEnvironment.value = initEnvironment.value?.selected_environment;
       break;
     case "set-environment":
-    currentEnvironment.value = updateValue(message, "success");
+      currentEnvironment.value = updateValue(message, "success");
       console.log("Setting environment", currentEnvironment.value);
       break;
     case "query-export-message":
@@ -80,11 +75,10 @@ const handleMessage = (event) => {
 };
 
 const selectedEnvironment = computed(() => {
-  if(!currentEnvironment.value) return "";
+  if (!currentEnvironment.value) return "";
   const selected = currentEnvironment.value;
   return selected || "";
 });
-
 
 const output = computed(() => {
   if (!QueryOutput.value) return null;
@@ -114,23 +108,6 @@ const clearQueryOutput = () => {
   isLoading.value = false;
   vscode.postMessage({ command: "bruin.clearQueryOutput" });
 };
-// Define tabs for the application
-const tabs = ref([
-  {
-    label: "QueryPreview",
-    component: QueryPreview,
-    props: computed(() => ({
-      output: output.value,
-      error: errorValue.value,
-      isLoading: isLoading.value,
-      environment: selectedEnvironment.value,
-      connectionName:output.value?.connectionName || "",
-      isExportLoading: isExportLoading.value,
-      exportOutput: QueryExport.value,
-      exportError: QueryExportError.value
-    })),
-  },
-]);
 
 watch(output, (newValue) => {
   if (newValue) {
@@ -145,6 +122,7 @@ onUnmounted(() => {
   window.removeEventListener("message", handleMessage);
 });
 </script>
+
 <style scoped>
 vscode-panel-view {
   padding: 0px !important;

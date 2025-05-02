@@ -29,6 +29,7 @@ export class BruinQueryOutput extends BruinCommand {
     environment: string,
     asset: string,
     limit: string,
+    tabId?: string,
     { flags = [], ignoresErrors = false, query = "" }: BruinCommandOptions & { query?: string } = {}
   ): Promise<void> {
     // Construct base flags dynamically
@@ -62,15 +63,15 @@ export class BruinQueryOutput extends BruinCommand {
         return;
       }
       console.log("SQL query output:", result);
-      this.postMessageToPanels("success", result);
+      this.postMessageToPanels("success", result, tabId);
     } catch (error: any) {
       console.error("Error occurred while running query:", error);
       const errorMessage = error.message || error.toString();
-      this.postMessageToPanels("error", errorMessage);
+      this.postMessageToPanels("error", errorMessage, tabId);
     }
     finally {
       this.isLoading = false;
-      this.postMessageToPanels("loading", this.isLoading);
+      this.postMessageToPanels("loading", this.isLoading, tabId);
     }
   }
 
@@ -80,7 +81,7 @@ export class BruinQueryOutput extends BruinCommand {
    * @param {string} status - Status of the message ('success' or 'error').
    * @param {string | any} message - The message content to send to the panel.
    */
-  private postMessageToPanels(status: string, message: string | any) {
-    QueryPreviewPanel.postMessage("query-output-message", { status, message });
+  private postMessageToPanels(status: string, message: string | any, tabId?: string) {
+    QueryPreviewPanel.postMessage("query-output-message", { status, message, tabId });
   }
 }
