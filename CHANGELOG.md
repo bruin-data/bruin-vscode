@@ -1,4 +1,7 @@
 # Changelog
+## [0.44.4] - [2025-05-02]
+- Scope query response to active tab only, allowing other tabs to remain responsive during execution.
+
 ## [0.44.3] - [2025-04-30]
 - Fixed SQL editor line display and improved layout styling for DateInput components.
 
