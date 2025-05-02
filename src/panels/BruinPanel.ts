@@ -411,7 +411,9 @@ export class BruinPanel {
             if (!this._lastRenderedDocumentUri) {
               return;
             }
+            console.warn("Getting asset details message in the panel", (new Date()).toISOString());
             parseAssetCommand(this._lastRenderedDocumentUri);
+            console.warn("Finish asset details message in the panel", (new Date()).toISOString());
             break;
 
           case "bruin.setAssetDetails":

@@ -27,13 +27,11 @@ export class BruinConnections extends BruinCommand {
     flags = ["list", "-o", "json"],
     ignoresErrors = false,
   }: BruinCommandOptions = {}): Promise<void> {
-    console.log("\n==================\n Connections Commands \n==================\n"); // Section separation message
 
     await this.run([...flags], { ignoresErrors })
       .then(
         (result) => {
           const connections = extractNonNullConnections(JSON.parse(result));
-          console.log("Extracted connections:", connections); // Debug message
           this.postMessageToPanels("success", connections);
           return connections;
         },
