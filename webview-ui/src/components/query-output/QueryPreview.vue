@@ -192,6 +192,7 @@
           >
             <div class="flex items-center justify-end gap-1">
               <vscode-button
+                v-if="!copied"
                 appearance="icon"
                 title="Copy Query"
                 @click="copyQuery(currentTab.parsedOutput.query)"
@@ -199,6 +200,11 @@
               >
                 <span class="codicon codicon-copy text-xs"></span>
               </vscode-button>
+              <span
+                v-else
+                class="text-xs text-editor-fg opacity-70 hover:opacity-100 transition-opacity duration-200"
+                >Copied!</span
+              >
               <vscode-button
                 appearance="icon"
                 title="Close"
@@ -356,7 +362,7 @@ const currentConnectionName = ref("");
 const limit = ref(100);
 const showSearchInput = ref(false);
 const hoveredTab = ref("");
-
+const copied = ref(false);
 // State for expanded cells
 const expandedCells = ref(new Set<string>());
 const defaultTab = {
@@ -378,10 +384,10 @@ const defaultTab = {
 const tabs = shallowRef<TabData[]>([defaultTab]);
 const copyQuery = (query: string) => {
   navigator.clipboard.writeText(query);
-  vscode.postMessage({
-    command: "bruin.showInformationMessage",
-    payload: "Query copied to clipboard",
-  });
+  copied.value = true;
+  setTimeout(() => {
+    copied.value = false;
+  }, 2000);
 };
 
 const toggleQueryVisibility = () => {
