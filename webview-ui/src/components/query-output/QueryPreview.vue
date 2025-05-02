@@ -177,6 +177,43 @@
               {{ currentTab.error }}
             </div>
           </div>
+          <!-- Display the executed query -->
+          <div
+            v-if="currentTab?.parsedOutput?.query"
+            class="query-container border-t border-panel-border"
+          >
+            <div class="flex flex-col">
+              <button
+                @click="toggleQueryExpansion(currentTab)"
+                class="flex items-center gap-1 px-2 py-1 hover:bg-panel-border transition-colors group"
+              >
+                <span
+                  class="codicon text-xs"
+                  :class="
+                    currentTab.isQueryExpanded ? 'codicon-chevron-down' : 'codicon-chevron-right'
+                  "
+                ></span>
+                <span
+                  class="text-3xs text-editor-foreground opacity-75 group-hover:opacity-100 transition-opacity"
+                >
+                  Executed Query
+                </span>
+                <vscode-button
+                  appearance="icon"
+                  title="Copy Query"
+                  @click.stop="copyQuery(currentTab.parsedOutput.query)"
+                  class="ml-auto opacity-50 hover:opacity-100"
+                >
+                  <span class="codicon codicon-copy text-xs"></span>
+                </vscode-button>
+              </button>
+              <pre
+                v-if="currentTab.isQueryExpanded"
+                class="query-content px-3 py-1 bg-editorWidget-background text-editor-foreground overflow-auto font-mono text-3xs leading-snug"
+                >{{ formatQuery(currentTab.parsedOutput.query) }}</pre
+              >
+            </div>
+          </div>
           <div
             v-if="!currentTab?.parsedOutput && !currentTab?.error && !currentTab?.isLoading"
             class="flex items-center justify-center h-full w-full"
@@ -337,9 +374,45 @@ const defaultTab = {
   isEditing: false,
   environment: currentEnvironment.value,
   connectionName: props.connectionName,
+  isQueryExpanded: false,
 };
 const tabs = shallowRef<TabData[]>([defaultTab]);
+const copyQuery = (query: string) => {
+  navigator.clipboard.writeText(query);
+  vscode.postMessage({
+    command: "bruin.showInformationMessage",
+    payload: "Query copied to clipboard",
+  });
+};
 
+const formatQuery = (query: string) => {
+  // Enhanced SQL formatting
+  return query
+    .replace(
+      /(SELECT|FROM|WHERE|GROUP BY|HAVING|ORDER BY|LIMIT|UNION ALL|JOIN|LEFT JOIN|INNER JOIN)/gi,
+      "\n$1"
+    )
+    .replace(/,(\s+)?/g, ",\n  ")
+    .replace(/(\n)(\w+)(\s+AS\s+)/gi, "$1  $2$3")
+    .replace(/(ON\s+)(\w+\.\w+\s*=\s*\w+\.\w+)/gi, "$1\n    $2")
+    .replace(/\bAND\b/gi, "\n    AND")
+    .replace(/\bOR\b/gi, "\n    OR");
+};
+
+const toggleQueryExpansion = (tab: TabData | undefined) => {
+  if (!tab) return;
+
+  // Create a new array to trigger reactivity
+  const newTabs = tabs.value.map((t) => {
+    if (t.id === tab.id) {
+      return { ...t, isQueryExpanded: !t.isQueryExpanded };
+    }
+    return t;
+  });
+
+  tabs.value = newTabs;
+  triggerRef(tabs);
+};
 const activeTab = ref<string>("tab-1");
 const tabCounter = ref(2); // Start from 2 since we already have "Tab 1"
 
@@ -380,6 +453,7 @@ const addTab = () => {
     isEditing: false,
     environment: currentEnvironment.value,
     connectionName: currentConnectionName.value,
+    isQueryExpanded: false,
   });
 
   tabCounter.value++;
@@ -429,6 +503,7 @@ const saveState = () => {
     totalRowCount: tab.totalRowCount,
     filteredRowCount: tab.filteredRowCount,
     environment: currentEnvironment.value,
+    isQueryExpanded: tab.isQueryExpanded,
     connectionName: tab.connectionName,
     tabCounter: tabCounter.value,
   }));
@@ -494,6 +569,7 @@ window.addEventListener("message", (event) => {
         ...t,
         parsedOutput: t.parsedOutput ? reviveParsedOutput(t.parsedOutput) : undefined,
         connectionName: reviveParsedOutput(t.parsedOutput)?.connectionName || t.connectionName,
+        isQueryExpanded: !!t.isQueryExpanded,
         error: t.error ? new Error(t.error.message) : null,
         isLoading: false,
         isEditing: false,
@@ -958,6 +1034,25 @@ watch(
 </script>
 
 <style scoped>
+.query-container {
+  background-color: var(--vscode-sideBar-background);
+  border-color: var(--vscode-panel-border);
+}
+
+.query-content {
+  max-height: 200px;
+  border-top: 1px solid var(--vscode-panelSection-border);
+  color: var(--vscode-descriptionForeground);
+  margin-top: 2px;
+}
+
+.query-content:hover {
+  background-color: var(--vscode-editorWidget-border);
+}
+
+.text-editor-foreground {
+  color: var(--vscode-editor-foreground);
+}
 input[type="number"] {
   border: none;
   outline: none;
