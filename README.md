@@ -54,10 +54,11 @@ Bruin is a unified analytics platform that enables data professionals to work en
 **Note**: Ensure that you have the Bruin CLI installed on your system before using the new features. For guidance on installing the Bruin CLI, please refer to the [official documentation](https://github.com/bruin-data/bruin).
 
 ## Release Notes
-### Latest Release: 0.44.4
-- Scope query response to active tab only, allowing other tabs to remain responsive during execution.
+### Latest Release: 0.45.0
+- Added executed query preview with copy-to-clipboard support in the query results panel.
 
 ### Recent Updates
+- **0.44.4**: Scope query response to active tab only, allowing other tabs to remain responsive during execution.
 - **0.44.3**: Fixed SQL editor line display and improved layout styling for DateInput components.
 - **0.44.2**: Added support for `interval_modifiers` in asset schema and makes the name field optional.
 - **0.44.1**: Enhanced the date input component to support both manual text entry and calendar-based selection.

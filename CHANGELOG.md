@@ -1,4 +1,7 @@
 # Changelog
+## [0.45.0] - [2025-05-02]
+- Added executed query preview with copy-to-clipboard support in the query results panel.
+
 ## [0.44.4] - [2025-05-02]
 - Scope query response to active tab only, allowing other tabs to remain responsive during execution.
 
