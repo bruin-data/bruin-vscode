@@ -1,4 +1,3 @@
-import { getDefaultBruinExecutablePath } from "../configuration";
 import { Uri } from "vscode";
 import { bruinWorkspaceDirectory } from "../../bruin";
 import {
@@ -8,10 +7,11 @@ import {
   BruinGetAllBruinConnections,
   BruinTestConnection,
 } from "../../bruin/bruinConnections";
+import { getBruinExecutablePath } from "../../providers/BruinExecutableService";
 
 export const getConnections = async (lastRenderedDocumentUri: Uri | undefined) => {
   const bruinConnections = new BruinConnections(
-    getDefaultBruinExecutablePath(),
+    getBruinExecutablePath(),
     (await bruinWorkspaceDirectory(lastRenderedDocumentUri!.fsPath)!!) as string
   );
   await bruinConnections.getConnections();
@@ -19,7 +19,7 @@ export const getConnections = async (lastRenderedDocumentUri: Uri | undefined) =
 
 export const getConnectionsListFromSchema = async (lastRenderedDocumentUri: Uri | undefined) => {
   const bruinConnections = new BruinGetAllBruinConnections(
-    getDefaultBruinExecutablePath(),
+    getBruinExecutablePath(),
     (await bruinWorkspaceDirectory(lastRenderedDocumentUri!.fsPath)!!) as string
   );
   await bruinConnections.getConnectionsListFromSchema();
@@ -32,7 +32,7 @@ export const deleteConnection = async (
 ) => {
   console.log("Deleting connection:", { env, connectionName });
   const bruinConnections = new BruinDeleteConnection(
-    getDefaultBruinExecutablePath(),
+    getBruinExecutablePath(),
     (await bruinWorkspaceDirectory(lastRenderedDocumentUri!.fsPath)!!) as string
   );
   await bruinConnections.deleteConnection(env, connectionName);
@@ -47,7 +47,7 @@ export const createConnection = async (
 ) => {
   console.log("Creating connection");
   const bruinConnections = new BruinCreateConnection(
-    getDefaultBruinExecutablePath(),
+    getBruinExecutablePath(),
     (await bruinWorkspaceDirectory(lastRenderedDocumentUri!.fsPath)!!) as string
   );
   await bruinConnections.createConnection(env, connectionName, connectionType, credentials);
@@ -62,7 +62,7 @@ export const createConnection = async (
 ) => {
   console.log("Testing connection");
   const bruinConnection = new BruinTestConnection(
-    getDefaultBruinExecutablePath(),
+    getBruinExecutablePath(),
     (await bruinWorkspaceDirectory(lastRenderedDocumentUri!.fsPath)!!) as string
   );
   await bruinConnection.testConnection(env, connectionName, connectionType);

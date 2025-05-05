@@ -171,8 +171,7 @@ window.addEventListener("message", (event) => {
         connectionsStore.setDefaultEnvironment(selectedEnvironment.value); // Set the default environment in the store
         break;
       case "parse-message": {
-        console.log("Webview received message:", message);
-
+        console.warn("Parsing message received:", (new Date).toISOString());
         parseError.value = updateValue(message, "error");
         const parsed = updateValue(message, "success");
         if (!parseError.value) {
@@ -198,6 +197,7 @@ window.addEventListener("message", (event) => {
         rudderStack.trackEvent("Asset Parsing Status", {
           parseError: parseError.value ? `Error ${parseError.value}` : "No Error Found",
         });
+        console.warn("Parsing message received END:", (new Date).toISOString());
         break;
       }
       case "bruinCliInstallationStatus":
@@ -416,14 +416,23 @@ const visibleTabs = computed(() => {
 // Lifecycle hook to load data when the component is mounted
 onMounted(() => {
   console.log("Component mounted. Loading asset data and environments.");
+  console.warn("send the load asset message from the ui", (new Date).toISOString());
   loadAssetData();
+  console.warn("Afetr sending the load asset message from the ui", (new Date).toISOString());
+  console.timeEnd("loadAssetData");
+  console.time("loadEnvironmentsList");
   loadEnvironmentsList();
+  console.timeEnd("loadEnvironmentsList");
+  console.time("checkBruinCliInstallation");
   checkBruinCliInstallation();
+  console.timeEnd("checkBruinCliInstallation");
+  console.time("postMessage");
   vscode.postMessage({ command: "getLastRenderedDocument" });
-  vscode.postMessage({ command: "bruin.checkTelemtryPreference" });
+  //vscode.postMessage({ command: "bruin.checkTelemtryPreference" });
   vscode.postMessage({ command: "bruin.checkBruinCLIVersion" });
+  console.timeEnd("postMessage");
   // Track page view
-  try {
+  /* try {
     rudderStack.trackPageView("Asset Details Page", {
       path: window.location.pathname,
       url: window.location.href,
@@ -447,7 +456,7 @@ onMounted(() => {
     customChecksCount: customChecksProps.value.length,
   });
 
-  console.log("Custom event tracked.");
+  console.log("Custom event tracked."); */
 });
 
 // send the message to check the bruin version every 30 minutes

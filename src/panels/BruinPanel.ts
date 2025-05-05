@@ -8,7 +8,6 @@ import {
   getCurrentPipelinePath,
   runInIntegratedTerminal,
 } from "../bruin";
-import { getDefaultBruinExecutablePath } from "../extension/configuration";
 import * as vscode from "vscode";
 import { renderCommandWithFlags } from "../extension/commands/renderCommand";
 import { parseAssetCommand, patchAssetCommand } from "../extension/commands/parseAssetCommand";
@@ -23,6 +22,7 @@ import {
 } from "../extension/commands/manageConnections";
 import { openGlossary } from "../bruin/bruinGlossaryUtility";
 import { QueryPreviewPanel } from "./QueryPreviewPanel";
+import { getBruinExecutablePath } from "../providers/BruinExecutableService";
 
 /**
  * This class manages the state and behavior of Bruin webview panels.
@@ -285,7 +285,7 @@ export class BruinPanel {
             }
 
             const validatorAll = new BruinValidate(
-              getDefaultBruinExecutablePath(),
+              getBruinExecutablePath(),
               workspaceFolder.uri.fsPath
             );
 
@@ -312,10 +312,9 @@ export class BruinPanel {
               return;
             }
 
-            const bruinWorkspaceDirc = await bruinWorkspaceDirectory(currAssetPath || "");
             const pipelineValidator = new BruinValidate(
-              getDefaultBruinExecutablePath(),
-              bruinWorkspaceDirc || ""
+              getBruinExecutablePath(),
+              ""
             );
 
             try {
@@ -339,18 +338,17 @@ export class BruinPanel {
             }
 
             const filePath = this._lastRenderedDocumentUri.fsPath;
-            const bruinWorkspaceDir = await bruinWorkspaceDirectory(filePath || "");
             console.log(
               "Validating asset:",
               filePath,
               "in workspace:",
-              bruinWorkspaceDir,
+              "",
               "with bruin exec:",
-              getDefaultBruinExecutablePath()
+              getBruinExecutablePath()
             );
             const validator = new BruinValidate(
-              getDefaultBruinExecutablePath(),
-              bruinWorkspaceDir!!
+              getBruinExecutablePath(),
+              ""
             );
             await validator.validate(filePath);
             break;
@@ -360,7 +358,7 @@ export class BruinPanel {
             }
             const fPath = this._lastRenderedDocumentUri?.fsPath;
             runInIntegratedTerminal(
-              await bruinWorkspaceDirectory(fPath),
+              "",
               fPath,
               message.payload,
               "bruin"
@@ -379,7 +377,7 @@ export class BruinPanel {
             }
             const runPath = this._lastRenderedDocumentUri?.fsPath;
             runInIntegratedTerminal(
-              await bruinWorkspaceDirectory(runPath),
+              await "",
               runPath,
               message.payload,
               "bruin"
@@ -393,7 +391,7 @@ export class BruinPanel {
             const currentPipeline = getCurrentPipelinePath(currfilePath || "");
 
             runInIntegratedTerminal(
-              await bruinWorkspaceDirectory(currfilePath),
+              "",
               await currentPipeline,
               message.payload,
               "bruin"
