@@ -51,8 +51,8 @@
             <!-- Tags div that will be hidden on small screens -->
             <div class="flex items-center tags">
               <DescriptionItem
-                v-if="displayType"
-                :value="displayType"
+                v-if="assetType"
+                :value="assetType"
                 :className="assetDetailsProps?.type ? badgeClass.badgeStyle : badgeClass.grayBadge"
               />
               <DescriptionItem
@@ -159,7 +159,7 @@ const lastRenderedDocument = ref(""); // Holds the last rendered document
 const hoverTimeout = ref<ReturnType<typeof setTimeout> | null>(null); // Timeout for hover events
 // New reactive variables for editing
 // Event listener for messages from the VSCode extension
-window.addEventListener("message", (event) => {
+const  handleMessage = ((event: MessageEvent) => {
   const message = event.data;
   try {
     switch (message.command) {
@@ -270,11 +270,6 @@ const displaySchedule = computed(() => {
   return assetDetailsProps.value?.pipeline?.schedule || "";
 });
 
-const displayType = computed(() => {
-  if (isPipelineConfig.value) return "pipeline";
-  if (isBruinConfig.value) return "config";
-  return assetDetailsProps.value?.type || "";
-});
 // Computed property for asset details
 const assetDetailsProps = computed({
   get: () => {
@@ -414,18 +409,22 @@ const visibleTabs = computed(() => {
 });
 
 // Lifecycle hook to load data when the component is mounted
-onMounted(() => {
-  console.log("Component mounted. Loading asset data and environments.");
-  console.warn("send the load asset message from the ui", (new Date).toISOString());
-  loadAssetData();
-  console.warn("Afetr sending the load asset message from the ui", (new Date).toISOString());
-  console.timeEnd("loadAssetData");
-  console.time("loadEnvironmentsList");
-  loadEnvironmentsList();
-  console.timeEnd("loadEnvironmentsList");
-  console.time("checkBruinCliInstallation");
-  checkBruinCliInstallation();
-  console.timeEnd("checkBruinCliInstallation");
+onMounted(async() => {
+  console.log("onMounted");
+  console.time("allPromises");
+  console.log("Adding message listener");
+  window.addEventListener('message', handleMessage);
+  try {
+    await Promise.all([
+      loadAssetData(),
+      loadEnvironmentsList(),
+      checkBruinCliInstallation()
+    ]);
+  } catch (error) {
+    console.error("Error in Promise.all:", error);
+  }
+  console.log("allPromises completed");
+  console.timeEnd("allPromises");
   console.time("postMessage");
   vscode.postMessage({ command: "getLastRenderedDocument" });
   //vscode.postMessage({ command: "bruin.checkTelemtryPreference" });
@@ -474,19 +473,9 @@ function checkBruinCliInstallation() {
   vscode.postMessage({ command: "checkBruinCliInstallation" });
 }
 
-// Watcher to update columns when columnsProps change
-watch(
-  columnsProps,
-  (newColumns) => {
-    console.log("Columns props changed. Updating columns:", newColumns);
-    columns.value = newColumns;
-    // Track column modifications
-    rudderStack.trackEvent("Columns Modified", {
-      columnCount: columns.value.length,
-    });
-  },
-  { deep: true }
-);
+watch(columnsProps, (newColumns) => {
+  columns.value = newColumns;
+});
 
 watch(activeTab, (newTab, oldTab) => {
   rudderStack.trackEvent("Tab Switched", {
@@ -544,17 +533,26 @@ const updateAssetName = (newName) => {
   });
   vscode.postMessage({ command: "bruin.updateAssetName", name: newName });
 };
+const assetType = computed(() => {
+  if (isPipelineConfig.value) return "pipeline";
+  if (isBruinConfig.value) return "config";
+  return assetDetailsProps.value?.type || "";
+});
+
+const commonBadgeStyle = "inline-flex items-center rounded-md px-1 py-0.5 text-xs font-medium ring-1 ring-inset";
 
 const badgeClass = computed(() => {
-  const commonStyle =
-    "inline-flex items-center rounded-md px-1 py-0.5 text-xs font-medium ring-1 ring-inset";
-  const styleForType = badgeStyles[assetDetailsProps.value?.type] || defaultBadgeStyle;
+  const styleForType = badgeStyles[assetType.value] || defaultBadgeStyle;
   return {
-    commonStyle: commonStyle,
-    grayBadge: `${commonStyle} ${defaultBadgeStyle.main}`,
-    badgeStyle: `${commonStyle} ${styleForType.main}`,
+    grayBadge: `${commonBadgeStyle} ${defaultBadgeStyle.main}`,
+    badgeStyle: `${commonBadgeStyle} ${styleForType.main}`,
   };
 });
+onBeforeUnmount(() => {
+  window.removeEventListener('message', handleMessage);
+  if (hoverTimeout.value) clearTimeout(hoverTimeout.value);
+});
+
 </script>
 
 <style>
