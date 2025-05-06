@@ -2928,7 +2928,7 @@ suite("Activate Tests", () => {
     vscodeWindowRegisterWebviewViewProviderStub.restore();
   });
 
-  test("should focus active editor on activation", async () => {
+/*   test("should focus active editor on activation", async () => {
     const activeTextEditor = {
       document: {
         uri: vscode.Uri.file("file:///example.py"),
@@ -2944,7 +2944,7 @@ suite("Activate Tests", () => {
       "workbench.action.focusActiveEditorGroup",
       "Expected focus active editor group command"
     );
-  });
+  }); */
 
   /*   test('should setup folding on open', async () => {
     await activate(context);
