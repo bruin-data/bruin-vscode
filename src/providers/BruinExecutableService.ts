@@ -11,7 +11,7 @@ export class BruinExecutableService {
   private static instance: BruinExecutableService;
   private cachedExecutablePath: string | null = null;
   private lastConfigCheckTime: number = 0;
-  private readonly CONFIG_CACHE_TTL = 60000; // Cache TTL in milliseconds (1 minute)
+  private readonly CONFIG_CACHE_SEC = 300; 
   
   private constructor() {
     // Subscribe to configuration changes
@@ -40,7 +40,7 @@ export class BruinExecutableService {
     
     // Return cached value if it exists and is still valid
     if (this.cachedExecutablePath !== null && 
-        (currentTime - this.lastConfigCheckTime) < this.CONFIG_CACHE_TTL) {
+        (currentTime - this.lastConfigCheckTime) < this.CONFIG_CACHE_SEC) {
       return this.cachedExecutablePath;
     }
     
@@ -110,7 +110,10 @@ export class BruinExecutableService {
 
 // Export a convenience function to get the executable path
 export function getBruinExecutablePath(): string {
-  return BruinExecutableService.getInstance().getExecutablePath();
+  console.time("getBruinExecutablePath");
+  const bruinExecutablePath = BruinExecutableService.getInstance().getExecutablePath();
+  console.timeEnd("getBruinExecutablePath");
+  return bruinExecutablePath;
 }
 
 // Export a function to invalidate the cache
