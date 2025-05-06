@@ -35,15 +35,10 @@ export class BruinInternalParse extends BruinCommand {
         // Use the new parsePipelineConfig method for pipeline.yml
         const parser = new BruinLineageInternalParse(this.bruinExecutable, this.workingDirectory);
         const pipelineMeta = await parser.parsePipelineConfig(filePath);
-        console.log("Pipeline config parsed in BruinInternalParse:", pipelineMeta);
-        console.warn("send parsed asset data from the command", (new Date()).toISOString());
         this.postMessageToPanels("success", JSON.stringify({ type: "pipelineConfig", ...pipelineMeta, filePath }));
-        console.warn("send parsed asset data from the command END", (new Date()).toISOString());
         return;
       }
       if (filePath.endsWith("bruin.yml") || filePath.endsWith("bruin.yaml")) {
-        // Do not throw error, just send minimal message for the panel/UI to handle
-        console.log("Bruin config parsed:", filePath);
         this.postMessageToPanels("success", JSON.stringify({ type: "bruinConfig", filePath }));
         return;
       }
