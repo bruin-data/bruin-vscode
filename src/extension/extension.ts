@@ -208,7 +208,15 @@ export async function activate(context: ExtensionContext) {
   console.time("setup-promises");
   await Promise.all([pathSeparatorPromise, ...setupPromises]);
   console.timeEnd("setup-promises");
-  
+    // Focus the active editor after all initialization
+    const activeEditor = window.activeTextEditor;
+    if (activeEditor) {
+      // Focus the active editor if it exists
+      vscode.commands.executeCommand("workbench.action.focusActiveEditorGroup");
+    } else {
+      // If no active editor, try to focus the editor group
+      vscode.commands.executeCommand("workbench.action.focusFirstEditorGroup");
+    }
   const activationTime = Date.now() - startTime;
   console.debug(`Bruin activated successfully in ${activationTime}ms`);
   console.timeEnd("Bruin Activation Total");
