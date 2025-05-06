@@ -110,9 +110,7 @@ export class BruinExecutableService {
 
 // Export a convenience function to get the executable path
 export function getBruinExecutablePath(): string {
-  console.time("getBruinExecutablePath");
   const bruinExecutablePath = BruinExecutableService.getInstance().getExecutablePath();
-  console.timeEnd("getBruinExecutablePath");
   return bruinExecutablePath;
 }
 
