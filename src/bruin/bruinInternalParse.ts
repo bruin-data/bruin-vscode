@@ -30,25 +30,34 @@ export class BruinInternalParse extends BruinCommand {
     filePath: string,
     { flags = ["parse-asset"], ignoresErrors = false }: BruinCommandOptions = {}
   ): Promise<void> {
+    console.time("parseAsset");
     try {
       if (filePath.endsWith("pipeline.yml") || filePath.endsWith("pipeline.yaml")) {
+        console.time("parsePipelineConfig");
         // Use the new parsePipelineConfig method for pipeline.yml
         const parser = new BruinLineageInternalParse(this.bruinExecutable, this.workingDirectory);
         const pipelineMeta = await parser.parsePipelineConfig(filePath);
+        console.timeEnd("parsePipelineConfig");
         console.log("Pipeline config parsed in BruinInternalParse:", pipelineMeta);
-        console.warn("send parsed asset data from the command", (new Date()).toISOString());
+        console.warn("Send parsed asset data from the command", new Date().toISOString());
         this.postMessageToPanels("success", JSON.stringify({ type: "pipelineConfig", ...pipelineMeta, filePath }));
-        console.warn("send parsed asset data from the command END", (new Date()).toISOString());
+        console.warn("Send parsed asset data from the command END", new Date().toISOString());
+        console.timeEnd("parseAsset");
         return;
       }
       if (filePath.endsWith("bruin.yml") || filePath.endsWith("bruin.yaml")) {
+        console.time("parseBruinConfig");
         // Do not throw error, just send minimal message for the panel/UI to handle
         console.log("Bruin config parsed:", filePath);
         this.postMessageToPanels("success", JSON.stringify({ type: "bruinConfig", filePath }));
+        console.timeEnd("parseBruinConfig");
+        console.timeEnd("parseAsset");
         return;
       }
+      console.time("defaultParse");
       // Default: original asset logic
-      await this.run([...flags, filePath], { ignoresErrors })
+      await this.run([...flags, filePath], { ignoresErrors
+      })
         .then(
           (result) => {
             this.postMessageToPanels("success", result);
@@ -60,8 +69,12 @@ export class BruinInternalParse extends BruinCommand {
         .catch((err) => {
           console.debug("parsing command error", err);
         });
+        console.timeEnd("defaultParse");
     } catch (err) {
       this.postMessageToPanels("error", err instanceof Error ? err.message : String(err));
+    }
+    finally { 
+      console.timeEnd("parseAsset");
     }
   }
 

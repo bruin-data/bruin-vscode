@@ -36,13 +36,11 @@ export class BruinExecutableService {
    * Get the Bruin executable path, using cache if available
    */
   public getExecutablePath(): string {
+    return "/Users/djamilabaroudi/.local/bin/bruin" ;
     const currentTime = Date.now();
     
     // Return cached value if it exists and is still valid
-    if (this.cachedExecutablePath !== null && 
-        (currentTime - this.lastConfigCheckTime) < this.CONFIG_CACHE_TTL) {
-      return this.cachedExecutablePath;
-    }
+
     
     // Update the last check time
     this.lastConfigCheckTime = currentTime;

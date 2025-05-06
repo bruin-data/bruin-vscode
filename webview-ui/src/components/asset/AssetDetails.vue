@@ -7,7 +7,7 @@
           @mouseleave="!isEditingDescription ? (showEditButton = false) : null"
           :class="{ 'max-h-40 overflow-hidden': shouldTruncate && !isExpanded }"
         >
-          <div
+         <!--  <div
             v-if="!isEditingDescription"
             ref="descriptionRef"
             id="asset-description-container"
@@ -24,7 +24,7 @@
             class="absolute top-0 right-0 mt-1 mr-1"
           >
             <PencilIcon class="h-4 w-4" aria-hidden="true" />
-          </vscode-button>
+          </vscode-button> -->
 
           <div v-if="isEditingDescription" class="relative">
             <textarea
@@ -34,7 +34,7 @@
               ref="descriptionInput"
               :class="{ 'truncate-description': shouldTruncate && !isExpanded }"
             ></textarea>
-            <div class="absolute top-2 right-2 flex gap-0.5">
+            <!-- <div class="absolute top-2 right-2 flex gap-0.5">
               <vscode-button 
                 title="cancel" 
                 appearance="icon" 
@@ -51,7 +51,7 @@
               >
                 <CheckIcon class="h-4 w-4" aria-hidden="true" />
               </vscode-button>
-            </div>
+            </div> -->
           </div>
         </div>
 
@@ -76,13 +76,13 @@
 
     <vscode-divider class="border-t border-editor-border opacity-20 my-4"></vscode-divider>
 
-    <div class="w-full">
+<!--     <div class="w-full">
       <AssetGeneral
-        :schedule="scheduleExists ? props.pipeline.schedule : ''"
+        :schedule=" ''"
         :environments="environments"
         :selectedEnvironment="selectedEnvironment"
       />
-    </div>
+    </div> -->
   </div>
 </template>
 
@@ -134,63 +134,14 @@ const toggleExpand = () => {
   isExpanded.value = !isExpanded.value;
 };
 
-onBeforeUnmount(() => {
-  document.removeEventListener("click", handleClickOutside);
-});
 
 onMounted(async () => {
-  window.addEventListener("message", handleMessage);
-  vscode.postMessage({ command: "bruin.getConnectionsList" });
-  await updateContentHeight();
-
-  if (descriptionRef.value) {
-    const resizeObserver = new ResizeObserver(() => {
-      updateContentHeight();
-    });
-    resizeObserver.observe(descriptionRef.value);
-  }
+  window.addEventListener("message", handleMessage)
 });
-const handleClickOutside = (event: MouseEvent) => {
-  if (descriptionInput.value && !descriptionInput.value.contains(event.target as Node)) {
-    cancelDescriptionEdit();
-    document.removeEventListener("click", handleClickOutside);
-  }
-}
-const startEditingDescription = () => {
-  isEditingDescription.value = true;
-  showEditButton.value = false;
-  editableDescription.value = props.description; // Reset to original value when starting edit
-  nextTick(() => {
-    descriptionInput.value?.focus();
-  });
-  document.addEventListener("click", handleClickOutside);
-};
+
 
 const emit = defineEmits(["update:description"]);
 
-const saveDescriptionEdit = () => {
-  try {
-    // Ensure we have a string and normalize it
-    const normalizedDescription = String(editableDescription.value || '').trim();
-    // Only emit if there's an actual change
-    if (normalizedDescription !== props.description) {
-      emit("update:description", normalizedDescription);
-      console.log("Updating description:", normalizedDescription);
-    }
-  } catch (error) {
-    console.error("Error saving description:", error);
-  } finally {
-    isEditingDescription.value = false;
-    showEditButton.value = false;
-  }
-};
-
-const cancelDescriptionEdit = () => {
-  editableDescription.value = props.description; // Reset to original value
-  isEditingDescription.value = false;
-  showEditButton.value = false;
-  document.removeEventListener("click", handleClickOutside);
-};
 
 watch(
   () => props.description,
@@ -208,29 +159,11 @@ const handleMessage = (event: MessageEvent) => {
   }
 };
 
-const scheduleExists = computed(() => {
-  return (
-    props.pipeline.schedule !== "" &&
-    props.pipeline.schedule !== "undefined" &&
-    props.pipeline.schedule !== null &&
-    props.pipeline.schedule !== undefined
-  );
-});
 
-const md = new MarkdownIt();
-const markdownDescription = computed(() => {
-  if (!props.description) {
-    return "No description available for this asset";
-  }
-  return md.render(props.description);
-});
 
-watch(
-  () => props.description,
-  (newDescription) => {
-    editableDescription.value = newDescription;
-  }
-);
+
+
+
 </script>
 
 <style scoped>

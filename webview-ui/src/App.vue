@@ -1,5 +1,5 @@
 <template>
-  <div v-if="isBruinInstalled">
+  <div >
     <div class="flex flex-col pt-1">
       <div class="">
         <div class="flex items-center space-x-2 w-full justify-between">
@@ -35,7 +35,7 @@
             </div>
           </div>
 
-          <div class="flex w-1/4 items-center space-x-2 justify-end flex-shrink-0">
+          <!-- <div class="flex w-1/4 items-center space-x-2 justify-end flex-shrink-0">
             <vscode-button
               appearance="secondary"
               v-if="versionStatus.status === 'outdated'"
@@ -48,7 +48,6 @@
               </div>
             </vscode-button>
 
-            <!-- Tags div that will be hidden on small screens -->
             <div class="flex items-center tags">
               <DescriptionItem
                 v-if="assetType"
@@ -62,7 +61,7 @@
                 class="xs:flex hidden overflow-hidden truncate"
               />
             </div>
-          </div>
+          </div> -->
         </div>
       </div>
       <!-- Rest of the existing template remains the same -->
@@ -73,13 +72,7 @@
           :id="`tab-${index}`"
           @click="activeTab = index"
         >
-          <div class="flex items-center justify-center gap-1">
-            <span>{{ tab.label }}</span>
-            <span
-              v-if="tab.label === 'Settings' && versionStatus.status === 'outdated'"
-              class="h-[3px] w-[3px] rounded-full bg-yellow-400 mt-0.5"
-            ></span>
-          </div>
+        
         </vscode-panel-tab>
 
         <vscode-panel-view
@@ -95,53 +88,22 @@
             v-bind="tab.props"
             class="flex w-full h-full"
             @update:assetName="updateAssetName"
-            @update:columns="updateColumns"
-            @update:customChecks="updateCustomChecks"
-            @open-glossary="navigateToGlossary"
-            @update:description="updateDescription"
           />
-          <div class="flex w-full" v-else-if="parseError">
-            <MessageAlert
-              message="This file is either not a Bruin Asset or has no data to display."
-            />
-          </div>
+          
         </vscode-panel-view>
       </vscode-panels>
     </div>
   </div>
-  <div class="flex items-center space-x-2 w-full justify-between pt-2" v-else>
-    <BruinSettings
-      :isBruinInstalled="isBruinInstalled"
-      :environments="environmentsList"
-      class="flex w-full"
-    />
-  </div>
+
 </template>
 <script setup lang="ts">
 import AssetDetails from "@/components/asset/AssetDetails.vue";
 import { vscode } from "@/utilities/vscode";
-import { ref, onMounted, computed, watch, nextTick, onBeforeUnmount } from "vue";
-import { parseAssetDetails, parseEnvironmentList } from "./utilities/helper";
+import { ref, onMounted, computed, nextTick, onBeforeUnmount } from "vue";
+import { parseAssetDetails } from "./utilities/helper";
 import { updateValue } from "./utilities/helper";
-import MessageAlert from "@/components/ui/alerts/AlertMessage.vue";
-import { useConnectionsStore } from "./store/bruinStore";
-import type { EnvironmentsList } from "./types";
-import AssetColumns from "@/components/asset/columns/AssetColumns.vue";
-import CustomChecks from "@/components/asset/columns/custom-checks/CustomChecks.vue";
-import BruinSettings from "@/components/bruin-settings/BruinSettings.vue";
-import DescriptionItem from "./components/ui/description-item/DescriptionItem.vue";
-import { badgeStyles, defaultBadgeStyle } from "./components/ui/badges/CustomBadgesStyle";
-import RudderStackService from "./services/RudderStackService";
 
-const rudderStack = RudderStackService.getInstance();
-const connectionsStore = useConnectionsStore();
-const parseError = ref(); // Holds any parsing errors
-const environments = ref<EnvironmentsList | null>(null); // Holds the list of environments
-const versionStatus = ref({
-  status: "current",
-  current: "",
-  latest: "",
-});
+
 const data = ref(
   JSON.stringify({
     asset: {
@@ -154,68 +116,27 @@ const data = ref(
     },
   })
 );
-const isBruinInstalled = ref(true); // Tracks if Bruin is installed
-const lastRenderedDocument = ref(""); // Holds the last rendered document
-const hoverTimeout = ref<ReturnType<typeof setTimeout> | null>(null); // Timeout for hover events
 // New reactive variables for editing
 // Event listener for messages from the VSCode extension
 const  handleMessage = ((event: MessageEvent) => {
   const message = event.data;
   try {
     switch (message.command) {
-      case "init":
-        lastRenderedDocument.value = message.lastRenderedDocument; // Update last rendered document
-        break;
-      case "environments-list-message":
-        environments.value = updateValue(message, "success");
-        connectionsStore.setDefaultEnvironment(selectedEnvironment.value); // Set the default environment in the store
-        break;
+  
       case "parse-message": {
         console.warn("Parsing message received:", (new Date).toISOString());
-        parseError.value = updateValue(message, "error");
         const parsed = updateValue(message, "success");
-        if (!parseError.value) {
-          // Handle pipelineConfig (from pipeline.yml)
-          if (parsed && parsed.type === "pipelineConfig") {
-            data.value = parsed;
-            lastRenderedDocument.value = parsed.filePath;
-            break;
-          }
-          // Handle bruinConfig (from .bruin.yml)
-          if (parsed && parsed.type === "bruinConfig") {
-            // Only settings tab should be open
-            console.log("Bruin config parsed:", parsed);
-            isBruinYml.value = true;
-            activeTab.value = 3; 
-            break;
-          }
+      
           data.value = parsed;
-        }
-        lastRenderedDocument.value = parsed;
-
-        // Track asset parsing status
-        rudderStack.trackEvent("Asset Parsing Status", {
-          parseError: parseError.value ? `Error ${parseError.value}` : "No Error Found",
-        });
+    
+        
         console.warn("Parsing message received END:", (new Date).toISOString());
         break;
       }
-      case "bruinCliInstallationStatus":
-        isBruinInstalled.value = message.installed; // Update installation status
-        console.log("Bruin installation status updated:", isBruinInstalled.value);
-        break;
-
-      case "bruinCliVersionStatus":
-        versionStatus.value = message.versionStatus;
-        console.log("Bruin update status updated in App.vue:", versionStatus.value);
-        break;
+    
     }
   } catch (error) {
     console.error("Error handling message:", error);
-    rudderStack.trackEvent("Error Handling Message", {
-      errorMessage: (error as Error).message,
-      message: message,
-    });
   }
 });
 
@@ -226,26 +147,10 @@ const navigateToGlossary = () => {
   vscode.postMessage({ command: "bruin.openGlossary" });
 };
 // Computed property to parse the list of environments
-const environmentsList = computed(() => {
-  if (!environments.value) return [];
-  const parsedEnvironments = parseEnvironmentList(environments.value)?.environments || [];
-  return parsedEnvironments;
-});
 
-const updateBruinCli = () => {
-  vscode.postMessage({ command: "bruin.updateBruinCli" });
-  setTimeout(() => {
-    vscode.postMessage({ command: "bruin.checkBruinCLIVersion" });
-    console.log("Checking Bruin CLI version after update");
-  }, 15000);
-};
+
+
 // Computed property to get the selected environment
-const selectedEnvironment = computed(() => {
-  if (!environments.value) return [];
-  const selected = parseEnvironmentList(environments.value)?.selectedEnvironment || "";
-  console.log("Selected environment:", selected);
-  return selected;
-});
 
 const parsedData = computed(() => {
   if (!data.value) return null;
@@ -258,17 +163,12 @@ const parsedData = computed(() => {
 
 const isPipelineConfig = computed(() => parsedData.value?.type === "pipelineConfig");
 const isBruinConfig = computed(() => parsedData.value?.type === "bruinConfig")
-const isConfigFile = computed(() => isBruinConfig.value || isPipelineConfig.value);
 const displayName = computed(() => {
   if (isPipelineConfig.value) return parsedData.value?.name || "";
   if (isBruinConfig.value) return "Bruin Config";
   return assetDetailsProps.value?.name || "";
 });
 
-const displaySchedule = computed(() => {
-  if (isPipelineConfig.value) return parsedData.value?.schedule || "";
-  return assetDetailsProps.value?.pipeline?.schedule || "";
-});
 
 // Computed property for asset details
 const assetDetailsProps = computed({
@@ -290,7 +190,6 @@ const editingName = ref(assetDetailsProps.value?.name || "");
 const nameInput = ref<HTMLInputElement | null>(null);
 
 const startNameEditing = () => {
-  if (hoverTimeout.value) clearTimeout(hoverTimeout.value);
   isEditingName.value = true;
   editingName.value = assetDetailsProps.value?.name || "";
 };
@@ -304,9 +203,7 @@ const stopNameEditing = () => {
 };
 
 const saveNameEdit = () => {
-  rudderStack.trackEvent("Asset Name Updated", {
-    assetName: editingName.value.trim(),
-  });
+
   if (editingName.value.trim() !== assetDetailsProps.value?.name) {
     updateAssetName(editingName.value.trim());
     vscode.postMessage({
@@ -321,9 +218,7 @@ const saveNameEdit = () => {
 
 const handleMouseLeave = () => {
   // Delay closing to avoid flickering if mouse quickly leaves
-  hoverTimeout.value = setTimeout(() => {
-    stopNameEditing();
-  }, 100);
+
 };
 
 const focusName = () => {
@@ -333,29 +228,8 @@ const focusName = () => {
 };
 
 // Computed property for asset columns
-const columnsProps = computed(() => {
-  if (!data.value) return [];
-  const details = parseAssetDetails(data.value);
-  const columns = details?.columns || [];
-  console.log("Asset columns:", columns);
-  return columns;
-});
 
-const columns = ref([...columnsProps.value]); // Reactive reference for columns
-console.debug("Initial Columns:", columns.value);
 // Computed property for asset columns
-const customChecksProps = computed(() => {
-  if (!data.value) {
-    console.log("No data found for custom checks");
-    return [];
-  }
-  const details = parseAssetDetails(data.value);
-  const customChecks = details?.custom_checks || [];
-  console.log("Asset Custom checks:", customChecks);
-  return customChecks;
-});
-
-const customChecks = ref([...customChecksProps.value]); // Reactive reference for custom checks
 
 // Define tabs for the application
 const tabs = ref([
@@ -364,12 +238,10 @@ const tabs = ref([
     component: AssetDetails,
     props: computed(() => ({
       ...assetDetailsProps.value,
-      environments: environmentsList.value,
-      selectedEnvironment: selectedEnvironment.value,
     })),
     emits: ["update:name", "update:description"],
   },
-  {
+  /* {
     label: "Columns",
     component: AssetColumns,
     props: computed(() => ({
@@ -393,7 +265,7 @@ const tabs = ref([
       environments: computed(() => environmentsList.value),
       versionStatus: computed(() => versionStatus.value),
     },
-  },
+  }, */
 ]);
 
 // Computed property to determine which tabs to show based on the document type
@@ -417,8 +289,6 @@ onMounted(async() => {
   try {
     await Promise.all([
       loadAssetData(),
-      loadEnvironmentsList(),
-      checkBruinCliInstallation()
     ]);
   } catch (error) {
     console.error("Error in Promise.all:", error);
@@ -464,49 +334,15 @@ setInterval(() => {
 }, 1800000);
 
 // Lifecycle hook to clean up hover timeout
-onBeforeUnmount(() => {
-  if (hoverTimeout.value) clearTimeout(hoverTimeout.value);
-});
+
 // Function to check if Bruin CLI is installed
 function checkBruinCliInstallation() {
   console.log("Checking Bruin CLI installation status.");
   vscode.postMessage({ command: "checkBruinCliInstallation" });
 }
 
-watch(columnsProps, (newColumns) => {
-  columns.value = newColumns;
-});
 
-watch(activeTab, (newTab, oldTab) => {
-  rudderStack.trackEvent("Tab Switched", {
-    fromTab: tabs.value[oldTab]?.label,
-    toTab: tabs.value[newTab]?.label,
-    assetName: assetDetailsProps.value?.name,
-  });
-});
-// Function to update columns
-const updateColumns = (newColumns) => {
-  console.log("Updating columns with new data:", newColumns);
-  columns.value = newColumns;
-};
 
-const updateCustomChecks = (newCustomChecks) => {
-  console.log("Updating custom checks with new data:", newCustomChecks);
-  customChecks.value = newCustomChecks;
-};
-
-const updateDescription = (newDescription) => {
-  console.log("Updating description with new data:", newDescription);
-  if (assetDetailsProps.value) {
-    assetDetailsProps.value.description = newDescription;
-    vscode.postMessage({
-      command: "bruin.setAssetDetails",
-      payload: {
-        description: newDescription,
-      },
-    });
-  }
-};
 
 // Function to load asset data
 function loadAssetData() {
@@ -514,11 +350,6 @@ function loadAssetData() {
   vscode.postMessage({ command: "bruin.getAssetDetails" });
 }
 
-// Function to load the list of environments
-function loadEnvironmentsList() {
-  console.log("Loading environments list from Bruin.");
-  vscode.postMessage({ command: "bruin.getEnvironmentsList" });
-}
 
 // Function to update the asset name
 const updateAssetName = (newName) => {
@@ -533,24 +364,10 @@ const updateAssetName = (newName) => {
   });
   vscode.postMessage({ command: "bruin.updateAssetName", name: newName });
 };
-const assetType = computed(() => {
-  if (isPipelineConfig.value) return "pipeline";
-  if (isBruinConfig.value) return "config";
-  return assetDetailsProps.value?.type || "";
-});
 
-const commonBadgeStyle = "inline-flex items-center rounded-md px-1 py-0.5 text-xs font-medium ring-1 ring-inset";
 
-const badgeClass = computed(() => {
-  const styleForType = badgeStyles[assetType.value] || defaultBadgeStyle;
-  return {
-    grayBadge: `${commonBadgeStyle} ${defaultBadgeStyle.main}`,
-    badgeStyle: `${commonBadgeStyle} ${styleForType.main}`,
-  };
-});
 onBeforeUnmount(() => {
   window.removeEventListener('message', handleMessage);
-  if (hoverTimeout.value) clearTimeout(hoverTimeout.value);
 });
 
 </script>
