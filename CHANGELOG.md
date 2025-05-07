@@ -1,4 +1,7 @@
 # Changelog
+## [0.45.1] - [2025-05-07]
+- Optimize the Bruin activation process.
+
 ## [0.45.0] - [2025-05-02]
 - Added executed query preview with copy-to-clipboard support in the query results panel.
 
