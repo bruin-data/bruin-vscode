@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { exec } from "child_process";
 import * as os from "os";
 import { promisify } from "util";
-import { getDefaultBruinExecutablePath } from "../extension/configuration";
+import { getBruinExecutablePath } from "../providers/BruinExecutableService";
 import { compareVersions, findGitBashPath } from "./bruinUtils";
 import * as fs from "fs";
 import path = require("path");
@@ -86,7 +86,7 @@ export class BruinInstallCLI {
   }
   public async getBruinCliVersion (): Promise<string> {
     return new Promise((resolve, reject) => {
-      const bruinExecutable = getDefaultBruinExecutablePath();
+      const bruinExecutable = getBruinExecutablePath();
       exec(`${bruinExecutable} version -o json`, (error, stdout, stderr) => {
         if (error) {
           reject(`Error executing command getBruinCliVersion ${stderr}`);
@@ -105,7 +105,7 @@ export class BruinInstallCLI {
   }
   public async checkBruinCLIVersion(): Promise<boolean> {
     return new Promise((resolve, reject) => {
-      const bruinExecutable = getDefaultBruinExecutablePath();
+      const bruinExecutable = getBruinExecutablePath();
       exec(`${bruinExecutable} version -o json`, (error, stdout, stderr) => {
         if (error) {
           reject(`Error executing command checkBruinCLIVersion ${stderr}`);
@@ -153,7 +153,7 @@ export class BruinInstallCLI {
   }> {
     let installed = false;
     let gitAvailable = false;
-    let bruinExecutable = getDefaultBruinExecutablePath();
+    let bruinExecutable = getBruinExecutablePath();
     try {
       // Check if Bruin CLI is installed by running the --version command
       await execAsync(`${bruinExecutable} --version`);

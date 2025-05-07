@@ -43,21 +43,35 @@ export abstract class BruinCommand {
    */
   protected run(
     query: string[],
-    { ignoresErrors = false }: { ignoresErrors?: boolean } = {}
+    { 
+      ignoresErrors = false, 
+    }: { 
+      ignoresErrors?: boolean; 
+    } = {}
   ): Promise<string> {
+    const startTime = Date.now();
+    const commandString = `${this.bruinExecutable} ${this.execArgs(query).join(' ')}`;
+    
+    console.log(`[${new Date().toISOString()}] Starting command: ${commandString}`);
+    
     return new Promise((resolve, reject) => {
       const execOptions = {
         cwd: this.workingDirectory,
         maxBuffer: 1024 * 1024 * 10, // 10MB
       };
+
       child_process.execFile(
         this.bruinExecutable,
         this.execArgs(query),
-        execOptions,                       
+        execOptions,
         (error: Error | null, stdout: string, stderr: string) => {
+          const endTime = Date.now();
+          const duration = endTime - startTime;
+          
+          console.log(`[${new Date().toISOString()}] Command completed in ${duration}ms`);
+
           if (error) {
-            console.error("Error executing command:", error); // Debug message
-            console.error("Bruin executable", this.bruinExecutable); // Debug message
+            console.error(`[${new Date().toISOString()}] Command failed after ${duration}ms:`, error.message);
             if (ignoresErrors) {
               resolve("");
             } else {

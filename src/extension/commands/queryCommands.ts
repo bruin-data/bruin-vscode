@@ -1,10 +1,9 @@
 import { Uri, window, workspace } from "vscode";
-import { bruinWorkspaceDirectory } from "../../bruin";
-import { getDefaultBruinExecutablePath } from "../configuration";
 import { BruinQueryOutput } from "../../bruin/queryOutput";
 import * as vscode from "vscode";
 import { BruinExportQueryOutput } from "../../bruin/exportQueryOutput";
 import { QueryPreviewPanel } from "../../panels/QueryPreviewPanel";
+import { getBruinExecutablePath } from "../../providers/BruinExecutableService";
 
 export const getQueryOutput = async (environment: string, limit: string, lastRenderedDocumentUri: Uri | undefined, tabId?: string) => {
   let editor = window.activeTextEditor;
@@ -37,8 +36,8 @@ export const getQueryOutput = async (environment: string, limit: string, lastRen
   QueryPreviewPanel.setTabAssetPath(currentTabId, lastRenderedDocumentUri.fsPath);
 
   const output = new BruinQueryOutput(
-    getDefaultBruinExecutablePath(),
-    await bruinWorkspaceDirectory(workspaceFolder.uri.fsPath) as string
+    getBruinExecutablePath(),
+    ""
   );
 
   // Pass the query only if there is a valid selection, otherwise leave it empty.
@@ -72,8 +71,8 @@ export const exportQueryResults = async (lastRenderedDocumentUri: Uri | undefine
     const tabQuery = QueryPreviewPanel.getTabQuery(currentTabId);
 
     const output = new BruinExportQueryOutput(
-      getDefaultBruinExecutablePath(),
-      await bruinWorkspaceDirectory(workspaceFolder.uri.fsPath) as string
+      getBruinExecutablePath(),
+      ""
     );
     
     // Use the stored query for the specific tab

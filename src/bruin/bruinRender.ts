@@ -78,9 +78,7 @@ export class BruinRender extends BruinCommand {
             status: "success",
             message: JSON.parse(sqlRendered).query,
           });
-          console.log("SQL rendered successfully");
         }, 0);
-        console.log("SQL rendered successfully", sqlRendered);
       })
       .catch((error) => {
         console.error("Error rendering SQL asset", this.parseError(error));
@@ -174,7 +172,6 @@ export class BruinRender extends BruinCommand {
           status: "success",
           message: result,
         });
-        console.log("SQL rendered successfully without JSON", result);
       },
       (err) => {
         console.error("Error rendering SQL asset without JSON", err);
@@ -200,7 +197,6 @@ export class BruinRenderUnmaterliazed extends BruinRender {
   ): Promise<{ query: string }> {
     try {
       const result = await this.run([...flags, filePath], { ignoresErrors });
-      console.log("SQL rendered successfully", result);
       return JSON.parse(result);
     } catch (err) {
       console.error("Error rendering SQL asset", err);

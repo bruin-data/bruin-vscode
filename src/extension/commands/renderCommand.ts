@@ -1,8 +1,8 @@
 import * as vscode from "vscode";
 import { BruinPanel } from "../../panels/BruinPanel";
 import { BruinRender } from "../../bruin";
-import { getDefaultBruinExecutablePath } from "../configuration";
 import { prepareFlags } from "../../utilities/helperUtils";
+import { getBruinExecutablePath } from "../../providers/BruinExecutableService";
 
 export const renderCommand = async (extensionUri: vscode.Uri) => {
   const activeEditor = vscode.window.activeTextEditor;
@@ -10,7 +10,7 @@ export const renderCommand = async (extensionUri: vscode.Uri) => {
     BruinPanel.render(extensionUri);
 
     const bruinSqlRenderer = new BruinRender(
-      getDefaultBruinExecutablePath(),
+      getBruinExecutablePath(),
       vscode.workspace.workspaceFolders?.[0].uri.fsPath!!
     );
 
@@ -35,7 +35,7 @@ export const renderCommandWithFlags = async (flags: string, lastRenderedDocument
       filePath = activeEditor?.document.fileName;
     }
     const bruinSqlRenderer = new BruinRender(
-      getDefaultBruinExecutablePath(),
+      getBruinExecutablePath(),
       vscode.workspace.workspaceFolders?.[0].uri.fsPath!!
     );
 

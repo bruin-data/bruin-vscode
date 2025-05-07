@@ -1,6 +1,5 @@
 import { Uri } from "vscode";
-import { bruinWorkspaceDirectory } from "../../bruin";
-import { getDefaultBruinExecutablePath } from "../configuration";
+import { getBruinExecutablePath } from "../../providers/BruinExecutableService";
 import { BruinInternalParse } from "../../bruin/bruinInternalParse";
 import { BruinInternalPatch } from "../../bruin/bruinInternalPatch";
 
@@ -8,11 +7,15 @@ export const parseAssetCommand = async (lastRenderedDocumentUri: Uri | undefined
   if (!lastRenderedDocumentUri) {
     return;
   }
+  console.warn("get Default bruin exec", (new Date()).toISOString());
+  const bruinExec = getBruinExecutablePath();
+  console.warn("get Default bruin exec after", (new Date()).toISOString());
+  console.warn("BruinInternalParse before", (new Date()).toISOString());
   const parsed = new BruinInternalParse(
-    getDefaultBruinExecutablePath(),
-    await bruinWorkspaceDirectory(lastRenderedDocumentUri.fsPath)!! as string
+    bruinExec, ""
   );
   await parsed.parseAsset(lastRenderedDocumentUri.fsPath);
+  console.warn("BruinInternalParse after", (new Date()).toISOString());
 };
 
 export const patchAssetCommand = async (body: object, lastRenderedDocumentUri: Uri | undefined) => {
@@ -20,8 +23,8 @@ export const patchAssetCommand = async (body: object, lastRenderedDocumentUri: U
     return;
   }
   const patched = new BruinInternalPatch(
-    getDefaultBruinExecutablePath(),
-    await bruinWorkspaceDirectory(lastRenderedDocumentUri.fsPath)!! as string
+    getBruinExecutablePath(),
+     ""
   );
   await patched.patchAsset(body, lastRenderedDocumentUri.fsPath);
 };

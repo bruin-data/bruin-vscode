@@ -6,7 +6,8 @@ import { promisify } from "util";
 import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
-import { getDefaultBruinExecutablePath, getPathSeparator } from "../extension/configuration";
+import { getPathSeparator } from "../extension/configuration";
+import { getBruinExecutablePath } from "../providers/BruinExecutableService";
 
 /**
  * Checks if the Bruin binary is available in the system path.
@@ -154,7 +155,7 @@ export const runInIntegratedTerminal = async (
   bruinExecutablePath?: string
 ): Promise<void> => {
   const escapedAssetPath = assetPath ? escapeFilePath(assetPath) : "";
-  const bruinExecutable = bruinExecutablePath ? "bruin" : getDefaultBruinExecutablePath();
+  const bruinExecutable = bruinExecutablePath ? "bruin" : getBruinExecutablePath();
   let command = "";
   const terminal = await createIntegratedTerminal(workingDir);
   // if termianl is cmd or powershell, use bruin run sql command
@@ -236,7 +237,7 @@ export function compareVersions(current: string, latest: string): boolean {
 
 export function getBruinVersion(): { version: string; latest: string } | null {
   try {
-    const bruinExecutable = getDefaultBruinExecutablePath();
+    const bruinExecutable = getBruinExecutablePath();
     const result = execSync(`${bruinExecutable} version -o json`);
     const { version, latest } = JSON.parse(result.toString());
 
