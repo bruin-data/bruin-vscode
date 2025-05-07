@@ -5,9 +5,6 @@ import { BruinPanel } from "../panels/BruinPanel";
 import { BruinLineageInternalParse } from "./bruinFlowLineage";
 
 export class BruinInternalParse extends BruinCommand {
-  // Cache to store previously parsed assets
-  private static assetCache = new Map<string, any>();
-  
   protected bruinCommand(): string {
     return "internal";
   }
@@ -18,14 +15,6 @@ export class BruinInternalParse extends BruinCommand {
   ): Promise<void> {
     console.time("parseAsset");
     try {
-      // Check cache first before parsing
-      if (BruinInternalParse.assetCache.has(filePath)) {
-        console.log("Using cached asset details for", filePath);
-        this.postMessageToPanels("success", BruinInternalParse.assetCache.get(filePath));
-        console.timeEnd("parseAsset");
-        return;
-      }
-
       if (filePath.endsWith("pipeline.yml") || filePath.endsWith("pipeline.yaml")) {
         const parser = new BruinLineageInternalParse(this.bruinExecutable, this.workingDirectory);
         
@@ -36,7 +25,6 @@ export class BruinInternalParse extends BruinCommand {
         ]);
         
         const result = JSON.stringify({ type: "pipelineConfig", ...pipelineMeta, filePath });
-        BruinInternalParse.assetCache.set(filePath, result);
         this.postMessageToPanels("success", result);
         console.timeEnd("parseAsset");
         return;
@@ -44,7 +32,6 @@ export class BruinInternalParse extends BruinCommand {
       
       if (filePath.endsWith("bruin.yml") || filePath.endsWith("bruin.yaml")) {
         const result = JSON.stringify({ type: "bruinConfig", filePath });
-        BruinInternalParse.assetCache.set(filePath, result);
         this.postMessageToPanels("success", result);
         console.timeEnd("parseAsset");
         return;
@@ -54,7 +41,6 @@ export class BruinInternalParse extends BruinCommand {
       this.run([...flags, filePath], { ignoresErrors })
         .then(
           (result) => {
-            BruinInternalParse.assetCache.set(filePath, result);
             this.postMessageToPanels("success", result);
             console.timeEnd("parseAsset");
           },
@@ -70,15 +56,6 @@ export class BruinInternalParse extends BruinCommand {
     } catch (err) {
       this.postMessageToPanels("error", err instanceof Error ? err.message : String(err));
       console.timeEnd("parseAsset");
-    }
-  }
-
-  // Clear cache for a specific file or all files
-  public static clearCache(filePath?: string) {
-    if (filePath) {
-      BruinInternalParse.assetCache.delete(filePath);
-    } else {
-      BruinInternalParse.assetCache.clear();
     }
   }
 
