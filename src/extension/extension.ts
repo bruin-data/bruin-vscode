@@ -21,6 +21,7 @@ import { AssetLineagePanel } from "../panels/LineagePanel";
 import { installOrUpdateCli } from "./commands/updateBruinCLI";
 import { QueryPreviewPanel } from "../panels/QueryPreviewPanel";
 import { BruinPanel } from "../panels/BruinPanel";
+import { BruinEnvList } from "../bruin/bruinSelectEnv";
 
 let analyticsClient: any = null;
 
@@ -107,11 +108,23 @@ async function updatePathSeparator(config: WorkspaceConfiguration): Promise<void
       await config.update("pathSeparator", newPathSeparator, ConfigurationTarget.Global);
     }
 }
-export async function activate(context: ExtensionContext) {
-  console.time("Bruin Activation Total");
-  console.debug("Bruin activation started");
+export async function activate(context: ExtensionContext) {  
   const startTime = Date.now();
-  
+  console.time("Bruin Activation Total");
+  console.log('Bruin extension is now active!');
+
+  // Focus the active editor first to prevent undefined fsPath errors
+  const activeEditor = window.activeTextEditor;
+  if (activeEditor) {
+    await vscode.commands.executeCommand("workbench.action.focusActiveEditorGroup");
+  } else {
+    await vscode.commands.executeCommand("workbench.action.focusFirstEditorGroup");
+  }
+
+  // Initialize analytics client
+  const analytics = initializeAnalytics();
+  trackEvent("Extension Activated");
+
   const bruinConfig = workspace.getConfiguration("bruin");
   const workbenchConfig = workspace.getConfiguration("workbench.editor");
   
@@ -208,15 +221,7 @@ export async function activate(context: ExtensionContext) {
   console.time("setup-promises");
   await Promise.all([pathSeparatorPromise, ...setupPromises]);
   console.timeEnd("setup-promises");
-/*     // Focus the active editor after all initialization
-    const activeEditor = window.activeTextEditor;
-    if (activeEditor) {
-      // Focus the active editor if it exists
-      vscode.commands.executeCommand("workbench.action.focusActiveEditorGroup");
-    } else {
-      // If no active editor, try to focus the editor group
-      vscode.commands.executeCommand("workbench.action.focusFirstEditorGroup");
-    } */
+
   const activationTime = Date.now() - startTime;
   console.debug(`Bruin activated successfully in ${activationTime}ms`);
   console.timeEnd("Bruin Activation Total");

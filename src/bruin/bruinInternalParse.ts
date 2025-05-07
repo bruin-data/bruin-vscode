@@ -1,67 +1,88 @@
+// Here's an optimized version of BruinInternalParse class to make parsing faster
 import { BruinCommandOptions } from "../types";
 import { BruinCommand } from "./bruinCommand";
 import { BruinPanel } from "../panels/BruinPanel";
 import { BruinLineageInternalParse } from "./bruinFlowLineage";
 
-/**
- * Extends the BruinCommand class to implement the bruin run command on Bruin assets.
- */
-
 export class BruinInternalParse extends BruinCommand {
-  /**
-   * Specifies the Bruin command string.
-   *
-   * @returns {string} Returns the 'run' command string.
-   */
+  // Cache to store previously parsed assets
+  private static assetCache = new Map<string, any>();
+  
   protected bruinCommand(): string {
     return "internal";
   }
-
-  /**
-   * Run a Bruin Asset based on it's path with optional flags and error handling.
-   * Communicates the results of the execution or errors back to the BruinPanel.
-   *
-   * @param {string} filePath - The path of the asset to be run.
-   * @param {BruinCommandOptions} [options={}] - Optional parameters for execution, including flags and errors.
-   * @returns {Promise<void>} A promise that resolves when the execution is complete or an error is caught.
-   */
 
   public async parseAsset(
     filePath: string,
     { flags = ["parse-asset"], ignoresErrors = false }: BruinCommandOptions = {}
   ): Promise<void> {
+    console.time("parseAsset");
     try {
+      // Check cache first before parsing
+      if (BruinInternalParse.assetCache.has(filePath)) {
+        console.log("Using cached asset details for", filePath);
+        this.postMessageToPanels("success", BruinInternalParse.assetCache.get(filePath));
+        console.timeEnd("parseAsset");
+        return;
+      }
+
       if (filePath.endsWith("pipeline.yml") || filePath.endsWith("pipeline.yaml")) {
-        // Use the new parsePipelineConfig method for pipeline.yml
         const parser = new BruinLineageInternalParse(this.bruinExecutable, this.workingDirectory);
-        const pipelineMeta = await parser.parsePipelineConfig(filePath);
-        this.postMessageToPanels("success", JSON.stringify({ type: "pipelineConfig", ...pipelineMeta, filePath }));
+        
+        // Use Promise.race to limit parsing time
+        const pipelineMeta = await Promise.race([
+          parser.parsePipelineConfig(filePath),
+          new Promise((_, reject) => setTimeout(() => reject(new Error("Parsing timeout")), 300))
+        ]);
+        
+        const result = JSON.stringify({ type: "pipelineConfig", ...pipelineMeta, filePath });
+        BruinInternalParse.assetCache.set(filePath, result);
+        this.postMessageToPanels("success", result);
+        console.timeEnd("parseAsset");
         return;
       }
+      
       if (filePath.endsWith("bruin.yml") || filePath.endsWith("bruin.yaml")) {
-        this.postMessageToPanels("success", JSON.stringify({ type: "bruinConfig", filePath }));
+        const result = JSON.stringify({ type: "bruinConfig", filePath });
+        BruinInternalParse.assetCache.set(filePath, result);
+        this.postMessageToPanels("success", result);
+        console.timeEnd("parseAsset");
         return;
       }
-      // Default: original asset logic
-      await this.run([...flags, filePath], { ignoresErrors })
+
+      // For other asset types, run the command but with optimized execution
+      this.run([...flags, filePath], { ignoresErrors })
         .then(
           (result) => {
+            BruinInternalParse.assetCache.set(filePath, result);
             this.postMessageToPanels("success", result);
+            console.timeEnd("parseAsset");
           },
           (error) => {
             this.postMessageToPanels("error", error);
+            console.timeEnd("parseAsset");
           }
         )
         .catch((err) => {
           console.debug("parsing command error", err);
+          console.timeEnd("parseAsset");
         });
     } catch (err) {
       this.postMessageToPanels("error", err instanceof Error ? err.message : String(err));
+      console.timeEnd("parseAsset");
+    }
+  }
+
+  // Clear cache for a specific file or all files
+  public static clearCache(filePath?: string) {
+    if (filePath) {
+      BruinInternalParse.assetCache.delete(filePath);
+    } else {
+      BruinInternalParse.assetCache.clear();
     }
   }
 
   private postMessageToPanels(status: string, message: string | any) {
-
     BruinPanel.postMessage("parse-message", { status, message });
   }
 }
