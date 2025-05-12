@@ -8,6 +8,8 @@ import * as path from "path";
 import * as vscode from "vscode";
 import { getPathSeparator } from "../extension/configuration";
 import { getBruinExecutablePath } from "../providers/BruinExecutableService";
+import { BruinCommand } from "./bruinCommand";
+import { BruinCommandOptions } from "../types";
 
 /**
  * Checks if the Bruin binary is available in the system path.
@@ -222,7 +224,7 @@ export const createIntegratedTerminal = async (
 };
 
 export { BruinInstallCLI } from "./bruinInstallCli";
-
+  
 export function compareVersions(current: string, latest: string): boolean {
   const normalize = (v: string) => v.replace(/^v/, '').split('.').map(Number);
   const [currMajor, currMinor, currPatch] = normalize(current);
@@ -235,16 +237,34 @@ export function compareVersions(current: string, latest: string): boolean {
   );
 }
 
-export function getBruinVersion(): { version: string; latest: string } | null {
+export class BruinVersionController extends BruinCommand {
+  protected bruinCommand(): string {
+    return "version";
+  }
+
+  public async getVersion(
+    filePath: string,
+    { flags = ["-o", "json"], ignoresErrors = false }: BruinCommandOptions = {}
+  ): Promise<any> {
+    try {
+      const result = await this.run([...flags, filePath], { ignoresErrors });
+      const { version, latest } = JSON.parse(result);
+      if (!version || !latest) {
+        throw new Error("Missing version data");
+      }
+      return { version, latest };
+    } catch (err) {
+      throw err;
+    }
+  }
+}
+
+export async function getBruinVersion(): Promise<{ version: string; latest: string } | null> { 
   try {
     const bruinExecutable = getBruinExecutablePath();
-    const result = execSync(`${bruinExecutable} version -o json`);
-    const { version, latest } = JSON.parse(result.toString());
-
-    if (!version || !latest) {
-      throw new Error("Missing version data");
-    }
-    return { version, latest };
+    const versionController = new BruinVersionController(bruinExecutable, "");
+    const result = await versionController.getVersion("");
+    return result;
   } catch (error) {
     console.error(`Version check failed: ${error instanceof Error ? error.message : error}`);
     return null;
@@ -256,18 +276,18 @@ export async function checkCliVersion(): Promise<{
   current?: string;
   latest?: string;
 }> {
-  const versionInfo = getBruinVersion();
-  
+  const versionInfo = await getBruinVersion();
+
   if (!versionInfo) {
     return { status: 'error' };
   }
 
   const { version, latest } = versionInfo;
   const isOutdated = compareVersions(version, latest);
-  
+
   return {
     status: isOutdated ? 'outdated' : 'current',
     current: version,
-    latest: latest
+    latest: latest,
   };
 }
