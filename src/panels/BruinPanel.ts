@@ -10,7 +10,7 @@ import {
 } from "../bruin";
 import * as vscode from "vscode";
 import { renderCommandWithFlags } from "../extension/commands/renderCommand";
-import { parseAssetCommand, patchAssetCommand } from "../extension/commands/parseAssetCommand";
+import { convertFileToAssetCommand, parseAssetCommand, patchAssetCommand } from "../extension/commands/parseAssetCommand";
 import { getEnvListCommand } from "../extension/commands/getEnvListCommand";
 import { BruinInstallCLI } from "../bruin/bruinInstallCli";
 import {
@@ -140,6 +140,21 @@ export class BruinPanel {
    *
    * @param extensionUri The URI of the directory containing the extension.
    */
+  public async convertCurrentDocument() {
+    if (!this._lastRenderedDocumentUri) {
+      console.error("No active document to convert.");
+      return;
+    }
+
+    try {
+      // Call the function to convert the file to an asset
+      await convertFileToAssetCommand(this._lastRenderedDocumentUri);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      vscode.window.showErrorMessage(`Error converting file to asset: ${errorMessage}`);
+    }
+  }
+
   public static render(extensionUri: Uri) {
     const column = window.activeTextEditor ? ViewColumn.Beside : undefined;
 

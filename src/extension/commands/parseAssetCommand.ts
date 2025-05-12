@@ -28,3 +28,14 @@ export const patchAssetCommand = async (body: object, lastRenderedDocumentUri: U
   );
   await patched.patchAsset(body, lastRenderedDocumentUri.fsPath);
 };
+
+export const convertFileToAssetCommand = async (lastRenderedDocumentUri: Uri | undefined) => {
+  if (!lastRenderedDocumentUri) {
+    return;
+  }
+  const patched = new BruinInternalPatch(
+    getBruinExecutablePath(),
+     ""
+  );
+  await patched.convertFileToAsset(lastRenderedDocumentUri.fsPath);
+};
