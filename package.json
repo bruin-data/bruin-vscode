@@ -176,6 +176,16 @@
         {
           "command": "bruin.renderSQL",
           "group": "navigation"
+        },
+        {
+          "command": "bruin.convertFileToAsset",
+          "group": "navigation"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "bruin.convertFileToAsset",
+          "group": "navigation"
         }
       ]
     },
@@ -199,6 +209,13 @@
         "title": "Toggle Folding",
         "category": "Bruin",
         "description": "Toggle the folding state of custom Bruin foldable regions in Python and SQL files."
+      },
+      {
+        "command": "bruin.convertFileToAsset",
+        "title": "Convert File to Asset",
+        "category": "Bruin",
+        "description": "Convert a file to a Bruin asset.",
+        "icon": "$(file-code)"
       }
     ]
   },
