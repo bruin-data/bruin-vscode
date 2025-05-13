@@ -69,7 +69,6 @@ export class BruinPanel {
           if (editor.document.uri.fsPath === "tasks") {
             return;
           }
-          window.showInformationMessage("Document in change event", this._lastRenderedDocumentUri?.fsPath);
           parseAssetCommand(this._lastRenderedDocumentUri);
           renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri?.fsPath);
         }
@@ -88,20 +87,16 @@ export class BruinPanel {
               command: "clear-asset-details",
               isAsset: false
             });
-            window.showInformationMessage("Document is not a bruin asset.", this._lastRenderedDocumentUri.fsPath);
           } else {
-            window.showInformationMessage("Document is a bruin asset.", this._lastRenderedDocumentUri.fsPath);
             parseAssetCommand(docUri);
           }
           renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri?.fsPath);
-          window.showInformationMessage("Document is a rendered as.", this._lastRenderedDocumentUri.fsPath);
         }
       }),
       vscode.workspace.onDidRenameFiles((e) => {
         e.files.forEach((file) => {
           if (this._lastRenderedDocumentUri?.fsPath === file.oldUri.fsPath) {
             this._lastRenderedDocumentUri = file.newUri;
-            console.log(`File renamed from ${file.oldUri.fsPath} to ${file.newUri.fsPath}`);
           }
         });
       })
@@ -110,7 +105,6 @@ export class BruinPanel {
     // Ensure initial state is set based on the currently active editor
     if (window.activeTextEditor) {
       this._lastRenderedDocumentUri = window.activeTextEditor.document.uri;
-      window.showInformationMessage("Document in constructor.", this._lastRenderedDocumentUri.fsPath);
     }
     // Set the HTML content for the webview panel
     this._panel.webview.html = this._getWebviewContent(this._panel.webview, extensionUri);
