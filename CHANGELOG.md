@@ -1,4 +1,7 @@
 # Changelog
+## [0.45.2] - [2025-05-13]
+- Fix CLI version check to improve performance.
+
 ## [0.45.1] - [2025-05-07]
 - Optimize the Bruin activation process.
 

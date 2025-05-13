@@ -3,7 +3,7 @@ import { exec } from "child_process";
 import * as os from "os";
 import { promisify } from "util";
 import { getBruinExecutablePath } from "../providers/BruinExecutableService";
-import { compareVersions, findGitBashPath } from "./bruinUtils";
+import { compareVersions, findGitBashPath, getBruinVersion } from "./bruinUtils";
 import * as fs from "fs";
 import path = require("path");
 
@@ -84,47 +84,23 @@ export class BruinInstallCLI {
       return `curl -LsSL ${this.scriptPath} | sh -s --${specificVersion}`;
     }
   }
-  public async getBruinCliVersion (): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const bruinExecutable = getBruinExecutablePath();
-      exec(`${bruinExecutable} version -o json`, (error, stdout, stderr) => {
-        if (error) {
-          reject(`Error executing command getBruinCliVersion ${stderr}`);
-          return;
-        }
-
-        try {
-          const output = JSON.parse(stdout.trim());
-          const currentVersion = output.version;
-          resolve(currentVersion);
-        } catch (parseError) {
-          reject("Failed to parse version information");
-        }
-      });
-    });
+  public async getBruinCliVersion(): Promise<string> {
+    const versionInfo = await getBruinVersion();
+    if (!versionInfo) {
+      throw new Error("Failed to get Bruin CLI version");
+    }
+    return versionInfo.version;
   }
+  
   public async checkBruinCLIVersion(): Promise<boolean> {
-    return new Promise((resolve, reject) => {
-      const bruinExecutable = getBruinExecutablePath();
-      exec(`${bruinExecutable} version -o json`, (error, stdout, stderr) => {
-        if (error) {
-          reject(`Error executing command checkBruinCLIVersion ${stderr}`);
-          return;
-        }
-
-        try {
-          const output = JSON.parse(stdout.trim());
-          const currentVersion = output.version;
-          const latestVersion = output.latest;
-
-          const isUpToDate = compareVersions(currentVersion, latestVersion);
-          resolve(isUpToDate);
-        } catch (parseError) {
-          reject("Failed to parse version information");
-        }
-      });
-    });
+    const versionInfo = await getBruinVersion();
+    if (!versionInfo) {
+      throw new Error("Failed to get version info");
+    }
+  
+    return !compareVersions(versionInfo.version, versionInfo.latest);
   }
+  
 
   public async installBruinCli(onDone?: () => void): Promise<void> {
     const installCommand = await this.getCommand(false);
