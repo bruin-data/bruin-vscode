@@ -64,15 +64,12 @@ export class BruinPanel {
           getEnvListCommand(this._lastRenderedDocumentUri);
           getConnections(this._lastRenderedDocumentUri);
         }
+        this._lastRenderedDocumentUri = editor.document.uri;
         if (editor && editor.document.uri) {
           if (editor.document.uri.fsPath === "tasks") {
             return;
           }
-          this._lastRenderedDocumentUri = !this.relevantFileExtensions.some((ext) =>
-            editor.document.uri.fsPath.endsWith(ext)
-          )
-            ? this._lastRenderedDocumentUri
-            : editor.document.uri;
+          window.showInformationMessage("Document in change event", this._lastRenderedDocumentUri?.fsPath);
           parseAssetCommand(this._lastRenderedDocumentUri);
           renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri?.fsPath);
         }
@@ -83,7 +80,7 @@ export class BruinPanel {
           const isAsset = await isBruinAsset(docUri.fsPath, [".sql", ".py"]);
           const isConfig = isConfigFile(docUri.fsPath);
     
-          this._lastRenderedDocumentUri = isAsset || isConfig ? docUri : undefined;
+          this._lastRenderedDocumentUri = docUri;
     
           if (!isAsset && !isConfig) {
             // Clear asset details from UI
@@ -91,10 +88,13 @@ export class BruinPanel {
               command: "clear-asset-details",
               isAsset: false
             });
+            window.showInformationMessage("Document is not a bruin asset.", this._lastRenderedDocumentUri.fsPath);
           } else {
-            parseAssetCommand(this._lastRenderedDocumentUri);
+            window.showInformationMessage("Document is a bruin asset.", this._lastRenderedDocumentUri.fsPath);
+            parseAssetCommand(docUri);
           }
           renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri?.fsPath);
+          window.showInformationMessage("Document is a rendered as.", this._lastRenderedDocumentUri.fsPath);
         }
       }),
       vscode.workspace.onDidRenameFiles((e) => {
@@ -110,12 +110,10 @@ export class BruinPanel {
     // Ensure initial state is set based on the currently active editor
     if (window.activeTextEditor) {
       this._lastRenderedDocumentUri = window.activeTextEditor.document.uri;
+      window.showInformationMessage("Document in constructor.", this._lastRenderedDocumentUri.fsPath);
     }
     // Set the HTML content for the webview panel
     this._panel.webview.html = this._getWebviewContent(this._panel.webview, extensionUri);
-
-    // Set the last rendered document URI to the current active editor document URI
-    this._lastRenderedDocumentUri = window.activeTextEditor?.document.uri;
 
     // Set an event listener to listen for messages passed from the webview context
     this._setWebviewMessageListener(this._panel.webview);

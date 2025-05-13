@@ -1,8 +1,8 @@
 <template>
   <div v-if="isBruinInstalled">
     <div class="flex flex-col pt-1">
-      <div class="">
-        <div class="flex items-center space-x-2 w-full justify-between">
+      <div v-if="!isNotAsset" class="">
+        <div class="flex items-center space-x-2 w-full justify-between min-h-6">
           <div class="flex items-baseline w-3/4 min-w-0 font-md text-editor-fg text-lg font-mono">
             <!-- Asset name -->
             <div class="flex-grow min-w-0 overflow-hidden">
@@ -26,7 +26,7 @@
                     />
                   </template>
                   <template v-else>
-                    <span id="input-name" class="block truncate">
+                    <span v-if="assetDetailsProps?.name && assetDetailsProps?.name !== 'undefined'" id="input-name" class="block truncate">
                       {{ displayName }}
                     </span>
                   </template>
@@ -145,7 +145,7 @@ const versionStatus = ref({
 const data = ref(
   JSON.stringify({
     asset: {
-      name: "Asset Name",
+      name: "",
       description: "Asset Description",
       type: "undefined",
       schedule: "daily",
@@ -169,6 +169,10 @@ const  handleMessage = ((event: MessageEvent) => {
       case "environments-list-message":
         environments.value = updateValue(message, "success");
         connectionsStore.setDefaultEnvironment(selectedEnvironment.value); // Set the default environment in the store
+        break;
+      case "non-asset-file":
+        console.warn("Non-asset file received:", (new Date).toISOString());
+        isNotAsset.value = true;
         break;
       case "parse-message": {
         console.warn("Parsing message received:", (new Date).toISOString());
@@ -220,6 +224,7 @@ const  handleMessage = ((event: MessageEvent) => {
 });
 
 const isBruinYml = ref(false); 
+const isNotAsset = ref(false);
 const activeTab = ref(0); // Tracks the currently active tab
 const navigateToGlossary = () => {
   console.log("Opening glossary.");
