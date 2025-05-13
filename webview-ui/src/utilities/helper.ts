@@ -46,13 +46,21 @@ export const handleError = (validationError: any | null, renderSQLAssetError: an
         // If parsing fails, use the original error message
       }
     }
-
+    if(typeof errorMessage === 'string' && errorMessage.startsWith('no asset found')) {
+       return {
+        errorCaptured: true,
+        errorMessage: null,
+        isValidationError: false,
+       };
+    }
     return {
       errorCaptured: true,
       errorMessage,
       isValidationError,
     };
+    
   }
+
   return null;
 };
 

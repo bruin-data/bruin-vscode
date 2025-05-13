@@ -68,7 +68,7 @@ export abstract class BruinCommand {
           const endTime = Date.now();
           const duration = endTime - startTime;
           
-          console.log(`[${new Date().toISOString()}] Command completed in ${duration}ms`);
+          console.log(`[${new Date().toISOString()}] Command completed in ${duration}ms  ${commandString}`);
 
           if (error) {
             console.error(`[${new Date().toISOString()}] Command failed after ${duration}ms:`, error.message);

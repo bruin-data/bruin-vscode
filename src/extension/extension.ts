@@ -22,6 +22,7 @@ import { installOrUpdateCli } from "./commands/updateBruinCLI";
 import { QueryPreviewPanel } from "../panels/QueryPreviewPanel";
 import { BruinPanel } from "../panels/BruinPanel";
 import { BruinEnvList } from "../bruin/bruinSelectEnv";
+import { convertFileToAssetCommand } from "./commands/parseAssetCommand";
 
 let analyticsClient: any = null;
 
@@ -212,6 +213,20 @@ export async function activate(context: ExtensionContext) {
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         vscode.window.showErrorMessage(`Error toggling foldings: ${errorMessage}`); 
+      }
+    }),
+
+    commands.registerCommand("bruin.convertFileToAsset", async () => {
+      try {
+        trackEvent("Command Executed", { command: "convertFileToAsset" });
+        if (BruinPanel.currentPanel) {
+          await BruinPanel.currentPanel.convertCurrentDocument();
+        } else {
+          console.error("Bruin panel is not active.");
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error converting file to asset: ${errorMessage}`);
       }
     })
   ];

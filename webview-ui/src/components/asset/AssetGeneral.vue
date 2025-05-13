@@ -262,14 +262,14 @@ const props = defineProps<{
 /**
  * Reactive state variables
  */
-const isNotAsset = computed(() => (renderAssetAlert.value ? true : false));
+const isNotAsset = ref(false);
 const errorPhase = ref<"Validation" | "Rendering" | "Unknown">("Unknown");
 const validationSuccess = ref(null);
 const validationError = ref(null);
 const renderSQLAssetSuccess = ref(null);
 const renderPythonAsset = ref(null);
 const renderSQLAssetError = ref(null);
-const renderAssetAlert = ref(null);
+const renderAssetAlert = ref<string | null>(null);
 const validateButtonStatus = ref<"validated" | "failed" | "loading" | null>(null);
 const showWarnings = ref(true);
 const errorState = computed(() => handleError(validationError.value, renderSQLAssetError.value));
@@ -617,16 +617,23 @@ function receiveMessage(event: { data: any }) {
       showWarnings.value = true;
 
       break;
-
+    case "non-asset-file":
+      console.warn("This is not a Bruin asset");
+      isNotAsset.value = true;
+      renderAssetAlert.value = envelope.isAsset ? null : "This is not a Bruin asset";
+      renderSQLAssetError.value = null;
+      renderSQLAssetSuccess.value = null;
+      renderPythonAsset.value = null; 
+      break;
     case "render-message":
       renderSQLAssetSuccess.value = updateValue(envelope, "success");
-      renderSQLAssetError.value = updateValue(envelope, "error");
-      renderPythonAsset.value = updateValue(envelope, "bruin-asset-alert");
+      renderSQLAssetError.value = isNotAsset.value ? null : updateValue(envelope, "error");
+      renderPythonAsset.value = isNotAsset.value ? null : updateValue(envelope, "bruin-asset-alert");
       renderAssetAlert.value = updateValue(envelope, "non-asset-alert");
+      isNotAsset.value = !!renderAssetAlert.value;
       code.value = renderSQLAssetSuccess.value || renderPythonAsset.value;
       language.value = renderSQLAssetSuccess.value ? "sql" : "python";
       errorPhase.value = renderSQLAssetError.value ? "Rendering" : "Unknown";
-
       resetStates([validationError, validationSuccess, validateButtonStatus]);
       break;
 

@@ -38,6 +38,27 @@ export class BruinInternalPatch extends BruinCommand {
       });
   }
 
+  // internal patch with another flag --convert and only asset path 
+  public async convertFileToAsset(filePath: string) {
+    await this.run(["patch-asset", "--convert", filePath]).then(
+      (result) => {
+        // there is no result returned on success 
+        BruinPanel?.postMessage("convert-message", {
+          status: "success",
+          message: "File converted to asset successfully",
+        });
+      },
+      (err) => {
+        console.error("Error converting file to asset", err);
+        BruinPanel?.postMessage("convert-message", {
+          status: "error",
+          message: JSON.stringify({ error: err }),
+        });
+        console.error("Error converting file to asset", err);
+      }
+    );
+  }
+
   private postMessageToPanels(status: string, message: string | any) {
     BruinPanel.postMessage("patch-message", { status, message });
   }
