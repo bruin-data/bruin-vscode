@@ -23,7 +23,7 @@ import {
 import { openGlossary } from "../bruin/bruinGlossaryUtility";
 import { QueryPreviewPanel } from "./QueryPreviewPanel";
 import { getBruinExecutablePath } from "../providers/BruinExecutableService";
-import { isBruinAsset } from "../utilities/helperUtils";
+import { isBruinAsset, isConfigFile } from "../utilities/helperUtils";
 
 /**
  * This class manages the state and behavior of Bruin webview panels.
@@ -77,22 +77,24 @@ export class BruinPanel {
           renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri?.fsPath);
         }
       }),
-      window.onDidChangeActiveTextEditor((editor) => {
-        if (editor && editor.document.uri) {
-          if (editor.document.uri.fsPath === "tasks") {
-            return;
+      window.onDidChangeActiveTextEditor(async (editor) => {
+        if (editor?.document.uri) {
+          const docUri = editor.document.uri;
+          const isAsset = await isBruinAsset(docUri.fsPath, [".sql", ".py"]);
+          const isConfig = isConfigFile(docUri.fsPath);
+    
+          this._lastRenderedDocumentUri = isAsset || isConfig ? docUri : undefined;
+    
+          if (!isAsset && !isConfig) {
+            // Clear asset details from UI
+            this._panel.webview.postMessage({
+              command: "clear-asset-details",
+              isAsset: false
+            });
+          } else {
+            parseAssetCommand(this._lastRenderedDocumentUri);
           }
-          this._lastRenderedDocumentUri = !this.relevantFileExtensions.some((ext) =>
-            editor.document.uri.fsPath.endsWith(ext)
-          )
-            ? this._lastRenderedDocumentUri
-            : editor.document.uri;
-
-          console.log("Document URI active text editor", this._lastRenderedDocumentUri);
-
-          //renderCommand(extensionUri);
           renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri?.fsPath);
-          parseAssetCommand(this._lastRenderedDocumentUri);
         }
       }),
       vscode.workspace.onDidRenameFiles((e) => {
@@ -297,6 +299,12 @@ export class BruinPanel {
         const command = message.command;
 
         switch (command) {
+          case "clear-asset-details":
+            this._panel.webview.postMessage({
+              command: "non-asset-file",
+              isAsset: false
+            });
+            break;
           case "bruin.validateAll":
             const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
             if (!workspaceFolder) {
