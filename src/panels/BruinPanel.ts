@@ -23,6 +23,7 @@ import {
 import { openGlossary } from "../bruin/bruinGlossaryUtility";
 import { QueryPreviewPanel } from "./QueryPreviewPanel";
 import { getBruinExecutablePath } from "../providers/BruinExecutableService";
+import { isBruinAsset } from "../utilities/helperUtils";
 
 /**
  * This class manages the state and behavior of Bruin webview panels.
@@ -145,7 +146,11 @@ export class BruinPanel {
       console.error("No active document to convert.");
       return;
     }
-
+    // chack if this is a bruin asset
+    if (await isBruinAsset(this._lastRenderedDocumentUri.fsPath, [".sql", ".py"])) {
+      vscode.window.showErrorMessage("Document is already a bruin asset.");
+      return;
+    }
     try {
       // Call the function to convert the file to an asset
       await convertFileToAssetCommand(this._lastRenderedDocumentUri);
