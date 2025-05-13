@@ -3,6 +3,8 @@ import * as assert from "assert";
 import * as vscode from "vscode";
 import * as os from "os";
 import * as util from "util";
+import * as child_process from "child_process";
+
 const proxyquire = require("proxyquire");
 
 import {
@@ -86,14 +88,14 @@ suite("Extension Initialization", () => {
   });
 });
 suite("Bruin Utility Tests", () => {
-  let execSyncStub: sinon.SinonStub;
+  let execFileStub: sinon.SinonStub;
 
   setup(() => {
-    execSyncStub = sinon.stub(require("child_process"), "execSync");
+    execFileStub = sinon.stub(child_process, "execFile");
   });
 
   teardown(() => {
-    sinon.restore();
+    execFileStub.restore();
   });
   suite("Compare versions tests", () => {
     test("should return false for equal versions", () => {
@@ -107,40 +109,41 @@ suite("Bruin Utility Tests", () => {
     test("should return true when current < latest", () => {
       assert.strictEqual(compareVersions("v1.0.0", "v1.1.0"), true);
     });
-    test("getBruinVersion returns valid version data", () => {
-      // Set a valid return value for execSync
-      execSyncStub.returns(Buffer.from('{"version": "v1.0.0", "latest": "v1.1.0"}'));
+
+    test("getBruinVersion returns valid version data", async () => {
+      execFileStub.yields(null, '{"version": "v1.0.0", "latest": "v1.1.0"}', '');
       
-      const versionInfo = getBruinVersion();
+      const versionInfo = await getBruinVersion();
       assert.strictEqual(versionInfo?.version, "v1.0.0");
       assert.strictEqual(versionInfo?.latest, "v1.1.0");
     });
-    test("getBruinVersion returns null when execSync fails", () => {
-      execSyncStub.throws(new Error("Failed to get Bruin version"));
-      const versionInfo = getBruinVersion();
+
+    test("getBruinVersion returns null when execFile fails", async () => {
+      execFileStub.yields(new Error("Command failed"), '', '');
+      const versionInfo = await getBruinVersion();
       assert.strictEqual(versionInfo, null);
     });
-    
   });
+
   suite("Check CLI Version tests", () => {
     test("should return 'outdated' when current version is less than latest", async () => {
-      execSyncStub.returns(Buffer.from('{"version": "v1.0.0", "latest": "v1.1.0"}'));
+      execFileStub.yields(null, '{"version": "v1.0.0", "latest": "v1.1.0"}', '');
       const result = await checkCliVersion();
       assert.strictEqual(result.status, "outdated");
       assert.strictEqual(result.current, "v1.0.0");
       assert.strictEqual(result.latest, "v1.1.0");
     });
-  
+
     test("should return 'current' when current version is equal to latest", async () => {
-      execSyncStub.returns(Buffer.from('{"version": "v1.1.0", "latest": "v1.1.0"}'));
+      execFileStub.yields(null, '{"version": "v1.1.0", "latest": "v1.1.0"}', '');
       const result = await checkCliVersion();
       assert.strictEqual(result.status, "current");
       assert.strictEqual(result.current, "v1.1.0");
       assert.strictEqual(result.latest, "v1.1.0");
     });
-  
+
     test("should return 'error' when getBruinVersion returns null", async () => {
-      execSyncStub.throws(new Error("Failed to get Bruin version"));
+      execFileStub.yields(new Error("Command failed"), '', '');
       const result = await checkCliVersion();
       assert.strictEqual(result.status, "error");
     });
@@ -2888,73 +2891,3 @@ suite(" Query export Tests", () => {
     assert.deepStrictEqual(BruinPanelPostMessageStub.firstCall.args, ["environments-list-message", { status, message }], "Expected correct message to be posted to BruinPanel");
   });
 }); */
-suite("Activate Tests", () => {
-  let context: vscode.ExtensionContext;
-  let setupFoldingOnOpenStub: sinon.SinonStub;
-  let subscribeToConfigurationChangesStub: sinon.SinonStub;
-  let vscodeWindowActiveTextEditorStub: sinon.SinonStub;
-  let vscodeCommandsExecuteCommandStub: sinon.SinonStub;
-  let vscodeLanguagesRegisterFoldingRangeProviderStub: sinon.SinonStub;
-  let vscodeWindowRegisterWebviewViewProviderStub: sinon.SinonStub;
-
-  setup(() => {
-    context = {
-      extensionUri: vscode.Uri.file(""),
-      subscriptions: [],
-    } as any;
-    setupFoldingOnOpenStub = sinon.stub(configuration, "setupFoldingOnOpen");
-    subscribeToConfigurationChangesStub = sinon.stub(
-      configuration,
-      "subscribeToConfigurationChanges"
-    );
-    vscodeWindowActiveTextEditorStub = sinon.stub(vscode.window, "activeTextEditor").value(null);
-    vscodeCommandsExecuteCommandStub = sinon.stub(vscode.commands, "executeCommand");
-    vscodeLanguagesRegisterFoldingRangeProviderStub = sinon.stub(
-      vscode.languages,
-      "registerFoldingRangeProvider"
-    );
-    vscodeWindowRegisterWebviewViewProviderStub = sinon.stub(
-      vscode.window,
-      "registerWebviewViewProvider"
-    );
-  });
-
-  teardown(() => {
-    setupFoldingOnOpenStub.restore();
-    subscribeToConfigurationChangesStub.restore();
-    vscodeWindowActiveTextEditorStub.restore();
-    vscodeCommandsExecuteCommandStub.restore();
-    vscodeLanguagesRegisterFoldingRangeProviderStub.restore();
-    vscodeWindowRegisterWebviewViewProviderStub.restore();
-  });
-
-/*   test("should focus active editor on activation", async () => {
-    const activeTextEditor = {
-      document: {
-        uri: vscode.Uri.file("file:///example.py"),
-      },
-    };
-    vscodeWindowActiveTextEditorStub.value(activeTextEditor);
-
-    await activate(context);
-
-    assert.ok(vscodeCommandsExecuteCommandStub.calledOnce, "Expected command to be executed");
-    assert.strictEqual(
-      vscodeCommandsExecuteCommandStub.firstCall.args[0],
-      "workbench.action.focusActiveEditorGroup",
-      "Expected focus active editor group command"
-    );
-  }); */
-
-  /*   test('should setup folding on open', async () => {
-    await activate(context);
-
-    assert.ok(setupFoldingOnOpenStub.calledOnce, 'Expected setupFoldingOnOpen to be called');
-  });
-
-  test('should subscribe to configuration changes', async () => {
-    await activate(context);
-
-    assert.ok(subscribeToConfigurationChangesStub.calledOnce, 'Expected subscribeToConfigurationChanges to be called');
-  }); */
-});

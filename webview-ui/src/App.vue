@@ -234,10 +234,6 @@ const environmentsList = computed(() => {
 
 const updateBruinCli = () => {
   vscode.postMessage({ command: "bruin.updateBruinCli" });
-  setTimeout(() => {
-    vscode.postMessage({ command: "bruin.checkBruinCLIVersion" });
-    console.log("Checking Bruin CLI version after update");
-  }, 15000);
 };
 // Computed property to get the selected environment
 const selectedEnvironment = computed(() => {
@@ -411,25 +407,13 @@ const visibleTabs = computed(() => {
 // Lifecycle hook to load data when the component is mounted
 onMounted(async() => {
   console.log("onMounted");
-  console.time("allPromises");
   console.log("Adding message listener");
   window.addEventListener('message', handleMessage);
-  try {
-    await Promise.all([
-      loadAssetData(),
-      loadEnvironmentsList(),
-      checkBruinCliInstallation()
-    ]);
-  } catch (error) {
-    console.error("Error in Promise.all:", error);
-  }
-  console.log("allPromises completed");
-  console.timeEnd("allPromises");
-  console.time("postMessage");
+  loadAssetData();
+  loadEnvironmentsList();
   vscode.postMessage({ command: "getLastRenderedDocument" });
   //vscode.postMessage({ command: "bruin.checkTelemtryPreference" });
   vscode.postMessage({ command: "bruin.checkBruinCLIVersion" });
-  console.timeEnd("postMessage");
   // Track page view
   /* try {
     rudderStack.trackPageView("Asset Details Page", {
@@ -458,20 +442,11 @@ onMounted(async() => {
   console.log("Custom event tracked."); */
 });
 
-// send the message to check the bruin version every 30 minutes
-setInterval(() => {
-  vscode.postMessage({ command: "bruin.checkBruinCLIVersion" });
-}, 1800000);
 
 // Lifecycle hook to clean up hover timeout
 onBeforeUnmount(() => {
   if (hoverTimeout.value) clearTimeout(hoverTimeout.value);
 });
-// Function to check if Bruin CLI is installed
-function checkBruinCliInstallation() {
-  console.log("Checking Bruin CLI installation status.");
-  vscode.postMessage({ command: "checkBruinCliInstallation" });
-}
 
 watch(columnsProps, (newColumns) => {
   columns.value = newColumns;

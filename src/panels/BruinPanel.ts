@@ -363,13 +363,6 @@ export class BruinPanel {
               message.payload,
               "bruin"
             );
-
-            setTimeout(() => {
-              this._panel.webview.postMessage({
-                command: "runCompleted",
-                message: "",
-              });
-            }, 1500);
             break;
           case "bruin.runContinue":
             if (!this._lastRenderedDocumentUri) {
@@ -396,13 +389,6 @@ export class BruinPanel {
               message.payload,
               "bruin"
             );
-
-            setTimeout(() => {
-              this._panel.webview.postMessage({
-                command: "runCompleted",
-                message: "",
-              });
-            }, 1500);
             break;
 
           case "bruin.getAssetDetails":
