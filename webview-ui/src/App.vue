@@ -1,5 +1,5 @@
 <template>
-  <div v-if="isBruinInstalled">
+  <div v-if="isBruinInstalled && !isNotAsset">
     <div class="flex flex-col pt-1">
       <div v-if="!isNotAsset" class="">
         <div class="flex items-center space-x-2 w-full justify-between min-h-6">
@@ -109,11 +109,16 @@
       </vscode-panels>
     </div>
   </div>
-  <div class="flex items-center space-x-2 w-full justify-between pt-2" v-else>
+  <div class="flex items-center space-x-2 w-full justify-between pt-2" v-else-if="!isBruinInstalled">
     <BruinSettings
       :isBruinInstalled="isBruinInstalled"
       :environments="environmentsList"
       class="flex w-full"
+    />
+  </div>
+  <div class="flex items-center space-x-2 w-full justify-between pt-2" v-else>
+    <MessageAlert
+      message="This is not an asset file."
     />
   </div>
 </template>
@@ -165,6 +170,7 @@ const  handleMessage = ((event: MessageEvent) => {
     switch (message.command) {
       case "init":
         lastRenderedDocument.value = message.lastRenderedDocument; // Update last rendered document
+        isInitialized.value = true;
         break;
       case "environments-list-message":
         environments.value = updateValue(message, "success");
@@ -173,6 +179,15 @@ const  handleMessage = ((event: MessageEvent) => {
       case "non-asset-file":
         console.warn("Non-asset file received:", (new Date).toISOString());
         isNotAsset.value = true;
+        isInitialized.value = true;
+        break;
+      case "render-message":
+        isError.value = updateValue(message, "error");
+        console.warn("Render message received:", JSON.parse(isError.value).error);
+
+        if(JSON.parse(isError.value).error.includes("no asset found")) {
+          isNotAsset.value = true;
+        }
         break;
       case "parse-message": {
         console.warn("Parsing message received:", (new Date).toISOString());
@@ -193,8 +208,15 @@ const  handleMessage = ((event: MessageEvent) => {
             activeTab.value = 3; 
             break;
           }
+          isNotAsset.value = false;
           data.value = parsed;
         }
+        else {
+          isNotAsset.value = true;
+          console.log("Error parsing message received:", parseError.value, (new Date).toISOString());
+        }
+        isInitialized.value = true;
+
         lastRenderedDocument.value = parsed;
 
         // Track asset parsing status
@@ -224,7 +246,9 @@ const  handleMessage = ((event: MessageEvent) => {
 });
 
 const isBruinYml = ref(false); 
-const isNotAsset = ref(false);
+const isError = ref();
+const isNotAsset = ref(true);
+const isInitialized = ref(false);
 const activeTab = ref(0); // Tracks the currently active tab
 const navigateToGlossary = () => {
   console.log("Opening glossary.");
@@ -357,7 +381,7 @@ const customChecksProps = computed(() => {
 });
 
 const customChecks = ref([...customChecksProps.value]); // Reactive reference for custom checks
-
+const showContent = computed(() => isInitialized.value && isBruinInstalled.value);
 // Define tabs for the application
 const tabs = ref([
   {
@@ -456,6 +480,7 @@ onBeforeUnmount(() => {
 watch(columnsProps, (newColumns) => {
   columns.value = newColumns;
 });
+
 
 watch(activeTab, (newTab, oldTab) => {
   rudderStack.trackEvent("Tab Switched", {
