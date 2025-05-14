@@ -596,6 +596,16 @@ onBeforeUnmount(() => {
   window.removeEventListener("message", receiveMessage);
 });
 
+watch([startDate, endDate], ([newStart, newEnd]) => {
+  vscode.postMessage({
+    command: "bruin.updateQueryDates",
+    payload: {
+      startDate: newStart,
+      endDate: newEnd
+    }
+  });
+}, { immediate: true });
+
 function receiveMessage(event: { data: any }) {
   if (!event) return;
 
