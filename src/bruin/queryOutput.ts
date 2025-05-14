@@ -30,6 +30,8 @@ export class BruinQueryOutput extends BruinCommand {
     asset: string,
     limit: string,
     tabId?: string,
+    startDate?: string,
+    endDate?: string,
     { flags = [], ignoresErrors = false, query = "" }: BruinCommandOptions & { query?: string } = {}
   ): Promise<void> {
     // Construct base flags dynamically
@@ -50,6 +52,12 @@ export class BruinQueryOutput extends BruinCommand {
     // we always need to push the other flags including the asset flag
     constructedFlags.push("-asset", asset);
 
+    if (startDate) {  
+      constructedFlags.push("--start-date", startDate);
+    }
+    if (endDate) {
+      constructedFlags.push("--end-date", endDate);
+    }
     // Use provided flags or fallback to constructed flags
     const finalFlags = flags.length > 0 ? flags : constructedFlags;
 

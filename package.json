@@ -2,7 +2,7 @@
   "name": "bruin",
   "displayName": "Bruin",
   "description": "Manage your Bruin data assets from within VS Code.",
-  "version": "0.45.2",
+  "version": "0.45.3",
   "engines": {
     "vscode": "^1.87.0"
   },
@@ -177,12 +177,6 @@
           "command": "bruin.renderSQL",
           "group": "navigation"
         }
-      ],
-      "editor/context": [
-        {
-          "command": "bruin.convertFileToAsset",
-          "group": "navigation"
-        }
       ]
     },
     "commands": [
@@ -210,7 +204,7 @@
         "command": "bruin.convertFileToAsset",
         "title": "Convert File to Asset",
         "category": "Bruin",
-        "description": "Convert a file to a Bruin asset."      
+        "description": "Convert a file to a Bruin asset."
       }
     ]
   },
