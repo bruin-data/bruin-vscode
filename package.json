@@ -177,12 +177,6 @@
           "command": "bruin.renderSQL",
           "group": "navigation"
         }
-      ],
-      "editor/context": [
-        {
-          "command": "bruin.convertFileToAsset",
-          "group": "navigation"
-        }
       ]
     },
     "commands": [
