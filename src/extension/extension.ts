@@ -220,7 +220,8 @@ export async function activate(context: ExtensionContext) {
       try {
         trackEvent("Command Executed", { command: "convertFileToAsset" });
         if (BruinPanel.currentPanel) {
-          await BruinPanel.currentPanel.convertCurrentDocument();
+          //await BruinPanel.currentPanel.convertCurrentDocument();
+          console.log("Bruin panel is active.");
         } else {
           console.error("Bruin panel is not active.");
         }
