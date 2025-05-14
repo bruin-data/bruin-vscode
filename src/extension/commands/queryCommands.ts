@@ -5,7 +5,7 @@ import { BruinExportQueryOutput } from "../../bruin/exportQueryOutput";
 import { QueryPreviewPanel } from "../../panels/QueryPreviewPanel";
 import { getBruinExecutablePath } from "../../providers/BruinExecutableService";
 
-export const getQueryOutput = async (environment: string, limit: string, lastRenderedDocumentUri: Uri | undefined, tabId?: string) => {
+export const getQueryOutput = async (environment: string, limit: string, lastRenderedDocumentUri: Uri | undefined, tabId?: string, startDate?: string, endDate?: string) => {
   let editor = window.activeTextEditor;
   if (!editor) {
     editor = lastRenderedDocumentUri && await window.showTextDocument(lastRenderedDocumentUri);
@@ -39,9 +39,9 @@ export const getQueryOutput = async (environment: string, limit: string, lastRen
     getBruinExecutablePath(),
     ""
   );
-
+   console.log("Receiving dates", startDate, endDate);
   // Pass the query only if there is a valid selection, otherwise leave it empty.
-  await output.getOutput(environment, lastRenderedDocumentUri.fsPath, limit, tabId, { query: selectedQuery });
+  await output.getOutput(environment, lastRenderedDocumentUri.fsPath, limit, tabId, startDate, endDate, { query: selectedQuery });
 };
 
 export const exportQueryResults = async (lastRenderedDocumentUri: Uri | undefined, tabId?: string, connectionName?: string) => {
