@@ -54,10 +54,11 @@ Bruin is a unified analytics platform that enables data professionals to work en
 **Note**: Ensure that you have the Bruin CLI installed on your system before using the new features. For guidance on installing the Bruin CLI, please refer to the [official documentation](https://github.com/bruin-data/bruin).
 
 ## Release Notes
-### Latest Release: 0.45.2
-- Fix CLI version check to improve performance.
+### Latest Release: 0.45.3
+- Added support for dates in the query preview panel.
 
 ### Recent Updates
+- **0.45.2**: Fix CLI version check to improve performance.
 - **0.45.1**: Optimize the Bruin activation process.
 - **0.45.0**: Added executed query preview with copy-to-clipboard support in the query results panel.
 - **0.44.4**: Scope query response to active tab only, allowing other tabs to remain responsive during execution.

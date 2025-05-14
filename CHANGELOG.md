@@ -1,4 +1,8 @@
 # Changelog
+
+## [0.45.3] - [2025-05-14]
+- Added support for dates in the query preview panel.
+
 ## [0.45.2] - [2025-05-13]
 - Fix CLI version check to improve performance.
 
