@@ -10,7 +10,7 @@ import {
 } from "../bruin";
 import * as vscode from "vscode";
 import { renderCommandWithFlags } from "../extension/commands/renderCommand";
-import { convertFileToAssetCommand, parseAssetCommand, patchAssetCommand } from "../extension/commands/parseAssetCommand";
+import { parseAssetCommand, patchAssetCommand } from "../extension/commands/parseAssetCommand";
 import { getEnvListCommand } from "../extension/commands/getEnvListCommand";
 import { BruinInstallCLI } from "../bruin/bruinInstallCli";
 import {
@@ -23,7 +23,6 @@ import {
 import { openGlossary } from "../bruin/bruinGlossaryUtility";
 import { QueryPreviewPanel } from "./QueryPreviewPanel";
 import { getBruinExecutablePath } from "../providers/BruinExecutableService";
-import { isBruinAsset, isConfigFile } from "../utilities/helperUtils";
 
 /**
  * This class manages the state and behavior of Bruin webview panels.
@@ -64,39 +63,42 @@ export class BruinPanel {
           getEnvListCommand(this._lastRenderedDocumentUri);
           getConnections(this._lastRenderedDocumentUri);
         }
-        this._lastRenderedDocumentUri = editor.document.uri;
         if (editor && editor.document.uri) {
           if (editor.document.uri.fsPath === "tasks") {
             return;
           }
+          this._lastRenderedDocumentUri = !this.relevantFileExtensions.some((ext) =>
+            editor.document.uri.fsPath.endsWith(ext)
+          )
+            ? this._lastRenderedDocumentUri
+            : editor.document.uri;
           parseAssetCommand(this._lastRenderedDocumentUri);
           renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri?.fsPath);
         }
       }),
-      window.onDidChangeActiveTextEditor(async (editor) => {
-        if (editor?.document.uri) {
-          const docUri = editor.document.uri;
-          const isAsset = await isBruinAsset(docUri.fsPath, [".sql", ".py"]);
-          const isConfig = isConfigFile(docUri.fsPath);
-    
-          this._lastRenderedDocumentUri = docUri;
-    
-          if (!isAsset && !isConfig) {
-            // Clear asset details from UI
-            this._panel.webview.postMessage({
-              command: "clear-asset-details",
-              isAsset: false
-            });
-          } else {
-            parseAssetCommand(docUri);
+      window.onDidChangeActiveTextEditor((editor) => {
+        if (editor && editor.document.uri) {
+          if (editor.document.uri.fsPath === "tasks") {
+            return;
           }
+          this._lastRenderedDocumentUri = !this.relevantFileExtensions.some((ext) =>
+            editor.document.uri.fsPath.endsWith(ext)
+          )
+            ? this._lastRenderedDocumentUri
+            : editor.document.uri;
+
+          console.log("Document URI active text editor", this._lastRenderedDocumentUri);
+
+          //renderCommand(extensionUri);
           renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri?.fsPath);
+          parseAssetCommand(this._lastRenderedDocumentUri);
         }
       }),
       vscode.workspace.onDidRenameFiles((e) => {
         e.files.forEach((file) => {
           if (this._lastRenderedDocumentUri?.fsPath === file.oldUri.fsPath) {
             this._lastRenderedDocumentUri = file.newUri;
+            console.log(`File renamed from ${file.oldUri.fsPath} to ${file.newUri.fsPath}`);
           }
         });
       })
@@ -108,6 +110,9 @@ export class BruinPanel {
     }
     // Set the HTML content for the webview panel
     this._panel.webview.html = this._getWebviewContent(this._panel.webview, extensionUri);
+
+    // Set the last rendered document URI to the current active editor document URI
+    this._lastRenderedDocumentUri = window.activeTextEditor?.document.uri;
 
     // Set an event listener to listen for messages passed from the webview context
     this._setWebviewMessageListener(this._panel.webview);
@@ -135,25 +140,6 @@ export class BruinPanel {
    *
    * @param extensionUri The URI of the directory containing the extension.
    */
-  public async convertCurrentDocument() {
-    if (!this._lastRenderedDocumentUri) {
-      console.error("No active document to convert.");
-      return;
-    }
-    // chack if this is a bruin asset
-    if (await isBruinAsset(this._lastRenderedDocumentUri.fsPath, [".sql", ".py"])) {
-      vscode.window.showErrorMessage("Document is already a bruin asset.");
-      return;
-    }
-    try {
-      // Call the function to convert the file to an asset
-      await convertFileToAssetCommand(this._lastRenderedDocumentUri);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      vscode.window.showErrorMessage(`Error converting file to asset: ${errorMessage}`);
-    }
-  }
-
   public static render(extensionUri: Uri) {
     const column = window.activeTextEditor ? ViewColumn.Beside : undefined;
 
@@ -291,12 +277,6 @@ export class BruinPanel {
         const command = message.command;
 
         switch (command) {
-          case "clear-asset-details":
-            this._panel.webview.postMessage({
-              command: "non-asset-file",
-              isAsset: false
-            });
-            break;
           case "bruin.validateAll":
             const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
             if (!workspaceFolder) {
@@ -684,4 +664,3 @@ export class BruinPanel {
   
   private _checkboxState: { [key: string]: boolean } = {};
 }
-
