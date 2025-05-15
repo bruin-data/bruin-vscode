@@ -13,13 +13,19 @@
         <span v-if="copied" class="text-sm">Copied!</span>
       </button>
     </div>
-    <div id="sql-editor" class="code-container pb-0">
-      <pre id="editor-pre">
-        <div v-for="(line, index) in highlightedLines" :key="index" class="line">
-          <span class="line-number">{{ index + 1 }}</span>
-          <span class="line-content" v-html="line"></span>
+    <div id="sql-editor" class="code-container pb-0" :style="{ height: editorHeight }">
+      <RecycleScroller
+        class="scroller"
+        :items="visibleHighlightedLines"
+        :item-size="lineHeight"
+        key-field="lineNumber"
+        v-slot="{ item }"
+      >
+        <div class="line">
+          <span class="line-number">{{ item.lineNumber }}</span>
+          <span class="line-content" v-html="item.content"></span>
         </div>
-      </pre>
+      </RecycleScroller>
     </div>
   </div>
 </template>
@@ -29,6 +35,8 @@ import { ref, defineProps, computed } from "vue";
 import 'highlight.js/styles/default.css'; 
 import IConButton from "@/components/ui/buttons/IconButton.vue";
 import hljs from 'highlight.js/lib/core';
+import { RecycleScroller } from 'vue3-virtual-scroller';
+import 'vue3-virtual-scroller/dist/vue3-virtual-scroller.css';
 
 const props = defineProps({
   code: String | undefined,
@@ -45,16 +53,30 @@ function copyToClipboard() {
     copied.value = false;
   }, 2000);
 }
-
+const lineHeight = 24; 
+const minEditorHeight = `${lineHeight * 5}px`;
+const maxEditorHeight = '500px';
 const highlightedLines = computed(() => {
   if (!props.code) return [];
   const highlighted = hljs.highlight(props.code, { language: props.language }).value;
 
-  let lines = highlighted.split('\n');
-  if (lines[lines.length - 1] === '') {
-    lines.pop(); 
-  }
+  const lines = highlighted.split('\n').filter(line => line !== ''); // Filter out empty strings
   return lines.map(line => `<span>${line}</span>`);
+});
+const visibleHighlightedLines = computed(() => {
+  if (!props.code) return [];
+  const lines = highlightedLines.value;
+  return lines.map((line, index) => ({
+    lineNumber: index + 1,
+    content: line,
+  }));
+});
+
+const editorHeight = computed(() => {
+  if (!props.code) return minEditorHeight;
+  const lineCount = visibleHighlightedLines.value.length;
+  const calculatedHeight = lineCount * lineHeight;
+  return `${Math.min(Math.max(calculatedHeight, lineHeight * 5), 500)}px`;
 });
 
 </script>
@@ -63,6 +85,10 @@ const highlightedLines = computed(() => {
 .highlight-container {
   background-color: var(--vscode-sideBar-background);
   border: 1px solid var(--vscode-input-background);
+  display: flex;
+  flex-direction: column;
+  min-height: v-bind(minEditorHeight);
+  max-height: v-bind(maxEditorHeight);
 }
 
 .header {
@@ -91,26 +117,52 @@ const highlightedLines = computed(() => {
 .line {
   display: grid;
   grid-template-columns: 60px 1fr;
-  min-height: 1.2em;
-  line-height: 1.2;
+  height: v-bind(lineHeight + 'px');
+  min-height: v-bind(lineHeight + 'px');
+  line-height: v-bind(lineHeight + 'px');
+  contain: strict;
+  display: grid;
+}
+#sql-editor {
+  position: relative;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px 0;
+  flex-grow: 1;
 }
 
 .line-number {
+  height: v-bind(lineHeight + 'px');
+  line-height: v-bind(lineHeight + 'px');
+  padding: 0 1rem;
   color: var(--vscode-disabledForeground);
   user-select: none;
-  text-align: right;
-  padding-right: 1rem;
-  white-space: nowrap;
   position: sticky;
   left: 0;
-  background: inherit;
+  text-align: right;
+  white-space: nowrap;
+}
+.line-content {
+  line-height: v-bind(lineHeight + 'px');
+  white-space: pre;
+  overflow-x: auto;
+  padding-right: 1rem;
+}
+.header {
+  color: var(--vscode-disabledForeground);
+  background-color: var(--vscode-input-background);
+}
+.copy-button {
+  color: var(--vscode-icon-foreground);
+}
+.python-content {
+  white-space: pre-wrap; 
+  color: var(--vscode-foreground);
 }
 
-.line-content {
-  white-space: pre-wrap;
-  word-break: break-word;
-  overflow-wrap: anywhere;
-  padding-right: 1rem;
+.sql-content {
+  background-color: var(--vscode-sideBar-background);
+  border-top: none;
 }
 
 #editor-pre {
@@ -129,10 +181,11 @@ const highlightedLines = computed(() => {
   flex-grow: 1;
   overflow: hidden;
 }
-
-
-  
-
-
-
+.scroller {
+  height: 100%;
+  width: 100%;
+  min-height: v-bind(minEditorHeight);
+  white-space: pre-wrap;
+}
 </style>
+
