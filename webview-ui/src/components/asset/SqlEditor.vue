@@ -14,18 +14,20 @@
       </button>
     </div>
     <div id="sql-editor" class="code-container pb-0" :style="{ height: editorHeight }">
-      <RecycleScroller
+      <DynamicScroller
         class="scroller"
         :items="visibleHighlightedLines"
-        :item-size="lineHeight"
+        :min-item-size="lineHeight"       
         key-field="lineNumber"
         v-slot="{ item }"
       >
-        <div class="line">
-          <span class="line-number">{{ item.lineNumber }}</span>
-          <span class="line-content" v-html="item.content"></span>
-        </div>
-      </RecycleScroller>
+        <DynamicScrollerItem :item="item">
+          <div class="line">
+            <span class="line-number">{{ item.lineNumber }}</span>
+            <span class="line-content" v-html="item.content"></span>
+          </div>
+        </DynamicScrollerItem>
+      </DynamicScroller>
     </div>
   </div>
 </template>
@@ -35,7 +37,7 @@ import { ref, defineProps, computed } from "vue";
 import 'highlight.js/styles/default.css'; 
 import IConButton from "@/components/ui/buttons/IconButton.vue";
 import hljs from 'highlight.js/lib/core';
-import { RecycleScroller } from 'vue3-virtual-scroller';
+import { DynamicScroller, DynamicScrollerItem } from 'vue3-virtual-scroller';
 import 'vue3-virtual-scroller/dist/vue3-virtual-scroller.css';
 
 const props = defineProps({
@@ -117,11 +119,6 @@ const editorHeight = computed(() => {
 .line {
   display: grid;
   grid-template-columns: 60px 1fr;
-  height: v-bind(lineHeight + 'px');
-  min-height: v-bind(lineHeight + 'px');
-  line-height: v-bind(lineHeight + 'px');
-  contain: strict;
-  display: grid;
 }
 #sql-editor {
   position: relative;
@@ -144,9 +141,10 @@ const editorHeight = computed(() => {
 }
 .line-content {
   line-height: v-bind(lineHeight + 'px');
-  white-space: pre;
-  overflow-x: auto;
-  padding-right: 1rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  overflow-x: visible;
 }
 .header {
   color: var(--vscode-disabledForeground);
