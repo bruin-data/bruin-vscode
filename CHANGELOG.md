@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.45.4] - [2025-05-15]
+- Improve long queries rendering in SQL editor.
+
 ## [0.45.3] - [2025-05-14]
 - Added support for dates in the query preview panel.
 
