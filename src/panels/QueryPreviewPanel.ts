@@ -14,7 +14,8 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
   private token: vscode.CancellationToken | undefined;
   private _extensionContext: vscode.ExtensionContext | undefined;
   private disposables: vscode.Disposable[] = [];
-  
+  private static currentDates: { start?: string; end?: string } = {};
+
   // Maps to store queries by tab ID
   private static tabQueries: Map<string, string> = new Map();
   private static tabAssetPaths: Map<string, string> = new Map();
@@ -22,18 +23,18 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
   // For backward compatibility
   private static lastExecutedQuery: string = "";
   private static lastAssetPath: string = "";
-  
+
   // Getter and setter for lastExecutedQuery (for backward compatibility)
   public static setLastExecutedQuery(query: string): void {
     this.lastExecutedQuery = query;
     // Also store in the default tab
-    this.setTabQuery('tab-1', query);
+    this.setTabQuery("tab-1", query);
   }
 
   public static getLastExecutedQuery(): string {
     return this.lastExecutedQuery;
   }
-  
+
   // Methods to manage per-tab queries
   public static setTabQuery(tabId: string, query: string): void {
     this.tabQueries.set(tabId, query);
@@ -42,11 +43,11 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
   public static getTabQuery(tabId: string): string {
     return this.tabQueries.get(tabId) || this.lastExecutedQuery || "";
   }
-  
+
   // Methods to manage per-tab asset paths
   public static setTabAssetPath(tabId: string, assetPath: string): void {
     this.tabAssetPaths.set(tabId, assetPath);
-    if (tabId === 'tab-1') {
+    if (tabId === "tab-1") {
       this.lastAssetPath = assetPath;
     }
   }
@@ -54,41 +55,61 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
   public static getTabAssetPath(tabId: string): string {
     return this.tabAssetPaths.get(tabId) || this.lastAssetPath || "";
   }
-  private async loadAndSendQueryOutput(environment: string, limit: string, tabId: string) {
+  private async loadAndSendQueryOutput(
+    environment: string,
+    limit: string,
+    tabId: string,
+    startDate?: string,
+    endDate?: string
+  ) {
+    startDate = startDate || QueryPreviewPanel.currentDates.start;
+    endDate = endDate || QueryPreviewPanel.currentDates.end;
+    console.log(`QueryPreviewPanel: Loading query with dates - start: ${startDate}, end: ${endDate}`);
+
     if (!this._lastRenderedDocumentUri) {
       return;
     }
-  
+
     try {
       if (!this._lastRenderedDocumentUri.fsPath) {
         console.warn("No valid query was returned");
         return;
       }
-      
+
       // First, set loading state for the specific tab
       QueryPreviewPanel.postMessage("query-output-message", {
         status: "loading",
         message: true,
-        tabId: tabId // Include the tab ID with the loading message
+        tabId: tabId, // Include the tab ID with the loading message
       });
-      
+
       // Then execute the query and get the results
-      await getQueryOutput(environment, limit, this._lastRenderedDocumentUri, tabId);
-      
+      await getQueryOutput(
+        environment,
+        limit,
+        this._lastRenderedDocumentUri,
+        tabId,
+        startDate,
+        endDate
+      );
+
       // Store the asset path for this tab
       QueryPreviewPanel.setTabAssetPath(tabId, this._lastRenderedDocumentUri.fsPath);
     } catch (error) {
       console.error("Error loading query data:", error);
-      
+
       // If there's an error, explicitly send an error message with the tab ID
       QueryPreviewPanel.postMessage("query-output-message", {
         status: "error",
         message: error instanceof Error ? error.message : "Failed to execute query",
-        tabId: tabId
+        tabId: tabId,
       });
     }
   }
-  constructor(private readonly _extensionUri: vscode.Uri, context: vscode.ExtensionContext) {
+  constructor(
+    private readonly _extensionUri: vscode.Uri,
+    context: vscode.ExtensionContext
+  ) {
     this._extensionContext = context;
     this.disposables.push(
       vscode.window.onDidChangeActiveTextEditor((event: vscode.TextEditor | undefined) => {
@@ -155,13 +176,7 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
 
   private _getWebviewContent(webview: vscode.Webview) {
     const codiconsUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(
-        this._extensionUri,
-        "webview-ui",
-        "build",
-        "assets",
-        "codicon.css"
-      )
+      vscode.Uri.joinPath(this._extensionUri, "webview-ui", "build", "assets", "codicon.css")
     );
 
     const stylesUri = getUri(webview, this._extensionUri, [
@@ -234,45 +249,42 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
         case "bruin.saveState":
           await this._persistState(message.payload);
           break;
-          
+
         case "bruin.requestState":
           const state = await this._restoreState();
           webview.postMessage({
             command: "bruin.restoreState",
-            payload: state
+            payload: state,
           });
           break;
         case "bruin.getQueryOutput":
           this.environment = message.payload.environment;
           this.limit = message.payload.limit;
-          const tabId = message.payload.tabId || 'tab-1';
-          this.loadAndSendQueryOutput(this.environment, this.limit, tabId);
-          console.log("Received limit and tabId from webview in the Query Preview panel", message.payload);
+          const tabId = message.payload.tabId || "tab-1";
+          const startDate = message.payload.startDate || "";
+          const endDate = message.payload.endDate || "";
+          this.loadAndSendQueryOutput(this.environment, this.limit, tabId, startDate, endDate);
+          console.log(
+            "Received limit and tabId from webview in the Query Preview panel",
+            message.payload
+          );
           break;
         case "bruin.clearQueryOutput":
           const tabId2 = message.payload?.tabId || null;
           // Send a clear message back to the webview with the specific tab ID
           QueryPreviewPanel.postMessage("query-output-clear", {
             status: "success",
-            message: {tabId : tabId2},
+            message: { tabId: tabId2 },
           });
           break;
         case "bruin.exportQueryOutput":
-          const exportTabId = message.payload?.tabId || 'tab-1';
+          const exportTabId = message.payload?.tabId || "tab-1";
           const connectionName = message.payload?.connectionName || null;
           const assetPath = QueryPreviewPanel.getTabAssetPath(exportTabId);
           if (assetPath) {
-            exportQueryResults(
-              vscode.Uri.file(assetPath), 
-              exportTabId, 
-              connectionName
-            );
+            exportQueryResults(vscode.Uri.file(assetPath), exportTabId, connectionName);
           } else if (this._lastRenderedDocumentUri) {
-            exportQueryResults(
-              this._lastRenderedDocumentUri,
-              exportTabId,
-              connectionName
-            );
+            exportQueryResults(this._lastRenderedDocumentUri, exportTabId, connectionName);
           }
           break;
       }
@@ -285,7 +297,17 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
   ) {
     if (this._view) {
       console.log("Posting message to webview in the Query Preview panel", name, data);
-  
+      
+      // Store dates when receiving date updates
+      if (name === "update-query-dates" && typeof data === "object" && data.message) {
+        const { startDate, endDate } = data.message;
+        this.currentDates = {
+          start: startDate || "",
+          end: endDate || ""
+        };
+        console.log(`QueryPreviewPanel: Received dates - start: ${startDate}, end: ${endDate}`);
+      }
+      
       // Ensure the data is serializable
       const serializedData = JSON.parse(JSON.stringify(data));
   
@@ -295,14 +317,13 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
       });
     }
   }
-  
   private async _persistState(state: any) {
     if (!this._extensionContext) {
       throw new Error("Extension context not found");
     }
     try {
       const sanitizedState = JSON.parse(JSON.stringify(state));
-  
+
       // Store query for each tab as part of the state
       if (sanitizedState.tabs && Array.isArray(sanitizedState.tabs)) {
         sanitizedState.tabs.forEach((tab: { id: string; query: string; assetPath: string }) => {
@@ -311,20 +332,20 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
           tab.assetPath = QueryPreviewPanel.getTabAssetPath(tab.id);
         });
       }
-  
-      await this._extensionContext.globalState.update('queryPreviewState', sanitizedState);
+
+      await this._extensionContext.globalState.update("queryPreviewState", sanitizedState);
     } catch (error) {
       console.error("Error persisting state:", error);
     }
   }
-  
+
   private async _restoreState(): Promise<any> {
     if (!this._extensionContext) {
       throw new Error("Extension context not found");
     }
     try {
-      const state: any = this._extensionContext.globalState.get('queryPreviewState') || null;
-  
+      const state: any = this._extensionContext.globalState.get("queryPreviewState") || null;
+
       // Restore queries for each tab from the state
       if (state && state.tabs && Array.isArray(state.tabs)) {
         state.tabs.forEach((tab: { id: string; query: string; assetPath: string }) => {
@@ -340,13 +361,13 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
           }
         });
       }
-  
+
       return state;
     } catch (error) {
       console.error("Error restoring state:", error);
     }
   }
-  
+
   public async initPanel(event: vscode.TextEditor | vscode.TextDocumentChangeEvent | undefined) {
     if (event) {
       this._lastRenderedDocumentUri = event.document.uri;

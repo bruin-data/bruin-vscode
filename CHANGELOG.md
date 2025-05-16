@@ -1,4 +1,14 @@
 # Changelog
+
+## [0.45.5] - [2025-05-16]
+- Updated SQL editor line height.
+
+## [0.45.4] - [2025-05-15]
+- Improved long queries rendering in SQL editor.
+
+## [0.45.3] - [2025-05-14]
+- Added support for dates in the query preview panel.
+
 ## [0.45.2] - [2025-05-13]
 - Fix CLI version check to improve performance.
 

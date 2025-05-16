@@ -2494,7 +2494,7 @@ suite("Query Output Tests", () => {
     sinon.stub(vscode.window, "activeTextEditor").value(fakeEditor);
     getWorkspaceFolderStub.returns(undefined);
 
-    await getQueryOutput("dev", "100", uri);
+    await getQueryOutput("dev", "100", uri, "tab-1", new Date().toISOString(), new Date().toISOString());
 
     assert.strictEqual(showErrorStub.calledWith("No workspace folder found"), true);
   });
@@ -2504,7 +2504,9 @@ suite("Query Output Tests", () => {
     const selectedQuery = "SELECT *"; 
     const fullQuery = "SELECT * FROM table";
     const tabId = "tab-1";
-  
+    const startDate = new Date();
+    const endDate = new Date();
+    endDate.setDate(startDate.getDate() + 1);
     const fakeDoc = {
       uri,
       getText: (range?: vscode.Range) => {
@@ -2526,11 +2528,11 @@ suite("Query Output Tests", () => {
     sinon.stub(vscode.window, "activeTextEditor").value(fakeEditor);
     getWorkspaceFolderStub.returns({ uri: { fsPath: "/mocked/workspace" } });
   
-    await getQueryOutput("dev", "10", uri, tabId);
+    await getQueryOutput("dev", "10", uri, tabId, startDate.toISOString(), endDate.toISOString());
   
-    assert.strictEqual(setTabQueryStub.calledWith("tab-1", selectedQuery), true);
+    assert.strictEqual(setTabQueryStub.calledWith(tabId, selectedQuery), true);
     assert.strictEqual(
-      getOutputStub.calledWithMatch("dev", uri.fsPath, "10", "tab-1", { query: selectedQuery }),
+      getOutputStub.calledWithMatch("dev", uri.fsPath, "10", tabId, startDate.toISOString(), endDate.toISOString(), { query: selectedQuery }),
       true
     );
   });
@@ -2557,11 +2559,11 @@ suite("Query Output Tests", () => {
     sinon.stub(vscode.window, "activeTextEditor").value(fakeEditor);
     getWorkspaceFolderStub.returns({ uri: { fsPath: "/mocked/workspace" } });
   
-    await getQueryOutput("dev", "50", uri, "tab-1");
+    await getQueryOutput("dev", "50", uri, "tab-1", new Date().toISOString(), new Date().toISOString());
   
     assert.strictEqual(setTabQueryStub.calledWith("tab-1", ""), true);
     assert.strictEqual(
-      getOutputStub.calledWithMatch("dev", uri.fsPath, "50", "tab-1", { query: "" }),
+      getOutputStub.calledWithMatch("dev", uri.fsPath, "50", "tab-1", sinon.match.string, sinon.match.string, { query: "" }),
       true
     );
   });
