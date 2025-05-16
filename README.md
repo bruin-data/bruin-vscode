@@ -54,10 +54,11 @@ Bruin is a unified analytics platform that enables data professionals to work en
 **Note**: Ensure that you have the Bruin CLI installed on your system before using the new features. For guidance on installing the Bruin CLI, please refer to the [official documentation](https://github.com/bruin-data/bruin).
 
 ## Release Notes
-### Latest Release: 0.45.4
-- Improve long queries rendering in SQL editor.
+### Latest Release: 0.45.5
+- Update SQL editor line height.
 
 ### Recent Updates
+- **0.45.4**: Improve long queries rendering in SQL editor.
 - **0.45.3**: Added support for dates in the query preview panel.
 - **0.45.2**: Fix CLI version check to improve performance.
 - **0.45.1**: Optimize the Bruin activation process.
@@ -72,13 +73,6 @@ Bruin is a unified analytics platform that enables data professionals to work en
 - **0.43.2**: Added expandable labels for truncated asset names in lineage view.
 - **0.43.1**: Handle file renaming in BruinPanel to update last rendered document URI.
 - **0.43.0**: Automatically refresh the CLI status after update.
-- **0.42.3**: Added support for `bq.seed` type in asset yaml schema.
-- **0.42.2**: Support multiline input for column and custom check fields.
-- **0.42.1**: Improved `CLI install` and `update` UX in Settings Tab.
-- **0.42.0**: Added export functionality to export query output to a CSV file.
-- **0.41.2**: Fixed Editing Behavior When Adding or Deleting Columns.
-- **0.41.1**: Fixed payload sanitization for columns details.
-- **0.41.0**: Added auto CLI Version Check and Update Functionality to trigger a CLI update interactively.
 
 For a full changelog, see Bruin Extension [Changelog](https://marketplace.visualstudio.com/items/bruin.bruin/changelog).
 
