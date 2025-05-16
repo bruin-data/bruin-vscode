@@ -55,8 +55,8 @@ function copyToClipboard() {
     copied.value = false;
   }, 2000);
 }
-const lineHeight = 24; 
-const minEditorHeight = `${lineHeight * 5}px`;
+const lineHeight = 15; 
+const minEditorHeight = `${lineHeight * 8}px`;
 const maxEditorHeight = '500px';
 const highlightedLines = computed(() => {
   if (!props.code) return [];
