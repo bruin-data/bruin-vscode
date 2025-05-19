@@ -729,17 +729,8 @@ public static restore(panel: WebviewPanel, extensionUri: Uri): BruinPanel {
   
     // Helper to check if file is in assets folder
   private async _isInAssetsFolder(filePath: string): Promise<boolean> {
-    try {
-      const workspaceFolder = await bruinWorkspaceDirectory(filePath);
-      if (!workspaceFolder) return false;
-      // Check if file path contains /assets/ directory
-      const included = filePath.includes(path.join(workspaceFolder, 'assets'));
-      return included;
-    } catch (error) {
-      console.error("Error checking assets folder:", error);
-      return false;
-    }
-  }
+      return filePath.replace(/\\/g, "/").includes("/assets/");
+     }
   
   // Helper to check if file is an asset
   private async _isAssetFile(filePath: string): Promise<boolean> {
