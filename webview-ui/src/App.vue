@@ -1,7 +1,17 @@
 <template>
   <div v-if="isBruinInstalled">
     <div class="flex flex-col pt-1">
-      <div v-if="!isNotAsset" class="">
+      <!-- Non-asset detection and conversion message -->
+      <div v-if="isNotAsset && showConvertMessage" class="w-full">
+        <NonAssetMessage
+          :showConvertMessage="showConvertMessage"
+          :fileType="nonAssetFileType"
+          :filePath="nonAssetFilePath"
+        />
+      </div>
+      
+      <!-- only show when it's an asset -->
+      <div v-else-if="!isNotAsset && !showConvertMessage" class="">
         <div class="flex items-center space-x-2 w-full justify-between min-h-6">
           <div class="flex items-baseline w-3/4 min-w-0 font-md text-editor-fg text-lg font-mono">
             <!-- Asset name -->
@@ -66,7 +76,7 @@
         </div>
       </div>
       <!-- Rest of the existing template remains the same -->
-      <vscode-panels :activeid="`tab-${activeTab}`" aria-label="Tabbed Content" class="pl-0">
+      <vscode-panels v-if="!showConvertMessage"  :activeid="`tab-${activeTab}`" aria-label="Tabbed Content" class="pl-0">
         <vscode-panel-tab
           v-for="(tab, index) in visibleTabs"
           :key="`tab-${index}`"
@@ -100,11 +110,6 @@
             @open-glossary="navigateToGlossary"
             @update:description="updateDescription"
           />
-          <div class="flex w-full" v-else-if="parseError">
-            <MessageAlert
-              message="This file is either not a Bruin Asset or has no data to display."
-            />
-          </div>
         </vscode-panel-view>
       </vscode-panels>
     </div>
@@ -123,7 +128,6 @@ import { vscode } from "@/utilities/vscode";
 import { ref, onMounted, computed, watch, nextTick, onBeforeUnmount } from "vue";
 import { parseAssetDetails, parseEnvironmentList } from "./utilities/helper";
 import { updateValue } from "./utilities/helper";
-import MessageAlert from "@/components/ui/alerts/AlertMessage.vue";
 import { useConnectionsStore } from "./store/bruinStore";
 import type { EnvironmentsList } from "./types";
 import AssetColumns from "@/components/asset/columns/AssetColumns.vue";
@@ -132,7 +136,7 @@ import BruinSettings from "@/components/bruin-settings/BruinSettings.vue";
 import DescriptionItem from "./components/ui/description-item/DescriptionItem.vue";
 import { badgeStyles, defaultBadgeStyle } from "./components/ui/badges/CustomBadgesStyle";
 import RudderStackService from "./services/RudderStackService";
-
+import NonAssetMessage from "./components/ui/alerts/NonAssetMessage.vue";
 const rudderStack = RudderStackService.getInstance();
 const connectionsStore = useConnectionsStore();
 const parseError = ref(); // Holds any parsing errors
@@ -171,14 +175,21 @@ const  handleMessage = ((event: MessageEvent) => {
         connectionsStore.setDefaultEnvironment(selectedEnvironment.value); // Set the default environment in the store
         break;
       case "non-asset-file":
-        console.warn("Non-asset file received:", (new Date).toISOString());
         isNotAsset.value = true;
+        if (message.showConvertMessage) {
+          showConvertMessage.value = true;
+          nonAssetFileType.value = message.fileType || '';
+          nonAssetFilePath.value = message.filePath || '';
+        } else {
+          showConvertMessage.value = false;
+        }
         break;
       case "parse-message": {
-        console.warn("Parsing message received:", (new Date).toISOString());
         parseError.value = updateValue(message, "error");
         const parsed = updateValue(message, "success");
         if (!parseError.value) {
+          isNotAsset.value = false;
+          showConvertMessage.value = false;
           // Handle pipelineConfig (from pipeline.yml)
           if (parsed && parsed.type === "pipelineConfig") {
             data.value = parsed;
@@ -225,6 +236,9 @@ const  handleMessage = ((event: MessageEvent) => {
 
 const isBruinYml = ref(false); 
 const isNotAsset = ref(false);
+const showConvertMessage = ref(false);
+const nonAssetFileType = ref('');
+const nonAssetFilePath = ref('');
 const activeTab = ref(0); // Tracks the currently active tab
 const navigateToGlossary = () => {
   console.log("Opening glossary.");
@@ -357,7 +371,6 @@ const customChecksProps = computed(() => {
 });
 
 const customChecks = ref([...customChecksProps.value]); // Reactive reference for custom checks
-
 // Define tabs for the application
 const tabs = ref([
   {
@@ -456,6 +469,7 @@ onBeforeUnmount(() => {
 watch(columnsProps, (newColumns) => {
   columns.value = newColumns;
 });
+
 
 watch(activeTab, (newTab, oldTab) => {
   rudderStack.trackEvent("Tab Switched", {

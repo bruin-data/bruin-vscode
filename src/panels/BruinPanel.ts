@@ -10,7 +10,7 @@ import {
 } from "../bruin";
 import * as vscode from "vscode";
 import { renderCommandWithFlags } from "../extension/commands/renderCommand";
-import { parseAssetCommand, patchAssetCommand } from "../extension/commands/parseAssetCommand";
+import { convertFileToAssetCommand, parseAssetCommand, patchAssetCommand } from "../extension/commands/parseAssetCommand";
 import { getEnvListCommand } from "../extension/commands/getEnvListCommand";
 import { BruinInstallCLI } from "../bruin/bruinInstallCli";
 import {
@@ -23,6 +23,8 @@ import {
 import { openGlossary } from "../bruin/bruinGlossaryUtility";
 import { QueryPreviewPanel } from "./QueryPreviewPanel";
 import { getBruinExecutablePath } from "../providers/BruinExecutableService";
+import path = require("path");
+import { isBruinAsset } from "../utilities/helperUtils";
 
 /**
  * This class manages the state and behavior of Bruin webview panels.
@@ -49,12 +51,9 @@ export class BruinPanel {
    */
   private constructor(panel: WebviewPanel, extensionUri: Uri) {
     this._panel = panel;
-
+    this._checkboxState = {};
     const iconPath = Uri.joinPath(extensionUri, "img", "bruin-logo-sm128.png");
     panel.iconPath = { light: iconPath, dark: iconPath };
-
-    // Set an event listener to listen for when the panel is disposed (i.e. when the user closes
-    // the panel or when the panel is closed programmatically)
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
 
     this._disposables.push(
@@ -67,31 +66,26 @@ export class BruinPanel {
           if (editor.document.uri.fsPath === "tasks") {
             return;
           }
-          this._lastRenderedDocumentUri = !this.relevantFileExtensions.some((ext) =>
-            editor.document.uri.fsPath.endsWith(ext)
-          )
-            ? this._lastRenderedDocumentUri
-            : editor.document.uri;
-          parseAssetCommand(this._lastRenderedDocumentUri);
+          
+          this._lastRenderedDocumentUri = editor.document.uri; 
+            
+          this._handleAssetDetection(this._lastRenderedDocumentUri);
           renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri?.fsPath);
+
         }
       }),
+      
       window.onDidChangeActiveTextEditor((editor) => {
         if (editor && editor.document.uri) {
           if (editor.document.uri.fsPath === "tasks") {
             return;
           }
-          this._lastRenderedDocumentUri = !this.relevantFileExtensions.some((ext) =>
-            editor.document.uri.fsPath.endsWith(ext)
-          )
-            ? this._lastRenderedDocumentUri
-            : editor.document.uri;
-
+          
+          this._lastRenderedDocumentUri = editor.document.uri;
+            
           console.log("Document URI active text editor", this._lastRenderedDocumentUri);
-
-          //renderCommand(extensionUri);
+          this._handleAssetDetection(this._lastRenderedDocumentUri);
           renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri?.fsPath);
-          parseAssetCommand(this._lastRenderedDocumentUri);
         }
       }),
       vscode.workspace.onDidRenameFiles((e) => {
@@ -104,22 +98,16 @@ export class BruinPanel {
       })
     ); 
 
-    // Ensure initial state is set based on the currently active editor
-    if (window.activeTextEditor) {
-      this._lastRenderedDocumentUri = window.activeTextEditor.document.uri;
-    }
-    // Set the HTML content for the webview panel
-    this._panel.webview.html = this._getWebviewContent(this._panel.webview, extensionUri);
-
-    // Set the last rendered document URI to the current active editor document URI
-    this._lastRenderedDocumentUri = window.activeTextEditor?.document.uri;
-
-    // Set an event listener to listen for messages passed from the webview context
-    this._setWebviewMessageListener(this._panel.webview);
+   if (window.activeTextEditor) {
+    this._lastRenderedDocumentUri = window.activeTextEditor.document.uri;
   }
-  public static restore(panel: WebviewPanel, extensionUri: Uri): BruinPanel {
-    return new BruinPanel(panel, extensionUri);
-  }
+  this._panel.webview.html = this._getWebviewContent(this._panel.webview, extensionUri);
+  this._lastRenderedDocumentUri = window.activeTextEditor?.document.uri;
+  this._setWebviewMessageListener(this._panel.webview);
+}
+public static restore(panel: WebviewPanel, extensionUri: Uri): BruinPanel {
+  return new BruinPanel(panel, extensionUri);
+}
 
   public static postMessage(
     name: string,
@@ -158,6 +146,7 @@ export class BruinPanel {
 
       this.currentPanel = new BruinPanel(panel, extensionUri);
     }
+
   }
 
   /**
@@ -190,10 +179,12 @@ export class BruinPanel {
    * rendered within the webview panel
    */
   private readonly relevantFileExtensions = [
-    "sql",
-    "py",
-    "asset.yml",
-    "asset.yaml",
+    ".sql",
+    ".py",
+    ".yml",
+    ".yaml",
+    ".asset.yml",
+    ".asset.yaml",
     "pipeline.yml",
     "pipeline.yaml",
     ".bruin.yml",
@@ -275,7 +266,6 @@ export class BruinPanel {
     webview.onDidReceiveMessage(
       async (message: any) => {
         const command = message.command;
-
         switch (command) {
           case "bruin.validateAll":
             const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
@@ -601,6 +591,11 @@ export class BruinPanel {
             console.log("Installing specific version:", version);
             await this.updateBruinCli(version);
             break;
+          case "bruin.convertToAsset":
+            if (this._lastRenderedDocumentUri) {
+              await this._convertToAsset(this._lastRenderedDocumentUri.fsPath);
+            }
+            break;
         }
       },
       undefined,
@@ -670,6 +665,112 @@ export class BruinPanel {
     } catch (error) {
       console.error("Error updating Bruin CLI:", error);
       vscode.window.showErrorMessage("Failed to update Bruin CLI. Please try again.");
+    }
+  }
+  private async _handleAssetDetection(fileUri: Uri | undefined): Promise<void> {
+    if (!fileUri) {
+      return;
+    }
+  
+    const filePath = fileUri.fsPath;
+  
+    try {
+      const isAsset = await this._isAssetFile(filePath);
+  
+      if (isAsset) {
+        parseAssetCommand(fileUri);
+        return;
+      }
+  
+      const inAssetsFolder = await this._isInAssetsFolder(filePath);
+      const fileExt = this._getFileExtension(filePath);
+      const isSupportedFileType = ['yml', 'yaml', 'py', 'sql'].includes(fileExt);
+      const isConfigFile = filePath.endsWith('pipeline.yml') ||
+                           filePath.endsWith('pipeline.yaml') ||
+                           filePath.endsWith('.bruin.yml') ||
+                           filePath.endsWith('.bruin.yaml');  
+  
+      if (isConfigFile) {
+        parseAssetCommand(fileUri);
+        this._panel.webview.postMessage({
+          command: "parse-message",
+          fileType: "config",
+          filePath: filePath
+        });
+        return;
+      }
+  
+      if (inAssetsFolder && isSupportedFileType && !isAsset) { 
+        this._panel.webview.postMessage({
+          command: "non-asset-file",
+          showConvertMessage: true,
+          fileType: fileExt,
+          filePath: filePath
+        });
+      } else {
+        this._panel.webview.postMessage({
+          command: "non-asset-file",
+          showConvertMessage: false
+        });
+      }
+    } catch (error) {
+      console.error("Error in asset detection flow:", error);
+      this._panel.webview.postMessage({
+        command: "non-asset-file",
+        error: `Error processing file: ${error}`
+      });
+    }
+  }
+  // Helper to get file extension
+  private _getFileExtension(filePath: string): string {
+    const parts = filePath.split('.');
+    return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : '';
+  }
+  
+    // Helper to check if file is in assets folder
+  private async _isInAssetsFolder(filePath: string): Promise<boolean> {
+      return filePath.replace(/\\/g, "/").includes("/assets/");
+     }
+  
+  // Helper to check if file is an asset
+  private async _isAssetFile(filePath: string): Promise<boolean> {
+    // Check filename patterns for assets
+    if (filePath.endsWith('.asset.yml') || filePath.endsWith('.asset.yaml')) {
+      return true;
+    }
+    try {
+      const isAsset = await isBruinAsset(filePath, [".sql", ".py"]);
+      return isAsset;
+    } catch (error) {
+      console.error("Error reading file to check if asset:", error);
+      return false;
+    }
+  }
+  
+  // Add new function to handle conversion
+  private async _convertToAsset(filePath: string): Promise<void> {
+    const fileExt = this._getFileExtension(filePath);
+    
+    try {
+      if (fileExt === 'yml' || fileExt === 'yaml') {
+        // For YAML files, rename to *.asset.yml
+        const newPath = filePath.replace(`.${fileExt}`, `.asset.${fileExt}`);
+        await workspace.fs.rename(Uri.file(filePath), Uri.file(newPath), { overwrite: false });
+        
+        // Update the rendered document and parse it
+        this._lastRenderedDocumentUri = Uri.file(newPath);
+        parseAssetCommand(this._lastRenderedDocumentUri);
+        
+      } else if (fileExt === 'py' || fileExt === 'sql') {
+        // For Python/SQL files, call convert command 
+        convertFileToAssetCommand(this._lastRenderedDocumentUri);
+      }
+    } catch (error) {
+      console.error("Error converting to asset:", error);
+      this._panel.webview.postMessage({
+        command: "conversion-error",
+        error: `Failed to convert file: ${error}`
+      });
     }
   }
   
