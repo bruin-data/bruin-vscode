@@ -54,10 +54,11 @@ Bruin is a unified analytics platform that enables data professionals to work en
 **Note**: Ensure that you have the Bruin CLI installed on your system before using the new features. For guidance on installing the Bruin CLI, please refer to the [official documentation](https://github.com/bruin-data/bruin).
 
 ## Release Notes
-### Latest Release: 0.45.5
-- Update SQL editor line height.
+### Latest Release: 0.46.0
+- Added convert feature to convert eligible files to Bruin assets.
 
 ### Recent Updates
+- **0.45.5**: Update SQL editor line height.
 - **0.45.4**: Improve long queries rendering in SQL editor.
 - **0.45.3**: Added support for dates in the query preview panel.
 - **0.45.2**: Fix CLI version check to improve performance.
