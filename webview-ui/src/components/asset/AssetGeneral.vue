@@ -628,17 +628,12 @@ function receiveMessage(event: { data: any }) {
 
       break;
     case "non-asset-file":
-      console.warn("This is not a Bruin asset");
       isNotAsset.value = true;
-      renderAssetAlert.value = envelope.isAsset ? null : "This is not a Bruin asset";
-      renderSQLAssetError.value = null;
-      renderSQLAssetSuccess.value = null;
-      renderPythonAsset.value = null; 
       break;
     case "render-message":
       renderSQLAssetSuccess.value = updateValue(envelope, "success");
-      renderSQLAssetError.value = isNotAsset.value ? null : updateValue(envelope, "error");
-      renderPythonAsset.value = isNotAsset.value ? null : updateValue(envelope, "bruin-asset-alert");
+      renderSQLAssetError.value = updateValue(envelope, "error");
+      renderPythonAsset.value = updateValue(envelope, "bruin-asset-alert");
       renderAssetAlert.value = updateValue(envelope, "non-asset-alert");
       isNotAsset.value = !!renderAssetAlert.value;
       code.value = renderSQLAssetSuccess.value || renderPythonAsset.value;

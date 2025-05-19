@@ -175,19 +175,16 @@ const  handleMessage = ((event: MessageEvent) => {
         connectionsStore.setDefaultEnvironment(selectedEnvironment.value); // Set the default environment in the store
         break;
       case "non-asset-file":
-        console.warn("Non-asset file received:", (new Date).toISOString());
         isNotAsset.value = true;
         if (message.showConvertMessage) {
           showConvertMessage.value = true;
           nonAssetFileType.value = message.fileType || '';
           nonAssetFilePath.value = message.filePath || '';
-          console.warn("Non-asset file received:", message.fileType);
         } else {
           showConvertMessage.value = false;
         }
         break;
       case "parse-message": {
-        console.warn("Parsing message received:", (new Date).toISOString());
         parseError.value = updateValue(message, "error");
         const parsed = updateValue(message, "success");
         if (!parseError.value) {
