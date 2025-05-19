@@ -1,7 +1,17 @@
 <template>
-  <div v-if="isBruinInstalled && !isNotAsset">
+  <div v-if="isBruinInstalled">
     <div class="flex flex-col pt-1">
-      <div v-if="!isNotAsset" class="">
+      <!-- Non-asset detection and conversion message -->
+      <div v-if="isNotAsset && showConvertMessage" class="w-full">
+        <NonAssetMessage
+          :showConvertMessage="showConvertMessage"
+          :fileType="nonAssetFileType"
+          :filePath="nonAssetFilePath"
+        />
+      </div>
+      
+      <!-- only show when it's an asset -->
+      <div v-else-if="!isNotAsset && !showConvertMessage" class="">
         <div class="flex items-center space-x-2 w-full justify-between min-h-6">
           <div class="flex items-baseline w-3/4 min-w-0 font-md text-editor-fg text-lg font-mono">
             <!-- Asset name -->
@@ -66,7 +76,7 @@
         </div>
       </div>
       <!-- Rest of the existing template remains the same -->
-      <vscode-panels :activeid="`tab-${activeTab}`" aria-label="Tabbed Content" class="pl-0">
+      <vscode-panels v-if="!showConvertMessage"  :activeid="`tab-${activeTab}`" aria-label="Tabbed Content" class="pl-0">
         <vscode-panel-tab
           v-for="(tab, index) in visibleTabs"
           :key="`tab-${index}`"
@@ -100,25 +110,15 @@
             @open-glossary="navigateToGlossary"
             @update:description="updateDescription"
           />
-          <div class="flex w-full" v-else-if="parseError">
-            <MessageAlert
-              message="This file is either not a Bruin Asset or has no data to display."
-            />
-          </div>
         </vscode-panel-view>
       </vscode-panels>
     </div>
   </div>
-  <div class="flex items-center space-x-2 w-full justify-between pt-2" v-else-if="!isBruinInstalled">
+  <div class="flex items-center space-x-2 w-full justify-between pt-2" v-else>
     <BruinSettings
       :isBruinInstalled="isBruinInstalled"
       :environments="environmentsList"
       class="flex w-full"
-    />
-  </div>
-  <div class="flex items-center space-x-2 w-full justify-between pt-2" v-else>
-    <MessageAlert
-      message="This is not an asset file."
     />
   </div>
 </template>
@@ -128,7 +128,6 @@ import { vscode } from "@/utilities/vscode";
 import { ref, onMounted, computed, watch, nextTick, onBeforeUnmount } from "vue";
 import { parseAssetDetails, parseEnvironmentList } from "./utilities/helper";
 import { updateValue } from "./utilities/helper";
-import MessageAlert from "@/components/ui/alerts/AlertMessage.vue";
 import { useConnectionsStore } from "./store/bruinStore";
 import type { EnvironmentsList } from "./types";
 import AssetColumns from "@/components/asset/columns/AssetColumns.vue";
@@ -137,7 +136,7 @@ import BruinSettings from "@/components/bruin-settings/BruinSettings.vue";
 import DescriptionItem from "./components/ui/description-item/DescriptionItem.vue";
 import { badgeStyles, defaultBadgeStyle } from "./components/ui/badges/CustomBadgesStyle";
 import RudderStackService from "./services/RudderStackService";
-
+import NonAssetMessage from "./components/ui/alerts/NonAssetMessage.vue";
 const rudderStack = RudderStackService.getInstance();
 const connectionsStore = useConnectionsStore();
 const parseError = ref(); // Holds any parsing errors
@@ -170,7 +169,6 @@ const  handleMessage = ((event: MessageEvent) => {
     switch (message.command) {
       case "init":
         lastRenderedDocument.value = message.lastRenderedDocument; // Update last rendered document
-        isInitialized.value = true;
         break;
       case "environments-list-message":
         environments.value = updateValue(message, "success");
@@ -179,14 +177,13 @@ const  handleMessage = ((event: MessageEvent) => {
       case "non-asset-file":
         console.warn("Non-asset file received:", (new Date).toISOString());
         isNotAsset.value = true;
-        isInitialized.value = true;
-        break;
-      case "render-message":
-        isError.value = updateValue(message, "error");
-        console.warn("Render message received:", JSON.parse(isError.value).error);
-
-        if(JSON.parse(isError.value).error.includes("no asset found")) {
-          isNotAsset.value = true;
+        if (message.showConvertMessage) {
+          showConvertMessage.value = true;
+          nonAssetFileType.value = message.fileType || '';
+          nonAssetFilePath.value = message.filePath || '';
+          console.warn("Non-asset file received:", message.fileType);
+        } else {
+          showConvertMessage.value = false;
         }
         break;
       case "parse-message": {
@@ -194,6 +191,8 @@ const  handleMessage = ((event: MessageEvent) => {
         parseError.value = updateValue(message, "error");
         const parsed = updateValue(message, "success");
         if (!parseError.value) {
+          isNotAsset.value = false;
+          showConvertMessage.value = false;
           // Handle pipelineConfig (from pipeline.yml)
           if (parsed && parsed.type === "pipelineConfig") {
             data.value = parsed;
@@ -208,15 +207,8 @@ const  handleMessage = ((event: MessageEvent) => {
             activeTab.value = 3; 
             break;
           }
-          isNotAsset.value = false;
           data.value = parsed;
         }
-        else {
-          isNotAsset.value = true;
-          console.log("Error parsing message received:", parseError.value, (new Date).toISOString());
-        }
-        isInitialized.value = true;
-
         lastRenderedDocument.value = parsed;
 
         // Track asset parsing status
@@ -246,9 +238,10 @@ const  handleMessage = ((event: MessageEvent) => {
 });
 
 const isBruinYml = ref(false); 
-const isError = ref();
-const isNotAsset = ref(true);
-const isInitialized = ref(false);
+const isNotAsset = ref(false);
+const showConvertMessage = ref(false);
+const nonAssetFileType = ref('');
+const nonAssetFilePath = ref('');
 const activeTab = ref(0); // Tracks the currently active tab
 const navigateToGlossary = () => {
   console.log("Opening glossary.");
@@ -381,7 +374,6 @@ const customChecksProps = computed(() => {
 });
 
 const customChecks = ref([...customChecksProps.value]); // Reactive reference for custom checks
-const showContent = computed(() => isInitialized.value && isBruinInstalled.value);
 // Define tabs for the application
 const tabs = ref([
   {
