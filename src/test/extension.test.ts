@@ -2511,7 +2511,7 @@ suite("Query Output Tests", () => {
       uri,
       getText: (range?: vscode.Range) => {
         // Return selected query if range is provided
-        if (range) return selectedQuery;
+        if (range) {return selectedQuery;}
         return fullQuery;
       },
     } as unknown as vscode.TextDocument;
