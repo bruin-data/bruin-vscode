@@ -65,7 +65,7 @@ function initializeAnalytics(): any {
 function trackEvent(eventName: string, properties: Record<string, any> = {}): void {
   try {
     const client = initializeAnalytics();
-    if (!client) return;
+    if (!client) {return;}
           client.track({
         event: eventName,
         anonymousId: "anonymous-id",

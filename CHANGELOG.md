@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.46.0] - [2025-05-19]
+- Added convert feature to convert eligible files to Bruin assets.
+
 ## [0.45.5] - [2025-05-16]
 - Updated SQL editor line height.
 

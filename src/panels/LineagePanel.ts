@@ -106,7 +106,7 @@ export abstract class BaseLineagePanel implements vscode.WebviewViewProvider, vs
         console.error("Error loading lineage data:", error);
       }
     }
-  }
+  };
 
   private refresh = (event: vscode.TextEditor) => {
     if (event.document.uri === this._lastRenderedDocumentUri && !this.isRefreshing) {
