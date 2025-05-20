@@ -24,18 +24,22 @@ export class BruinInstallCLI {
   private async executeCommand(command: string): Promise<void> {
     const workingDir = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
 
-    let shellExecutable: string | undefined;
-    let shellArgs: string[] = [];
-
+     let shellExec: vscode.ShellExecution;
     if (this.platform === "win32") {
       const gitBashPath = findGitBashPath();
       if (!gitBashPath) {
-        throw new Error(
-          "Git Bash not found. Please install Git or configure the Git Bash path in settings."
-        );
+        throw new Error("Git Bash not found. Please install Git.");
       }
-      shellExecutable = gitBashPath;
-      shellArgs = ["-c"];
+      // Use Git Bash to execute the command and ensure exit code is propagated
+      shellExec = new vscode.ShellExecution(
+        gitBashPath,
+        ["-c", `${command}; exit $?`], 
+        { cwd: workingDir }
+      );
+    } else {
+      shellExec = new vscode.ShellExecution(`${command}; exit $?`, {
+        cwd: workingDir,
+      });
     }
 
     const task = new vscode.Task(
@@ -43,7 +47,7 @@ export class BruinInstallCLI {
       vscode.TaskScope.Workspace,
       "Bruin Install/Update",
       "bruin",
-      new vscode.ShellExecution(command, { cwd: workingDir, executable: shellExecutable, shellArgs })
+      shellExec
     );
 
     task.presentationOptions = {
@@ -54,13 +58,20 @@ export class BruinInstallCLI {
     };
 
     return new Promise<void>((resolve, reject) => {
-      const disposable = vscode.tasks.onDidEndTaskProcess((e) => {
+      const disposable = vscode.tasks.onDidEndTaskProcess(async (e) => {
         if (e.execution.task.name === "Bruin Install/Update") {
           disposable.dispose();
-          if (e.exitCode === 0) {
+          const installStatus = await this.checkBruinCliInstallation();
+
+          if (e.exitCode === 0 || installStatus.installed) {
+            if (e.exitCode !== 0) {
+              vscode.window.showWarningMessage(
+                "Bruin CLI installed, but couldn't update PATH. Restart your shell or add it manually."
+              );
+            }
             resolve();
           } else {
-            reject(new Error(`Bruin install failed with exit code ${e.exitCode}`));
+            reject(new Error(`Failed to install/update Bruin CLI (exit code ${e.exitCode})`));
           }
         }
       });
@@ -69,37 +80,18 @@ export class BruinInstallCLI {
     });
   }
 
+
   private async getCommand(isUpdate: boolean, version?: string): Promise<string> {
     console.debug("getCommand called with", { isUpdate, version });
-    this.scriptPath = version ? this.scriptPathSpecificVersion : this.scriptPath;
-    const specificVersion = version ? ` v${version}` : "";
-    if (os.platform() === "win32") {
-      const gitBashPath = findGitBashPath();
-
-      if (!gitBashPath) {
-        throw new Error(
-          "Git Bash not found. Please install Git or configure the Git Bash path in settings."
-        );
-      }
-
-      // Create a temporary batch file
-      const tempDir = os.tmpdir();
-      const batchFilePath = path.join(tempDir, "bruin-install.bat");
-
-      // Create batch file content that calls Git Bash
-      const batchContent =
-        "@echo off\r\n" +
-        `"${gitBashPath}" -c "curl -LsSL ${this.scriptPath} | sh -s --${specificVersion}"\r\n`;
-
-      // Write the batch file
-      fs.writeFileSync(batchFilePath, batchContent);
-
-      // Return the command to execute the batch file
-      return batchFilePath;
-    } else {
-      return `curl -LsSL ${this.scriptPath} | sh -s --${specificVersion}`;
+    let currentScriptPath = this.scriptPath;
+    if (version) {
+        currentScriptPath = this.scriptPathSpecificVersion;
     }
+    const specificVersion = version ? ` v${version}` : "";
+
+    return `curl -LsSL ${currentScriptPath} | sh -s --${specificVersion}`;
   }
+
   public async getBruinCliVersion(): Promise<string> {
     const versionInfo = await getBruinVersion();
     if (!versionInfo) {
@@ -145,16 +137,12 @@ export class BruinInstallCLI {
     let gitAvailable = false;
     let bruinExecutable = getBruinExecutablePath();
     try {
-      // Check if Bruin CLI is installed by running the --version command
       await execAsync(`${bruinExecutable} --version`);
       installed = true;
     } catch (error) {
-      // If the --version command fails, check if the executable file exists
       console.log("Bruin CLI --version command failed:", error);
-      // If the --version command fails, check if the executable file exists
       try {
         if (this.platform !== "win32") {
-          // Use 'which' command to find the full path of the executable on Unix-based systems
           const { stdout } = await execAsync(`which ${bruinExecutable}`);
           bruinExecutable = stdout.trim();
         }
@@ -168,14 +156,12 @@ export class BruinInstallCLI {
 
     if (this.platform === "win32") {
       try {
-        // Check if Git is available on Windows
         await execAsync("git --version");
         gitAvailable = true;
       } catch {
         gitAvailable = false;
       }
     } else {
-      // On non-Windows platforms, assume Git is available if Bruin CLI is installed
       gitAvailable = true;
     }
 
