@@ -66,24 +66,30 @@ export class BruinInstallCLI {
         throw new Error("Git Bash not found. Please install Git or configure the Git Bash path in settings.");
       }
 
-      // Create a temporary batch file
-      const tempDir = os.tmpdir();
-      const batchFilePath = path.join(tempDir, 'bruin-install.bat');
+      const terminalProfile = this.getTerminalProfile();
+      if (terminalProfile && terminalProfile.toLowerCase().includes("bash")) {
+        return `curl -LsSL ${this.scriptPath} | sh -s --${specificVersion}`;
+      } else {
+        const tempDir = os.tmpdir();
+        const batchFilePath = path.join(tempDir, 'bruin-install.bat');
 
-      // Create batch file content that calls Git Bash
-      const batchContent =
-        '@echo off\r\n' +
-        `"${gitBashPath}" -c "curl -LsSL ${this.scriptPath} | sh -s --${specificVersion}"\r\n`;
+        const batchContent =
+          '@echo off\r\n' +
+          `"${gitBashPath}" -c "curl -LsSL ${this.scriptPath} | sh -s --${specificVersion}"\r\n`;
 
-      // Write the batch file
-      fs.writeFileSync(batchFilePath, batchContent);
-
-      // Return the command to execute the batch file
-      return batchFilePath;
+        fs.writeFileSync(batchFilePath, batchContent);
+        return batchFilePath;
+      }
     } else {
       return `curl -LsSL ${this.scriptPath} | sh -s --${specificVersion}`;
     }
   }
+
+  private getTerminalProfile(): string | undefined {
+    const config = vscode.workspace.getConfiguration('terminal.integrated.defaultProfile');
+    return config.get<string>('windows');
+  }
+  
   public async getBruinCliVersion(): Promise<string> {
     const versionInfo = await getBruinVersion();
     if (!versionInfo) {

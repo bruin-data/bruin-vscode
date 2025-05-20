@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.46.1] - [2025-05-20]
+- Fix Bruin CLI installation on Windows.
+
 ## [0.46.0] - [2025-05-19]
 - Added convert feature to convert eligible files to Bruin assets.
 
