@@ -1,4 +1,7 @@
 # Changelog
+## [0.47.1] - [2025-05-26]
+- Improve materialization UI and fix issues with saving partition and cluster properties.
+
 ## [0.47.0] - [2025-05-26]
 - Added materialization tab to the asset side panel.
 
