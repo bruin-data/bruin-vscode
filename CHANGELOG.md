@@ -1,4 +1,6 @@
 # Changelog
+## [0.47.0] - [2025-05-26]
+- Added materialization tab to the asset side panel.
 
 ## [0.46.1] - [2025-05-20]
 - Fix Bruin CLI installation on Windows.

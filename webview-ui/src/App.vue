@@ -109,6 +109,7 @@
             @update:customChecks="updateCustomChecks"
             @open-glossary="navigateToGlossary"
             @update:description="updateDescription"
+            @update:materialization="updateMaterialization"
           />
         </vscode-panel-view>
       </vscode-panels>
@@ -137,6 +138,8 @@ import DescriptionItem from "./components/ui/description-item/DescriptionItem.vu
 import { badgeStyles, defaultBadgeStyle } from "./components/ui/badges/CustomBadgesStyle";
 import RudderStackService from "./services/RudderStackService";
 import NonAssetMessage from "./components/ui/alerts/NonAssetMessage.vue";
+import Materialization from "./components/asset/materialization/Materialization.vue";
+
 const rudderStack = RudderStackService.getInstance();
 const connectionsStore = useConnectionsStore();
 const parseError = ref(); // Holds any parsing errors
@@ -346,6 +349,11 @@ const focusName = () => {
     nameInput.value?.focus();
   });
 };
+const materializationProps = computed(() => {
+  if (!data.value) return;
+  const details = parseAssetDetails(data.value);
+  return details?.materialization || { type: 'table', strategy: 'create+replace' };
+});
 
 // Computed property for asset columns
 const columnsProps = computed(() => {
@@ -357,6 +365,7 @@ const columnsProps = computed(() => {
 });
 
 const columns = ref([...columnsProps.value]); // Reactive reference for columns
+const materialization = ref({...materializationProps.value});
 console.debug("Initial Columns:", columns.value);
 // Computed property for asset columns
 const customChecksProps = computed(() => {
@@ -389,6 +398,14 @@ const tabs = ref([
     props: computed(() => ({
       columns: columns.value,
       isConfigFile: isConfigFile.value,
+    })),
+  },
+  {
+    label: "Materialization",
+    component: Materialization,
+    props: computed(() => ({
+      materialization: materializationProps.value,
+      columns: columns.value,
     })),
   },
   {
@@ -483,7 +500,10 @@ const updateColumns = (newColumns) => {
   console.log("Updating columns with new data:", newColumns);
   columns.value = newColumns;
 };
-
+const updateMaterialization = (newMaterialization) => {
+  console.log("Updating materialization with new data:", newMaterialization);
+  materialization.value = newMaterialization;
+};
 const updateCustomChecks = (newCustomChecks) => {
   console.log("Updating custom checks with new data:", newCustomChecks);
   customChecks.value = newCustomChecks;
