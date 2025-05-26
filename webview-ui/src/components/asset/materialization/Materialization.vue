@@ -8,7 +8,6 @@
             v-model="localMaterialization.partition_by"
             class="w-full max-w-[300px] p-2 bg-input-background border border-commandCenter-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg"
             placeholder="column_name"
-            disabled="localMaterialization.type !== 'table'"
           />
         </div>
 
@@ -18,7 +17,6 @@
             v-model="clusterByString"
             class="w-full max-w-[300px] p-2 bg-input-background border border-commandCenter-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg"
             placeholder="comma-separated columns"
-            disabled="localMaterialization.type !== 'table'"
           />
         </div>
       </div>
@@ -193,8 +191,6 @@ const setType = (type) => {
         strategy: type === 'table' ? "create+replace" : undefined,
         partition_by: "",
         cluster_by: [],
-        incremental_key: "",
-        time_granularity: "date",
       };
     } else {
       localMaterialization.value.type = type;
@@ -205,15 +201,29 @@ const setType = (type) => {
   }
 };
 
+
+
 const saveMaterialization = () => {
   let cleanData = null;
   if (localMaterialization.value.type !== 'null') {
     cleanData = JSON.parse(JSON.stringify({
-      ...localMaterialization.value,
+      type: localMaterialization.value.type,
+      strategy: localMaterialization.value.strategy,
+      partition_by: localMaterialization.value.partition_by,
       cluster_by: Array.isArray(localMaterialization.value.cluster_by)
         ? [...localMaterialization.value.cluster_by]
-        : []
+        : [],
+      incremental_key: localMaterialization.value.incremental_key,
+      time_granularity: localMaterialization.value.time_granularity,
     }));
+  }
+  else {
+    cleanData = {
+      partition_by: localMaterialization.value.partition_by,
+      cluster_by: Array.isArray(localMaterialization.value.cluster_by)
+        ? [...localMaterialization.value.cluster_by]
+        : [],
+    };
   }
 
   emit("update:materialization", cleanData);
