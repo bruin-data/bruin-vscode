@@ -33,14 +33,14 @@
               <input
                 v-model="localMaterialization.partition_by"
                 class="w-full max-w-[300px] p-2 bg-input-background border border-commandCenter-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg"
-                placeholder="comma-separated columns"
+                placeholder="column_name"
               />
             </div>
 
             <div class="flex-1">
               <label class="block text-sm font-medium text-editor-fg mb-2">Clustering</label>
               <input
-                v-model="localMaterialization.cluster_by"
+                v-model="clusterByString"
                 class="w-full max-w-[300px] p-2 bg-input-background border border-commandCenter-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg"
                 placeholder="comma-separated columns"
               />
@@ -48,7 +48,7 @@
           </div>
 
           <div class="flex flex-col space-y-3">
-            <label class="block text-sm font-medium text-editor-fg mb-2"> Strategy </label>
+            <label class="block text-sm font-medium text-editor-fg"> Strategy </label>
             <div class="relative">
               <select
                 v-model="localMaterialization.strategy"
@@ -70,31 +70,35 @@
 
       <div v-if="showStrategyOptions" class="flex-1">
         <div class="p-4 bg-editorWidget-bg rounded border border-commandCenter-border h-full">
-          <div v-if="localMaterialization.strategy === 'delete+insert'" class="space-y-4">
-            <label>Delete+Insert Configuration</label>
+          <div v-if="localMaterialization.strategy === 'delete+insert'" class="flex flex-col space-y-4">
+            <label class="block text-xs opacity-65 text-editor-fg">Incremental Key</label>
             <input
               v-model="localMaterialization.incremental_key"
-              placeholder="incremental_key_column"
+              placeholder="column_name"
             />
           </div>
 
           <!-- Merge -->
           <div v-if="localMaterialization.strategy === 'merge'" class="space-y-4">
-            <label>Merge Configuration</label>
             <p class="info-text">
               Configure primary keys in column definitions using <code>primary_key: true</code>
             </p>
           </div>
 
           <!-- Time Interval -->
-          <div v-if="localMaterialization.strategy === 'time_interval'" class="space-y-4">
-            <label>Time Interval Configuration</label>
+          <div v-if="localMaterialization.strategy === 'time_interval'" class="flex flex-col space-y-4">
             <div class="grid grid-cols-2 gap-4">
-              <input v-model="localMaterialization.incremental_key" placeholder="dt" />
-              <select v-model="localMaterialization.time_granularity">
-                <option value="date">Date</option>
-                <option value="timestamp">Timestamp</option>
-              </select>
+              <div class="flex flex-col">
+                <label class="block text-sm font-medium text-editor-fg mb-2">Incremental Key</label>
+                <input v-model="localMaterialization.incremental_key" placeholder="column_name" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-editor-fg mb-2">Time Granularity</label>
+                <select v-model="localMaterialization.time_granularity">
+                  <option value="date">Date</option>
+                  <option value="timestamp">Timestamp</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
@@ -142,16 +146,31 @@ const toggleMaterialization = () => {
   materializationEnabled.value = !materializationEnabled.value;
 };
 
+
+const clusterByString = computed({
+  get() {
+    return localMaterialization.value.cluster_by?.join(', ') || ''
+  },
+  set(newValue) {
+    localMaterialization.value.cluster_by = newValue
+      .split(',')
+      .map(c => c.trim())
+      .filter(c => c)
+  }
+})
+
 const initializeMaterialization = () => {
-  const base = JSON.parse(JSON.stringify(props.materialization));
-  if (base.type === "table" && !base.strategy) {
-    base.strategy = "create+replace";
+  const base = JSON.parse(JSON.stringify(props.materialization))
+  if (base.type === 'table' && !base.strategy) {
+    base.strategy = 'create+replace'
   }
-  if (!Array.isArray(base.cluster_by)) {
-    base.cluster_by = [];
-  }
-  return base;
-};
+  base.cluster_by = Array.isArray(base.cluster_by) 
+    ? base.cluster_by 
+    : typeof base.cluster_by === 'string'
+      ? base.cluster_by.split(',').map(c => c.trim()).filter(c => c)
+      : []
+  return base
+}
 
 const localMaterialization = ref(initializeMaterialization());
 
@@ -173,11 +192,20 @@ const setType = (type) => {
 };
 
 const saveMaterialization = () => {
-  const cleanData = { ...localMaterialization.value };
+  const cleanData = JSON.parse(JSON.stringify({
+    ...localMaterialization.value,
+    cluster_by: Array.isArray(localMaterialization.value.cluster_by)
+      ? [...localMaterialization.value.cluster_by]
+      : []
+  }));
   emit("update:materialization", cleanData);
   vscode.postMessage({
     command: "bruin.setAssetDetails",
-    payload: { materialization: cleanData },
+    payload: {
+      materialization: {
+        ...cleanData,
+      }
+    },
   });
 };
 
@@ -195,14 +223,14 @@ watch(
   () => props.materialization,
   (newVal) => {
     if (newVal) {
-      const initialized = JSON.parse(JSON.stringify(newVal));
-      if (initialized.type === "table" && !initialized.strategy) {
-        initialized.strategy = "create+replace";
+      const initialized = JSON.parse(JSON.stringify(newVal))
+      if (typeof initialized.cluster_by === 'string') {
+        initialized.cluster_by = initialized.cluster_by
+          .split(',')
+          .map(c => c.trim())
+          .filter(c => c)
       }
-      if (initialized.cluster_by === null || initialized.cluster_by === undefined) {
-        initialized.cluster_by = null;
-      }
-      localMaterialization.value = initialized;
+      localMaterialization.value = initialized
     }
   },
   { deep: true, immediate: true }
