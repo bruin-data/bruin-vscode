@@ -9,7 +9,7 @@
           :filePath="nonAssetFilePath"
         />
       </div>
-      
+
       <!-- only show when it's an asset -->
       <div v-else-if="!isNotAsset && !showConvertMessage" class="">
         <div class="flex items-center space-x-2 w-full justify-between min-h-6">
@@ -36,7 +36,11 @@
                     />
                   </template>
                   <template v-else>
-                    <span v-if="assetDetailsProps?.name && assetDetailsProps?.name !== 'undefined'" id="input-name" class="block truncate">
+                    <span
+                      v-if="assetDetailsProps?.name && assetDetailsProps?.name !== 'undefined'"
+                      id="input-name"
+                      class="block truncate"
+                    >
                       {{ displayName }}
                     </span>
                   </template>
@@ -76,7 +80,12 @@
         </div>
       </div>
       <!-- Rest of the existing template remains the same -->
-      <vscode-panels v-if="!showConvertMessage"  :activeid="`tab-${activeTab}`" aria-label="Tabbed Content" class="pl-0">
+      <vscode-panels
+        v-if="!showConvertMessage"
+        :activeid="`tab-${activeTab}`"
+        aria-label="Tabbed Content"
+        class="pl-0"
+      >
         <vscode-panel-tab
           v-for="(tab, index) in visibleTabs"
           :key="`tab-${index}`"
@@ -166,7 +175,7 @@ const lastRenderedDocument = ref(""); // Holds the last rendered document
 const hoverTimeout = ref<ReturnType<typeof setTimeout> | null>(null); // Timeout for hover events
 // New reactive variables for editing
 // Event listener for messages from the VSCode extension
-const  handleMessage = ((event: MessageEvent) => {
+const handleMessage = (event: MessageEvent) => {
   const message = event.data;
   try {
     switch (message.command) {
@@ -177,12 +186,16 @@ const  handleMessage = ((event: MessageEvent) => {
         environments.value = updateValue(message, "success");
         connectionsStore.setDefaultEnvironment(selectedEnvironment.value); // Set the default environment in the store
         break;
+      case "clear-convert-message":
+        isNotAsset.value = false;
+        showConvertMessage.value = false;
+        break;
       case "non-asset-file":
         isNotAsset.value = true;
         if (message.showConvertMessage) {
           showConvertMessage.value = true;
-          nonAssetFileType.value = message.fileType || '';
-          nonAssetFilePath.value = message.filePath || '';
+          nonAssetFileType.value = message.fileType || "";
+          nonAssetFilePath.value = message.filePath || "";
         } else {
           showConvertMessage.value = false;
         }
@@ -204,7 +217,7 @@ const  handleMessage = ((event: MessageEvent) => {
             // Only settings tab should be open
             console.log("Bruin config parsed:", parsed);
             isBruinYml.value = true;
-            activeTab.value = 3; 
+            activeTab.value = 3;
             break;
           }
           data.value = parsed;
@@ -215,7 +228,7 @@ const  handleMessage = ((event: MessageEvent) => {
         rudderStack.trackEvent("Asset Parsing Status", {
           parseError: parseError.value ? `Error ${parseError.value}` : "No Error Found",
         });
-        console.warn("Parsing message received END:", (new Date).toISOString());
+        console.warn("Parsing message received END:", new Date().toISOString());
         break;
       }
       case "bruinCliInstallationStatus":
@@ -235,13 +248,13 @@ const  handleMessage = ((event: MessageEvent) => {
       message: message,
     });
   }
-});
+};
 
-const isBruinYml = ref(false); 
+const isBruinYml = ref(false);
 const isNotAsset = ref(false);
 const showConvertMessage = ref(false);
-const nonAssetFileType = ref('');
-const nonAssetFilePath = ref('');
+const nonAssetFileType = ref("");
+const nonAssetFilePath = ref("");
 const activeTab = ref(0); // Tracks the currently active tab
 const navigateToGlossary = () => {
   console.log("Opening glossary.");
@@ -275,7 +288,7 @@ const parsedData = computed(() => {
 });
 
 const isPipelineConfig = computed(() => parsedData.value?.type === "pipelineConfig");
-const isBruinConfig = computed(() => parsedData.value?.type === "bruinConfig")
+const isBruinConfig = computed(() => parsedData.value?.type === "bruinConfig");
 const isConfigFile = computed(() => isBruinConfig.value || isPipelineConfig.value);
 const displayName = computed(() => {
   if (isPipelineConfig.value) return parsedData.value?.name || "";
@@ -291,7 +304,7 @@ const displaySchedule = computed(() => {
 // Computed property for asset details
 const assetDetailsProps = computed({
   get: () => {
-    if (!data.value ) return null;
+    if (!data.value) return null;
     const parsedDetails = parseAssetDetails(data.value);
     return parsedDetails;
   },
@@ -352,7 +365,7 @@ const focusName = () => {
 const materializationProps = computed(() => {
   if (!data.value) return;
   const details = parseAssetDetails(data.value);
-  return details?.materialization || { type: 'table', strategy: 'create+replace' };
+  return details?.materialization || { type: "table", strategy: "create+replace" };
 });
 
 // Computed property for asset columns
@@ -365,7 +378,7 @@ const columnsProps = computed(() => {
 });
 
 const columns = ref([...columnsProps.value]); // Reactive reference for columns
-const materialization = ref({...materializationProps.value});
+const materialization = ref({ ...materializationProps.value });
 console.debug("Initial Columns:", columns.value);
 // Computed property for asset columns
 const customChecksProps = computed(() => {
@@ -440,10 +453,10 @@ const visibleTabs = computed(() => {
 });
 
 // Lifecycle hook to load data when the component is mounted
-onMounted(async() => {
+onMounted(async () => {
   console.log("onMounted");
   console.log("Adding message listener");
-  window.addEventListener('message', handleMessage);
+  window.addEventListener("message", handleMessage);
   loadAssetData();
   loadEnvironmentsList();
   vscode.postMessage({ command: "getLastRenderedDocument" });
@@ -477,7 +490,6 @@ onMounted(async() => {
   console.log("Custom event tracked."); */
 });
 
-
 // Lifecycle hook to clean up hover timeout
 onBeforeUnmount(() => {
   if (hoverTimeout.value) clearTimeout(hoverTimeout.value);
@@ -486,7 +498,6 @@ onBeforeUnmount(() => {
 watch(columnsProps, (newColumns) => {
   columns.value = newColumns;
 });
-
 
 watch(activeTab, (newTab, oldTab) => {
   rudderStack.trackEvent("Tab Switched", {
@@ -553,7 +564,8 @@ const assetType = computed(() => {
   return assetDetailsProps.value?.type || "";
 });
 
-const commonBadgeStyle = "inline-flex items-center rounded-md px-1 py-0.5 text-xs font-medium ring-1 ring-inset";
+const commonBadgeStyle =
+  "inline-flex items-center rounded-md px-1 py-0.5 text-xs font-medium ring-1 ring-inset";
 
 const badgeClass = computed(() => {
   const styleForType = badgeStyles[assetType.value] || defaultBadgeStyle;
@@ -563,10 +575,9 @@ const badgeClass = computed(() => {
   };
 });
 onBeforeUnmount(() => {
-  window.removeEventListener('message', handleMessage);
+  window.removeEventListener("message", handleMessage);
   if (hoverTimeout.value) clearTimeout(hoverTimeout.value);
 });
-
 </script>
 
 <style>
