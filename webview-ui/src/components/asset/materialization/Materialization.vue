@@ -70,8 +70,8 @@
 
       <div v-if="showStrategyOptions" class="flex-1">
         <div class="p-4 bg-editorWidget-bg rounded border border-commandCenter-border h-full">
-          <div v-if="localMaterialization.strategy === 'delete+insert'" class="flex flex-col space-y-4">
-            <label class="block text-xs opacity-65 text-editor-fg">Incremental Key</label>
+          <div v-if="localMaterialization.strategy === 'delete+insert'" class="flex flex-col">
+            <label class="block text-sm opacity-65 text-editor-fg mb-2">Incremental Key</label>
             <input
               v-model="localMaterialization.incremental_key"
               placeholder="column_name"
@@ -89,11 +89,11 @@
           <div v-if="localMaterialization.strategy === 'time_interval'" class="flex flex-col space-y-4">
             <div class="grid grid-cols-2 gap-4">
               <div class="flex flex-col">
-                <label class="block text-sm font-medium text-editor-fg mb-2">Incremental Key</label>
+                <label class="block text-sm opacity-65 text-editor-fg mb-2">Incremental Key</label>
                 <input v-model="localMaterialization.incremental_key" placeholder="column_name" />
               </div>
               <div>
-                <label class="block text-sm font-medium text-editor-fg mb-2">Time Granularity</label>
+                <label class="block text-sm opacity-65 text-editor-fg mb-2">Time Granularity</label>
                 <select v-model="localMaterialization.time_granularity">
                   <option value="date">Date</option>
                   <option value="timestamp">Timestamp</option>
