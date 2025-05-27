@@ -676,10 +676,12 @@ public static restore(panel: WebviewPanel, extensionUri: Uri): BruinPanel {
   
     try {
       const isAsset = await this._isAssetFile(filePath);
-  
       if (isAsset) {
-        parseAssetCommand(fileUri);
-        return;
+        this._panel.webview.postMessage({
+          command: "clear-convert-message",
+          isAsset: true
+        });
+        return parseAssetCommand(fileUri);
       }
   
       const inAssetsFolder = await this._isInAssetsFolder(filePath);

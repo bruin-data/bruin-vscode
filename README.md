@@ -54,10 +54,11 @@ Bruin is a unified analytics platform that enables data professionals to work en
 **Note**: Ensure that you have the Bruin CLI installed on your system before using the new features. For guidance on installing the Bruin CLI, please refer to the [official documentation](https://github.com/bruin-data/bruin).
 
 ## Release Notes
-### Latest Release: 0.47.2
-- Added ingestr asset snippet for initializing Bruin ingestr assets easily.
+### Latest Release: 0.47.3
+- Fix Convert Message Showing for Existing Assets
 
 ### Recent Updates
+- **0.47.2**: Added ingestr asset snippet for initializing Bruin ingestr assets easily.
 - **0.47.1**: Improve materialization UI and fix issues with saving partition and cluster properties.
 - **0.47.0**: Added materialization tab to the asset side panel.
 - **0.46.1**: Fix Bruin CLI installation on Windows.
@@ -73,11 +74,6 @@ Bruin is a unified analytics platform that enables data professionals to work en
 - **0.44.2**: Added support for `interval_modifiers` in asset schema and makes the name field optional.
 - **0.44.1**: Enhanced the date input component to support both manual text entry and calendar-based selection.
 - **0.44.0**: Added full pipeline view to the lineage panel.
-- **0.43.4**: Fix rendering for pipeline.yml and .bruin.yml in side panel.
-- **0.43.3**: Added Version Selection for Bruin CLI Update in Settings Tab.
-- **0.43.2**: Added expandable labels for truncated asset names in lineage view.
-- **0.43.1**: Handle file renaming in BruinPanel to update last rendered document URI.
-- **0.43.0**: Automatically refresh the CLI status after update.
 
 For a full changelog, see Bruin Extension [Changelog](https://marketplace.visualstudio.com/items/bruin.bruin/changelog).
 
