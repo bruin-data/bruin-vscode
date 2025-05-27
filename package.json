@@ -153,6 +153,10 @@
       {
         "language": "yaml",
         "path": "./snippets/bruin-pipeline.code-snippets"
+      },
+      {
+        "language": "yaml",
+        "path": "./snippets/bruin-ingestr.code-snippets"
       }
     ],
     "grammars": [
