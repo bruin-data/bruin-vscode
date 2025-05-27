@@ -1,4 +1,8 @@
 # Changelog
+
+## [0.47.4] - [2025-05-27]
+- Trim whitespace from connection form input values and fix asset name editing.
+
 ## [0.47.3] - [2025-05-27]
 - Fix Convert Message Showing for Existing Assets
 
