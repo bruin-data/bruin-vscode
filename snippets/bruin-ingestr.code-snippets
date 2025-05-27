@@ -1,0 +1,17 @@
+{
+    "Bruin Ingestr Asset Block": {
+        "prefix": "!bruin-asset-ingestr",
+        "body": [
+            "name: ${1:bruin-ingestr}",
+            "type: ingestr",
+            "connection: ${2:google_cloud_platform}",
+            "parameters:",
+            "  source: ${3:source}",
+            "  source_connection: ${4:source_connection}",
+            "  source_table: ${5:source_table}",
+            "  destination: ${6:bigquery}",
+            "$0"
+        ],
+        "description": "Initialize a Bruin ingestr asset"
+    }
+}
