@@ -365,7 +365,7 @@ const focusName = () => {
 const materializationProps = computed(() => {
   if (!data.value) return;
   const details = parseAssetDetails(data.value);
-  return details?.materialization || { type: "table", strategy: "create+replace" };
+  return details?.materialization;
 });
 
 // Computed property for asset columns
