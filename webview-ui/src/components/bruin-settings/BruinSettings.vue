@@ -113,6 +113,7 @@ const handleConnectionsList = (payload) => {
     connectionsStore.updateConnectionsFromMessage(connectionsWithIds);
   } else {
     connectionsStore.updateErrorFromMessage(payload.message);
+    console.log("Error received in settings:", payload.message);
   }
 };
 
