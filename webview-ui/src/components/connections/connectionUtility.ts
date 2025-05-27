@@ -63,7 +63,10 @@ export const formatConnectionName = (option) => {
     synapse: "Azure Synapse",
     hana: "HANA",
     facebookads: "Facebook Ads",
+    tiktokads: "TikTok Ads",
+    linkedinads: "LinkedIn Ads",
     duckdb: "DuckDB",
+    spanner: "Gcloud Spanner",
     google_sheets: "Google Sheets",
   };
 

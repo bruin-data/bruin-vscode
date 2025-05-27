@@ -1,24 +1,38 @@
 <template>
   <div class="h-full w-full p-4 flex justify-center">
     <div class="flex flex-col gap-4 h-full w-full max-w-4xl">
-      <div class="flex items-center gap-2">
-        <vscode-checkbox :checked="materializationEnabled" @change="toggleMaterialization" />
-        <label class="text-sm font-medium text-editor-fg"> Materialization </label>
+      <div class="flex gap-x-4 gap-y-2 w-full justify-between">
+        <div class="flex-1">
+          <label class="block text-sm font-medium text-editor-fg mb-2">Partitioning</label>
+          <input
+            v-model="localMaterialization.partition_by"
+            class="w-full max-w-[300px] p-2 bg-input-background border border-commandCenter-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg"
+            placeholder="column_name"
+          />
+        </div>
+
+        <div class="flex-1">
+          <label class="block text-sm font-medium text-editor-fg mb-2">Clustering</label>
+          <input
+            v-model="clusterByString"
+            class="w-full max-w-[300px] p-2 bg-input-background border border-commandCenter-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg"
+            placeholder="comma-separated columns"
+          />
+        </div>
       </div>
-      <div
-        v-if="materializationEnabled"
-        class="flex flex-col sm:flex-row sm:items-start gap-8 border-t border-commandCenter-border pt-4"
-      >
+
+      <div class="flex flex-col sm:flex-row sm:items-start gap-8 border-t border-commandCenter-border pt-4">
         <div class="flex-1 min-w-[260px]">
           <div class="flex flex-col space-y-3">
             <label class="block text-sm font-medium text-editor-fg mb-2">
-              Materialization Type
+              Materialization
             </label>
             <div class="flex space-x-6">
               <vscode-radio-group
                 :value="localMaterialization.type"
                 @change="(e) => setType(e.target.value)"
               >
+                <vscode-radio name="materialization-type" value="null">None</vscode-radio>
                 <vscode-radio name="materialization-type" value="table">Table</vscode-radio>
                 <vscode-radio name="materialization-type" value="view">View</vscode-radio>
               </vscode-radio-group>
@@ -27,26 +41,6 @@
         </div>
 
         <div v-if="localMaterialization.type === 'table'" class="flex flex-col gap-6 w-full">
-          <div class="flex gap-x-4 gap-y-2 w-full justify-between">
-            <div class="flex-1">
-              <label class="block text-sm font-medium text-editor-fg mb-2">Partitioning</label>
-              <input
-                v-model="localMaterialization.partition_by"
-                class="w-full max-w-[300px] p-2 bg-input-background border border-commandCenter-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg"
-                placeholder="column_name"
-              />
-            </div>
-
-            <div class="flex-1">
-              <label class="block text-sm font-medium text-editor-fg mb-2">Clustering</label>
-              <input
-                v-model="clusterByString"
-                class="w-full max-w-[300px] p-2 bg-input-background border border-commandCenter-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg"
-                placeholder="comma-separated columns"
-              />
-            </div>
-          </div>
-
           <div class="flex flex-col space-y-3">
             <label class="block text-sm font-medium text-editor-fg"> Strategy </label>
             <div class="relative">
@@ -78,14 +72,12 @@
             />
           </div>
 
-          <!-- Merge -->
           <div v-if="localMaterialization.strategy === 'merge'" class="space-y-4">
             <p class="info-text">
               Configure primary keys in column definitions using <code>primary_key: true</code>
             </p>
           </div>
 
-          <!-- Time Interval -->
           <div v-if="localMaterialization.strategy === 'time_interval'" class="flex flex-col space-y-4">
             <div class="grid grid-cols-2 gap-4">
               <div class="flex flex-col">
@@ -104,7 +96,7 @@
         </div>
       </div>
 
-      <div v-if="materializationEnabled" class="border-t border-commandCenter-border pt-4 mt-auto">
+      <div class="border-t border-commandCenter-border pt-4 mt-auto">
         <div class="flex justify-end">
           <vscode-button
             @click="saveMaterialization"
@@ -121,18 +113,11 @@
 <script setup>
 import { ref, computed, watch } from "vue";
 import { vscode } from "@/utilities/vscode";
+
 const props = defineProps({
   materialization: {
     type: Object,
-    default: () => ({
-      type: "table",
-      strategy: "create+replace",
-      partition_by: "",
-      cluster_by: [],
-      merge_keys: "",
-      time_column: "",
-      interval: "daily",
-    }),
+    default: null, 
   },
   isConfigFile: {
     type: Boolean,
@@ -141,38 +126,53 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["update:materialization"]);
-const materializationEnabled = ref(!!props.materialization);
-const toggleMaterialization = () => {
-  materializationEnabled.value = !materializationEnabled.value;
+
+const defaultMaterialization = {
+  type: "null", 
+  strategy: undefined,
+  partition_by: "",
+  cluster_by: [],
+  incremental_key: "",
+  time_granularity: undefined,
 };
 
+const localMaterialization = ref({ ...defaultMaterialization });
 
 const clusterByString = computed({
   get() {
-    return localMaterialization.value.cluster_by?.join(', ') || ''
+    return localMaterialization.value.cluster_by?.join(', ') || '';
   },
   set(newValue) {
     localMaterialization.value.cluster_by = newValue
       .split(',')
       .map(c => c.trim())
-      .filter(c => c)
+      .filter(c => c);
   }
-})
+});
 
-const initializeMaterialization = () => {
-  const base = JSON.parse(JSON.stringify(props.materialization))
-  if (base.type === 'table' && !base.strategy) {
-    base.strategy = 'create+replace'
+const initializeLocalMaterialization = (materializationProp) => {
+  if (materializationProp === null) {
+    return { ...defaultMaterialization }; 
   }
-  base.cluster_by = Array.isArray(base.cluster_by) 
-    ? base.cluster_by 
+  const base = JSON.parse(JSON.stringify(materializationProp));
+  if (base.type === 'table' && !base.strategy) {
+    base.strategy = 'create+replace';
+  }
+  base.cluster_by = Array.isArray(base.cluster_by)
+    ? base.cluster_by
     : typeof base.cluster_by === 'string'
       ? base.cluster_by.split(',').map(c => c.trim()).filter(c => c)
-      : []
-  return base
-}
+      : [];
+  return base;
+};
 
-const localMaterialization = ref(initializeMaterialization());
+watch(
+  () => props.materialization,
+  (newVal) => {
+    localMaterialization.value = initializeLocalMaterialization(newVal);
+  },
+  { immediate: true, deep: true }
+);
 
 const showStrategyOptions = computed(() => {
   return (
@@ -181,30 +181,56 @@ const showStrategyOptions = computed(() => {
   );
 });
 
-// Consolidated function to handle setting type and updating strategy
 const setType = (type) => {
-  localMaterialization.value.type = type;
-  if (type === "table") {
-    if (!localMaterialization.value.strategy) {
-      localMaterialization.value.strategy = "create+replace";
+  if (type === "null") {
+    localMaterialization.value = { ...defaultMaterialization };
+  } else {
+    if (localMaterialization.value.type === 'null') {
+      localMaterialization.value = {
+        type: type,
+        strategy: type === 'table' ? "create+replace" : undefined,
+        partition_by: "",
+        cluster_by: [],
+      };
+    } else {
+      localMaterialization.value.type = type;
+      if (type === "table" && !localMaterialization.value.strategy) {
+        localMaterialization.value.strategy = "create+replace";
+      }
     }
   }
 };
 
+
+
 const saveMaterialization = () => {
-  const cleanData = JSON.parse(JSON.stringify({
-    ...localMaterialization.value,
-    cluster_by: Array.isArray(localMaterialization.value.cluster_by)
-      ? [...localMaterialization.value.cluster_by]
-      : []
-  }));
+  let cleanData = null;
+  if (localMaterialization.value.type !== 'null') {
+    cleanData = JSON.parse(JSON.stringify({
+      type: localMaterialization.value.type,
+      strategy: localMaterialization.value.strategy,
+      partition_by: localMaterialization.value.partition_by,
+      cluster_by: Array.isArray(localMaterialization.value.cluster_by)
+        ? [...localMaterialization.value.cluster_by]
+        : [],
+      incremental_key: localMaterialization.value.incremental_key,
+      time_granularity: localMaterialization.value.time_granularity,
+    }));
+  }
+  else {
+    cleanData = {
+      partition_by: localMaterialization.value.partition_by,
+      cluster_by: Array.isArray(localMaterialization.value.cluster_by)
+        ? [...localMaterialization.value.cluster_by]
+        : [],
+    };
+  }
+
   emit("update:materialization", cleanData);
   vscode.postMessage({
     command: "bruin.setAssetDetails",
     payload: {
-      materialization: {
-        ...cleanData,
-      }
+      materialization: cleanData,
     },
   });
 };
@@ -218,23 +244,6 @@ function getStrategyDescription(strategy) {
     "time_interval": "Process time-based data using incremental key",
   }[strategy];
 }
-
-watch(
-  () => props.materialization,
-  (newVal) => {
-    if (newVal) {
-      const initialized = JSON.parse(JSON.stringify(newVal))
-      if (typeof initialized.cluster_by === 'string') {
-        initialized.cluster_by = initialized.cluster_by
-          .split(',')
-          .map(c => c.trim())
-          .filter(c => c)
-      }
-      localMaterialization.value = initialized
-    }
-  },
-  { deep: true, immediate: true }
-);
 </script>
 
 <style scoped>

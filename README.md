@@ -56,8 +56,11 @@ Bruin is a unified analytics platform that enables data professionals to work en
 ## Release Notes
 ### Latest Release: 0.48.0
 - Added ingestr asset snippet for initializing Bruin ingestr assets easily.
+### Latest Release: 0.47.1
+- Improve materialization UI and fix issues with saving partition and cluster properties.
 
 ### Recent Updates
+- **0.47.0**: Added materialization tab to the asset side panel.
 - **0.47.0**: Added materialization tab to the asset side panel.
 - **0.46.1**: Fix Bruin CLI installation on Windows.
 - **0.46.0**: Added convert feature to convert eligible files to Bruin assets.
