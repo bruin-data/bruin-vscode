@@ -54,10 +54,11 @@ Bruin is a unified analytics platform that enables data professionals to work en
 **Note**: Ensure that you have the Bruin CLI installed on your system before using the new features. For guidance on installing the Bruin CLI, please refer to the [official documentation](https://github.com/bruin-data/bruin).
 
 ## Release Notes
-### Latest Release: 0.47.0
-- Added materialization tab to the asset side panel.
+### Latest Release: 0.47.1
+- Improve materialization UI and fix issues with saving partition and cluster properties.
 
 ### Recent Updates
+- **0.47.0**: Added materialization tab to the asset side panel.
 - **0.46.1**: Fix Bruin CLI installation on Windows.
 - **0.46.0**: Added convert feature to convert eligible files to Bruin assets.
 - **0.45.5**: Update SQL editor line height.
