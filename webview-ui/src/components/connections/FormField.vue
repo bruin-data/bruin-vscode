@@ -248,7 +248,12 @@ watch(
 );
 
 const updateValue = (event) => {
-  let value = props.type === "number" ? Number(event.target.value) : event.target.value;
+  let value;
+  if (props.type === "number") {
+    value = Number(event.target.value);
+  } else {
+    value = event.target.value.trim();
+  }
   if (props.id === "players") {
     value = value.split(",").map((player) => player.trim());
   }
