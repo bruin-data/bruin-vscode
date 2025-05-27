@@ -1,4 +1,8 @@
 # Changelog
+
+## [0.47.2] - [2025-05-26]
+- Added ingestr asset snippet for initializing Bruin ingestr assets easily.
+
 ## [0.47.1] - [2025-05-26]
 - Improve materialization UI and fix issues with saving partition and cluster properties.
 
