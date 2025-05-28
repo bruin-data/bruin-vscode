@@ -1,7 +1,6 @@
 <template>
   <div v-if="isBruinInstalled">
     <div class="flex flex-col pt-1">
-      <!-- Non-asset detection and conversion message -->
       <div v-if="isNotAsset && showConvertMessage" class="w-full">
         <NonAssetMessage
           :showConvertMessage="showConvertMessage"
@@ -10,19 +9,15 @@
         />
       </div>
 
-      <!-- only show when it's an asset -->
       <div v-else-if="!isNotAsset && !showConvertMessage" class="">
         <div class="flex items-center space-x-2 w-full justify-between min-h-6">
           <div class="flex items-baseline w-3/4 min-w-0 font-md text-editor-fg text-lg font-mono">
-            <!-- Asset name -->
             <div class="flex-grow min-w-0 overflow-hidden">
               <div class="flex items-center w-full">
                 <div
                   id="asset-name-container"
                   class="w-full font-mono text-lg text-editor-fg"
-                  :class="{ 'cursor-pointer': !isEditingName }"
-                  @mouseenter="startNameEditing"
-                  @mouseleave="handleMouseLeave"
+                  :class="{ 'cursor-pointer': !isEditingName, 'hover-background': !isEditingName }"
                   @click="focusName"
                 >
                   <template v-if="isEditingName">
@@ -31,6 +26,7 @@
                       v-model="editingName"
                       @blur="saveNameEdit"
                       @keyup.enter="saveNameEdit"
+                      @mouseleave="handleInputMouseLeave"
                       ref="nameInput"
                       class="w-full text-lg bg-input-background border-0 p-0 text-editor-fg font-mono truncate"
                     />
@@ -62,7 +58,6 @@
               </div>
             </vscode-button>
 
-            <!-- Tags div that will be hidden on small screens -->
             <div class="flex items-center tags">
               <DescriptionItem
                 v-if="assetType"
@@ -79,7 +74,6 @@
           </div>
         </div>
       </div>
-      <!-- Rest of the existing template remains the same -->
       <vscode-panels
         v-if="!showConvertMessage"
         :activeid="`tab-${activeTab}`"
@@ -172,8 +166,7 @@ const data = ref(
 );
 const isBruinInstalled = ref(true); // Tracks if Bruin is installed
 const lastRenderedDocument = ref(""); // Holds the last rendered document
-const hoverTimeout = ref<ReturnType<typeof setTimeout> | null>(null); // Timeout for hover events
-// New reactive variables for editing
+
 // Event listener for messages from the VSCode extension
 const handleMessage = (event: MessageEvent) => {
   const message = event.data;
@@ -325,17 +318,9 @@ const isEditingName = ref(false);
 const editingName = ref(assetDetailsProps.value?.name || "");
 const nameInput = ref<HTMLInputElement | null>(null);
 
-const startNameEditing = () => {
-  if (hoverTimeout.value) clearTimeout(hoverTimeout.value);
-  isEditingName.value = true;
-  editingName.value = assetDetailsProps.value?.name || "";
-};
-
 const stopNameEditing = () => {
   console.log("Stopping name editing.");
-  if (!editingName.value.trim()) {
-    editingName.value = assetDetailsProps.value?.name || "";
-  }
+  // Don't revert if editingName is empty here; saveNameEdit will handle it.
   isEditingName.value = false;
 };
 
@@ -343,7 +328,8 @@ const saveNameEdit = () => {
   rudderStack.trackEvent("Asset Name Updated", {
     assetName: editingName.value.trim(),
   });
-  if (editingName.value.trim() !== assetDetailsProps.value?.name) {
+  // Only save if the name has changed and is not empty
+  if (editingName.value.trim() && editingName.value.trim() !== assetDetailsProps.value?.name) {
     updateAssetName(editingName.value.trim());
     vscode.postMessage({
       command: "bruin.setAssetDetails",
@@ -351,18 +337,22 @@ const saveNameEdit = () => {
         name: editingName.value.trim(),
       },
     });
+  } else if (!editingName.value.trim()) {
+    // If the input is left empty, revert to the original name
+    editingName.value = assetDetailsProps.value?.name || "";
   }
   stopNameEditing();
 };
 
-const handleMouseLeave = () => {
-  // Delay closing to avoid flickering if mouse quickly leaves
-  hoverTimeout.value = setTimeout(() => {
-    stopNameEditing();
-  }, 100);
+const handleInputMouseLeave = () => {
+  if (isEditingName.value) {
+    saveNameEdit();
+  }
 };
 
 const focusName = () => {
+  isEditingName.value = true;
+  editingName.value = assetDetailsProps.value?.name || "";
   nextTick(() => {
     nameInput.value?.focus();
   });
@@ -465,7 +455,6 @@ onMounted(async () => {
   loadAssetData();
   loadEnvironmentsList();
   vscode.postMessage({ command: "getLastRenderedDocument" });
-  //vscode.postMessage({ command: "bruin.checkTelemtryPreference" });
   vscode.postMessage({ command: "bruin.checkBruinCLIVersion" });
   // Track page view
   /* try {
@@ -493,11 +482,6 @@ onMounted(async () => {
   });
 
   console.log("Custom event tracked."); */
-});
-
-// Lifecycle hook to clean up hover timeout
-onBeforeUnmount(() => {
-  if (hoverTimeout.value) clearTimeout(hoverTimeout.value);
 });
 
 watch(columnsProps, (newColumns) => {
@@ -581,7 +565,6 @@ const badgeClass = computed(() => {
 });
 onBeforeUnmount(() => {
   window.removeEventListener("message", handleMessage);
-  if (hoverTimeout.value) clearTimeout(hoverTimeout.value);
 });
 </script>
 
@@ -633,5 +616,9 @@ vscode-button::part(control) {
 vscode-button .codicon {
   font-size: 12px;
   padding-right: 2px;
+}
+
+#asset-name-container.hover-background:hover {
+  background-color: var(--vscode-input-background);
 }
 </style>

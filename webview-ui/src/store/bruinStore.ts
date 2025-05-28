@@ -56,25 +56,3 @@ export const useConnectionsStore = defineStore("connections", {
 
   },
 });
-
-export const useAssetStore = defineStore("assets", {
-  state: () => ({
-    assets: [] as any[],
-    error: null,
-  }),
-  actions: {
-    updateAssetsFromMessage(assets) {
-      this.assets = assets;
-    },
-    updateAssetDetails(updatedAsset) {
-      const index = this.assets.findIndex((asset) => asset.id === updatedAsset.id);
-      if (index !== -1) {
-        this.assets[index] = updatedAsset;
-      }
-    },
-    updateErrorFromMessage(data) {
-      this.error = data;
-      this.assets = [];
-    },
-  },
-});
