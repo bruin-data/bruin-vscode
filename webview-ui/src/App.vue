@@ -187,16 +187,21 @@ const handleMessage = (event: MessageEvent) => {
         connectionsStore.setDefaultEnvironment(selectedEnvironment.value); // Set the default environment in the store
         break;
       case "clear-convert-message":
+        console.log("In App.vue : clear-convert-message message received");
         isNotAsset.value = false;
         showConvertMessage.value = false;
         break;
       case "non-asset-file":
+        console.log("In App.vue : non-asset-file message received", message);
+        console.log("In App.vue : non-asset-file showConvertMessage", message.showConvertMessage);
         isNotAsset.value = true;
         if (message.showConvertMessage) {
+          console.log("In App.vue : non-asset-file showConvertMessage true");
           showConvertMessage.value = true;
           nonAssetFileType.value = message.fileType || "";
           nonAssetFilePath.value = message.filePath || "";
         } else {
+          console.log("In App.vue : non-asset-file showConvertMessage false");
           showConvertMessage.value = false;
         }
         break;
