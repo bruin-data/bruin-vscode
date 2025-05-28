@@ -1,5 +1,13 @@
 import * as assert from "assert";
-import { Workbench, InputBox, WebDriver, By, WebView, VSBrowser, TerminalView } from "vscode-extension-tester";
+import {
+  Workbench,
+  InputBox,
+  WebDriver,
+  By,
+  WebView,
+  VSBrowser,
+  TerminalView,
+} from "vscode-extension-tester";
 import { Key, until, WebElement } from "selenium-webdriver";
 import "mocha";
 import * as path from "path";
@@ -31,7 +39,9 @@ describe("Bruin Webview Test", function () {
     console.log("Open editor titles:", openEditorTitles);
 
     if (!openEditorTitles.includes("example.sql")) {
-      throw new Error(`example.sql not found in open editors. Current titles: ${openEditorTitles.join(", ")}`);
+      throw new Error(
+        `example.sql not found in open editors. Current titles: ${openEditorTitles.join(", ")}`
+      );
     }
 
     await workbench.executeCommand("bruin.renderSQL");
@@ -63,48 +73,125 @@ describe("Bruin Webview Test", function () {
       await webview.switchBack();
     }
   });
+  describe("Edit Asset Name Tests", function () {
+    let assetNameContainer: WebElement;
 
-  describe("Asset Name Tests", function () {
-    it("should display the asset name container", async function () {
-      this.timeout(20000); // Increase timeout
-
-      // Wait for the asset name container to be visible
-      const assetNameContainer = await webview.findWebElement(By.id("asset-name-container"));
-
-      assert.ok(assetNameContainer, "Asset name container should be visible");
+    it("should output the page source for debugging", async function () {
+      this.timeout(10000);
+      driver = VSBrowser.instance.driver;
+      const pageSource = await driver.getPageSource();
+      assert.ok(pageSource, "Page source should be available");
     });
 
-    it("should be able to edit the asset name", async function () {
-      this.timeout(30000); // Increase timeout
-      driver = VSBrowser.instance.driver;
+    it("should locate the asset name container", async function () {
+      this.timeout(15000);
 
-      // Locate the container and trigger edit mode.
-      const assetNameContainer = await webview.findWebElement(By.id("asset-name-container"));
-      const actions = driver.actions({ async: true });
-      await actions.move({ origin: assetNameContainer }).perform();
+      // Wait for the asset name container to be present
+      assetNameContainer = await driver.wait(
+        until.elementLocated(By.id("asset-name-container")),
+        10000,
+        "Asset name container not found"
+      );
+
+      assert.ok(assetNameContainer, "Asset name container should be accessible");
+
+      // Verify the container is visible and has initial content
+      const isDisplayed = await assetNameContainer.isDisplayed();
+      assert.ok(isDisplayed, "Asset name container should be visible");
+
+      const initialText = await assetNameContainer.getText();
+      console.log("Initial asset name:", initialText);
+      assert.ok(initialText.length > 0, "Asset name should have initial content");
+    });
+
+    it("should activate edit mode when clicking the asset name", async function () {
+      this.timeout(20000);
+
+      // Click on the asset name container to activate edit mode
       await assetNameContainer.click();
-      await sleep(500);
-
-      // Wait for the input to be visible and obtain it
-      let nameInput = await driver.wait(until.elementLocated(By.id("asset-name-input")), 10000); // Increase timeout
-      await nameInput.clear();
-      await sleep(500);
-
-      // Re-locate the input element to fix stale element reference problem
-      nameInput = await driver.wait(until.elementLocated(By.id("asset-name-input")), 10000); // Increase timeout
-      // Clear using JavaScript executor
-      await driver.executeScript('arguments[0].value = ""', nameInput);
-      // Set the new name
-      const newName = `NameTest_${Date.now()}`;
-      await nameInput.sendKeys(newName);
       await sleep(1000);
 
-      // Verification: Retrieve the value from the input field.
-      const displayedValue = await nameInput.getAttribute("value");
-      assert.strictEqual(displayedValue, newName, "Asset name should be updated");
+      // Wait for the input field to appear
+      const nameInput = await driver.wait(
+        until.elementLocated(By.id("asset-name-input")),
+        10000,
+        "Asset name input field did not appear"
+      );
+
+      assert.ok(nameInput, "Asset name input field should be present");
+
+      // Verify the input is focused and visible
+      const isDisplayed = await nameInput.isDisplayed();
+      assert.ok(isDisplayed, "Asset name input should be visible");
+
+      // Check if input has the current name as value
+      const inputValue = await nameInput.getAttribute("value");
+      assert.ok(inputValue && inputValue.length > 0, "Input should contain current asset name");
+
+      console.log("Edit mode activated with value:", inputValue);
+    });
+    
+    it("should edit asset name successfully", async function () {
+      this.timeout(30000);
+
+      // Click on asset name container to enter edit mode
+      await assetNameContainer.click();
+      await sleep(1000);
+
+      // Wait for input field to be available
+      const nameInput = await driver.wait(
+        until.elementLocated(By.id("asset-name-input")),
+        10000,
+        "Asset name input field not found"
+      );
+
+      // Get the original name for comparison
+      const originalName = await nameInput.getAttribute("value");
+      console.log("Original asset name:", originalName);
+
+      // Clear the input field using JavaScript to ensure it's completely empty
+      await driver.executeScript(
+        'arguments[0].value = ""; arguments[0].dispatchEvent(new Event("input", { bubbles: true }));',
+        nameInput
+      );
+
+      // Verify the field is cleared
+      const clearedValue = await nameInput.getAttribute("value");
+      assert.strictEqual(clearedValue, "", "Input field should be cleared");
+
+      // Type the new asset name
+      const newAssetName = `TestAsset_${Date.now()}`;
+      await nameInput.sendKeys(newAssetName);
+      await sleep(500);
+
+      // Verify the new value is entered
+      const enteredValue = await nameInput.getAttribute("value");
+      assert.strictEqual(enteredValue, newAssetName, "New asset name should be entered correctly");
+
+      // Save by pressing Enter
+      await nameInput.sendKeys(Key.ENTER);
+      await sleep(2000);
+
+      // Wait for edit mode to exit and verify the name is updated
+      await driver.wait(until.stalenessOf(nameInput), 10000, "Edit mode should exit after saving");
+
+      // Wait for the display name to update
+      const displayNameElement = await driver.wait(
+        until.elementLocated(By.id("input-name")),
+        10000,
+        "Display name element not found after save"
+      );
+
+      const updatedDisplayName = await displayNameElement.getText();
+      assert.strictEqual(
+        updatedDisplayName,
+        newAssetName,
+        `Asset name should be updated to "${newAssetName}"`
+      );
+
+      console.log("Asset name successfully updated from:", originalName, "to:", updatedDisplayName);
     });
   });
-
   describe("Edit asset Description Tests", function () {
     let assetDetailsTab: WebElement;
     it("should output the page source for debugging", async function () {
