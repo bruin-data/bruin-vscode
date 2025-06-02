@@ -428,6 +428,8 @@ const tabs = ref([
     props: computed(() => ({
       materialization: materializationProps.value,
       columns: columns.value,
+      owner: assetDetailsProps.value?.owner,
+      tags: assetDetailsProps.value?.tags,
     })),
   },
   {

@@ -1,7 +1,88 @@
 <template>
   <div class="h-full w-full p-4 flex justify-center">
     <div class="flex flex-col gap-4 h-full w-full max-w-4xl">
-      <div class="flex gap-x-4 gap-y-2 w-full justify-between">
+      
+      <!-- Owner and Tags Section -->
+      <div class="bg-editorWidget-bg">
+        <!-- Owner -->
+        <div class="flex items-center mb-2 space-x-2">
+          <label class="block text-sm font-medium text-editor-fg min-w-[60px]">Owner</label>
+          <div class="flex items-center gap-2">
+            <span 
+              v-if="!isEditingOwner" 
+              class="text-md text-editor-fg px-2 py-1 font-mono flex items-center min-h-[32px]"
+              :class="owner ? '' : 'text-editor-fg opacity-60 italic'"
+            >
+              {{ owner || 'Unknown' }}
+            </span>
+            <input
+              v-if="isEditingOwner"
+              v-model="editingOwner"
+              @blur="saveOwnerEdit"
+              @keyup.enter="saveOwnerEdit"
+              @keyup.escape="cancelOwnerEdit"
+              ref="ownerInput"
+              placeholder="data-team@company.com"
+              class="text-sm p-1 bg-input-background border border-commandCenter-border rounded focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg min-w-[200px]"
+            />
+            <vscode-button 
+              appearance="icon" 
+              @click="startEditingOwner"
+              v-if="!isEditingOwner"
+              class="text-xs"
+              title="Edit owner"
+            >
+              <span class="codicon codicon-edit"></span>
+            </vscode-button>
+          </div>
+        </div>
+        <div class="border-t border-commandCenter-border"></div>
+
+        <!-- Tags needs to be in the same line-->
+        <div class="flex items-center mt-4 space-x-4">
+          <label class="text-sm font-medium text-editor-fg min-w-[60px]">Tags</label>
+          <div class="flex flex-wrap items-center space-x-2">
+            <vscode-tag 
+              v-for="(tag, index) in tags" 
+              :key="index"
+              class="text-xs inline-flex items-center justify-center gap-1 cursor-pointer py-1"
+              @click="removeTag(index)"
+            >
+              <div class="text-xs flex items-center gap-2">
+               <span>{{ tag }}</span> 
+               <span class="codicon codicon-close text-xs flex items-center"></span>
+              </div>
+            </vscode-tag>
+
+            <input
+              v-if="isAddingTag"
+              v-model="newTag"
+              @blur="confirmAddTag"
+              @keyup.enter="confirmAddTag"
+              @keyup.escape="cancelAddTag"
+              ref="tagInput"
+              placeholder="Tag name..."
+              class="text-xs px-2 py-1.5 bg-input-background border border-commandCenter-border rounded focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg min-w-[80px]"
+            />
+
+            <vscode-button 
+              appearance="icon" 
+              @click="startAddingTag" 
+              v-if="!isAddingTag"
+              class="text-xs flex items-center justify-center h-full"
+              title="Add tag"
+            >
+              <span class="codicon codicon-add"></span>
+            </vscode-button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Separator -->
+      <div class="border-t border-commandCenter-border"></div>
+
+      <!-- Partitioning and Clustering -->
+      <div class="flex gap-x-4 gap-y-2 w-full justify-between ">
         <div class="flex-1">
           <label class="block text-sm font-medium text-editor-fg mb-2">Partitioning</label>
           <input
@@ -21,12 +102,12 @@
         </div>
       </div>
 
-      <div class="flex flex-col sm:flex-row sm:items-start gap-8 border-t border-commandCenter-border pt-4">
+      <div
+        class="flex flex-col sm:flex-row sm:items-start gap-8 border-t border-commandCenter-border pt-4"
+      >
         <div class="flex-1 min-w-[260px]">
           <div class="flex flex-col space-y-3">
-            <label class="block text-sm font-medium text-editor-fg mb-2">
-              Materialization
-            </label>
+            <label class="block text-sm font-medium text-editor-fg mb-2"> Materialization </label>
             <div class="flex space-x-6">
               <vscode-radio-group
                 :value="localMaterialization.type"
@@ -66,10 +147,7 @@
         <div class="p-4 bg-editorWidget-bg rounded border border-commandCenter-border h-full">
           <div v-if="localMaterialization.strategy === 'delete+insert'" class="flex flex-col">
             <label class="block text-sm opacity-65 text-editor-fg mb-2">Incremental Key</label>
-            <input
-              v-model="localMaterialization.incremental_key"
-              placeholder="column_name"
-            />
+            <input v-model="localMaterialization.incremental_key" placeholder="column_name" />
           </div>
 
           <div v-if="localMaterialization.strategy === 'merge'" class="space-y-4">
@@ -78,7 +156,10 @@
             </p>
           </div>
 
-          <div v-if="localMaterialization.strategy === 'time_interval'" class="flex flex-col space-y-4">
+          <div
+            v-if="localMaterialization.strategy === 'time_interval'"
+            class="flex flex-col space-y-4"
+          >
             <div class="grid grid-cols-2 gap-4">
               <div class="flex flex-col">
                 <label class="block text-sm opacity-65 text-editor-fg mb-2">Incremental Key</label>
@@ -111,24 +192,95 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, nextTick } from "vue";
 import { vscode } from "@/utilities/vscode";
 
 const props = defineProps({
   materialization: {
     type: Object,
-    default: null, 
+    default: null,
   },
   isConfigFile: {
     type: Boolean,
     default: false,
   },
+  owner: {
+    type: String,
+    default: "",
+  },
+  tags: {
+    type: Array,
+    default: () => [],
+  },
 });
 
 const emit = defineEmits(["update:materialization"]);
 
+// Owner and Tags reactive data
+const owner = ref(props.owner || "");
+const tags = ref([...props.tags] || []);
+const newTag = ref("");
+const isAddingTag = ref(false);
+const isEditingOwner = ref(false);
+const editingOwner = ref("");
+const ownerInput = ref(null);
+const tagInput = ref(null);
+
+// Owner editing functions
+const startEditingOwner = () => {
+  isEditingOwner.value = true;
+  editingOwner.value = owner.value;
+  nextTick(() => {
+    ownerInput.value?.focus();
+  });
+};
+
+const saveOwnerEdit = () => {
+  owner.value = editingOwner.value.trim();
+  isEditingOwner.value = false;
+};
+
+const cancelOwnerEdit = () => {
+  editingOwner.value = owner.value;
+  isEditingOwner.value = false;
+};
+
+// Tags functionality
+const startAddingTag = () => {
+  isAddingTag.value = true;
+  nextTick(() => {
+    tagInput.value?.focus();
+  });
+};
+
+const confirmAddTag = () => {
+  if (newTag.value.trim() && !tags.value.includes(newTag.value.trim())) {
+    tags.value.push(newTag.value.trim());
+  }
+  newTag.value = "";
+  isAddingTag.value = false;
+};
+
+const cancelAddTag = () => {
+  newTag.value = "";
+  isAddingTag.value = false;
+};
+
+const removeTag = (index) => {
+  tags.value.splice(index, 1);
+};
+
+// Watch for prop changes
+watch(() => props.owner, (newOwner) => {
+  owner.value = newOwner || "";
+}, { immediate: true });
+
+watch(() => props.tags, (newTags) => {
+  tags.value = [...newTags] || [];
+}, { immediate: true, deep: true });
+
 const defaultMaterialization = {
-  type: "null", 
+  type: "null",
   strategy: undefined,
   partition_by: "",
   cluster_by: [],
@@ -140,28 +292,31 @@ const localMaterialization = ref({ ...defaultMaterialization });
 
 const clusterByString = computed({
   get() {
-    return localMaterialization.value.cluster_by?.join(', ') || '';
+    return localMaterialization.value.cluster_by?.join(", ") || "";
   },
   set(newValue) {
     localMaterialization.value.cluster_by = newValue
-      .split(',')
-      .map(c => c.trim())
-      .filter(c => c);
-  }
+      .split(",")
+      .map((c) => c.trim())
+      .filter((c) => c);
+  },
 });
 
 const initializeLocalMaterialization = (materializationProp) => {
   if (materializationProp === null) {
-    return { ...defaultMaterialization }; 
+    return { ...defaultMaterialization };
   }
   const base = JSON.parse(JSON.stringify(materializationProp));
-  if (base.type === 'table' && !base.strategy) {
-    base.strategy = 'create+replace';
+  if (base.type === "table" && !base.strategy) {
+    base.strategy = "create+replace";
   }
   base.cluster_by = Array.isArray(base.cluster_by)
     ? base.cluster_by
-    : typeof base.cluster_by === 'string'
-      ? base.cluster_by.split(',').map(c => c.trim()).filter(c => c)
+    : typeof base.cluster_by === "string"
+      ? base.cluster_by
+          .split(",")
+          .map((c) => c.trim())
+          .filter((c) => c)
       : [];
   return base;
 };
@@ -185,10 +340,10 @@ const setType = (type) => {
   if (type === "null") {
     localMaterialization.value = { ...defaultMaterialization };
   } else {
-    if (localMaterialization.value.type === 'null') {
+    if (localMaterialization.value.type === "null") {
       localMaterialization.value = {
         type: type,
-        strategy: type === 'table' ? "create+replace" : undefined,
+        strategy: type === "table" ? "create+replace" : undefined,
         partition_by: "",
         cluster_by: [],
       };
@@ -201,23 +356,22 @@ const setType = (type) => {
   }
 };
 
-
-
 const saveMaterialization = () => {
   let cleanData = null;
-  if (localMaterialization.value.type !== 'null') {
-    cleanData = JSON.parse(JSON.stringify({
-      type: localMaterialization.value.type,
-      strategy: localMaterialization.value.strategy,
-      partition_by: localMaterialization.value.partition_by,
-      cluster_by: Array.isArray(localMaterialization.value.cluster_by)
-        ? [...localMaterialization.value.cluster_by]
-        : [],
-      incremental_key: localMaterialization.value.incremental_key,
-      time_granularity: localMaterialization.value.time_granularity,
-    }));
-  }
-  else {
+  if (localMaterialization.value.type !== "null") {
+    cleanData = JSON.parse(
+      JSON.stringify({
+        type: localMaterialization.value.type,
+        strategy: localMaterialization.value.strategy,
+        partition_by: localMaterialization.value.partition_by,
+        cluster_by: Array.isArray(localMaterialization.value.cluster_by)
+          ? [...localMaterialization.value.cluster_by]
+          : [],
+        incremental_key: localMaterialization.value.incremental_key,
+        time_granularity: localMaterialization.value.time_granularity,
+      })
+    );
+  } else {
     cleanData = {
       partition_by: localMaterialization.value.partition_by,
       cluster_by: Array.isArray(localMaterialization.value.cluster_by)
@@ -226,12 +380,17 @@ const saveMaterialization = () => {
     };
   }
 
+  // Include owner and tags in the payload
+  const payload = {
+    materialization: cleanData,
+    owner: owner.value,
+    tags: tags.value,
+  };
+
   emit("update:materialization", cleanData);
   vscode.postMessage({
     command: "bruin.setAssetDetails",
-    payload: {
-      materialization: cleanData,
-    },
+    payload: payload,
   });
 };
 
@@ -268,5 +427,13 @@ select:focus {
 input:disabled,
 select:disabled {
   @apply opacity-50 cursor-not-allowed;
+}
+
+vscode-tag {
+  @apply text-xs;
+}
+
+.info-text {
+  @apply text-sm text-editor-fg opacity-70;
 }
 </style>
