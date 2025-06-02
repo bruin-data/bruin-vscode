@@ -43,6 +43,8 @@ export class BruinPanel {
   private _disposables: Disposable[] = [];
   private _lastRenderedDocumentUri: Uri | undefined;
   private _flags: string = "";
+  private _assetDetectionDebounceTimer: NodeJS.Timeout | undefined;
+
   /**
    * The BruinPanel class private constructor (called only from the render method).
    *
@@ -68,10 +70,13 @@ export class BruinPanel {
           }
           
           this._lastRenderedDocumentUri = editor.document.uri; 
-            
-          await this._handleAssetDetection(this._lastRenderedDocumentUri);
-          renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri?.fsPath);
-
+          if (this._assetDetectionDebounceTimer) {
+            clearTimeout(this._assetDetectionDebounceTimer);
+          }
+          this._assetDetectionDebounceTimer = setTimeout(async () => {
+            await this._handleAssetDetection(this._lastRenderedDocumentUri);
+            renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri?.fsPath);
+          }, 500);
         }
       }),
       

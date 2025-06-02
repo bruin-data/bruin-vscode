@@ -102,6 +102,7 @@ export const isBruinAsset = async (
 
     return bruinAsset;
   } catch (err) {
+    console.error(`[isBruinAsset] Error reading file ${fileName}:`, err);
     return false;
   }
 };

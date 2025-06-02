@@ -54,10 +54,11 @@ Bruin is a unified analytics platform that enables data professionals to work en
 **Note**: Ensure that you have the Bruin CLI installed on your system before using the new features. For guidance on installing the Bruin CLI, please refer to the [official documentation](https://github.com/bruin-data/bruin).
 
 ## Release Notes
-### Latest Release: 0.47.5
-- Trim whitespace from connection form input values and fix asset name editing.
+### Latest Release: 0.47.6
+- Debounce asset conversion detection and add telemetry for convert message.
 
 ### Recent Updates
+- **0.47.5**: Trim whitespace from connection form input values and fix asset name editing.
 - **0.47.4**: Fix Convert Message Showing for Existing Assets
 - **0.47.3**: Fix Convert Message Showing for Existing Assets
 - **0.47.2**: Added ingestr asset snippet for initializing Bruin ingestr assets easily.
@@ -71,14 +72,8 @@ Bruin is a unified analytics platform that enables data professionals to work en
 - **0.45.2**: Fix CLI version check to improve performance.
 - **0.45.1**: Optimize the Bruin activation process.
 - **0.45.0**: Added executed query preview with copy-to-clipboard support in the query results panel.
-- **0.44.4**: Scope query response to active tab only, allowing other tabs to remain responsive during execution.
-- **0.44.3**: Fixed SQL editor line display and improved layout styling for DateInput components.
-- **0.44.2**: Added support for `interval_modifiers` in asset schema and makes the name field optional.
-- **0.44.1**: Enhanced the date input component to support both manual text entry and calendar-based selection.
-- **0.44.0**: Added full pipeline view to the lineage panel.
 
 For a full changelog, see Bruin Extension [Changelog](https://marketplace.visualstudio.com/items/bruin.bruin/changelog).
-
 
 ### How to Update
 

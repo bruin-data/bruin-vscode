@@ -1,4 +1,6 @@
 # Changelog
+## [0.47.6] - [2025-06-02]
+- Debounce asset conversion detection and add telemetry for convert message.
 
 ## [0.47.5] - [2025-05-28]
 - Trim whitespace from connection form input values and fix asset name editing.
