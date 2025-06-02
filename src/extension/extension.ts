@@ -21,8 +21,7 @@ import { AssetLineagePanel } from "../panels/LineagePanel";
 import { installOrUpdateCli } from "./commands/updateBruinCLI";
 import { QueryPreviewPanel } from "../panels/QueryPreviewPanel";
 import { BruinPanel } from "../panels/BruinPanel";
-import { BruinEnvList } from "../bruin/bruinSelectEnv";
-import { convertFileToAssetCommand } from "./commands/parseAssetCommand";
+
 
 let analyticsClient: any = null;
 

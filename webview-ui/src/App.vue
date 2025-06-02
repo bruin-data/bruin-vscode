@@ -183,19 +183,33 @@ const handleMessage = (event: MessageEvent) => {
         console.log("In App.vue : clear-convert-message message received");
         isNotAsset.value = false;
         showConvertMessage.value = false;
+        rudderStack.trackEvent("Asset Converted and Clear Convert Message", {
+          assetName: message.assetName,
+        });
         break;
       case "non-asset-file":
         console.log("In App.vue : non-asset-file message received", message);
         console.log("In App.vue : non-asset-file showConvertMessage", message.showConvertMessage);
         isNotAsset.value = true;
+        rudderStack.trackEvent("Non Asset File", {
+          assetName: message.assetName,
+        });
         if (message.showConvertMessage) {
           console.log("In App.vue : non-asset-file showConvertMessage true");
+          rudderStack.trackEvent("Non Asset File Show Convert Message", {
+            assetName: message.assetName,
+            filePath: message.filePath,
+          });
           showConvertMessage.value = true;
           nonAssetFileType.value = message.fileType || "";
           nonAssetFilePath.value = message.filePath || "";
         } else {
           console.log("In App.vue : non-asset-file showConvertMessage false");
           showConvertMessage.value = false;
+          rudderStack.trackEvent("Non Asset File Show Convert Message False", {
+            assetName: message.assetName,
+            filePath: message.filePath,
+          });
         }
         break;
       case "parse-message": {
