@@ -50,7 +50,7 @@
             >
               <div class="text-xs flex items-center gap-2">
                <span>{{ tag }}</span> 
-               <span class="codicon codicon-close text-xs flex items-center"></span>
+               <span class="codicon codicon-close text-3xs flex items-center"></span>
               </div>
             </vscode-tag>
 
@@ -451,7 +451,9 @@ select:disabled {
 vscode-tag {
   @apply text-xs;
 }
-
+vscode-tag::part(control) {
+  @apply normal-case !important;
+}
 .info-text {
   @apply text-sm text-editor-fg opacity-70;
 }
