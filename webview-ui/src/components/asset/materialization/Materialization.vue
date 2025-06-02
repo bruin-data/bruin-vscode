@@ -41,7 +41,7 @@
         <!-- Tags needs to be in the same line-->
         <div class="flex items-center mt-4 space-x-4">
           <label class="text-sm font-medium text-editor-fg min-w-[60px]">Tags</label>
-          <div class="flex flex-wrap items-center space-x-2">
+          <div id="tags-container" class="flex flex-wrap items-center space-x-2">
             <vscode-tag 
               v-for="(tag, index) in tags" 
               :key="index"
@@ -49,12 +49,13 @@
               @click="removeTag(index)"
             >
               <div class="text-xs flex items-center gap-2">
-               <span>{{ tag }}</span> 
+               <span id="tag-text">{{ tag }}</span> 
                <span class="codicon codicon-close text-3xs flex items-center"></span>
               </div>
             </vscode-tag>
 
             <input
+              id="tag-input"
               v-if="isAddingTag"
               v-model="newTag"
               @blur="confirmAddTag"
@@ -64,8 +65,8 @@
               placeholder="Tag name..."
               class="text-xs px-2 py-1.5 bg-input-background border border-commandCenter-border rounded focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg min-w-[80px]"
             />
-
             <vscode-button 
+              id="add-tag-button"
               appearance="icon" 
               @click="startAddingTag" 
               v-if="!isAddingTag"

@@ -268,4 +268,85 @@ describe("Bruin Webview Test", function () {
       assert.strictEqual(updatedText, testText, `Description should be updated to "${testText}"`);
     });
   });
+
+    // --- Tests for Tags ---
+    describe("Edit Tags Tests", function () {
+      let tagsContainer: WebElement;
+      let addTagButton: WebElement;
+      let tagInput: WebElement;
+  
+      beforeEach(async function () {
+        this.timeout(10000);
+        // Ensure we are on the materialization tab if not already
+        const tab = await driver.wait(until.elementLocated(By.id("tab-2")), 10000);
+        await tab.click();
+        await sleep(500); // Give some time for the tab content to render
+  
+        tagsContainer = await driver.wait(
+          until.elementLocated(By.id('tags-container')),
+          10000,
+          "Tags container not found"
+        );
+        addTagButton = await driver.wait(
+          until.elementLocated(By.id('add-tag-button')),
+          10000,
+          "Add tag button not found"
+        );
+      });
+  
+      it("should add a new tag successfully", async function () {
+        this.timeout(15000);
+        const newTagName = `test_tag_${Date.now()}`;
+  
+        await addTagButton.click();
+        await sleep(500);
+  
+        tagInput = await driver.wait(
+          until.elementLocated(By.id('tag-input')),
+          10000,
+          "Tag input field not found"
+        );
+        await tagInput.sendKeys(newTagName);
+        await tagInput.sendKeys(Key.ENTER);
+        await sleep(1000);
+  
+        const tags = await tagsContainer.findElements(By.id('tag-text'));
+        const tagTexts = await Promise.all(tags.map(tag => tag.getText()));
+  
+        assert.ok(tagTexts.includes(newTagName), `New tag "${newTagName}" should be added`);
+      });
+  
+      it("should remove a tag successfully by clicking its close icon", async function () {
+        this.timeout(15000);
+        const tagToRemove = `remove_me_${Date.now()}`;
+  
+        // Add a tag to be removed
+        await addTagButton.click();
+        await sleep(500);
+        tagInput = await driver.wait(
+          until.elementLocated(By.id('tag-input')),
+          10000
+        );
+        await tagInput.sendKeys(tagToRemove);
+        await tagInput.sendKeys(Key.ENTER);
+        await sleep(1000);
+  
+        const initialTags = await tagsContainer.findElements(By.id('tag-text'));
+        const initialTagTexts = await Promise.all(initialTags.map(tag => tag.getText()));
+        assert.ok(initialTagTexts.includes(tagToRemove), "Tag to be removed should exist initially");
+  
+        const closeIconForTag = await driver.wait(
+          until.elementLocated(By.xpath(`//vscode-tag[./div/span[text()="${tagToRemove}"]]/div/span[contains(@class, 'codicon-close')]`)),
+          10000,
+          `Close icon for tag "${tagToRemove}" not found`
+        );
+        await closeIconForTag.click();
+        await sleep(1000);
+  
+        const finalTags = await tagsContainer.findElements(By.id('tag-text'));
+        const finalTagTexts = await Promise.all(finalTags.map(tag => tag.getText()));
+  
+        assert.ok(!finalTagTexts.includes(tagToRemove), `Tag "${tagToRemove}" should be removed`);
+      });
+    });
 });
