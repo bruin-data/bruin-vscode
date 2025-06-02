@@ -1,4 +1,7 @@
 # Changelog
+## [0.48.0] - [2025-06-02]
+- Add UI for Managing Owner and Tags in Materialization Tab. 
+
 ## [0.47.6] - [2025-06-02]
 - Debounce asset conversion detection and add telemetry for convert message.
 
