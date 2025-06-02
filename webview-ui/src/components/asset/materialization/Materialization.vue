@@ -7,15 +7,17 @@
         <!-- Owner -->
         <div class="flex items-center mb-2 space-x-2">
           <label class="block text-sm font-medium text-editor-fg min-w-[60px]">Owner</label>
-          <div class="flex items-center gap-2">
+          <div id="owner-container" class="flex items-center gap-2">
             <span 
               v-if="!isEditingOwner" 
+              id="owner-text"
               class="text-md text-editor-fg px-2 py-1 font-mono flex items-center min-h-[32px]"
               :class="owner ? '' : 'text-editor-fg opacity-60 italic'"
             >
               {{ owner || 'Unknown' }}
             </span>
             <input
+              id="owner-input"
               v-if="isEditingOwner"
               v-model="editingOwner"
               @blur="saveOwnerEdit"
@@ -26,6 +28,7 @@
               class="text-sm p-1 bg-input-background border border-commandCenter-border rounded focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg min-w-[200px]"
             />
             <vscode-button 
+              id="edit-owner-button"
               appearance="icon" 
               @click="startEditingOwner"
               v-if="!isEditingOwner"
