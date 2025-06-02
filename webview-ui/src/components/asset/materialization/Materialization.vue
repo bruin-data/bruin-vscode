@@ -238,6 +238,13 @@ const startEditingOwner = () => {
 const saveOwnerEdit = () => {
   owner.value = editingOwner.value.trim();
   isEditingOwner.value = false;
+  emit("update:owner", owner.value);
+  vscode.postMessage({
+    command: "bruin.setAssetDetails",
+    payload: {
+      owner: owner.value,
+    },
+  });
 };
 
 const cancelOwnerEdit = () => {
@@ -256,6 +263,7 @@ const startAddingTag = () => {
 const confirmAddTag = () => {
   if (newTag.value.trim() && !tags.value.includes(newTag.value.trim())) {
     tags.value.push(newTag.value.trim());
+    sendTagUpdate(); 
   }
   newTag.value = "";
   isAddingTag.value = false;
@@ -268,6 +276,17 @@ const cancelAddTag = () => {
 
 const removeTag = (index) => {
   tags.value.splice(index, 1);
+  sendTagUpdate();
+};
+
+const sendTagUpdate = () => {
+  emit("update:tags", tags.value);
+  vscode.postMessage({
+    command: "bruin.setAssetDetails",
+    payload: {
+      tags: [...tags.value],
+    },
+  });
 };
 
 // Watch for prop changes
