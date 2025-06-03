@@ -130,7 +130,7 @@ describe("Bruin Webview Test", function () {
 
       console.log("Edit mode activated with value:", inputValue);
     });
-    
+
     it("should edit asset name successfully", async function () {
       this.timeout(30000);
 
@@ -266,6 +266,189 @@ describe("Bruin Webview Test", function () {
         .getText();
       await sleep(1000);
       assert.strictEqual(updatedText, testText, `Description should be updated to "${testText}"`);
+    });
+  });
+
+  // --- Tests for Tags ---
+  describe("Edit Tags Tests", function () {
+    let tagsContainer: WebElement;
+    let addTagButton: WebElement;
+    let tagInput: WebElement;
+    let existingTags: WebElement[];
+
+    beforeEach(async function () {
+      this.timeout(10000);
+      // Ensure we are on the materialization tab if not already
+      const tab = await driver.wait(until.elementLocated(By.id("tab-2")), 10000);
+      await tab.click();
+      await sleep(500); 
+
+      tagsContainer = await driver.wait(
+        until.elementLocated(By.id("tags-container")),
+        10000,
+        "Tags container not found"
+      );
+      addTagButton = await driver.wait(
+        until.elementLocated(By.id("add-tag-button")),
+        10000,
+        "Add tag button not found"
+      );
+      existingTags = await tagsContainer.findElements(By.id("tag-text"));
+    });
+
+    it("should add a new tag successfully", async function () {
+      this.timeout(15000);
+      const newTagName = `test_tag_${Date.now()}`;
+
+      await addTagButton.click();
+      await sleep(500);
+
+      tagInput = await driver.wait(
+        until.elementLocated(By.id("tag-input")),
+        10000,
+        "Tag input field not found"
+      );
+      await tagInput.sendKeys(newTagName);
+      await tagInput.sendKeys(Key.ENTER);
+      await sleep(1000);
+
+      const tags = await tagsContainer.findElements(By.id("tag-text"));
+      const tagTexts = await Promise.all(tags.map((tag) => tag.getText()));
+
+      assert.ok(tagTexts.includes(newTagName), `New tag "${newTagName}" should be added`);
+    });
+
+    it("should remove a tag successfully by clicking its close icon", async function () {
+      this.timeout(15000);
+      const tagToRemove = `remove_me_${Date.now()}`;
+
+      // Add a tag to be removed
+      await addTagButton.click();
+      await sleep(500);
+      tagInput = await driver.wait(until.elementLocated(By.id("tag-input")), 10000);
+      await tagInput.sendKeys(tagToRemove);
+      await tagInput.sendKeys(Key.ENTER);
+      await sleep(1000);
+
+      const initialTags = await tagsContainer.findElements(By.id("tag-text"));
+      const initialTagTexts = await Promise.all(initialTags.map((tag) => tag.getText()));
+      assert.ok(initialTagTexts.includes(tagToRemove), "Tag to be removed should exist initially");
+
+      const closeIconForTag = await driver.wait(
+        until.elementLocated(
+          By.xpath(
+            `//vscode-tag[./div/span[text()="${tagToRemove}"]]/div/span[contains(@class, 'codicon-close')]`
+          )
+        ),
+        10000,
+        `Close icon for tag "${tagToRemove}" not found`
+      );
+      await closeIconForTag.click();
+      await sleep(1000);
+
+      const finalTags = await tagsContainer.findElements(By.id("tag-text"));
+      const finalTagTexts = await Promise.all(finalTags.map((tag) => tag.getText()));
+
+      assert.ok(!finalTagTexts.includes(tagToRemove), `Tag "${tagToRemove}" should be removed`);
+    });
+
+    it("should not add an empty tag", async function () {
+      this.timeout(15000);
+      const tagToAdd = "";
+
+      await addTagButton.click();
+      await sleep(500);
+      tagInput = await driver.wait(until.elementLocated(By.id("tag-input")), 10000);
+      await tagInput.sendKeys(tagToAdd);
+      await tagInput.sendKeys(Key.ENTER);
+      await sleep(1000);
+
+      const tags = await tagsContainer.findElements(By.id("tag-text"));
+      const tagTexts = await Promise.all(tags.map((tag) => tag.getText()));
+      assert.ok(!tagTexts.includes(tagToAdd), `Tag "${tagToAdd}" should not be added`);
+    });
+    it("should not add a tag with whitespace", async function () {
+      this.timeout(15000);
+      const tagToAdd = " ";
+
+      await addTagButton.click();
+      await sleep(500);
+      tagInput = await driver.wait(until.elementLocated(By.id("tag-input")), 10000);
+      await tagInput.sendKeys(tagToAdd);
+      await tagInput.sendKeys(Key.ENTER);
+      await sleep(1000);
+
+      const tags = await tagsContainer.findElements(By.id("tag-text"));
+      const tagTexts = await Promise.all(tags.map((tag) => tag.getText()));
+      assert.ok(!tagTexts.includes(tagToAdd), `Tag "${tagToAdd}" should not be added`);
+    });
+  });
+  // owner tests
+  describe("Owner Tests", function () {
+    let ownerContainer: WebElement;
+    let editOwnerButton: WebElement;
+    let ownerInput: WebElement;
+    beforeEach(async function () {
+      this.timeout(10000);
+      // Ensure we are on the materialization tab if not already
+      const tab = await driver.wait(until.elementLocated(By.id("tab-2")), 10000);
+      await tab.click();
+      await sleep(500); // Give some time for the tab content to render
+
+      ownerContainer = await driver.wait(
+        until.elementLocated(By.id("owner-container")),
+        10000,
+        "Owner container not found"
+      );
+      editOwnerButton = await driver.wait(
+        until.elementLocated(By.id("edit-owner-button")),
+        10000,
+        "Edit owner button not found"
+      );
+    });
+    it("should edit owner successfully", async function () {
+      this.timeout(15000);
+      const newOwner = `owner_${Date.now()}`;
+
+      await editOwnerButton.click();
+      await sleep(500);
+      ownerInput = await driver.wait(until.elementLocated(By.id("owner-input")), 10000);
+      await driver.executeScript(
+        'arguments[0].value = ""; arguments[0].dispatchEvent(new Event("input", { bubbles: true }));',
+        ownerInput
+      );
+
+      await ownerInput.sendKeys(newOwner);
+      await ownerInput.sendKeys(Key.ENTER);
+      await sleep(1000);
+
+      const updatedText = await driver
+        .wait(until.elementLocated(By.id("owner-container")), 10000)
+        .getText();
+      await sleep(1000);
+      assert.strictEqual(updatedText, newOwner, `Owner should be updated to "${newOwner}"`);
+    });
+    it("should edit owner to unknown when using whitespace", async function () {
+      this.timeout(15000);
+      const newOwner = " ";
+
+      await editOwnerButton.click();
+      await sleep(500);
+      ownerInput = await driver.wait(until.elementLocated(By.id("owner-input")), 10000);
+      await driver.executeScript(
+        'arguments[0].value = ""; arguments[0].dispatchEvent(new Event("input", { bubbles: true }));',
+        ownerInput
+      );
+
+      await ownerInput.sendKeys(newOwner);
+      await ownerInput.sendKeys(Key.ENTER);
+      await sleep(1000);
+
+      const updatedText = await driver
+        .wait(until.elementLocated(By.id("owner-container")), 10000)
+        .getText();
+      await sleep(1000);
+      assert.strictEqual(updatedText, "Unknown", `Owner should be updated to "Unknown"`);
     });
   });
 });
