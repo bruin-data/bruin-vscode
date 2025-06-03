@@ -1,21 +1,25 @@
 # Changelog
+
+## [0.48.2] - [2025-06-03]
+- Updated `partition-by` and `cluster-by` to use a dropdown for selecting columns.
+
 ## [0.48.1] - [2025-06-03]
-- Add DDL strategy to materialization tab and save primary key changes immediately.
+- Added DDL strategy to materialization tab and save primary key changes immediately.
 
 ## [0.48.0] - [2025-06-02]
-- Add UI for Managing Owner and Tags in Materialization Tab. 
+- Added UI for Managing Owner and Tags in Materialization Tab. 
 
 ## [0.47.6] - [2025-06-02]
-- Debounce asset conversion detection and add telemetry for convert message.
+- Debounced asset conversion detection and added telemetry for convert message.
 
 ## [0.47.5] - [2025-05-28]
-- Trim whitespace from connection form input values and fix asset name editing.
+- Trimmed whitespace from connection form input values and fixed asset name editing.
 
 ## [0.47.4] - [2025-05-28]
-- Fix Convert Message Showing for Existing Assets.
+- Fixed Convert Message Showing for Existing Assets.
 
 ## [0.47.3] - [2025-05-27]
-- Fix Convert Message Showing for Existing Assets.
+- Fixed Convert Message Showing for Existing Assets.
 
 ## [0.47.2] - [2025-05-26]
 - Added ingestr asset snippet for initializing Bruin ingestr assets easily.
