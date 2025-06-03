@@ -106,6 +106,38 @@
         </div>
       </div>
 
+      <!-- Separator -->
+      <div class="border-t border-commandCenter-border"></div>
+
+      <!-- Interval modifiers -->
+      <div class="flex gap-x-4 gap-y-2 w-full justify-between">
+        <div class="flex-1">
+          <label class="block text-sm font-medium text-editor-fg mb-2">Execution Window Start</label>
+          <input
+            v-model="startIntervalString"
+            class="w-full max-w-[300px] p-2 bg-input-background border border-commandCenter-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg"
+            placeholder="-2h, -1d, -30m"
+            :class="{ 'border-red-500': startValidationError }"
+            @input="validateStartInterval"
+          />
+          <p v-if="startValidationError" class="text-xs text-red-400 mt-1">{{ startValidationError }}</p>
+          <p v-else class="text-xs text-editor-fg opacity-70 mt-1">Shift start time (e.g., -2h, -1d, -30m)</p>
+        </div>
+
+        <div class="flex-1">
+          <label class="block text-sm font-medium text-editor-fg mb-2">Execution Window End</label>
+          <input
+            v-model="endIntervalString"
+            class="w-full max-w-[300px] p-2 bg-input-background border border-commandCenter-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg"
+            placeholder="0h, 1h, now"
+            :class="{ 'border-red-500': endValidationError }"
+            @input="validateEndInterval"
+          />
+          <p v-if="endValidationError" class="text-xs text-red-400 mt-1">{{ endValidationError }}</p>
+          <p v-else class="text-xs text-editor-fg opacity-70 mt-1">Shift end time (e.g., 0h, 1h, now)</p>
+        </div>
+      </div>
+
       <div
         class="flex flex-col sm:flex-row sm:items-start gap-8 border-t border-commandCenter-border pt-4"
       >
@@ -216,9 +248,30 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  intervalModifiers: {
+    type: Object,
+    default: () => ({
+      start: {
+        months: 0,
+        days: 0,
+        hours: 0,
+        minutes: 0,
+        seconds: 0,
+        cron_periods: 0,
+      },
+      end: {
+        months: 0,
+        days: 0,
+        hours: 0,
+        minutes: 0,
+        seconds: 0,
+        cron_periods: 0,
+      },
+    }),
+  },
 });
 
-const emit = defineEmits(["update:materialization"]);
+const emit = defineEmits(["update:materialization", "update:owner", "update:tags", "update:intervalModifiers"]);
 
 // Owner and Tags reactive data
 const owner = ref(props.owner || "");
@@ -229,6 +282,124 @@ const isEditingOwner = ref(false);
 const editingOwner = ref("");
 const ownerInput = ref(null);
 const tagInput = ref(null);
+
+// Interval modifiers reactive data
+const intervalModifiers = ref({
+  start: { ...props.intervalModifiers.start },
+  end: { ...props.intervalModifiers.end }
+});
+
+const startValidationError = ref("");
+const endValidationError = ref("");
+
+// Helper functions for interval conversion
+const intervalToString = (intervalObj) => {
+  if (!intervalObj) return "";
+  
+  const parts = [];
+  const { months, days, hours, minutes, seconds, cron_periods } = intervalObj;
+  
+  if (months > 0) parts.push(`${months}mo`);
+  if (months < 0) parts.push(`${months}mo`);
+  if (days > 0) parts.push(`${days}d`);
+  if (days < 0) parts.push(`${days}d`);
+  if (hours > 0) parts.push(`${hours}h`);
+  if (hours < 0) parts.push(`${hours}h`);
+  if (minutes > 0) parts.push(`${minutes}m`);
+  if (minutes < 0) parts.push(`${minutes}m`);
+  if (seconds > 0) parts.push(`${seconds}s`);
+  if (seconds < 0) parts.push(`${seconds}s`);
+  if (cron_periods > 0) parts.push(`${cron_periods}p`);
+  if (cron_periods < 0) parts.push(`${cron_periods}p`);
+  
+  return parts.join(" ");
+};
+
+const stringToInterval = (str) => {
+  const interval = {
+    months: 0,
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0,
+    cron_periods: 0,
+  };
+  
+  if (!str || str.trim() === "" || str.toLowerCase() === "now") {
+    return interval;
+  }
+  
+  // Parse patterns like -2h, +1d, 30m, etc.
+  const patterns = [
+    { regex: /([+-]?\d+)M/g, key: 'months' },
+    { regex: /([+-]?\d+)d/g, key: 'days' },
+    { regex: /([+-]?\d+)h/g, key: 'hours' },
+    { regex: /([+-]?\d+)m/g, key: 'minutes' }, 
+    { regex: /([+-]?\d+)s/g, key: 'seconds' },
+    { regex: /([+-]?\d+)p/g, key: 'cron_periods' },
+  ];
+  
+  patterns.forEach(({ regex, key }) => {
+    const matches = str.matchAll(regex);
+    for (const match of matches) {
+      interval[key] += parseInt(match[1], 10);
+    }
+  });
+  
+  return interval;
+};
+
+const validateIntervalString = (str) => {
+  if (!str || str.trim() === "" || str.toLowerCase() === "now") {
+    return null; // Valid empty or "now"
+  }
+  
+  // Check for valid pattern
+  const validPattern = /^([+-]?\d+[modhsp],?\s*)+$/;
+  if (!validPattern.test(str.replace(/\s/g, ''))) {
+    return "Invalid format. Use patterns like: -2h, +1d, 30m, etc.";
+  }
+  
+  return null;
+};
+
+// Computed properties for string representation
+const startIntervalString = computed({
+  get() {
+    return intervalToString(intervalModifiers.value.start);
+  },
+  set(value) {
+    const error = validateIntervalString(value);
+    startValidationError.value = error || "";
+    if (!error) {
+      intervalModifiers.value.start = stringToInterval(value);
+    }
+  }
+});
+
+const endIntervalString = computed({
+  get() {
+    return intervalToString(intervalModifiers.value.end);
+  },
+  set(value) {
+    const error = validateIntervalString(value);
+    endValidationError.value = error || "";
+    if (!error) {
+      intervalModifiers.value.end = stringToInterval(value);
+    }
+  }
+});
+
+// Validation functions
+const validateStartInterval = () => {
+  const error = validateIntervalString(startIntervalString.value);
+  startValidationError.value = error || "";
+};
+
+const validateEndInterval = () => {
+  const error = validateIntervalString(endIntervalString.value);
+  endValidationError.value = error || "";
+};
 
 // Owner editing functions
 const startEditingOwner = () => {
@@ -300,6 +471,13 @@ watch(() => props.owner, (newOwner) => {
 
 watch(() => props.tags, (newTags) => {
   tags.value = [...newTags] || [];
+}, { immediate: true, deep: true });
+
+watch(() => props.intervalModifiers, (newIntervalModifiers) => {
+  intervalModifiers.value = {
+    start: { ...newIntervalModifiers.start },
+    end: { ...newIntervalModifiers.end }
+  };
 }, { immediate: true, deep: true });
 
 const defaultMaterialization = {
@@ -403,14 +581,16 @@ const saveMaterialization = () => {
     };
   }
 
-  // Include owner and tags in the payload
+  // Include owner, tags, and interval modifiers in the payload
   const payload = {
     materialization: cleanData,
     owner: owner.value,
     tags: tags.value,
+    intervalModifiers: intervalModifiers.value,
   };
 
   emit("update:materialization", cleanData);
+  emit("update:intervalModifiers", intervalModifiers.value);
   vscode.postMessage({
     command: "bruin.setAssetDetails",
     payload: payload,

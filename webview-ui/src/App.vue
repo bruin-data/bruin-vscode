@@ -430,6 +430,7 @@ const tabs = ref([
       columns: columns.value,
       owner: assetDetailsProps.value?.owner,
       tags: assetDetailsProps.value?.tags,
+      intervalModifiers: assetDetailsProps.value?.interval_modifiers,
     })),
   },
   {

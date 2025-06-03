@@ -104,6 +104,7 @@ export const parseAssetDetails = (data: string) => {
     pipeline,
     materialization: asset.materialization || undefined,
     tags: asset.tags || undefined,
+    interval_modifiers: asset.interval_modifiers || undefined,
     columns: asset.columns ? transformColumnData(asset.columns) : [],
     custom_checks: asset.custom_checks || [],
   };
