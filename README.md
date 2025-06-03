@@ -55,7 +55,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Latest Release: 0.48.1
-- Add DDL strategy to materialization tab.
+- Add DDL strategy to materialization tab and save primary key changes immediately.
 
 ### Recent Updates
 - **0.48.0**: Add UI for Managing Owner and Tags in Materialization Tab.
