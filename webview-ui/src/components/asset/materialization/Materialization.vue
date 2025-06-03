@@ -406,8 +406,6 @@ const saveMaterialization = () => {
   // Include owner and tags in the payload
   const payload = {
     materialization: cleanData,
-    owner: owner.value,
-    tags: tags.value,
   };
 
   emit("update:materialization", cleanData);
