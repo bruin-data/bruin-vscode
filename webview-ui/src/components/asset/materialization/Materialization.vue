@@ -106,6 +106,15 @@
               class="absolute z-10 w-full bg-dropdown-bg border border-commandCenter-border rounded shadow-lg mt-1 max-h-60 overflow-y-auto"
             >
               <div
+                class="px-3 py-2 hover:bg-list-hoverBackground hover:text-list-activeSelectionForeground cursor-pointer"
+                @click="
+                  localMaterialization.partition_by = '';
+                  isPartitionDropdownOpen = false;
+                "
+              >
+                <span class="text-xs opacity-70">Clear selection</span>
+              </div>
+              <div
                 v-for="column in columns"
                 :key="column.name"
                 class="px-3 py-2 hover:bg-list-hoverBackground hover:text-list-activeSelectionForeground cursor-pointer"
