@@ -29,7 +29,6 @@
         <div class="col-span-1">
           <vscode-checkbox
             :checked="column.primary_key"
-            :disabled="editingIndex !== index"
             @change="(e) => togglePrimaryKey(e, index)"
             title="Set as primary key"
           >
@@ -363,16 +362,17 @@ const addColumn = () => {
     showError(`"Failed to add new column. Please try again. \n" ${error}`);
   }
 };
-const togglePrimaryKey = (e, index) => {
+const togglePrimaryKey = (event, index) => {
   const isChecked = event.target.checked;
-  if (editingIndex.value === index) {
-    editingColumn.value.primary_key = isChecked;
-  } else {
-    const updatedColumn = { ...localColumns.value[index], primary_key: isChecked };
-    localColumns.value[index] = updatedColumn;
-    emitUpdateColumns();
-  }
+  localColumns.value[index].primary_key = isChecked;
+  emitUpdateColumns(); 
+  const payload = { columns: JSON.parse(JSON.stringify(localColumns.value)) };
+  vscode.postMessage({
+    command: "bruin.setAssetDetails",
+    payload: payload,
+  });
 };
+
 const saveChanges = (index) => {
   try {
     const updatedColumn = JSON.parse(JSON.stringify(editingColumn.value));
