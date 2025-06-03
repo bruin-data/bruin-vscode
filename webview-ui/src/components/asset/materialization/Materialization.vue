@@ -89,11 +89,15 @@
       <div class="flex gap-x-4 gap-y-2 w-full justify-between ">
         <div class="flex-1">
           <label class="block text-sm font-medium text-editor-fg mb-2">Partitioning</label>
-          <input
+          <select
             v-model="localMaterialization.partition_by"
             class="w-full max-w-[300px] p-2 bg-input-background border border-commandCenter-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg"
-            placeholder="column_name"
-          />
+          >
+            <option class="text-xs opacity-70" :value="''">Select a column</option>
+            <option v-for="column in columns" :key="column.name" :value="column.name">
+              {{ column.name }}
+            </option>
+          </select>
         </div>
 
         <div class="flex-1">
@@ -208,6 +212,10 @@ const props = defineProps({
   isConfigFile: {
     type: Boolean,
     default: false,
+  },
+  columns: {
+    type: Array,
+    default: () => [],
   },
   owner: {
     type: String,
@@ -404,7 +412,6 @@ const saveMaterialization = () => {
     };
   }
 
-  // Include owner and tags in the payload
   const payload = {
     materialization: cleanData,
   };
