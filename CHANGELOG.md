@@ -1,4 +1,7 @@
 # Changelog
+## [0.48.1] - [2025-06-03]
+- Add DDL strategy to materialization tab and save primary key changes immediately.
+
 ## [0.48.0] - [2025-06-02]
 - Add UI for Managing Owner and Tags in Materialization Tab. 
 

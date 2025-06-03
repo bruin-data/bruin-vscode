@@ -138,6 +138,7 @@
                 <option value="append">Append</option>
                 <option value="merge">Merge</option>
                 <option value="time_interval">Time Interval</option>
+                <option value="ddl">DDL</option>
               </select>
             </div>
             <p class="text-xs text-editor-fg opacity-70 mt-1 w-full">
@@ -406,8 +407,6 @@ const saveMaterialization = () => {
   // Include owner and tags in the payload
   const payload = {
     materialization: cleanData,
-    owner: owner.value,
-    tags: tags.value,
   };
 
   emit("update:materialization", cleanData);
@@ -424,6 +423,7 @@ function getStrategyDescription(strategy) {
     "append": "Add new rows without modifying existing data",
     "merge": "Update existing rows and insert new ones using primary keys",
     "time_interval": "Process time-based data using incremental key",
+    "ddl": "Use DDL to create a new table using the information provided in the embedded Bruin section",
   }[strategy];
 }
 </script>
