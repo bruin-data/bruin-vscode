@@ -1,20 +1,19 @@
 <template>
   <div class="h-full w-full p-4 flex justify-center">
     <div class="flex flex-col gap-4 h-full w-full max-w-4xl">
-      
       <!-- Owner and Tags Section -->
       <div class="bg-editorWidget-bg">
         <!-- Owner -->
         <div class="flex items-center mb-2 space-x-2">
           <label class="block text-sm font-medium text-editor-fg min-w-[60px]">Owner</label>
           <div id="owner-container" class="flex items-center gap-2">
-            <span 
-              v-if="!isEditingOwner" 
+            <span
+              v-if="!isEditingOwner"
               id="owner-text"
               class="text-md text-editor-fg px-2 py-1 font-mono flex items-center min-h-[32px]"
               :class="owner ? '' : 'text-editor-fg opacity-60 italic'"
             >
-              {{ owner || 'Unknown' }}
+              {{ owner || "Unknown" }}
             </span>
             <input
               id="owner-input"
@@ -27,9 +26,9 @@
               placeholder="data-team@company.com"
               class="text-sm p-1 bg-input-background border border-commandCenter-border rounded focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg min-w-[200px]"
             />
-            <vscode-button 
+            <vscode-button
               id="edit-owner-button"
-              appearance="icon" 
+              appearance="icon"
               @click="startEditingOwner"
               v-if="!isEditingOwner"
               class="text-xs"
@@ -45,15 +44,15 @@
         <div class="flex items-center mt-4 space-x-4">
           <label class="text-sm font-medium text-editor-fg min-w-[60px]">Tags</label>
           <div id="tags-container" class="flex flex-wrap items-center space-x-2">
-            <vscode-tag 
-              v-for="(tag, index) in tags" 
+            <vscode-tag
+              v-for="(tag, index) in tags"
               :key="index"
               class="text-xs inline-flex items-center justify-center gap-1 cursor-pointer py-1"
               @click="removeTag(index)"
             >
               <div class="text-xs flex items-center gap-2">
-               <span id="tag-text">{{ tag }}</span> 
-               <span class="codicon codicon-close text-3xs flex items-center"></span>
+                <span id="tag-text">{{ tag }}</span>
+                <span class="codicon codicon-close text-3xs flex items-center"></span>
               </div>
             </vscode-tag>
 
@@ -68,10 +67,10 @@
               placeholder="Tag name..."
               class="text-xs px-2 py-1.5 bg-input-background border border-commandCenter-border rounded focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg min-w-[80px]"
             />
-            <vscode-button 
+            <vscode-button
               id="add-tag-button"
-              appearance="icon" 
-              @click="startAddingTag" 
+              appearance="icon"
+              @click="startAddingTag"
               v-if="!isAddingTag"
               class="text-xs flex items-center justify-center h-full"
               title="Add tag"
@@ -86,27 +85,73 @@
       <div class="border-t border-commandCenter-border"></div>
 
       <!-- Partitioning and Clustering -->
-      <div class="flex gap-x-4 gap-y-2 w-full justify-between ">
+      <div class="flex gap-x-4 gap-y-2 w-full justify-between" @click="handleClickOutside">
         <div class="flex-1">
           <label class="block text-sm font-medium text-editor-fg mb-2">Partitioning</label>
-          <select
-            v-model="localMaterialization.partition_by"
-            class="w-full max-w-[300px] p-2 bg-input-background border border-commandCenter-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg"
-          >
-            <option class="text-xs opacity-70" :value="''">Select a column</option>
-            <option v-for="column in columns" :key="column.name" :value="column.name">
-              {{ column.name }}
-            </option>
-          </select>
+          <div class="relative w-full max-w-[300px]" ref="partitionContainer">
+            <input
+              readonly
+              :value="localMaterialization.partition_by || ''"
+              placeholder="Select a column..."
+              class="w-full p-2 bg-input-background border border-commandCenter-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg pr-10 cursor-pointer"
+              @click="isPartitionDropdownOpen = true"
+            />
+            <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+              <span class="codicon codicon-chevron-down text-xs"></span>
+            </span>
+
+            <!-- Partition Dropdown -->
+            <div
+              v-if="isPartitionDropdownOpen"
+              class="absolute z-10 w-full bg-dropdown-bg border border-commandCenter-border rounded shadow-lg mt-1 max-h-60 overflow-y-auto"
+            >
+              <div
+                v-for="column in columns"
+                :key="column.name"
+                class="px-3 py-2 hover:bg-list-hoverBackground hover:text-list-activeSelectionForeground cursor-pointer"
+                @click="selectPartitionColumn(column.name)"
+              >
+                {{ column.name }}
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="flex-1">
           <label class="block text-sm font-medium text-editor-fg mb-2">Clustering</label>
-          <input
-            v-model="clusterByString"
-            class="w-full max-w-[300px] p-2 bg-input-background border border-commandCenter-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg"
-            placeholder="comma-separated columns"
-          />
+          <div class="relative w-full max-w-[300px]" ref="clusterContainer">
+            <input
+              ref="clusterInput"
+              v-model="clusterInputValue"
+              readonly
+              placeholder="Select columns..."
+              class="w-full p-2 bg-input-background border border-commandCenter-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg pr-10 cursor-pointer"
+              @click="isClusterDropdownOpen = !isClusterDropdownOpen"
+              @keydown.delete="removeLastClusterColumn"
+            />
+            <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+              <span class="codicon codicon-chevron-down text-xs"></span>
+            </span>
+
+            <!-- Dropdown with column options -->
+            <div
+              v-if="isClusterDropdownOpen"
+              class="absolute z-10 w-full bg-dropdown-bg border border-commandCenter-border rounded shadow-lg mt-1 max-h-60 overflow-y-auto"
+            >
+              <div
+                v-for="column in columns"
+                :key="column.name"
+                class="px-3 py-2 hover:bg-list-hoverBackground hover:text-list-activeSelectionForeground cursor-pointer flex items-center"
+                @click="toggleClusterColumn(column.name)"
+              >
+                <span
+                  class="codicon text-xs mr-2"
+                  :class="isColumnSelected(column.name) ? 'codicon-check' : 'codicon-blank'"
+                ></span>
+                <span>{{ column.name }}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -201,7 +246,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from "vue";
+import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from "vue";
 import { vscode } from "@/utilities/vscode";
 
 const props = defineProps({
@@ -238,7 +283,11 @@ const isEditingOwner = ref(false);
 const editingOwner = ref("");
 const ownerInput = ref(null);
 const tagInput = ref(null);
-
+const isPartitionDropdownOpen = ref(false);
+const isClusterDropdownOpen = ref(false);
+const clusterInput = ref(null);
+const partitionContainer = ref(null);
+const clusterContainer = ref(null);
 // Owner editing functions
 const startEditingOwner = () => {
   isEditingOwner.value = true;
@@ -276,7 +325,7 @@ const startAddingTag = () => {
 const confirmAddTag = () => {
   if (newTag.value.trim() && !tags.value.includes(newTag.value.trim())) {
     tags.value.push(newTag.value.trim());
-    sendTagUpdate(); 
+    sendTagUpdate();
   }
   newTag.value = "";
   isAddingTag.value = false;
@@ -303,13 +352,21 @@ const sendTagUpdate = () => {
 };
 
 // Watch for prop changes
-watch(() => props.owner, (newOwner) => {
-  owner.value = newOwner || "";
-}, { immediate: true });
+watch(
+  () => props.owner,
+  (newOwner) => {
+    owner.value = newOwner || "";
+  },
+  { immediate: true }
+);
 
-watch(() => props.tags, (newTags) => {
-  tags.value = [...newTags] || [];
-}, { immediate: true, deep: true });
+watch(
+  () => props.tags,
+  (newTags) => {
+    tags.value = [...newTags] || [];
+  },
+  { immediate: true, deep: true }
+);
 
 const defaultMaterialization = {
   type: "null",
@@ -321,18 +378,6 @@ const defaultMaterialization = {
 };
 
 const localMaterialization = ref({ ...defaultMaterialization });
-
-const clusterByString = computed({
-  get() {
-    return localMaterialization.value.cluster_by?.join(", ") || "";
-  },
-  set(newValue) {
-    localMaterialization.value.cluster_by = newValue
-      .split(",")
-      .map((c) => c.trim())
-      .filter((c) => c);
-  },
-});
 
 const initializeLocalMaterialization = (materializationProp) => {
   if (materializationProp === null) {
@@ -388,6 +433,58 @@ const setType = (type) => {
   }
 };
 
+const selectPartitionColumn = (columnName) => {
+  localMaterialization.value.partition_by = columnName;
+  isPartitionDropdownOpen.value = false;
+};
+
+const clusterInputValue = computed(() => {
+  return localMaterialization.value.cluster_by.join(", ") || "";
+});
+
+// Toggle cluster column selection
+const toggleClusterColumn = (columnName) => {
+  if (!localMaterialization.value.cluster_by) {
+    localMaterialization.value.cluster_by = [];
+  }
+
+  const index = localMaterialization.value.cluster_by.indexOf(columnName);
+  if (index > -1) {
+    localMaterialization.value.cluster_by.splice(index, 1);
+  } else {
+    localMaterialization.value.cluster_by.push(columnName);
+  }
+};
+
+// Remove last cluster column when pressing backspace
+const removeLastClusterColumn = () => {
+  if (localMaterialization.value.cluster_by.length > 0) {
+    localMaterialization.value.cluster_by.pop();
+  }
+};
+
+// Check if column is selected
+const isColumnSelected = (columnName) => {
+  return localMaterialization.value.cluster_by?.includes(columnName);
+};
+
+const handleClickOutside = (event) => {
+  if (partitionContainer.value && !partitionContainer.value.contains(event.target)) {
+    isPartitionDropdownOpen.value = false;
+  }
+  if (clusterContainer.value && !clusterContainer.value.contains(event.target)) {
+    isClusterDropdownOpen.value = false;
+  }
+};
+// Add click event listener to close dropdown
+onMounted(() => {
+  window.addEventListener("click", handleClickOutside);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("click", handleClickOutside);
+});
+
 const saveMaterialization = () => {
   let cleanData = null;
   if (localMaterialization.value.type !== "null") {
@@ -430,7 +527,8 @@ function getStrategyDescription(strategy) {
     "append": "Add new rows without modifying existing data",
     "merge": "Update existing rows and insert new ones using primary keys",
     "time_interval": "Process time-based data using incremental key",
-    "ddl": "Use DDL to create a new table using the information provided in the embedded Bruin section",
+    "ddl":
+      "Use DDL to create a new table using the information provided in the embedded Bruin section",
   }[strategy];
 }
 </script>
@@ -467,5 +565,9 @@ vscode-tag::part(control) {
 }
 .info-text {
   @apply text-sm text-editor-fg opacity-70;
+}
+vscode-button::part(control) {
+  border: none;
+  outline: none;
 }
 </style>
