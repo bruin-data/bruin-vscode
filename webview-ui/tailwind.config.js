@@ -117,6 +117,7 @@ module.exports = {
         "keybindingLabel-bottom-border": "var(--vscode-keybindingLabel-bottomBorder)",
         "notification-bg": "var(--vscode-notification-background)",
         "notification-fg": "var(--vscode-notification-foreground)",
+        "notificationsInfoIcon-fg": "var(--vscode-notificationsInfoIcon-foreground)",
 
         "primary": {
           DEFAULT: "hsl(var(--primary))",

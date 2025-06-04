@@ -195,6 +195,24 @@
       </div>
 
       <!-- Alerts and Code Display Section -->
+      <div
+        v-if="showIntervalAlert"
+        class="mb-2 transition-all duration-300 ease-in-out overflow-hidden"
+      >
+        <div
+          class="flex items-center border border-commandCenter-border bg-notification-bg p-2 rounded-md text-notification-fg"
+        >
+          <span class="mr-2 text-notificationsInfoIcon-fg codicon codicon-info text-xs"></span>
+          <span class="flex-1 text-sm">Interval modifiers are present. Check "Interval-modifiers" to apply them.</span>
+          <button
+            @click="dismissIntervalAlert"
+            class="text-current hover:bg-notification-bg hover:text-notification-fg rounded-full w-5 h-5 flex items-center justify-center"
+            title="Dismiss"
+          >
+            <span class="codicon codicon-close text-xs"></span>
+          </button>
+        </div>
+      </div>
       <ErrorAlert
         v-if="hasCriticalErrors"
         :errorMessage="errorMessage!"
@@ -257,6 +275,7 @@ const props = defineProps<{
   schedule: string;
   environments: string[];
   selectedEnvironment: string;
+  hasIntervalModifiers: boolean;
 }>();
 
 /**
@@ -277,7 +296,14 @@ const isError = computed(() => errorState.value?.errorCaptured);
 const errorMessage = computed(() => errorState.value?.errorMessage);
 const toggled = ref(false);
 const rudderStack = RudderStackService.getInstance();
+const showIntervalAlert = ref(false);
+const dismissedIntervalAlert = ref(false);
 
+// Method to dismiss the alert
+const dismissIntervalAlert = () => {
+  dismissedIntervalAlert.value = true;
+  showIntervalAlert.value = false;
+};
 /**
  * Computed properties for error handling and warnings
  */
@@ -468,6 +494,29 @@ watch(
   { deep: true }
 );
 
+watch(
+  () => props.hasIntervalModifiers,
+  (newVal) => {
+    console.warn("Child: Interval modifiers updated:", newVal);
+  }
+);
+
+watch(
+  [
+    () => props.hasIntervalModifiers,
+    () => checkboxItems.value.find((item) => item.name === "Interval-modifiers")?.checked,
+  ],
+  ([hasIntervalModifiers, isChecked]) => {
+    console.warn("Has interval modifiers:", props.hasIntervalModifiers);
+    console.warn("Interval modifiers checked:", isChecked);
+
+    showIntervalAlert.value = hasIntervalModifiers && !isChecked && !dismissedIntervalAlert.value;
+    console.warn("Has interval modifiers:", props.hasIntervalModifiers);
+    console.warn("Interval modifiers checked:", isChecked);
+  },
+  { immediate: true }
+);
+
 /**
  * Function to send initial message
  */
@@ -506,7 +555,10 @@ const handleEnvironmentChange = (env) => {
   });
 };
 
-function buildCommandPayload(basePayload, options: { downstream?: boolean; continue?: boolean } = {}) {
+function buildCommandPayload(
+  basePayload,
+  options: { downstream?: boolean; continue?: boolean } = {}
+) {
   const { downstream = false, continue: continueFlag = false } = options;
   let payload = basePayload;
 
@@ -597,15 +649,19 @@ onBeforeUnmount(() => {
   window.removeEventListener("message", receiveMessage);
 });
 
-watch([startDate, endDate], ([newStart, newEnd]) => {
-  vscode.postMessage({
-    command: "bruin.updateQueryDates",
-    payload: {
-      startDate: newStart,
-      endDate: newEnd
-    }
-  });
-}, { immediate: true });
+watch(
+  [startDate, endDate],
+  ([newStart, newEnd]) => {
+    vscode.postMessage({
+      command: "bruin.updateQueryDates",
+      payload: {
+        startDate: newStart,
+        endDate: newEnd,
+      },
+    });
+  },
+  { immediate: true }
+);
 
 function receiveMessage(event: { data: any }) {
   if (!event) return;

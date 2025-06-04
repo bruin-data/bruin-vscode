@@ -268,6 +268,7 @@ const showConvertMessage = ref(false);
 const nonAssetFileType = ref("");
 const nonAssetFilePath = ref("");
 const activeTab = ref(0); // Tracks the currently active tab
+
 const navigateToGlossary = () => {
   console.log("Opening glossary.");
   vscode.postMessage({ command: "bruin.openGlossary" });
@@ -326,6 +327,16 @@ const assetDetailsProps = computed({
       // console.log("Updated asset data after setting:", data.value);
     }
   },
+});
+
+const intervalModifiers = computed(() => {
+  return assetDetailsProps.value?.interval_modifiers || false;
+});
+
+const hasIntervalModifiers = computed(() => {
+  const intervalModifiersValue = assetDetailsProps.value?.interval_modifiers ? true : false;
+  console.warn("Has interval modifiers computed:", intervalModifiersValue);
+  return intervalModifiersValue;
 });
 
 const isEditingName = ref(false);
@@ -411,6 +422,7 @@ const tabs = ref([
       ...assetDetailsProps.value,
       environments: environmentsList.value,
       selectedEnvironment: selectedEnvironment.value,
+      hasIntervalModifiers: hasIntervalModifiers.value,
     })),
     emits: ["update:name", "update:description"],
   },
