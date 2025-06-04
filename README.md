@@ -54,10 +54,11 @@ Bruin is a unified analytics platform that enables data professionals to work en
 **Note**: Ensure that you have the Bruin CLI installed on your system before using the new features. For guidance on installing the Bruin CLI, please refer to the [official documentation](https://github.com/bruin-data/bruin).
 
 ## Release Notes
-### Latest Release: 0.48.2
-- Updated `partition-by` and `cluster-by` to use a dropdown for selecting columns.
+### Latest Release: 0.48.3
+- Improved `partition-by` input to support both column selection and manual text entry.
 
 ### Recent Updates
+- **0.48.2**: Updated `partition-by` and `cluster-by` to use a dropdown for selecting columns.
 - **0.48.1**: Add DDL strategy to materialization tab and save primary key changes immediately.
 - **0.48.0**: Add UI for Managing Owner and Tags in Materialization Tab.
 - **0.47.6**: Debounce asset conversion detection and add telemetry for convert message.
