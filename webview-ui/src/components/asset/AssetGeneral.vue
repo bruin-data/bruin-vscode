@@ -353,6 +353,7 @@ const warningMessages = computed(() =>
  */
 const checkboxItems = ref([
   { name: "Full-Refresh", checked: false },
+  { name: "Interval-modifiers", checked: false },
   { name: "Exclusive-End-Date", checked: true },
   { name: "Push-Metadata", checked: false },
 ]);

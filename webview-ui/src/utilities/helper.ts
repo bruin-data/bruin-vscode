@@ -26,10 +26,12 @@ export const concatCommandFlags = (
   const endDateFlag = isExclusiveChecked(checkboxItems) ? ` --end-date ${endDateExclusive}` : ` --end-date ${endDate}`;
 
   const checkboxesFlags = checkboxItems
-    .filter((item) => item.checked && item.name !== "Exclusive-End-Date")
+    .filter((item) => item.checked && item.name !== "Exclusive-End-Date" && item.name !== "Interval-modifiers")
     .map((item) => ` --${item.name.toLowerCase()}`);
-
-  return [startDateFlag, endDateFlag, ...checkboxesFlags].join("");
+  const intervalModifiersFlags = checkboxItems
+    .filter((item) => item.checked && item.name === "Interval-modifiers")
+    .map((item) => ` --apply-${item.name.toLowerCase()}`);
+  return [startDateFlag, endDateFlag, ...checkboxesFlags, ...intervalModifiersFlags].join("");
 };
 
 export const handleError = (validationError: any | null, renderSQLAssetError: any | null) => {
