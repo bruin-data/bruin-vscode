@@ -1,9 +1,7 @@
 <template>
   <div class="h-full w-full p-4 flex justify-center">
     <div class="flex flex-col gap-4 h-full w-full max-w-4xl">
-      <!-- Owner and Tags Section -->
       <div class="bg-editorWidget-bg">
-        <!-- Owner -->
         <div class="flex items-center mb-2 space-x-2">
           <label class="block text-sm font-medium text-editor-fg min-w-[60px]">Owner</label>
           <div id="owner-container" class="flex items-center gap-2">
@@ -40,7 +38,6 @@
         </div>
         <div class="border-t border-commandCenter-border"></div>
 
-        <!-- Tags needs to be in the same line-->
         <div class="flex items-center mt-4 space-x-4">
           <label class="text-sm font-medium text-editor-fg min-w-[60px]">Tags</label>
           <div id="tags-container" class="flex flex-wrap items-center space-x-2">
@@ -81,44 +78,46 @@
         </div>
       </div>
 
-      <!-- Separator -->
       <div class="border-t border-commandCenter-border"></div>
 
-      <!-- Partitioning and Clustering -->
       <div class="flex gap-x-4 gap-y-2 w-full justify-between" @click="handleClickOutside">
         <div class="flex-1">
           <label class="block text-sm font-medium text-editor-fg mb-2">Partitioning</label>
           <div class="relative w-full max-w-[300px]" ref="partitionContainer">
             <input
-              readonly
-              :value="localMaterialization.partition_by || ''"
-              placeholder="Select a column..."
-              class="w-full p-2 bg-input-background border border-commandCenter-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg pr-10 cursor-pointer"
-              @click="isPartitionDropdownOpen = true"
+              v-model="partitionInput"
+              placeholder="Select a column or enter an expression..."
+              class="w-full p-2 bg-input-background border border-commandCenter-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg pr-10"
+              @focus="isPartitionDropdownOpen = true"
+              @blur="handlePartitionInputBlur"
+              @input="handlePartitionInput"
+              @keydown.enter="handlePartitionEnter"
             />
-            <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+            <span
+              class="absolute inset-y-0 right-0 flex items-center pr-2 cursor-pointer"
+              @click="isPartitionDropdownOpen = !isPartitionDropdownOpen"
+            >
               <span class="codicon codicon-chevron-down text-xs"></span>
             </span>
 
-            <!-- Partition Dropdown -->
             <div
               v-if="isPartitionDropdownOpen"
               class="absolute z-10 w-full bg-dropdown-bg border border-commandCenter-border rounded shadow-lg mt-1 max-h-60 overflow-y-auto"
             >
               <div
                 class="px-3 py-2 hover:bg-list-hoverBackground hover:text-list-activeSelectionForeground cursor-pointer"
-                @click="
-                  localMaterialization.partition_by = '';
+                @mousedown.prevent="
+                  selectPartitionColumn('');
                   isPartitionDropdownOpen = false;
                 "
               >
                 <span class="text-xs opacity-70">Clear selection</span>
               </div>
               <div
-                v-for="column in columns"
+                v-for="column in filteredPartitionColumns"
                 :key="column.name"
                 class="px-3 py-2 hover:bg-list-hoverBackground hover:text-list-activeSelectionForeground cursor-pointer"
-                @click="selectPartitionColumn(column.name)"
+                @mousedown.prevent="selectPartitionColumn(column.name)"
               >
                 {{ column.name }}
               </div>
@@ -142,7 +141,6 @@
               <span class="codicon codicon-chevron-down text-xs"></span>
             </span>
 
-            <!-- Dropdown with column options -->
             <div
               v-if="isClusterDropdownOpen"
               class="absolute z-10 w-full bg-dropdown-bg border border-commandCenter-border rounded shadow-lg mt-1 max-h-60 overflow-y-auto"
@@ -297,6 +295,10 @@ const isClusterDropdownOpen = ref(false);
 const clusterInput = ref(null);
 const partitionContainer = ref(null);
 const clusterContainer = ref(null);
+
+// Reactive data for Partitioning free-text input
+const partitionInput = ref("");
+
 // Owner editing functions
 const startEditingOwner = () => {
   isEditingOwner.value = true;
@@ -399,11 +401,11 @@ const initializeLocalMaterialization = (materializationProp) => {
   base.cluster_by = Array.isArray(base.cluster_by)
     ? base.cluster_by
     : typeof base.cluster_by === "string"
-      ? base.cluster_by
-          .split(",")
-          .map((c) => c.trim())
-          .filter((c) => c)
-      : [];
+    ? base.cluster_by
+        .split(",")
+        .map((c) => c.trim())
+        .filter((c) => c)
+    : [];
   return base;
 };
 
@@ -411,6 +413,8 @@ watch(
   () => props.materialization,
   (newVal) => {
     localMaterialization.value = initializeLocalMaterialization(newVal);
+    // Initialize partitionInput with the current partition_by value
+    partitionInput.value = localMaterialization.value.partition_by || "";
   },
   { immediate: true, deep: true }
 );
@@ -442,9 +446,41 @@ const setType = (type) => {
   }
 };
 
+// Update these for the Partitioning field
 const selectPartitionColumn = (columnName) => {
-  localMaterialization.value.partition_by = columnName;
+  partitionInput.value = columnName; // Update input field
+  localMaterialization.value.partition_by = columnName; // Update underlying data
   isPartitionDropdownOpen.value = false;
+};
+
+// Filter columns based on input for partitioning
+const filteredPartitionColumns = computed(() => {
+  const query = partitionInput.value.toLowerCase();
+  if (!query || isPartitionDropdownOpen.value) {
+    return props.columns;
+  }
+  return props.columns.filter((column) =>
+    column.name.toLowerCase().includes(query)
+  );
+});
+
+const handlePartitionInput = () => {
+  // Update the underlying data as the user types
+  localMaterialization.value.partition_by = partitionInput.value;
+  // Keep dropdown open if user is typing a potential column or expression
+  isPartitionDropdownOpen.value = true;
+};
+
+const handlePartitionInputBlur = () => {
+  // Close the dropdown after a short delay to allow for click on dropdown items
+  setTimeout(() => {
+    isPartitionDropdownOpen.value = false;
+  }, 100);
+};
+
+const handlePartitionEnter = () => {
+  isPartitionDropdownOpen.value = false;
+  // The localMaterialization.value.partition_by is already updated via handlePartitionInput
 };
 
 const clusterInputValue = computed(() => {

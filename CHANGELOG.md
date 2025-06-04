@@ -1,4 +1,6 @@
 # Changelog
+## [0.48.3] - [2025-06-04]
+- Improved `partition-by` input to support both column selection and manual text entry.
 
 ## [0.48.2] - [2025-06-03]
 - Updated `partition-by` and `cluster-by` to use a dropdown for selecting columns.
