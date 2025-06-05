@@ -686,6 +686,14 @@ function receiveMessage(event: { data: any }) {
       break;
     case "run-error":
       break;
+    case "setDefaultCheckboxStates":
+      if (envelope.payload) {
+        checkboxItems.value = checkboxItems.value.map((item) => ({
+          ...item,
+          checked: envelope.payload[item.name] !== undefined ? envelope.payload[item.name] : item.checked,
+        }));
+      }
+      break;
   }
 }
 </script>

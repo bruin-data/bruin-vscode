@@ -52,19 +52,13 @@ import {
   getConnections,
   getConnectionsListFromSchema,
 } from "../extension/commands/manageConnections";
-import { parseAssetCommand, patchAssetCommand } from "../extension/commands/parseAssetCommand";
-import { getEnvListCommand } from "../extension/commands/getEnvListCommand";
 import { lineageCommand } from "../extension/commands/lineageCommand";
 import { BruinInternalParse } from "../bruin/bruinInternalParse";
 import { BruinEnvList } from "../bruin/bruinSelectEnv";
-import { activate } from "../extension/extension";
-import { checkBruinCliVersion, installOrUpdateCli } from "../extension/commands/updateBruinCLI";
+import {  installOrUpdateCli } from "../extension/commands/updateBruinCLI";
 import { getLanguageDelimiters } from "../utilities/delimiters";
 import { bruinDelimiterRegex } from "../constants";
 import { bruinFoldingRangeProvider } from "../providers/bruinFoldingRangeProvider";
-import { flowLineageCommand } from "../extension/commands/FlowLineageCommand";
-import { BruinLineageInternalParse } from "../bruin/bruinFlowLineage";
-import { BruinCommandOptions } from "../types";
 import { BruinQueryOutput } from "../bruin/queryOutput";
 import { QueryPreviewPanel } from "../panels/QueryPreviewPanel";
 import { getQueryOutput } from "../extension/commands/queryCommands";
