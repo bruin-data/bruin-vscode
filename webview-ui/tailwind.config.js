@@ -90,6 +90,7 @@ module.exports = {
         "editorError-foreground": "var(--vscode-editorError-foreground)",
         "input-background": "var(--vscode-input-background)",
         "input-foreground": "var(--vscode-input-foreground)",
+        "input-border": "var(--vscode-input-border)",
         "inputOption-activeBorder": "var(--vscode-inputOption-activeBorder)",
         "inputOption-hoverBackground": "var(--vscode-inputOption-hoverBackground)",
         "inputOption-activeBackground": "var(--vscode-inputOption-activeBackground)",
@@ -117,6 +118,8 @@ module.exports = {
         "keybindingLabel-bottom-border": "var(--vscode-keybindingLabel-bottomBorder)",
         "notification-bg": "var(--vscode-notification-background)",
         "notification-fg": "var(--vscode-notification-foreground)",
+        "notificationsInfoIcon-fg": "var(--vscode-notificationsInfoIcon-foreground)",
+        "notificationsWarningIcon-fg": "var(--vscode-notificationsWarningIcon-foreground)",
 
         "primary": {
           DEFAULT: "hsl(var(--primary))",

@@ -81,6 +81,7 @@
         :schedule="scheduleExists ? props.pipeline.schedule : ''"
         :environments="environments"
         :selectedEnvironment="selectedEnvironment"
+        :hasIntervalModifiers="hasIntervalModifiers"
       />
     </div>
   </div>
@@ -104,6 +105,7 @@ const props = defineProps<{
   pipeline: any;
   environments: string[];
   selectedEnvironment: string;
+  hasIntervalModifiers: boolean;
 }>();
 
 const descriptionRef = ref<HTMLElement | null>(null);

@@ -209,7 +209,7 @@
       />
       <div class="">
         <div v-if="language === 'sql'" class="mt-1">
-          <SqlEditor :code="code" :copied="false" :language="language" />
+          <SqlEditor :code="code" :copied="false" :language="language" :showIntervalAlert="showIntervalAlert"/>
         </div>
         <div v-else class="overflow-hidden w-full h-20">
           <pre class="white-space"></pre>
@@ -257,6 +257,7 @@ const props = defineProps<{
   schedule: string;
   environments: string[];
   selectedEnvironment: string;
+  hasIntervalModifiers: boolean;
 }>();
 
 /**
@@ -277,7 +278,14 @@ const isError = computed(() => errorState.value?.errorCaptured);
 const errorMessage = computed(() => errorState.value?.errorMessage);
 const toggled = ref(false);
 const rudderStack = RudderStackService.getInstance();
+const showIntervalAlert = ref(false);
+const dismissedIntervalAlert = ref(false);
 
+// Method to dismiss the alert
+const dismissIntervalAlert = () => {
+  dismissedIntervalAlert.value = true;
+  showIntervalAlert.value = false;
+};
 /**
  * Computed properties for error handling and warnings
  */
@@ -353,6 +361,7 @@ const warningMessages = computed(() =>
  */
 const checkboxItems = ref([
   { name: "Full-Refresh", checked: false },
+  { name: "Interval-modifiers", checked: false },
   { name: "Exclusive-End-Date", checked: true },
   { name: "Push-Metadata", checked: false },
 ]);
@@ -467,6 +476,29 @@ watch(
   { deep: true }
 );
 
+watch(
+  () => props.hasIntervalModifiers,
+  (newVal) => {
+    console.warn("Child: Interval modifiers updated:", newVal);
+  }
+);
+
+watch(
+  [
+    () => props.hasIntervalModifiers,
+    () => checkboxItems.value.find((item) => item.name === "Interval-modifiers")?.checked,
+  ],
+  ([hasIntervalModifiers, isChecked]) => {
+    console.warn("Has interval modifiers:", props.hasIntervalModifiers);
+    console.warn("Interval modifiers checked:", isChecked);
+
+    showIntervalAlert.value = hasIntervalModifiers && !isChecked && !dismissedIntervalAlert.value;
+    console.warn("Has interval modifiers:", props.hasIntervalModifiers);
+    console.warn("Interval modifiers checked:", isChecked);
+  },
+  { immediate: true }
+);
+
 /**
  * Function to send initial message
  */
@@ -505,7 +537,10 @@ const handleEnvironmentChange = (env) => {
   });
 };
 
-function buildCommandPayload(basePayload, options: { downstream?: boolean; continue?: boolean } = {}) {
+function buildCommandPayload(
+  basePayload,
+  options: { downstream?: boolean; continue?: boolean } = {}
+) {
   const { downstream = false, continue: continueFlag = false } = options;
   let payload = basePayload;
 
@@ -596,15 +631,19 @@ onBeforeUnmount(() => {
   window.removeEventListener("message", receiveMessage);
 });
 
-watch([startDate, endDate], ([newStart, newEnd]) => {
-  vscode.postMessage({
-    command: "bruin.updateQueryDates",
-    payload: {
-      startDate: newStart,
-      endDate: newEnd
-    }
-  });
-}, { immediate: true });
+watch(
+  [startDate, endDate],
+  ([newStart, newEnd]) => {
+    vscode.postMessage({
+      command: "bruin.updateQueryDates",
+      payload: {
+        startDate: newStart,
+        endDate: newEnd,
+      },
+    });
+  },
+  { immediate: true }
+);
 
 function receiveMessage(event: { data: any }) {
   if (!event) return;
