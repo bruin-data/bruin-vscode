@@ -195,24 +195,6 @@
       </div>
 
       <!-- Alerts and Code Display Section -->
-      <div
-        v-if="showIntervalAlert"
-        class="mb-2 transition-all duration-300 ease-in-out overflow-hidden"
-      >
-        <div
-          class="flex items-center border border-commandCenter-border bg-notification-bg p-2 rounded-md text-notification-fg"
-        >
-          <span class="mr-2 text-notificationsInfoIcon-fg codicon codicon-info text-xs"></span>
-          <span class="flex-1 text-sm">Interval modifiers are present. Check "Interval-modifiers" to apply them.</span>
-          <button
-            @click="dismissIntervalAlert"
-            class="text-current hover:bg-notification-bg hover:text-notification-fg rounded-full w-5 h-5 flex items-center justify-center"
-            title="Dismiss"
-          >
-            <span class="codicon codicon-close text-xs"></span>
-          </button>
-        </div>
-      </div>
       <ErrorAlert
         v-if="hasCriticalErrors"
         :errorMessage="errorMessage!"
@@ -227,7 +209,7 @@
       />
       <div class="">
         <div v-if="language === 'sql'" class="mt-1">
-          <SqlEditor :code="code" :copied="false" :language="language" />
+          <SqlEditor :code="code" :copied="false" :language="language" :showIntervalAlert="showIntervalAlert"/>
         </div>
         <div v-else class="overflow-hidden w-full h-20">
           <pre class="white-space"></pre>
