@@ -86,7 +86,6 @@ const showAlertMassage = ref(false);
 const copied = ref(false);
 const clickOpened = ref(false);
 
-// Directive to detect clicks outside an element
 const vClickOutside = {
   mounted(el, binding) {
     el.__ClickOutsideHandler__ = (event) => {
@@ -114,16 +113,14 @@ const editorPadding = 12;
 const minEditorHeight = `${lineHeight * 2}px`;
 const maxEditorHeight = "500px";
 
-// Calculate line number width based on total lines
 const lineNumberWidth = computed(() => {
   const totalLines = visibleHighlightedLines.value.length;
   const digits = totalLines.toString().length;
   return 20 + (digits * 8);
 });
 
-// Only use virtual scroller for large content to avoid unnecessary scrolling
 const shouldUseVirtualScroller = computed(() => {
-  return visibleHighlightedLines.value.length > 50; // Use virtual scroller only for 50+ lines
+  return visibleHighlightedLines.value.length > 50;
 });
 
 const highlightedLines = computed(() => {
@@ -134,7 +131,6 @@ const highlightedLines = computed(() => {
 
 const visibleHighlightedLines = computed(() => {
   const lines = highlightedLines.value;
-  // If no lines, provide one empty line for consistent height
   if (lines.length === 0) {
     return [{ lineNumber: 1, content: "<span></span>" }];
   }
@@ -148,23 +144,17 @@ const editorHeight = computed(() => {
   const lineCount = visibleHighlightedLines.value.length;
   const calculatedHeight = lineCount * lineHeight + editorPadding;
 
-  // If there's no code or only empty lines, use minEditorHeight
   if (!props.code || lineCount === 0) {
     return minEditorHeight;
   }
-
-  // For any number of lines, ensure proper height calculation including padding
-  // Use minEditorHeight as minimum, maxEditorHeight as maximum
   return `${Math.min(Math.max(calculatedHeight, parseInt(minEditorHeight)), parseInt(maxEditorHeight))}px`;
 });
 
 const toggleWarningMessage = () => {
   if (clickOpened.value) {
-    // If already opened by click, close it
     showAlertMassage.value = false;
     clickOpened.value = false;
   } else {
-    // Open it and mark as click-opened
     showAlertMassage.value = true;
     clickOpened.value = true;
   }
@@ -250,7 +240,6 @@ watch(
   user-select: none;
   position: sticky;
   left: 0;
-  text-align: right;
   white-space: nowrap;
   width: v-bind(lineNumberWidth + "px");
   flex-shrink: 0;
@@ -262,6 +251,7 @@ watch(
   overflow-wrap: anywhere;
   overflow-x: visible;
   padding-right: 10px;
+  flex-grow: 1;
 }
 .header {
   color: var(--vscode-disabledForeground);
