@@ -416,7 +416,7 @@ const customChecks = ref([...customChecksProps.value]); // Reactive reference fo
 // Define tabs for the application
 const tabs = ref([
   {
-    label: "Asset Details",
+    label: "General",
     component: AssetDetails,
     props: computed(() => ({
       ...assetDetailsProps.value,
@@ -435,7 +435,7 @@ const tabs = ref([
     })),
   },
   {
-    label: "Materialization",
+    label: "Details",
     component: Materialization,
     props: computed(() => ({
       materialization: materializationProps.value,
