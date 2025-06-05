@@ -4,6 +4,14 @@ import * as fs from "fs";
 import * as os from "os";
 import { bruinFoldingRangeProvider } from "../providers/bruinFoldingRangeProvider";
 
+export function getDefaultCheckboxSettings() {
+  const config = vscode.workspace.getConfiguration("bruin.checkbox");
+  return {
+    defaultIntervalModifiers: config.get<boolean>("defaultIntervalModifiers", false),
+    defaultExclusiveEndDate: config.get<boolean>("defaultExclusiveEndDate", true),
+    defaultPushMetadata: config.get<boolean>("defaultPushMetadata", false),
+  };
+}
 
 export function getPathSeparator(): string {
   const bruinConfig = vscode.workspace.getConfiguration("bruin");
