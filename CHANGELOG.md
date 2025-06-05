@@ -1,4 +1,7 @@
 # Changelog
+## [0.49.0] - [2025-06-05]
+- Added a checkbox to toggle the `--apply-interval-modifiers` flag, along with a warning when they are present in the asset but not enabled.
+
 ## [0.48.3] - [2025-06-04]
 - Improved `partition-by` input to support both column selection and manual text entry.
 
