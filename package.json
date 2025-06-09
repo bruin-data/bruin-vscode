@@ -2,7 +2,7 @@
   "name": "bruin",
   "displayName": "Bruin",
   "description": "Manage your Bruin data assets from within VS Code.",
-  "version": "0.49.0",
+  "version": "0.49.1",
   "engines": {
     "vscode": "^1.87.0"
   },
@@ -130,6 +130,21 @@
             "\\"
           ],
           "description": "The path separator to use when constructing Bruin asset paths."
+        },
+        "bruin.checkbox.defaultIntervalModifiers": {
+          "type": "boolean",
+          "default": false,
+          "description": "Sets whether the 'Interval-modifiers' checkbox is checked by default."
+        },
+        "bruin.checkbox.defaultExclusiveEndDate": {
+          "type": "boolean",
+          "default": true,
+          "description": "Sets whether the 'Exclusive-End-Date' checkbox is checked by default."
+        },
+        "bruin.checkbox.defaultPushMetadata": {
+          "type": "boolean",
+          "default": false,
+          "description": "Sets whether the 'Push-Metadata' checkbox is checked by default."
         }
       }
     },

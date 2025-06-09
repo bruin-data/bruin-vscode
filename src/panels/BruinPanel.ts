@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import { Disposable, Webview, WebviewPanel, window, Uri, ViewColumn, workspace } from "vscode";
 import { getUri } from "../utilities/getUri";
 import { getNonce } from "../utilities/getNonce";
@@ -10,7 +11,11 @@ import {
 } from "../bruin";
 import * as vscode from "vscode";
 import { renderCommandWithFlags } from "../extension/commands/renderCommand";
-import { convertFileToAssetCommand, parseAssetCommand, patchAssetCommand } from "../extension/commands/parseAssetCommand";
+import {
+  convertFileToAssetCommand,
+  parseAssetCommand,
+  patchAssetCommand,
+} from "../extension/commands/parseAssetCommand";
 import { getEnvListCommand } from "../extension/commands/getEnvListCommand";
 import { BruinInstallCLI } from "../bruin/bruinInstallCli";
 import {
@@ -25,6 +30,7 @@ import { QueryPreviewPanel } from "./QueryPreviewPanel";
 import { getBruinExecutablePath } from "../providers/BruinExecutableService";
 import path = require("path");
 import { isBruinAsset } from "../utilities/helperUtils";
+import { getDefaultCheckboxSettings } from "../extension/configuration";
 
 /**
  * This class manages the state and behavior of Bruin webview panels.
@@ -53,7 +59,13 @@ export class BruinPanel {
    */
   private constructor(panel: WebviewPanel, extensionUri: Uri) {
     this._panel = panel;
-    this._checkboxState = {};
+    const defaultSettings = getDefaultCheckboxSettings();
+    this._checkboxState = {
+      "Full-Refresh": false, // This remains explicitly false
+      "Interval-modifiers": defaultSettings.defaultIntervalModifiers,
+      "Exclusive-End-Date": defaultSettings.defaultExclusiveEndDate,
+      "Push-Metadata": defaultSettings.defaultPushMetadata,
+    };
     const iconPath = Uri.joinPath(extensionUri, "img", "bruin-logo-sm128.png");
     panel.iconPath = { light: iconPath, dark: iconPath };
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
@@ -68,8 +80,8 @@ export class BruinPanel {
           if (editor.document.uri.fsPath === "tasks") {
             return;
           }
-          
-          this._lastRenderedDocumentUri = editor.document.uri; 
+
+          this._lastRenderedDocumentUri = editor.document.uri;
           if (this._assetDetectionDebounceTimer) {
             clearTimeout(this._assetDetectionDebounceTimer);
           }
@@ -79,15 +91,15 @@ export class BruinPanel {
           }, 500);
         }
       }),
-      
+
       window.onDidChangeActiveTextEditor(async (editor) => {
         if (editor && editor.document.uri) {
           if (editor.document.uri.fsPath === "tasks") {
             return;
           }
-          
+
           this._lastRenderedDocumentUri = editor.document.uri;
-            
+
           console.log("Document URI active text editor", this._lastRenderedDocumentUri);
           await this._handleAssetDetection(this._lastRenderedDocumentUri);
           renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri?.fsPath);
@@ -101,18 +113,24 @@ export class BruinPanel {
           }
         });
       })
-    ); 
+    );
 
-   if (window.activeTextEditor) {
-    this._lastRenderedDocumentUri = window.activeTextEditor.document.uri;
+    if (window.activeTextEditor) {
+      this._lastRenderedDocumentUri = window.activeTextEditor.document.uri;
+    }
+    this._panel.webview.html = this._getWebviewContent(this._panel.webview, extensionUri);
+    this._lastRenderedDocumentUri = window.activeTextEditor?.document.uri;
+    this._setWebviewMessageListener(this._panel.webview);
   }
-  this._panel.webview.html = this._getWebviewContent(this._panel.webview, extensionUri);
-  this._lastRenderedDocumentUri = window.activeTextEditor?.document.uri;
-  this._setWebviewMessageListener(this._panel.webview);
-}
-public static restore(panel: WebviewPanel, extensionUri: Uri): BruinPanel {
-  return new BruinPanel(panel, extensionUri);
-}
+  public static restore(panel: WebviewPanel, extensionUri: Uri): BruinPanel {
+    const bruinPanel = new BruinPanel(panel, extensionUri);
+
+    bruinPanel._panel.webview.postMessage({
+      command: 'setDefaultCheckboxStates',
+      payload: bruinPanel._checkboxState
+  });
+    return bruinPanel;
+  }
 
   public static postMessage(
     name: string,
@@ -151,7 +169,12 @@ public static restore(panel: WebviewPanel, extensionUri: Uri): BruinPanel {
 
       this.currentPanel = new BruinPanel(panel, extensionUri);
     }
-
+    if (this.currentPanel) {
+      this.currentPanel._panel.webview.postMessage({
+        command: "setDefaultCheckboxStates",
+        payload: this.currentPanel._checkboxState,
+      });
+    }
   }
 
   /**
@@ -307,10 +330,7 @@ public static restore(panel: WebviewPanel, extensionUri: Uri): BruinPanel {
               return;
             }
 
-            const pipelineValidator = new BruinValidate(
-              getBruinExecutablePath(),
-              ""
-            );
+            const pipelineValidator = new BruinValidate(getBruinExecutablePath(), "");
 
             try {
               // if the promess is rejected, the error will be catched and logged
@@ -341,10 +361,7 @@ public static restore(panel: WebviewPanel, extensionUri: Uri): BruinPanel {
               "with bruin exec:",
               getBruinExecutablePath()
             );
-            const validator = new BruinValidate(
-              getBruinExecutablePath(),
-              ""
-            );
+            const validator = new BruinValidate(getBruinExecutablePath(), "");
             await validator.validate(filePath);
             break;
           case "bruin.runSql":
@@ -352,24 +369,14 @@ public static restore(panel: WebviewPanel, extensionUri: Uri): BruinPanel {
               return;
             }
             const fPath = this._lastRenderedDocumentUri?.fsPath;
-            runInIntegratedTerminal(
-              "",
-              fPath,
-              message.payload,
-              "bruin"
-            );
+            runInIntegratedTerminal("", fPath, message.payload, "bruin");
             break;
           case "bruin.runContinue":
             if (!this._lastRenderedDocumentUri) {
               return;
             }
             const runPath = this._lastRenderedDocumentUri?.fsPath;
-            runInIntegratedTerminal(
-              await "",
-              runPath,
-              message.payload,
-              "bruin"
-            );
+            runInIntegratedTerminal(await "", runPath, message.payload, "bruin");
             break;
           case "bruin.runCurrentPipeline":
             if (!this._lastRenderedDocumentUri) {
@@ -378,21 +385,16 @@ public static restore(panel: WebviewPanel, extensionUri: Uri): BruinPanel {
             const currfilePath = this._lastRenderedDocumentUri.fsPath;
             const currentPipeline = getCurrentPipelinePath(currfilePath || "");
 
-            runInIntegratedTerminal(
-              "",
-              await currentPipeline,
-              message.payload,
-              "bruin"
-            );
+            runInIntegratedTerminal("", await currentPipeline, message.payload, "bruin");
             break;
 
           case "bruin.getAssetDetails":
             if (!this._lastRenderedDocumentUri) {
               return;
             }
-            console.warn("Getting asset details message in the panel", (new Date()).toISOString());
+            console.warn("Getting asset details message in the panel", new Date().toISOString());
             parseAssetCommand(this._lastRenderedDocumentUri);
-            console.warn("Finish asset details message in the panel", (new Date()).toISOString());
+            console.warn("Finish asset details message in the panel", new Date().toISOString());
             break;
 
           case "bruin.setAssetDetails":
@@ -420,13 +422,15 @@ public static restore(panel: WebviewPanel, extensionUri: Uri): BruinPanel {
             break;
           case "bruin.updateQueryDates":
             const { startDate, endDate } = message.payload;
-            console.log(`BruinPanel: Sending dates to QueryPreviewPanel - start: ${startDate}, end: ${endDate}`);
+            console.log(
+              `BruinPanel: Sending dates to QueryPreviewPanel - start: ${startDate}, end: ${endDate}`
+            );
             QueryPreviewPanel.postMessage("update-query-dates", {
               status: "success",
               message: {
                 startDate,
-                endDate
-              }
+                endDate,
+              },
             });
             break;
           case "checkBruinCliInstallation":
@@ -586,7 +590,7 @@ public static restore(panel: WebviewPanel, extensionUri: Uri): BruinPanel {
             this._panel.webview.postMessage({
               command: "bruinCliVersionStatus",
               versionStatus,
-            }); 
+            });
             break;
           case "bruin.updateBruinCli":
             await this.updateBruinCli();
@@ -640,7 +644,7 @@ public static restore(panel: WebviewPanel, extensionUri: Uri): BruinPanel {
       .map(([name, _]) => `--${name.toLowerCase()}`)
       .join(" ");
   }
-  private async installBruinCli(  ) {
+  private async installBruinCli() {
     try {
       const bruinInstaller = new BruinInstallCLI();
       await bruinInstaller.installBruinCli(async () => {
@@ -666,7 +670,6 @@ public static restore(panel: WebviewPanel, extensionUri: Uri): BruinPanel {
           versionStatus,
         });
       });
-  
     } catch (error) {
       console.error("Error updating Bruin CLI:", error);
       vscode.window.showErrorMessage("Failed to update Bruin CLI. Please try again.");
@@ -676,72 +679,77 @@ public static restore(panel: WebviewPanel, extensionUri: Uri): BruinPanel {
     if (!fileUri) {
       return;
     }
-  
+
     const filePath = fileUri.fsPath;
-  
+
     try {
       // Check for config files first (highest priority)
-      const isConfigFile = filePath.endsWith('pipeline.yml') ||
-                           filePath.endsWith('pipeline.yaml') ||
-                           filePath.endsWith('.bruin.yml') ||
-                           filePath.endsWith('.bruin.yaml');
-      
+      const isConfigFile =
+        filePath.endsWith("pipeline.yml") ||
+        filePath.endsWith("pipeline.yaml") ||
+        filePath.endsWith(".bruin.yml") ||
+        filePath.endsWith(".bruin.yaml");
+
       if (isConfigFile) {
         console.log("IsAssetDetection : File is a config file", filePath);
         this._panel.webview.postMessage({
           command: "clear-convert-message",
           isAsset: false,
-          isConfig: true
+          isConfig: true,
         });
         parseAssetCommand(fileUri);
-        return; 
+        return;
       }
-  
+
       const isAsset = await this._isAssetFile(filePath);
       console.log("IsAssetDetection : File is an asset", filePath, isAsset);
       if (isAsset) {
         this._panel.webview.postMessage({
           command: "clear-convert-message",
-          isAsset: true
+          isAsset: true,
         });
         console.log("IsAssetDetection : Sending clear message to the UI for asset:", filePath);
         parseAssetCommand(fileUri);
-        return; 
+        return;
       }
-  
+
       // Only check for conversion if it's NOT an asset and NOT a config file
       const inAssetsFolder = await this._isInAssetsFolder(filePath);
       const fileExt = this._getFileExtension(filePath);
-      const isSupportedFileType = ['yml', 'yaml', 'py', 'sql'].includes(fileExt);
-  
+      const isSupportedFileType = ["yml", "yaml", "py", "sql"].includes(fileExt);
+
       if (inAssetsFolder && isSupportedFileType) {
         this._panel.webview.postMessage({
           command: "non-asset-file",
           showConvertMessage: true,
           fileType: fileExt,
-          filePath: filePath
+          filePath: filePath,
         });
       } else {
-        console.log("IsAssetDetection : File is not an asset but doesn't habve a supported extension or is not in the assets folder", filePath, inAssetsFolder, isSupportedFileType);
+        console.log(
+          "IsAssetDetection : File is not an asset but doesn't habve a supported extension or is not in the assets folder",
+          filePath,
+          inAssetsFolder,
+          isSupportedFileType
+        );
         this._panel.webview.postMessage({
           command: "non-asset-file",
-          showConvertMessage: false
+          showConvertMessage: false,
         });
       }
-      
     } catch (error) {
       console.error("Error in asset detection flow:", error);
     }
   }
-  
+
   private async _isAssetFile(filePath: string): Promise<boolean> {
     console.log(`_isAssetFile: Checking if file is asset: ${filePath}`);
-    
-    if (filePath.endsWith('.asset.yml') || filePath.endsWith('.asset.yaml')) {
+
+    if (filePath.endsWith(".asset.yml") || filePath.endsWith(".asset.yaml")) {
       console.log(`_isAssetFile: File identified as asset by extension: ${filePath}`);
       return true;
     }
-  
+
     try {
       const isAsset = await isBruinAsset(filePath, [".sql", ".py", ".yml", ".yaml"]);
       console.log(`_isAssetFile: Asset check result for ${filePath}: ${isAsset}`);
@@ -751,48 +759,46 @@ public static restore(panel: WebviewPanel, extensionUri: Uri): BruinPanel {
       return false;
     }
   }
-  
+
   private async _isInAssetsFolder(filePath: string): Promise<boolean> {
     const normalizedPath = this._normalizePath(filePath);
     const isInAssets = normalizedPath.includes("/assets/");
     console.log(`_isInAssetsFolder: Path ${filePath} in assets folder: ${isInAssets}`);
     return isInAssets;
   }
-  
+
   private _normalizePath(filePath: string): string {
     return filePath.replace(/\\/g, "/").toLowerCase();
   }
 
   private _getFileExtension(filePath: string): string {
-    const parts = filePath.split('.');
-    return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : '';
+    const parts = filePath.split(".");
+    return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : "";
   }
 
   private async _convertToAsset(filePath: string): Promise<void> {
     const fileExt = this._getFileExtension(filePath);
-    
+
     try {
-      if (fileExt === 'yml' || fileExt === 'yaml') {
+      if (fileExt === "yml" || fileExt === "yaml") {
         // For YAML files, rename to *.asset.yml
         const newPath = filePath.replace(`.${fileExt}`, `.asset.${fileExt}`);
         await workspace.fs.rename(Uri.file(filePath), Uri.file(newPath), { overwrite: false });
-        
+
         // Update the rendered document and parse it
         this._lastRenderedDocumentUri = Uri.file(newPath);
         parseAssetCommand(this._lastRenderedDocumentUri);
-        
-      } else if (fileExt === 'py' || fileExt === 'sql') {
-        // For Python/SQL files, call convert command 
+      } else if (fileExt === "py" || fileExt === "sql") {
+        // For Python/SQL files, call convert command
         convertFileToAssetCommand(this._lastRenderedDocumentUri);
       }
     } catch (error) {
       console.error("_convertToAsset: Error converting to asset:", error);
       this._panel.webview.postMessage({
         command: "conversion-error",
-        error: `Failed to convert file: ${error}`
+        error: `Failed to convert file: ${error}`,
       });
     }
   }
-  
   private _checkboxState: { [key: string]: boolean } = {};
 }

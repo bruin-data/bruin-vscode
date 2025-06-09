@@ -1,4 +1,7 @@
 # Changelog
+## [0.49.1] - [2025-06-05]
+- Added the checkboxes extension settings  to control default enabled/disabled state.
+
 ## [0.49.0] - [2025-06-05]
 - Added a checkbox to toggle the `--apply-interval-modifiers` flag, along with a warning when they are present in the asset but not enabled.
 
