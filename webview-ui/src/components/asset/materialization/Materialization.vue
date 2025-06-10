@@ -317,6 +317,7 @@ const saveOwnerEdit = () => {
     payload: {
       owner: owner.value,
     },
+    source: "saveOwnerEdit",
   });
 };
 
@@ -359,6 +360,7 @@ const sendTagUpdate = () => {
     payload: {
       tags: [...tags.value],
     },
+    source: "saveTags",
   });
 };
 
@@ -562,6 +564,7 @@ const saveMaterialization = () => {
   vscode.postMessage({
     command: "bruin.setAssetDetails",
     payload: payload,
+    source: "saveMaterialization",
   });
 };
 
