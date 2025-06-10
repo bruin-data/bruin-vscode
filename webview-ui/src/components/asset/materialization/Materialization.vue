@@ -2,7 +2,7 @@
   <div class="h-full w-full p-4 flex justify-center">
     <div class="flex flex-col gap-4 h-full w-full max-w-4xl">
       <div class="bg-editorWidget-bg">
-        <div class="flex items-center mb-2 space-x-2">
+        <div class="flex items-center mb-0.5 space-x-2">
           <label class="block text-sm font-medium text-editor-fg min-w-[60px]">Owner</label>
           <div id="owner-container" class="flex items-center gap-2">
             <span
@@ -22,7 +22,7 @@
               @keyup.escape="cancelOwnerEdit"
               ref="ownerInput"
               placeholder="data-team@company.com"
-              class="text-sm p-1 bg-input-background border border-commandCenter-border rounded focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg min-w-[200px]"
+              class="text-2xs bg-input-background focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg min-w-[200px] h-6"
             />
             <vscode-button
               id="edit-owner-button"
@@ -38,7 +38,7 @@
         </div>
         <div class="border-t border-commandCenter-border"></div>
 
-        <div class="flex items-center mt-4 space-x-4">
+        <div class="flex items-center mt-0.5 space-x-4">
           <label class="text-sm font-medium text-editor-fg min-w-[60px]">Tags</label>
           <div id="tags-container" class="flex flex-wrap items-center space-x-2">
             <vscode-tag
@@ -62,7 +62,7 @@
               @keyup.escape="cancelAddTag"
               ref="tagInput"
               placeholder="Tag name..."
-              class="text-xs px-2 py-1.5 bg-input-background border border-commandCenter-border rounded focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg min-w-[80px]"
+              class="text-2xs bg-input-background focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg min-w-[80px] h-6"
             />
             <vscode-button
               id="add-tag-button"
@@ -83,12 +83,12 @@
       <!-- Interval modifiers -->
       <div class="flex gap-x-4 gap-y-2 w-full justify-between">
         <div class="flex-1">
-          <label class="block text-sm font-medium text-editor-fg mb-2"
+          <label class="block text-sm font-medium text-editor-fg mb-0.5"
             >Execution Window Start</label
           >
           <input
             v-model="startIntervalString"
-            class="w-full max-w-[300px] p-2 bg-input-background border border-commandCenter-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg"
+            class="w-full max-w-[300px] border-0 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
             placeholder="-2h, -1d, -30m"
             :class="{ 'border-red-500': startValidationError }"
             @input="validateStartInterval"
@@ -102,10 +102,10 @@
         </div>
 
         <div class="flex-1">
-          <label class="block text-sm font-medium text-editor-fg mb-2">Execution Window End</label>
+          <label class="block text-sm font-medium text-editor-fg mb-0.5">Execution Window End</label>
           <input
             v-model="endIntervalString"
-            class="w-full max-w-[300px] p-2 bg-input-background border border-commandCenter-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg"
+            class="w-full max-w-[300px] border-0 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
             placeholder="0h, 1h, now"
             :class="{ 'border-red-500': endValidationError }"
             @input="validateEndInterval"
@@ -122,12 +122,12 @@
 
       <div class="flex gap-x-4 gap-y-2 w-full justify-between" @click="handleClickOutside">
         <div class="flex-1">
-          <label class="block text-sm font-medium text-editor-fg mb-2">Partitioning</label>
+          <label class="block text-sm font-medium text-editor-fg mb-0.5">Partitioning</label>
           <div class="relative w-full max-w-[300px]" ref="partitionContainer">
             <input
               v-model="partitionInput"
               placeholder="Select a column or enter an expression..."
-              class="w-full p-2 bg-input-background border border-commandCenter-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg pr-10"
+              class="w-full border-0 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg pr-6 h-6"
               @focus="isPartitionDropdownOpen = true"
               @blur="handlePartitionInputBlur"
               @input="handlePartitionInput"
@@ -142,7 +142,7 @@
 
             <div
               v-if="isPartitionDropdownOpen"
-              class="absolute z-10 w-full bg-dropdown-bg border border-commandCenter-border rounded shadow-lg mt-1 max-h-60 overflow-y-auto"
+              class="absolute z-10 w-full bg-dropdown-bg border border-commandCenter-border shadow-lg mt-1 max-h-60 overflow-y-auto"
             >
               <div
                 class="px-3 py-2 hover:bg-list-hoverBackground hover:text-list-activeSelectionForeground cursor-pointer"
@@ -166,14 +166,14 @@
         </div>
 
         <div class="flex-1">
-          <label class="block text-sm font-medium text-editor-fg mb-2">Clustering</label>
+          <label class="block text-sm font-medium text-editor-fg mb-0.5">Clustering</label>
           <div class="relative w-full max-w-[300px]" ref="clusterContainer">
             <input
               ref="clusterInput"
               v-model="clusterInputValue"
               readonly
               placeholder="Select columns..."
-              class="w-full p-2 bg-input-background border border-commandCenter-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg pr-10 cursor-pointer"
+              class="w-full border-0 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg pr-6 h-6 cursor-pointer"
               @click="isClusterDropdownOpen = !isClusterDropdownOpen"
               @keydown.delete="removeLastClusterColumn"
             />
@@ -183,7 +183,7 @@
 
             <div
               v-if="isClusterDropdownOpen"
-              class="absolute z-10 w-full bg-dropdown-bg border border-commandCenter-border rounded shadow-lg mt-1 max-h-60 overflow-y-auto"
+              class="absolute z-10 w-full bg-dropdown-bg border border-commandCenter-border shadow-lg mt-1 max-h-60 overflow-y-auto"
             >
               <div
                 v-for="column in columns"
@@ -207,7 +207,7 @@
       >
         <div class="flex-1 min-w-[260px]">
           <div class="flex flex-col space-y-3">
-            <label class="block text-sm font-medium text-editor-fg mb-2"> Materialization </label>
+            <label class="block text-sm font-medium text-editor-fg mb-0.5"> Materialization </label>
             <div class="flex space-x-6">
               <vscode-radio-group
                 :value="localMaterialization.type"
@@ -223,11 +223,11 @@
 
         <div v-if="localMaterialization.type === 'table'" class="flex flex-col gap-6 w-full">
           <div class="flex flex-col space-y-3">
-            <label class="block text-sm font-medium text-editor-fg"> Strategy </label>
+            <label class="block text-sm font-medium text-editor-fg mb-0.5"> Strategy </label>
             <div class="relative">
               <select
                 v-model="localMaterialization.strategy"
-                class="w-full max-w-[300px] p-2 bg-input-background text-input-foreground border border-commandCenter-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg"
+                class="w-full max-w-[300px] bg-input-background text-input-foreground text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
               >
                 <option value="create+replace">Create + Replace</option>
                 <option value="delete+insert">Delete + Insert</option>
@@ -245,9 +245,9 @@
       </div>
 
       <div v-if="showStrategyOptions" class="flex-1">
-        <div class="p-4 bg-editorWidget-bg rounded border border-commandCenter-border h-full">
+        <div class="p-4 bg-editorWidget-bg border border-commandCenter-border h-full">
           <div v-if="localMaterialization.strategy === 'delete+insert'" class="flex flex-col">
-            <label class="block text-sm opacity-65 text-editor-fg mb-2">Incremental Key</label>
+            <label class="block text-sm opacity-65 text-editor-fg mb-0.5">Incremental Key</label>
             <input v-model="localMaterialization.incremental_key" placeholder="column_name" />
           </div>
 
@@ -263,11 +263,11 @@
           >
             <div class="grid grid-cols-2 gap-4">
               <div class="flex flex-col">
-                <label class="block text-sm opacity-65 text-editor-fg mb-2">Incremental Key</label>
+                <label class="block text-sm opacity-65 text-editor-fg mb-0.5">Incremental Key</label>
                 <input v-model="localMaterialization.incremental_key" placeholder="column_name" />
               </div>
               <div>
-                <label class="block text-sm opacity-65 text-editor-fg mb-2">Time Granularity</label>
+                <label class="block text-sm opacity-65 text-editor-fg mb-0.5">Time Granularity</label>
                 <select v-model="localMaterialization.time_granularity">
                   <option value="date">Date</option>
                   <option value="timestamp">Timestamp</option>
@@ -317,6 +317,27 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  intervalModifiers: {
+    type: Object,
+    default: () => ({
+      start: {
+        months: 0,
+        days: 0,
+        hours: 0,
+        minutes: 0,
+        seconds: 0,
+        cron_periods: 0,
+      },
+      end: {
+        months: 0,
+        days: 0,
+        hours: 0,
+        minutes: 0,
+        seconds: 0,
+        cron_periods: 0,
+      },
+    }),
+  },
 });
 
 const emit = defineEmits(["update:materialization"]);
@@ -336,6 +357,10 @@ const clusterInput = ref(null);
 const partitionContainer = ref(null);
 const clusterContainer = ref(null);
 
+const intervalModifiers = ref({
+  start: { ...props.intervalModifiers.start },
+  end: { ...props.intervalModifiers.end }
+});
 // Reactive data for Partitioning free-text input
 const partitionInput = ref("");
 
@@ -652,5 +677,9 @@ vscode-tag::part(control) {
 vscode-button::part(control) {
   border: none;
   outline: none;
+}
+
+input {
+  @apply px-1 py-0.5 text-2xs border-0 !important;
 }
 </style>
