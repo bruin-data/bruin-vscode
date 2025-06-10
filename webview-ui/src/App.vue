@@ -425,7 +425,7 @@ const tabs = ref([
       selectedEnvironment: selectedEnvironment.value,
       hasIntervalModifiers: hasIntervalModifiers.value,
     })),
-    emits: ["update:name", "update:description"],
+    emits: ["update:assetName", "update:description"],
   },
   {
     label: "Columns",
