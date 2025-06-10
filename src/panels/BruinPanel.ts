@@ -77,27 +77,16 @@ export class BruinPanel {
           getConnections(this._lastRenderedDocumentUri);
         }
         if (editor && editor.document.uri) {
-          if (editor.document.uri.fsPath === "tasks") {
-            return;
-          }
 
           this._lastRenderedDocumentUri = editor.document.uri;
-          if (this._assetDetectionDebounceTimer) {
-            clearTimeout(this._assetDetectionDebounceTimer);
-          }
-          this._assetDetectionDebounceTimer = setTimeout(async () => {
-            await this._handleAssetDetection(this._lastRenderedDocumentUri);
-            renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri?.fsPath);
-          }, 500);
+          await this._handleAssetDetection(this._lastRenderedDocumentUri);
+
+          renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri?.fsPath);
         }
       }),
 
       window.onDidChangeActiveTextEditor(async (editor) => {
         if (editor && editor.document.uri) {
-          if (editor.document.uri.fsPath === "tasks") {
-            return;
-          }
-
           this._lastRenderedDocumentUri = editor.document.uri;
 
           console.log("Document URI active text editor", this._lastRenderedDocumentUri);
@@ -399,10 +388,12 @@ export class BruinPanel {
 
           case "bruin.setAssetDetails":
             const assetData = message.payload;
+            const source = message.source;
+        
             if (!this._lastRenderedDocumentUri) {
               return;
             }
-            console.log("Setting asset data :", assetData);
+            console.log("Setting asset data :", assetData, "source:", source);
             patchAssetCommand(assetData, this._lastRenderedDocumentUri);
             break;
 

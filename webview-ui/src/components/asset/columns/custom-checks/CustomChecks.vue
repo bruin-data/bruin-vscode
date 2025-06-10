@@ -233,6 +233,7 @@ const saveCustomChecks = () => {
     vscode.postMessage({
       command: "bruin.setAssetDetails",
       payload: { custom_checks: formattedCustomChecks },
+      source: "saveCustomChecks",
     });
 
     emit("update:customChecks", formattedCustomChecks);

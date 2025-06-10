@@ -370,6 +370,7 @@ const togglePrimaryKey = (event, index) => {
   vscode.postMessage({
     command: "bruin.setAssetDetails",
     payload: payload,
+    source: "togglePrimaryKey",
   });
 };
 
@@ -403,6 +404,7 @@ const saveChanges = (index) => {
     vscode.postMessage({
       command: "bruin.setAssetDetails",
       payload: safePayload,
+      source: "saveChanges",
     });
 
     emit("update:columns", formattedColumns);
@@ -597,6 +599,7 @@ const deleteColumn = (index) => {
   vscode.postMessage({
     command: "bruin.setAssetDetails",
     payload: payload,
+    source: "deleteColumn",
   });
 };
 
