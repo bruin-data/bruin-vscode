@@ -1,5 +1,9 @@
 # Changelog
-## [0.49.1] - [2025-06-05]
+
+## [0.49.2] - [2025-06-10]
+- Cleaned the code and added detailed logging for patch asset command.
+
+## [0.49.1] - [2025-06-09]
 - Added the checkboxes extension settings  to control default enabled/disabled state.
 
 ## [0.49.0] - [2025-06-05]
