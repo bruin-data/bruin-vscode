@@ -77,7 +77,47 @@
           </div>
         </div>
       </div>
+      <!-- Separator -->
+      <div class="border-t border-commandCenter-border"></div>
 
+      <!-- Interval modifiers -->
+      <div class="flex gap-x-4 gap-y-2 w-full justify-between">
+        <div class="flex-1">
+          <label class="block text-sm font-medium text-editor-fg mb-2"
+            >Execution Window Start</label
+          >
+          <input
+            v-model="startIntervalString"
+            class="w-full max-w-[300px] p-2 bg-input-background border border-commandCenter-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg"
+            placeholder="-2h, -1d, -30m"
+            :class="{ 'border-red-500': startValidationError }"
+            @input="validateStartInterval"
+          />
+          <p v-if="startValidationError" class="text-xs text-red-400 mt-1">
+            {{ startValidationError }}
+          </p>
+          <p v-else class="text-xs text-editor-fg opacity-70 mt-1">
+            Shift start time (e.g., -2h, -1d, -30m)
+          </p>
+        </div>
+
+        <div class="flex-1">
+          <label class="block text-sm font-medium text-editor-fg mb-2">Execution Window End</label>
+          <input
+            v-model="endIntervalString"
+            class="w-full max-w-[300px] p-2 bg-input-background border border-commandCenter-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg"
+            placeholder="0h, 1h, now"
+            :class="{ 'border-red-500': endValidationError }"
+            @input="validateEndInterval"
+          />
+          <p v-if="endValidationError" class="text-xs text-red-400 mt-1">
+            {{ endValidationError }}
+          </p>
+          <p v-else class="text-xs text-editor-fg opacity-70 mt-1">
+            Shift end time (e.g., 0h, 1h, now)
+          </p>
+        </div>
+      </div>
       <div class="border-t border-commandCenter-border"></div>
 
       <div class="flex gap-x-4 gap-y-2 w-full justify-between" @click="handleClickOutside">
@@ -401,11 +441,11 @@ const initializeLocalMaterialization = (materializationProp) => {
   base.cluster_by = Array.isArray(base.cluster_by)
     ? base.cluster_by
     : typeof base.cluster_by === "string"
-    ? base.cluster_by
-        .split(",")
-        .map((c) => c.trim())
-        .filter((c) => c)
-    : [];
+      ? base.cluster_by
+          .split(",")
+          .map((c) => c.trim())
+          .filter((c) => c)
+      : [];
   return base;
 };
 
@@ -459,9 +499,7 @@ const filteredPartitionColumns = computed(() => {
   if (!query || isPartitionDropdownOpen.value) {
     return props.columns;
   }
-  return props.columns.filter((column) =>
-    column.name.toLowerCase().includes(query)
-  );
+  return props.columns.filter((column) => column.name.toLowerCase().includes(query));
 });
 
 const handlePartitionInput = () => {
