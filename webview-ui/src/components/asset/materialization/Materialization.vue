@@ -126,7 +126,7 @@
           <div class="relative w-full max-w-[250px]" ref="partitionContainer">
             <input
               v-model="partitionInput"
-              placeholder="Select a column or enter an expression..."
+              placeholder="Column or expression..."
               class="w-full border-0 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg pr-6 h-6"
               @focus="isPartitionDropdownOpen = true"
               @blur="handlePartitionInputBlur"
@@ -172,7 +172,7 @@
               ref="clusterInput"
               v-model="clusterInputValue"
               readonly
-              placeholder="Select columns..."
+              placeholder="Columns..."
               class="w-full border-0 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg pr-6 h-6 cursor-pointer"
               @click="isClusterDropdownOpen = !isClusterDropdownOpen"
               @keydown.delete="removeLastClusterColumn"
