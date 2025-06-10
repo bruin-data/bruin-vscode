@@ -77,9 +77,6 @@ export class BruinPanel {
           getConnections(this._lastRenderedDocumentUri);
         }
         if (editor && editor.document.uri) {
-          if (editor.document.uri.fsPath === "tasks") {
-            return;
-          }
 
           this._lastRenderedDocumentUri = editor.document.uri;
           await this._handleAssetDetection(this._lastRenderedDocumentUri);
@@ -90,10 +87,6 @@ export class BruinPanel {
 
       window.onDidChangeActiveTextEditor(async (editor) => {
         if (editor && editor.document.uri) {
-          if (editor.document.uri.fsPath === "tasks") {
-            return;
-          }
-
           this._lastRenderedDocumentUri = editor.document.uri;
 
           console.log("Document URI active text editor", this._lastRenderedDocumentUri);
