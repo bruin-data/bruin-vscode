@@ -3,9 +3,8 @@ import vue from '@vitejs/plugin-vue';
 import { resolve } from 'path';
 import tailwind from "tailwindcss";
 import autoprefixer from "autoprefixer";
-import fs from 'fs-extra'; // You'll need to install this: npm install fs-extra
+import fs from 'fs-extra'; 
 
-// Add a simple hook to copy the codicons font after build
 const copyCodiconsPlugin = () => {
   return {
     name: 'copy-codicons',
