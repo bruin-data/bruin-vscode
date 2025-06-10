@@ -11,12 +11,16 @@ const copyCodiconsPlugin = () => {
     closeBundle: async () => {
       const sourcePath = resolve(__dirname, 'node_modules/@vscode/codicons/dist/codicon.ttf');
       const destPath = resolve(__dirname, 'build/assets/codicon.ttf');
-      
+      const cssSource = resolve(__dirname, 'node_modules/@vscode/codicons/dist/codicon.css');
+      const cssDest = resolve(__dirname, 'build/assets/codicon.css');
+ 
       try {
         await fs.copy(sourcePath, destPath);
         console.log('Codicons font copied successfully');
+        await fs.copy(cssSource, cssDest);
+        console.log('Codicons CSS copied successfully');
       } catch (err) {
-        console.error('Error copying codicons font:', err);
+        console.error('Error copying codicons assets:', err);
       }
     }
   };
