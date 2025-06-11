@@ -342,7 +342,6 @@ const props = defineProps({
         hours: 0,
         minutes: 0,
         seconds: 0,
-        cron_periods: 0,
       },
       end: {
         months: 0,
@@ -350,15 +349,12 @@ const props = defineProps({
         hours: 0,
         minutes: 0,
         seconds: 0,
-        cron_periods: 0,
       },
     }),
   },
 });
 
-const emit = defineEmits(["update:owner", "update:tags", "update:intervalModifiers"]);
 
-// Owner and Tags reactive data
 const owner = ref(props.owner || "");
 const tags = ref([...props.tags] || []);
 const newTag = ref("");
@@ -384,6 +380,8 @@ const startIntervalValue = ref(0);
 const startIntervalUnit = ref("");
 const endIntervalValue = ref(0);
 const endIntervalUnit = ref("");
+
+const hasInitializedIntervalModifiers = ref(false);
 
 const synchronizeIntervalRefs = (intervalType) => {
   const currentInterval = intervalModifiers.value[intervalType];
@@ -412,6 +410,10 @@ const synchronizeIntervalRefs = (intervalType) => {
 };
 
 const updateIntervalModifiers = (intervalType) => {
+  if (!hasInitializedIntervalModifiers.value) {
+    return;
+  }
+
   const currentUnit = intervalType === "start" ? startIntervalUnit.value : endIntervalUnit.value;
   const currentVal =
     parseInt(intervalType === "start" ? startIntervalValue.value : endIntervalValue.value, 10) || 0;
@@ -432,7 +434,7 @@ const updateIntervalModifiers = (intervalType) => {
     payload: {
       interval_modifiers: JSON.parse(JSON.stringify(intervalModifiers.value)),
     },
-    source: "updateIntervalModifiers",
+    source: `Materialization_updateIntervalModifiers_${intervalType}`,
   });
 };
 
@@ -444,9 +446,12 @@ watch(endIntervalUnit, () => updateIntervalModifiers("end"));
 watch(
   () => props.intervalModifiers,
   (newVal) => {
+    const startProp = newVal?.start !== undefined ? newVal.start : {};
+    const endProp = newVal?.end !== undefined ? newVal.end : {};
+
     intervalModifiers.value = {
-      start: { ...newVal.start },
-      end: { ...newVal.end },
+      start: typeof startProp === 'number' ? startProp : { ...startProp },
+      end: typeof endProp === 'number' ? endProp : { ...endProp },
     };
     synchronizeIntervalRefs("start");
     synchronizeIntervalRefs("end");
@@ -467,7 +472,6 @@ const startEditingOwner = () => {
 const saveOwnerEdit = () => {
   owner.value = editingOwner.value.trim();
   isEditingOwner.value = false;
-  emit("update:owner", owner.value);
   vscode.postMessage({
     command: "bruin.setAssetDetails",
     payload: {
@@ -509,7 +513,6 @@ const removeTag = (index) => {
 };
 
 const sendTagUpdate = () => {
-  emit("update:tags", tags.value);
   vscode.postMessage({
     command: "bruin.setAssetDetails",
     payload: {
@@ -653,7 +656,6 @@ const removeLastClusterColumn = () => {
   }
 };
 
-// Check if column is selected
 const isColumnSelected = (columnName) => {
   return localMaterialization.value.cluster_by?.includes(columnName);
 };
@@ -669,9 +671,9 @@ const handleClickOutside = (event) => {
 
 onMounted(() => {
   window.addEventListener("click", handleClickOutside);
-  // Initial synchronization when component mounts
-  synchronizeIntervalRefs("start");
-  synchronizeIntervalRefs("end");
+  nextTick(() => {
+    hasInitializedIntervalModifiers.value = true;
+  });
 });
 
 onBeforeUnmount(() => {
@@ -695,10 +697,14 @@ const saveMaterialization = () => {
     );
   } else {
     cleanData = {
-      partition_by: localMaterialization.value.partition_by,
+      type: "null",
+      partition_by: localMaterialization.value.partition_by || null,
       cluster_by: Array.isArray(localMaterialization.value.cluster_by)
         ? [...localMaterialization.value.cluster_by]
         : [],
+      strategy: null,
+      incremental_key: null,
+      time_granularity: null,
     };
   }
 
@@ -710,8 +716,9 @@ const saveMaterialization = () => {
   vscode.postMessage({
     command: "bruin.setAssetDetails",
     payload: payload,
-    source: "saveMaterialization",
+    source: "Materialization_saveMaterialization",
   });
+
 };
 
 function getStrategyDescription(strategy) {
