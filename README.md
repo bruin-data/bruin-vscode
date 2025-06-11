@@ -54,10 +54,11 @@ Bruin is a unified analytics platform that enables data professionals to work en
 **Note**: Ensure that you have the Bruin CLI installed on your system before using the new features. For guidance on installing the Bruin CLI, please refer to the [official documentation](https://github.com/bruin-data/bruin).
 
 ## Release Notes
-### Latest Release: 0.49.2
-- Cleaned the code and added detailed logging for patch asset command.
+### Latest Release: 0.49.3
+- Remove redundant update columns to fix toggle primary key issue.
 
 ### Recent Updates
+- **0.49.2**: Cleaned the code and added detailed logging for patch asset command.
 - **0.49.1**: Added the checkboxes extension settings  to control default enabled/disabled state.
 - **0.49.0**: Added a checkbox to toggle the `--apply-interval-modifiers` flag, along with a warning when they are present in the asset but not enabled.
 - **0.48.3**: Improved `partition-by` input to support both column selection and manual text entry.
@@ -73,12 +74,6 @@ Bruin is a unified analytics platform that enables data professionals to work en
 - **0.47.0**: Added materialization tab to the asset side panel.
 - **0.46.1**: Fix Bruin CLI installation on Windows.
 - **0.46.0**: Added convert feature to convert eligible files to Bruin assets.
-- **0.45.5**: Update SQL editor line height.
-- **0.45.4**: Improve long queries rendering in SQL editor.
-- **0.45.3**: Added support for dates in the query preview panel.
-- **0.45.2**: Fix CLI version check to improve performance.
-- **0.45.1**: Optimize the Bruin activation process.
-- **0.45.0**: Added executed query preview with copy-to-clipboard support in the query results panel.
 
 For a full changelog, see Bruin Extension [Changelog](https://marketplace.visualstudio.com/items/bruin.bruin/changelog).
 
