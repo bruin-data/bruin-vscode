@@ -99,20 +99,21 @@
           v-for="(tab, index) in visibleTabs"
           :key="`view-${index}`"
           :id="`view-${index}`"
-          v-show="activeTab === index"
           class="px-0"
         >
-          <component
-            v-if="tab.props"
-            :is="tab.component"
-            v-bind="tab.props"
-            class="flex w-full h-full"
-            @update:assetName="updateAssetName"
-            @update:customChecks="updateCustomChecks"
-            @open-glossary="navigateToGlossary"
-            @update:description="updateDescription"
-            @update:materialization="updateMaterialization"
-          />
+          <template v-if="activeTab === index">
+            <component
+              v-if="tab.props"
+              :is="tab.component"
+              v-bind="tab.props"
+              class="flex w-full h-full"
+              @update:assetName="updateAssetName"
+              @update:customChecks="updateCustomChecks"
+              @open-glossary="navigateToGlossary"
+              @update:description="updateDescription"
+              @update:materialization="updateMaterialization"
+            />
+          </template>
         </vscode-panel-view>
       </vscode-panels>
     </div>
