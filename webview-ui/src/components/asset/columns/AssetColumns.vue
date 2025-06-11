@@ -377,7 +377,7 @@ const togglePrimaryKey = (event, index) => {
   };
 
   const payload = { columns: JSON.parse(JSON.stringify(localColumns.value)) };
-  console.log("Primary Key toggled for column:", col.name);
+  console.warn("Primary Key toggled for column:", col.name);
   vscode.postMessage({
     command: "bruin.setAssetDetails",
     payload: payload,
