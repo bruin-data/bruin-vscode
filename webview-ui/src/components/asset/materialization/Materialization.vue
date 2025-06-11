@@ -108,7 +108,7 @@
               <input
                 v-model="endIntervalValue"
                 class="w-1/2 border-0 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
-                placeholder="e.g., 0"
+                placeholder="e.g., 1"
               />
               <select
                 v-model="endIntervalUnit"
@@ -378,7 +378,7 @@ const intervalModifiers = ref({
   end: { ...props.intervalModifiers.end },
 });
 
-const intervalUnits = ["months", "days", "hours", "minutes", "seconds", "cron_periods"];
+const intervalUnits = ["months", "days", "hours", "minutes", "seconds"];
 
 const startIntervalValue = ref(0);
 const startIntervalUnit = ref("");
