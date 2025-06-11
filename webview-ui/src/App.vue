@@ -330,12 +330,13 @@ const assetDetailsProps = computed({
 });
 
 const intervalModifiers = computed(() => {
+  console.warn("Interval modifiers from app:", assetDetailsProps.value?.interval_modifiers);
   return assetDetailsProps.value?.interval_modifiers || false;
 });
 
 const hasIntervalModifiers = computed(() => {
   const intervalModifiersValue = assetDetailsProps.value?.interval_modifiers ? true : false;
-  console.warn("Has interval modifiers computed:", intervalModifiersValue);
+  console.warn("Has interval modifiers in App:", intervalModifiersValue);
   return intervalModifiersValue;
 });
 
@@ -443,6 +444,7 @@ const tabs = ref([
       columns: columns.value,
       owner: assetDetailsProps.value?.owner,
       tags: assetDetailsProps.value?.tags,
+      intervalModifiers: intervalModifiers.value,
     })),
   },
   {

@@ -81,13 +81,14 @@
       <div class="border-t border-commandCenter-border"></div>
 
       <!-- Interval modifiers -->
-      <div class="flex gap-x-4 gap-y-2 w-full justify-between">
-        <div class="flex-1">
-          <label class="block text-xs font-medium text-editor-fg mb-1"
-            >Execution Window Start</label
-          >
-          <input
-            v-model="startIntervalString"
+      <div class="flex flex-col gap-x-4 gap-y-2 w-full justify-between">
+        <label class="block text-sm font-medium text-editor-fg mb-1">Interval Modifiers</label>
+        <span>{{ intervalModifiers }}</span>
+        <div class="flex gap-x-4 gap-y-2 w-full justify-between">
+          <div class="flex-1">
+            <label class="block text-xs font-medium text-editor-fg mb-1">Start</label>
+            <input
+              v-model="startIntervalString"
             class="w-full max-w-[250px] border-0 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
             placeholder="-2h, -1d, -30m"
             :class="{ 'border-red-500': startValidationError }"
@@ -102,7 +103,7 @@
         </div>
 
         <div class="flex-1">
-          <label class="block text-xs font-medium text-editor-fg mb-1">Execution Window End</label>
+          <label class="block text-xs font-medium text-editor-fg mb-1">End</label>
           <input
             v-model="endIntervalString"
             class="w-full max-w-[250px] border-0 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
@@ -117,6 +118,7 @@
             Shift end time (e.g., 0h, 1h, now)
           </p>
         </div>
+      </div>
       </div>
       <div class="border-t border-commandCenter-border"></div>
 
@@ -207,7 +209,7 @@
       >
         <div class="flex-1 min-w-[260px]">
           <div class="flex flex-col">
-            <label class="block text-xs font-medium text-editor-fg mb-1"> Materialization </label>
+            <label class="block text-sm font-medium text-editor-fg mb-1"> Materialization </label>
             <div class="flex space-x-6">
               <vscode-radio-group
                 :value="localMaterialization.type"
@@ -361,6 +363,10 @@ const intervalModifiers = ref({
   start: { ...props.intervalModifiers.start },
   end: { ...props.intervalModifiers.end }
 });
+
+const startIntervalString = JSON.stringify(intervalModifiers.value.start);
+const endIntervalString = JSON.stringify(intervalModifiers.value.end);
+
 // Reactive data for Partitioning free-text input
 const partitionInput = ref("");
 
@@ -482,6 +488,15 @@ watch(
     localMaterialization.value = initializeLocalMaterialization(newVal);
     // Initialize partitionInput with the current partition_by value
     partitionInput.value = localMaterialization.value.partition_by || "";
+  },
+  { immediate: true, deep: true }
+);
+
+watch(
+  () => props.intervalModifiers,
+  (newVal) => {
+    console.log("Interval modifiers from props:", newVal);
+    intervalModifiers.value = newVal;
   },
   { immediate: true, deep: true }
 );
