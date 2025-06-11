@@ -86,17 +86,18 @@
             <label class="block text-xs font-medium text-editor-fg mb-1">Start</label>
             <div class="flex gap-2">
               <input
-                v-model="startIntervalValue"
+                :value="startIntervalValue"
+                @input="startIntervalValue = $event.target.value; handleIntervalChange('start')"
+                @change="handleIntervalChange('start')"
                 class="w-1/2 border-0 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
                 placeholder="e.g., -2"
               />
               <select
-                v-model="startIntervalUnit"
+                :value="startIntervalUnit"
+                @change="startIntervalUnit = $event.target.value; handleIntervalChange('start')"
                 class="w-1/2 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
               >
-                <option v-if="!startIntervalUnit" value="" class="text-xs opacity-60">
-                  select unit...
-                </option>
+                <option value="" class="text-xs opacity-60" disabled>select unit...</option>
                 <option v-for="unit in intervalUnits" :key="unit" :value="unit">{{ unit }}</option>
               </select>
             </div>
@@ -106,17 +107,18 @@
             <label class="block text-xs font-medium text-editor-fg mb-1">End</label>
             <div class="flex gap-2">
               <input
-                v-model="endIntervalValue"
+                :value="endIntervalValue"
+                @input="endIntervalValue = $event.target.value; handleIntervalChange('end')"
+                @change="handleIntervalChange('end')"
                 class="w-1/2 border-0 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
                 placeholder="e.g., 1"
               />
               <select
-                v-model="endIntervalUnit"
+                :value="endIntervalUnit"
+                @change="endIntervalUnit = $event.target.value; handleIntervalChange('end')"
                 class="w-1/2 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
               >
-                <option v-if="!endIntervalUnit" value="" class="text-xs opacity-60">
-                  select unit...
-                </option>
+                <option value="" class="text-xs opacity-60" disabled>select unit...</option>
                 <option v-for="unit in intervalUnits" :key="unit" :value="unit">{{ unit }}</option>
               </select>
             </div>
@@ -249,46 +251,47 @@
         </div>
       </div>
 
-      <div v-if="showStrategyOptions" class="flex-1">
-        <div class="p-2 bg-editorWidget-bg border border-commandCenter-border h-full">
-          <div v-if="localMaterialization.strategy === 'delete+insert'" class="flex flex-col">
-            <label class="block text-xs opacity-65 text-editor-fg mb-1">Incremental Key</label>
-            <input
-              class="w-full max-w-[250px] border-0 bg-input-background text-xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
-              v-model="localMaterialization.incremental_key"
-              placeholder="column_name"
-            />
-          </div>
+      <div
+        v-if="showStrategyOptions"
+        class="flex-1 bg-editorWidget-bg border border-commandCenter-border h-full p-2"
+      >
+        <div v-if="localMaterialization.strategy === 'delete+insert'" class="flex flex-col">
+          <label class="block text-xs opacity-65 text-editor-fg mb-1">Incremental Key</label>
+          <input
+            class="w-full max-w-[250px] border-0 bg-input-background text-xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
+            v-model="localMaterialization.incremental_key"
+            placeholder="column_name"
+          />
+        </div>
 
-          <div v-if="localMaterialization.strategy === 'merge'" class="space-y-4">
-            <p class="info-text">
-              Configure primary keys in column definitions using <code>primary_key: true</code>
-            </p>
-          </div>
+        <div v-if="localMaterialization.strategy === 'merge'" class="space-y-4">
+          <p class="info-text">
+            Configure primary keys in column definitions using <code>primary_key: true</code>
+          </p>
+        </div>
 
-          <div
-            v-if="localMaterialization.strategy === 'time_interval'"
-            class="flex flex-col space-y-4"
-          >
-            <div class="grid grid-cols-2 items-center gap-4">
-              <div class="flex flex-col">
-                <label class="block text-xs opacity-65 text-editor-fg mb-1">Incremental Key</label>
-                <input
-                  class="w-full max-w-[250px] border-0 bg-input-background text-xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
-                  v-model="localMaterialization.incremental_key"
-                  placeholder="column_name"
-                />
-              </div>
-              <div class="flex flex-col">
-                <label class="block text-xs opacity-65 text-editor-fg mb-1">Time Granularity</label>
-                <select
-                  v-model="localMaterialization.time_granularity"
-                  class="w-full max-w-[250px] bg-input-background text-xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
-                >
-                  <option value="date">Date</option>
-                  <option value="timestamp">Timestamp</option>
-                </select>
-              </div>
+        <div
+          v-if="localMaterialization.strategy === 'time_interval'"
+          class="flex flex-col space-y-4"
+        >
+          <div class="grid grid-cols-2 items-center gap-4">
+            <div class="flex flex-col">
+              <label class="block text-xs opacity-65 text-editor-fg mb-1">Incremental Key</label>
+              <input
+                class="w-full max-w-[250px] border-0 bg-input-background text-xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
+                v-model="localMaterialization.incremental_key"
+                placeholder="column_name"
+              />
+            </div>
+            <div class="flex flex-col">
+              <label class="block text-xs opacity-65 text-editor-fg mb-1">Time Granularity</label>
+              <select
+                v-model="localMaterialization.time_granularity"
+                class="w-full max-w-[250px] bg-input-background text-xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
+              >
+                <option value="date">Date</option>
+                <option value="timestamp">Timestamp</option>
+              </select>
             </div>
           </div>
         </div>
@@ -342,7 +345,6 @@ const props = defineProps({
         hours: 0,
         minutes: 0,
         seconds: 0,
-        cron_periods: 0,
       },
       end: {
         months: 0,
@@ -350,15 +352,11 @@ const props = defineProps({
         hours: 0,
         minutes: 0,
         seconds: 0,
-        cron_periods: 0,
       },
     }),
   },
 });
 
-const emit = defineEmits(["update:owner", "update:tags", "update:intervalModifiers"]);
-
-// Owner and Tags reactive data
 const owner = ref(props.owner || "");
 const tags = ref([...props.tags] || []);
 const newTag = ref("");
@@ -373,10 +371,8 @@ const clusterInput = ref(null);
 const partitionContainer = ref(null);
 const clusterContainer = ref(null);
 
-const intervalModifiers = ref({
-  start: { ...props.intervalModifiers.start },
-  end: { ...props.intervalModifiers.end },
-});
+
+const intervalModifiers = ref(JSON.parse(JSON.stringify(props.intervalModifiers)));
 
 const intervalUnits = ["months", "days", "hours", "minutes", "seconds"];
 
@@ -385,74 +381,102 @@ const startIntervalUnit = ref("");
 const endIntervalValue = ref(0);
 const endIntervalUnit = ref("");
 
-const synchronizeIntervalRefs = (intervalType) => {
-  const currentInterval = intervalModifiers.value[intervalType];
-  let foundUnit = "";
-  let foundValue = 0;
+const populateIntervalFormFields = () => {
+  const currentStartInterval = intervalModifiers.value.start;
+  let foundStartUnit = "";
+  let foundStartValue = 0;
 
-  for (const unit of intervalUnits) {
-    if (currentInterval[unit] !== 0) {
-      foundUnit = unit;
-      foundValue = currentInterval[unit];
-      break;
-    }
+  if (typeof currentStartInterval === 'number') {
+      foundStartUnit = "cron_periods";
+      foundStartValue = currentStartInterval;
+  } else if (currentStartInterval && typeof currentStartInterval === 'object') {
+      for (const unit of intervalUnits) {
+          if (unit !== 'cron_periods' && currentStartInterval[unit] !== undefined && currentStartInterval[unit] !== 0) {
+              foundStartUnit = unit;
+              foundStartValue = currentStartInterval[unit];
+              break;
+          }
+      }
+      if (!foundStartUnit && 'cron_periods' in currentStartInterval) {
+          foundStartUnit = 'cron_periods';
+          foundStartValue = currentStartInterval['cron_periods'];
+      }
   }
+  if (!foundStartUnit) {
+      foundStartUnit = "days"; 
+  }
+  startIntervalValue.value = foundStartValue;
+  startIntervalUnit.value = foundStartUnit;
 
-  if (!foundUnit) {
-    foundUnit = "days";
-  }
+  const currentEndInterval = intervalModifiers.value.end;
+  let foundEndUnit = "";
+  let foundEndValue = 0;
 
-  if (intervalType === "start") {
-    startIntervalValue.value = foundValue;
-    startIntervalUnit.value = foundUnit;
-  } else {
-    endIntervalValue.value = foundValue;
-    endIntervalUnit.value = foundUnit;
+  if (typeof currentEndInterval === 'number') {
+      foundEndUnit = "cron_periods";
+      foundEndValue = currentEndInterval;
+  } else if (currentEndInterval && typeof currentEndInterval === 'object') {
+      for (const unit of intervalUnits) {
+          if (unit !== 'cron_periods' && currentEndInterval[unit] !== undefined && currentEndInterval[unit] !== 0) {
+              foundEndUnit = unit;
+              foundEndValue = currentEndInterval[unit];
+              break;
+          }
+      }
+      if (!foundEndUnit && 'cron_periods' in currentEndInterval) {
+          foundEndUnit = 'cron_periods';
+          foundEndValue = currentEndInterval['cron_periods'];
+      }
   }
+  if (!foundEndUnit) {
+      foundEndUnit = "days"; 
+  }
+  endIntervalValue.value = foundEndValue;
+  endIntervalUnit.value = foundEndUnit;
 };
 
-const updateIntervalModifiers = (intervalType) => {
+const handleIntervalChange = (intervalType) => {
   const currentUnit = intervalType === "start" ? startIntervalUnit.value : endIntervalUnit.value;
-  const currentVal =
-    parseInt(intervalType === "start" ? startIntervalValue.value : endIntervalValue.value, 10) || 0;
+  const currentVal = Number(intervalType === "start" ? startIntervalValue.value : endIntervalValue.value) || 0;
 
-  for (const unit of intervalUnits) {
-    intervalModifiers.value[intervalType][unit] = 0;
+  let newIntervalState;
+  if (currentUnit === "cron_periods") {
+    newIntervalState = currentVal; 
+  } else {
+    newIntervalState = {};
+    for (const unit of intervalUnits.filter(u => u !== 'cron_periods')) {
+        newIntervalState[unit] = 0;
+    }
+    if (currentUnit) { 
+        newIntervalState[currentUnit] = currentVal;
+    }
   }
-
-  if (currentUnit && currentUnit !== "cron_periods") {
-    intervalModifiers.value[intervalType][currentUnit] = currentVal;
-  }
-  else if (currentUnit === "cron_periods") {
-    intervalModifiers.value[intervalType] = currentVal;
-  }
+  intervalModifiers.value[intervalType] = newIntervalState;
 
   vscode.postMessage({
     command: "bruin.setAssetDetails",
     payload: {
-      interval_modifiers: JSON.parse(JSON.stringify(intervalModifiers.value)),
+      interval_modifiers: JSON.parse(JSON.stringify(intervalModifiers.value)), 
     },
-    source: "updateIntervalModifiers",
+    source: `Materialization_handleIntervalChange_${intervalType}`,
   });
 };
-
-watch(startIntervalValue, () => updateIntervalModifiers("start"));
-watch(startIntervalUnit, () => updateIntervalModifiers("start"));
-watch(endIntervalValue, () => updateIntervalModifiers("end"));
-watch(endIntervalUnit, () => updateIntervalModifiers("end"));
 
 watch(
   () => props.intervalModifiers,
   (newVal) => {
+    const clonedNewVal = JSON.parse(JSON.stringify(newVal || {}));
+    
     intervalModifiers.value = {
-      start: { ...newVal.start },
-      end: { ...newVal.end },
+      start: typeof clonedNewVal.start === 'number' ? clonedNewVal.start : { ...(clonedNewVal.start || {}) },
+      end: typeof clonedNewVal.end === 'number' ? clonedNewVal.end : { ...(clonedNewVal.end || {}) },
     };
-    synchronizeIntervalRefs("start");
-    synchronizeIntervalRefs("end");
+
+    populateIntervalFormFields();
   },
-  { immediate: true, deep: true }
+  { immediate: true, deep: true } 
 );
+
 
 const partitionInput = ref("");
 
@@ -467,7 +491,6 @@ const startEditingOwner = () => {
 const saveOwnerEdit = () => {
   owner.value = editingOwner.value.trim();
   isEditingOwner.value = false;
-  emit("update:owner", owner.value);
   vscode.postMessage({
     command: "bruin.setAssetDetails",
     payload: {
@@ -509,7 +532,6 @@ const removeTag = (index) => {
 };
 
 const sendTagUpdate = () => {
-  emit("update:tags", tags.value);
   vscode.postMessage({
     command: "bruin.setAssetDetails",
     payload: {
@@ -653,7 +675,6 @@ const removeLastClusterColumn = () => {
   }
 };
 
-// Check if column is selected
 const isColumnSelected = (columnName) => {
   return localMaterialization.value.cluster_by?.includes(columnName);
 };
@@ -669,9 +690,7 @@ const handleClickOutside = (event) => {
 
 onMounted(() => {
   window.addEventListener("click", handleClickOutside);
-  // Initial synchronization when component mounts
-  synchronizeIntervalRefs("start");
-  synchronizeIntervalRefs("end");
+    populateIntervalFormFields();
 });
 
 onBeforeUnmount(() => {
@@ -695,10 +714,14 @@ const saveMaterialization = () => {
     );
   } else {
     cleanData = {
-      partition_by: localMaterialization.value.partition_by,
+      type: "null",
+      partition_by: localMaterialization.value.partition_by || null,
       cluster_by: Array.isArray(localMaterialization.value.cluster_by)
         ? [...localMaterialization.value.cluster_by]
         : [],
+      strategy: null,
+      incremental_key: null,
+      time_granularity: null,
     };
   }
 
@@ -710,8 +733,10 @@ const saveMaterialization = () => {
   vscode.postMessage({
     command: "bruin.setAssetDetails",
     payload: payload,
-    source: "saveMaterialization",
+    source: "Materialization_saveMaterialization",
   });
+
+  emit("update:materialization", cleanData);
 };
 
 function getStrategyDescription(strategy) {

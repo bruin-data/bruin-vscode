@@ -1,4 +1,7 @@
 # Changelog
+## [0.50.1] - [2025-06-11]
+- Fix auto format on initial interval modifiers rendering.
+
 ## [0.50.0] - [2025-06-11]
 - Implement UI for adding and editing interval modifiers directly from the panel.
 
