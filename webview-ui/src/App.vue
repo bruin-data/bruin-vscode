@@ -108,7 +108,6 @@
             v-bind="tab.props"
             class="flex w-full h-full"
             @update:assetName="updateAssetName"
-            @update:columns="updateColumns"
             @update:customChecks="updateCustomChecks"
             @open-glossary="navigateToGlossary"
             @update:description="updateDescription"
@@ -526,11 +525,7 @@ watch(activeTab, (newTab, oldTab) => {
     assetName: assetDetailsProps.value?.name,
   });
 });
-// Function to update columns
-const updateColumns = (newColumns) => {
-  console.log("Updating columns with new data:", newColumns);
-  columns.value = newColumns;
-};
+
 const updateMaterialization = (newMaterialization) => {
   console.log("Updating materialization with new data:", newMaterialization);
   materialization.value = newMaterialization;

@@ -1,4 +1,6 @@
 # Changelog
+## [0.49.3] - [2025-06-11]
+- Remove redundant update columns to fix toggle primary key issue.
 
 ## [0.49.2] - [2025-06-10]
 - Cleaned the code and added detailed logging for patch asset command.

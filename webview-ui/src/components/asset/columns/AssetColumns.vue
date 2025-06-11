@@ -29,7 +29,7 @@
         <div class="col-span-1">
           <vscode-checkbox
             :checked="column.primary_key"
-            @change="(e) => togglePrimaryKey(e, index)"
+            @change="togglePrimaryKey($event, index)"
             title="Set as primary key"
           >
           </vscode-checkbox>
@@ -363,10 +363,21 @@ const addColumn = () => {
   }
 };
 const togglePrimaryKey = (event, index) => {
-  const isChecked = event.target.checked;
-  localColumns.value[index].primary_key = isChecked;
-  emitUpdateColumns(); 
+  const checkbox = event.target;
+  const isChecked = checkbox.checked;
+
+  const col = localColumns.value[index];
+  if (!col) return;
+
+  // Avoid triggering if the value didn't actually change
+  if (col.primary_key === isChecked) return;
+  localColumns.value[index] = {
+    ...col,
+    primary_key: isChecked,
+  };
+
   const payload = { columns: JSON.parse(JSON.stringify(localColumns.value)) };
+  console.warn("Primary Key toggled for column:", col.name);
   vscode.postMessage({
     command: "bruin.setAssetDetails",
     payload: payload,
