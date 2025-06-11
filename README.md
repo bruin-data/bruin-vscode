@@ -54,10 +54,11 @@ Bruin is a unified analytics platform that enables data professionals to work en
 **Note**: Ensure that you have the Bruin CLI installed on your system before using the new features. For guidance on installing the Bruin CLI, please refer to the [official documentation](https://github.com/bruin-data/bruin).
 
 ## Release Notes
-### Latest Release: 0.49.3
-- Remove redundant update columns to fix toggle primary key issue.
+### Latest Release: 0.50.0
+- Implement UI for adding and editing interval modifiers directly from the panel.
 
 ### Recent Updates
+- **0.49.3**: Remove redundant update columns to fix toggle primary key issue.
 - **0.49.2**: Cleaned the code and added detailed logging for patch asset command.
 - **0.49.1**: Added the checkboxes extension settings  to control default enabled/disabled state.
 - **0.49.0**: Added a checkbox to toggle the `--apply-interval-modifiers` flag, along with a warning when they are present in the asset but not enabled.

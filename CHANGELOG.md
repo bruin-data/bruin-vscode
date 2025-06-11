@@ -1,4 +1,7 @@
 # Changelog
+## [0.50.0] - [2025-06-11]
+- Implement UI for adding and editing interval modifiers directly from the panel.
+
 ## [0.49.3] - [2025-06-11]
 - Remove redundant update columns to fix toggle primary key issue.
 

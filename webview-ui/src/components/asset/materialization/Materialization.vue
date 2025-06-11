@@ -1,14 +1,14 @@
 <template>
-  <div class="h-full w-full p-4 flex justify-center">
+  <div class="h-full w-full p-2 flex justify-center">
     <div class="flex flex-col gap-4 h-full w-full max-w-4xl">
-      <div class="bg-editorWidget-bg">
-        <div class="flex items-center mb-2 space-x-2">
-          <label class="block text-sm font-medium text-editor-fg min-w-[60px]">Owner</label>
+      <div class="bg-editorWidget-bg p-1">
+        <div class="flex items-center mb-0.5 space-x-2">
+          <label class="block text-xs font-medium text-editor-fg min-w-[60px]">Owner</label>
           <div id="owner-container" class="flex items-center gap-2">
             <span
               v-if="!isEditingOwner"
               id="owner-text"
-              class="text-md text-editor-fg px-2 py-1 font-mono flex items-center min-h-[32px]"
+              class="text-xs text-editor-fg px-2 py-1 font-mono flex items-center min-h-[32px]"
               :class="owner ? '' : 'text-editor-fg opacity-60 italic'"
             >
               {{ owner || "Unknown" }}
@@ -22,7 +22,7 @@
               @keyup.escape="cancelOwnerEdit"
               ref="ownerInput"
               placeholder="data-team@company.com"
-              class="text-sm p-1 bg-input-background border border-commandCenter-border rounded focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg min-w-[200px]"
+              class="text-2xs bg-input-background focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg min-w-[200px] h-6"
             />
             <vscode-button
               id="edit-owner-button"
@@ -38,8 +38,8 @@
         </div>
         <div class="border-t border-commandCenter-border"></div>
 
-        <div class="flex items-center mt-4 space-x-4">
-          <label class="text-sm font-medium text-editor-fg min-w-[60px]">Tags</label>
+        <div class="flex items-center mt-0.5 space-x-4">
+          <label class="text-xs font-medium text-editor-fg min-w-[60px]">Tags</label>
           <div id="tags-container" class="flex flex-wrap items-center space-x-2">
             <vscode-tag
               v-for="(tag, index) in tags"
@@ -62,7 +62,7 @@
               @keyup.escape="cancelAddTag"
               ref="tagInput"
               placeholder="Tag name..."
-              class="text-xs px-2 py-1.5 bg-input-background border border-commandCenter-border rounded focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg min-w-[80px]"
+              class="text-2xs bg-input-background focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg min-w-[80px] h-6"
             />
             <vscode-button
               id="add-tag-button"
@@ -77,17 +77,62 @@
           </div>
         </div>
       </div>
+      <div class="border-t border-commandCenter-border"></div>
 
+      <div class="flex flex-col gap-x-4 gap-y-2 w-full justify-between">
+        <label class="block text-sm font-medium text-editor-fg mb-1">Interval Modifiers</label>
+        <div class="flex gap-x-4 gap-y-2 w-full justify-between">
+          <div class="flex-1">
+            <label class="block text-xs font-medium text-editor-fg mb-1">Start</label>
+            <div class="flex gap-2">
+              <input
+                v-model="startIntervalValue"
+                class="w-1/2 border-0 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
+                placeholder="e.g., -2"
+              />
+              <select
+                v-model="startIntervalUnit"
+                class="w-1/2 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
+              >
+                <option v-if="!startIntervalUnit" value="" class="text-xs opacity-60">
+                  select unit...
+                </option>
+                <option v-for="unit in intervalUnits" :key="unit" :value="unit">{{ unit }}</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="flex-1">
+            <label class="block text-xs font-medium text-editor-fg mb-1">End</label>
+            <div class="flex gap-2">
+              <input
+                v-model="endIntervalValue"
+                class="w-1/2 border-0 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
+                placeholder="e.g., 1"
+              />
+              <select
+                v-model="endIntervalUnit"
+                class="w-1/2 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
+              >
+                <option v-if="!endIntervalUnit" value="" class="text-xs opacity-60">
+                  select unit...
+                </option>
+                <option v-for="unit in intervalUnits" :key="unit" :value="unit">{{ unit }}</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
       <div class="border-t border-commandCenter-border"></div>
 
       <div class="flex gap-x-4 gap-y-2 w-full justify-between" @click="handleClickOutside">
         <div class="flex-1">
-          <label class="block text-sm font-medium text-editor-fg mb-2">Partitioning</label>
-          <div class="relative w-full max-w-[300px]" ref="partitionContainer">
+          <label class="block text-xs font-medium text-editor-fg mb-1">Partitioning</label>
+          <div class="relative w-full max-w-[250px]" ref="partitionContainer">
             <input
               v-model="partitionInput"
-              placeholder="Select a column or enter an expression..."
-              class="w-full p-2 bg-input-background border border-commandCenter-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg pr-10"
+              placeholder="Column or expression..."
+              class="w-full border-0 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg pr-6 h-6"
               @focus="isPartitionDropdownOpen = true"
               @blur="handlePartitionInputBlur"
               @input="handlePartitionInput"
@@ -102,7 +147,7 @@
 
             <div
               v-if="isPartitionDropdownOpen"
-              class="absolute z-10 w-full bg-dropdown-bg border border-commandCenter-border rounded shadow-lg mt-1 max-h-60 overflow-y-auto"
+              class="absolute z-10 w-full bg-dropdown-bg border border-commandCenter-border shadow-lg mt-1 max-h-60 overflow-y-auto"
             >
               <div
                 class="px-3 py-2 hover:bg-list-hoverBackground hover:text-list-activeSelectionForeground cursor-pointer"
@@ -126,14 +171,14 @@
         </div>
 
         <div class="flex-1">
-          <label class="block text-sm font-medium text-editor-fg mb-2">Clustering</label>
-          <div class="relative w-full max-w-[300px]" ref="clusterContainer">
+          <label class="block text-xs font-medium text-editor-fg mb-1">Clustering</label>
+          <div class="relative w-full max-w-[250px]" ref="clusterContainer">
             <input
               ref="clusterInput"
               v-model="clusterInputValue"
               readonly
-              placeholder="Select columns..."
-              class="w-full p-2 bg-input-background border border-commandCenter-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg pr-10 cursor-pointer"
+              placeholder="Columns..."
+              class="w-full border-0 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg pr-6 h-6 cursor-pointer"
               @click="isClusterDropdownOpen = !isClusterDropdownOpen"
               @keydown.delete="removeLastClusterColumn"
             />
@@ -143,7 +188,7 @@
 
             <div
               v-if="isClusterDropdownOpen"
-              class="absolute z-10 w-full bg-dropdown-bg border border-commandCenter-border rounded shadow-lg mt-1 max-h-60 overflow-y-auto"
+              class="absolute z-10 w-full bg-dropdown-bg border border-commandCenter-border shadow-lg mt-1 max-h-60 overflow-y-auto"
             >
               <div
                 v-for="column in columns"
@@ -163,11 +208,11 @@
       </div>
 
       <div
-        class="flex flex-col sm:flex-row sm:items-start gap-8 border-t border-commandCenter-border pt-4"
+        class="flex flex-col sm:flex-row sm:items-start gap-4 border-t border-commandCenter-border pt-4"
       >
         <div class="flex-1 min-w-[260px]">
-          <div class="flex flex-col space-y-3">
-            <label class="block text-sm font-medium text-editor-fg mb-2"> Materialization </label>
+          <div class="flex flex-col">
+            <label class="block text-sm font-medium text-editor-fg mb-1"> Materialization </label>
             <div class="flex space-x-6">
               <vscode-radio-group
                 :value="localMaterialization.type"
@@ -182,19 +227,19 @@
         </div>
 
         <div v-if="localMaterialization.type === 'table'" class="flex flex-col gap-6 w-full">
-          <div class="flex flex-col space-y-3">
-            <label class="block text-sm font-medium text-editor-fg"> Strategy </label>
+          <div class="flex flex-col">
+            <label class="block text-xs font-medium text-editor-fg mb-1"> Strategy </label>
             <div class="relative">
               <select
                 v-model="localMaterialization.strategy"
-                class="w-full max-w-[300px] p-2 bg-input-background text-input-foreground border border-commandCenter-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg"
+                class="w-full max-w-[250px] bg-input-background text-input-foreground text-xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
               >
-                <option value="create+replace">Create + Replace</option>
-                <option value="delete+insert">Delete + Insert</option>
-                <option value="append">Append</option>
-                <option value="merge">Merge</option>
-                <option value="time_interval">Time Interval</option>
-                <option value="ddl">DDL</option>
+                <option class="text-xs" value="create+replace">Create + Replace</option>
+                <option class="text-xs" value="delete+insert">Delete + Insert</option>
+                <option class="text-xs" value="append">Append</option>
+                <option class="text-xs" value="merge">Merge</option>
+                <option class="text-xs" value="time_interval">Time Interval</option>
+                <option class="text-xs" value="ddl">DDL</option>
               </select>
             </div>
             <p class="text-xs text-editor-fg opacity-70 mt-1 w-full">
@@ -205,10 +250,14 @@
       </div>
 
       <div v-if="showStrategyOptions" class="flex-1">
-        <div class="p-4 bg-editorWidget-bg rounded border border-commandCenter-border h-full">
+        <div class="p-2 bg-editorWidget-bg border border-commandCenter-border h-full">
           <div v-if="localMaterialization.strategy === 'delete+insert'" class="flex flex-col">
-            <label class="block text-sm opacity-65 text-editor-fg mb-2">Incremental Key</label>
-            <input v-model="localMaterialization.incremental_key" placeholder="column_name" />
+            <label class="block text-xs opacity-65 text-editor-fg mb-1">Incremental Key</label>
+            <input
+              class="w-full max-w-[250px] border-0 bg-input-background text-xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
+              v-model="localMaterialization.incremental_key"
+              placeholder="column_name"
+            />
           </div>
 
           <div v-if="localMaterialization.strategy === 'merge'" class="space-y-4">
@@ -221,14 +270,21 @@
             v-if="localMaterialization.strategy === 'time_interval'"
             class="flex flex-col space-y-4"
           >
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-2 items-center gap-4">
               <div class="flex flex-col">
-                <label class="block text-sm opacity-65 text-editor-fg mb-2">Incremental Key</label>
-                <input v-model="localMaterialization.incremental_key" placeholder="column_name" />
+                <label class="block text-xs opacity-65 text-editor-fg mb-1">Incremental Key</label>
+                <input
+                  class="w-full max-w-[250px] border-0 bg-input-background text-xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
+                  v-model="localMaterialization.incremental_key"
+                  placeholder="column_name"
+                />
               </div>
-              <div>
-                <label class="block text-sm opacity-65 text-editor-fg mb-2">Time Granularity</label>
-                <select v-model="localMaterialization.time_granularity">
+              <div class="flex flex-col">
+                <label class="block text-xs opacity-65 text-editor-fg mb-1">Time Granularity</label>
+                <select
+                  v-model="localMaterialization.time_granularity"
+                  class="w-full max-w-[250px] bg-input-background text-xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
+                >
                   <option value="date">Date</option>
                   <option value="timestamp">Timestamp</option>
                 </select>
@@ -238,11 +294,11 @@
         </div>
       </div>
 
-      <div class="border-t border-commandCenter-border pt-4 mt-auto">
+      <div class="border-t border-commandCenter-border pt-2 mt-auto">
         <div class="flex justify-end">
           <vscode-button
             @click="saveMaterialization"
-            class="py-1 px-4 focus:outline-none save-button"
+            class="py-1 px-2 focus:outline-none save-button"
           >
             Save Changes
           </vscode-button>
@@ -277,9 +333,30 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  intervalModifiers: {
+    type: Object,
+    default: () => ({
+      start: {
+        months: 0,
+        days: 0,
+        hours: 0,
+        minutes: 0,
+        seconds: 0,
+        cron_periods: 0,
+      },
+      end: {
+        months: 0,
+        days: 0,
+        hours: 0,
+        minutes: 0,
+        seconds: 0,
+        cron_periods: 0,
+      },
+    }),
+  },
 });
 
-const emit = defineEmits(["update:materialization"]);
+const emit = defineEmits(["update:owner", "update:tags", "update:intervalModifiers"]);
 
 // Owner and Tags reactive data
 const owner = ref(props.owner || "");
@@ -296,10 +373,89 @@ const clusterInput = ref(null);
 const partitionContainer = ref(null);
 const clusterContainer = ref(null);
 
-// Reactive data for Partitioning free-text input
+const intervalModifiers = ref({
+  start: { ...props.intervalModifiers.start },
+  end: { ...props.intervalModifiers.end },
+});
+
+const intervalUnits = ["months", "days", "hours", "minutes", "seconds"];
+
+const startIntervalValue = ref(0);
+const startIntervalUnit = ref("");
+const endIntervalValue = ref(0);
+const endIntervalUnit = ref("");
+
+const synchronizeIntervalRefs = (intervalType) => {
+  const currentInterval = intervalModifiers.value[intervalType];
+  let foundUnit = "";
+  let foundValue = 0;
+
+  for (const unit of intervalUnits) {
+    if (currentInterval[unit] !== 0) {
+      foundUnit = unit;
+      foundValue = currentInterval[unit];
+      break;
+    }
+  }
+
+  if (!foundUnit) {
+    foundUnit = "days";
+  }
+
+  if (intervalType === "start") {
+    startIntervalValue.value = foundValue;
+    startIntervalUnit.value = foundUnit;
+  } else {
+    endIntervalValue.value = foundValue;
+    endIntervalUnit.value = foundUnit;
+  }
+};
+
+const updateIntervalModifiers = (intervalType) => {
+  const currentUnit = intervalType === "start" ? startIntervalUnit.value : endIntervalUnit.value;
+  const currentVal =
+    parseInt(intervalType === "start" ? startIntervalValue.value : endIntervalValue.value, 10) || 0;
+
+  for (const unit of intervalUnits) {
+    intervalModifiers.value[intervalType][unit] = 0;
+  }
+
+  if (currentUnit && currentUnit !== "cron_periods") {
+    intervalModifiers.value[intervalType][currentUnit] = currentVal;
+  }
+  else if (currentUnit === "cron_periods") {
+    intervalModifiers.value[intervalType] = currentVal;
+  }
+
+  vscode.postMessage({
+    command: "bruin.setAssetDetails",
+    payload: {
+      interval_modifiers: JSON.parse(JSON.stringify(intervalModifiers.value)),
+    },
+    source: "updateIntervalModifiers",
+  });
+};
+
+watch(startIntervalValue, () => updateIntervalModifiers("start"));
+watch(startIntervalUnit, () => updateIntervalModifiers("start"));
+watch(endIntervalValue, () => updateIntervalModifiers("end"));
+watch(endIntervalUnit, () => updateIntervalModifiers("end"));
+
+watch(
+  () => props.intervalModifiers,
+  (newVal) => {
+    intervalModifiers.value = {
+      start: { ...newVal.start },
+      end: { ...newVal.end },
+    };
+    synchronizeIntervalRefs("start");
+    synchronizeIntervalRefs("end");
+  },
+  { immediate: true, deep: true }
+);
+
 const partitionInput = ref("");
 
-// Owner editing functions
 const startEditingOwner = () => {
   isEditingOwner.value = true;
   editingOwner.value = owner.value;
@@ -326,7 +482,6 @@ const cancelOwnerEdit = () => {
   isEditingOwner.value = false;
 };
 
-// Tags functionality
 const startAddingTag = () => {
   isAddingTag.value = true;
   nextTick(() => {
@@ -364,7 +519,6 @@ const sendTagUpdate = () => {
   });
 };
 
-// Watch for prop changes
 watch(
   () => props.owner,
   (newOwner) => {
@@ -403,11 +557,11 @@ const initializeLocalMaterialization = (materializationProp) => {
   base.cluster_by = Array.isArray(base.cluster_by)
     ? base.cluster_by
     : typeof base.cluster_by === "string"
-    ? base.cluster_by
-        .split(",")
-        .map((c) => c.trim())
-        .filter((c) => c)
-    : [];
+      ? base.cluster_by
+          .split(",")
+          .map((c) => c.trim())
+          .filter((c) => c)
+      : [];
   return base;
 };
 
@@ -415,7 +569,6 @@ watch(
   () => props.materialization,
   (newVal) => {
     localMaterialization.value = initializeLocalMaterialization(newVal);
-    // Initialize partitionInput with the current partition_by value
     partitionInput.value = localMaterialization.value.partition_by || "";
   },
   { immediate: true, deep: true }
@@ -448,33 +601,26 @@ const setType = (type) => {
   }
 };
 
-// Update these for the Partitioning field
 const selectPartitionColumn = (columnName) => {
-  partitionInput.value = columnName; // Update input field
-  localMaterialization.value.partition_by = columnName; // Update underlying data
+  partitionInput.value = columnName;
+  localMaterialization.value.partition_by = columnName;
   isPartitionDropdownOpen.value = false;
 };
 
-// Filter columns based on input for partitioning
 const filteredPartitionColumns = computed(() => {
   const query = partitionInput.value.toLowerCase();
   if (!query || isPartitionDropdownOpen.value) {
     return props.columns;
   }
-  return props.columns.filter((column) =>
-    column.name.toLowerCase().includes(query)
-  );
+  return props.columns.filter((column) => column.name.toLowerCase().includes(query));
 });
 
 const handlePartitionInput = () => {
-  // Update the underlying data as the user types
   localMaterialization.value.partition_by = partitionInput.value;
-  // Keep dropdown open if user is typing a potential column or expression
   isPartitionDropdownOpen.value = true;
 };
 
 const handlePartitionInputBlur = () => {
-  // Close the dropdown after a short delay to allow for click on dropdown items
   setTimeout(() => {
     isPartitionDropdownOpen.value = false;
   }, 100);
@@ -482,14 +628,12 @@ const handlePartitionInputBlur = () => {
 
 const handlePartitionEnter = () => {
   isPartitionDropdownOpen.value = false;
-  // The localMaterialization.value.partition_by is already updated via handlePartitionInput
 };
 
 const clusterInputValue = computed(() => {
   return localMaterialization.value.cluster_by.join(", ") || "";
 });
 
-// Toggle cluster column selection
 const toggleClusterColumn = (columnName) => {
   if (!localMaterialization.value.cluster_by) {
     localMaterialization.value.cluster_by = [];
@@ -503,7 +647,6 @@ const toggleClusterColumn = (columnName) => {
   }
 };
 
-// Remove last cluster column when pressing backspace
 const removeLastClusterColumn = () => {
   if (localMaterialization.value.cluster_by.length > 0) {
     localMaterialization.value.cluster_by.pop();
@@ -523,9 +666,12 @@ const handleClickOutside = (event) => {
     isClusterDropdownOpen.value = false;
   }
 };
-// Add click event listener to close dropdown
+
 onMounted(() => {
   window.addEventListener("click", handleClickOutside);
+  // Initial synchronization when component mounts
+  synchronizeIntervalRefs("start");
+  synchronizeIntervalRefs("end");
 });
 
 onBeforeUnmount(() => {
@@ -558,9 +704,9 @@ const saveMaterialization = () => {
 
   const payload = {
     materialization: cleanData,
+    interval_modifiers: JSON.parse(JSON.stringify(intervalModifiers.value)),
   };
 
-  emit("update:materialization", cleanData);
   vscode.postMessage({
     command: "bruin.setAssetDetails",
     payload: payload,
@@ -580,7 +726,6 @@ function getStrategyDescription(strategy) {
   }[strategy];
 }
 </script>
-
 <style scoped>
 vscode-radio::part(control) {
   @apply border-none outline-none w-4 h-4;
@@ -612,10 +757,14 @@ vscode-tag::part(control) {
   @apply normal-case !important;
 }
 .info-text {
-  @apply text-sm text-editor-fg opacity-70;
+  @apply text-xs text-editor-fg opacity-70;
 }
 vscode-button::part(control) {
   border: none;
   outline: none;
+}
+input,
+select {
+  @apply px-1 py-0.5 text-2xs border-0 !important;
 }
 </style>
