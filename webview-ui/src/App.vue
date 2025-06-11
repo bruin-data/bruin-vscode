@@ -361,6 +361,7 @@ const saveNameEdit = () => {
       payload: {
         name: editingName.value.trim(),
       },
+      source: "saveNameEdit",
     });
   } else if (!editingName.value.trim()) {
     // If the input is left empty, revert to the original name
@@ -424,7 +425,7 @@ const tabs = ref([
       selectedEnvironment: selectedEnvironment.value,
       hasIntervalModifiers: hasIntervalModifiers.value,
     })),
-    emits: ["update:name", "update:description"],
+    emits: ["update:assetName", "update:description"],
   },
   {
     label: "Columns",
@@ -546,6 +547,7 @@ const updateDescription = (newDescription) => {
       payload: {
         description: newDescription,
       },
+      source: "updateDescription",
     });
   }
 };
