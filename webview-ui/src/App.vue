@@ -107,11 +107,8 @@
               :is="tab.component"
               v-bind="tab.props"
               class="flex w-full h-full"
-              @update:assetName="updateAssetName"
-              @update:customChecks="updateCustomChecks"
               @open-glossary="navigateToGlossary"
               @update:description="updateDescription"
-              @update:materialization="updateMaterialization"
             />
           </template>
         </vscode-panel-view>
@@ -526,15 +523,6 @@ watch(activeTab, (newTab, oldTab) => {
     assetName: assetDetailsProps.value?.name,
   });
 });
-
-const updateMaterialization = (newMaterialization) => {
-  console.log("Updating materialization with new data:", newMaterialization);
-  materialization.value = newMaterialization;
-};
-const updateCustomChecks = (newCustomChecks) => {
-  console.log("Updating custom checks with new data:", newCustomChecks);
-  customChecks.value = newCustomChecks;
-};
 
 const updateDescription = (newDescription) => {
   console.log("Updating description with new data:", newDescription);
