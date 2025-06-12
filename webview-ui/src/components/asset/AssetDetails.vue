@@ -142,7 +142,6 @@ onBeforeUnmount(() => {
 
 onMounted(async () => {
   window.addEventListener("message", handleMessage);
-  vscode.postMessage({ command: "bruin.getConnectionsList" });
   await updateContentHeight();
 
   if (descriptionRef.value) {

@@ -122,9 +122,6 @@ const handleConnectionDeleted = async (payload) => {
     connectionsStore.removeConnection(connectionToDelete.value.id);
     showDeleteAlert.value = false;
     connectionToDelete.value = null;
-
-    // Fetch updated connections list from the backend
-    await vscode.postMessage({ command: "bruin.getConnectionsList" });
   } else {
     console.error("Failed to delete connection:", payload.message);
   }
