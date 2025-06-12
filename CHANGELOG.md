@@ -1,4 +1,7 @@
 # Changelog
+## [0.50.2] - [2025-06-12]
+- Fix DateInput component to handle focus correctly and adjust SQL editor height.
+
 ## [0.50.1] - [2025-06-11]
 - Fix auto format on initial interval modifiers rendering.
 
