@@ -6,6 +6,7 @@
     </label>
     <div class="relative flex items-center">
       <input
+        ref="textInput"
         type="text"
         class="w-full text-2xs px-1 border-0 py-0.5 bg-dropdown-bg pr-6"
         :value="displayValue"
@@ -45,7 +46,7 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps, defineEmits, computed, ref } from "vue";
+import { defineProps, defineEmits, computed, ref, watch } from "vue";
 import { DateTime } from "luxon";
 
 const props = defineProps({
@@ -59,11 +60,19 @@ const props = defineProps({
 const emit = defineEmits(["update:modelValue"]);
 
 const dateTimeInput = ref<HTMLInputElement | null>(null);
+const textInput = ref<HTMLInputElement | null>(null);
 const error = ref<string | null>(null);
 const userInput = ref("");
 
+// Clear userInput when modelValue changes from reset button
+watch(() => props.modelValue, () => {
+  if (document.activeElement !== textInput.value) {
+    userInput.value = "";
+  }
+});
+
 const displayValue = computed(() => {
-  if (document.activeElement === document.querySelector('input[type="text"]')) {
+  if (document.activeElement === textInput.value && userInput.value !== "") {
     return userInput.value;
   }
 
@@ -86,6 +95,8 @@ const validateInput = (event: Event) => {
   const input = event.target as HTMLInputElement;
   if (!tryParseDate(input.value)) {
     error.value = "Invalid date format.";
+  } else {
+    userInput.value = "";
   }
 };
 
