@@ -1,4 +1,8 @@
 # Changelog
+
+## [0.50.3] - [2025-06-12]
+- Fix vscode publishing issue.
+
 ## [0.50.2] - [2025-06-12]
 - Fix DateInput component to handle focus correctly and adjust SQL editor height.
 
