@@ -40,7 +40,7 @@
         </vscode-button>
       </div>
     </div>
-    <div id="sql-editor" class="code-container pb-0" :style="{ height: editorHeight }">
+    <div id="sql-editor" class="code-container pb-0">
       <!-- Use regular rendering for small content, virtual scroller for large content -->
       <div v-if="shouldUseVirtualScroller" class="scroller">
         <DynamicScroller
