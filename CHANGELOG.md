@@ -1,4 +1,8 @@
 # Changelog
+## [0.50.5] - [2025-06-13]
+### Pre-release
+- [Pre-release] This version is for testing improved tab rendering.
+
 ## [0.50.4] - [2025-06-13]
 ### Pre-release
 - Improved tab rendering performance by switching to `v-if` and optimizing component caching.
