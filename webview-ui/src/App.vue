@@ -101,7 +101,7 @@
           :id="`view-${index}`"
           class="px-0"
         >
-          <template v-if="activeTab === index">
+          <keep-alive>
             <component
               v-if="tab.props"
               :is="tab.component"
@@ -110,7 +110,7 @@
               @open-glossary="navigateToGlossary"
               @update:description="updateDescription"
             />
-          </template>
+          </keep-alive>
         </vscode-panel-view>
       </vscode-panels>
     </div>
