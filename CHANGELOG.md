@@ -1,4 +1,9 @@
 # Changelog
+## [0.50.4] - [2025-06-13]
+### Pre-release
+- Improved tab rendering performance by switching to `v-if` and optimizing component caching.
+- Cleaned up unused message handling code for better maintainability.
+- [Pre-release] This version is for testing improved tab rendering and code cleanup.
 
 ## [0.50.3] - [2025-06-12]
 - Fix vscode publishing issue.
