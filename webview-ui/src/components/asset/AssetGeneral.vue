@@ -219,9 +219,6 @@
   </div>
 </template>
 <script setup lang="ts">
-/**
- * Import necessary dependencies
- */
 import { vscode } from "@/utilities/vscode";
 import { computed, onBeforeUnmount, onMounted, ref, defineProps, watch } from "vue";
 import ErrorAlert from "@/components/ui/alerts/ErrorAlert.vue";

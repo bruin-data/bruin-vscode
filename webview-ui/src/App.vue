@@ -99,20 +99,17 @@
           v-for="(tab, index) in visibleTabs"
           :key="`view-${index}`"
           :id="`view-${index}`"
-          v-show="activeTab === index"
           class="px-0"
         >
-          <component
-            v-if="tab.props"
-            :is="tab.component"
-            v-bind="tab.props"
-            class="flex w-full h-full"
-            @update:assetName="updateAssetName"
-            @update:customChecks="updateCustomChecks"
-            @open-glossary="navigateToGlossary"
-            @update:description="updateDescription"
-            @update:materialization="updateMaterialization"
-          />
+          <keep-alive>
+            <component
+              v-if="tab.props"
+              :is="tab.component"
+              v-bind="tab.props"
+              class="flex w-full h-full"
+              @update:description="updateDescription"
+            />
+          </keep-alive>
         </vscode-panel-view>
       </vscode-panels>
     </div>
@@ -268,10 +265,6 @@ const nonAssetFileType = ref("");
 const nonAssetFilePath = ref("");
 const activeTab = ref(0); // Tracks the currently active tab
 
-const navigateToGlossary = () => {
-  console.log("Opening glossary.");
-  vscode.postMessage({ command: "bruin.openGlossary" });
-};
 // Computed property to parse the list of environments
 const environmentsList = computed(() => {
   if (!environments.value) return [];
@@ -526,15 +519,6 @@ watch(activeTab, (newTab, oldTab) => {
   });
 });
 
-const updateMaterialization = (newMaterialization) => {
-  console.log("Updating materialization with new data:", newMaterialization);
-  materialization.value = newMaterialization;
-};
-const updateCustomChecks = (newCustomChecks) => {
-  console.log("Updating custom checks with new data:", newCustomChecks);
-  customChecks.value = newCustomChecks;
-};
-
 const updateDescription = (newDescription) => {
   console.log("Updating description with new data:", newDescription);
   if (assetDetailsProps.value) {
@@ -569,10 +553,9 @@ const updateAssetName = (newName) => {
   }
   tabs.value.forEach((tab) => {
     if (tab && tab.props && "name" in tab.props) {
-      tab.props.name = newName; // Update the name in the tab props
+      tab.props.name = newName; 
     }
   });
-  vscode.postMessage({ command: "bruin.updateAssetName", name: newName });
 };
 const assetType = computed(() => {
   if (isPipelineConfig.value) return "pipeline";
