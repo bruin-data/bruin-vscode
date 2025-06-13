@@ -107,7 +107,6 @@
               :is="tab.component"
               v-bind="tab.props"
               class="flex w-full h-full"
-              @open-glossary="navigateToGlossary"
               @update:description="updateDescription"
             />
           </keep-alive>
@@ -266,10 +265,6 @@ const nonAssetFileType = ref("");
 const nonAssetFilePath = ref("");
 const activeTab = ref(0); // Tracks the currently active tab
 
-const navigateToGlossary = () => {
-  console.log("Opening glossary.");
-  vscode.postMessage({ command: "bruin.openGlossary" });
-};
 // Computed property to parse the list of environments
 const environmentsList = computed(() => {
   if (!environments.value) return [];
@@ -558,10 +553,9 @@ const updateAssetName = (newName) => {
   }
   tabs.value.forEach((tab) => {
     if (tab && tab.props && "name" in tab.props) {
-      tab.props.name = newName; // Update the name in the tab props
+      tab.props.name = newName; 
     }
   });
-  vscode.postMessage({ command: "bruin.updateAssetName", name: newName });
 };
 const assetType = computed(() => {
   if (isPipelineConfig.value) return "pipeline";

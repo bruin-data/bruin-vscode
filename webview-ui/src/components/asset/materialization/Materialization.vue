@@ -735,8 +735,6 @@ const saveMaterialization = () => {
     payload: payload,
     source: "Materialization_saveMaterialization",
   });
-
-  emit("update:materialization", cleanData);
 };
 
 function getStrategyDescription(strategy) {
