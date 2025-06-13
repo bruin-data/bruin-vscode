@@ -486,12 +486,8 @@ watch(
     () => checkboxItems.value.find((item) => item.name === "Interval-modifiers")?.checked,
   ],
   ([hasIntervalModifiers, isChecked]) => {
-    console.warn("Has interval modifiers:", props.hasIntervalModifiers);
-    console.warn("Interval modifiers checked:", isChecked);
 
     showIntervalAlert.value = hasIntervalModifiers && !isChecked && !dismissedIntervalAlert.value;
-    console.warn("Has interval modifiers:", props.hasIntervalModifiers);
-    console.warn("Interval modifiers checked:", isChecked);
   },
   { immediate: true }
 );

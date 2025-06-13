@@ -103,7 +103,7 @@
         >
           <keep-alive>
             <component
-              v-if="tab.props"
+              v-if="isTabActive(index)"
               :is="tab.component"
               v-bind="tab.props"
               class="flex w-full h-full"
@@ -328,7 +328,6 @@ const intervalModifiers = computed(() => {
 
 const hasIntervalModifiers = computed(() => {
   const intervalModifiersValue = assetDetailsProps.value?.interval_modifiers ? true : false;
-  console.warn("Has interval modifiers in App:", intervalModifiersValue);
   return intervalModifiersValue;
 });
 
@@ -338,7 +337,6 @@ const nameInput = ref<HTMLInputElement | null>(null);
 
 const stopNameEditing = () => {
   console.log("Stopping name editing.");
-  // Don't revert if editingName is empty here; saveNameEdit will handle it.
   isEditingName.value = false;
 };
 
@@ -346,7 +344,6 @@ const saveNameEdit = () => {
   rudderStack.trackEvent("Asset Name Updated", {
     assetName: editingName.value.trim(),
   });
-  // Only save if the name has changed and is not empty
   if (editingName.value.trim() && editingName.value.trim() !== assetDetailsProps.value?.name) {
     updateAssetName(editingName.value.trim());
     vscode.postMessage({
@@ -357,7 +354,6 @@ const saveNameEdit = () => {
       source: "saveNameEdit",
     });
   } else if (!editingName.value.trim()) {
-    // If the input is left empty, revert to the original name
     editingName.value = assetDetailsProps.value?.name || "";
   }
   stopNameEditing();
@@ -573,6 +569,11 @@ const badgeClass = computed(() => {
     badgeStyle: `${commonBadgeStyle} ${styleForType.main}`,
   };
 });
+
+const isTabActive = (index) => {
+  return tabs.value[index].props && activeTab.value === index;
+};
+
 onBeforeUnmount(() => {
   window.removeEventListener("message", handleMessage);
 });
