@@ -72,6 +72,7 @@ export class BruinPanel {
 
     this._disposables.push(
       workspace.onDidChangeTextDocument(async (editor) => {
+        console.log("onDidChangeTextDocument", editor);
         if (editor && editor.document.uri.fsPath.endsWith(".bruin.yml")) {
           getEnvListCommand(this._lastRenderedDocumentUri);
           getConnections(this._lastRenderedDocumentUri);
@@ -86,6 +87,7 @@ export class BruinPanel {
       }),
 
       window.onDidChangeActiveTextEditor(async (editor) => {
+        console.log("onDidChangeActiveTextEditor", editor);
         if (editor && editor.document.uri) {
           this._lastRenderedDocumentUri = editor.document.uri;
 
