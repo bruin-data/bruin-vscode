@@ -27,21 +27,7 @@ jobs:
         cache: 'npm'
 
     - name: npm-ci
-      run: |
-        if [ "${{ runner.os }}" = "Windows" ]; then
-          npm ci --no-audit --no-fund --no-package-lock
-        else
-          npm ci
-        fi
-      shell: bash
-
-    # Windows npm optimization
-    - name: Windows npm optimization
-      if: ${{ runner.os == 'Windows' }}
-      run: |
-        npm cache verify
-        npm cache clean --force
-      shell: bash
+      run: npm ci
 
     - name: Allow unprivileged user namespace (ubuntu)
       if: ${{ startsWith(matrix.os, 'ubuntu') }}
