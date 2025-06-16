@@ -279,7 +279,6 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(["update:columns", "open-glossary"]);
 const showDeleteAlert = ref(false);
 const localColumns = ref([...props.columns]);
 const editingIndex = ref(null);
@@ -299,8 +298,8 @@ const updatePatternValue = () => {
 };
 
 const openGlossaryLink = (entityAttribute) => {
-  emit("open-glossary", entityAttribute);
   console.log("Opening glossary for entity:", entityAttribute);
+  vscode.postMessage({ command: "bruin.openGlossary" });
 };
 
 const confirmPatternInput = () => {
@@ -418,7 +417,6 @@ const saveChanges = (index) => {
       source: "saveChanges",
     });
 
-    emit("update:columns", formattedColumns);
   } catch (error) {
     console.error("Error saving column changes:", error);
     showError(`Failed to save column changes. Please try again. \n ${error}`);
@@ -511,7 +509,12 @@ const removeCheck = (checkName) => {
   editingColumn.value.checks = editingColumn.value.checks.filter(
     (check) => check.name !== checkName
   );
-  emitUpdateColumns();
+  const payload = { columns: JSON.parse(JSON.stringify(localColumns.value)) };
+  vscode.postMessage({
+    command: "bruin.setAssetDetails",
+    payload: payload,
+    source: "removeCheck",
+  });
 };
 
 const toggleAddCheckDropdown = (index) => {
@@ -577,16 +580,6 @@ const getCheckTooltip = (check, column) => {
   return "";
 };
 
-const emitUpdateColumns = () => {
-  const formattedColumns = localColumns.value.map((column) => ({
-    ...column,
-    checks: formatChecks(column.checks),
-    entity_attribute: column.entity_attribute || null,
-    primary_key: column.primary_key,
-  }));
-  emit("update:columns", formattedColumns);
-};
-
 const startEditing = (index) => {
   editingIndex.value = index;
   // Create a deep copy to avoid reference issues
@@ -605,7 +598,6 @@ const deleteColumn = (index) => {
     }
   }
   showDeleteAlert.value = false;
-  emitUpdateColumns();
   const payload = { columns: JSON.parse(JSON.stringify(localColumns.value)) };
   vscode.postMessage({
     command: "bruin.setAssetDetails",

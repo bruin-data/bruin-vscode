@@ -219,9 +219,6 @@
   </div>
 </template>
 <script setup lang="ts">
-/**
- * Import necessary dependencies
- */
 import { vscode } from "@/utilities/vscode";
 import { computed, onBeforeUnmount, onMounted, ref, defineProps, watch } from "vue";
 import ErrorAlert from "@/components/ui/alerts/ErrorAlert.vue";
@@ -489,12 +486,8 @@ watch(
     () => checkboxItems.value.find((item) => item.name === "Interval-modifiers")?.checked,
   ],
   ([hasIntervalModifiers, isChecked]) => {
-    console.warn("Has interval modifiers:", props.hasIntervalModifiers);
-    console.warn("Interval modifiers checked:", isChecked);
 
     showIntervalAlert.value = hasIntervalModifiers && !isChecked && !dismissedIntervalAlert.value;
-    console.warn("Has interval modifiers:", props.hasIntervalModifiers);
-    console.warn("Interval modifiers checked:", isChecked);
   },
   { immediate: true }
 );

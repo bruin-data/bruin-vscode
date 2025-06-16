@@ -21,7 +21,6 @@
           :key="index"
           class="border-b border-commandCenter-border"
         >
-          <!-- Check Name with improved handling -->
           <td class="px-2 py-1 font-medium font-mono text-xs w-1/4">
             <div v-if="editingIndex === index" class="flex flex-col gap-1">
               <textarea
@@ -162,10 +161,9 @@ const props = defineProps<{
 const localCustomChecks = ref<CustomChecks[]>([]);
 const editingIndex = ref<number | null>(null);
 const editingCustomCheck = ref<CustomChecks | null>(null);
-const emit = defineEmits(["update:customChecks"]);
+
 const showDeleteAlert = ref<number | null>(null);
 const addCustomCheck = () => {
-  // Add custom check logic here
   try {
     const newCustomCheck = {
       id: uuidv4(),
@@ -175,7 +173,6 @@ const addCustomCheck = () => {
       query: "",
     };
 
-    // Add new custom check to local custom checks
     localCustomChecks.value.push(newCustomCheck);
     editingIndex.value = localCustomChecks.value.length - 1;
     editingCustomCheck.value = JSON.parse(JSON.stringify(newCustomCheck)) as CustomChecks;
@@ -198,7 +195,6 @@ const resetEditing = () => {
 
 const deleteCustomCheck = (index: number) => {
   try {
-    // Remove the custom check from local custom checks
     localCustomChecks.value.splice(index, 1);
     showDeleteAlert.value = null;
     saveCustomChecks();
@@ -220,14 +216,12 @@ const saveCustomChecks = () => {
       localCustomChecks.value[editingIndex.value] = updatedCheck;
     }
 
-    // Reset editing state
     editingIndex.value = null;
     editingCustomCheck.value = null;
 
-    // Post-process and emit checks
     const formattedCustomChecks = localCustomChecks.value.map((check) => ({
       ...check,
-      value: Number(check.value) || 0, // Ensure value is numeric
+      value: Number(check.value) || 0, 
     }));
 
     vscode.postMessage({
@@ -236,23 +230,20 @@ const saveCustomChecks = () => {
       source: "saveCustomChecks",
     });
 
-    emit("update:customChecks", formattedCustomChecks);
   } catch (error) {
     console.error("Error saving custom checks:", error);
   }
 };
 const highlightedLines = (query) => {
-  if (!query) return []; // Return an empty array if no query is provided
+  if (!query) return []; 
   const highlighted = hljs.highlight(query, { language: "sql" }).value;
 
-  // Split the highlighted output into lines
   let lines = highlighted.split("\n");
   if (lines[lines.length - 1] === "") {
-    lines.pop(); // Remove the last empty line if it exists
+    lines.pop();
   }
 
-  // Return each line wrapped in a <div> for proper formatting
-  return lines.map((line) => `<div>${line}</div>`).join(""); // Join lines with <div> for line breaks
+  return lines.map((line) => `<div>${line}</div>`).join(""); 
 };
 
 watch(
@@ -271,7 +262,7 @@ watch(
 
 <style scoped>
 table thead tr.border-opacity-test {
-  border: 0.7 !important; /* Adjust the opacity value as needed */
+  border: 0.7 !important; 
 }
 
 vscode-button::part(control) {
