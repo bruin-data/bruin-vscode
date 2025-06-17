@@ -188,12 +188,14 @@ export async function activate(context: ExtensionContext) {
         const document = await workspace.openTextDocument(uri);
         const query = document.getText(range);
         QueryPreviewPanel.setLastExecutedQuery(query);
+        const activeTabId = QueryPreviewPanel.getActiveTabId(); 
+
         QueryPreviewPanel.postMessage("query-output-message", {
           status: "loading",
           message: true,
-          tabId: "tab-1"
+          tabId: activeTabId,
         });
-        await getQueryOutput("", "", uri, "tab-1");
+        await getQueryOutput("", "", uri, activeTabId);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         vscode.window.showErrorMessage(`Error running query: ${errorMessage}`);
