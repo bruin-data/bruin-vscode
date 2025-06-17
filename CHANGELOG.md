@@ -1,4 +1,6 @@
 # Changelog
+## [0.50.8] - [2025-06-17]
+- Added support for additional seed asset types in snippets, schema and UI.
 ## [0.50.7] - [2025-06-17]
 - Added utility to format bruin run commands in a readable multi-line format.
 
