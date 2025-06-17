@@ -1,4 +1,7 @@
 # Changelog
+## [0.50.7] - [2025-06-17]
+- Added utility to format bruin run commands in a readable multi-line format.
+
 ## [0.50.6] - [2025-06-16]
 - Improved tab rendering performance by switching to `v-if` and optimizing component caching, and cleaned up unused message handling code for better maintainability.
 
