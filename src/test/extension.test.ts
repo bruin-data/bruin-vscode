@@ -2887,3 +2887,292 @@ suite(" Query export Tests", () => {
     assert.deepStrictEqual(BruinPanelPostMessageStub.firstCall.args, ["environments-list-message", { status, message }], "Expected correct message to be posted to BruinPanel");
   });
 }); */
+
+suite("Multi-line Command Formatting Tests", () => {
+  let terminalStub: Partial<vscode.Terminal>;
+  let terminalOptionsStub: Partial<vscode.TerminalOptions>;
+
+  setup(() => {
+    terminalOptionsStub = {
+      shellPath: undefined,
+    };
+    terminalStub = {
+      creationOptions: terminalOptionsStub as vscode.TerminalOptions,
+    };
+  });
+
+  teardown(() => {
+    sinon.restore();
+  });
+
+  suite("shouldUseUnixFormatting", () => {
+    test("should return true for Unix-like shells on Windows", () => {
+      const platformStub = sinon.stub(process, "platform").value("win32");
+      
+      // Test Git Bash
+      terminalOptionsStub.shellPath = "C:\\Program Files\\Git\\bin\\bash.exe";
+      assert.strictEqual(
+        (bruinUtils as any).shouldUseUnixFormatting(terminalStub as vscode.Terminal),
+        true,
+        "Git Bash should use Unix formatting"
+      );
+
+      // Test WSL
+      terminalOptionsStub.shellPath = "wsl.exe";
+      assert.strictEqual(
+        (bruinUtils as any).shouldUseUnixFormatting(terminalStub as vscode.Terminal),
+        true,
+        "WSL should use Unix formatting"
+      );
+
+      // Test undefined shellPath (default terminal)
+      terminalOptionsStub.shellPath = undefined;
+      assert.strictEqual(
+        (bruinUtils as any).shouldUseUnixFormatting(terminalStub as vscode.Terminal),
+        true,
+        "Default terminal should use Unix formatting"
+      );
+
+      platformStub.restore();
+    });
+
+
+    test("should return true for non-Windows platforms", () => {
+      const platformStub = sinon.stub(process, "platform").value("darwin");
+      
+      terminalOptionsStub.shellPath = "/bin/bash";
+      assert.strictEqual(
+        (bruinUtils as any).shouldUseUnixFormatting(terminalStub as vscode.Terminal),
+        true,
+        "macOS should use Unix formatting"
+      );
+
+      platformStub.value("linux");
+      assert.strictEqual(
+        (bruinUtils as any).shouldUseUnixFormatting(terminalStub as vscode.Terminal),
+        true,
+        "Linux should use Unix formatting"
+      );
+
+      platformStub.restore();
+    });
+  });
+
+  suite("formatBruinCommand", () => {
+    test("should format command with Unix line continuation", () => {
+      const result = (bruinUtils as any).formatBruinCommand(
+        "bruin",
+        "run",
+        "--start-date 2025-06-15T000000.000Z --end-date 2025-06-15T235959.999999999Z --full-refresh --push-metadata --downstream --exclude-tag python --environment prod",
+        "/path/to/asset.sql",
+        true
+      );
+
+      const expected = `bruin run \\
+  --start-date 2025-06-15T000000.000Z \\
+  --end-date 2025-06-15T235959.999999999Z \\
+  --full-refresh \\
+  --push-metadata \\
+  --downstream \\
+  --exclude-tag python \\
+  --environment prod \\
+  /path/to/asset.sql`;
+
+      assert.strictEqual(result, expected, "Should format with Unix line continuation");
+    });
+
+    test("should format command with PowerShell line continuation", () => {
+      const result = (bruinUtils as any).formatBruinCommand(
+        "bruin",
+        "run",
+        "--start-date 2025-06-15T000000.000Z --end-date 2025-06-15T235959.999999999Z --full-refresh",
+        "/path/to/asset.sql",
+        false
+      );
+
+      const expected = `bruin run \`
+  --start-date 2025-06-15T000000.000Z \`
+  --end-date 2025-06-15T235959.999999999Z \`
+  --full-refresh \`
+  /path/to/asset.sql`;
+
+      assert.strictEqual(result, expected, "Should format with PowerShell line continuation");
+    });
+
+    test("should handle empty flags", () => {
+      const result = (bruinUtils as any).formatBruinCommand(
+        "bruin",
+        "run",
+        "",
+        "/path/to/asset.sql",
+        true
+      );
+
+      const expected = "bruin run /path/to/asset.sql";
+      assert.strictEqual(result, expected, "Should return simple command without flags");
+    });
+
+    test("should handle whitespace-only flags", () => {
+      const result = (bruinUtils as any).formatBruinCommand(
+        "bruin",
+        "run",
+        "   ",
+        "/path/to/asset.sql",
+        true
+      );
+
+      const expected = "bruin run /path/to/asset.sql";
+      assert.strictEqual(result, expected, "Should return simple command with whitespace-only flags");
+    });
+
+    test("should handle flags with values", () => {
+      const result = (bruinUtils as any).formatBruinCommand(
+        "bruin",
+        "run",
+        "--start-date 2025-06-15T000000.000Z --end-date 2025-06-15T235959.999999999Z --environment prod",
+        "/path/to/asset.sql",
+        true
+      );
+
+      const expected = `bruin run \\
+  --start-date 2025-06-15T000000.000Z \\
+  --end-date 2025-06-15T235959.999999999Z \\
+  --environment prod \\
+  /path/to/asset.sql`;
+
+      assert.strictEqual(result, expected, "Should handle flags with values correctly");
+    });
+
+    test("should handle single flag", () => {
+      const result = (bruinUtils as any).formatBruinCommand(
+        "bruin",
+        "run",
+        "--full-refresh",
+        "/path/to/asset.sql",
+        true
+      );
+
+      const expected = `bruin run \\
+  --full-refresh \\
+  /path/to/asset.sql`;
+
+      assert.strictEqual(result, expected, "Should handle single flag correctly");
+    });
+
+    test("should handle flags with complex values", () => {
+      const result = (bruinUtils as any).formatBruinCommand(
+        "bruin",
+        "run",
+        "--exclude-tag python --exclude-tag java --environment prod",
+        "/path/to/asset.sql",
+        true
+      );
+
+      const expected = `bruin run \\
+  --exclude-tag python \\
+  --exclude-tag java \\
+  --environment prod \\
+  /path/to/asset.sql`;
+
+      assert.strictEqual(result, expected, "Should handle flags with complex values correctly");
+    });
+  });
+
+  suite("runInIntegratedTerminal with formatting", () => {
+    let createIntegratedTerminalStub: sinon.SinonStub;
+    let terminalSendTextStub: sinon.SinonStub;
+    let terminalShowStub: sinon.SinonStub;
+
+    setup(() => {
+      terminalSendTextStub = sinon.stub();
+      terminalShowStub = sinon.stub();
+      
+      const mockTerminal = {
+        creationOptions: {
+          shellPath: "C:\\Program Files\\Git\\bin\\bash.exe"
+        },
+        show: terminalShowStub,
+        sendText: terminalSendTextStub
+      } as any;
+
+      createIntegratedTerminalStub = sinon.stub(bruinUtils, "createIntegratedTerminal").resolves(mockTerminal);
+    });
+
+    teardown(() => {
+      sinon.restore();
+    });
+
+    test("should format command with Unix formatting for Git Bash", async () => {
+      const flags = "--start-date 2025-06-15T000000.000Z --end-date 2025-06-15T235959.999999999Z --full-refresh --push-metadata";
+      const assetPath = "/path/to/asset.sql";
+
+      await bruinUtils.runInIntegratedTerminal("/working/dir", assetPath, flags, "bruin");
+
+      assert.ok(terminalSendTextStub.calledTwice, "Should send text twice (dummy call + command)");
+      
+      const actualCommand = terminalSendTextStub.secondCall.args[0];
+      const expectedCommand = `bruin run \\
+  --start-date 2025-06-15T000000.000Z \\
+  --end-date 2025-06-15T235959.999999999Z \\
+  --full-refresh \\
+  --push-metadata \\
+  "/path/to/asset.sql"`;
+
+      assert.strictEqual(actualCommand, expectedCommand, "Should format command with Unix line continuation");
+    });
+
+    test("should use simple command when no flags provided", async () => {
+      const assetPath = "/path/to/asset.sql";
+
+      await bruinUtils.runInIntegratedTerminal("/working/dir", assetPath, "", "bruin");
+
+      const actualCommand = terminalSendTextStub.secondCall.args[0];
+      const expectedCommand = 'bruin run "/path/to/asset.sql"';
+
+      assert.strictEqual(actualCommand, expectedCommand, "Should use simple command without flags");
+    });
+
+    test("should use correct executable based on terminal type", async () => {
+      const mockTerminal = {
+        creationOptions: {
+          shellPath: "C:\\Program Files\\Git\\bin\\bash.exe"
+        },
+        show: terminalShowStub,
+        sendText: terminalSendTextStub
+      } as any;
+
+      createIntegratedTerminalStub.resolves(mockTerminal);
+
+      const flags = "--full-refresh";
+      const assetPath = "/path/to/asset.sql";
+
+      await bruinUtils.runInIntegratedTerminal("/working/dir", assetPath, flags, "/custom/path/bruin");
+
+      const actualCommand = terminalSendTextStub.secondCall.args[0];
+      // Should use "bruin" for Git Bash, not the custom path
+      assert.ok(actualCommand.startsWith("bruin run"), "Should use 'bruin' executable for Git Bash");
+    });
+
+
+    test("should handle complex flag combinations", async () => {
+      const flags = "--start-date 2025-06-15T000000.000Z --end-date 2025-06-15T235959.999999999Z --full-refresh --push-metadata --downstream --exclude-tag python --exclude-tag java --environment prod";
+      const assetPath = "/Users/maya/Documents/GitHub/neptune/pipelines/wep/assets/tier_2/exchanges/epias_plants_uevm.sql";
+
+      await bruinUtils.runInIntegratedTerminal("/working/dir", assetPath, flags, "bruin");
+
+      const actualCommand = terminalSendTextStub.secondCall.args[0];
+      const expectedCommand = `bruin run \\
+  --start-date 2025-06-15T000000.000Z \\
+  --end-date 2025-06-15T235959.999999999Z \\
+  --full-refresh \\
+  --push-metadata \\
+  --downstream \\
+  --exclude-tag python \\
+  --exclude-tag java \\
+  --environment prod \\
+  "/Users/maya/Documents/GitHub/neptune/pipelines/wep/assets/tier_2/exchanges/epias_plants_uevm.sql"`;
+
+      assert.strictEqual(actualCommand, expectedCommand, "Should handle complex flag combinations correctly");
+    });
+  });
+});
