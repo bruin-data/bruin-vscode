@@ -4873,3 +4873,321 @@ suite(" Query export Tests", () => {
 
     });
   });
+
+  suite("Configuration Tests", () => {
+    let workspaceGetConfigurationStub: sinon.SinonStub;
+    let windowActiveTextEditorStub: sinon.SinonStub;
+    let commandsExecuteCommandStub: sinon.SinonStub;
+    let windowOnDidChangeActiveTextEditorStub: sinon.SinonStub;
+    let workspaceOnDidChangeConfigurationStub: sinon.SinonStub;
+    let consoleLogStub: sinon.SinonStub;
+    let bruinFoldingRangeProviderStub: sinon.SinonStub;
+
+    setup(() => {
+      // Stub VSCode workspace and window methods
+      workspaceGetConfigurationStub = sinon.stub(vscode.workspace, "getConfiguration");
+      windowActiveTextEditorStub = sinon.stub(vscode.window, "activeTextEditor");
+      commandsExecuteCommandStub = sinon.stub(vscode.commands, "executeCommand");
+      windowOnDidChangeActiveTextEditorStub = sinon.stub(vscode.window, "onDidChangeActiveTextEditor");
+      workspaceOnDidChangeConfigurationStub = sinon.stub(vscode.workspace, "onDidChangeConfiguration");
+      consoleLogStub = sinon.stub(console, "log");
+      
+      // Stub the bruinFoldingRangeProvider
+      bruinFoldingRangeProviderStub = sinon.stub();
+      const providersModule = require("../providers/bruinFoldingRangeProvider");
+      sinon.replace(providersModule, "bruinFoldingRangeProvider", bruinFoldingRangeProviderStub);
+    });
+
+    teardown(() => {
+      sinon.restore();
+    });
+
+    suite("getDefaultCheckboxSettings", () => {
+      test("should return default checkbox settings from configuration", () => {
+        const mockConfig = {
+          get: sinon.stub()
+            .withArgs("defaultIntervalModifiers", false).returns(true)
+            .withArgs("defaultExclusiveEndDate", false).returns(true)
+            .withArgs("defaultPushMetadata", false).returns(true)
+        };
+        workspaceGetConfigurationStub.withArgs("bruin.checkbox").returns(mockConfig);
+
+        const { getDefaultCheckboxSettings } = require("../extension/configuration");
+        const result = getDefaultCheckboxSettings();
+
+        assert.deepStrictEqual(result, {
+          defaultIntervalModifiers: true,
+          defaultExclusiveEndDate: true,
+          defaultPushMetadata: true,
+        });
+        sinon.assert.calledWith(workspaceGetConfigurationStub, "bruin.checkbox");
+      });
+
+      test("should return default values when configuration is not set", () => {
+        const mockConfig = {
+          get: sinon.stub()
+            .withArgs("defaultIntervalModifiers", false).returns(false)
+            .withArgs("defaultExclusiveEndDate", false).returns(false)
+            .withArgs("defaultPushMetadata", false).returns(false)
+        };
+        workspaceGetConfigurationStub.withArgs("bruin.checkbox").returns(mockConfig);
+
+        const { getDefaultCheckboxSettings } = require("../extension/configuration");
+        const result = getDefaultCheckboxSettings();
+
+        assert.deepStrictEqual(result, {
+          defaultIntervalModifiers: false,
+          defaultExclusiveEndDate: false,
+          defaultPushMetadata: false,
+        });
+      });
+    });
+
+    suite("getPathSeparator", () => {
+      test("should return configured path separator", () => {
+        const mockConfig = {
+          get: sinon.stub().withArgs("pathSeparator").returns("\\")
+        };
+        workspaceGetConfigurationStub.withArgs("bruin").returns(mockConfig);
+
+        const { getPathSeparator } = require("../extension/configuration");
+        const result = getPathSeparator();
+
+        assert.strictEqual(result, "\\");
+        sinon.assert.calledWith(workspaceGetConfigurationStub, "bruin");
+      });
+
+      test("should return default path separator when not configured", () => {
+        const mockConfig = {
+          get: sinon.stub().withArgs("pathSeparator").returns(undefined)
+        };
+        workspaceGetConfigurationStub.withArgs("bruin").returns(mockConfig);
+
+        const { getPathSeparator } = require("../extension/configuration");
+        const result = getPathSeparator();
+
+        assert.strictEqual(result, "/");
+      });
+
+      test("should return default path separator when configuration returns null", () => {
+        const mockConfig = {
+          get: sinon.stub().withArgs("pathSeparator").returns(null)
+        };
+        workspaceGetConfigurationStub.withArgs("bruin").returns(mockConfig);
+
+        const { getPathSeparator } = require("../extension/configuration");
+        const result = getPathSeparator();
+
+        assert.strictEqual(result, "/");
+      });
+    });
+
+    suite("toggleFoldingsCommand", () => {
+      let mockEditor: vscode.TextEditor;
+      let mockDocument: vscode.TextDocument;
+      let mockUri: vscode.Uri;
+
+      setup(() => {
+        mockUri = vscode.Uri.file("/test/file.sql");
+        mockDocument = {
+          uri: mockUri,
+        } as vscode.TextDocument;
+        mockEditor = {
+          document: mockDocument,
+          selection: new vscode.Selection(0, 0, 0, 0),
+          selections: [],
+        } as unknown as vscode.TextEditor;
+      });
+
+      test("should return early when no active editor", async () => {
+        windowActiveTextEditorStub.value(undefined);
+
+        const { toggleFoldingsCommand } = require("../extension/configuration");
+        await toggleFoldingsCommand(true);
+
+        sinon.assert.notCalled(commandsExecuteCommandStub);
+      });
+
+
+      test("should not fold when no Bruin regions found", async () => {
+        windowActiveTextEditorStub.value(mockEditor);
+        bruinFoldingRangeProviderStub.returns([]);
+
+        const { toggleFoldingsCommand } = require("../extension/configuration");
+        await toggleFoldingsCommand(true);
+
+        sinon.assert.notCalled(commandsExecuteCommandStub);
+      });
+
+   
+
+      test("should not unfold when no Bruin regions found", async () => {
+        windowActiveTextEditorStub.value(mockEditor);
+        bruinFoldingRangeProviderStub.returns([]);
+
+        const { toggleFoldingsCommand } = require("../extension/configuration");
+        await toggleFoldingsCommand(false);
+
+        sinon.assert.notCalled(commandsExecuteCommandStub);
+      });
+
+      test("should handle command execution errors", async () => {
+        windowActiveTextEditorStub.value(mockEditor);
+        const mockRanges = [new vscode.FoldingRange(0, 5)];
+        bruinFoldingRangeProviderStub.returns(mockRanges);
+        commandsExecuteCommandStub.rejects(new Error("Command failed"));
+
+        const { toggleFoldingsCommand } = require("../extension/configuration");
+        
+        try {
+          await toggleFoldingsCommand(true);
+        } catch (error) {
+          // Expected error
+        }
+
+        sinon.assert.calledOnce(commandsExecuteCommandStub);
+      });
+    });
+
+    suite("applyFoldingStateBasedOnConfiguration", () => {
+      let mockEditor: vscode.TextEditor;
+      let mockDocument: vscode.TextDocument;
+      let mockUri: vscode.Uri;
+
+      setup(() => {
+        mockUri = vscode.Uri.file("/test/file.sql");
+        mockDocument = {
+          uri: mockUri,
+        } as vscode.TextDocument;
+        mockEditor = {
+          document: mockDocument,
+        } as unknown as vscode.TextEditor;
+      });
+
+      test("should return early when no editor provided", () => {
+        const { applyFoldingStateBasedOnConfiguration } = require("../extension/configuration");
+        applyFoldingStateBasedOnConfiguration(undefined);
+
+        sinon.assert.notCalled(commandsExecuteCommandStub);
+      });
+
+    });
+
+    suite("setupFoldingOnOpen", () => {
+      test("should set up event listener for active text editor changes", () => {
+        const mockDisposable = { dispose: sinon.stub() };
+        windowOnDidChangeActiveTextEditorStub.returns(mockDisposable);
+
+        const { setupFoldingOnOpen } = require("../extension/configuration");
+        setupFoldingOnOpen();
+
+        sinon.assert.calledOnce(windowOnDidChangeActiveTextEditorStub);
+      });
+
+    });
+
+    suite("subscribeToConfigurationChanges", () => {
+      test("should set up event listener for configuration changes", () => {
+        const mockDisposable = { dispose: sinon.stub() };
+        workspaceOnDidChangeConfigurationStub.returns(mockDisposable);
+
+        const { subscribeToConfigurationChanges } = require("../extension/configuration");
+        subscribeToConfigurationChanges();
+
+        sinon.assert.calledOnce(workspaceOnDidChangeConfigurationStub);
+      });
+
+      test("should reset document states when bruin.FoldingState changes", () => {
+        let eventListener: (e: vscode.ConfigurationChangeEvent) => void;
+        
+        workspaceOnDidChangeConfigurationStub.callsFake((listener) => {
+          eventListener = listener;
+          return { dispose: sinon.stub() };
+        });
+
+        const { subscribeToConfigurationChanges } = require("../extension/configuration");
+        subscribeToConfigurationChanges();
+
+        // Mock configuration change event
+        const affectsConfigurationStub = sinon.stub().withArgs("bruin.FoldingState").returns(true);
+        const mockEvent = {
+          affectsConfiguration: affectsConfigurationStub
+        } as vscode.ConfigurationChangeEvent;
+
+        // Simulate configuration change
+        eventListener!(mockEvent);
+
+        sinon.assert.calledWith(affectsConfigurationStub, "bruin.FoldingState");
+      });
+
+      test("should not reset document states for other configuration changes", () => {
+        let eventListener: (e: vscode.ConfigurationChangeEvent) => void;
+        
+        workspaceOnDidChangeConfigurationStub.callsFake((listener) => {
+          eventListener = listener;
+          return { dispose: sinon.stub() };
+        });
+
+        const { subscribeToConfigurationChanges } = require("../extension/configuration");
+        subscribeToConfigurationChanges();
+
+        // Mock configuration change event for different setting
+        const affectsConfigurationStub = sinon.stub().withArgs("bruin.FoldingState").returns(false);
+        const mockEvent = {
+          affectsConfiguration: affectsConfigurationStub
+        } as vscode.ConfigurationChangeEvent;
+
+        // Simulate configuration change
+        eventListener!(mockEvent);
+
+        sinon.assert.calledWith(affectsConfigurationStub, "bruin.FoldingState");
+      });
+    });
+
+    suite("Integration Tests", () => {
+      test("should handle complete folding workflow", async () => {
+        const mockEditor = {
+          document: { uri: vscode.Uri.file("/test/file.sql") },
+          selection: new vscode.Selection(0, 0, 0, 0),
+          selections: [],
+        } as unknown as vscode.TextEditor;
+
+        windowActiveTextEditorStub.value(mockEditor);
+        const mockRanges = [new vscode.FoldingRange(0, 5)];
+        bruinFoldingRangeProviderStub.returns(mockRanges);
+        commandsExecuteCommandStub.resolves();
+
+        const { toggleFoldingsCommand } = require("../extension/configuration");
+        await toggleFoldingsCommand(true);
+
+        sinon.assert.calledOnce(commandsExecuteCommandStub);
+        sinon.assert.calledWith(commandsExecuteCommandStub, "editor.fold", {
+          selectionLines: [0],
+          levels: 1
+        });
+      });
+
+      test("should handle configuration change workflow", () => {
+        let eventListener: (e: vscode.ConfigurationChangeEvent) => void;
+        
+        workspaceOnDidChangeConfigurationStub.callsFake((listener) => {
+          eventListener = listener;
+          return { dispose: sinon.stub() };
+        });
+
+        const { subscribeToConfigurationChanges } = require("../extension/configuration");
+        subscribeToConfigurationChanges();
+
+        // Mock configuration change event
+        const affectsConfigurationStub = sinon.stub().withArgs("bruin.FoldingState").returns(true);
+        const mockEvent = {
+          affectsConfiguration: affectsConfigurationStub
+        } as vscode.ConfigurationChangeEvent;
+
+        // Simulate configuration change
+        eventListener!(mockEvent);
+
+        sinon.assert.calledWith(affectsConfigurationStub, "bruin.FoldingState");
+      });
+    });
+  });
