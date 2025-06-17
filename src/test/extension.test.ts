@@ -1418,103 +1418,8 @@ suite("Lineage Command Tests", () => {
     sinon.assert.calledWith(displayLineageStub, tempFile.fsPath, { flags: ["-o", "json"] });
   });
 });
-/* suite("BruinLineageInternalParse Tests", () => {
-  let bruinLineageInternalParse: BruinLineageInternalParse;
-  let runStub: sinon.SinonStub;
-  let postMessageStub: sinon.SinonStub;
-  let getDefaultBruinExecutablePathStub: sinon.SinonStub;
-  let bruinWorkspaceDirectoryStub: sinon.SinonStub;
-  let getCurrentPipelinePathStub: sinon.SinonStub;
 
-  setup(() => {
-    const mockBruinExecutable = "mock-executable-path";
-    const mockWorkingDirectory = "mock-working-directory";
-
-    // Instantiate BruinLineageInternalParse with required parameters
-    bruinLineageInternalParse = new BruinLineageInternalParse(
-      mockBruinExecutable,
-      mockWorkingDirectory
-    );
-    runStub = sinon.stub(bruinLineageInternalParse as any, "run");
-    postMessageStub = sinon.stub(LineagePanel, "postMessage");
-    getCurrentPipelinePathStub = sinon
-      .stub(require("../bruin/bruinUtils"), "getCurrentPipelinePath")
-      .resolves("mock-pipeline-path");
-  });
-
-  teardown(() => {
-    sinon.restore();
-  });
-
-  test("parseAssetLineage resolves with success message on successful run", async () => {
-    const filePath = "path/to/asset";
-    const flags = ["parse-pipeline"];
-    const mockResult = JSON.stringify({
-      assets: [{ id: "asset-id", name: "Asset Name", definition_file: { path: filePath } }],
-    });
-
-    runStub.resolves(mockResult);
-
-    await bruinLineageInternalParse.parseAssetLineage(filePath, { flags });
-
-    sinon.assert.calledWith(postMessageStub, "flow-lineage-message", {
-      status: "success",
-      message: {
-        id: "asset-id",
-        name: "Asset Name",
-        pipeline: mockResult,
-      },
-    });
-  });
-
-  test("parseAssetLineage throws error when asset is not found", async () => {
-    const filePath = "path/to/asset";
-    const flags = ["parse-pipeline"];
-    const mockResult = JSON.stringify({
-      assets: [], // No assets found
-    });
-
-    runStub.resolves(mockResult);
-
-    try {
-      await bruinLineageInternalParse.parseAssetLineage(filePath, { flags });
-    } catch (error) {
-      sinon.assert.match((error as Error).message, "Asset not found in pipeline data");
-    }
-  });
-
-  test("parseAssetLineage handles error from run method", async () => {
-    const filePath = "path/to/asset";
-    const flags = ["parse-pipeline"];
-    const errorMessage = "Some error occurred";
-
-    runStub.rejects(errorMessage);
-
-    await bruinLineageInternalParse.parseAssetLineage(filePath, { flags });
-
-    sinon.assert.calledWith(postMessageStub, "flow-lineage-message", {
-      status: "error",
-      message: errorMessage,
-    });
-  });
-
-  test("parseAssetLineage handles specific error message for Bruin CLI", async () => {
-    const filePath = "path/to/asset";
-    const flags = ["parse-pipeline"];
-    const errorMessage = "No help topic for this command";
-
-    runStub.rejects(errorMessage);
-
-    await bruinLineageInternalParse.parseAssetLineage(filePath, { flags });
-
-    sinon.assert.calledWith(postMessageStub, "flow-lineage-message", {
-      status: "error",
-      message:
-        "Bruin CLI is not installed or is outdated. Please install or update Bruin CLI to use this feature.",
-    });
-  });
-}); */
-suite("Bruin Connections Tests", () => {
+suite("BruinConnections Tests", () => {
   let bruinConnections: BruinConnections;
   let bruinDeleteConnection: BruinDeleteConnection;
   let bruinCreateConnection: BruinCreateConnection;
@@ -3729,5 +3634,425 @@ suite("QueryPreviewPanel Tests", () => {
       assert.ok(mockDisposable.dispose.calledOnce);
       assert.strictEqual(queryPreviewPanel.disposables.length, 0);
     });
+  });
+});
+
+suite("BruinInternalParse Tests", () => {
+  let bruinInternalParse: BruinInternalParse;
+  let runStub: sinon.SinonStub;
+  let postMessageToPanelsStub: sinon.SinonStub;
+  let consoleTimeStub: sinon.SinonStub;
+  let consoleTimeEndStub: sinon.SinonStub;
+  let bruinLineageInternalParseStub: sinon.SinonStub;
+  let parsePipelineConfigStub: sinon.SinonStub;
+  let bruinPanelPostMessageStub: sinon.SinonStub;
+
+  setup(() => {
+    bruinInternalParse = new BruinInternalParse("path/to/bruin", "path/to/working/directory");
+    runStub = sinon.stub(bruinInternalParse as any, "run");
+    postMessageToPanelsStub = sinon.stub(bruinInternalParse as any, "postMessageToPanels");
+    consoleTimeStub = sinon.stub(console, "time");
+    consoleTimeEndStub = sinon.stub(console, "timeEnd");
+    
+    // Mock BruinLineageInternalParse
+    const mockBruinLineageInternalParse = {
+      parsePipelineConfig: sinon.stub(),
+    };
+    bruinLineageInternalParseStub = sinon.stub().returns(mockBruinLineageInternalParse);
+    parsePipelineConfigStub = mockBruinLineageInternalParse.parsePipelineConfig;
+    
+    // Mock BruinPanel.postMessage
+    bruinPanelPostMessageStub = sinon.stub(BruinPanel, "postMessage");
+    
+    // Replace the BruinLineageInternalParse constructor
+    sinon.replace(require("../bruin/bruinFlowLineage"), "BruinLineageInternalParse", bruinLineageInternalParseStub);
+  });
+
+  teardown(() => {
+    sinon.restore();
+  });
+
+  test("should return 'internal' as the bruin command", () => {
+    const result = (bruinInternalParse as any).bruinCommand();
+    assert.strictEqual(result, "internal");
+  });
+
+  test("should handle pipeline.yml files successfully", async () => {
+    const filePath = "path/to/pipeline.yml";
+    const mockPipelineData = {
+      name: "test-pipeline",
+      schedule: "daily",
+      description: "Test pipeline",
+      raw: { name: "test-pipeline", schedule: "daily" }
+    };
+    
+    parsePipelineConfigStub.resolves(mockPipelineData);
+    
+    await bruinInternalParse.parseAsset(filePath);
+    
+    sinon.assert.calledOnce(consoleTimeStub);
+    sinon.assert.calledWith(consoleTimeStub, "parseAsset");
+    sinon.assert.calledOnce(bruinLineageInternalParseStub);
+    sinon.assert.calledOnce(parsePipelineConfigStub);
+    sinon.assert.calledWith(parsePipelineConfigStub, filePath);
+    sinon.assert.calledOnce(postMessageToPanelsStub);
+    sinon.assert.calledWith(postMessageToPanelsStub, "success", JSON.stringify({
+      type: "pipelineConfig",
+      ...mockPipelineData,
+      filePath
+    }));
+    sinon.assert.calledOnce(consoleTimeEndStub);
+    sinon.assert.calledWith(consoleTimeEndStub, "parseAsset");
+  });
+
+  test("should handle pipeline.yaml files successfully", async () => {
+    const filePath = "path/to/pipeline.yaml";
+    const mockPipelineData = {
+      name: "test-pipeline",
+      schedule: "daily",
+      description: "Test pipeline",
+      raw: { name: "test-pipeline", schedule: "daily" }
+    };
+    
+    parsePipelineConfigStub.resolves(mockPipelineData);
+    
+    await bruinInternalParse.parseAsset(filePath);
+    
+    sinon.assert.calledOnce(bruinLineageInternalParseStub);
+    sinon.assert.calledOnce(parsePipelineConfigStub);
+    sinon.assert.calledWith(parsePipelineConfigStub, filePath);
+  });
+
+  test("should handle pipeline parsing timeout", async () => {
+    const filePath = "path/to/pipeline.yml";
+    
+    parsePipelineConfigStub.rejects(new Error("Parsing timeout"));
+    
+    await bruinInternalParse.parseAsset(filePath);
+    
+    sinon.assert.calledOnce(postMessageToPanelsStub);
+    sinon.assert.calledWith(postMessageToPanelsStub, "error", "Parsing timeout");
+    sinon.assert.calledOnce(consoleTimeEndStub);
+  });
+
+  test("should handle bruin.yml files", async () => {
+    const filePath = "path/to/bruin.yml";
+    
+    await bruinInternalParse.parseAsset(filePath);
+    
+    sinon.assert.calledOnce(postMessageToPanelsStub);
+    sinon.assert.calledWith(postMessageToPanelsStub, "success", JSON.stringify({
+      type: "bruinConfig",
+      filePath
+    }));
+    sinon.assert.calledOnce(consoleTimeEndStub);
+  });
+
+  test("should handle bruin.yaml files", async () => {
+    const filePath = "path/to/bruin.yaml";
+    
+    await bruinInternalParse.parseAsset(filePath);
+    
+    sinon.assert.calledOnce(postMessageToPanelsStub);
+    sinon.assert.calledWith(postMessageToPanelsStub, "success", JSON.stringify({
+      type: "bruinConfig",
+      filePath
+    }));
+  });
+
+  test("should handle other asset types successfully", async () => {
+    const filePath = "path/to/asset.sql";
+    const mockResult = '{"asset": "data"}';
+    
+    runStub.resolves(mockResult);
+    
+    await bruinInternalParse.parseAsset(filePath);
+    
+    sinon.assert.calledOnce(runStub);
+    sinon.assert.calledWith(runStub, ["parse-asset", filePath], { ignoresErrors: false });
+    
+    // Wait for the promise to resolve
+    await new Promise(resolve => setTimeout(resolve, 10));
+    
+    sinon.assert.calledOnce(postMessageToPanelsStub);
+    sinon.assert.calledWith(postMessageToPanelsStub, "success", mockResult);
+    sinon.assert.calledOnce(consoleTimeEndStub);
+  });
+
+  test("should handle other asset types with custom flags", async () => {
+    const filePath = "path/to/asset.sql";
+    const options = { flags: ["custom-flag"], ignoresErrors: true };
+    
+    runStub.resolves('{"result": "success"}');
+    
+    await bruinInternalParse.parseAsset(filePath, options);
+    
+    sinon.assert.calledOnce(runStub);
+    sinon.assert.calledWith(runStub, ["custom-flag", filePath], { ignoresErrors: true });
+  });
+
+
+  test("should handle unexpected errors in parseAsset", async () => {
+    const filePath = "path/to/asset.sql";
+    const error = new Error("Unexpected error");
+    
+    runStub.throws(error);
+    
+    await bruinInternalParse.parseAsset(filePath);
+    
+    sinon.assert.calledOnce(postMessageToPanelsStub);
+    sinon.assert.calledWith(postMessageToPanelsStub, "error", "Unexpected error");
+    sinon.assert.calledOnce(consoleTimeEndStub);
+  });
+});
+
+suite("BruinLineageInternalParse Tests", () => {
+  let bruinLineageInternalParse: any;
+  let runStub: sinon.SinonStub;
+  let updateLineageDataStub: sinon.SinonStub;
+  let showErrorMessageStub: sinon.SinonStub;
+  let getCurrentPipelinePathStub: sinon.SinonStub;
+  let isConfigFileStub: sinon.SinonStub;
+  let consoleErrorStub: sinon.SinonStub;
+
+  setup(async () => {
+    // Import the class dynamically
+    const { BruinLineageInternalParse } = await import("../bruin/bruinFlowLineage");
+    bruinLineageInternalParse = new BruinLineageInternalParse("path/to/bruin", "path/to/working/directory");
+    
+    // Setup stubs
+    runStub = sinon.stub(bruinLineageInternalParse as any, "run");
+    updateLineageDataStub = sinon.stub();
+    showErrorMessageStub = sinon.stub(vscode.window, "showErrorMessage");
+    getCurrentPipelinePathStub = sinon.stub();
+    isConfigFileStub = sinon.stub();
+    consoleErrorStub = sinon.stub(console, "error");
+
+    // Replace module dependencies
+    const bruinUtilsModule = await import("../bruin/bruinUtils");
+    sinon.replace(bruinUtilsModule, "getCurrentPipelinePath", getCurrentPipelinePathStub);
+    
+    const helperUtilsModule = await import("../utilities/helperUtils");
+    sinon.replace(helperUtilsModule, "isConfigFile", isConfigFileStub);
+    
+    const lineagePanelModule = await import("../panels/LineagePanel");
+    sinon.replace(lineagePanelModule, "updateLineageData", updateLineageDataStub);
+  });
+
+  teardown(() => {
+    sinon.restore();
+  });
+
+  test("should return 'internal' as the bruin command", () => {
+    const result = (bruinLineageInternalParse as any).bruinCommand();
+    assert.strictEqual(result, "internal");
+  });
+
+  suite("parsePipelineConfig", () => {
+    test("should parse pipeline config successfully", async () => {
+      const filePath = "path/to/pipeline.yml";
+      const mockPipelineData = {
+        name: "test-pipeline",
+        schedule: "daily",
+        description: "Test pipeline description",
+        raw: { name: "test-pipeline", schedule: "daily" }
+      };
+      
+      runStub.resolves(JSON.stringify(mockPipelineData));
+      
+      const result = await bruinLineageInternalParse.parsePipelineConfig(filePath);
+      
+      sinon.assert.calledOnce(runStub);
+      sinon.assert.calledWith(runStub, ["parse-pipeline", filePath], { ignoresErrors: false });
+      
+      assert.deepStrictEqual(result, {
+        name: "test-pipeline",
+        schedule: "daily",
+        description: "Test pipeline description",
+        raw: mockPipelineData
+      });
+    });
+
+    test("should parse pipeline config with custom flags", async () => {
+      const filePath = "path/to/pipeline.yml";
+      const options = { flags: ["custom-flag"], ignoresErrors: true };
+      const mockPipelineData = { name: "test-pipeline" };
+      
+      runStub.resolves(JSON.stringify(mockPipelineData));
+      
+      await bruinLineageInternalParse.parsePipelineConfig(filePath, options);
+      
+      sinon.assert.calledWith(runStub, ["custom-flag", filePath], { ignoresErrors: true });
+    });
+
+    test("should handle missing fields in pipeline data", async () => {
+      const filePath = "path/to/pipeline.yml";
+      const mockPipelineData = { someOtherField: "value" };
+      
+      runStub.resolves(JSON.stringify(mockPipelineData));
+      
+      const result = await bruinLineageInternalParse.parsePipelineConfig(filePath);
+      
+      assert.deepStrictEqual(result, {
+        name: "",
+        schedule: "",
+        description: "",
+        raw: mockPipelineData
+      });
+    });
+
+    test("should handle JSON parse errors", async () => {
+      const filePath = "path/to/pipeline.yml";
+      const invalidJson = "invalid json";
+      
+      runStub.resolves(invalidJson);
+      
+      try {
+        await bruinLineageInternalParse.parsePipelineConfig(filePath);
+        assert.fail("Expected error to be thrown");
+      } catch (error) {
+        assert.ok(error instanceof SyntaxError, "Should throw SyntaxError for invalid JSON");
+      }
+    });
+
+    test("should handle run method errors", async () => {
+      const filePath = "path/to/pipeline.yml";
+      const error = new Error("Command failed");
+      
+      runStub.rejects(error);
+      
+      try {
+        await bruinLineageInternalParse.parsePipelineConfig(filePath);
+        assert.fail("Expected error to be thrown");
+      } catch (error: any) {
+        assert.strictEqual(error.message, "Command failed");
+      }
+    });
+  });
+
+  suite("parseAssetLineage", () => {
+    test("should parse asset lineage successfully", async () => {
+      const filePath = "path/to/asset.sql";
+      const pipelinePath = "path/to/pipeline.yml";
+      const mockPipelineData = {
+        assets: [
+          {
+            id: "asset-1",
+            name: "test-asset",
+            definition_file: { path: filePath }
+          }
+        ]
+      };
+      
+      isConfigFileStub.returns(false);
+      getCurrentPipelinePathStub.resolves(pipelinePath);
+      runStub.resolves(JSON.stringify(mockPipelineData));
+      
+      await bruinLineageInternalParse.parseAssetLineage(filePath);
+      
+      sinon.assert.calledOnce(isConfigFileStub);
+      sinon.assert.calledWith(isConfigFileStub, filePath);
+      sinon.assert.calledOnce(getCurrentPipelinePathStub);
+      sinon.assert.calledWith(getCurrentPipelinePathStub, filePath);
+      sinon.assert.calledOnce(runStub);
+      sinon.assert.calledWith(runStub, ["parse-pipeline", pipelinePath], { ignoresErrors: false });
+      sinon.assert.calledOnce(updateLineageDataStub);
+      sinon.assert.calledWith(updateLineageDataStub, {
+        status: "success",
+        message: {
+          id: "asset-1",
+          name: "test-asset",
+          pipeline: JSON.stringify(mockPipelineData)
+        }
+      });
+    });
+
+    test("should return early for config files", async () => {
+      const filePath = "path/to/config.yml";
+      
+      isConfigFileStub.returns(true);
+      
+      await bruinLineageInternalParse.parseAssetLineage(filePath);
+      
+      sinon.assert.calledOnce(isConfigFileStub);
+      sinon.assert.calledWith(isConfigFileStub, filePath);
+      sinon.assert.notCalled(getCurrentPipelinePathStub);
+      sinon.assert.notCalled(runStub);
+      sinon.assert.notCalled(updateLineageDataStub);
+    });
+
+    test("should handle CLI not installed error", async () => {
+      const filePath = "path/to/asset.sql";
+      const error = { error: "No help topic for 'internal'" };
+      
+      isConfigFileStub.returns(false);
+      getCurrentPipelinePathStub.resolves("path/to/pipeline.yml");
+      runStub.rejects(error);
+      
+      await bruinLineageInternalParse.parseAssetLineage(filePath);
+      
+      sinon.assert.calledOnce(showErrorMessageStub);
+      sinon.assert.calledWith(showErrorMessageStub, "Bruin CLI is not installed or is outdated. Please install or update Bruin CLI to use this feature.");
+      sinon.assert.calledWith(updateLineageDataStub, {
+        status: "error",
+        message: "Bruin CLI is not installed or is outdated. Please install or update Bruin CLI to use this feature."
+      });
+    });
+
+    test("should handle string errors", async () => {
+      const filePath = "path/to/asset.sql";
+      const error = "String error message";
+      
+      isConfigFileStub.returns(false);
+      getCurrentPipelinePathStub.resolves("path/to/pipeline.yml");
+      runStub.rejects(error);
+      
+      await bruinLineageInternalParse.parseAssetLineage(filePath);
+      
+      sinon.assert.calledWith(updateLineageDataStub, {
+        status: "error",
+        message: "String error message"
+      });
+    });
+
+    test("should handle object errors with error property", async () => {
+      const filePath = "path/to/asset.sql";
+      const error = { error: "Object error message" };
+      
+      isConfigFileStub.returns(false);
+      getCurrentPipelinePathStub.resolves("path/to/pipeline.yml");
+      runStub.rejects(error);
+      
+      await bruinLineageInternalParse.parseAssetLineage(filePath);
+      
+      sinon.assert.calledWith(updateLineageDataStub, {
+        status: "error",
+        message: "Object error message"
+      });
+    });
+
+    test("should parse asset lineage with custom flags", async () => {
+      const filePath = "path/to/asset.sql";
+      const pipelinePath = "path/to/pipeline.yml";
+      const options = { flags: ["custom-flag"], ignoresErrors: true };
+      const mockPipelineData = {
+        assets: [
+          {
+            id: "asset-1",
+            name: "test-asset",
+            definition_file: { path: filePath }
+          }
+        ]
+      };
+      
+      isConfigFileStub.returns(false);
+      getCurrentPipelinePathStub.resolves(pipelinePath);
+      runStub.resolves(JSON.stringify(mockPipelineData));
+      
+      await bruinLineageInternalParse.parseAssetLineage(filePath, options);
+      
+      sinon.assert.calledWith(runStub, ["custom-flag", pipelinePath], { ignoresErrors: true });
+    });
+
   });
 });
