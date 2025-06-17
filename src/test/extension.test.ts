@@ -2005,137 +2005,6 @@ suite("BruinPanel Tests", () => {
   });
 });
 
-/* suite("LineagePanel Tests", () => {
-  let windowOnDidChangeActiveTextEditorStub: sinon.SinonStub;
-  let windowActiveTextEditorStub: sinon.SinonStub;
-  let flowLineageCommandStub: sinon.SinonStub;
-  let mockExtensionUri: vscode.Uri;
-  let mockDocumentUri: vscode.Uri;
-  let windowCreateWebviewPanelStub: sinon.SinonStub;
-  setup(() => {
-    // Create mock URIs
-    mockExtensionUri = vscode.Uri.file("/mock/extension/path");
-    mockDocumentUri = vscode.Uri.file("/mock/document.sql");
-    windowCreateWebviewPanelStub = sinon.stub(vscode.window, "createWebviewPanel").returns({
-      webview: {
-        postMessage: sinon.stub(),
-        onDidReceiveMessage: sinon.stub(),
-        html: "",
-        cspSource: "default-src",
-        asWebviewUri: sinon.stub(),
-      },
-      iconPath: {},
-      onDidDispose: sinon.stub(),
-      dispose: sinon.stub(),
-      reveal: sinon.stub(),
-    } as any);
-    // Stub VSCode window methods
-    windowActiveTextEditorStub = sinon.stub(vscode.window, "activeTextEditor").value({
-      document: {
-        uri: mockDocumentUri,
-        fsPath: mockDocumentUri.fsPath,
-      },
-    });
-
-    // Stub window events and lineage command
-    windowOnDidChangeActiveTextEditorStub = sinon
-      .stub(vscode.window, "onDidChangeActiveTextEditor")
-      .returns({
-        dispose: sinon.stub(),
-      });
-
-    flowLineageCommandStub = sinon.stub().resolves();
-  });
-
-  teardown(() => {
-    sinon.restore();
-    // Reset the static view
-    (LineagePanel as any)._view = undefined;
-  });
-
-  suite("Initialization Tests", () => {
-    test("creates LineagePanel instance", () => {
-      const lineagePanel = new LineagePanel(mockExtensionUri);
-      assert.ok(lineagePanel, "LineagePanel should be created");
-    });
-
-    test("sets up event listeners on construction", () => {
-      const lineagePanel = new LineagePanel(mockExtensionUri);
-      assert.ok(
-        windowOnDidChangeActiveTextEditorStub.calledOnce,
-        "onDidChangeActiveTextEditor listener should be set up"
-      );
-    });
-  });
-
-  suite("Webview Resolution Tests", () => {
-    let lineagePanel: LineagePanel;
-    let webviewView: vscode.WebviewView = {
-      webview: {
-        postMessage: sinon.stub(),
-        onDidReceiveMessage: sinon.stub(),
-        html: "",
-        cspSource: "default-src",
-        asWebviewUri: sinon.stub(),
-        options: {
-          enableScripts: true,
-        },
-      },
-    } as any;
-    let webviewStub: sinon.SinonStubbedInstance<vscode.Webview>;
-
-    setup(() => {
-      lineagePanel = new LineagePanel(mockExtensionUri);
-
-      // Create webview stubs
-    });
-
-    test("resolves webview view with correct options", () => {
-      const context = {} as vscode.WebviewViewResolveContext;
-      const token = {} as vscode.CancellationToken;
-
-      lineagePanel.resolveWebviewView(webviewView, context, token);
-
-      assert.strictEqual(
-        webviewView.webview.options.enableScripts,
-        true,
-        "Scripts should be enabled"
-      );
-    });
-  }); */
-/* 
-  suite("Disposal Tests", () => {
-    test("properly disposes of resources", () => {
-      const lineagePanel = new LineagePanel(mockExtensionUri);
-      const disposeSpy = sinon.spy();
-
-      (lineagePanel as any).disposables = [{ dispose: disposeSpy }, { dispose: disposeSpy }];
-
-      lineagePanel.dispose();
-
-      assert.strictEqual(disposeSpy.callCount, 2, "All disposable resources should be disposed");
-    });
-  });
-
-  suite("Static Method Tests", () => {
-    test("posts message when view exists", () => {
-      // Mock the static _view
-      (LineagePanel as any)._view = {
-        webview: {
-          postMessage: sinon.stub(),
-        },
-      };
-
-      LineagePanel.postMessage("test", "data");
-
-      const view = (LineagePanel as any)._view;
-      assert.ok(
-        view.webview.postMessage.calledWith({ command: "test", payload: "data" }),
-        "Should post message to webview"
-      );
-    });
-  }); 
-});*/
 suite("getLanguageDelimiters Tests", () => {
   test("should return default delimiters for unknown language", () => {
     const languageId = "unknown";
@@ -2634,164 +2503,6 @@ suite(" Query export Tests", () => {
   });
 
 });
-/* suite("CLI Installation and Update Tests", () => {
-  let bruinInstallCLICheckBruinCliInstallationStub: sinon.SinonStub;
-  let bruinInstallCLICheckBruinCLIVersionStub: sinon.SinonStub;
-  let vscodeWindowShowWarningMessageStub: sinon.SinonStub;
-
-  setup(() => {
-    bruinInstallCLICheckBruinCliInstallationStub = sinon.stub(
-      BruinInstallCLI.prototype,
-      "checkBruinCliInstallation"
-    );
-    bruinInstallCLICheckBruinCLIVersionStub = sinon.stub(
-      BruinInstallCLI.prototype,
-      "checkBruinCLIVersion"
-    );
-    vscodeWindowShowWarningMessageStub = sinon.stub(vscode.window, "showWarningMessage");
-    // In your test setup file or describe block
-    sandbox.stub(vscode.tasks, 'executeTask').callsFake(() => {
-      // Immediately resolve task execution
-      return Promise.resolve();
-    });
-  });
-
-  teardown(() => {
-    bruinInstallCLICheckBruinCliInstallationStub.restore();
-    bruinInstallCLICheckBruinCLIVersionStub.restore();
-    vscodeWindowShowWarningMessageStub.restore();
-  });
-
-  test("should install or update CLI when not installed", async () => {
-    const isInstalled = { installed: false };
-    bruinInstallCLICheckBruinCliInstallationStub.resolves(isInstalled);
-    
-    // Stub install method to resolve immediately
-    const installStub = sandbox.stub(BruinInstallCLI.prototype, "installBruinCli").resolves();
-  
-    await installOrUpdateCli();
-  
-    assert.ok(installStub.calledOnce, "Expected installBruinCli to be called");
-  });
-  
-  test("should update CLI when already installed", async () => {
-    const isInstalled = { installed: true };
-    bruinInstallCLICheckBruinCliInstallationStub.resolves(isInstalled);
-    
-    // Stub update method to resolve immediately
-    const updateStub = sandbox.stub(BruinInstallCLI.prototype, "updateBruinCli").resolves();
-  
-    await installOrUpdateCli();
-  
-    assert.ok(updateStub.calledOnce, "Expected updateBruinCli to be called");
-  });
-
-  test("should not show warning message when CLI is up-to-date", async () => {
-    bruinInstallCLICheckBruinCLIVersionStub.resolves(true);
-
-    await checkBruinCliVersion();
-
-    assert.ok(
-      bruinInstallCLICheckBruinCLIVersionStub.calledOnce,
-      "Expected checkBruinCLIVersion to be called"
-    );
-    assert.ok(
-      vscodeWindowShowWarningMessageStub.notCalled,
-      "Expected no warning message to be shown"
-    );
-  });
-
-  test("should close warning message when close button is clicked", async () => {
-    const message = "Your CLI is outdated. Please update it to access all the latest features.";
-    const closeButton = "Close";
-    bruinInstallCLICheckBruinCLIVersionStub.resolves(false);
-    vscodeWindowShowWarningMessageStub.resolves(closeButton);
-
-    await checkBruinCliVersion();
-
-    assert.ok(
-      vscodeWindowShowWarningMessageStub.calledOnce,
-      "Expected warning message to be shown"
-    );
-    assert.ok(
-      vscodeWindowShowWarningMessageStub.firstCall.args[1].includes(closeButton),
-      "Expected close button to be present"
-    );
-  });
-}); */
-/* suite("BruinEnvList Tests", () => {
-  let bruinEnvList: BruinEnvList;
-  let runStub: sinon.SinonStub;
-  let postMessageToPanelsStub: sinon.SinonStub;
-  let BruinPanelPostMessageStub: sinon.SinonStub;
-
-  setup(() => {
-    bruinEnvList = new BruinEnvList();
-    runStub = sinon.stub(BruinCommand.prototype, "run");
-    postMessageToPanelsStub = sinon.stub(BruinEnvList.prototype, "postMessageToPanels");
-    BruinPanelPostMessageStub = sinon.stub(BruinPanel, "postMessage");
-  });
-
-  teardown(() => {
-    runStub.restore();
-    postMessageToPanelsStub.restore();
-    BruinPanelPostMessageStub.restore();
-  });
-
-  test("should return 'environments' as the Bruin command string", () => {
-    assert.strictEqual(bruinEnvList.bruinCommand(), "environments");
-  });
-
-  test("should get environments list successfully", async () => {
-    const result = "{ environments: [ { id: 1, name: 'env1' } ] }";
-    runStub.resolves(result);
-
-    await bruinEnvList.getEnvironmentsList();
-
-    assert.ok(runStub.calledOnce, "Expected run to be called");
-    assert.deepStrictEqual(runStub.firstCall.args, [["list", "-o", "json"]], "Expected correct flags to be passed");
-    assert.ok(postMessageToPanelsStub.calledOnce, "Expected postMessageToPanels to be called");
-    assert.deepStrictEqual(postMessageToPanelsStub.firstCall.args, ["success", result], "Expected success message to be posted");
-    assert.ok(BruinPanelPostMessageStub.calledOnce, "Expected BruinPanel.postMessage to be called");
-    assert.deepStrictEqual(BruinPanelPostMessageStub.firstCall.args, ["environments-list-message", { status: "success", message: result }], "Expected correct message to be posted to BruinPanel");
-  });
-
-  test("should handle errors when getting environments list", async () => {
-    const error = "Error getting environments list";
-    runStub.rejects(new Error(error));
-
-    await bruinEnvList.getEnvironmentsList();
-
-    assert.ok(runStub.calledOnce, "Expected run to be called");
-    assert.deepStrictEqual(runStub.firstCall.args, [["list", "-o", "json"]], "Expected correct flags to be passed");
-    assert.ok(postMessageToPanelsStub.calledOnce, "Expected postMessageToPanels to be called");
-    assert.deepStrictEqual(postMessageToPanelsStub.firstCall.args, ["error", error], "Expected error message to be posted");
-    assert.ok(BruinPanelPostMessageStub.calledOnce, "Expected BruinPanel.postMessage to be called");
-    assert.deepStrictEqual(BruinPanelPostMessageStub.firstCall.args, ["environments-list-message", { status: "error", message: error }], "Expected correct error message to be posted to BruinPanel");
-  });
-
-  test("should ignore errors when getting environments list with ignoresErrors option", async () => {
-    const error = "Error getting environments list";
-    runStub.rejects(new Error(error));
-
-    await bruinEnvList.getEnvironmentsList({ ignoresErrors: true });
-
-    assert.ok(runStub.calledOnce, "Expected run to be called");
-    assert.deepStrictEqual(runStub.firstCall.args, [["list", "-o", "json"]], "Expected correct flags to be passed");
-    assert.ok(postMessageToPanelsStub.notCalled, "Expected postMessageToPanels not to be called");
-    assert.ok(BruinPanelPostMessageStub.notCalled, "Expected BruinPanel.postMessage not to be called");
-  });
-
-  test("should post message to panels correctly", () => {
-    const status = "success";
-    const message = "Environments list retrieved successfully";
-
-    bruinEnvList.postMessageToPanels(status, message);
-
-    assert.ok(BruinPanelPostMessageStub.calledOnce, "Expected BruinPanel.postMessage to be called");
-    assert.deepStrictEqual(BruinPanelPostMessageStub.firstCall.args, ["environments-list-message", { status, message }], "Expected correct message to be posted to BruinPanel");
-  });
-}); */
 
   suite("findGlossaryFile Tests", () => {
     let fsAccessStub: sinon.SinonStub;
@@ -4904,5 +4615,261 @@ suite(" Query export Tests", () => {
 
         assert.strictEqual(actualCommand, expectedCommand, "Should handle complex flag combinations correctly");
       });
+    });
+  });
+
+  suite("BruinEnvList Tests", () => {
+    let bruinEnvList: BruinEnvList;
+    let runStub: sinon.SinonStub;
+    let BruinPanelPostMessageStub: sinon.SinonStub;
+    let QueryPreviewPanelPostMessageStub: sinon.SinonStub;
+    let consoleDebugStub: sinon.SinonStub;
+
+    setup(() => {
+      bruinEnvList = new BruinEnvList("path/to/bruin", "path/to/working/directory");
+      runStub = sinon.stub(bruinEnvList as any, "run");
+      BruinPanelPostMessageStub = sinon.stub(BruinPanel, "postMessage");
+      QueryPreviewPanelPostMessageStub = sinon.stub(QueryPreviewPanel, "postMessage");
+      consoleDebugStub = sinon.stub(console, "debug");
+    });
+
+    teardown(() => {
+      sinon.restore();
+    });
+
+    suite("Constructor", () => {
+      test("should create BruinEnvList instance with correct parameters", () => {
+        const bruinExecutablePath = "path/to/bruin";
+        const workingDirectory = "path/to/working/directory";
+        
+        const envList = new BruinEnvList(bruinExecutablePath, workingDirectory);
+        
+        assert.ok(envList instanceof BruinEnvList, "Should be instance of BruinEnvList");
+        assert.ok(envList instanceof BruinCommand, "Should extend BruinCommand");
+      });
+    });
+
+    suite("bruinCommand", () => {
+      test("should return 'environments' as the bruin command", () => {
+        const result = (bruinEnvList as any).bruinCommand();
+        
+        assert.strictEqual(result, "environments", "Should return 'environments' command");
+      });
+    });
+
+    suite("getEnvironmentsList", () => {
+      test("should get environments list successfully with default flags", async () => {
+        const mockResult = '{"environments": [{"id": 1, "name": "dev"}, {"id": 2, "name": "prod"}]}';
+        runStub.resolves(mockResult);
+        
+        await bruinEnvList.getEnvironmentsList();
+        
+        sinon.assert.calledOnce(runStub);
+        sinon.assert.calledWith(runStub, ["list", "-o", "json"], { ignoresErrors: false });
+        sinon.assert.calledOnce(BruinPanelPostMessageStub);
+        sinon.assert.calledWith(BruinPanelPostMessageStub, "environments-list-message", { 
+          status: "success", 
+          message: mockResult 
+        });
+        sinon.assert.calledOnce(QueryPreviewPanelPostMessageStub);
+        sinon.assert.calledWith(QueryPreviewPanelPostMessageStub, "init-environment", {
+          status: "success",
+          message: {
+            command: "init-environment",
+            payload: mockResult,
+          },
+        });
+      });
+
+      test("should get environments list with custom flags", async () => {
+        const customFlags = ["list", "--custom-flag", "-o", "json"];
+        const mockResult = '{"environments": [{"id": 1, "name": "dev"}]}';
+        runStub.resolves(mockResult);
+        
+        await bruinEnvList.getEnvironmentsList({ flags: customFlags });
+        
+        sinon.assert.calledOnce(runStub);
+        sinon.assert.calledWith(runStub, customFlags, { ignoresErrors: false });
+        sinon.assert.calledWith(BruinPanelPostMessageStub, "environments-list-message", { 
+          status: "success", 
+          message: mockResult 
+        });
+      });
+
+      test("should get environments list with ignoresErrors option", async () => {
+        const mockResult = '{"environments": []}';
+        runStub.resolves(mockResult);
+        
+        await bruinEnvList.getEnvironmentsList({ ignoresErrors: true });
+        
+        sinon.assert.calledOnce(runStub);
+        sinon.assert.calledWith(runStub, ["list", "-o", "json"], { ignoresErrors: true });
+      });
+
+      test("should handle empty result", async () => {
+        const emptyResult = "";
+        runStub.resolves(emptyResult);
+        
+        await bruinEnvList.getEnvironmentsList();
+        
+        sinon.assert.calledWith(BruinPanelPostMessageStub, "environments-list-message", { 
+          status: "success", 
+          message: emptyResult 
+        });
+        sinon.assert.calledWith(QueryPreviewPanelPostMessageStub, "init-environment", {
+          status: "success",
+          message: {
+            command: "init-environment",
+            payload: emptyResult,
+          },
+        });
+      });
+
+      test("should handle JSON string result", async () => {
+        const jsonResult = '{"status": "success", "data": []}';
+        runStub.resolves(jsonResult);
+        
+        await bruinEnvList.getEnvironmentsList();
+        
+        sinon.assert.calledWith(BruinPanelPostMessageStub, "environments-list-message", { 
+          status: "success", 
+          message: jsonResult 
+        });
+      });
+
+      test("should handle non-string error", async () => {
+        const error = { code: 1, message: "Error object" };
+        runStub.rejects(error);
+        
+        await bruinEnvList.getEnvironmentsList();
+        
+        sinon.assert.calledWith(BruinPanelPostMessageStub, "environments-list-message", { 
+          status: "error", 
+          message: error 
+        });
+      });
+    });
+
+    suite("postMessageToPanels", () => {
+      test("should post success message to BruinPanel", () => {
+        const status = "success";
+        const message = "Environments retrieved successfully";
+        
+        (bruinEnvList as any).postMessageToPanels(status, message);
+        
+        sinon.assert.calledOnce(BruinPanelPostMessageStub);
+        sinon.assert.calledWith(BruinPanelPostMessageStub, "environments-list-message", { status, message });
+      });
+
+      test("should post error message to BruinPanel", () => {
+        const status = "error";
+        const message = "Failed to retrieve environments";
+        
+        (bruinEnvList as any).postMessageToPanels(status, message);
+        
+        sinon.assert.calledOnce(BruinPanelPostMessageStub);
+        sinon.assert.calledWith(BruinPanelPostMessageStub, "environments-list-message", { status, message });
+      });
+
+      test("should post object message to BruinPanel", () => {
+        const status = "success";
+        const message = { environments: [{ id: 1, name: "dev" }] };
+        
+        (bruinEnvList as any).postMessageToPanels(status, message);
+        
+        sinon.assert.calledWith(BruinPanelPostMessageStub, "environments-list-message", { status, message });
+      });
+    });
+
+    suite("sendEnvironmentToQueryPreview", () => {
+      test("should send success environment to QueryPreviewPanel", () => {
+        const status = "success";
+        const environment = '{"environments": [{"id": 1, "name": "dev"}]}';
+        
+        BruinEnvList.sendEnvironmentToQueryPreview(status, environment);
+        
+        sinon.assert.calledOnce(QueryPreviewPanelPostMessageStub);
+        sinon.assert.calledWith(QueryPreviewPanelPostMessageStub, "init-environment", {
+          status,
+          message: {
+            command: "init-environment",
+            payload: environment,
+          },
+        });
+      });
+
+      test("should send error environment to QueryPreviewPanel", () => {
+        const status = "error";
+        const environment = "Failed to load environments";
+        
+        BruinEnvList.sendEnvironmentToQueryPreview(status, environment);
+        
+        sinon.assert.calledWith(QueryPreviewPanelPostMessageStub, "init-environment", {
+          status,
+          message: {
+            command: "init-environment",
+            payload: environment,
+          },
+        });
+      });
+
+      test("should send object environment to QueryPreviewPanel", () => {
+        const status = "success";
+        const environment = JSON.stringify({ environments: [{ id: 1, name: "prod" }] });
+        
+        BruinEnvList.sendEnvironmentToQueryPreview(status, environment);
+        
+        sinon.assert.calledWith(QueryPreviewPanelPostMessageStub, "init-environment", {
+          status,
+          message: {
+            command: "init-environment",
+            payload: environment,
+          },
+        });
+      });
+
+      test("should send empty environment to QueryPreviewPanel", () => {
+        const status = "success";
+        const environment = "";
+        
+        BruinEnvList.sendEnvironmentToQueryPreview(status, environment);
+        
+        sinon.assert.calledWith(QueryPreviewPanelPostMessageStub, "init-environment", {
+          status,
+          message: {
+            command: "init-environment",
+            payload: environment,
+          },
+        });
+      });
+    });
+
+    suite("Integration Tests", () => {
+      test("should handle complete successful workflow", async () => {
+        const mockResult = '{"environments": [{"id": 1, "name": "dev"}]}';
+        runStub.resolves(mockResult);
+        
+        await bruinEnvList.getEnvironmentsList();
+        
+        // Verify all expected calls were made
+        sinon.assert.calledOnce(runStub);
+        sinon.assert.calledOnce(BruinPanelPostMessageStub);
+        sinon.assert.calledOnce(QueryPreviewPanelPostMessageStub);
+        
+        // Verify the correct message flow
+        sinon.assert.calledWith(BruinPanelPostMessageStub, "environments-list-message", {
+          status: "success",
+          message: mockResult,
+        });
+        
+        sinon.assert.calledWith(QueryPreviewPanelPostMessageStub, "init-environment", {
+          status: "success",
+          message: {
+            command: "init-environment",
+            payload: mockResult,
+          },
+        });
+      });
+
     });
   });
