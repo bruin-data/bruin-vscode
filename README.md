@@ -54,10 +54,11 @@ Bruin is a unified analytics platform that enables data professionals to work en
 **Note**: Ensure that you have the Bruin CLI installed on your system before using the new features. For guidance on installing the Bruin CLI, please refer to the [official documentation](https://github.com/bruin-data/bruin).
 
 ## Release Notes
-### Latest Release: 0.50.6
-- Improved tab rendering performance by switching to `v-if` and optimizing component caching, and cleaned up unused message handling code for better maintainability.
+### Latest Release: 0.50.7
+- Added utility to format bruin run commands in a readable multi-line format.
 
 ### Recent Updates
+- **0.50.6**: Improved tab rendering performance by switching to `v-if` and optimizing component caching, and cleaned up unused message handling code for better maintainability.
 - **0.50.5**: [Pre-release] This version is for testing improved tab rendering.
 - **0.50.4**: [Pre-release] This version is for testing improved tab rendering and code cleanup.
 - **0.50.3**: Fix vscode publishing issue.
