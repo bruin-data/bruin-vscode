@@ -142,6 +142,68 @@ export const findGitBashPath = (): string | undefined => {
 
   return undefined;
 };
+
+export const shouldUseUnixFormatting = (terminal: vscode.Terminal): boolean => {
+  const shellPath = (terminal.creationOptions as vscode.TerminalOptions).shellPath;
+  
+
+  if (process.platform === "win32") {
+    // On Windows, check if it's Git Bash, WSL, or falls back to default terminal
+    return shellPath?.includes('bash') || 
+           shellPath?.includes('wsl') || 
+           shellPath?.includes('sh') || 
+           shellPath === undefined; 
+  }
+  
+  return true;
+};
+
+export const formatBruinCommand = (
+  bruinExecutable: string,
+  command: string,
+  flags: string,
+  assetPath: string,
+  useUnixFormatting: boolean = true
+): string => {
+
+  const trimmedFlags = flags.trim();
+  if (trimmedFlags.length === 0) {
+    return `${bruinExecutable} ${command} ${assetPath}`;
+  }
+  
+  const continuationChar = useUnixFormatting ? ' \\' : ' `';
+  
+  const flagParts = trimmedFlags.split(/\s+(?=--)/);
+  const processedFlags: string[] = [];
+  
+  for (const part of flagParts) {
+    const trimmedPart = part.trim();
+    if (trimmedPart.startsWith('--')) {
+      processedFlags.push(trimmedPart);
+    } else if (processedFlags.length > 0) {
+      const lastIndex = processedFlags.length - 1;
+      processedFlags[lastIndex] += ` ${trimmedPart}`;
+    }
+  }
+  
+  if (processedFlags.length === 0) {
+    return `${bruinExecutable} ${command} ${assetPath}`;
+  }
+  
+  let formattedCommand = `${bruinExecutable} ${command}${continuationChar}\n`;
+  
+  processedFlags.forEach((flag, index) => {
+    const isLast = index === processedFlags.length - 1;
+    if (isLast) {
+      formattedCommand += `  ${flag}${continuationChar}\n  ${assetPath}`;
+    } else {
+      formattedCommand += `  ${flag}${continuationChar}\n`;
+    }
+  });
+  
+  return formattedCommand;
+};
+
 /**
  * Runs the Bruin command "run" in the integrated terminal.
  * @param {string} assetPath - The path of the asset to be executed.
@@ -149,7 +211,6 @@ export const findGitBashPath = (): string | undefined => {
  * @param {string} [flags] - Optional flags to be passed to the Bruin command.
  * @returns {Promise<void>} A promise that resolves when the command is executed.
  */
-
 export const runInIntegratedTerminal = async (
   workingDir: string | undefined,
   assetPath?: string,
@@ -160,20 +221,23 @@ export const runInIntegratedTerminal = async (
   const bruinExecutable = bruinExecutablePath ? "bruin" : getBruinExecutablePath();
   let command = "";
   const terminal = await createIntegratedTerminal(workingDir);
-  // if termianl is cmd or powershell, use bruin run sql command
-  if ((terminal.creationOptions as vscode.TerminalOptions).shellPath?.includes("bash")) {
-    command = `bruin ${BRUIN_RUN_SQL_COMMAND} ${flags} ${escapedAssetPath}`;
+  
+  const useUnixFormatting = shouldUseUnixFormatting(terminal);
+  
+  const executable = ((terminal.creationOptions as vscode.TerminalOptions).shellPath?.includes("bash")) 
+    ? "bruin" 
+    : bruinExecutable;
+  
+  if (flags && flags.trim().length > 0) {
+    command = formatBruinCommand(executable, BRUIN_RUN_SQL_COMMAND, flags, escapedAssetPath, useUnixFormatting);
   } else {
-    command = `${bruinExecutable} ${BRUIN_RUN_SQL_COMMAND} ${flags} ${escapedAssetPath}`;
+    command = `${executable} ${BRUIN_RUN_SQL_COMMAND} ${escapedAssetPath}`;
   }
   terminal.show(true);
-  // send a dummy call to the terminal to ensure it is ready to accept the command
   terminal.sendText(" ");
-  // send the command to the terminal after a delay
   setTimeout(() => {
     terminal.sendText(command);
   }, 500);
-  // wait for the command to be executed
   await new Promise((resolve) => setTimeout(resolve, 1000));
 };
 
