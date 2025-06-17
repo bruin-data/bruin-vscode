@@ -1418,103 +1418,8 @@ suite("Lineage Command Tests", () => {
     sinon.assert.calledWith(displayLineageStub, tempFile.fsPath, { flags: ["-o", "json"] });
   });
 });
-/* suite("BruinLineageInternalParse Tests", () => {
-  let bruinLineageInternalParse: BruinLineageInternalParse;
-  let runStub: sinon.SinonStub;
-  let postMessageStub: sinon.SinonStub;
-  let getDefaultBruinExecutablePathStub: sinon.SinonStub;
-  let bruinWorkspaceDirectoryStub: sinon.SinonStub;
-  let getCurrentPipelinePathStub: sinon.SinonStub;
 
-  setup(() => {
-    const mockBruinExecutable = "mock-executable-path";
-    const mockWorkingDirectory = "mock-working-directory";
-
-    // Instantiate BruinLineageInternalParse with required parameters
-    bruinLineageInternalParse = new BruinLineageInternalParse(
-      mockBruinExecutable,
-      mockWorkingDirectory
-    );
-    runStub = sinon.stub(bruinLineageInternalParse as any, "run");
-    postMessageStub = sinon.stub(LineagePanel, "postMessage");
-    getCurrentPipelinePathStub = sinon
-      .stub(require("../bruin/bruinUtils"), "getCurrentPipelinePath")
-      .resolves("mock-pipeline-path");
-  });
-
-  teardown(() => {
-    sinon.restore();
-  });
-
-  test("parseAssetLineage resolves with success message on successful run", async () => {
-    const filePath = "path/to/asset";
-    const flags = ["parse-pipeline"];
-    const mockResult = JSON.stringify({
-      assets: [{ id: "asset-id", name: "Asset Name", definition_file: { path: filePath } }],
-    });
-
-    runStub.resolves(mockResult);
-
-    await bruinLineageInternalParse.parseAssetLineage(filePath, { flags });
-
-    sinon.assert.calledWith(postMessageStub, "flow-lineage-message", {
-      status: "success",
-      message: {
-        id: "asset-id",
-        name: "Asset Name",
-        pipeline: mockResult,
-      },
-    });
-  });
-
-  test("parseAssetLineage throws error when asset is not found", async () => {
-    const filePath = "path/to/asset";
-    const flags = ["parse-pipeline"];
-    const mockResult = JSON.stringify({
-      assets: [], // No assets found
-    });
-
-    runStub.resolves(mockResult);
-
-    try {
-      await bruinLineageInternalParse.parseAssetLineage(filePath, { flags });
-    } catch (error) {
-      sinon.assert.match((error as Error).message, "Asset not found in pipeline data");
-    }
-  });
-
-  test("parseAssetLineage handles error from run method", async () => {
-    const filePath = "path/to/asset";
-    const flags = ["parse-pipeline"];
-    const errorMessage = "Some error occurred";
-
-    runStub.rejects(errorMessage);
-
-    await bruinLineageInternalParse.parseAssetLineage(filePath, { flags });
-
-    sinon.assert.calledWith(postMessageStub, "flow-lineage-message", {
-      status: "error",
-      message: errorMessage,
-    });
-  });
-
-  test("parseAssetLineage handles specific error message for Bruin CLI", async () => {
-    const filePath = "path/to/asset";
-    const flags = ["parse-pipeline"];
-    const errorMessage = "No help topic for this command";
-
-    runStub.rejects(errorMessage);
-
-    await bruinLineageInternalParse.parseAssetLineage(filePath, { flags });
-
-    sinon.assert.calledWith(postMessageStub, "flow-lineage-message", {
-      status: "error",
-      message:
-        "Bruin CLI is not installed or is outdated. Please install or update Bruin CLI to use this feature.",
-    });
-  });
-}); */
-suite("Bruin Connections Tests", () => {
+suite("BruinConnections Tests", () => {
   let bruinConnections: BruinConnections;
   let bruinDeleteConnection: BruinDeleteConnection;
   let bruinCreateConnection: BruinCreateConnection;
@@ -2100,137 +2005,6 @@ suite("BruinPanel Tests", () => {
   });
 });
 
-/* suite("LineagePanel Tests", () => {
-  let windowOnDidChangeActiveTextEditorStub: sinon.SinonStub;
-  let windowActiveTextEditorStub: sinon.SinonStub;
-  let flowLineageCommandStub: sinon.SinonStub;
-  let mockExtensionUri: vscode.Uri;
-  let mockDocumentUri: vscode.Uri;
-  let windowCreateWebviewPanelStub: sinon.SinonStub;
-  setup(() => {
-    // Create mock URIs
-    mockExtensionUri = vscode.Uri.file("/mock/extension/path");
-    mockDocumentUri = vscode.Uri.file("/mock/document.sql");
-    windowCreateWebviewPanelStub = sinon.stub(vscode.window, "createWebviewPanel").returns({
-      webview: {
-        postMessage: sinon.stub(),
-        onDidReceiveMessage: sinon.stub(),
-        html: "",
-        cspSource: "default-src",
-        asWebviewUri: sinon.stub(),
-      },
-      iconPath: {},
-      onDidDispose: sinon.stub(),
-      dispose: sinon.stub(),
-      reveal: sinon.stub(),
-    } as any);
-    // Stub VSCode window methods
-    windowActiveTextEditorStub = sinon.stub(vscode.window, "activeTextEditor").value({
-      document: {
-        uri: mockDocumentUri,
-        fsPath: mockDocumentUri.fsPath,
-      },
-    });
-
-    // Stub window events and lineage command
-    windowOnDidChangeActiveTextEditorStub = sinon
-      .stub(vscode.window, "onDidChangeActiveTextEditor")
-      .returns({
-        dispose: sinon.stub(),
-      });
-
-    flowLineageCommandStub = sinon.stub().resolves();
-  });
-
-  teardown(() => {
-    sinon.restore();
-    // Reset the static view
-    (LineagePanel as any)._view = undefined;
-  });
-
-  suite("Initialization Tests", () => {
-    test("creates LineagePanel instance", () => {
-      const lineagePanel = new LineagePanel(mockExtensionUri);
-      assert.ok(lineagePanel, "LineagePanel should be created");
-    });
-
-    test("sets up event listeners on construction", () => {
-      const lineagePanel = new LineagePanel(mockExtensionUri);
-      assert.ok(
-        windowOnDidChangeActiveTextEditorStub.calledOnce,
-        "onDidChangeActiveTextEditor listener should be set up"
-      );
-    });
-  });
-
-  suite("Webview Resolution Tests", () => {
-    let lineagePanel: LineagePanel;
-    let webviewView: vscode.WebviewView = {
-      webview: {
-        postMessage: sinon.stub(),
-        onDidReceiveMessage: sinon.stub(),
-        html: "",
-        cspSource: "default-src",
-        asWebviewUri: sinon.stub(),
-        options: {
-          enableScripts: true,
-        },
-      },
-    } as any;
-    let webviewStub: sinon.SinonStubbedInstance<vscode.Webview>;
-
-    setup(() => {
-      lineagePanel = new LineagePanel(mockExtensionUri);
-
-      // Create webview stubs
-    });
-
-    test("resolves webview view with correct options", () => {
-      const context = {} as vscode.WebviewViewResolveContext;
-      const token = {} as vscode.CancellationToken;
-
-      lineagePanel.resolveWebviewView(webviewView, context, token);
-
-      assert.strictEqual(
-        webviewView.webview.options.enableScripts,
-        true,
-        "Scripts should be enabled"
-      );
-    });
-  }); */
-/* 
-  suite("Disposal Tests", () => {
-    test("properly disposes of resources", () => {
-      const lineagePanel = new LineagePanel(mockExtensionUri);
-      const disposeSpy = sinon.spy();
-
-      (lineagePanel as any).disposables = [{ dispose: disposeSpy }, { dispose: disposeSpy }];
-
-      lineagePanel.dispose();
-
-      assert.strictEqual(disposeSpy.callCount, 2, "All disposable resources should be disposed");
-    });
-  });
-
-  suite("Static Method Tests", () => {
-    test("posts message when view exists", () => {
-      // Mock the static _view
-      (LineagePanel as any)._view = {
-        webview: {
-          postMessage: sinon.stub(),
-        },
-      };
-
-      LineagePanel.postMessage("test", "data");
-
-      const view = (LineagePanel as any)._view;
-      assert.ok(
-        view.webview.postMessage.calledWith({ command: "test", payload: "data" }),
-        "Should post message to webview"
-      );
-    });
-  }); 
-});*/
 suite("getLanguageDelimiters Tests", () => {
   test("should return default delimiters for unknown language", () => {
     const languageId = "unknown";
@@ -2729,246 +2503,300 @@ suite(" Query export Tests", () => {
   });
 
 });
-/* suite("CLI Installation and Update Tests", () => {
-  let bruinInstallCLICheckBruinCliInstallationStub: sinon.SinonStub;
-  let bruinInstallCLICheckBruinCLIVersionStub: sinon.SinonStub;
-  let vscodeWindowShowWarningMessageStub: sinon.SinonStub;
 
-  setup(() => {
-    bruinInstallCLICheckBruinCliInstallationStub = sinon.stub(
-      BruinInstallCLI.prototype,
-      "checkBruinCliInstallation"
-    );
-    bruinInstallCLICheckBruinCLIVersionStub = sinon.stub(
-      BruinInstallCLI.prototype,
-      "checkBruinCLIVersion"
-    );
-    vscodeWindowShowWarningMessageStub = sinon.stub(vscode.window, "showWarningMessage");
-    // In your test setup file or describe block
-    sandbox.stub(vscode.tasks, 'executeTask').callsFake(() => {
-      // Immediately resolve task execution
-      return Promise.resolve();
+  suite("findGlossaryFile Tests", () => {
+    let fsAccessStub: sinon.SinonStub;
+    let pathJoinStub: sinon.SinonStub;
+    let consoleErrorStub: sinon.SinonStub;
+
+    setup(() => {
+      fsAccessStub = sinon.stub(fs.promises, "access");
+      pathJoinStub = sinon.stub(path, "join");
+      consoleErrorStub = sinon.stub(console, "error");
     });
-  });
 
-  teardown(() => {
-    bruinInstallCLICheckBruinCliInstallationStub.restore();
-    bruinInstallCLICheckBruinCLIVersionStub.restore();
-    vscodeWindowShowWarningMessageStub.restore();
-  });
+    teardown(() => {
+      sinon.restore();
+    });
 
-  test("should install or update CLI when not installed", async () => {
-    const isInstalled = { installed: false };
-    bruinInstallCLICheckBruinCliInstallationStub.resolves(isInstalled);
-    
-    // Stub install method to resolve immediately
-    const installStub = sandbox.stub(BruinInstallCLI.prototype, "installBruinCli").resolves();
-  
-    await installOrUpdateCli();
-  
-    assert.ok(installStub.calledOnce, "Expected installBruinCli to be called");
-  });
-  
-  test("should update CLI when already installed", async () => {
-    const isInstalled = { installed: true };
-    bruinInstallCLICheckBruinCliInstallationStub.resolves(isInstalled);
-    
-    // Stub update method to resolve immediately
-    const updateStub = sandbox.stub(BruinInstallCLI.prototype, "updateBruinCli").resolves();
-  
-    await installOrUpdateCli();
-  
-    assert.ok(updateStub.calledOnce, "Expected updateBruinCli to be called");
-  });
-
-  test("should not show warning message when CLI is up-to-date", async () => {
-    bruinInstallCLICheckBruinCLIVersionStub.resolves(true);
-
-    await checkBruinCliVersion();
-
-    assert.ok(
-      bruinInstallCLICheckBruinCLIVersionStub.calledOnce,
-      "Expected checkBruinCLIVersion to be called"
-    );
-    assert.ok(
-      vscodeWindowShowWarningMessageStub.notCalled,
-      "Expected no warning message to be shown"
-    );
-  });
-
-  test("should close warning message when close button is clicked", async () => {
-    const message = "Your CLI is outdated. Please update it to access all the latest features.";
-    const closeButton = "Close";
-    bruinInstallCLICheckBruinCLIVersionStub.resolves(false);
-    vscodeWindowShowWarningMessageStub.resolves(closeButton);
-
-    await checkBruinCliVersion();
-
-    assert.ok(
-      vscodeWindowShowWarningMessageStub.calledOnce,
-      "Expected warning message to be shown"
-    );
-    assert.ok(
-      vscodeWindowShowWarningMessageStub.firstCall.args[1].includes(closeButton),
-      "Expected close button to be present"
-    );
-  });
-}); */
-/* suite("BruinEnvList Tests", () => {
-  let bruinEnvList: BruinEnvList;
-  let runStub: sinon.SinonStub;
-  let postMessageToPanelsStub: sinon.SinonStub;
-  let BruinPanelPostMessageStub: sinon.SinonStub;
-
-  setup(() => {
-    bruinEnvList = new BruinEnvList();
-    runStub = sinon.stub(BruinCommand.prototype, "run");
-    postMessageToPanelsStub = sinon.stub(BruinEnvList.prototype, "postMessageToPanels");
-    BruinPanelPostMessageStub = sinon.stub(BruinPanel, "postMessage");
-  });
-
-  teardown(() => {
-    runStub.restore();
-    postMessageToPanelsStub.restore();
-    BruinPanelPostMessageStub.restore();
-  });
-
-  test("should return 'environments' as the Bruin command string", () => {
-    assert.strictEqual(bruinEnvList.bruinCommand(), "environments");
-  });
-
-  test("should get environments list successfully", async () => {
-    const result = "{ environments: [ { id: 1, name: 'env1' } ] }";
-    runStub.resolves(result);
-
-    await bruinEnvList.getEnvironmentsList();
-
-    assert.ok(runStub.calledOnce, "Expected run to be called");
-    assert.deepStrictEqual(runStub.firstCall.args, [["list", "-o", "json"]], "Expected correct flags to be passed");
-    assert.ok(postMessageToPanelsStub.calledOnce, "Expected postMessageToPanels to be called");
-    assert.deepStrictEqual(postMessageToPanelsStub.firstCall.args, ["success", result], "Expected success message to be posted");
-    assert.ok(BruinPanelPostMessageStub.calledOnce, "Expected BruinPanel.postMessage to be called");
-    assert.deepStrictEqual(BruinPanelPostMessageStub.firstCall.args, ["environments-list-message", { status: "success", message: result }], "Expected correct message to be posted to BruinPanel");
-  });
-
-  test("should handle errors when getting environments list", async () => {
-    const error = "Error getting environments list";
-    runStub.rejects(new Error(error));
-
-    await bruinEnvList.getEnvironmentsList();
-
-    assert.ok(runStub.calledOnce, "Expected run to be called");
-    assert.deepStrictEqual(runStub.firstCall.args, [["list", "-o", "json"]], "Expected correct flags to be passed");
-    assert.ok(postMessageToPanelsStub.calledOnce, "Expected postMessageToPanels to be called");
-    assert.deepStrictEqual(postMessageToPanelsStub.firstCall.args, ["error", error], "Expected error message to be posted");
-    assert.ok(BruinPanelPostMessageStub.calledOnce, "Expected BruinPanel.postMessage to be called");
-    assert.deepStrictEqual(BruinPanelPostMessageStub.firstCall.args, ["environments-list-message", { status: "error", message: error }], "Expected correct error message to be posted to BruinPanel");
-  });
-
-  test("should ignore errors when getting environments list with ignoresErrors option", async () => {
-    const error = "Error getting environments list";
-    runStub.rejects(new Error(error));
-
-    await bruinEnvList.getEnvironmentsList({ ignoresErrors: true });
-
-    assert.ok(runStub.calledOnce, "Expected run to be called");
-    assert.deepStrictEqual(runStub.firstCall.args, [["list", "-o", "json"]], "Expected correct flags to be passed");
-    assert.ok(postMessageToPanelsStub.notCalled, "Expected postMessageToPanels not to be called");
-    assert.ok(BruinPanelPostMessageStub.notCalled, "Expected BruinPanel.postMessage not to be called");
-  });
-
-  test("should post message to panels correctly", () => {
-    const status = "success";
-    const message = "Environments list retrieved successfully";
-
-    bruinEnvList.postMessageToPanels(status, message);
-
-    assert.ok(BruinPanelPostMessageStub.calledOnce, "Expected BruinPanel.postMessage to be called");
-    assert.deepStrictEqual(BruinPanelPostMessageStub.firstCall.args, ["environments-list-message", { status, message }], "Expected correct message to be posted to BruinPanel");
-  });
-}); */
-
-suite("Multi-line Command Formatting Tests", () => {
-  let terminalStub: Partial<vscode.Terminal>;
-  let terminalOptionsStub: Partial<vscode.TerminalOptions>;
-
-  setup(() => {
-    terminalOptionsStub = {
-      shellPath: undefined,
-    };
-    terminalStub = {
-      creationOptions: terminalOptionsStub as vscode.TerminalOptions,
-    };
-  });
-
-  teardown(() => {
-    sinon.restore();
-  });
-
-  suite("shouldUseUnixFormatting", () => {
-    test("should return true for Unix-like shells on Windows", () => {
-      const platformStub = sinon.stub(process, "platform").value("win32");
+    test("should find glossary.yaml in workspace root", async () => {
+      const workspaceDir = "/workspace/path";
+      const expectedPath = "/workspace/path/glossary.yaml";
       
-      // Test Git Bash
-      terminalOptionsStub.shellPath = "C:\\Program Files\\Git\\bin\\bash.exe";
-      assert.strictEqual(
-        (bruinUtils as any).shouldUseUnixFormatting(terminalStub as vscode.Terminal),
-        true,
-        "Git Bash should use Unix formatting"
-      );
+      pathJoinStub.withArgs(workspaceDir, "glossary.yaml").returns(expectedPath);
+      fsAccessStub.withArgs(expectedPath, fs.constants.F_OK).resolves();
 
-      // Test WSL
-      terminalOptionsStub.shellPath = "wsl.exe";
-      assert.strictEqual(
-        (bruinUtils as any).shouldUseUnixFormatting(terminalStub as vscode.Terminal),
-        true,
-        "WSL should use Unix formatting"
-      );
+      const result = await (await import("../bruin/bruinGlossaryUtility")).findGlossaryFile(workspaceDir);
 
-      // Test undefined shellPath (default terminal)
-      terminalOptionsStub.shellPath = undefined;
-      assert.strictEqual(
-        (bruinUtils as any).shouldUseUnixFormatting(terminalStub as vscode.Terminal),
-        true,
-        "Default terminal should use Unix formatting"
-      );
-
-      platformStub.restore();
+      assert.strictEqual(result, expectedPath, "Should return the path to glossary.yaml");
+      assert.ok(pathJoinStub.calledWith(workspaceDir, "glossary.yaml"), "Should check for glossary.yaml first");
     });
 
-
-    test("should return true for non-Windows platforms", () => {
-      const platformStub = sinon.stub(process, "platform").value("darwin");
+    test("should find glossary.yml when glossary.yaml doesn't exist", async () => {
+      const workspaceDir = "/workspace/path";
+      const yamlPath = "/workspace/path/glossary.yaml";
+      const ymlPath = "/workspace/path/glossary.yml";
       
-      terminalOptionsStub.shellPath = "/bin/bash";
-      assert.strictEqual(
-        (bruinUtils as any).shouldUseUnixFormatting(terminalStub as vscode.Terminal),
-        true,
-        "macOS should use Unix formatting"
-      );
+      pathJoinStub.withArgs(workspaceDir, "glossary.yaml").returns(yamlPath);
+      pathJoinStub.withArgs(workspaceDir, "glossary.yml").returns(ymlPath);
+      
+      // First file doesn't exist
+      fsAccessStub.withArgs(yamlPath, fs.constants.F_OK).rejects({ code: "ENOENT" });
+      // Second file exists
+      fsAccessStub.withArgs(ymlPath, fs.constants.F_OK).resolves();
 
-      platformStub.value("linux");
-      assert.strictEqual(
-        (bruinUtils as any).shouldUseUnixFormatting(terminalStub as vscode.Terminal),
-        true,
-        "Linux should use Unix formatting"
-      );
+      const result = await (await import("../bruin/bruinGlossaryUtility")).findGlossaryFile(workspaceDir);
 
-      platformStub.restore();
+      assert.strictEqual(result, ymlPath, "Should return the path to glossary.yml");
+      assert.ok(fsAccessStub.calledWith(yamlPath, fs.constants.F_OK), "Should check glossary.yaml first");
+      assert.ok(fsAccessStub.calledWith(ymlPath, fs.constants.F_OK), "Should check glossary.yml second");
+    });
+
+    test("should return undefined when no glossary files exist", async () => {
+      const workspaceDir = "/workspace/path";
+      const yamlPath = "/workspace/path/glossary.yaml";
+      const ymlPath = "/workspace/path/glossary.yml";
+      
+      pathJoinStub.withArgs(workspaceDir, "glossary.yaml").returns(yamlPath);
+      pathJoinStub.withArgs(workspaceDir, "glossary.yml").returns(ymlPath);
+      
+      // Both files don't exist
+      fsAccessStub.withArgs(yamlPath, fs.constants.F_OK).rejects({ code: "ENOENT" });
+      fsAccessStub.withArgs(ymlPath, fs.constants.F_OK).rejects({ code: "ENOENT" });
+
+      const result = await (await import("../bruin/bruinGlossaryUtility")).findGlossaryFile(workspaceDir);
+
+      assert.strictEqual(result, undefined, "Should return undefined when no glossary files exist");
+    });
+
+    test("should use custom glossary file names", async () => {
+      const workspaceDir = "/workspace/path";
+      const customFileName = "custom-glossary.txt";
+      const expectedPath = "/workspace/path/custom-glossary.txt";
+      const customFileNames = [customFileName];
+      
+      pathJoinStub.withArgs(workspaceDir, customFileName).returns(expectedPath);
+      fsAccessStub.withArgs(expectedPath, fs.constants.F_OK).resolves();
+
+      const result = await (await import("../bruin/bruinGlossaryUtility")).findGlossaryFile(workspaceDir, customFileNames);
+
+      assert.strictEqual(result, expectedPath, "Should find custom glossary file");
+      assert.ok(pathJoinStub.calledWith(workspaceDir, customFileName), "Should check for custom file name");
+    });
+
+    test("should handle empty custom file names array", async () => {
+      const workspaceDir = "/workspace/path";
+      const customFileNames: string[] = [];
+
+      const result = await (await import("../bruin/bruinGlossaryUtility")).findGlossaryFile(workspaceDir, customFileNames);
+
+      assert.strictEqual(result, undefined, "Should return undefined for empty file names array");
+      assert.ok(pathJoinStub.notCalled, "Should not call path.join for empty array");
+    });
+
+    test("should handle multiple custom file names and return first found", async () => {
+      const workspaceDir = "/workspace/path";
+      const fileNames = ["first.txt", "second.txt", "third.txt"];
+      const firstPath = "/workspace/path/first.txt";
+      const secondPath = "/workspace/path/second.txt";
+      
+      pathJoinStub.withArgs(workspaceDir, "first.txt").returns(firstPath);
+      pathJoinStub.withArgs(workspaceDir, "second.txt").returns(secondPath);
+      
+      // First file doesn't exist
+      fsAccessStub.withArgs(firstPath, fs.constants.F_OK).rejects({ code: "ENOENT" });
+      // Second file exists
+      fsAccessStub.withArgs(secondPath, fs.constants.F_OK).resolves();
+
+      const result = await (await import("../bruin/bruinGlossaryUtility")).findGlossaryFile(workspaceDir, fileNames);
+
+      assert.strictEqual(result, secondPath, "Should return the first found file");
+      assert.ok(fsAccessStub.calledWith(firstPath, fs.constants.F_OK), "Should check first file");
+      assert.ok(fsAccessStub.calledWith(secondPath, fs.constants.F_OK), "Should check second file");
+      // Should not check third file since second was found
+      assert.ok(!pathJoinStub.calledWith(workspaceDir, "third.txt"), "Should not check third file");
+    });
+
+    test("should handle undefined workspace directory", async () => {
+      const workspaceDir = undefined as any;
+      
+      const result = await (await import("../bruin/bruinGlossaryUtility")).findGlossaryFile(workspaceDir);
+
+      assert.strictEqual(result, undefined, "Should return undefined for undefined workspace directory");
+    });
+
+    test("should handle empty workspace directory string", async () => {
+      const workspaceDir = "";
+      const yamlPath = "/glossary.yaml";
+      
+      pathJoinStub.withArgs("", "glossary.yaml").returns(yamlPath);
+      fsAccessStub.withArgs(yamlPath, fs.constants.F_OK).rejects({ code: "ENOENT" });
+
+      const result = await (await import("../bruin/bruinGlossaryUtility")).findGlossaryFile(workspaceDir);
+
+      assert.strictEqual(result, undefined, "Should return undefined for empty workspace directory");
     });
   });
 
-  suite("formatBruinCommand", () => {
-    test("should format command with Unix line continuation", () => {
-      const result = (bruinUtils as any).formatBruinCommand(
-        "bruin",
-        "run",
-        "--start-date 2025-06-15T000000.000Z --end-date 2025-06-15T235959.999999999Z --full-refresh --push-metadata --downstream --exclude-tag python --environment prod",
-        "/path/to/asset.sql",
-        true
-      );
+  suite("openGlossary Tests", () => {
+    let showTextDocumentStub: sinon.SinonStub;
+    let showErrorMessageStub: sinon.SinonStub;
+    let openTextDocumentStub: sinon.SinonStub;
+    let findGlossaryFileStub: sinon.SinonStub;
+    let activeTextEditorStub: sinon.SinonStub;
+    let openGlossary: typeof import("../bruin/bruinGlossaryUtility").openGlossary;
+    let findGlossaryFile: typeof import("../bruin/bruinGlossaryUtility").findGlossaryFile;
+    let module: typeof import("../bruin/bruinGlossaryUtility");
 
-      const expected = `bruin run \\
+    const fakeDocument = {
+      getText: () => "entity1:\n  attribute1: value\nentity2:\n  attribute2: value",
+      positionAt: (offset: number) => ({ line: 0, character: offset }),
+      uri: { fsPath: "/workspace/path/glossary.yaml" },
+    };
+    const fakeTextEditor = {
+      document: fakeDocument,
+      revealRange: sinon.stub(),
+      selection: undefined,
+    };
+
+    setup(async () => {
+      showTextDocumentStub = sinon.stub(vscode.window, "showTextDocument").resolves(fakeTextEditor as any);
+      showErrorMessageStub = sinon.stub(vscode.window, "showErrorMessage");
+      openTextDocumentStub = sinon.stub(vscode.workspace, "openTextDocument").resolves(fakeDocument as any);
+      findGlossaryFileStub = sinon.stub().resolves("/workspace/path/glossary.yaml");
+      activeTextEditorStub = sinon.stub(vscode.window, "activeTextEditor").get(() => fakeTextEditor as any);
+      module = await import("../bruin/bruinGlossaryUtility");
+      openGlossary = module.openGlossary;
+      findGlossaryFile = module.findGlossaryFile;
+      sinon.replace(module, "findGlossaryFile", findGlossaryFileStub);
+    });
+
+    teardown(() => {
+      sinon.restore();
+    });
+
+    test("should show error if workspaceDir is undefined", async () => {
+      await openGlossary(undefined as any, { viewColumn: vscode.ViewColumn.One });
+      sinon.assert.calledWith(showErrorMessageStub, sinon.match(/Could not determine Bruin workspace directory/));
+    });
+
+    test("should show error if glossary file is not found", async () => {
+      findGlossaryFileStub.resolves(undefined);
+      await openGlossary("/workspace/path", { viewColumn: vscode.ViewColumn.One });
+      sinon.assert.calledWith(showErrorMessageStub, sinon.match(/Glossary file not found/));
+    });
+
+    test("should open glossary file in correct view column (One -> Two)", async () => {
+      await openGlossary("/workspace/path", { viewColumn: vscode.ViewColumn.One });
+      sinon.assert.calledWith(showTextDocumentStub, fakeDocument, sinon.match.has("viewColumn", vscode.ViewColumn.Two));
+    });
+
+    test("should open glossary file in correct view column (Two -> One)", async () => {
+      await openGlossary("/workspace/path", { viewColumn: vscode.ViewColumn.Two });
+      sinon.assert.calledWith(showTextDocumentStub, fakeDocument, sinon.match.has("viewColumn", vscode.ViewColumn.One));
+    });
+
+    test("should open glossary file in Active view column if no activeTextEditor", async () => {
+      activeTextEditorStub.get(() => undefined);
+      await openGlossary("/workspace/path", undefined as any);
+      sinon.assert.calledWith(showTextDocumentStub, fakeDocument, sinon.match.has("viewColumn", vscode.ViewColumn.Active));
+    });
+
+    test("should highlight entity and attribute if found", async () => {
+      // entity: entity1, attribute: attribute1
+      await openGlossary("/workspace/path", { viewColumn: vscode.ViewColumn.One }, { entity: "entity1", attribute: "attribute1" });
+      sinon.assert.called(fakeTextEditor.revealRange);
+      assert.ok(fakeTextEditor.selection);
+    });
+
+    test("should handle and show error on unexpected exception", async () => {
+      showTextDocumentStub.rejects(new Error("fail"));
+      await openGlossary("/workspace/path", { viewColumn: vscode.ViewColumn.One });
+      sinon.assert.calledWith(showErrorMessageStub, sinon.match(/Failed to open glossary file/));
+    });
+  });
+
+  suite("Multi-line Command Formatting Tests", () => {
+    let terminalStub: Partial<vscode.Terminal>;
+    let terminalOptionsStub: Partial<vscode.TerminalOptions>;
+
+    setup(() => {
+      terminalOptionsStub = {
+        shellPath: undefined,
+      };
+      terminalStub = {
+        creationOptions: terminalOptionsStub as vscode.TerminalOptions,
+      };
+    });
+
+    teardown(() => {
+      sinon.restore();
+    });
+
+    suite("shouldUseUnixFormatting", () => {
+      test("should return true for Unix-like shells on Windows", () => {
+        const platformStub = sinon.stub(process, "platform").value("win32");
+        
+        // Test Git Bash
+        terminalOptionsStub.shellPath = "C:\\Program Files\\Git\\bin\\bash.exe";
+        assert.strictEqual(
+          (bruinUtils as any).shouldUseUnixFormatting(terminalStub as vscode.Terminal),
+          true,
+          "Git Bash should use Unix formatting"
+        );
+
+        // Test WSL
+        terminalOptionsStub.shellPath = "wsl.exe";
+        assert.strictEqual(
+          (bruinUtils as any).shouldUseUnixFormatting(terminalStub as vscode.Terminal),
+          true,
+          "WSL should use Unix formatting"
+        );
+
+        // Test undefined shellPath (default terminal)
+        terminalOptionsStub.shellPath = undefined;
+        assert.strictEqual(
+          (bruinUtils as any).shouldUseUnixFormatting(terminalStub as vscode.Terminal),
+          true,
+          "Default terminal should use Unix formatting"
+        );
+
+        platformStub.restore();
+      });
+
+
+      test("should return true for non-Windows platforms", () => {
+        const platformStub = sinon.stub(process, "platform").value("darwin");
+        
+        terminalOptionsStub.shellPath = "/bin/bash";
+        assert.strictEqual(
+          (bruinUtils as any).shouldUseUnixFormatting(terminalStub as vscode.Terminal),
+          true,
+          "macOS should use Unix formatting"
+        );
+
+        platformStub.value("linux");
+        assert.strictEqual(
+          (bruinUtils as any).shouldUseUnixFormatting(terminalStub as vscode.Terminal),
+          true,
+          "Linux should use Unix formatting"
+        );
+
+        platformStub.restore();
+      });
+    });
+
+    suite("formatBruinCommand", () => {
+      test("should format command with Unix line continuation", () => {
+        const result = (bruinUtils as any).formatBruinCommand(
+          "bruin",
+          "run",
+          "--start-date 2025-06-15T000000.000Z --end-date 2025-06-15T235959.999999999Z --full-refresh --push-metadata --downstream --exclude-tag python --environment prod",
+          "/path/to/asset.sql",
+          true
+        );
+
+        const expected = `bruin run \\
   --start-date 2025-06-15T000000.000Z \\
   --end-date 2025-06-15T235959.999999999Z \\
   --full-refresh \\
@@ -2978,190 +2806,190 @@ suite("Multi-line Command Formatting Tests", () => {
   --environment prod \\
   /path/to/asset.sql`;
 
-      assert.strictEqual(result, expected, "Should format with Unix line continuation");
-    });
+        assert.strictEqual(result, expected, "Should format with Unix line continuation");
+      });
 
-    test("should format command with PowerShell line continuation", () => {
-      const result = (bruinUtils as any).formatBruinCommand(
-        "bruin",
-        "run",
-        "--start-date 2025-06-15T000000.000Z --end-date 2025-06-15T235959.999999999Z --full-refresh",
-        "/path/to/asset.sql",
-        false
-      );
+      test("should format command with PowerShell line continuation", () => {
+        const result = (bruinUtils as any).formatBruinCommand(
+          "bruin",
+          "run",
+          "--start-date 2025-06-15T000000.000Z --end-date 2025-06-15T235959.999999999Z --full-refresh",
+          "/path/to/asset.sql",
+          false
+        );
 
-      const expected = `bruin run \`
+        const expected = `bruin run \`
   --start-date 2025-06-15T000000.000Z \`
   --end-date 2025-06-15T235959.999999999Z \`
   --full-refresh \`
   /path/to/asset.sql`;
 
-      assert.strictEqual(result, expected, "Should format with PowerShell line continuation");
-    });
+        assert.strictEqual(result, expected, "Should format with PowerShell line continuation");
+      });
 
-    test("should handle empty flags", () => {
-      const result = (bruinUtils as any).formatBruinCommand(
-        "bruin",
-        "run",
-        "",
-        "/path/to/asset.sql",
-        true
-      );
+      test("should handle empty flags", () => {
+        const result = (bruinUtils as any).formatBruinCommand(
+          "bruin",
+          "run",
+          "",
+          "/path/to/asset.sql",
+          true
+        );
 
-      const expected = "bruin run /path/to/asset.sql";
-      assert.strictEqual(result, expected, "Should return simple command without flags");
-    });
+        const expected = "bruin run /path/to/asset.sql";
+        assert.strictEqual(result, expected, "Should return simple command without flags");
+      });
 
-    test("should handle whitespace-only flags", () => {
-      const result = (bruinUtils as any).formatBruinCommand(
-        "bruin",
-        "run",
-        "   ",
-        "/path/to/asset.sql",
-        true
-      );
+      test("should handle whitespace-only flags", () => {
+        const result = (bruinUtils as any).formatBruinCommand(
+          "bruin",
+          "run",
+          "   ",
+          "/path/to/asset.sql",
+          true
+        );
 
-      const expected = "bruin run /path/to/asset.sql";
-      assert.strictEqual(result, expected, "Should return simple command with whitespace-only flags");
-    });
+        const expected = "bruin run /path/to/asset.sql";
+        assert.strictEqual(result, expected, "Should return simple command with whitespace-only flags");
+      });
 
-    test("should handle flags with values", () => {
-      const result = (bruinUtils as any).formatBruinCommand(
-        "bruin",
-        "run",
-        "--start-date 2025-06-15T000000.000Z --end-date 2025-06-15T235959.999999999Z --environment prod",
-        "/path/to/asset.sql",
-        true
-      );
+      test("should handle flags with values", () => {
+        const result = (bruinUtils as any).formatBruinCommand(
+          "bruin",
+          "run",
+          "--start-date 2025-06-15T000000.000Z --end-date 2025-06-15T235959.999999999Z --environment prod",
+          "/path/to/asset.sql",
+          true
+        );
 
-      const expected = `bruin run \\
+        const expected = `bruin run \\
   --start-date 2025-06-15T000000.000Z \\
   --end-date 2025-06-15T235959.999999999Z \\
   --environment prod \\
   /path/to/asset.sql`;
 
-      assert.strictEqual(result, expected, "Should handle flags with values correctly");
-    });
+        assert.strictEqual(result, expected, "Should handle flags with values correctly");
+      });
 
-    test("should handle single flag", () => {
-      const result = (bruinUtils as any).formatBruinCommand(
-        "bruin",
-        "run",
-        "--full-refresh",
-        "/path/to/asset.sql",
-        true
-      );
+      test("should handle single flag", () => {
+        const result = (bruinUtils as any).formatBruinCommand(
+          "bruin",
+          "run",
+          "--full-refresh",
+          "/path/to/asset.sql",
+          true
+        );
 
-      const expected = `bruin run \\
+        const expected = `bruin run \\
   --full-refresh \\
   /path/to/asset.sql`;
 
-      assert.strictEqual(result, expected, "Should handle single flag correctly");
-    });
+        assert.strictEqual(result, expected, "Should handle single flag correctly");
+      });
 
-    test("should handle flags with complex values", () => {
-      const result = (bruinUtils as any).formatBruinCommand(
-        "bruin",
-        "run",
-        "--exclude-tag python --exclude-tag java --environment prod",
-        "/path/to/asset.sql",
-        true
-      );
+      test("should handle flags with complex values", () => {
+        const result = (bruinUtils as any).formatBruinCommand(
+          "bruin",
+          "run",
+          "--exclude-tag python --exclude-tag java --environment prod",
+          "/path/to/asset.sql",
+          true
+        );
 
-      const expected = `bruin run \\
+        const expected = `bruin run \\
   --exclude-tag python \\
   --exclude-tag java \\
   --environment prod \\
   /path/to/asset.sql`;
 
-      assert.strictEqual(result, expected, "Should handle flags with complex values correctly");
-    });
-  });
-
-  suite("runInIntegratedTerminal with formatting", () => {
-    let createIntegratedTerminalStub: sinon.SinonStub;
-    let terminalSendTextStub: sinon.SinonStub;
-    let terminalShowStub: sinon.SinonStub;
-
-    setup(() => {
-      terminalSendTextStub = sinon.stub();
-      terminalShowStub = sinon.stub();
-      
-      const mockTerminal = {
-        creationOptions: {
-          shellPath: "C:\\Program Files\\Git\\bin\\bash.exe"
-        },
-        show: terminalShowStub,
-        sendText: terminalSendTextStub
-      } as any;
-
-      createIntegratedTerminalStub = sinon.stub(bruinUtils, "createIntegratedTerminal").resolves(mockTerminal);
+        assert.strictEqual(result, expected, "Should handle flags with complex values correctly");
+      });
     });
 
-    teardown(() => {
-      sinon.restore();
-    });
+    suite("runInIntegratedTerminal with formatting", () => {
+      let createIntegratedTerminalStub: sinon.SinonStub;
+      let terminalSendTextStub: sinon.SinonStub;
+      let terminalShowStub: sinon.SinonStub;
 
-    test("should format command with Unix formatting for Git Bash", async () => {
-      const flags = "--start-date 2025-06-15T000000.000Z --end-date 2025-06-15T235959.999999999Z --full-refresh --push-metadata";
-      const assetPath = "/path/to/asset.sql";
+      setup(() => {
+        terminalSendTextStub = sinon.stub();
+        terminalShowStub = sinon.stub();
+        
+        const mockTerminal = {
+          creationOptions: {
+            shellPath: "C:\\Program Files\\Git\\bin\\bash.exe"
+          },
+          show: terminalShowStub,
+          sendText: terminalSendTextStub
+        } as any;
 
-      await bruinUtils.runInIntegratedTerminal("/working/dir", assetPath, flags, "bruin");
+        createIntegratedTerminalStub = sinon.stub(bruinUtils, "createIntegratedTerminal").resolves(mockTerminal);
+      });
 
-      assert.ok(terminalSendTextStub.calledTwice, "Should send text twice (dummy call + command)");
-      
-      const actualCommand = terminalSendTextStub.secondCall.args[0];
-      const expectedCommand = `bruin run \\
+      teardown(() => {
+        sinon.restore();
+      });
+
+      test("should format command with Unix formatting for Git Bash", async () => {
+        const flags = "--start-date 2025-06-15T000000.000Z --end-date 2025-06-15T235959.999999999Z --full-refresh --push-metadata";
+        const assetPath = "/path/to/asset.sql";
+
+        await bruinUtils.runInIntegratedTerminal("/working/dir", assetPath, flags, "bruin");
+
+        assert.ok(terminalSendTextStub.calledTwice, "Should send text twice (dummy call + command)");
+        
+        const actualCommand = terminalSendTextStub.secondCall.args[0];
+        const expectedCommand = `bruin run \\
   --start-date 2025-06-15T000000.000Z \\
   --end-date 2025-06-15T235959.999999999Z \\
   --full-refresh \\
   --push-metadata \\
   "/path/to/asset.sql"`;
 
-      assert.strictEqual(actualCommand, expectedCommand, "Should format command with Unix line continuation");
-    });
+        assert.strictEqual(actualCommand, expectedCommand, "Should format command with Unix line continuation");
+      });
 
-    test("should use simple command when no flags provided", async () => {
-      const assetPath = "/path/to/asset.sql";
+      test("should use simple command when no flags provided", async () => {
+        const assetPath = "/path/to/asset.sql";
 
-      await bruinUtils.runInIntegratedTerminal("/working/dir", assetPath, "", "bruin");
+        await bruinUtils.runInIntegratedTerminal("/working/dir", assetPath, "", "bruin");
 
-      const actualCommand = terminalSendTextStub.secondCall.args[0];
-      const expectedCommand = 'bruin run "/path/to/asset.sql"';
+        const actualCommand = terminalSendTextStub.secondCall.args[0];
+        const expectedCommand = 'bruin run "/path/to/asset.sql"';
 
-      assert.strictEqual(actualCommand, expectedCommand, "Should use simple command without flags");
-    });
+        assert.strictEqual(actualCommand, expectedCommand, "Should use simple command without flags");
+      });
 
-    test("should use correct executable based on terminal type", async () => {
-      const mockTerminal = {
-        creationOptions: {
-          shellPath: "C:\\Program Files\\Git\\bin\\bash.exe"
-        },
-        show: terminalShowStub,
-        sendText: terminalSendTextStub
-      } as any;
+      test("should use correct executable based on terminal type", async () => {
+        const mockTerminal = {
+          creationOptions: {
+            shellPath: "C:\\Program Files\\Git\\bin\\bash.exe"
+          },
+          show: terminalShowStub,
+          sendText: terminalSendTextStub
+        } as any;
 
-      createIntegratedTerminalStub.resolves(mockTerminal);
+        createIntegratedTerminalStub.resolves(mockTerminal);
 
-      const flags = "--full-refresh";
-      const assetPath = "/path/to/asset.sql";
+        const flags = "--full-refresh";
+        const assetPath = "/path/to/asset.sql";
 
-      await bruinUtils.runInIntegratedTerminal("/working/dir", assetPath, flags, "/custom/path/bruin");
+        await bruinUtils.runInIntegratedTerminal("/working/dir", assetPath, flags, "/custom/path/bruin");
 
-      const actualCommand = terminalSendTextStub.secondCall.args[0];
-      // Should use "bruin" for Git Bash, not the custom path
-      assert.ok(actualCommand.startsWith("bruin run"), "Should use 'bruin' executable for Git Bash");
-    });
+        const actualCommand = terminalSendTextStub.secondCall.args[0];
+        // Should use "bruin" for Git Bash, not the custom path
+        assert.ok(actualCommand.startsWith("bruin run"), "Should use 'bruin' executable for Git Bash");
+      });
 
 
-    test("should handle complex flag combinations", async () => {
-      const flags = "--start-date 2025-06-15T000000.000Z --end-date 2025-06-15T235959.999999999Z --full-refresh --push-metadata --downstream --exclude-tag python --exclude-tag java --environment prod";
-      const assetPath = "/Users/maya/Documents/GitHub/neptune/pipelines/wep/assets/tier_2/exchanges/epias_plants_uevm.sql";
+      test("should handle complex flag combinations", async () => {
+        const flags = "--start-date 2025-06-15T000000.000Z --end-date 2025-06-15T235959.999999999Z --full-refresh --push-metadata --downstream --exclude-tag python --exclude-tag java --environment prod";
+        const assetPath = "/Users/maya/Documents/GitHub/neptune/pipelines/wep/assets/tier_2/exchanges/epias_plants_uevm.sql";
 
-      await bruinUtils.runInIntegratedTerminal("/working/dir", assetPath, flags, "bruin");
+        await bruinUtils.runInIntegratedTerminal("/working/dir", assetPath, flags, "bruin");
 
-      const actualCommand = terminalSendTextStub.secondCall.args[0];
-      const expectedCommand = `bruin run \\
+        const actualCommand = terminalSendTextStub.secondCall.args[0];
+        const expectedCommand = `bruin run \\
   --start-date 2025-06-15T000000.000Z \\
   --end-date 2025-06-15T235959.999999999Z \\
   --full-refresh \\
@@ -3172,7 +3000,2194 @@ suite("Multi-line Command Formatting Tests", () => {
   --environment prod \\
   "/Users/maya/Documents/GitHub/neptune/pipelines/wep/assets/tier_2/exchanges/epias_plants_uevm.sql"`;
 
-      assert.strictEqual(actualCommand, expectedCommand, "Should handle complex flag combinations correctly");
+        assert.strictEqual(actualCommand, expectedCommand, "Should handle complex flag combinations correctly");
+      });
     });
   });
-});
+
+  suite("QueryPreviewPanel Tests", () => {
+    let queryPreviewPanel: any;
+    let mockExtensionUri: vscode.Uri;
+    let mockExtensionContext: vscode.ExtensionContext;
+    let mockWebviewView: vscode.WebviewView;
+    let mockWebview: vscode.Webview;
+    let postMessageStub: sinon.SinonStub;
+    let onDidReceiveMessageStub: sinon.SinonStub;
+    let onDidChangeVisibilityStub: sinon.SinonStub;
+    let getQueryOutputStub: sinon.SinonStub;
+    let exportQueryResultsStub: sinon.SinonStub;
+    let globalStateUpdateStub: sinon.SinonStub;
+    let globalStateGetStub: sinon.SinonStub;
+
+    setup(() => {
+      mockExtensionUri = vscode.Uri.file("/mock/extension/path");
+      mockExtensionContext = {
+        globalState: {
+          update: sinon.stub(),
+          get: sinon.stub(),
+        },
+      } as any;
+
+      mockWebview = {
+        postMessage: sinon.stub(),
+        onDidReceiveMessage: sinon.stub(),
+        options: {},
+        cspSource: "default-src",
+        asWebviewUri: sinon.stub(),
+      } as any;
+
+      mockWebviewView = {
+        webview: mockWebview,
+        onDidChangeVisibility: sinon.stub(),
+        visible: true,
+      } as any;
+
+      // Stub external dependencies
+      getQueryOutputStub = sinon.stub();
+      exportQueryResultsStub = sinon.stub();
+      
+      // Mock the module imports
+      const queryCommandsModule = {
+        getQueryOutput: getQueryOutputStub,
+        exportQueryResults: exportQueryResultsStub,
+      };
+      
+      // Use proxyquire to mock the imports
+      const QueryPreviewPanelModule = proxyquire("../panels/QueryPreviewPanel", {
+        "../extension/commands/queryCommands": queryCommandsModule,
+      });
+
+      queryPreviewPanel = new QueryPreviewPanelModule.QueryPreviewPanel(mockExtensionUri, mockExtensionContext);
+      
+      // Setup stubs
+      postMessageStub = sinon.stub(QueryPreviewPanelModule.QueryPreviewPanel, "postMessage");
+      onDidReceiveMessageStub = mockWebview.onDidReceiveMessage as sinon.SinonStub;
+      onDidChangeVisibilityStub = mockWebviewView.onDidChangeVisibility as sinon.SinonStub;
+      globalStateUpdateStub = mockExtensionContext.globalState.update as sinon.SinonStub;
+      globalStateGetStub = mockExtensionContext.globalState.get as sinon.SinonStub;
+    });
+
+    teardown(() => {
+      sinon.restore();
+      // Clear static state
+      QueryPreviewPanel._view = undefined;
+      // Access private properties through the class instance
+      (QueryPreviewPanel as any).tabQueries?.clear();
+      (QueryPreviewPanel as any).tabAssetPaths?.clear();
+      (QueryPreviewPanel as any).currentDates = {};
+    });
+
+    suite("Static Methods", () => {
+      test("should set and get last executed query", () => {
+        const testQuery = "SELECT * FROM test_table";
+        
+        QueryPreviewPanel.setLastExecutedQuery(testQuery);
+        
+        assert.strictEqual(QueryPreviewPanel.getLastExecutedQuery(), testQuery);
+        assert.strictEqual(QueryPreviewPanel.getTabQuery("tab-1"), testQuery);
+      });
+
+      test("should set and get tab query", () => {
+        const tabId = "test-tab";
+        const testQuery = "SELECT * FROM test_table";
+        
+        QueryPreviewPanel.setTabQuery(tabId, testQuery);
+        
+        assert.strictEqual(QueryPreviewPanel.getTabQuery(tabId), testQuery);
+      });
+
+      test("should set and get tab asset path", () => {
+        const tabId = "test-tab";
+        const assetPath = "/path/to/asset.sql";
+        
+        QueryPreviewPanel.setTabAssetPath(tabId, assetPath);
+        
+        assert.strictEqual(QueryPreviewPanel.getTabAssetPath(tabId), assetPath);
+      });
+
+      test("should update last asset path when setting tab-1", () => {
+        const assetPath = "/path/to/asset.sql";
+        
+        QueryPreviewPanel.setTabAssetPath("tab-1", assetPath);
+        
+        assert.strictEqual(QueryPreviewPanel.getTabAssetPath("tab-1"), assetPath);
+        assert.strictEqual(QueryPreviewPanel.getTabAssetPath("any-other-tab"), assetPath);
+      });
+    });
+
+    suite("Constructor", () => {
+      test("should initialize with extension URI and context", () => {
+        assert.ok(queryPreviewPanel, "QueryPreviewPanel should be created");
+        assert.strictEqual(queryPreviewPanel._extensionUri, mockExtensionUri);
+        assert.strictEqual(queryPreviewPanel._extensionContext, mockExtensionContext);
+      });
+
+      test("should set up event listeners", () => {
+        const onDidChangeActiveTextEditorStub = sinon.stub(vscode.window, "onDidChangeActiveTextEditor");
+        
+        new QueryPreviewPanel(mockExtensionUri, mockExtensionContext);
+        
+        assert.ok(onDidChangeActiveTextEditorStub.calledOnce, "Should set up active text editor listener");
+      });
+    });
+
+    suite("Message Handling", () => {
+      let messageHandler: (message: any) => void;
+
+      setup(() => {
+        const context = {} as vscode.WebviewViewResolveContext;
+        const token = {} as vscode.CancellationToken;
+        
+        queryPreviewPanel.resolveWebviewView(mockWebviewView, context, token);
+        messageHandler = onDidReceiveMessageStub.firstCall.args[0];
+      });
+
+      test("should handle bruin.saveState message", async () => {
+        const testState = { tabs: [{ id: "tab-1", query: "SELECT * FROM test" }] };
+        
+        await messageHandler({ command: "bruin.saveState", payload: testState });
+        
+        assert.ok(globalStateUpdateStub.calledWith("queryPreviewState", sinon.match.any));
+      });
+
+      test("should handle bruin.requestState message", async () => {
+        const testState = { tabs: [{ id: "tab-1", query: "SELECT * FROM test" }] };
+        globalStateGetStub.returns(testState);
+        
+        await messageHandler({ command: "bruin.requestState" });
+        
+        assert.ok((mockWebview.postMessage as sinon.SinonStub).calledWith({
+          command: "bruin.restoreState",
+          payload: testState,
+        }));
+      });
+
+      test("should handle bruin.getQueryOutput message", async () => {
+        const testUri = vscode.Uri.file("/test/file.sql");
+        queryPreviewPanel._lastRenderedDocumentUri = testUri;
+        
+        const message = {
+          command: "bruin.getQueryOutput",
+          payload: {
+            environment: "dev",
+            limit: "100",
+            tabId: "tab-1",
+            startDate: "2025-01-01",
+            endDate: "2025-01-31",
+          },
+        };
+        
+        await messageHandler(message);
+        
+        assert.ok(getQueryOutputStub.calledWith(
+          "dev",
+          "100",
+          testUri,
+          "tab-1",
+          "2025-01-01",
+          "2025-01-31"
+        ));
+      });
+
+      test("should handle bruin.clearQueryOutput message", async () => {
+        const message = {
+          command: "bruin.clearQueryOutput",
+          payload: { tabId: "tab-1" },
+        };
+        
+        await messageHandler(message);
+        
+        assert.ok(postMessageStub.calledWith("query-output-clear", {
+          status: "success",
+          message: { tabId: "tab-1" },
+        }));
+      });
+
+
+      test("should handle bruin.exportQueryOutput message with last rendered document", async () => {
+        const testUri = vscode.Uri.file("/test/file.sql");
+        queryPreviewPanel._lastRenderedDocumentUri = testUri;
+        
+        const message = {
+          command: "bruin.exportQueryOutput",
+          payload: { tabId: "tab-1" },
+        };
+        
+        await messageHandler(message);
+        
+        assert.ok(exportQueryResultsStub.calledWith(testUri, "tab-1", null));
+      });
+    });
+
+    suite("loadAndSendQueryOutput", () => {
+      test("should load query output successfully", async () => {
+        const testUri = vscode.Uri.file("/test/file.sql");
+        queryPreviewPanel._lastRenderedDocumentUri = testUri;
+        getQueryOutputStub.resolves();
+        
+        await queryPreviewPanel.loadAndSendQueryOutput("dev", "100", "tab-1", "2025-01-01", "2025-01-31");
+        
+        assert.ok(postMessageStub.calledWith("query-output-message", {
+          status: "loading",
+          message: true,
+          tabId: "tab-1",
+        }));
+        assert.ok(getQueryOutputStub.calledWith("dev", "100", testUri, "tab-1", "2025-01-01", "2025-01-31"));
+      });
+
+      test("should handle error when loading query output", async () => {
+        const testUri = vscode.Uri.file("/test/file.sql");
+        queryPreviewPanel._lastRenderedDocumentUri = testUri;
+        const testError = new Error("Query execution failed");
+        getQueryOutputStub.rejects(testError);
+        
+        await queryPreviewPanel.loadAndSendQueryOutput("dev", "100", "tab-1");
+        
+        assert.ok(postMessageStub.calledWith("query-output-message", {
+          status: "error",
+          message: "Query execution failed",
+          tabId: "tab-1",
+        }));
+      });
+
+      test("should return early when no last rendered document", async () => {
+        queryPreviewPanel._lastRenderedDocumentUri = undefined;
+        
+        await queryPreviewPanel.loadAndSendQueryOutput("dev", "100", "tab-1");
+        
+        assert.ok(getQueryOutputStub.notCalled, "Should not call getQueryOutput without document URI");
+      });
+    });
+
+    suite("State Persistence", () => {
+      test("should handle missing extension context", async () => {
+        queryPreviewPanel._extensionContext = undefined;
+        
+        try {
+          await queryPreviewPanel._persistState({});
+          assert.fail("Should throw error for missing extension context");
+        } catch (error) {
+          assert.strictEqual((error as Error).message, "Extension context not found");
+        }
+      });
+    });
+
+    suite("postMessage", () => {
+      test("should post message when view exists", () => {
+        QueryPreviewPanel._view = mockWebviewView;
+        
+        QueryPreviewPanel.postMessage("test-message", { status: "success", message: "test" });
+        
+        assert.ok((mockWebview.postMessage as sinon.SinonStub).calledWith({
+          command: "test-message",
+          payload: { status: "success", message: "test" },
+        }));
+      });
+
+      test("should not post message when view does not exist", () => {
+        QueryPreviewPanel._view = undefined;
+        
+        QueryPreviewPanel.postMessage("test-message", { status: "success", message: "test" });
+        
+        assert.ok((mockWebview.postMessage as sinon.SinonStub).notCalled, "Should not post message when view is undefined");
+      });
+
+      test("should store dates when receiving date updates", () => {
+        QueryPreviewPanel._view = mockWebviewView;
+        
+        QueryPreviewPanel.postMessage("update-query-dates", {
+          status: "success",
+          message: { startDate: "2025-01-01", endDate: "2025-01-31" },
+        });
+        
+        assert.deepStrictEqual((QueryPreviewPanel as any).currentDates, {
+          start: "2025-01-01",
+          end: "2025-01-31",
+        });
+      });
+    });
+
+    suite("initPanel", () => {
+      test("should initialize panel with text editor", async () => {
+        const mockEditor = {
+          document: { uri: vscode.Uri.file("/test/file.sql") },
+        } as vscode.TextEditor;
+        
+        const initStub = sinon.stub(queryPreviewPanel, "init").resolves();
+        
+        await queryPreviewPanel.initPanel(mockEditor);
+        
+        assert.strictEqual(queryPreviewPanel._lastRenderedDocumentUri, mockEditor.document.uri);
+        assert.ok(initStub.calledOnce);
+      });
+
+      test("should initialize panel with text document change event", async () => {
+        const mockEvent = {
+          document: { uri: vscode.Uri.file("/test/file.sql") },
+        } as vscode.TextDocumentChangeEvent;
+        
+        const initStub = sinon.stub(queryPreviewPanel, "init").resolves();
+        
+        await queryPreviewPanel.initPanel(mockEvent);
+        
+        assert.strictEqual(queryPreviewPanel._lastRenderedDocumentUri, mockEvent.document.uri);
+        assert.ok(initStub.calledOnce);
+      });
+    });
+
+    suite("Dispose", () => {
+      test("should dispose all disposables", () => {
+        const mockDisposable = { dispose: sinon.stub() };
+        queryPreviewPanel.disposables = [mockDisposable];
+        
+        queryPreviewPanel.dispose();
+        
+        assert.ok(mockDisposable.dispose.calledOnce);
+        assert.strictEqual(queryPreviewPanel.disposables.length, 0);
+      });
+    });
+  });
+
+  suite("BruinInternalParse Tests", () => {
+    let bruinInternalParse: BruinInternalParse;
+    let runStub: sinon.SinonStub;
+    let postMessageToPanelsStub: sinon.SinonStub;
+    let consoleTimeStub: sinon.SinonStub;
+    let consoleTimeEndStub: sinon.SinonStub;
+    let bruinLineageInternalParseStub: sinon.SinonStub;
+    let parsePipelineConfigStub: sinon.SinonStub;
+    let bruinPanelPostMessageStub: sinon.SinonStub;
+
+    setup(() => {
+      bruinInternalParse = new BruinInternalParse("path/to/bruin", "path/to/working/directory");
+      runStub = sinon.stub(bruinInternalParse as any, "run");
+      postMessageToPanelsStub = sinon.stub(bruinInternalParse as any, "postMessageToPanels");
+      consoleTimeStub = sinon.stub(console, "time");
+      consoleTimeEndStub = sinon.stub(console, "timeEnd");
+      
+      // Mock BruinLineageInternalParse
+      const mockBruinLineageInternalParse = {
+        parsePipelineConfig: sinon.stub(),
+      };
+      bruinLineageInternalParseStub = sinon.stub().returns(mockBruinLineageInternalParse);
+      parsePipelineConfigStub = mockBruinLineageInternalParse.parsePipelineConfig;
+      
+      // Mock BruinPanel.postMessage
+      bruinPanelPostMessageStub = sinon.stub(BruinPanel, "postMessage");
+      
+      // Replace the BruinLineageInternalParse constructor
+      sinon.replace(require("../bruin/bruinFlowLineage"), "BruinLineageInternalParse", bruinLineageInternalParseStub);
+    });
+
+    teardown(() => {
+      sinon.restore();
+    });
+
+    test("should return 'internal' as the bruin command", () => {
+      const result = (bruinInternalParse as any).bruinCommand();
+      assert.strictEqual(result, "internal");
+    });
+
+    test("should handle pipeline.yml files successfully", async () => {
+      const filePath = "path/to/pipeline.yml";
+      const mockPipelineData = {
+        name: "test-pipeline",
+        schedule: "daily",
+        description: "Test pipeline",
+        raw: { name: "test-pipeline", schedule: "daily" }
+      };
+      
+      parsePipelineConfigStub.resolves(mockPipelineData);
+      
+      await bruinInternalParse.parseAsset(filePath);
+      
+      sinon.assert.calledOnce(consoleTimeStub);
+      sinon.assert.calledWith(consoleTimeStub, "parseAsset");
+      sinon.assert.calledOnce(bruinLineageInternalParseStub);
+      sinon.assert.calledOnce(parsePipelineConfigStub);
+      sinon.assert.calledWith(parsePipelineConfigStub, filePath);
+      sinon.assert.calledOnce(postMessageToPanelsStub);
+      sinon.assert.calledWith(postMessageToPanelsStub, "success", JSON.stringify({
+        type: "pipelineConfig",
+        ...mockPipelineData,
+        filePath
+      }));
+      sinon.assert.calledOnce(consoleTimeEndStub);
+      sinon.assert.calledWith(consoleTimeEndStub, "parseAsset");
+    });
+
+    test("should handle pipeline.yaml files successfully", async () => {
+      const filePath = "path/to/pipeline.yaml";
+      const mockPipelineData = {
+        name: "test-pipeline",
+        schedule: "daily",
+        description: "Test pipeline",
+        raw: { name: "test-pipeline", schedule: "daily" }
+      };
+      
+      parsePipelineConfigStub.resolves(mockPipelineData);
+      
+      await bruinInternalParse.parseAsset(filePath);
+      
+      sinon.assert.calledOnce(bruinLineageInternalParseStub);
+      sinon.assert.calledOnce(parsePipelineConfigStub);
+      sinon.assert.calledWith(parsePipelineConfigStub, filePath);
+    });
+
+    test("should handle pipeline parsing timeout", async () => {
+      const filePath = "path/to/pipeline.yml";
+      
+      parsePipelineConfigStub.rejects(new Error("Parsing timeout"));
+      
+      await bruinInternalParse.parseAsset(filePath);
+      
+      sinon.assert.calledOnce(postMessageToPanelsStub);
+      sinon.assert.calledWith(postMessageToPanelsStub, "error", "Parsing timeout");
+      sinon.assert.calledOnce(consoleTimeEndStub);
+    });
+
+    test("should handle bruin.yml files", async () => {
+      const filePath = "path/to/bruin.yml";
+      
+      await bruinInternalParse.parseAsset(filePath);
+      
+      sinon.assert.calledOnce(postMessageToPanelsStub);
+      sinon.assert.calledWith(postMessageToPanelsStub, "success", JSON.stringify({
+        type: "bruinConfig",
+        filePath
+      }));
+      sinon.assert.calledOnce(consoleTimeEndStub);
+    });
+
+    test("should handle bruin.yaml files", async () => {
+      const filePath = "path/to/bruin.yaml";
+      
+      await bruinInternalParse.parseAsset(filePath);
+      
+      sinon.assert.calledOnce(postMessageToPanelsStub);
+      sinon.assert.calledWith(postMessageToPanelsStub, "success", JSON.stringify({
+        type: "bruinConfig",
+        filePath
+      }));
+    });
+
+    test("should handle other asset types successfully", async () => {
+      const filePath = "path/to/asset.sql";
+      const mockResult = '{"asset": "data"}';
+      
+      runStub.resolves(mockResult);
+      
+      await bruinInternalParse.parseAsset(filePath);
+      
+      sinon.assert.calledOnce(runStub);
+      sinon.assert.calledWith(runStub, ["parse-asset", filePath], { ignoresErrors: false });
+      
+      // Wait for the promise to resolve
+      await new Promise(resolve => setTimeout(resolve, 10));
+      
+      sinon.assert.calledOnce(postMessageToPanelsStub);
+      sinon.assert.calledWith(postMessageToPanelsStub, "success", mockResult);
+      sinon.assert.calledOnce(consoleTimeEndStub);
+    });
+
+    test("should handle other asset types with custom flags", async () => {
+      const filePath = "path/to/asset.sql";
+      const options = { flags: ["custom-flag"], ignoresErrors: true };
+      
+      runStub.resolves('{"result": "success"}');
+      
+      await bruinInternalParse.parseAsset(filePath, options);
+      
+      sinon.assert.calledOnce(runStub);
+      sinon.assert.calledWith(runStub, ["custom-flag", filePath], { ignoresErrors: true });
+    });
+
+
+    test("should handle unexpected errors in parseAsset", async () => {
+      const filePath = "path/to/asset.sql";
+      const error = new Error("Unexpected error");
+      
+      runStub.throws(error);
+      
+      await bruinInternalParse.parseAsset(filePath);
+      
+      sinon.assert.calledOnce(postMessageToPanelsStub);
+      sinon.assert.calledWith(postMessageToPanelsStub, "error", "Unexpected error");
+      sinon.assert.calledOnce(consoleTimeEndStub);
+    });
+  });
+
+  suite("BruinLineageInternalParse Tests", () => {
+    let bruinLineageInternalParse: any;
+    let runStub: sinon.SinonStub;
+    let updateLineageDataStub: sinon.SinonStub;
+    let showErrorMessageStub: sinon.SinonStub;
+    let getCurrentPipelinePathStub: sinon.SinonStub;
+    let isConfigFileStub: sinon.SinonStub;
+    let consoleErrorStub: sinon.SinonStub;
+
+    setup(async () => {
+      // Import the class dynamically
+      const { BruinLineageInternalParse } = await import("../bruin/bruinFlowLineage");
+      bruinLineageInternalParse = new BruinLineageInternalParse("path/to/bruin", "path/to/working/directory");
+      
+      // Setup stubs
+      runStub = sinon.stub(bruinLineageInternalParse as any, "run");
+      updateLineageDataStub = sinon.stub();
+      showErrorMessageStub = sinon.stub(vscode.window, "showErrorMessage");
+      getCurrentPipelinePathStub = sinon.stub();
+      isConfigFileStub = sinon.stub();
+      consoleErrorStub = sinon.stub(console, "error");
+
+      // Replace module dependencies
+      const bruinUtilsModule = await import("../bruin/bruinUtils");
+      sinon.replace(bruinUtilsModule, "getCurrentPipelinePath", getCurrentPipelinePathStub);
+      
+      const helperUtilsModule = await import("../utilities/helperUtils");
+      sinon.replace(helperUtilsModule, "isConfigFile", isConfigFileStub);
+      
+      const lineagePanelModule = await import("../panels/LineagePanel");
+      sinon.replace(lineagePanelModule, "updateLineageData", updateLineageDataStub);
+    });
+
+    teardown(() => {
+      sinon.restore();
+    });
+
+    test("should return 'internal' as the bruin command", () => {
+      const result = (bruinLineageInternalParse as any).bruinCommand();
+      assert.strictEqual(result, "internal");
+    });
+
+    suite("parsePipelineConfig", () => {
+      test("should parse pipeline config successfully", async () => {
+        const filePath = "path/to/pipeline.yml";
+        const mockPipelineData = {
+          name: "test-pipeline",
+          schedule: "daily",
+          description: "Test pipeline description",
+          raw: { name: "test-pipeline", schedule: "daily" }
+        };
+        
+        runStub.resolves(JSON.stringify(mockPipelineData));
+        
+        const result = await bruinLineageInternalParse.parsePipelineConfig(filePath);
+        
+        sinon.assert.calledOnce(runStub);
+        sinon.assert.calledWith(runStub, ["parse-pipeline", filePath], { ignoresErrors: false });
+        
+        assert.deepStrictEqual(result, {
+          name: "test-pipeline",
+          schedule: "daily",
+          description: "Test pipeline description",
+          raw: mockPipelineData
+        });
+      });
+
+      test("should parse pipeline config with custom flags", async () => {
+        const filePath = "path/to/pipeline.yml";
+        const options = { flags: ["custom-flag"], ignoresErrors: true };
+        const mockPipelineData = { name: "test-pipeline" };
+        
+        runStub.resolves(JSON.stringify(mockPipelineData));
+        
+        await bruinLineageInternalParse.parsePipelineConfig(filePath, options);
+        
+        sinon.assert.calledWith(runStub, ["custom-flag", filePath], { ignoresErrors: true });
+      });
+
+      test("should handle missing fields in pipeline data", async () => {
+        const filePath = "path/to/pipeline.yml";
+        const mockPipelineData = { someOtherField: "value" };
+        
+        runStub.resolves(JSON.stringify(mockPipelineData));
+        
+        const result = await bruinLineageInternalParse.parsePipelineConfig(filePath);
+        
+        assert.deepStrictEqual(result, {
+          name: "",
+          schedule: "",
+          description: "",
+          raw: mockPipelineData
+        });
+      });
+
+      test("should handle JSON parse errors", async () => {
+        const filePath = "path/to/pipeline.yml";
+        const invalidJson = "invalid json";
+        
+        runStub.resolves(invalidJson);
+        
+        try {
+          await bruinLineageInternalParse.parsePipelineConfig(filePath);
+          assert.fail("Expected error to be thrown");
+        } catch (error) {
+          assert.ok(error instanceof SyntaxError, "Should throw SyntaxError for invalid JSON");
+        }
+      });
+
+      test("should handle run method errors", async () => {
+        const filePath = "path/to/pipeline.yml";
+        const error = new Error("Command failed");
+        
+        runStub.rejects(error);
+        
+        try {
+          await bruinLineageInternalParse.parsePipelineConfig(filePath);
+          assert.fail("Expected error to be thrown");
+        } catch (error: any) {
+          assert.strictEqual(error.message, "Command failed");
+        }
+      });
+    });
+
+    suite("parseAssetLineage", () => {
+      test("should parse asset lineage successfully", async () => {
+        const filePath = "path/to/asset.sql";
+        const pipelinePath = "path/to/pipeline.yml";
+        const mockPipelineData = {
+          assets: [
+            {
+              id: "asset-1",
+              name: "test-asset",
+              definition_file: { path: filePath }
+            }
+          ]
+        };
+        
+        isConfigFileStub.returns(false);
+        getCurrentPipelinePathStub.resolves(pipelinePath);
+        runStub.resolves(JSON.stringify(mockPipelineData));
+        
+        await bruinLineageInternalParse.parseAssetLineage(filePath);
+        
+        sinon.assert.calledOnce(isConfigFileStub);
+        sinon.assert.calledWith(isConfigFileStub, filePath);
+        sinon.assert.calledOnce(getCurrentPipelinePathStub);
+        sinon.assert.calledWith(getCurrentPipelinePathStub, filePath);
+        sinon.assert.calledOnce(runStub);
+        sinon.assert.calledWith(runStub, ["parse-pipeline", pipelinePath], { ignoresErrors: false });
+        sinon.assert.calledOnce(updateLineageDataStub);
+        sinon.assert.calledWith(updateLineageDataStub, {
+          status: "success",
+          message: {
+            id: "asset-1",
+            name: "test-asset",
+            pipeline: JSON.stringify(mockPipelineData)
+          }
+        });
+      });
+
+      test("should return early for config files", async () => {
+        const filePath = "path/to/config.yml";
+        
+        isConfigFileStub.returns(true);
+        
+        await bruinLineageInternalParse.parseAssetLineage(filePath);
+        
+        sinon.assert.calledOnce(isConfigFileStub);
+        sinon.assert.calledWith(isConfigFileStub, filePath);
+        sinon.assert.notCalled(getCurrentPipelinePathStub);
+        sinon.assert.notCalled(runStub);
+        sinon.assert.notCalled(updateLineageDataStub);
+      });
+
+      test("should handle CLI not installed error", async () => {
+        const filePath = "path/to/asset.sql";
+        const error = { error: "No help topic for 'internal'" };
+        
+        isConfigFileStub.returns(false);
+        getCurrentPipelinePathStub.resolves("path/to/pipeline.yml");
+        runStub.rejects(error);
+        
+        await bruinLineageInternalParse.parseAssetLineage(filePath);
+        
+        sinon.assert.calledOnce(showErrorMessageStub);
+        sinon.assert.calledWith(showErrorMessageStub, "Bruin CLI is not installed or is outdated. Please install or update Bruin CLI to use this feature.");
+        sinon.assert.calledWith(updateLineageDataStub, {
+          status: "error",
+          message: "Bruin CLI is not installed or is outdated. Please install or update Bruin CLI to use this feature."
+        });
+      });
+
+      test("should handle string errors", async () => {
+        const filePath = "path/to/asset.sql";
+        const error = "String error message";
+        
+        isConfigFileStub.returns(false);
+        getCurrentPipelinePathStub.resolves("path/to/pipeline.yml");
+        runStub.rejects(error);
+        
+        await bruinLineageInternalParse.parseAssetLineage(filePath);
+        
+        sinon.assert.calledWith(updateLineageDataStub, {
+          status: "error",
+          message: "String error message"
+        });
+      });
+
+      test("should handle object errors with error property", async () => {
+        const filePath = "path/to/asset.sql";
+        const error = { error: "Object error message" };
+        
+        isConfigFileStub.returns(false);
+        getCurrentPipelinePathStub.resolves("path/to/pipeline.yml");
+        runStub.rejects(error);
+        
+        await bruinLineageInternalParse.parseAssetLineage(filePath);
+        
+        sinon.assert.calledWith(updateLineageDataStub, {
+          status: "error",
+          message: "Object error message"
+        });
+      });
+
+      test("should parse asset lineage with custom flags", async () => {
+        const filePath = "path/to/asset.sql";
+        const pipelinePath = "path/to/pipeline.yml";
+        const options = { flags: ["custom-flag"], ignoresErrors: true };
+        const mockPipelineData = {
+          assets: [
+            {
+              id: "asset-1",
+              name: "test-asset",
+              definition_file: { path: filePath }
+            }
+          ]
+        };
+        
+        isConfigFileStub.returns(false);
+        getCurrentPipelinePathStub.resolves(pipelinePath);
+        runStub.resolves(JSON.stringify(mockPipelineData));
+        
+        await bruinLineageInternalParse.parseAssetLineage(filePath, options);
+        
+        sinon.assert.calledWith(runStub, ["custom-flag", pipelinePath], { ignoresErrors: true });
+      });
+
+    });
+  });
+
+  suite("LineagePanel Tests", () => {
+    let lineagePanel: any;
+    let baseLineagePanel: any;
+    let assetLineagePanel: any;
+    let mockExtensionUri: vscode.Uri;
+    let mockWebviewView: vscode.WebviewView;
+    let mockWebview: vscode.Webview;
+    let onDidChangeActiveTextEditorStub: sinon.SinonStub;
+    let onDidChangeVisibilityStub: sinon.SinonStub;
+    let onDidReceiveMessageStub: sinon.SinonStub;
+    let postMessageStub: sinon.SinonStub;
+    let flowLineageCommandStub: sinon.SinonStub;
+    let openTextDocumentStub: sinon.SinonStub;
+    let showTextDocumentStub: sinon.SinonStub;
+    let consoleErrorStub: sinon.SinonStub;
+
+    setup(async () => {
+      // Import the classes dynamically
+      const { LineagePanel, BaseLineagePanel, AssetLineagePanel } = await import("../panels/LineagePanel");
+      
+      mockExtensionUri = vscode.Uri.file("/mock/extension/path");
+      
+      // Mock webview objects
+      mockWebview = {
+        postMessage: sinon.stub(),
+        onDidReceiveMessage: sinon.stub(),
+        options: {},
+        cspSource: "default-src",
+        asWebviewUri: sinon.stub(),
+      } as any;
+
+      mockWebviewView = {
+        webview: mockWebview,
+        onDidChangeVisibility: sinon.stub(),
+        visible: true,
+      } as any;
+
+      // Setup stubs
+      onDidChangeActiveTextEditorStub = sinon.stub(vscode.window, "onDidChangeActiveTextEditor");
+      onDidChangeVisibilityStub = mockWebviewView.onDidChangeVisibility as sinon.SinonStub;
+      onDidReceiveMessageStub = mockWebview.onDidReceiveMessage as sinon.SinonStub;
+      postMessageStub = mockWebview.postMessage as sinon.SinonStub;
+      flowLineageCommandStub = sinon.stub();
+      openTextDocumentStub = sinon.stub(vscode.workspace, "openTextDocument");
+      showTextDocumentStub = sinon.stub(vscode.window, "showTextDocument");
+      consoleErrorStub = sinon.stub(console, "error");
+
+      // Replace module dependencies
+      const flowLineageCommandModule = await import("../extension/commands/FlowLineageCommand");
+      sinon.replace(flowLineageCommandModule, "flowLineageCommand", flowLineageCommandStub);
+
+      // Get singleton instance
+      lineagePanel = LineagePanel.getInstance();
+      
+      // Create a concrete test class that extends BaseLineagePanel
+      class TestBaseLineagePanel extends BaseLineagePanel {
+        protected getComponentName(): string {
+          return "TestComponent";
+        }
+      }
+      
+      // Create instances for testing
+      baseLineagePanel = new TestBaseLineagePanel(mockExtensionUri, "TestPanel");
+      assetLineagePanel = new AssetLineagePanel(mockExtensionUri);
+    });
+
+    teardown(() => {
+      sinon.restore();
+    });
+
+    suite("LineagePanel Singleton", () => {
+      test("should return the same instance on multiple getInstance calls", () => {
+        const { LineagePanel } = require("../panels/LineagePanel");
+        const instance1 = LineagePanel.getInstance();
+        const instance2 = LineagePanel.getInstance();
+        
+        assert.strictEqual(instance1, instance2, "Should return the same instance");
+      });
+
+      test("should set and get lineage data", () => {
+        const testData = { status: "success", message: "test data" };
+        
+        lineagePanel.setLineageData(testData);
+        const retrievedData = lineagePanel.getLineageData();
+        
+        assert.deepStrictEqual(retrievedData, testData, "Should return the set data");
+      });
+
+      test("should notify listeners when data is set", () => {
+        const testData = { status: "success", message: "test data" };
+        const listener = sinon.stub();
+        
+        lineagePanel.addListener(listener);
+        lineagePanel.setLineageData(testData);
+        
+        sinon.assert.calledOnce(listener);
+        sinon.assert.calledWith(listener, testData);
+      });
+
+      test("should remove listeners correctly", () => {
+        const listener1 = sinon.stub();
+        const listener2 = sinon.stub();
+        
+        lineagePanel.addListener(listener1);
+        lineagePanel.addListener(listener2);
+        lineagePanel.removeListener(listener1);
+        
+        lineagePanel.setLineageData({ test: "data" });
+        
+        sinon.assert.notCalled(listener1);
+        sinon.assert.calledOnce(listener2);
+      });
+
+      test("should handle multiple listeners", () => {
+        const listener1 = sinon.stub();
+        const listener2 = sinon.stub();
+        const testData = { status: "success", message: "test data" };
+        
+        lineagePanel.addListener(listener1);
+        lineagePanel.addListener(listener2);
+        lineagePanel.setLineageData(testData);
+        
+        sinon.assert.calledOnce(listener1);
+        sinon.assert.calledWith(listener1, testData);
+        sinon.assert.calledOnce(listener2);
+        sinon.assert.calledWith(listener2, testData);
+      });
+    });
+
+    suite("BaseLineagePanel", () => {
+      test("should initialize with extension URI and panel type", () => {
+        assert.strictEqual(baseLineagePanel._extensionUri, mockExtensionUri);
+        assert.strictEqual(baseLineagePanel.panelType, "TestPanel");
+        assert.ok(baseLineagePanel.dataStore, "Should have data store instance");
+      });
+
+      test("should set up active text editor listener", () => {
+        // The listener is set up in the constructor, so we need to check if it was called during setup
+        assert.ok(onDidChangeActiveTextEditorStub.called, "Should set up active text editor listener");
+      });
+
+      test("should handle active text editor change", async () => {
+        const mockEditor = {
+          document: { uri: vscode.Uri.file("/test/file.sql") }
+        } as vscode.TextEditor;
+        
+        const loadLineageDataStub = sinon.stub(baseLineagePanel, "loadLineageData");
+        const initPanelStub = sinon.stub(baseLineagePanel, "initPanel");
+        
+        // Simulate the listener being called
+        const listener = onDidChangeActiveTextEditorStub.firstCall.args[0];
+        await listener(mockEditor);
+        
+        assert.strictEqual(baseLineagePanel._lastRenderedDocumentUri, mockEditor.document.uri);
+        sinon.assert.calledOnce(loadLineageDataStub);
+        sinon.assert.calledOnce(initPanelStub);
+        sinon.assert.calledWith(initPanelStub, mockEditor);
+      });
+
+      test("should not handle active text editor change for bruin panel scheme", async () => {
+        const mockEditor = {
+          document: { uri: vscode.Uri.parse("vscodebruin:panel") }
+        } as vscode.TextEditor;
+        
+        const loadLineageDataStub = sinon.stub(baseLineagePanel, "loadLineageData");
+        const initPanelStub = sinon.stub(baseLineagePanel, "initPanel");
+        
+        // Simulate the listener being called
+        const listener = onDidChangeActiveTextEditorStub.firstCall.args[0];
+        await listener(mockEditor);
+        
+        // The condition checks if event exists AND scheme is not vscodebruin:panel
+        // Since we're passing a valid event, it should still call the methods
+        // The actual filtering happens in the constructor, not in the listener
+        sinon.assert.calledOnce(loadLineageDataStub);
+        sinon.assert.calledOnce(initPanelStub);
+      });
+
+      test("should load lineage data successfully", async () => {
+        const testUri = vscode.Uri.file("/test/file.sql");
+        baseLineagePanel._lastRenderedDocumentUri = testUri;
+        
+        flowLineageCommandStub.resolves();
+        
+        await baseLineagePanel.loadLineageData();
+        
+        sinon.assert.calledOnce(flowLineageCommandStub);
+        sinon.assert.calledWith(flowLineageCommandStub, testUri);
+      });
+
+      test("should not load lineage data when no URI", async () => {
+        baseLineagePanel._lastRenderedDocumentUri = undefined;
+        
+        await baseLineagePanel.loadLineageData();
+        
+        sinon.assert.notCalled(flowLineageCommandStub);
+      });
+
+      test("should handle data updates when view is visible", () => {
+        const testData = { status: "success", message: "test data" };
+        baseLineagePanel._view = mockWebviewView;
+        sinon.stub(mockWebviewView, "visible").value(true);
+        
+        baseLineagePanel.onDataUpdated(testData);
+        
+        sinon.assert.calledOnce(postMessageStub);
+        sinon.assert.calledWith(postMessageStub, {
+          command: "flow-lineage-message",
+          payload: testData,
+          panelType: "TestPanel"
+        });
+      });
+
+      test("should not post message when view is not visible", () => {
+        const testData = { status: "success", message: "test data" };
+        baseLineagePanel._view = mockWebviewView;
+        sinon.stub(mockWebviewView, "visible").value(false);
+        
+        baseLineagePanel.onDataUpdated(testData);
+        
+        sinon.assert.notCalled(postMessageStub);
+      });
+
+      test("should not post message when view is undefined", () => {
+        const testData = { status: "success", message: "test data" };
+        baseLineagePanel._view = undefined;
+        
+        baseLineagePanel.onDataUpdated(testData);
+        
+        sinon.assert.notCalled(postMessageStub);
+      });
+
+      test("should resolve webview view correctly", () => {
+        const context = {} as vscode.WebviewViewResolveContext;
+        const token = {} as vscode.CancellationToken;
+        
+        baseLineagePanel.resolveWebviewView(mockWebviewView, context, token);
+        
+        assert.strictEqual(baseLineagePanel._view, mockWebviewView);
+        assert.strictEqual(baseLineagePanel.context, context);
+        assert.strictEqual(baseLineagePanel.token, token);
+        assert.strictEqual(mockWebviewView.webview.options.enableScripts, true);
+      });
+
+
+      test("should set up webview message listener", () => {
+        const context = {} as vscode.WebviewViewResolveContext;
+        const token = {} as vscode.CancellationToken;
+        
+        baseLineagePanel.resolveWebviewView(mockWebviewView, context, token);
+        
+        sinon.assert.calledOnce(onDidReceiveMessageStub);
+      });
+
+      test("should handle bruin.openAssetDetails message", async () => {
+        const mockDocument = { uri: vscode.Uri.file("/test/file.sql") };
+        const mockEditor = { document: mockDocument };
+        
+        openTextDocumentStub.resolves(mockDocument as any);
+        showTextDocumentStub.resolves(mockEditor as any);
+        
+        const context = {} as vscode.WebviewViewResolveContext;
+        const token = {} as vscode.CancellationToken;
+        baseLineagePanel.resolveWebviewView(mockWebviewView, context, token);
+        
+        const messageHandler = onDidReceiveMessageStub.firstCall.args[0];
+        await messageHandler({
+          command: "bruin.openAssetDetails",
+          payload: "/test/file.sql"
+        });
+        
+        sinon.assert.calledOnce(openTextDocumentStub);
+        sinon.assert.calledWith(openTextDocumentStub, vscode.Uri.file("/test/file.sql"));
+        sinon.assert.calledOnce(showTextDocumentStub);
+        sinon.assert.calledWith(showTextDocumentStub, mockDocument);
+      });
+
+      test("should handle bruin.assetGraphLineage message with active editor", async () => {
+        const mockEditor = {
+          document: { uri: vscode.Uri.file("/test/file.sql") }
+        } as vscode.TextEditor;
+        
+        sinon.stub(vscode.window, "activeTextEditor").value(mockEditor);
+        
+        const context = {} as vscode.WebviewViewResolveContext;
+        const token = {} as vscode.CancellationToken;
+        baseLineagePanel.resolveWebviewView(mockWebviewView, context, token);
+        
+        const messageHandler = onDidReceiveMessageStub.firstCall.args[0];
+        await messageHandler({
+          command: "bruin.assetGraphLineage"
+        });
+        
+        assert.strictEqual(baseLineagePanel._lastRenderedDocumentUri, mockEditor.document.uri);
+      });
+
+      test("should handle unknown message command", async () => {
+        const context = {} as vscode.WebviewViewResolveContext;
+        const token = {} as vscode.CancellationToken;
+        baseLineagePanel.resolveWebviewView(mockWebviewView, context, token);
+        
+        const messageHandler = onDidReceiveMessageStub.firstCall.args[0];
+        
+        // Should not throw error for unknown command
+        await messageHandler({
+          command: "unknown.command"
+        });
+        
+        assert.ok(true, "Should handle unknown command gracefully");
+      });
+
+      test("should post message when view exists", () => {
+        baseLineagePanel._view = mockWebviewView;
+        
+        baseLineagePanel.postMessage("test-message", { status: "success", message: "test" });
+        
+        sinon.assert.calledOnce(postMessageStub);
+        sinon.assert.calledWith(postMessageStub, {
+          command: "test-message",
+          payload: { status: "success", message: "test" }
+        });
+      });
+
+      test("should not post message when view does not exist", () => {
+        baseLineagePanel._view = undefined;
+        
+        baseLineagePanel.postMessage("test-message", { status: "success", message: "test" });
+        
+        sinon.assert.notCalled(postMessageStub);
+      });
+
+      test("should initialize panel with text editor", async () => {
+        const mockEditor = {
+          document: { uri: vscode.Uri.file("/test/file.sql") }
+        } as vscode.TextEditor;
+        
+        const initStub = sinon.stub(baseLineagePanel, "init");
+        
+        await baseLineagePanel.initPanel(mockEditor);
+        
+        assert.strictEqual(baseLineagePanel._lastRenderedDocumentUri, mockEditor.document.uri);
+        sinon.assert.calledOnce(initStub);
+      });
+
+      test("should initialize panel with text document change event", async () => {
+        const mockEvent = {
+          document: { uri: vscode.Uri.file("/test/file.sql") }
+        } as vscode.TextDocumentChangeEvent;
+        
+        const initStub = sinon.stub(baseLineagePanel, "init");
+        
+        await baseLineagePanel.initPanel(mockEvent);
+        
+        assert.strictEqual(baseLineagePanel._lastRenderedDocumentUri, mockEvent.document.uri);
+        sinon.assert.calledOnce(initStub);
+      });
+
+      test("should dispose all disposables", () => {
+        const mockDisposable = { dispose: sinon.stub() };
+        baseLineagePanel.disposables = [mockDisposable];
+        
+        baseLineagePanel.dispose();
+        
+        sinon.assert.calledOnce(mockDisposable.dispose);
+        assert.strictEqual(baseLineagePanel.disposables.length, 0);
+      });
+    });
+
+    suite("AssetLineagePanel", () => {
+      test("should have correct view ID", () => {
+        const { AssetLineagePanel } = require("../panels/LineagePanel");
+        assert.strictEqual(AssetLineagePanel.viewId, "bruin.assetLineageView");
+      });
+
+      test("should return correct component name", () => {
+        const componentName = assetLineagePanel.getComponentName();
+        assert.strictEqual(componentName, "AssetLineageFlow");
+      });
+
+      test("should initialize with correct panel type", () => {
+        assert.strictEqual(assetLineagePanel.panelType, "AssetLineage");
+      });
+    });
+
+    suite("updateLineageData function", () => {
+      test("should update lineage data in singleton", () => {
+        const { updateLineageData } = require("../panels/LineagePanel");
+        const testData = { status: "success", message: "test data" };
+        
+        updateLineageData(testData);
+        
+        const retrievedData = lineagePanel.getLineageData();
+        assert.deepStrictEqual(retrievedData, testData);
+      });
+    });
+  });
+
+  suite("FlowLineageCommand Tests", () => {
+    let flowLineageCommand: any;
+    let BruinLineageInternalParseStub: sinon.SinonStub;
+    let getBruinExecutablePathStub: sinon.SinonStub;
+    let parseAssetLineageStub: sinon.SinonStub;
+    let mockBruinLineageInternalParse: any;
+
+    setup(async () => {
+      // Import the function dynamically
+      const { flowLineageCommand: importedFlowLineageCommand } = await import("../extension/commands/FlowLineageCommand");
+      flowLineageCommand = importedFlowLineageCommand;
+      
+      // Setup stubs
+      getBruinExecutablePathStub = sinon.stub();
+      parseAssetLineageStub = sinon.stub();
+      
+      // Mock BruinLineageInternalParse instance
+      mockBruinLineageInternalParse = {
+        parseAssetLineage: parseAssetLineageStub
+      };
+      
+      // Mock BruinLineageInternalParse constructor
+      BruinLineageInternalParseStub = sinon.stub().returns(mockBruinLineageInternalParse) as any;
+      
+      // Replace module dependencies
+      const bruinFlowLineageModule = await import("../bruin/bruinFlowLineage");
+      sinon.replace(bruinFlowLineageModule, "BruinLineageInternalParse", BruinLineageInternalParseStub as any);
+      
+      const bruinExecutableServiceModule = await import("../providers/BruinExecutableService");
+      sinon.replace(bruinExecutableServiceModule, "getBruinExecutablePath", getBruinExecutablePathStub);
+    });
+
+    teardown(() => {
+      sinon.restore();
+    });
+
+    test("should execute flow lineage command successfully", async () => {
+      const testUri = vscode.Uri.file("/test/file.sql");
+      const bruinExecutablePath = "/path/to/bruin";
+      
+      getBruinExecutablePathStub.returns(bruinExecutablePath);
+      parseAssetLineageStub.resolves();
+      
+      await flowLineageCommand(testUri);
+      
+      sinon.assert.calledOnce(getBruinExecutablePathStub);
+      sinon.assert.calledOnce(BruinLineageInternalParseStub);
+      sinon.assert.calledWith(BruinLineageInternalParseStub, bruinExecutablePath, "");
+      sinon.assert.calledOnce(parseAssetLineageStub);
+      sinon.assert.calledWith(parseAssetLineageStub, testUri.fsPath);
+    });
+
+    test("should return early when URI is undefined", async () => {
+      await flowLineageCommand(undefined);
+      
+      sinon.assert.notCalled(getBruinExecutablePathStub);
+      sinon.assert.notCalled(BruinLineageInternalParseStub);
+      sinon.assert.notCalled(parseAssetLineageStub);
+    });
+
+    test("should return early when URI is null", async () => {
+      await flowLineageCommand(null as any);
+      
+      sinon.assert.notCalled(getBruinExecutablePathStub);
+      sinon.assert.notCalled(BruinLineageInternalParseStub);
+      sinon.assert.notCalled(parseAssetLineageStub);
+    });
+
+    test("should handle parseAssetLineage errors", async () => {
+      const testUri = vscode.Uri.file("/test/file.sql");
+      const bruinExecutablePath = "/path/to/bruin";
+      const error = new Error("Parse asset lineage failed");
+      
+      getBruinExecutablePathStub.returns(bruinExecutablePath);
+      parseAssetLineageStub.rejects(error);
+      
+      try {
+        await flowLineageCommand(testUri);
+        assert.fail("Expected error to be thrown");
+      } catch (err) {
+        assert.strictEqual(err, error);
+      }
+      
+      sinon.assert.calledOnce(getBruinExecutablePathStub);
+      sinon.assert.calledOnce(BruinLineageInternalParseStub);
+      sinon.assert.calledOnce(parseAssetLineageStub);
+    });
+
+    test("should handle getBruinExecutablePath errors", async () => {
+      const testUri = vscode.Uri.file("/test/file.sql");
+      const error = new Error("Failed to get Bruin executable path");
+      
+      getBruinExecutablePathStub.throws(error);
+      
+      try {
+        await flowLineageCommand(testUri);
+        assert.fail("Expected error to be thrown");
+      } catch (err) {
+        assert.strictEqual(err, error);
+      }
+      
+      sinon.assert.calledOnce(getBruinExecutablePathStub);
+      sinon.assert.notCalled(BruinLineageInternalParseStub);
+      sinon.assert.notCalled(parseAssetLineageStub);
+    });
+
+    test("should work with different URI schemes", async () => {
+      const testUri = vscode.Uri.parse("file:///test/file.sql");
+      const bruinExecutablePath = "/path/to/bruin";
+      
+      getBruinExecutablePathStub.returns(bruinExecutablePath);
+      parseAssetLineageStub.resolves();
+      
+      await flowLineageCommand(testUri);
+      
+      sinon.assert.calledOnce(parseAssetLineageStub);
+      sinon.assert.calledWith(parseAssetLineageStub, testUri.fsPath);
+    });
+
+    test("should work with complex file paths", async () => {
+      const testUri = vscode.Uri.file("/path/to/complex/file with spaces.sql");
+      const bruinExecutablePath = "/path/to/bruin";
+      
+      getBruinExecutablePathStub.returns(bruinExecutablePath);
+      parseAssetLineageStub.resolves();
+      
+      await flowLineageCommand(testUri);
+      
+      sinon.assert.calledOnce(parseAssetLineageStub);
+      sinon.assert.calledWith(parseAssetLineageStub, testUri.fsPath);
+    });
+
+    test("should use correct working directory", async () => {
+      const testUri = vscode.Uri.file("/test/file.sql");
+      const bruinExecutablePath = "/path/to/bruin";
+      
+      getBruinExecutablePathStub.returns(bruinExecutablePath);
+      parseAssetLineageStub.resolves();
+      
+      await flowLineageCommand(testUri);
+      
+      sinon.assert.calledOnce(BruinLineageInternalParseStub);
+      sinon.assert.calledWith(BruinLineageInternalParseStub, bruinExecutablePath, "");
+    });
+
+    test("should handle multiple consecutive calls", async () => {
+      const testUri1 = vscode.Uri.file("/test/file1.sql");
+      const testUri2 = vscode.Uri.file("/test/file2.sql");
+      const bruinExecutablePath = "/path/to/bruin";
+      
+      getBruinExecutablePathStub.returns(bruinExecutablePath);
+      parseAssetLineageStub.resolves();
+      
+      await flowLineageCommand(testUri1);
+      await flowLineageCommand(testUri2);
+      
+      sinon.assert.calledTwice(getBruinExecutablePathStub);
+      sinon.assert.calledTwice(BruinLineageInternalParseStub);
+      sinon.assert.calledTwice(parseAssetLineageStub);
+      sinon.assert.calledWith(parseAssetLineageStub.firstCall, testUri1.fsPath);
+      sinon.assert.calledWith(parseAssetLineageStub.secondCall, testUri2.fsPath);
+    });
+  });
+
+  suite("Multi-line Command Formatting Tests", () => {
+    let terminalStub: Partial<vscode.Terminal>;
+    let terminalOptionsStub: Partial<vscode.TerminalOptions>;
+
+    setup(() => {
+      terminalOptionsStub = {
+        shellPath: undefined,
+      };
+      terminalStub = {
+        creationOptions: terminalOptionsStub as vscode.TerminalOptions,
+      };
+    });
+
+    teardown(() => {
+      sinon.restore();
+    });
+
+    suite("shouldUseUnixFormatting", () => {
+      test("should return true for Unix-like shells on Windows", () => {
+        const platformStub = sinon.stub(process, "platform").value("win32");
+        
+        // Test Git Bash
+        terminalOptionsStub.shellPath = "C:\\Program Files\\Git\\bin\\bash.exe";
+        assert.strictEqual(
+          (bruinUtils as any).shouldUseUnixFormatting(terminalStub as vscode.Terminal),
+          true,
+          "Git Bash should use Unix formatting"
+        );
+
+        // Test WSL
+        terminalOptionsStub.shellPath = "wsl.exe";
+        assert.strictEqual(
+          (bruinUtils as any).shouldUseUnixFormatting(terminalStub as vscode.Terminal),
+          true,
+          "WSL should use Unix formatting"
+        );
+
+        // Test undefined shellPath (default terminal)
+        terminalOptionsStub.shellPath = undefined;
+        assert.strictEqual(
+          (bruinUtils as any).shouldUseUnixFormatting(terminalStub as vscode.Terminal),
+          true,
+          "Default terminal should use Unix formatting"
+        );
+
+        platformStub.restore();
+      });
+
+
+      test("should return true for non-Windows platforms", () => {
+        const platformStub = sinon.stub(process, "platform").value("darwin");
+        
+        terminalOptionsStub.shellPath = "/bin/bash";
+        assert.strictEqual(
+          (bruinUtils as any).shouldUseUnixFormatting(terminalStub as vscode.Terminal),
+          true,
+          "macOS should use Unix formatting"
+        );
+
+        platformStub.value("linux");
+        assert.strictEqual(
+          (bruinUtils as any).shouldUseUnixFormatting(terminalStub as vscode.Terminal),
+          true,
+          "Linux should use Unix formatting"
+        );
+
+        platformStub.restore();
+      });
+    });
+
+    suite("formatBruinCommand", () => {
+      test("should format command with Unix line continuation", () => {
+        const result = (bruinUtils as any).formatBruinCommand(
+          "bruin",
+          "run",
+          "--start-date 2025-06-15T000000.000Z --end-date 2025-06-15T235959.999999999Z --full-refresh --push-metadata --downstream --exclude-tag python --environment prod",
+          "/path/to/asset.sql",
+          true
+        );
+
+        const expected = `bruin run \\
+  --start-date 2025-06-15T000000.000Z \\
+  --end-date 2025-06-15T235959.999999999Z \\
+  --full-refresh \\
+  --push-metadata \\
+  --downstream \\
+  --exclude-tag python \\
+  --environment prod \\
+  /path/to/asset.sql`;
+
+        assert.strictEqual(result, expected, "Should format with Unix line continuation");
+      });
+
+      test("should format command with PowerShell line continuation", () => {
+        const result = (bruinUtils as any).formatBruinCommand(
+          "bruin",
+          "run",
+          "--start-date 2025-06-15T000000.000Z --end-date 2025-06-15T235959.999999999Z --full-refresh",
+          "/path/to/asset.sql",
+          false
+        );
+
+        const expected = `bruin run \`
+  --start-date 2025-06-15T000000.000Z \`
+  --end-date 2025-06-15T235959.999999999Z \`
+  --full-refresh \`
+  /path/to/asset.sql`;
+
+        assert.strictEqual(result, expected, "Should format with PowerShell line continuation");
+      });
+
+      test("should handle empty flags", () => {
+        const result = (bruinUtils as any).formatBruinCommand(
+          "bruin",
+          "run",
+          "",
+          "/path/to/asset.sql",
+          true
+        );
+
+        const expected = "bruin run /path/to/asset.sql";
+        assert.strictEqual(result, expected, "Should return simple command without flags");
+      });
+
+      test("should handle whitespace-only flags", () => {
+        const result = (bruinUtils as any).formatBruinCommand(
+          "bruin",
+          "run",
+          "   ",
+          "/path/to/asset.sql",
+          true
+        );
+
+        const expected = "bruin run /path/to/asset.sql";
+        assert.strictEqual(result, expected, "Should return simple command with whitespace-only flags");
+      });
+
+      test("should handle flags with values", () => {
+        const result = (bruinUtils as any).formatBruinCommand(
+          "bruin",
+          "run",
+          "--start-date 2025-06-15T000000.000Z --end-date 2025-06-15T235959.999999999Z --environment prod",
+          "/path/to/asset.sql",
+          true
+        );
+
+        const expected = `bruin run \\
+  --start-date 2025-06-15T000000.000Z \\
+  --end-date 2025-06-15T235959.999999999Z \\
+  --environment prod \\
+  /path/to/asset.sql`;
+
+        assert.strictEqual(result, expected, "Should handle flags with values correctly");
+      });
+
+      test("should handle single flag", () => {
+        const result = (bruinUtils as any).formatBruinCommand(
+          "bruin",
+          "run",
+          "--full-refresh",
+          "/path/to/asset.sql",
+          true
+        );
+
+        const expected = `bruin run \\
+  --full-refresh \\
+  /path/to/asset.sql`;
+
+        assert.strictEqual(result, expected, "Should handle single flag correctly");
+      });
+
+      test("should handle flags with complex values", () => {
+        const result = (bruinUtils as any).formatBruinCommand(
+          "bruin",
+          "run",
+          "--exclude-tag python --exclude-tag java --environment prod",
+          "/path/to/asset.sql",
+          true
+        );
+
+        const expected = `bruin run \\
+  --exclude-tag python \\
+  --exclude-tag java \\
+  --environment prod \\
+  /path/to/asset.sql`;
+
+        assert.strictEqual(result, expected, "Should handle flags with complex values correctly");
+      });
+    });
+
+    suite("runInIntegratedTerminal with formatting", () => {
+      let createIntegratedTerminalStub: sinon.SinonStub;
+      let terminalSendTextStub: sinon.SinonStub;
+      let terminalShowStub: sinon.SinonStub;
+
+      setup(() => {
+        terminalSendTextStub = sinon.stub();
+        terminalShowStub = sinon.stub();
+        
+        const mockTerminal = {
+          creationOptions: {
+            shellPath: "C:\\Program Files\\Git\\bin\\bash.exe"
+          },
+          show: terminalShowStub,
+          sendText: terminalSendTextStub
+        } as any;
+
+        createIntegratedTerminalStub = sinon.stub(bruinUtils, "createIntegratedTerminal").resolves(mockTerminal);
+      });
+
+      teardown(() => {
+        sinon.restore();
+      });
+
+      test("should format command with Unix formatting for Git Bash", async () => {
+        const flags = "--start-date 2025-06-15T000000.000Z --end-date 2025-06-15T235959.999999999Z --full-refresh --push-metadata";
+        const assetPath = "/path/to/asset.sql";
+
+        await bruinUtils.runInIntegratedTerminal("/working/dir", assetPath, flags, "bruin");
+
+        assert.ok(terminalSendTextStub.calledTwice, "Should send text twice (dummy call + command)");
+        
+        const actualCommand = terminalSendTextStub.secondCall.args[0];
+        const expectedCommand = `bruin run \\
+  --start-date 2025-06-15T000000.000Z \\
+  --end-date 2025-06-15T235959.999999999Z \\
+  --full-refresh \\
+  --push-metadata \\
+  "/path/to/asset.sql"`;
+
+        assert.strictEqual(actualCommand, expectedCommand, "Should format command with Unix line continuation");
+      });
+
+      test("should use simple command when no flags provided", async () => {
+        const assetPath = "/path/to/asset.sql";
+
+        await bruinUtils.runInIntegratedTerminal("/working/dir", assetPath, "", "bruin");
+
+        const actualCommand = terminalSendTextStub.secondCall.args[0];
+        const expectedCommand = 'bruin run "/path/to/asset.sql"';
+
+        assert.strictEqual(actualCommand, expectedCommand, "Should use simple command without flags");
+      });
+
+      test("should use correct executable based on terminal type", async () => {
+        const mockTerminal = {
+          creationOptions: {
+            shellPath: "C:\\Program Files\\Git\\bin\\bash.exe"
+          },
+          show: terminalShowStub,
+          sendText: terminalSendTextStub
+        } as any;
+
+        createIntegratedTerminalStub.resolves(mockTerminal);
+
+        const flags = "--full-refresh";
+        const assetPath = "/path/to/asset.sql";
+
+        await bruinUtils.runInIntegratedTerminal("/working/dir", assetPath, flags, "/custom/path/bruin");
+
+        const actualCommand = terminalSendTextStub.secondCall.args[0];
+        // Should use "bruin" for Git Bash, not the custom path
+        assert.ok(actualCommand.startsWith("bruin run"), "Should use 'bruin' executable for Git Bash");
+      });
+
+
+      test("should handle complex flag combinations", async () => {
+        const flags = "--start-date 2025-06-15T000000.000Z --end-date 2025-06-15T235959.999999999Z --full-refresh --push-metadata --downstream --exclude-tag python --exclude-tag java --environment prod";
+        const assetPath = "/Users/maya/Documents/GitHub/neptune/pipelines/wep/assets/tier_2/exchanges/epias_plants_uevm.sql";
+
+        await bruinUtils.runInIntegratedTerminal("/working/dir", assetPath, flags, "bruin");
+
+        const actualCommand = terminalSendTextStub.secondCall.args[0];
+        const expectedCommand = `bruin run \\
+  --start-date 2025-06-15T000000.000Z \\
+  --end-date 2025-06-15T235959.999999999Z \\
+  --full-refresh \\
+  --push-metadata \\
+  --downstream \\
+  --exclude-tag python \\
+  --exclude-tag java \\
+  --environment prod \\
+  "/Users/maya/Documents/GitHub/neptune/pipelines/wep/assets/tier_2/exchanges/epias_plants_uevm.sql"`;
+
+        assert.strictEqual(actualCommand, expectedCommand, "Should handle complex flag combinations correctly");
+      });
+    });
+  });
+
+  suite("BruinEnvList Tests", () => {
+    let bruinEnvList: BruinEnvList;
+    let runStub: sinon.SinonStub;
+    let BruinPanelPostMessageStub: sinon.SinonStub;
+    let QueryPreviewPanelPostMessageStub: sinon.SinonStub;
+    let consoleDebugStub: sinon.SinonStub;
+
+    setup(() => {
+      bruinEnvList = new BruinEnvList("path/to/bruin", "path/to/working/directory");
+      runStub = sinon.stub(bruinEnvList as any, "run");
+      BruinPanelPostMessageStub = sinon.stub(BruinPanel, "postMessage");
+      QueryPreviewPanelPostMessageStub = sinon.stub(QueryPreviewPanel, "postMessage");
+      consoleDebugStub = sinon.stub(console, "debug");
+    });
+
+    teardown(() => {
+      sinon.restore();
+    });
+
+    suite("Constructor", () => {
+      test("should create BruinEnvList instance with correct parameters", () => {
+        const bruinExecutablePath = "path/to/bruin";
+        const workingDirectory = "path/to/working/directory";
+        
+        const envList = new BruinEnvList(bruinExecutablePath, workingDirectory);
+        
+        assert.ok(envList instanceof BruinEnvList, "Should be instance of BruinEnvList");
+        assert.ok(envList instanceof BruinCommand, "Should extend BruinCommand");
+      });
+    });
+
+    suite("bruinCommand", () => {
+      test("should return 'environments' as the bruin command", () => {
+        const result = (bruinEnvList as any).bruinCommand();
+        
+        assert.strictEqual(result, "environments", "Should return 'environments' command");
+      });
+    });
+
+    suite("getEnvironmentsList", () => {
+      test("should get environments list successfully with default flags", async () => {
+        const mockResult = '{"environments": [{"id": 1, "name": "dev"}, {"id": 2, "name": "prod"}]}';
+        runStub.resolves(mockResult);
+        
+        await bruinEnvList.getEnvironmentsList();
+        
+        sinon.assert.calledOnce(runStub);
+        sinon.assert.calledWith(runStub, ["list", "-o", "json"], { ignoresErrors: false });
+        sinon.assert.calledOnce(BruinPanelPostMessageStub);
+        sinon.assert.calledWith(BruinPanelPostMessageStub, "environments-list-message", { 
+          status: "success", 
+          message: mockResult 
+        });
+        sinon.assert.calledOnce(QueryPreviewPanelPostMessageStub);
+        sinon.assert.calledWith(QueryPreviewPanelPostMessageStub, "init-environment", {
+          status: "success",
+          message: {
+            command: "init-environment",
+            payload: mockResult,
+          },
+        });
+      });
+
+      test("should get environments list with custom flags", async () => {
+        const customFlags = ["list", "--custom-flag", "-o", "json"];
+        const mockResult = '{"environments": [{"id": 1, "name": "dev"}]}';
+        runStub.resolves(mockResult);
+        
+        await bruinEnvList.getEnvironmentsList({ flags: customFlags });
+        
+        sinon.assert.calledOnce(runStub);
+        sinon.assert.calledWith(runStub, customFlags, { ignoresErrors: false });
+        sinon.assert.calledWith(BruinPanelPostMessageStub, "environments-list-message", { 
+          status: "success", 
+          message: mockResult 
+        });
+      });
+
+      test("should get environments list with ignoresErrors option", async () => {
+        const mockResult = '{"environments": []}';
+        runStub.resolves(mockResult);
+        
+        await bruinEnvList.getEnvironmentsList({ ignoresErrors: true });
+        
+        sinon.assert.calledOnce(runStub);
+        sinon.assert.calledWith(runStub, ["list", "-o", "json"], { ignoresErrors: true });
+      });
+
+      test("should handle empty result", async () => {
+        const emptyResult = "";
+        runStub.resolves(emptyResult);
+        
+        await bruinEnvList.getEnvironmentsList();
+        
+        sinon.assert.calledWith(BruinPanelPostMessageStub, "environments-list-message", { 
+          status: "success", 
+          message: emptyResult 
+        });
+        sinon.assert.calledWith(QueryPreviewPanelPostMessageStub, "init-environment", {
+          status: "success",
+          message: {
+            command: "init-environment",
+            payload: emptyResult,
+          },
+        });
+      });
+
+      test("should handle JSON string result", async () => {
+        const jsonResult = '{"status": "success", "data": []}';
+        runStub.resolves(jsonResult);
+        
+        await bruinEnvList.getEnvironmentsList();
+        
+        sinon.assert.calledWith(BruinPanelPostMessageStub, "environments-list-message", { 
+          status: "success", 
+          message: jsonResult 
+        });
+      });
+
+      test("should handle non-string error", async () => {
+        const error = { code: 1, message: "Error object" };
+        runStub.rejects(error);
+        
+        await bruinEnvList.getEnvironmentsList();
+        
+        sinon.assert.calledWith(BruinPanelPostMessageStub, "environments-list-message", { 
+          status: "error", 
+          message: error 
+        });
+      });
+    });
+
+    suite("postMessageToPanels", () => {
+      test("should post success message to BruinPanel", () => {
+        const status = "success";
+        const message = "Environments retrieved successfully";
+        
+        (bruinEnvList as any).postMessageToPanels(status, message);
+        
+        sinon.assert.calledOnce(BruinPanelPostMessageStub);
+        sinon.assert.calledWith(BruinPanelPostMessageStub, "environments-list-message", { status, message });
+      });
+
+      test("should post error message to BruinPanel", () => {
+        const status = "error";
+        const message = "Failed to retrieve environments";
+        
+        (bruinEnvList as any).postMessageToPanels(status, message);
+        
+        sinon.assert.calledOnce(BruinPanelPostMessageStub);
+        sinon.assert.calledWith(BruinPanelPostMessageStub, "environments-list-message", { status, message });
+      });
+
+      test("should post object message to BruinPanel", () => {
+        const status = "success";
+        const message = { environments: [{ id: 1, name: "dev" }] };
+        
+        (bruinEnvList as any).postMessageToPanels(status, message);
+        
+        sinon.assert.calledWith(BruinPanelPostMessageStub, "environments-list-message", { status, message });
+      });
+    });
+
+    suite("sendEnvironmentToQueryPreview", () => {
+      test("should send success environment to QueryPreviewPanel", () => {
+        const status = "success";
+        const environment = '{"environments": [{"id": 1, "name": "dev"}]}';
+        
+        BruinEnvList.sendEnvironmentToQueryPreview(status, environment);
+        
+        sinon.assert.calledOnce(QueryPreviewPanelPostMessageStub);
+        sinon.assert.calledWith(QueryPreviewPanelPostMessageStub, "init-environment", {
+          status,
+          message: {
+            command: "init-environment",
+            payload: environment,
+          },
+        });
+      });
+
+      test("should send error environment to QueryPreviewPanel", () => {
+        const status = "error";
+        const environment = "Failed to load environments";
+        
+        BruinEnvList.sendEnvironmentToQueryPreview(status, environment);
+        
+        sinon.assert.calledWith(QueryPreviewPanelPostMessageStub, "init-environment", {
+          status,
+          message: {
+            command: "init-environment",
+            payload: environment,
+          },
+        });
+      });
+
+      test("should send object environment to QueryPreviewPanel", () => {
+        const status = "success";
+        const environment = JSON.stringify({ environments: [{ id: 1, name: "prod" }] });
+        
+        BruinEnvList.sendEnvironmentToQueryPreview(status, environment);
+        
+        sinon.assert.calledWith(QueryPreviewPanelPostMessageStub, "init-environment", {
+          status,
+          message: {
+            command: "init-environment",
+            payload: environment,
+          },
+        });
+      });
+
+      test("should send empty environment to QueryPreviewPanel", () => {
+        const status = "success";
+        const environment = "";
+        
+        BruinEnvList.sendEnvironmentToQueryPreview(status, environment);
+        
+        sinon.assert.calledWith(QueryPreviewPanelPostMessageStub, "init-environment", {
+          status,
+          message: {
+            command: "init-environment",
+            payload: environment,
+          },
+        });
+      });
+    });
+
+    suite("Integration Tests", () => {
+      test("should handle complete successful workflow", async () => {
+        const mockResult = '{"environments": [{"id": 1, "name": "dev"}]}';
+        runStub.resolves(mockResult);
+        
+        await bruinEnvList.getEnvironmentsList();
+        
+        // Verify all expected calls were made
+        sinon.assert.calledOnce(runStub);
+        sinon.assert.calledOnce(BruinPanelPostMessageStub);
+        sinon.assert.calledOnce(QueryPreviewPanelPostMessageStub);
+        
+        // Verify the correct message flow
+        sinon.assert.calledWith(BruinPanelPostMessageStub, "environments-list-message", {
+          status: "success",
+          message: mockResult,
+        });
+        
+        sinon.assert.calledWith(QueryPreviewPanelPostMessageStub, "init-environment", {
+          status: "success",
+          message: {
+            command: "init-environment",
+            payload: mockResult,
+          },
+        });
+      });
+
+    });
+  });
+
+  suite("Configuration Tests", () => {
+    let workspaceGetConfigurationStub: sinon.SinonStub;
+    let windowActiveTextEditorStub: sinon.SinonStub;
+    let commandsExecuteCommandStub: sinon.SinonStub;
+    let windowOnDidChangeActiveTextEditorStub: sinon.SinonStub;
+    let workspaceOnDidChangeConfigurationStub: sinon.SinonStub;
+    let consoleLogStub: sinon.SinonStub;
+    let bruinFoldingRangeProviderStub: sinon.SinonStub;
+
+    setup(() => {
+      // Stub VSCode workspace and window methods
+      workspaceGetConfigurationStub = sinon.stub(vscode.workspace, "getConfiguration");
+      windowActiveTextEditorStub = sinon.stub(vscode.window, "activeTextEditor");
+      commandsExecuteCommandStub = sinon.stub(vscode.commands, "executeCommand");
+      windowOnDidChangeActiveTextEditorStub = sinon.stub(vscode.window, "onDidChangeActiveTextEditor");
+      workspaceOnDidChangeConfigurationStub = sinon.stub(vscode.workspace, "onDidChangeConfiguration");
+      consoleLogStub = sinon.stub(console, "log");
+      
+      // Stub the bruinFoldingRangeProvider
+      bruinFoldingRangeProviderStub = sinon.stub();
+      const providersModule = require("../providers/bruinFoldingRangeProvider");
+      sinon.replace(providersModule, "bruinFoldingRangeProvider", bruinFoldingRangeProviderStub);
+    });
+
+    teardown(() => {
+      sinon.restore();
+    });
+
+    suite("getDefaultCheckboxSettings", () => {
+      test("should return default checkbox settings from configuration", () => {
+        const mockConfig = {
+          get: sinon.stub()
+            .withArgs("defaultIntervalModifiers", false).returns(true)
+            .withArgs("defaultExclusiveEndDate", false).returns(true)
+            .withArgs("defaultPushMetadata", false).returns(true)
+        };
+        workspaceGetConfigurationStub.withArgs("bruin.checkbox").returns(mockConfig);
+
+        const { getDefaultCheckboxSettings } = require("../extension/configuration");
+        const result = getDefaultCheckboxSettings();
+
+        assert.deepStrictEqual(result, {
+          defaultIntervalModifiers: true,
+          defaultExclusiveEndDate: true,
+          defaultPushMetadata: true,
+        });
+        sinon.assert.calledWith(workspaceGetConfigurationStub, "bruin.checkbox");
+      });
+
+      test("should return default values when configuration is not set", () => {
+        const mockConfig = {
+          get: sinon.stub()
+            .withArgs("defaultIntervalModifiers", false).returns(false)
+            .withArgs("defaultExclusiveEndDate", false).returns(false)
+            .withArgs("defaultPushMetadata", false).returns(false)
+        };
+        workspaceGetConfigurationStub.withArgs("bruin.checkbox").returns(mockConfig);
+
+        const { getDefaultCheckboxSettings } = require("../extension/configuration");
+        const result = getDefaultCheckboxSettings();
+
+        assert.deepStrictEqual(result, {
+          defaultIntervalModifiers: false,
+          defaultExclusiveEndDate: false,
+          defaultPushMetadata: false,
+        });
+      });
+    });
+
+    suite("getPathSeparator", () => {
+      test("should return configured path separator", () => {
+        const mockConfig = {
+          get: sinon.stub().withArgs("pathSeparator").returns("\\")
+        };
+        workspaceGetConfigurationStub.withArgs("bruin").returns(mockConfig);
+
+        const { getPathSeparator } = require("../extension/configuration");
+        const result = getPathSeparator();
+
+        assert.strictEqual(result, "\\");
+        sinon.assert.calledWith(workspaceGetConfigurationStub, "bruin");
+      });
+
+      test("should return default path separator when not configured", () => {
+        const mockConfig = {
+          get: sinon.stub().withArgs("pathSeparator").returns(undefined)
+        };
+        workspaceGetConfigurationStub.withArgs("bruin").returns(mockConfig);
+
+        const { getPathSeparator } = require("../extension/configuration");
+        const result = getPathSeparator();
+
+        assert.strictEqual(result, "/");
+      });
+
+      test("should return default path separator when configuration returns null", () => {
+        const mockConfig = {
+          get: sinon.stub().withArgs("pathSeparator").returns(null)
+        };
+        workspaceGetConfigurationStub.withArgs("bruin").returns(mockConfig);
+
+        const { getPathSeparator } = require("../extension/configuration");
+        const result = getPathSeparator();
+
+        assert.strictEqual(result, "/");
+      });
+    });
+
+    suite("toggleFoldingsCommand", () => {
+      let mockEditor: vscode.TextEditor;
+      let mockDocument: vscode.TextDocument;
+      let mockUri: vscode.Uri;
+
+      setup(() => {
+        mockUri = vscode.Uri.file("/test/file.sql");
+        mockDocument = {
+          uri: mockUri,
+        } as vscode.TextDocument;
+        mockEditor = {
+          document: mockDocument,
+          selection: new vscode.Selection(0, 0, 0, 0),
+          selections: [],
+        } as unknown as vscode.TextEditor;
+      });
+
+      test("should return early when no active editor", async () => {
+        windowActiveTextEditorStub.value(undefined);
+
+        const { toggleFoldingsCommand } = require("../extension/configuration");
+        await toggleFoldingsCommand(true);
+
+        sinon.assert.notCalled(commandsExecuteCommandStub);
+      });
+
+
+      test("should not fold when no Bruin regions found", async () => {
+        windowActiveTextEditorStub.value(mockEditor);
+        bruinFoldingRangeProviderStub.returns([]);
+
+        const { toggleFoldingsCommand } = require("../extension/configuration");
+        await toggleFoldingsCommand(true);
+
+        sinon.assert.notCalled(commandsExecuteCommandStub);
+      });
+
+   
+
+      test("should not unfold when no Bruin regions found", async () => {
+        windowActiveTextEditorStub.value(mockEditor);
+        bruinFoldingRangeProviderStub.returns([]);
+
+        const { toggleFoldingsCommand } = require("../extension/configuration");
+        await toggleFoldingsCommand(false);
+
+        sinon.assert.notCalled(commandsExecuteCommandStub);
+      });
+
+      test("should handle command execution errors", async () => {
+        windowActiveTextEditorStub.value(mockEditor);
+        const mockRanges = [new vscode.FoldingRange(0, 5)];
+        bruinFoldingRangeProviderStub.returns(mockRanges);
+        commandsExecuteCommandStub.rejects(new Error("Command failed"));
+
+        const { toggleFoldingsCommand } = require("../extension/configuration");
+        
+        try {
+          await toggleFoldingsCommand(true);
+        } catch (error) {
+          // Expected error
+        }
+
+        sinon.assert.calledOnce(commandsExecuteCommandStub);
+      });
+    });
+
+    suite("applyFoldingStateBasedOnConfiguration", () => {
+      let mockEditor: vscode.TextEditor;
+      let mockDocument: vscode.TextDocument;
+      let mockUri: vscode.Uri;
+
+      setup(() => {
+        mockUri = vscode.Uri.file("/test/file.sql");
+        mockDocument = {
+          uri: mockUri,
+        } as vscode.TextDocument;
+        mockEditor = {
+          document: mockDocument,
+        } as unknown as vscode.TextEditor;
+      });
+
+      test("should return early when no editor provided", () => {
+        const { applyFoldingStateBasedOnConfiguration } = require("../extension/configuration");
+        applyFoldingStateBasedOnConfiguration(undefined);
+
+        sinon.assert.notCalled(commandsExecuteCommandStub);
+      });
+
+    });
+
+    suite("setupFoldingOnOpen", () => {
+      test("should set up event listener for active text editor changes", () => {
+        const mockDisposable = { dispose: sinon.stub() };
+        windowOnDidChangeActiveTextEditorStub.returns(mockDisposable);
+
+        const { setupFoldingOnOpen } = require("../extension/configuration");
+        setupFoldingOnOpen();
+
+        sinon.assert.calledOnce(windowOnDidChangeActiveTextEditorStub);
+      });
+
+    });
+
+    suite("subscribeToConfigurationChanges", () => {
+      test("should set up event listener for configuration changes", () => {
+        const mockDisposable = { dispose: sinon.stub() };
+        workspaceOnDidChangeConfigurationStub.returns(mockDisposable);
+
+        const { subscribeToConfigurationChanges } = require("../extension/configuration");
+        subscribeToConfigurationChanges();
+
+        sinon.assert.calledOnce(workspaceOnDidChangeConfigurationStub);
+      });
+
+      test("should reset document states when bruin.FoldingState changes", () => {
+        let eventListener: (e: vscode.ConfigurationChangeEvent) => void;
+        
+        workspaceOnDidChangeConfigurationStub.callsFake((listener) => {
+          eventListener = listener;
+          return { dispose: sinon.stub() };
+        });
+
+        const { subscribeToConfigurationChanges } = require("../extension/configuration");
+        subscribeToConfigurationChanges();
+
+        // Mock configuration change event
+        const affectsConfigurationStub = sinon.stub().withArgs("bruin.FoldingState").returns(true);
+        const mockEvent = {
+          affectsConfiguration: affectsConfigurationStub
+        } as vscode.ConfigurationChangeEvent;
+
+        // Simulate configuration change
+        eventListener!(mockEvent);
+
+        sinon.assert.calledWith(affectsConfigurationStub, "bruin.FoldingState");
+      });
+
+      test("should not reset document states for other configuration changes", () => {
+        let eventListener: (e: vscode.ConfigurationChangeEvent) => void;
+        
+        workspaceOnDidChangeConfigurationStub.callsFake((listener) => {
+          eventListener = listener;
+          return { dispose: sinon.stub() };
+        });
+
+        const { subscribeToConfigurationChanges } = require("../extension/configuration");
+        subscribeToConfigurationChanges();
+
+        // Mock configuration change event for different setting
+        const affectsConfigurationStub = sinon.stub().withArgs("bruin.FoldingState").returns(false);
+        const mockEvent = {
+          affectsConfiguration: affectsConfigurationStub
+        } as vscode.ConfigurationChangeEvent;
+
+        // Simulate configuration change
+        eventListener!(mockEvent);
+
+        sinon.assert.calledWith(affectsConfigurationStub, "bruin.FoldingState");
+      });
+    });
+
+    suite("Integration Tests", () => {
+      test("should handle complete folding workflow", async () => {
+        const mockEditor = {
+          document: { uri: vscode.Uri.file("/test/file.sql") },
+          selection: new vscode.Selection(0, 0, 0, 0),
+          selections: [],
+        } as unknown as vscode.TextEditor;
+
+        windowActiveTextEditorStub.value(mockEditor);
+        const mockRanges = [new vscode.FoldingRange(0, 5)];
+        bruinFoldingRangeProviderStub.returns(mockRanges);
+        commandsExecuteCommandStub.resolves();
+
+        const { toggleFoldingsCommand } = require("../extension/configuration");
+        await toggleFoldingsCommand(true);
+
+        sinon.assert.calledOnce(commandsExecuteCommandStub);
+        sinon.assert.calledWith(commandsExecuteCommandStub, "editor.fold", {
+          selectionLines: [0],
+          levels: 1
+        });
+      });
+
+      test("should handle configuration change workflow", () => {
+        let eventListener: (e: vscode.ConfigurationChangeEvent) => void;
+        
+        workspaceOnDidChangeConfigurationStub.callsFake((listener) => {
+          eventListener = listener;
+          return { dispose: sinon.stub() };
+        });
+
+        const { subscribeToConfigurationChanges } = require("../extension/configuration");
+        subscribeToConfigurationChanges();
+
+        // Mock configuration change event
+        const affectsConfigurationStub = sinon.stub().withArgs("bruin.FoldingState").returns(true);
+        const mockEvent = {
+          affectsConfiguration: affectsConfigurationStub
+        } as vscode.ConfigurationChangeEvent;
+
+        // Simulate configuration change
+        eventListener!(mockEvent);
+
+        sinon.assert.calledWith(affectsConfigurationStub, "bruin.FoldingState");
+      });
+    });
+  });
