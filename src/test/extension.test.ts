@@ -3021,6 +3021,85 @@ suite("findGlossaryFile Tests", () => {
     assert.strictEqual(result, undefined, "Should return undefined for empty workspace directory");
   });
 });
+
+suite("openGlossary Tests", () => {
+  let showTextDocumentStub: sinon.SinonStub;
+  let showErrorMessageStub: sinon.SinonStub;
+  let openTextDocumentStub: sinon.SinonStub;
+  let findGlossaryFileStub: sinon.SinonStub;
+  let activeTextEditorStub: sinon.SinonStub;
+  let openGlossary: typeof import("../bruin/bruinGlossaryUtility").openGlossary;
+  let findGlossaryFile: typeof import("../bruin/bruinGlossaryUtility").findGlossaryFile;
+  let module: typeof import("../bruin/bruinGlossaryUtility");
+
+  const fakeDocument = {
+    getText: () => "entity1:\n  attribute1: value\nentity2:\n  attribute2: value",
+    positionAt: (offset: number) => ({ line: 0, character: offset }),
+    uri: { fsPath: "/workspace/path/glossary.yaml" },
+  };
+  const fakeTextEditor = {
+    document: fakeDocument,
+    revealRange: sinon.stub(),
+    selection: undefined,
+  };
+
+  setup(async () => {
+    showTextDocumentStub = sinon.stub(vscode.window, "showTextDocument").resolves(fakeTextEditor as any);
+    showErrorMessageStub = sinon.stub(vscode.window, "showErrorMessage");
+    openTextDocumentStub = sinon.stub(vscode.workspace, "openTextDocument").resolves(fakeDocument as any);
+    findGlossaryFileStub = sinon.stub().resolves("/workspace/path/glossary.yaml");
+    activeTextEditorStub = sinon.stub(vscode.window, "activeTextEditor").get(() => fakeTextEditor as any);
+    module = await import("../bruin/bruinGlossaryUtility");
+    openGlossary = module.openGlossary;
+    findGlossaryFile = module.findGlossaryFile;
+    sinon.replace(module, "findGlossaryFile", findGlossaryFileStub);
+  });
+
+  teardown(() => {
+    sinon.restore();
+  });
+
+  test("should show error if workspaceDir is undefined", async () => {
+    await openGlossary(undefined as any, { viewColumn: vscode.ViewColumn.One });
+    sinon.assert.calledWith(showErrorMessageStub, sinon.match(/Could not determine Bruin workspace directory/));
+  });
+
+  test("should show error if glossary file is not found", async () => {
+    findGlossaryFileStub.resolves(undefined);
+    await openGlossary("/workspace/path", { viewColumn: vscode.ViewColumn.One });
+    sinon.assert.calledWith(showErrorMessageStub, sinon.match(/Glossary file not found/));
+  });
+
+  test("should open glossary file in correct view column (One -> Two)", async () => {
+    await openGlossary("/workspace/path", { viewColumn: vscode.ViewColumn.One });
+    sinon.assert.calledWith(showTextDocumentStub, fakeDocument, sinon.match.has("viewColumn", vscode.ViewColumn.Two));
+  });
+
+  test("should open glossary file in correct view column (Two -> One)", async () => {
+    await openGlossary("/workspace/path", { viewColumn: vscode.ViewColumn.Two });
+    sinon.assert.calledWith(showTextDocumentStub, fakeDocument, sinon.match.has("viewColumn", vscode.ViewColumn.One));
+  });
+
+  test("should open glossary file in Active view column if no activeTextEditor", async () => {
+    activeTextEditorStub.get(() => undefined);
+    await openGlossary("/workspace/path", undefined as any);
+    sinon.assert.calledWith(showTextDocumentStub, fakeDocument, sinon.match.has("viewColumn", vscode.ViewColumn.Active));
+  });
+
+  test("should highlight entity and attribute if found", async () => {
+    // entity: entity1, attribute: attribute1
+    await openGlossary("/workspace/path", { viewColumn: vscode.ViewColumn.One }, { entity: "entity1", attribute: "attribute1" });
+    sinon.assert.called(fakeTextEditor.revealRange);
+    assert.ok(fakeTextEditor.selection);
+  });
+
+  test("should handle and show error on unexpected exception", async () => {
+    showTextDocumentStub.rejects(new Error("fail"));
+    await openGlossary("/workspace/path", { viewColumn: vscode.ViewColumn.One });
+    sinon.assert.calledWith(showErrorMessageStub, sinon.match(/Failed to open glossary file/));
+  });
+});
+
 suite("Multi-line Command Formatting Tests", () => {
   let terminalStub: Partial<vscode.Terminal>;
   let terminalOptionsStub: Partial<vscode.TerminalOptions>;
