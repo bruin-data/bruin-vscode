@@ -50,8 +50,8 @@
       <div v-if="id === 'service_account_json'" class="mt-2">
         <div class="flex space-x-4 mb-2">
           <vscode-radio-group :value="serviceAccountInputMethod" @change="handleInputMethodChange">
-            <vscode-radio value="file" checked>Use File Picker</vscode-radio>
-            <vscode-radio value="text">Input JSON Directly</vscode-radio>
+            <vscode-radio value="file" :checked="serviceAccountInputMethod === 'file'">Use File Picker</vscode-radio>
+            <vscode-radio value="text" :checked="serviceAccountInputMethod === 'text'">Input JSON Directly</vscode-radio>
           </vscode-radio-group>
         </div>
 
@@ -183,14 +183,21 @@ const props = defineProps({
     default: false,
   },
   isInvalid: Boolean,
+  serviceAccountInputMethod: {
+    type: String,
+    default: "file"
+  },
+  serviceAccountFile: {
+    type: Object,
+    default: null
+  }
 });
 
 const emit = defineEmits(["update:modelValue", "clearError", "fileSelected"]);
 
 const internalValue = ref(props.modelValue ?? props.defaultValue ?? "");
 const showPassword = ref(false);
-const selectedFile = ref(null);
-const serviceAccountInputMethod = ref("file");
+const selectedFile = ref(props.serviceAccountFile);
 const service_account = ["service_account_json", "service_account_file"];
 const inputType = computed(() => {
   return props.type === "password" ? (showPassword.value ? "text" : "password") : props.type;
@@ -247,6 +254,10 @@ watch(
   { immediate: true }
 );
 
+watch(() => props.serviceAccountFile, (newFile) => {
+  selectedFile.value = newFile;
+}, { immediate: true });
+
 const updateValue = (event) => {
   let value;
   if (props.type === "number") {
@@ -260,8 +271,7 @@ const updateValue = (event) => {
   internalValue.value = value;
   emit("update:modelValue", value);
   emit("clearError");
-  // Clear the selected file when text is entered in the textarea
-  if (props.id === "service_account_json" && value && serviceAccountInputMethod.value === "text") {
+  if (props.id === "service_account_json" && value && props.serviceAccountInputMethod === "text") {
     selectedFile.value = null;
   }
 
@@ -315,23 +325,23 @@ const validateAndEmit = () => {
 };
 
 const handleInputMethodChange = (event) => {
-  serviceAccountInputMethod.value = event.target.value;
-  if (serviceAccountInputMethod.value === "file") {
+  const newMethod = event.target.value;
+  emit("updateServiceAccountInputMethod", newMethod);
+  
+  if (newMethod === "file") {
     internalValue.value = "";
     selectedFile.value = null;
+    emit("update:modelValue", "");
   } else {
     selectedFile.value = null;
   }
-  emit("update:modelValue", "");
   emit("clearError");
 };
 
-// Add event listener when component mounts
 onMounted(() => {
   window.addEventListener("message", handleFileSelectionMessage);
 });
 
-// Remove event listener when component unmounts to prevent memory leaks
 onUnmounted(() => {
   window.removeEventListener("message", handleFileSelectionMessage);
 });

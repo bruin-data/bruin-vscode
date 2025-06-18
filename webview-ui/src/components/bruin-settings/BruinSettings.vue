@@ -100,7 +100,6 @@ const handleMessage = (event) => {
 const getConnectionsListFromSchema = (payload) => {
   console.log("Received connections schema payload:", payload);
   connectionsStore.updateConnectionsSchema(payload.message);
-  console.log("Connections schema:", connectionsStore.connectionsSchema);
 };
 
 const handleConnectionsList = (payload) => {
@@ -130,7 +129,7 @@ const handleConnectionDeleted = async (payload) => {
 const handleConnectionCreated = (payload) => {
   if (payload.status === "success") {
     try {
-      console.log("Payload received:", payload);
+      console.log("Payload received (created):", payload);
       if (payload.message && typeof payload.message === "object") {
         const newConnection = {
           ...payload.message,
@@ -139,23 +138,35 @@ const handleConnectionCreated = (payload) => {
         connectionsStore.addConnection(newConnection);
         closeConnectionForm();
       } else {
-        throw new Error("Invalid payload structure");
+        throw new Error("Invalid payload structure for created connection");
       }
     } catch (error) {
       console.error("Error adding connection:", error);
       formError.value = { field: "connection_name", message: error.message };
     }
   } else {
-    formError.value = { field: "connection_name", message: payload.message };
+    formError.value = { field: "connection_name", message: errorMessage };
   }
 };
 
 const handleConnectionEdited = (payload) => {
   if (payload.status === "success") {
-    connectionsStore.updateConnection(payload.connection);
-    closeConnectionForm();
+    console.log("Payload received (edited):", payload);
+    if (payload.connection && payload.connection.id) {
+      connectionsStore.updateConnection(payload.connection);
+      closeConnectionForm();
+    } else {
+      formError.value = { field: "connection_name", message: "Failed to update connection: Missing ID" };
+    }
   } else {
-    formError.value = { field: "connection_name", message: payload.message };
+    let errorMessage = payload.message;
+    try {
+        const errorObj = JSON.parse(payload.message);
+        if (errorObj.error) errorMessage = errorObj.error;
+    } catch (e) {
+        // Not a JSON string, use as is
+    }
+    formError.value = { field: "connection_name", message: errorMessage };
   }
 };
 
@@ -166,14 +177,15 @@ const showConnectionForm = (connection = null, duplicate = false) => {
     if (connection) {
       const duplicatedName = duplicate ? `${connection.name} (Copy)` : connection.name;
       if (connection.type === "google_cloud_platform") {
-        console.log("Connection to edit:--------", connection.service_account_file);
         connectionToEdit.value = {
           ...connection,
           name: duplicatedName,
+          service_account_file: connection.service_account_file || "",
+          service_account_json: connection.service_account_json || "",
           credentials: {
+            ...connection,
             service_account_file: connection.service_account_file || "",
             service_account_json: connection.service_account_json || "",
-            ...connection,
           },
         };
       } else {
@@ -190,6 +202,7 @@ const showConnectionForm = (connection = null, duplicate = false) => {
     } else {
       // Default empty connection object if creating a new connection
       connectionToEdit.value = {
+        id: uuidv4(),
         name: "",
         type: "",
         environment: "",
@@ -198,7 +211,6 @@ const showConnectionForm = (connection = null, duplicate = false) => {
       isEditing.value = false;
     }
 
-    // Show the form
     showForm.value = true;
   });
   // Scroll to form
@@ -216,14 +228,9 @@ const handleDuplicateConnection = (connection) => {
 const handleConnectionSubmit = async (connectionData) => {
   clearFormError();
   try {
-    const sanitizedConnectionData = JSON.parse(JSON.stringify(connectionData)); // Ensure no circular refs
+    const sanitizedConnectionData = JSON.parse(JSON.stringify(connectionData));
 
     if (isEditing.value) {
-      if (connectionToEdit.value.type === "google_cloud_platform") {
-        //ensure service_account_file is not overwritten
-        sanitizedConnectionData.credentials.service_account_file =
-          connectionToEdit.value.credentials.service_account_file;
-      }
       await vscode.postMessage({
         command: "bruin.editConnection",
         payload: {
@@ -234,7 +241,7 @@ const handleConnectionSubmit = async (connectionData) => {
     } else {
       await vscode.postMessage({
         command: "bruin.createConnection",
-        payload: { ...sanitizedConnectionData, id: uuidv4() },
+        payload: sanitizedConnectionData,
       });
     }
   } catch (error) {
@@ -266,11 +273,9 @@ const deleteConnection = async () => {
       payload: {
         name: connectionToDelete.value.name,
         environment: connectionToDelete.value.environment,
+        id: connectionToDelete.value.id,
       },
     });
-    // Close the delete alert after successful deletion
-    showDeleteAlert.value = false;
-    connectionToDelete.value = null;
   } catch (error) {
     console.error("Error deleting connection:", error);
   }
