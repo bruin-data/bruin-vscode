@@ -1,4 +1,7 @@
 # Changelog
+## [0.51.1] - [2025-06-18]
+- Fixed BQ connection updates and improved service account credential handling.
+
 ## [0.51.0] - [2025-06-18]
 - Added inline "Run Query" button using CodeLens for top-level queries in the editor.
 
