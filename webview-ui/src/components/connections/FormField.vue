@@ -254,7 +254,6 @@ watch(
   { immediate: true }
 );
 
-// Watch for changes in the service account file prop
 watch(() => props.serviceAccountFile, (newFile) => {
   selectedFile.value = newFile;
 }, { immediate: true });
@@ -272,7 +271,6 @@ const updateValue = (event) => {
   internalValue.value = value;
   emit("update:modelValue", value);
   emit("clearError");
-  // Clear the selected file when text is entered in the textarea
   if (props.id === "service_account_json" && value && props.serviceAccountInputMethod === "text") {
     selectedFile.value = null;
   }
@@ -336,18 +334,14 @@ const handleInputMethodChange = (event) => {
     emit("update:modelValue", "");
   } else {
     selectedFile.value = null;
-    // Don't clear the internalValue when switching to text input
-    // This allows the user to keep their text input
   }
   emit("clearError");
 };
 
-// Add event listener when component mounts
 onMounted(() => {
   window.addEventListener("message", handleFileSelectionMessage);
 });
 
-// Remove event listener when component unmounts to prevent memory leaks
 onUnmounted(() => {
   window.removeEventListener("message", handleFileSelectionMessage);
 });
