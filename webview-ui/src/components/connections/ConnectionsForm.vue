@@ -14,9 +14,12 @@
             @update:modelValue="updateField(field.id, $event)"
             :required="field.required"
             @fileSelected="handleFileSelected"
+            @updateServiceAccountInputMethod="handleServiceAccountInputMethodChange"
             :isInvalid="!!validationErrors[field.id]"
             :errorMessage="validationErrors[field.id]"
             :defaultValue="getDefaultValue(field)"
+            :serviceAccountInputMethod="field.id === 'service_account_json' ? serviceAccountInputMethod : undefined"
+            :serviceAccountFile="field.id === 'service_account_json' ? selectedFile : undefined"
           />
         </div>
    <!--      <vscode-button
@@ -107,6 +110,31 @@ watch(defaultEnvironment, (newDefault) => {
 
 const validationErrors = ref({});
 const selectedFile = ref(null);
+const serviceAccountInputMethod = ref("file");
+
+// Determine the service account input method based on the connection data
+const determineServiceAccountInputMethod = (connection) => {
+  if (connection.service_account_file) {
+    return "file";
+  } else if (connection.service_account_json) {
+    return "text";
+  }
+  return "file"; // default
+};
+
+// Get the service account file object for the FormField
+const getServiceAccountFile = (connection) => {
+  if (connection.service_account_file) {
+    // Extract filename from path
+    const pathParts = connection.service_account_file.split('/');
+    const fileName = pathParts[pathParts.length - 1];
+    return {
+      name: fileName,
+      path: connection.service_account_file
+    };
+  }
+  return null;
+};
 
 // Update form fields to include environment
 const formFields = computed(() => [
@@ -152,6 +180,7 @@ watch(
 watch(
   () => props.connection,
   (newConnection) => {
+    console.log("Connection data received:", newConnection);
     if (Object.keys(newConnection).length > 0) {
       // Only update form if not already populated
       if (!form.value.connection_name) {
@@ -163,9 +192,19 @@ watch(
         };
       }
       
-      // Set selectedFile if service_account_file is present in credentials
-      if (newConnection.credentials.service_account_file) {
-        selectedFile.value = { path: newConnection.credentials.service_account_file };
+      if (newConnection.type === "google_cloud_platform") {
+        serviceAccountInputMethod.value = determineServiceAccountInputMethod(newConnection);
+        console.log("Service account input method set to:", serviceAccountInputMethod.value);
+        
+        if (newConnection.service_account_file) {
+          selectedFile.value = getServiceAccountFile(newConnection);
+          console.log("Service account file set to:", selectedFile.value);
+          form.value.service_account_json = "";
+        } else if (newConnection.service_account_json) {
+          selectedFile.value = null;
+          console.log("Service account JSON found, setting text input");
+          form.value.service_account_json = newConnection.service_account_json;
+        }
       }
     }
     
@@ -199,6 +238,22 @@ const handleFileSelected = (file) => {
   validationErrors.value.service_account_json = null;
 };
 
+const handleServiceAccountInputMethodChange = (newMethod) => {
+  serviceAccountInputMethod.value = newMethod;
+  
+  if (newMethod === "file") {
+    // Clear text input when switching to file
+    form.value.service_account_json = "";
+    selectedFile.value = null;
+  } else {
+    // Clear file when switching to text
+    selectedFile.value = null;
+  }
+  
+  // Clear validation errors
+  validationErrors.value.service_account_json = null;
+};
+
 const updateField = (fieldId, value) => {
   form.value[fieldId] = value;
   // Clear the error for this field when it's updated
@@ -215,11 +270,14 @@ const validateForm = () => {
   const errors = {};
   formFields.value.forEach((field) => {
     if (field.required && !form.value[field.id]) {
-      if (field.id === "service_account_json" && selectedFile.value) {
-        // If a file is selected for service_account_json, it's valid
-        return;
+      if (field.id === "service_account_json") {
+        // For service_account_json, check if either file is selected OR text is provided
+        if (!selectedFile.value && !form.value.service_account_json) {
+          errors[field.id] = "This field is required";
+        }
+      } else {
+        errors[field.id] = "This field is required";
       }
-      errors[field.id] = "This field is required";
     }
   });
   validationErrors.value = errors;
@@ -238,20 +296,28 @@ const submitForm = () => {
     credentials: {},
   };
 
+  // Preserve the id field if it exists (for editing existing connections)
+  if (form.value.id) {
+    connectionData.id = form.value.id;
+  }
+
   formFields.value.forEach((field) => {
     if (
       field.id !== "connection_type" &&
       field.id !== "connection_name" &&
-      field.id !== "environment"
+      field.id !== "environment" &&
+      field.id !== "id" // Don't include id in credentials
     ) {
       // Special handling for Google Cloud Platform service account
-      if (form.value.connection_type === "google_cloud_platform") {
+      if (form.value.connection_type === "google_cloud_platform" && field.id === "service_account_json") {
+        // If a file is selected, use the file path
         if (selectedFile.value) {
-          console.log("selected file =====", selectedFile.value);
           connectionData.credentials.service_account_file = selectedFile.value.path;
         }
-
-        connectionData.credentials[field.id] = form.value[field.id];
+        // If text is provided, use the text content
+        if (form.value.service_account_json) {
+          connectionData.credentials.service_account_json = form.value.service_account_json;
+        }
       } else {
         // For other connection types, add fields as before
         connectionData.credentials[field.id] = form.value[field.id];
