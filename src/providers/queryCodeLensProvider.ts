@@ -54,7 +54,7 @@ export class QueryCodeLensProvider implements vscode.CodeLensProvider {
       // Create CodeLens for queries found outside Bruin blocks
       codeLenses.push(
         new vscode.CodeLens(queryRange, {
-          title: "$(play) Run",
+          title: "Preview",
           command: "bruin.runQuery",
           arguments: [document.uri, queryRange],
         })
