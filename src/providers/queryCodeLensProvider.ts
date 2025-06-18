@@ -2,45 +2,66 @@ import * as vscode from "vscode";
 
 export class QueryCodeLensProvider implements vscode.CodeLensProvider {
   public provideCodeLenses(
-    document: vscode.TextDocument,
-    token: vscode.CancellationToken,
+      document: vscode.TextDocument,
+      token: vscode.CancellationToken
   ): vscode.CodeLens[] {
-    const codeLenses: vscode.CodeLens[] = [];
-    const text = document.getText();
+      const codeLenses: vscode.CodeLens[] = [];
+      const text = document.getText();
 
-    // Pattern to match both main queries and subqueries, including simple queries without FROM
-    const queryRegex =
-      /(?:^|\s|\()\s*(SELECT\b[\s\S]*?(?=;|\s*[\r\n]|$))/gi;
-    let match;
-    while ((match = queryRegex.exec(text)) !== null) {
-      if (token.isCancellationRequested) {
-        return codeLenses;
+      // 1. First identify all Bruin metadata blocks and their positions
+      const bruinBlocks: vscode.Range[] = [];
+      const bruinBlockRegex = /\/\*\s*@bruin[\s\S]*?@bruin\s*\*\//g;
+      let blockMatch;
+      while ((blockMatch = bruinBlockRegex.exec(text)) !== null) {
+          const startPos = document.positionAt(blockMatch.index);
+          const endPos = document.positionAt(blockMatch.index + blockMatch[0].length);
+          bruinBlocks.push(new vscode.Range(startPos, endPos));
       }
 
-      // Check if this SELECT is inside a subquery by looking at the text before it
-      const textBeforeSelect = text.substring(0, match.index);
-      const openParens = (textBeforeSelect.match(/\(/g) || []).length;
-      const closeParens = (textBeforeSelect.match(/\)/g) || []).length;
+      // 2. Create a mask of the text where Bruin blocks are replaced with spaces
+      let maskedText = text;
+      for (let i = bruinBlocks.length - 1; i >= 0; i--) {
+          const block = bruinBlocks[i];
+          const startOffset = document.offsetAt(block.start);
+          const endOffset = document.offsetAt(block.end);
+          maskedText = maskedText.substring(0, startOffset) + 
+                      ' '.repeat(endOffset - startOffset) + 
+                      maskedText.substring(endOffset);
+      }
+
+      // 3. Search for SQL queries in the masked text (outside Bruin blocks)
+      const queryRegex = 
+          /(?:^|\s|;)\s*((?:SELECT|select)\b[\s\S]*?)(?=;|$|\s*\)\s*as\s+\w+|\/\*)/gi;
       
-      // Only show CodeLens if this is not a subquery (equal number of parentheses)
-      if (openParens === closeParens) {
-        const queryText = match[0].replace(/^(?:\s|\()*\s*SELECT/i, 'SELECT').trim();
+      let queryMatch;
+      while ((queryMatch = queryRegex.exec(maskedText)) !== null) {
+          if (token.isCancellationRequested) return codeLenses;
 
-        const selectPos = match.index + match[0].indexOf("SELECT");
-        const startPos = document.positionAt(selectPos);
-        const endPos = document.positionAt(selectPos + queryText.length);
-        const range = new vscode.Range(startPos, endPos);
+          const queryText = queryMatch[0].trim();
+          const selectPos = queryMatch.index + queryMatch[0].indexOf(queryMatch[1]);
+          
+          // Skip if it's a subquery
+          if (this.isSubquery(maskedText, selectPos)) continue;
+          
+          const startPos = document.positionAt(selectPos);
+          const endPos = document.positionAt(selectPos + queryMatch[1].length);
+          const queryRange = new vscode.Range(startPos, endPos);
 
-        const codeLens = new vscode.CodeLens(range, {
-          title: "$(play) Run",
-          command: "bruin.runQuery",
-          arguments: [document.uri, range],
-        });
-
-        codeLenses.push(codeLens);
+          // Create CodeLens for queries found outside Bruin blocks
+          codeLenses.push(new vscode.CodeLens(queryRange, {
+              title: "$(play) Run",
+              command: "bruin.runQuery",
+              arguments: [document.uri, queryRange],
+          }));
       }
-    }
 
-    return codeLenses;
+      return codeLenses;
+  }
+
+  private isSubquery(text: string, selectPos: number): boolean {
+      const textBefore = text.substring(0, selectPos);
+      const openParens = (textBefore.match(/\(/g) || []).length;
+      const closeParens = (textBefore.match(/\)/g) || []).length;
+      return openParens > closeParens;
   }
 }
