@@ -54,10 +54,11 @@ Bruin is a unified analytics platform that enables data professionals to work en
 **Note**: Ensure that you have the Bruin CLI installed on your system before using the new features. For guidance on installing the Bruin CLI, please refer to the [official documentation](https://github.com/bruin-data/bruin).
 
 ## Release Notes
-### Latest Release: 0.50.7
-- Added utility to format bruin run commands in a readable multi-line format.
+### Latest Release: 0.51.0
+- Added inline "Run Query" button using CodeLens for top-level queries in the editor.
 
 ### Recent Updates
+- **0.50.7**: Added utility to format bruin run commands in a readable multi-line format.
 - **0.50.6**: Improved tab rendering performance by switching to `v-if` and optimizing component caching, and cleaned up unused message handling code for better maintainability.
 - **0.50.5**: [Pre-release] This version is for testing improved tab rendering.
 - **0.50.4**: [Pre-release] This version is for testing improved tab rendering and code cleanup.
@@ -73,15 +74,6 @@ Bruin is a unified analytics platform that enables data professionals to work en
 - **0.48.2**: Updated `partition-by` and `cluster-by` to use a dropdown for selecting columns.
 - **0.48.1**: Add DDL strategy to materialization tab and save primary key changes immediately.
 - **0.48.0**: Add UI for Managing Owner and Tags in Materialization Tab.
-- **0.47.6**: Debounce asset conversion detection and add telemetry for convert message.
-- **0.47.5**: Trim whitespace from connection form input values and fix asset name editing.
-- **0.47.4**: Fix Convert Message Showing for Existing Assets
-- **0.47.3**: Fix Convert Message Showing for Existing Assets
-- **0.47.2**: Added ingestr asset snippet for initializing Bruin ingestr assets easily.
-- **0.47.1**: Improve materialization UI and fix issues with saving partition and cluster properties.
-- **0.47.0**: Added materialization tab to the asset side panel.
-- **0.46.1**: Fix Bruin CLI installation on Windows.
-- **0.46.0**: Added convert feature to convert eligible files to Bruin assets.
 
 For a full changelog, see Bruin Extension [Changelog](https://marketplace.visualstudio.com/items/bruin.bruin/changelog).
 

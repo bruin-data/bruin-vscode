@@ -8,7 +8,7 @@ export class QueryCodeLensProvider implements vscode.CodeLensProvider {
     const codeLenses: vscode.CodeLens[] = [];
     const text = document.getText();
 
-    // 1. First identify all Bruin metadata blocks and their positions
+    // Identify all Bruin metadata blocks and their positions
     const bruinBlocks: vscode.Range[] = [];
     const bruinBlockRegex = /\/\*\s*@bruin[\s\S]*?@bruin\s*\*\//g;
     let blockMatch;
@@ -18,7 +18,7 @@ export class QueryCodeLensProvider implements vscode.CodeLensProvider {
       bruinBlocks.push(new vscode.Range(startPos, endPos));
     }
 
-    // 2. Create a mask of the text where Bruin blocks are replaced with spaces
+    // Create a mask of the text to ignore Bruin blocks
     let maskedText = text;
     for (let i = bruinBlocks.length - 1; i >= 0; i--) {
       const block = bruinBlocks[i];
@@ -30,7 +30,7 @@ export class QueryCodeLensProvider implements vscode.CodeLensProvider {
         maskedText.substring(endOffset);
     }
 
-    // 3. Search for SQL queries in the masked text (outside Bruin blocks)
+    // Search for SQL queries in the masked text
     const queryRegex = /(?:^|\s|;)\s*((?:SELECT|select)\b[\s\S]*?)(?=;|$|\s*\)\s*as\s+\w+|\/\*)/gi;
 
     let queryMatch;

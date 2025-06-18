@@ -1,4 +1,7 @@
 # Changelog
+## [0.51.0] - [2025-06-18]
+- Added inline "Run Query" button using CodeLens for top-level queries in the editor.
+
 ## [0.50.7] - [2025-06-17]
 - Added utility to format bruin run commands in a readable multi-line format.
 
