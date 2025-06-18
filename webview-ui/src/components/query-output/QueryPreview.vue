@@ -418,6 +418,11 @@ const formatQuery = (query: string) => {
 };
 // Get current active tab
 const currentTab = computed(() => {
+  vscode.postMessage({
+    command: "bruin.setActiveTabId",
+    payload: { tabId: activeTab.value },
+  });
+
   return tabs.value.find((tab) => tab.id === activeTab.value);
 });
 

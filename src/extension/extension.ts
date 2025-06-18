@@ -21,6 +21,8 @@ import { AssetLineagePanel } from "../panels/LineagePanel";
 import { installOrUpdateCli } from "./commands/updateBruinCLI";
 import { QueryPreviewPanel } from "../panels/QueryPreviewPanel";
 import { BruinPanel } from "../panels/BruinPanel";
+import { QueryCodeLensProvider } from "../providers/queryCodeLensProvider";
+import { getQueryOutput } from "./commands/queryCommands";
 
 let analyticsClient: any = null;
 
@@ -166,6 +168,13 @@ export async function activate(context: ExtensionContext) {
   });
   context.subscriptions.push(foldingDisposable);
 
+  // Register the query code lens provider
+  const codeLensProvider = languages.registerCodeLensProvider(
+    { language: "sql" },
+    new QueryCodeLensProvider()
+  );
+  context.subscriptions.push(codeLensProvider);
+
   subscribeToConfigurationChanges();
 
   const defaultFoldingState = bruinConfig.get("bruin.FoldingState", "folded");
@@ -173,6 +182,25 @@ export async function activate(context: ExtensionContext) {
 
   // Register commands
   const commandDisposables = [
+    commands.registerCommand("bruin.runQuery", async (uri: vscode.Uri, range: vscode.Range) => {
+      try {
+        trackEvent("Command Executed", { command: "runQuery" });
+        const document = await workspace.openTextDocument(uri);
+        const query = document.getText(range);
+        QueryPreviewPanel.setLastExecutedQuery(query);
+        const activeTabId = QueryPreviewPanel.getActiveTabId(); 
+
+        QueryPreviewPanel.postMessage("query-output-message", {
+          status: "loading",
+          message: true,
+          tabId: activeTabId,
+        });
+        await getQueryOutput("", "", uri, activeTabId);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error running query: ${errorMessage}`);
+      }
+    }),
     commands.registerCommand("bruin.renderSQL", async () => {
       try {
         trackEvent("Command Executed", { command: "renderSQL" });

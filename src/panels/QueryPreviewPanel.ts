@@ -23,7 +23,7 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
   // For backward compatibility
   private static lastExecutedQuery: string = "";
   private static lastAssetPath: string = "";
-
+  private static activeTab: string = "tab-1";
   // Getter and setter for lastExecutedQuery (for backward compatibility)
   public static setLastExecutedQuery(query: string): void {
     this.lastExecutedQuery = query;
@@ -33,6 +33,12 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
 
   public static getLastExecutedQuery(): string {
     return this.lastExecutedQuery;
+  }
+  public static setActiveTabId(tabId: string): void {
+    this.activeTab = tabId;
+  }
+  public static getActiveTabId(): string {
+    return this.activeTab;
   }
 
   // Methods to manage per-tab queries
@@ -249,7 +255,9 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
         case "bruin.saveState":
           await this._persistState(message.payload);
           break;
-
+        case "bruin.setActiveTabId":
+          QueryPreviewPanel.setActiveTabId(message.payload.tabId);
+          break;
         case "bruin.requestState":
           const state = await this._restoreState();
           webview.postMessage({
