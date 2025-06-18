@@ -58,6 +58,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 - Added inline "Run Query" button using CodeLens for top-level queries in the editor.
 
 ### Recent Updates
+- **0.50.8**: Added support for additional seed asset types in snippets, schema and UI.
 - **0.50.7**: Added utility to format bruin run commands in a readable multi-line format.
 - **0.50.6**: Improved tab rendering performance by switching to `v-if` and optimizing component caching, and cleaned up unused message handling code for better maintainability.
 - **0.50.5**: [Pre-release] This version is for testing improved tab rendering.

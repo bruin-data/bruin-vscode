@@ -37,7 +37,15 @@
             "duckdb.seed",
             "emr_serverless.spark",
             "emr_serverless.pyspark",
-            "bq.seed"
+            "athena.seed",
+            "bq.seed",
+            "clickhouse.seed",
+            "databricks.seed",
+            "ms.seed",
+            "pg.seed",
+            "rs.seed",
+            "sf.seed",
+            "synapse.seed"
           ],
           "description": "The type of the asset"
         },
