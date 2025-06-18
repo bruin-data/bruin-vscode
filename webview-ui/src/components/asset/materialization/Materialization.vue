@@ -1,8 +1,8 @@
 <template>
-  <div class="h-full w-full p-2 flex justify-center">
+  <div class="h-full w-full flex justify-center">
     <div class="flex flex-col gap-4 h-full w-full max-w-4xl">
-      <div class="bg-editorWidget-bg p-1">
-        <div class="flex items-center mb-0.5 space-x-2">
+      <div class="bg-editorWidget-bg py-1 border-b border-commandCenter-border">
+        <div class="flex items-center  space-x-2">
           <label class="block text-xs font-medium text-editor-fg min-w-[60px]">Owner</label>
           <div id="owner-container" class="flex items-center gap-2">
             <span
@@ -38,7 +38,7 @@
         </div>
         <div class="border-t border-commandCenter-border"></div>
 
-        <div class="flex items-center mt-0.5 space-x-4">
+        <div class="flex items-center my-0.5 space-x-4">
           <label class="text-xs font-medium text-editor-fg min-w-[60px]">Tags</label>
           <div id="tags-container" class="flex flex-wrap items-center space-x-2">
             <vscode-tag
@@ -77,7 +77,6 @@
           </div>
         </div>
       </div>
-      <div class="border-t border-commandCenter-border"></div>
 
       <div class="flex flex-col gap-x-4 gap-y-2 w-full justify-between">
         <label class="block text-sm font-medium text-editor-fg mb-1">Interval Modifiers</label>
