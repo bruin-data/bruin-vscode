@@ -54,11 +54,12 @@ Bruin is a unified analytics platform that enables data professionals to work en
 **Note**: Ensure that you have the Bruin CLI installed on your system before using the new features. For guidance on installing the Bruin CLI, please refer to the [official documentation](https://github.com/bruin-data/bruin).
 
 ## Release Notes
-### Latest Release: 0.51.1
-- Fixed BQ connection updates and improved service account credential handling.
+### Latest Release: 0.51.2
+- Enabled auto-saving for materialization changes, removing the manual save button.
 
 ### Recent Updates
-- **0.51.0**: Added inline "Run Query" button using CodeLens for top-level queries in the editor.
+- **0.51.1**: Fixed BQ connection updates and improved service account credential handling.
+- **0.51.0**: Added inline "Preview" button using CodeLens for top-level queries in the editor.
 - **0.50.8**: Added support for additional seed asset types in snippets, schema and UI.
 - **0.50.7**: Added utility to format bruin run commands in a readable multi-line format.
 - **0.50.6**: Improved tab rendering performance by switching to `v-if` and optimizing component caching, and cleaned up unused message handling code for better maintainability.
