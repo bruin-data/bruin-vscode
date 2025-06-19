@@ -6,6 +6,7 @@ import {
   BruinValidate,
   bruinWorkspaceDirectory,
   checkCliVersion,
+  createIntegratedTerminal,
   getCurrentPipelinePath,
   runInIntegratedTerminal,
 } from "../bruin";
@@ -286,19 +287,53 @@ export class BruinPanel {
       async (message: any) => {
         const command = message.command;
         switch (command) {
-          case "bruin.validateAll":
+
+          
+          case "bruin.fillAssetDependency":
+            if (!this._lastRenderedDocumentUri) {
+              console.error("No active document to fill dependencies for.");
+              return;
+            }
             const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-            if (!workspaceFolder) {
+            const workingDir = workspaceFolder ? workspaceFolder.uri.fsPath : undefined;
+            const terminal = await createIntegratedTerminal(workingDir);
+            terminal.show(true);
+            terminal.sendText(`bruin patch fill-asset-dependencies "${this._lastRenderedDocumentUri.fsPath}"`);
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            return;
+
+
+          case "bruin.validate":
+            if (!this._lastRenderedDocumentUri) {
+              console.error("No active document to validate.");
+              return;
+            }
+
+            const filePath = this._lastRenderedDocumentUri.fsPath;
+            console.log(
+              "Validating asset:",
+              filePath,
+              "in workspace:",
+              "",
+              "with bruin exec:",
+              getBruinExecutablePath()
+            );
+            const validator = new BruinValidate(getBruinExecutablePath(), "");
+            await validator.validate(filePath);
+            break;
+          case "bruin.validateAll":
+            const workspaceFolderAll = vscode.workspace.workspaceFolders?.[0];
+            if (!workspaceFolderAll) {
               console.error("No workspace folder found.");
               return;
             }
 
             const validatorAll = new BruinValidate(
               getBruinExecutablePath(),
-              workspaceFolder.uri.fsPath
+              workspaceFolderAll.uri.fsPath
             );
 
-            await validatorAll.validate(workspaceFolder.uri.fsPath);
+            await validatorAll.validate(workspaceFolderAll.uri.fsPath);
             break;
           case "bruin.checkTelemtryPreference":
             const config = workspace.getConfiguration("bruin");
@@ -335,25 +370,6 @@ export class BruinPanel {
             this._checkboxState = message.payload.checkboxState;
             this._flags = message.payload.flags;
             await renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri?.fsPath);
-            break;
-
-          case "bruin.validate":
-            if (!this._lastRenderedDocumentUri) {
-              console.error("No active document to validate.");
-              return;
-            }
-
-            const filePath = this._lastRenderedDocumentUri.fsPath;
-            console.log(
-              "Validating asset:",
-              filePath,
-              "in workspace:",
-              "",
-              "with bruin exec:",
-              getBruinExecutablePath()
-            );
-            const validator = new BruinValidate(getBruinExecutablePath(), "");
-            await validator.validate(filePath);
             break;
           case "bruin.runSql":
             if (!this._lastRenderedDocumentUri) {
