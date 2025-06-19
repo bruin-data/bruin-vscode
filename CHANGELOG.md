@@ -1,9 +1,12 @@
 # Changelog
+## [0.51.2] - [2025-06-18]
+- Enabled auto-saving for materialization changes, removing the manual save button.
+
 ## [0.51.1] - [2025-06-18]
 - Fixed BQ connection updates and improved service account credential handling.
 
 ## [0.51.0] - [2025-06-18]
-- Added inline "Run Query" button using CodeLens for top-level queries in the editor.
+- Added inline "Preview" button using CodeLens for top-level queries in the editor.
 
 ## [0.50.8] - [2025-06-17]
 - Added support for additional seed asset types in snippets, schema and UI.
