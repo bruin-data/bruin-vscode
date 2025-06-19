@@ -1,8 +1,8 @@
 <template>
-  <div class="h-full w-full p-2 flex justify-center">
+  <div class="h-full w-full flex justify-center">
     <div class="flex flex-col gap-4 h-full w-full max-w-4xl">
-      <div class="bg-editorWidget-bg p-1">
-        <div class="flex items-center mb-0.5 space-x-2">
+      <div class="bg-editorWidget-bg py-1 border-b border-commandCenter-border">
+        <div class="flex items-center  space-x-2">
           <label class="block text-xs font-medium text-editor-fg min-w-[60px]">Owner</label>
           <div id="owner-container" class="flex items-center gap-2">
             <span
@@ -38,7 +38,7 @@
         </div>
         <div class="border-t border-commandCenter-border"></div>
 
-        <div class="flex items-center mt-0.5 space-x-4">
+        <div class="flex items-center my-0.5 space-x-4">
           <label class="text-xs font-medium text-editor-fg min-w-[60px]">Tags</label>
           <div id="tags-container" class="flex flex-wrap items-center space-x-2">
             <vscode-tag
@@ -77,7 +77,6 @@
           </div>
         </div>
       </div>
-      <div class="border-t border-commandCenter-border"></div>
 
       <div class="flex flex-col gap-x-4 gap-y-2 w-full justify-between">
         <label class="block text-sm font-medium text-editor-fg mb-1">Interval Modifiers</label>
@@ -298,14 +297,7 @@
       </div>
 
       <div class="border-t border-commandCenter-border pt-2 mt-auto">
-        <div class="flex justify-end">
-          <vscode-button
-            @click="saveMaterialization"
-            class="py-1 px-2 focus:outline-none save-button"
-          >
-            Save Changes
-          </vscode-button>
-        </div>
+        <!-- Save button removed - changes are saved immediately -->
       </div>
     </div>
   </div>
@@ -371,6 +363,16 @@ const clusterInput = ref(null);
 const partitionContainer = ref(null);
 const clusterContainer = ref(null);
 
+// Debounced save function to prevent too frequent saves
+let saveTimeout = null;
+const debouncedSave = () => {
+  if (saveTimeout) {
+    clearTimeout(saveTimeout);
+  }
+  saveTimeout = setTimeout(() => {
+    saveMaterialization();
+  }, 300); // 300ms delay
+};
 
 const intervalModifiers = ref(JSON.parse(JSON.stringify(props.intervalModifiers)));
 
@@ -596,6 +598,65 @@ watch(
   { immediate: true, deep: true }
 );
 
+// Watch for strategy changes to save immediately
+watch(
+  () => localMaterialization.value.strategy,
+  () => {
+    if (localMaterialization.value.type !== "null") {
+      debouncedSave();
+    }
+  }
+);
+
+// Watch for incremental key changes to save immediately
+watch(
+  () => localMaterialization.value.incremental_key,
+  () => {
+    if (localMaterialization.value.type !== "null") {
+      debouncedSave();
+    }
+  }
+);
+
+// Watch for time granularity changes to save immediately
+watch(
+  () => localMaterialization.value.time_granularity,
+  () => {
+    if (localMaterialization.value.type !== "null") {
+      debouncedSave();
+    }
+  }
+);
+
+// Watch for partition_by changes to save immediately
+watch(
+  () => localMaterialization.value.partition_by,
+  () => {
+    if (localMaterialization.value.type !== "null") {
+      debouncedSave();
+    }
+  }
+);
+
+// Watch for cluster_by changes to save immediately
+watch(
+  () => localMaterialization.value.cluster_by,
+  () => {
+    if (localMaterialization.value.type !== "null") {
+      debouncedSave();
+    }
+  },
+  { deep: true }
+);
+
+// Watch for materialization type changes to save immediately
+watch(
+  () => localMaterialization.value.type,
+  () => {
+    debouncedSave();
+  }
+);
+
 const showStrategyOptions = computed(() => {
   return (
     localMaterialization.value.type === "table" &&
@@ -627,6 +688,9 @@ const selectPartitionColumn = (columnName) => {
   partitionInput.value = columnName;
   localMaterialization.value.partition_by = columnName;
   isPartitionDropdownOpen.value = false;
+  
+  // Save changes immediately
+  debouncedSave();
 };
 
 const filteredPartitionColumns = computed(() => {
@@ -640,6 +704,9 @@ const filteredPartitionColumns = computed(() => {
 const handlePartitionInput = () => {
   localMaterialization.value.partition_by = partitionInput.value;
   isPartitionDropdownOpen.value = true;
+  
+  // Save changes immediately
+  debouncedSave();
 };
 
 const handlePartitionInputBlur = () => {
@@ -667,11 +734,17 @@ const toggleClusterColumn = (columnName) => {
   } else {
     localMaterialization.value.cluster_by.push(columnName);
   }
+  
+  // Save changes immediately
+  debouncedSave();
 };
 
 const removeLastClusterColumn = () => {
   if (localMaterialization.value.cluster_by.length > 0) {
     localMaterialization.value.cluster_by.pop();
+    
+    // Save changes immediately
+    debouncedSave();
   }
 };
 
@@ -695,12 +768,22 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener("click", handleClickOutside);
+  
+  // Clear any pending save timeout
+  if (saveTimeout) {
+    clearTimeout(saveTimeout);
+  }
 });
 
 const saveMaterialization = () => {
-  let cleanData = null;
+  // This function is now called automatically via watchers with debouncing
+  let payload = {
+    interval_modifiers: JSON.parse(JSON.stringify(intervalModifiers.value)),
+  };
+
   if (localMaterialization.value.type !== "null") {
-    cleanData = JSON.parse(
+    // Only include materialization if it's not "null"
+    payload.materialization = JSON.parse(
       JSON.stringify({
         type: localMaterialization.value.type,
         strategy: localMaterialization.value.strategy,
@@ -712,28 +795,13 @@ const saveMaterialization = () => {
         time_granularity: localMaterialization.value.time_granularity,
       })
     );
-  } else {
-    cleanData = {
-      type: "null",
-      partition_by: localMaterialization.value.partition_by || null,
-      cluster_by: Array.isArray(localMaterialization.value.cluster_by)
-        ? [...localMaterialization.value.cluster_by]
-        : [],
-      strategy: null,
-      incremental_key: null,
-      time_granularity: null,
-    };
   }
-
-  const payload = {
-    materialization: cleanData,
-    interval_modifiers: JSON.parse(JSON.stringify(intervalModifiers.value)),
-  };
+  // If type is "null", don't include materialization in payload at all
 
   vscode.postMessage({
     command: "bruin.setAssetDetails",
     payload: payload,
-    source: "Materialization_saveMaterialization",
+    source: "Materialization_autoSave",
   });
 };
 
