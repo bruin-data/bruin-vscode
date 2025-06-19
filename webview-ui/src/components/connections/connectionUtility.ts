@@ -21,12 +21,20 @@ export const generateConnectionConfig = (schema: any) => {
         .map((prop) => {
           const propDef = connectionDef.properties[prop];
           let inputType = "text";
+          let rows: number | undefined = undefined;
+          let cols: number | undefined = undefined;
+          let required = connectionDef.required.includes(prop);
+          
           if (prop === "players" && type === "chess") {
             inputType = "csv";
           } else if (prop === "password" || prop === "secret") {
             inputType = "password";
           } else if (propDef.type === "string") {
             inputType = "text";
+          } else if (prop === "private_key") {
+            inputType = "textarea";
+            rows = 10;
+            cols = 80;
           } else if (propDef.type === "integer") {
             inputType = "number";
           } else if (propDef.type === "array" && propDef.items.type === "string") {
@@ -38,9 +46,11 @@ export const generateConnectionConfig = (schema: any) => {
             id: prop,
             label: prop.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()),
             type: inputType,
-            required: connectionDef.required.includes(prop),
+            required: required,
             defaultValue: propDef.default,
             options: propDef.enum,
+            rows: rows,
+            cols: cols,
           };
         });
     }

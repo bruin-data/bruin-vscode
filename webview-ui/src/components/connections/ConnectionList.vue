@@ -88,33 +88,32 @@
                   >
                     <TrashIcon class="h-4 w-4 inline-block" />
                   </button>
-                  <div class="relative inline-block align-middle">
+                  <div class="relative inline-block">
                     <button
                       @click="toggleMenu(connection.name, $event)"
-                      class="text-descriptionFg hover:text-editor-fg align-middle"
+                      class="text-descriptionFg hover:text-editor-fg"
                     >
                       <EllipsisVerticalIcon class="h-5 w-5 inline-block" />
                     </button>
                     <div
                       v-if="activeMenu === connection.name"
-                      class="absolute right-0 mt-2 w-48 bg-editorWidget-bg border border-commandCenter-border rounded shadow-lg z-10"
-                      :style="menuPosition"
+                      class="fixed w-36 bg-editorWidget-bg border border-commandCenter-border rounded shadow-lg z-50"
+                      :style="getMenuStyle(connection.name)"
                       ref="menuRef"
                     >
                       <button
                         @click="handleTestConnection(connection)"
-                        class="flex items-center space-x-1 w-full text-left px-2 py-1 text-sm text-editor-fg hover:bg-editor-button-hover-bg"
+                        class="flex items-center w-full text-left px-3 py-2 text-sm text-editor-fg hover:bg-editor-button-hover-bg rounded-t"
                       >
-                        <BeakerIcon class="h-4 w-4 inline-block mr-1" />
-                        <span> Test </span>
+                        <BeakerIcon class="h-4 w-4 mr-2" />
+                        <span>Test</span>
                       </button>
                       <button
                         @click="handleDuplicateConnection(connection)"
-                        class="flex items-center space-x-1 w-full text-left px-2 py-1 text-sm text-editor-fg hover:bg-editor-button-hover-bg"
+                        class="flex items-center w-full text-left px-3 py-2 text-sm text-editor-fg hover:bg-editor-button-hover-bg rounded-b"
                       >
-                        <DocumentDuplicateIcon class="h-4 w-4 inline-block mr-1" />
-
-                        <span> Duplicate </span>
+                        <DocumentDuplicateIcon class="h-4 w-4 mr-2" />
+                        <span>Duplicate</span>
                       </button>
                     </div>
                   </div>
@@ -151,6 +150,7 @@ import AlertMessage from "@/components/ui/alerts/AlertMessage.vue";
 import { vscode } from "@/utilities/vscode";
 import TestStatus from "@/components/ui/alerts/TestStatus.vue";
 import { onClickOutside } from "@vueuse/core";
+
 const connectionsStore = useConnectionsStore();
 const connections = computed(() => connectionsStore.connections);
 const error = computed(() => connectionsStore.error);
@@ -169,8 +169,8 @@ const failureMessage = ref(null);
 const successMessage = ref(null);
 const supportMessage = ref(null);
 const loadingMessage = ref(null);
-const menuPosition = ref({});
 const menuRef = ref(null);
+const buttonRefs = ref({});
 
 const groupedConnections = computed(() => {
   return connections.value.reduce((grouped, connection) => {
@@ -182,33 +182,38 @@ const groupedConnections = computed(() => {
 
 const toggleMenu = (connectionName, event) => {
   activeMenu.value = activeMenu.value === connectionName ? null : connectionName;
-  if (activeMenu.value) {
-    menuPosition.value = getMenuPosition(event); // Calculate position using the event
+  if (activeMenu.value && event) {
+    // Store the button element for positioning
+    buttonRefs.value[connectionName] = event.target.closest('button');
   }
 };
 
-const getMenuPosition = (event) => {
-  const buttonRect = event.target.getBoundingClientRect(); // Get button dimensions
-  const viewportHeight = window.innerHeight;
-
-  const dropdownHeight = 100;
-
-  // Check for overflow
-  const willOverflow = buttonRect.bottom + dropdownHeight > viewportHeight;
-
-  // Adjust position based on overflow
-  if (willOverflow) {
-    return {
-      bottom: "100%",
-      right: "4",
-      top: "auto",
-    };
+const getMenuStyle = (connectionName) => {
+  const button = buttonRefs.value[connectionName];
+  if (!button) return {};
+  
+  const rect = button.getBoundingClientRect();
+  const menuWidth = 144; // w-36 = 144px
+  const menuHeight = 80; // approximate height for 2 items
+  
+  // Calculate position
+  let left = rect.right - menuWidth; // Align right edge with button
+  let top = rect.bottom + 4; // 4px gap below button
+  
+  // Adjust if menu would go off-screen
+  if (left < 8) left = 8; // Min 8px from left edge
+  if (left + menuWidth > window.innerWidth - 8) {
+    left = window.innerWidth - menuWidth - 8; // Max 8px from right edge
   }
-
+  
+  // If menu would go below viewport, show above button instead
+  if (top + menuHeight > window.innerHeight - 8) {
+    top = rect.top - menuHeight - 4;
+  }
+  
   return {
-    top: "100%",
-    right: "4",
-    bottom: "auto",
+    left: `${left}px`,
+    top: `${top}px`
   };
 };
 
@@ -279,6 +284,7 @@ const handleMessage = (event) => {
       break;
   }
 };
+
 onMounted(() => {
   window.addEventListener("message", handleMessage);
 });

@@ -1,5 +1,8 @@
 # Changelog
-## [0.51.2] - [2025-06-18]
+## [0.51.3] - [2025-06-19]
+- Enhanced Snowflake connection support with private key authentication, including validation and improved input handling.
+
+## [0.51.2] - [2025-06-19]
 - Enabled auto-saving for materialization changes, removing the manual save button.
 
 ## [0.51.1] - [2025-06-18]

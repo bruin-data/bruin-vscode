@@ -53,11 +53,14 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 **Note**: Ensure that you have the Bruin CLI installed on your system before using the new features. For guidance on installing the Bruin CLI, please refer to the [official documentation](https://github.com/bruin-data/bruin).
 
+
+
 ## Release Notes
-### Latest Release: 0.51.2
-- Enabled auto-saving for materialization changes, removing the manual save button.
+### Latest Release: 0.51.3
+- Enhanced Snowflake connection support with private key authentication, including validation and improved input handling.
 
 ### Recent Updates
+- **0.51.2**: Enabled auto-saving for materialization changes, removing the manual save button.
 - **0.51.1**: Fixed BQ connection updates and improved service account credential handling.
 - **0.51.0**: Added inline "Preview" button using CodeLens for top-level queries in the editor.
 - **0.50.8**: Added support for additional seed asset types in snippets, schema and UI.

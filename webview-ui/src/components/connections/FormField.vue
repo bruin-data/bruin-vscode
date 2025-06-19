@@ -42,9 +42,13 @@
             defaultValue !== undefined ? String(defaultValue) : `Enter ${label.toLowerCase()}`
           "
           :required="required && !selectedFile && !internalValue"
-          :rows="rows"
-          :cols="cols"
+          :rows="rows || 4"
+          :cols="cols || 50"
+          :style="{ resize: 'vertical', minHeight: '80px' }"
         />
+        <p v-if="id === 'private_key'" class="mt-2 text-xs text-inputPlaceholderForeground">
+          Paste your private key including the BEGIN and END markers.
+        </p>
       </div>
 
       <div v-if="id === 'service_account_json'" class="mt-2">
@@ -262,6 +266,11 @@ const updateValue = (event) => {
   let value;
   if (props.type === "number") {
     value = Number(event.target.value);
+  } else if (props.type === "textarea") {
+    value = event.target.value;
+    if (props.id === "private_key") {
+      value = formatPrivateKey(value);
+    }
   } else {
     value = event.target.value.trim();
   }
@@ -276,6 +285,32 @@ const updateValue = (event) => {
   }
 
   validateAndEmit();
+};
+
+const formatPrivateKey = (key) => {
+  if (!key) return key;
+  
+  // Split into lines and clean up each line
+  const lines = key.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+  
+  // Find the header and footer lines
+  const headerIndex = lines.findIndex(line => 
+    line.includes('-----BEGIN') && line.includes('PRIVATE KEY-----')
+  );
+  const footerIndex = lines.findIndex(line => 
+    line.includes('-----END') && line.includes('PRIVATE KEY-----')
+  );
+  
+  if (headerIndex === -1 || footerIndex === -1) {
+    return key; 
+  }
+  const header = lines[headerIndex];
+  const footer = lines[footerIndex];
+  const keyContent = lines.slice(headerIndex + 1, footerIndex);
+  
+  const cleanedContent = keyContent.map(line => line.trim()).filter(line => line.length > 0);
+  
+  return [header, ...cleanedContent, footer].join('\n');
 };
 
 const handleCSVUpload = (event) => {

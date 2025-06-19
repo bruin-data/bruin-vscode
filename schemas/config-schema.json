@@ -219,6 +219,9 @@
                 "password": {
                     "type": "string"
                 },
+                "private_key": {
+                    "type": "string"
+                },
                 "region": {
                     "type": "string"
                 },
@@ -238,11 +241,7 @@
             "required": [
                 "name",
                 "account",
-                "username",
-                "password",
-                "role",
-                "database",
-                "warehouse"
+                "username"
             ],
             "additionalProperties": false
         },

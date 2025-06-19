@@ -22,13 +22,6 @@
             :serviceAccountFile="field.id === 'service_account_json' ? selectedFile : undefined"
           />
         </div>
-   <!--      <vscode-button
-          appearance="secondary"
-          @click="testConnection"
-          class="p-1 text-sm font-semibold"
-        >
-          Test Connection
-        </vscode-button> -->
       </div>
       <div class="mt-6 flex justify-end space-x-1 w-full">
         <vscode-button
@@ -279,7 +272,32 @@ const validateForm = () => {
         errors[field.id] = "This field is required";
       }
     }
+    
+    // Validate private key format for Snowflake connections
+    if (field.id === "private_key" && form.value[field.id]) {
+      const privateKey = form.value[field.id];
+      const hasStandardKey = privateKey.includes("-----BEGIN PRIVATE KEY-----") && 
+                            privateKey.includes("-----END PRIVATE KEY-----");
+      const hasEncryptedKey = privateKey.includes("-----BEGIN ENCRYPTED PRIVATE KEY-----") && 
+                             privateKey.includes("-----END ENCRYPTED PRIVATE KEY-----");
+      
+      if (!hasStandardKey && !hasEncryptedKey) {
+        errors[field.id] = "Private key must be in PEM format with BEGIN and END markers";
+      }
+    }
   });
+  
+  // Special validation for Snowflake connections - require either password or private_key
+  if (form.value.connection_type === "snowflake") {
+    const hasPassword = !!form.value.password;
+    const hasPrivateKey = !!form.value.private_key;
+    
+    if (!hasPassword && !hasPrivateKey) {
+      errors.password = "Either password or private key is required for Snowflake connections";
+      errors.private_key = "Either password or private key is required for Snowflake connections";
+    }
+  }
+  
   validationErrors.value = errors;
   return Object.keys(errors).length === 0;
 };
@@ -327,6 +345,26 @@ const submitForm = () => {
 
   console.log("============connection credentials============");
   console.log(connectionData.credentials);
+  
+  // Debug: Log private key if present
+  if (connectionData.credentials.private_key) {
+    console.log("============PRIVATE KEY BEING SENT============");
+    console.log(connectionData.credentials.private_key);
+    console.log("============PRIVATE KEY LENGTH============");
+    console.log(connectionData.credentials.private_key.length);
+  }
+  
+  // Debug: Log all Snowflake credentials
+  if (connectionData.type === "snowflake") {
+    console.log("============SNOWFLAKE CONNECTION DEBUG============");
+    console.log("Account:", connectionData.credentials.account);
+    console.log("Username:", connectionData.credentials.username);
+    console.log("Has Password:", !!connectionData.credentials.password);
+    console.log("Has Private Key:", !!connectionData.credentials.private_key);
+    console.log("Role:", connectionData.credentials.role);
+    console.log("Database:", connectionData.credentials.database);
+    console.log("Warehouse:", connectionData.credentials.warehouse);
+  }
 
   emit("submit", connectionData);
 };
