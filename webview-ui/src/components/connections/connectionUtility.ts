@@ -17,13 +17,24 @@ export const generateConnectionConfig = (schema: any) => {
     const connectionDef = schema.$defs[connectionDefKey];
     if (connectionDef) {
       connectionConfig[type] = Object.keys(connectionDef.properties)
-        .filter((prop) => prop !== "name" && prop !== "service_account_file") // Exclude the 'name' field
+        .filter((prop) =>
+          prop !== "name" &&
+          prop !== "service_account_file" &&
+          // Remove deprecated S3 fields
+          prop !== "bucket_name" &&
+          prop !== "path_to_file"
+        )
         .map((prop) => {
           const propDef = connectionDef.properties[prop];
           let inputType = "text";
           let rows: number | undefined = undefined;
           let cols: number | undefined = undefined;
           let required = connectionDef.required.includes(prop);
+
+          // Endpoint URL and Layout are optional for S3 connections
+          if (prop === "endpoint_url" || prop === "layout") {
+            required = false;
+          }
           
           if (prop === "players" && type === "chess") {
             inputType = "csv";
