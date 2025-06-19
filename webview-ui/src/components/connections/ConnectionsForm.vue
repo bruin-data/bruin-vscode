@@ -22,13 +22,6 @@
             :serviceAccountFile="field.id === 'service_account_json' ? selectedFile : undefined"
           />
         </div>
-   <!--      <vscode-button
-          appearance="secondary"
-          @click="testConnection"
-          class="p-1 text-sm font-semibold"
-        >
-          Test Connection
-        </vscode-button> -->
       </div>
       <div class="mt-6 flex justify-end space-x-1 w-full">
         <vscode-button
