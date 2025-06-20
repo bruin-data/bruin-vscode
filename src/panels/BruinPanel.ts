@@ -10,7 +10,10 @@ import {
   getCurrentPipelinePath,
   runInIntegratedTerminal,
   runBruinCommandInIntegratedTerminal,
+<<<<<<< HEAD
   escapeFilePath,
+=======
+>>>>>>> bbace44 (Added runBruinCommandInIntegratedTerminal function in bruinUtils and small style fixes)
 } from "../bruin";
 import * as vscode from "vscode";
 import { renderCommandWithFlags } from "../extension/commands/renderCommand";
@@ -407,12 +410,21 @@ export class BruinPanel {
               console.error("No active document to fill asset dependency.");
               return;
             }
+<<<<<<< HEAD
             const assetPath = this._lastRenderedDocumentUri.fsPath;
             const escapedAssetPath = assetPath ? escapeFilePath(assetPath) : ""; 
             const assetWorkspaceDir = await bruinWorkspaceDirectory(assetPath);
             
             const command = [ "patch", "fill-asset-dependencies", escapedAssetPath];
             await runBruinCommandInIntegratedTerminal(command, assetWorkspaceDir);  
+=======
+            
+            const assetPath = this._lastRenderedDocumentUri.fsPath;
+            const assetWorkspaceDir = await bruinWorkspaceDirectory(assetPath);
+            
+            const command = `bruin patch fill-asset-dependencies "${assetPath}"`;
+            await runBruinCommandInIntegratedTerminal(command, assetWorkspaceDir);
+>>>>>>> bbace44 (Added runBruinCommandInIntegratedTerminal function in bruinUtils and small style fixes)
             return;
 
           
