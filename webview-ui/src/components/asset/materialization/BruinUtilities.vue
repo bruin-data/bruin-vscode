@@ -6,14 +6,19 @@
       </div>
 
       <div class="flex items-center gap-2">
-       
-
         <vscode-button
           @click="fillAssetDependency"
           appearance="default"
           class="text-2xs h-6 px-2"
         >
           Fill Asset Dependencies
+        </vscode-button>
+        <vscode-button
+          @click="fillColumnsFromDB"
+          appearance="default"
+          class="text-2xs h-6 px-2"
+        >
+          Fill Columns from DB
         </vscode-button>
       </div>
     </div>
@@ -25,7 +30,13 @@ import { vscode } from "@/utilities/vscode";
 
 const fillAssetDependency = () => {
   vscode.postMessage({
-    command: "bruin.fillAssetDependency"
+    command: "bruin.fillAssetDependency",
+  });
+};
+
+const fillColumnsFromDB = () => {
+  vscode.postMessage({
+    command: "bruin.fillColumnsFromDB",
   });
 };
 </script>
