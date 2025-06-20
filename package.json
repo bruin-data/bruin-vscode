@@ -145,6 +145,11 @@
           "type": "boolean",
           "default": false,
           "description": "Sets whether the 'Push-Metadata' checkbox is checked by default."
+        },
+        "bruin.validate.excludeTag": {
+          "type": "string",
+          "default": "",
+          "description": "Default tag to exclude when validating assets."
         }
       }
     },

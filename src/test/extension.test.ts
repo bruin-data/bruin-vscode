@@ -789,6 +789,18 @@ suite("BruinValidate Tests", () => {
     sinon.assert.calledOnceWithExactly(runStub, [...flags, filePath], { ignoresErrors: false });
   });
 
+  test("validate should include exclude-tag flag from settings", async () => {
+    const filePath = "path/to/asset";
+    const flags = ["-o", "json"];
+    const tagStub = sinon.stub(configuration, "getValidateExcludeTag").returns("python");
+    runStub.resolves("{}");
+
+    await bruinValidate.validate(filePath, { flags });
+
+    sinon.assert.calledOnceWithExactly(runStub, [...flags, "--exclude-tag", "python", filePath], { ignoresErrors: false });
+    tagStub.restore();
+  });
+
   test("validate should handle error when running validation command on Mac and Linux", async () => {
     const filePath = "path/to/asset";
     const error = new Error("Validation command failed");
@@ -4979,6 +4991,45 @@ suite(" Query export Tests", () => {
         const result = getPathSeparator();
 
         assert.strictEqual(result, "/");
+      });
+    });
+
+    suite("getValidateExcludeTag", () => {
+      test("should return configured exclude tag", () => {
+        const mockConfig = {
+          get: sinon.stub().withArgs("excludeTag").returns("python")
+        };
+        workspaceGetConfigurationStub.withArgs("bruin.validate").returns(mockConfig);
+
+        const { getValidateExcludeTag } = require("../extension/configuration");
+        const result = getValidateExcludeTag();
+
+        assert.strictEqual(result, "python");
+        sinon.assert.calledWith(workspaceGetConfigurationStub, "bruin.validate");
+      });
+
+      test("should return empty string when not configured", () => {
+        const mockConfig = {
+          get: sinon.stub().withArgs("excludeTag").returns(undefined)
+        };
+        workspaceGetConfigurationStub.withArgs("bruin.validate").returns(mockConfig);
+
+        const { getValidateExcludeTag } = require("../extension/configuration");
+        const result = getValidateExcludeTag();
+
+        assert.strictEqual(result, "");
+      });
+
+      test("should return empty string when configuration returns null", () => {
+        const mockConfig = {
+          get: sinon.stub().withArgs("excludeTag").returns(null)
+        };
+        workspaceGetConfigurationStub.withArgs("bruin.validate").returns(mockConfig);
+
+        const { getValidateExcludeTag } = require("../extension/configuration");
+        const result = getValidateExcludeTag();
+
+        assert.strictEqual(result, "");
       });
     });
 
