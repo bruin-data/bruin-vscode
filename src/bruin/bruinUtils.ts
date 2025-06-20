@@ -91,7 +91,7 @@ export const bruinWorkspaceDirectory = async (
   return undefined;
 };
 
-const escapeFilePath = (filePath: string): string => {
+export const escapeFilePath = (filePath: string): string => {
   // Convert Windows-style paths to Unix-style paths for Git Bash
   if (process.platform === "win32" && process.env.SHELL?.includes("bash")) {
     filePath = filePath.replace(/\\/g, "/");
@@ -243,7 +243,7 @@ export const runInIntegratedTerminal = async (
 
 
 export const runBruinCommandInIntegratedTerminal = async (
-  command: string,
+  commandArgs: string[],
   workingDir?: string | undefined
 ): Promise<void> => {
   const bruinExecutable = getBruinExecutablePath();
@@ -253,7 +253,8 @@ export const runBruinCommandInIntegratedTerminal = async (
     ? "bruin" 
     : bruinExecutable;
   
-  const finalCommand = command.replace(/^bruin/, executable);
+  
+  const finalCommand = [executable, ...commandArgs].join(' ');
   
   terminal.show(true);
   terminal.sendText(" ");
@@ -379,3 +380,22 @@ export async function checkCliVersion(): Promise<{
     latest: latest,
   };
 }
+
+export const runBruinPatchCommand = async (
+  assetUri: vscode.Uri | undefined,
+  bruinCommand: string
+): Promise<void> => {
+  if (!assetUri) {
+    console.error("No active document to run bruin command.");
+    vscode.window.showErrorMessage("No active document to run bruin command.");
+    return;
+  }
+
+  const executable = getBruinExecutablePath();
+  const assetPath = assetUri.fsPath;
+  const escapedAssetPath = assetPath ? escapeFilePath(assetPath) : "";
+  const assetWorkspaceDir = await bruinWorkspaceDirectory(assetPath);
+
+  const command = [executable, bruinCommand, escapedAssetPath];
+  await runBruinCommandInIntegratedTerminal(command, assetWorkspaceDir);
+};
