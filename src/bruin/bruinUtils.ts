@@ -241,6 +241,30 @@ export const runInIntegratedTerminal = async (
   await new Promise((resolve) => setTimeout(resolve, 1000));
 };
 
+
+export const runBruinCommandInIntegratedTerminal = async (
+  command: string,
+  workingDir?: string | undefined
+): Promise<void> => {
+  const bruinExecutable = getBruinExecutablePath();
+  const terminal = await createIntegratedTerminal(workingDir);
+  
+  const executable = ((terminal.creationOptions as vscode.TerminalOptions).shellPath?.includes("bash")) 
+    ? "bruin" 
+    : bruinExecutable;
+  
+  const finalCommand = command.replace(/^bruin/, executable);
+  
+  terminal.show(true);
+  terminal.sendText(" ");
+  
+  setTimeout(() => {
+    terminal.sendText(finalCommand);
+  }, 500);
+  
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+};
+
 export const createIntegratedTerminal = async (
   workingDir: string | undefined
 ): Promise<vscode.Terminal> => {

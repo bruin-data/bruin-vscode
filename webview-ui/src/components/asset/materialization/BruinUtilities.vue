@@ -1,6 +1,6 @@
 <template>
   <div class="bg-editorWidget-bg border border-commandCenter-border rounded-md">
-    <div class="p-3">
+    <div class="py-3">
       <div class="flex items-center justify-between mb-2">
         <h3 class="text-sm font-medium text-editor-fg">Utilities</h3>
       </div>
@@ -12,13 +12,6 @@
           class="text-2xs h-6 px-2"
         >
           Fill Asset Dependencies
-        </vscode-button>
-        <vscode-button
-          @click="fillColumnsFromDB"
-          appearance="default"
-          class="text-2xs h-6 px-2"
-        >
-          Fill Columns from DB
         </vscode-button>
       </div>
     </div>
