@@ -9,6 +9,7 @@ import {
   createIntegratedTerminal,
   getCurrentPipelinePath,
   runInIntegratedTerminal,
+  runBruinCommandInIntegratedTerminal,
 } from "../bruin";
 import * as vscode from "vscode";
 import { renderCommandWithFlags } from "../extension/commands/renderCommand";
@@ -405,11 +406,12 @@ export class BruinPanel {
               console.error("No active document to fill asset dependency.");
               return;
             }
-            const workingDir = workspaceFolder ? workspaceFolder.uri.fsPath : undefined;
-            const terminal = await createIntegratedTerminal(workingDir);
-            terminal.show(true);
-            terminal.sendText(`bruin patch fill-asset-dependencies "${this._lastRenderedDocumentUri.fsPath}"`);
-            await new Promise((resolve) => setTimeout(resolve, 1000));
+            
+            const assetPath = this._lastRenderedDocumentUri.fsPath;
+            const assetWorkspaceDir = await bruinWorkspaceDirectory(assetPath);
+            
+            const command = `bruin patch fill-asset-dependencies "${assetPath}"`;
+            await runBruinCommandInIntegratedTerminal(command, assetWorkspaceDir);
             return;
 
           case "bruin.getEnvironmentsList":
