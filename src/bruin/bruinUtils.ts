@@ -91,7 +91,7 @@ export const bruinWorkspaceDirectory = async (
   return undefined;
 };
 
-const escapeFilePath = (filePath: string): string => {
+export const escapeFilePath = (filePath: string): string => {
   // Convert Windows-style paths to Unix-style paths for Git Bash
   if (process.platform === "win32" && process.env.SHELL?.includes("bash")) {
     filePath = filePath.replace(/\\/g, "/");
@@ -241,6 +241,32 @@ export const runInIntegratedTerminal = async (
   await new Promise((resolve) => setTimeout(resolve, 1000));
 };
 
+
+export const runBruinCommandInIntegratedTerminal = async (
+  commandArgs: string[],
+  workingDir?: string | undefined
+): Promise<void> => {
+  const bruinExecutable = getBruinExecutablePath();
+  const terminal = await createIntegratedTerminal(workingDir);
+  
+  const executable = ((terminal.creationOptions as vscode.TerminalOptions).shellPath?.includes("bash")) 
+    ? "bruin" 
+    : bruinExecutable;
+  
+  const finalCommand = [executable, ...commandArgs].join(' ');
+
+
+  
+  terminal.show(true);
+  terminal.sendText(" ");
+  
+  setTimeout(() => {
+    terminal.sendText(finalCommand);
+  }, 500);
+  
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+};
+
 export const createIntegratedTerminal = async (
   workingDir: string | undefined
 ): Promise<vscode.Terminal> => {
@@ -355,3 +381,22 @@ export async function checkCliVersion(): Promise<{
     latest: latest,
   };
 }
+
+export const runBruinPatchCommand = async (
+  assetUri: vscode.Uri | undefined,
+  bruinCommand: string
+): Promise<void> => {
+  if (!assetUri) {
+    console.error("No active document to run bruin command.");
+    vscode.window.showErrorMessage("No active document to run bruin command.");
+    return;
+  }
+
+  const executable = getBruinExecutablePath();
+  const assetPath = assetUri.fsPath;
+  const escapedAssetPath = assetPath ? escapeFilePath(assetPath) : "";
+  const assetWorkspaceDir = await bruinWorkspaceDirectory(assetPath);
+
+  const command = [executable, bruinCommand, escapedAssetPath];
+  await runBruinCommandInIntegratedTerminal(command, assetWorkspaceDir);
+};
