@@ -2,6 +2,7 @@ import { BruinCommand } from "./bruinCommand";
 import { BruinPanel } from "../panels/BruinPanel";
 import { BruinCommandOptions } from "../types";
 import { platform } from "os";
+import { getValidateExcludeTag } from "../extension/configuration";
 /**
  * Extends the BruinCommand class to implement the bruin validate command on Bruin assets.
  */
@@ -29,6 +30,11 @@ export class BruinValidate extends BruinCommand {
     filePath: string,
     { flags = ["-o", "json"], ignoresErrors = false }: BruinCommandOptions = {}
   ): Promise<void> {
+    const excludeTag = getValidateExcludeTag();
+    let commandFlags = [...flags];
+    if (excludeTag && excludeTag.trim() !== "") {
+      commandFlags = commandFlags.concat(["--exclude-tag", excludeTag]);
+    }
     this.isLoading = true;
     BruinPanel.postMessage("validation-message", {
       status: "loading",
@@ -36,7 +42,7 @@ export class BruinValidate extends BruinCommand {
     });
 
     try {
-      const result = await this.run([...flags, filePath], { ignoresErrors });
+      const result = await this.run([...commandFlags, filePath], { ignoresErrors });
       let validationResults = JSON.parse(result);
 
       if (!Array.isArray(validationResults) && platform() === "win32") {

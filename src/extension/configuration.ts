@@ -19,6 +19,11 @@ export function getPathSeparator(): string {
   return pathSeparator;
 }
 
+export function getValidateExcludeTag(): string {
+  const validateConfig = vscode.workspace.getConfiguration("bruin.validate");
+  return validateConfig.get<string>("excludeTag", "");
+}
+
 let documentInitState = new Map();
 
 export async function toggleFoldingsCommand(toggled: boolean): Promise<void> {
