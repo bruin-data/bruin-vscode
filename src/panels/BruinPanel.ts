@@ -10,6 +10,7 @@ import {
   getCurrentPipelinePath,
   runInIntegratedTerminal,
   runBruinCommandInIntegratedTerminal,
+  escapeFilePath,
 } from "../bruin";
 import * as vscode from "vscode";
 import { renderCommandWithFlags } from "../extension/commands/renderCommand";
@@ -33,7 +34,7 @@ import { getBruinExecutablePath } from "../providers/BruinExecutableService";
 import path = require("path");
 import { isBruinAsset } from "../utilities/helperUtils";
 import { getDefaultCheckboxSettings } from "../extension/configuration";
-
+import { exec } from "child_process";
 /**
  * This class manages the state and behavior of Bruin webview panels.
  *
@@ -406,13 +407,15 @@ export class BruinPanel {
               console.error("No active document to fill asset dependency.");
               return;
             }
-            
             const assetPath = this._lastRenderedDocumentUri.fsPath;
+            const escapedAssetPath = assetPath ? escapeFilePath(assetPath) : ""; 
             const assetWorkspaceDir = await bruinWorkspaceDirectory(assetPath);
             
-            const command = `bruin patch fill-asset-dependencies "${assetPath}"`;
-            await runBruinCommandInIntegratedTerminal(command, assetWorkspaceDir);
+            const command = [ "patch", "fill-asset-dependencies", escapedAssetPath];
+            await runBruinCommandInIntegratedTerminal(command, assetWorkspaceDir);  
             return;
+
+          
 
           case "bruin.getEnvironmentsList":
             if (!this._lastRenderedDocumentUri) {
