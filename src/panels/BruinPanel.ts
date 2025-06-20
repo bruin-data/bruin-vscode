@@ -287,53 +287,19 @@ export class BruinPanel {
       async (message: any) => {
         const command = message.command;
         switch (command) {
-
-          
-          case "bruin.fillAssetDependency":
-            if (!this._lastRenderedDocumentUri) {
-              console.error("No active document to fill dependencies for.");
-              return;
-            }
-            const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-            const workingDir = workspaceFolder ? workspaceFolder.uri.fsPath : undefined;
-            const terminal = await createIntegratedTerminal(workingDir);
-            terminal.show(true);
-            terminal.sendText(`bruin patch fill-asset-dependencies "${this._lastRenderedDocumentUri.fsPath}"`);
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-            return;
-
-
-          case "bruin.validate":
-            if (!this._lastRenderedDocumentUri) {
-              console.error("No active document to validate.");
-              return;
-            }
-
-            const filePath = this._lastRenderedDocumentUri.fsPath;
-            console.log(
-              "Validating asset:",
-              filePath,
-              "in workspace:",
-              "",
-              "with bruin exec:",
-              getBruinExecutablePath()
-            );
-            const validator = new BruinValidate(getBruinExecutablePath(), "");
-            await validator.validate(filePath);
-            break;
           case "bruin.validateAll":
-            const workspaceFolderAll = vscode.workspace.workspaceFolders?.[0];
-            if (!workspaceFolderAll) {
+            const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+            if (!workspaceFolder) {
               console.error("No workspace folder found.");
               return;
             }
 
             const validatorAll = new BruinValidate(
               getBruinExecutablePath(),
-              workspaceFolderAll.uri.fsPath
+              workspaceFolder.uri.fsPath
             );
 
-            await validatorAll.validate(workspaceFolderAll.uri.fsPath);
+            await validatorAll.validate(workspaceFolder.uri.fsPath);
             break;
           case "bruin.checkTelemtryPreference":
             const config = workspace.getConfiguration("bruin");
@@ -370,6 +336,25 @@ export class BruinPanel {
             this._checkboxState = message.payload.checkboxState;
             this._flags = message.payload.flags;
             await renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri?.fsPath);
+            break;
+
+          case "bruin.validate":
+            if (!this._lastRenderedDocumentUri) {
+              console.error("No active document to validate.");
+              return;
+            }
+
+            const filePath = this._lastRenderedDocumentUri.fsPath;
+            console.log(
+              "Validating asset:",
+              filePath,
+              "in workspace:",
+              "",
+              "with bruin exec:",
+              getBruinExecutablePath()
+            );
+            const validator = new BruinValidate(getBruinExecutablePath(), "");
+            await validator.validate(filePath);
             break;
           case "bruin.runSql":
             if (!this._lastRenderedDocumentUri) {
@@ -414,6 +399,18 @@ export class BruinPanel {
             console.log("Setting asset data :", assetData, "source:", source);
             patchAssetCommand(assetData, this._lastRenderedDocumentUri);
             break;
+
+          case "bruin.fillAssetDependency":
+            if (!this._lastRenderedDocumentUri) {
+              console.error("No active document to fill asset dependency.");
+              return;
+            }
+            const workingDir = workspaceFolder ? workspaceFolder.uri.fsPath : undefined;
+            const terminal = await createIntegratedTerminal(workingDir);
+            terminal.show(true);
+            terminal.sendText(`bruin patch fill-asset-dependencies "${this._lastRenderedDocumentUri.fsPath}"`);
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            return;
 
           case "bruin.getEnvironmentsList":
             if (!this._lastRenderedDocumentUri) {
