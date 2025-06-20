@@ -243,7 +243,11 @@ export const runInIntegratedTerminal = async (
 
 
 export const runBruinCommandInIntegratedTerminal = async (
+<<<<<<< HEAD
   commandArgs: string[],
+=======
+  command: string,
+>>>>>>> bbace44 (Added runBruinCommandInIntegratedTerminal function in bruinUtils and small style fixes)
   workingDir?: string | undefined
 ): Promise<void> => {
   const bruinExecutable = getBruinExecutablePath();
@@ -253,8 +257,12 @@ export const runBruinCommandInIntegratedTerminal = async (
     ? "bruin" 
     : bruinExecutable;
   
+<<<<<<< HEAD
   
   const finalCommand = [executable, ...commandArgs].join(' ');
+=======
+  const finalCommand = command.replace(/^bruin/, executable);
+>>>>>>> bbace44 (Added runBruinCommandInIntegratedTerminal function in bruinUtils and small style fixes)
   
   terminal.show(true);
   terminal.sendText(" ");

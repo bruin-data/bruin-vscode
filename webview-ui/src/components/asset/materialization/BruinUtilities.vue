@@ -1,5 +1,9 @@
 <template>
+<<<<<<< HEAD
   <div class="border-commandCenter-border rounded-md">
+=======
+  <div class="bg-editorWidget-bg border border-commandCenter-border rounded-md">
+>>>>>>> bbace44 (Added runBruinCommandInIntegratedTerminal function in bruinUtils and small style fixes)
     <div class="py-3">
       <div class="flex items-center justify-between mb-2">
         <h3 class="text-sm font-medium text-editor-fg">Utilities</h3>
@@ -13,6 +17,15 @@
         >
           Fill Asset Dependencies
         </vscode-button>
+
+        <vscode-button
+          @click="fillColumnsFromDB"
+          appearance="primary"
+          class="text-2xs h-6 px-2"
+        >
+          Fill Columns from DB
+        </vscode-button>
+
       </div>
     </div>
   </div>
