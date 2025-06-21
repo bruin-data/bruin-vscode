@@ -382,21 +382,4 @@ export async function checkCliVersion(): Promise<{
   };
 }
 
-export const runBruinPatchCommand = async (
-  assetUri: vscode.Uri | undefined,
-  bruinCommand: string
-): Promise<void> => {
-  if (!assetUri) {
-    console.error("No active document to run bruin command.");
-    vscode.window.showErrorMessage("No active document to run bruin command.");
-    return;
-  }
 
-  const executable = getBruinExecutablePath();
-  const assetPath = assetUri.fsPath;
-  const escapedAssetPath = assetPath ? escapeFilePath(assetPath) : "";
-  const assetWorkspaceDir = await bruinWorkspaceDirectory(assetPath);
-
-  const command = [executable, bruinCommand, escapedAssetPath];
-  await runBruinCommandInIntegratedTerminal(command, assetWorkspaceDir);
-};
