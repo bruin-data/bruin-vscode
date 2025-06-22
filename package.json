@@ -72,6 +72,13 @@
       }
     ],
     "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "bruin",
+          "title": "Bruin",
+          "icon": "./img/resized14.svg"
+        }
+      ],
       "panel": [
         {
           "id": "bruin-assetLineageView",
@@ -86,6 +93,12 @@
       ]
     },
     "views": {
+      "bruin": [
+        {
+          "id": "bruinPanel",
+          "name": "Bruin Panel"
+        }
+      ],
       "bruin-assetLineageView": [
         {
           "type": "webview",
