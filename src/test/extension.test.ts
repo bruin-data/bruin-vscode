@@ -1783,7 +1783,27 @@ suite("BruinPanel Tests", () => {
       
       escapeStub.restore();
       runStub.restore();
+
+
+
     });
+    test("handles bruin.fillAssetColumn command", async () => {
+      const escapeStub = sinon.stub(bruinUtils, "escapeFilePath").returns("/escaped/path/test.sql");
+      const runStub = sinon.stub(bruinUtils, "runBruinCommandInIntegratedTerminal");
+      
+      await (windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0]({ 
+        command: "bruin.fillAssetColumn" });
+        assert.ok(escapeStub.calledOnceWith(mockDocumentUri.fsPath) && bruinWorkspaceDirectoryStub.calledOnceWith(mockDocumentUri.fsPath) 
+        && runStub.calledOnce);
+
+        const [command, workspaceDir] = runStub.firstCall.args;
+       assert.deepStrictEqual(command, ["patch", "fill-columns-from-db", "/escaped/path/test.sql"]);
+       assert.strictEqual(workspaceDir, "/mock/workspace");
+      
+      escapeStub.restore();
+      runStub.restore();
+    });
+
 
     test("validateCurrentPipeline with no active document", async () => {
       windowActiveTextEditorStub.value(undefined); // Simulate no active text editor
