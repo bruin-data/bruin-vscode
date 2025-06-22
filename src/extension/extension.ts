@@ -23,6 +23,7 @@ import { QueryPreviewPanel } from "../panels/QueryPreviewPanel";
 import { BruinPanel } from "../panels/BruinPanel";
 import { QueryCodeLensProvider } from "../providers/queryCodeLensProvider";
 import { getQueryOutput } from "./commands/queryCommands";
+import { ActivityBarDatabaseProvider } from "../panels/ActivityBarDatabaseProvider";
 
 let analyticsClient: any = null;
 
@@ -176,6 +177,10 @@ export async function activate(context: ExtensionContext) {
   context.subscriptions.push(codeLensProvider);
 
   subscribeToConfigurationChanges();
+
+  context.subscriptions.push(
+    vscode.window.createTreeView('bruinDatabases', { treeDataProvider: new ActivityBarDatabaseProvider() })
+  );
 
   const defaultFoldingState = bruinConfig.get("bruin.FoldingState", "folded");
   let toggled = defaultFoldingState === "folded";

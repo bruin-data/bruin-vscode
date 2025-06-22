@@ -95,8 +95,8 @@
     "views": {
       "bruin": [
         {
-          "id": "bruinPanel",
-          "name": "Bruin Panel"
+          "id": "bruinDatabases",
+          "name": "Databases"
         }
       ],
       "bruin-assetLineageView": [
