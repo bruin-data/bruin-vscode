@@ -1,0 +1,148 @@
+{
+  "databases": {
+    "sales_db": {
+      "schemas": {
+        "public": {
+          "tables": {
+            "customers": {
+              "columns": {
+                "id": "int",
+                "name": "varchar",
+                "email": "varchar",
+                "joined_at": "timestamp"
+              }
+            },
+            "orders": {
+              "columns": {
+                "id": "int",
+                "customer_id": "int",
+                "total": "decimal",
+                "order_date": "timestamp"
+              }
+            },
+            "products": {
+              "columns": {
+                "id": "int",
+                "name": "varchar",
+                "price": "decimal",
+                "in_stock": "bool"
+              }
+            },
+            "payments": {
+              "columns": {
+                "id": "int",
+                "order_id": "int",
+                "amount": "decimal",
+                "paid_at": "timestamp"
+              }
+            }
+          }
+        },
+        "reporting": {
+          "tables": {
+            "monthly_sales": {
+              "columns": {
+                "id": "int",
+                "month": "varchar",
+                "total_sales": "decimal"
+              }
+            },
+            "top_customers": {
+              "columns": {
+                "id": "int",
+                "customer_id": "int",
+                "total_spent": "decimal"
+              }
+            },
+            "product_performance": {
+              "columns": {
+                "id": "int",
+                "product_id": "int",
+                "units_sold": "int"
+              }
+            },
+            "revenue_by_region": {
+              "columns": {
+                "id": "int",
+                "region": "varchar",
+                "revenue": "decimal"
+              }
+            }
+          }
+        }
+      }
+    },
+    "hr_db": {
+      "schemas": {
+        "public": {
+          "tables": {
+            "employees": {
+              "columns": {
+                "id": "int",
+                "first_name": "varchar",
+                "last_name": "varchar",
+                "hire_date": "date"
+              }
+            },
+            "departments": {
+              "columns": {
+                "id": "int",
+                "name": "varchar"
+              }
+            },
+            "salaries": {
+              "columns": {
+                "id": "int",
+                "employee_id": "int",
+                "amount": "decimal",
+                "effective_date": "date"
+              }
+            },
+            "positions": {
+              "columns": {
+                "id": "int",
+                "title": "varchar",
+                "department_id": "int"
+              }
+            }
+          }
+        },
+        "audit": {
+          "tables": {
+            "login_log": {
+              "columns": {
+                "id": "bigint",
+                "employee_id": "int",
+                "login_time": "timestamp"
+              }
+            },
+            "permission_changes": {
+              "columns": {
+                "id": "bigint",
+                "employee_id": "int",
+                "changed_at": "timestamp"
+              }
+            },
+            "salary_changes": {
+              "columns": {
+                "id": "bigint",
+                "employee_id": "int",
+                "old_salary": "decimal",
+                "new_salary": "decimal",
+                "changed_at": "timestamp"
+              }
+            },
+            "access_logs": {
+              "columns": {
+                "id": "bigint",
+                "employee_id": "int",
+                "access_time": "timestamp",
+                "resource": "varchar"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+} 
