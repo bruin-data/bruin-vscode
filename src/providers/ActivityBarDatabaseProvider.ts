@@ -27,7 +27,8 @@ class Dependency extends vscode.TreeItem {
   constructor(
     public readonly label: string,
     public readonly collapsibleState: vscode.TreeItemCollapsibleState,
-    public readonly children?: Dependency[]
+    public readonly children?: Dependency[],
+    public readonly command?: vscode.Command
   ) {
     super(label, collapsibleState);
   }
@@ -96,7 +97,14 @@ export class ActivityBarDatabaseProvider implements vscode.TreeDataProvider<Depe
           const columnItems = Object.entries(columns).map(([columnName, columnType]) => {
             return new Dependency(`${columnName}: ${columnType}`, vscode.TreeItemCollapsibleState.None);
           });
-          return new Dependency(tableName, vscode.TreeItemCollapsibleState.Collapsed, columnItems);
+          const command = {
+            command: 'bruin.showTableDetails',
+            title: 'Show Table Details',
+            arguments: [tableName],
+          };
+          const tableItem = new Dependency(tableName, vscode.TreeItemCollapsibleState.Collapsed, columnItems, command);
+          tableItem.iconPath = new vscode.ThemeIcon('database');
+          return tableItem;
         });
         return new Dependency(schemaName, vscode.TreeItemCollapsibleState.Collapsed, tableItems);
       });

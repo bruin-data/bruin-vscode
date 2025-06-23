@@ -23,9 +23,10 @@ import { QueryPreviewPanel } from "../panels/QueryPreviewPanel";
 import { BruinPanel } from "../panels/BruinPanel";
 import { QueryCodeLensProvider } from "../providers/queryCodeLensProvider";
 import { getQueryOutput } from "./commands/queryCommands";
-import { ActivityBarDatabaseProvider } from "../panels/ActivityBarDatabaseProvider";
+import { ActivityBarDatabaseProvider } from "../providers/ActivityBarDatabaseProvider";
 import { isBruinAsset, isBruinPipeline } from "../utilities/helperUtils";
 import { getBruinExecutablePath } from "../providers/BruinExecutableService";
+import { TableDetailsPanel } from '../panels/TableDetailsPanel';
 
 let analyticsClient: any = null;
 
@@ -152,7 +153,7 @@ export async function activate(context: ExtensionContext) {
             console.debug("Bruin panel restored from state:", state);
           } catch (error) {
             console.error("Failed to restore Bruin panel:", error);
-          }
+          } 
         },
       })
     );
@@ -188,6 +189,9 @@ export async function activate(context: ExtensionContext) {
 
   // Register commands
   const commandDisposables = [
+    commands.registerCommand("bruin.showTableDetails", (tableName: string) => {
+      TableDetailsPanel.render(context.extensionUri, tableName);
+    }),
     commands.registerCommand("bruin.runQuery", async (uri: vscode.Uri, range: vscode.Range) => {
       try {
         trackEvent("Command Executed", { command: "runQuery" });
