@@ -256,7 +256,7 @@ watch(
       ...check,
     }));
   },
-  { deep: true }
+  { deep: true, immediate: true }
 );
 </script>
 
