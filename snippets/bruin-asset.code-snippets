@@ -9,7 +9,7 @@
   "Bruin Asset Type": {
     "prefix": "!type",
     "body": [
-      "type: ${1|python,sf.sql,sf.sensor.query,bq.sql,bq.sensor.table,bq.sensor.query,empty,pg.sql,rs.sql,ms.sql,synapse.sql,ingestr,athena.seed,bq.seed,clickhouse.seed,databricks.seed,duckdb.seed,ms.seed,pg.seed,rs.seed,sf.seed,synapse.seed,emr_serverless.spark,emr_serverless.pyspark|}"
+      "type: ${1|python,sf.sql,sf.sensor.query,bq.sql,bq.sensor.table,bq.sensor.query,duckdb.sensor.query,pg.sensor.query,rs.sensor.query,ms.sensor.query,databricks.sensor.query,synapse.sensor.query,clickhouse.sensor.query,empty,pg.sql,rs.sql,ms.sql,synapse.sql,ingestr,athena.seed,bq.seed,clickhouse.seed,databricks.seed,duckdb.seed,ms.seed,pg.seed,rs.seed,sf.seed,synapse.seed,emr_serverless.spark,emr_serverless.pyspark|}"
     ],
     "description": "Insert the asset type"
   },
@@ -272,7 +272,7 @@
     "body": [
       "/* @bruin",
       "name: ${1:asset_name}",
-      "type: ${2|bq.sql,sf.sql,sf.sensor.query,bq.sensor.table,bq.sensor.query,empty,pg.sql,rs.sql,ms.sql,synapse.sql,ingestr,athena.seed,bq.seed,clickhouse.seed,databricks.seed,duckdb.seed,ms.seed,pg.seed,rs.seed,sf.seed,synapse.seed,emr_serverless.spark,emr_serverless.pyspark|}"
+      "type: ${2|bq.sql,sf.sql,sf.sensor.query,bq.sensor.table,bq.sensor.query,duckdb.sensor.query,pg.sensor.query,rs.sensor.query,ms.sensor.query,databricks.sensor.query,synapse.sensor.query,clickhouse.sensor.query,empty,pg.sql,rs.sql,ms.sql,synapse.sql,ingestr,athena.seed,bq.seed,clickhouse.seed,databricks.seed,duckdb.seed,ms.seed,pg.seed,rs.seed,sf.seed,synapse.seed,emr_serverless.spark,emr_serverless.pyspark|}"
       "",
       "depends: ",
       "  - ${3:dependency1}",
