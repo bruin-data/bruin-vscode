@@ -451,4 +451,182 @@ describe("Bruin Webview Test", function () {
       assert.strictEqual(updatedText, "Unknown", `Owner should be updated to "Unknown"`);
     });
   });
+  // Dependencies tests
+  describe("Dependencies Tests", function () {
+    let dependenciesContainer: WebElement;
+    let pipelineDropdownInput: WebElement;
+    let externalDependencyInput: WebElement;
+
+    beforeEach(async function () {
+      this.timeout(10000);
+      // Ensure we are on the materialization tab
+      const tab = await driver.wait(until.elementLocated(By.id("tab-2")), 10000);
+      await tab.click();
+      await sleep(500);
+
+      dependenciesContainer = await driver.wait(
+        until.elementLocated(By.css('[class*="flex flex-wrap space-x-1"]')),
+        10000,
+        "Dependencies container not found"
+      );
+      
+      pipelineDropdownInput = await driver.wait(
+        until.elementLocated(By.css('input[placeholder="Add from pipeline..."]')),
+        10000,
+        "Pipeline dropdown input not found"
+      );
+      
+      externalDependencyInput = await driver.wait(
+        until.elementLocated(By.css('input[placeholder="Add external dependency..."]')),
+        10000,
+        "External dependency input not found"
+      );
+    });
+
+    it("should add an external dependency successfully", async function () {
+      this.timeout(15000);
+      const externalDepName = `external_dep_${Date.now()}`;
+
+      // Type in the external dependency input
+      await externalDependencyInput.click();
+      await externalDependencyInput.sendKeys(externalDepName);
+      await externalDependencyInput.sendKeys(Key.ENTER);
+      await sleep(1000);
+
+      // Verify the dependency was added
+      const dependencyElements = await dependenciesContainer.findElements(By.id("dependency-text"));
+      const dependencyTexts = await Promise.all(dependencyElements.map((el) => el.getText()));
+
+      assert.ok(dependencyTexts.includes(externalDepName), `External dependency "${externalDepName}" should be added`);
+      
+      // Verify it has the gray color indicator (external dependency)
+      const grayIndicator = await driver.wait(
+        until.elementLocated(By.css(`span[class*="bg-gray-500"]`)),
+        5000,
+        "Gray indicator for external dependency not found"
+      );
+      assert.ok(grayIndicator, "External dependency should have gray color indicator");
+    });
+
+    it("should remove a dependency by clicking its close icon", async function () {
+      this.timeout(15000);
+      const depToRemove = `remove_dep_${Date.now()}`;
+
+      // Add a dependency to be removed
+      await externalDependencyInput.click();
+      await externalDependencyInput.sendKeys(depToRemove);
+      await externalDependencyInput.sendKeys(Key.ENTER);
+      await sleep(1000);
+
+      // Verify it was added
+      const initialDeps = await dependenciesContainer.findElements(By.id("dependency-text"));
+      const initialDepTexts = await Promise.all(initialDeps.map((el) => el.getText()));
+      assert.ok(initialDepTexts.includes(depToRemove), "Dependency to be removed should exist initially");
+
+      // Find and click the close icon for this dependency
+      const closeIconForDep = await driver.wait(
+        until.elementLocated(
+          By.xpath(
+            `//vscode-tag[./div/span[text()="${depToRemove}"]]/div/span[contains(@class, 'codicon-close')]`
+          )
+        ),
+        10000,
+        `Close icon for dependency "${depToRemove}" not found`
+      );
+      await closeIconForDep.click();
+      await sleep(1000);
+
+      // Verify it was removed
+      const finalDeps = await dependenciesContainer.findElements(By.id("dependency-text"));
+      const finalDepTexts = await Promise.all(finalDeps.map((el) => el.getText()));
+      assert.ok(!finalDepTexts.includes(depToRemove), `Dependency "${depToRemove}" should be removed`);
+    });
+
+    it("should not add an empty external dependency", async function () {
+      this.timeout(15000);
+      const emptyDep = "";
+
+      await externalDependencyInput.click();
+      await externalDependencyInput.sendKeys(emptyDep);
+      await externalDependencyInput.sendKeys(Key.ENTER);
+      await sleep(1000);
+
+      const deps = await dependenciesContainer.findElements(By.id("dependency-text"));
+      const depTexts = await Promise.all(deps.map((el) => el.getText()));
+      assert.ok(!depTexts.includes(emptyDep), `Empty dependency should not be added`);
+    });
+
+    it("should not add a dependency with only whitespace", async function () {
+      this.timeout(15000);
+      const whitespaceDep = "   ";
+
+      await externalDependencyInput.click();
+      await externalDependencyInput.sendKeys(whitespaceDep);
+      await externalDependencyInput.sendKeys(Key.ENTER);
+      await sleep(1000);
+
+      const deps = await dependenciesContainer.findElements(By.id("dependency-text"));
+      const depTexts = await Promise.all(deps.map((el) => el.getText()));
+      assert.ok(!depTexts.includes(whitespaceDep), `Whitespace-only dependency should not be added`);
+    });
+
+    it("should not add duplicate dependencies", async function () {
+      this.timeout(15000);
+      const duplicateDep = `duplicate_dep_${Date.now()}`;
+
+      // Add the dependency first time
+      await externalDependencyInput.click();
+      await externalDependencyInput.sendKeys(duplicateDep);
+      await externalDependencyInput.sendKeys(Key.ENTER);
+      await sleep(1000);
+
+      // Try to add the same dependency again
+      await externalDependencyInput.click();
+      await externalDependencyInput.sendKeys(duplicateDep);
+      await externalDependencyInput.sendKeys(Key.ENTER);
+      await sleep(1000);
+
+      // Verify only one instance exists
+      const deps = await dependenciesContainer.findElements(By.id("dependency-text"));
+      const depTexts = await Promise.all(deps.map((el) => el.getText()));
+      const duplicateCount = depTexts.filter(text => text === duplicateDep).length;
+      assert.strictEqual(duplicateCount, 1, `Should only have one instance of "${duplicateDep}"`);
+    });
+
+    it("should show empty state when no dependencies are configured", async function () {
+      this.timeout(15000);
+      
+      // Remove all existing dependencies first
+      let existingDeps = await dependenciesContainer.findElements(By.css('vscode-tag'));
+      
+      // Keep removing dependencies until none are left
+      while (existingDeps.length > 0) {
+        try {
+          // Get the first dependency and remove it
+          const firstDep = existingDeps[0];
+          const closeIcon = await firstDep.findElement(By.css('span[class*="codicon-close"]'));
+          await closeIcon.click();
+          await sleep(1000); // Wait longer for DOM update
+          
+          // Refresh the list of dependencies
+          existingDeps = await dependenciesContainer.findElements(By.css('vscode-tag'));
+        } catch (error) {
+          // If we get a stale element error, refresh the list and continue
+          console.log("Stale element encountered, refreshing list...");
+          await sleep(500);
+          existingDeps = await dependenciesContainer.findElements(By.css('vscode-tag'));
+        }
+      }
+
+      // Verify empty state message appears
+      const emptyStateElement = await driver.wait(
+        until.elementLocated(By.xpath('//div[contains(text(), "No dependencies configured")]')),
+        10000,
+        "Empty state message not found"
+      );
+      
+      const emptyStateText = await emptyStateElement.getText();
+      assert.strictEqual(emptyStateText, "No dependencies configured", "Empty state message should be displayed");
+    });
+  });
 });
