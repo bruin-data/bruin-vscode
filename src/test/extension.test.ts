@@ -3760,7 +3760,7 @@ suite(" Query export Tests", () => {
         getCurrentPipelinePathStub.resolves(pipelinePath);
         runStub.resolves(JSON.stringify(mockPipelineData));
         
-        await bruinLineageInternalParse.parseAssetLineage(filePath, options);
+        await bruinLineageInternalParse.parseAssetLineage(filePath, undefined, options);
         
         sinon.assert.calledWith(runStub, ["custom-flag", pipelinePath], { ignoresErrors: true });
       });
