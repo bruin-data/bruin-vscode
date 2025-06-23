@@ -2,7 +2,7 @@
   <div class="h-full w-full flex justify-center">
     <div class="flex flex-col gap-4 h-full w-full max-w-4xl">
       <div class="bg-editorWidget-bg py-1 border-b border-commandCenter-border">
-        <div class="flex items-center  space-x-2">
+        <div class="flex items-center space-x-2">
           <label class="block text-xs font-medium text-editor-fg min-w-[60px]">Owner</label>
           <div id="owner-container" class="flex items-center gap-2">
             <span
@@ -76,6 +76,165 @@
             </vscode-button>
           </div>
         </div>
+        <div class="border-t border-commandCenter-border"></div>
+        <div class="flex flex-col gap-4">
+          <label class="block text-sm font-medium text-editor-fg">Dependencies</label>
+
+          <!-- Existing Dependencies Display -->
+          <div
+            class="flex flex-wrap gap-2 min-h-[40px] p-3 bg-editorWidget-bg border border-commandCenter-border rounded-sm"
+          >
+            <div
+              v-for="(dep, index) in dependencies"
+              :key="index"
+              class="group relative inline-flex items-center gap-2 px-2 py-1 bg-input-background border border-commandCenter-border rounded text-2xs font-mono hover:bg-list-hoverBackground transition-colors"
+            >
+              <!-- Dependency Type Icon -->
+              <span
+                class="w-2 h-2 rounded-full flex-shrink-0"
+                :class="dep.isExternal ? 'bg-yellow-500' : 'bg-blue-500'"
+                :title="`${dep.isExternal ? 'External' : 'Pipeline'}`"
+              ></span>
+
+              <!-- Dependency Name -->
+              <span class="text-editor-fg">{{ dep.name }}</span>  
+
+              <!-- Remove Button -->
+              <button
+                @click="removeDependency(index)"
+                class="opacity-0 group-hover:opacity-100 transition-opacity w-3 h-3 flex items-center justify-center hover:bg-errorForeground hover:text-white rounded text-2xs"
+                title="Remove dependency"
+              >
+                <span class="codicon codicon-close text-2xs"></span>
+              </button>
+            </div>
+
+            <!-- Empty State -->
+            <div
+              v-if="dependencies.length === 0"
+              class="text-2xs text-editor-fg opacity-60 italic py-1"
+            >
+              No dependencies configured
+            </div>
+          </div>
+
+          <!-- Add Dependencies Controls -->
+          <div class="flex gap-2">
+            <!-- Pipeline Dependencies Dropdown -->
+            <div class="relative flex-1" ref="pipelineDepsContainer">
+              <button
+                @click="isPipelineDepsOpen = !isPipelineDepsOpen"
+                class="w-full flex items-center justify-between px-2 py-1 bg-input-background border border-commandCenter-border text-2xs text-editor-fg hover:bg-list-hoverBackground transition-colors h-6"
+                :class="{ 'ring-1 ring-editorLink-activeFg': isPipelineDepsOpen }"
+              >
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
+                  <span>Add from pipeline</span>
+                </div>
+                <span
+                  class="codicon codicon-chevron-down text-2xs transition-transform"
+                  :class="{ 'rotate-180': isPipelineDepsOpen }"
+                ></span>
+              </button>
+
+              <!-- Pipeline Dependencies Dropdown -->
+              <div
+                v-if="isPipelineDepsOpen"
+                class="absolute z-20 w-full bg-dropdown-bg border border-commandCenter-border shadow-lg mt-1 max-h-60 overflow-y-auto"
+              >
+                <div
+                  class="sticky top-0 bg-dropdown-bg border-b border-commandCenter-border px-2 py-1"
+                >
+                  <input
+                    v-model="pipelineSearchQuery"
+                    placeholder="Search pipeline assets..."
+                    class="w-full bg-input-background text-2xs border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
+                    @click.stop
+                  />
+                </div>
+
+                <div class="max-h-48 overflow-y-auto">
+                  <div
+                    v-for="asset in filteredPipelineAssets"
+                    :key="asset.name"
+                    class="flex items-center justify-between px-2 py-1 hover:bg-list-hoverBackground cursor-pointer group"
+                    @click="addPipelineDependency(asset)"
+                  >
+                    <div class="flex items-center gap-2">
+                      <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
+                      <span class="text-2xs font-mono">{{ asset.name }}</span>
+                    </div>
+                    <span
+                      v-if="isDependencyAdded(asset.name)"
+                      class="text-2xs text-green-500 opacity-70"
+                    >
+                      Added
+                    </span>
+                  </div>
+
+                  <div
+                    v-if="filteredPipelineAssets.length === 0"
+                    class="px-2 py-1 text-2xs text-editor-fg opacity-60 text-center"
+                  >
+                    No matching assets found
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- External Dependency Input -->
+            <div class="relative flex-1" ref="externalDepsContainer">
+              <div class="flex">
+                <input
+                  v-model="externalDepInput"
+                  placeholder="Add external dependency..."
+                  class="flex-1 px-2 py-1 bg-input-background border border-commandCenter-border text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
+                  @keyup.enter="addExternalDependency"
+                  @focus="isExternalInputFocused = true"
+                  @blur="isExternalInputFocused = false"
+                />
+                <button
+                  @click="addExternalDependency"
+                  :disabled="!externalDepInput.trim()"
+                  class="px-2 py-1 bg-editorLink-activeFg text-white text-2xs hover:bg-opacity-80 disabled:opacity-50 disabled:cursor-not-allowed transition-all h-6"
+                  title="Add external dependency"
+                >
+                  <span class="codicon codicon-add text-2xs"></span>
+                </button>
+              </div>
+
+              <!-- External Dependency Suggestions -->
+              <div
+                v-if="isExternalInputFocused && externalDepSuggestions.length > 0"
+                class="absolute z-20 w-full bg-dropdown-bg border border-commandCenter-border shadow-lg mt-1 max-h-40 overflow-y-auto"
+              >
+                <div
+                  v-for="suggestion in externalDepSuggestions"
+                  :key="suggestion"
+                  class="px-2 py-1 hover:bg-list-hoverBackground cursor-pointer text-2xs"
+                  @mousedown.prevent="selectExternalSuggestion(suggestion)"
+                >
+                  <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 bg-yellow-500 rounded-full"></span>
+                    <span class="font-mono">{{ suggestion }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dependency Legend -->
+          <div class="flex items-center gap-4 text-2xs text-editor-fg opacity-70">
+            <div class="flex items-center gap-1">
+              <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
+              <span>Pipeline asset</span>
+            </div>
+            <div class="flex items-center gap-1">
+              <span class="w-2 h-2 bg-yellow-500 rounded-full"></span>
+              <span>External</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="flex flex-col gap-x-4 gap-y-2 w-full justify-between">
@@ -86,14 +245,20 @@
             <div class="flex gap-2">
               <input
                 :value="startIntervalValue"
-                @input="startIntervalValue = $event.target.value; handleIntervalChange('start')"
+                @input="
+                  startIntervalValue = $event.target.value;
+                  handleIntervalChange('start');
+                "
                 @change="handleIntervalChange('start')"
                 class="w-1/2 border-0 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
                 placeholder="e.g., -2"
               />
               <select
                 :value="startIntervalUnit"
-                @change="startIntervalUnit = $event.target.value; handleIntervalChange('start')"
+                @change="
+                  startIntervalUnit = $event.target.value;
+                  handleIntervalChange('start');
+                "
                 class="w-1/2 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
               >
                 <option value="" class="text-xs opacity-60" disabled>select unit...</option>
@@ -107,14 +272,20 @@
             <div class="flex gap-2">
               <input
                 :value="endIntervalValue"
-                @input="endIntervalValue = $event.target.value; handleIntervalChange('end')"
+                @input="
+                  endIntervalValue = $event.target.value;
+                  handleIntervalChange('end');
+                "
                 @change="handleIntervalChange('end')"
                 class="w-1/2 border-0 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
                 placeholder="e.g., 1"
               />
               <select
                 :value="endIntervalUnit"
-                @change="endIntervalUnit = $event.target.value; handleIntervalChange('end')"
+                @change="
+                  endIntervalUnit = $event.target.value;
+                  handleIntervalChange('end');
+                "
                 class="w-1/2 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
               >
                 <option value="" class="text-xs opacity-60" disabled>select unit...</option>
@@ -328,6 +499,10 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  dependencies: {
+    type: Array,
+    default: () => [],
+  },
   intervalModifiers: {
     type: Object,
     default: () => ({
@@ -347,6 +522,10 @@ const props = defineProps({
       },
     }),
   },
+  pipelineAssets: {
+    type: Array,
+    default: () => [],
+  },
 });
 
 const owner = ref(props.owner || "");
@@ -362,6 +541,29 @@ const isClusterDropdownOpen = ref(false);
 const clusterInput = ref(null);
 const partitionContainer = ref(null);
 const clusterContainer = ref(null);
+
+// Dependencies related reactive variables
+const dependencies = ref([...props.dependencies] || []);
+
+const isPipelineDepsOpen = ref(false);
+const pipelineSearchQuery = ref("");
+const externalDepInput = ref("");
+const isExternalInputFocused = ref(false);
+const pipelineDepsContainer = ref(null);
+const externalDepsContainer = ref(null);
+
+// Mock pipeline assets for demonstration - in real app this would come from props or API
+const pipelineAssets = ref(props.pipelineAssets || []);
+
+// Common external dependency suggestions
+const commonExternalDeps = [
+  "api.users",
+  "api.orders", 
+  "api.products",
+  "database.users",
+  "database.orders",
+  "external_service.analytics",
+];
 
 // Debounced save function to prevent too frequent saves
 let saveTimeout = null;
@@ -388,24 +590,28 @@ const populateIntervalFormFields = () => {
   let foundStartUnit = "";
   let foundStartValue = 0;
 
-  if (typeof currentStartInterval === 'number') {
+  if (typeof currentStartInterval === "number") {
+    foundStartUnit = "cron_periods";
+    foundStartValue = currentStartInterval;
+  } else if (currentStartInterval && typeof currentStartInterval === "object") {
+    for (const unit of intervalUnits) {
+      if (
+        unit !== "cron_periods" &&
+        currentStartInterval[unit] !== undefined &&
+        currentStartInterval[unit] !== 0
+      ) {
+        foundStartUnit = unit;
+        foundStartValue = currentStartInterval[unit];
+        break;
+      }
+    }
+    if (!foundStartUnit && "cron_periods" in currentStartInterval) {
       foundStartUnit = "cron_periods";
-      foundStartValue = currentStartInterval;
-  } else if (currentStartInterval && typeof currentStartInterval === 'object') {
-      for (const unit of intervalUnits) {
-          if (unit !== 'cron_periods' && currentStartInterval[unit] !== undefined && currentStartInterval[unit] !== 0) {
-              foundStartUnit = unit;
-              foundStartValue = currentStartInterval[unit];
-              break;
-          }
-      }
-      if (!foundStartUnit && 'cron_periods' in currentStartInterval) {
-          foundStartUnit = 'cron_periods';
-          foundStartValue = currentStartInterval['cron_periods'];
-      }
+      foundStartValue = currentStartInterval["cron_periods"];
+    }
   }
   if (!foundStartUnit) {
-      foundStartUnit = "days"; 
+    foundStartUnit = "days";
   }
   startIntervalValue.value = foundStartValue;
   startIntervalUnit.value = foundStartUnit;
@@ -414,24 +620,28 @@ const populateIntervalFormFields = () => {
   let foundEndUnit = "";
   let foundEndValue = 0;
 
-  if (typeof currentEndInterval === 'number') {
+  if (typeof currentEndInterval === "number") {
+    foundEndUnit = "cron_periods";
+    foundEndValue = currentEndInterval;
+  } else if (currentEndInterval && typeof currentEndInterval === "object") {
+    for (const unit of intervalUnits) {
+      if (
+        unit !== "cron_periods" &&
+        currentEndInterval[unit] !== undefined &&
+        currentEndInterval[unit] !== 0
+      ) {
+        foundEndUnit = unit;
+        foundEndValue = currentEndInterval[unit];
+        break;
+      }
+    }
+    if (!foundEndUnit && "cron_periods" in currentEndInterval) {
       foundEndUnit = "cron_periods";
-      foundEndValue = currentEndInterval;
-  } else if (currentEndInterval && typeof currentEndInterval === 'object') {
-      for (const unit of intervalUnits) {
-          if (unit !== 'cron_periods' && currentEndInterval[unit] !== undefined && currentEndInterval[unit] !== 0) {
-              foundEndUnit = unit;
-              foundEndValue = currentEndInterval[unit];
-              break;
-          }
-      }
-      if (!foundEndUnit && 'cron_periods' in currentEndInterval) {
-          foundEndUnit = 'cron_periods';
-          foundEndValue = currentEndInterval['cron_periods'];
-      }
+      foundEndValue = currentEndInterval["cron_periods"];
+    }
   }
   if (!foundEndUnit) {
-      foundEndUnit = "days"; 
+    foundEndUnit = "days";
   }
   endIntervalValue.value = foundEndValue;
   endIntervalUnit.value = foundEndUnit;
@@ -439,18 +649,19 @@ const populateIntervalFormFields = () => {
 
 const handleIntervalChange = (intervalType) => {
   const currentUnit = intervalType === "start" ? startIntervalUnit.value : endIntervalUnit.value;
-  const currentVal = Number(intervalType === "start" ? startIntervalValue.value : endIntervalValue.value) || 0;
+  const currentVal =
+    Number(intervalType === "start" ? startIntervalValue.value : endIntervalValue.value) || 0;
 
   let newIntervalState;
   if (currentUnit === "cron_periods") {
-    newIntervalState = currentVal; 
+    newIntervalState = currentVal;
   } else {
     newIntervalState = {};
-    for (const unit of intervalUnits.filter(u => u !== 'cron_periods')) {
-        newIntervalState[unit] = 0;
+    for (const unit of intervalUnits.filter((u) => u !== "cron_periods")) {
+      newIntervalState[unit] = 0;
     }
-    if (currentUnit) { 
-        newIntervalState[currentUnit] = currentVal;
+    if (currentUnit) {
+      newIntervalState[currentUnit] = currentVal;
     }
   }
   intervalModifiers.value[intervalType] = newIntervalState;
@@ -458,7 +669,7 @@ const handleIntervalChange = (intervalType) => {
   vscode.postMessage({
     command: "bruin.setAssetDetails",
     payload: {
-      interval_modifiers: JSON.parse(JSON.stringify(intervalModifiers.value)), 
+      interval_modifiers: JSON.parse(JSON.stringify(intervalModifiers.value)),
     },
     source: `Materialization_handleIntervalChange_${intervalType}`,
   });
@@ -468,17 +679,20 @@ watch(
   () => props.intervalModifiers,
   (newVal) => {
     const clonedNewVal = JSON.parse(JSON.stringify(newVal || {}));
-    
+
     intervalModifiers.value = {
-      start: typeof clonedNewVal.start === 'number' ? clonedNewVal.start : { ...(clonedNewVal.start || {}) },
-      end: typeof clonedNewVal.end === 'number' ? clonedNewVal.end : { ...(clonedNewVal.end || {}) },
+      start:
+        typeof clonedNewVal.start === "number"
+          ? clonedNewVal.start
+          : { ...(clonedNewVal.start || {}) },
+      end:
+        typeof clonedNewVal.end === "number" ? clonedNewVal.end : { ...(clonedNewVal.end || {}) },
     };
 
     populateIntervalFormFields();
   },
-  { immediate: true, deep: true } 
+  { immediate: true, deep: true }
 );
-
 
 const partitionInput = ref("");
 
@@ -688,7 +902,7 @@ const selectPartitionColumn = (columnName) => {
   partitionInput.value = columnName;
   localMaterialization.value.partition_by = columnName;
   isPartitionDropdownOpen.value = false;
-  
+
   // Save changes immediately
   debouncedSave();
 };
@@ -704,7 +918,7 @@ const filteredPartitionColumns = computed(() => {
 const handlePartitionInput = () => {
   localMaterialization.value.partition_by = partitionInput.value;
   isPartitionDropdownOpen.value = true;
-  
+
   // Save changes immediately
   debouncedSave();
 };
@@ -734,7 +948,7 @@ const toggleClusterColumn = (columnName) => {
   } else {
     localMaterialization.value.cluster_by.push(columnName);
   }
-  
+
   // Save changes immediately
   debouncedSave();
 };
@@ -742,7 +956,7 @@ const toggleClusterColumn = (columnName) => {
 const removeLastClusterColumn = () => {
   if (localMaterialization.value.cluster_by.length > 0) {
     localMaterialization.value.cluster_by.pop();
-    
+
     // Save changes immediately
     debouncedSave();
   }
@@ -763,12 +977,12 @@ const handleClickOutside = (event) => {
 
 onMounted(() => {
   window.addEventListener("click", handleClickOutside);
-    populateIntervalFormFields();
+  populateIntervalFormFields();
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener("click", handleClickOutside);
-  
+
   // Clear any pending save timeout
   if (saveTimeout) {
     clearTimeout(saveTimeout);
@@ -816,6 +1030,105 @@ function getStrategyDescription(strategy) {
       "Use DDL to create a new table using the information provided in the embedded Bruin section",
   }[strategy];
 }
+
+// Dependencies computed properties
+const filteredPipelineAssets = computed(() => {
+  const query = pipelineSearchQuery.value.toLowerCase();
+  if (!query) {
+    return pipelineAssets.value;
+  }
+  return pipelineAssets.value.filter((asset) => 
+    asset.name.toLowerCase().includes(query)
+  );
+});
+
+const externalDepSuggestions = computed(() => {
+  const input = externalDepInput.value.toLowerCase();
+  if (!input) {
+    return [];
+  }
+  return commonExternalDeps.filter((dep) => 
+    dep.toLowerCase().includes(input) && 
+    !dependencies.value.some(d => d.name === dep)
+  );
+});
+
+// Dependencies functions
+const addPipelineDependency = (asset) => {
+  if (!dependencies.value.some(dep => dep.name === asset.name)) {
+    dependencies.value.push({
+      name: asset.name,
+      isExternal: false,
+      type: 'asset',
+      columns: [],
+      mode: 'full'
+    });
+    sendDependenciesUpdate();
+  }
+  isPipelineDepsOpen.value = false;
+  pipelineSearchQuery.value = "";
+};
+
+const addExternalDependency = () => {
+  const depName = externalDepInput.value.trim();
+  if (depName && !dependencies.value.some(dep => dep.name === depName)) {
+    dependencies.value.push({
+      name: depName,
+      isExternal: true,
+      type: 'external',
+      columns: [],
+      mode: 'full'
+    });
+    sendDependenciesUpdate();
+  }
+  externalDepInput.value = "";
+  isExternalInputFocused.value = false;
+};
+
+const removeDependency = (index) => {
+  dependencies.value.splice(index, 1);
+  sendDependenciesUpdate();
+};
+
+const isDependencyAdded = (assetName) => {
+  return dependencies.value.some(dep => dep.name === assetName);
+};
+
+const selectExternalSuggestion = (suggestion) => {
+  externalDepInput.value = suggestion;
+  addExternalDependency();
+};
+
+const sendDependenciesUpdate = () => {
+  // Transform dependencies back to upstreams format
+  const upstreams = dependencies.value.map(dep => ({
+    type: dep.isExternal ? 'external' : 'asset',
+    value: dep.name,
+    columns: dep.columns || [],
+    mode: dep.mode || 'full'
+  }));
+
+  console.log('Sending upstreams update:', upstreams);
+
+  vscode.postMessage({
+    command: "bruin.setAssetDetails",
+    payload: {
+      upstreams: upstreams,
+    },
+    source: "saveDependencies",
+  });
+};
+
+// Watch for dependencies prop changes
+watch(
+  () => props.dependencies,
+  (newDeps) => {
+    console.log('Dependencies prop changed:', newDeps);
+    dependencies.value = [...newDeps] || [];
+  },
+  { immediate: true, deep: true }
+);
+
 </script>
 <style scoped>
 vscode-radio::part(control) {

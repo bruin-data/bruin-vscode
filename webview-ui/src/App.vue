@@ -162,6 +162,7 @@ const data = ref(
 );
 const isBruinInstalled = ref(true); // Tracks if Bruin is installed
 const lastRenderedDocument = ref(""); // Holds the last rendered document
+const pipelineAssetsData = ref([]); // Holds pipeline assets data from AssetLineage
 
 // Event listener for messages from the VSCode extension
 const handleMessage = (event: MessageEvent) => {
@@ -239,6 +240,12 @@ const handleMessage = (event: MessageEvent) => {
         console.warn("Parsing message received END:", new Date().toISOString());
         break;
       }
+      case "pipeline-assets-data":
+        // Handle pipeline assets data from AssetLineage
+        console.log("Received pipeline assets data:", message.pipelineAssets);
+        pipelineAssetsData.value = message.message.pipelineAssets;
+        console.log("Pipeline assets data updated in App.vue:", pipelineAssetsData.value);
+        break;
       case "bruinCliInstallationStatus":
         isBruinInstalled.value = message.installed; // Update installation status
         console.log("Bruin installation status updated:", isBruinInstalled.value);
@@ -387,9 +394,41 @@ const columnsProps = computed(() => {
   return columns;
 });
 
-const columns = ref([...columnsProps.value]); // Reactive reference for columns
-const materialization = ref({ ...materializationProps.value });
+const columns = ref([...columnsProps.value]);
 console.debug("Initial Columns:", columns.value);
+
+const dependencies = ref([...assetDetailsProps.value?.upstreams || []]);
+console.debug("Initial Dependencies:", dependencies.value);
+
+// Computed property to transform upstreams to dependencies format for Materialization component
+const transformedDependencies = computed(() => {
+  const upstreams = assetDetailsProps.value?.upstreams || [];
+  const transformed = upstreams.map(upstream => ({
+    name: upstream.value,
+    isExternal: upstream.type === 'external' || upstream.type !== 'asset',
+    type: upstream.type,
+  }));
+  
+  console.log('Transformed dependencies:', transformed);
+  return transformed;
+});
+
+// Computed property to extract pipeline assets from asset details
+const pipelineAssets = computed(() => {
+  // First try to use data from AssetLineage
+  if (pipelineAssetsData.value.length > 0) {
+    return pipelineAssetsData.value;
+  }
+  
+  // Fallback to extracting from asset details
+  const assets = assetDetailsProps.value?.pipeline?.assets || [];
+  return assets.map(asset => ({
+    name: asset.name || asset.id || '',
+    type: asset.type || 'table',
+    path: asset.path || ''
+  }));
+});
+
 // Computed property for asset columns
 const customChecksProps = computed(() => {
   if (!data.value) {
@@ -402,7 +441,6 @@ const customChecksProps = computed(() => {
   return customChecks;
 });
 
-const customChecks = ref([...customChecksProps.value]); // Reactive reference for custom checks
 // Define tabs for the application
 const tabs = ref([
   {
@@ -433,6 +471,8 @@ const tabs = ref([
       owner: assetDetailsProps.value?.owner,
       tags: assetDetailsProps.value?.tags,
       intervalModifiers: intervalModifiers.value,
+      dependencies: transformedDependencies.value,
+      pipelineAssets: pipelineAssetsData.value,
     })),
   },
   {
@@ -507,6 +547,7 @@ watch(columnsProps, (newColumns) => {
   columns.value = newColumns;
 });
 
+
 watch(activeTab, (newTab, oldTab) => {
   rudderStack.trackEvent("Tab Switched", {
     fromTab: tabs.value[oldTab]?.label,
@@ -540,7 +581,6 @@ function loadEnvironmentsList() {
   console.log("Loading environments list from Bruin.");
   vscode.postMessage({ command: "bruin.getEnvironmentsList" });
 }
-
 // Function to update the asset name
 const updateAssetName = (newName) => {
   console.log("Updating asset name to:", newName);
