@@ -1,10 +1,9 @@
 <template>
   <div class="fixed inset-0 flex items-center justify-center bg-editor-bg bg-opacity-75">
     <div class="bg-editorWidget-bg rounded-lg p-6">
-      <h3 class="text-lg font-medium text-editor-fg">Delete {{ elementType }}</h3>
+      <h3 v-if="title" class="text-lg font-medium text-editor-fg">{{ title }}</h3>
       <p class="mt-2 text-sm text-descriptionFg">
-        Are you sure you want to delete the {{ elementType }} "{{ elementName }}"? This action cannot be
-        undone.
+          {{ message }}
       </p>
       <div class="mt-4 flex justify-end">
         <button
@@ -18,7 +17,7 @@
           @click="$emit('confirm')"
           class="bg-errorForeground hover:bg-editorError-foreground hover:text-editor-fg px-4 py-1 rounded text-editor-fg"
         >
-          Delete
+          {{ confirmText }}
         </button>
       </div>
     </div>
@@ -26,7 +25,8 @@
 </template>
 <script setup>
 defineProps({
-  elementName: String,
-  elementType: String,
+  confirmText: String,
+  message: String,
+  title: String,  
 });
 </script>
