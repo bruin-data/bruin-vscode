@@ -557,6 +557,15 @@ function buildCommandPayload(
  * Functions to handle run and validate actions
  */
 function runAssetOnly() {
+  const fullRefreshChecked = checkboxItems.value.find(item => item.name === "Full-Refresh")?.checked;
+  
+  if (fullRefreshChecked) {
+    const confirmed = confirm("Do you want to run with full refresh? This will refresh all data.");
+    if (!confirmed) {
+      return;
+    }
+  }
+  
   const payload = buildCommandPayload(getCheckboxChangePayload());
 
   vscode.postMessage({
@@ -566,6 +575,15 @@ function runAssetOnly() {
 }
 
 function runAssetWithDownstream() {
+  const fullRefreshChecked = checkboxItems.value.find(item => item.name === "Full-Refresh")?.checked;
+  
+  if (fullRefreshChecked) {
+    const confirmed = confirm("Do you want to run with full refresh? This will refresh all data.");
+    if (!confirmed) {
+      return;
+    }
+  }
+  
   const payload = buildCommandPayload(getCheckboxChangePayload(), { downstream: true });
 
   vscode.postMessage({
@@ -575,6 +593,15 @@ function runAssetWithDownstream() {
 }
 
 function runPipelineWithContinue() {
+  const fullRefreshChecked = checkboxItems.value.find(item => item.name === "Full-Refresh")?.checked;
+  
+  if (fullRefreshChecked) {
+    const confirmed = confirm("Do you want to run with full refresh? This will refresh all data.");
+    if (!confirmed) {
+      return;
+    }
+  }
+  
   const payload = buildCommandPayload(getCheckboxChangePayload(), { continue: true });
 
   vscode.postMessage({
@@ -584,6 +611,15 @@ function runPipelineWithContinue() {
 }
 
 function runCurrentPipeline() {
+  const fullRefreshChecked = checkboxItems.value.find(item => item.name === "Full-Refresh")?.checked;
+  
+  if (fullRefreshChecked) {
+    const confirmed = confirm("Do you want to run with full refresh? This will refresh all data.");
+    if (!confirmed) {
+      return;
+    }
+  }
+  
   const payload = buildCommandPayload(getCheckboxChangePayload(), { downstream: false });
 
   vscode.postMessage({
