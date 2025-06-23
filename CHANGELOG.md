@@ -1,4 +1,7 @@
 # Changelog
+## [0.51.4] - [2025-06-23]
+- Fixed customCheck not showing on first render, added missing sensor types to the YAML schema, and expanded snippet completions.
+
 ## [0.51.3] - [2025-06-19]
 - Enhanced Snowflake connection support with private key authentication, including validation and improved input handling.
 
