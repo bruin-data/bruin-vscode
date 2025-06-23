@@ -6,8 +6,13 @@ import {
   BruinValidate,
   bruinWorkspaceDirectory,
   checkCliVersion,
+  createIntegratedTerminal,
   getCurrentPipelinePath,
   runInIntegratedTerminal,
+  runBruinCommandInIntegratedTerminal,
+  escapeFilePath,
+
+
 } from "../bruin";
 import * as vscode from "vscode";
 import { renderCommandWithFlags } from "../extension/commands/renderCommand";
@@ -31,7 +36,7 @@ import { getBruinExecutablePath } from "../providers/BruinExecutableService";
 import path = require("path");
 import { isBruinAsset } from "../utilities/helperUtils";
 import { getDefaultCheckboxSettings } from "../extension/configuration";
-
+import { exec } from "child_process";
 /**
  * This class manages the state and behavior of Bruin webview panels.
  *
@@ -398,6 +403,36 @@ export class BruinPanel {
             console.log("Setting asset data :", assetData, "source:", source);
             patchAssetCommand(assetData, this._lastRenderedDocumentUri);
             break;
+
+          case "bruin.fillAssetDependency":
+            if (!this._lastRenderedDocumentUri) {
+              console.error("No active document to fill asset dependency.");
+              return;
+            }
+            const assetPath = this._lastRenderedDocumentUri.fsPath;
+            const escapedAssetPath = assetPath ? escapeFilePath(assetPath) : ""; 
+            const assetWorkspaceDir = await bruinWorkspaceDirectory(assetPath);
+            
+            const command = [ "patch", "fill-asset-dependencies", escapedAssetPath];
+            await runBruinCommandInIntegratedTerminal(command, assetWorkspaceDir);  
+
+            return;
+
+          case "bruin.fillAssetColumn":
+            if (!this._lastRenderedDocumentUri) {
+              console.error("No active document to fill asset column.");
+              return;
+            }
+            const assetPathFillColumn = this._lastRenderedDocumentUri.fsPath;
+            const escapedAssetPathFillColumn = assetPathFillColumn ? escapeFilePath(assetPathFillColumn) : ""; 
+            const assetWorkspaceDirFillColumn = await bruinWorkspaceDirectory(assetPathFillColumn);
+
+            const commandFillColumn = [ "patch", "fill-columns-from-db", escapedAssetPathFillColumn];
+            await runBruinCommandInIntegratedTerminal(commandFillColumn, assetWorkspaceDirFillColumn);  
+
+            return;
+
+          
 
           case "bruin.getEnvironmentsList":
             if (!this._lastRenderedDocumentUri) {

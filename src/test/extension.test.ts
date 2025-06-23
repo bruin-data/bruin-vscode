@@ -1767,6 +1767,43 @@ suite("BruinPanel Tests", () => {
       await messageHandler(unknownMessage);
       // Assert no error was thrown or expect a specific handling behavior (e.g., logging)
     });
+     test("handles bruin.fillAssetDependency command", async () => {
+      const escapeStub = sinon.stub(bruinUtils, "escapeFilePath").returns("/escaped/path/test.sql");
+      const runStub = sinon.stub(bruinUtils, "runBruinCommandInIntegratedTerminal");
+      
+      await (windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0]({ 
+        command: "bruin.fillAssetDependency" });
+
+      assert.ok(escapeStub.calledOnceWith(mockDocumentUri.fsPath) && bruinWorkspaceDirectoryStub.calledOnceWith(mockDocumentUri.fsPath) 
+     && runStub.calledOnce);
+      
+      const [command, workspaceDir] = runStub.firstCall.args;
+      assert.deepStrictEqual(command, ["patch", "fill-asset-dependencies", "/escaped/path/test.sql"]);
+      assert.strictEqual(workspaceDir, "/mock/workspace");
+      
+      escapeStub.restore();
+      runStub.restore();
+
+
+
+    });
+    test("handles bruin.fillAssetColumn command", async () => {
+      const escapeStub = sinon.stub(bruinUtils, "escapeFilePath").returns("/escaped/path/test.sql");
+      const runStub = sinon.stub(bruinUtils, "runBruinCommandInIntegratedTerminal");
+      
+      await (windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0]({ 
+        command: "bruin.fillAssetColumn" });
+        assert.ok(escapeStub.calledOnceWith(mockDocumentUri.fsPath) && bruinWorkspaceDirectoryStub.calledOnceWith(mockDocumentUri.fsPath) 
+        && runStub.calledOnce);
+
+        const [command, workspaceDir] = runStub.firstCall.args;
+       assert.deepStrictEqual(command, ["patch", "fill-columns-from-db", "/escaped/path/test.sql"]);
+       assert.strictEqual(workspaceDir, "/mock/workspace");
+      
+      escapeStub.restore();
+      runStub.restore();
+    });
+
 
     test("validateCurrentPipeline with no active document", async () => {
       windowActiveTextEditorStub.value(undefined); // Simulate no active text editor
@@ -1952,6 +1989,8 @@ suite("BruinPanel Tests", () => {
       assert.ok(createConnectionStub.calledOnce, "Create connection should be called once");
       createConnectionStub.restore();
     });
+
+  
   });
 
   suite("Checkbox and Flags Tests", () => {

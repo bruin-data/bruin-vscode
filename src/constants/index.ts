@@ -18,6 +18,7 @@ const BRUIN_VALIDATE_SQL_ID = "bruin.validate";
 const BRUIN_RUN_SQL_COMMAND = "run";
 const BRUIN_RUN_SQL_ID = "bruin.run";
 
+
 export {
   bruinDelimiterRegex,
   BRUIN_WHICH_COMMAND,
@@ -30,4 +31,5 @@ export {
   BRUIN_RUN_SQL_COMMAND,
   BRUIN_RUN_SQL_ID,
   BRUIN_WHERE_COMMAND,
+  
 };
