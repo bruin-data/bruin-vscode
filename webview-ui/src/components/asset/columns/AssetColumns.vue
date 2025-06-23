@@ -232,9 +232,10 @@
             </vscode-button>
             <DeleteAlert
               v-if="showDeleteAlert === index"
-              :elementName="column.name"
-              elementType="column"
+              title="Delete Column"
+              :message="`Are you sure you want to delete the column ${column.name}? This action cannot be undone.`"
               @confirm="deleteColumn(index)"
+              confirm-text="Delete"
               @cancel="showDeleteAlert = false"
               class="absolute z-50"
             />

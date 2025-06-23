@@ -127,9 +127,10 @@
           <div>
             <DeleteAlert
               v-if="showDeleteAlert === index"
-              :elementName="check.name"
-              elementType="custom check"
+              title="Delete Custom Check"
+              :message="`Are you sure you want to delete the custom check ${check.name}? This action cannot be undone.`"
               @confirm="deleteCustomCheck(index)"
+              confirm-text="Delete"
               @cancel="showDeleteAlert = null"
               class="absolute z-50"
             />
