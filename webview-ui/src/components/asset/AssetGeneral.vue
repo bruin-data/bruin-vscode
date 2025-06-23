@@ -217,12 +217,22 @@
       </div>
     </div>
   </div>
+  
+  <!-- Full Refresh Confirmation Dialog -->
+  <AlertWithActions
+    v-if="showFullRefreshAlert"
+    message="Do you want to run with full refresh? This will drop the table"
+    confirm-text="Continue"
+    @confirm="confirmFullRefresh"
+    @cancel="cancelFullRefresh"
+  />
 </template>
 <script setup lang="ts">
 import { vscode } from "@/utilities/vscode";
 import { computed, onBeforeUnmount, onMounted, ref, defineProps, watch } from "vue";
 import ErrorAlert from "@/components/ui/alerts/ErrorAlert.vue";
 import WarningAlert from "@/components/ui/alerts/WarningAlert.vue";
+import AlertWithActions from "@/components/ui/alerts/AlertWithActions.vue";
 import {
   handleError,
   concatCommandFlags,
@@ -278,11 +288,35 @@ const rudderStack = RudderStackService.getInstance();
 const showIntervalAlert = ref(false);
 const dismissedIntervalAlert = ref(false);
 
+// Full refresh alert state
+const showFullRefreshAlert = ref(false);
+const pendingRunAction = ref<(() => void) | null>(null);
+
 // Method to dismiss the alert
 const dismissIntervalAlert = () => {
   dismissedIntervalAlert.value = true;
   showIntervalAlert.value = false;
 };
+
+// Full refresh alert methods
+const confirmFullRefresh = () => {
+  showFullRefreshAlert.value = false;
+  if (pendingRunAction.value) {
+    pendingRunAction.value();
+    pendingRunAction.value = null;
+  }
+};
+
+const cancelFullRefresh = () => {
+  showFullRefreshAlert.value = false;
+  pendingRunAction.value = null;
+};
+
+const showFullRefreshConfirmation = (runAction: () => void) => {
+  pendingRunAction.value = runAction;
+  showFullRefreshAlert.value = true;
+};
+
 /**
  * Computed properties for error handling and warnings
  */
@@ -560,10 +594,14 @@ function runAssetOnly() {
   const fullRefreshChecked = checkboxItems.value.find(item => item.name === "Full-Refresh")?.checked;
   
   if (fullRefreshChecked) {
-    const confirmed = confirm("Do you want to run with full refresh? This will refresh all data.");
-    if (!confirmed) {
-      return;
-    }
+    showFullRefreshConfirmation(() => {
+      const payload = buildCommandPayload(getCheckboxChangePayload());
+      vscode.postMessage({
+        command: "bruin.runSql",
+        payload,
+      });
+    });
+    return;
   }
   
   const payload = buildCommandPayload(getCheckboxChangePayload());
@@ -578,10 +616,14 @@ function runAssetWithDownstream() {
   const fullRefreshChecked = checkboxItems.value.find(item => item.name === "Full-Refresh")?.checked;
   
   if (fullRefreshChecked) {
-    const confirmed = confirm("Do you want to run with full refresh? This will refresh all data.");
-    if (!confirmed) {
-      return;
-    }
+    showFullRefreshConfirmation(() => {
+      const payload = buildCommandPayload(getCheckboxChangePayload(), { downstream: true });
+      vscode.postMessage({
+        command: "bruin.runSql",
+        payload,
+      });
+    });
+    return;
   }
   
   const payload = buildCommandPayload(getCheckboxChangePayload(), { downstream: true });
@@ -596,10 +638,14 @@ function runPipelineWithContinue() {
   const fullRefreshChecked = checkboxItems.value.find(item => item.name === "Full-Refresh")?.checked;
   
   if (fullRefreshChecked) {
-    const confirmed = confirm("Do you want to run with full refresh? This will refresh all data.");
-    if (!confirmed) {
-      return;
-    }
+    showFullRefreshConfirmation(() => {
+      const payload = buildCommandPayload(getCheckboxChangePayload(), { continue: true });
+      vscode.postMessage({
+        command: "bruin.runContinue",
+        payload,
+      });
+    });
+    return;
   }
   
   const payload = buildCommandPayload(getCheckboxChangePayload(), { continue: true });
@@ -614,10 +660,14 @@ function runCurrentPipeline() {
   const fullRefreshChecked = checkboxItems.value.find(item => item.name === "Full-Refresh")?.checked;
   
   if (fullRefreshChecked) {
-    const confirmed = confirm("Do you want to run with full refresh? This will refresh all data.");
-    if (!confirmed) {
-      return;
-    }
+    showFullRefreshConfirmation(() => {
+      const payload = buildCommandPayload(getCheckboxChangePayload(), { downstream: false });
+      vscode.postMessage({
+        command: "bruin.runCurrentPipeline",
+        payload,
+      });
+    });
+    return;
   }
   
   const payload = buildCommandPayload(getCheckboxChangePayload(), { downstream: false });
