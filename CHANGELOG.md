@@ -1,4 +1,7 @@
 # Changelog
+## [0.51.5] - [2025-06-23]
+- Added confirmation prompt before running with `full-refresh`.
+
 ## [0.51.4] - [2025-06-23]
 - Fixed customCheck not showing on first render, added missing sensor types to the YAML schema, and expanded snippet completions.
 
