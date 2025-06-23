@@ -56,10 +56,11 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 
 ## Release Notes
-### Latest Release: 0.51.3
-- Enhanced Snowflake connection support with private key authentication, including validation and improved input handling.
+### Latest Release: 0.51.4
+- Fixed customCheck not showing on first render, added missing sensor types to the YAML schema, and expanded snippet completions.
 
 ### Recent Updates
+- **0.51.3**: Enhanced Snowflake connection support with private key authentication, including validation and improved input handling.
 - **0.51.2**: Enabled auto-saving for materialization changes, removing the manual save button.
 - **0.51.1**: Fixed BQ connection updates and improved service account credential handling.
 - **0.51.0**: Added inline "Preview" button using CodeLens for top-level queries in the editor.

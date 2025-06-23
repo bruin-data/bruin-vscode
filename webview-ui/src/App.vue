@@ -402,7 +402,6 @@ const customChecksProps = computed(() => {
   return customChecks;
 });
 
-const customChecks = ref([...customChecksProps.value]); // Reactive reference for custom checks
 // Define tabs for the application
 const tabs = ref([
   {
