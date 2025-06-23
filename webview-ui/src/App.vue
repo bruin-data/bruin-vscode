@@ -129,7 +129,7 @@ import { ref, onMounted, computed, watch, nextTick, onBeforeUnmount } from "vue"
 import { parseAssetDetails, parseEnvironmentList } from "./utilities/helper";
 import { updateValue } from "./utilities/helper";
 import { useConnectionsStore } from "./store/bruinStore";
-import type { EnvironmentsList } from "./types";
+import type { Asset, EnvironmentsList } from "./types";
 import AssetColumns from "@/components/asset/columns/AssetColumns.vue";
 import CustomChecks from "@/components/asset/columns/custom-checks/CustomChecks.vue";
 import BruinSettings from "@/components/bruin-settings/BruinSettings.vue";
@@ -160,21 +160,19 @@ const data = ref(
     },
   })
 );
-const isBruinInstalled = ref(true); // Tracks if Bruin is installed
-const lastRenderedDocument = ref(""); // Holds the last rendered document
-const pipelineAssetsData = ref([]); // Holds pipeline assets data from AssetLineage
-
-// Event listener for messages from the VSCode extension
+const isBruinInstalled = ref(true);
+const lastRenderedDocument = ref(""); 
+const pipelineAssetsData = ref([]);
 const handleMessage = (event: MessageEvent) => {
   const message = event.data;
   try {
     switch (message.command) {
       case "init":
-        lastRenderedDocument.value = message.lastRenderedDocument; // Update last rendered document
+        lastRenderedDocument.value = message.lastRenderedDocument; 
         break;
       case "environments-list-message":
         environments.value = updateValue(message, "success");
-        connectionsStore.setDefaultEnvironment(selectedEnvironment.value); // Set the default environment in the store
+        connectionsStore.setDefaultEnvironment(selectedEnvironment.value);
         break;
       case "clear-convert-message":
         console.log("In App.vue : clear-convert-message message received");
@@ -240,11 +238,9 @@ const handleMessage = (event: MessageEvent) => {
         console.warn("Parsing message received END:", new Date().toISOString());
         break;
       }
-      case "pipeline-assets-data":
-        // Handle pipeline assets data from AssetLineage
-        console.log("Received pipeline assets data:", message.pipelineAssets);
-        pipelineAssetsData.value = message.message.pipelineAssets;
-        console.log("Pipeline assets data updated in App.vue:", pipelineAssetsData.value);
+      case "pipeline-assets":
+        pipelineAssetsData.value = updateValue(message, "success");
+        console.log("Received pipeline assets data:", pipelineAssetsData.value);
         break;
       case "bruinCliInstallationStatus":
         isBruinInstalled.value = message.installed; // Update installation status
@@ -415,18 +411,10 @@ const transformedDependencies = computed(() => {
 
 // Computed property to extract pipeline assets from asset details
 const pipelineAssets = computed(() => {
-  // First try to use data from AssetLineage
-  if (pipelineAssetsData.value.length > 0) {
-    return pipelineAssetsData.value;
-  }
-  
-  // Fallback to extracting from asset details
-  const assets = assetDetailsProps.value?.pipeline?.assets || [];
-  return assets.map(asset => ({
-    name: asset.name || asset.id || '',
-    type: asset.type || 'table',
-    path: asset.path || ''
-  }));
+  const assets = pipelineAssetsData.value || [];
+  console.log("Pipeline assets raw data:", assets);
+  // Return the full asset objects, not just the name
+  return assets;
 });
 
 // Computed property for asset columns
@@ -472,7 +460,7 @@ const tabs = ref([
       tags: assetDetailsProps.value?.tags,
       intervalModifiers: intervalModifiers.value,
       dependencies: transformedDependencies.value,
-      pipelineAssets: pipelineAssetsData.value,
+      pipelineAssets: pipelineAssets.value,
     })),
   },
   {

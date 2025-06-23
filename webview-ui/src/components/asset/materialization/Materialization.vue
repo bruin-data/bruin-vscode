@@ -1,6 +1,6 @@
 <template>
   <div class="h-full w-full flex justify-center">
-    <div class="flex flex-col gap-4 h-full w-full max-w-4xl">
+    <div class="flex flex-col gap-4 h-full w-full max-w-4xl pr-1">
       <div class="bg-editorWidget-bg py-1 border-b border-commandCenter-border">
         <div class="flex items-center space-x-2">
           <label class="block text-xs font-medium text-editor-fg min-w-[60px]">Owner</label>
@@ -77,37 +77,44 @@
           </div>
         </div>
         <div class="border-t border-commandCenter-border"></div>
-        <div class="flex flex-col gap-4">
-          <label class="block text-sm font-medium text-editor-fg">Dependencies</label>
+        <div class="flex flex-col gap-1 mt-2">
+          <div class="flex items-center justify-between">
+            <label class="block text-sm font-medium text-editor-fg">Dependencies</label>
+            <!-- Dependency Legend -->
+            <div class="flex items-center gap-3 text-2xs text-editor-fg opacity-50">
+              <div class="flex items-center gap-1">
+                <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
+                <span>Pipeline asset</span>
+              </div>
+              <div class="flex items-center gap-1">
+                <span class="w-2 h-2 bg-gray-500 rounded-full"></span>
+                <span>External</span>
+              </div>
+            </div>
+          </div>
 
           <!-- Existing Dependencies Display -->
           <div
-            class="flex flex-wrap gap-2 min-h-[40px] p-3 bg-editorWidget-bg border border-commandCenter-border rounded-sm"
+            class="flex flex-wrap space-x-1 min-h-[40px] bg-editorWidget-bg"
           >
-            <div
+            <vscode-tag
               v-for="(dep, index) in dependencies"
               :key="index"
-              class="group relative inline-flex items-center gap-2 px-2 py-1 bg-input-background border border-commandCenter-border rounded text-2xs font-mono hover:bg-list-hoverBackground transition-colors"
+              class="text-xs inline-flex items-center justify-center gap-1 cursor-pointer py-1"
+              @click="removeDependency(index)"
             >
-              <!-- Dependency Type Icon -->
-              <span
-                class="w-2 h-2 rounded-full flex-shrink-0"
-                :class="dep.isExternal ? 'bg-yellow-500' : 'bg-blue-500'"
-                :title="`${dep.isExternal ? 'External' : 'Pipeline'}`"
-              ></span>
-
-              <!-- Dependency Name -->
-              <span class="text-editor-fg">{{ dep.name }}</span>  
-
-              <!-- Remove Button -->
-              <button
-                @click="removeDependency(index)"
-                class="opacity-0 group-hover:opacity-100 transition-opacity w-3 h-3 flex items-center justify-center hover:bg-errorForeground hover:text-white rounded text-2xs"
-                title="Remove dependency"
-              >
-                <span class="codicon codicon-close text-2xs"></span>
-              </button>
-            </div>
+              <div class="text-xs flex items-center gap-2">
+                <!-- Dependency Type Icon -->
+                <span
+                  class="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                  :class="dep.isExternal ? 'bg-gray-500' : 'bg-blue-500'"
+                  :title="`${dep.isExternal ? 'External' : 'Pipeline'}`"
+                ></span>
+                <!-- Dependency Name -->
+                <span id="dependency-text">{{ dep.name }}</span>
+                <span class="codicon codicon-close text-3xs flex items-center"></span>
+              </div>
+            </vscode-tag>
 
             <!-- Empty State -->
             <div
@@ -121,21 +128,23 @@
           <!-- Add Dependencies Controls -->
           <div class="flex gap-2">
             <!-- Pipeline Dependencies Dropdown -->
-            <div class="relative flex-1" ref="pipelineDepsContainer">
-              <button
+            <div class="relative w-full max-w-[250px]" ref="pipelineDepsContainer">
+              <input
+                v-model="pipelineSearchQuery"
+                placeholder="Add from pipeline..."
+                class="w-full border-0 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6 pr-6 cursor-pointer"
+                @focus="isPipelineDepsOpen = true"
+                @blur="handlePipelineInputBlur"
+                @input="handlePipelineInput"
+                @keydown.enter="handlePipelineEnter"
+                readonly
+              />
+              <span
+                class="absolute inset-y-0 right-0 flex items-center pr-2 cursor-pointer"
                 @click="isPipelineDepsOpen = !isPipelineDepsOpen"
-                class="w-full flex items-center justify-between px-2 py-1 bg-input-background border border-commandCenter-border text-2xs text-editor-fg hover:bg-list-hoverBackground transition-colors h-6"
-                :class="{ 'ring-1 ring-editorLink-activeFg': isPipelineDepsOpen }"
               >
-                <div class="flex items-center gap-2">
-                  <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
-                  <span>Add from pipeline</span>
-                </div>
-                <span
-                  class="codicon codicon-chevron-down text-2xs transition-transform"
-                  :class="{ 'rotate-180': isPipelineDepsOpen }"
-                ></span>
-              </button>
+                <span class="codicon codicon-chevron-down text-xs"></span>
+              </span>
 
               <!-- Pipeline Dependencies Dropdown -->
               <div
@@ -161,15 +170,9 @@
                     @click="addPipelineDependency(asset)"
                   >
                     <div class="flex items-center gap-2">
-                      <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
                       <span class="text-2xs font-mono">{{ asset.name }}</span>
                     </div>
-                    <span
-                      v-if="isDependencyAdded(asset.name)"
-                      class="text-2xs text-green-500 opacity-70"
-                    >
-                      Added
-                    </span>
+                    <span  v-if="isDependencyAdded(asset.name)" class="codicon codicon-check"></span>
                   </div>
 
                   <div
@@ -183,55 +186,13 @@
             </div>
 
             <!-- External Dependency Input -->
-            <div class="relative flex-1" ref="externalDepsContainer">
-              <div class="flex">
-                <input
-                  v-model="externalDepInput"
-                  placeholder="Add external dependency..."
-                  class="flex-1 px-2 py-1 bg-input-background border border-commandCenter-border text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
-                  @keyup.enter="addExternalDependency"
-                  @focus="isExternalInputFocused = true"
-                  @blur="isExternalInputFocused = false"
-                />
-                <button
-                  @click="addExternalDependency"
-                  :disabled="!externalDepInput.trim()"
-                  class="px-2 py-1 bg-editorLink-activeFg text-white text-2xs hover:bg-opacity-80 disabled:opacity-50 disabled:cursor-not-allowed transition-all h-6"
-                  title="Add external dependency"
-                >
-                  <span class="codicon codicon-add text-2xs"></span>
-                </button>
-              </div>
-
-              <!-- External Dependency Suggestions -->
-              <div
-                v-if="isExternalInputFocused && externalDepSuggestions.length > 0"
-                class="absolute z-20 w-full bg-dropdown-bg border border-commandCenter-border shadow-lg mt-1 max-h-40 overflow-y-auto"
-              >
-                <div
-                  v-for="suggestion in externalDepSuggestions"
-                  :key="suggestion"
-                  class="px-2 py-1 hover:bg-list-hoverBackground cursor-pointer text-2xs"
-                  @mousedown.prevent="selectExternalSuggestion(suggestion)"
-                >
-                  <div class="flex items-center gap-2">
-                    <span class="w-2 h-2 bg-yellow-500 rounded-full"></span>
-                    <span class="font-mono">{{ suggestion }}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Dependency Legend -->
-          <div class="flex items-center gap-4 text-2xs text-editor-fg opacity-70">
-            <div class="flex items-center gap-1">
-              <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
-              <span>Pipeline asset</span>
-            </div>
-            <div class="flex items-center gap-1">
-              <span class="w-2 h-2 bg-yellow-500 rounded-full"></span>
-              <span>External</span>
+            <div class="relative w-full max-w-[250px]" ref="externalDepsContainer">
+              <input
+                v-model="externalDepInput"
+                placeholder="Add external dependency..."
+                class="w-full border-0 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
+                @keyup.enter="addExternalDependency"
+              />
             </div>
           </div>
         </div>
@@ -548,25 +509,12 @@ const dependencies = ref([...props.dependencies] || []);
 const isPipelineDepsOpen = ref(false);
 const pipelineSearchQuery = ref("");
 const externalDepInput = ref("");
-const isExternalInputFocused = ref(false);
 const pipelineDepsContainer = ref(null);
 const externalDepsContainer = ref(null);
-
-// Mock pipeline assets for demonstration - in real app this would come from props or API
 const pipelineAssets = ref(props.pipelineAssets || []);
 
-// Common external dependency suggestions
-const commonExternalDeps = [
-  "api.users",
-  "api.orders", 
-  "api.products",
-  "database.users",
-  "database.orders",
-  "external_service.analytics",
-];
-
-// Debounced save function to prevent too frequent saves
 let saveTimeout = null;
+
 const debouncedSave = () => {
   if (saveTimeout) {
     clearTimeout(saveTimeout);
@@ -978,6 +926,10 @@ const handleClickOutside = (event) => {
 onMounted(() => {
   window.addEventListener("click", handleClickOutside);
   populateIntervalFormFields();
+  vscode.postMessage({
+    command: "bruin.getPipelineAssets",
+    source: "Materialization",
+  });
 });
 
 onBeforeUnmount(() => {
@@ -990,13 +942,11 @@ onBeforeUnmount(() => {
 });
 
 const saveMaterialization = () => {
-  // This function is now called automatically via watchers with debouncing
   let payload = {
     interval_modifiers: JSON.parse(JSON.stringify(intervalModifiers.value)),
   };
 
   if (localMaterialization.value.type !== "null") {
-    // Only include materialization if it's not "null"
     payload.materialization = JSON.parse(
       JSON.stringify({
         type: localMaterialization.value.type,
@@ -1037,19 +987,9 @@ const filteredPipelineAssets = computed(() => {
   if (!query) {
     return pipelineAssets.value;
   }
+  
   return pipelineAssets.value.filter((asset) => 
     asset.name.toLowerCase().includes(query)
-  );
-});
-
-const externalDepSuggestions = computed(() => {
-  const input = externalDepInput.value.toLowerCase();
-  if (!input) {
-    return [];
-  }
-  return commonExternalDeps.filter((dep) => 
-    dep.toLowerCase().includes(input) && 
-    !dependencies.value.some(d => d.name === dep)
   );
 });
 
@@ -1060,8 +1000,6 @@ const addPipelineDependency = (asset) => {
       name: asset.name,
       isExternal: false,
       type: 'asset',
-      columns: [],
-      mode: 'full'
     });
     sendDependenciesUpdate();
   }
@@ -1075,14 +1013,11 @@ const addExternalDependency = () => {
     dependencies.value.push({
       name: depName,
       isExternal: true,
-      type: 'external',
-      columns: [],
-      mode: 'full'
+      type: 'external', 
     });
     sendDependenciesUpdate();
   }
   externalDepInput.value = "";
-  isExternalInputFocused.value = false;
 };
 
 const removeDependency = (index) => {
@@ -1094,21 +1029,11 @@ const isDependencyAdded = (assetName) => {
   return dependencies.value.some(dep => dep.name === assetName);
 };
 
-const selectExternalSuggestion = (suggestion) => {
-  externalDepInput.value = suggestion;
-  addExternalDependency();
-};
-
 const sendDependenciesUpdate = () => {
-  // Transform dependencies back to upstreams format
   const upstreams = dependencies.value.map(dep => ({
     type: dep.isExternal ? 'external' : 'asset',
     value: dep.name,
-    columns: dep.columns || [],
-    mode: dep.mode || 'full'
   }));
-
-  console.log('Sending upstreams update:', upstreams);
 
   vscode.postMessage({
     command: "bruin.setAssetDetails",
@@ -1128,6 +1053,34 @@ watch(
   },
   { immediate: true, deep: true }
 );
+
+// Watch for pipelineAssets prop changes
+watch(
+  () => props.pipelineAssets,
+  (newPipelineAssets) => {
+    console.log('PipelineAssets prop changed, count:', newPipelineAssets?.length);
+    pipelineAssets.value = [...newPipelineAssets] || [];
+  },
+  { immediate: true, deep: true }
+);
+
+const togglePipelineDeps = () => {
+  isPipelineDepsOpen.value = !isPipelineDepsOpen.value;
+};
+
+const handlePipelineInput = () => {
+  isPipelineDepsOpen.value = true;
+};
+
+const handlePipelineInputBlur = () => {
+  setTimeout(() => {
+    isPipelineDepsOpen.value = false;
+  }, 100);
+};
+
+const handlePipelineEnter = () => {
+  isPipelineDepsOpen.value = false;
+};
 
 </script>
 <style scoped>
