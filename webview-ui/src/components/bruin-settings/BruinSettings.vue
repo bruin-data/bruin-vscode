@@ -30,8 +30,9 @@
 
     <DeleteAlert
       v-if="showDeleteAlert"
-      :elementName="connectionToDelete?.name"
-      elementType="connection"
+      title="Delete Connection"
+      :message="`Are you sure you want to delete the connection ${connectionToDelete?.name}? This action cannot be undone.`"
+      confirm-text="Delete"
       @confirm="deleteConnection"
       @cancel="cancelDeleteConnection"
     />
@@ -276,6 +277,7 @@ const deleteConnection = async () => {
         id: connectionToDelete.value.id,
       },
     });
+    showDeleteAlert.value = false;
   } catch (error) {
     console.error("Error deleting connection:", error);
   }
