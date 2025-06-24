@@ -190,6 +190,30 @@ export async function activate(context: ExtensionContext) {
 
   // Register commands
   const commandDisposables = [
+    commands.registerCommand("bruin.refreshDatabases", () => {
+      try {
+        trackEvent("Command Executed", { command: "refreshDatabases" });
+        activityBarDatabaseProvider.refresh();
+        vscode.window.showInformationMessage("Databases refreshed successfully!");
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error refreshing databases: ${errorMessage}`);
+      }
+    }),
+    commands.registerCommand("bruin.refreshDatabase", (item: any) => {
+      try {
+        if (item && item.dbName) {
+          trackEvent("Command Executed", { command: "refreshDatabase", database: item.dbName });
+          activityBarDatabaseProvider.refreshDatabase(item.dbName);
+          vscode.window.showInformationMessage(`Database '${item.dbName}' refreshed successfully!`);
+        } else {
+          vscode.window.showErrorMessage("No database selected for refresh");
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error refreshing database: ${errorMessage}`);
+      }
+    }),
     commands.registerCommand("bruin.showTableDetails", (tableName: string) => {
       TableDetailsPanel.render(context.extensionUri, tableName);
     }),

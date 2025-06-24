@@ -59,7 +59,7 @@ export class ActivityBarDatabaseProvider implements vscode.TreeDataProvider<Depe
         this.databaseNames = Object.keys(databaseData.databases || {});
       } else {
         // Fallback for development environment
-        const devJsonPath = path.join(this.extensionPath, 'src', 'bruin', 'databaseSchema.json');
+        const devJsonPath = path.join(this.extensionPath, 'schemas', 'databaseSchema.json');
         if (fs.existsSync(devJsonPath)) {
           const jsonData = fs.readFileSync(devJsonPath, 'utf8');
           const databaseData: DatabaseStructure = JSON.parse(jsonData);
@@ -83,8 +83,6 @@ export class ActivityBarDatabaseProvider implements vscode.TreeDataProvider<Depe
     if (!this.loadedDatabases.has(dbName)) {
       this.loadedDatabases.add(dbName);
       
-      // Database yüklendiğinde bruin terminale mesaj gönder
-      // Mevcut bruin terminali kontrol et, yoksa yeni oluştur
       if (!this.bruinTerminal || this.bruinTerminal.exitStatus) {
         this.bruinTerminal = vscode.window.createTerminal('Bruin Database');
       }
@@ -100,7 +98,7 @@ export class ActivityBarDatabaseProvider implements vscode.TreeDataProvider<Depe
       if (fs.existsSync(jsonPath)) {
         jsonData = fs.readFileSync(jsonPath, 'utf8');
       } else {
-        const devJsonPath = path.join(this.extensionPath, 'src', 'bruin', 'databaseSchema.json');
+        const devJsonPath = path.join(this.extensionPath, 'schemas', 'databaseSchema.json');
         if (fs.existsSync(devJsonPath)) {
           jsonData = fs.readFileSync(devJsonPath, 'utf8');
         } else {
@@ -121,9 +119,24 @@ export class ActivityBarDatabaseProvider implements vscode.TreeDataProvider<Depe
   }
 
   refresh(): void {
-    this.cachedData = {};
-    this.loadedDatabases.clear();
+    // Only clear cache for loaded databases, not all databases
+    this.loadedDatabases.forEach(dbName => {
+      delete this.cachedData[dbName];
+    });
+    
+    // Reload database names from schema file
     this.loadDatabaseNames();
+    
+    // Trigger UI refresh
+    this._onDidChangeTreeData.fire();
+  }
+
+  refreshDatabase(dbName: string): void {
+    // Clear cache for specific database
+    delete this.cachedData[dbName];
+    this.loadedDatabases.delete(dbName);
+    
+    // Trigger UI refresh
     this._onDidChangeTreeData.fire();
   }
 
@@ -138,6 +151,7 @@ export class ActivityBarDatabaseProvider implements vscode.TreeDataProvider<Depe
         this.databaseNames.map(dbName => {
           const dbItem = new Dependency(dbName, vscode.TreeItemCollapsibleState.Collapsed, undefined, undefined, dbName);
           dbItem.iconPath = new vscode.ThemeIcon('database');
+          dbItem.contextValue = 'database'; // Enable context menu for refresh
           return dbItem;
         })
       );

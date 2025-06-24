@@ -209,6 +209,20 @@
           "command": "bruin.renderSQL",
           "group": "navigation"
         }
+      ],
+      "view/title": [
+        {
+          "command": "bruin.refreshDatabases",
+          "when": "view == bruinDatabases",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "bruin.refreshDatabase",
+          "when": "view == bruinDatabases && viewItem == database",
+          "group": "inline"
+        }
       ]
     },
     "commands": [
@@ -219,6 +233,20 @@
         "category": "Bruin",
         "icon": "img/bruin-logo-sm128.png",
         "description": "Render a Bruin asset."
+      },
+      {
+        "command": "bruin.refreshDatabases",
+        "title": "Refresh Databases",
+        "category": "Bruin",
+        "icon": "$(refresh)",
+        "description": "Refresh cached databases."
+      },
+      {
+        "command": "bruin.refreshDatabase",
+        "title": "Refresh Database",
+        "category": "Bruin",
+        "icon": "$(refresh)",
+        "description": "Refresh specific database cache."
       },
       {
         "command": "bruin.installCli",
