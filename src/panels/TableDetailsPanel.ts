@@ -5,6 +5,7 @@ import {
   window,
   workspace,
   WorkspaceEdit,
+  commands,
 } from "vscode";
 import * as fs from "fs";
 import * as path from "path";
@@ -26,7 +27,38 @@ export class TableDetailsPanel {
     try {
       const cleanTableName = tableName.replace(/\.sql$/, "");
       
-      const tempDir = os.tmpdir();
+      // Check if there's already an open document for this table
+      const openDocuments = workspace.textDocuments;
+      const existingDoc = openDocuments.find(doc => {
+        const fileName = path.basename(doc.fileName);
+        return fileName.startsWith(`bruin-${cleanTableName}-`) && fileName.endsWith('.sql');
+      });
+      
+      if (existingDoc) {
+        // If document already exists, just switch to it
+        await window.showTextDocument(existingDoc, {
+          viewColumn: ViewColumn.One,
+          preview: false,
+        });
+        
+        // Open QueryPreview panel automatically
+        await commands.executeCommand('bruin.QueryPreviewView.focus');
+        return;
+      }
+      
+      // Create temp directory in workspace
+      const workspaceFolder = workspace.workspaceFolders?.[0];
+      if (!workspaceFolder) {
+        throw new Error("Workspace folder not found");
+      }
+      
+      const tempDir = path.join(workspaceFolder.uri.fsPath, ".bruin-temp");
+      
+      // Create temp directory if it doesn't exist
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
+      
       const tempFileName = `bruin-${cleanTableName}-${Date.now()}.sql`;
       const tempFilePath = path.join(tempDir, tempFileName);
       
@@ -48,6 +80,10 @@ SELECT * FROM ${this._sanitizeTableName(cleanTableName)};
         viewColumn: ViewColumn.One,
         preview: false,
       });
+
+      // Open QueryPreview panel automatically after opening the table
+      await commands.executeCommand('bruin.QueryPreviewView.focus');
+
     } catch (error) {
       window.showErrorMessage(`Table detayları açılırken hata: ${error}`);
     }
