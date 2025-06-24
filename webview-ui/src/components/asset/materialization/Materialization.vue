@@ -5,35 +5,34 @@
         <div class="flex items-center space-x-2">
           <label class="block text-xs font-medium text-editor-fg min-w-[60px]">Owner</label>
           <div id="owner-container" class="flex items-center gap-2">
-            <span
-              v-if="!isEditingOwner"
-              id="owner-text"
-              class="text-xs text-editor-fg px-2 py-1 font-mono flex items-center min-h-[32px]"
-              :class="owner ? '' : 'text-editor-fg opacity-60 italic'"
-            >
-              {{ owner || "Unknown" }}
-            </span>
-            <input
-              id="owner-input"
-              v-if="isEditingOwner"
-              v-model="editingOwner"
-              @blur="saveOwnerEdit"
-              @keyup.enter="saveOwnerEdit"
-              @keyup.escape="cancelOwnerEdit"
-              ref="ownerInput"
-              placeholder="data-team@company.com"
-              class="text-2xs bg-input-background focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg min-w-[200px] h-6"
-            />
-            <vscode-button
-              id="edit-owner-button"
-              appearance="icon"
+            <div
+              id="owner-text-container"
+              class="text-xs text-editor-fg px-2 py-1 flex items-center min-h-[32px]"
+              :class="{ 'cursor-pointer': !isEditingOwner, 'hover-background': !isEditingOwner }"
               @click="startEditingOwner"
-              v-if="!isEditingOwner"
-              class="text-xs"
-              title="Edit owner"
             >
-              <span class="codicon codicon-edit"></span>
-            </vscode-button>
+              <template v-if="isEditingOwner">
+                <input
+                  id="owner-input"
+                  v-model="editingOwner"
+                  @blur="saveOwnerEdit"
+                  @keyup.enter="saveOwnerEdit"
+                  @keyup.escape="cancelOwnerEdit"
+                  @mouseleave="handleOwnerInputMouseLeave"
+                  ref="ownerInput"
+                  placeholder="data-team@company.com"
+                  class="text-xs bg-input-background border-0 p-0 text-editor-fg truncate"
+                />
+              </template>
+              <template v-else>
+                <span 
+                  id="owner-text"
+                  :class="owner ? '' : 'text-editor-fg opacity-60 italic'"
+                >
+                  {{ owner || "Unknown" }}
+                </span>
+              </template>
+            </div>
           </div>
         </div>
         <div class="border-t border-commandCenter-border"></div>
@@ -672,6 +671,12 @@ const cancelOwnerEdit = () => {
   isEditingOwner.value = false;
 };
 
+const handleOwnerInputMouseLeave = () => {
+  if (isEditingOwner.value) {
+    saveOwnerEdit();
+  }
+};
+
 const startAddingTag = () => {
   isAddingTag.value = true;
   nextTick(() => {
@@ -1126,5 +1131,9 @@ vscode-button::part(control) {
 input,
 select {
   @apply px-1 py-0.5 text-2xs border-0 !important;
+}
+
+#owner-text-container.hover-background:hover {
+  background-color: var(--vscode-input-background);
 }
 </style>
