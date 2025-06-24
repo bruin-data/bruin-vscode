@@ -428,6 +428,8 @@
         </div>
       </div>
 
+      <BruinUtilities />
+
       <div class="border-t border-commandCenter-border pt-2 mt-auto">
         <!-- Save button removed - changes are saved immediately -->
       </div>
@@ -438,6 +440,7 @@
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from "vue";
 import { vscode } from "@/utilities/vscode";
+import BruinUtilities from "./BruinUtilities.vue";
 
 const props = defineProps({
   materialization: {
