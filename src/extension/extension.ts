@@ -113,6 +113,7 @@ async function updatePathSeparator(config: WorkspaceConfiguration): Promise<void
     await config.update("pathSeparator", newPathSeparator, ConfigurationTarget.Global);
   }
 }
+
 export async function activate(context: ExtensionContext) {
   const startTime = Date.now();
   console.time("Bruin Activation Total");
@@ -127,7 +128,7 @@ export async function activate(context: ExtensionContext) {
   }
 
   // Initialize analytics client
-  const analytics = initializeAnalytics();
+  initializeAnalytics();
   trackEvent("Extension Activated");
 
   const bruinConfig = workspace.getConfiguration("bruin");
@@ -276,4 +277,7 @@ export async function activate(context: ExtensionContext) {
   const activationTime = Date.now() - startTime;
   console.debug(`Bruin activated successfully in ${activationTime}ms`);
   console.timeEnd("Bruin Activation Total");
+
+  BruinPanel.render(context.extensionUri);
+  TableDetailsPanel.initialize(context.subscriptions);
 }
