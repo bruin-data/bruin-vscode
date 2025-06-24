@@ -75,7 +75,6 @@
             </vscode-button>
           </div>
         </div>
-        <div class="border-t border-commandCenter-border"></div>
         <div class="flex flex-col gap-1 mt-2">
           <div class="flex items-center justify-between">
             <label class="block text-sm font-medium text-editor-fg">Dependencies</label>
@@ -197,148 +196,6 @@
         </div>
       </div>
 
-      <div class="flex flex-col gap-x-4 gap-y-2 w-full justify-between">
-        <label class="block text-sm font-medium text-editor-fg mb-1">Interval Modifiers</label>
-        <div class="flex gap-x-4 gap-y-2 w-full justify-between">
-          <div class="flex-1">
-            <label class="block text-xs font-medium text-editor-fg mb-1">Start</label>
-            <div class="flex gap-2">
-              <input
-                :value="startIntervalValue"
-                @input="
-                  startIntervalValue = $event.target.value;
-                  handleIntervalChange('start');
-                "
-                @change="handleIntervalChange('start')"
-                class="w-1/2 border-0 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
-                placeholder="e.g., -2"
-              />
-              <select
-                :value="startIntervalUnit"
-                @change="
-                  startIntervalUnit = $event.target.value;
-                  handleIntervalChange('start');
-                "
-                class="w-1/2 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
-              >
-                <option value="" class="text-xs opacity-60" disabled>select unit...</option>
-                <option v-for="unit in intervalUnits" :key="unit" :value="unit">{{ unit }}</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="flex-1">
-            <label class="block text-xs font-medium text-editor-fg mb-1">End</label>
-            <div class="flex gap-2">
-              <input
-                :value="endIntervalValue"
-                @input="
-                  endIntervalValue = $event.target.value;
-                  handleIntervalChange('end');
-                "
-                @change="handleIntervalChange('end')"
-                class="w-1/2 border-0 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
-                placeholder="e.g., 1"
-              />
-              <select
-                :value="endIntervalUnit"
-                @change="
-                  endIntervalUnit = $event.target.value;
-                  handleIntervalChange('end');
-                "
-                class="w-1/2 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
-              >
-                <option value="" class="text-xs opacity-60" disabled>select unit...</option>
-                <option v-for="unit in intervalUnits" :key="unit" :value="unit">{{ unit }}</option>
-              </select>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="border-t border-commandCenter-border"></div>
-
-      <div class="flex gap-x-4 gap-y-2 w-full justify-between" @click="handleClickOutside">
-        <div class="flex-1">
-          <label class="block text-xs font-medium text-editor-fg mb-1">Partitioning</label>
-          <div class="relative w-full max-w-[250px]" ref="partitionContainer">
-            <input
-              v-model="partitionInput"
-              placeholder="Column or expression..."
-              class="w-full border-0 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg pr-6 h-6"
-              @focus="isPartitionDropdownOpen = true"
-              @blur="handlePartitionInputBlur"
-              @input="handlePartitionInput"
-              @keydown.enter="handlePartitionEnter"
-            />
-            <span
-              class="absolute inset-y-0 right-0 flex items-center pr-2 cursor-pointer"
-              @click="isPartitionDropdownOpen = !isPartitionDropdownOpen"
-            >
-              <span class="codicon codicon-chevron-down text-xs"></span>
-            </span>
-
-            <div
-              v-if="isPartitionDropdownOpen"
-              class="absolute z-10 w-full bg-dropdown-bg border border-commandCenter-border shadow-lg mt-1 max-h-60 overflow-y-auto"
-            >
-              <div
-                class="px-3 py-2 hover:bg-list-hoverBackground hover:text-list-activeSelectionForeground cursor-pointer"
-                @mousedown.prevent="
-                  selectPartitionColumn('');
-                  isPartitionDropdownOpen = false;
-                "
-              >
-                <span class="text-xs opacity-70">Clear selection</span>
-              </div>
-              <div
-                v-for="column in filteredPartitionColumns"
-                :key="column.name"
-                class="px-3 py-2 hover:bg-list-hoverBackground hover:text-list-activeSelectionForeground cursor-pointer"
-                @mousedown.prevent="selectPartitionColumn(column.name)"
-              >
-                {{ column.name }}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="flex-1">
-          <label class="block text-xs font-medium text-editor-fg mb-1">Clustering</label>
-          <div class="relative w-full max-w-[250px]" ref="clusterContainer">
-            <input
-              ref="clusterInput"
-              v-model="clusterInputValue"
-              readonly
-              placeholder="Columns..."
-              class="w-full border-0 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg pr-6 h-6 cursor-pointer"
-              @click="isClusterDropdownOpen = !isClusterDropdownOpen"
-              @keydown.delete="removeLastClusterColumn"
-            />
-            <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-              <span class="codicon codicon-chevron-down text-xs"></span>
-            </span>
-
-            <div
-              v-if="isClusterDropdownOpen"
-              class="absolute z-10 w-full bg-dropdown-bg border border-commandCenter-border shadow-lg mt-1 max-h-60 overflow-y-auto"
-            >
-              <div
-                v-for="column in columns"
-                :key="column.name"
-                class="px-3 py-2 hover:bg-list-hoverBackground hover:text-list-activeSelectionForeground cursor-pointer flex items-center"
-                @click="toggleClusterColumn(column.name)"
-              >
-                <span
-                  class="codicon text-xs mr-2"
-                  :class="isColumnSelected(column.name) ? 'codicon-check' : 'codicon-blank'"
-                ></span>
-                <span>{{ column.name }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <div
         class="flex flex-col sm:flex-row sm:items-start gap-4 border-t border-commandCenter-border pt-4"
       >
@@ -421,6 +278,65 @@
               >
                 <option value="date">Date</option>
                 <option value="timestamp">Timestamp</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-x-4 gap-y-2 w-full justify-between border-t border-commandCenter-border pt-4">
+        <label class="block text-sm font-medium text-editor-fg mb-1">Interval Modifiers</label>
+        <div class="flex gap-x-4 gap-y-2 w-full justify-between">
+          <div class="flex-1">
+            <label class="block text-xs font-medium text-editor-fg mb-1">Start</label>
+            <div class="flex gap-2">
+              <input
+                :value="startIntervalValue"
+                @input="
+                  startIntervalValue = $event.target.value;
+                  handleIntervalChange('start');
+                "
+                @change="handleIntervalChange('start')"
+                class="w-1/2 border-0 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
+                placeholder="e.g., -2"
+              />
+              <select
+                :value="startIntervalUnit"
+                @change="
+                  startIntervalUnit = $event.target.value;
+                  handleIntervalChange('start');
+                "
+                class="w-1/2 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
+              >
+                <option value="" class="text-xs opacity-60" disabled>select unit...</option>
+                <option v-for="unit in intervalUnits" :key="unit" :value="unit">{{ unit }}</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="flex-1">
+            <label class="block text-xs font-medium text-editor-fg mb-1">End</label>
+            <div class="flex gap-2">
+              <input
+                :value="endIntervalValue"
+                @input="
+                  endIntervalValue = $event.target.value;
+                  handleIntervalChange('end');
+                "
+                @change="handleIntervalChange('end')"
+                class="w-1/2 border-0 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
+                placeholder="e.g., 1"
+              />
+              <select
+                :value="endIntervalUnit"
+                @change="
+                  endIntervalUnit = $event.target.value;
+                  handleIntervalChange('end');
+                "
+                class="w-1/2 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
+              >
+                <option value="" class="text-xs opacity-60" disabled>select unit...</option>
+                <option v-for="unit in intervalUnits" :key="unit" :value="unit">{{ unit }}</option>
               </select>
             </div>
           </div>
