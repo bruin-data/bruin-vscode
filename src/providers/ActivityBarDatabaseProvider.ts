@@ -43,86 +43,75 @@ export class ActivityBarDatabaseProvider implements vscode.TreeDataProvider<Depe
 
   private databaseNames: string[] = [];
   private cachedData: { [key: string]: any } = {};
-  private loadedDatabases: Set<string> = new Set();
-  private bruinTerminal: vscode.Terminal | undefined;
 
   constructor(private extensionPath: string) {
     this.loadDatabaseNames();
   }
 
-  private loadDatabaseNames(): void {
-    const jsonPath = path.join(this.extensionPath, 'out', 'bruin', 'databaseSchema.json');
+  // Centralized function to find and read database schema file
+  private getDatabaseSchemaData(): DatabaseStructure | null {
+    const primaryPath = path.join(this.extensionPath, 'out', 'bruin', 'databaseSchema.json');
+    const fallbackPath = path.join(this.extensionPath, 'schemas', 'databaseSchema.json');
+    
     try {
-      if (fs.existsSync(jsonPath)) {
-        const jsonData = fs.readFileSync(jsonPath, 'utf8');
-        const databaseData: DatabaseStructure = JSON.parse(jsonData);
-        this.databaseNames = Object.keys(databaseData.databases || {});
+      let jsonData: string;
+      
+      if (fs.existsSync(primaryPath)) {
+        jsonData = fs.readFileSync(primaryPath, 'utf8');
+      } else if (fs.existsSync(fallbackPath)) {
+        jsonData = fs.readFileSync(fallbackPath, 'utf8');
       } else {
-        // Fallback for development environment
-        const devJsonPath = path.join(this.extensionPath, 'schemas', 'databaseSchema.json');
-        if (fs.existsSync(devJsonPath)) {
-          const jsonData = fs.readFileSync(devJsonPath, 'utf8');
-          const databaseData: DatabaseStructure = JSON.parse(jsonData);
-          this.databaseNames = Object.keys(databaseData.databases || {});
-        } else {
-          vscode.window.showErrorMessage(`Database schema file not found at ${jsonPath} or ${devJsonPath}`);
-          this.databaseNames = [];
-        }
+        vscode.window.showErrorMessage(`Database schema file not found at ${primaryPath} or ${fallbackPath}`);
+        return null;
       }
+      
+      return JSON.parse(jsonData);
     } catch (error) {
       vscode.window.showErrorMessage(`Error loading database schema: ${error}`);
-      this.databaseNames = [];
+      return null;
     }
   }
 
-  private loadDatabaseData(dbName: string): Database | null {
+  private loadDatabaseNames(): void {
+    const databaseData = this.getDatabaseSchemaData();
+    this.databaseNames = databaseData ? Object.keys(databaseData.databases || {}) : [];
+  }
+
+  private async loadDatabaseData(dbName: string): Promise<Database | null> {
+    // Return cached data immediately if available
     if (this.cachedData[dbName]) {
       return this.cachedData[dbName];
     }
 
-    if (!this.loadedDatabases.has(dbName)) {
-      this.loadedDatabases.add(dbName);
+    // Show loading indicator while loading database data
+    return vscode.window.withProgress({
+      location: vscode.ProgressLocation.Window,
+      title: `Loading database: ${dbName}`,
+      cancellable: false
+    }, async (progress) => {
+      progress.report({ increment: 0, message: "Reading schema file..." });
       
-      if (!this.bruinTerminal || this.bruinTerminal.exitStatus) {
-        this.bruinTerminal = vscode.window.createTerminal('Bruin Database');
-      }
-      this.bruinTerminal.sendText(`echo "Database ${dbName} loaded successfully"`);
-      this.bruinTerminal.show();
-      
-      this._onDidChangeTreeData.fire();
-    }
-
-    const jsonPath = path.join(this.extensionPath, 'out', 'bruin', 'databaseSchema.json');
-    try {
-      let jsonData: string;
-      if (fs.existsSync(jsonPath)) {
-        jsonData = fs.readFileSync(jsonPath, 'utf8');
-      } else {
-        const devJsonPath = path.join(this.extensionPath, 'schemas', 'databaseSchema.json');
-        if (fs.existsSync(devJsonPath)) {
-          jsonData = fs.readFileSync(devJsonPath, 'utf8');
-        } else {
-          return null;
-        }
+      const databaseData = this.getDatabaseSchemaData();
+      if (!databaseData) {
+        return null;
       }
       
-      const databaseData: DatabaseStructure = JSON.parse(jsonData);
+      progress.report({ increment: 50, message: "Processing database structure..." });
+      
       const dbData = databaseData.databases[dbName];
       if (dbData) {
         this.cachedData[dbName] = dbData;
+        progress.report({ increment: 100, message: "Complete" });
         return dbData;
       }
-    } catch (error) {
-      vscode.window.showErrorMessage(`Error loading data for database ${dbName}: ${error}`);
-    }
-    return null;
+      
+      return null;
+    });
   }
 
   refresh(): void {
-    // Only clear cache for loaded databases, not all databases
-    this.loadedDatabases.forEach(dbName => {
-      delete this.cachedData[dbName];
-    });
+    // Clear ALL cached data
+    this.cachedData = {};
     
     // Reload database names from schema file
     this.loadDatabaseNames();
@@ -134,7 +123,6 @@ export class ActivityBarDatabaseProvider implements vscode.TreeDataProvider<Depe
   refreshDatabase(dbName: string): void {
     // Clear cache for specific database
     delete this.cachedData[dbName];
-    this.loadedDatabases.delete(dbName);
     
     // Trigger UI refresh
     this._onDidChangeTreeData.fire();
@@ -144,36 +132,33 @@ export class ActivityBarDatabaseProvider implements vscode.TreeDataProvider<Depe
     return element;
   }
 
-  getChildren(element?: Dependency): Thenable<Dependency[]> {
+  async getChildren(element?: Dependency): Promise<Dependency[]> {
     if (!element) {
       // Root level - return database names without command but with icon
-      return Promise.resolve(
-        this.databaseNames.map(dbName => {
-          const dbItem = new Dependency(dbName, vscode.TreeItemCollapsibleState.Collapsed, undefined, undefined, dbName);
-          dbItem.iconPath = new vscode.ThemeIcon('database');
-          dbItem.contextValue = 'database'; // Enable context menu for refresh
-          return dbItem;
-        })
-      );
+      return this.databaseNames.map(dbName => {
+        const dbItem = new Dependency(dbName, vscode.TreeItemCollapsibleState.Collapsed, undefined, undefined, dbName);
+        dbItem.iconPath = new vscode.ThemeIcon('database');
+        dbItem.contextValue = 'database'; // Enable context menu for refresh
+        return dbItem;
+      });
     }
 
     if (element.dbName && !element.schemaName) {
-      // Database level - load database and return schemas
-      this.loadDatabaseData(element.dbName);
-      const dbData = this.loadDatabaseData(element.dbName);
+      // Database level - return schemas
+      const dbData = await this.loadDatabaseData(element.dbName);
       if (dbData && dbData.schemas) {
         const schemaItems = Object.keys(dbData.schemas).map(schemaName => {
           const schemaItem = new Dependency(schemaName, vscode.TreeItemCollapsibleState.Collapsed, undefined, undefined, element.dbName, schemaName);
           schemaItem.iconPath = new vscode.ThemeIcon('folder');
           return schemaItem;
         });
-        return Promise.resolve(schemaItems);
+        return schemaItems;
       }
     }
 
     if (element.dbName && element.schemaName && !element.tableName) {
       // Schema level - return tables
-      const dbData = this.loadDatabaseData(element.dbName);
+      const dbData = await this.loadDatabaseData(element.dbName);
       if (dbData && dbData.schemas[element.schemaName]) {
         const tables = dbData.schemas[element.schemaName].tables;
         const tableItems = Object.keys(tables).map(tableName => {
@@ -186,13 +171,13 @@ export class ActivityBarDatabaseProvider implements vscode.TreeDataProvider<Depe
           tableItem.iconPath = new vscode.ThemeIcon('table');
           return tableItem;
         });
-        return Promise.resolve(tableItems);
+        return tableItems;
       }
     }
 
     if (element.dbName && element.schemaName && element.tableName) {
       // Table level - return columns
-      const dbData = this.loadDatabaseData(element.dbName);
+      const dbData = await this.loadDatabaseData(element.dbName);
       if (dbData && dbData.schemas[element.schemaName] && dbData.schemas[element.schemaName].tables[element.tableName]) {
         const columns = dbData.schemas[element.schemaName].tables[element.tableName].columns;
         const columnItems = Object.entries(columns).map(([columnName, columnType]) => {
@@ -200,10 +185,10 @@ export class ActivityBarDatabaseProvider implements vscode.TreeDataProvider<Depe
           columnItem.iconPath = new vscode.ThemeIcon('symbol-field');
           return columnItem;
         });
-        return Promise.resolve(columnItems);
+        return columnItems;
       }
     }
 
-    return Promise.resolve([]);
+    return [];
   }
 }

@@ -46,15 +46,15 @@ export class TableDetailsPanel {
         return;
       }
       
-      // Create temp directory in workspace
+      // Create logs directory in workspace for temporary SQL files
       const workspaceFolder = workspace.workspaceFolders?.[0];
       if (!workspaceFolder) {
         throw new Error("Workspace folder not found");
       }
       
-      const tempDir = path.join(workspaceFolder.uri.fsPath, ".bruin-temp");
+      const tempDir = path.join(workspaceFolder.uri.fsPath, "logs");
       
-      // Create temp directory if it doesn't exist
+      // Create logs directory if it doesn't exist (cross-platform compatible)
       if (!fs.existsSync(tempDir)) {
         fs.mkdirSync(tempDir, { recursive: true });
       }
@@ -65,11 +65,7 @@ export class TableDetailsPanel {
       // Track temp file for cleanup
       this.tempFiles.add(tempFilePath);
       
-      const initialContent = `-- Table: ${cleanTableName}
-
-SELECT * FROM ${this._sanitizeTableName(cleanTableName)};
-
-`;
+      const initialContent = `SELECT * FROM ${this._sanitizeTableName(cleanTableName)};`;
 
       fs.writeFileSync(tempFilePath, initialContent);
       
