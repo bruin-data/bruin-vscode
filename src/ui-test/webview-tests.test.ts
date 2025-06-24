@@ -712,4 +712,417 @@ describe("Bruin Webview Test", function () {
       assert.strictEqual(emptyStateText, "No dependencies configured", "Empty state message should be displayed");
     });
   });
+
+  // Custom Checks tests
+  describe("Custom Checks Tests", function () {
+    let customChecksContainer: WebElement;
+    let addCheckButton: WebElement;
+
+    beforeEach(async function () {
+      this.timeout(10000);
+      // Ensure we are on the custom checks tab where custom checks are located
+      const tab = await driver.wait(until.elementLocated(By.id("tab-3")), 10000);
+      await tab.click();
+      await sleep(500);
+
+      // Clean up any open modals/alerts from previous tests
+      try {
+        const openAlerts = await driver.findElements(By.css('.fixed.inset-0'));
+        for (const alert of openAlerts) {
+          try {
+            // Try to find and click cancel button
+            const cancelButton = await alert.findElement(By.xpath('.//button[contains(text(), "Cancel")]'));
+            await cancelButton.click();
+            await sleep(500);
+          } catch (e) {
+            // If cancel button not found, try to click outside or press escape
+            await driver.actions().sendKeys(Key.ESCAPE).perform();
+            await sleep(500);
+          }
+        }
+      } catch (e) {
+        // If no alerts found, continue
+        console.log("No open alerts to clean up");
+      }
+
+      // Wait for custom checks container to be present
+      customChecksContainer = await driver.wait(
+        until.elementLocated(By.id("custom-checks-table")),
+        10000,
+        "Custom checks table not found"
+      );
+      
+      addCheckButton = await driver.wait(
+        until.elementLocated(By.id("add-custom-check-button")),
+        10000,
+        "Add Check button not found"
+      );
+    });
+
+    it("should display existing custom checks from the file", async function () {
+      this.timeout(15000);
+      
+      // Look for existing custom checks in the table
+      const existingChecks = await customChecksContainer.findElements(By.css('tbody tr'));
+      
+      if (existingChecks.length > 0) {
+        console.log(`Found ${existingChecks.length} existing custom checks`);
+        
+        // Verify each check has the expected structure
+        for (let i = 0; i < existingChecks.length; i++) {
+          const check = existingChecks[i];
+          
+          // Check that the row has the expected columns (Name, Value, Description, Query, Actions)
+          const columns = await check.findElements(By.css('td'));
+          assert.strictEqual(columns.length, 5, `Custom check row ${i} should have 5 columns`);
+          
+          // Verify the name column is not empty
+          const nameCell = columns[0];
+          const nameText = await nameCell.getText();
+          assert.ok(nameText.length > 0, `Custom check ${i} should have a name`);
+          
+          // Verify the query column is not empty
+          const queryCell = columns[3];
+          const queryText = await queryCell.getText();
+          assert.ok(queryText.length > 0, `Custom check ${i} should have a query`);
+          
+          console.log(`Custom check ${i}: Name="${nameText}", Query="${queryText.substring(0, 50)}..."`);
+        }
+      } else {
+        // If no existing checks, verify the empty state message
+        const emptyStateElement = await driver.wait(
+          until.elementLocated(By.id("custom-checks-empty-state")),
+          5000,
+          "Empty state message not found"
+        );
+        
+        const emptyStateText = await emptyStateElement.getText();
+        assert.strictEqual(emptyStateText.trim(), "No custom checks to display.", "Empty state message should be displayed");
+        console.log("No existing custom checks found, empty state displayed correctly");
+      }
+    });
+
+    it("should add a new custom check and display it in the UI", async function () {
+      this.timeout(20000);
+      
+      const checkName = `test_check_${Date.now()}`;
+      const checkValue = "100";
+      const checkDescription = `Test description ${Date.now()}`;
+      const checkQuery = "SELECT COUNT(*) FROM test_table WHERE column > 0";
+      
+      // Click Add Check button
+      await addCheckButton.click();
+      await sleep(1000);
+      
+      // Wait for the new row to be in edit mode (it will be the last row)
+      const allRows = await customChecksContainer.findElements(By.css('tbody tr'));
+      const newRowIndex = allRows.length - 1;
+      
+      const editingRow = await driver.wait(
+        until.elementLocated(By.id(`custom-check-row-${newRowIndex}`)),
+        10000,
+        "New custom check row not found"
+      );
+      
+      // Find all input fields in the editing row using IDs
+      const nameField = await driver.wait(
+        until.elementLocated(By.id(`custom-check-name-input-${newRowIndex}`)),
+        10000,
+        "Name input field not found"
+      );
+      
+      const valueField = await driver.wait(
+        until.elementLocated(By.id(`custom-check-value-input-${newRowIndex}`)),
+        10000,
+        "Value input field not found"
+      );
+      
+      const descriptionField = await driver.wait(
+        until.elementLocated(By.id(`custom-check-description-input-${newRowIndex}`)),
+        10000,
+        "Description input field not found"
+      );
+      
+      const queryField = await driver.wait(
+        until.elementLocated(By.id(`custom-check-query-input-${newRowIndex}`)),
+        10000,
+        "Query input field not found"
+      );
+      
+      // Fill in the custom check details
+      await nameField.clear();
+      await nameField.sendKeys(checkName);
+      
+      await valueField.clear();
+      await valueField.sendKeys(checkValue);
+      
+      await descriptionField.clear();
+      await descriptionField.sendKeys(checkDescription);
+      
+      await queryField.clear();
+      await queryField.sendKeys(checkQuery);
+      
+      // Save the custom check
+      const saveButton = await driver.wait(
+        until.elementLocated(By.id(`custom-check-save-button-${newRowIndex}`)),
+        10000,
+        "Save button not found"
+      );
+      await saveButton.click();
+      await sleep(1000);
+      
+      // Verify the custom check is now displayed in view mode
+      const savedRow = await driver.wait(
+        until.elementLocated(By.id(`custom-check-row-${newRowIndex}`)),
+        10000,
+        "Saved custom check row not found"
+      );
+      
+      // Verify the displayed values match what we entered
+      const cells = await savedRow.findElements(By.css('td'));
+      
+      const displayedName = await cells[0].getText();
+      assert.strictEqual(displayedName, checkName, `Custom check name should be "${checkName}"`);
+      
+      const displayedValue = await cells[1].getText();
+      assert.strictEqual(displayedValue, checkValue, `Custom check value should be "${checkValue}"`);
+      
+      const displayedDescription = await cells[2].getText();
+      assert.strictEqual(displayedDescription, checkDescription, `Custom check description should be "${checkDescription}"`);
+      
+      const displayedQuery = await cells[3].getText();
+      assert.ok(displayedQuery.includes("SELECT"), `Custom check query should contain the SQL query`);
+      
+      console.log(`Successfully added and verified custom check: ${checkName}`);
+    });
+
+    it("should edit an existing custom check", async function () {
+      this.timeout(20000);
+      
+      // First, add a custom check to edit
+      const originalName = `edit_test_${Date.now()}`;
+      const originalQuery = "SELECT 1";
+      
+      await addCheckButton.click();
+      await sleep(1000);
+      
+      const allRows = await customChecksContainer.findElements(By.css('tbody tr'));
+      const newRowIndex = allRows.length - 1;
+      
+      const editingRow = await driver.wait(
+        until.elementLocated(By.id(`custom-check-row-${newRowIndex}`)),
+        10000,
+        "New custom check row not found"
+      );
+      
+      const nameField = await driver.wait(
+        until.elementLocated(By.id(`custom-check-name-input-${newRowIndex}`)),
+        10000,
+        "Name input field not found"
+      );
+      
+      const queryField = await driver.wait(
+        until.elementLocated(By.id(`custom-check-query-input-${newRowIndex}`)),
+        10000,
+        "Query input field not found"
+      );
+      
+      // Fill in initial values
+      await nameField.clear();
+      await nameField.sendKeys(originalName);
+      await queryField.clear();
+      await queryField.sendKeys(originalQuery);
+      
+      // Save the initial check
+      const saveButton = await editingRow.findElement(By.id(`custom-check-save-button-${newRowIndex}`));
+      await saveButton.click();
+      await sleep(1000);
+      
+      // Now edit the check
+      const savedRow = await driver.wait(
+        until.elementLocated(By.id(`custom-check-row-${newRowIndex}`)),
+        10000,
+        "Saved custom check row not found"
+      );
+      
+      // Click the edit button
+      const editButton = await savedRow.findElement(By.id(`custom-check-edit-button-${newRowIndex}`));
+      await editButton.click();
+      await sleep(1000);
+      
+      // Verify we're back in edit mode
+      const editNameField = await driver.wait(
+        until.elementLocated(By.id(`custom-check-name-input-${newRowIndex}`)),
+        10000,
+        "Edit name field not found"
+      );
+      
+      const editQueryField = await driver.wait(
+        until.elementLocated(By.id(`custom-check-query-input-${newRowIndex}`)),
+        10000,
+        "Edit query field not found"
+      );
+      
+      // Modify the values
+      const updatedName = `updated_${originalName}`;
+      const updatedQuery = "SELECT COUNT(*) FROM updated_table";
+      
+      await editNameField.clear();
+      await editNameField.sendKeys(updatedName);
+      await editQueryField.clear();
+      await editQueryField.sendKeys(updatedQuery);
+      
+      // Save the changes
+      const saveButton2 = await savedRow.findElement(By.id(`custom-check-save-button-${newRowIndex}`));
+      await saveButton2.click();
+      await sleep(1000);
+      
+      // Verify the changes are displayed
+      const finalCells = await savedRow.findElements(By.css('td'));
+      
+      const finalName = await finalCells[0].getText();
+      assert.strictEqual(finalName, updatedName, `Custom check name should be updated to "${updatedName}"`);
+      
+      const finalQuery = await finalCells[3].getText();
+      assert.ok(finalQuery.includes("COUNT"), `Custom check query should be updated to include "COUNT"`);
+      
+      console.log(`Successfully edited custom check from "${originalName}" to "${updatedName}"`);
+    });
+
+    it("should delete a custom check", async function () {
+      this.timeout(20000);
+      
+      // First, add a custom check to delete
+      const checkToDelete = `delete_test_${Date.now()}`;
+      
+      await addCheckButton.click();
+      await sleep(1000);
+      
+      const allRows = await customChecksContainer.findElements(By.css('tbody tr'));
+      const newRowIndex = allRows.length - 1;
+      
+      const editingRow = await driver.wait(
+        until.elementLocated(By.id(`custom-check-row-${newRowIndex}`)),
+        10000,
+        "New custom check row not found"
+      );
+      
+      const nameField = await driver.wait(
+        until.elementLocated(By.id(`custom-check-name-input-${newRowIndex}`)),
+        10000,
+        "Name input field not found"
+      );
+      
+      const queryField = await driver.wait(
+        until.elementLocated(By.id(`custom-check-query-input-${newRowIndex}`)),
+        10000,
+        "Query input field not found"
+      );
+      
+      // Fill in the check details
+      await nameField.clear();
+      await nameField.sendKeys(checkToDelete);
+      await queryField.clear();
+      await queryField.sendKeys("SELECT 1");
+      
+      // Save the check
+      const saveButton = await editingRow.findElement(By.id(`custom-check-save-button-${newRowIndex}`));
+      await saveButton.click();
+      await sleep(1000);
+      
+      // Verify the check exists
+      const savedRow = await driver.wait(
+        until.elementLocated(By.id(`custom-check-row-${newRowIndex}`)),
+        10000,
+        "Saved custom check row not found"
+      );
+      
+      const cells = await savedRow.findElements(By.css('td'));
+      const savedName = await cells[0].getText();
+      assert.strictEqual(savedName, checkToDelete, `Custom check "${checkToDelete}" should exist before deletion`);
+      
+      // Click the delete button
+      const deleteButton = await savedRow.findElement(By.id(`custom-check-delete-button-${newRowIndex}`));
+      await deleteButton.click();
+      await sleep(1000);
+      
+      // Wait for and confirm the delete alert
+      const deleteAlert = await driver.wait(
+        until.elementLocated(By.id(`custom-check-delete-alert-${newRowIndex}`)),
+        10000,
+        "Delete confirmation alert not found"
+      );
+      
+      const confirmButton = await deleteAlert.findElement(By.xpath('.//button[contains(text(), "Delete")]'));
+      await confirmButton.click();
+      await sleep(1000);
+      
+      // Verify the check is no longer in the table
+      const allRowsAfterDelete = await customChecksContainer.findElements(By.css('tbody tr'));
+      const rowTexts = await Promise.all(allRowsAfterDelete.map(row => row.getText()));
+      
+      const checkStillExists = rowTexts.some(text => text.includes(checkToDelete));
+      assert.ok(!checkStillExists, `Custom check "${checkToDelete}" should be deleted`);
+      
+      console.log(`Successfully deleted custom check: ${checkToDelete}`);
+    });
+
+    it("should display custom checks with proper syntax highlighting", async function () {
+      this.timeout(15000);
+      
+      // Add a custom check with SQL syntax
+      await addCheckButton.click();
+      await sleep(1000);
+      
+      const allRows = await customChecksContainer.findElements(By.css('tbody tr'));
+      const newRowIndex = allRows.length - 1;
+      
+      const editingRow = await driver.wait(
+        until.elementLocated(By.id(`custom-check-row-${newRowIndex}`)),
+        10000,
+        "New custom check row not found"
+      );
+      
+      const nameField = await driver.wait(
+        until.elementLocated(By.id(`custom-check-name-input-${newRowIndex}`)),
+        10000,
+        "Name input field not found"
+      );
+      
+      const queryField = await driver.wait(
+        until.elementLocated(By.id(`custom-check-query-input-${newRowIndex}`)),
+        10000,
+        "Query input field not found"
+      );
+      
+      const sqlQuery = "SELECT COUNT(*) as count FROM users WHERE created_at > '2023-01-01'";
+      
+      await nameField.clear();
+      await nameField.sendKeys("syntax_test");
+      await queryField.clear();
+      await queryField.sendKeys(sqlQuery);
+      
+      // Save the check
+      const saveButton = await editingRow.findElement(By.id(`custom-check-save-button-${newRowIndex}`));
+      await saveButton.click();
+      await sleep(1000);
+      
+      // Verify the query is displayed with syntax highlighting
+      const savedRow = await driver.wait(
+        until.elementLocated(By.id(`custom-check-row-${newRowIndex}`)),
+        10000,
+        "Saved custom check row not found"
+      );
+      
+      const queryCell = await savedRow.findElements(By.css('td'));
+      const queryElement = queryCell[3];
+      
+      // Check if the query contains highlighted elements (should have HTML tags for syntax highlighting)
+      const queryHTML = await queryElement.getAttribute('innerHTML');
+      assert.ok(queryHTML.includes('<div>'), "Query should be displayed with syntax highlighting");
+      assert.ok(queryHTML.includes('SELECT'), "Query should contain the SQL keyword");
+      
+      console.log("Custom check query displayed with proper syntax highlighting");
+    });
+  });
 });

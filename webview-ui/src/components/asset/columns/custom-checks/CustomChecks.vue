@@ -1,11 +1,11 @@
 <template>
   <div class="flex flex-col py-2 sm:py-1 h-full w-56 relative">
     <div class="flex justify-end mb-4">
-      <vscode-button :disabled="isConfigFile" @click="addCustomCheck" class="py-1 focus:outline-none disabled:cursor-not-allowed">
+      <vscode-button id="add-custom-check-button" :disabled="isConfigFile" @click="addCustomCheck" class="py-1 focus:outline-none disabled:cursor-not-allowed">
         Add Check
       </vscode-button>
     </div>
-    <table class="min-w-full border-collapse border-editor-fg">
+    <table id="custom-checks-table" class="min-w-full border-collapse border-editor-fg">
       <thead>
         <tr class="border-opacity-test text-xs font-semibold text-left opacity-65 border-b-2">
           <th class="px-2 py-1 w-1/4">Name</th>
@@ -19,11 +19,13 @@
         <tr
           v-for="(check, index) in localCustomChecks"
           :key="index"
+          :id="`custom-check-row-${index}`"
           class="border-b border-commandCenter-border"
         >
           <td class="px-2 py-1 font-medium font-mono text-xs w-1/4">
             <div v-if="editingIndex === index" class="flex flex-col gap-1">
               <textarea
+                :id="`custom-check-name-input-${index}`"
                 v-model="(editingCustomCheck as CustomChecks).name"
                 class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs"
                 rows="2"
@@ -37,6 +39,7 @@
           <td class="px-2 py-1 font-medium font-mono text-xs w-1/6 text-center">
             <div v-if="editingIndex === index" class="flex flex-col gap-1">
               <input
+                :id="`custom-check-value-input-${index}`"
                 v-model="(editingCustomCheck as CustomChecks).value"
                 class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs"
               />
@@ -54,6 +57,7 @@
           <td class="px-2 py-1 text-xs w-1/4 text-center">
             <div v-if="editingIndex === index" class="flex flex-col gap-1">
               <textarea
+                :id="`custom-check-description-input-${index}`"
                 v-model="(editingCustomCheck as CustomChecks).description"
                 class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs"
                 rows="2"
@@ -74,6 +78,7 @@
           <td class="px-2 py-1 text-xs w-1/2">
             <div v-if="editingIndex === index">
               <textarea
+                :id="`custom-check-query-input-${index}`"
                 v-model="(editingCustomCheck as CustomChecks).query"
                 class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs"
                 rows="4"
@@ -89,6 +94,7 @@
           <td class="px-2 py-1 text-xs w-1/4">
             <div v-if="editingIndex === index" class="flex items-center gap-1">
               <vscode-button
+                :id="`custom-check-save-button-${index}`"
                 appearance="icon"
                 @click="saveCustomChecks"
                 aria-label="Save"
@@ -97,6 +103,7 @@
                 <CheckIcon class="h-3 w-3" />
               </vscode-button>
               <vscode-button
+                :id="`custom-check-cancel-button-${index}`"
                 appearance="icon"
                 @click="resetEditing"
                 aria-label="Cancel"
@@ -107,6 +114,7 @@
             </div>
             <div v-if="editingIndex !== index" class="flex items-center gap-1">
               <vscode-button
+                :id="`custom-check-delete-button-${index}`"
                 appearance="icon"
                 @click="showDeleteAlert = index"
                 aria-label="Delete"
@@ -115,6 +123,7 @@
                 <TrashIcon class="h-3 w-3" />
               </vscode-button>
               <vscode-button
+                :id="`custom-check-edit-button-${index}`"
                 appearance="icon"
                 @click="startEditing(index)"
                 aria-label="Edit"
@@ -127,6 +136,7 @@
           <div>
             <DeleteAlert
               v-if="showDeleteAlert === index"
+              :id="`custom-check-delete-alert-${index}`"
               title="Delete Custom Check"
               :message="`Are you sure you want to delete the custom check ${check.name}? This action cannot be undone.`"
               @confirm="deleteCustomCheck(index)"
@@ -137,7 +147,7 @@
           </div>
         </tr>
       </tbody>
-      <div class="w-56 text-left p-2 text-md italic opacity-70" v-else>
+      <div id="custom-checks-empty-state" class="w-56 text-left p-2 text-md italic opacity-70" v-else>
         <span> No custom checks to display. </span>
       </div>
     </table>
