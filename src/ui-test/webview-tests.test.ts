@@ -386,8 +386,8 @@ describe("Bruin Webview Test", function () {
   // owner tests
   describe("Owner Tests", function () {
     let ownerContainer: WebElement;
-    let editOwnerButton: WebElement;
-    let ownerInput: WebElement;
+    let ownerTextContainer: WebElement;
+
     beforeEach(async function () {
       this.timeout(10000);
       // Ensure we are on the materialization tab if not already
@@ -400,55 +400,138 @@ describe("Bruin Webview Test", function () {
         10000,
         "Owner container not found"
       );
-      editOwnerButton = await driver.wait(
-        until.elementLocated(By.id("edit-owner-button")),
+      ownerTextContainer = await driver.wait(
+        until.elementLocated(By.id("owner-text-container")),
         10000,
-        "Edit owner button not found"
+        "Owner text container not found"
       );
     });
+
     it("should edit owner successfully", async function () {
       this.timeout(15000);
       const newOwner = `owner_${Date.now()}`;
 
-      await editOwnerButton.click();
+      // Click on the owner text container to enter edit mode
+      await ownerTextContainer.click();
       await sleep(500);
-      ownerInput = await driver.wait(until.elementLocated(By.id("owner-input")), 10000);
+
+      // Wait for the input field to appear
+      const ownerInput = await driver.wait(
+        until.elementLocated(By.id("owner-input")),
+        10000,
+        "Owner input field not found"
+      );
+
+      // Clear the input field
       await driver.executeScript(
         'arguments[0].value = ""; arguments[0].dispatchEvent(new Event("input", { bubbles: true }));',
         ownerInput
       );
 
+      // Type the new owner name
       await ownerInput.sendKeys(newOwner);
       await ownerInput.sendKeys(Key.ENTER);
       await sleep(1000);
 
-      const updatedText = await driver
-        .wait(until.elementLocated(By.id("owner-container")), 10000)
-        .getText();
-      await sleep(1000);
+      // Wait for edit mode to exit and verify the owner is updated
+      await driver.wait(until.stalenessOf(ownerInput), 10000, "Edit mode should exit after saving");
+
+      // Wait for the display text to update
+      const ownerTextElement = await driver.wait(
+        until.elementLocated(By.id("owner-text")),
+        10000,
+        "Owner text element not found after save"
+      );
+
+      const updatedText = await ownerTextElement.getText();
       assert.strictEqual(updatedText, newOwner, `Owner should be updated to "${newOwner}"`);
     });
+
     it("should edit owner to unknown when using whitespace", async function () {
       this.timeout(15000);
       const newOwner = " ";
 
-      await editOwnerButton.click();
+      // Click on the owner text container to enter edit mode
+      await ownerTextContainer.click();
       await sleep(500);
-      ownerInput = await driver.wait(until.elementLocated(By.id("owner-input")), 10000);
+
+      // Wait for the input field to appear
+      const ownerInput = await driver.wait(
+        until.elementLocated(By.id("owner-input")),
+        10000,
+        "Owner input field not found"
+      );
+
+      // Clear the input field
       await driver.executeScript(
         'arguments[0].value = ""; arguments[0].dispatchEvent(new Event("input", { bubbles: true }));',
         ownerInput
       );
 
+      // Type whitespace
       await ownerInput.sendKeys(newOwner);
       await ownerInput.sendKeys(Key.ENTER);
       await sleep(1000);
 
-      const updatedText = await driver
-        .wait(until.elementLocated(By.id("owner-container")), 10000)
-        .getText();
-      await sleep(1000);
+      // Wait for edit mode to exit and verify the owner is updated to "Unknown"
+      await driver.wait(until.stalenessOf(ownerInput), 10000, "Edit mode should exit after saving");
+
+      // Wait for the display text to update
+      const ownerTextElement = await driver.wait(
+        until.elementLocated(By.id("owner-text")),
+        10000,
+        "Owner text element not found after save"
+      );
+
+      const updatedText = await ownerTextElement.getText();
       assert.strictEqual(updatedText, "Unknown", `Owner should be updated to "Unknown"`);
+    });
+
+    it("should show hover effect when not editing", async function () {
+      this.timeout(10000);
+
+      // Ensure we're not in edit mode
+      const ownerInput = await driver.findElements(By.id("owner-input"));
+      if (ownerInput.length > 0) {
+        // If in edit mode, press Escape to cancel
+        await driver.actions().sendKeys(Key.ESCAPE).perform();
+        await sleep(500);
+      }
+
+      // Verify the owner text container has hover-background class
+      const hasHoverClass = await ownerTextContainer.getAttribute("class");
+      assert.ok(hasHoverClass.includes("hover-background"), "Owner container should have hover-background class when not editing");
+    });
+
+    it("should cancel edit mode when pressing Escape", async function () {
+      this.timeout(15000);
+      const originalOwner = await ownerTextContainer.getText();
+
+      // Click on the owner text container to enter edit mode
+      await ownerTextContainer.click();
+      await sleep(500);
+
+      // Wait for the input field to appear
+      const ownerInput = await driver.wait(
+        until.elementLocated(By.id("owner-input")),
+        10000,
+        "Owner input field not found"
+      );
+
+      // Type some text
+      await ownerInput.sendKeys("test_owner");
+      await sleep(500);
+
+      // Press Escape to cancel
+      await ownerInput.sendKeys(Key.ESCAPE);
+      await sleep(1000);
+
+      // Wait for edit mode to exit
+      await driver.wait(until.stalenessOf(ownerInput), 10000, "Edit mode should exit after pressing Escape");
+
+      // Verify the original text is preserved
+      const finalText = await ownerTextContainer.getText();
+      assert.strictEqual(finalText, originalOwner, "Owner text should remain unchanged after canceling edit");
     });
   });
   // Dependencies tests
