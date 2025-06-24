@@ -1,7 +1,7 @@
 <template>
   <div class="h-full w-full flex justify-center">
     <div class="flex flex-col gap-4 h-full w-full max-w-4xl pr-1">
-      <div class="bg-editorWidget-bg py-1 border-b border-commandCenter-border">
+      <div class="py-1 border-b border-commandCenter-border">
         <div class="flex items-center space-x-2">
           <label class="block text-xs font-medium text-editor-fg min-w-[60px]">Owner</label>
           <div id="owner-container" class="flex items-center gap-2">
