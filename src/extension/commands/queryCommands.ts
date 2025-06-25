@@ -4,6 +4,7 @@ import * as vscode from "vscode";
 import { BruinExportQueryOutput } from "../../bruin/exportQueryOutput";
 import { QueryPreviewPanel } from "../../panels/QueryPreviewPanel";
 import { getBruinExecutablePath } from "../../providers/BruinExecutableService";
+import { isBruinAsset } from "../../utilities/helperUtils";
 
 export const getQueryOutput = async (environment: string, limit: string, lastRenderedDocumentUri: Uri | undefined, tabId?: string, startDate?: string, endDate?: string, connectionName?: string) => {
   let editor = window.activeTextEditor;
@@ -32,6 +33,7 @@ export const getQueryOutput = async (environment: string, limit: string, lastRen
 
   // Detect connection name and query from file content if not provided
   let detectedConnectionName = connectionName;
+  if(!isBruinAsset(lastRenderedDocumentUri.fsPath, ['sql'])) {
   if (!detectedConnectionName || !selectedQuery) {
     try {
       const content = await workspace.fs.readFile(lastRenderedDocumentUri);
@@ -60,6 +62,7 @@ export const getQueryOutput = async (environment: string, limit: string, lastRen
     } catch (error) {
       console.error("Error reading file for connection and query detection:", error);
     }
+  }
   }
 
   // Store the query in the preview panel for the specific tab
