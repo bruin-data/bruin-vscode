@@ -1,10 +1,26 @@
 <template>
   <div class="h-full w-full flex justify-center">
-    <div class="flex flex-col gap-4 h-full w-full max-w-4xl pr-1">
-      <div class="py-1 border-b border-commandCenter-border">
-        <div class="flex items-center space-x-2">
-          <label class="block text-xs font-medium text-editor-fg min-w-[60px]">Owner</label>
-          <div id="owner-container" class="flex items-center gap-2">
+    <div class="flex flex-col gap-6 h-full w-full max-w-4xl pr-1">
+      
+      <!-- Basic Information Section -->
+      <div class="collapsible-section">
+        <div 
+          class="section-header"
+          @click="toggleSection('basicInfo')"
+        >
+          <div class="flex items-center justify-between w-full">
+            <h2 class="text-base font-medium text-editor-fg">Basic Information</h2>
+            <span 
+              class="codicon transition-transform duration-200"
+              :class="expandedSections.basicInfo ? 'codicon-chevron-down' : 'codicon-chevron-right'"
+            ></span>
+          </div>
+        </div>
+        
+        <div v-if="expandedSections.basicInfo" class="section-content">
+          <!-- Owner -->
+          <div class="field-group">
+            <label class="field-label">Owner</label>
             <div
               id="owner-text-container"
               class="text-xs text-editor-fg px-2 py-1 flex items-center min-h-[32px]"
@@ -29,179 +45,221 @@
                   id="owner-text"
                   :class="owner ? '' : 'text-editor-fg opacity-60 italic'"
                 >
-                  {{ owner || "Unknown" }}
+                  {{ owner || "Click to set owner" }}
                 </span>
               </template>
             </div>
           </div>
-        </div>
-        <div class="border-t border-commandCenter-border"></div>
 
-        <div class="flex items-center my-0.5 space-x-4">
-          <label class="text-xs font-medium text-editor-fg min-w-[60px]">Tags</label>
-          <div id="tags-container" class="flex flex-wrap items-center space-x-2">
-            <vscode-tag
-              v-for="(tag, index) in tags"
-              :key="index"
-              class="text-xs inline-flex items-center justify-center gap-1 cursor-pointer py-1"
-              @click="removeTag(index)"
-            >
-              <div class="text-xs flex items-center gap-2">
-                <span id="tag-text">{{ tag }}</span>
-                <span class="codicon codicon-close text-3xs flex items-center"></span>
-              </div>
-            </vscode-tag>
-
-            <input
-              id="tag-input"
-              v-if="isAddingTag"
-              v-model="newTag"
-              @blur="confirmAddTag"
-              @keyup.enter="confirmAddTag"
-              @keyup.escape="cancelAddTag"
-              ref="tagInput"
-              placeholder="Tag name..."
-              class="text-2xs bg-input-background focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg min-w-[80px] h-6"
-            />
-            <vscode-button
-              id="add-tag-button"
-              appearance="icon"
-              @click="startAddingTag"
-              v-if="!isAddingTag"
-              class="text-xs flex items-center justify-center h-full"
-              title="Add tag"
-            >
-              <span class="codicon codicon-add"></span>
-            </vscode-button>
-          </div>
-        </div>
-        <div class="flex flex-col gap-1 mt-2">
-          <div class="flex items-center justify-between">
-            <label class="block text-sm font-medium text-editor-fg">Dependencies</label>
-            <!-- Dependency Legend -->
-            <div class="flex items-center gap-3 text-2xs text-editor-fg opacity-50">
-              <div class="flex items-center gap-1">
-                <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
-                <span>Pipeline asset</span>
-              </div>
-              <div class="flex items-center gap-1">
-                <span class="w-2 h-2 bg-gray-500 rounded-full"></span>
-                <span>External</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Existing Dependencies Display -->
-          <div
-            class="flex flex-wrap space-x-1 min-h-[40px] bg-editorWidget-bg"
-          >
-            <vscode-tag
-              v-for="(dep, index) in dependencies"
-              :key="index"
-              class="text-xs inline-flex items-center justify-center gap-1 cursor-pointer py-1"
-              @click="removeDependency(index)"
-            >
-              <div class="text-xs flex items-center gap-2">
-                <!-- Dependency Type Icon -->
-                <span
-                  class="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                  :class="dep.isExternal ? 'bg-gray-500' : 'bg-blue-500'"
-                  :title="`${dep.isExternal ? 'External' : 'Pipeline'}`"
-                ></span>
-                <!-- Dependency Name -->
-                <span id="dependency-text">{{ dep.name }}</span>
-                <span class="codicon codicon-close text-3xs flex items-center"></span>
-              </div>
-            </vscode-tag>
-
-            <!-- Empty State -->
-            <div
-              v-if="dependencies.length === 0"
-              class="text-2xs text-editor-fg opacity-60 italic py-1"
-            >
-              No dependencies configured
-            </div>
-          </div>
-
-          <!-- Add Dependencies Controls -->
-          <div class="flex gap-2">
-            <!-- Pipeline Dependencies Dropdown -->
-            <div class="relative w-full max-w-[250px]" ref="pipelineDepsContainer">
-              <input
-                v-model="pipelineSearchQuery"
-                placeholder="Add from pipeline..."
-                class="w-full border-0 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6 pr-6 cursor-pointer"
-                @focus="isPipelineDepsOpen = true"
-                @blur="handlePipelineInputBlur"
-                @input="handlePipelineInput"
-                @keydown.enter="handlePipelineEnter"
-                readonly
-              />
-              <span
-                class="absolute inset-y-0 right-0 flex items-center pr-2 cursor-pointer"
-                @click="isPipelineDepsOpen = !isPipelineDepsOpen"
+          <!-- Tags -->
+          <div class="field-group">
+            <label class="field-label">Tags</label>
+            <div id="tags-container" class="flex flex-wrap items-center space-x-2">
+              <vscode-tag
+                v-for="(tag, index) in tags"
+                :key="index"
+                class="text-xs inline-flex items-center justify-center gap-1 cursor-pointer py-1"
+                @click="removeTag(index)"
               >
-                <span class="codicon codicon-chevron-down text-xs"></span>
-              </span>
-
-              <!-- Pipeline Dependencies Dropdown -->
-              <div
-                v-if="isPipelineDepsOpen"
-                class="absolute z-20 w-full bg-dropdown-bg border border-commandCenter-border shadow-lg mt-1 max-h-60 overflow-y-auto"
-              >
-                <div
-                  class="sticky top-0 bg-dropdown-bg border-b border-commandCenter-border px-2 py-1"
-                >
-                  <input
-                    v-model="pipelineSearchQuery"
-                    placeholder="Search pipeline assets..."
-                    class="w-full bg-input-background text-2xs border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
-                    @click.stop
-                  />
+                <div class="text-xs flex items-center gap-2">
+                  <span id="tag-text">{{ tag }}</span>
+                  <span class="codicon codicon-close text-3xs flex items-center"></span>
                 </div>
+              </vscode-tag>
 
-                <div class="max-h-48 overflow-y-auto">
-                  <div
-                    v-for="asset in filteredPipelineAssets"
-                    :key="asset.name"
-                    class="flex items-center justify-between px-2 py-1 hover:bg-list-hoverBackground cursor-pointer group"
-                    @click="addPipelineDependency(asset)"
-                  >
-                    <div class="flex items-center gap-2">
-                      <span class="text-2xs font-mono">{{ asset.name }}</span>
-                    </div>
-                    <span  v-if="isDependencyAdded(asset.name)" class="codicon codicon-check"></span>
-                  </div>
-
-                  <div
-                    v-if="filteredPipelineAssets.length === 0"
-                    class="px-2 py-1 text-2xs text-editor-fg opacity-60 text-center"
-                  >
-                    No matching assets found
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- External Dependency Input -->
-            <div class="relative w-full max-w-[250px]" ref="externalDepsContainer">
               <input
-                v-model="externalDepInput"
-                placeholder="Add external dependency..."
-                class="w-full border-0 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
-                @keyup.enter="addExternalDependency"
+                id="tag-input"
+                v-if="isAddingTag"
+                v-model="newTag"
+                @blur="confirmAddTag"
+                @keyup.enter="confirmAddTag"
+                @keyup.escape="cancelAddTag"
+                ref="tagInput"
+                placeholder="Tag name..."
+                class="text-2xs bg-input-background focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg min-w-[80px] h-6"
               />
+              <vscode-button
+                id="add-tag-button"
+                appearance="icon"
+                @click="startAddingTag"
+                v-if="!isAddingTag"
+                class="text-xs flex items-center justify-center h-full"
+                title="Add tag"
+              >
+                <span class="codicon codicon-add"></span>
+              </vscode-button>
             </div>
           </div>
         </div>
       </div>
 
-      <div
-        class="flex flex-col sm:flex-row sm:items-start gap-4 border-t border-commandCenter-border pt-4"
-      >
-        <div class="flex-1 min-w-[260px]">
-          <div class="flex flex-col">
-            <label class="block text-sm font-medium text-editor-fg mb-1"> Materialization </label>
+      <!-- Dependencies Section -->
+      <div class="collapsible-section">
+        <div 
+          class="section-header"
+          @click="toggleSection('dependencies')"
+        >
+          <div class="flex items-center justify-between w-full">
+            <div class="flex items-center gap-2">
+              <h2 class="text-base font-medium text-editor-fg">Dependencies</h2>
+              <span
+                v-if="dependencies.length > 0"
+                class="inline-flex items-center justify-center w-5 h-5 text-2xs bg-badge-background text-badge-foreground rounded-full"
+              >
+                {{ dependencies.length }}
+              </span>
+            </div>
+            <div class="flex items-center gap-4">
+              <!-- Dependency Legend -->
+              <div class="flex items-center gap-3 text-2xs text-editor-fg opacity-50">
+                <div class="flex items-center gap-1">
+                  <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
+                  <span>Pipeline</span>
+                </div>
+                <div class="flex items-center gap-1">
+                  <span class="w-2 h-2 bg-gray-500 rounded-full"></span>
+                  <span>External</span>
+                </div>
+              </div>
+              <span 
+                class="codicon transition-transform duration-200"
+                :class="expandedSections.dependencies ? 'codicon-chevron-down' : 'codicon-chevron-right'"
+              ></span>
+            </div>
+          </div>
+        </div>
+        
+        <div v-if="expandedSections.dependencies" class="section-content">
+          <!-- Current Dependencies Display -->
+          <div class="field-group">
+            <label class="field-label">Current Dependencies</label>
+            <div class="flex flex-wrap space-x-1 min-h-[40px] bg-editorWidget-bg p-2 rounded">
+              <vscode-tag
+                v-for="(dep, index) in dependencies"
+                :key="index"
+                class="text-xs inline-flex items-center justify-center gap-1 cursor-pointer py-1"
+                @click="removeDependency(index)"
+              >
+                <div class="text-xs flex items-center gap-2">
+                  <span
+                    class="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                    :class="dep.isExternal ? 'bg-gray-500' : 'bg-blue-500'"
+                    :title="`${dep.isExternal ? 'External' : 'Pipeline'}`"
+                  ></span>
+                  <span id="dependency-text">{{ dep.name }}</span>
+                  <span class="codicon codicon-close text-3xs flex items-center"></span>
+                </div>
+              </vscode-tag>
+
+              <div
+                v-if="dependencies.length === 0"
+                class="text-2xs text-editor-fg opacity-60 italic py-1"
+              >
+                No dependencies configured
+              </div>
+            </div>
+          </div>
+
+          <!-- Add Dependencies Controls -->
+          <div class="field-group">
+            <label class="field-label">Add Dependencies</label>
+            <div class="flex gap-2">
+              <!-- Pipeline Dependencies Dropdown -->
+              <div class="relative w-full max-w-[250px]" ref="pipelineDepsContainer">
+                <input
+                  v-model="pipelineSearchQuery"
+                  placeholder="Add from pipeline..."
+                  class="w-full border-0 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6 pr-6 cursor-pointer"
+                  @focus="isPipelineDepsOpen = true"
+                  @blur="handlePipelineInputBlur"
+                  @input="handlePipelineInput"
+                  @keydown.enter="handlePipelineEnter"
+                  readonly
+                />
+                <span
+                  class="absolute inset-y-0 right-0 flex items-center pr-2 cursor-pointer"
+                  @click="isPipelineDepsOpen = !isPipelineDepsOpen"
+                >
+                  <span class="codicon codicon-chevron-down text-xs"></span>
+                </span>
+
+                <div
+                  v-if="isPipelineDepsOpen"
+                  class="absolute z-20 w-full bg-dropdown-bg border border-commandCenter-border shadow-lg mt-1 max-h-60 overflow-y-auto"
+                >
+                  <div class="sticky top-0 bg-dropdown-bg border-b border-commandCenter-border px-2 py-1">
+                    <input
+                      v-model="pipelineSearchQuery"
+                      placeholder="Search pipeline assets..."
+                      class="w-full bg-input-background text-2xs border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
+                      @click.stop
+                    />
+                  </div>
+
+                  <div class="max-h-48 overflow-y-auto">
+                    <div
+                      v-for="asset in filteredPipelineAssets"
+                      :key="asset.name"
+                      class="flex items-center justify-between px-2 py-1 hover:bg-input-background cursor-pointer group"
+                      @click="addPipelineDependency(asset)"
+                    >
+                      <div class="flex items-center gap-2">
+                        <span class="text-2xs font-mono">{{ asset.name }}</span>
+                      </div>
+                      <span v-if="isDependencyAdded(asset.name)" class="codicon codicon-check"></span>
+                    </div>
+
+                    <div
+                      v-if="filteredPipelineAssets.length === 0"
+                      class="px-2 py-1 text-2xs text-editor-fg opacity-60 text-center"
+                    >
+                      No matching assets found
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- External Dependency Input -->
+              <div class="relative w-full max-w-[250px]" ref="externalDepsContainer">
+                <input
+                  v-model="externalDepInput"
+                  placeholder="Add external dependency..."
+                  class="w-full border-0 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
+                  @keyup.enter="addExternalDependency"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Materialization Section -->
+      <div class="collapsible-section">
+        <div 
+          class="section-header"
+          @click="toggleSection('materialization')"
+        >
+          <div class="flex items-center justify-between w-full">
+            <div class="flex items-center gap-2">
+              <h2 class="text-base font-medium text-editor-fg">Materialization</h2>
+              <span 
+                v-if="localMaterialization.type !== 'null'"
+                class="inline-flex items-center text-2xs text-editor-fg opacity-70"
+              >
+                {{ localMaterialization.type }}{{ localMaterialization.strategy ? ` • ${localMaterialization.strategy}` : '' }}
+              </span>
+            </div>
+            <span 
+              class="codicon transition-transform duration-200"
+              :class="expandedSections.materialization ? 'codicon-chevron-down' : 'codicon-chevron-right'"
+            ></span>
+          </div>
+        </div>
+        
+        <div v-if="expandedSections.materialization" class="section-content">
+          <!-- Materialization Type -->
+          <div class="field-group">
+            <label class="field-label">Type</label>
             <div class="flex space-x-6">
               <vscode-radio-group
                 :value="localMaterialization.type"
@@ -213,11 +271,10 @@
               </vscode-radio-group>
             </div>
           </div>
-        </div>
 
-        <div v-if="localMaterialization.type === 'table'" class="flex flex-col gap-6 w-full">
-          <div class="flex flex-col">
-            <label class="block text-xs font-medium text-editor-fg mb-1"> Strategy </label>
+          <!-- Table Strategy -->
+          <div v-if="localMaterialization.type === 'table'" class="field-group">
+            <label class="field-label">Strategy</label>
             <div class="relative">
               <select
                 v-model="localMaterialization.strategy"
@@ -235,119 +292,141 @@
               {{ getStrategyDescription(localMaterialization.strategy) }}
             </p>
           </div>
-        </div>
-      </div>
 
-      <div
-        v-if="showStrategyOptions"
-        class="flex-1 bg-editorWidget-bg border border-commandCenter-border h-full p-2"
-      >
-        <div v-if="localMaterialization.strategy === 'delete+insert'" class="flex flex-col">
-          <label class="block text-xs opacity-65 text-editor-fg mb-1">Incremental Key</label>
-          <input
-            class="w-full max-w-[250px] border-0 bg-input-background text-xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
-            v-model="localMaterialization.incremental_key"
-            placeholder="column_name"
-          />
-        </div>
-
-        <div v-if="localMaterialization.strategy === 'merge'" class="space-y-4">
-          <p class="info-text">
-            Configure primary keys in column definitions using <code>primary_key: true</code>
-          </p>
-        </div>
-
-        <div
-          v-if="localMaterialization.strategy === 'time_interval'"
-          class="flex flex-col space-y-4"
-        >
-          <div class="grid grid-cols-2 items-center gap-4">
-            <div class="flex flex-col">
-              <label class="block text-xs opacity-65 text-editor-fg mb-1">Incremental Key</label>
+          <!-- Strategy-specific Options -->
+          <div
+            v-if="showStrategyOptions"
+            class="strategy-options"
+          >
+            <div v-if="localMaterialization.strategy === 'delete+insert'" class="field-group">
+              <label class="field-label">Incremental Key</label>
               <input
                 class="w-full max-w-[250px] border-0 bg-input-background text-xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
                 v-model="localMaterialization.incremental_key"
                 placeholder="column_name"
               />
             </div>
-            <div class="flex flex-col">
-              <label class="block text-xs opacity-65 text-editor-fg mb-1">Time Granularity</label>
-              <select
-                v-model="localMaterialization.time_granularity"
-                class="w-full max-w-[250px] bg-input-background text-xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
-              >
-                <option value="date">Date</option>
-                <option value="timestamp">Timestamp</option>
-              </select>
+
+            <div v-if="localMaterialization.strategy === 'merge'" class="field-group">
+              <div class="p-3 bg-editorWidget-bg rounded">
+                <p class="info-text">
+                  Configure primary keys in column definitions using <code>primary_key: true</code>
+                </p>
+              </div>
+            </div>
+
+            <div
+              v-if="localMaterialization.strategy === 'time_interval'"
+              class="space-y-4"
+            >
+              <div class="grid grid-cols-2 items-center gap-4">
+                <div class="field-group">
+                  <label class="field-label">Incremental Key</label>
+                  <input
+                    class="w-full max-w-[250px] border-0 bg-input-background text-xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
+                    v-model="localMaterialization.incremental_key"
+                    placeholder="column_name"
+                  />
+                </div>
+                <div class="field-group">
+                  <label class="field-label">Time Granularity</label>
+                  <select
+                    v-model="localMaterialization.time_granularity"
+                    class="w-full max-w-[250px] bg-input-background text-xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
+                  >
+                    <option value="date">Date</option>
+                    <option value="timestamp">Timestamp</option>
+                  </select>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="flex flex-col gap-x-4 gap-y-2 w-full justify-between border-t border-commandCenter-border pt-4">
-        <label class="block text-sm font-medium text-editor-fg mb-1">Interval Modifiers</label>
-        <div class="flex gap-x-4 gap-y-2 w-full justify-between">
-          <div class="flex-1">
-            <label class="block text-xs font-medium text-editor-fg mb-1">Start</label>
-            <div class="flex gap-2">
-              <input
-                :value="startIntervalValue"
-                @input="
-                  startIntervalValue = $event.target.value;
-                  handleIntervalChange('start');
-                "
-                @change="handleIntervalChange('start')"
-                class="w-1/2 border-0 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
-                placeholder="e.g., -2"
-              />
-              <select
-                :value="startIntervalUnit"
-                @change="
-                  startIntervalUnit = $event.target.value;
-                  handleIntervalChange('start');
-                "
-                class="w-1/2 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
-              >
-                <option value="" class="text-xs opacity-60" disabled>select unit...</option>
-                <option v-for="unit in intervalUnits" :key="unit" :value="unit">{{ unit }}</option>
-              </select>
+      <!-- Advanced Section -->
+      <div class="collapsible-section">
+        <div 
+          class="section-header"
+          @click="toggleSection('advanced')"
+        >
+          <div class="flex items-center justify-between w-full">
+            <h2 class="text-base font-medium text-editor-fg">Advanced Settings</h2>
+            <span 
+              class="codicon transition-transform duration-200"
+              :class="expandedSections.advanced ? 'codicon-chevron-down' : 'codicon-chevron-right'"
+            ></span>
+          </div>
+        </div>
+        
+        <div v-if="expandedSections.advanced" class="section-content">
+          <!-- Interval Modifiers -->
+          <div class="field-group">
+            <label class="field-label">Interval Modifiers</label>
+            <div class="flex gap-x-4 gap-y-2 w-full justify-between">
+              <div class="flex-1">
+                <label class="block text-xs font-medium text-editor-fg mb-1">Start</label>
+                <div class="flex gap-2">
+                  <input
+                    :value="startIntervalValue"
+                    @input="
+                      startIntervalValue = $event.target.value;
+                      handleIntervalChange('start');
+                    "
+                    @change="handleIntervalChange('start')"
+                    class="w-1/2 border-0 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
+                    placeholder="e.g., -2"
+                  />
+                  <select
+                    :value="startIntervalUnit"
+                    @change="
+                      startIntervalUnit = $event.target.value;
+                      handleIntervalChange('start');
+                    "
+                    class="w-1/2 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
+                  >
+                    <option value="" class="text-xs opacity-60" disabled>select unit...</option>
+                    <option v-for="unit in intervalUnits" :key="unit" :value="unit">{{ unit }}</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="flex-1">
+                <label class="block text-xs font-medium text-editor-fg mb-1">End</label>
+                <div class="flex gap-2">
+                  <input
+                    :value="endIntervalValue"
+                    @input="
+                      endIntervalValue = $event.target.value;
+                      handleIntervalChange('end');
+                    "
+                    @change="handleIntervalChange('end')"
+                    class="w-1/2 border-0 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
+                    placeholder="e.g., 1"
+                  />
+                  <select
+                    :value="endIntervalUnit"
+                    @change="
+                      endIntervalUnit = $event.target.value;
+                      handleIntervalChange('end');
+                    "
+                    class="w-1/2 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
+                  >
+                    <option value="" class="text-xs opacity-60" disabled>select unit...</option>
+                    <option v-for="unit in intervalUnits" :key="unit" :value="unit">{{ unit }}</option>
+                  </select>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div class="flex-1">
-            <label class="block text-xs font-medium text-editor-fg mb-1">End</label>
-            <div class="flex gap-2">
-              <input
-                :value="endIntervalValue"
-                @input="
-                  endIntervalValue = $event.target.value;
-                  handleIntervalChange('end');
-                "
-                @change="handleIntervalChange('end')"
-                class="w-1/2 border-0 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
-                placeholder="e.g., 1"
-              />
-              <select
-                :value="endIntervalUnit"
-                @change="
-                  endIntervalUnit = $event.target.value;
-                  handleIntervalChange('end');
-                "
-                class="w-1/2 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
-              >
-                <option value="" class="text-xs opacity-60" disabled>select unit...</option>
-                <option v-for="unit in intervalUnits" :key="unit" :value="unit">{{ unit }}</option>
-              </select>
-            </div>
+          <!-- Bruin Utilities -->
+          <div class="border-t border-commandCenter-border pt-4 mt-4">
+            <BruinUtilities />
           </div>
         </div>
       </div>
 
-      <BruinUtilities />
-
-      <div class="border-t border-commandCenter-border pt-2 mt-auto">
-        <!-- Save button removed - changes are saved immediately -->
-      </div>
     </div>
   </div>
 </template>
@@ -356,6 +435,18 @@
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from "vue";
 import { vscode } from "@/utilities/vscode";
 import BruinUtilities from "./BruinUtilities.vue";
+
+// Collapsible sections state
+const expandedSections = ref({
+  basicInfo: true,
+  dependencies: true,
+  materialization: true,
+  advanced: false
+});
+
+const toggleSection = (section) => {
+  expandedSections.value[section] = !expandedSections.value[section];
+};
 
 const props = defineProps({
   materialization: {
@@ -1007,7 +1098,36 @@ const handlePipelineEnter = () => {
 };
 
 </script>
+
 <style scoped>
+/* Collapsible sections */
+.collapsible-section {
+  @apply border border-commandCenter-border rounded-md overflow-hidden;
+}
+
+.section-header {
+  @apply px-4 py-3 bg-editorWidget-bg cursor-pointer hover:bg-input-background transition-colors duration-150;
+}
+
+.section-content {
+  @apply px-4 py-4 space-y-4 bg-editor-bg border-t border-commandCenter-border;
+}
+
+/* Field styling */
+.field-group {
+  @apply space-y-2;
+}
+
+.field-label {
+  @apply block text-xs font-medium text-editor-fg min-w-[60px];
+}
+
+/* Strategy options styling */
+.strategy-options {
+  @apply pl-4 border-l-2 border-commandCenter-border space-y-4 bg-editorWidget-bg p-4 rounded;
+}
+
+/* Original input styling without borders */
 vscode-radio::part(control) {
   @apply border-none outline-none w-4 h-4;
 }
@@ -1018,12 +1138,12 @@ vscode-radio::part(control):checked {
 
 input,
 select {
-  @apply text-sm bg-input-background text-input-foreground border border-commandCenter-border outline-none;
+  @apply text-sm bg-input-background text-input-foreground border-0 outline-none;
 }
 
 input:focus,
 select:focus {
-  @apply ring-1 ring-editorLink-activeFg border-editorLink-activeFg;
+  @apply ring-1 ring-editorLink-activeFg;
 }
 
 input:disabled,
@@ -1034,22 +1154,26 @@ select:disabled {
 vscode-tag {
   @apply text-xs;
 }
+
 vscode-tag::part(control) {
   @apply normal-case !important;
 }
+
 .info-text {
   @apply text-xs text-editor-fg opacity-70;
 }
+
 vscode-button::part(control) {
   border: none;
   outline: none;
 }
-input,
-select {
-  @apply px-1 py-0.5 text-2xs border-0 !important;
-}
 
 #owner-text-container.hover-background:hover {
   background-color: var(--vscode-input-background);
+}
+
+/* Transitions */
+.codicon {
+  transition: transform 0.2s ease;
 }
 </style>
