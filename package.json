@@ -97,6 +97,10 @@
         {
           "id": "bruinDatabases",
           "name": "Databases"
+        },
+        {
+          "id": "bruinConnections",
+          "name": "Connections"
         }
       ],
       "bruin-assetLineageView": [
@@ -215,6 +219,11 @@
           "command": "bruin.refreshDatabases",
           "when": "view == bruinDatabases",
           "group": "navigation"
+        },
+        {
+          "command": "bruin.refreshConnections",
+          "when": "view == bruinConnections",
+          "group": "navigation"
         }
       ],
       "view/item/context": [
@@ -247,6 +256,20 @@
         "category": "Bruin",
         "icon": "$(refresh)",
         "description": "Refresh specific database cache."
+      },
+      {
+        "command": "bruin.refreshConnections",
+        "title": "Refresh Connections",
+        "category": "Bruin",
+        "icon": "$(refresh)",
+        "description": "Refresh connections list."
+      },
+      {
+        "command": "bruin.showConnectionDetails",
+        "title": "Show Connection Details",
+        "category": "Bruin",
+        "icon": "$(info)",
+        "description": "Show connection details."
       },
       {
         "command": "bruin.installCli",

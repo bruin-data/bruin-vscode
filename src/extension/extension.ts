@@ -24,6 +24,7 @@ import { BruinPanel } from "../panels/BruinPanel";
 import { QueryCodeLensProvider } from "../providers/queryCodeLensProvider";
 import { getQueryOutput } from "./commands/queryCommands";
 import { ActivityBarDatabaseProvider } from "../providers/ActivityBarDatabaseProvider";
+import { ActivityBarConnectionsProvider } from "../providers/ActivityBarConnectionsProvider";
 import { isBruinAsset, isBruinPipeline } from "../utilities/helperUtils";
 import { getBruinExecutablePath } from "../providers/BruinExecutableService";
 import { TableDetailsPanel } from '../panels/TableDetailsPanel';
@@ -185,6 +186,9 @@ export async function activate(context: ExtensionContext) {
   const activityBarDatabaseProvider = new ActivityBarDatabaseProvider(context.extensionPath);
   vscode.window.registerTreeDataProvider('bruinDatabases', activityBarDatabaseProvider);
 
+  const activityBarConnectionsProvider = new ActivityBarConnectionsProvider(context.extensionPath);
+  vscode.window.registerTreeDataProvider('bruinConnections', activityBarConnectionsProvider);
+
   const defaultFoldingState = bruinConfig.get("bruin.FoldingState", "folded");
   let toggled = defaultFoldingState === "folded";
 
@@ -212,6 +216,31 @@ export async function activate(context: ExtensionContext) {
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         vscode.window.showErrorMessage(`Error refreshing database: ${errorMessage}`);
+      }
+    }),
+    commands.registerCommand("bruin.refreshConnections", () => {
+      try {
+        trackEvent("Command Executed", { command: "refreshConnections" });
+        activityBarConnectionsProvider.refresh();
+        vscode.window.showInformationMessage("Connections refreshed successfully!");
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error refreshing connections: ${errorMessage}`);
+      }
+    }),
+    commands.registerCommand("bruin.showConnectionDetails", (connection: any) => {
+      try {
+        trackEvent("Command Executed", { command: "showConnectionDetails" });
+        const details = `Connection: ${connection.name}\nType: ${connection.type}\nStatus: ${connection.status}`;
+        if (connection.host) {
+          const hostDetails = `\nHost: ${connection.host}:${connection.port || 'default'}`;
+          vscode.window.showInformationMessage(details + hostDetails);
+        } else {
+          vscode.window.showInformationMessage(details);
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error showing connection details: ${errorMessage}`);
       }
     }),
     commands.registerCommand("bruin.showTableDetails", (tableName: string) => {
