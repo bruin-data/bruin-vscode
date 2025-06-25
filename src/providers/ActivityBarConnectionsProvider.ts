@@ -104,7 +104,7 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
   }
 
   // Load connections using BruinConnections.getConnectionsForActivityBar() method
-  private async loadConnections(): Promise<void> {
+  public async loadConnections(): Promise<void> {
     try {
       console.log('ActivityBarConnectionsProvider: Loading connections...');
       // Get connections from Bruin CLI
