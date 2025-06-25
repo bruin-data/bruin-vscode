@@ -76,7 +76,7 @@
         {
           "id": "bruin",
           "title": "Bruin",
-          "icon": "./img/resized14.svg"
+          "icon": "img/database.svg"
         }
       ],
       "panel": [

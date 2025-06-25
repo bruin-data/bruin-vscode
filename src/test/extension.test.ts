@@ -5247,3 +5247,81 @@ suite(" Query export Tests", () => {
       });
     });
   });
+
+  suite("ActivityBarCommands", () => {
+    let bruinDBTCommandStub: sinon.SinonStub;
+    let runStub: sinon.SinonStub;
+
+    setup(() => {
+      // Create a stub instance of BruinDBTCommand
+      runStub = sinon.stub();
+      bruinDBTCommandStub = sinon.stub().returns({
+        run: runStub
+      });
+    });
+
+    teardown(() => {
+      sinon.restore();
+    });
+
+    test("getDbSummary should call run with correct flags", async () => {
+      const { BruinDBTCommand } = require("../bruin/bruinDBTCommand");
+      const mockResult = '{"schemas": [{"name": "public", "tables": ["users", "orders"]}]}';
+      
+      runStub.resolves(mockResult);
+      
+      const command = new BruinDBTCommand("bruin", "/workspace");
+      
+      const instanceRunStub = sinon.stub(command, "run").resolves(mockResult);
+      
+      const result = await command.getDbSummary("test-connection");
+      
+      assert.ok(instanceRunStub.calledOnce, "run method should be called once");
+      assert.deepStrictEqual(
+        instanceRunStub.firstCall.args[0], 
+        ["db-summary", "--connection", "test-connection", "-o", "json"],
+        "Should call run with correct db-summary flags"
+      );
+      assert.deepStrictEqual(
+        instanceRunStub.firstCall.args[1],
+        { ignoresErrors: false },
+        "Should call run with ignoresErrors: false"
+      );
+      
+      
+      assert.deepStrictEqual(result, JSON.parse(mockResult), "Should return parsed JSON result");
+      
+      instanceRunStub.restore();
+    });
+
+    test("getConnectionsForActivityBar should call run with correct flags", async () => {
+      const { BruinConnections } = require("../bruin/bruinConnections");
+      const mockResult = '[{"name": "test-connection", "type": "postgres"}, {"name": "dev-connection", "type": "mysql"}]';
+      
+      const command = new BruinConnections("bruin", "/workspace");
+      
+      const instanceRunStub = sinon.stub(command, "run").resolves(mockResult);
+      
+      const result = await command.getConnectionsForActivityBar();
+      
+      assert.ok(instanceRunStub.calledOnce, "run method should be called once");
+      assert.deepStrictEqual(
+        instanceRunStub.firstCall.args[0], 
+        ["list", "-o", "json"],
+        "Should call run with correct list flags"
+      );
+      assert.deepStrictEqual(
+        instanceRunStub.firstCall.args[1],
+        { ignoresErrors: false },
+        "Should call run with ignoresErrors: false"
+      );
+      
+      assert.ok(Array.isArray(result), "Should return an array");
+      
+      instanceRunStub.restore();
+    });
+  });
+
+  suite("ActivityBar Tests", () => {
+    // Tests will be added here for ActivityBar functionality
+  });
