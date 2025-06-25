@@ -95,10 +95,6 @@
     "views": {
       "bruin": [
         {
-          "id": "bruinDatabases",
-          "name": "Databases"
-        },
-        {
           "id": "bruinConnections",
           "name": "Connections"
         }
@@ -216,23 +212,12 @@
       ],
       "view/title": [
         {
-          "command": "bruin.refreshDatabases",
-          "when": "view == bruinDatabases",
-          "group": "navigation"
-        },
-        {
           "command": "bruin.refreshConnections",
           "when": "view == bruinConnections",
           "group": "navigation"
         }
       ],
-      "view/item/context": [
-        {
-          "command": "bruin.refreshDatabase",
-          "when": "view == bruinDatabases && viewItem == database",
-          "group": "inline"
-        }
-      ]
+      "view/item/context": []
     },
     "commands": [
       {
@@ -242,20 +227,6 @@
         "category": "Bruin",
         "icon": "img/bruin-logo-sm128.png",
         "description": "Render a Bruin asset."
-      },
-      {
-        "command": "bruin.refreshDatabases",
-        "title": "Refresh Databases",
-        "category": "Bruin",
-        "icon": "$(refresh)",
-        "description": "Refresh cached databases."
-      },
-      {
-        "command": "bruin.refreshDatabase",
-        "title": "Refresh Database",
-        "category": "Bruin",
-        "icon": "$(refresh)",
-        "description": "Refresh specific database cache."
       },
       {
         "command": "bruin.refreshConnections",
@@ -288,6 +259,12 @@
         "title": "Convert File to Asset",
         "category": "Bruin",
         "description": "Convert a file to a Bruin asset."
+      },
+      {
+        "command": "bruin.addConnection",
+        "title": "Add Connection",
+        "category": "Bruin",
+        "description": "Add a new connection."
       }
     ]
   },

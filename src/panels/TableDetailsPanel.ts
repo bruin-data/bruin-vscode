@@ -9,7 +9,6 @@ import {
 } from "vscode";
 import * as fs from "fs";
 import * as path from "path";
-import * as os from "os";
 
 export class TableDetailsPanel {
   private static tempFiles: Set<string> = new Set();
@@ -23,7 +22,7 @@ export class TableDetailsPanel {
     });
   }
 
-  public static async render(extensionUri: Uri, tableName: string) {
+  public static async render(extensionUri: Uri, tableName: string, schemaName?: string) {
     try {
       const cleanTableName = tableName.replace(/\.sql$/, "");
       
@@ -65,7 +64,13 @@ export class TableDetailsPanel {
       // Track temp file for cleanup
       this.tempFiles.add(tempFilePath);
       
-      const initialContent = `SELECT * FROM ${this._sanitizeTableName(cleanTableName)};`;
+      // Create SQL query with schema if provided
+      let initialContent;
+      if (schemaName) {
+        initialContent = `SELECT * FROM ${this._sanitizeTableName(schemaName)}.${this._sanitizeTableName(cleanTableName)};`;
+      } else {
+        initialContent = `SELECT * FROM ${this._sanitizeTableName(cleanTableName)};`;
+      }
 
       fs.writeFileSync(tempFilePath, initialContent);
       
@@ -81,7 +86,7 @@ export class TableDetailsPanel {
       await commands.executeCommand('bruin.QueryPreviewView.focus');
 
     } catch (error) {
-      window.showErrorMessage(`Table detayları açılırken hata: ${error}`);
+      window.showErrorMessage(`Table details error: ${error}`);
     }
   }
 

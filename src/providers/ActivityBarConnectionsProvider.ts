@@ -33,8 +33,7 @@ class ConnectionItem extends vscode.TreeItem {
     public readonly label: string,
     public readonly collapsibleState: vscode.TreeItemCollapsibleState,
     public readonly itemData: TreeItemData,
-    public readonly contextValue: 'connection' | 'schema' | 'table' | 'connections',
-    public readonly command?: vscode.Command
+    public readonly contextValue: 'connection' | 'schema' | 'table' | 'connections'
   ) {
     super(label, collapsibleState);
     this.contextValue = contextValue;
@@ -55,6 +54,7 @@ class ConnectionItem extends vscode.TreeItem {
       this.iconPath = new vscode.ThemeIcon('database');
     } else if (this.contextValue === 'table') {
       this.iconPath = new vscode.ThemeIcon('table');
+      // Command is now set in getChildren method
     } else {
       this.iconPath = new vscode.ThemeIcon('server-environment');
     }
@@ -88,6 +88,11 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
     
     // Initialize BruinConnections with proper parameters
     this.bruinConnections = new BruinConnections("bruin", workspaceFolder);
+    this.loadConnections();
+  }
+
+  public refresh(): void {
+    this.databaseCache.clear();
     this.loadConnections();
   }
 
@@ -177,7 +182,14 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
       const schema = element.itemData as Schema;
       return schema.tables.map(table => {
         const tableItem: Table = { name: table, schema: schema.name };
-        return new ConnectionItem(table, vscode.TreeItemCollapsibleState.None, tableItem, 'table');
+        const tableTreeItem = new ConnectionItem(table, vscode.TreeItemCollapsibleState.None, tableItem, 'table');
+        // Add command with both table name and schema name
+        tableTreeItem.command = {
+          command: 'bruin.showTableDetails',
+          title: 'Show Table Details',
+          arguments: [table, schema.name]
+        };
+        return tableTreeItem;
       });
     }
 

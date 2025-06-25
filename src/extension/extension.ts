@@ -23,7 +23,6 @@ import { QueryPreviewPanel } from "../panels/QueryPreviewPanel";
 import { BruinPanel } from "../panels/BruinPanel";
 import { QueryCodeLensProvider } from "../providers/queryCodeLensProvider";
 import { getQueryOutput } from "./commands/queryCommands";
-import { ActivityBarDatabaseProvider } from "../providers/ActivityBarDatabaseProvider";
 import { ActivityBarConnectionsProvider } from "../providers/ActivityBarConnectionsProvider";
 import { isBruinAsset, isBruinPipeline } from "../utilities/helperUtils";
 import { getBruinExecutablePath } from "../providers/BruinExecutableService";
@@ -120,6 +119,9 @@ export async function activate(context: ExtensionContext) {
   console.time("Bruin Activation Total");
   console.log("Bruin extension is now active!");
 
+  // Initialize TableDetailsPanel
+  TableDetailsPanel.initialize(context.subscriptions);
+
   // Focus the active editor first to prevent undefined fsPath errors
   const activeEditor = window.activeTextEditor;
   if (activeEditor) {
@@ -183,9 +185,6 @@ export async function activate(context: ExtensionContext) {
 
   subscribeToConfigurationChanges();
 
-  const activityBarDatabaseProvider = new ActivityBarDatabaseProvider(context.extensionPath);
-  vscode.window.registerTreeDataProvider('bruinDatabases', activityBarDatabaseProvider);
-
   const activityBarConnectionsProvider = new ActivityBarConnectionsProvider(context.extensionPath);
   vscode.window.registerTreeDataProvider('bruinConnections', activityBarConnectionsProvider);
 
@@ -194,30 +193,6 @@ export async function activate(context: ExtensionContext) {
 
   // Register commands
   const commandDisposables = [
-    commands.registerCommand("bruin.refreshDatabases", () => {
-      try {
-        trackEvent("Command Executed", { command: "refreshDatabases" });
-        activityBarDatabaseProvider.refresh();
-        vscode.window.showInformationMessage("Databases refreshed successfully!");
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        vscode.window.showErrorMessage(`Error refreshing databases: ${errorMessage}`);
-      }
-    }),
-    commands.registerCommand("bruin.refreshDatabase", (item: any) => {
-      try {
-        if (item && item.dbName) {
-          trackEvent("Command Executed", { command: "refreshDatabase", database: item.dbName });
-          activityBarDatabaseProvider.refreshDatabase(item.dbName);
-          vscode.window.showInformationMessage(`Database '${item.dbName}' refreshed successfully!`);
-        } else {
-          vscode.window.showErrorMessage("No database selected for refresh");
-        }
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        vscode.window.showErrorMessage(`Error refreshing database: ${errorMessage}`);
-      }
-    }),
     commands.registerCommand("bruin.refreshConnections", () => {
       try {
         trackEvent("Command Executed", { command: "refreshConnections" });
@@ -243,8 +218,14 @@ export async function activate(context: ExtensionContext) {
         vscode.window.showErrorMessage(`Error showing connection details: ${errorMessage}`);
       }
     }),
-    commands.registerCommand("bruin.showTableDetails", (tableName: string) => {
-      TableDetailsPanel.render(context.extensionUri, tableName);
+    commands.registerCommand("bruin.showTableDetails", (tableName: string, schemaName?: string) => {
+      try {
+        trackEvent("Command Executed", { command: "showTableDetails" });
+        TableDetailsPanel.render(context.extensionUri, tableName, schemaName);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error showing table details: ${errorMessage}`);
+      }
     }),
     commands.registerCommand("bruin.runQuery", async (uri: vscode.Uri, range: vscode.Range) => {
       try {
