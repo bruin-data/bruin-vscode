@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import { BruinDBTCommand } from '../bruin/bruinDBTCommand';
 import { BruinConnections } from '../bruin/bruinConnections';
 import { Connection } from '../utilities/helperUtils';
 
@@ -15,25 +16,31 @@ interface ConnectionDisplayData {
   environment?: string;
 }
 
-interface ConnectionsData {
-  connections: ConnectionDisplayData[];
+interface Schema {
+  name: string;
+  tables: string[];
 }
+
+interface Table {
+  name: string;
+  schema: string;
+}
+
+type TreeItemData = ConnectionDisplayData | Schema | Table;
 
 class ConnectionItem extends vscode.TreeItem {
   constructor(
     public readonly label: string,
     public readonly collapsibleState: vscode.TreeItemCollapsibleState,
-    public readonly connection?: ConnectionDisplayData,
+    public readonly itemData: TreeItemData,
+    public readonly contextValue: 'connection' | 'schema' | 'table' | 'connections',
     public readonly command?: vscode.Command
   ) {
     super(label, collapsibleState);
-    
-    // Set context value for menu items
-    this.contextValue = connection ? 'connection' : 'connections';
-    
-    // Set icon based on connection status
-    if (connection) {
-      switch (connection.status) {
+    this.contextValue = contextValue;
+
+    if (this.contextValue === 'connection' && 'status' in this.itemData) {
+      switch (this.itemData.status) {
         case 'connected':
           this.iconPath = new vscode.ThemeIcon('plug', new vscode.ThemeColor('charts.green'));
           break;
@@ -44,6 +51,10 @@ class ConnectionItem extends vscode.TreeItem {
           this.iconPath = new vscode.ThemeIcon('error', new vscode.ThemeColor('charts.red'));
           break;
       }
+    } else if (this.contextValue === 'schema') {
+      this.iconPath = new vscode.ThemeIcon('database');
+    } else if (this.contextValue === 'table') {
+      this.iconPath = new vscode.ThemeIcon('table');
     } else {
       this.iconPath = new vscode.ThemeIcon('server-environment');
     }
@@ -56,6 +67,7 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
 
   private connections: ConnectionDisplayData[] = [];
   private bruinConnections: BruinConnections;
+  private databaseCache = new Map<string, Schema[]>();
   
   // Allowed connection types
   private readonly allowedConnectionTypes = [
@@ -89,8 +101,6 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
       
       if (!connections || connections.length === 0) {
         console.log('ActivityBarConnectionsProvider: No connections found, adding test data');
-        // Add test data for demonstration
-        
       } else {
         this.setConnections(connections);
       }
@@ -98,8 +108,6 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
       this._onDidChangeTreeData.fire();
     } catch (error) {
       console.error('ActivityBarConnectionsProvider: Error loading connections:', error);
-    
-    
       this._onDidChangeTreeData.fire();
     }
   }
@@ -133,20 +141,65 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
       return this.connections
         .filter(connection => this.allowedConnectionTypes.includes(connection.type.toLowerCase()))
         .map(connection => {
-          const connectionItem = new ConnectionItem(
-            `${connection.type}`,
-            vscode.TreeItemCollapsibleState.None,
-            connection
+          const item = new ConnectionItem(
+            connection.name,
+            vscode.TreeItemCollapsibleState.Collapsed,
+            connection,
+            'connection'
           );
-          
-          // Add tooltip with connection details
-          connectionItem.tooltip = `${connection.type} - ${connection.status}\nEnvironment: ${connection.environment}`;
-          
-          return connectionItem;
+          item.tooltip = `${connection.type} - ${connection.status}\nEnvironment: ${connection.environment}`;
+          return item;
         });
     }
 
+    if (element.contextValue === 'connection' && 'name' in element.itemData) {
+      const connectionName = element.itemData.name;
+      if (this.databaseCache.has(connectionName)) {
+        return this.databaseCache.get(connectionName)!.map(schema => 
+          new ConnectionItem(schema.name, vscode.TreeItemCollapsibleState.Collapsed, schema, 'schema')
+        );
+      }
+
+      try {
+        const summary = await this.getDatabaseSummary(connectionName);
+        const schemas = this.parseDbSummary(summary);
+        this.databaseCache.set(connectionName, schemas);
+        return schemas.map(schema => 
+          new ConnectionItem(schema.name, vscode.TreeItemCollapsibleState.Collapsed, schema, 'schema')
+        );
+      } catch (error) {
+        vscode.window.showErrorMessage(`Failed to get database summary: ${error}`);
+        return [];
+      }
+    }
+    
+    if (element.contextValue === 'schema' && 'tables' in element.itemData) {
+      const schema = element.itemData as Schema;
+      return schema.tables.map(table => {
+        const tableItem: Table = { name: table, schema: schema.name };
+        return new ConnectionItem(table, vscode.TreeItemCollapsibleState.None, tableItem, 'table');
+      });
+    }
+
     return [];
+  }
+
+  private async getDatabaseSummary(connectionName: string): Promise<any> {
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || this.extensionPath;
+    const command = new BruinDBTCommand("bruin", workspaceFolder);
+    return command.getDbSummary(connectionName);
+  }
+
+  private parseDbSummary(summary: any): Schema[] {
+    const schemasArray = Array.isArray(summary) ? summary : summary?.schemas;
+
+    if (!Array.isArray(schemasArray)) {
+        throw new Error("Invalid summary format: not an array or object with a 'schemas' property.");
+    }
+    return schemasArray.map(item => ({
+        name: item.name || item.schema_name,
+        tables: (item.tables || []).map((table: any) => typeof table === 'string' ? table : table.name)
+    }));
   }
 
   // Method to add a new connection
