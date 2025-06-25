@@ -30,8 +30,16 @@ export const getQueryOutput = async (environment: string, limit: string, lastRen
   if (!lastRenderedDocumentUri) {
     return;
   }
-  const fileContent = await workspace.fs.readFile(lastRenderedDocumentUri);
-  const fileContentString = Buffer.from(fileContent).toString('utf-8');
+  
+  let fileContentString = "";
+  try {
+    const fileContent = await workspace.fs.readFile(lastRenderedDocumentUri);
+    fileContentString = Buffer.from(fileContent).toString('utf-8');
+  } catch (error) {
+    console.log("Could not read file content:", error);
+    fileContentString = "";
+  }
+  
   // Detect connection name and query from file content if not provided
   let detectedConnectionName = connectionName;
   const isSqlAsset = await isBruinSqlAsset(lastRenderedDocumentUri.fsPath);
