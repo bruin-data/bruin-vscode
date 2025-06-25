@@ -58,18 +58,8 @@
               </div>
             </vscode-button>
 
-            <div class="flex items-center tags">
-              <DescriptionItem
-                v-if="assetType"
-                :value="assetType"
-                :className="assetDetailsProps?.type ? badgeClass.badgeStyle : badgeClass.grayBadge"
-              />
-              <DescriptionItem
-                v-if="displaySchedule"
-                :value="displaySchedule"
-                :className="badgeClass.grayBadge"
-                class="xs:flex hidden overflow-hidden truncate"
-              />
+            <div class="flex items-center">
+                <span class="text-editor-fg text-sm codicon codicon-go-to-file"></span>
             </div>
           </div>
         </div>
@@ -552,22 +542,6 @@ const updateAssetName = (newName) => {
     }
   });
 };
-const assetType = computed(() => {
-  if (isPipelineConfig.value) return "pipeline";
-  if (isBruinConfig.value) return "config";
-  return assetDetailsProps.value?.type || "";
-});
-
-const commonBadgeStyle =
-  "inline-flex items-center rounded-md px-1 py-0.5 text-xs font-medium ring-1 ring-inset";
-
-const badgeClass = computed(() => {
-  const styleForType = badgeStyles[assetType.value] || defaultBadgeStyle;
-  return {
-    grayBadge: `${commonBadgeStyle} ${defaultBadgeStyle.main}`,
-    badgeStyle: `${commonBadgeStyle} ${styleForType.main}`,
-  };
-});
 
 const isTabActive = (index) => {
   return tabs.value[index].props && activeTab.value === index;
