@@ -4,7 +4,7 @@ import * as vscode from "vscode";
 import { BruinExportQueryOutput } from "../../bruin/exportQueryOutput";
 import { QueryPreviewPanel } from "../../panels/QueryPreviewPanel";
 import { getBruinExecutablePath } from "../../providers/BruinExecutableService";
-import { isBruinAsset } from "../../utilities/helperUtils";
+import { isBruinSqlAsset } from "../../utilities/helperUtils";
 
 export const getQueryOutput = async (environment: string, limit: string, lastRenderedDocumentUri: Uri | undefined, tabId?: string, startDate?: string, endDate?: string, connectionName?: string) => {
   let editor = window.activeTextEditor;
@@ -30,18 +30,17 @@ export const getQueryOutput = async (environment: string, limit: string, lastRen
   if (!lastRenderedDocumentUri) {
     return;
   }
-
+  const fileContent = await workspace.fs.readFile(lastRenderedDocumentUri);
+  const fileContentString = Buffer.from(fileContent).toString('utf-8');
   // Detect connection name and query from file content if not provided
   let detectedConnectionName = connectionName;
-  if(!isBruinAsset(lastRenderedDocumentUri.fsPath, ['sql'])) {
+  const isSqlAsset = await isBruinSqlAsset(lastRenderedDocumentUri.fsPath);
+  if(!isSqlAsset) {
   if (!detectedConnectionName || !selectedQuery) {
     try {
-      const content = await workspace.fs.readFile(lastRenderedDocumentUri);
-      const contentString = Buffer.from(content).toString('utf-8');
-      
-      if (contentString) {
+      if (fileContentString) {
         // Look for connection comment pattern: -- connection: connection-name
-        const connectionMatch = contentString.match(/--\s*connection:\s*([^\n\r]+)/i);
+        const connectionMatch = fileContentString.match(/--\s*connection:\s*([^\n\r]+)/i);
         if (connectionMatch) {
           detectedConnectionName = connectionMatch[1].trim();
           console.log("✅ Found connection in file:", detectedConnectionName);
@@ -52,9 +51,9 @@ export const getQueryOutput = async (environment: string, limit: string, lastRen
         // If no query is selected, use the entire file content as the query
         if (!selectedQuery) {
           // Remove connection comment lines from the query content
-          selectedQuery = contentString
+          selectedQuery = fileContentString
             .split('\n')
-            .filter(line => !line.trim().match(/^--\s*connection:\s*/i))
+            .filter((line: string) => !line.trim().match(/^--\s*connection:\s*/i))
             .join('\n')
             .trim();
         }
