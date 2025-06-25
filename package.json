@@ -272,12 +272,6 @@
         "title": "Convert File to Asset",
         "category": "Bruin",
         "description": "Convert a file to a Bruin asset."
-      },
-      {
-        "command": "bruin.addConnection",
-        "title": "Add Connection",
-        "category": "Bruin",
-        "description": "Add a new connection."
       }
     ]
   },
