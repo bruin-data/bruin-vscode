@@ -5,7 +5,7 @@ import { BruinExportQueryOutput } from "../../bruin/exportQueryOutput";
 import { QueryPreviewPanel } from "../../panels/QueryPreviewPanel";
 import { getBruinExecutablePath } from "../../providers/BruinExecutableService";
 
-export const getQueryOutput = async (environment: string, limit: string, lastRenderedDocumentUri: Uri | undefined, tabId?: string, startDate?: string, endDate?: string) => {
+export const getQueryOutput = async (environment: string, limit: string, lastRenderedDocumentUri: Uri | undefined, tabId?: string, startDate?: string, endDate?: string, connectionName?: string) => {
   let editor = window.activeTextEditor;
   if (!editor) {
     editor = lastRenderedDocumentUri && await window.showTextDocument(lastRenderedDocumentUri);
@@ -17,7 +17,7 @@ export const getQueryOutput = async (environment: string, limit: string, lastRen
   
   // Get the selected text (if any)
   const selection = editor.selection;
-  const selectedQuery = selection && !selection.isEmpty 
+  let selectedQuery = selection && !selection.isEmpty 
     ? editor.document.getText(new vscode.Range(selection.start, selection.end))
     : "";
 
@@ -30,6 +30,38 @@ export const getQueryOutput = async (environment: string, limit: string, lastRen
     return;
   }
 
+  // Detect connection name and query from file content if not provided
+  let detectedConnectionName = connectionName;
+  if (!detectedConnectionName || !selectedQuery) {
+    try {
+      const content = await workspace.fs.readFile(lastRenderedDocumentUri);
+      const contentString = Buffer.from(content).toString('utf-8');
+      
+      if (contentString) {
+        // Look for connection comment pattern: -- connection: connection-name
+        const connectionMatch = contentString.match(/--\s*connection:\s*([^\n\r]+)/i);
+        if (connectionMatch) {
+          detectedConnectionName = connectionMatch[1].trim();
+          console.log("✅ Found connection in file:", detectedConnectionName);
+        } else {
+          console.log("❌ No connection pattern found in file content");
+        }
+
+        // If no query is selected, use the entire file content as the query
+        if (!selectedQuery) {
+          // Remove connection comment lines from the query content
+          selectedQuery = contentString
+            .split('\n')
+            .filter(line => !line.trim().match(/^--\s*connection:\s*/i))
+            .join('\n')
+            .trim();
+        }
+      }
+    } catch (error) {
+      console.error("Error reading file for connection and query detection:", error);
+    }
+  }
+
   // Store the query in the preview panel for the specific tab
   const currentTabId = tabId || 'tab-1';
   QueryPreviewPanel.setTabQuery(currentTabId, selectedQuery);
@@ -37,11 +69,11 @@ export const getQueryOutput = async (environment: string, limit: string, lastRen
 
   const output = new BruinQueryOutput(
     getBruinExecutablePath(),
-    ""
+    workspaceFolder.uri.fsPath
   );
    console.log("Receiving dates", startDate, endDate);
-  // Pass the query only if there is a valid selection, otherwise leave it empty.
-  await output.getOutput(environment, lastRenderedDocumentUri.fsPath, limit, tabId, startDate, endDate, { query: selectedQuery });
+  // Pass the detected query (either selected text or entire file content)
+  await output.getOutput(environment, lastRenderedDocumentUri.fsPath, limit, tabId, detectedConnectionName, startDate, endDate, { query: selectedQuery });
 };
 
 export const exportQueryResults = async (lastRenderedDocumentUri: Uri | undefined, tabId?: string, connectionName?: string) => {
@@ -72,7 +104,7 @@ export const exportQueryResults = async (lastRenderedDocumentUri: Uri | undefine
 
     const output = new BruinExportQueryOutput(
       getBruinExecutablePath(),
-      ""
+      workspaceFolder.uri.fsPath
     );
     
     // Use the stored query for the specific tab

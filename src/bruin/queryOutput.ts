@@ -30,6 +30,7 @@ export class BruinQueryOutput extends BruinCommand {
     asset: string,
     limit: string,
     tabId?: string,
+    connectionName?: string,
     startDate?: string,
     endDate?: string,
     { flags = [], ignoresErrors = false, query = "" }: BruinCommandOptions & { query?: string } = {}
@@ -39,6 +40,9 @@ export class BruinQueryOutput extends BruinCommand {
     this.postMessageToPanels("loading", this.isLoading);
     const constructedFlags = ["-o", "json"];
 
+    if (connectionName) {
+      constructedFlags.push("--connection", connectionName);
+    }
     if (query) {
       // If we have a direct query, use the query flag
       constructedFlags.push("-q", query);
@@ -49,8 +53,10 @@ export class BruinQueryOutput extends BruinCommand {
     if (limit) {
       constructedFlags.push("-limit", limit);
     }
-    // we always need to push the other flags including the asset flag
-    constructedFlags.push("-asset", asset);
+    // we always need to push the other flags including the asset fla
+    if(!connectionName) {
+      constructedFlags.push("-asset", asset);
+    }
 
     if (startDate) {  
       constructedFlags.push("--start-date", startDate);

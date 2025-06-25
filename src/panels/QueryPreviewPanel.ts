@@ -70,7 +70,9 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
   ) {
     startDate = startDate || QueryPreviewPanel.currentDates.start;
     endDate = endDate || QueryPreviewPanel.currentDates.end;
-    console.log(`QueryPreviewPanel: Loading query with dates - start: ${startDate}, end: ${endDate}`);
+    console.log(
+      `QueryPreviewPanel: Loading query with dates - start: ${startDate}, end: ${endDate}`
+    );
 
     if (!this._lastRenderedDocumentUri) {
       return;
@@ -89,7 +91,7 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
         tabId: tabId, // Include the tab ID with the loading message
       });
 
-      // Then execute the query and get the results
+      // Call getQueryOutput which now handles connection detection internally
       await getQueryOutput(
         environment,
         limit,
@@ -265,6 +267,7 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
             payload: state,
           });
           break;
+
         case "bruin.getQueryOutput":
           this.environment = message.payload.environment;
           this.limit = message.payload.limit;
@@ -301,24 +304,24 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
 
   public static postMessage(
     name: string,
-    data: string | { status: string; message: string | any; tabId?: string },
+    data: string | { status: string; message: string | any; tabId?: string }
   ) {
     if (this._view) {
       console.log("Posting message to webview in the Query Preview panel", name, data);
-      
+
       // Store dates when receiving date updates
       if (name === "update-query-dates" && typeof data === "object" && data.message) {
         const { startDate, endDate } = data.message;
         this.currentDates = {
           start: startDate || "",
-          end: endDate || ""
+          end: endDate || "",
         };
         console.log(`QueryPreviewPanel: Received dates - start: ${startDate}, end: ${endDate}`);
       }
-      
+
       // Ensure the data is serializable
       const serializedData = JSON.parse(JSON.stringify(data));
-  
+
       this._view.webview.postMessage({
         command: name,
         payload: serializedData,
