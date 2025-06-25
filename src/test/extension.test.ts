@@ -2278,7 +2278,6 @@ suite("Query Output Tests", () => {
   setup(async () => {
     getWorkspaceFolderStub = sinon.stub(vscode.workspace, "getWorkspaceFolder");
     bruinDirStub = sinon.stub(bruinUtils, "bruinWorkspaceDirectory").resolves("/mocked/workspace");
-    getOutputStub = sinon.stub(BruinQueryOutput.prototype, "getOutput").resolves();
     showErrorStub = sinon.stub(vscode.window, "showErrorMessage");
     setTabQueryStub = sinon.stub(QueryPreviewPanel, "setTabQuery");
     
