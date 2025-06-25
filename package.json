@@ -220,7 +220,7 @@
       "view/item/context": [
         {
           "command": "bruin.refreshConnection",
-          "when": "view == bruinConnections && viewItem == connection",
+          "when": "view == bruinConnections && viewItem == 'bruin_connection'",
           "group": "inline"
         }
       ]

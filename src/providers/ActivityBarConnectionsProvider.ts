@@ -35,12 +35,12 @@ class ConnectionItem extends vscode.TreeItem {
     public readonly label: string,
     public readonly collapsibleState: vscode.TreeItemCollapsibleState,
     public readonly itemData: TreeItemData,
-    public readonly contextValue: 'connection' | 'schema' | 'table' | 'connections'
+    public readonly contextValue: 'bruin_connection' | 'schema' | 'table' | 'connections'
   ) {
     super(label, collapsibleState);
     this.contextValue = contextValue;
 
-    if (this.contextValue === 'connection' && 'status' in this.itemData) {
+    if (this.contextValue === 'bruin_connection' && 'status' in this.itemData) {
       switch (this.itemData.status) {
         case 'connected':
           this.iconPath = new vscode.ThemeIcon('plug', new vscode.ThemeColor('charts.green'));
@@ -157,14 +157,14 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
             connection.name,
             vscode.TreeItemCollapsibleState.Collapsed,
             connection,
-            'connection'
+            'bruin_connection'
           );
           item.tooltip = `${connection.type}`;
           return item;
         });
     }
 
-    if (element.contextValue === 'connection' && 'name' in element.itemData) {
+    if (element.contextValue === 'bruin_connection' && 'name' in element.itemData) {
       const connectionName = element.itemData.name;
       if (this.databaseCache.has(connectionName)) {
         return this.databaseCache.get(connectionName)!.map(schema => 
