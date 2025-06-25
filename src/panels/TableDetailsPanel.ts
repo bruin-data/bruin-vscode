@@ -22,15 +22,16 @@ export class TableDetailsPanel {
     });
   }
 
-  public static async render(extensionUri: Uri, tableName: string, schemaName?: string) {
+  public static async render(extensionUri: Uri, tableName: string, schemaName?: string, connectionName?: string) {
     try {
       const cleanTableName = tableName.replace(/\.sql$/, "");
+      const connectionIdentifier = connectionName || 'default';
       
       // Check if there's already an open document for this table
       const openDocuments = workspace.textDocuments;
       const existingDoc = openDocuments.find(doc => {
         const fileName = path.basename(doc.fileName);
-        return fileName.startsWith(`bruin-${cleanTableName}-`) && fileName.endsWith('.sql');
+        return fileName.startsWith(`bruin-${cleanTableName}-${connectionIdentifier}-`) && fileName.endsWith('.sql');
       });
       
       if (existingDoc) {
@@ -58,18 +59,18 @@ export class TableDetailsPanel {
         fs.mkdirSync(tempDir, { recursive: true });
       }
       
-      const tempFileName = `bruin-${cleanTableName}-${Date.now()}.sql`;
+      const tempFileName = `bruin-${cleanTableName}-${connectionIdentifier}-${Date.now()}.sql`;
       const tempFilePath = path.join(tempDir, tempFileName);
       
       // Track temp file for cleanup
       this.tempFiles.add(tempFilePath);
       
       // Create SQL query with schema if provided
-      let initialContent;
+      let initialContent = `-- connection: ${connectionName || 'default'}\n`;
       if (schemaName) {
-        initialContent = `SELECT * FROM ${this._sanitizeTableName(schemaName)}.${this._sanitizeTableName(cleanTableName)};`;
+        initialContent += `SELECT * FROM ${this._sanitizeTableName(schemaName)}.${this._sanitizeTableName(cleanTableName)};`;
       } else {
-        initialContent = `SELECT * FROM ${this._sanitizeTableName(cleanTableName)};`;
+        initialContent += `SELECT * FROM ${this._sanitizeTableName(cleanTableName)};`;
       }
 
       fs.writeFileSync(tempFilePath, initialContent);

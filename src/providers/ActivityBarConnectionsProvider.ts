@@ -19,11 +19,13 @@ interface ConnectionDisplayData {
 interface Schema {
   name: string;
   tables: string[];
+  connectionName: string;
 }
 
 interface Table {
   name: string;
   schema: string;
+  connectionName: string;
 }
 
 type TreeItemData = ConnectionDisplayData | Schema | Table;
@@ -96,6 +98,11 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
     this.loadConnections();
   }
 
+  public refreshConnection(connectionName: string): void {
+    this.databaseCache.delete(connectionName);
+    this._onDidChangeTreeData.fire();
+  }
+
   // Load connections using BruinConnections.getConnectionsForActivityBar() method
   private async loadConnections(): Promise<void> {
     try {
@@ -152,7 +159,7 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
             connection,
             'connection'
           );
-          item.tooltip = `${connection.type} - ${connection.status}\nEnvironment: ${connection.environment}`;
+          item.tooltip = `${connection.type}`;
           return item;
         });
     }
@@ -167,7 +174,7 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
 
       try {
         const summary = await this.getDatabaseSummary(connectionName);
-        const schemas = this.parseDbSummary(summary);
+        const schemas = this.parseDbSummary(summary, connectionName);
         this.databaseCache.set(connectionName, schemas);
         return schemas.map(schema => 
           new ConnectionItem(schema.name, vscode.TreeItemCollapsibleState.Collapsed, schema, 'schema')
@@ -181,13 +188,13 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
     if (element.contextValue === 'schema' && 'tables' in element.itemData) {
       const schema = element.itemData as Schema;
       return schema.tables.map(table => {
-        const tableItem: Table = { name: table, schema: schema.name };
+        const tableItem: Table = { name: table, schema: schema.name, connectionName: schema.connectionName };
         const tableTreeItem = new ConnectionItem(table, vscode.TreeItemCollapsibleState.None, tableItem, 'table');
         // Add command with both table name and schema name
         tableTreeItem.command = {
           command: 'bruin.showTableDetails',
           title: 'Show Table Details',
-          arguments: [table, schema.name]
+          arguments: [table, schema.name, schema.connectionName]
         };
         return tableTreeItem;
       });
@@ -202,7 +209,7 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
     return command.getDbSummary(connectionName);
   }
 
-  private parseDbSummary(summary: any): Schema[] {
+  private parseDbSummary(summary: any, connectionName: string): Schema[] {
     const schemasArray = Array.isArray(summary) ? summary : summary?.schemas;
 
     if (!Array.isArray(schemasArray)) {
@@ -210,7 +217,8 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
     }
     return schemasArray.map(item => ({
         name: item.name || item.schema_name,
-        tables: (item.tables || []).map((table: any) => typeof table === 'string' ? table : table.name)
+        tables: (item.tables || []).map((table: any) => typeof table === 'string' ? table : table.name),
+        connectionName: connectionName
     }));
   }
 

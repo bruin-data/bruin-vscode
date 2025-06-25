@@ -217,7 +217,13 @@
           "group": "navigation"
         }
       ],
-      "view/item/context": []
+      "view/item/context": [
+        {
+          "command": "bruin.refreshConnection",
+          "when": "view == bruinConnections && viewItem == connection",
+          "group": "inline"
+        }
+      ]
     },
     "commands": [
       {
@@ -234,6 +240,13 @@
         "category": "Bruin",
         "icon": "$(refresh)",
         "description": "Refresh connections list."
+      },
+      {
+        "command": "bruin.refreshConnection",
+        "title": "Refresh Connection",
+        "category": "Bruin",
+        "icon": "$(refresh)",
+        "description": "Refresh a single connection."
       },
       {
         "command": "bruin.showConnectionDetails",

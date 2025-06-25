@@ -203,6 +203,18 @@ export async function activate(context: ExtensionContext) {
         vscode.window.showErrorMessage(`Error refreshing connections: ${errorMessage}`);
       }
     }),
+    commands.registerCommand("bruin.refreshConnection", (item: any) => {
+      try {
+        trackEvent("Command Executed", { command: "refreshConnection" });
+        if (item && item.itemData && item.itemData.name) {
+          activityBarConnectionsProvider.refreshConnection(item.itemData.name);
+          vscode.window.showInformationMessage(`Connection ${item.itemData.name} refreshed.`);
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error refreshing connection: ${errorMessage}`);
+      }
+    }),
     commands.registerCommand("bruin.showConnectionDetails", (connection: any) => {
       try {
         trackEvent("Command Executed", { command: "showConnectionDetails" });
@@ -218,10 +230,10 @@ export async function activate(context: ExtensionContext) {
         vscode.window.showErrorMessage(`Error showing connection details: ${errorMessage}`);
       }
     }),
-    commands.registerCommand("bruin.showTableDetails", (tableName: string, schemaName?: string) => {
+    commands.registerCommand("bruin.showTableDetails", (tableName: string, schemaName?: string, connectionName?: string) => {
       try {
         trackEvent("Command Executed", { command: "showTableDetails" });
-        TableDetailsPanel.render(context.extensionUri, tableName, schemaName);
+        TableDetailsPanel.render(context.extensionUri, tableName, schemaName, connectionName);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         vscode.window.showErrorMessage(`Error showing table details: ${errorMessage}`);
