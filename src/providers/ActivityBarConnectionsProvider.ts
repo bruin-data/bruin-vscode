@@ -9,7 +9,6 @@ import { Connection } from '../utilities/helperUtils';
 interface ConnectionDisplayData {
   name: string;
   type: string;
-  status: 'connected' | 'disconnected' | 'error';
   host?: string;
   port?: number;
   database?: string;
@@ -40,18 +39,8 @@ class ConnectionItem extends vscode.TreeItem {
     super(label, collapsibleState);
     this.contextValue = contextValue;
 
-    if (this.contextValue === 'bruin_connection' && 'status' in this.itemData) {
-      switch (this.itemData.status) {
-        case 'connected':
-          this.iconPath = new vscode.ThemeIcon('plug', new vscode.ThemeColor('charts.green'));
-          break;
-        case 'disconnected':
-          this.iconPath = new vscode.ThemeIcon('debug-disconnect', new vscode.ThemeColor('charts.gray'));
-          break;
-        case 'error':
-          this.iconPath = new vscode.ThemeIcon('error', new vscode.ThemeColor('charts.red'));
-          break;
-      }
+    if (this.contextValue === 'bruin_connection') {
+      this.iconPath = new vscode.ThemeIcon('plug');
     } else if (this.contextValue === 'schema') {
       this.iconPath = new vscode.ThemeIcon('database');
     } else if (this.contextValue === 'table') {
@@ -106,14 +95,10 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
   // Load connections using BruinConnections.getConnectionsForActivityBar() method
   public async loadConnections(): Promise<void> {
     try {
-      console.log('ActivityBarConnectionsProvider: Loading connections...');
       // Get connections from Bruin CLI
       const connections = await this.bruinConnections.getConnectionsForActivityBar();
-      console.log('ActivityBarConnectionsProvider: Received connections:', connections);
       
-      if (!connections || connections.length === 0) {
-        console.log('ActivityBarConnectionsProvider: No connections found, adding test data');
-      } else {
+      if (connections && connections.length > 0) {
         this.setConnections(connections);
       }
       
@@ -130,7 +115,6 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
       ...conn,
       name: conn.name || 'Unknown',
       type: conn.type,
-      status: 'disconnected' as const,
       environment: conn.environment
     }));
     this._onDidChangeTreeData.fire();
@@ -221,25 +205,5 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
         connectionName: connectionName
     }));
   }
-
-  // Method to add a new connection
-  addConnection(connection: ConnectionDisplayData): void {
-    this.connections.push(connection);
-    this._onDidChangeTreeData.fire();
-  }
-
-  // Method to remove a connection
-  removeConnection(connectionName: string): void {
-    this.connections = this.connections.filter(conn => conn.name !== connectionName);
-    this._onDidChangeTreeData.fire();
-  }
-
-  // Method to update connection status
-  updateConnectionStatus(connectionName: string, status: 'connected' | 'disconnected' | 'error'): void {
-    const connection = this.connections.find(conn => conn.name === connectionName);
-    if (connection) {
-      connection.status = status;
-      this._onDidChangeTreeData.fire();
-    }
-  }
+  
 } 

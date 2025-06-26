@@ -76,7 +76,7 @@
         {
           "id": "bruin",
           "title": "Bruin",
-          "icon": "img/database.svg"
+          "icon": "$(database)"
         }
       ],
       "panel": [
@@ -96,7 +96,7 @@
       "bruin": [
         {
           "id": "bruinConnections",
-          "name": "Connections"
+          "name": "Databases"
         }
       ],
       "bruin-assetLineageView": [
