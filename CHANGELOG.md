@@ -1,5 +1,8 @@
 # Changelog
 ## [0.51.6] - [2025-06-25]
+- Added support and validation for the `private_key_path` field in Snowflake connections.
+
+## [0.51.6] - [2025-06-25]
 - Added support for fill asset dependencies and columns from DB.
 
 ## [0.51.5] - [2025-06-23]
