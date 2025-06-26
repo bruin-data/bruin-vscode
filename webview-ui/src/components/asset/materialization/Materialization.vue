@@ -94,7 +94,7 @@
       </div>
 
       <!-- Dependencies Section -->
-      <div class="collapsible-section">
+      <div class="collapsible-section overflow-visible">
         <div 
           class="section-header"
           @click="toggleSection('dependencies')"
@@ -129,7 +129,7 @@
           </div>
         </div>
         
-        <div v-if="expandedSections.dependencies" class="section-content">
+        <div v-if="expandedSections.dependencies" class="section-content overflow-visible">
           <!-- Current Dependencies Display -->
           <div class="field-group">
             <label class="field-label">Current Dependencies</label>
@@ -161,11 +161,11 @@
           </div>
 
           <!-- Add Dependencies Controls -->
-          <div class="field-group">
+          <div class="field-group overflow-visible">
             <label class="field-label">Add Dependencies</label>
             <div class="flex gap-2">
               <!-- Pipeline Dependencies Dropdown -->
-              <div class="relative w-full max-w-[250px]" ref="pipelineDepsContainer">
+              <div class="relative w-full max-w-[250px] z-50" ref="pipelineDepsContainer">
                 <input
                   v-model="pipelineSearchQuery"
                   placeholder="Add from pipeline..."
@@ -185,7 +185,7 @@
 
                 <div
                   v-if="isPipelineDepsOpen"
-                  class="absolute z-50 w-full bg-dropdown-bg border border-commandCenter-border shadow-lg mt-1 max-h-60 overflow-y-auto"
+                  class="absolute z-[999] w-full bg-dropdown-bg border border-commandCenter-border shadow-lg mt-1 max-h-60 overflow-y-auto"
                 >
                   <div class="sticky top-0 bg-dropdown-bg border-b border-commandCenter-border px-2 py-1">
                     <input
@@ -1103,7 +1103,11 @@ const handlePipelineEnter = () => {
 <style scoped>
 /* Collapsible sections */
 .collapsible-section {
-  @apply border border-commandCenter-border rounded overflow-hidden;
+  @apply border border-commandCenter-border rounded;
+}
+
+.collapsible-section.overflow-visible {
+  overflow: visible !important;
 }
 
 .section-header {
