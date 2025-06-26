@@ -1,4 +1,7 @@
 # Changelog
+## [0.53.0] - [2025-06-26]
+- Added pipeline asset and dependency management, including collapsible sections, improved layout, and support for external dependencies.
+
 ## [0.52.0] - [2025-06-26]
 - Added an Activity Bar to browse databases, view table details, and preview queries.
 
