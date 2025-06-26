@@ -37,7 +37,7 @@
                   @mouseleave="handleOwnerInputMouseLeave"
                   ref="ownerInput"
                   placeholder="data-team@company.com"
-                  class="text-xs bg-input-background border-0 p-0 text-editor-fg truncate"
+                  class="text-xs bg-input-background border-0 w-full p-0 text-editor-fg truncate focus:outline-none focus:ring-0"
                 />
               </template>
               <template v-else>
@@ -185,7 +185,7 @@
 
                 <div
                   v-if="isPipelineDepsOpen"
-                  class="absolute z-20 w-full bg-dropdown-bg border border-commandCenter-border shadow-lg mt-1 max-h-60 overflow-y-auto"
+                  class="absolute z-50 w-full bg-dropdown-bg border border-commandCenter-border shadow-lg mt-1 max-h-60 overflow-y-auto"
                 >
                   <div class="sticky top-0 bg-dropdown-bg border-b border-commandCenter-border px-2 py-1">
                     <input
@@ -308,7 +308,7 @@
             </div>
 
             <div v-if="localMaterialization.strategy === 'merge'" class="field-group">
-              <div class="p-3 bg-editorWidget-bg rounded">
+              <div class="p-1 bg-editorWidget-bg rounded">
                 <p class="info-text">
                   Configure primary keys in column definitions using <code>primary_key: true</code>
                 </p>
@@ -334,6 +334,7 @@
                     v-model="localMaterialization.time_granularity"
                     class="w-full max-w-[250px] bg-input-background text-xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
                   >
+                    <option value="" class="text-xs opacity-60" disabled>select unit...</option>
                     <option value="date">Date</option>
                     <option value="timestamp">Timestamp</option>
                   </select>
@@ -1124,7 +1125,7 @@ const handlePipelineEnter = () => {
 
 /* Strategy options styling */
 .strategy-options {
-  @apply pl-2 border-commandCenter-border space-y-2 bg-editorWidget-bg p-4 rounded;
+  @apply pl-2 border-commandCenter-border space-y-2 bg-editorWidget-bg p-2 rounded;
 }
 
 /* Original input styling without borders */
@@ -1175,5 +1176,8 @@ vscode-button::part(control) {
 /* Transitions */
 .codicon {
   transition: transform 0.2s ease;
+}
+select {
+  @apply text-xs p-1;
 }
 </style>
