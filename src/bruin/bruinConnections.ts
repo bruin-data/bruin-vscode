@@ -62,6 +62,27 @@ export class BruinConnections extends BruinCommand {
   private postMessageToPanels(status: string, message: string | any) {
     BruinPanel.postMessage("connections-list-message", { status, message });
   }
+
+  /**
+   * Get connections specifically for the Activity Bar provider.
+   * Returns the connections directly without posting to panels.
+   *
+   * @param {BruinCommandOptions} [options={}] - Optional parameters for execution, including flags and errors.
+   * @returns {Promise<Connection[]>} A promise that resolves with the connections array.
+   */
+  public async getConnectionsForActivityBar({
+    flags = ["list", "-o", "json"],
+    ignoresErrors = false,
+  }: BruinCommandOptions = {}): Promise<any[]> {
+    try {
+      const result = await this.run([...flags], { ignoresErrors });
+      const connections = extractNonNullConnections(JSON.parse(result));
+      return connections;
+    } catch (error) {
+      console.error("Error occurred while getting connections for activity bar:", error);
+      throw error;
+    }
+  }
 }
 
 /**
