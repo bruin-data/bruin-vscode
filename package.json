@@ -159,10 +159,10 @@
           "default": false,
           "description": "Sets whether the 'Push-Metadata' checkbox is checked by default."
         },
-        "bruin.defaultExcludeTag": {
+        "bruin.validate.defaultExcludeTag": {
           "type": "string",
           "default": "",
-          "description": "Sets the default exclude tag value."
+          "description": "Sets the default exclude tag to be used with validation commands."
         }
       }
     },

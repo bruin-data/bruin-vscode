@@ -13,6 +13,11 @@ export function getDefaultCheckboxSettings() {
   };
 }
 
+export function getDefaultExcludeTag(): string {
+  const config = vscode.workspace.getConfiguration("bruin");
+  return config.get<string>("validate.defaultExcludeTag", "");
+}
+
 export function getPathSeparator(): string {
   const bruinConfig = vscode.workspace.getConfiguration("bruin");
   const pathSeparator = bruinConfig.get<string>("pathSeparator") || "/";
