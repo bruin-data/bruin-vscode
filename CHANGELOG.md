@@ -1,5 +1,8 @@
 # Changelog
-## [0.51.6] - [2025-06-25]
+## [0.52.0] - [2025-06-26]
+- Added an Activity Bar to browse databases, view table details, and preview queries.
+
+## [0.51.7] - [2025-06-26]
 - Added support and validation for the `private_key_path` field in Snowflake connections.
 
 ## [0.51.6] - [2025-06-25]

@@ -55,6 +55,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.52.0**: Added an Activity Bar to browse databases, view table details, and preview queries.
 - **0.51.7**: Added support and validation for the `private_key_path` field in Snowflake connections.
 - **0.51.6**: Added support for `fill` asset dependencies and columns from DB.
 - **0.51.5**: Added confirmation prompt before running with `full-refresh`.
