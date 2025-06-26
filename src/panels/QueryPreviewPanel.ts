@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { getNonce } from "../utilities/getNonce";
 import { getUri } from "../utilities/getUri";
 import { exportQueryResults, getQueryOutput } from "../extension/commands/queryCommands";
+import { getEnvListCommand } from "../extension/commands/getEnvListCommand";
 
 export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Disposable {
   public static readonly viewId = "bruin.QueryPreviewView";
@@ -173,10 +174,19 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
             command: "init",
             panelType: "Query Preview",
           });
+          // Load environments list when panel becomes visible
+          if (this._lastRenderedDocumentUri) {
+            getEnvListCommand(this._lastRenderedDocumentUri);
+          }
         }
       });
 
       webviewView.webview.html = this._getWebviewContent(webviewView.webview);
+      
+      // Load environments list on initial load
+      if (this._lastRenderedDocumentUri) {
+        getEnvListCommand(this._lastRenderedDocumentUri);
+      }
     } catch (error) {
       console.error("Error loading Query Preview data:", error);
     }

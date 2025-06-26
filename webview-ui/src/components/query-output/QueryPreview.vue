@@ -377,7 +377,7 @@ const defaultTab = {
   totalRowCount: 0,
   filteredRowCount: 0,
   isEditing: false,
-  environment: currentEnvironment.value,
+  environment: "",
   connectionName: props.connectionName,
   showQuery: false,
 };
@@ -793,6 +793,25 @@ watch(
     if (!newError) return;
     // We don't need to process this here anymore since we handle it in the message handler
   }
+);
+
+// Update environment when prop changes
+watch(
+  () => props.environment,
+  (newEnvironment) => {
+    if (newEnvironment && newEnvironment !== currentEnvironment.value) {
+      currentEnvironment.value = newEnvironment;
+      
+      // Update the environment for all tabs
+      const newTabs = tabs.value.map(tab => ({
+        ...tab,
+        environment: newEnvironment
+      }));
+      tabs.value.splice(0, tabs.value.length, ...newTabs);
+      triggerRef(tabs);
+    }
+  },
+  { immediate: true }
 );
 
 // Update loading state for the current tab - we don't use this anymore
