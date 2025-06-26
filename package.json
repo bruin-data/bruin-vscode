@@ -75,7 +75,7 @@
       "activitybar": [
         {
           "id": "bruin",
-          "title": "Bruin",
+          "title": "Databases",
           "icon": "$(database)"
         }
       ],
