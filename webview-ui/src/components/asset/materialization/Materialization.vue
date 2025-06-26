@@ -178,40 +178,43 @@
                 />
                 <span
                   class="absolute inset-y-0 right-0 flex items-center pr-2 cursor-pointer"
-                  @click="isPipelineDepsOpen = !isPipelineDepsOpen"
+                  @click="updateDropdownPosition(); isPipelineDepsOpen = !isPipelineDepsOpen"
                 >
                   <span class="codicon codicon-chevron-down text-xs"></span>
                 </span>
 
                 <div
                   v-if="isPipelineDepsOpen"
-                  class="absolute z-[999] w-full bg-dropdown-bg border border-commandCenter-border shadow-lg mt-1 max-h-60 overflow-y-auto"
+                  class="fixed z-[9999] w-[250px] bg-input-background border border-commandCenter-border shadow-lg rounded max-h-60 overflow-hidden"
+                  :style="dropdownStyle"
+                  @mousedown.prevent
                 >
-                  <div class="sticky top-0 bg-dropdown-bg border-b border-commandCenter-border px-2 py-1">
+                  <div class="sticky top-0 bg-input-background border-b border-commandCenter-border px-3 py-2">
                     <input
                       v-model="pipelineSearchQuery"
                       placeholder="Search pipeline assets..."
-                      class="w-full bg-input-background text-2xs border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
+                      class="w-full bg-input-background text-input-foreground text-xs border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6 px-2 rounded"
                       @click.stop
+                      @mousedown.stop
                     />
                   </div>
 
-                  <div class="max-h-48 overflow-y-auto">
+                  <div class="max-h-48 overflow-y-auto bg-input-background">
                     <div
                       v-for="asset in filteredPipelineAssets"
                       :key="asset.name"
-                      class="flex items-center justify-between px-2 py-1 hover:bg-input-background cursor-pointer group"
+                      class="flex items-center justify-between px-3 py-2 hover:bg-list-hoverBackground hover:text-list-activeSelectionForeground cursor-pointer text-xs text-input-foreground"
                       @click="addPipelineDependency(asset)"
                     >
                       <div class="flex items-center gap-2">
-                        <span class="text-2xs font-mono">{{ asset.name }}</span>
+                        <span class="font-mono">{{ asset.name }}</span>
                       </div>
-                      <span v-if="isDependencyAdded(asset.name)" class="codicon codicon-check"></span>
+                      <span v-if="isDependencyAdded(asset.name)" class="codicon codicon-check text-xs"></span>
                     </div>
 
                     <div
                       v-if="filteredPipelineAssets.length === 0"
-                      class="px-2 py-1 text-2xs text-editor-fg opacity-60 text-center"
+                      class="px-3 py-2 text-xs text-input-foreground opacity-60 text-center"
                     >
                       No matching assets found
                     </div>
@@ -522,6 +525,7 @@ const externalDepInput = ref("");
 const pipelineDepsContainer = ref(null);
 const externalDepsContainer = ref(null);
 const pipelineAssets = ref(props.pipelineAssets || []);
+const dropdownStyle = ref({});
 
 let saveTimeout = null;
 
@@ -937,6 +941,15 @@ const handleClickOutside = (event) => {
   if (clusterContainer.value && !clusterContainer.value.contains(event.target)) {
     isClusterDropdownOpen.value = false;
   }
+  
+  // Handle pipeline dependencies dropdown
+  if (pipelineDepsContainer.value && !pipelineDepsContainer.value.contains(event.target)) {
+    // Also check if the click was on the fixed dropdown
+    const dropdownElement = document.querySelector('.fixed.z-\\[9999\\]');
+    if (!dropdownElement || !dropdownElement.contains(event.target)) {
+      isPipelineDepsOpen.value = false;
+    }
+  }
 };
 
 onMounted(() => {
@@ -1080,22 +1093,39 @@ watch(
   { immediate: true, deep: true }
 );
 
+// Clear search query when dropdown closes
+watch(isPipelineDepsOpen, (isOpen) => {
+  if (!isOpen) {
+    pipelineSearchQuery.value = "";
+  }
+});
+
 const togglePipelineDeps = () => {
   isPipelineDepsOpen.value = !isPipelineDepsOpen.value;
 };
 
 const handlePipelineInput = () => {
+  updateDropdownPosition();
   isPipelineDepsOpen.value = true;
 };
 
 const handlePipelineInputBlur = () => {
-  setTimeout(() => {
-    isPipelineDepsOpen.value = false;
-  }, 100);
+  // Let the click handler manage closing the dropdown
+  // This prevents issues with clicking inside the dropdown
 };
 
 const handlePipelineEnter = () => {
   isPipelineDepsOpen.value = false;
+};
+
+const updateDropdownPosition = () => {
+  if (pipelineDepsContainer.value) {
+    const rect = pipelineDepsContainer.value.getBoundingClientRect();
+    dropdownStyle.value = {
+      top: `${rect.bottom + 4}px`,
+      left: `${rect.left}px`,
+    };
+  }
 };
 
 </script>
@@ -1111,11 +1141,11 @@ const handlePipelineEnter = () => {
 }
 
 .section-header {
-  @apply p-1 bg-editorWidget-bg cursor-pointer hover:bg-input-background transition-colors duration-150;
+  @apply p-1 bg-editorWidget-bg border-inherit cursor-pointer hover:bg-input-background transition-colors duration-150 rounded-t;
 }
 
 .section-content {
-  @apply p-2 space-y-2 bg-editor-bg border-t border-commandCenter-border;
+  @apply p-2 space-y-2 bg-editor-bg border-t border-commandCenter-border rounded-b;
 }
 
 /* Field styling */
