@@ -4,6 +4,7 @@ import { updateLineageData } from "../panels/LineagePanel";
 import { getCurrentPipelinePath } from "./bruinUtils";
 import * as vscode from "vscode";
 import { isConfigFile } from "../utilities/helperUtils";
+import { BruinPanel } from "../panels/BruinPanel";
 /**
  * Extends the BruinCommand class to implement the bruin run command on Bruin assets.
  */
@@ -48,6 +49,7 @@ export class BruinLineageInternalParse extends BruinCommand {
    */
   public async parseAssetLineage(
     filePath: string,
+    panel?: string,
     { flags = ["parse-pipeline"], ignoresErrors = false }: BruinCommandOptions = {}
   ): Promise<void> {
     try {
@@ -59,7 +61,13 @@ export class BruinLineageInternalParse extends BruinCommand {
       const asset = pipelineData.assets.find(
         (asset: any) => asset.definition_file.path === filePath
       );
-  
+      if(panel === "BruinPanel"){
+        const pipelineAssets = JSON.parse(result).assets;
+        BruinPanel.postMessage("pipeline-assets", {
+          status: "success",
+          message: pipelineAssets,
+        });
+      }
       if (asset) {
         updateLineageData({
           status: "success",

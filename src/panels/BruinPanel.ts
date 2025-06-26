@@ -36,7 +36,8 @@ import { getBruinExecutablePath } from "../providers/BruinExecutableService";
 import path = require("path");
 import { isBruinAsset } from "../utilities/helperUtils";
 import { getDefaultCheckboxSettings } from "../extension/configuration";
-import { exec } from "child_process";
+import { exec } from "child_process";import { flowLineageCommand } from "../extension/commands/FlowLineageCommand";
+
 /**
  * This class manages the state and behavior of Bruin webview panels.
  *
@@ -632,6 +633,10 @@ export class BruinPanel {
             if (this._lastRenderedDocumentUri) {
               await this._convertToAsset(this._lastRenderedDocumentUri.fsPath);
             }
+            break;
+          case "bruin.getPipelineAssets":
+            console.log("Getting pipeline assets");
+            flowLineageCommand(this._lastRenderedDocumentUri, "BruinPanel");
             break;
         }
       },

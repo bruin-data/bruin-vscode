@@ -104,6 +104,7 @@ export const parseAssetDetails = (data: string) => {
     description: asset.description || undefined,
     owner: asset.owner || undefined,
     pipeline,
+    upstreams: asset.upstreams || [],
     materialization: asset.materialization || undefined,
     interval_modifiers: asset.interval_modifiers || undefined,
     tags: asset.tags || undefined,
