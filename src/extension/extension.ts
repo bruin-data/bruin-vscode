@@ -23,6 +23,10 @@ import { QueryPreviewPanel } from "../panels/QueryPreviewPanel";
 import { BruinPanel } from "../panels/BruinPanel";
 import { QueryCodeLensProvider } from "../providers/queryCodeLensProvider";
 import { getQueryOutput } from "./commands/queryCommands";
+import { ActivityBarConnectionsProvider } from "../providers/ActivityBarConnectionsProvider";
+import { isBruinAsset, isBruinPipeline } from "../utilities/helperUtils";
+import { getBruinExecutablePath } from "../providers/BruinExecutableService";
+import { TableDetailsPanel } from '../panels/TableDetailsPanel';
 
 let analyticsClient: any = null;
 
@@ -109,10 +113,14 @@ async function updatePathSeparator(config: WorkspaceConfiguration): Promise<void
     await config.update("pathSeparator", newPathSeparator, ConfigurationTarget.Global);
   }
 }
+
 export async function activate(context: ExtensionContext) {
   const startTime = Date.now();
   console.time("Bruin Activation Total");
   console.log("Bruin extension is now active!");
+
+  // Initialize TableDetailsPanel
+  TableDetailsPanel.initialize(context.subscriptions);
 
   // Focus the active editor first to prevent undefined fsPath errors
   const activeEditor = window.activeTextEditor;
@@ -123,7 +131,7 @@ export async function activate(context: ExtensionContext) {
   }
 
   // Initialize analytics client
-  const analytics = initializeAnalytics();
+  initializeAnalytics();
   trackEvent("Extension Activated");
 
   const bruinConfig = workspace.getConfiguration("bruin");
@@ -149,7 +157,7 @@ export async function activate(context: ExtensionContext) {
             console.debug("Bruin panel restored from state:", state);
           } catch (error) {
             console.error("Failed to restore Bruin panel:", error);
-          }
+          } 
         },
       })
     );
@@ -177,11 +185,60 @@ export async function activate(context: ExtensionContext) {
 
   subscribeToConfigurationChanges();
 
+  const activityBarConnectionsProvider = new ActivityBarConnectionsProvider(context.extensionPath);
+  vscode.window.registerTreeDataProvider('bruinConnections', activityBarConnectionsProvider);
+
   const defaultFoldingState = bruinConfig.get("bruin.FoldingState", "folded");
   let toggled = defaultFoldingState === "folded";
 
   // Register commands
   const commandDisposables = [
+    commands.registerCommand("bruin.refreshConnections", () => {
+      try {
+        trackEvent("Command Executed", { command: "refreshConnections" });
+        activityBarConnectionsProvider.refresh();
+        vscode.window.showInformationMessage("Connections refreshed successfully!");
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error refreshing connections: ${errorMessage}`);
+      }
+    }),
+    commands.registerCommand("bruin.refreshConnection", (item: any) => {
+      try {
+        trackEvent("Command Executed", { command: "refreshConnection" });
+        if (item && item.itemData && item.itemData.name) {
+          activityBarConnectionsProvider.refreshConnection(item.itemData.name);
+          vscode.window.showInformationMessage(`Connection ${item.itemData.name} refreshed.`);
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error refreshing connection: ${errorMessage}`);
+      }
+    }),
+    commands.registerCommand("bruin.showConnectionDetails", (connection: any) => {
+      try {
+        trackEvent("Command Executed", { command: "showConnectionDetails" });
+        const details = `Connection: ${connection.name}\nType: ${connection.type}\nStatus: ${connection.status}`;
+        if (connection.host) {
+          const hostDetails = `\nHost: ${connection.host}:${connection.port || 'default'}`;
+          vscode.window.showInformationMessage(details + hostDetails);
+        } else {
+          vscode.window.showInformationMessage(details);
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error showing connection details: ${errorMessage}`);
+      }
+    }),
+    commands.registerCommand("bruin.showTableDetails", (tableName: string, schemaName?: string, connectionName?: string) => {
+      try {
+        trackEvent("Command Executed", { command: "showTableDetails" });
+        TableDetailsPanel.render(context.extensionUri, tableName, schemaName, connectionName);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error showing table details: ${errorMessage}`);
+      }
+    }),
     commands.registerCommand("bruin.runQuery", async (uri: vscode.Uri, range: vscode.Range) => {
       try {
         trackEvent("Command Executed", { command: "runQuery" });
@@ -266,4 +323,7 @@ export async function activate(context: ExtensionContext) {
   const activationTime = Date.now() - startTime;
   console.debug(`Bruin activated successfully in ${activationTime}ms`);
   console.timeEnd("Bruin Activation Total");
+
+  BruinPanel.render(context.extensionUri);
+  TableDetailsPanel.initialize(context.subscriptions);
 }

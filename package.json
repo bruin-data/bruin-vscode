@@ -72,6 +72,13 @@
       }
     ],
     "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "bruin",
+          "title": "Databases",
+          "icon": "$(database)"
+        }
+      ],
       "panel": [
         {
           "id": "bruin-assetLineageView",
@@ -86,6 +93,12 @@
       ]
     },
     "views": {
+      "bruin": [
+        {
+          "id": "bruinConnections",
+          "name": "Databases"
+        }
+      ],
       "bruin-assetLineageView": [
         {
           "type": "webview",
@@ -196,6 +209,20 @@
           "command": "bruin.renderSQL",
           "group": "navigation"
         }
+      ],
+      "view/title": [
+        {
+          "command": "bruin.refreshConnections",
+          "when": "view == bruinConnections",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "bruin.refreshConnection",
+          "when": "view == bruinConnections && viewItem == 'bruin_connection'",
+          "group": "inline"
+        }
       ]
     },
     "commands": [
@@ -206,6 +233,27 @@
         "category": "Bruin",
         "icon": "img/bruin-logo-sm128.png",
         "description": "Render a Bruin asset."
+      },
+      {
+        "command": "bruin.refreshConnections",
+        "title": "Refresh Connections",
+        "category": "Bruin",
+        "icon": "$(refresh)",
+        "description": "Refresh connections list."
+      },
+      {
+        "command": "bruin.refreshConnection",
+        "title": "Refresh Connection",
+        "category": "Bruin",
+        "icon": "$(refresh)",
+        "description": "Refresh a single connection."
+      },
+      {
+        "command": "bruin.showConnectionDetails",
+        "title": "Show Connection Details",
+        "category": "Bruin",
+        "icon": "$(info)",
+        "description": "Show connection details."
       },
       {
         "command": "bruin.installCli",
