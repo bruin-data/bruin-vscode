@@ -414,7 +414,7 @@ export class BruinPanel {
             const assetWorkspaceDir = await bruinWorkspaceDirectory(assetPath);
             
             const command = [ "patch", "fill-asset-dependencies", escapedAssetPath];
-            await runBruinCommandInIntegratedTerminal(command, assetWorkspaceDir);  
+            await runBruinCommandInIntegratedTerminal(command, assetWorkspaceDir,"bruin");  
 
             return;
 

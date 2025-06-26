@@ -244,9 +244,10 @@ export const runInIntegratedTerminal = async (
 
 export const runBruinCommandInIntegratedTerminal = async (
   commandArgs: string[],
-  workingDir?: string | undefined
+  workingDir?: string | undefined,
+  bruinExecutablePath?: string
 ): Promise<void> => {
-  const bruinExecutable = getBruinExecutablePath();
+  const bruinExecutable = bruinExecutablePath ? "bruin" : getBruinExecutablePath();
   const terminal = await createIntegratedTerminal(workingDir);
   
   const executable = ((terminal.creationOptions as vscode.TerminalOptions).shellPath?.includes("bash")) 
