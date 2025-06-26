@@ -9,7 +9,7 @@
           @click="toggleSection('basicInfo')"
         >
           <div class="flex items-center justify-between w-full">
-            <h2 class="text-base font-medium text-editor-fg">Basic Information</h2>
+            <h2 class="text-sm font-medium text-editor-fg">Basic Information</h2>
             <span 
               class="codicon transition-transform duration-200"
               :class="expandedSections.basicInfo ? 'codicon-chevron-down' : 'codicon-chevron-right'"
@@ -19,11 +19,11 @@
         
         <div v-if="expandedSections.basicInfo" class="section-content">
           <!-- Owner -->
-          <div class="field-group">
-            <label class="field-label">Owner</label>
+          <div class="flex items-center gap-3">
+            <label class="field-label min-w-[60px]">Owner</label>
             <div
               id="owner-text-container"
-              class="text-xs text-editor-fg px-2 py-1 flex items-center min-h-[32px]"
+              class="text-xs text-editor-fg px-2 py-1 flex items-center min-h-[32px] flex-1"
               :class="{ 'cursor-pointer': !isEditingOwner, 'hover-background': !isEditingOwner }"
               @click="startEditingOwner"
             >
@@ -52,9 +52,9 @@
           </div>
 
           <!-- Tags -->
-          <div class="field-group">
-            <label class="field-label">Tags</label>
-            <div id="tags-container" class="flex flex-wrap items-center space-x-2">
+          <div class="flex items-center gap-3">
+            <label class="field-label min-w-[60px]">Tags</label>
+            <div id="tags-container" class="flex flex-wrap items-center space-x-2 flex-1">
               <vscode-tag
                 v-for="(tag, index) in tags"
                 :key="index"
@@ -101,7 +101,7 @@
         >
           <div class="flex items-center justify-between w-full">
             <div class="flex items-center gap-2">
-              <h2 class="text-base font-medium text-editor-fg">Dependencies</h2>
+              <h2 class="text-sm font-medium text-editor-fg">Dependencies</h2>
               <span
                 v-if="dependencies.length > 0"
                 class="inline-flex items-center justify-center w-5 h-5 text-2xs bg-badge-background text-badge-foreground rounded-full"
@@ -241,7 +241,7 @@
         >
           <div class="flex items-center justify-between w-full">
             <div class="flex items-center gap-2">
-              <h2 class="text-base font-medium text-editor-fg">Materialization</h2>
+              <h2 class="text-sm font-medium text-editor-fg">Materialization</h2>
               <span 
                 v-if="localMaterialization.type !== 'null'"
                 class="inline-flex items-center text-2xs text-editor-fg opacity-70"
@@ -351,7 +351,7 @@
           @click="toggleSection('advanced')"
         >
           <div class="flex items-center justify-between w-full">
-            <h2 class="text-base font-medium text-editor-fg">Advanced Settings</h2>
+            <h2 class="text-sm font-medium text-editor-fg">Advanced Settings</h2>
             <span 
               class="codicon transition-transform duration-200"
               :class="expandedSections.advanced ? 'codicon-chevron-down' : 'codicon-chevron-right'"
@@ -1102,15 +1102,15 @@ const handlePipelineEnter = () => {
 <style scoped>
 /* Collapsible sections */
 .collapsible-section {
-  @apply border border-commandCenter-border rounded-md overflow-hidden;
+  @apply border border-commandCenter-border rounded overflow-hidden;
 }
 
 .section-header {
-  @apply px-4 py-3 bg-editorWidget-bg cursor-pointer hover:bg-input-background transition-colors duration-150;
+  @apply p-1 bg-editorWidget-bg cursor-pointer hover:bg-input-background transition-colors duration-150;
 }
 
 .section-content {
-  @apply px-4 py-4 space-y-4 bg-editor-bg border-t border-commandCenter-border;
+  @apply p-2 space-y-2 bg-editor-bg border-t border-commandCenter-border;
 }
 
 /* Field styling */
@@ -1124,7 +1124,7 @@ const handlePipelineEnter = () => {
 
 /* Strategy options styling */
 .strategy-options {
-  @apply pl-4 border-l-2 border-commandCenter-border space-y-4 bg-editorWidget-bg p-4 rounded;
+  @apply pl-2 border-commandCenter-border space-y-2 bg-editorWidget-bg p-4 rounded;
 }
 
 /* Original input styling without borders */
