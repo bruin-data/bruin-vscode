@@ -385,7 +385,6 @@ describe("Bruin Webview Test", function () {
   });
   // owner tests
   describe("Owner Tests", function () {
-    let ownerContainer: WebElement;
     let ownerTextContainer: WebElement;
 
     beforeEach(async function () {
@@ -395,11 +394,6 @@ describe("Bruin Webview Test", function () {
       await tab.click();
       await sleep(500); // Give some time for the tab content to render
 
-      ownerContainer = await driver.wait(
-        until.elementLocated(By.id("owner-container")),
-        10000,
-        "Owner container not found"
-      );
       ownerTextContainer = await driver.wait(
         until.elementLocated(By.id("owner-text-container")),
         10000,
@@ -447,7 +441,7 @@ describe("Bruin Webview Test", function () {
       assert.strictEqual(updatedText, newOwner, `Owner should be updated to "${newOwner}"`);
     });
 
-    it("should edit owner to unknown when using whitespace", async function () {
+    it("should edit owner to Click to set owner when using whitespace", async function () {
       this.timeout(15000);
       const newOwner = " ";
 
@@ -484,7 +478,7 @@ describe("Bruin Webview Test", function () {
       );
 
       const updatedText = await ownerTextElement.getText();
-      assert.strictEqual(updatedText, "Unknown", `Owner should be updated to "Unknown"`);
+      assert.strictEqual(updatedText, "Click to set owner", `Owner should be updated to "Click to set owner"`);
     });
 
     it("should show hover effect when not editing", async function () {
