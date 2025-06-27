@@ -863,6 +863,38 @@ suite("BruinValidate Tests", () => {
       "Loading state should be false after validation"
     );
   });
+
+  test("validate should call run with exclude-tag flag when excludeTag parameter is provided", async () => {
+    const filePath = "path/to/asset";
+    const excludeTag = "test-tag";
+    const flags = ["-o", "json"];
+    runStub.resolves("{}");
+
+    await bruinValidate.validate(filePath, { flags }, excludeTag);
+
+    // Verify that run is called with the correct arguments including --exclude-tag
+    sinon.assert.calledOnceWithExactly(
+      runStub, 
+      ["-o", "json", "--exclude-tag", excludeTag, filePath], 
+      { ignoresErrors: false }
+    );
+  });
+
+  test("validate should not include exclude-tag flag when excludeTag parameter is empty", async () => {
+    const filePath = "path/to/asset";
+    const excludeTag = "";
+    const flags = ["-o", "json"];
+    runStub.resolves("{}");
+
+    await bruinValidate.validate(filePath, { flags }, excludeTag);
+
+    // Verify that run is called without --exclude-tag when excludeTag is empty
+    sinon.assert.calledOnceWithExactly(
+      runStub, 
+      ["-o", "json", filePath], 
+      { ignoresErrors: false }
+    );
+  });
 });
 suite("patch asset testing", () => {
   let bruinInternalPatch: BruinInternalPatch;
