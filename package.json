@@ -162,7 +162,7 @@
         "bruin.validate.defaultExcludeTag": {
           "type": "string",
           "default": "",
-          "description": "Sets the default exclude tag to be used with validation commands."
+          "description": "Sets the validate exclude tag to be used with validation commands."
         }
       }
     },

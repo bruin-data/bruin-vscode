@@ -368,11 +368,8 @@ export class BruinPanel {
             );
             const validator = new BruinValidate(getBruinExecutablePath(), "");
             
-            // Get default exclude tag
-            const excludeTag = getDefaultExcludeTag();
-            // Pass the exclude tag to validate method
-            console.log("Using default exclude tag for validate:", excludeTag);
-            await validator.validate(filePath, {}, excludeTag);
+            
+            await validator.validate(filePath);
             break;
           case "bruin.runSql":
             if (!this._lastRenderedDocumentUri) {
