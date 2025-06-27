@@ -1,4 +1,7 @@
 # Changelog
+## [0.53.1] - [2025-06-27]
+- Added default Exclude Tag input to the extension settings to exclude assets with specific tags from being validated.
+
 ## [0.53.0] - [2025-06-26]
 - Added pipeline asset and dependency management, including collapsible sections, improved layout, and support for external dependencies.
 

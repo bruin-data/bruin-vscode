@@ -55,6 +55,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.53.1**: Added default `Exclude Tag` input to the extension settings to exclude assets with specific tags from being validated.
 - **0.53.0**: Added pipeline asset and dependency management, including collapsible sections, improved layout, and support for external dependencies.
 - **0.52.0**: Added an Activity Bar to browse databases, view table details, and preview queries.
 - **0.51.7**: Added support and validation for the `private_key_path` field in Snowflake connections.
