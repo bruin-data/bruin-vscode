@@ -63,19 +63,10 @@
                 appearance="icon"
                 @click="openAssetInCloud"
                 :disabled="!canOpenInCloud"
-                class="flex-shrink-0"
+                class="flex-shrink-0 cloud-button"
                 title="Open asset in Bruin Cloud"
               >
-                <span class="codicon codicon-go-to-file"></span>
-              </vscode-button>
-              
-              <vscode-button
-                appearance="icon"
-                @click="showProjectNameModal = true"
-                class="flex-shrink-0"
-                title="Set project name for cloud links"
-              >
-                <span class="codicon codicon-settings-gear"></span>
+                <span class="codicon codicon-go-to-file text-base"></span>
               </vscode-button>
             </div>
           </div>
@@ -119,34 +110,6 @@
           </keep-alive>
         </vscode-panel-view>
       </vscode-panels>
-    </div>
-    
-    <!-- Project Name Modal -->
-    <div
-      v-if="showProjectNameModal"
-      class="fixed inset-0 bg-editor-bg bg-opacity-50 flex items-center justify-center z-50"
-      @click="closeModal"
-    >
-      <div
-        class="bg-editor-bg border border-commandCenter-border rounded p-4 max-w-md w-full mx-4"
-        @click.stop
-      >
-        <h3 class="text-lg font-medium text-editor-fg mb-4">Set Project Name for Cloud Links</h3>
-        <p class="text-sm text-editor-fg opacity-70 mb-4">
-          Enter your Bruin Cloud project name to enable opening assets in the cloud.
-        </p>
-        <input
-          v-model="tempProjectName"
-          placeholder="project-name"
-          class="w-full border-0 bg-input-background text-input-foreground text-sm focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-8 px-2 mb-4"
-          @keyup.enter="saveProjectName"
-          ref="projectNameInput"
-        />
-        <div class="flex gap-2 justify-end">
-          <vscode-button appearance="secondary" @click="closeModal">Cancel</vscode-button>
-          <vscode-button @click="saveProjectName">Save</vscode-button>
-        </div>
-      </div>
     </div>
   </div>
   <div class="flex items-center space-x-2 w-full justify-between pt-2" v-else>
@@ -208,6 +171,9 @@ const handleMessage = (event: MessageEvent) => {
       case "environments-list-message":
         environments.value = updateValue(message, "success");
         connectionsStore.setDefaultEnvironment(selectedEnvironment.value);
+        break;
+      case "bruin.projectName":
+        projectName.value = message.projectName || '';
         break;
       case "clear-convert-message":
         console.log("In App.vue : clear-convert-message message received");
@@ -374,10 +340,7 @@ const editingName = ref(assetDetailsProps.value?.name || "");
 const nameInput = ref<HTMLInputElement | null>(null);
 
 // Cloud link functionality
-const showProjectNameModal = ref(false);
-const projectName = ref(localStorage.getItem('bruin-project-name') || '');
-const tempProjectName = ref('');
-const projectNameInput = ref<HTMLInputElement | null>(null);
+const projectName = ref('');
 
 const stopNameEditing = () => {
   console.log("Stopping name editing.");
@@ -544,6 +507,7 @@ onMounted(async () => {
   loadEnvironmentsList();
   vscode.postMessage({ command: "getLastRenderedDocument" });
   vscode.postMessage({ command: "bruin.checkBruinCLIVersion" });
+  vscode.postMessage({ command: "bruin.getProjectName" });
   // Track page view
   /* try {
     rudderStack.trackPageView("Asset Details Page", {
@@ -585,14 +549,6 @@ watch(activeTab, (newTab, oldTab) => {
   });
 });
 
-watch(showProjectNameModal, (isOpen) => {
-  if (isOpen) {
-    tempProjectName.value = projectName.value;
-    nextTick(() => {
-      projectNameInput.value?.focus();
-    });
-  }
-});
 
 const updateDescription = (newDescription) => {
   console.log("Updating description with new data:", newDescription);
@@ -645,7 +601,6 @@ const pipelineName = computed(() => {
 
 const openAssetInCloud = () => {
   if (!canOpenInCloud.value) {
-    showProjectNameModal.value = true;
     return;
   }
   
@@ -665,21 +620,6 @@ const openAssetInCloud = () => {
   });
 };
 
-const saveProjectName = () => {
-  if (tempProjectName.value.trim()) {
-    projectName.value = tempProjectName.value.trim();
-    localStorage.setItem('bruin-project-name', projectName.value);
-    rudderStack.trackEvent("Project Name Set for Cloud Links", {
-      projectName: projectName.value,
-    });
-  }
-  closeModal();
-};
-
-const closeModal = () => {
-  showProjectNameModal.value = false;
-  tempProjectName.value = '';
-};
 
 const isTabActive = (index) => {
   return tabs.value[index].props && activeTab.value === index;
@@ -742,5 +682,10 @@ vscode-button .codicon {
 
 #asset-name-container.hover-background:hover {
   background-color: var(--vscode-input-background);
+}
+
+.cloud-button .codicon {
+  font-size: 14px !important;
+  padding: 0 !important;
 }
 </style>

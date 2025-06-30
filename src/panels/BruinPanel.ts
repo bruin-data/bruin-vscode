@@ -660,6 +660,25 @@ export class BruinPanel {
               }
             }
             break;
+          case "bruin.getProjectName":
+            const projectConfig = workspace.getConfiguration("bruin");
+            const projectName = projectConfig.get<string>("cloud.projectName", "");
+            this._panel.webview.postMessage({
+              command: "bruin.projectName",
+              projectName: projectName,
+            });
+            break;
+          case "bruin.setProjectName":
+            const newProjectName = message.projectName;
+            if (newProjectName) {
+              const config = workspace.getConfiguration("bruin");
+              await config.update("cloud.projectName", newProjectName, vscode.ConfigurationTarget.Global);
+              this._panel.webview.postMessage({
+                command: "bruin.projectNameSet",
+                success: true,
+              });
+            }
+            break;
         }
       },
       undefined,
