@@ -633,6 +633,18 @@ export class BruinPanel {
               await this._convertToAsset(this._lastRenderedDocumentUri.fsPath);
             }
             break;
+          case "bruin.openAssetUrl":
+            const url = message.url;
+            if (url) {
+              try {
+                console.log("Opening external URL:", url);
+                await vscode.env.openExternal(vscode.Uri.parse(url));
+              } catch (error) {
+                console.error("Error opening URL:", error);
+                vscode.window.showErrorMessage(`Failed to open URL: ${url}`);
+              }
+            }
+            break;
         }
       },
       undefined,
