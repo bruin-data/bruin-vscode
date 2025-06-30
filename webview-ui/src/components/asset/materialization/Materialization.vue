@@ -163,9 +163,9 @@
           <!-- Add Dependencies Controls -->
           <div class="field-group overflow-visible">
             <label class="field-label">Add Dependencies</label>
-            <div class="flex gap-2">
+            <div class="flex gap-2 items-center">
               <!-- Pipeline Dependencies Dropdown -->
-              <div class="relative w-full max-w-[250px] z-50" ref="pipelineDepsContainer">
+              <div class="relative flex-1 max-w-[200px] z-50" ref="pipelineDepsContainer">
                 <input
                   v-model="pipelineSearchQuery"
                   placeholder="Add from pipeline..."
@@ -185,7 +185,7 @@
 
                 <div
                   v-if="isPipelineDepsOpen"
-                  class="fixed z-[9999] w-[250px] bg-input-background border border-commandCenter-border shadow-lg rounded max-h-60 overflow-hidden"
+                  class="fixed z-[9999] w-[200px] bg-input-background border border-commandCenter-border shadow-lg rounded max-h-60 overflow-hidden"
                   :style="dropdownStyle"
                   @mousedown.prevent
                 >
@@ -223,7 +223,7 @@
               </div>
 
               <!-- External Dependency Input -->
-              <div class="relative w-full max-w-[250px]" ref="externalDepsContainer">
+              <div class="relative flex-1 max-w-[200px]" ref="externalDepsContainer">
                 <input
                   v-model="externalDepInput"
                   placeholder="Add external dependency..."
@@ -231,6 +231,16 @@
                   @keyup.enter="addExternalDependency"
                 />
               </div>
+
+              <!-- Fill from DB Button -->
+              <vscode-button
+                appearance="secondary"
+                @click="fillFromDB"
+                class="text-xs flex-shrink-0"
+                title="Automatically fill dependencies from database schema"
+              >
+                Fill from DB
+              </vscode-button>
             </div>
           </div>
         </div>
@@ -423,11 +433,6 @@
               </div>
             </div>
           </div>
-
-          <!-- Bruin Utilities -->
-          <div class="border-t border-commandCenter-border pt-4 mt-4">
-            <BruinUtilities />
-          </div>
         </div>
       </div>
 
@@ -438,7 +443,6 @@
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from "vue";
 import { vscode } from "@/utilities/vscode";
-import BruinUtilities from "./BruinUtilities.vue";
 
 // Collapsible sections state
 const expandedSections = ref({
@@ -1070,6 +1074,13 @@ const sendDependenciesUpdate = () => {
       upstreams: upstreams,
     },
     source: "saveDependencies",
+  });
+};
+
+const fillFromDB = () => {
+  vscode.postMessage({
+    command: "bruin.fillAssetDependency",
+    source: "Materialization_fillFromDB",
   });
 };
 

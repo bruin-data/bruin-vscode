@@ -1,6 +1,7 @@
 <template>
   <div class="flex flex-col py-4 sm:py-1 h-full w-full min-w-56 relative">
-    <div class="flex justify-end mb-4 px-4">
+    <div class="flex justify-end mb-4 space-x-2">
+      <vscode-button @click="fillColumnsFromDB"> Fill from DB </vscode-button>
       <vscode-button @click="handleAddColumn" class="py-1 focus:outline-none disabled:cursor-not-allowed" :disabled="isConfigFile"> Add column </vscode-button>
     </div>
 
@@ -604,6 +605,12 @@ const deleteColumn = (index) => {
     command: "bruin.setAssetDetails",
     payload: payload,
     source: "deleteColumn",
+  });
+};
+
+const fillColumnsFromDB = () => {
+  vscode.postMessage({
+    command: "bruin.fillAssetColumn",
   });
 };
 
