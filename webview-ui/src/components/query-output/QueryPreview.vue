@@ -292,8 +292,9 @@
                               colIndex
                             ),
                             'whitespace-pre-wrap break-words': isExpanded(index, colIndex),
+                            'uppercase text-descriptionForeground opacity-60 italic': formatCellValue(value).isNull
                           }"
-                          v-html="highlightMatch(value, currentTab.searchInput)"
+                          v-html="highlightMatch(formatCellValue(value).text, currentTab.searchInput)"
                         ></div>
                       </div>
                       <!-- (expand/collapse) -->
@@ -1077,6 +1078,13 @@ watch(
     }
   }
 );
+
+const formatCellValue = (value) => {
+  if (value === null || value === undefined) {
+    return { text: "NULL", isNull: true };
+  }
+  return { text: value, isNull: false };
+};
 </script>
 
 <style scoped>
