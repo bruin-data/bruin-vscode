@@ -16,4 +16,15 @@ export class BruinDBTCommand extends BruinCommand {
     }
   }
 
+  public async getFetchTables(connectionName: string, database: string): Promise<any> {
+    const flags = ["fetch-tables", "-c", connectionName, "-d", database, "-o", "json"];
+    try {
+      const result = await this.run(flags, { ignoresErrors: false });
+      return JSON.parse(result);
+    } catch (error) {
+      console.error(`Error fetching tables for ${connectionName} in database ${database}:`, error);
+      throw error;
+    }
+  }
+
 } 

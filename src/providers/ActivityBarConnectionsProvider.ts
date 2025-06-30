@@ -223,17 +223,24 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
     
     if ((element.contextValue === 'schema_favorite' || element.contextValue === 'schema_unfavorite') && 'tables' in element.itemData) {
       const schema = element.itemData as Schema;
-      return schema.tables.map(table => {
-        const tableItem: Table = { name: table, schema: schema.name, connectionName: schema.connectionName };
-        const tableTreeItem = new ConnectionItem(table, vscode.TreeItemCollapsibleState.None, tableItem, 'table');
-        // Add command with both table name and schema name
-        tableTreeItem.command = {
-          command: 'bruin.showTableDetails',
-          title: 'Show Table Details',
-          arguments: [table, schema.name, schema.connectionName]
-        };
-        return tableTreeItem;
-      });
+      try {
+        const tablesResponse = await this.getTablesSummary(schema.connectionName, schema.name);
+        const tables = tablesResponse.tables || [];
+        return tables.map((table: string) => {
+          const tableItem: Table = { name: table, schema: schema.name, connectionName: schema.connectionName };
+          const tableTreeItem = new ConnectionItem(table, vscode.TreeItemCollapsibleState.None, tableItem, 'table');
+          // Add command with both table name and schema name
+          tableTreeItem.command = {
+            command: 'bruin.showTableDetails',
+            title: 'Show Table Details',
+            arguments: [table, schema.name, schema.connectionName]
+          };
+          return tableTreeItem;
+        });
+      } catch (error) {
+        vscode.window.showErrorMessage(`Failed to get tables for ${schema.name}: ${error}`);
+        return [];
+      }
     }
 
     return [];
@@ -243,6 +250,12 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || this.extensionPath;
     const command = new BruinDBTCommand("bruin", workspaceFolder);
     return command.getFetchDatabases(connectionName);
+  }
+
+  private async getTablesSummary(connectionName: string, database: string): Promise<any> {
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || this.extensionPath;
+    const command = new BruinDBTCommand("bruin", workspaceFolder);
+    return command.getFetchTables(connectionName, database);
   }
 
   private parseDbSummary(summary: any, connectionName: string): Schema[] {
