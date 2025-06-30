@@ -64,7 +64,7 @@
                 @click="openAssetInCloud"
                 :disabled="!canOpenInCloud"
                 class="flex-shrink-0 cloud-button"
-                title="Open asset in Bruin Cloud"
+                :title="cloudButtonTitle"
               >
                 <span class="codicon codicon-globe text-base"></span>
               </vscode-button>
@@ -597,6 +597,19 @@ const canOpenInCloud = computed(() => {
 
 const pipelineName = computed(() => {
   return assetDetailsProps.value?.pipeline?.name || '';
+});
+
+const cloudButtonTitle = computed(() => {
+  if (!projectName.value) {
+    return 'Set project name in VS Code settings (bruin.cloud.projectName) to open asset in Bruin Cloud';
+  }
+  if (!assetDetailsProps.value?.name) {
+    return 'Asset name required to open in Bruin Cloud';
+  }
+  if (!pipelineName.value) {
+    return 'Pipeline name required to open in Bruin Cloud';
+  }
+  return 'Open asset in Bruin Cloud';
 });
 
 const openAssetInCloud = () => {
