@@ -242,20 +242,30 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
   private async getDatabaseSummary(connectionName: string): Promise<any> {
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || this.extensionPath;
     const command = new BruinDBTCommand("bruin", workspaceFolder);
-    return command.getDbSummary(connectionName);
+    return command.getFetchDatabases(connectionName);
   }
 
   private parseDbSummary(summary: any, connectionName: string): Schema[] {
-    const schemasArray = Array.isArray(summary) ? summary : summary?.schemas;
+    const schemasArray = Array.isArray(summary) ? summary : summary?.databases;
 
     if (!Array.isArray(schemasArray)) {
-        throw new Error("Invalid summary format: not an array or object with a 'schemas' property.");
+        throw new Error("Invalid summary format: not an array or object with a 'databases' property.");
     }
-    return schemasArray.map(item => ({
-        name: item.name || item.schema_name,
-        tables: (item.tables || []).map((table: any) => typeof table === 'string' ? table : table.name),
-        connectionName: connectionName
-    }));
+    return schemasArray.map(item => {
+        if (typeof item === 'string') {
+            return {
+                name: item,
+                tables: [],
+                connectionName: connectionName
+            };
+        }
+        
+        return {
+            name: item.name || item.database_name || 'Unknown Database',
+            tables: (item.tables || []).map((table: any) => typeof table === 'string' ? table : table.name),
+            connectionName: connectionName
+        };
+    });
   }
   
 } 

@@ -5,14 +5,15 @@ export class BruinDBTCommand extends BruinCommand {
     return "internal";
   }
 
-  public async getDbSummary(connectionName: string): Promise<any> {
-    const flags = ["db-summary", "--connection", connectionName, "-o", "json"];
+  public async getFetchDatabases(connectionName: string): Promise<any> {
+    const flags = ["fetch-databases", "-c", connectionName, "-o", "json"];
     try {
       const result = await this.run(flags, { ignoresErrors: false });
       return JSON.parse(result);
     } catch (error) {
-      console.error(`Error getting db summary for ${connectionName}:`, error);
+      console.error(`Error fetching databases for ${connectionName}:`, error);
       throw error;
     }
   }
+
 } 

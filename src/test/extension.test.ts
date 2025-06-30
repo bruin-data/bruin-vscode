@@ -5297,9 +5297,9 @@ suite(" Query export Tests", () => {
       sinon.restore();
     });
 
-    test("getDbSummary should call run with correct flags", async () => {
+    test("getFetchDatabases should call run with correct flags", async () => {
       const { BruinDBTCommand } = require("../bruin/bruinDBTCommand");
-      const mockResult = '{"schemas": [{"name": "public", "tables": ["users", "orders"]}]}';
+      const mockResult = '{"databases": ["db1", "db2"]}';
       
       runStub.resolves(mockResult);
       
@@ -5307,13 +5307,13 @@ suite(" Query export Tests", () => {
       
       const instanceRunStub = sinon.stub(command, "run").resolves(mockResult);
       
-      const result = await command.getDbSummary("test-connection");
+      const result = await command.getFetchDatabases("test-connection");
       
       assert.ok(instanceRunStub.calledOnce, "run method should be called once");
       assert.deepStrictEqual(
         instanceRunStub.firstCall.args[0], 
-        ["db-summary", "--connection", "test-connection", "-o", "json"],
-        "Should call run with correct db-summary flags"
+        ["fetch-databases", "-c", "test-connection", "-o", "json"],
+        "Should call run with correct fetch-databases flags"
       );
       assert.deepStrictEqual(
         instanceRunStub.firstCall.args[1],
@@ -5499,7 +5499,7 @@ suite(" Query export Tests", () => {
         });
 
         const BruinDBTCommandStub = sinon.stub().returns({
-          getDbSummary: sinon.stub().resolves(mockDbSummary)
+          getFetchDatabases: sinon.stub().resolves(mockDbSummary)
         });
 
         const originalBruinConnections = require("../bruin/bruinConnections").BruinConnections;
@@ -5574,7 +5574,7 @@ suite(" Query export Tests", () => {
         });
 
         const BruinDBTCommandStub = sinon.stub().returns({
-          getDbSummary: sinon.stub().resolves(mockDbSummary)
+          getFetchDatabases: sinon.stub().resolves(mockDbSummary)
         });
 
         const originalBruinConnections = require("../bruin/bruinConnections").BruinConnections;
