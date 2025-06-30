@@ -1,4 +1,7 @@
 # Changelog
+## [0.53.2] - [2025-06-30]
+- Relocated fill from DB buttons to the asset columns and materialization tabs and improved query output rendering.
+
 ## [0.53.1] - [2025-06-27]
 - Added default Exclude Tag input to the extension settings to exclude assets with specific tags from being validated.
 
