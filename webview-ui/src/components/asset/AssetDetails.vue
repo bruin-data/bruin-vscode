@@ -4,7 +4,7 @@
       <div class="relative">
         <div
           @mouseenter="showEditButton = true"
-          @mouseleave="!isEditingDescription ? (showEditButton = false) : null"
+          @mouseleave="handleMouseLeave"
           :class="{ 'max-h-40 overflow-hidden': shouldTruncate && !isExpanded }"
         >
           <div
@@ -176,7 +176,6 @@ const saveDescriptionEdit = () => {
     // Only emit if there's an actual change
     if (normalizedDescription !== props.description) {
       emit("update:description", normalizedDescription);
-      console.log("Updating description:", normalizedDescription);
     }
   } catch (error) {
     console.error("Error saving description:", error);
@@ -204,7 +203,6 @@ const handleMessage = (event: MessageEvent) => {
   const message = event.data;
   switch (message.command) {
     case "patch-message":
-      console.log("Asset Details:", message.payload);
       break;
   }
 };
@@ -232,6 +230,12 @@ watch(
     editableDescription.value = newDescription;
   }
 );
+
+const handleMouseLeave = () => {
+  if (!isEditingDescription.value) {
+    showEditButton.value = false;
+  }
+};
 </script>
 
 <style scoped>
