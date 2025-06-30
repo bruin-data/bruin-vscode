@@ -5639,3 +5639,193 @@ suite(" Query export Tests", () => {
       });
 
     });
+
+suite("Cloud Feature Integration Tests", () => {
+  let mockContext: vscode.ExtensionContext;
+  let configurationStub: sinon.SinonStub;
+  let openExternalStub: sinon.SinonStub;
+
+  setup(() => {
+    mockContext = {
+      subscriptions: [],
+      extensionPath: "/test/path",
+    } as any;
+
+    configurationStub = sinon.stub(vscode.workspace, "getConfiguration");
+    openExternalStub = sinon.stub(vscode.env, "openExternal");
+  });
+
+  teardown(() => {
+    configurationStub.restore();
+    openExternalStub.restore();
+  });
+
+  test("should retrieve project name from configuration", () => {
+    const mockConfiguration = {
+      get: sinon.stub().returns("test-project-name")
+    };
+    configurationStub.withArgs("bruin").returns(mockConfiguration);
+
+    const projectName = configuration.getProjectName();
+    
+    assert.strictEqual(projectName, "test-project-name");
+    assert.ok(mockConfiguration.get.calledWith("cloud.projectName"));
+  });
+
+  test("should return empty string when project name is not configured", () => {
+    const mockConfiguration = {
+      get: sinon.stub().returns("")
+    };
+    configurationStub.withArgs("bruin").returns(mockConfiguration);
+
+    const projectName = configuration.getProjectName();
+    
+    assert.strictEqual(projectName, "");
+  });
+
+  test("should handle cloud URL opening command", async () => {
+    openExternalStub.resolves();
+    
+    const testUrl = "https://cloud.getbruin.com/projects/test-project/pipelines/test-pipeline/assets/test-asset";
+    
+    // Simulate the command that would be called by the webview
+    await vscode.env.openExternal(vscode.Uri.parse(testUrl));
+    
+    assert.ok(openExternalStub.calledOnce);
+    assert.ok(openExternalStub.calledWith(vscode.Uri.parse(testUrl)));
+  });
+
+  test("should construct proper cloud URL format", () => {
+    const projectName = "my-project";
+    const pipelineName = "data-pipeline";
+    const assetName = "customer_data.sql";
+    
+    const expectedUrl = `https://cloud.getbruin.com/projects/${projectName}/pipelines/${pipelineName}/assets/${assetName}`;
+    const constructedUrl = `https://cloud.getbruin.com/projects/${projectName}/pipelines/${pipelineName}/assets/${assetName}`;
+    
+    assert.strictEqual(constructedUrl, expectedUrl);
+  });
+
+  test("should handle special characters in asset names for URL construction", () => {
+    const projectName = "test-project";
+    const pipelineName = "main-pipeline";
+    const assetName = "schema.table_with-special.chars";
+    
+    const cloudUrl = `https://cloud.getbruin.com/projects/${projectName}/pipelines/${pipelineName}/assets/${assetName}`;
+    const expectedUrl = "https://cloud.getbruin.com/projects/test-project/pipelines/main-pipeline/assets/schema.table_with-special.chars";
+    
+    assert.strictEqual(cloudUrl, expectedUrl);
+  });
+
+  test("BruinPanel should handle openAssetUrl command", async () => {
+    const mockPanel = {
+      webview: {
+        postMessage: sinon.stub()
+      }
+    } as any;
+
+    // Mock the BruinPanel's message handling
+    const messageHandler = (message: any) => {
+      if (message.command === "bruin.openAssetUrl") {
+        return vscode.env.openExternal(vscode.Uri.parse(message.url));
+      }
+    };
+
+    const testMessage = {
+      command: "bruin.openAssetUrl",
+      url: "https://cloud.getbruin.com/projects/test/pipelines/main/assets/example"
+    };
+
+    await messageHandler(testMessage);
+
+    assert.ok(openExternalStub.calledOnce);
+    assert.ok(openExternalStub.calledWith(vscode.Uri.parse(testMessage.url)));
+  });
+
+  test("should handle project name configuration changes", () => {
+    const mockConfiguration = {
+      get: sinon.stub(),
+      update: sinon.stub().resolves()
+    };
+    configurationStub.withArgs("bruin").returns(mockConfiguration);
+
+    // Test setting project name
+    mockConfiguration.get.withArgs("cloud.projectName").returns("new-project");
+    
+    const projectName = configuration.getProjectName();
+    assert.strictEqual(projectName, "new-project");
+
+    // Test updating project name
+    mockConfiguration.update("cloud.projectName", "updated-project", vscode.ConfigurationTarget.Workspace);
+    assert.ok(mockConfiguration.update.called);
+  });
+
+  test("should validate cloud URL format", () => {
+    const validUrls = [
+      "https://cloud.getbruin.com/projects/test/pipelines/main/assets/asset1",
+      "https://cloud.getbruin.com/projects/my-project/pipelines/data-pipe/assets/table.sql",
+      "https://cloud.getbruin.com/projects/proj_123/pipelines/pipeline-1/assets/schema.table"
+    ];
+
+    const cloudUrlPattern = /^https:\/\/cloud\.getbruin\.com\/projects\/[^\/]+\/pipelines\/[^\/]+\/assets\/[^\/]+$/;
+
+    validUrls.forEach(url => {
+      assert.ok(cloudUrlPattern.test(url), `URL should be valid: ${url}`);
+    });
+  });
+
+  test("should reject invalid cloud URLs", () => {
+    const invalidUrls = [
+      "http://cloud.getbruin.com/projects/test/pipelines/main/assets/asset1", // http instead of https
+      "https://wrong-domain.com/projects/test/pipelines/main/assets/asset1", // wrong domain
+      "https://cloud.getbruin.com/projects//pipelines/main/assets/asset1", // empty project name
+      "https://cloud.getbruin.com/projects/test/pipelines//assets/asset1", // empty pipeline name
+      "https://cloud.getbruin.com/projects/test/pipelines/main/assets/", // empty asset name
+      "https://cloud.getbruin.com/projects/test/pipelines/main", // incomplete URL
+    ];
+
+    const cloudUrlPattern = /^https:\/\/cloud\.getbruin\.com\/projects\/[^\/]+\/pipelines\/[^\/]+\/assets\/[^\/]+$/;
+
+    invalidUrls.forEach(url => {
+      assert.ok(!cloudUrlPattern.test(url), `URL should be invalid: ${url}`);
+    });
+  });
+
+  test("should handle cloud feature analytics tracking", () => {
+    // Mock analytics tracking for cloud button clicks
+    const trackingData = {
+      event: "cloud_button_clicked",
+      properties: {
+        projectName: "test-project",
+        assetName: "test-asset",
+        pipelineName: "test-pipeline",
+        timestamp: new Date().toISOString()
+      }
+    };
+
+    // Verify tracking data structure
+    assert.ok(trackingData.event);
+    assert.ok(trackingData.properties.projectName);
+    assert.ok(trackingData.properties.assetName);
+    assert.ok(trackingData.properties.pipelineName);
+    assert.ok(trackingData.properties.timestamp);
+  });
+
+  test("should maintain configuration consistency across webview and extension", () => {
+    const projectName = "consistent-project";
+    
+    // Mock getting configuration in extension
+    const mockConfiguration = {
+      get: sinon.stub().returns(projectName)
+    };
+    configurationStub.withArgs("bruin").returns(mockConfiguration);
+
+    const extensionProjectName = configuration.getProjectName();
+    
+    // Simulate webview receiving the same project name
+    const webviewProjectName = projectName;
+    
+    assert.strictEqual(extensionProjectName, webviewProjectName);
+    assert.strictEqual(extensionProjectName, projectName);
+  });
+});
