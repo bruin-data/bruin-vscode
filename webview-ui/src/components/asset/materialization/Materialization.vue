@@ -433,11 +433,6 @@
               </div>
             </div>
           </div>
-
-          <!-- Bruin Utilities -->
-          <div class="border-t border-commandCenter-border pt-4 mt-4">
-            <BruinUtilities />
-          </div>
         </div>
       </div>
 
