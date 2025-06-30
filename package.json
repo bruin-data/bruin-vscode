@@ -227,6 +227,16 @@
           "command": "bruin.refreshConnection",
           "when": "view == bruinConnections && viewItem == 'bruin_connection'",
           "group": "inline"
+        },
+        {
+          "command": "bruin.addSchemaToFavorites",
+          "when": "view == bruinConnections && viewItem == 'schema_unfavorite'",
+          "group": "inline"
+        },
+        {
+          "command": "bruin.removeSchemaFromFavorites",
+          "when": "view == bruinConnections && viewItem == 'schema_favorite'",
+          "group": "inline"
         }
       ]
     },
@@ -277,6 +287,20 @@
         "title": "Convert File to Asset",
         "category": "Bruin",
         "description": "Convert a file to a Bruin asset."
+      },
+      {
+        "command": "bruin.addSchemaToFavorites",
+        "title": "Add to Favorites",
+        "category": "Bruin",
+        "icon": "$(star-empty)",
+        "description": "Add schema to favorites."
+      },
+      {
+        "command": "bruin.removeSchemaFromFavorites",
+        "title": "Remove from Favorites",
+        "category": "Bruin",
+        "icon": "$(star-full)",
+        "description": "Remove schema from favorites."
       }
     ]
   },

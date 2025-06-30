@@ -19,6 +19,7 @@ interface Schema {
   name: string;
   tables: string[];
   connectionName: string;
+  isFavorite?: boolean;
 }
 
 interface Table {
@@ -34,14 +35,14 @@ class ConnectionItem extends vscode.TreeItem {
     public readonly label: string,
     public readonly collapsibleState: vscode.TreeItemCollapsibleState,
     public readonly itemData: TreeItemData,
-    public readonly contextValue: 'bruin_connection' | 'schema' | 'table' | 'connections'
+    public readonly contextValue: 'bruin_connection' | 'schema' | 'schema_favorite' | 'schema_unfavorite' | 'table' | 'connections'
   ) {
     super(label, collapsibleState);
     this.contextValue = contextValue;
 
     if (this.contextValue === 'bruin_connection') {
       this.iconPath = new vscode.ThemeIcon('plug');
-    } else if (this.contextValue === 'schema') {
+    } else if (this.contextValue === 'schema_favorite' || this.contextValue === 'schema_unfavorite') {
       this.iconPath = new vscode.ThemeIcon('database');
     } else if (this.contextValue === 'table') {
       this.iconPath = new vscode.ThemeIcon('table');
@@ -59,6 +60,7 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
   private connections: ConnectionDisplayData[] = [];
   private bruinConnections: BruinConnections;
   private databaseCache = new Map<string, Schema[]>();
+  private favorites = new Set<string>(); // Store favorite schema keys as "connectionName.schemaName"
   
   // Allowed connection types
   private readonly allowedConnectionTypes = [
@@ -92,7 +94,22 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
     this._onDidChangeTreeData.fire();
   }
 
-  // Load connections using BruinConnections.getConnectionsForActivityBar() method
+  // Toggle favorite status for a schema
+  public toggleSchemaFavorite(schema: Schema): void {
+    const favoriteKey = `${schema.connectionName}.${schema.name}`;
+    if (this.favorites.has(favoriteKey)) {
+      this.favorites.delete(favoriteKey);
+    } else {
+      this.favorites.add(favoriteKey);
+    }
+    this._onDidChangeTreeData.fire();
+  }
+
+  public isSchemaFavorite(schema: Schema): boolean {
+    const favoriteKey = `${schema.connectionName}.${schema.name}`;
+    return this.favorites.has(favoriteKey);
+  }
+
   public async loadConnections(): Promise<void> {
     try {
       // Get connections from Bruin CLI
@@ -151,25 +168,35 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
     if (element.contextValue === 'bruin_connection' && 'name' in element.itemData) {
       const connectionName = element.itemData.name;
       if (this.databaseCache.has(connectionName)) {
-        return this.databaseCache.get(connectionName)!.map(schema => 
-          new ConnectionItem(schema.name, vscode.TreeItemCollapsibleState.Collapsed, schema, 'schema')
-        );
+        return this.databaseCache.get(connectionName)!.map(schema => {
+          const isFavorite = this.isSchemaFavorite(schema);
+          const contextValue = isFavorite ? 'schema_favorite' : 'schema_unfavorite';
+          const schemaItem = new ConnectionItem(schema.name, vscode.TreeItemCollapsibleState.Collapsed, schema, contextValue);
+          // Keep the database icon on the left
+          schemaItem.iconPath = new vscode.ThemeIcon('database');
+          return schemaItem;
+        });
       }
 
       try {
         const summary = await this.getDatabaseSummary(connectionName);
         const schemas = this.parseDbSummary(summary, connectionName);
         this.databaseCache.set(connectionName, schemas);
-        return schemas.map(schema => 
-          new ConnectionItem(schema.name, vscode.TreeItemCollapsibleState.Collapsed, schema, 'schema')
-        );
+        return schemas.map(schema => {
+          const isFavorite = this.isSchemaFavorite(schema);
+          const contextValue = isFavorite ? 'schema_favorite' : 'schema_unfavorite';
+          const schemaItem = new ConnectionItem(schema.name, vscode.TreeItemCollapsibleState.Collapsed, schema, contextValue);
+          // Keep the database icon on the left
+          schemaItem.iconPath = new vscode.ThemeIcon('database');
+          return schemaItem;
+        });
       } catch (error) {
         vscode.window.showErrorMessage(`Failed to get database summary: ${error}`);
         return [];
       }
     }
     
-    if (element.contextValue === 'schema' && 'tables' in element.itemData) {
+    if ((element.contextValue === 'schema_favorite' || element.contextValue === 'schema_unfavorite') && 'tables' in element.itemData) {
       const schema = element.itemData as Schema;
       return schema.tables.map(table => {
         const tableItem: Table = { name: table, schema: schema.name, connectionName: schema.connectionName };
