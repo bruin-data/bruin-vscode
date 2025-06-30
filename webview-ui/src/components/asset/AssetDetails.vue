@@ -3,7 +3,7 @@
     <div v-if="props !== null" class="flex flex-col text-editor-fg bg-editor-bg w-full">
       <div class="relative">
         <div
-          @mouseenter="showEditButton = true"
+          @mouseenter="handleMouseEnter"
           @mouseleave="handleMouseLeave"
           :class="{ 'max-h-40 overflow-hidden': shouldTruncate && !isExpanded }"
         >
@@ -232,9 +232,21 @@ watch(
 );
 
 const handleMouseLeave = () => {
-  if (!isEditingDescription.value) {
-    showEditButton.value = false;
-  }
+  // Add a small delay to prevent flickering during testing
+  setTimeout(() => {
+    if (!isEditingDescription.value) {
+      showEditButton.value = false;
+    }
+  }, 100);
+};
+
+const handleMouseEnter = () => {
+  // Add a small delay to ensure the hover state is stable
+  setTimeout(() => {
+    if (!isEditingDescription.value) {
+      showEditButton.value = true;
+    }
+  }, 50);
 };
 </script>
 

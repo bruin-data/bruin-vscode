@@ -20,6 +20,8 @@ describe("Bruin Webview Test", function () {
   let workbench: Workbench;
   let testWorkspacePath: string;
   let testAssetFilePath: string;
+  let originalProjectName: string | undefined;
+  let cloudButton: WebElement;
 
   before(async function () {
     this.timeout(180000); // Increase timeout for CI
@@ -65,6 +67,14 @@ describe("Bruin Webview Test", function () {
 
     const tab0 = await webview.findWebElement(By.id("tab-0"));
     console.log("Tab 0 found:", !!tab0);
+
+    // Store original project name setting if it exists
+    try {
+      // Try to get current setting value (this might not work in test environment)
+      originalProjectName = undefined;
+    } catch (error) {
+      console.log("Could not retrieve original project name setting");
+    }
   });
 
   after(async function () {
@@ -73,6 +83,7 @@ describe("Bruin Webview Test", function () {
       await webview.switchBack();
     }
   });
+
   describe("Edit Asset Name Tests", function () {
     let assetNameContainer: WebElement;
 
@@ -219,26 +230,47 @@ describe("Bruin Webview Test", function () {
       await tab.click();
       await driver.wait(until.elementLocated(By.id("asset-description-container")), 10000); // Increase timeout
 
-      // 2. Activate edit mode
+      // 2. Activate edit mode with improved hover behavior
       const descriptionSection = await driver.wait(
         until.elementLocated(By.id("asset-description-container")),
         10000 // Increase timeout
       );
 
-      // Hover to reveal edit button
-      await driver.actions().move({ origin: descriptionSection }).pause(500).perform();
+      // Try multiple hover approaches to ensure the edit button appears
+      let editButton;
+      try {
+        // First attempt: Simple hover
+        await driver.actions().move({ origin: descriptionSection }).pause(1000).perform();
+        editButton = await driver.wait(
+          until.elementLocated(By.id("description-edit")),
+          5000
+        );
+      } catch (error) {
+        console.log("First hover attempt failed, trying alternative approach");
+        
+        // Second attempt: Move to center of the element
+        const rect = await descriptionSection.getRect();
+        await driver.actions()
+          .move({ x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 })
+          .pause(1000)
+          .perform();
+        
+        editButton = await driver.wait(
+          until.elementLocated(By.id("description-edit")),
+          5000
+        );
+      }
 
-      // Find and click edit button using specific ID
-      const editButton = await driver.wait(
-        until.elementLocated(By.id("description-edit")),
-        10000 // Increase timeout
-      );
+      // Click the edit button
       await editButton.click();
+      await sleep(1000);
 
       // Wait for textarea to be visible
       await driver.wait(until.elementLocated(By.id("description-input")), 10000); // Increase timeout
+      
       // 3. Handle text input
       const textarea = await driver.wait(until.elementLocated(By.id("description-input")), 10000); // Increase timeout
+      
       // Clear using JavaScript executor
       await driver.executeScript(
         'arguments[0].value = ""; arguments[0].dispatchEvent(new Event("input"))',
@@ -250,16 +282,19 @@ describe("Bruin Webview Test", function () {
       if (currentValue !== "") {
         throw new Error("Textarea was not cleared properly");
       }
+      
       const testText = `Description TEST_${Date.now()}`;
       await textarea.sendKeys(testText);
       await sleep(1000);
+      
       // 4. Save changes
       const saveButton = await driver.wait(
         until.elementLocated(By.css('vscode-button[title="save"]')),
         10000 // Increase timeout
       );
       await saveButton.click();
-      await sleep(1000);
+      await sleep(2000); // Increased wait time
+      
       // 5. Verify update
       const updatedText = await driver
         .wait(until.elementLocated(By.id("asset-description-container")), 10000) // Increase timeout
@@ -1123,6 +1158,55 @@ describe("Bruin Webview Test", function () {
   // Cloud Feature Integration Tests
   describe("Cloud Feature Tests", function () {
     let cloudButton: WebElement;
+    let originalProjectName: string | undefined;
+
+    before(async function () {
+      this.timeout(30000);
+      
+      // Store original project name setting if it exists
+      try {
+        // Try to get current setting value (this might not work in test environment)
+        originalProjectName = undefined;
+      } catch (error) {
+        console.log("Could not retrieve original project name setting");
+      }
+
+      // Try to set the project name for testing using a simpler approach
+      try {
+        // Use the command palette to set the setting
+        await workbench.executeCommand("Preferences: Open Settings (JSON)");
+        await sleep(2000);
+        
+        const inputBox = new InputBox();
+        await inputBox.setText('{\n  "bruin.cloud.projectName": "test-project-ui"\n}');
+        await inputBox.confirm();
+        await sleep(2000);
+        
+        console.log("Project name setting configured for testing");
+      } catch (error) {
+        console.log(`Could not set project name setting: ${(error as Error).message}`);
+        console.log("Tests will run with default configuration");
+      }
+    });
+
+    after(async function () {
+      this.timeout(15000);
+      
+      // Restore original project name setting if it existed
+      if (originalProjectName !== undefined) {
+        try {
+          await workbench.executeCommand("Preferences: Open Settings (JSON)");
+          await sleep(2000);
+          
+          const inputBox = new InputBox();
+          await inputBox.setText(`{\n  "bruin.cloud.projectName": "${originalProjectName}"\n}`);
+          await inputBox.confirm();
+          await sleep(2000);
+        } catch (error) {
+          console.log(`Could not restore original project name setting: ${(error as Error).message}`);
+        }
+      }
+    });
 
     beforeEach(async function () {
       this.timeout(10000);
@@ -1132,93 +1216,233 @@ describe("Bruin Webview Test", function () {
       await sleep(500);
     });
 
-    it("should display cloud button with correct initial state", async function () {
+    it("should display cloud button with correct initial state when project name is configured", async function () {
       this.timeout(15000);
 
-      // Look for the cloud button
-      try {
-        cloudButton = await driver.wait(
-          until.elementLocated(By.id("cloud-button")),
-          10000,
-          "Cloud button not found"
+      // Look for the cloud button - it should be present regardless of configuration
+      cloudButton = await driver.wait(
+        until.elementLocated(By.id("cloud-button")),
+        10000,
+        "Cloud button not found - should be present"
+      );
+      assert.ok(cloudButton, "Cloud button should be present");
+
+      // Check if button is displayed
+      const isDisplayed = await cloudButton.isDisplayed();
+      assert.ok(isDisplayed, "Cloud button should be visible");
+
+      // Verify the button has the globe icon (codicon-globe)
+      const globeIcon = await cloudButton.findElement(By.css('span[class*="codicon-globe"]'));
+      assert.ok(globeIcon, "Cloud button should have globe icon");
+
+      // Check if the button is enabled and get tooltip
+      const isEnabled = await cloudButton.isEnabled();
+      const tooltipText = await cloudButton.getAttribute("title");
+      
+      console.log(`Cloud button state - Enabled: ${isEnabled}, Tooltip: "${tooltipText}"`);
+
+      // Verify the tooltip provides appropriate feedback
+      assert.ok(tooltipText && tooltipText.length > 0, "Cloud button should have a tooltip");
+      
+      if (isEnabled) {
+        // If enabled, tooltip should contain project name or indicate it's ready
+        assert.ok(
+          tooltipText.includes("test-project-ui") || tooltipText.includes("Open") || tooltipText.includes("Bruin Cloud"),
+          `Tooltip should indicate enabled state. Got: "${tooltipText}"`
         );
-        assert.ok(cloudButton, "Cloud button should be present");
-
-        // Check if button is displayed
-        const isDisplayed = await cloudButton.isDisplayed();
-        assert.ok(isDisplayed, "Cloud button should be visible");
-
-        // Verify the button has the globe icon (codicon-globe)
-        const globeIcon = await cloudButton.findElement(By.css('span[class*="codicon-globe"]'));
-        assert.ok(globeIcon, "Cloud button should have globe icon");
-
-        console.log("Cloud button found and properly displayed");
-      } catch (error) {
-        console.log("Cloud button not found - this might be expected if project name is not configured");
-        // This is acceptable as the cloud button may not be visible without proper configuration
+        console.log("Cloud button is enabled and properly configured");
+      } else {
+        // If disabled, tooltip should indicate missing configuration
+        assert.ok(
+          tooltipText.includes("project name") || tooltipText.includes("settings") || tooltipText.includes("configure"),
+          `Tooltip should indicate missing configuration. Got: "${tooltipText}"`
+        );
+        console.log("Cloud button is disabled - configuration may be missing");
       }
+
+      console.log(`Cloud button found and properly displayed. Tooltip: "${tooltipText}"`);
     });
 
-    it("should show appropriate tooltip when cloud button is disabled", async function () {
+    it("should show correct tooltip with project name and asset information when configured", async function () {
       this.timeout(15000);
 
-      try {
-        cloudButton = await driver.wait(
-          until.elementLocated(By.id("cloud-button")),
-          5000,
-          "Cloud button not found"
-        );
+      cloudButton = await driver.wait(
+        until.elementLocated(By.id("cloud-button")),
+        10000,
+        "Cloud button not found"
+      );
 
-        // Get the title attribute (tooltip) of the cloud button
-        const tooltipText = await cloudButton.getAttribute("title");
-        assert.ok(tooltipText && tooltipText.length > 0, "Cloud button should have a tooltip");
+      // Get the title attribute (tooltip) of the cloud button
+      const tooltipText = await cloudButton.getAttribute("title");
+      assert.ok(tooltipText && tooltipText.length > 0, "Cloud button should have a tooltip");
 
-        // The tooltip should provide helpful information about why the button might be disabled
-        const validTooltips = [
-          "Please set your project name in settings to open assets in cloud",
-          "Asset name not available",
-          "Pipeline name not available",
-          "Open"
+      // Check if the button is enabled
+      const isEnabled = await cloudButton.isEnabled();
+      
+      if (isEnabled) {
+        // If enabled, verify the tooltip contains expected content for enabled state
+        const enabledChecks = [
+          tooltipText.includes("test-project-ui"),
+          tooltipText.includes("Open"),
+          tooltipText.includes("Bruin Cloud")
         ];
+        
+        const hasEnabledContent = enabledChecks.some(check => check);
+        assert.ok(hasEnabledContent, `Tooltip should indicate enabled state. Got: "${tooltipText}"`);
+        
+        console.log("Cloud button is enabled with proper tooltip");
+      } else {
+        // If disabled, verify the tooltip indicates missing configuration
+        const disabledChecks = [
+          tooltipText.includes("project name"),
+          tooltipText.includes("settings"),
+          tooltipText.includes("configure"),
+          tooltipText.includes("VS Code settings")
+        ];
+        
+        const hasDisabledContent = disabledChecks.some(check => check);
+        assert.ok(hasDisabledContent, `Tooltip should indicate missing configuration. Got: "${tooltipText}"`);
+        
+        console.log("Cloud button is disabled with appropriate configuration message");
+      }
+      
+      // The tooltip should reference Bruin Cloud in either state
+      assert.ok(tooltipText.includes("Bruin Cloud"), "Tooltip should reference Bruin Cloud");
 
-        const hasValidTooltip = validTooltips.some(tooltip => tooltipText.includes(tooltip));
-        assert.ok(hasValidTooltip, `Cloud button tooltip should be informative. Got: "${tooltipText}"`);
+      console.log(`Cloud button tooltip verified: "${tooltipText}"`);
+    });
 
-        console.log(`Cloud button tooltip: "${tooltipText}"`);
+    it("should verify disabled state when project name is removed", async function () {
+      this.timeout(20000);
+
+      // Temporarily remove the project name setting to test disabled state
+      try {
+        await workbench.executeCommand("Preferences: Open Settings (JSON)");
+        await sleep(2000);
+        
+        const inputBox = new InputBox();
+        await inputBox.setText('{\n  "bruin.cloud.projectName": ""\n}');
+        await inputBox.confirm();
+        await sleep(2000);
+        
+        // Refresh the webview to pick up the setting change
+        await workbench.executeCommand("bruin.renderSQL");
+        await sleep(3000);
+        
+        // Switch back to the webview
+        await webview.switchToFrame();
+        
+        // Switch to the main tab
+        const tab = await driver.wait(until.elementLocated(By.id("tab-0")), 10000);
+        await tab.click();
+        await sleep(500);
+        
+        // Check if the cloud button is now disabled or has different tooltip
+        const cloudButtons = await driver.findElements(By.id("cloud-button"));
+        
+        if (cloudButtons.length > 0) {
+          const disabledButton = cloudButtons[0];
+          const isEnabled = await disabledButton.isEnabled();
+          const tooltipText = await disabledButton.getAttribute("title");
+          
+          // When project name is empty, button should be disabled or show appropriate message
+          if (!isEnabled) {
+            console.log("Cloud button is disabled when project name is empty - expected behavior");
+          } else {
+            // If still enabled, tooltip should indicate missing configuration
+            assert.ok(
+              tooltipText.includes("project name") || tooltipText.includes("settings"),
+              `Tooltip should indicate missing project name configuration. Got: "${tooltipText}"`
+            );
+          }
+          
+          console.log(`Cloud button state when project name removed - Enabled: ${isEnabled}, Tooltip: "${tooltipText}"`);
+        } else {
+          console.log("Cloud button not found when project name is removed");
+        }
+        
+        // Restore the project name setting
+        await workbench.executeCommand("Preferences: Open Settings (JSON)");
+        await sleep(2000);
+        
+        const restoreInputBox = new InputBox();
+        await restoreInputBox.setText('{\n  "bruin.cloud.projectName": "test-project-ui"\n}');
+        await restoreInputBox.confirm();
+        await sleep(2000);
+        
+        // Refresh the webview again
+        await workbench.executeCommand("bruin.renderSQL");
+        await sleep(3000);
+        
+        // Switch back to the webview
+        await webview.switchToFrame();
+        
       } catch (error) {
-        console.log("Cloud button not found - this might be expected without proper configuration");
+        console.log(`Could not test disabled state: ${(error as Error).message}`);
       }
     });
 
-    it("should handle cloud button click appropriately", async function () {
+    it("should handle cloud button click correctly when project name is configured", async function () {
       this.timeout(15000);
 
-      try {
-        cloudButton = await driver.wait(
-          until.elementLocated(By.id("cloud-button")),
-          5000,
-          "Cloud button not found"
-        );
+      cloudButton = await driver.wait(
+        until.elementLocated(By.id("cloud-button")),
+        10000,
+        "Cloud button not found"
+      );
 
-        // Check if the button is enabled (not disabled)
-        const isEnabled = await cloudButton.isEnabled();
+      // Check if the button is enabled
+      const isEnabled = await cloudButton.isEnabled();
+      const tooltipBeforeClick = await cloudButton.getAttribute("title");
+      
+      console.log(`Cloud button state before click - Enabled: ${isEnabled}, Tooltip: "${tooltipBeforeClick}"`);
+      
+      if (isEnabled) {
+        // If enabled, verify the tooltip indicates it's ready
+        const enabledChecks = [
+          tooltipBeforeClick.includes("test-project-ui"),
+          tooltipBeforeClick.includes("Open"),
+          tooltipBeforeClick.includes("Bruin Cloud")
+        ];
         
-        if (isEnabled) {
-          // If enabled, clicking should trigger the cloud URL opening process
-          await cloudButton.click();
-          await sleep(1000);
-          
-          // We can't easily verify the URL was opened in browser from the test,
-          // but we can verify no error occurred and the UI state is maintained
-          const buttonStillExists = await driver.findElements(By.id("cloud-button"));
-          assert.ok(buttonStillExists.length > 0, "Cloud button should still exist after click");
-          
-          console.log("Cloud button click handled successfully");
-        } else {
-          console.log("Cloud button is disabled - expected behavior when configuration is missing");
-        }
-      } catch (error) {
-        console.log("Cloud button not found or not interactive - this might be expected");
+        const hasEnabledContent = enabledChecks.some(check => check);
+        assert.ok(hasEnabledContent, `Tooltip should indicate enabled state before click. Got: "${tooltipBeforeClick}"`);
+        
+        // Click the button - it should trigger the cloud URL opening process
+        await cloudButton.click();
+        await sleep(2000);
+        
+        // Verify the button still exists and maintains its state
+        const buttonStillExists = await driver.findElements(By.id("cloud-button"));
+        assert.ok(buttonStillExists.length > 0, "Cloud button should still exist after click");
+        
+        // Verify the button is still enabled after clicking
+        const isStillEnabled = await cloudButton.isEnabled();
+        assert.ok(isStillEnabled, "Cloud button should remain enabled after click");
+        
+        // Verify the tooltip is still correct after clicking
+        const tooltipAfterClick = await cloudButton.getAttribute("title");
+        const hasEnabledContentAfter = [
+          tooltipAfterClick.includes("test-project-ui"),
+          tooltipAfterClick.includes("Open"),
+          tooltipAfterClick.includes("Bruin Cloud")
+        ].some(check => check);
+        assert.ok(hasEnabledContentAfter, `Tooltip should still indicate enabled state after click. Got: "${tooltipAfterClick}"`);
+        
+        console.log("Cloud button click handled successfully with proper state maintenance");
+      } else {
+        // If disabled, verify the tooltip indicates missing configuration
+        const disabledChecks = [
+          tooltipBeforeClick.includes("project name"),
+          tooltipBeforeClick.includes("settings"),
+          tooltipBeforeClick.includes("configure"),
+          tooltipBeforeClick.includes("VS Code settings")
+        ];
+        
+        const hasDisabledContent = disabledChecks.some(check => check);
+        assert.ok(hasDisabledContent, `Tooltip should indicate missing configuration. Got: "${tooltipBeforeClick}"`);
+        
+        console.log("Cloud button is disabled - click test skipped");
       }
     });
 
@@ -1262,41 +1486,54 @@ describe("Bruin Webview Test", function () {
       }
     });
 
-    it("should verify cloud URL format when button is functional", async function () {
+    it("should verify cloud URL format and expected behavior when properly configured", async function () {
       this.timeout(15000);
 
-      // This test verifies that when the cloud feature is properly configured,
-      // it follows the expected URL format pattern
-      
-      try {
-        cloudButton = await driver.wait(
-          until.elementLocated(By.id("cloud-button")),
-          5000,
-          "Cloud button not found"
-        );
+      cloudButton = await driver.wait(
+        until.elementLocated(By.id("cloud-button")),
+        10000,
+        "Cloud button not found"
+      );
 
-        const isEnabled = await cloudButton.isEnabled();
-        const tooltipText = await cloudButton.getAttribute("title");
+      const isEnabled = await cloudButton.isEnabled();
+      const tooltipText = await cloudButton.getAttribute("title");
 
-        if (isEnabled && tooltipText.includes("Open")) {
-          // If the button is enabled and shows "Open [asset] in Bruin Cloud",
-          // we can verify the URL format expectation
-          console.log("Cloud button is functional - URL format validation would apply");
-          
-          // The actual URL format should be:
-          // https://cloud.getbruin.com/projects/{projectName}/pipelines/{pipelineName}/assets/{assetName}
-          
-          // We can't directly access the constructed URL from the UI test,
-          // but we can verify the button is in the correct state to generate it
-          assert.ok(tooltipText.includes("Bruin Cloud"), "Tooltip should reference Bruin Cloud");
-          
-          console.log("Cloud URL format expectations verified");
-        } else {
-          console.log(`Cloud button not ready for URL generation. Tooltip: "${tooltipText}"`);
-        }
-      } catch (error) {
-        console.log("Cloud button not available for URL format testing");
+      console.log(`Cloud button state - Enabled: ${isEnabled}, Tooltip: "${tooltipText}"`);
+
+      if (isEnabled) {
+        // When properly configured, verify the tooltip contains expected content
+        const enabledChecks = [
+          tooltipText.includes("test-project-ui"),
+          tooltipText.includes("Open"),
+          tooltipText.includes("Bruin Cloud")
+        ];
+        
+        const hasEnabledContent = enabledChecks.some(check => check);
+        assert.ok(hasEnabledContent, `Tooltip should indicate enabled state. Got: "${tooltipText}"`);
+        
+        // The expected URL format should be:
+        // https://cloud.getbruin.com/projects/{projectName}/pipelines/{pipelineName}/assets/{assetName}
+        console.log("Expected URL format: https://cloud.getbruin.com/projects/test-project-ui/pipelines/{pipelineName}/assets/{assetName}");
+        console.log("Cloud URL format expectations verified for enabled state");
+      } else {
+        // When not configured, verify the tooltip indicates missing configuration
+        const disabledChecks = [
+          tooltipText.includes("project name"),
+          tooltipText.includes("settings"),
+          tooltipText.includes("configure"),
+          tooltipText.includes("VS Code settings")
+        ];
+        
+        const hasDisabledContent = disabledChecks.some(check => check);
+        assert.ok(hasDisabledContent, `Tooltip should indicate missing configuration. Got: "${tooltipText}"`);
+        
+        console.log("Cloud button is not configured - URL format verification skipped");
       }
+      
+      // The tooltip should reference Bruin Cloud in either state
+      assert.ok(tooltipText.includes("Bruin Cloud"), "Tooltip should reference Bruin Cloud");
+      
+      console.log(`Cloud URL format expectations verified. Tooltip: "${tooltipText}"`);
     });
 
     it("should maintain cloud button state during asset operations", async function () {
@@ -1337,6 +1574,64 @@ describe("Bruin Webview Test", function () {
         }
       } catch (error) {
         console.log(`Cloud button state test completed: ${(error as Error).message}`);
+      }
+    });
+
+    it("should properly handle cloud button click and URL opening", async function () {
+      this.timeout(20000);
+
+      cloudButton = await driver.wait(
+        until.elementLocated(By.id("cloud-button")),
+        10000,
+        "Cloud button not found"
+      );
+
+      const isEnabled = await cloudButton.isEnabled();
+      const tooltipText = await cloudButton.getAttribute("title");
+      
+      console.log(`Testing cloud button click - Enabled: ${isEnabled}, Tooltip: "${tooltipText}"`);
+
+      if (isEnabled) {
+        // Store the current window handle
+        const currentWindowHandle = await driver.getWindowHandle();
+        
+        // Click the cloud button to trigger URL opening
+        await cloudButton.click();
+        await sleep(3000); // Wait for potential new window/tab to open
+        
+        // Check if a new window/tab was opened
+        const allWindowHandles = await driver.getAllWindowHandles();
+        
+        if (allWindowHandles.length > 1) {
+          console.log("New window/tab opened - URL opening functionality working");
+          
+          // Switch back to the original window
+          await driver.switchTo().window(currentWindowHandle);
+        } else {
+          console.log("No new window opened - this might be expected if URL opening is handled differently");
+        }
+        
+        // Verify the cloud button is still functional after click
+        const buttonStillExists = await driver.findElements(By.id("cloud-button"));
+        assert.ok(buttonStillExists.length > 0, "Cloud button should still exist after click");
+        
+        const isStillEnabled = await cloudButton.isEnabled();
+        assert.ok(isStillEnabled, "Cloud button should remain enabled after click");
+        
+        console.log("Cloud button click and URL opening test completed successfully");
+      } else {
+        console.log("Cloud button is disabled - click test skipped");
+        
+        // Verify the tooltip indicates why it's disabled
+        const disabledChecks = [
+          tooltipText.includes("project name"),
+          tooltipText.includes("settings"),
+          tooltipText.includes("configure"),
+          tooltipText.includes("VS Code settings")
+        ];
+        
+        const hasDisabledContent = disabledChecks.some(check => check);
+        assert.ok(hasDisabledContent, `Tooltip should indicate why button is disabled. Got: "${tooltipText}"`);
       }
     });
   });
