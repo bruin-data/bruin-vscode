@@ -94,6 +94,18 @@ export class BruinPanel {
         }
       }),
 
+      workspace.onDidChangeConfiguration((event) => {
+        if (event.affectsConfiguration("bruin.cloud.projectName")) {
+          console.log("Project name configuration changed, refreshing webview");
+          const config = workspace.getConfiguration("bruin");
+          const projectName = config.get<string>("cloud.projectName", "");
+          this._panel.webview.postMessage({
+            command: "bruin.projectName",
+            projectName: projectName,
+          });
+        }
+      }),
+
       window.onDidChangeActiveTextEditor(async (editor) => {
         console.log("onDidChangeActiveTextEditor", editor);
         if (editor && editor.document.uri) {
