@@ -66,7 +66,7 @@
                 class="flex-shrink-0 cloud-button"
                 title="Open asset in Bruin Cloud"
               >
-                <span class="codicon codicon-go-to-file text-base"></span>
+                <span class="codicon codicon-globe text-base"></span>
               </vscode-button>
             </div>
           </div>
