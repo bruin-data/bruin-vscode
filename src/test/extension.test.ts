@@ -2453,10 +2453,10 @@ suite("BruinQueryOutput", () => {
         "json",
         "-env",
         environment,
-        "-asset",
-        asset,
         "-limit",
         limit,
+        "-asset",
+        asset,
       ]);
       return "success";
     };
@@ -2471,7 +2471,14 @@ suite("BruinQueryOutput", () => {
 
     // Mock the run method to simulate newer CLI behavior
     bruinQueryOutput.run = async (flags: string[]) => {
-      assert.deepStrictEqual(flags, ["-o", "json", "-asset", asset, "-limit", limit]);
+      assert.deepStrictEqual(flags, [
+        "-o", 
+        "json", 
+        "-limit", 
+        limit, 
+        "-asset", 
+        asset
+      ]);
       return "success";
     };
 
@@ -2485,7 +2492,14 @@ suite("BruinQueryOutput", () => {
 
     // Mock the run method to simulate newer CLI behavior
     bruinQueryOutput.run = async (flags: string[]) => {
-      assert.deepStrictEqual(flags, ["-o", "json", "-asset", asset]);
+      assert.deepStrictEqual(flags, [
+        "-o", 
+        "json", 
+        "-env", 
+        environment, 
+        "-asset", 
+        asset
+      ]);
       return "success";
     };
 
@@ -2550,7 +2564,13 @@ suite(" Query export Tests", () => {
 
     // Mock the run method to simulate successful export
     bruinQueryExport.run = async (flags: string[]) => {
-      assert.deepStrictEqual(flags, ["-export", "-asset", asset, "-q", query, "-o", "json"]);
+      assert.deepStrictEqual(flags, [
+        "-export", 
+        "-q", 
+        query, 
+        "-o", 
+        "json"
+      ]);
       return "success";
     };
 
@@ -2583,7 +2603,13 @@ suite(" Query export Tests", () => {
     bruinQueryExport.run = async (flags: string[]) => {
       const includeQuery = flags.includes("-q");
       assert.deepStrictEqual(includeQuery, false);
-      assert.deepStrictEqual(flags, ["-export", "-asset", asset, "-o", "json"]);
+      assert.deepStrictEqual(flags, [
+        "-export", 
+        "-asset", 
+        asset, 
+        "-o", 
+        "json"
+      ]);
       return "success";
     };
 
@@ -4984,6 +5010,14 @@ suite(" Query export Tests", () => {
       bruinFoldingRangeProviderStub = sinon.stub();
       const providersModule = require("../providers/bruinFoldingRangeProvider");
       sinon.replace(providersModule, "bruinFoldingRangeProvider", bruinFoldingRangeProviderStub);
+
+      // Mock configuration for getProjectName function
+      const mockBruinConfig = {
+        get: sinon.stub()
+          .withArgs("cloud.projectName", "").returns("test-project")
+          .withArgs("pathSeparator").returns("/")
+      };
+      workspaceGetConfigurationStub.withArgs("bruin").returns(mockBruinConfig);
     });
 
     teardown(() => {
