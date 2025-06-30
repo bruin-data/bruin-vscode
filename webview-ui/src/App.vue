@@ -65,6 +65,7 @@
                 :disabled="!canOpenInCloud"
                 class="flex-shrink-0 cloud-button"
                 :title="cloudButtonTitle"
+                id="cloud-button"
               >
                 <span class="codicon codicon-globe text-base"></span>
               </vscode-button>
