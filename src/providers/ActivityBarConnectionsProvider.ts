@@ -4,6 +4,7 @@ import * as path from 'path';
 import { BruinDBTCommand } from '../bruin/bruinDBTCommand';
 import { BruinConnections } from '../bruin/bruinConnections';
 import { Connection } from '../utilities/helperUtils';
+import { getSchemaFavorites, saveSchemaFavorites, SchemaFavorite, createFavoriteKey } from "../extension/configuration";
 
 // Define interfaces for the connection structure
 interface ConnectionDisplayData {
@@ -81,11 +82,32 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
     
     // Initialize BruinConnections with proper parameters
     this.bruinConnections = new BruinConnections("bruin", workspaceFolder);
+    this.loadFavoritesFromSettings();
     this.loadConnections();
+  }
+
+  // Load favorites from VS Code settings
+  private loadFavoritesFromSettings(): void {
+    const savedFavorites = getSchemaFavorites();
+    this.favorites.clear();
+    savedFavorites.forEach(favorite => {
+      const key = createFavoriteKey(favorite.schemaName, favorite.connectionName);
+      this.favorites.add(key);
+    });
+  }
+
+  // Save favorites to VS Code settings
+  private async saveFavoritesToSettings(): Promise<void> {
+    const favoritesArray: SchemaFavorite[] = Array.from(this.favorites).map(key => {
+      const [connectionName, schemaName] = key.split('.');
+      return { schemaName, connectionName };
+    });
+    await saveSchemaFavorites(favoritesArray);
   }
 
   public refresh(): void {
     this.databaseCache.clear();
+    this.loadFavoritesFromSettings();
     this.loadConnections();
   }
 
@@ -95,13 +117,16 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
   }
 
   // Toggle favorite status for a schema
-  public toggleSchemaFavorite(schema: Schema): void {
+  public async toggleSchemaFavorite(schema: Schema): Promise<void> {
     const favoriteKey = `${schema.connectionName}.${schema.name}`;
     if (this.favorites.has(favoriteKey)) {
       this.favorites.delete(favoriteKey);
     } else {
       this.favorites.add(favoriteKey);
     }
+    
+    // Save to VS Code settings
+    await this.saveFavoritesToSettings();
     this._onDidChangeTreeData.fire();
   }
 

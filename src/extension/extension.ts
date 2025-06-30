@@ -247,23 +247,22 @@ export async function activate(context: ExtensionContext) {
         vscode.window.showErrorMessage(`Error showing table details: ${errorMessage}`);
       }
     }),
-    commands.registerCommand("bruin.addSchemaToFavorites", (item: any) => {
+    commands.registerCommand("bruin.addSchemaToFavorites", async (item: any) => {
       try {
         trackEvent("Command Executed", { command: "addSchemaToFavorites" });
         if (item && item.itemData && 'tables' in item.itemData) {
-          activityBarConnectionsProvider.toggleSchemaFavorite(item.itemData);
+          await activityBarConnectionsProvider.toggleSchemaFavorite(item.itemData);
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         vscode.window.showErrorMessage(`Error adding schema to favorites: ${errorMessage}`);
       }
     }),
-    commands.registerCommand("bruin.removeSchemaFromFavorites", (item: any) => {
+    commands.registerCommand("bruin.removeSchemaFromFavorites", async (item: any) => {
       try {
         trackEvent("Command Executed", { command: "removeSchemaFromFavorites" });
         if (item && item.itemData && 'tables' in item.itemData) {
-          activityBarConnectionsProvider.toggleSchemaFavorite(item.itemData);
-          vscode.window.showInformationMessage(`Schema ${item.itemData.name} removed from favorites.`);
+          await activityBarConnectionsProvider.toggleSchemaFavorite(item.itemData);
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);

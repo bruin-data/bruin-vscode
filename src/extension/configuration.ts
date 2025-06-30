@@ -131,3 +131,22 @@ export function subscribeToConfigurationChanges() {
     }
   });
 }
+
+export interface SchemaFavorite {
+  schemaName: string;
+  connectionName: string;
+}
+
+export function getSchemaFavorites(): SchemaFavorite[] {
+  const config = vscode.workspace.getConfiguration("bruin.schemas");
+  return config.get<SchemaFavorite[]>("favorites", []);
+}
+
+export async function saveSchemaFavorites(favorites: SchemaFavorite[]): Promise<void> {
+  const config = vscode.workspace.getConfiguration("bruin.schemas");
+  await config.update("favorites", favorites, vscode.ConfigurationTarget.Global);
+}
+
+export function createFavoriteKey(schemaName: string, connectionName: string): string {
+  return `${connectionName}.${schemaName}`;
+}

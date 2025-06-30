@@ -163,6 +163,23 @@
           "type": "string",
           "default": "",
           "description": "Sets the validate exclude tag to be used with validation commands."
+        },
+        "bruin.schemas.favorites": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "schemaName": {
+                "type": "string"
+              },
+              "connectionName": {
+                "type": "string"
+              }
+            },
+            "required": ["schemaName", "connectionName"]
+          },
+          "default": [],
+          "description": "List of favorite schemas with their connection names."
         }
       }
     },
