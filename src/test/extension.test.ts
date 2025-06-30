@@ -5782,7 +5782,7 @@ suite(" Query export Tests", () => {
 
         const result = provider.provideCodeLenses(mockDocument, mockToken);
         assert.strictEqual(result.length, 1);
-        assert.strictEqual(result[0].command?.title, "📅 Run every Monday at 09:00");
+        assert.strictEqual(result[0].command?.title, "Run every Monday at 09:00");
         assert.strictEqual(result[0].command?.command, "");
       });
 
@@ -5794,7 +5794,7 @@ suite(" Query export Tests", () => {
 
         const result = provider.provideCodeLenses(mockDocument, mockToken);
         assert.strictEqual(result.length, 1);
-        assert.strictEqual(result[0].command?.title, "📅 Run every day at 00:00");
+        assert.strictEqual(result[0].command?.title, "Run every day at 00:00");
         assert.strictEqual(result[0].command?.command, "");
       });
 
@@ -5813,9 +5813,9 @@ schedule: '30 14 * * *'
         const result = provider.provideCodeLenses(mockDocument, mockToken);
         assert.strictEqual(result.length, 3);
         
-        assert.strictEqual(result[0].command?.title, "📅 Run every Monday at 09:00");
-        assert.strictEqual(result[1].command?.title, "📅 Every day at midnight");
-        assert.strictEqual(result[2].command?.title, "📅 Run every day at 14:30");
+        assert.strictEqual(result[0].command?.title, "Run every Monday at 09:00");
+        assert.strictEqual(result[1].command?.title, "Every day at midnight");
+        assert.strictEqual(result[2].command?.title, "Run every day at 14:30");
       });
 
       test("should handle schedule with double quotes", () => {
@@ -5826,7 +5826,7 @@ schedule: '30 14 * * *'
 
         const result = provider.provideCodeLenses(mockDocument, mockToken);
         assert.strictEqual(result.length, 1);
-        assert.strictEqual(result[0].command?.title, "📅 Run every Friday at 12:00");
+        assert.strictEqual(result[0].command?.title, "Run every Friday at 12:00");
       });
 
       test("should handle schedule with single quotes", () => {
@@ -5837,7 +5837,7 @@ schedule: '30 14 * * *'
 
         const result = provider.provideCodeLenses(mockDocument, mockToken);
         assert.strictEqual(result.length, 1);
-        assert.strictEqual(result[0].command?.title, "📅 Run on the 1st of every month at 08:00");
+        assert.strictEqual(result[0].command?.title, "Run on the 1st of every month at 08:00");
       });
 
       test("should handle schedule without quotes", () => {
@@ -5848,7 +5848,7 @@ schedule: '30 14 * * *'
 
         const result = provider.provideCodeLenses(mockDocument, mockToken);
         assert.strictEqual(result.length, 1);
-        assert.strictEqual(result[0].command?.title, "📅 Every hour");
+        assert.strictEqual(result[0].command?.title, "Every hour");
       });
 
       test("should handle indented schedule fields", () => {
@@ -5862,8 +5862,8 @@ schedule: '30 14 * * *'
 
         const result = provider.provideCodeLenses(mockDocument, mockToken);
         assert.strictEqual(result.length, 2);
-        assert.strictEqual(result[0].command?.title, "📅 Run every day at 06:00");
-        assert.strictEqual(result[1].command?.title, "📅 Run every day at 18:00");
+        assert.strictEqual(result[0].command?.title, "Run every day at 06:00");
+        assert.strictEqual(result[1].command?.title, "Run every day at 18:00");
       });
 
       test("should handle invalid cron expressions", () => {
@@ -5874,7 +5874,7 @@ schedule: '30 14 * * *'
 
         const result = provider.provideCodeLenses(mockDocument, mockToken);
         assert.strictEqual(result.length, 1);
-        assert.strictEqual(result[0].command?.title, "📅 Invalid cron expression: invalid-cron");
+        assert.strictEqual(result[0].command?.title, "Invalid cron expression: invalid-cron");
       });
 
       test("should create correct range for schedule line", () => {
@@ -5947,7 +5947,7 @@ schedule: '0 12 * * *'
 
         const result = provider.provideCodeLenses(mockDocument, mockToken);
         assert.strictEqual(result.length, 1);
-        assert.strictEqual(result[0].command?.title, "📅 Run every day at 12:00");
+        assert.strictEqual(result[0].command?.title, "Run every day at 12:00");
       });
 
       test("should handle schedule field with extra whitespace", () => {
@@ -5958,7 +5958,7 @@ schedule: '0 12 * * *'
 
         const result = provider.provideCodeLenses(mockDocument, mockToken);
         assert.strictEqual(result.length, 1);
-        assert.strictEqual(result[0].command?.title, "📅 Run every Tuesday at 15:00");
+        assert.strictEqual(result[0].command?.title, "Run every Tuesday at 15:00");
       });
 
       test("should handle predefined schedule types", () => {
@@ -5975,11 +5975,11 @@ schedule: yearly
 
         const result = provider.provideCodeLenses(mockDocument, mockToken);
         assert.strictEqual(result.length, 5);
-        assert.strictEqual(result[0].command?.title, "📅 Every hour");
-        assert.strictEqual(result[1].command?.title, "📅 Every day at midnight");
-        assert.strictEqual(result[2].command?.title, "📅 Every Monday at midnight");
-        assert.strictEqual(result[3].command?.title, "📅 Every 1st of the month at midnight");
-        assert.strictEqual(result[4].command?.title, "📅 Every January 1st at midnight");
+        assert.strictEqual(result[0].command?.title, "Every hour");
+        assert.strictEqual(result[1].command?.title, "Every day at midnight");
+        assert.strictEqual(result[2].command?.title, "Every Monday at midnight");
+        assert.strictEqual(result[3].command?.title, "Every 1st of the month at midnight");
+        assert.strictEqual(result[4].command?.title, "Every January 1st at midnight");
       });
     });
   });

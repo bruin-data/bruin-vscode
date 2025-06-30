@@ -37,7 +37,7 @@ export class ScheduleCodeLensProvider implements vscode.CodeLensProvider {
         
         codeLenses.push(
           new vscode.CodeLens(lineRange, {
-            title: `📅 ${humanReadable}`,
+            title: `${humanReadable}`,
             command: "",
           })
         );
