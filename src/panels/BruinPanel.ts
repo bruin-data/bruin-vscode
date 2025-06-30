@@ -36,7 +36,7 @@ import { getBruinExecutablePath } from "../providers/BruinExecutableService";
 import path = require("path");
 import { isBruinAsset } from "../utilities/helperUtils";
 
-import { getDefaultCheckboxSettings, getDefaultExcludeTag } from "../extension/configuration";
+import { getDefaultCheckboxSettings, getDefaultExcludeTag, getProjectName } from "../extension/configuration";
 import { exec } from "child_process";
 import { flowLineageCommand } from "../extension/commands/FlowLineageCommand";
 
@@ -94,17 +94,6 @@ export class BruinPanel {
         }
       }),
 
-      workspace.onDidChangeConfiguration((event) => {
-        if (event.affectsConfiguration("bruin.cloud.projectName")) {
-          console.log("Project name configuration changed, refreshing webview");
-          const config = workspace.getConfiguration("bruin");
-          const projectName = config.get<string>("cloud.projectName", "");
-          this._panel.webview.postMessage({
-            command: "bruin.projectName",
-            projectName: projectName,
-          });
-        }
-      }),
 
       window.onDidChangeActiveTextEditor(async (editor) => {
         console.log("onDidChangeActiveTextEditor", editor);
@@ -152,6 +141,16 @@ export class BruinPanel {
       BruinPanel.currentPanel._panel.webview.postMessage({
         command: name,
         payload: data,
+      });
+    }
+  }
+
+  public static notifyProjectNameChange(projectName: string) {
+    if (BruinPanel.currentPanel?._panel) {
+      console.log("Notifying BruinPanel of project name change:", projectName);
+      BruinPanel.currentPanel._panel.webview.postMessage({
+        command: "bruin.projectName",
+        projectName: projectName,
       });
     }
   }
@@ -673,8 +672,7 @@ export class BruinPanel {
             }
             break;
           case "bruin.getProjectName":
-            const projectConfig = workspace.getConfiguration("bruin");
-            const projectName = projectConfig.get<string>("cloud.projectName", "");
+            const projectName = getProjectName();
             this._panel.webview.postMessage({
               command: "bruin.projectName",
               projectName: projectName,
