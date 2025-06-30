@@ -288,8 +288,8 @@ export async function activate(context: ExtensionContext) {
     commands.registerCommand("bruin.removeFavorite", async (item: any) => {
       try {
         trackEvent("Command Executed", { command: "removeFavorite" });
-        if (item && item.favorite) {
-          await favoritesProvider.removeFavorite(item.favorite);
+        if (item && item.itemData && item.contextValue === 'favorite_schema') {
+          await favoritesProvider.removeFavorite(item.itemData);
           activityBarConnectionsProvider.refresh();
           vscode.window.showInformationMessage("Favorite removed successfully!");
         }

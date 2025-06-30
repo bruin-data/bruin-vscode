@@ -261,7 +261,7 @@
         },
         {
           "command": "bruin.removeFavorite",
-          "when": "view == bruinFavorites && viewItem == 'favorite'",
+          "when": "view == bruinFavorites && viewItem == 'favorite_schema'",
           "group": "inline" 
         },
         {
