@@ -97,6 +97,10 @@
         {
           "id": "bruinConnections",
           "name": "Databases"
+        },
+        {
+          "id": "bruinFavorites",
+          "name": "Favorites"
         }
       ],
       "bruin-assetLineageView": [
@@ -237,6 +241,11 @@
           "command": "bruin.refreshConnections",
           "when": "view == bruinConnections",
           "group": "navigation"
+        },
+        {
+          "command": "bruin.refreshFavorites",
+          "when": "view == bruinFavorites",
+          "group": "navigation"
         }
       ],
       "view/item/context": [
@@ -244,6 +253,16 @@
           "command": "bruin.refreshConnection",
           "when": "view == bruinConnections && viewItem == 'bruin_connection'",
           "group": "inline"
+        },
+        {
+          "command": "bruin.refreshFavorites",
+          "when": "view == bruinFavorites",  
+          "group": "navigation"
+        },
+        {
+          "command": "bruin.removeFavorite",
+          "when": "view == bruinFavorites && viewItem == 'favorite'",
+          "group": "inline" 
         },
         {
           "command": "bruin.addSchemaToFavorites",
@@ -318,6 +337,20 @@
         "category": "Bruin",
         "icon": "$(star-full)",
         "description": "Remove schema from favorites."
+      },
+      {
+        "command": "bruin.refreshFavorites",
+        "title": "Refresh Favorites",
+        "category": "Bruin",
+        "icon": "$(refresh)",
+        "description": "Refresh favorites list."
+      },
+      {
+        "command": "bruin.removeFavorite",
+        "title": "Remove Favorite",
+        "category": "Bruin",
+        "icon": "$(trash)",
+        "description": "Remove favorite from list."
       }
     ]
   },
