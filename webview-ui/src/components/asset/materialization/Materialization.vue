@@ -443,7 +443,6 @@
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from "vue";
 import { vscode } from "@/utilities/vscode";
-import BruinUtilities from "./BruinUtilities.vue";
 
 // Collapsible sections state
 const expandedSections = ref({
