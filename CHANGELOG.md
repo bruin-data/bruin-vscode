@@ -1,4 +1,22 @@
 # Changelog
+## [0.53.2] - [2025-06-30]
+- Relocated fill from DB buttons to the asset columns and materialization tabs and improved query output rendering.
+
+## [0.53.1] - [2025-06-27]
+- Added default Exclude Tag input to the extension settings to exclude assets with specific tags from being validated.
+
+## [0.53.0] - [2025-06-26]
+- Added pipeline asset and dependency management, including collapsible sections, improved layout, and support for external dependencies.
+
+## [0.52.0] - [2025-06-26]
+- Added an Activity Bar to browse databases, view table details, and preview queries.
+
+## [0.51.7] - [2025-06-26]
+- Added support and validation for the `private_key_path` field in Snowflake connections.
+
+## [0.51.6] - [2025-06-25]
+- Added support for fill asset dependencies and columns from DB.
+
 ## [0.51.5] - [2025-06-23]
 - Added confirmation prompt before running with `full-refresh`.
 

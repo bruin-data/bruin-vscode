@@ -48,7 +48,6 @@
                   <TableCellsIcon class="h-4 w-4 mr-1" />
                   <span>{{ tab.label }}</span>
                   <span
-                    v-if="tab.id !== 'tab-1'"
                     @click.stop="closeTab(tab.id)"
                     class="flex items-center hover:bg-editorWidget-bg ml-1 w-4 h-4 justify-center transition-opacity duration-150"
                     :class="{
@@ -293,8 +292,9 @@
                               colIndex
                             ),
                             'whitespace-pre-wrap break-words': isExpanded(index, colIndex),
+                            'uppercase text-descriptionForeground opacity-60 italic': formatCellValue(value).isNull
                           }"
-                          v-html="highlightMatch(value, currentTab.searchInput)"
+                          v-html="highlightMatch(formatCellValue(value).text, currentTab.searchInput)"
                         ></div>
                       </div>
                       <!-- (expand/collapse) -->
@@ -377,7 +377,7 @@ const defaultTab = {
   totalRowCount: 0,
   filteredRowCount: 0,
   isEditing: false,
-  environment: currentEnvironment.value,
+  environment: "",
   connectionName: props.connectionName,
   showQuery: false,
 };
@@ -678,28 +678,51 @@ const closeTab = (tabId: string) => {
   const tabIndex = tabs.value.findIndex((tab) => tab.id === tabId);
 
   if (tabIndex !== -1) {
-    // If we're closing the active tab, determine which tab to activate next
-    if (activeTab.value === tabId) {
-      // If there's a tab to the right, use that
-      if (tabIndex < tabs.value.length - 1) {
-        activeTab.value = tabs.value[tabIndex + 1].id;
-      }
-      // Otherwise use the tab to the left (previous tab)
-      else if (tabIndex > 0) {
-        activeTab.value = tabs.value[tabIndex - 1].id;
-      }
-      // If no tabs left, default to "tab-1"
-      else {
-        activeTab.value = "tab-1";
-      }
-    }
-
-    // Remove tab
+    // Remove tab first
     tabs.value.splice(tabIndex, 1);
 
-    if (tabs.value.length === 1 && tabs.value[0].id === "tab-1") {
-      // Reset the counter when all custom tabs are closed
-      tabCounter.value = 2;
+    // If no tabs left, create a new default tab
+    if (tabs.value.length === 0) {
+      const newDefaultTab = {
+        id: "tab-1",
+        label: "Tab 1",
+        parsedOutput: undefined,
+        error: null,
+        isLoading: false,
+        searchInput: "",
+        limit: 100,
+        filteredRows: [],
+        totalRowCount: 0,
+        filteredRowCount: 0,
+        isEditing: false,
+        environment: currentEnvironment.value,
+        connectionName: props.connectionName,
+        showQuery: false,
+      };
+      tabs.value.push(newDefaultTab);
+      activeTab.value = "tab-1";
+      tabCounter.value = 2; // Reset counter
+    } else {
+      // If we're closing the active tab, determine which tab to activate next
+      if (activeTab.value === tabId) {
+        // If there's a tab to the right, use that
+        if (tabIndex < tabs.value.length) {
+          activeTab.value = tabs.value[tabIndex].id;
+        }
+        // Otherwise use the tab to the left (previous tab)
+        else if (tabIndex > 0) {
+          activeTab.value = tabs.value[tabIndex - 1].id;
+        }
+        // Otherwise use the first available tab
+        else {
+          activeTab.value = tabs.value[0].id;
+        }
+      }
+
+      // Reset the counter when only tab-1 is left
+      if (tabs.value.length === 1 && tabs.value[0].id === "tab-1") {
+        tabCounter.value = 2;
+      }
     }
 
     // Clear editing state if closing edited tab
@@ -793,6 +816,25 @@ watch(
     if (!newError) return;
     // We don't need to process this here anymore since we handle it in the message handler
   }
+);
+
+// Update environment when prop changes
+watch(
+  () => props.environment,
+  (newEnvironment) => {
+    if (newEnvironment && newEnvironment !== currentEnvironment.value) {
+      currentEnvironment.value = newEnvironment;
+      
+      // Update the environment for all tabs
+      const newTabs = tabs.value.map(tab => ({
+        ...tab,
+        environment: newEnvironment
+      }));
+      tabs.value.splice(0, tabs.value.length, ...newTabs);
+      triggerRef(tabs);
+    }
+  },
+  { immediate: true }
 );
 
 // Update loading state for the current tab - we don't use this anymore
@@ -1036,6 +1078,13 @@ watch(
     }
   }
 );
+
+const formatCellValue = (value) => {
+  if (value === null || value === undefined) {
+    return { text: "NULL", isNull: true };
+  }
+  return { text: value, isNull: false };
+};
 </script>
 
 <style scoped>

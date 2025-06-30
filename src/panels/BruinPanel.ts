@@ -35,8 +35,11 @@ import { QueryPreviewPanel } from "./QueryPreviewPanel";
 import { getBruinExecutablePath } from "../providers/BruinExecutableService";
 import path = require("path");
 import { isBruinAsset } from "../utilities/helperUtils";
-import { getDefaultCheckboxSettings } from "../extension/configuration";
+
+import { getDefaultCheckboxSettings, getDefaultExcludeTag } from "../extension/configuration";
 import { exec } from "child_process";
+import { flowLineageCommand } from "../extension/commands/FlowLineageCommand";
+
 /**
  * This class manages the state and behavior of Bruin webview panels.
  *
@@ -303,7 +306,10 @@ export class BruinPanel {
               workspaceFolder.uri.fsPath
             );
 
-            await validatorAll.validate(workspaceFolder.uri.fsPath);
+            // Get default exclude tag
+            const defaultExcludeTag = getDefaultExcludeTag();
+            console.log("Using default exclude tag for validateAll:", defaultExcludeTag);
+            await validatorAll.validate(workspaceFolder.uri.fsPath, {}, defaultExcludeTag);
             break;
           case "bruin.checkTelemtryPreference":
             const config = workspace.getConfiguration("bruin");
@@ -329,8 +335,11 @@ export class BruinPanel {
             const pipelineValidator = new BruinValidate(getBruinExecutablePath(), "");
 
             try {
-              // if the promess is rejected, the error will be catched and logged
-              await pipelineValidator.validate(currentPipelinePath);
+              // Get default exclude tag
+              const excludeTag = getDefaultExcludeTag();
+              // Pass the exclude tag to validate method
+              console.log("Using default exclude tag for validateCurrentPipeline:", excludeTag);
+              await pipelineValidator.validate(currentPipelinePath, {}, excludeTag);
             } catch (error) {
               console.error("Error validating pipeline:", currentPipelinePath, error);
             }
@@ -358,6 +367,8 @@ export class BruinPanel {
               getBruinExecutablePath()
             );
             const validator = new BruinValidate(getBruinExecutablePath(), "");
+            
+            
             await validator.validate(filePath);
             break;
           case "bruin.runSql":
@@ -414,7 +425,7 @@ export class BruinPanel {
             const assetWorkspaceDir = await bruinWorkspaceDirectory(assetPath);
             
             const command = [ "patch", "fill-asset-dependencies", escapedAssetPath];
-            await runBruinCommandInIntegratedTerminal(command, assetWorkspaceDir);  
+            await runBruinCommandInIntegratedTerminal(command, assetWorkspaceDir,"bruin");  
 
             return;
 
@@ -428,7 +439,7 @@ export class BruinPanel {
             const assetWorkspaceDirFillColumn = await bruinWorkspaceDirectory(assetPathFillColumn);
 
             const commandFillColumn = [ "patch", "fill-columns-from-db", escapedAssetPathFillColumn];
-            await runBruinCommandInIntegratedTerminal(commandFillColumn, assetWorkspaceDirFillColumn);  
+            await runBruinCommandInIntegratedTerminal(commandFillColumn, assetWorkspaceDirFillColumn,"bruin");  
 
             return;
 
@@ -632,6 +643,10 @@ export class BruinPanel {
             if (this._lastRenderedDocumentUri) {
               await this._convertToAsset(this._lastRenderedDocumentUri.fsPath);
             }
+            break;
+          case "bruin.getPipelineAssets":
+            console.log("Getting pipeline assets");
+            flowLineageCommand(this._lastRenderedDocumentUri, "BruinPanel");
             break;
           case "bruin.openAssetUrl":
             const url = message.url;

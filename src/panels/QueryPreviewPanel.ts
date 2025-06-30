@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { getNonce } from "../utilities/getNonce";
 import { getUri } from "../utilities/getUri";
 import { exportQueryResults, getQueryOutput } from "../extension/commands/queryCommands";
+import { getEnvListCommand } from "../extension/commands/getEnvListCommand";
 
 export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Disposable {
   public static readonly viewId = "bruin.QueryPreviewView";
@@ -70,7 +71,9 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
   ) {
     startDate = startDate || QueryPreviewPanel.currentDates.start;
     endDate = endDate || QueryPreviewPanel.currentDates.end;
-    console.log(`QueryPreviewPanel: Loading query with dates - start: ${startDate}, end: ${endDate}`);
+    console.log(
+      `QueryPreviewPanel: Loading query with dates - start: ${startDate}, end: ${endDate}`
+    );
 
     if (!this._lastRenderedDocumentUri) {
       return;
@@ -89,7 +92,7 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
         tabId: tabId, // Include the tab ID with the loading message
       });
 
-      // Then execute the query and get the results
+      // Call getQueryOutput which now handles connection detection internally
       await getQueryOutput(
         environment,
         limit,
@@ -171,10 +174,19 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
             command: "init",
             panelType: "Query Preview",
           });
+          // Load environments list when panel becomes visible
+          if (this._lastRenderedDocumentUri) {
+            getEnvListCommand(this._lastRenderedDocumentUri);
+          }
         }
       });
 
       webviewView.webview.html = this._getWebviewContent(webviewView.webview);
+      
+      // Load environments list on initial load
+      if (this._lastRenderedDocumentUri) {
+        getEnvListCommand(this._lastRenderedDocumentUri);
+      }
     } catch (error) {
       console.error("Error loading Query Preview data:", error);
     }
@@ -265,6 +277,7 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
             payload: state,
           });
           break;
+
         case "bruin.getQueryOutput":
           this.environment = message.payload.environment;
           this.limit = message.payload.limit;
@@ -301,24 +314,24 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
 
   public static postMessage(
     name: string,
-    data: string | { status: string; message: string | any; tabId?: string },
+    data: string | { status: string; message: string | any; tabId?: string }
   ) {
     if (this._view) {
       console.log("Posting message to webview in the Query Preview panel", name, data);
-      
+
       // Store dates when receiving date updates
       if (name === "update-query-dates" && typeof data === "object" && data.message) {
         const { startDate, endDate } = data.message;
         this.currentDates = {
           start: startDate || "",
-          end: endDate || ""
+          end: endDate || "",
         };
         console.log(`QueryPreviewPanel: Received dates - start: ${startDate}, end: ${endDate}`);
       }
-      
+
       // Ensure the data is serializable
       const serializedData = JSON.parse(JSON.stringify(data));
-  
+
       this._view.webview.postMessage({
         command: name,
         payload: serializedData,

@@ -23,11 +23,13 @@ export class BruinValidate extends BruinCommand {
    *
    * @param {string} filePath - The path of the asset to be validated.
    * @param {BruinCommandOptions} [options={}] - Optional parameters for validation, including flags and errors.
+   * @param {string} [excludeTag=""] - Optional exclude tag to use in validation.
    * @returns {Promise<void>} A promise that resolves when the validation is complete or an error is caught.
    */
   public async validate(
     filePath: string,
-    { flags = ["-o", "json"], ignoresErrors = false }: BruinCommandOptions = {}
+    { flags = ["-o", "json"], ignoresErrors = false }: BruinCommandOptions = {},
+    excludeTag: string = ""
   ): Promise<void> {
     this.isLoading = true;
     BruinPanel.postMessage("validation-message", {
@@ -36,7 +38,14 @@ export class BruinValidate extends BruinCommand {
     });
 
     try {
-      const result = await this.run([...flags, filePath], { ignoresErrors });
+      const commandFlags = [...flags];
+      
+      // Add exclude-tag if provided
+      if (excludeTag) {
+        commandFlags.push("--exclude-tag", excludeTag);
+      }
+      
+      const result = await this.run([...commandFlags, filePath], { ignoresErrors });
       let validationResults = JSON.parse(result);
 
       if (!Array.isArray(validationResults) && platform() === "win32") {

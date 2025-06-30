@@ -77,6 +77,11 @@ export const isBruinYaml = async (fileName: string): Promise<boolean> => {
   return getFileExtension(fileName) === ".bruin.yml" ? true : false;
 };
 
+export const isBruinSqlAsset = async (fileName: string): Promise<boolean> => {
+  const isSqlAsset = isBruinAsset(fileName, [".sql"]);
+  return isSqlAsset;
+};
+
 export const isBruinAsset = async (
   fileName: string,
   validAssetExtentions: string[]
@@ -259,3 +264,4 @@ export const extractNonNullConnections = (json: any): Connection[] => {
 
   return connections;
 };
+

@@ -287,14 +287,17 @@ const validateForm = () => {
     }
   });
   
-  // Special validation for Snowflake connections - require either password or private_key
+  // Special validation for Snowflake connections - require either password, private_key or private_key_path
   if (form.value.connection_type === "snowflake") {
     const hasPassword = !!form.value.password;
     const hasPrivateKey = !!form.value.private_key;
-    
-    if (!hasPassword && !hasPrivateKey) {
-      errors.password = "Either password or private key is required for Snowflake connections";
-      errors.private_key = "Either password or private key is required for Snowflake connections";
+    const hasPrivateKeyPath = !!form.value.private_key_path;
+
+    if (!hasPassword && !hasPrivateKey && !hasPrivateKeyPath) {
+      const errorMsg = "Either password or private key is required for Snowflake connections";
+      errors.password = errorMsg;
+      errors.private_key = errorMsg;
+      errors.private_key_path = errorMsg;
     }
   }
   
@@ -361,6 +364,7 @@ const submitForm = () => {
     console.log("Username:", connectionData.credentials.username);
     console.log("Has Password:", !!connectionData.credentials.password);
     console.log("Has Private Key:", !!connectionData.credentials.private_key);
+    console.log("Has Private Key Path:", !!connectionData.credentials.private_key_path);
     console.log("Role:", connectionData.credentials.role);
     console.log("Database:", connectionData.credentials.database);
     console.log("Warehouse:", connectionData.credentials.warehouse);

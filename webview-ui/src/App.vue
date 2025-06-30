@@ -164,7 +164,7 @@ import { ref, onMounted, computed, watch, nextTick, onBeforeUnmount } from "vue"
 import { parseAssetDetails, parseEnvironmentList } from "./utilities/helper";
 import { updateValue } from "./utilities/helper";
 import { useConnectionsStore } from "./store/bruinStore";
-import type { EnvironmentsList } from "./types";
+import type { Asset, EnvironmentsList } from "./types";
 import AssetColumns from "@/components/asset/columns/AssetColumns.vue";
 import CustomChecks from "@/components/asset/columns/custom-checks/CustomChecks.vue";
 import BruinSettings from "@/components/bruin-settings/BruinSettings.vue";
@@ -195,20 +195,19 @@ const data = ref(
     },
   })
 );
-const isBruinInstalled = ref(true); // Tracks if Bruin is installed
-const lastRenderedDocument = ref(""); // Holds the last rendered document
-
-// Event listener for messages from the VSCode extension
+const isBruinInstalled = ref(true);
+const lastRenderedDocument = ref(""); 
+const pipelineAssetsData = ref([]);
 const handleMessage = (event: MessageEvent) => {
   const message = event.data;
   try {
     switch (message.command) {
       case "init":
-        lastRenderedDocument.value = message.lastRenderedDocument; // Update last rendered document
+        lastRenderedDocument.value = message.lastRenderedDocument; 
         break;
       case "environments-list-message":
         environments.value = updateValue(message, "success");
-        connectionsStore.setDefaultEnvironment(selectedEnvironment.value); // Set the default environment in the store
+        connectionsStore.setDefaultEnvironment(selectedEnvironment.value);
         break;
       case "clear-convert-message":
         console.log("In App.vue : clear-convert-message message received");
@@ -274,6 +273,10 @@ const handleMessage = (event: MessageEvent) => {
         console.warn("Parsing message received END:", new Date().toISOString());
         break;
       }
+      case "pipeline-assets":
+        pipelineAssetsData.value = updateValue(message, "success");
+        console.log("Received pipeline assets data:", pipelineAssetsData.value);
+        break;
       case "bruinCliInstallationStatus":
         isBruinInstalled.value = message.installed; // Update installation status
         console.log("Bruin installation status updated:", isBruinInstalled.value);
@@ -428,9 +431,33 @@ const columnsProps = computed(() => {
   return columns;
 });
 
-const columns = ref([...columnsProps.value]); // Reactive reference for columns
-const materialization = ref({ ...materializationProps.value });
+const columns = ref([...columnsProps.value]);
 console.debug("Initial Columns:", columns.value);
+
+const dependencies = ref([...assetDetailsProps.value?.upstreams || []]);
+console.debug("Initial Dependencies:", dependencies.value);
+
+// Computed property to transform upstreams to dependencies format for Materialization component
+const transformedDependencies = computed(() => {
+  const upstreams = assetDetailsProps.value?.upstreams || [];
+  const transformed = upstreams.map(upstream => ({
+    name: upstream.value,
+    isExternal: upstream.type === 'external' || upstream.type !== 'asset',
+    type: upstream.type,
+  }));
+  
+  console.log('Transformed dependencies:', transformed);
+  return transformed;
+});
+
+// Computed property to extract pipeline assets from asset details
+const pipelineAssets = computed(() => {
+  const assets = pipelineAssetsData.value || [];
+  console.log("Pipeline assets raw data:", assets);
+  // Return the full asset objects, not just the name
+  return assets;
+});
+
 // Computed property for asset columns
 const customChecksProps = computed(() => {
   if (!data.value) {
@@ -473,6 +500,8 @@ const tabs = ref([
       owner: assetDetailsProps.value?.owner,
       tags: assetDetailsProps.value?.tags,
       intervalModifiers: intervalModifiers.value,
+      dependencies: transformedDependencies.value,
+      pipelineAssets: pipelineAssets.value,
     })),
   },
   {
@@ -547,6 +576,7 @@ watch(columnsProps, (newColumns) => {
   columns.value = newColumns;
 });
 
+
 watch(activeTab, (newTab, oldTab) => {
   rudderStack.trackEvent("Tab Switched", {
     fromTab: tabs.value[oldTab]?.label,
@@ -589,7 +619,6 @@ function loadEnvironmentsList() {
   console.log("Loading environments list from Bruin.");
   vscode.postMessage({ command: "bruin.getEnvironmentsList" });
 }
-
 // Function to update the asset name
 const updateAssetName = (newName) => {
   console.log("Updating asset name to:", newName);

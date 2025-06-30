@@ -385,9 +385,8 @@ describe("Bruin Webview Test", function () {
   });
   // owner tests
   describe("Owner Tests", function () {
-    let ownerContainer: WebElement;
-    let editOwnerButton: WebElement;
-    let ownerInput: WebElement;
+    let ownerTextContainer: WebElement;
+
     beforeEach(async function () {
       this.timeout(10000);
       // Ensure we are on the materialization tab if not already
@@ -395,60 +394,729 @@ describe("Bruin Webview Test", function () {
       await tab.click();
       await sleep(500); // Give some time for the tab content to render
 
-      ownerContainer = await driver.wait(
-        until.elementLocated(By.id("owner-container")),
+      ownerTextContainer = await driver.wait(
+        until.elementLocated(By.id("owner-text-container")),
         10000,
-        "Owner container not found"
-      );
-      editOwnerButton = await driver.wait(
-        until.elementLocated(By.id("edit-owner-button")),
-        10000,
-        "Edit owner button not found"
+        "Owner text container not found"
       );
     });
+
     it("should edit owner successfully", async function () {
       this.timeout(15000);
       const newOwner = `owner_${Date.now()}`;
 
-      await editOwnerButton.click();
+      // Click on the owner text container to enter edit mode
+      await ownerTextContainer.click();
       await sleep(500);
-      ownerInput = await driver.wait(until.elementLocated(By.id("owner-input")), 10000);
+
+      // Wait for the input field to appear
+      const ownerInput = await driver.wait(
+        until.elementLocated(By.id("owner-input")),
+        10000,
+        "Owner input field not found"
+      );
+
+      // Clear the input field
       await driver.executeScript(
         'arguments[0].value = ""; arguments[0].dispatchEvent(new Event("input", { bubbles: true }));',
         ownerInput
       );
 
+      // Type the new owner name
       await ownerInput.sendKeys(newOwner);
       await ownerInput.sendKeys(Key.ENTER);
       await sleep(1000);
 
-      const updatedText = await driver
-        .wait(until.elementLocated(By.id("owner-container")), 10000)
-        .getText();
-      await sleep(1000);
+      // Wait for edit mode to exit and verify the owner is updated
+      await driver.wait(until.stalenessOf(ownerInput), 10000, "Edit mode should exit after saving");
+
+      // Wait for the display text to update
+      const ownerTextElement = await driver.wait(
+        until.elementLocated(By.id("owner-text")),
+        10000,
+        "Owner text element not found after save"
+      );
+
+      const updatedText = await ownerTextElement.getText();
       assert.strictEqual(updatedText, newOwner, `Owner should be updated to "${newOwner}"`);
     });
-    it("should edit owner to unknown when using whitespace", async function () {
+
+    it("should edit owner to Click to set owner when using whitespace", async function () {
       this.timeout(15000);
       const newOwner = " ";
 
-      await editOwnerButton.click();
+      // Click on the owner text container to enter edit mode
+      await ownerTextContainer.click();
       await sleep(500);
-      ownerInput = await driver.wait(until.elementLocated(By.id("owner-input")), 10000);
+
+      // Wait for the input field to appear
+      const ownerInput = await driver.wait(
+        until.elementLocated(By.id("owner-input")),
+        10000,
+        "Owner input field not found"
+      );
+
+      // Clear the input field
       await driver.executeScript(
         'arguments[0].value = ""; arguments[0].dispatchEvent(new Event("input", { bubbles: true }));',
         ownerInput
       );
 
+      // Type whitespace
       await ownerInput.sendKeys(newOwner);
       await ownerInput.sendKeys(Key.ENTER);
       await sleep(1000);
 
-      const updatedText = await driver
-        .wait(until.elementLocated(By.id("owner-container")), 10000)
-        .getText();
+      // Wait for edit mode to exit and verify the owner is updated to "Unknown"
+      await driver.wait(until.stalenessOf(ownerInput), 10000, "Edit mode should exit after saving");
+
+      // Wait for the display text to update
+      const ownerTextElement = await driver.wait(
+        until.elementLocated(By.id("owner-text")),
+        10000,
+        "Owner text element not found after save"
+      );
+
+      const updatedText = await ownerTextElement.getText();
+      assert.strictEqual(updatedText, "Click to set owner", `Owner should be updated to "Click to set owner"`);
+    });
+
+    it("should show hover effect when not editing", async function () {
+      this.timeout(10000);
+
+      // Ensure we're not in edit mode
+      const ownerInput = await driver.findElements(By.id("owner-input"));
+      if (ownerInput.length > 0) {
+        // If in edit mode, press Escape to cancel
+        await driver.actions().sendKeys(Key.ESCAPE).perform();
+        await sleep(500);
+      }
+
+      // Verify the owner text container has hover-background class
+      const hasHoverClass = await ownerTextContainer.getAttribute("class");
+      assert.ok(hasHoverClass.includes("hover-background"), "Owner container should have hover-background class when not editing");
+    });
+
+    it("should cancel edit mode when pressing Escape", async function () {
+      this.timeout(15000);
+      const originalOwner = await ownerTextContainer.getText();
+
+      // Click on the owner text container to enter edit mode
+      await ownerTextContainer.click();
+      await sleep(500);
+
+      // Wait for the input field to appear
+      const ownerInput = await driver.wait(
+        until.elementLocated(By.id("owner-input")),
+        10000,
+        "Owner input field not found"
+      );
+
+      // Type some text
+      await ownerInput.sendKeys("test_owner");
+      await sleep(500);
+
+      // Press Escape to cancel
+      await ownerInput.sendKeys(Key.ESCAPE);
       await sleep(1000);
-      assert.strictEqual(updatedText, "Unknown", `Owner should be updated to "Unknown"`);
+
+      // Wait for edit mode to exit
+      await driver.wait(until.stalenessOf(ownerInput), 10000, "Edit mode should exit after pressing Escape");
+
+      // Verify the original text is preserved
+      const finalText = await ownerTextContainer.getText();
+      assert.strictEqual(finalText, originalOwner, "Owner text should remain unchanged after canceling edit");
+    });
+  });
+  // Dependencies tests
+  describe("Dependencies Tests", function () {
+    let dependenciesContainer: WebElement;
+    let pipelineDropdownInput: WebElement;
+    let externalDependencyInput: WebElement;
+
+    beforeEach(async function () {
+      this.timeout(10000);
+      // Ensure we are on the materialization tab
+      const tab = await driver.wait(until.elementLocated(By.id("tab-2")), 10000);
+      await tab.click();
+      await sleep(500);
+
+      dependenciesContainer = await driver.wait(
+        until.elementLocated(By.css('[class*="flex flex-wrap space-x-1"]')),
+        10000,
+        "Dependencies container not found"
+      );
+      
+      pipelineDropdownInput = await driver.wait(
+        until.elementLocated(By.css('input[placeholder="Add from pipeline..."]')),
+        10000,
+        "Pipeline dropdown input not found"
+      );
+      
+      externalDependencyInput = await driver.wait(
+        until.elementLocated(By.css('input[placeholder="Add external dependency..."]')),
+        10000,
+        "External dependency input not found"
+      );
+    });
+
+    it("should add an external dependency successfully", async function () {
+      this.timeout(15000);
+      const externalDepName = `external_dep_${Date.now()}`;
+
+      // Type in the external dependency input
+      await externalDependencyInput.click();
+      await externalDependencyInput.sendKeys(externalDepName);
+      await externalDependencyInput.sendKeys(Key.ENTER);
+      await sleep(1000);
+
+      // Verify the dependency was added
+      const dependencyElements = await dependenciesContainer.findElements(By.id("dependency-text"));
+      const dependencyTexts = await Promise.all(dependencyElements.map((el) => el.getText()));
+
+      assert.ok(dependencyTexts.includes(externalDepName), `External dependency "${externalDepName}" should be added`);
+      
+      // Verify it has the gray color indicator (external dependency)
+      const grayIndicator = await driver.wait(
+        until.elementLocated(By.css(`span[class*="bg-gray-500"]`)),
+        5000,
+        "Gray indicator for external dependency not found"
+      );
+      assert.ok(grayIndicator, "External dependency should have gray color indicator");
+    });
+
+    it("should remove a dependency by clicking its close icon", async function () {
+      this.timeout(15000);
+      const depToRemove = `remove_dep_${Date.now()}`;
+
+      // Add a dependency to be removed
+      await externalDependencyInput.click();
+      await externalDependencyInput.sendKeys(depToRemove);
+      await externalDependencyInput.sendKeys(Key.ENTER);
+      await sleep(1000);
+
+      // Verify it was added
+      const initialDeps = await dependenciesContainer.findElements(By.id("dependency-text"));
+      const initialDepTexts = await Promise.all(initialDeps.map((el) => el.getText()));
+      assert.ok(initialDepTexts.includes(depToRemove), "Dependency to be removed should exist initially");
+
+      // Find and click the close icon for this dependency
+      const closeIconForDep = await driver.wait(
+        until.elementLocated(
+          By.xpath(
+            `//vscode-tag[./div/span[text()="${depToRemove}"]]/div/span[contains(@class, 'codicon-close')]`
+          )
+        ),
+        10000,
+        `Close icon for dependency "${depToRemove}" not found`
+      );
+      await closeIconForDep.click();
+      await sleep(1000);
+
+      // Verify it was removed
+      const finalDeps = await dependenciesContainer.findElements(By.id("dependency-text"));
+      const finalDepTexts = await Promise.all(finalDeps.map((el) => el.getText()));
+      assert.ok(!finalDepTexts.includes(depToRemove), `Dependency "${depToRemove}" should be removed`);
+    });
+
+    it("should not add an empty external dependency", async function () {
+      this.timeout(15000);
+      const emptyDep = "";
+
+      await externalDependencyInput.click();
+      await externalDependencyInput.sendKeys(emptyDep);
+      await externalDependencyInput.sendKeys(Key.ENTER);
+      await sleep(1000);
+
+      const deps = await dependenciesContainer.findElements(By.id("dependency-text"));
+      const depTexts = await Promise.all(deps.map((el) => el.getText()));
+      assert.ok(!depTexts.includes(emptyDep), `Empty dependency should not be added`);
+    });
+
+    it("should not add a dependency with only whitespace", async function () {
+      this.timeout(15000);
+      const whitespaceDep = "   ";
+
+      await externalDependencyInput.click();
+      await externalDependencyInput.sendKeys(whitespaceDep);
+      await externalDependencyInput.sendKeys(Key.ENTER);
+      await sleep(1000);
+
+      const deps = await dependenciesContainer.findElements(By.id("dependency-text"));
+      const depTexts = await Promise.all(deps.map((el) => el.getText()));
+      assert.ok(!depTexts.includes(whitespaceDep), `Whitespace-only dependency should not be added`);
+    });
+
+    it("should not add duplicate dependencies", async function () {
+      this.timeout(15000);
+      const duplicateDep = `duplicate_dep_${Date.now()}`;
+
+      // Add the dependency first time
+      await externalDependencyInput.click();
+      await externalDependencyInput.sendKeys(duplicateDep);
+      await externalDependencyInput.sendKeys(Key.ENTER);
+      await sleep(1000);
+
+      // Try to add the same dependency again
+      await externalDependencyInput.click();
+      await externalDependencyInput.sendKeys(duplicateDep);
+      await externalDependencyInput.sendKeys(Key.ENTER);
+      await sleep(1000);
+
+      // Verify only one instance exists
+      const deps = await dependenciesContainer.findElements(By.id("dependency-text"));
+      const depTexts = await Promise.all(deps.map((el) => el.getText()));
+      const duplicateCount = depTexts.filter(text => text === duplicateDep).length;
+      assert.strictEqual(duplicateCount, 1, `Should only have one instance of "${duplicateDep}"`);
+    });
+
+    it("should show empty state when no dependencies are configured", async function () {
+      this.timeout(15000);
+      
+      // Remove all existing dependencies first
+      let existingDeps = await dependenciesContainer.findElements(By.css('vscode-tag'));
+      
+      // Keep removing dependencies until none are left
+      while (existingDeps.length > 0) {
+        try {
+          // Get the first dependency and remove it
+          const firstDep = existingDeps[0];
+          const closeIcon = await firstDep.findElement(By.css('span[class*="codicon-close"]'));
+          await closeIcon.click();
+          await sleep(1000); // Wait longer for DOM update
+          
+          // Refresh the list of dependencies
+          existingDeps = await dependenciesContainer.findElements(By.css('vscode-tag'));
+        } catch (error) {
+          // If we get a stale element error, refresh the list and continue
+          console.log("Stale element encountered, refreshing list...");
+          await sleep(500);
+          existingDeps = await dependenciesContainer.findElements(By.css('vscode-tag'));
+        }
+      }
+
+      // Verify empty state message appears
+      const emptyStateElement = await driver.wait(
+        until.elementLocated(By.xpath('//div[contains(text(), "No dependencies configured")]')),
+        10000,
+        "Empty state message not found"
+      );
+      
+      const emptyStateText = await emptyStateElement.getText();
+      assert.strictEqual(emptyStateText, "No dependencies configured", "Empty state message should be displayed");
+    });
+  });
+
+  // Custom Checks tests
+  describe("Custom Checks Tests", function () {
+    let customChecksContainer: WebElement;
+    let addCheckButton: WebElement;
+
+    beforeEach(async function () {
+      this.timeout(10000);
+      // Ensure we are on the custom checks tab where custom checks are located
+      const tab = await driver.wait(until.elementLocated(By.id("tab-3")), 10000);
+      await tab.click();
+      await sleep(500);
+
+      // Clean up any open modals/alerts from previous tests
+      try {
+        const openAlerts = await driver.findElements(By.css('.fixed.inset-0'));
+        for (const alert of openAlerts) {
+          try {
+            // Try to find and click cancel button
+            const cancelButton = await alert.findElement(By.xpath('.//button[contains(text(), "Cancel")]'));
+            await cancelButton.click();
+            await sleep(500);
+          } catch (e) {
+            // If cancel button not found, try to click outside or press escape
+            await driver.actions().sendKeys(Key.ESCAPE).perform();
+            await sleep(500);
+          }
+        }
+      } catch (e) {
+        // If no alerts found, continue
+        console.log("No open alerts to clean up");
+      }
+
+      // Wait for custom checks container to be present
+      customChecksContainer = await driver.wait(
+        until.elementLocated(By.id("custom-checks-table")),
+        10000,
+        "Custom checks table not found"
+      );
+      
+      addCheckButton = await driver.wait(
+        until.elementLocated(By.id("add-custom-check-button")),
+        10000,
+        "Add Check button not found"
+      );
+    });
+
+    it("should display existing custom checks from the file", async function () {
+      this.timeout(15000);
+      
+      // Look for existing custom checks in the table
+      const existingChecks = await customChecksContainer.findElements(By.css('tbody tr'));
+      
+      if (existingChecks.length > 0) {
+        console.log(`Found ${existingChecks.length} existing custom checks`);
+        
+        // Verify each check has the expected structure
+        for (let i = 0; i < existingChecks.length; i++) {
+          const check = existingChecks[i];
+          
+          // Check that the row has the expected columns (Name, Value, Description, Query, Actions)
+          const columns = await check.findElements(By.css('td'));
+          assert.strictEqual(columns.length, 5, `Custom check row ${i} should have 5 columns`);
+          
+          // Verify the name column is not empty
+          const nameCell = columns[0];
+          const nameText = await nameCell.getText();
+          assert.ok(nameText.length > 0, `Custom check ${i} should have a name`);
+          
+          // Verify the query column is not empty
+          const queryCell = columns[3];
+          const queryText = await queryCell.getText();
+          assert.ok(queryText.length > 0, `Custom check ${i} should have a query`);
+          
+          console.log(`Custom check ${i}: Name="${nameText}", Query="${queryText.substring(0, 50)}..."`);
+        }
+      } else {
+        // If no existing checks, verify the empty state message
+        const emptyStateElement = await driver.wait(
+          until.elementLocated(By.id("custom-checks-empty-state")),
+          5000,
+          "Empty state message not found"
+        );
+        
+        const emptyStateText = await emptyStateElement.getText();
+        assert.strictEqual(emptyStateText.trim(), "No custom checks to display.", "Empty state message should be displayed");
+        console.log("No existing custom checks found, empty state displayed correctly");
+      }
+    });
+
+    it("should add a new custom check and display it in the UI", async function () {
+      this.timeout(20000);
+      
+      const checkName = `test_check_${Date.now()}`;
+      const checkValue = "100";
+      const checkDescription = `Test description ${Date.now()}`;
+      const checkQuery = "SELECT COUNT(*) FROM test_table WHERE column > 0";
+      
+      // Click Add Check button
+      await addCheckButton.click();
+      await sleep(1000);
+      
+      // Wait for the new row to be in edit mode (it will be the last row)
+      const allRows = await customChecksContainer.findElements(By.css('tbody tr'));
+      const newRowIndex = allRows.length - 1;
+      
+      const editingRow = await driver.wait(
+        until.elementLocated(By.id(`custom-check-row-${newRowIndex}`)),
+        10000,
+        "New custom check row not found"
+      );
+      
+      // Find all input fields in the editing row using IDs
+      const nameField = await driver.wait(
+        until.elementLocated(By.id(`custom-check-name-input-${newRowIndex}`)),
+        10000,
+        "Name input field not found"
+      );
+      
+      const valueField = await driver.wait(
+        until.elementLocated(By.id(`custom-check-value-input-${newRowIndex}`)),
+        10000,
+        "Value input field not found"
+      );
+      
+      const descriptionField = await driver.wait(
+        until.elementLocated(By.id(`custom-check-description-input-${newRowIndex}`)),
+        10000,
+        "Description input field not found"
+      );
+      
+      const queryField = await driver.wait(
+        until.elementLocated(By.id(`custom-check-query-input-${newRowIndex}`)),
+        10000,
+        "Query input field not found"
+      );
+      
+      // Fill in the custom check details
+      await nameField.clear();
+      await nameField.sendKeys(checkName);
+      
+      await valueField.clear();
+      await valueField.sendKeys(checkValue);
+      
+      await descriptionField.clear();
+      await descriptionField.sendKeys(checkDescription);
+      
+      await queryField.clear();
+      await queryField.sendKeys(checkQuery);
+      
+      // Save the custom check
+      const saveButton = await driver.wait(
+        until.elementLocated(By.id(`custom-check-save-button-${newRowIndex}`)),
+        10000,
+        "Save button not found"
+      );
+      await saveButton.click();
+      await sleep(1000);
+      
+      // Verify the custom check is now displayed in view mode
+      const savedRow = await driver.wait(
+        until.elementLocated(By.id(`custom-check-row-${newRowIndex}`)),
+        10000,
+        "Saved custom check row not found"
+      );
+      
+      // Verify the displayed values match what we entered
+      const cells = await savedRow.findElements(By.css('td'));
+      
+      const displayedName = await cells[0].getText();
+      assert.strictEqual(displayedName, checkName, `Custom check name should be "${checkName}"`);
+      
+      const displayedValue = await cells[1].getText();
+      assert.strictEqual(displayedValue, checkValue, `Custom check value should be "${checkValue}"`);
+      
+      const displayedDescription = await cells[2].getText();
+      assert.strictEqual(displayedDescription, checkDescription, `Custom check description should be "${checkDescription}"`);
+      
+      const displayedQuery = await cells[3].getText();
+      assert.ok(displayedQuery.includes("SELECT"), `Custom check query should contain the SQL query`);
+      
+      console.log(`Successfully added and verified custom check: ${checkName}`);
+    });
+
+    it("should edit an existing custom check", async function () {
+      this.timeout(20000);
+      
+      // First, add a custom check to edit
+      const originalName = `edit_test_${Date.now()}`;
+      const originalQuery = "SELECT 1";
+      
+      await addCheckButton.click();
+      await sleep(1000);
+      
+      const allRows = await customChecksContainer.findElements(By.css('tbody tr'));
+      const newRowIndex = allRows.length - 1;
+      
+      const editingRow = await driver.wait(
+        until.elementLocated(By.id(`custom-check-row-${newRowIndex}`)),
+        10000,
+        "New custom check row not found"
+      );
+      
+      const nameField = await driver.wait(
+        until.elementLocated(By.id(`custom-check-name-input-${newRowIndex}`)),
+        10000,
+        "Name input field not found"
+      );
+      
+      const queryField = await driver.wait(
+        until.elementLocated(By.id(`custom-check-query-input-${newRowIndex}`)),
+        10000,
+        "Query input field not found"
+      );
+      
+      // Fill in initial values
+      await nameField.clear();
+      await nameField.sendKeys(originalName);
+      await queryField.clear();
+      await queryField.sendKeys(originalQuery);
+      
+      // Save the initial check
+      const saveButton = await editingRow.findElement(By.id(`custom-check-save-button-${newRowIndex}`));
+      await saveButton.click();
+      await sleep(1000);
+      
+      // Now edit the check
+      const savedRow = await driver.wait(
+        until.elementLocated(By.id(`custom-check-row-${newRowIndex}`)),
+        10000,
+        "Saved custom check row not found"
+      );
+      
+      // Click the edit button
+      const editButton = await savedRow.findElement(By.id(`custom-check-edit-button-${newRowIndex}`));
+      await editButton.click();
+      await sleep(1000);
+      
+      // Verify we're back in edit mode
+      const editNameField = await driver.wait(
+        until.elementLocated(By.id(`custom-check-name-input-${newRowIndex}`)),
+        10000,
+        "Edit name field not found"
+      );
+      
+      const editQueryField = await driver.wait(
+        until.elementLocated(By.id(`custom-check-query-input-${newRowIndex}`)),
+        10000,
+        "Edit query field not found"
+      );
+      
+      // Modify the values
+      const updatedName = `updated_${originalName}`;
+      const updatedQuery = "SELECT COUNT(*) FROM updated_table";
+      
+      await editNameField.clear();
+      await editNameField.sendKeys(updatedName);
+      await editQueryField.clear();
+      await editQueryField.sendKeys(updatedQuery);
+      
+      // Save the changes
+      const saveButton2 = await savedRow.findElement(By.id(`custom-check-save-button-${newRowIndex}`));
+      await saveButton2.click();
+      await sleep(1000);
+      
+      // Verify the changes are displayed
+      const finalCells = await savedRow.findElements(By.css('td'));
+      
+      const finalName = await finalCells[0].getText();
+      assert.strictEqual(finalName, updatedName, `Custom check name should be updated to "${updatedName}"`);
+      
+      const finalQuery = await finalCells[3].getText();
+      assert.ok(finalQuery.includes("COUNT"), `Custom check query should be updated to include "COUNT"`);
+      
+      console.log(`Successfully edited custom check from "${originalName}" to "${updatedName}"`);
+    });
+
+    it("should delete a custom check", async function () {
+      this.timeout(20000);
+      
+      // First, add a custom check to delete
+      const checkToDelete = `delete_test_${Date.now()}`;
+      
+      await addCheckButton.click();
+      await sleep(1000);
+      
+      const allRows = await customChecksContainer.findElements(By.css('tbody tr'));
+      const newRowIndex = allRows.length - 1;
+      
+      const editingRow = await driver.wait(
+        until.elementLocated(By.id(`custom-check-row-${newRowIndex}`)),
+        10000,
+        "New custom check row not found"
+      );
+      
+      const nameField = await driver.wait(
+        until.elementLocated(By.id(`custom-check-name-input-${newRowIndex}`)),
+        10000,
+        "Name input field not found"
+      );
+      
+      const queryField = await driver.wait(
+        until.elementLocated(By.id(`custom-check-query-input-${newRowIndex}`)),
+        10000,
+        "Query input field not found"
+      );
+      
+      // Fill in the check details
+      await nameField.clear();
+      await nameField.sendKeys(checkToDelete);
+      await queryField.clear();
+      await queryField.sendKeys("SELECT 1");
+      
+      // Save the check
+      const saveButton = await editingRow.findElement(By.id(`custom-check-save-button-${newRowIndex}`));
+      await saveButton.click();
+      await sleep(1000);
+      
+      // Verify the check exists
+      const savedRow = await driver.wait(
+        until.elementLocated(By.id(`custom-check-row-${newRowIndex}`)),
+        10000,
+        "Saved custom check row not found"
+      );
+      
+      const cells = await savedRow.findElements(By.css('td'));
+      const savedName = await cells[0].getText();
+      assert.strictEqual(savedName, checkToDelete, `Custom check "${checkToDelete}" should exist before deletion`);
+      
+      // Click the delete button
+      const deleteButton = await savedRow.findElement(By.id(`custom-check-delete-button-${newRowIndex}`));
+      await deleteButton.click();
+      await sleep(1000);
+      
+      // Wait for and confirm the delete alert
+      const deleteAlert = await driver.wait(
+        until.elementLocated(By.id(`custom-check-delete-alert-${newRowIndex}`)),
+        10000,
+        "Delete confirmation alert not found"
+      );
+      
+      const confirmButton = await deleteAlert.findElement(By.xpath('.//button[contains(text(), "Delete")]'));
+      await confirmButton.click();
+      await sleep(1000);
+      
+      // Verify the check is no longer in the table
+      const allRowsAfterDelete = await customChecksContainer.findElements(By.css('tbody tr'));
+      const rowTexts = await Promise.all(allRowsAfterDelete.map(row => row.getText()));
+      
+      const checkStillExists = rowTexts.some(text => text.includes(checkToDelete));
+      assert.ok(!checkStillExists, `Custom check "${checkToDelete}" should be deleted`);
+      
+      console.log(`Successfully deleted custom check: ${checkToDelete}`);
+    });
+
+    it("should display custom checks with proper syntax highlighting", async function () {
+      this.timeout(15000);
+      
+      // Add a custom check with SQL syntax
+      await addCheckButton.click();
+      await sleep(1000);
+      
+      const allRows = await customChecksContainer.findElements(By.css('tbody tr'));
+      const newRowIndex = allRows.length - 1;
+      
+      const editingRow = await driver.wait(
+        until.elementLocated(By.id(`custom-check-row-${newRowIndex}`)),
+        10000,
+        "New custom check row not found"
+      );
+      
+      const nameField = await driver.wait(
+        until.elementLocated(By.id(`custom-check-name-input-${newRowIndex}`)),
+        10000,
+        "Name input field not found"
+      );
+      
+      const queryField = await driver.wait(
+        until.elementLocated(By.id(`custom-check-query-input-${newRowIndex}`)),
+        10000,
+        "Query input field not found"
+      );
+      
+      const sqlQuery = "SELECT COUNT(*) as count FROM users WHERE created_at > '2023-01-01'";
+      
+      await nameField.clear();
+      await nameField.sendKeys("syntax_test");
+      await queryField.clear();
+      await queryField.sendKeys(sqlQuery);
+      
+      // Save the check
+      const saveButton = await editingRow.findElement(By.id(`custom-check-save-button-${newRowIndex}`));
+      await saveButton.click();
+      await sleep(1000);
+      
+      // Verify the query is displayed with syntax highlighting
+      const savedRow = await driver.wait(
+        until.elementLocated(By.id(`custom-check-row-${newRowIndex}`)),
+        10000,
+        "Saved custom check row not found"
+      );
+      
+      const queryCell = await savedRow.findElements(By.css('td'));
+      const queryElement = queryCell[3];
+      
+      // Check if the query contains highlighted elements (should have HTML tags for syntax highlighting)
+      const queryHTML = await queryElement.getAttribute('innerHTML');
+      assert.ok(queryHTML.includes('<div>'), "Query should be displayed with syntax highlighting");
+      assert.ok(queryHTML.includes('SELECT'), "Query should contain the SQL keyword");
+      
+      console.log("Custom check query displayed with proper syntax highlighting");
     });
   });
 });

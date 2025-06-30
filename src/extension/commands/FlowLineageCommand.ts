@@ -2,7 +2,7 @@ import { Uri } from "vscode";
 import { BruinLineageInternalParse } from "../../bruin/bruinFlowLineage";
 import { getBruinExecutablePath } from "../../providers/BruinExecutableService";
 
-export const flowLineageCommand = async (lastRenderedDocumentUri:  Uri | undefined ) => {
+export const flowLineageCommand = async (lastRenderedDocumentUri:  Uri | undefined, panel?: string) => {
    if (!lastRenderedDocumentUri) {
     return;
   }
@@ -10,6 +10,6 @@ export const flowLineageCommand = async (lastRenderedDocumentUri:  Uri | undefin
     getBruinExecutablePath(),
     ""
   );
-  await flowLineage.parseAssetLineage(lastRenderedDocumentUri.fsPath);
+  await flowLineage.parseAssetLineage(lastRenderedDocumentUri.fsPath, panel);
   };
   

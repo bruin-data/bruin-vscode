@@ -2,7 +2,7 @@
   "name": "bruin",
   "displayName": "Bruin",
   "description": "Manage your Bruin data assets from within VS Code.",
-  "version": "0.51.5",
+  "version": "0.53.2",
   "engines": {
     "vscode": "^1.87.0"
   },
@@ -72,6 +72,13 @@
       }
     ],
     "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "bruin",
+          "title": "Databases",
+          "icon": "$(database)"
+        }
+      ],
       "panel": [
         {
           "id": "bruin-assetLineageView",
@@ -86,6 +93,12 @@
       ]
     },
     "views": {
+      "bruin": [
+        {
+          "id": "bruinConnections",
+          "name": "Databases"
+        }
+      ],
       "bruin-assetLineageView": [
         {
           "type": "webview",
@@ -145,6 +158,11 @@
           "type": "boolean",
           "default": false,
           "description": "Sets whether the 'Push-Metadata' checkbox is checked by default."
+        },
+        "bruin.validate.defaultExcludeTag": {
+          "type": "string",
+          "default": "",
+          "description": "Sets the validate exclude tag to be used with validation commands."
         }
       }
     },
@@ -196,6 +214,20 @@
           "command": "bruin.renderSQL",
           "group": "navigation"
         }
+      ],
+      "view/title": [
+        {
+          "command": "bruin.refreshConnections",
+          "when": "view == bruinConnections",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "bruin.refreshConnection",
+          "when": "view == bruinConnections && viewItem == 'bruin_connection'",
+          "group": "inline"
+        }
       ]
     },
     "commands": [
@@ -206,6 +238,27 @@
         "category": "Bruin",
         "icon": "img/bruin-logo-sm128.png",
         "description": "Render a Bruin asset."
+      },
+      {
+        "command": "bruin.refreshConnections",
+        "title": "Refresh Connections",
+        "category": "Bruin",
+        "icon": "$(refresh)",
+        "description": "Refresh connections list."
+      },
+      {
+        "command": "bruin.refreshConnection",
+        "title": "Refresh Connection",
+        "category": "Bruin",
+        "icon": "$(refresh)",
+        "description": "Refresh a single connection."
+      },
+      {
+        "command": "bruin.showConnectionDetails",
+        "title": "Show Connection Details",
+        "category": "Bruin",
+        "icon": "$(info)",
+        "description": "Show connection details."
       },
       {
         "command": "bruin.installCli",
