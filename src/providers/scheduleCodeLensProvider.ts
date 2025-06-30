@@ -31,8 +31,8 @@ export class ScheduleCodeLensProvider implements vscode.CodeLensProvider {
         const scheduleValue = scheduleMatch[1].trim().replace(/["']/g, '');
         const humanReadable = cronToHumanReadable(scheduleValue);
         
-        // Create a range at the beginning of the line immediately above the schedule line
-        const codeLensLine = Math.max(0, i - 1);
+        // Create a range at the beginning of the schedule line itself
+        const codeLensLine = i;
         const lineRange = new vscode.Range(codeLensLine, 0, codeLensLine, 0);
         
         codeLenses.push(
