@@ -4,7 +4,7 @@ import * as path from 'path';
 import { BruinDBTCommand } from '../bruin/bruinDBTCommand';
 import { BruinConnections } from '../bruin/bruinConnections';
 import { Connection } from '../utilities/helperUtils';
-import { getSchemaFavorites, saveSchemaFavorites, SchemaFavorite, createFavoriteKey } from "../extension/configuration";
+import { getSchemaFavorites, saveSchemaFavorites, SchemaFavorite, createFavoriteKey, getTableFavorites, saveTableFavorites, TableFavorite, createTableFavoriteKey } from "../extension/configuration";
 
 // Define interfaces for the connection structure
 interface ConnectionDisplayData {
@@ -44,7 +44,7 @@ class ConnectionItem extends vscode.TreeItem {
     public readonly label: string,
     public readonly collapsibleState: vscode.TreeItemCollapsibleState,
     public readonly itemData: TreeItemData,
-    public readonly contextValue: 'bruin_connection' | 'schema' | 'schema_favorite' | 'schema_unfavorite' | 'table' | 'column' | 'connections'
+    public readonly contextValue: 'bruin_connection' | 'schema' | 'schema_favorite' | 'schema_unfavorite' | 'table' | 'table_favorite' | 'table_unfavorite' | 'column' | 'connections'
   ) {
     super(label, collapsibleState);
     this.contextValue = contextValue;
@@ -53,7 +53,7 @@ class ConnectionItem extends vscode.TreeItem {
       this.iconPath = new vscode.ThemeIcon('plug');
     } else if (this.contextValue === 'schema_favorite' || this.contextValue === 'schema_unfavorite') {
       this.iconPath = new vscode.ThemeIcon('database');
-    } else if (this.contextValue === 'table') {
+    } else if (this.contextValue === 'table' || this.contextValue === 'table_favorite' || this.contextValue === 'table_unfavorite') {
       this.iconPath = new vscode.ThemeIcon('table');
       // Command is now set in getChildren method
     } else if (this.contextValue === 'column') {
@@ -73,6 +73,7 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
   private databaseCache = new Map<string, Schema[]>();
   private columnsCache = new Map<string, Column[]>(); // Cache for columns
   private favorites = new Set<string>(); // Store favorite schema keys as "connectionName.schemaName"
+  private tableFavorites = new Set<string>(); // Store favorite table keys as "connectionName.schemaName.tableName"
   
   // Allowed connection types
   private readonly allowedConnectionTypes = [
@@ -94,6 +95,7 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
     // Initialize BruinConnections with proper parameters
     this.bruinConnections = new BruinConnections("bruin", workspaceFolder);
     this.loadFavoritesFromSettings();
+    this.loadTableFavoritesFromSettings();
     this.loadConnections();
   }
 
@@ -107,6 +109,16 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
     });
   }
 
+  // Load table favorites from VS Code settings
+  private loadTableFavoritesFromSettings(): void {
+    const savedTableFavorites = getTableFavorites();
+    this.tableFavorites.clear();
+    savedTableFavorites.forEach(favorite => {
+      const key = createTableFavoriteKey(favorite.tableName, favorite.schemaName, favorite.connectionName);
+      this.tableFavorites.add(key);
+    });
+  }
+
   // Save favorites to VS Code settings
   private async saveFavoritesToSettings(): Promise<void> {
     const favoritesArray: SchemaFavorite[] = Array.from(this.favorites).map(key => {
@@ -116,10 +128,20 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
     await saveSchemaFavorites(favoritesArray);
   }
 
+  // Save table favorites to VS Code settings
+  private async saveTableFavoritesToSettings(): Promise<void> {
+    const tableFavoritesArray: TableFavorite[] = Array.from(this.tableFavorites).map(key => {
+      const [connectionName, schemaName, tableName] = key.split('.');
+      return { tableName, schemaName, connectionName };
+    });
+    await saveTableFavorites(tableFavoritesArray);
+  }
+
   public refresh(): void {
     this.databaseCache.clear();
     this.columnsCache.clear();
     this.loadFavoritesFromSettings();
+    this.loadTableFavoritesFromSettings();
     this.loadConnections();
   }
 
@@ -148,6 +170,25 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
   public isSchemaFavorite(schema: Schema): boolean {
     const favoriteKey = `${schema.connectionName}.${schema.name}`;
     return this.favorites.has(favoriteKey);
+  }
+
+  // Toggle favorite status for a table
+  public async toggleTableFavorite(table: Table): Promise<void> {
+    const favoriteKey = `${table.connectionName}.${table.schema}.${table.name}`;
+    if (this.tableFavorites.has(favoriteKey)) {
+      this.tableFavorites.delete(favoriteKey);
+    } else {
+      this.tableFavorites.add(favoriteKey);
+    }
+    
+    // Save to VS Code settings
+    await this.saveTableFavoritesToSettings();
+    this._onDidChangeTreeData.fire();
+  }
+
+  public isTableFavorite(table: Table): boolean {
+    const favoriteKey = `${table.connectionName}.${table.schema}.${table.name}`;
+    return this.tableFavorites.has(favoriteKey);
   }
 
   public async loadConnections(): Promise<void> {
@@ -243,7 +284,9 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
         const tables = tablesResponse.tables || [];
         return tables.map((table: string) => {
           const tableItem: Table = { name: table, schema: schema.name, connectionName: schema.connectionName };
-          const tableTreeItem = new ConnectionItem(table, vscode.TreeItemCollapsibleState.Collapsed, tableItem, 'table');
+          const isFavorite = this.isTableFavorite(tableItem);
+          const contextValue = isFavorite ? 'table_favorite' : 'table_unfavorite';
+          const tableTreeItem = new ConnectionItem(table, vscode.TreeItemCollapsibleState.Collapsed, tableItem, contextValue);
           // Add command with both table name and schema name
           tableTreeItem.command = {
             command: 'bruin.showTableDetails',
@@ -258,7 +301,7 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
       }
     }
 
-    if (element.contextValue === 'table' && 'name' in element.itemData && 'schema' in element.itemData) {
+    if ((element.contextValue === 'table' || element.contextValue === 'table_favorite' || element.contextValue === 'table_unfavorite') && 'name' in element.itemData && 'schema' in element.itemData) {
       const table = element.itemData as Table;
       const cacheKey = `${table.connectionName}.${table.schema}.${table.name}`;
       

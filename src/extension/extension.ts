@@ -298,6 +298,30 @@ export async function activate(context: ExtensionContext) {
         vscode.window.showErrorMessage(`Error removing favorite: ${errorMessage}`);
       }
     }),
+    commands.registerCommand("bruin.addTableToFavorites", async (item: any) => {
+      try {
+        trackEvent("Command Executed", { command: "addTableToFavorites" });
+        if (item && item.itemData && 'name' in item.itemData && 'schema' in item.itemData) {
+          await activityBarConnectionsProvider.toggleTableFavorite(item.itemData);
+          favoritesProvider.refresh();
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error adding table to favorites: ${errorMessage}`);
+      }
+    }),
+    commands.registerCommand("bruin.removeTableFromFavorites", async (item: any) => {
+      try {
+        trackEvent("Command Executed", { command: "removeTableFromFavorites" });
+        if (item && item.itemData && 'name' in item.itemData && 'schema' in item.itemData) {
+          await activityBarConnectionsProvider.toggleTableFavorite(item.itemData);
+          favoritesProvider.refresh();
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error removing table from favorites: ${errorMessage}`);
+      }
+    }),
     commands.registerCommand("bruin.runQuery", async (uri: vscode.Uri, range: vscode.Range) => {
       try {
         trackEvent("Command Executed", { command: "runQuery" });

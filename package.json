@@ -184,6 +184,26 @@
           },
           "default": [],
           "description": "List of favorite schemas with their connection names."
+        },
+        "bruin.tables.favorites": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "tableName": {
+                "type": "string"
+              },
+              "schemaName": {
+                "type": "string"
+              },
+              "connectionName": {
+                "type": "string"
+              }
+            },
+            "required": ["tableName", "schemaName", "connectionName"]
+          },
+          "default": [],
+          "description": "List of favorite tables with their schema and connection names."
         }
       }
     },
@@ -273,6 +293,16 @@
           "command": "bruin.removeSchemaFromFavorites",
           "when": "view == bruinConnections && viewItem == 'schema_favorite'",
           "group": "inline"
+        },
+        {
+          "command": "bruin.addTableToFavorites",
+          "when": "view == bruinConnections && viewItem == 'table_unfavorite'",
+          "group": "inline"
+        },
+        {
+          "command": "bruin.removeTableFromFavorites",
+          "when": "view == bruinConnections && viewItem == 'table_favorite'",
+          "group": "inline"
         }
       ]
     },
@@ -351,6 +381,20 @@
         "category": "Bruin",
         "icon": "$(trash)",
         "description": "Remove favorite from list."
+      },
+      {
+        "command": "bruin.addTableToFavorites",
+        "title": "Add Table to Favorites",
+        "category": "Bruin",
+        "icon": "$(star-empty)",
+        "description": "Add table to favorites."
+      },
+      {
+        "command": "bruin.removeTableFromFavorites",
+        "title": "Remove Table from Favorites",
+        "category": "Bruin",
+        "icon": "$(star-full)",
+        "description": "Remove table from favorites."
       }
     ]
   },

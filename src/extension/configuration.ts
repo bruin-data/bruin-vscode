@@ -137,6 +137,12 @@ export interface SchemaFavorite {
   connectionName: string;
 }
 
+export interface TableFavorite {
+  tableName: string;
+  schemaName: string;
+  connectionName: string;
+}
+
 export function getSchemaFavorites(): SchemaFavorite[] {
   const config = vscode.workspace.getConfiguration("bruin.schemas");
   return config.get<SchemaFavorite[]>("favorites", []);
@@ -147,6 +153,20 @@ export async function saveSchemaFavorites(favorites: SchemaFavorite[]): Promise<
   await config.update("favorites", favorites, vscode.ConfigurationTarget.Global);
 }
 
+export function getTableFavorites(): TableFavorite[] {
+  const config = vscode.workspace.getConfiguration("bruin.tables");
+  return config.get<TableFavorite[]>("favorites", []);
+}
+
+export async function saveTableFavorites(favorites: TableFavorite[]): Promise<void> {
+  const config = vscode.workspace.getConfiguration("bruin.tables");
+  await config.update("favorites", favorites, vscode.ConfigurationTarget.Global);
+}
+
 export function createFavoriteKey(schemaName: string, connectionName: string): string {
   return `${connectionName}.${schemaName}`;
+}
+
+export function createTableFavoriteKey(tableName: string, schemaName: string, connectionName: string): string {
+  return `${connectionName}.${schemaName}.${tableName}`;
 }
