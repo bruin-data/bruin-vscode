@@ -154,9 +154,9 @@
       </div>
     </div>
     <!-- Query Output Tab -->
-    <div v-if="activeTab" class="relative h-[calc(100vh-33px)]">
+    <div v-if="activeTab" class="relative flex-1 min-h-0">
       <template v-for="tab in tabs" :key="tab.id">
-        <div v-show="activeTab === tab.id" class="tab-content h-full">
+        <div v-show="activeTab === tab.id" class="tab-content h-full flex flex-col">
           <!-- Tab-specific loading overlay - Fixed positioning to always be centered -->
           <div
             v-if="activeTab === tab.id && tab.isLoading"
@@ -236,7 +236,7 @@
           <!-- Results Table -->
           <div
             v-if="currentTab?.parsedOutput && !currentTab?.error"
-            class="overflow-auto h-full w-full"
+            class="overflow-auto flex-1 w-full min-h-0"
           >
             <table
               class="w-[calc(100vw-100px)] bg-editor-bg font-mono font-normal text-xs border-t-0 border-collapse"

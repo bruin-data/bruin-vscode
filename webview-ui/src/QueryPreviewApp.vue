@@ -1,6 +1,6 @@
 <template>
-  <vscode-panels aria-label="Tabbed Content">
-  <vscode-panel-view>
+  <vscode-panels aria-label="Tabbed Content" class="h-full">
+  <vscode-panel-view class="h-full">
     <QueryPreview
       :output="output"
       :error="errorValue"
@@ -11,7 +11,7 @@
       :exportOutput="QueryExport"
       :exportError="QueryExportError"
       @resetData="clearQueryOutput"
-      class="flex w-full"
+      class="flex w-full h-full"
     />
   </vscode-panel-view>
   </vscode-panels>
@@ -130,7 +130,8 @@ vscode-panel-view {
 </style>
 
 <style>
-body {
+html, body, #app {
+  height: 100% !important;
   padding: 0 !important;
   margin: 0 !important;
   overflow: hidden !important;
