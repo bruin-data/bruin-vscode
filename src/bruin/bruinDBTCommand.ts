@@ -27,4 +27,15 @@ export class BruinDBTCommand extends BruinCommand {
     }
   }
 
+  public async getFetchColumns(connectionName: string, database: string, table: string): Promise<any> {
+    const flags = ["fetch-columns", "-c", connectionName, "-d", database, "-table", table, "-o", "json"];
+    try {
+      const result = await this.run(flags, { ignoresErrors: false });
+      return JSON.parse(result);
+    } catch (error) {
+      console.error(`Error fetching columns for table ${table} in ${connectionName}.${database}:`, error);
+      throw error;
+    }
+  }
+
 } 

@@ -29,14 +29,22 @@ interface Table {
   connectionName: string;
 }
 
-type TreeItemData = ConnectionDisplayData | Schema | Table;
+interface Column {
+  name: string;
+  type: string;
+  table: string;
+  schema: string;
+  connectionName: string;
+}
+
+type TreeItemData = ConnectionDisplayData | Schema | Table | Column;
 
 class ConnectionItem extends vscode.TreeItem {
   constructor(
     public readonly label: string,
     public readonly collapsibleState: vscode.TreeItemCollapsibleState,
     public readonly itemData: TreeItemData,
-    public readonly contextValue: 'bruin_connection' | 'schema' | 'schema_favorite' | 'schema_unfavorite' | 'table' | 'connections'
+    public readonly contextValue: 'bruin_connection' | 'schema' | 'schema_favorite' | 'schema_unfavorite' | 'table' | 'column' | 'connections'
   ) {
     super(label, collapsibleState);
     this.contextValue = contextValue;
@@ -48,6 +56,8 @@ class ConnectionItem extends vscode.TreeItem {
     } else if (this.contextValue === 'table') {
       this.iconPath = new vscode.ThemeIcon('table');
       // Command is now set in getChildren method
+    } else if (this.contextValue === 'column') {
+      this.iconPath = new vscode.ThemeIcon('symbol-field');
     } else {
       this.iconPath = new vscode.ThemeIcon('server-environment');
     }
@@ -61,6 +71,7 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
   private connections: ConnectionDisplayData[] = [];
   private bruinConnections: BruinConnections;
   private databaseCache = new Map<string, Schema[]>();
+  private columnsCache = new Map<string, Column[]>(); // Cache for columns
   private favorites = new Set<string>(); // Store favorite schema keys as "connectionName.schemaName"
   
   // Allowed connection types
@@ -107,12 +118,16 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
 
   public refresh(): void {
     this.databaseCache.clear();
+    this.columnsCache.clear();
     this.loadFavoritesFromSettings();
     this.loadConnections();
   }
 
   public refreshConnection(connectionName: string): void {
     this.databaseCache.delete(connectionName);
+    // Also clear columns cache for this connection
+    const keysToDelete = Array.from(this.columnsCache.keys()).filter(key => key.startsWith(connectionName));
+    keysToDelete.forEach(key => this.columnsCache.delete(key));
     this._onDidChangeTreeData.fire();
   }
 
@@ -228,7 +243,7 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
         const tables = tablesResponse.tables || [];
         return tables.map((table: string) => {
           const tableItem: Table = { name: table, schema: schema.name, connectionName: schema.connectionName };
-          const tableTreeItem = new ConnectionItem(table, vscode.TreeItemCollapsibleState.None, tableItem, 'table');
+          const tableTreeItem = new ConnectionItem(table, vscode.TreeItemCollapsibleState.Collapsed, tableItem, 'table');
           // Add command with both table name and schema name
           tableTreeItem.command = {
             command: 'bruin.showTableDetails',
@@ -239,6 +254,43 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
         });
       } catch (error) {
         vscode.window.showErrorMessage(`Failed to get tables for ${schema.name}: ${error}`);
+        return [];
+      }
+    }
+
+    if (element.contextValue === 'table' && 'name' in element.itemData && 'schema' in element.itemData) {
+      const table = element.itemData as Table;
+      const cacheKey = `${table.connectionName}.${table.schema}.${table.name}`;
+      
+      if (this.columnsCache.has(cacheKey)) {
+        return this.columnsCache.get(cacheKey)!.map(column => {
+          const columnItem = new ConnectionItem(
+            `${column.name} (${column.type})`,
+            vscode.TreeItemCollapsibleState.None,
+            column,
+            'column'
+          );
+          columnItem.tooltip = `Column: ${column.name}, Type: ${column.type}`;
+          return columnItem;
+        });
+      }
+
+      try {
+        const columnsResponse = await this.getColumnsSummary(table.connectionName, table.schema, table.name);
+        const columns = this.parseColumnsSummary(columnsResponse, table);
+        this.columnsCache.set(cacheKey, columns);
+        return columns.map(column => {
+          const columnItem = new ConnectionItem(
+            `${column.name} (${column.type})`,
+            vscode.TreeItemCollapsibleState.None,
+            column,
+            'column'
+          );
+          columnItem.tooltip = `Column: ${column.name}, Type: ${column.type}`;
+          return columnItem;
+        });
+      } catch (error) {
+        vscode.window.showErrorMessage(`Failed to get columns for ${table.name}: ${error}`);
         return [];
       }
     }
@@ -256,6 +308,40 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || this.extensionPath;
     const command = new BruinDBTCommand("bruin", workspaceFolder);
     return command.getFetchTables(connectionName, database);
+  }
+
+  private async getColumnsSummary(connectionName: string, database: string, table: string): Promise<any> {
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || this.extensionPath;
+    const command = new BruinDBTCommand("bruin", workspaceFolder);
+    return command.getFetchColumns(connectionName, database, table);
+  }
+
+  private parseColumnsSummary(summary: any, table: Table): Column[] {
+    const columnsArray = Array.isArray(summary) ? summary : summary?.columns;
+
+    if (!Array.isArray(columnsArray)) {
+      throw new Error("Invalid columns summary format: not an array or object with a 'columns' property.");
+    }
+
+    return columnsArray.map(item => {
+      if (typeof item === 'string') {
+        return {
+          name: item,
+          type: 'unknown',
+          table: table.name,
+          schema: table.schema,
+          connectionName: table.connectionName
+        };
+      }
+      
+      return {
+        name: item.name || item.column_name || 'Unknown Column',
+        type: item.type || item.data_type || 'unknown',
+        table: table.name,
+        schema: table.schema,
+        connectionName: table.connectionName
+      };
+    });
   }
 
   private parseDbSummary(summary: any, connectionName: string): Schema[] {

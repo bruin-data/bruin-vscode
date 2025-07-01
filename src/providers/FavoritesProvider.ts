@@ -14,14 +14,22 @@ interface FavoriteTable {
   connectionName: string;
 }
 
-type FavoriteItemData = FavoriteConnection | SchemaFavorite | FavoriteTable;
+interface FavoriteColumn {
+  name: string;
+  type: string;
+  table: string;
+  schema: string;
+  connectionName: string;
+}
+
+type FavoriteItemData = FavoriteConnection | SchemaFavorite | FavoriteTable | FavoriteColumn;
 
 class FavoriteItem extends vscode.TreeItem {
   constructor(
     public readonly label: string,
     public readonly collapsibleState: vscode.TreeItemCollapsibleState,
     public readonly itemData: FavoriteItemData,
-    public readonly contextValue: 'favorite_connection' | 'favorite_schema' | 'favorite_table'
+    public readonly contextValue: 'favorite_connection' | 'favorite_schema' | 'favorite_table' | 'favorite_column'
   ) {
     super(label, collapsibleState);
     this.contextValue = contextValue;
@@ -44,6 +52,10 @@ class FavoriteItem extends vscode.TreeItem {
         title: 'Show Table Details',
         arguments: [table.name, table.schema, table.connectionName]
       };
+    } else if (this.contextValue === 'favorite_column') {
+      this.iconPath = new vscode.ThemeIcon('symbol-field');
+      const column = itemData as FavoriteColumn;
+      this.tooltip = `Column: ${column.name}, Type: ${column.type}`;
     }
   }
 }
@@ -55,6 +67,7 @@ export class FavoritesProvider implements vscode.TreeDataProvider<FavoriteItem> 
   private favorites: SchemaFavorite[] = [];
   private extensionPath: string;
   private tableCache = new Map<string, string[]>(); // Cache for tables per schema
+  private columnsCache = new Map<string, FavoriteColumn[]>(); // Cache for columns per table
 
   constructor() {
     this.extensionPath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
@@ -67,6 +80,7 @@ export class FavoritesProvider implements vscode.TreeDataProvider<FavoriteItem> 
 
   public refresh(): void {
     this.tableCache.clear();
+    this.columnsCache.clear();
     this.loadFavorites();
     this._onDidChangeTreeData.fire();
   }
@@ -145,7 +159,7 @@ export class FavoritesProvider implements vscode.TreeDataProvider<FavoriteItem> 
           };
           return new FavoriteItem(
             tableName,
-            vscode.TreeItemCollapsibleState.None,
+            vscode.TreeItemCollapsibleState.Collapsed,
             table,
             'favorite_table'
           );
@@ -168,13 +182,53 @@ export class FavoritesProvider implements vscode.TreeDataProvider<FavoriteItem> 
           };
           return new FavoriteItem(
             tableName,
-            vscode.TreeItemCollapsibleState.None,
+            vscode.TreeItemCollapsibleState.Collapsed,
             table,
             'favorite_table'
           );
         });
       } catch (error) {
         vscode.window.showErrorMessage(`Failed to get tables for ${schema.schemaName}: ${error}`);
+        return [];
+      }
+    }
+
+    if (element.contextValue === 'favorite_table') {
+      // Show columns under table
+      const table = element.itemData as FavoriteTable;
+      const cacheKey = `${table.connectionName}.${table.schema}.${table.name}`;
+      
+      // Check cache first
+      if (this.columnsCache.has(cacheKey)) {
+        const columns = this.columnsCache.get(cacheKey)!;
+        return columns.map(column => {
+          return new FavoriteItem(
+            `${column.name} (${column.type})`,
+            vscode.TreeItemCollapsibleState.None,
+            column,
+            'favorite_column'
+          );
+        });
+      }
+
+      try {
+        // Fetch columns using getFetchColumns method
+        const columnsResponse = await this.getColumnsSummary(table.connectionName, table.schema, table.name);
+        const columns = this.parseColumnsSummary(columnsResponse, table);
+        
+        // Cache the results
+        this.columnsCache.set(cacheKey, columns);
+        
+        return columns.map(column => {
+          return new FavoriteItem(
+            `${column.name} (${column.type})`,
+            vscode.TreeItemCollapsibleState.None,
+            column,
+            'favorite_column'
+          );
+        });
+      } catch (error) {
+        vscode.window.showErrorMessage(`Failed to get columns for ${table.name}: ${error}`);
         return [];
       }
     }
@@ -186,5 +240,39 @@ export class FavoritesProvider implements vscode.TreeDataProvider<FavoriteItem> 
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || this.extensionPath;
     const command = new BruinDBTCommand("bruin", workspaceFolder);
     return command.getFetchTables(connectionName, database);
+  }
+
+  private async getColumnsSummary(connectionName: string, database: string, table: string): Promise<any> {
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || this.extensionPath;
+    const command = new BruinDBTCommand("bruin", workspaceFolder);
+    return command.getFetchColumns(connectionName, database, table);
+  }
+
+  private parseColumnsSummary(summary: any, table: FavoriteTable): FavoriteColumn[] {
+    const columnsArray = Array.isArray(summary) ? summary : summary?.columns;
+
+    if (!Array.isArray(columnsArray)) {
+      throw new Error("Invalid columns summary format: not an array or object with a 'columns' property.");
+    }
+
+    return columnsArray.map(item => {
+      if (typeof item === 'string') {
+        return {
+          name: item,
+          type: 'unknown',
+          table: table.name,
+          schema: table.schema,
+          connectionName: table.connectionName
+        };
+      }
+      
+      return {
+        name: item.name || item.column_name || 'Unknown Column',
+        type: item.type || item.data_type || 'unknown',
+        table: table.name,
+        schema: table.schema,
+        connectionName: table.connectionName
+      };
+    });
   }
 } 
