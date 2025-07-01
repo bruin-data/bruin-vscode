@@ -1,4 +1,7 @@
 # Changelog
+## [0.54.1] - [2025-07-01]
+- Fixed the Bruin Panel rendering issue.
+
 ## [0.54.0] - [2025-07-01]
 - Added human-readable cron preview via CodeLens in pipeline YAML files.
 
