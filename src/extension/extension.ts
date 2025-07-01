@@ -332,6 +332,5 @@ export async function activate(context: ExtensionContext) {
   console.debug(`Bruin activated successfully in ${activationTime}ms`);
   console.timeEnd("Bruin Activation Total");
 
-  BruinPanel.render(context.extensionUri);
   TableDetailsPanel.initialize(context.subscriptions);
 }
