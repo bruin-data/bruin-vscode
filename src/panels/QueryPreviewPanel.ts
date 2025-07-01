@@ -338,6 +338,28 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
       });
     }
   }
+
+  // Safe method to focus the QueryPreview panel without recreating it
+  public static async focusSafely(): Promise<void> {
+    try {
+      // Use the proper VSCode command to focus the webview view
+      await vscode.commands.executeCommand(`${this.viewId}.focus`);
+    } catch (error) {
+      console.log("Panel not yet created, revealing panel container first");
+      try {
+        await vscode.commands.executeCommand('workbench.panel.QueryPreview.focus');
+        console.log("Panel container focused successfully");
+      } catch (fallbackError) {
+        try {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          await vscode.commands.executeCommand(`${this.viewId}.focus`);
+          console.log("Direct view focus successful");
+        } catch (finalError) {
+          console.warn("All focus methods failed:", finalError);
+        }
+      }
+    }
+  }
   private async _persistState(state: any) {
     if (!this._extensionContext) {
       throw new Error("Extension context not found");

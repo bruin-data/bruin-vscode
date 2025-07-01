@@ -55,6 +55,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.54.2**: Fixed the Query Preview Panel recreation on database load to prevent previous query output loss.
 - **0.54.1**: Fixed the Bruin Panel rendering issue.
 - **0.54.0**: Added human-readable cron preview via CodeLens in pipeline YAML files.
 - **0.53.2**: Relocated fill from DB buttons to the asset columns and materialization tabs and improved query output rendering.

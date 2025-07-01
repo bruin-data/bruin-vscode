@@ -7,6 +7,7 @@ import {
   WorkspaceEdit,
   commands,
 } from "vscode";
+import { QueryPreviewPanel } from "./QueryPreviewPanel";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -41,8 +42,8 @@ export class TableDetailsPanel {
           preview: false,
         });
         
-        // Open QueryPreview panel automatically
-        await commands.executeCommand('bruin.QueryPreviewView.focus');
+        // Safely focus QueryPreview panel without recreating it
+        await QueryPreviewPanel.focusSafely();
         return;
       }
       
@@ -83,8 +84,8 @@ export class TableDetailsPanel {
         preview: false,
       });
 
-      // Open QueryPreview panel automatically after opening the table
-      await commands.executeCommand('bruin.QueryPreviewView.focus');
+      // Safely focus QueryPreview panel without recreating it
+      await QueryPreviewPanel.focusSafely();
 
     } catch (error) {
       window.showErrorMessage(`Table details error: ${error}`);

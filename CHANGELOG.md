@@ -1,4 +1,7 @@
 # Changelog
+## [0.54.2] - [2025-07-01]
+- Fixed the Query Preview Panel recreation on database load to prevent previous query output loss.
+
 ## [0.54.1] - [2025-07-01]
 - Fixed the Bruin Panel rendering issue.
 
