@@ -260,7 +260,7 @@ export async function activate(context: ExtensionContext) {
           message: true,
           tabId: activeTabId,
         });
-        await commands.executeCommand('bruin.QueryPreviewView.focus');
+        await QueryPreviewPanel.focusSafely();
         await getQueryOutput("", "", uri, activeTabId);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
