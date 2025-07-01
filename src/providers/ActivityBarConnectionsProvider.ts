@@ -308,11 +308,12 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
       if (this.columnsCache.has(cacheKey)) {
         return this.columnsCache.get(cacheKey)!.map(column => {
           const columnItem = new ConnectionItem(
-            `${column.name} (${column.type})`,
+            column.name,
             vscode.TreeItemCollapsibleState.None,
             column,
             'column'
           );
+          columnItem.description = column.type;
           columnItem.tooltip = `Column: ${column.name}, Type: ${column.type}`;
           return columnItem;
         });
@@ -324,11 +325,12 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
         this.columnsCache.set(cacheKey, columns);
         return columns.map(column => {
           const columnItem = new ConnectionItem(
-            `${column.name} (${column.type})`,
+            column.name,
             vscode.TreeItemCollapsibleState.None,
             column,
             'column'
           );
+          columnItem.description = column.type;
           columnItem.tooltip = `Column: ${column.name}, Type: ${column.type}`;
           return columnItem;
         });
