@@ -261,7 +261,7 @@ export async function activate(context: ExtensionContext) {
           tabId: activeTabId,
         });
         await QueryPreviewPanel.focusSafely();
-        await getQueryOutput("", "", uri, activeTabId);
+        await getQueryOutput("", "", uri, activeTabId); 
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         vscode.window.showErrorMessage(`Error running query: ${errorMessage}`);
