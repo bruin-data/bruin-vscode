@@ -1,4 +1,4 @@
-name: Release to Open-VSX
+name: Release
 
 on:
   push:
