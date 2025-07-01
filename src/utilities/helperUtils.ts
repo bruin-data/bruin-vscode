@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import * as fs from "fs";
 import path = require("path");
 export const isEditorActive = (): boolean => !!vscode.window.activeTextEditor;
+import * as cronParser from "cron-parser";
 
 export interface Environment {
   name: string;
@@ -263,5 +264,76 @@ export const extractNonNullConnections = (json: any): Connection[] => {
   });
 
   return connections;
+};
+
+export const cronToHumanReadable = (cronExpression: string): string => {
+  // Handle predefined schedules
+  const predefinedSchedules = {
+    hourly: "Every hour",
+    daily: "Every day at midnight",
+    weekly: "Every Monday at midnight", 
+    monthly: "Every 1st of the month at midnight",
+    yearly: "Every January 1st at midnight"
+  };
+
+  if (cronExpression in predefinedSchedules) {
+    return predefinedSchedules[cronExpression as keyof typeof predefinedSchedules];
+  }
+
+  // Handle cron expressions
+  try {
+    const parsed = cronParser.parseExpression(cronExpression);
+    const fields = cronExpression.split(' ');
+    
+    if (fields.length !== 5) {
+      return `Invalid cron expression: ${cronExpression}`;
+    }
+
+    const [minute, hour, dayOfMonth, month, dayOfWeek] = fields;
+    
+    // Build human readable description
+    let description = "Run";
+    
+    // Handle frequency
+    if (dayOfWeek !== '*' && dayOfMonth === '*') {
+      // Weekly schedule
+      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const dayNumbers = dayOfWeek.split(',').map(d => parseInt(d));
+      const dayNames = dayNumbers.map(d => days[d]).join(', ');
+      description += ` every ${dayNames}`;
+    } else if (dayOfMonth !== '*' && dayOfWeek === '*') {
+      // Monthly schedule
+      if (dayOfMonth === '1') {
+        description += " on the 1st of every month";
+      } else if (dayOfMonth === '2') {
+        description += " on the 2nd of every month";
+      } else if (dayOfMonth === '3') {
+        description += " on the 3rd of every month";
+      } else {
+        description += ` on the ${dayOfMonth}th of every month`;
+      }
+    } else if (dayOfMonth === '*' && dayOfWeek === '*') {
+      // Daily schedule
+      description += " every day";
+    } else {
+      description += " on schedule";
+    }
+    
+    // Handle time
+    if (hour === '*' && minute === '*') {
+      description += " every minute";
+    } else if (hour === '*') {
+      description += minute === '0' ? " every hour" : ` at ${minute} minutes past every hour`;
+    } else {
+      const hourNum = parseInt(hour);
+      const minuteNum = parseInt(minute);
+      const time = `${hourNum.toString().padStart(2, '0')}:${minuteNum.toString().padStart(2, '0')}`;
+      description += ` at ${time}`;
+    }
+    
+    return description;
+  } catch (error) {
+    return `Invalid cron expression: ${cronExpression}`;
+  }
 };
 

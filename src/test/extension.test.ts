@@ -18,6 +18,7 @@ import {
   getFileExtension,
   extractNonNullConnections,
   prepareFlags,
+  cronToHumanReadable,
 } from "../utilities/helperUtils";
 import * as configuration from "../extension/configuration";
 import * as bruinUtils from "../bruin/bruinUtils";
@@ -5605,3 +5606,380 @@ suite(" Query export Tests", () => {
       });
 
     });
+
+  suite("cronToHumanReadable", () => {
+    suite("predefined schedules", () => {
+      test("should handle hourly schedule", () => {
+        const result = cronToHumanReadable("hourly");
+        assert.strictEqual(result, "Every hour");
+      });
+
+      test("should handle daily schedule", () => {
+        const result = cronToHumanReadable("daily");
+        assert.strictEqual(result, "Every day at midnight");
+      });
+
+      test("should handle weekly schedule", () => {
+        const result = cronToHumanReadable("weekly");
+        assert.strictEqual(result, "Every Monday at midnight");
+      });
+
+      test("should handle monthly schedule", () => {
+        const result = cronToHumanReadable("monthly");
+        assert.strictEqual(result, "Every 1st of the month at midnight");
+      });
+
+      test("should handle yearly schedule", () => {
+        const result = cronToHumanReadable("yearly");
+        assert.strictEqual(result, "Every January 1st at midnight");
+      });
+    });
+
+    suite("cron expressions", () => {
+      suite("daily schedules", () => {
+        test("should handle daily at specific time", () => {
+          const result = cronToHumanReadable("30 14 * * *");
+          assert.strictEqual(result, "Run every day at 14:30");
+        });
+
+        test("should handle daily at midnight", () => {
+          const result = cronToHumanReadable("0 0 * * *");
+          assert.strictEqual(result, "Run every day at 00:00");
+        });
+
+        test("should handle daily at different times", () => {
+          const result = cronToHumanReadable("15 9 * * *");
+          assert.strictEqual(result, "Run every day at 09:15");
+        });
+      });
+
+      suite("weekly schedules", () => {
+        test("should handle single day of week", () => {
+          const result = cronToHumanReadable("0 9 * * 1");
+          assert.strictEqual(result, "Run every Monday at 09:00");
+        });
+
+        test("should handle multiple days of week", () => {
+          const result = cronToHumanReadable("0 9 * * 1,3,5");
+          assert.strictEqual(result, "Run every Monday, Wednesday, Friday at 09:00");
+        });
+
+        test("should handle weekend schedule", () => {
+          const result = cronToHumanReadable("0 10 * * 0,6");
+          assert.strictEqual(result, "Run every Sunday, Saturday at 10:00");
+        });
+      });
+
+      suite("monthly schedules", () => {
+        test("should handle 1st of month", () => {
+          const result = cronToHumanReadable("0 0 1 * *");
+          assert.strictEqual(result, "Run on the 1st of every month at 00:00");
+        });
+
+        test("should handle 2nd of month", () => {
+          const result = cronToHumanReadable("0 12 2 * *");
+          assert.strictEqual(result, "Run on the 2nd of every month at 12:00");
+        });
+
+        test("should handle 3rd of month", () => {
+          const result = cronToHumanReadable("30 15 3 * *");
+          assert.strictEqual(result, "Run on the 3rd of every month at 15:30");
+        });
+
+        test("should handle other days of month", () => {
+          const result = cronToHumanReadable("0 8 15 * *");
+          assert.strictEqual(result, "Run on the 15th of every month at 08:00");
+        });
+      });
+
+      suite("hourly schedules", () => {
+        test("should handle every hour on the hour", () => {
+          const result = cronToHumanReadable("0 * * * *");
+          assert.strictEqual(result, "Run every day every hour");
+        });
+
+        test("should handle every hour at specific minute", () => {
+          const result = cronToHumanReadable("30 * * * *");
+          assert.strictEqual(result, "Run every day at 30 minutes past every hour");
+        });
+
+        test("should handle every hour at 15 minutes past", () => {
+          const result = cronToHumanReadable("15 * * * *");
+          assert.strictEqual(result, "Run every day at 15 minutes past every hour");
+        });
+      });
+
+      suite("edge cases", () => {
+        test("should handle every minute", () => {
+          const result = cronToHumanReadable("* * * * *");
+          assert.strictEqual(result, "Run every day every minute");
+        });
+
+        test("should handle complex schedule", () => {
+          const result = cronToHumanReadable("0 0 * * 0");
+          assert.strictEqual(result, "Run every Sunday at 00:00");
+        });
+      });
+    });
+
+    suite("invalid expressions", () => {
+      test("should handle invalid cron expression with wrong field count", () => {
+        const result = cronToHumanReadable("0 0 0");
+        assert.strictEqual(result, "Invalid cron expression: 0 0 0");
+      });
+
+      test("should handle invalid cron expression with too many fields", () => {
+        const result = cronToHumanReadable("0 0 0 0 0 0");
+        assert.strictEqual(result, "Invalid cron expression: 0 0 0 0 0 0");
+      });
+
+      test("should handle malformed cron expression", () => {
+        const result = cronToHumanReadable("invalid");
+        assert.strictEqual(result, "Invalid cron expression: invalid");
+      });
+
+      test("should handle empty string", () => {
+        const result = cronToHumanReadable("");
+        assert.strictEqual(result, "Invalid cron expression: ");
+      });
+
+      test("should handle invalid field values", () => {
+        const result = cronToHumanReadable("60 25 32 13 8");
+        assert.strictEqual(result, "Invalid cron expression: 60 25 32 13 8");
+      });
+    });
+  });
+
+  suite("ScheduleCodeLensProvider", () => {
+    let provider: any;
+    let mockDocument: any;
+    let mockToken: any;
+
+    setup(() => {
+      const { ScheduleCodeLensProvider } = require("../providers/scheduleCodeLensProvider");
+      provider = new ScheduleCodeLensProvider();
+      mockToken = {
+        isCancellationRequested: false
+      };
+    });
+
+    suite("provideCodeLenses", () => {
+      test("should return empty array for non-pipeline files", () => {
+        mockDocument = {
+          fileName: "test.yml",
+          getText: () => "schedule: '0 9 * * 1'"
+        };
+
+        const result = provider.provideCodeLenses(mockDocument, mockToken);
+        assert.strictEqual(result.length, 0);
+      });
+
+      test("should process pipeline.yml files", () => {
+        mockDocument = {
+          fileName: "pipeline.yml",
+          getText: () => "schedule: '0 9 * * 1'"
+        };
+
+        const result = provider.provideCodeLenses(mockDocument, mockToken);
+        assert.strictEqual(result.length, 1);
+        assert.strictEqual(result[0].command?.title, "Run every Monday at 09:00");
+        assert.strictEqual(result[0].command?.command, "");
+      });
+
+      test("should process pipeline.yaml files", () => {
+        mockDocument = {
+          fileName: "pipeline.yaml",
+          getText: () => "schedule: '0 0 * * *'"
+        };
+
+        const result = provider.provideCodeLenses(mockDocument, mockToken);
+        assert.strictEqual(result.length, 1);
+        assert.strictEqual(result[0].command?.title, "Run every day at 00:00");
+        assert.strictEqual(result[0].command?.command, "");
+      });
+
+      test("should handle multiple schedule entries", () => {
+        mockDocument = {
+          fileName: "pipeline.yml",
+          getText: () => `
+schedule: '0 9 * * 1'
+some_other_field: value
+schedule: 'daily'
+another_field: value
+schedule: '30 14 * * *'
+`
+        };
+
+        const result = provider.provideCodeLenses(mockDocument, mockToken);
+        assert.strictEqual(result.length, 3);
+        
+        assert.strictEqual(result[0].command?.title, "Run every Monday at 09:00");
+        assert.strictEqual(result[1].command?.title, "Every day at midnight");
+        assert.strictEqual(result[2].command?.title, "Run every day at 14:30");
+      });
+
+      test("should handle schedule with double quotes", () => {
+        mockDocument = {
+          fileName: "pipeline.yml",
+          getText: () => 'schedule: "0 12 * * 5"'
+        };
+
+        const result = provider.provideCodeLenses(mockDocument, mockToken);
+        assert.strictEqual(result.length, 1);
+        assert.strictEqual(result[0].command?.title, "Run every Friday at 12:00");
+      });
+
+      test("should handle schedule with single quotes", () => {
+        mockDocument = {
+          fileName: "pipeline.yml",
+          getText: () => "schedule: '0 8 1 * *'"
+        };
+
+        const result = provider.provideCodeLenses(mockDocument, mockToken);
+        assert.strictEqual(result.length, 1);
+        assert.strictEqual(result[0].command?.title, "Run on the 1st of every month at 08:00");
+      });
+
+      test("should handle schedule without quotes", () => {
+        mockDocument = {
+          fileName: "pipeline.yml",
+          getText: () => "schedule: hourly"
+        };
+
+        const result = provider.provideCodeLenses(mockDocument, mockToken);
+        assert.strictEqual(result.length, 1);
+        assert.strictEqual(result[0].command?.title, "Every hour");
+      });
+
+      test("should handle indented schedule fields", () => {
+        mockDocument = {
+          fileName: "pipeline.yml",
+          getText: () => `
+  schedule: '0 6 * * *'
+    schedule: '0 18 * * *'
+`
+        };
+
+        const result = provider.provideCodeLenses(mockDocument, mockToken);
+        assert.strictEqual(result.length, 2);
+        assert.strictEqual(result[0].command?.title, "Run every day at 06:00");
+        assert.strictEqual(result[1].command?.title, "Run every day at 18:00");
+      });
+
+      test("should handle invalid cron expressions", () => {
+        mockDocument = {
+          fileName: "pipeline.yml",
+          getText: () => "schedule: 'invalid-cron'"
+        };
+
+        const result = provider.provideCodeLenses(mockDocument, mockToken);
+        assert.strictEqual(result.length, 1);
+        assert.strictEqual(result[0].command?.title, "Invalid cron expression: invalid-cron");
+      });
+
+      test("should create correct range for schedule line", () => {
+        mockDocument = {
+          fileName: "pipeline.yml",
+          getText: () => `line1
+schedule: '0 9 * * 1'
+line3`
+        };
+
+        const result = provider.provideCodeLenses(mockDocument, mockToken);
+        assert.strictEqual(result.length, 1);
+        
+        // Check that the range is at line 1 (0-indexed)
+        assert.strictEqual(result[0].range.start.line, 1);
+        assert.strictEqual(result[0].range.start.character, 0);
+        assert.strictEqual(result[0].range.end.line, 1);
+        assert.strictEqual(result[0].range.end.character, 0);
+      });
+
+      test("should return empty array when cancellation is requested", () => {
+        mockDocument = {
+          fileName: "pipeline.yml",
+          getText: () => "schedule: '0 9 * * 1'"
+        };
+        
+        mockToken.isCancellationRequested = true;
+
+        const result = provider.provideCodeLenses(mockDocument, mockToken);
+        assert.strictEqual(result.length, 0);
+      });
+
+      test("should handle empty document", () => {
+        mockDocument = {
+          fileName: "pipeline.yml",
+          getText: () => ""
+        };
+
+        const result = provider.provideCodeLenses(mockDocument, mockToken);
+        assert.strictEqual(result.length, 0);
+      });
+
+      test("should handle document with no schedule fields", () => {
+        mockDocument = {
+          fileName: "pipeline.yml",
+          getText: () => `
+name: test-pipeline
+description: A test pipeline
+tasks:
+  - name: task1
+    type: sql
+`
+        };
+
+        const result = provider.provideCodeLenses(mockDocument, mockToken);
+        assert.strictEqual(result.length, 0);
+      });
+
+      test("should not match schedule in comments or other contexts", () => {
+        mockDocument = {
+          fileName: "pipeline.yml",
+          getText: () => `
+# This is a schedule: '0 9 * * 1' comment
+name: test
+  # Another schedule: 'daily' comment
+actual_schedule: not_a_schedule_field
+schedule: '0 12 * * *'
+`
+        };
+
+        const result = provider.provideCodeLenses(mockDocument, mockToken);
+        assert.strictEqual(result.length, 1);
+        assert.strictEqual(result[0].command?.title, "Run every day at 12:00");
+      });
+
+      test("should handle schedule field with extra whitespace", () => {
+        mockDocument = {
+          fileName: "pipeline.yml",
+          getText: () => "  schedule  :   '0 15 * * 2'  "
+        };
+
+        const result = provider.provideCodeLenses(mockDocument, mockToken);
+        assert.strictEqual(result.length, 1);
+        assert.strictEqual(result[0].command?.title, "Run every Tuesday at 15:00");
+      });
+
+      test("should handle predefined schedule types", () => {
+        mockDocument = {
+          fileName: "pipeline.yml",
+          getText: () => `
+schedule: hourly
+schedule: daily  
+schedule: weekly
+schedule: monthly
+schedule: yearly
+`
+        };
+
+        const result = provider.provideCodeLenses(mockDocument, mockToken);
+        assert.strictEqual(result.length, 5);
+        assert.strictEqual(result[0].command?.title, "Every hour");
+        assert.strictEqual(result[1].command?.title, "Every day at midnight");
+        assert.strictEqual(result[2].command?.title, "Every Monday at midnight");
+        assert.strictEqual(result[3].command?.title, "Every 1st of the month at midnight");
+        assert.strictEqual(result[4].command?.title, "Every January 1st at midnight");
+      });
+    });
+  });
