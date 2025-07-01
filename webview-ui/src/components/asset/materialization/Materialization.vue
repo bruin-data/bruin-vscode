@@ -239,7 +239,7 @@
                 class="text-xs flex-shrink-0"
                 title="Automatically fill dependencies from database schema"
               >
-                Fill from DB
+                Fill from Query
               </vscode-button>
             </div>
           </div>
