@@ -22,6 +22,7 @@ import { installOrUpdateCli } from "./commands/updateBruinCLI";
 import { QueryPreviewPanel } from "../panels/QueryPreviewPanel";
 import { BruinPanel } from "../panels/BruinPanel";
 import { QueryCodeLensProvider } from "../providers/queryCodeLensProvider";
+import { ScheduleCodeLensProvider } from "../providers/scheduleCodeLensProvider";
 import { getQueryOutput } from "./commands/queryCommands";
 import { ActivityBarConnectionsProvider } from "../providers/ActivityBarConnectionsProvider";
 import { isBruinAsset, isBruinPipeline } from "../utilities/helperUtils";
@@ -182,6 +183,13 @@ export async function activate(context: ExtensionContext) {
     new QueryCodeLensProvider()
   );
   context.subscriptions.push(codeLensProvider);
+
+  // Register the schedule code lens provider for pipeline.yml files
+  const scheduleCodeLensProvider = languages.registerCodeLensProvider(
+    { pattern: "**/pipeline.{yml,yaml}" },
+    new ScheduleCodeLensProvider()
+  );
+  context.subscriptions.push(scheduleCodeLensProvider);
 
   subscribeToConfigurationChanges();
 

@@ -1,4 +1,7 @@
 # Changelog
+## [0.54.0] - [2025-07-01]
+- Added human-readable cron preview via CodeLens in pipeline YAML files.
+
 ## [0.53.2] - [2025-06-30]
 - Relocated fill from DB buttons to the asset columns and materialization tabs and improved query output rendering.
 
