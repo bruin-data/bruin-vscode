@@ -1,0 +1,68 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        registry-url: 'https://registry.npmjs.org'
+
+    - name: Install dependencies
+      run: |
+        npm ci
+        npm run install:all
+
+    - name: Install vsce and ovsx
+      run: npm install -g @vscode/vsce ovsx
+
+    - name: Build extension
+      run: |
+        npm run compile
+        npm run build:webview
+
+    - name: Package extension
+      run: vsce package
+
+    - name: Get version from tag
+      id: get_version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+    - name: Publish to Open-VSX
+      run: ovsx publish bruin-${{ steps.get_version.outputs.VERSION }}.vsix -p ${{ secrets.OVSX_PAT }}
+      env:
+        OVSX_PAT: ${{ secrets.OVSX_PAT }}
+
+    - name: Create GitHub Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ steps.get_version.outputs.VERSION }}
+        draft: false
+        prerelease: false
+
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./bruin-${{ steps.get_version.outputs.VERSION }}.vsix
+        asset_name: bruin-${{ steps.get_version.outputs.VERSION }}.vsix
+        asset_content_type: application/zip
