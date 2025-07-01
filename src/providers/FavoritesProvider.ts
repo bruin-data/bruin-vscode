@@ -1,11 +1,12 @@
 import * as vscode from 'vscode';
-import { getSchemaFavorites, saveSchemaFavorites, SchemaFavorite, createFavoriteKey } from "../extension/configuration";
+import { getSchemaFavorites, saveSchemaFavorites, SchemaFavorite, createFavoriteKey, getTableFavorites, saveTableFavorites, TableFavorite, createTableFavoriteKey } from "../extension/configuration";
 import { BruinDBTCommand } from '../bruin/bruinDBTCommand';
 
 // Define interfaces for the hierarchical structure
 interface FavoriteConnection {
   name: string;
   schemas: SchemaFavorite[];
+  tables: TableFavorite[];
 }
 
 interface FavoriteTable {
@@ -65,6 +66,7 @@ export class FavoritesProvider implements vscode.TreeDataProvider<FavoriteItem> 
   readonly onDidChangeTreeData: vscode.Event<FavoriteItem | undefined | null | void> = this._onDidChangeTreeData.event;
 
   private favorites: SchemaFavorite[] = [];
+  private tableFavorites: TableFavorite[] = [];
   private extensionPath: string;
   private tableCache = new Map<string, string[]>(); // Cache for tables per schema
   private columnsCache = new Map<string, FavoriteColumn[]>(); // Cache for columns per table
@@ -76,6 +78,7 @@ export class FavoritesProvider implements vscode.TreeDataProvider<FavoriteItem> 
 
   private loadFavorites(): void {
     this.favorites = getSchemaFavorites();
+    this.tableFavorites = getTableFavorites();
   }
 
   public refresh(): void {
@@ -95,21 +98,45 @@ export class FavoritesProvider implements vscode.TreeDataProvider<FavoriteItem> 
     this._onDidChangeTreeData.fire();
   }
 
+  public async removeTableFavorite(favorite: TableFavorite): Promise<void> {
+    const favoriteKey = createTableFavoriteKey(favorite.tableName, favorite.schemaName, favorite.connectionName);
+    this.tableFavorites = this.tableFavorites.filter(f => 
+      createTableFavoriteKey(f.tableName, f.schemaName, f.connectionName) !== favoriteKey
+    );
+    
+    await saveTableFavorites(this.tableFavorites);
+    this._onDidChangeTreeData.fire();
+  }
+
   // Group favorites by connection name
   private groupFavoritesByConnection(): FavoriteConnection[] {
-    const connectionMap = new Map<string, SchemaFavorite[]>();
+    const connectionMap = new Map<string, FavoriteConnection>();
     
+    // Add schema favorites
     this.favorites.forEach(favorite => {
       if (!connectionMap.has(favorite.connectionName)) {
-        connectionMap.set(favorite.connectionName, []);
+        connectionMap.set(favorite.connectionName, {
+          name: favorite.connectionName,
+          schemas: [],
+          tables: []
+        });
       }
-      connectionMap.get(favorite.connectionName)!.push(favorite);
+      connectionMap.get(favorite.connectionName)!.schemas.push(favorite);
     });
 
-    return Array.from(connectionMap.entries()).map(([connectionName, schemas]) => ({
-      name: connectionName,
-      schemas: schemas
-    }));
+    // Add table favorites
+    this.tableFavorites.forEach(favorite => {
+      if (!connectionMap.has(favorite.connectionName)) {
+        connectionMap.set(favorite.connectionName, {
+          name: favorite.connectionName,
+          schemas: [],
+          tables: []
+        });
+      }
+      connectionMap.get(favorite.connectionName)!.tables.push(favorite);
+    });
+
+    return Array.from(connectionMap.values());
   }
 
   getTreeItem(element: FavoriteItem): vscode.TreeItem {
@@ -131,16 +158,36 @@ export class FavoritesProvider implements vscode.TreeDataProvider<FavoriteItem> 
     }
 
     if (element.contextValue === 'favorite_connection') {
-      // Show schemas under connection
+      // Show schemas and tables under connection
       const connection = element.itemData as FavoriteConnection;
-      return connection.schemas.map(schema => {
-        return new FavoriteItem(
-          schema.schemaName,
+      const items: FavoriteItem[] = [];
+      
+      // Add schema items
+      connection.schemas.forEach(schema => {
+        items.push(new FavoriteItem(
+          `[Schema] ${schema.schemaName}`,
           vscode.TreeItemCollapsibleState.Collapsed,
           schema,
           'favorite_schema'
-        );
+        ));
       });
+      
+      // Add table items
+      connection.tables.forEach(table => {
+        const tableItem: FavoriteTable = {
+          name: table.tableName,
+          schema: table.schemaName,
+          connectionName: table.connectionName
+        };
+        items.push(new FavoriteItem(
+          `[Table] ${table.schemaName}.${table.tableName}`,
+          vscode.TreeItemCollapsibleState.Collapsed,
+          tableItem,
+          'favorite_table'
+        ));
+      });
+      
+      return items;
     }
 
     if (element.contextValue === 'favorite_schema') {

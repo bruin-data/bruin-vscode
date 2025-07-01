@@ -298,6 +298,25 @@ export async function activate(context: ExtensionContext) {
         vscode.window.showErrorMessage(`Error removing favorite: ${errorMessage}`);
       }
     }),
+    commands.registerCommand("bruin.removeTableFavorite", async (item: any) => {
+      try {
+        trackEvent("Command Executed", { command: "removeTableFavorite" });
+        if (item && item.itemData && item.contextValue === 'favorite_table') {
+          const tableData = item.itemData as any;
+          const tableFavorite = {
+            tableName: tableData.name,
+            schemaName: tableData.schema,
+            connectionName: tableData.connectionName
+          };
+          await favoritesProvider.removeTableFavorite(tableFavorite);
+          activityBarConnectionsProvider.refresh();
+          vscode.window.showInformationMessage("Table favorite removed successfully!");
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error removing table favorite: ${errorMessage}`);
+      }
+    }),
     commands.registerCommand("bruin.addTableToFavorites", async (item: any) => {
       try {
         trackEvent("Command Executed", { command: "addTableToFavorites" });

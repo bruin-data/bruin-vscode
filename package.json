@@ -285,6 +285,11 @@
           "group": "inline" 
         },
         {
+          "command": "bruin.removeTableFavorite",
+          "when": "view == bruinFavorites && viewItem == 'favorite_table'",
+          "group": "inline" 
+        },
+        {
           "command": "bruin.addSchemaToFavorites",
           "when": "view == bruinConnections && viewItem == 'schema_unfavorite'",
           "group": "inline"
@@ -395,6 +400,13 @@
         "category": "Bruin",
         "icon": "$(star-full)",
         "description": "Remove table from favorites."
+      },
+      {
+        "command": "bruin.removeTableFavorite",
+        "title": "Remove Table Favorite",
+        "category": "Bruin",
+        "icon": "$(trash)",
+        "description": "Remove table from favorites list."
       }
     ]
   },
