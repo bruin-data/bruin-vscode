@@ -47,22 +47,3 @@ jobs:
       env:
         OVSX_PAT: ${{ secrets.OVSX_PAT }}
 
-    - name: Create GitHub Release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ steps.get_version.outputs.VERSION }}
-        draft: false
-        prerelease: false
-
-    - name: Upload Release Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./bruin-${{ steps.get_version.outputs.VERSION }}.vsix
-        asset_name: bruin-${{ steps.get_version.outputs.VERSION }}.vsix
-        asset_content_type: application/zip
