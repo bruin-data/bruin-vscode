@@ -36,7 +36,7 @@ import { getBruinExecutablePath } from "../providers/BruinExecutableService";
 import path = require("path");
 import { isBruinAsset } from "../utilities/helperUtils";
 
-import { getDefaultCheckboxSettings, getDefaultExcludeTag } from "../extension/configuration";
+import { getDefaultCheckboxSettings, getDefaultExcludeTag, getProjectName } from "../extension/configuration";
 import { exec } from "child_process";
 import { flowLineageCommand } from "../extension/commands/FlowLineageCommand";
 
@@ -94,6 +94,7 @@ export class BruinPanel {
         }
       }),
 
+
       window.onDidChangeActiveTextEditor(async (editor) => {
         console.log("onDidChangeActiveTextEditor", editor);
         if (editor && editor.document.uri) {
@@ -140,6 +141,16 @@ export class BruinPanel {
       BruinPanel.currentPanel._panel.webview.postMessage({
         command: name,
         payload: data,
+      });
+    }
+  }
+
+  public static notifyProjectNameChange(projectName: string) {
+    if (BruinPanel.currentPanel?._panel) {
+      console.log("Notifying BruinPanel of project name change:", projectName);
+      BruinPanel.currentPanel._panel.webview.postMessage({
+        command: "bruin.projectName",
+        projectName: projectName,
       });
     }
   }
@@ -647,6 +658,36 @@ export class BruinPanel {
           case "bruin.getPipelineAssets":
             console.log("Getting pipeline assets");
             flowLineageCommand(this._lastRenderedDocumentUri, "BruinPanel");
+            break;
+          case "bruin.openAssetUrl":
+            const url = message.url;
+            if (url) {
+              try {
+                console.log("Opening external URL:", url);
+                await vscode.env.openExternal(vscode.Uri.parse(url));
+              } catch (error) {
+                console.error("Error opening URL:", error);
+                vscode.window.showErrorMessage(`Failed to open URL: ${url}`);
+              }
+            }
+            break;
+          case "bruin.getProjectName":
+            const projectName = getProjectName();
+            this._panel.webview.postMessage({
+              command: "bruin.projectName",
+              projectName: projectName,
+            });
+            break;
+          case "bruin.setProjectName":
+            const newProjectName = message.projectName;
+            if (newProjectName) {
+              const config = workspace.getConfiguration("bruin");
+              await config.update("cloud.projectName", newProjectName, vscode.ConfigurationTarget.Global);
+              this._panel.webview.postMessage({
+                command: "bruin.projectNameSet",
+                success: true,
+              });
+            }
             break;
         }
       },

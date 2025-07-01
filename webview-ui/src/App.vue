@@ -58,18 +58,17 @@
               </div>
             </vscode-button>
 
-            <div class="flex items-center tags">
-              <DescriptionItem
-                v-if="assetType"
-                :value="assetType"
-                :className="assetDetailsProps?.type ? badgeClass.badgeStyle : badgeClass.grayBadge"
-              />
-              <DescriptionItem
-                v-if="displaySchedule"
-                :value="displaySchedule"
-                :className="badgeClass.grayBadge"
-                class="xs:flex hidden overflow-hidden truncate"
-              />
+            <div class="flex items-center gap-1">
+              <vscode-button
+                appearance="icon"
+                @click="openAssetInCloud"
+                :disabled="!canOpenInCloud"
+                class="flex-shrink-0 cloud-button"
+                :title="cloudButtonTitle"
+                id="cloud-button"
+              >
+                <span class="codicon codicon-globe text-base"></span>
+              </vscode-button>
             </div>
           </div>
         </div>
@@ -173,6 +172,9 @@ const handleMessage = (event: MessageEvent) => {
       case "environments-list-message":
         environments.value = updateValue(message, "success");
         connectionsStore.setDefaultEnvironment(selectedEnvironment.value);
+        break;
+      case "bruin.projectName":
+        projectName.value = message.projectName || '';
         break;
       case "clear-convert-message":
         console.log("In App.vue : clear-convert-message message received");
@@ -337,6 +339,9 @@ const hasIntervalModifiers = computed(() => {
 const isEditingName = ref(false);
 const editingName = ref(assetDetailsProps.value?.name || "");
 const nameInput = ref<HTMLInputElement | null>(null);
+
+// Cloud link functionality
+const projectName = ref('');
 
 const stopNameEditing = () => {
   console.log("Stopping name editing.");
@@ -503,6 +508,7 @@ onMounted(async () => {
   loadEnvironmentsList();
   vscode.postMessage({ command: "getLastRenderedDocument" });
   vscode.postMessage({ command: "bruin.checkBruinCLIVersion" });
+  vscode.postMessage({ command: "bruin.getProjectName" });
   // Track page view
   /* try {
     rudderStack.trackPageView("Asset Details Page", {
@@ -544,6 +550,7 @@ watch(activeTab, (newTab, oldTab) => {
   });
 });
 
+
 const updateDescription = (newDescription) => {
   console.log("Updating description with new data:", newDescription);
   if (assetDetailsProps.value) {
@@ -581,22 +588,52 @@ const updateAssetName = (newName) => {
     }
   });
 };
-const assetType = computed(() => {
-  if (isPipelineConfig.value) return "pipeline";
-  if (isBruinConfig.value) return "config";
-  return assetDetailsProps.value?.type || "";
+
+// Cloud link functionality
+const canOpenInCloud = computed(() => {
+  return projectName.value && 
+         assetDetailsProps.value?.name && 
+         assetDetailsProps.value?.pipeline?.name;
 });
 
-const commonBadgeStyle =
-  "inline-flex items-center rounded-md px-1 py-0.5 text-xs font-medium ring-1 ring-inset";
-
-const badgeClass = computed(() => {
-  const styleForType = badgeStyles[assetType.value] || defaultBadgeStyle;
-  return {
-    grayBadge: `${commonBadgeStyle} ${defaultBadgeStyle.main}`,
-    badgeStyle: `${commonBadgeStyle} ${styleForType.main}`,
-  };
+const pipelineName = computed(() => {
+  return assetDetailsProps.value?.pipeline?.name || '';
 });
+
+const cloudButtonTitle = computed(() => {
+  if (!projectName.value) {
+    return 'Set project name in VS Code settings (bruin.cloud.projectName) to open asset in Bruin Cloud';
+  }
+  if (!assetDetailsProps.value?.name) {
+    return 'Asset name required to open in Bruin Cloud';
+  }
+  if (!pipelineName.value) {
+    return 'Pipeline name required to open in Bruin Cloud';
+  }
+  return 'Open asset in Bruin Cloud';
+});
+
+const openAssetInCloud = () => {
+  if (!canOpenInCloud.value) {
+    return;
+  }
+  
+  const cloudUrl = `https://cloud.getbruin.com/projects/${projectName.value}/pipelines/${pipelineName.value}/assets/${assetDetailsProps.value?.name}`;
+  
+  vscode.postMessage({
+    command: 'bruin.openAssetUrl',
+    url: cloudUrl
+  });
+  
+  // Track the event
+  rudderStack.trackEvent("Cloud Asset Link Clicked", {
+    projectName: projectName.value,
+    pipelineName: pipelineName.value,
+    assetName: assetDetailsProps.value?.name,
+    cloudUrl: cloudUrl
+  });
+};
+
 
 const isTabActive = (index) => {
   return tabs.value[index].props && activeTab.value === index;
@@ -659,5 +696,10 @@ vscode-button .codicon {
 
 #asset-name-container.hover-background:hover {
   background-color: var(--vscode-input-background);
+}
+
+.cloud-button .codicon {
+  font-size: 14px !important;
+  padding: 0 !important;
 }
 </style>

@@ -18,6 +18,11 @@ export function getDefaultExcludeTag(): string {
   return config.get<string>("validate.defaultExcludeTag", "");
 }
 
+export function getProjectName(): string {
+  const config = vscode.workspace.getConfiguration("bruin");
+  return config.get<string>("cloud.projectName", "");
+}
+
 export function getPathSeparator(): string {
   const bruinConfig = vscode.workspace.getConfiguration("bruin");
   const pathSeparator = bruinConfig.get<string>("pathSeparator") || "/";
@@ -128,6 +133,12 @@ export function subscribeToConfigurationChanges() {
   vscode.workspace.onDidChangeConfiguration((e) => {
     if (e.affectsConfiguration("bruin.FoldingState")) {
       resetDocumentStates();
+    }
+    if (e.affectsConfiguration("bruin.cloud.projectName")) {
+      // Notify all BruinPanel instances of the project name change
+      const { BruinPanel } = require("../panels/BruinPanel");
+      const projectName = getProjectName();
+      BruinPanel.notifyProjectNameChange(projectName);
     }
   });
 }

@@ -163,6 +163,11 @@
           "type": "string",
           "default": "",
           "description": "Sets the validate exclude tag to be used with validation commands."
+        },
+        "bruin.cloud.projectName": {
+          "type": "string",
+          "default": "",
+          "description": "Bruin Cloud project name for opening assets in cloud links."
         }
       }
     },

@@ -3,8 +3,8 @@
     <div v-if="props !== null" class="flex flex-col text-editor-fg bg-editor-bg w-full">
       <div class="relative">
         <div
-          @mouseenter="showEditButton = true"
-          @mouseleave="!isEditingDescription ? (showEditButton = false) : null"
+          @mouseenter="handleMouseEnter"
+          @mouseleave="handleMouseLeave"
           :class="{ 'max-h-40 overflow-hidden': shouldTruncate && !isExpanded }"
         >
           <div
@@ -176,7 +176,6 @@ const saveDescriptionEdit = () => {
     // Only emit if there's an actual change
     if (normalizedDescription !== props.description) {
       emit("update:description", normalizedDescription);
-      console.log("Updating description:", normalizedDescription);
     }
   } catch (error) {
     console.error("Error saving description:", error);
@@ -204,7 +203,6 @@ const handleMessage = (event: MessageEvent) => {
   const message = event.data;
   switch (message.command) {
     case "patch-message":
-      console.log("Asset Details:", message.payload);
       break;
   }
 };
@@ -232,6 +230,24 @@ watch(
     editableDescription.value = newDescription;
   }
 );
+
+const handleMouseLeave = () => {
+  // Add a small delay to prevent flickering during testing
+  setTimeout(() => {
+    if (!isEditingDescription.value) {
+      showEditButton.value = false;
+    }
+  }, 100);
+};
+
+const handleMouseEnter = () => {
+  // Add a small delay to ensure the hover state is stable
+  setTimeout(() => {
+    if (!isEditingDescription.value) {
+      showEditButton.value = true;
+    }
+  }, 50);
+};
 </script>
 
 <style scoped>
