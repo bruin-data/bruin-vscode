@@ -55,6 +55,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.54.3**: Conditionally show the `Fill from Query` button based on whether the active file is a SQL file.
 - **0.54.2**: Fixed the Query Preview Panel recreation on database load to prevent previous query output loss.
 - **0.54.1**: Fixed the Bruin Panel rendering issue.
 - **0.54.0**: Added human-readable cron preview via CodeLens in pipeline YAML files.

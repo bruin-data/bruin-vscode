@@ -1,4 +1,6 @@
-# Changelog
+## [0.54.3] - [2025-07-02]
+- Conditionally show the "Fill from Query" button based on whether the active file is a SQL file.
+
 ## [0.54.2] - [2025-07-01]
 - Fixed the Query Preview Panel recreation on database load to prevent previous query output loss.
 
