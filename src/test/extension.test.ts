@@ -5758,7 +5758,7 @@ suite(" Query export Tests", () => {
         assert.ok(usersTableItem, "Should find users table");
         
         // Verify table properties
-        assert.strictEqual(usersTableItem.contextValue, 'table', "Table should have correct context value");
+        assert.strictEqual(usersTableItem.contextValue, 'table_unfavorite', "Table should have correct context value");
         assert.strictEqual(usersTableItem.collapsibleState, 1, "Table should be collapsible"); // TreeItemCollapsibleState.Collapsed = 1
         
         // Verify command is set correctly
@@ -5839,7 +5839,7 @@ suite(" Query export Tests", () => {
 
         // Check table item properties
         const tableItem = tableItems[0];
-        assert.strictEqual(tableItem.contextValue, 'table', "Table should have correct context value");
+        assert.strictEqual(tableItem.contextValue, 'table_unfavorite', "Table should have correct context value");
         assert.ok(tableItem.iconPath, "Table should have icon");
         assert.strictEqual(tableItem.collapsibleState, 1, "Table should be collapsible"); // TreeItemCollapsibleState.Collapsed = 1
 
@@ -5857,8 +5857,8 @@ suite(" Query export Tests", () => {
         assert.ok(orderHistoryItem, "Should find order_history table");
         
         // Verify both tables have correct context and command
-        assert.strictEqual(customerDataItem.contextValue, 'table', "customer_data should have table context");
-        assert.strictEqual(orderHistoryItem.contextValue, 'table', "order_history should have table context");
+        assert.strictEqual(customerDataItem.contextValue, 'table_unfavorite', "customer_data should have table context");
+        assert.strictEqual(orderHistoryItem.contextValue, 'table_unfavorite', "order_history should have table context");
         
         assert.ok(customerDataItem.command, "customer_data should have command");
         assert.ok(orderHistoryItem.command, "order_history should have command");
