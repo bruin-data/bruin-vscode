@@ -1,3 +1,6 @@
+## [0.54.4] - [2025-07-02]
+- Added support for additional seed asset types in snippets, schema and UI.
+
 ## [0.54.3] - [2025-07-02]
 - Conditionally show the "Fill from Query" button based on whether the active file is a SQL file.
 

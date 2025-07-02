@@ -55,6 +55,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.54.4**: Added support for additional seed asset types in snippets, schema and UI.
 - **0.54.3**: Conditionally show the `Fill from Query` button based on whether the active file is a SQL file.
 - **0.54.2**: Fixed the Query Preview Panel recreation on database load to prevent previous query output loss.
 - **0.54.1**: Fixed the Bruin Panel rendering issue.
@@ -71,23 +72,6 @@ Bruin is a unified analytics platform that enables data professionals to work en
 - **0.51.2**: Enabled auto-saving for materialization changes, removing the manual save button.
 - **0.51.1**: Fixed BQ connection updates and improved service account credential handling.
 - **0.51.0**: Added inline "Preview" button using CodeLens for top-level queries in the editor.
-- **0.50.8**: Added support for additional seed asset types in snippets, schema and UI.
-- **0.50.7**: Added utility to format bruin run commands in a readable multi-line format.
-- **0.50.6**: Improved tab rendering performance by switching to `v-if` and optimizing component caching, and cleaned up unused message handling code for better maintainability.
-- **0.50.5**: [Pre-release] This version is for testing improved tab rendering.
-- **0.50.4**: [Pre-release] This version is for testing improved tab rendering and code cleanup.
-- **0.50.3**: Fix vscode publishing issue.
-- **0.50.2**: Fix DateInput component to handle focus correctly and adjust SQL editor height.
-- **0.50.1**: Fix auto format on initial interval modifiers rendering.
-- **0.50.0**: Implement UI for adding and editing interval modifiers directly from the panel.
-- **0.49.3**: Remove redundant update columns to fix toggle primary key issue.
-- **0.49.2**: Cleaned the code and added detailed logging for patch asset command.
-- **0.49.1**: Added the checkboxes extension settings  to control default enabled/disabled state.
-- **0.49.0**: Added a checkbox to toggle the `--apply-interval-modifiers` flag, along with a warning when they are present in the asset but not enabled.
-- **0.48.3**: Improved `partition-by` input to support both column selection and manual text entry.
-- **0.48.2**: Updated `partition-by` and `cluster-by` to use a dropdown for selecting columns.
-- **0.48.1**: Add DDL strategy to materialization tab and save primary key changes immediately.
-- **0.48.0**: Add UI for Managing Owner and Tags in Materialization Tab.
 
 For a full changelog, see Bruin Extension [Changelog](https://marketplace.visualstudio.com/items/bruin.bruin/changelog).
 
