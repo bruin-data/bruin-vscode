@@ -52,7 +52,14 @@
             "pg.seed",
             "rs.seed",
             "sf.seed",
-            "synapse.seed"
+            "synapse.seed",
+            "looker",
+            "powerbi",
+            "qliksense",
+            "qlikview",
+            "sisense",
+            "domo",
+            "quicksight"
           ],
           "description": "The type of the asset"
         },
