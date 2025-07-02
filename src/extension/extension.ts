@@ -304,7 +304,11 @@ export async function activate(context: ExtensionContext) {
     commands.registerCommand("bruin.removeTableFavorite", async (item: any) => {
       try {
         trackEvent("Command Executed", { command: "removeTableFavorite" });
-        if (item && item.itemData && item.contextValue === "favorite_table") {
+        if (
+          item &&
+          item.itemData &&
+          (item.contextValue === "favorite_table" || item.contextValue === "favorite_table_starred")
+        ) {
           const tableData = item.itemData as any;
           const tableFavorite = {
             tableName: tableData.name,

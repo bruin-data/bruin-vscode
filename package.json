@@ -180,7 +180,10 @@
                 "type": "string"
               }
             },
-            "required": ["schemaName", "connectionName"]
+            "required": [
+              "schemaName",
+              "connectionName"
+            ]
           },
           "default": [],
           "description": "List of favorite schemas with their connection names."
@@ -200,7 +203,11 @@
                 "type": "string"
               }
             },
-            "required": ["tableName", "schemaName", "connectionName"]
+            "required": [
+              "tableName",
+              "schemaName",
+              "connectionName"
+            ]
           },
           "default": [],
           "description": "List of favorite tables with their schema and connection names."
@@ -276,18 +283,18 @@
         },
         {
           "command": "bruin.refreshFavorites",
-          "when": "view == bruinFavorites",  
+          "when": "view == bruinFavorites",
           "group": "navigation"
         },
         {
           "command": "bruin.removeFavorite",
           "when": "view == bruinFavorites && viewItem == 'favorite_schema'",
-          "group": "inline" 
+          "group": "inline"
         },
         {
           "command": "bruin.removeTableFavorite",
-          "when": "view == bruinFavorites && viewItem == 'favorite_table'",
-          "group": "inline" 
+          "when": "view == bruinFavorites && (viewItem == 'favorite_table' || viewItem == 'favorite_table_starred')",
+          "group": "inline"
         },
         {
           "command": "bruin.addSchemaToFavorites",
@@ -384,7 +391,7 @@
         "command": "bruin.removeFavorite",
         "title": "Remove Favorite",
         "category": "Bruin",
-        "icon": "$(trash)",
+        "icon": "$(star-full)",
         "description": "Remove favorite from list."
       },
       {
@@ -405,7 +412,7 @@
         "command": "bruin.removeTableFavorite",
         "title": "Remove Table Favorite",
         "category": "Bruin",
-        "icon": "$(trash)",
+        "icon": "$(star-full)",
         "description": "Remove table from favorites list."
       }
     ]
