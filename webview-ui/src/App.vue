@@ -225,11 +225,17 @@ const handleMessage = (event: MessageEvent) => {
             console.log("Bruin config parsed:", parsed);
             isBruinYml.value = true;
             activeTab.value = 3;
+            lastRenderedDocument.value = parsed.filePath;
             break;
+          }
+          // For all other asset types, update file path if available
+          if (parsed && parsed.filePath) {
+            lastRenderedDocument.value = parsed.filePath;
+          } else if (parsed && parsed.asset && parsed.asset.executable_file && parsed.asset.executable_file.path) {
+            lastRenderedDocument.value = parsed.asset.executable_file.path;
           }
           data.value = parsed;
         }
-        lastRenderedDocument.value = parsed;
 
         // Track asset parsing status
         rudderStack.trackEvent("Asset Parsing Status", {
@@ -250,6 +256,9 @@ const handleMessage = (event: MessageEvent) => {
       case "bruinCliVersionStatus":
         versionStatus.value = message.versionStatus;
         console.log("Bruin update status updated in App.vue:", versionStatus.value);
+        break;
+      case "file-changed":
+        lastRenderedDocument.value = message.filePath;
         break;
     }
   } catch (error) {
@@ -461,6 +470,7 @@ const tabs = ref([
       intervalModifiers: intervalModifiers.value,
       dependencies: transformedDependencies.value,
       pipelineAssets: pipelineAssets.value,
+      currentFilePath: lastRenderedDocument.value,
     })),
   },
   {
