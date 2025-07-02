@@ -234,6 +234,7 @@
 
               <!-- Fill from DB Button -->
               <vscode-button
+                v-if="isCurrentFileSql"
                 appearance="secondary"
                 @click="fillFromDB"
                 class="text-xs flex-shrink-0"
@@ -504,6 +505,10 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  currentFilePath: {
+    type: String,
+    default: "",
+  },
 });
 
 const owner = ref(props.owner || "");
@@ -530,6 +535,22 @@ const pipelineDepsContainer = ref(null);
 const externalDepsContainer = ref(null);
 const pipelineAssets = ref(props.pipelineAssets || []);
 const dropdownStyle = ref({});
+
+// Computed property to check if current file is SQL
+const isCurrentFileSql = computed(() => {
+  if (!props.currentFilePath) {
+    return false;
+  }
+  
+  let filePath = '';
+  if (typeof props.currentFilePath === 'string') {
+    filePath = props.currentFilePath;
+  } else if (props.currentFilePath && typeof props.currentFilePath === 'object') {
+    filePath = props.currentFilePath.filePath || '';
+  }
+  
+  return filePath.toLowerCase().endsWith('.sql');
+});
 
 let saveTimeout = null;
 

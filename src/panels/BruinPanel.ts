@@ -100,6 +100,13 @@ export class BruinPanel {
           this._lastRenderedDocumentUri = editor.document.uri;
 
           console.log("Document URI active text editor", this._lastRenderedDocumentUri);
+          
+          // Send current file path to webview
+          this._panel.webview.postMessage({
+            command: "file-changed",
+            filePath: this._lastRenderedDocumentUri.fsPath,
+          });
+          
           await this._handleAssetDetection(this._lastRenderedDocumentUri);
           renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri?.fsPath);
         }
