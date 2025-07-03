@@ -55,6 +55,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.55.0**: Added support for highlighting the asset path in the lineage view.
 - **0.54.4**: Added support for additional seed asset types in snippets, schema and UI.
 - **0.54.3**: Conditionally show the `Fill from Query` button based on whether the active file is a SQL file.
 - **0.54.2**: Fixed the Query Preview Panel recreation on database load to prevent previous query output loss.

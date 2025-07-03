@@ -1,3 +1,6 @@
+## [0.55.0] - [2025-07-03]
+- Added support for highlighting the asset path in the lineage view.
+
 ## [0.54.4] - [2025-07-02]
 - Added support for additional seed asset types in snippets, schema and UI.
 
