@@ -130,14 +130,27 @@ const showUpstreamIcon = computed(() =>
   isAsset.value && 
   props.data?.hasUpstreamForClicking && 
   !props.expandAllUpstreams && 
-  props.showExpandButtons
+  props.showExpandButtons &&
+  !isNodeUpstreamExpanded.value
 );
 const showDownstreamIcon = computed(() => 
   isAsset.value && 
   props.data?.hasDownstreamForClicking && 
   !props.expandAllDownstreams && 
-  props.showExpandButtons
+  props.showExpandButtons &&
+  !isNodeDownstreamExpanded.value
 );
+
+// Check if this specific node's dependencies are already expanded
+const isNodeUpstreamExpanded = computed(() => {
+  const nodeName = props.data.asset?.name;
+  return nodeName ? props.expandedNodes?.[`${nodeName}_upstream`] : false;
+});
+
+const isNodeDownstreamExpanded = computed(() => {
+  const nodeName = props.data.asset?.name;
+  return nodeName ? props.expandedNodes?.[`${nodeName}_downstream`] : false;
+});
 
 const assetClass = computed(() => `rounded w-56 ${props.status ? selectedStatusStyle.value : ''}`);
 

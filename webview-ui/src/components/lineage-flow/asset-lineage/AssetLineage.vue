@@ -441,9 +441,24 @@ const onAddUpstream = async (nodeId: string) => {
     props.assetDataset?.id ?? ""
   );
   
-  // Add new nodes/edges to current state
-  addNodes(newNodes);
-  addEdges(newEdges);
+  // Filter out nodes that already exist
+  const existingNodeIds = new Set(nodes.value.map(n => n.id));
+  const filteredNodes = newNodes.filter(node => !existingNodeIds.has(node.id));
+  const filteredEdges = newEdges.filter(edge => {
+    const existingEdgeIds = new Set(edges.value.map(e => e.id));
+    return !existingEdgeIds.has(edge.id);
+  });
+  
+  // Add only new nodes/edges to current state
+  if (filteredNodes.length > 0) {
+    addNodes(filteredNodes);
+  }
+  if (filteredEdges.length > 0) {
+    addEdges(filteredEdges);
+  }
+  
+  // Mark this node's upstream as expanded
+  expandedNodes.value[`${nodeId}_upstream`] = true;
   
   // Apply layout to all nodes and edges
   const layoutedData = await applyLayout();
@@ -477,9 +492,24 @@ const onAddDownstream = async (nodeId: string) => {
     props.pipelineData
   );
   
-  // Add new nodes/edges to current state
-  addNodes(newNodes);
-  addEdges(newEdges);
+  // Filter out nodes that already exist
+  const existingNodeIds = new Set(nodes.value.map(n => n.id));
+  const filteredNodes = newNodes.filter(node => !existingNodeIds.has(node.id));
+  const filteredEdges = newEdges.filter(edge => {
+    const existingEdgeIds = new Set(edges.value.map(e => e.id));
+    return !existingEdgeIds.has(edge.id);
+  });
+  
+  // Add only new nodes/edges to current state
+  if (filteredNodes.length > 0) {
+    addNodes(filteredNodes);
+  }
+  if (filteredEdges.length > 0) {
+    addEdges(filteredEdges);
+  }
+  
+  // Mark this node's downstream as expanded
+  expandedNodes.value[`${nodeId}_downstream`] = true;
   
   // Apply layout to all nodes and edges
   const layoutedData = await applyLayout();

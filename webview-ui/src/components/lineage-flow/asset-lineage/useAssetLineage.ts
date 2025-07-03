@@ -28,7 +28,7 @@ export const getAssetDataset = (
       pipeline: pipelineData.name,
       path: asset.definition_file.path,
       isFocusAsset: false,
-      hasUpstreamForClicking: asset.upstreams && asset.upstreams.length > 0,
+      hasUpstreamForClicking: asset.upstreams?.length > 0,
       hasDownstreamForClicking: false,
     };
   };
@@ -44,7 +44,8 @@ export const getAssetDataset = (
   }
 
   const getDownstreamAssets = (asset) => {
-    return pipelineData.assets.filter(a => a.upstreams.some(up => up.value === asset.name))
+    return pipelineData.assets
+      .filter(a => a.upstreams?.some(up => up.value === asset.name))
       .map(a => {
         const downstreams = deduceDownstream(a);
         return {
@@ -62,7 +63,8 @@ export const getAssetDataset = (
   const asset = findAssetById(assetId);
 
   if (!asset) {
-    throw new Error(`Asset with ID ${assetId} not found.`);
+    console.warn(`Asset with ID ${assetId} not found.`);
+    return null;
   }
 
   const upstreams = asset.upstreams.map(getUpstreamAsset).filter(Boolean);
