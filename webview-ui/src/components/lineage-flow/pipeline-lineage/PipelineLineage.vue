@@ -81,15 +81,73 @@ const emit = defineEmits<{
   }): void;
 }>();
 
+const getUpstreamNodesAndEdges = (nodeId: string, allEdges: Edge[]) => {
+  const upstreamNodes = new Set<string>([nodeId]);
+  const upstreamEdges = new Set<Edge>();
+  const queue = [nodeId];
+  const visited = new Set<string>([nodeId]);
+
+  while (queue.length > 0) {
+    const currentNodeId = queue.shift()!;
+    const incomingEdges = allEdges.filter((edge) => edge.target === currentNodeId);
+
+    for (const edge of incomingEdges) {
+      if (!visited.has(edge.source)) {
+        visited.add(edge.source);
+        upstreamNodes.add(edge.source);
+        queue.push(edge.source);
+      }
+      upstreamEdges.add(edge);
+    }
+  }
+
+  return { upstreamNodes, upstreamEdges };
+};
+
+const getDownstreamNodesAndEdges = (nodeId: string, allEdges: Edge[]) => {
+  const downstreamNodes = new Set<string>([nodeId]);
+  const downstreamEdges = new Set<Edge>();
+  const queue = [nodeId];
+  const visited = new Set<string>([nodeId]);
+
+  while (queue.length > 0) {
+    const currentNodeId = queue.shift()!;
+    const outgoingEdges = allEdges.filter((edge) => edge.source === currentNodeId);
+
+    for (const edge of outgoingEdges) {
+      if (!visited.has(edge.target)) {
+        visited.add(edge.target);
+        downstreamNodes.add(edge.target);
+        queue.push(edge.target);
+      }
+      downstreamEdges.add(edge);
+    }
+  }
+
+  return { downstreamNodes, downstreamEdges };
+};
+
 onNodeMouseEnter((event: NodeMouseEvent) => {
   const hoveredNode = event.node;
-  getNodes.value.forEach((node) => {
-    if (node.id !== hoveredNode.id) {
-      node.class = `${node.class || ''} faded`;
+  const allNodes = getNodes.value;
+  const allEdges = getEdges.value;
+
+  const { upstreamNodes, upstreamEdges } = getUpstreamNodesAndEdges(hoveredNode.id, allEdges);
+  const { downstreamNodes, downstreamEdges } = getDownstreamNodesAndEdges(hoveredNode.id, allEdges);
+
+  const highlightNodes = new Set([...upstreamNodes, ...downstreamNodes]);
+  const highlightEdges = new Set([...upstreamEdges, ...downstreamEdges]);
+
+  allNodes.forEach((node) => {
+    if (!highlightNodes.has(node.id)) {
+      node.class = `${node.class || ''} faded`.trim();
     }
   });
-  getEdges.value.forEach((edge) => {
-    edge.class = `${edge.class || ''} faded`;
+
+  allEdges.forEach((edge) => {
+    if (!highlightEdges.has(edge)) {
+      edge.class = `${edge.class || ''} faded`.trim();
+    }
   });
 });
 
