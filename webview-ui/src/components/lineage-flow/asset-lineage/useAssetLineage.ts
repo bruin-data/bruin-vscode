@@ -11,6 +11,7 @@ export const getAssetDataset = (
 
 
   const findAssetById = (id) => {
+    if (!id) return null;
     return pipelineData.assets.find(asset => asset.id === id);
   };
 
