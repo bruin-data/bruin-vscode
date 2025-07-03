@@ -629,8 +629,7 @@ suite("test lineage panel", () => {
     wrapper.vm.filterType = "all";
     wrapper.vm.expandAllUpstreams = true;
     wrapper.vm.expandAllDownstreams = true;
-    wrapper.vm.expandedUpstreamNodes = [{ id: "node-1" }];
-    wrapper.vm.expandedDownstreamNodes = [{ id: "node-2" }];
+    wrapper.vm.expandedNodes = { "node-1_upstream": true, "node-2_downstream": true };
 
     // Call handleDirectFilter with a proper event object
     await wrapper.vm.handleDirectFilter({ stopPropagation: () => {} });
@@ -639,8 +638,7 @@ suite("test lineage panel", () => {
     assert.equal(wrapper.vm.filterType, "direct");
     assert.isFalse(wrapper.vm.expandAllUpstreams);
     assert.isFalse(wrapper.vm.expandAllDownstreams);
-    assert.isEmpty(wrapper.vm.expandedUpstreamNodes);
-    assert.isEmpty(wrapper.vm.expandedDownstreamNodes);
+    assert.deepEqual(wrapper.vm.expandedNodes, {});
   });
 
   test("toggles expandAllUpstreams when toggleUpstream is called", async () => {
