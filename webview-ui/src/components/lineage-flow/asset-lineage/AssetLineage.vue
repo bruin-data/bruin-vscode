@@ -472,16 +472,8 @@ const onAddUpstream = async (nodeId: string) => {
   await nextTick();
   const { fitView } = useVueFlow();
   
-  // Find the newly added upstream nodes
-  const newUpstreamNodes = newNodes.map(node => node.id);
-  
-  // Fit view to show the clicked node and its new upstream nodes
-  fitView({ 
-    nodes: [nodeId, ...newUpstreamNodes],
-    padding: 0.3,
-    duration: 400,
-    includeHiddenNodes: false
-  });
+  // Use the exact same fit view as the control panel
+  fitView();
 };
 
 const onAddDownstream = async (nodeId: string) => {
@@ -523,16 +515,8 @@ const onAddDownstream = async (nodeId: string) => {
   await nextTick();
   const { fitView } = useVueFlow();
   
-  // Find the newly added downstream nodes
-  const newDownstreamNodes = newNodes.map(node => node.id);
-  
-  // Fit view to show the clicked node and its new downstream nodes
-  fitView({ 
-    nodes: [nodeId, ...newDownstreamNodes],
-    padding: 0.3,
-    duration: 400,
-    includeHiddenNodes: false
-  });
+  // Use the exact same fit view as the control panel
+  fitView();
 };
 
 /**
@@ -568,6 +552,8 @@ const handleDirectFilter = (event: Event) => {
   filterType.value = "direct";
   expandAllUpstreams.value = false;
   expandAllDownstreams.value = false;
+  // Clear expansion state when switching to direct dependencies
+  expandedNodes.value = {};
   // updateGraph will be called automatically via watcher
 };
 
