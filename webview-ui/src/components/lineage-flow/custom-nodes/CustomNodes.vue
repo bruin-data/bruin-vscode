@@ -126,8 +126,31 @@ const isAsset = computed(() => props.data.type === "asset");
 const assetHasUpstreams = computed(() => isAsset.value && props.data.asset?.hasUpstreams !== undefined);
 const assetHasDownstreams = computed(() => isAsset.value && props.data.asset?.hasDownstreams);
 
-const showUpstreamIcon = computed(() => isAsset.value && props.data?.hasUpstreamForClicking && !props.expandAllUpstreams);
-const showDownstreamIcon = computed(() => isAsset.value && props.data?.hasDownstreamForClicking && !props.expandAllDownstreams);
+const showUpstreamIcon = computed(() => 
+  isAsset.value && 
+  props.data?.hasUpstreamForClicking && 
+  !props.expandAllUpstreams && 
+  props.showExpandButtons &&
+  !isNodeUpstreamExpanded.value
+);
+const showDownstreamIcon = computed(() => 
+  isAsset.value && 
+  props.data?.hasDownstreamForClicking && 
+  !props.expandAllDownstreams && 
+  props.showExpandButtons &&
+  !isNodeDownstreamExpanded.value
+);
+
+// Check if this specific node's dependencies are already expanded
+const isNodeUpstreamExpanded = computed(() => {
+  const nodeName = props.data.asset?.name;
+  return nodeName ? props.expandedNodes?.[`${nodeName}_upstream`] : false;
+});
+
+const isNodeDownstreamExpanded = computed(() => {
+  const nodeName = props.data.asset?.name;
+  return nodeName ? props.expandedNodes?.[`${nodeName}_downstream`] : false;
+});
 
 const assetClass = computed(() => `rounded w-56 ${props.status ? selectedStatusStyle.value : ''}`);
 
