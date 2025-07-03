@@ -34,28 +34,13 @@ export const getAssetDataset = (
   };
 
   const deduceDownstream = (asset) => {
-    const downstreamMap = pipelineData.assets.reduce((map, a) => {
-      map[a.name] = new Set();
-      return map;
-    }, {});
-
-    pipelineData.assets.forEach(a => {
-      if (a.upstreams) {
-        a.upstreams.forEach(upstream => {
-          if (downstreamMap[upstream.value]) {
-            downstreamMap[upstream.value].add(a.name);
-          }
-        });
-      }
-    });
-
-    const assetDownstreams = downstreamMap[asset.name] || [];
-    const populatedDownstream = Array.from(assetDownstreams).map(name => ({
-      type: "asset",
-      value: name
-    }));
-
-     return populatedDownstream
+    // Simple O(n) lookup instead of building full map
+    return pipelineData.assets
+      .filter(a => a.upstreams?.some(up => up.value === asset.name))
+      .map(a => ({
+        type: "asset",
+        value: a.name
+      }));
   }
 
   // Bit hard to understand the complexity, optimize this 
