@@ -19,18 +19,17 @@ export const getAssetDataset = (
       return { name: upstream.value, external: true };
     }
     const asset = pipelineData.assets.find(asset => asset.name === upstream.value);
-    if (asset) {
-      return {
-        name: asset.name,
-        type: asset.type,
-        pipeline: pipelineData.name,
-        path: asset.definition_file.path,
-        isFocusAsset: false,
-        hasUpstreamForClicking: asset.upstreams && asset.upstreams.length > 0,
-        hasDownstreamForClicking: false,
-      };
-    }
-    return null;
+    if (!asset) return null;
+    
+    return {
+      name: asset.name,
+      type: asset.type,
+      pipeline: pipelineData.name,
+      path: asset.definition_file.path,
+      isFocusAsset: false,
+      hasUpstreamForClicking: asset.upstreams && asset.upstreams.length > 0,
+      hasDownstreamForClicking: false,
+    };
   };
 
   const deduceDownstream = (asset) => {
