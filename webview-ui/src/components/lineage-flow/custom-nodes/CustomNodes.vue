@@ -126,8 +126,18 @@ const isAsset = computed(() => props.data.type === "asset");
 const assetHasUpstreams = computed(() => isAsset.value && props.data.asset?.hasUpstreams !== undefined);
 const assetHasDownstreams = computed(() => isAsset.value && props.data.asset?.hasDownstreams);
 
-const showUpstreamIcon = computed(() => isAsset.value && props.data?.hasUpstreamForClicking && !props.expandAllUpstreams);
-const showDownstreamIcon = computed(() => isAsset.value && props.data?.hasDownstreamForClicking && !props.expandAllDownstreams);
+const showUpstreamIcon = computed(() => 
+  isAsset.value && 
+  props.data?.hasUpstreamForClicking && 
+  !props.expandAllUpstreams && 
+  props.showExpandButtons
+);
+const showDownstreamIcon = computed(() => 
+  isAsset.value && 
+  props.data?.hasDownstreamForClicking && 
+  !props.expandAllDownstreams && 
+  props.showExpandButtons
+);
 
 const assetClass = computed(() => `rounded w-56 ${props.status ? selectedStatusStyle.value : ''}`);
 
