@@ -34,7 +34,7 @@
           @addDownstream="onAddDownstream"
           @node-click="onNodeClick"
           :selected-node-id="selectedNodeId"
-          :show-expand-buttons="true"
+          :show-expand-buttons="filterType === 'direct'"
         />
       </template>
       
@@ -377,17 +377,18 @@ const updateGraph = async () => {
       // Pre-calculate layout positions to prevent flickering
       if (graphData.nodes.length > 0) {
         const layoutedGraphData = await applyLayout(graphData.nodes, graphData.edges);
+        
+        // Set nodes and edges with pre-calculated positions
         setNodes(layoutedGraphData.nodes);
         setEdges(layoutedGraphData.edges);
         
-        // Wait for DOM update, then show the graph and apply fitView
+        // Wait for DOM update, then show the graph
         await nextTick();
         isLayouting.value = false;
         
-        // Small delay to ensure graph is fully rendered before fitView
-        setTimeout(() => {
-          fitView({ padding: 0.2, duration: 200 });
-        }, 100);
+        // Apply fit view immediately after layouting is done
+        await nextTick();
+        fitView({ padding: 0.2, duration: 300 });
       } else {
         setNodes([]);
         setEdges([]);
@@ -432,28 +433,76 @@ const toggleNodeExpand = (nodeId: string) => {
 };
 
 const onAddUpstream = async (nodeId: string) => {
+  isLayouting.value = true;
+  
   const { nodes: newNodes, edges: newEdges } = generateGraphForUpstream(
     nodeId,
     props.pipelineData,
     props.assetDataset?.id ?? ""
   );
+  
+  // Add new nodes/edges to current state
   addNodes(newNodes);
   addEdges(newEdges);
-  // Apply layout to current nodes and edges (no params = use current state)
+  
+  // Apply layout to all nodes and edges
   const layoutedData = await applyLayout();
   setNodes(layoutedData.nodes);
+  setEdges(layoutedData.edges);
+  
+  await nextTick();
+  isLayouting.value = false;
+  
+  // Smart viewport adjustment to show new upstream nodes
+  await nextTick();
+  const { fitView } = useVueFlow();
+  
+  // Find the newly added upstream nodes
+  const newUpstreamNodes = newNodes.map(node => node.id);
+  
+  // Fit view to show the clicked node and its new upstream nodes
+  fitView({ 
+    nodes: [nodeId, ...newUpstreamNodes],
+    padding: 0.3,
+    duration: 400,
+    includeHiddenNodes: false
+  });
 };
 
 const onAddDownstream = async (nodeId: string) => {
+  isLayouting.value = true;
+  
   const { nodes: newNodes, edges: newEdges } = generateGraphForDownstream(
     nodeId,
     props.pipelineData
   );
+  
+  // Add new nodes/edges to current state
   addNodes(newNodes);
   addEdges(newEdges);
-  // Apply layout to current nodes and edges (no params = use current state)
+  
+  // Apply layout to all nodes and edges
   const layoutedData = await applyLayout();
   setNodes(layoutedData.nodes);
+  setEdges(layoutedData.edges);
+  
+  await nextTick();
+  isLayouting.value = false;
+  
+  // Smart viewport adjustment to show new downstream nodes
+  await nextTick();
+  const { fitView } = useVueFlow();
+  
+  // Find the newly added downstream nodes
+  const newDownstreamNodes = newNodes.map(node => node.id);
+  
+  // Fit view to show the clicked node and its new downstream nodes
+  fitView({ 
+    nodes: [nodeId, ...newDownstreamNodes],
+    padding: 0.3,
+    duration: 400,
+    includeHiddenNodes: false
+  });
 };
 
 /**
