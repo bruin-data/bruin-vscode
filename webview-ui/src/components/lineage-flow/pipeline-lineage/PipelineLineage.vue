@@ -43,7 +43,14 @@
 </template>
 
 <script setup lang="ts">
-import { PanelPosition, VueFlow, useVueFlow, type Edge, Panel } from "@vue-flow/core";
+import {
+  PanelPosition,
+  VueFlow,
+  useVueFlow,
+  type Edge,
+  Panel,
+  type NodeMouseEvent,
+} from "@vue-flow/core";
 import { Background } from "@vue-flow/background";
 import { Controls } from "@vue-flow/controls";
 import { MiniMap } from "@vue-flow/minimap";
@@ -63,9 +70,9 @@ const props = defineProps<{
   LineageError: string | null;
 }>();
 
-const { fitView } = useVueFlow();
+const { fitView, onNodeMouseEnter, onNodeMouseLeave, getNodes, getEdges } = useVueFlow();
 const selectedNodeId = ref<string | null>(null);
-  const emit = defineEmits<{
+const emit = defineEmits<{
   (e: 'showAssetView', data: {
     assetId?: string;
     assetDataset?: AssetDataset | null;
@@ -74,6 +81,30 @@ const selectedNodeId = ref<string | null>(null);
   }): void;
 }>();
 
+onNodeMouseEnter((event: NodeMouseEvent) => {
+  const hoveredNode = event.node;
+  getNodes.value.forEach((node) => {
+    if (node.id !== hoveredNode.id) {
+      node.class = `${node.class || ''} faded`;
+    }
+  });
+  getEdges.value.forEach((edge) => {
+    edge.class = `${edge.class || ''} faded`;
+  });
+});
+
+onNodeMouseLeave(() => {
+  getNodes.value.forEach((node) => {
+    if (node.class && typeof node.class === 'string') {
+      node.class = node.class.replace(/faded/g, '').trim();
+    }
+  });
+  getEdges.value.forEach((edge) => {
+    if (edge.class && typeof edge.class === 'string') {
+      edge.class = edge.class.replace(/faded/g, '').trim();
+    }
+  });
+});
 
 const handleViewSwitch = () => {
   emit('showAssetView', {
@@ -119,6 +150,12 @@ const onNodeClick = (nodeId: string) => {
 <style>
 @import "@vue-flow/core/dist/style.css";
 @import "@vue-flow/core/dist/theme-default.css";
+
+.vue-flow__node.faded,
+.vue-flow__edge.faded {
+  opacity: 0.3;
+  transition: opacity 0.2s ease-in-out;
+}
 
 .flow {
   @apply flex h-screen w-full p-0 !important;
