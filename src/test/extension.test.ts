@@ -1058,7 +1058,90 @@ suite("BruinLineage Tests", () => {
       message: error, // Ensure we send the error message
     });
   });
+
+  test("should correctly identify upstream and downstream nodes and edges for lineage", () => {
+    type Edge = { source: string; target: string };
+
+    const allEdges: Edge[] = [
+      { source: "1", target: "2" },
+      { source: "2", target: "3" },
+      { source: "2", target: "4" },
+      { source: "4", target: "5" },
+    ];
+
+    const getUpstreamNodesAndEdges = (nodeId: string, edges: Edge[]) => {
+      const upstreamNodes = new Set<string>([nodeId]);
+      const upstreamEdges = new Set<Edge>();
+      const queue = [nodeId];
+      const visited = new Set<string>([nodeId]);
+
+      while (queue.length > 0) {
+        const currentNodeId = queue.shift()!;
+        const incomingEdges = edges.filter((edge) => edge.target === currentNodeId);
+
+        for (const edge of incomingEdges) {
+          if (!visited.has(edge.source)) {
+            visited.add(edge.source);
+            upstreamNodes.add(edge.source);
+            queue.push(edge.source);
+          }
+          upstreamEdges.add(edge);
+        }
+      }
+
+      return { upstreamNodes, upstreamEdges };
+    };
+
+    const getDownstreamNodesAndEdges = (nodeId: string, edges: Edge[]) => {
+      const downstreamNodes = new Set<string>([nodeId]);
+      const downstreamEdges = new Set<Edge>();
+      const queue = [nodeId];
+      const visited = new Set<string>([nodeId]);
+
+      while (queue.length > 0) {
+        const currentNodeId = queue.shift()!;
+        const outgoingEdges = edges.filter((edge) => edge.source === currentNodeId);
+
+        for (const edge of outgoingEdges) {
+          if (!visited.has(edge.target)) {
+            visited.add(edge.target);
+            downstreamNodes.add(edge.target);
+            queue.push(edge.target);
+          }
+          downstreamEdges.add(edge);
+        }
+      }
+
+      return { downstreamNodes, downstreamEdges };
+    };
+
+    // Test upstream logic from a terminal node
+    const { upstreamNodes, upstreamEdges } = getUpstreamNodesAndEdges("5", allEdges);
+    assert.deepStrictEqual(new Set(upstreamNodes), new Set(["5", "4", "2", "1"]));
+    assert.deepStrictEqual(
+      new Set(upstreamEdges),
+      new Set([
+        { source: "4", target: "5" },
+        { source: "2", target: "4" },
+        { source: "1", target: "2" },
+      ])
+    );
+
+    // Test downstream logic from the root node
+    const { downstreamNodes, downstreamEdges } = getDownstreamNodesAndEdges("1", allEdges);
+    assert.deepStrictEqual(new Set(downstreamNodes), new Set(["1", "2", "3", "4", "5"]));
+    assert.deepStrictEqual(
+      new Set(downstreamEdges),
+      new Set([
+        { source: "1", target: "2" },
+        { source: "2", target: "3" },
+        { source: "2", target: "4" },
+        { source: "4", target: "5" },
+      ])
+    );
+  });
 });
+
 suite("Connection Management Tests", () => {
   let bruinWorkspaceDirectoryStub: sinon.SinonStub;
   let getConnectionsStub: sinon.SinonStub;
