@@ -95,12 +95,14 @@
     "views": {
       "bruin": [
         {
-          "id": "bruinConnections",
-          "name": "Databases"
+          "id": "bruinFavorites",
+          "name": "Favorites",
+          "collapsed": true
         },
         {
-          "id": "bruinFavorites",
-          "name": "Favorites"
+          "id": "bruinConnections",
+          "name": "Connections"
+          
         }
       ],
       "bruin-assetLineageView": [
@@ -283,8 +285,14 @@
         },
         {
           "command": "bruin.refreshSchema",
-          "when": "view == bruinConnections && (viewItem == 'schema_favorite' || viewItem == 'schema_unfavorite')",
-          "group": "inline"
+          "when": "view == bruinConnections && (viewItem == 'schema_favorite' || viewItem == 'schema_unfavorite') ",
+          "group": "inline@2"
+        },
+
+        {
+          "command": "bruin.refreshSchema",
+          "when": "view == bruinFavorites && (viewItem == 'favorite_schema' || viewItem == 'playground')",
+          "group": "inline@2"
         },
         {
           "command": "bruin.refreshFavorites",
@@ -294,32 +302,32 @@
         {
           "command": "bruin.removeFavorite",
           "when": "view == bruinFavorites && viewItem == 'favorite_schema'",
-          "group": "inline"
+          "group": "inline@1"
         },
         {
           "command": "bruin.removeTableFavorite",
           "when": "view == bruinFavorites && (viewItem == 'favorite_table' || viewItem == 'favorite_table_starred')",
-          "group": "inline"
+          "group": "inline@1"
         },
         {
           "command": "bruin.addSchemaToFavorites",
           "when": "view == bruinConnections && viewItem == 'schema_unfavorite'",
-          "group": "inline"
+          "group": "inline@1"
         },
         {
           "command": "bruin.removeSchemaFromFavorites",
           "when": "view == bruinConnections && viewItem == 'schema_favorite'",
-          "group": "inline"
+          "group": "inline@1"
         },
         {
           "command": "bruin.addTableToFavorites",
           "when": "view == bruinConnections && viewItem == 'table_unfavorite'",
-          "group": "inline"
+          "group": "inline@1"
         },
         {
           "command": "bruin.removeTableFromFavorites",
           "when": "view == bruinConnections && viewItem == 'table_favorite'",
-          "group": "inline"
+          "group": "inline@1"
         }
       ]
     },
