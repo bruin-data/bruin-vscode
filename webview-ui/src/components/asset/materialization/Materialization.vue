@@ -1,22 +1,18 @@
 <template>
   <div class="h-full w-full flex justify-center">
     <div class="flex flex-col gap-6 h-full w-full max-w-4xl pr-1">
-      
       <!-- Basic Information Section -->
       <div class="collapsible-section">
-        <div 
-          class="section-header"
-          @click="toggleSection('basicInfo')"
-        >
+        <div class="section-header" @click="toggleSection('basicInfo')">
           <div class="flex items-center justify-between w-full">
             <h2 class="text-sm font-medium text-editor-fg">Basic Information</h2>
-            <span 
+            <span
               class="codicon transition-transform duration-200"
               :class="expandedSections.basicInfo ? 'codicon-chevron-down' : 'codicon-chevron-right'"
             ></span>
           </div>
         </div>
-        
+
         <div v-if="expandedSections.basicInfo" class="section-content">
           <!-- Owner -->
           <div class="flex items-center gap-3">
@@ -41,10 +37,7 @@
                 />
               </template>
               <template v-else>
-                <span 
-                  id="owner-text"
-                  :class="owner ? '' : 'text-editor-fg opacity-60 italic'"
-                >
+                <span id="owner-text" :class="owner ? '' : 'text-editor-fg opacity-60 italic'">
                   {{ owner || "Click to set owner" }}
                 </span>
               </template>
@@ -95,16 +88,13 @@
 
       <!-- Dependencies Section -->
       <div class="collapsible-section overflow-visible">
-        <div 
-          class="section-header"
-          @click="toggleSection('dependencies')"
-        >
+        <div class="section-header" @click="toggleSection('dependencies')">
           <div class="flex items-center justify-between w-full">
             <div class="flex items-center gap-2">
               <h2 class="text-sm font-medium text-editor-fg">Dependencies</h2>
               <span
                 v-if="dependencies.length > 0"
-                class="inline-flex items-center justify-center w-5 h-5 text-2xs bg-badge-background text-badge-foreground rounded-full"
+                class="inline-flex items-center justify-center w-5 h-5 text-2xs bg-badge-bg text-editor-fg rounded-full"
               >
                 {{ dependencies.length }}
               </span>
@@ -121,14 +111,16 @@
                   <span>External</span>
                 </div>
               </div>
-              <span 
+              <span
                 class="codicon transition-transform duration-200"
-                :class="expandedSections.dependencies ? 'codicon-chevron-down' : 'codicon-chevron-right'"
+                :class="
+                  expandedSections.dependencies ? 'codicon-chevron-down' : 'codicon-chevron-right'
+                "
               ></span>
             </div>
           </div>
         </div>
-        
+
         <div v-if="expandedSections.dependencies" class="section-content overflow-visible">
           <!-- Current Dependencies Display -->
           <div class="field-group">
@@ -137,17 +129,26 @@
               <vscode-tag
                 v-for="(dep, index) in dependencies"
                 :key="index"
-                class="text-xs inline-flex items-center justify-center gap-1 cursor-pointer py-1"
-                @click="removeDependency(index)"
+                class="text-xs inline-flex items-center justify-center gap-1  py-1"
               >
-                <div class="text-xs flex items-center gap-2">
+                <div class="text-xs flex items-center gap-1">
                   <span
                     class="w-1.5 h-1.5 rounded-full flex-shrink-0"
                     :class="dep.isExternal ? 'bg-gray-500' : 'bg-blue-500'"
                     :title="`${dep.isExternal ? 'External' : 'Pipeline'}`"
                   ></span>
                   <span id="dependency-text">{{ dep.name }}</span>
-                  <span class="codicon codicon-close text-3xs flex items-center"></span>
+                  <span
+                    class="text-2xs px-1 py-0.5 opacity-70 italic rounded bg-badge-bg cursor-pointer transition-colors duration-150 hover:bg-editorWidget-bg"
+                    :title="`Mode: ${dep.mode || 'full'} (click to toggle)`"
+                    @click="toggleDependencyMode(index)"
+                  >
+                    {{ dep.mode || 'full' }}
+                  </span>
+                  <span
+                    @click="removeDependency(index)"
+                    class="codicon codicon-close text-3xs cursor-pointer flex items-center"
+                  ></span>
                 </div>
               </vscode-tag>
 
@@ -178,7 +179,10 @@
                 />
                 <span
                   class="absolute inset-y-0 right-0 flex items-center pr-2 cursor-pointer"
-                  @click="updateDropdownPosition(); isPipelineDepsOpen = !isPipelineDepsOpen"
+                  @click="
+                    updateDropdownPosition();
+                    isPipelineDepsOpen = !isPipelineDepsOpen;
+                  "
                 >
                   <span class="codicon codicon-chevron-down text-xs"></span>
                 </span>
@@ -189,7 +193,9 @@
                   :style="dropdownStyle"
                   @mousedown.prevent
                 >
-                  <div class="sticky top-0 bg-input-background border-b border-commandCenter-border px-3 py-2">
+                  <div
+                    class="sticky top-0 bg-input-background border-b border-commandCenter-border px-3 py-2"
+                  >
                     <input
                       v-model="pipelineSearchQuery"
                       placeholder="Search pipeline assets..."
@@ -209,7 +215,10 @@
                       <div class="flex items-center gap-2">
                         <span class="font-mono">{{ asset.name }}</span>
                       </div>
-                      <span v-if="isDependencyAdded(asset.name)" class="codicon codicon-check text-xs"></span>
+                      <span
+                        v-if="isDependencyAdded(asset.name)"
+                        class="codicon codicon-check text-xs"
+                      ></span>
                     </div>
 
                     <div
@@ -249,27 +258,27 @@
 
       <!-- Materialization Section -->
       <div class="collapsible-section">
-        <div 
-          class="section-header"
-          @click="toggleSection('materialization')"
-        >
+        <div class="section-header" @click="toggleSection('materialization')">
           <div class="flex items-center justify-between w-full">
             <div class="flex items-center gap-2">
               <h2 class="text-sm font-medium text-editor-fg">Materialization</h2>
-              <span 
+              <span
                 v-if="localMaterialization.type !== 'null'"
                 class="inline-flex items-center text-2xs text-editor-fg opacity-70"
               >
-                {{ localMaterialization.type }}{{ localMaterialization.strategy ? ` • ${localMaterialization.strategy}` : '' }}
+                {{ localMaterialization.type
+                }}{{ localMaterialization.strategy ? ` • ${localMaterialization.strategy}` : "" }}
               </span>
             </div>
-            <span 
+            <span
               class="codicon transition-transform duration-200"
-              :class="expandedSections.materialization ? 'codicon-chevron-down' : 'codicon-chevron-right'"
+              :class="
+                expandedSections.materialization ? 'codicon-chevron-down' : 'codicon-chevron-right'
+              "
             ></span>
           </div>
         </div>
-        
+
         <div v-if="expandedSections.materialization" class="section-content">
           <!-- Materialization Type -->
           <div class="field-group">
@@ -294,12 +303,14 @@
                 v-model="localMaterialization.strategy"
                 class="w-full max-w-[250px] bg-input-background text-input-foreground text-xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
               >
-                <option class="text-xs" value="create+replace">Create + Replace</option>
-                <option class="text-xs" value="delete+insert">Delete + Insert</option>
-                <option class="text-xs" value="append">Append</option>
-                <option class="text-xs" value="merge">Merge</option>
-                <option class="text-xs" value="time_interval">Time Interval</option>
-                <option class="text-xs" value="ddl">DDL</option>
+                <option
+                  v-for="strategy in strategyOptions"
+                  :key="strategy.value"
+                  :value="strategy.value"
+                  class="text-xs"
+                >
+                  {{ strategy.label }}
+                </option>
               </select>
             </div>
             <p class="text-xs text-editor-fg opacity-70 mt-1 w-full">
@@ -308,10 +319,7 @@
           </div>
 
           <!-- Strategy-specific Options -->
-          <div
-            v-if="showStrategyOptions"
-            class="strategy-options"
-          >
+          <div v-if="showStrategyOptions" class="strategy-options">
             <div v-if="localMaterialization.strategy === 'delete+insert'" class="field-group">
               <label class="field-label">Incremental Key</label>
               <input
@@ -329,10 +337,7 @@
               </div>
             </div>
 
-            <div
-              v-if="localMaterialization.strategy === 'time_interval'"
-              class="space-y-4"
-            >
+            <div v-if="localMaterialization.strategy === 'time_interval'" class="space-y-4">
               <div class="grid grid-cols-2 items-center gap-4">
                 <div class="field-group">
                   <label class="field-label">Incremental Key</label>
@@ -361,19 +366,16 @@
 
       <!-- Advanced Section -->
       <div class="collapsible-section">
-        <div 
-          class="section-header"
-          @click="toggleSection('advanced')"
-        >
+        <div class="section-header" @click="toggleSection('advanced')">
           <div class="flex items-center justify-between w-full">
             <h2 class="text-sm font-medium text-editor-fg">Advanced Settings</h2>
-            <span 
+            <span
               class="codicon transition-transform duration-200"
               :class="expandedSections.advanced ? 'codicon-chevron-down' : 'codicon-chevron-right'"
             ></span>
           </div>
         </div>
-        
+
         <div v-if="expandedSections.advanced" class="section-content">
           <!-- Interval Modifiers -->
           <div class="field-group">
@@ -401,7 +403,9 @@
                     class="w-1/2 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
                   >
                     <option value="" class="text-xs opacity-60" disabled>select unit...</option>
-                    <option v-for="unit in intervalUnits" :key="unit" :value="unit">{{ unit }}</option>
+                    <option v-for="unit in intervalUnits" :key="unit" :value="unit">
+                      {{ unit }}
+                    </option>
                   </select>
                 </div>
               </div>
@@ -428,7 +432,9 @@
                     class="w-1/2 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
                   >
                     <option value="" class="text-xs opacity-60" disabled>select unit...</option>
-                    <option v-for="unit in intervalUnits" :key="unit" :value="unit">{{ unit }}</option>
+                    <option v-for="unit in intervalUnits" :key="unit" :value="unit">
+                      {{ unit }}
+                    </option>
                   </select>
                 </div>
               </div>
@@ -436,7 +442,6 @@
           </div>
         </div>
       </div>
-
     </div>
   </div>
 </template>
@@ -450,7 +455,7 @@ const expandedSections = ref({
   basicInfo: true,
   dependencies: true,
   materialization: true,
-  advanced: false
+  advanced: false,
 });
 
 const toggleSection = (section) => {
@@ -521,7 +526,6 @@ const ownerInput = ref(null);
 const tagInput = ref(null);
 const isPartitionDropdownOpen = ref(false);
 const isClusterDropdownOpen = ref(false);
-const clusterInput = ref(null);
 const partitionContainer = ref(null);
 const clusterContainer = ref(null);
 
@@ -531,6 +535,7 @@ const dependencies = ref([...props.dependencies] || []);
 const isPipelineDepsOpen = ref(false);
 const pipelineSearchQuery = ref("");
 const externalDepInput = ref("");
+const newDependencyMode = ref("full");
 const pipelineDepsContainer = ref(null);
 const externalDepsContainer = ref(null);
 const pipelineAssets = ref(props.pipelineAssets || []);
@@ -541,15 +546,15 @@ const isCurrentFileSql = computed(() => {
   if (!props.currentFilePath) {
     return false;
   }
-  
-  let filePath = '';
-  if (typeof props.currentFilePath === 'string') {
+
+  let filePath = "";
+  if (typeof props.currentFilePath === "string") {
     filePath = props.currentFilePath;
-  } else if (props.currentFilePath && typeof props.currentFilePath === 'object') {
-    filePath = props.currentFilePath.filePath || '';
+  } else if (props.currentFilePath && typeof props.currentFilePath === "object") {
+    filePath = props.currentFilePath.filePath || "";
   }
-  
-  return filePath.toLowerCase().endsWith('.sql');
+
+  return filePath.toLowerCase().endsWith(".sql");
 });
 
 let saveTimeout = null;
@@ -566,6 +571,16 @@ const debouncedSave = () => {
 const intervalModifiers = ref(JSON.parse(JSON.stringify(props.intervalModifiers)));
 
 const intervalUnits = ["months", "days", "hours", "minutes", "seconds"];
+
+const strategyOptions = [
+  { value: "create+replace", label: "Create + Replace" },
+  { value: "delete+insert", label: "Delete + Insert" },
+  { value: "append", label: "Append" },
+  { value: "merge", label: "Merge" },
+  { value: "time_interval", label: "Time Interval" },
+  { value: "ddl", label: "DDL" },
+  { value: "scd2", label: "SCD2" },
+];
 
 const startIntervalValue = ref(0);
 const startIntervalUnit = ref("");
@@ -891,74 +906,6 @@ const setType = (type) => {
   }
 };
 
-const selectPartitionColumn = (columnName) => {
-  partitionInput.value = columnName;
-  localMaterialization.value.partition_by = columnName;
-  isPartitionDropdownOpen.value = false;
-
-  // Save changes immediately
-  debouncedSave();
-};
-
-const filteredPartitionColumns = computed(() => {
-  const query = partitionInput.value.toLowerCase();
-  if (!query || isPartitionDropdownOpen.value) {
-    return props.columns;
-  }
-  return props.columns.filter((column) => column.name.toLowerCase().includes(query));
-});
-
-const handlePartitionInput = () => {
-  localMaterialization.value.partition_by = partitionInput.value;
-  isPartitionDropdownOpen.value = true;
-
-  // Save changes immediately
-  debouncedSave();
-};
-
-const handlePartitionInputBlur = () => {
-  setTimeout(() => {
-    isPartitionDropdownOpen.value = false;
-  }, 100);
-};
-
-const handlePartitionEnter = () => {
-  isPartitionDropdownOpen.value = false;
-};
-
-const clusterInputValue = computed(() => {
-  return localMaterialization.value.cluster_by.join(", ") || "";
-});
-
-const toggleClusterColumn = (columnName) => {
-  if (!localMaterialization.value.cluster_by) {
-    localMaterialization.value.cluster_by = [];
-  }
-
-  const index = localMaterialization.value.cluster_by.indexOf(columnName);
-  if (index > -1) {
-    localMaterialization.value.cluster_by.splice(index, 1);
-  } else {
-    localMaterialization.value.cluster_by.push(columnName);
-  }
-
-  // Save changes immediately
-  debouncedSave();
-};
-
-const removeLastClusterColumn = () => {
-  if (localMaterialization.value.cluster_by.length > 0) {
-    localMaterialization.value.cluster_by.pop();
-
-    // Save changes immediately
-    debouncedSave();
-  }
-};
-
-const isColumnSelected = (columnName) => {
-  return localMaterialization.value.cluster_by?.includes(columnName);
-};
-
 const handleClickOutside = (event) => {
   if (partitionContainer.value && !partitionContainer.value.contains(event.target)) {
     isPartitionDropdownOpen.value = false;
@@ -966,11 +913,11 @@ const handleClickOutside = (event) => {
   if (clusterContainer.value && !clusterContainer.value.contains(event.target)) {
     isClusterDropdownOpen.value = false;
   }
-  
+
   // Handle pipeline dependencies dropdown
   if (pipelineDepsContainer.value && !pipelineDepsContainer.value.contains(event.target)) {
     // Also check if the click was on the fixed dropdown
-    const dropdownElement = document.querySelector('.fixed.z-\\[9999\\]');
+    const dropdownElement = document.querySelector(".fixed.z-\\[9999\\]");
     if (!dropdownElement || !dropdownElement.contains(event.target)) {
       isPipelineDepsOpen.value = false;
     }
@@ -1041,19 +988,18 @@ const filteredPipelineAssets = computed(() => {
   if (!query) {
     return pipelineAssets.value;
   }
-  
-  return pipelineAssets.value.filter((asset) => 
-    asset.name.toLowerCase().includes(query)
-  );
+
+  return pipelineAssets.value.filter((asset) => asset.name.toLowerCase().includes(query));
 });
 
 // Dependencies functions
 const addPipelineDependency = (asset) => {
-  if (!dependencies.value.some(dep => dep.name === asset.name)) {
+  if (!dependencies.value.some((dep) => dep.name === asset.name)) {
     dependencies.value.push({
       name: asset.name,
       isExternal: false,
-      type: 'asset',
+      type: "asset",
+      mode: newDependencyMode.value,
     });
     sendDependenciesUpdate();
   }
@@ -1063,11 +1009,12 @@ const addPipelineDependency = (asset) => {
 
 const addExternalDependency = () => {
   const depName = externalDepInput.value.trim();
-  if (depName && !dependencies.value.some(dep => dep.name === depName)) {
+  if (depName && !dependencies.value.some((dep) => dep.name === depName)) {
     dependencies.value.push({
       name: depName,
       isExternal: true,
-      type: 'external', 
+      type: "external",
+      mode: newDependencyMode.value,
     });
     sendDependenciesUpdate();
   }
@@ -1080,13 +1027,14 @@ const removeDependency = (index) => {
 };
 
 const isDependencyAdded = (assetName) => {
-  return dependencies.value.some(dep => dep.name === assetName);
+  return dependencies.value.some((dep) => dep.name === assetName);
 };
 
 const sendDependenciesUpdate = () => {
-  const upstreams = dependencies.value.map(dep => ({
-    type: dep.isExternal ? 'external' : 'asset',
+  const upstreams = dependencies.value.map((dep) => ({
+    type: dep.isExternal ? "external" : "asset",
     value: dep.name,
+    mode: dep.mode || "full",
   }));
 
   vscode.postMessage({
@@ -1096,6 +1044,13 @@ const sendDependenciesUpdate = () => {
     },
     source: "saveDependencies",
   });
+};
+
+const toggleDependencyMode = (index) => {
+  const dep = dependencies.value[index];
+  const newMode = dep.mode === "full" ? "symbolic" : "full";
+  dependencies.value[index].mode = newMode;
+  sendDependenciesUpdate();
 };
 
 const fillFromDB = () => {
@@ -1109,8 +1064,13 @@ const fillFromDB = () => {
 watch(
   () => props.dependencies,
   (newDeps) => {
-    console.log('Dependencies prop changed:', newDeps);
-    dependencies.value = [...newDeps] || [];
+    console.log("Dependencies prop changed:", newDeps);
+    dependencies.value = (newDeps || []).map(dep => ({
+      name: dep.value || dep.name,
+      isExternal: dep.type === 'external' || dep.type !== 'asset',
+      type: dep.type,
+      mode: dep.mode || 'full',
+    }));
   },
   { immediate: true, deep: true }
 );
@@ -1119,7 +1079,7 @@ watch(
 watch(
   () => props.pipelineAssets,
   (newPipelineAssets) => {
-    console.log('PipelineAssets prop changed, count:', newPipelineAssets?.length);
+    console.log("PipelineAssets prop changed, count:", newPipelineAssets?.length);
     pipelineAssets.value = [...newPipelineAssets] || [];
   },
   { immediate: true, deep: true }
@@ -1159,7 +1119,6 @@ const updateDropdownPosition = () => {
     };
   }
 };
-
 </script>
 
 <style scoped>

@@ -1,3 +1,6 @@
+## [0.55.1] - [2025-07-04]
+- Added support for dependency mode and SCD2 strategy.
+
 ## [0.55.0] - [2025-07-03]
 - Added support for highlighting the asset path in the lineage view.
 
@@ -100,7 +103,7 @@
 - Updated `partition-by` and `cluster-by` to use a dropdown for selecting columns.
 
 ## [0.48.1] - [2025-06-03]
-- Added DDL strategy to materialization tab and save primary key changes immediately.
+- Added DDL strategy to materialization and save primary key changes immediately.
 
 ## [0.48.0] - [2025-06-02]
 - Added UI for Managing Owner and Tags in Materialization Tab. 

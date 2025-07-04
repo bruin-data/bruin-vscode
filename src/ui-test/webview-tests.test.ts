@@ -230,7 +230,7 @@ describe("Bruin Webview Test", function () {
 
       // Find and click edit button
       const editButton = await driver.wait(
-        until.elementLocated(By.css('vscode-button[appearance="icon"]')),
+        until.elementLocated(By.id('description-edit')),
         10000 // Increase timeout
       );
       await editButton.click();

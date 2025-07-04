@@ -412,6 +412,7 @@ const transformedDependencies = computed(() => {
     name: upstream.value,
     isExternal: upstream.type === 'external' || upstream.type !== 'asset',
     type: upstream.type,
+    mode: upstream.mode || 'full',
   }));
   
   console.log('Transformed dependencies:', transformed);
