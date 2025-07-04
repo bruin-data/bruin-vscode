@@ -569,7 +569,7 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
     }
   }
 
-  private async getChildrenForTable(table: Table): Promise<Column[]> {
+  private async getChildrenForTable(table: Table): Promise<ConnectionItem[]> {
     const cacheKey = `${table.connectionName}.${table.schema}.${table.name}`;
 
     if (this.columnsCache.has(cacheKey)) {
@@ -609,5 +609,26 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
       vscode.window.showErrorMessage(`Failed to get columns for ${table.name}: ${error}`);
       return [];
     }
+  }
+
+  private parseTableSummary(summary: any, schema: Schema): Table[] {
+    const tablesArray = Array.isArray(summary) ? summary : summary?.tables;
+    if (!Array.isArray(tablesArray)) {
+      throw new Error("Invalid tables summary format: not an array or object with a 'tables' property.");
+    }
+    return tablesArray.map((item) => {
+      if (typeof item === "string") {
+        return {
+          name: item,
+          schema: schema.name,
+          connectionName: schema.connectionName,
+        };
+      }
+      return {
+        name: item.name || "Unknown Table",
+        schema: schema.name,
+        connectionName: schema.connectionName,
+      };
+    });
   }
 }
