@@ -115,7 +115,8 @@ function createNode(asset: Asset, isFocusAsset: boolean = false): Node {
         ...asset,
         isFocusAsset,
         hasUpstreams: Array.isArray(asset.upstreams) && asset.upstreams.length > 0,
-        hasDownstreams: Array.isArray(asset.downstreams) && asset.downstreams.length > 0
+        hasDownstreams: Array.isArray(asset.downstreams) && asset.downstreams.length > 0,
+        path: asset.definition_file?.path || asset.path 
       },
       hasUpstreamForClicking: asset.hasUpstreams,
       hasDownstreamForClicking: asset.hasDownstreams

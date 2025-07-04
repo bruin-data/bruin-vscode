@@ -23,6 +23,8 @@
     </Panel>
       <template #node-custom="nodeProps">
         <CustomNode
+          :expanded-nodes="expandedNodes"
+          @toggle-node-expand="toggleNodeExpand"
           :data="nodeProps.data"
           :label="nodeProps.data.label"
           :selected-node-id="selectedNodeId"
@@ -72,6 +74,12 @@ const props = defineProps<{
 
 const { fitView, onNodeMouseEnter, onNodeMouseLeave, getNodes, getEdges } = useVueFlow();
 const selectedNodeId = ref<string | null>(null);
+const expandedNodes = ref<{ [key: string]: boolean }>({});
+
+const toggleNodeExpand = (nodeId: string) => {
+  expandedNodes.value[nodeId] = !expandedNodes.value[nodeId];
+};
+
 const emit = defineEmits<{
   (e: 'showAssetView', data: {
     assetId?: string;
