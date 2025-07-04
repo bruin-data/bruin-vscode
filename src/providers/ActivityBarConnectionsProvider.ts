@@ -186,6 +186,17 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
     this._onDidChangeTreeData.fire();
   }
 
+  public refreshSchema(schema: Schema): void {
+    const tableCacheKey = `${schema.connectionName}.${schema.name}`;
+    this.databaseCache.delete(tableCacheKey);
+
+    const keysToDelete = Array.from(this.columnsCache.keys()).filter((key) =>
+      key.startsWith(`${schema.connectionName}.${schema.name}`)
+    );
+    keysToDelete.forEach((key) => this.columnsCache.delete(key));
+    this._onDidChangeTreeData.fire();
+  }
+
   // Toggle favorite status for a schema
   public async toggleSchemaFavorite(schema: Schema): Promise<void> {
     const favoriteKey = `${schema.connectionName}.${schema.name}`;
@@ -529,5 +540,74 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
         connectionName: connectionName,
       };
     });
+  }
+
+  private async getChildrenForConnection(connectionElement: ConnectionItem): Promise<Schema[]> {
+    const connection = connectionElement.itemData as ConnectionDisplayData;
+    if (this.databaseCache.has(connection.name)) {
+      return this.databaseCache.get(connection.name) || [];
+    }
+
+    try {
+      const summary = await this.getDatabaseSummary(connection.name);
+      const schemas = this.parseDbSummary(summary, connection.name);
+      this.databaseCache.set(connection.name, schemas);
+      return schemas;
+    } catch (error: any) {
+      vscode.window.showErrorMessage(`Error loading schemas: ${error.message}`);
+      return [];
+    }
+  }
+
+  private async getChildrenForSchema(schema: Schema): Promise<Table[]> {
+    try {
+      const summary = await this.getTablesSummary(schema.connectionName, schema.name);
+      return this.parseTableSummary(summary, schema);
+    } catch (error: any) {
+      vscode.window.showErrorMessage(`Error loading tables: ${error.message}`);
+      return [];
+    }
+  }
+
+  private async getChildrenForTable(table: Table): Promise<Column[]> {
+    const cacheKey = `${table.connectionName}.${table.schema}.${table.name}`;
+
+    if (this.columnsCache.has(cacheKey)) {
+      return this.columnsCache.get(cacheKey)!.map((column) => {
+        const columnItem = new ConnectionItem(
+          column.name,
+          vscode.TreeItemCollapsibleState.None,
+          column,
+          "column"
+        );
+        columnItem.description = column.type;
+        columnItem.tooltip = `Column: ${column.name}, Type: ${column.type}`;
+        return columnItem;
+      });
+    }
+
+    try {
+      const columnsResponse = await this.getColumnsSummary(
+        table.connectionName,
+        table.schema,
+        table.name
+      );
+      const columns = this.parseColumnsSummary(columnsResponse, table);
+      this.columnsCache.set(cacheKey, columns);
+      return columns.map((column) => {
+        const columnItem = new ConnectionItem(
+          column.name,
+          vscode.TreeItemCollapsibleState.None,
+          column,
+          "column"
+        );
+        columnItem.description = column.type;
+        columnItem.tooltip = `Column: ${column.name}, Type: ${column.type}`;
+        return columnItem;
+      });
+    } catch (error) {
+      vscode.window.showErrorMessage(`Failed to get columns for ${table.name}: ${error}`);
+      return [];
+    }
   }
 }

@@ -227,6 +227,18 @@ export async function activate(context: ExtensionContext) {
         vscode.window.showErrorMessage(`Error refreshing connection: ${errorMessage}`);
       }
     }),
+    commands.registerCommand("bruin.refreshSchema", (item: any) => {
+      try {
+        trackEvent("Command Executed", { command: "refreshSchema" });
+        if (item && item.itemData) {
+          activityBarConnectionsProvider.refreshSchema(item.itemData);
+          vscode.window.showInformationMessage(`Schema ${item.itemData.name} refreshed.`);
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error refreshing schema: ${errorMessage}`);
+      }
+    }),
     commands.registerCommand("bruin.showConnectionDetails", (connection: any) => {
       try {
         trackEvent("Command Executed", { command: "showConnectionDetails" });
