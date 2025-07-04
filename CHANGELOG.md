@@ -1,3 +1,8 @@
+# Changelog
+
+## [0.55.2] - [2025-07-04]
+- Fixed asset node Click navigation & long name expansion in Lineage view.
+
 ## [0.55.1] - [2025-07-04]
 - Added support for dependency mode and SCD2 strategy.
 
