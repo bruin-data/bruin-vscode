@@ -94,7 +94,7 @@
               <h2 class="text-sm font-medium text-editor-fg">Dependencies</h2>
               <span
                 v-if="dependencies.length > 0"
-                class="inline-flex items-center justify-center w-5 h-5 text-2xs bg-badge-background text-badge-foreground rounded-full"
+                class="inline-flex items-center justify-center w-5 h-5 text-2xs bg-badge-bg text-editor-fg rounded-full"
               >
                 {{ dependencies.length }}
               </span>
@@ -131,13 +131,20 @@
                 :key="index"
                 class="text-xs inline-flex items-center justify-center gap-1  py-1"
               >
-                <div class="text-xs flex items-center gap-2">
+                <div class="text-xs flex items-center gap-1">
                   <span
                     class="w-1.5 h-1.5 rounded-full flex-shrink-0"
                     :class="dep.isExternal ? 'bg-gray-500' : 'bg-blue-500'"
                     :title="`${dep.isExternal ? 'External' : 'Pipeline'}`"
                   ></span>
                   <span id="dependency-text">{{ dep.name }}</span>
+                  <span
+                    class="text-2xs px-1 py-0.5 opacity-70 italic rounded bg-badge-bg cursor-pointer transition-colors duration-150 hover:bg-editorWidget-bg"
+                    :title="`Mode: ${dep.mode || 'full'} (click to toggle)`"
+                    @click="toggleDependencyMode(index)"
+                  >
+                    {{ dep.mode || 'full' }}
+                  </span>
                   <span
                     @click="removeDependency(index)"
                     class="codicon codicon-close text-3xs cursor-pointer flex items-center"
@@ -526,6 +533,7 @@ const dependencies = ref([...props.dependencies] || []);
 const isPipelineDepsOpen = ref(false);
 const pipelineSearchQuery = ref("");
 const externalDepInput = ref("");
+const newDependencyMode = ref("full");
 const pipelineDepsContainer = ref(null);
 const externalDepsContainer = ref(null);
 const pipelineAssets = ref(props.pipelineAssets || []);
@@ -979,6 +987,7 @@ const addPipelineDependency = (asset) => {
       name: asset.name,
       isExternal: false,
       type: "asset",
+      mode: newDependencyMode.value,
     });
     sendDependenciesUpdate();
   }
@@ -993,6 +1002,7 @@ const addExternalDependency = () => {
       name: depName,
       isExternal: true,
       type: "external",
+      mode: newDependencyMode.value,
     });
     sendDependenciesUpdate();
   }
@@ -1012,6 +1022,7 @@ const sendDependenciesUpdate = () => {
   const upstreams = dependencies.value.map((dep) => ({
     type: dep.isExternal ? "external" : "asset",
     value: dep.name,
+    mode: dep.mode || "full",
   }));
 
   vscode.postMessage({
@@ -1021,6 +1032,13 @@ const sendDependenciesUpdate = () => {
     },
     source: "saveDependencies",
   });
+};
+
+const toggleDependencyMode = (index) => {
+  const dep = dependencies.value[index];
+  const newMode = dep.mode === "full" ? "symbolic" : "full";
+  dependencies.value[index].mode = newMode;
+  sendDependenciesUpdate();
 };
 
 const fillFromDB = () => {
@@ -1035,7 +1053,12 @@ watch(
   () => props.dependencies,
   (newDeps) => {
     console.log("Dependencies prop changed:", newDeps);
-    dependencies.value = [...newDeps] || [];
+    dependencies.value = (newDeps || []).map(dep => ({
+      name: dep.value || dep.name,
+      isExternal: dep.type === 'external' || dep.type !== 'asset',
+      type: dep.type,
+      mode: dep.mode || 'full',
+    }));
   },
   { immediate: true, deep: true }
 );
