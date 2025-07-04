@@ -303,12 +303,14 @@
                 v-model="localMaterialization.strategy"
                 class="w-full max-w-[250px] bg-input-background text-input-foreground text-xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
               >
-                <option class="text-xs" value="create+replace">Create + Replace</option>
-                <option class="text-xs" value="delete+insert">Delete + Insert</option>
-                <option class="text-xs" value="append">Append</option>
-                <option class="text-xs" value="merge">Merge</option>
-                <option class="text-xs" value="time_interval">Time Interval</option>
-                <option class="text-xs" value="ddl">DDL</option>
+                <option
+                  v-for="strategy in strategyOptions"
+                  :key="strategy.value"
+                  :value="strategy.value"
+                  class="text-xs"
+                >
+                  {{ strategy.label }}
+                </option>
               </select>
             </div>
             <p class="text-xs text-editor-fg opacity-70 mt-1 w-full">
@@ -569,6 +571,16 @@ const debouncedSave = () => {
 const intervalModifiers = ref(JSON.parse(JSON.stringify(props.intervalModifiers)));
 
 const intervalUnits = ["months", "days", "hours", "minutes", "seconds"];
+
+const strategyOptions = [
+  { value: "create+replace", label: "Create + Replace" },
+  { value: "delete+insert", label: "Delete + Insert" },
+  { value: "append", label: "Append" },
+  { value: "merge", label: "Merge" },
+  { value: "time_interval", label: "Time Interval" },
+  { value: "ddl", label: "DDL" },
+  { value: "scd2", label: "SCD2" },
+];
 
 const startIntervalValue = ref(0);
 const startIntervalUnit = ref("");
