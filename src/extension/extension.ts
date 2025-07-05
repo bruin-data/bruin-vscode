@@ -219,8 +219,11 @@ export async function activate(context: ExtensionContext) {
       try {
         trackEvent("Command Executed", { command: "refreshConnection" });
         if (item && item.itemData && item.itemData.name) {
-          activityBarConnectionsProvider.refreshConnection(item.itemData.name);
-          vscode.window.showInformationMessage(`Connection ${item.itemData.name} refreshed.`);
+          // Pass environment information if available
+          const environment = item.itemData.environment;
+          activityBarConnectionsProvider.refreshConnection(item.itemData.name, environment);
+          const envText = environment ? ` (${environment})` : '';
+          vscode.window.showInformationMessage(`Connection ${item.itemData.name}${envText} refreshed.`);
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
@@ -326,6 +329,7 @@ export async function activate(context: ExtensionContext) {
             tableName: tableData.name,
             schemaName: tableData.schema,
             connectionName: tableData.connectionName,
+            environment: tableData.environment,
           };
           await favoritesProvider.removeTableFavorite(tableFavorite);
           activityBarConnectionsProvider.refresh();

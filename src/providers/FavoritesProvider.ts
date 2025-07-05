@@ -10,10 +10,13 @@ import {
   createTableFavoriteKey,
 } from "../extension/configuration";
 import { BruinDBTCommand } from "../bruin/bruinDBTCommand";
+import { BruinConnections } from "../bruin/bruinConnections";
+import { Connection } from "../utilities/helperUtils";
 
 // Define interfaces for the hierarchical structure
 interface FavoriteConnection {
   name: string;
+  environment: string;
   schemas: SchemaFavorite[];
   tables: TableFavorite[];
 }
@@ -22,6 +25,7 @@ interface FavoriteTable {
   name: string;
   schema: string;
   connectionName: string;
+  environment?: string;
 }
 
 interface FavoriteColumn {
@@ -30,6 +34,7 @@ interface FavoriteColumn {
   table: string;
   schema: string;
   connectionName: string;
+  environment?: string;
 }
 
 type FavoriteItemData = FavoriteConnection | SchemaFavorite | FavoriteTable | FavoriteColumn;
@@ -54,7 +59,9 @@ class FavoriteItem extends vscode.TreeItem {
     // Set appropriate icons
     if (this.contextValue === "favorite_connection") {
       this.iconPath = new vscode.ThemeIcon("plug");
-      this.tooltip = `Connection: ${label}`;
+      const connection = itemData as FavoriteConnection;
+      this.description = connection.environment; // Show environment as description
+      this.tooltip = `Connection: ${connection.name} (${connection.environment})`;
     } else if (
       this.contextValue === "favorite_schema" ||
       this.contextValue === "schema_with_table_favorites"
@@ -96,10 +103,15 @@ export class FavoritesProvider implements vscode.TreeDataProvider<FavoriteItem> 
   private extensionPath: string;
   private tableCache = new Map<string, string[]>(); // Cache for tables per schema
   private columnsCache = new Map<string, FavoriteColumn[]>(); // Cache for columns per table
+  private connections: Connection[] = []; // Store connection data for environment info
+  private bruinConnections: BruinConnections;
 
   constructor() {
     this.extensionPath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || "";
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || this.extensionPath;
+    this.bruinConnections = new BruinConnections("bruin", workspaceFolder);
     this.loadFavorites();
+    this.loadConnections();
   }
 
   private loadFavorites(): void {
@@ -107,17 +119,38 @@ export class FavoritesProvider implements vscode.TreeDataProvider<FavoriteItem> 
     this.tableFavorites = getTableFavorites();
   }
 
+  private async loadConnections(): Promise<void> {
+    try {
+      this.connections = await this.bruinConnections.getConnectionsForActivityBar();
+    } catch (error) {
+      console.error("FavoritesProvider: Error loading connections:", error);
+      this.connections = [];
+    }
+  }
+
+  private getConnectionEnvironment(connectionName: string): string | undefined {
+    const connection = this.connections.find(conn => conn.name === connectionName);
+    return connection?.environment;
+  }
+
   public refresh(): void {
     this.tableCache.clear();
     this.columnsCache.clear();
     this.loadFavorites();
+    this.loadConnections();
     this._onDidChangeTreeData.fire();
   }
 
   public async removeFavorite(favorite: SchemaFavorite): Promise<void> {
-    const favoriteKey = createFavoriteKey(favorite.schemaName, favorite.connectionName);
+    const environment = favorite.environment || this.getConnectionEnvironment(favorite.connectionName) || 'default';
+    const favoriteKey = createFavoriteKey(favorite.schemaName, favorite.connectionName, environment);
+    
     this.favorites = this.favorites.filter(
-      (f) => createFavoriteKey(f.schemaName, f.connectionName) !== favoriteKey
+      (f) => {
+        const fEnv = f.environment || this.getConnectionEnvironment(f.connectionName) || 'default';
+        const fKey = createFavoriteKey(f.schemaName, f.connectionName, fEnv);
+        return fKey !== favoriteKey;
+      }
     );
 
     await saveSchemaFavorites(this.favorites);
@@ -125,48 +158,180 @@ export class FavoritesProvider implements vscode.TreeDataProvider<FavoriteItem> 
   }
 
   public async removeTableFavorite(favorite: TableFavorite): Promise<void> {
+    const environment = favorite.environment || this.getConnectionEnvironment(favorite.connectionName) || 'default';
     const favoriteKey = createTableFavoriteKey(
       favorite.tableName,
       favorite.schemaName,
-      favorite.connectionName
+      favorite.connectionName,
+      environment
     );
+    
     this.tableFavorites = this.tableFavorites.filter(
-      (f) => createTableFavoriteKey(f.tableName, f.schemaName, f.connectionName) !== favoriteKey
+      (f) => {
+        const fEnv = f.environment || this.getConnectionEnvironment(f.connectionName) || 'default';
+        const fKey = createTableFavoriteKey(f.tableName, f.schemaName, f.connectionName, fEnv);
+        return fKey !== favoriteKey;
+      }
     );
 
     await saveTableFavorites(this.tableFavorites);
     this._onDidChangeTreeData.fire();
   }
 
-  // Group favorites by connection name
+  // Add method to remove favorite by schema with environment context
+  public async removeSchemaFavoriteWithEnvironment(schema: SchemaFavorite, environment: string): Promise<void> {
+    const favoriteKey = createFavoriteKey(schema.schemaName, schema.connectionName, environment);
+    
+    this.favorites = this.favorites.filter(
+      (f) => {
+        const fEnv = f.environment || this.getConnectionEnvironment(f.connectionName) || 'default';
+        const fKey = createFavoriteKey(f.schemaName, f.connectionName, fEnv);
+        return fKey !== favoriteKey;
+      }
+    );
+
+    await saveSchemaFavorites(this.favorites);
+    this._onDidChangeTreeData.fire();
+  }
+
+  // Add method to remove table favorite with environment context
+  public async removeTableFavoriteWithEnvironment(table: TableFavorite, environment: string): Promise<void> {
+    const favoriteKey = createTableFavoriteKey(
+      table.tableName,
+      table.schemaName,
+      table.connectionName,
+      environment
+    );
+    
+    this.tableFavorites = this.tableFavorites.filter(
+      (f) => {
+        const fEnv = f.environment || this.getConnectionEnvironment(f.connectionName) || 'default';
+        const fKey = createTableFavoriteKey(f.tableName, f.schemaName, f.connectionName, fEnv);
+        return fKey !== favoriteKey;
+      }
+    );
+
+    await saveTableFavorites(this.tableFavorites);
+    this._onDidChangeTreeData.fire();
+  }
+
+  // Add method to remove all favorites for a specific connection and environment
+  public async removeAllFavoritesForConnection(connectionName: string, environment: string): Promise<void> {
+    // Remove schema favorites
+    this.favorites = this.favorites.filter(
+      (f) => {
+        const fEnv = f.environment || this.getConnectionEnvironment(f.connectionName) || 'default';
+        return !(f.connectionName === connectionName && fEnv === environment);
+      }
+    );
+
+    // Remove table favorites
+    this.tableFavorites = this.tableFavorites.filter(
+      (f) => {
+        const fEnv = f.environment || this.getConnectionEnvironment(f.connectionName) || 'default';
+        return !(f.connectionName === connectionName && fEnv === environment);
+      }
+    );
+
+    await saveSchemaFavorites(this.favorites);
+    await saveTableFavorites(this.tableFavorites);
+    this._onDidChangeTreeData.fire();
+  }
+
+  // Update cache clearing to be environment-aware
+  public clearCacheForConnection(connectionName: string, environment: string): void {
+    const envKey = `${connectionName}.${environment}`;
+    
+    // Clear table cache
+    const tableCacheKeysToDelete = Array.from(this.tableCache.keys()).filter(key =>
+      key.startsWith(envKey)
+    );
+    tableCacheKeysToDelete.forEach(key => this.tableCache.delete(key));
+    
+    // Clear columns cache
+    const columnsCacheKeysToDelete = Array.from(this.columnsCache.keys()).filter(key =>
+      key.startsWith(envKey)
+    );
+    columnsCacheKeysToDelete.forEach(key => this.columnsCache.delete(key));
+  }
+
+  // Update refresh method to be environment-aware
+  public refreshConnection(connectionName: string, environment: string): void {
+    this.clearCacheForConnection(connectionName, environment);
+    this._onDidChangeTreeData.fire();
+  }
+
+  // Helper method to check if a schema is favorited in a specific environment
+  public isSchemaFavoritedInEnvironment(schema: SchemaFavorite, environment: string): boolean {
+    const favoriteKey = createFavoriteKey(schema.schemaName, schema.connectionName, environment);
+    return this.favorites.some(
+      (f) => {
+        const fEnv = f.environment || this.getConnectionEnvironment(f.connectionName) || 'default';
+        const fKey = createFavoriteKey(f.schemaName, f.connectionName, fEnv);
+        return fKey === favoriteKey;
+      }
+    );
+  }
+
+  // Helper method to check if a table is favorited in a specific environment
+  public isTableFavoritedInEnvironment(table: TableFavorite, environment: string): boolean {
+    const favoriteKey = createTableFavoriteKey(
+      table.tableName,
+      table.schemaName,
+      table.connectionName,
+      environment
+    );
+    return this.tableFavorites.some(
+      (f) => {
+        const fEnv = f.environment || this.getConnectionEnvironment(f.connectionName) || 'default';
+        const fKey = createTableFavoriteKey(f.tableName, f.schemaName, f.connectionName, fEnv);
+        return fKey === favoriteKey;
+      }
+    );
+  }
+
+  // Group favorites by connection name (including environment info)
   private groupFavoritesByConnection(): FavoriteConnection[] {
     const connectionMap = new Map<string, FavoriteConnection>();
 
-    // Add schema favorites
+    // Process schema favorites
     this.favorites.forEach((favorite) => {
-      if (!connectionMap.has(favorite.connectionName)) {
-        connectionMap.set(favorite.connectionName, {
+      const environment = favorite.environment || this.getConnectionEnvironment(favorite.connectionName) || 'default';
+      const connectionKey = `${favorite.connectionName}.${environment}`;
+      
+      if (!connectionMap.has(connectionKey)) {
+        connectionMap.set(connectionKey, {
           name: favorite.connectionName,
+          environment: environment,
           schemas: [],
           tables: [],
         });
       }
-      connectionMap.get(favorite.connectionName)!.schemas.push(favorite);
+      connectionMap.get(connectionKey)!.schemas.push(favorite);
     });
 
-    // Add table favorites
+    // Process table favorites
     this.tableFavorites.forEach((favorite) => {
-      if (!connectionMap.has(favorite.connectionName)) {
-        connectionMap.set(favorite.connectionName, {
+      const environment = favorite.environment || this.getConnectionEnvironment(favorite.connectionName) || 'default';
+      const connectionKey = `${favorite.connectionName}.${environment}`;
+      
+      if (!connectionMap.has(connectionKey)) {
+        connectionMap.set(connectionKey, {
           name: favorite.connectionName,
+          environment: environment,
           schemas: [],
           tables: [],
         });
       }
-      connectionMap.get(favorite.connectionName)!.tables.push(favorite);
+      connectionMap.get(connectionKey)!.tables.push(favorite);
     });
 
-    return Array.from(connectionMap.values());
+    return Array.from(connectionMap.values())
+      .sort((a, b) => {
+        // Sort by connection name first, then by environment
+        const nameCompare = a.name.localeCompare(b.name);
+        return nameCompare !== 0 ? nameCompare : a.environment.localeCompare(b.environment);
+      });
   }
 
   getTreeItem(element: FavoriteItem): vscode.TreeItem {
@@ -175,7 +340,7 @@ export class FavoritesProvider implements vscode.TreeDataProvider<FavoriteItem> 
 
   async getChildren(element?: FavoriteItem): Promise<FavoriteItem[]> {
     if (!element) {
-      // Root level - return connections grouped by connection name
+      // Root level - return connections with environment as description
       const groupedConnections = this.groupFavoritesByConnection();
       return groupedConnections.map((connection) => {
         return new FavoriteItem(
@@ -222,6 +387,7 @@ export class FavoritesProvider implements vscode.TreeDataProvider<FavoriteItem> 
         const schemaItem: SchemaFavorite = schemaData.schema || {
           schemaName: schemaName,
           connectionName: connection.name,
+          environment: connection.environment,
         };
 
         // Determine context value based on whether schema is actually favorited
@@ -246,18 +412,23 @@ export class FavoritesProvider implements vscode.TreeDataProvider<FavoriteItem> 
       element.contextValue === "schema_with_table_favorites"
     ) {
       const schema = element.itemData as SchemaFavorite;
-      const cacheKey = `${schema.connectionName}.${schema.schemaName}`;
+      const environment = schema.environment || this.getConnectionEnvironment(schema.connectionName) || 'default';
+      const cacheKey = `${schema.connectionName}.${environment}.${schema.schemaName}`;
 
-      // Get favorite tables for this schema
+      // Get favorite tables for this schema in this environment
       const favoriteTablesInSchema = this.tableFavorites.filter(
         (table) =>
-          table.connectionName === schema.connectionName && table.schemaName === schema.schemaName
+          table.connectionName === schema.connectionName && 
+          table.schemaName === schema.schemaName &&
+          (table.environment || this.getConnectionEnvironment(table.connectionName) || 'default') === environment
       );
 
-      // Check if this schema is actually favorited
+      // Check if this schema is actually favorited in this environment
       const isSchemaFavorited = this.favorites.some(
         (fav) =>
-          fav.connectionName === schema.connectionName && fav.schemaName === schema.schemaName
+          fav.connectionName === schema.connectionName && 
+          fav.schemaName === schema.schemaName &&
+          (fav.environment || this.getConnectionEnvironment(fav.connectionName) || 'default') === environment
       );
 
       // Scenario 1: Only table favorites (no schema favorite)
@@ -285,7 +456,8 @@ export class FavoritesProvider implements vscode.TreeDataProvider<FavoriteItem> 
     ) {
       // Show columns under table
       const table = element.itemData as FavoriteTable;
-      const cacheKey = `${table.connectionName}.${table.schema}.${table.name}`;
+      const environment = table.environment || this.getConnectionEnvironment(table.connectionName) || 'default';
+      const cacheKey = `${table.connectionName}.${environment}.${table.schema}.${table.name}`;
 
       // Check cache first
       if (this.columnsCache.has(cacheKey)) {
@@ -301,11 +473,15 @@ export class FavoritesProvider implements vscode.TreeDataProvider<FavoriteItem> 
       }
 
       try {
+        // Get environment for this connection
+        const connectionEnvironment = this.getConnectionEnvironment(table.connectionName);
+        
         // Fetch columns using getFetchColumns method
         const columnsResponse = await this.getColumnsSummary(
           table.connectionName,
           table.schema,
-          table.name
+          table.name,
+          connectionEnvironment
         );
         const columns = this.parseColumnsSummary(columnsResponse, table);
 
@@ -335,6 +511,8 @@ export class FavoritesProvider implements vscode.TreeDataProvider<FavoriteItem> 
     favoriteTablesInSchema: TableFavorite[],
     cacheKey: string
   ): Promise<FavoriteItem[]> {
+    const environment = schema.environment || this.getConnectionEnvironment(schema.connectionName) || 'default';
+    
     // Check cache first
     if (this.tableCache.has(cacheKey)) {
       const allTables = this.tableCache.get(cacheKey)!;
@@ -366,7 +544,7 @@ export class FavoritesProvider implements vscode.TreeDataProvider<FavoriteItem> 
 
       // Show error message but don't block the UI
       vscode.window.showWarningMessage(
-        `Database connection issue for ${schema.schemaName}. Showing cached data if available.`
+        `Database connection issue for ${schema.schemaName} in ${environment}. Showing cached data if available.`
       );
       return [];
     }
@@ -387,7 +565,8 @@ export class FavoritesProvider implements vscode.TreeDataProvider<FavoriteItem> 
           await new Promise((resolve) => setTimeout(resolve, Math.pow(2, attempt) * 1000));
         }
 
-        return await this.getTablesSummary(connectionName, schemaName);
+        const environment = this.getConnectionEnvironment(connectionName);
+        return await this.getTablesSummary(connectionName, schemaName, environment);
       } catch (error) {
         lastError = error;
         console.warn(`Attempt ${attempt + 1} failed for ${connectionName}.${schemaName}:`, error);
@@ -431,6 +610,7 @@ export class FavoritesProvider implements vscode.TreeDataProvider<FavoriteItem> 
   ): FavoriteItem[] {
     const items: FavoriteItem[] = [];
     const favoriteSet = new Set(favoriteTableNames);
+    const environment = schema.environment || this.getConnectionEnvironment(schema.connectionName) || 'default';
 
     // Add favorite tables first with appropriate context
     favoriteTableNames.forEach((tableName) => {
@@ -439,6 +619,7 @@ export class FavoritesProvider implements vscode.TreeDataProvider<FavoriteItem> 
           name: tableName,
           schema: schema.schemaName,
           connectionName: schema.connectionName,
+          environment: environment,
         };
         // Use starred context only if schema is also favorited
         const contextValue = isSchemaFavorited ? "favorite_table_starred" : "favorite_table";
@@ -460,6 +641,7 @@ export class FavoritesProvider implements vscode.TreeDataProvider<FavoriteItem> 
             name: tableName,
             schema: schema.schemaName,
             connectionName: schema.connectionName,
+            environment: environment,
           };
           items.push(
             new FavoriteItem(tableName, vscode.TreeItemCollapsibleState.Collapsed, table, "table")
@@ -471,22 +653,23 @@ export class FavoritesProvider implements vscode.TreeDataProvider<FavoriteItem> 
     return items;
   }
 
-  private async getTablesSummary(connectionName: string, database: string): Promise<any> {
+  private async getTablesSummary(connectionName: string, database: string, environment?: string): Promise<any> {
     const workspaceFolder =
       vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || this.extensionPath;
     const command = new BruinDBTCommand("bruin", workspaceFolder);
-    return command.getFetchTables(connectionName, database);
+    return command.getFetchTables(connectionName, database, environment);
   }
 
   private async getColumnsSummary(
     connectionName: string,
     database: string,
-    table: string
+    table: string,
+    environment?: string
   ): Promise<any> {
     const workspaceFolder =
       vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || this.extensionPath;
     const command = new BruinDBTCommand("bruin", workspaceFolder);
-    return command.getFetchColumns(connectionName, database, table);
+    return command.getFetchColumns(connectionName, database, table, environment);
   }
 
   private parseColumnsSummary(summary: any, table: FavoriteTable): FavoriteColumn[] {
@@ -506,6 +689,7 @@ export class FavoritesProvider implements vscode.TreeDataProvider<FavoriteItem> 
           table: table.name,
           schema: table.schema,
           connectionName: table.connectionName,
+          environment: table.environment,
         };
       }
 
@@ -515,6 +699,7 @@ export class FavoritesProvider implements vscode.TreeDataProvider<FavoriteItem> 
         table: table.name,
         schema: table.schema,
         connectionName: table.connectionName,
+        environment: table.environment,
       };
     });
   }

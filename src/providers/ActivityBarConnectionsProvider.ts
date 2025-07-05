@@ -34,6 +34,7 @@ interface Schema {
   name: string;
   tables: string[];
   connectionName: string;
+  environment?: string;
   isFavorite?: boolean;
 }
 
@@ -41,6 +42,7 @@ interface Table {
   name: string;
   schema: string;
   connectionName: string;
+  environment?: string;
 }
 
 interface Column {
@@ -49,6 +51,7 @@ interface Column {
   table: string;
   schema: string;
   connectionName: string;
+  environment?: string;
 }
 
 type TreeItemData = EnvironmentData | ConnectionDisplayData | Schema | Table | Column;
@@ -106,8 +109,8 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
   private bruinConnections: BruinConnections;
   private databaseCache = new Map<string, Schema[]>();
   private columnsCache = new Map<string, Column[]>(); // Cache for columns
-  private favorites = new Set<string>(); // Store favorite schema keys as "connectionName.schemaName"
-  private tableFavorites = new Set<string>(); // Store favorite table keys as "connectionName.schemaName.tableName"
+  private favorites = new Set<string>(); // Store favorite schema keys as "connectionName.environment.schemaName"
+  private tableFavorites = new Set<string>(); // Store favorite table keys as "connectionName.environment.schemaName.tableName"
 
   // Allowed connection types
   private readonly allowedConnectionTypes = [
@@ -138,7 +141,9 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
     const savedFavorites = getSchemaFavorites();
     this.favorites.clear();
     savedFavorites.forEach((favorite) => {
-      const key = createFavoriteKey(favorite.schemaName, favorite.connectionName);
+      const connection = this.connections.find(conn => conn.name === favorite.connectionName);
+      const environment = favorite.environment || connection?.environment || 'default';
+      const key = createFavoriteKey(favorite.schemaName, favorite.connectionName, environment);
       this.favorites.add(key);
     });
   }
@@ -148,11 +153,9 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
     const savedTableFavorites = getTableFavorites();
     this.tableFavorites.clear();
     savedTableFavorites.forEach((favorite) => {
-      const key = createTableFavoriteKey(
-        favorite.tableName,
-        favorite.schemaName,
-        favorite.connectionName
-      );
+      const connection = this.connections.find(conn => conn.name === favorite.connectionName);
+      const environment = favorite.environment || connection?.environment || 'default';
+      const key = createTableFavoriteKey(favorite.tableName, favorite.schemaName, favorite.connectionName, environment);
       this.tableFavorites.add(key);
     });
   }
@@ -160,8 +163,15 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
   // Save favorites to VS Code settings
   private async saveFavoritesToSettings(): Promise<void> {
     const favoritesArray: SchemaFavorite[] = Array.from(this.favorites).map((key) => {
-      const [connectionName, schemaName] = key.split(".");
-      return { schemaName, connectionName };
+      const parts = key.split(".");
+      if (parts.length === 3) {
+        const [connectionName, environment, schemaName] = parts;
+        return { schemaName, connectionName, environment };
+      } else {
+        // Fallback for old format
+        const [connectionName, schemaName] = parts;
+        return { schemaName, connectionName };
+      }
     });
     await saveSchemaFavorites(favoritesArray);
   }
@@ -169,8 +179,15 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
   // Save table favorites to VS Code settings
   private async saveTableFavoritesToSettings(): Promise<void> {
     const tableFavoritesArray: TableFavorite[] = Array.from(this.tableFavorites).map((key) => {
-      const [connectionName, schemaName, tableName] = key.split(".");
-      return { tableName, schemaName, connectionName };
+      const parts = key.split(".");
+      if (parts.length === 4) {
+        const [connectionName, environment, schemaName, tableName] = parts;
+        return { tableName, schemaName, connectionName, environment };
+      } else {
+        // Fallback for old format
+        const [connectionName, schemaName, tableName] = parts;
+        return { tableName, schemaName, connectionName };
+      }
     });
     await saveTableFavorites(tableFavoritesArray);
   }
@@ -183,22 +200,38 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
     this.loadConnections();
   }
 
-  public refreshConnection(connectionName: string): void {
-    this.databaseCache.delete(connectionName);
-    // Also clear columns cache for this connection
-    const keysToDelete = Array.from(this.columnsCache.keys()).filter((key) =>
-      key.startsWith(connectionName)
-    );
-    keysToDelete.forEach((key) => this.columnsCache.delete(key));
+  public refreshConnection(connectionName: string, environment?: string): void {
+    if (environment) {
+      // Environment-specific refresh - only clear cache for this specific environment
+      const cacheKey = `${connectionName}.${environment}`;
+      this.databaseCache.delete(cacheKey);
+      
+      const keysToDelete = Array.from(this.columnsCache.keys()).filter((key) =>
+        key.startsWith(cacheKey)
+      );
+      keysToDelete.forEach((key) => this.columnsCache.delete(key));
+    } else {
+      // If no environment provided, refresh all connections with this name across all environments
+      const keysToDelete = Array.from(this.databaseCache.keys()).filter((key) =>
+        key.startsWith(`${connectionName}.`)
+      );
+      keysToDelete.forEach((key) => this.databaseCache.delete(key));
+      
+      const columnKeysToDelete = Array.from(this.columnsCache.keys()).filter((key) =>
+        key.startsWith(`${connectionName}.`)
+      );
+      columnKeysToDelete.forEach((key) => this.columnsCache.delete(key));
+    }
     this._onDidChangeTreeData.fire();
   }
 
   public refreshSchema(schema: Schema): void {
-    const tableCacheKey = `${schema.connectionName}.${schema.name}`;
+    const environment = schema.environment || 'default';
+    const tableCacheKey = `${schema.connectionName}.${environment}.${schema.name}`;
     this.databaseCache.delete(tableCacheKey);
 
     const keysToDelete = Array.from(this.columnsCache.keys()).filter((key) =>
-      key.startsWith(`${schema.connectionName}.${schema.name}`)
+      key.startsWith(`${schema.connectionName}.${environment}.${schema.name}`)
     );
     keysToDelete.forEach((key) => this.columnsCache.delete(key));
     this._onDidChangeTreeData.fire();
@@ -206,7 +239,9 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
 
   // Toggle favorite status for a schema
   public async toggleSchemaFavorite(schema: Schema): Promise<void> {
-    const favoriteKey = `${schema.connectionName}.${schema.name}`;
+    const environment = schema.environment || 'default';
+    const favoriteKey = createFavoriteKey(schema.name, schema.connectionName, environment);
+    
     if (this.favorites.has(favoriteKey)) {
       this.favorites.delete(favoriteKey);
     } else {
@@ -219,13 +254,16 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
   }
 
   public isSchemaFavorite(schema: Schema): boolean {
-    const favoriteKey = `${schema.connectionName}.${schema.name}`;
+    const environment = schema.environment || 'default';
+    const favoriteKey = createFavoriteKey(schema.name, schema.connectionName, environment);
     return this.favorites.has(favoriteKey);
   }
 
   // Toggle favorite status for a table
   public async toggleTableFavorite(table: Table, item?: ConnectionItem): Promise<void> {
-    const favoriteKey = `${table.connectionName}.${table.schema}.${table.name}`;
+    const environment = table.environment || 'default';
+    const favoriteKey = createTableFavoriteKey(table.name, table.schema, table.connectionName, environment);
+    
     if (this.tableFavorites.has(favoriteKey)) {
       this.tableFavorites.delete(favoriteKey);
     } else {
@@ -233,7 +271,7 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
     }
 
     // Clear only this table's columns cache to force reload
-    const cacheKey = `${table.connectionName}.${table.schema}.${table.name}`;
+    const cacheKey = `${table.connectionName}.${environment}.${table.schema}.${table.name}`;
     this.columnsCache.delete(cacheKey);
 
     // Save to VS Code settings
@@ -255,7 +293,8 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
   }
 
   public isTableFavorite(table: Table): boolean {
-    const favoriteKey = `${table.connectionName}.${table.schema}.${table.name}`;
+    const environment = table.environment || 'default';
+    const favoriteKey = createTableFavoriteKey(table.name, table.schema, table.connectionName, environment);
     return this.tableFavorites.has(favoriteKey);
   }
 
@@ -356,10 +395,13 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
     if (element.contextValue === "bruin_connection" && "name" in element.itemData) {
       const connection = element.itemData as ConnectionDisplayData;
       const connectionName = connection.name;
-      const environment = connection.environment;
+      const environment = connection.environment || 'default';
       
-      if (this.databaseCache.has(connectionName)) {
-        return this.databaseCache.get(connectionName)!.map((schema) => {
+      // Use environment-aware cache key
+      const cacheKey = `${connectionName}.${environment}`;
+      
+      if (this.databaseCache.has(cacheKey)) {
+        return this.databaseCache.get(cacheKey)!.map((schema) => {
           const isFavorite = this.isSchemaFavorite(schema);
           const contextValue = isFavorite ? "schema_favorite" : "schema_unfavorite";
           const schemaItem = new ConnectionItem(
@@ -375,8 +417,8 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
 
       try {
         const summary = await this.getDatabaseSummary(connectionName, environment);
-        const schemas = this.parseDbSummary(summary, connectionName);
-        this.databaseCache.set(connectionName, schemas);
+        const schemas = this.parseDbSummary(summary, connectionName, environment);
+        this.databaseCache.set(cacheKey, schemas);
         return schemas.map((schema) => {
           const isFavorite = this.isSchemaFavorite(schema);
           const contextValue = isFavorite ? "schema_favorite" : "schema_unfavorite";
@@ -401,8 +443,7 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
       "tables" in element.itemData
     ) {
       const schema = element.itemData as Schema;
-      const connection = this.connections.find(conn => conn.name === schema.connectionName);
-      const environment = connection?.environment;
+      const environment = schema.environment || 'default';
       
       try {
         const tablesResponse = await this.getTablesSummary(schema.connectionName, schema.name, environment);
@@ -412,6 +453,7 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
             name: table,
             schema: schema.name,
             connectionName: schema.connectionName,
+            environment: environment,
           };
           const isFavorite = this.isTableFavorite(tableItem);
           const contextValue = isFavorite ? "table_favorite" : "table_unfavorite";
@@ -558,6 +600,7 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
           table: table.name,
           schema: table.schema,
           connectionName: table.connectionName,
+          environment: table.environment,
         };
       }
 
@@ -567,11 +610,12 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
         table: table.name,
         schema: table.schema,
         connectionName: table.connectionName,
+        environment: table.environment,
       };
     });
   }
 
-  private parseDbSummary(summary: any, connectionName: string): Schema[] {
+  private parseDbSummary(summary: any, connectionName: string, environment?: string): Schema[] {
     const schemasArray = Array.isArray(summary) ? summary : summary?.databases;
 
     if (!Array.isArray(schemasArray)) {
@@ -585,6 +629,7 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
           name: item,
           tables: [],
           connectionName: connectionName,
+          environment: environment,
         };
       }
 
@@ -594,6 +639,7 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
           typeof table === "string" ? table : table.name
         ),
         connectionName: connectionName,
+        environment: environment,
       };
     });
   }
@@ -606,7 +652,7 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
 
     try {
       const summary = await this.getDatabaseSummary(connection.name, connection.environment);
-      const schemas = this.parseDbSummary(summary, connection.name);
+      const schemas = this.parseDbSummary(summary, connection.name, connection.environment);
       this.databaseCache.set(connection.name, schemas);
       return schemas;
     } catch (error: any) {
@@ -695,5 +741,27 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
         connectionName: schema.connectionName,
       };
     });
+  }
+
+  // Add method to remove schema favorite with environment context
+  public async removeSchemaFavoriteWithEnvironment(schema: Schema, environment: string): Promise<void> {
+    const favoriteKey = createFavoriteKey(schema.name, schema.connectionName, environment);
+    this.favorites.delete(favoriteKey);
+    
+    await this.saveFavoritesToSettings();
+    this._onDidChangeTreeData.fire();
+  }
+
+  // Add method to remove table favorite with environment context
+  public async removeTableFavoriteWithEnvironment(table: Table, environment: string): Promise<void> {
+    const favoriteKey = createTableFavoriteKey(table.name, table.schema, table.connectionName, environment);
+    this.tableFavorites.delete(favoriteKey);
+    
+    // Clear cache for this table
+    const cacheKey = `${table.connectionName}.${environment}.${table.schema}.${table.name}`;
+    this.columnsCache.delete(cacheKey);
+    
+    await this.saveTableFavoritesToSettings();
+    this._onDidChangeTreeData.fire();
   }
 }

@@ -135,12 +135,14 @@ export function subscribeToConfigurationChanges() {
 export interface SchemaFavorite {
   schemaName: string;
   connectionName: string;
+  environment?: string;
 }
 
 export interface TableFavorite {
   tableName: string;
   schemaName: string;
   connectionName: string;
+  environment?: string;
 }
 
 export function getSchemaFavorites(): SchemaFavorite[] {
@@ -163,10 +165,10 @@ export async function saveTableFavorites(favorites: TableFavorite[]): Promise<vo
   await config.update("favorites", favorites, vscode.ConfigurationTarget.Global);
 }
 
-export function createFavoriteKey(schemaName: string, connectionName: string): string {
-  return `${connectionName}.${schemaName}`;
+export function createFavoriteKey(schemaName: string, connectionName: string, environment?: string): string {
+  return environment ? `${connectionName}.${environment}.${schemaName}` : `${connectionName}.${schemaName}`;
 }
 
-export function createTableFavoriteKey(tableName: string, schemaName: string, connectionName: string): string {
-  return `${connectionName}.${schemaName}.${tableName}`;
+export function createTableFavoriteKey(tableName: string, schemaName: string, connectionName: string, environment?: string): string {
+  return environment ? `${connectionName}.${environment}.${schemaName}.${tableName}` : `${connectionName}.${schemaName}.${tableName}`;
 }
