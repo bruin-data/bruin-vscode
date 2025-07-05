@@ -5,8 +5,10 @@ export class BruinDBTCommand extends BruinCommand {
     return "internal";
   }
 
-  public async getFetchDatabases(connectionName: string): Promise<any> {
-    const flags = ["fetch-databases", "-c", connectionName, "-o", "json"];
+  public async getFetchDatabases(connectionName: string, environment?: string): Promise<any> {
+    const flags = environment 
+      ? ["fetch-databases", "-c", connectionName, "-env", environment, "-o", "json"]
+      : ["fetch-databases", "-c", connectionName, "-o", "json"];
     try {
       const result = await this.run(flags, { ignoresErrors: false });
       return JSON.parse(result);
@@ -16,8 +18,10 @@ export class BruinDBTCommand extends BruinCommand {
     }
   }
 
-  public async getFetchTables(connectionName: string, database: string): Promise<any> {
-    const flags = ["fetch-tables", "-c", connectionName, "-d", database, "-o", "json"];
+  public async getFetchTables(connectionName: string, database: string, environment?: string): Promise<any> {
+    const flags = environment 
+      ? ["fetch-tables", "-c", connectionName, "-d", database, "-env", environment, "-o", "json"]
+      : ["fetch-tables", "-c", connectionName, "-d", database, "-o", "json"];
     try {
       const result = await this.run(flags, { ignoresErrors: false });
       return JSON.parse(result);
@@ -27,8 +31,10 @@ export class BruinDBTCommand extends BruinCommand {
     }
   }
 
-  public async getFetchColumns(connectionName: string, database: string, table: string): Promise<any> {
-    const flags = ["fetch-columns", "-c", connectionName, "-d", database, "-table", table, "-o", "json"];
+  public async getFetchColumns(connectionName: string, database: string, table: string, environment?: string): Promise<any> {
+    const flags = environment 
+      ? ["fetch-columns", "-c", connectionName, "-d", database, "-table", table, "-env", environment, "-o", "json"]
+      : ["fetch-columns", "-c", connectionName, "-d", database, "-table", table, "-o", "json"];
     try {
       const result = await this.run(flags, { ignoresErrors: false });
       return JSON.parse(result);

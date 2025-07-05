@@ -26,9 +26,14 @@ export class BruinConnections extends BruinCommand {
   public async getConnections({
     flags = ["list", "-o", "json"],
     ignoresErrors = false,
-  }: BruinCommandOptions = {}): Promise<void> {
+    environment,
+  }: BruinCommandOptions & { environment?: string } = {}): Promise<void> {
+    // Add environment flag if provided
+    const commandFlags = environment 
+      ? ["list", "-env", environment, "-o", "json"]
+      : flags;
 
-    await this.run([...flags], { ignoresErrors })
+    await this.run([...commandFlags], { ignoresErrors })
       .then(
         (result) => {
           const connections = extractNonNullConnections(JSON.parse(result));
@@ -73,9 +78,15 @@ export class BruinConnections extends BruinCommand {
   public async getConnectionsForActivityBar({
     flags = ["list", "-o", "json"],
     ignoresErrors = false,
-  }: BruinCommandOptions = {}): Promise<any[]> {
+    environment,
+  }: BruinCommandOptions & { environment?: string } = {}): Promise<any[]> {
     try {
-      const result = await this.run([...flags], { ignoresErrors });
+      // Add environment flag if provided
+      const commandFlags = environment 
+        ? ["list", "-env", environment, "-o", "json"]
+        : flags;
+        
+      const result = await this.run([...commandFlags], { ignoresErrors });
       const connections = extractNonNullConnections(JSON.parse(result));
       return connections;
     } catch (error) {

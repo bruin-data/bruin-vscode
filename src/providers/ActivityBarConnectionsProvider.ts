@@ -25,6 +25,11 @@ interface ConnectionDisplayData {
   environment?: string;
 }
 
+interface EnvironmentData {
+  name: string;
+  connections: ConnectionDisplayData[];
+}
+
 interface Schema {
   name: string;
   tables: string[];
@@ -46,7 +51,7 @@ interface Column {
   connectionName: string;
 }
 
-type TreeItemData = ConnectionDisplayData | Schema | Table | Column;
+type TreeItemData = EnvironmentData | ConnectionDisplayData | Schema | Table | Column;
 
 class ConnectionItem extends vscode.TreeItem {
   constructor(
@@ -54,6 +59,7 @@ class ConnectionItem extends vscode.TreeItem {
     public readonly collapsibleState: vscode.TreeItemCollapsibleState,
     public readonly itemData: TreeItemData,
     public contextValue:
+      | "environment"
       | "bruin_connection"
       | "schema"
       | "schema_favorite"
@@ -67,7 +73,9 @@ class ConnectionItem extends vscode.TreeItem {
     super(label, collapsibleState);
     this.contextValue = contextValue;
 
-    if (this.contextValue === "bruin_connection") {
+    if (this.contextValue === "environment") {
+      this.iconPath = new vscode.ThemeIcon("server-environment");
+    } else if (this.contextValue === "bruin_connection") {
       this.iconPath = new vscode.ThemeIcon("plug");
     } else if (
       this.contextValue === "schema_favorite" ||
@@ -80,7 +88,6 @@ class ConnectionItem extends vscode.TreeItem {
       this.contextValue === "table_unfavorite"
     ) {
       this.iconPath = new vscode.ThemeIcon("table");
-      // Command is now set in getChildren method
     } else if (this.contextValue === "column") {
       this.iconPath = new vscode.ThemeIcon("symbol-field");
     } else {
@@ -315,8 +322,24 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
 
   async getChildren(element?: ConnectionItem): Promise<ConnectionItem[]> {
     if (!element) {
-      // Root level - return filtered connections based on allowed types
-      return this.connections
+      // Root level - return environments
+      const environments = this.getEnvironments();
+      return environments.map((env) => {
+        const item = new ConnectionItem(
+          env.name,
+          vscode.TreeItemCollapsibleState.Collapsed,
+          env,
+          "environment"
+        );
+        item.tooltip = `Environment: ${env.name} (${env.connections.length} connections)`;
+        return item;
+      });
+    }
+
+    if (element.contextValue === "environment" && "connections" in element.itemData) {
+      // Environment level - return connections for this environment
+      const environment = element.itemData as EnvironmentData;
+      return environment.connections
         .filter((connection) => this.allowedConnectionTypes.includes(connection.type.toLowerCase()))
         .map((connection) => {
           const item = new ConnectionItem(
@@ -331,7 +354,10 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
     }
 
     if (element.contextValue === "bruin_connection" && "name" in element.itemData) {
-      const connectionName = element.itemData.name;
+      const connection = element.itemData as ConnectionDisplayData;
+      const connectionName = connection.name;
+      const environment = connection.environment;
+      
       if (this.databaseCache.has(connectionName)) {
         return this.databaseCache.get(connectionName)!.map((schema) => {
           const isFavorite = this.isSchemaFavorite(schema);
@@ -342,14 +368,13 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
             schema,
             contextValue
           );
-          // Keep the database icon on the left
           schemaItem.iconPath = new vscode.ThemeIcon("database");
           return schemaItem;
         });
       }
 
       try {
-        const summary = await this.getDatabaseSummary(connectionName);
+        const summary = await this.getDatabaseSummary(connectionName, environment);
         const schemas = this.parseDbSummary(summary, connectionName);
         this.databaseCache.set(connectionName, schemas);
         return schemas.map((schema) => {
@@ -361,7 +386,6 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
             schema,
             contextValue
           );
-          // Keep the database icon on the left
           schemaItem.iconPath = new vscode.ThemeIcon("database");
           return schemaItem;
         });
@@ -377,8 +401,11 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
       "tables" in element.itemData
     ) {
       const schema = element.itemData as Schema;
+      const connection = this.connections.find(conn => conn.name === schema.connectionName);
+      const environment = connection?.environment;
+      
       try {
-        const tablesResponse = await this.getTablesSummary(schema.connectionName, schema.name);
+        const tablesResponse = await this.getTablesSummary(schema.connectionName, schema.name, environment);
         const tables = tablesResponse.tables || [];
         return tables.map((table: string) => {
           const tableItem: Table = {
@@ -394,7 +421,6 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
             tableItem,
             contextValue
           );
-          // Add command with both table name and schema name
           tableTreeItem.command = {
             command: "bruin.showTableDetails",
             title: "Show Table Details",
@@ -417,6 +443,9 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
     ) {
       const table = element.itemData as Table;
       const cacheKey = `${table.connectionName}.${table.schema}.${table.name}`;
+      
+      const connection = this.connections.find(conn => conn.name === table.connectionName);
+      const environment = connection?.environment;
 
       if (this.columnsCache.has(cacheKey)) {
         return this.columnsCache.get(cacheKey)!.map((column) => {
@@ -436,7 +465,8 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
         const columnsResponse = await this.getColumnsSummary(
           table.connectionName,
           table.schema,
-          table.name
+          table.name,
+          environment
         );
         const columns = this.parseColumnsSummary(columnsResponse, table);
         this.columnsCache.set(cacheKey, columns);
@@ -460,29 +490,55 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
     return [];
   }
 
-  private async getDatabaseSummary(connectionName: string): Promise<any> {
-    const workspaceFolder =
-      vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || this.extensionPath;
-    const command = new BruinDBTCommand("bruin", workspaceFolder);
-    return command.getFetchDatabases(connectionName);
+  // New method to group connections by environment
+  private getEnvironments(): EnvironmentData[] {
+    const environmentMap = new Map<string, ConnectionDisplayData[]>();
+    
+    // Group connections by environment
+    this.connections.forEach(connection => {
+      const envName = connection.environment || 'default';
+      if (!environmentMap.has(envName)) {
+        environmentMap.set(envName, []);
+      }
+      environmentMap.get(envName)!.push(connection);
+    });
+
+    // Convert to array and sort
+    return Array.from(environmentMap.entries())
+      .map(([name, connections]) => ({
+        name,
+        connections: connections.filter(conn => 
+          this.allowedConnectionTypes.includes(conn.type.toLowerCase())
+        )
+      }))
+      .filter(env => env.connections.length > 0)
+      .sort((a, b) => a.name.localeCompare(b.name));
   }
 
-  private async getTablesSummary(connectionName: string, database: string): Promise<any> {
+  private async getDatabaseSummary(connectionName: string, environment?: string): Promise<any> {
     const workspaceFolder =
       vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || this.extensionPath;
     const command = new BruinDBTCommand("bruin", workspaceFolder);
-    return command.getFetchTables(connectionName, database);
+    return command.getFetchDatabases(connectionName, environment);
+  }
+
+  private async getTablesSummary(connectionName: string, database: string, environment?: string): Promise<any> {
+    const workspaceFolder =
+      vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || this.extensionPath;
+    const command = new BruinDBTCommand("bruin", workspaceFolder);
+    return command.getFetchTables(connectionName, database, environment);
   }
 
   private async getColumnsSummary(
     connectionName: string,
     database: string,
-    table: string
+    table: string,
+    environment?: string
   ): Promise<any> {
     const workspaceFolder =
       vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || this.extensionPath;
     const command = new BruinDBTCommand("bruin", workspaceFolder);
-    return command.getFetchColumns(connectionName, database, table);
+    return command.getFetchColumns(connectionName, database, table, environment);
   }
 
   private parseColumnsSummary(summary: any, table: Table): Column[] {
@@ -549,7 +605,7 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
     }
 
     try {
-      const summary = await this.getDatabaseSummary(connection.name);
+      const summary = await this.getDatabaseSummary(connection.name, connection.environment);
       const schemas = this.parseDbSummary(summary, connection.name);
       this.databaseCache.set(connection.name, schemas);
       return schemas;
@@ -561,7 +617,11 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
 
   private async getChildrenForSchema(schema: Schema): Promise<Table[]> {
     try {
-      const summary = await this.getTablesSummary(schema.connectionName, schema.name);
+      // Get environment from the connection
+      const connection = this.connections.find(conn => conn.name === schema.connectionName);
+      const environment = connection?.environment;
+      
+      const summary = await this.getTablesSummary(schema.connectionName, schema.name, environment);
       return this.parseTableSummary(summary, schema);
     } catch (error: any) {
       vscode.window.showErrorMessage(`Error loading tables: ${error.message}`);
@@ -571,6 +631,10 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
 
   private async getChildrenForTable(table: Table): Promise<ConnectionItem[]> {
     const cacheKey = `${table.connectionName}.${table.schema}.${table.name}`;
+    
+    // Get environment from the connection
+    const connection = this.connections.find(conn => conn.name === table.connectionName);
+    const environment = connection?.environment;
 
     if (this.columnsCache.has(cacheKey)) {
       return this.columnsCache.get(cacheKey)!.map((column) => {
@@ -590,7 +654,8 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
       const columnsResponse = await this.getColumnsSummary(
         table.connectionName,
         table.schema,
-        table.name
+        table.name,
+        environment
       );
       const columns = this.parseColumnsSummary(columnsResponse, table);
       this.columnsCache.set(cacheKey, columns);
