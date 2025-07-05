@@ -5,14 +5,43 @@ export class BruinDBTCommand extends BruinCommand {
     return "internal";
   }
 
-  public async getDbSummary(connectionName: string): Promise<any> {
-    const flags = ["db-summary", "--connection", connectionName, "-o", "json"];
+  public async getFetchDatabases(connectionName: string, environment?: string): Promise<any> {
+    const flags = environment 
+      ? ["fetch-databases", "-c", connectionName, "-env", environment, "-o", "json"]
+      : ["fetch-databases", "-c", connectionName, "-o", "json"];
     try {
       const result = await this.run(flags, { ignoresErrors: false });
       return JSON.parse(result);
     } catch (error) {
-      console.error(`Error getting db summary for ${connectionName}:`, error);
+      console.error(`Error fetching databases for ${connectionName}:`, error);
       throw error;
     }
   }
+
+  public async getFetchTables(connectionName: string, database: string, environment?: string): Promise<any> {
+    const flags = environment 
+      ? ["fetch-tables", "-c", connectionName, "-d", database, "-env", environment, "-o", "json"]
+      : ["fetch-tables", "-c", connectionName, "-d", database, "-o", "json"];
+    try {
+      const result = await this.run(flags, { ignoresErrors: false });
+      return JSON.parse(result);
+    } catch (error) {
+      console.error(`Error fetching tables for ${connectionName} in database ${database}:`, error);
+      throw error;
+    }
+  }
+
+  public async getFetchColumns(connectionName: string, database: string, table: string, environment?: string): Promise<any> {
+    const flags = environment 
+      ? ["fetch-columns", "-c", connectionName, "-d", database, "-table", table, "-env", environment, "-o", "json"]
+      : ["fetch-columns", "-c", connectionName, "-d", database, "-table", table, "-o", "json"];
+    try {
+      const result = await this.run(flags, { ignoresErrors: false });
+      return JSON.parse(result);
+    } catch (error) {
+      console.error(`Error fetching columns for table ${table} in ${connectionName}.${database}:`, error);
+      throw error;
+    }
+  }
+
 } 

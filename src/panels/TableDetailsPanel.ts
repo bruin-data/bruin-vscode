@@ -6,6 +6,8 @@ import {
   workspace,
   WorkspaceEdit,
   commands,
+  Range,
+  Position,
 } from "vscode";
 import { QueryPreviewPanel } from "./QueryPreviewPanel";
 import * as fs from "fs";
@@ -66,12 +68,11 @@ export class TableDetailsPanel {
       // Track temp file for cleanup
       this.tempFiles.add(tempFilePath);
       
-      // Create SQL query with schema if provided
       let initialContent = `-- connection: ${connectionName || 'default'}\n`;
       if (schemaName) {
-        initialContent += `SELECT * FROM ${this._sanitizeTableName(schemaName)}.${this._sanitizeTableName(cleanTableName)};`;
+        initialContent += `SELECT * FROM ${this._sanitizeTableName(schemaName)}.${this._sanitizeTableName(cleanTableName)};\n\n`;
       } else {
-        initialContent += `SELECT * FROM ${this._sanitizeTableName(cleanTableName)};`;
+        initialContent += `SELECT * FROM ${this._sanitizeTableName(cleanTableName)};\n\n`;
       }
 
       fs.writeFileSync(tempFilePath, initialContent);
@@ -82,6 +83,7 @@ export class TableDetailsPanel {
       await window.showTextDocument(doc, {
         viewColumn: ViewColumn.One,
         preview: false,
+        selection: new Range(new Position(2, 0), new Position(2, 0))
       });
 
       // Safely focus QueryPreview panel without recreating it

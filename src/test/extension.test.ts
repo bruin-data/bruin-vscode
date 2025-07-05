@@ -64,6 +64,7 @@ import { BruinQueryOutput } from "../bruin/queryOutput";
 import { QueryPreviewPanel } from "../panels/QueryPreviewPanel";
 import { getQueryOutput } from "../extension/commands/queryCommands";
 import { BruinExportQueryOutput } from "../bruin/exportQueryOutput";
+import { BruinDBTCommand } from "../bruin/bruinDBTCommand";
 
 suite("Extension Initialization", () => {
   test("should set default path separator based on platform", async () => {
@@ -5380,9 +5381,9 @@ suite(" Query export Tests", () => {
       sinon.restore();
     });
 
-    test("getDbSummary should call run with correct flags", async () => {
+    test("getFetchDatabases should call run with correct flags", async () => {
       const { BruinDBTCommand } = require("../bruin/bruinDBTCommand");
-      const mockResult = '{"schemas": [{"name": "public", "tables": ["users", "orders"]}]}';
+      const mockResult = '{"databases": ["db1", "db2"]}';
       
       runStub.resolves(mockResult);
       
@@ -5390,13 +5391,13 @@ suite(" Query export Tests", () => {
       
       const instanceRunStub = sinon.stub(command, "run").resolves(mockResult);
       
-      const result = await command.getDbSummary("test-connection");
+      const result = await command.getFetchDatabases("test-connection");
       
       assert.ok(instanceRunStub.calledOnce, "run method should be called once");
       assert.deepStrictEqual(
         instanceRunStub.firstCall.args[0], 
-        ["db-summary", "--connection", "test-connection", "-o", "json"],
-        "Should call run with correct db-summary flags"
+        ["fetch-databases", "-c", "test-connection", "-o", "json"],
+        "Should call run with correct fetch-databases flags"
       );
       assert.deepStrictEqual(
         instanceRunStub.firstCall.args[1],
@@ -5404,6 +5405,64 @@ suite(" Query export Tests", () => {
         "Should call run with ignoresErrors: false"
       );
       
+      
+      assert.deepStrictEqual(result, JSON.parse(mockResult), "Should return parsed JSON result");
+      
+      instanceRunStub.restore();
+    });
+
+    test("getFetchColumns should call run with correct flags", async () => {
+      const { BruinDBTCommand } = require("../bruin/bruinDBTCommand");
+      const mockResult = '{"columns": [{"name": "id", "type": "int"}, {"name": "name", "type": "varchar"}]}';
+      
+      runStub.resolves(mockResult);
+      
+      const command = new BruinDBTCommand("bruin", "/workspace");
+      
+      const instanceRunStub = sinon.stub(command, "run").resolves(mockResult);
+      
+      const result = await command.getFetchColumns("test-connection", "test-database", "test-table");
+      
+      assert.ok(instanceRunStub.calledOnce, "run method should be called once");
+      assert.deepStrictEqual(
+        instanceRunStub.firstCall.args[0], 
+        ["fetch-columns", "-c", "test-connection", "-d", "test-database", "-table", "test-table", "-o", "json"],
+        "Should call run with correct fetch-columns flags"
+      );
+      assert.deepStrictEqual(
+        instanceRunStub.firstCall.args[1],
+        { ignoresErrors: false },
+        "Should call run with ignoresErrors: false"
+      );
+      
+      assert.deepStrictEqual(result, JSON.parse(mockResult), "Should return parsed JSON result");
+      
+      instanceRunStub.restore();
+    });
+
+    test("getFetchTables should call run with correct flags", async () => {
+      const { BruinDBTCommand } = require("../bruin/bruinDBTCommand");
+      const mockResult = '{"tables": ["table1", "table2", "table3"]}';
+      
+      runStub.resolves(mockResult);
+      
+      const command = new BruinDBTCommand("bruin", "/workspace");
+      
+      const instanceRunStub = sinon.stub(command, "run").resolves(mockResult);
+      
+      const result = await command.getFetchTables("test-connection", "test-database");
+      
+      assert.ok(instanceRunStub.calledOnce, "run method should be called once");
+      assert.deepStrictEqual(
+        instanceRunStub.firstCall.args[0], 
+        ["fetch-tables", "-c", "test-connection", "-d", "test-database", "-o", "json"],
+        "Should call run with correct fetch-tables flags"
+      );
+      assert.deepStrictEqual(
+        instanceRunStub.firstCall.args[1],
+        { ignoresErrors: false },
+        "Should call run with ignoresErrors: false"
+      );
       
       assert.deepStrictEqual(result, JSON.parse(mockResult), "Should return parsed JSON result");
       
@@ -5436,6 +5495,160 @@ suite(" Query export Tests", () => {
       
       instanceRunStub.restore();
     });
+    let execFileStub: sinon.SinonStub;
+    let bruinDBTCommand: BruinDBTCommand;
+
+    setup(() => {
+      execFileStub = sinon.stub(require("child_process"), "execFile");
+      bruinDBTCommand = new BruinDBTCommand("path/to/bruin", "path/to/working/directory");
+    });
+
+    teardown(() => {
+      sinon.restore();
+    });
+
+    test("getFetchDatabases should return parsed JSON response on success", async () => {
+      const connectionName = "test-connection";
+      const mockResponse = [
+        { name: "database1", type: "postgres" },
+        { name: "database2", type: "mysql" }
+      ];
+      const stdout = JSON.stringify(mockResponse);
+      execFileStub.yields(null, stdout, "");
+
+      const result = await bruinDBTCommand.getFetchDatabases(connectionName);
+      
+      assert.deepStrictEqual(result, mockResponse);
+      sinon.assert.calledOnceWithExactly(
+        execFileStub,
+        "path/to/bruin",
+        ["internal", "fetch-databases", "-c", connectionName, "-o", "json"],
+        { cwd: "path/to/working/directory", maxBuffer: 10485760 },
+        sinon.match.func
+      );
+    });
+
+    test("getFetchDatabases should throw error on command failure", async () => {
+      const connectionName = "test-connection";
+      const errorMessage = "Connection failed";
+      execFileStub.yields(new Error("Command failed"), "", errorMessage);
+
+      try {
+        await bruinDBTCommand.getFetchDatabases(connectionName);
+        assert.fail("Expected promise to be rejected");
+      } catch (error) {
+        assert.strictEqual(error, errorMessage);
+      }
+    });
+
+    test("getFetchTables should return parsed JSON response on success", async () => {
+      const connectionName = "test-connection";
+      const database = "test-database";
+      const mockResponse = {
+        tables: ["table1", "table2", "table3"]
+      };
+      const stdout = JSON.stringify(mockResponse);
+      execFileStub.yields(null, stdout, "");
+
+      const result = await bruinDBTCommand.getFetchTables(connectionName, database);
+      
+      assert.deepStrictEqual(result, mockResponse);
+      sinon.assert.calledOnceWithExactly(
+        execFileStub,
+        "path/to/bruin",
+        ["internal", "fetch-tables", "-c", connectionName, "-d", database, "-o", "json"],
+        { cwd: "path/to/working/directory", maxBuffer: 10485760 },
+        sinon.match.func
+      );
+    });
+
+    test("getFetchTables should throw error on command failure", async () => {
+      const connectionName = "test-connection";
+      const database = "test-database";
+      const errorMessage = "Database not found";
+      execFileStub.yields(new Error("Command failed"), "", errorMessage);
+
+      try {
+        await bruinDBTCommand.getFetchTables(connectionName, database);
+        assert.fail("Expected promise to be rejected");
+      } catch (error) {
+        assert.strictEqual(error, errorMessage);
+      }
+    });
+
+    test("getFetchColumns should return parsed JSON response on success", async () => {
+      const connectionName = "test-connection";
+      const database = "test-database";
+      const table = "test-table";
+      const mockResponse = {
+        columns: [
+          { name: "id", type: "integer", nullable: false },
+          { name: "name", type: "varchar", nullable: true }
+        ]
+      };
+      const stdout = JSON.stringify(mockResponse);
+      execFileStub.yields(null, stdout, "");
+
+      const result = await bruinDBTCommand.getFetchColumns(connectionName, database, table);
+      
+      assert.deepStrictEqual(result, mockResponse);
+      sinon.assert.calledOnceWithExactly(
+        execFileStub,
+        "path/to/bruin",
+        ["internal", "fetch-columns", "-c", connectionName, "-d", database, "-table", table, "-o", "json"],
+        { cwd: "path/to/working/directory", maxBuffer: 10485760 },
+        sinon.match.func
+      );
+    });
+
+    test("getFetchColumns should throw error on command failure", async () => {
+      const connectionName = "test-connection";
+      const database = "test-database";
+      const table = "test-table";
+      const errorMessage = "Table not found";
+      execFileStub.yields(new Error("Command failed"), "", errorMessage);
+
+      try {
+        await bruinDBTCommand.getFetchColumns(connectionName, database, table);
+        assert.fail("Expected promise to be rejected");
+      } catch (error) {
+        assert.strictEqual(error, errorMessage);
+      }
+    });
+
+    test("getFetchDatabases should handle invalid JSON response", async () => {
+      const connectionName = "test-connection";
+      const invalidJson = "invalid json response";
+      execFileStub.yields(null, invalidJson, "");
+
+      try {
+        await bruinDBTCommand.getFetchDatabases(connectionName);
+        assert.fail("Expected promise to be rejected");
+      } catch (error) {
+        assert.ok(error instanceof SyntaxError, "Should throw SyntaxError for invalid JSON");
+      }
+    });
+
+    test("getFetchTables should handle empty database parameter", async () => {
+      const connectionName = "test-connection";
+      const database = "";
+      const mockResponse = { tables: [] };
+      const stdout = JSON.stringify(mockResponse);
+      execFileStub.yields(null, stdout, "");
+
+      const result = await bruinDBTCommand.getFetchTables(connectionName, database);
+      
+      assert.deepStrictEqual(result, mockResponse);
+      sinon.assert.calledOnceWithExactly(
+        execFileStub,
+        "path/to/bruin",
+        ["internal", "fetch-tables", "-c", connectionName, "-d", "", "-o", "json"],
+        { cwd: "path/to/working/directory", maxBuffer: 10485760 },
+        sinon.match.func
+      );
+    });
+
+ 
   });
 
   suite("ActivityBar Tests", () => {
@@ -5564,16 +5777,22 @@ suite(" Query export Tests", () => {
       test("clicking on table should execute showTableDetails command", async () => {
         const { ActivityBarConnectionsProvider } = require("../providers/ActivityBarConnectionsProvider");
         
+        // Mock database summary response
         const mockDbSummary = [
           {
             name: 'public',
-            tables: ['users', 'orders', 'products']
+            tables: []
           },
           {
-            name: 'analytics',
-            tables: ['metrics', 'reports']
+            name: 'analytics', 
+            tables: []
           }
         ];
+
+        // Mock tables response with correct structure
+        const mockTablesResponse = {
+          tables: ['users', 'orders', 'products']
+        };
 
         const BruinConnectionsStub = sinon.stub().returns({
           getConnectionsForActivityBar: sinon.stub().resolves([
@@ -5582,7 +5801,8 @@ suite(" Query export Tests", () => {
         });
 
         const BruinDBTCommandStub = sinon.stub().returns({
-          getDbSummary: sinon.stub().resolves(mockDbSummary)
+          getFetchDatabases: sinon.stub().resolves(mockDbSummary),
+          getFetchTables: sinon.stub().resolves(mockTablesResponse)
         });
 
         const originalBruinConnections = require("../bruin/bruinConnections").BruinConnections;
@@ -5607,6 +5827,10 @@ suite(" Query export Tests", () => {
 
         const publicSchemaItem = schemaItems.find((item: any) => item.label === 'public');
         assert.ok(publicSchemaItem, "Should find public schema");
+        
+        // Verify schema context value (should be unfavorite by default)
+        assert.ok(['schema_favorite', 'schema_unfavorite'].includes(publicSchemaItem.contextValue), 
+          "Schema should have correct context value");
 
         // Get table items
         const tableItems = await provider.getChildren(publicSchemaItem);
@@ -5615,6 +5839,10 @@ suite(" Query export Tests", () => {
         // Check users table
         const usersTableItem = tableItems.find((item: any) => item.label === 'users');
         assert.ok(usersTableItem, "Should find users table");
+        
+        // Verify table properties
+        assert.strictEqual(usersTableItem.contextValue, 'table_unfavorite', "Table should have correct context value");
+        assert.strictEqual(usersTableItem.collapsibleState, 1, "Table should be collapsible"); // TreeItemCollapsibleState.Collapsed = 1
         
         // Verify command is set correctly
         assert.ok(usersTableItem.command, "Table item should have command");
@@ -5633,7 +5861,15 @@ suite(" Query export Tests", () => {
         const ordersTableItem = tableItems.find((item: any) => item.label === 'orders');
         assert.ok(ordersTableItem, "Should find orders table");
         assert.ok(ordersTableItem.command, "Orders table should have command");
-        assert.deepStrictEqual(ordersTableItem.command.arguments, ['orders', 'public', 'test-connection'], "Orders table should have correct arguments");
+        assert.deepStrictEqual(ordersTableItem.command.arguments, ['orders', 'public', 'test-connection'], 
+          "Orders table should have correct arguments");
+
+        // Verify products table
+        const productsTableItem = tableItems.find((item: any) => item.label === 'products');
+        assert.ok(productsTableItem, "Should find products table");
+        assert.ok(productsTableItem.command, "Products table should have command");
+        assert.deepStrictEqual(productsTableItem.command.arguments, ['products', 'public', 'test-connection'], 
+          "Products table should have correct arguments");
 
         // Restore
         require("../bruin/bruinConnections").BruinConnections = originalBruinConnections;
@@ -5643,12 +5879,18 @@ suite(" Query export Tests", () => {
       test("table items should have correct context and icons", async () => {
         const { ActivityBarConnectionsProvider } = require("../providers/ActivityBarConnectionsProvider");
         
+        // Mock database summary response
         const mockDbSummary = [
           {
             name: 'test_schema',
-            tables: ['customer_data', 'order_history']
+            tables: []
           }
         ];
+
+        // Mock tables response
+        const mockTablesResponse = {
+          tables: ['customer_data', 'order_history']
+        };
 
         const BruinConnectionsStub = sinon.stub().returns({
           getConnectionsForActivityBar: sinon.stub().resolves([
@@ -5657,7 +5899,8 @@ suite(" Query export Tests", () => {
         });
 
         const BruinDBTCommandStub = sinon.stub().returns({
-          getDbSummary: sinon.stub().resolves(mockDbSummary)
+          getFetchDatabases: sinon.stub().resolves(mockDbSummary),
+          getFetchTables: sinon.stub().resolves(mockTablesResponse)
         });
 
         const originalBruinConnections = require("../bruin/bruinConnections").BruinConnections;
@@ -5679,9 +5922,29 @@ suite(" Query export Tests", () => {
 
         // Check table item properties
         const tableItem = tableItems[0];
-        assert.strictEqual(tableItem.contextValue, 'table', "Table should have correct context value");
+        assert.strictEqual(tableItem.contextValue, 'table_unfavorite', "Table should have correct context value");
         assert.ok(tableItem.iconPath, "Table should have icon");
-        assert.strictEqual(tableItem.collapsibleState, 0, "Table should not be collapsible"); // TreeItemCollapsibleState.None = 0
+        assert.strictEqual(tableItem.collapsibleState, 1, "Table should be collapsible"); // TreeItemCollapsibleState.Collapsed = 1
+
+        // Verify table has correct command
+        assert.ok(tableItem.command, "Table should have command");
+        assert.strictEqual(tableItem.command.command, 'bruin.showTableDetails', "Should have correct command");
+        
+        // Verify all table items have correct properties
+        assert.strictEqual(tableItems.length, 2, "Should have 2 table items");
+        
+        const customerDataItem = tableItems.find((item: any) => item.label === 'customer_data');
+        const orderHistoryItem = tableItems.find((item: any) => item.label === 'order_history');
+        
+        assert.ok(customerDataItem, "Should find customer_data table");
+        assert.ok(orderHistoryItem, "Should find order_history table");
+        
+        // Verify both tables have correct context and command
+        assert.strictEqual(customerDataItem.contextValue, 'table_unfavorite', "customer_data should have table context");
+        assert.strictEqual(orderHistoryItem.contextValue, 'table_unfavorite', "order_history should have table context");
+        
+        assert.ok(customerDataItem.command, "customer_data should have command");
+        assert.ok(orderHistoryItem.command, "order_history should have command");
 
         // Restore
         require("../bruin/bruinConnections").BruinConnections = originalBruinConnections;
@@ -6066,3 +6329,5 @@ schedule: yearly
       });
     });
   });
+  
+
