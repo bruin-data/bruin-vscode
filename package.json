@@ -96,8 +96,7 @@
       "bruin": [
         {
           "id": "bruinFavorites",
-          "name": "Favorites",
-          "collapsed": true
+          "name": "Favorites"
         },
         {
           "id": "bruinConnections",

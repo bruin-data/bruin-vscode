@@ -5732,11 +5732,19 @@ suite(" Query export Tests", () => {
         
         await new Promise(resolve => setTimeout(resolve, 100));
 
-        // Get connection item
-        const connectionItems = await provider.getChildren();
+        // Get environment items (root level)
+        const environmentItems = await provider.getChildren();
+        assert.ok(environmentItems.length > 0, "Should have environment items");
+
+        const environmentItem = environmentItems[0];
+        assert.strictEqual(environmentItem.contextValue, 'environment', "Should have environment context");
+
+        // Get connection items under environment
+        const connectionItems = await provider.getChildren(environmentItem);
         assert.ok(connectionItems.length > 0, "Should have connection items");
 
         const connectionItem = connectionItems[0];
+        assert.strictEqual(connectionItem.contextValue, 'bruin_connection', "Should have connection context");
         
         // Get schema items
         const schemaItems = await provider.getChildren(connectionItem);
@@ -5766,26 +5774,27 @@ suite(" Query export Tests", () => {
         assert.strictEqual(usersTableItem.command.command, 'bruin.showTableDetails', "Should have correct command");
         assert.strictEqual(usersTableItem.command.title, 'Show Table Details', "Should have correct title");
         
-        // Verify arguments
+        // Verify arguments (now includes environment)
         const args = usersTableItem.command.arguments;
         assert.ok(args, "Command should have arguments");
-        assert.strictEqual(args.length, 3, "Should have 3 arguments");
+        assert.strictEqual(args.length, 4, "Should have 4 arguments");
         assert.strictEqual(args[0], 'users', "First argument should be table name");
         assert.strictEqual(args[1], 'public', "Second argument should be schema name");
         assert.strictEqual(args[2], 'test-connection', "Third argument should be connection name");
+        assert.strictEqual(args[3], 'dev', "Fourth argument should be environment");
 
         // Check orders table
         const ordersTableItem = tableItems.find((item: any) => item.label === 'orders');
         assert.ok(ordersTableItem, "Should find orders table");
         assert.ok(ordersTableItem.command, "Orders table should have command");
-        assert.deepStrictEqual(ordersTableItem.command.arguments, ['orders', 'public', 'test-connection'], 
+        assert.deepStrictEqual(ordersTableItem.command.arguments, ['orders', 'public', 'test-connection', 'dev'], 
           "Orders table should have correct arguments");
 
         // Verify products table
         const productsTableItem = tableItems.find((item: any) => item.label === 'products');
         assert.ok(productsTableItem, "Should find products table");
         assert.ok(productsTableItem.command, "Products table should have command");
-        assert.deepStrictEqual(productsTableItem.command.arguments, ['products', 'public', 'test-connection'], 
+        assert.deepStrictEqual(productsTableItem.command.arguments, ['products', 'public', 'test-connection', 'dev'], 
           "Products table should have correct arguments");
 
         // Restore
@@ -5830,8 +5839,10 @@ suite(" Query export Tests", () => {
         
         await new Promise(resolve => setTimeout(resolve, 100));
 
-        // Navigate to table items
-        const connectionItems = await provider.getChildren();
+        // Navigate to table items through environment structure
+        const environmentItems = await provider.getChildren();
+        const environmentItem = environmentItems[0];
+        const connectionItems = await provider.getChildren(environmentItem);
         const connectionItem = connectionItems[0];
         const schemaItems = await provider.getChildren(connectionItem);
         const schemaItem = schemaItems[0];
@@ -5863,10 +5874,153 @@ suite(" Query export Tests", () => {
         assert.ok(customerDataItem.command, "customer_data should have command");
         assert.ok(orderHistoryItem.command, "order_history should have command");
 
+        // Verify command arguments include environment
+        assert.strictEqual(customerDataItem.command.arguments.length, 4, "customer_data command should have 4 arguments");
+        assert.strictEqual(orderHistoryItem.command.arguments.length, 4, "order_history command should have 4 arguments");
+
+        // Verify specific command arguments
+        assert.deepStrictEqual(customerDataItem.command.arguments, ['customer_data', 'test_schema', 'prod-db', 'production'], 
+          "customer_data should have correct command arguments");
+        assert.deepStrictEqual(orderHistoryItem.command.arguments, ['order_history', 'test_schema', 'prod-db', 'production'], 
+          "order_history should have correct command arguments");
+
         // Restore
         require("../bruin/bruinConnections").BruinConnections = originalBruinConnections;
         require("../bruin/bruinDBTCommand").BruinDBTCommand = originalBruinDBTCommand;
       });
+
+      test("schema favorite toggle should work correctly", async () => {
+        const { ActivityBarConnectionsProvider } = require("../providers/ActivityBarConnectionsProvider");
+        
+        const mockDbSummary = [
+          {
+            name: 'users_schema',
+            tables: []
+          }
+        ];
+
+        const BruinConnectionsStub = sinon.stub().returns({
+          getConnectionsForActivityBar: sinon.stub().resolves([
+            { name: 'test-db', type: 'postgres', environment: 'dev' }
+          ])
+        });
+
+        const BruinDBTCommandStub = sinon.stub().returns({
+          getFetchDatabases: sinon.stub().resolves(mockDbSummary),
+          getFetchTables: sinon.stub().resolves({ tables: [] })
+        });
+
+        const originalBruinConnections = require("../bruin/bruinConnections").BruinConnections;
+        const originalBruinDBTCommand = require("../bruin/bruinDBTCommand").BruinDBTCommand;
+        
+        require("../bruin/bruinConnections").BruinConnections = BruinConnectionsStub;
+        require("../bruin/bruinDBTCommand").BruinDBTCommand = BruinDBTCommandStub;
+
+        const provider = new ActivityBarConnectionsProvider("/test/path");
+        
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Navigate to schema
+        const environmentItems = await provider.getChildren();
+        const environmentItem = environmentItems[0];
+        const connectionItems = await provider.getChildren(environmentItem);
+        const connectionItem = connectionItems[0];
+        const schemaItems = await provider.getChildren(connectionItem);
+        const schemaItem = schemaItems[0];
+
+        // Initially should be unfavorite
+        assert.strictEqual(schemaItem.contextValue, 'schema_unfavorite', "Schema should be unfavorite initially");
+        assert.strictEqual(provider.isSchemaFavorite(schemaItem.itemData), false, "Schema should not be favorite");
+
+        // Toggle to favorite
+        await provider.toggleSchemaFavorite(schemaItem.itemData);
+        
+        // Check favorite status
+        assert.strictEqual(provider.isSchemaFavorite(schemaItem.itemData), true, "Schema should be favorite after toggle");
+
+        // Toggle back to unfavorite
+        await provider.toggleSchemaFavorite(schemaItem.itemData);
+        assert.strictEqual(provider.isSchemaFavorite(schemaItem.itemData), false, "Schema should be unfavorite after second toggle");
+
+        // Restore
+        require("../bruin/bruinConnections").BruinConnections = originalBruinConnections;
+        require("../bruin/bruinDBTCommand").BruinDBTCommand = originalBruinDBTCommand;
+      });
+
+      test("table favorite toggle should work correctly", async () => {
+        const { ActivityBarConnectionsProvider } = require("../providers/ActivityBarConnectionsProvider");
+        
+        const mockDbSummary = [
+          {
+            name: 'orders_schema',
+            tables: []
+          }
+        ];
+
+        const mockTablesResponse = {
+          tables: ['orders_table', 'customers_table']
+        };
+
+        const BruinConnectionsStub = sinon.stub().returns({
+          getConnectionsForActivityBar: sinon.stub().resolves([
+            { name: 'prod-db', type: 'snowflake', environment: 'production' }
+          ])
+        });
+
+        const BruinDBTCommandStub = sinon.stub().returns({
+          getFetchDatabases: sinon.stub().resolves(mockDbSummary),
+          getFetchTables: sinon.stub().resolves(mockTablesResponse)
+        });
+
+        const originalBruinConnections = require("../bruin/bruinConnections").BruinConnections;
+        const originalBruinDBTCommand = require("../bruin/bruinDBTCommand").BruinDBTCommand;
+        
+        require("../bruin/bruinConnections").BruinConnections = BruinConnectionsStub;
+        require("../bruin/bruinDBTCommand").BruinDBTCommand = BruinDBTCommandStub;
+
+        const provider = new ActivityBarConnectionsProvider("/test/path");
+        
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Navigate to table
+        const environmentItems = await provider.getChildren();
+        const environmentItem = environmentItems[0];
+        const connectionItems = await provider.getChildren(environmentItem);
+        const connectionItem = connectionItems[0];
+        const schemaItems = await provider.getChildren(connectionItem);
+        const schemaItem = schemaItems[0];
+        const tableItems = await provider.getChildren(schemaItem);
+        const tableItem = tableItems[0];
+
+        // Initially should be unfavorite
+        assert.strictEqual(tableItem.contextValue, 'table_unfavorite', "Table should be unfavorite initially");
+        assert.strictEqual(provider.isTableFavorite(tableItem.itemData), false, "Table should not be favorite");
+
+        // Toggle to favorite
+        await provider.toggleTableFavorite(tableItem.itemData, tableItem);
+        
+        // Check favorite status
+        assert.strictEqual(provider.isTableFavorite(tableItem.itemData), true, "Table should be favorite after toggle");
+
+        // Get updated tree item
+        const updatedTreeItem = provider.getTreeItem(tableItem);
+        assert.strictEqual(updatedTreeItem.contextValue, 'table_favorite', "Table should have favorite context value");
+
+        // Toggle back to unfavorite
+        await provider.toggleTableFavorite(tableItem.itemData, tableItem);
+        assert.strictEqual(provider.isTableFavorite(tableItem.itemData), false, "Table should be unfavorite after second toggle");
+
+        // Verify context value is updated
+        const finalTreeItem = provider.getTreeItem(tableItem);
+        assert.strictEqual(finalTreeItem.contextValue, 'table_unfavorite', "Table should have unfavorite context value");
+
+        // Restore
+        require("../bruin/bruinConnections").BruinConnections = originalBruinConnections;
+        require("../bruin/bruinDBTCommand").BruinDBTCommand = originalBruinDBTCommand;
+      });
+
+   
+     
 
     });
 
