@@ -25,16 +25,17 @@ export class TableDetailsPanel {
     });
   }
 
-  public static async render(extensionUri: Uri, tableName: string, schemaName?: string, connectionName?: string) {
+  public static async render(extensionUri: Uri, tableName: string, schemaName?: string, connectionName?: string, environmentName?: string) {
     try {
       const cleanTableName = tableName.replace(/\.sql$/, "");
       const connectionIdentifier = connectionName || 'default';
+      const environmentIdentifier = environmentName || 'default';
       
       // Check if there's already an open document for this table
       const openDocuments = workspace.textDocuments;
       const existingDoc = openDocuments.find(doc => {
         const fileName = path.basename(doc.fileName);
-        return fileName.startsWith(`bruin-${cleanTableName}-${connectionIdentifier}-`) && fileName.endsWith('.sql');
+        return fileName.startsWith(`bruin-${cleanTableName}-${connectionIdentifier}-${environmentIdentifier}-`) && fileName.endsWith('.sql');
       });
       
       if (existingDoc) {
@@ -62,13 +63,14 @@ export class TableDetailsPanel {
         fs.mkdirSync(tempDir, { recursive: true });
       }
       
-      const tempFileName = `bruin-${cleanTableName}-${connectionIdentifier}-${Date.now()}.sql`;
+      const tempFileName = `bruin-${cleanTableName}-${connectionIdentifier}-${environmentIdentifier}-${Date.now()}.sql`;
       const tempFilePath = path.join(tempDir, tempFileName);
       
       // Track temp file for cleanup
       this.tempFiles.add(tempFilePath);
       
-      let initialContent = `-- connection: ${connectionName || 'default'}\n`;
+      let initialContent = `-- environment: ${environmentName || 'default'}\n`;
+      initialContent += `-- connection: ${connectionName || 'default'}\n`;
       if (schemaName) {
         initialContent += `SELECT * FROM ${this._sanitizeTableName(schemaName)}.${this._sanitizeTableName(cleanTableName)};\n\n`;
       } else {
@@ -83,7 +85,7 @@ export class TableDetailsPanel {
       await window.showTextDocument(doc, {
         viewColumn: ViewColumn.One,
         preview: false,
-        selection: new Range(new Position(2, 0), new Position(2, 0))
+        selection: new Range(new Position(3, 0), new Position(3, 0))
       });
 
       // Safely focus QueryPreview panel without recreating it

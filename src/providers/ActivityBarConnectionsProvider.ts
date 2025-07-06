@@ -353,7 +353,7 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
       element.command = {
         command: "bruin.showTableDetails",
         title: "Show Table Details",
-        arguments: [table.name, table.schema, table.connectionName],
+        arguments: [table.name, table.schema, table.connectionName, table.environment],
       };
     }
     return element;
@@ -466,7 +466,7 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
           tableTreeItem.command = {
             command: "bruin.showTableDetails",
             title: "Show Table Details",
-            arguments: [table, schema.name, schema.connectionName],
+            arguments: [table, schema.name, schema.connectionName, environment],
           };
           return tableTreeItem;
         });

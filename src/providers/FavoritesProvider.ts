@@ -81,7 +81,7 @@ class FavoriteItem extends vscode.TreeItem {
       this.command = {
         command: "bruin.showTableDetails",
         title: "Show Table Details",
-        arguments: [table.name, table.schema, table.connectionName],
+        arguments: [table.name, table.schema, table.connectionName, table.environment],
       };
     } else if (this.contextValue === "favorite_column") {
       this.iconPath = new vscode.ThemeIcon("symbol-field");

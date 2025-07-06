@@ -259,10 +259,10 @@ export async function activate(context: ExtensionContext) {
     }),
     commands.registerCommand(
       "bruin.showTableDetails",
-      (tableName: string, schemaName?: string, connectionName?: string) => {
+      (tableName: string, schemaName?: string, connectionName?: string, environmentName?: string) => {
         try {
           trackEvent("Command Executed", { command: "showTableDetails" });
-          TableDetailsPanel.render(context.extensionUri, tableName, schemaName, connectionName);
+          TableDetailsPanel.render(context.extensionUri, tableName, schemaName, connectionName, environmentName);
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error);
           vscode.window.showErrorMessage(`Error showing table details: ${errorMessage}`);
