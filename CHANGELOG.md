@@ -1,4 +1,7 @@
 # Changelog
+## [0.56.1] - [2025-07-07]
+- Added missing LIMIT to query execution.
+
 ## [0.56.0] - [2025-07-07]
 - Grouped databases by environment to avoid confusion with duplicates.
 
