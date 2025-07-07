@@ -378,7 +378,13 @@ export async function activate(context: ExtensionContext) {
           tabId: activeTabId,
         });
         await QueryPreviewPanel.focusSafely();
-        await getQueryOutput("", "", uri, activeTabId); 
+        
+        // Send message to webview to execute query with current limit
+        QueryPreviewPanel.postMessage("bruin.executePreviewQuery", { 
+          status: "success",
+          message: "",
+          tabId: activeTabId
+        }); 
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         vscode.window.showErrorMessage(`Error running query: ${errorMessage}`);
