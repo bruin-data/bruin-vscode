@@ -83,6 +83,7 @@
         :selectedEnvironment="selectedEnvironment"
         :hasIntervalModifiers="hasIntervalModifiers"
         :assetType="props.type"
+        :parameters="parameters"
       />
     </div>
   </div>
@@ -107,6 +108,7 @@ const props = defineProps<{
   environments: string[];
   selectedEnvironment: string;
   hasIntervalModifiers: boolean;
+  parameters?: any;
 }>();
 
 const descriptionRef = ref<HTMLElement | null>(null);

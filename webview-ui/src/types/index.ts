@@ -166,3 +166,11 @@ export interface EditingState {
   originalLabel: string;
   currentLabel: string;
 }
+export interface IngestrParameters {
+  source?: string;
+  source_connection: string;
+  source_table: string;
+  destination: string;
+  incremental_strategy?: string;
+  incremental_key?: string;
+}

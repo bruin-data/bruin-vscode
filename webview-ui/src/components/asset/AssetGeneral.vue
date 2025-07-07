@@ -270,6 +270,7 @@ const props = defineProps<{
   selectedEnvironment: string;
   hasIntervalModifiers: boolean;
   assetType?: string;
+  parameters?: any;
 }>();
 
 /**
@@ -321,6 +322,11 @@ const showFullRefreshConfirmation = (runAction: () => void) => {
   pendingRunAction.value = runAction;
   showFullRefreshAlert.value = true;
 };
+
+// Computed property for ingestr parameters
+const ingestrParameters = computed(() => {
+  return props.parameters || {};
+});
 
 /**
  * Computed properties for error handling and warnings
@@ -458,7 +464,6 @@ function getCheckboxChangePayload() {
  */
 const language = ref("");
 const code = ref(null);
-const ingestrParameters = ref({});
 
 /**
  * Lifecycle hooks
@@ -713,7 +718,6 @@ function resetDatesOnSchedule() {
  * Handle ingestr parameters save using setAssetDetails
  */
 function handleIngestrSave(parameters) {
-  ingestrParameters.value = parameters;
   vscode.postMessage({
     command: "bruin.setAssetDetails",
     payload: {
