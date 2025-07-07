@@ -208,7 +208,7 @@
         @warningClose="handleWarningClose"
       />
       <div class="">
-        <div v-if="props.assetType === 'ingestr'" class="mt-1">
+        <div v-if="props.assetType === 'ingestr' && !isError" class="mt-1">
           <IngestrAssetDisplay :parameters="ingestrParameters" @save="handleIngestrSave" />
         </div>
         <div v-else-if="language === 'sql'" class="mt-1">
