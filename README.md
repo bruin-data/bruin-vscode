@@ -55,6 +55,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.56.0**: Grouped databases by environment to avoid confusion with duplicates.
 - **0.55.2**: Fixed asset node Click navigation & long name expansion in Lineage view.
 - **0.55.1**: Added support for dependency mode and SCD2 strategy.
 - **0.55.0**: Added support for highlighting the asset path in the lineage view.
