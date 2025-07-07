@@ -587,6 +587,21 @@ window.addEventListener("message", (event) => {
       expandedCells.value = new Set(state.expandedCells || []);
       showSearchInput.value = state.showSearchInput || false;
     }
+  } else if (message.command === "bruin.executePreviewQuery") {
+    // Handle preview intellisense query execution with current limit
+    const tabId = message.payload.tabId || activeTab.value;
+    const selectedEnvironment = currentEnvironment.value;
+    
+    // Send query execution request with current limit from UI
+    vscode.postMessage({
+      command: "bruin.getQueryOutput",
+      payload: {
+        environment: selectedEnvironment,
+        limit: limit.value.toString(),
+        query: "",
+        tabId: tabId,
+      },
+    });
   }
 
   // Handle tab-specific query results

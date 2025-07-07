@@ -1,4 +1,9 @@
 # Changelog
+## [0.56.1] - [2025-07-07]
+- Added missing LIMIT to query execution.
+
+## [0.56.0] - [2025-07-07]
+- Grouped databases by environment to avoid confusion with duplicates.
 
 ## [0.55.2] - [2025-07-04]
 - Fixed asset node Click navigation & long name expansion in Lineage view.
