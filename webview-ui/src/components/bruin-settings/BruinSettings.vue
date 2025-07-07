@@ -16,6 +16,10 @@
       />
     </div>
 
+    <div v-if="isBruinInstalled">
+      <ManageEnvironments :environments="environmentsList" />
+    </div>
+
     <div v-if="showForm" class="mt-6 bg-editorWidget-bg shadow sm:rounded-lg p-6" ref="formRef">
       <ConnectionForm
         :key="connectionFormKey"
@@ -45,6 +49,7 @@ import BruinCLI from "@/components/bruin-settings/BruinCLI.vue";
 import ConnectionsList from "@/components/connections/ConnectionList.vue";
 import ConnectionForm from "@/components/connections/ConnectionsForm.vue";
 import DeleteAlert from "@/components/ui/alerts/AlertWithActions.vue";
+import ManageEnvironments from "@/components/bruin-settings/ManageEnvironments.vue";
 import { useConnectionsStore } from "@/store/bruinStore";
 import { vscode } from "@/utilities/vscode";
 import { v4 as uuidv4 } from "uuid";
@@ -58,6 +63,7 @@ const props = defineProps({
 const connectionsStore = useConnectionsStore();
 const connections = computed(() => connectionsStore.connections);
 const error = computed(() => connectionsStore.error);
+const environmentsList = computed(() => props.environments || []);
 
 const showForm = ref(false);
 const connectionToEdit = ref(null);
