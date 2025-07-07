@@ -30,6 +30,7 @@ import {
   getConnectionsListFromSchema,
   testConnection,
 } from "../extension/commands/manageConnections";
+import { createEnvironment } from "../extension/commands/manageEnvironments";
 import { openGlossary } from "../bruin/bruinGlossaryUtility";
 import { QueryPreviewPanel } from "./QueryPreviewPanel";
 import { getBruinExecutablePath } from "../providers/BruinExecutableService";
@@ -654,6 +655,13 @@ export class BruinPanel {
           case "bruin.getPipelineAssets":
             console.log("Getting pipeline assets");
             flowLineageCommand(this._lastRenderedDocumentUri, "BruinPanel");
+            break;
+          case "bruin.createEnvironment":
+            const { environmentName } = message.payload;
+            console.log("Creating environment:", environmentName);
+            await createEnvironment(environmentName, this._lastRenderedDocumentUri);
+            // Refresh the environments list after creation
+            await getEnvListCommand(this._lastRenderedDocumentUri);
             break;
         }
       },
