@@ -1,7 +1,5 @@
 <template>
-  <div class="p-4 bg-editor-bg rounded border border-commandCenter-border space-y-4">
-    <h3 class="text-sm font-medium text-editor-fg mb-3">Ingestr Configuration</h3>
-    
+  <div class="space-y-4">
     <!-- Source Configuration -->
     <div class="collapsible-section">
       <div class="section-header" @click="toggleSection('source')">
@@ -329,11 +327,11 @@ watch(
 }
 
 .section-header {
-  @apply p-3 bg-editorWidget-bg border-inherit cursor-pointer hover:bg-input-background transition-colors duration-150 rounded-t;
+  @apply p-1 bg-editorWidget-bg border-inherit cursor-pointer hover:bg-input-background transition-colors duration-150 rounded-t;
 }
 
 .section-content {
-  @apply p-3 space-y-2 bg-editor-bg border-t border-commandCenter-border rounded-b;
+  @apply p-2 space-y-2 bg-editor-bg border-t border-commandCenter-border rounded-b;
 }
 
 /* Transitions */
