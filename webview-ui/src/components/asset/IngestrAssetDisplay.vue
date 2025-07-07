@@ -94,17 +94,12 @@
             class="bg-input-background text-input-foreground text-xs border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg px-2 py-1 rounded w-full"
           >
             <option value="">Select destination...</option>
-            <option value="bigquery">BigQuery</option>
-            <option value="snowflake">Snowflake</option>
-            <option value="redshift">Redshift</option>
-            <option value="synapse">Synapse</option>
-            <option value="duckdb">DuckDB</option>
+            <option v-for="dest in AVAILABLE_DESTINATIONS" :key="dest.value" :value="dest.value">
+              {{ dest.label }}
+            </option>
           </select>
-          <span v-else class="block">
-            <span class="inline-flex px-2 py-1 bg-badge-bg text-editor-fg rounded text-xs font-medium" v-if="localParameters.destination">
-              {{ destinationDisplayName(localParameters.destination) }}
-            </span>
-            <span v-else class="italic opacity-70">Click to set destination</span>
+          <span v-else class="block" :class="{ 'italic opacity-70': !localParameters.destination }">
+            {{ localParameters.destination ? destinationDisplayName(localParameters.destination) : 'Click to set destination' }}
           </span>
         </div>
       </div>
@@ -165,11 +160,9 @@
               :ref="el => { if (el) inputRefs.incremental_strategy = el as HTMLSelectElement }"
               class="bg-input-background text-input-foreground text-xs border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg px-2 py-1 rounded w-full"
             >
-              <option value="">None</option>
-              <option value="replace">Replace</option>
-              <option value="append">Append</option>
-              <option value="merge">Merge</option>
-              <option value="delete+insert">Delete + Insert</option>
+              <option v-for="strategy in INCREMENTAL_STRATEGIES" :key="strategy.value" :value="strategy.value">
+                {{ strategy.label }}
+              </option>
             </select>
             <span v-else class="block" :class="{ 'italic opacity-70': !localParameters.incremental_strategy }">
               {{ localParameters.incremental_strategy || 'Click to set strategy' }}
@@ -247,15 +240,34 @@ const editingValues = ref<Record<string, string>>({});
 const inputRefs = ref<Record<string, HTMLInputElement | HTMLSelectElement>>({});
 
 const destinationDisplayName = (dest: string) => {
-  const names = {
-    bigquery: 'BigQuery',
-    snowflake: 'Snowflake', 
-    redshift: 'Redshift',
-    synapse: 'Synapse',
-    duckdb: 'DuckDB'
-  };
-  return names[dest] || dest;
+  const destination = AVAILABLE_DESTINATIONS.find(d => d.value === dest);
+  return destination?.label || dest;
 };
+
+
+// Available destinations for Ingestr
+const AVAILABLE_DESTINATIONS = [
+  { value: 'aws_athena', label: 'AWS Athena' },
+  { value: 'clickhouse', label: 'Clickhouse' },
+  { value: 'databricks', label: 'Databricks' },
+  { value: 'duckdb', label: 'DuckDB' },
+  { value: 'google_bigquery', label: 'Google BigQuery' },
+  { value: 'microsoft_sql_server', label: 'Microsoft SQL Server' },
+  { value: 'postgres', label: 'Postgres' },
+  { value: 'redshift', label: 'Redshift' },
+  { value: 'snowflake', label: 'Snowflake' },
+  { value: 'synapse', label: 'Synapse' },
+  { value: 'aws_emr_serverless', label: 'AWS EMR Serverless' }
+] as const;
+
+// Available incremental strategies
+const INCREMENTAL_STRATEGIES = [
+  { value: '', label: 'None' },
+  { value: 'replace', label: 'Replace' },
+  { value: 'append', label: 'Append' },
+  { value: 'merge', label: 'Merge' },
+  { value: 'delete+insert', label: 'Delete + Insert' }
+] as const;
 
 // Mock available columns - in real implementation, this would come from API/props
 const availableColumns = computed(() => {
