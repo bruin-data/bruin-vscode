@@ -18,7 +18,7 @@ export class BruinEnvironmentManager extends BruinCommand {
   }
 
   /**
-   * Create a new environment with a dummy connection.
+   * Create a new environment with a duckdb connection.
    * 
    * @param environmentName - The name of the environment to create
    * @param options - Optional parameters for execution
@@ -29,20 +29,26 @@ export class BruinEnvironmentManager extends BruinCommand {
   ): Promise<void> {
     try {
       // Create the environment structure
+      const environmentConnections = {
+        duckdb: [
+          {
+            name: "duckdb-default",
+            path: "duckdb.db",
+          },
+        ],
+      };
+
       const environmentData = {
         name: environmentName,
-        connections: [{
-          type: 'dummy',
-          name: 'example'
-        }]
+        connections: environmentConnections,
       };
 
       // Update the .bruin.yml file
-      await this.updateBruinYmlFile(environmentName, environmentData);
+      await this.updateBruinYmlFile(environmentName, environmentConnections);
 
       this.postMessageToPanels("success", {
         message: `Environment "${environmentName}" created successfully`,
-        environment: environmentData
+        environment: environmentData,
       });
     } catch (error) {
       console.error("Error creating environment:", error);
@@ -53,7 +59,10 @@ export class BruinEnvironmentManager extends BruinCommand {
   /**
    * Update the .bruin.yml file with the new environment
    */
-  private async updateBruinYmlFile(environmentName: string, environmentData: any): Promise<void> {
+  private async updateBruinYmlFile(
+    environmentName: string,
+    connections: any
+  ): Promise<void> {
     try {
       const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
       if (!workspaceFolder) {
@@ -61,16 +70,18 @@ export class BruinEnvironmentManager extends BruinCommand {
       }
 
       const bruinYmlPath = path.join(workspaceFolder.uri.fsPath, ".bruin.yml");
-      
+
       let existingConfig: any = {};
-      
+
       // Read existing .bruin.yml file if it exists
       if (fs.existsSync(bruinYmlPath)) {
-        const yamlContent = fs.readFileSync(bruinYmlPath, 'utf8');
+        const yamlContent = fs.readFileSync(bruinYmlPath, "utf8");
         try {
           existingConfig = yaml.load(yamlContent) || {};
         } catch (parseError) {
-          console.warn("Could not parse existing .bruin.yml, creating new structure");
+          console.warn(
+            "Could not parse existing .bruin.yml, creating new structure"
+          );
           existingConfig = {};
         }
       }
@@ -82,10 +93,7 @@ export class BruinEnvironmentManager extends BruinCommand {
 
       // Add the new environment
       existingConfig.environments[environmentName] = {
-        connections: [{
-          type: 'dummy',
-          name: 'example'
-        }]
+        connections: connections,
       };
 
       // Convert back to YAML format with proper formatting
@@ -93,19 +101,16 @@ export class BruinEnvironmentManager extends BruinCommand {
         indent: 2,
         lineWidth: -1,
         noRefs: true,
-        sortKeys: false
+        sortKeys: false,
       });
-      
+
       // Write the updated content
-      fs.writeFileSync(bruinYmlPath, yamlContent, 'utf8');
-      
+      fs.writeFileSync(bruinYmlPath, yamlContent, "utf8");
     } catch (error) {
       console.error("Error updating .bruin.yml file:", error);
       throw error;
     }
   }
-
-
 
   /**
    * Helper function to post messages to the panel
