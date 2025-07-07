@@ -4,6 +4,7 @@ import { BruinPanel } from "../panels/BruinPanel";
 import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
+import * as yaml from "js-yaml";
 
 /**
  * Extends the BruinCommand class to implement environment management commands.
@@ -66,11 +67,11 @@ export class BruinEnvironmentManager extends BruinCommand {
       // Read existing .bruin.yml file if it exists
       if (fs.existsSync(bruinYmlPath)) {
         const yamlContent = fs.readFileSync(bruinYmlPath, 'utf8');
-        // Basic YAML parsing - in production, you'd want to use a proper YAML parser
         try {
-          existingConfig = this.parseSimpleYaml(yamlContent);
+          existingConfig = yaml.load(yamlContent) || {};
         } catch (parseError) {
           console.warn("Could not parse existing .bruin.yml, creating new structure");
+          existingConfig = {};
         }
       }
 
@@ -87,8 +88,13 @@ export class BruinEnvironmentManager extends BruinCommand {
         }]
       };
 
-      // Convert back to YAML format
-      const yamlContent = this.stringifyToYaml(existingConfig);
+      // Convert back to YAML format with proper formatting
+      const yamlContent = yaml.dump(existingConfig, {
+        indent: 2,
+        lineWidth: -1,
+        noRefs: true,
+        sortKeys: false
+      });
       
       // Write the updated content
       fs.writeFileSync(bruinYmlPath, yamlContent, 'utf8');
@@ -99,67 +105,7 @@ export class BruinEnvironmentManager extends BruinCommand {
     }
   }
 
-  /**
-   * Simple YAML parser for basic structure (in production, use a proper YAML library)
-   */
-  private parseSimpleYaml(content: string): any {
-    const lines = content.split('\n');
-    const result: any = {};
-    let currentKey = '';
-    let currentObject: any = result;
-    let indentLevel = 0;
 
-    for (const line of lines) {
-      const trimmedLine = line.trim();
-      if (!trimmedLine || trimmedLine.startsWith('#')) continue;
-
-      const indent = line.length - line.trimStart().length;
-      
-      if (trimmedLine.includes(':')) {
-        const [key, value] = trimmedLine.split(':', 2);
-        const cleanKey = key.trim();
-        const cleanValue = value?.trim();
-
-        if (cleanValue) {
-          currentObject[cleanKey] = cleanValue;
-        } else {
-          currentObject[cleanKey] = {};
-          currentKey = cleanKey;
-        }
-      }
-    }
-
-    return result;
-  }
-
-  /**
-   * Simple YAML stringifier (in production, use a proper YAML library)
-   */
-  private stringifyToYaml(obj: any, indent: number = 0): string {
-    let result = '';
-    const spaces = '  '.repeat(indent);
-
-    for (const [key, value] of Object.entries(obj)) {
-      if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-        result += `${spaces}${key}:\n`;
-        result += this.stringifyToYaml(value, indent + 1);
-      } else if (Array.isArray(value)) {
-        result += `${spaces}${key}:\n`;
-        for (const item of value) {
-          if (typeof item === 'object') {
-            result += `${spaces}  -\n`;
-            result += this.stringifyToYaml(item, indent + 2);
-          } else {
-            result += `${spaces}  - ${item}\n`;
-          }
-        }
-      } else {
-        result += `${spaces}${key}: ${value}\n`;
-      }
-    }
-
-    return result;
-  }
 
   /**
    * Helper function to post messages to the panel

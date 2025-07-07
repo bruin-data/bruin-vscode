@@ -101,7 +101,6 @@
         {
           "id": "bruinConnections",
           "name": "Databases"
-          
         }
       ],
       "bruin-assetLineageView": [
@@ -287,7 +286,6 @@
           "when": "view == bruinConnections && (viewItem == 'schema_favorite' || viewItem == 'schema_unfavorite') ",
           "group": "inline@2"
         },
-
         {
           "command": "bruin.refreshSchema",
           "when": "view == bruinFavorites && (viewItem == 'favorite_schema' || viewItem == 'playground')",
@@ -455,6 +453,7 @@
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.13",
     "@types/fs-extra": "^11.0.4",
+    "@types/js-yaml": "^4.0.9",
     "@types/mocha": "^10.0.10",
     "@types/node": "^20.11.30",
     "@types/sinon": "^17.0.3",
