@@ -25,9 +25,10 @@ import { QueryCodeLensProvider } from "../providers/queryCodeLensProvider";
 import { ScheduleCodeLensProvider } from "../providers/scheduleCodeLensProvider";
 import { getQueryOutput } from "./commands/queryCommands";
 import { ActivityBarConnectionsProvider } from "../providers/ActivityBarConnectionsProvider";
+import { FavoritesProvider } from "../providers/FavoritesProvider";
 import { isBruinAsset, isBruinPipeline } from "../utilities/helperUtils";
 import { getBruinExecutablePath } from "../providers/BruinExecutableService";
-import { TableDetailsPanel } from '../panels/TableDetailsPanel';
+import { TableDetailsPanel } from "../panels/TableDetailsPanel";
 
 let analyticsClient: any = null;
 
@@ -158,7 +159,7 @@ export async function activate(context: ExtensionContext) {
             console.debug("Bruin panel restored from state:", state);
           } catch (error) {
             console.error("Failed to restore Bruin panel:", error);
-          } 
+          }
         },
       })
     );
@@ -194,7 +195,10 @@ export async function activate(context: ExtensionContext) {
   subscribeToConfigurationChanges();
 
   const activityBarConnectionsProvider = new ActivityBarConnectionsProvider(context.extensionPath);
-  vscode.window.registerTreeDataProvider('bruinConnections', activityBarConnectionsProvider);
+  vscode.window.registerTreeDataProvider("bruinConnections", activityBarConnectionsProvider);
+
+  const favoritesProvider = new FavoritesProvider();
+  vscode.window.registerTreeDataProvider("bruinFavorites", favoritesProvider);
 
   const defaultFoldingState = bruinConfig.get("bruin.FoldingState", "folded");
   let toggled = defaultFoldingState === "folded";
@@ -215,12 +219,27 @@ export async function activate(context: ExtensionContext) {
       try {
         trackEvent("Command Executed", { command: "refreshConnection" });
         if (item && item.itemData && item.itemData.name) {
-          activityBarConnectionsProvider.refreshConnection(item.itemData.name);
-          vscode.window.showInformationMessage(`Connection ${item.itemData.name} refreshed.`);
+          // Pass environment information if available
+          const environment = item.itemData.environment;
+          activityBarConnectionsProvider.refreshConnection(item.itemData.name, environment);
+          const envText = environment ? ` (${environment})` : '';
+          vscode.window.showInformationMessage(`Connection ${item.itemData.name}${envText} refreshed.`);
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         vscode.window.showErrorMessage(`Error refreshing connection: ${errorMessage}`);
+      }
+    }),
+    commands.registerCommand("bruin.refreshSchema", (item: any) => {
+      try {
+        trackEvent("Command Executed", { command: "refreshSchema" });
+        if (item && item.itemData) {
+          activityBarConnectionsProvider.refreshSchema(item.itemData);
+          vscode.window.showInformationMessage(`Schema ${item.itemData.name} refreshed.`);
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error refreshing schema: ${errorMessage}`);
       }
     }),
     commands.registerCommand("bruin.showConnectionDetails", (connection: any) => {
@@ -228,7 +247,7 @@ export async function activate(context: ExtensionContext) {
         trackEvent("Command Executed", { command: "showConnectionDetails" });
         const details = `Connection: ${connection.name}\nType: ${connection.type}\nStatus: ${connection.status}`;
         if (connection.host) {
-          const hostDetails = `\nHost: ${connection.host}:${connection.port || 'default'}`;
+          const hostDetails = `\nHost: ${connection.host}:${connection.port || "default"}`;
           vscode.window.showInformationMessage(details + hostDetails);
         } else {
           vscode.window.showInformationMessage(details);
@@ -238,13 +257,111 @@ export async function activate(context: ExtensionContext) {
         vscode.window.showErrorMessage(`Error showing connection details: ${errorMessage}`);
       }
     }),
-    commands.registerCommand("bruin.showTableDetails", (tableName: string, schemaName?: string, connectionName?: string) => {
+    commands.registerCommand(
+      "bruin.showTableDetails",
+      (tableName: string, schemaName?: string, connectionName?: string, environmentName?: string) => {
+        try {
+          trackEvent("Command Executed", { command: "showTableDetails" });
+          TableDetailsPanel.render(context.extensionUri, tableName, schemaName, connectionName, environmentName);
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          vscode.window.showErrorMessage(`Error showing table details: ${errorMessage}`);
+        }
+      }
+    ),
+    commands.registerCommand("bruin.addSchemaToFavorites", async (item: any) => {
       try {
-        trackEvent("Command Executed", { command: "showTableDetails" });
-        TableDetailsPanel.render(context.extensionUri, tableName, schemaName, connectionName);
+        trackEvent("Command Executed", { command: "addSchemaToFavorites" });
+        if (item && item.itemData && "tables" in item.itemData) {
+          await activityBarConnectionsProvider.toggleSchemaFavorite(item.itemData);
+          favoritesProvider.refresh();
+        }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        vscode.window.showErrorMessage(`Error showing table details: ${errorMessage}`);
+        vscode.window.showErrorMessage(`Error adding schema to favorites: ${errorMessage}`);
+      }
+    }),
+    commands.registerCommand("bruin.removeSchemaFromFavorites", async (item: any) => {
+      try {
+        trackEvent("Command Executed", { command: "removeSchemaFromFavorites" });
+        if (item && item.itemData && "tables" in item.itemData) {
+          await activityBarConnectionsProvider.toggleSchemaFavorite(item.itemData);
+          favoritesProvider.refresh();
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error removing schema from favorites: ${errorMessage}`);
+      }
+    }),
+    commands.registerCommand("bruin.refreshFavorites", () => {
+      try {
+        trackEvent("Command Executed", { command: "refreshFavorites" });
+        favoritesProvider.refresh();
+        vscode.window.showInformationMessage("Favorites refreshed successfully!");
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error refreshing favorites: ${errorMessage}`);
+      }
+    }),
+    commands.registerCommand("bruin.removeFavorite", async (item: any) => {
+      try {
+        trackEvent("Command Executed", { command: "removeFavorite" });
+        if (item && item.itemData && item.contextValue === "favorite_schema") {
+          await favoritesProvider.removeFavorite(item.itemData);
+          activityBarConnectionsProvider.refresh();
+          vscode.window.showInformationMessage("Favorite removed successfully!");
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error removing favorite: ${errorMessage}`);
+      }
+    }),
+    commands.registerCommand("bruin.removeTableFavorite", async (item: any) => {
+      try {
+        trackEvent("Command Executed", { command: "removeTableFavorite" });
+        if (
+          item &&
+          item.itemData &&
+          (item.contextValue === "favorite_table" || item.contextValue === "favorite_table_starred")
+        ) {
+          const tableData = item.itemData as any;
+          const tableFavorite = {
+            tableName: tableData.name,
+            schemaName: tableData.schema,
+            connectionName: tableData.connectionName,
+            environment: tableData.environment,
+          };
+          await favoritesProvider.removeTableFavorite(tableFavorite);
+          activityBarConnectionsProvider.refresh();
+          vscode.window.showInformationMessage("Table favorite removed successfully!");
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error removing table favorite: ${errorMessage}`);
+      }
+    }),
+    commands.registerCommand("bruin.addTableToFavorites", async (item: any) => {
+      try {
+        trackEvent("Command Executed", { command: "addTableToFavorites" });
+        if (item && item.itemData && "name" in item.itemData && "schema" in item.itemData) {
+          await activityBarConnectionsProvider.toggleTableFavorite(item.itemData, item);
+          favoritesProvider.refresh();
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error adding table to favorites: ${errorMessage}`);
+      }
+    }),
+    commands.registerCommand("bruin.removeTableFromFavorites", async (item: any) => {
+      try {
+        trackEvent("Command Executed", { command: "removeTableFromFavorites" });
+        if (item && item.itemData && "name" in item.itemData && "schema" in item.itemData) {
+          await activityBarConnectionsProvider.toggleTableFavorite(item.itemData, item);
+          favoritesProvider.refresh();
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error removing table from favorites: ${errorMessage}`);
       }
     }),
     commands.registerCommand("bruin.runQuery", async (uri: vscode.Uri, range: vscode.Range) => {
@@ -253,7 +370,7 @@ export async function activate(context: ExtensionContext) {
         const document = await workspace.openTextDocument(uri);
         const query = document.getText(range);
         QueryPreviewPanel.setLastExecutedQuery(query);
-        const activeTabId = QueryPreviewPanel.getActiveTabId(); 
+        const activeTabId = QueryPreviewPanel.getActiveTabId();
 
         QueryPreviewPanel.postMessage("query-output-message", {
           status: "loading",
@@ -319,6 +436,16 @@ export async function activate(context: ExtensionContext) {
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         vscode.window.showErrorMessage(`Error converting file to asset: ${errorMessage}`);
+      }
+    }),
+    commands.registerCommand("bruin.toggleTableFavorite", async (item: any) => {
+      if (item && item.itemData) {
+        await activityBarConnectionsProvider.toggleTableFavorite(item.itemData, item);
+      }
+    }),
+    commands.registerCommand("bruin.toggleTableUnfavorite", async (item: any) => {
+      if (item && item.itemData) {
+        await activityBarConnectionsProvider.toggleTableFavorite(item.itemData, item);
       }
     }),
   ];

@@ -95,8 +95,13 @@
     "views": {
       "bruin": [
         {
+          "id": "bruinFavorites",
+          "name": "Favorites"
+        },
+        {
           "id": "bruinConnections",
           "name": "Databases"
+          
         }
       ],
       "bruin-assetLineageView": [
@@ -163,6 +168,50 @@
           "type": "string",
           "default": "",
           "description": "Sets the validate exclude tag to be used with validation commands."
+        },
+        "bruin.schemas.favorites": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "schemaName": {
+                "type": "string"
+              },
+              "connectionName": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "schemaName",
+              "connectionName"
+            ]
+          },
+          "default": [],
+          "description": "List of favorite schemas with their connection names."
+        },
+        "bruin.tables.favorites": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "tableName": {
+                "type": "string"
+              },
+              "schemaName": {
+                "type": "string"
+              },
+              "connectionName": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "tableName",
+              "schemaName",
+              "connectionName"
+            ]
+          },
+          "default": [],
+          "description": "List of favorite tables with their schema and connection names."
         }
       }
     },
@@ -220,6 +269,11 @@
           "command": "bruin.refreshConnections",
           "when": "view == bruinConnections",
           "group": "navigation"
+        },
+        {
+          "command": "bruin.refreshFavorites",
+          "when": "view == bruinFavorites",
+          "group": "navigation"
         }
       ],
       "view/item/context": [
@@ -227,6 +281,52 @@
           "command": "bruin.refreshConnection",
           "when": "view == bruinConnections && viewItem == 'bruin_connection'",
           "group": "inline"
+        },
+        {
+          "command": "bruin.refreshSchema",
+          "when": "view == bruinConnections && (viewItem == 'schema_favorite' || viewItem == 'schema_unfavorite') ",
+          "group": "inline@2"
+        },
+
+        {
+          "command": "bruin.refreshSchema",
+          "when": "view == bruinFavorites && (viewItem == 'favorite_schema' || viewItem == 'playground')",
+          "group": "inline@2"
+        },
+        {
+          "command": "bruin.refreshFavorites",
+          "when": "view == bruinFavorites",
+          "group": "navigation"
+        },
+        {
+          "command": "bruin.removeFavorite",
+          "when": "view == bruinFavorites && viewItem == 'favorite_schema'",
+          "group": "inline@1"
+        },
+        {
+          "command": "bruin.removeTableFavorite",
+          "when": "view == bruinFavorites && (viewItem == 'favorite_table' || viewItem == 'favorite_table_starred')",
+          "group": "inline@1"
+        },
+        {
+          "command": "bruin.addSchemaToFavorites",
+          "when": "view == bruinConnections && viewItem == 'schema_unfavorite'",
+          "group": "inline@1"
+        },
+        {
+          "command": "bruin.removeSchemaFromFavorites",
+          "when": "view == bruinConnections && viewItem == 'schema_favorite'",
+          "group": "inline@1"
+        },
+        {
+          "command": "bruin.addTableToFavorites",
+          "when": "view == bruinConnections && viewItem == 'table_unfavorite'",
+          "group": "inline@1"
+        },
+        {
+          "command": "bruin.removeTableFromFavorites",
+          "when": "view == bruinConnections && viewItem == 'table_favorite'",
+          "group": "inline@1"
         }
       ]
     },
@@ -254,6 +354,13 @@
         "description": "Refresh a single connection."
       },
       {
+        "command": "bruin.refreshSchema",
+        "title": "Refresh Schema",
+        "category": "Bruin",
+        "icon": "$(refresh)",
+        "description": "Refresh a single schema."
+      },
+      {
         "command": "bruin.showConnectionDetails",
         "title": "Show Connection Details",
         "category": "Bruin",
@@ -277,6 +384,55 @@
         "title": "Convert File to Asset",
         "category": "Bruin",
         "description": "Convert a file to a Bruin asset."
+      },
+      {
+        "command": "bruin.addSchemaToFavorites",
+        "title": "Add to Favorites",
+        "category": "Bruin",
+        "icon": "$(star-empty)",
+        "description": "Add schema to favorites."
+      },
+      {
+        "command": "bruin.removeSchemaFromFavorites",
+        "title": "Remove from Favorites",
+        "category": "Bruin",
+        "icon": "$(star-full)",
+        "description": "Remove schema from favorites."
+      },
+      {
+        "command": "bruin.refreshFavorites",
+        "title": "Refresh Favorites",
+        "category": "Bruin",
+        "icon": "$(refresh)",
+        "description": "Refresh favorites list."
+      },
+      {
+        "command": "bruin.removeFavorite",
+        "title": "Remove Favorite",
+        "category": "Bruin",
+        "icon": "$(star-full)",
+        "description": "Remove favorite from list."
+      },
+      {
+        "command": "bruin.addTableToFavorites",
+        "title": "Add Table to Favorites",
+        "category": "Bruin",
+        "icon": "$(star-empty)",
+        "description": "Add table to favorites."
+      },
+      {
+        "command": "bruin.removeTableFromFavorites",
+        "title": "Remove Table from Favorites",
+        "category": "Bruin",
+        "icon": "$(star-full)",
+        "description": "Remove table from favorites."
+      },
+      {
+        "command": "bruin.removeTableFavorite",
+        "title": "Remove Table Favorite",
+        "category": "Bruin",
+        "icon": "$(star-full)",
+        "description": "Remove table from favorites list."
       }
     ]
   },
