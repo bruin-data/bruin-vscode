@@ -208,7 +208,13 @@
         @warningClose="handleWarningClose"
       />
       <div class="">
-        <div v-if="language === 'sql'" class="mt-1">
+        <div v-if="props.assetType === 'ingestr'" class="mt-1">
+          <IngestrAssetForm 
+            :config="ingestrConfig" 
+            @save="handleIngestrConfigSave"
+          />
+        </div>
+        <div v-else-if="language === 'sql'" class="mt-1">
           <SqlEditor :code="code" :copied="false" :language="language" :showIntervalAlert="showIntervalAlert"/>
         </div>
         <div v-else class="overflow-hidden w-full h-20">
@@ -242,6 +248,7 @@ import {
 import "@/assets/index.css";
 import DateInput from "@/components/ui/date-inputs/DateInput.vue";
 import SqlEditor from "@/components/asset/SqlEditor.vue";
+import IngestrAssetForm from "@/components/asset/IngestrAssetForm.vue";
 import CheckboxGroup from "@/components/ui/checkbox-group/CheckboxGroup.vue";
 import EnvSelectMenu from "@/components/ui/select-menu/EnvSelectMenu.vue";
 import { updateValue, resetStates, determineValidationStatus } from "@/utilities/helper";
@@ -265,6 +272,7 @@ const props = defineProps<{
   environments: string[];
   selectedEnvironment: string;
   hasIntervalModifiers: boolean;
+  assetType?: string;
 }>();
 
 /**
@@ -453,6 +461,7 @@ function getCheckboxChangePayload() {
  */
 const language = ref("");
 const code = ref(null);
+const ingestrConfig = ref({});
 
 /**
  * Lifecycle hooks
@@ -704,6 +713,17 @@ function resetDatesOnSchedule() {
 }
 
 /**
+ * Handle ingestr config save
+ */
+function handleIngestrConfigSave(config) {
+  ingestrConfig.value = config;
+  vscode.postMessage({
+    command: "bruin.saveIngestrAsset",
+    payload: config,
+  });
+}
+
+/**
  * Event listener for message receiving
  */
 onBeforeUnmount(() => {
@@ -756,6 +776,15 @@ function receiveMessage(event: { data: any }) {
       isNotAsset.value = !!renderAssetAlert.value;
       code.value = renderSQLAssetSuccess.value || renderPythonAsset.value;
       language.value = renderSQLAssetSuccess.value ? "sql" : "python";
+      
+      // If it's an ingestr asset, parse the config
+      if (props.assetType === "ingestr") {
+        const ingestrData = updateValue(envelope, "ingestrConfig");
+        if (ingestrData) {
+          ingestrConfig.value = ingestrData;
+        }
+      }
+      
       errorPhase.value = renderSQLAssetError.value ? "Rendering" : "Unknown";
       resetStates([validationError, validationSuccess, validateButtonStatus]);
       break;

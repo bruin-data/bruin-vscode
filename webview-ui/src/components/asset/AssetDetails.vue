@@ -82,6 +82,7 @@
         :environments="environments"
         :selectedEnvironment="selectedEnvironment"
         :hasIntervalModifiers="hasIntervalModifiers"
+        :assetType="props.type"
       />
     </div>
   </div>
