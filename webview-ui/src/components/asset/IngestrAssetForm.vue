@@ -1,77 +1,52 @@
 <template>
   <div class="space-y-4 p-4 bg-editor-bg rounded-md border border-commandCenter-border">
-    <h3 class="text-sm font-medium text-editor-fg">Ingestr Asset Configuration</h3>
+    <h3 class="text-sm font-medium text-editor-fg">Ingestr Parameters</h3>
     
-    <!-- Asset Name -->
+    <!-- Source Connection -->
     <div class="field-group">
-      <label class="field-label">Asset Name</label>
+      <label class="field-label">Source Connection</label>
       <input
-        v-model="localConfig.name"
+        v-model="localParameters.source_connection"
         class="w-full border-0 bg-input-background text-input-foreground text-xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-8 px-2"
-        placeholder="Enter asset name"
+        placeholder="Source connection name"
       />
     </div>
 
-    <!-- Connection -->
+    <!-- Source Table -->
     <div class="field-group">
-      <label class="field-label">Connection</label>
+      <label class="field-label">Source Table</label>
       <input
-        v-model="localConfig.connection"
+        v-model="localParameters.source_table"
         class="w-full border-0 bg-input-background text-input-foreground text-xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-8 px-2"
-        placeholder="Connection name (optional)"
+        placeholder="Source table name"
       />
-      <p class="field-help">Optional. Uses default connection for destination platform if not specified.</p>
     </div>
 
-    <!-- Parameters Section -->
+    <!-- Destination -->
     <div class="field-group">
-      <label class="field-label">Parameters</label>
-      
-      <!-- Source -->
-      <div class="field-subgroup">
-        <label class="field-sublabel">Source</label>
-        <input
-          v-model="localConfig.parameters.source"
-          class="w-full border-0 bg-input-background text-input-foreground text-xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-8 px-2"
-          placeholder="Source identifier (optional)"
-        />
-        <p class="field-help">Optional. Used when inferring source from connection is not enough (e.g., GCP connection + GSheets source).</p>
-      </div>
+      <label class="field-label">Destination</label>
+      <select
+        v-model="localParameters.destination"
+        class="w-full bg-input-background text-input-foreground text-xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-8 px-2"
+      >
+        <option value="">Select destination...</option>
+        <option value="bigquery">BigQuery</option>
+        <option value="snowflake">Snowflake</option>
+        <option value="redshift">Redshift</option>
+        <option value="synapse">Synapse</option>
+        <option value="duckdb">DuckDB</option>
+      </select>
+    </div>
 
-      <!-- Source Connection -->
-      <div class="field-subgroup">
-        <label class="field-sublabel">Source Connection</label>
-        <input
-          v-model="localConfig.parameters.source_connection"
-                    class="w-full border-0 bg-input-background text-input-foreground text-xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-8 px-2"
-          placeholder="Source connection name"
-        />
-      </div>
-
-      <!-- Source Table -->
-      <div class="field-subgroup">
-        <label class="field-sublabel">Source Table</label>
-        <input
-          v-model="localConfig.parameters.source_table"
-                    class="w-full border-0 bg-input-background text-input-foreground text-xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-8 px-2"
-          placeholder="Source table name"
-        />
-      </div>
-
-      <!-- Destination -->
-      <div class="field-subgroup">
-        <label class="field-sublabel">Destination</label>
-        <select
-          v-model="localConfig.parameters.destination"
-                    class="w-full bg-input-background text-input-foreground text-xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-8 px-2"
-        >
-          <option value="">Select destination...</option>
-          <option value="bigquery">BigQuery</option>
-          <option value="snowflake">Snowflake</option>
-          <option value="redshift">Redshift</option>
-          <option value="synapse">Synapse</option>
-        </select>
-      </div>
+    <!-- Source (Optional) -->
+    <div class="field-group">
+      <label class="field-label">Source</label>
+      <input
+        v-model="localParameters.source"
+        class="w-full border-0 bg-input-background text-input-foreground text-xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-8 px-2"
+        placeholder="Source identifier (optional)"
+      />
+      <p class="field-help">Optional. Used when inferring source from connection is not enough (e.g., GCP connection + GSheets source).</p>
     </div>
 
     <!-- Optional Parameters Section -->
@@ -82,8 +57,8 @@
       <div class="field-subgroup">
         <label class="field-sublabel">Incremental Strategy</label>
         <select
-          v-model="localConfig.parameters.incremental_strategy"
-                    class="w-full bg-input-background text-input-foreground text-xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-8 px-2"
+          v-model="localParameters.incremental_strategy"
+          class="w-full bg-input-background text-input-foreground text-xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-8 px-2"
         >
           <option value="">Select strategy...</option>
           <option value="replace">Replace</option>
@@ -97,44 +72,17 @@
       <div class="field-subgroup">
         <label class="field-sublabel">Incremental Key</label>
         <input
-          v-model="localConfig.parameters.incremental_key"
-                    class="w-full border-0 bg-input-background text-input-foreground text-xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-8 px-2"
+          v-model="localParameters.incremental_key"
+          class="w-full border-0 bg-input-background text-input-foreground text-xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-8 px-2"
           placeholder="Incremental key column"
         />
-      </div>
-
-      <!-- SQL Backend -->
-      <div class="field-subgroup">
-        <label class="field-sublabel">SQL Backend</label>
-        <select
-          v-model="localConfig.parameters.sql_backend"
-                    class="w-full bg-input-background text-input-foreground text-xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-8 px-2"
-        >
-          <option value="">Select backend...</option>
-          <option value="pyarrow">PyArrow</option>
-          <option value="sqlalchemy">SQLAlchemy</option>
-        </select>
-      </div>
-
-      <!-- Loader File Format -->
-      <div class="field-subgroup">
-        <label class="field-sublabel">Loader File Format</label>
-        <select
-          v-model="localConfig.parameters.loader_file_format"
-                    class="w-full bg-input-background text-input-foreground text-xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-8 px-2"
-        >
-          <option value="">Select format...</option>
-          <option value="jsonl">JSONL</option>
-          <option value="csv">CSV</option>
-          <option value="parquet">Parquet</option>
-        </select>
       </div>
     </div>
 
     <!-- Save Button -->
     <div class="flex justify-end pt-4 border-t border-commandCenter-border">
       <vscode-button @click="saveConfig">
-        Save Configuration
+        Save Parameters
       </vscode-button>
     </div>
   </div>
@@ -143,62 +91,44 @@
 <script setup lang="ts">
 import { ref, watch, defineProps, defineEmits } from 'vue';
 
-interface IngestrConfig {
-  name: string;
-  type: string;
-  connection: string;
-  parameters: {
-    source: string;
-    source_connection: string;
-    source_table: string;
-    destination: string;
-    incremental_strategy: string;
-    incremental_key: string;
-    sql_backend: string;
-    loader_file_format: string;
-  };
+interface IngestrParameters {
+  source?: string;
+  source_connection: string;
+  source_table: string;
+  destination: string;
+  incremental_strategy?: string;
+  incremental_key?: string;
 }
 
 const props = defineProps<{
-  config?: Partial<IngestrConfig>;
+  parameters?: Partial<IngestrParameters>;
 }>();
 
 const emit = defineEmits<{
-  save: [config: IngestrConfig];
+  save: [parameters: IngestrParameters];
 }>();
 
-const localConfig = ref<IngestrConfig>({
-  name: '',
-  type: 'ingestr',
-  connection: '',
-  parameters: {
-    source: '',
-    source_connection: '',
-    source_table: '',
-    destination: '',
-    incremental_strategy: '',
-    incremental_key: '',
-    sql_backend: '',
-    loader_file_format: '',
-  },
-  ...props.config,
+const localParameters = ref<IngestrParameters>({
+  source: '',
+  source_connection: '',
+  source_table: '',
+  destination: '',
+  incremental_strategy: '',
+  incremental_key: '',
+  ...props.parameters,
 });
 
 const saveConfig = () => {
-  emit('save', { ...localConfig.value });
+  emit('save', { ...localParameters.value });
 };
 
 watch(
-  () => props.config,
-  (newConfig) => {
-    if (newConfig) {
-      localConfig.value = {
-        ...localConfig.value,
-        ...newConfig,
-        parameters: {
-          ...localConfig.value.parameters,
-          ...newConfig.parameters,
-        },
+  () => props.parameters,
+  (newParameters) => {
+    if (newParameters) {
+      localParameters.value = {
+        ...localParameters.value,
+        ...newParameters,
       };
     }
   },

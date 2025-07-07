@@ -209,10 +209,7 @@
       />
       <div class="">
         <div v-if="props.assetType === 'ingestr'" class="mt-1">
-          <IngestrAssetForm 
-            :config="ingestrConfig" 
-            @save="handleIngestrConfigSave"
-          />
+          <IngestrAssetForm :parameters="ingestrParameters" @save="handleIngestrSave" />
         </div>
         <div v-else-if="language === 'sql'" class="mt-1">
           <SqlEditor :code="code" :copied="false" :language="language" :showIntervalAlert="showIntervalAlert"/>
@@ -461,7 +458,7 @@ function getCheckboxChangePayload() {
  */
 const language = ref("");
 const code = ref(null);
-const ingestrConfig = ref({});
+const ingestrParameters = ref({});
 
 /**
  * Lifecycle hooks
@@ -713,15 +710,19 @@ function resetDatesOnSchedule() {
 }
 
 /**
- * Handle ingestr config save
+ * Handle ingestr parameters save using setAssetDetails
  */
-function handleIngestrConfigSave(config) {
-  ingestrConfig.value = config;
+function handleIngestrSave(parameters) {
+  ingestrParameters.value = parameters;
   vscode.postMessage({
-    command: "bruin.saveIngestrAsset",
-    payload: config,
+    command: "bruin.setAssetDetails",
+    payload: {
+      parameters: parameters,
+    },
+    source: "AssetGeneral_ingestrSave",
   });
 }
+
 
 /**
  * Event listener for message receiving
@@ -776,15 +777,6 @@ function receiveMessage(event: { data: any }) {
       isNotAsset.value = !!renderAssetAlert.value;
       code.value = renderSQLAssetSuccess.value || renderPythonAsset.value;
       language.value = renderSQLAssetSuccess.value ? "sql" : "python";
-      
-      // If it's an ingestr asset, parse the config
-      if (props.assetType === "ingestr") {
-        const ingestrData = updateValue(envelope, "ingestrConfig");
-        if (ingestrData) {
-          ingestrConfig.value = ingestrData;
-        }
-      }
-      
       errorPhase.value = renderSQLAssetError.value ? "Rendering" : "Unknown";
       resetStates([validationError, validationSuccess, validateButtonStatus]);
       break;
