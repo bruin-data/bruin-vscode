@@ -131,3 +131,44 @@ export function subscribeToConfigurationChanges() {
     }
   });
 }
+
+export interface SchemaFavorite {
+  schemaName: string;
+  connectionName: string;
+  environment?: string;
+}
+
+export interface TableFavorite {
+  tableName: string;
+  schemaName: string;
+  connectionName: string;
+  environment?: string;
+}
+
+export function getSchemaFavorites(): SchemaFavorite[] {
+  const config = vscode.workspace.getConfiguration("bruin.schemas");
+  return config.get<SchemaFavorite[]>("favorites", []);
+}
+
+export async function saveSchemaFavorites(favorites: SchemaFavorite[]): Promise<void> {
+  const config = vscode.workspace.getConfiguration("bruin.schemas");
+  await config.update("favorites", favorites, vscode.ConfigurationTarget.Global);
+}
+
+export function getTableFavorites(): TableFavorite[] {
+  const config = vscode.workspace.getConfiguration("bruin.tables");
+  return config.get<TableFavorite[]>("favorites", []);
+}
+
+export async function saveTableFavorites(favorites: TableFavorite[]): Promise<void> {
+  const config = vscode.workspace.getConfiguration("bruin.tables");
+  await config.update("favorites", favorites, vscode.ConfigurationTarget.Global);
+}
+
+export function createFavoriteKey(schemaName: string, connectionName: string, environment?: string): string {
+  return environment ? `${connectionName}.${environment}.${schemaName}` : `${connectionName}.${schemaName}`;
+}
+
+export function createTableFavoriteKey(tableName: string, schemaName: string, connectionName: string, environment?: string): string {
+  return environment ? `${connectionName}.${environment}.${schemaName}.${tableName}` : `${connectionName}.${schemaName}.${tableName}`;
+}
