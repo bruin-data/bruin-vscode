@@ -209,7 +209,7 @@
       />
       <div class="">
         <div v-if="props.assetType === 'ingestr'" class="mt-1">
-          <IngestrAssetForm :parameters="ingestrParameters" @save="handleIngestrSave" />
+          <IngestrAssetDisplay :parameters="ingestrParameters" @save="handleIngestrSave" />
         </div>
         <div v-else-if="language === 'sql'" class="mt-1">
           <SqlEditor :code="code" :copied="false" :language="language" :showIntervalAlert="showIntervalAlert"/>
@@ -245,7 +245,7 @@ import {
 import "@/assets/index.css";
 import DateInput from "@/components/ui/date-inputs/DateInput.vue";
 import SqlEditor from "@/components/asset/SqlEditor.vue";
-import IngestrAssetForm from "@/components/asset/IngestrAssetForm.vue";
+import IngestrAssetDisplay from "@/components/asset/IngestrAssetDisplay.vue";
 import CheckboxGroup from "@/components/ui/checkbox-group/CheckboxGroup.vue";
 import EnvSelectMenu from "@/components/ui/select-menu/EnvSelectMenu.vue";
 import { updateValue, resetStates, determineValidationStatus } from "@/utilities/helper";
