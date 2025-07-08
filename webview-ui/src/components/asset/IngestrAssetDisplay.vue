@@ -4,7 +4,7 @@
     <div class="border border-commandCenter-border rounded">
       <div class="p-1 bg-editorWidget-bg border-inherit cursor-pointer hover:bg-input-background transition-colors duration-150 rounded-t" @click="toggleSection('source')">
         <div class="flex items-center justify-between w-full">
-          <h4 class="text-sm font-medium text-editor-fg">Source</h4>
+          <span class="text-xs font-medium text-editor-fg">Source</span>
           <span
             class="codicon transition-transform duration-200"
             :class="expandedSections.source ? 'codicon-chevron-down' : 'codicon-chevron-right'"
@@ -22,16 +22,19 @@
           :class="{ 'cursor-pointer hover:bg-input-background px-2 py-1 rounded transition-colors': !editingField.source_connection }"
           @click="startEditing('source_connection')"
         >
-          <input 
+          <select 
             v-if="editingField.source_connection"
             v-model="editingValues.source_connection"
             @blur="saveField('source_connection')"
-            @keyup.enter="saveField('source_connection')"
-            @keyup.escape="cancelEdit('source_connection')"
-            :ref="el => { if (el) inputRefs.source_connection = el as HTMLInputElement }"
+            @change="saveField('source_connection')"
+            :ref="el => { if (el) inputRefs.source_connection = el as HTMLSelectElement }"
             class="bg-input-background text-input-foreground text-xs border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg px-2 py-1 rounded w-full"
-            placeholder="Source connection name"
-          />
+          >
+            <option value="">Select connection...</option>
+            <option v-for="connection in availableConnections" :key="connection.name" :value="connection.name">
+              {{ connection.name }} ({{ connection.type }})
+            </option>
+          </select>
           <span v-else class="block" :class="{ 'italic opacity-70': !localParameters.source_connection }">
             {{ localParameters.source_connection || 'Click to set connection' }}
           </span>
@@ -68,7 +71,7 @@
     <div class="border border-commandCenter-border rounded">
       <div class="p-1 bg-editorWidget-bg border-inherit cursor-pointer hover:bg-input-background transition-colors duration-150 rounded-t" @click="toggleSection('destination')">
         <div class="flex items-center justify-between w-full">
-          <h4 class="text-sm font-medium text-editor-fg">Destination</h4>
+          <span class="text-xs font-medium text-editor-fg">Destination</span>
           <span
             class="codicon transition-transform duration-200"
             :class="expandedSections.destination ? 'codicon-chevron-down' : 'codicon-chevron-right'"
@@ -110,7 +113,7 @@
     <div class="border border-commandCenter-border rounded">
       <div class="p-1 bg-editorWidget-bg border-inherit cursor-pointer hover:bg-input-background transition-colors duration-150 rounded-t" @click="toggleSection('optional')">
         <div class="flex items-center justify-between w-full">
-          <h4 class="text-sm font-medium text-editor-fg">Optional Parameters</h4>
+          <span class="text-xs font-medium text-editor-fg">Optional Parameters</span>
           <span
             class="codicon transition-transform duration-200"
             :class="expandedSections.optional ? 'codicon-chevron-down' : 'codicon-chevron-right'"
@@ -202,8 +205,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, defineProps, defineEmits } from 'vue';
+import { ref, computed, watch, nextTick, onMounted, defineProps, defineEmits } from 'vue';
 import type { IngestrParameters } from '@/types';
+import { vscode } from '@/utilities/vscode';
 
 const props = defineProps<{
   parameters?: Partial<IngestrParameters>;
@@ -212,6 +216,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   save: [parameters: IngestrParameters];
 }>();
+
+const availableConnections = ref<Array<{ name: string; type: string }>>([]);
 
 // Collapsible sections state
 const expandedSections = ref({
@@ -317,6 +323,28 @@ const saveParameters = () => {
   });
   
   emit('save', filteredParameters as IngestrParameters);
+};
+
+onMounted(() => {
+  vscode.postMessage({ command: "bruin.getConnectionsList" });
+  window.addEventListener("message", handleMessage);
+});
+
+const handleMessage = (event: MessageEvent) => {
+  const message = event.data;
+  if (message.command === "connections-list-message") {
+    handleConnectionsList(message.payload);
+  }
+};
+
+const handleConnectionsList = (payload: any) => {
+  console.log("Received connections list in IngestrAssetDisplay:", payload);
+  if (payload.message && Array.isArray(payload.message)) {
+    availableConnections.value = payload.message.map((conn: any) => ({
+      name: conn.name,
+      type: conn.type || 'unknown'
+    }));
+  }
 };
 
 watch(
