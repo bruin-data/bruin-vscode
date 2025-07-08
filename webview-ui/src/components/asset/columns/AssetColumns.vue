@@ -1,8 +1,25 @@
 <template>
   <div class="flex flex-col py-4 sm:py-1 h-full w-full min-w-56 relative">
     <div class="flex justify-end mb-4 space-x-2">
-      <vscode-button @click="fillColumnsFromDB"> Fill from DB </vscode-button>
-      <vscode-button @click="handleAddColumn" class="py-1 focus:outline-none disabled:cursor-not-allowed" :disabled="isConfigFile"> Add column </vscode-button>
+      <vscode-button @click="fillColumnsFromDB" class="min-w-[100px] py-1 focus:outline-none disabled:cursor-not-allowed" :disabled="fillDBStatus === 'loading'">
+        <span v-if="fillDBStatus === 'loading'" class="flex items-center justify-center w-full">
+          <svg class="animate-spin -ml-1 mr-2 h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          Loading...
+        </span>
+        <span v-else-if="fillDBStatus === 'success'" class="flex items-center justify-center w-full">
+          <CheckIcon class="h-3 w-3 mr-1" />
+          Fill from DB
+        </span>
+        <span v-else class="flex items-center justify-center w-full">
+          Fill from DB
+        </span>
+      </vscode-button>
+      <vscode-button @click="handleAddColumn" class="min-w-[100px] py-1 focus:outline-none disabled:cursor-not-allowed" :disabled="isConfigFile">
+        <span class="flex items-center justify-center w-full">Add column</span>
+      </vscode-button>
     </div>
 
     <!-- Header Row -->
@@ -251,6 +268,7 @@
     </div>
 
     <ErrorAlert :errorMessage="error" class="mb-4" @error-close="closeError"> </ErrorAlert>
+    <ErrorAlert v-if="fillDBError" :errorMessage="fillDBError" class="mb-4" @error-close="() => fillDBError = null"> </ErrorAlert>
   </div>
 </template>
 
@@ -291,6 +309,8 @@ const showAcceptedValuesInput = ref(false);
 const newAcceptedValuesInput = ref("");
 const error = ref(null);
 const showAddCheckDropdown = ref(null);
+const fillDBStatus = ref('idle'); // 'idle', 'loading', 'success', 'error'
+const fillDBError = ref(null);
 const isConfigFile = computed(() => props.isConfigFile);
 const updatePatternValue = () => {
   const patternCheck = editingColumn.value.checks.find((check) => check.name === "pattern");
@@ -609,9 +629,30 @@ const deleteColumn = (index) => {
 };
 
 const fillColumnsFromDB = () => {
+  fillDBStatus.value = 'loading';
+  fillDBError.value = null;
+  
   vscode.postMessage({
     command: "bruin.fillAssetColumn",
   });
+};
+
+const handleFillDBSuccess = () => {
+  fillDBStatus.value = 'success';
+  fillDBError.value = null;
+  
+  // Keep success state (tik icon) permanently
+};
+
+const handleFillDBError = (errorMessage) => {
+  fillDBStatus.value = 'error';
+  fillDBError.value = errorMessage || 'Failed to fill columns from database.';
+  
+  // Reset to idle after 5 seconds
+  setTimeout(() => {
+    fillDBStatus.value = 'idle';
+    fillDBError.value = null;
+  }, 5000);
 };
 
 watch(
@@ -625,6 +666,16 @@ watch(
   },
   { deep: true }
 );
+
+// Listen for fill-columns-response events
+window.addEventListener('fill-columns-response', (event) => {
+  const message = event.detail;
+  if (message.status === 'success') {
+    handleFillDBSuccess();
+  } else if (message.status === 'error') {
+    handleFillDBError(message.message);
+  }
+});
 </script>
 
 <style scoped>

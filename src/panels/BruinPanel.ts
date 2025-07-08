@@ -439,15 +439,40 @@ export class BruinPanel {
           case "bruin.fillAssetColumn":
             if (!this._lastRenderedDocumentUri) {
               console.error("No active document to fill asset column.");
+              this._panel.webview.postMessage({
+                command: "fill-columns-response",
+                status: "error",
+                message: "No active document to fill asset column."
+              });
               return;
             }
-            const assetPathFillColumn = this._lastRenderedDocumentUri.fsPath;
-            const escapedAssetPathFillColumn = assetPathFillColumn ? escapeFilePath(assetPathFillColumn) : ""; 
-            const assetWorkspaceDirFillColumn = await bruinWorkspaceDirectory(assetPathFillColumn);
+            
+            try {
+              const assetPathFillColumn = this._lastRenderedDocumentUri.fsPath;
+              const escapedAssetPathFillColumn = assetPathFillColumn ? escapeFilePath(assetPathFillColumn) : ""; 
+              const assetWorkspaceDirFillColumn = await bruinWorkspaceDirectory(assetPathFillColumn);
 
-            const commandFillColumn = [ "patch", "fill-columns-from-db", escapedAssetPathFillColumn];
-            await runBruinCommand(commandFillColumn, assetWorkspaceDirFillColumn);  
+              const commandFillColumn = [ "patch", "fill-columns-from-db", escapedAssetPathFillColumn];
+              await runBruinCommand(commandFillColumn, assetWorkspaceDirFillColumn);  
 
+              // Send success response
+              this._panel.webview.postMessage({
+                command: "fill-columns-response",
+                status: "success",
+                message: "Columns filled successfully from database."
+              });
+              
+              // Re-parse the asset to update the UI
+              parseAssetCommand(this._lastRenderedDocumentUri);
+              
+            } catch (error) {
+              console.error("Error filling columns from DB:", error);
+              this._panel.webview.postMessage({
+                command: "fill-columns-response",
+                status: "error",
+                message: `Failed to fill columns from database: ${error}`
+              });
+            }
             return;
 
           

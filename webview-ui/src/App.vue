@@ -260,6 +260,10 @@ const handleMessage = (event: MessageEvent) => {
       case "file-changed":
         lastRenderedDocument.value = message.filePath;
         break;
+      case "fill-columns-response":
+        // Emit an event that AssetColumns component can listen to
+        window.dispatchEvent(new CustomEvent('fill-columns-response', { detail: message }));
+        break;
     }
   } catch (error) {
     console.error("Error handling message:", error);
