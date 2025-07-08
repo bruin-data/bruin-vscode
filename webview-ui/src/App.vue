@@ -264,6 +264,10 @@ const handleMessage = (event: MessageEvent) => {
         // Emit an event that AssetColumns component can listen to
         window.dispatchEvent(new CustomEvent('fill-columns-response', { detail: message }));
         break;
+      case "fill-dependency-response":
+        // Emit an event that Materialization component can listen to
+        window.dispatchEvent(new CustomEvent('fill-dependency-response', { detail: message }));
+        break;
     }
   } catch (error) {
     console.error("Error handling message:", error);

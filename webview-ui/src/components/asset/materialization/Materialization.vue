@@ -241,15 +241,29 @@
                 />
               </div>
 
-              <!-- Fill from DB Button -->
+              <!-- Fill from Query Button -->
               <vscode-button
                 v-if="isCurrentFileSql"
                 appearance="secondary"
-                @click="fillFromDB"
-                class="text-xs flex-shrink-0"
+                @click="fillFromQuery"
+                class="text-xs flex-shrink-0 min-w-[100px]"
                 title="Automatically fill dependencies from database schema"
+                :disabled="fillQueryStatus === 'loading'"
               >
-                Fill from Query
+                <span v-if="fillQueryStatus === 'loading'" class="flex items-center justify-center w-full">
+                  <svg class="animate-spin -ml-1 mr-2 h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Loading...
+                </span>
+                <span v-else-if="fillQueryStatus === 'success'" class="flex items-center justify-center w-full">
+                  <span class="codicon codicon-check text-xs mr-1"></span>
+                  Fill from Query
+                </span>
+                <span v-else class="flex items-center justify-center w-full">
+                  Fill from Query
+                </span>
               </vscode-button>
             </div>
           </div>
@@ -443,6 +457,22 @@
         </div>
       </div>
     </div>
+    
+    <!-- Error Alert for Fill from Query -->
+    <div v-if="fillQueryError" class="fixed bottom-4 right-4 z-50">
+      <div class="bg-editorError-background border border-editorError-border rounded p-3 text-sm text-editorError-foreground shadow-lg max-w-md">
+        <div class="flex items-start gap-2">
+          <span class="codicon codicon-error text-base mt-0.5"></span>
+          <div class="flex-1">
+            <div class="font-medium">Fill from Query Failed</div>
+            <div class="text-xs mt-1 opacity-90">{{ fillQueryError }}</div>
+          </div>
+          <button @click="fillQueryError = null" class="text-editorError-foreground hover:opacity-70 ml-2">
+            <span class="codicon codicon-close text-sm"></span>
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -540,6 +570,10 @@ const pipelineDepsContainer = ref(null);
 const externalDepsContainer = ref(null);
 const pipelineAssets = ref(props.pipelineAssets || []);
 const dropdownStyle = ref({});
+
+// Fill from query state management
+const fillQueryStatus = ref('idle'); // 'idle', 'loading', 'success', 'error'
+const fillQueryError = ref(null);
 
 // Computed property to check if current file is SQL
 const isCurrentFileSql = computed(() => {
@@ -924,6 +958,16 @@ const handleClickOutside = (event) => {
   }
 };
 
+// Store event listener function reference for proper cleanup
+const fillDependencyResponseHandler = (event) => {
+  const message = event.detail;
+  if (message.status === 'success') {
+    handleFillQuerySuccess();
+  } else if (message.status === 'error') {
+    handleFillQueryError(message.message);
+  }
+};
+
 onMounted(() => {
   window.addEventListener("click", handleClickOutside);
   populateIntervalFormFields();
@@ -931,10 +975,16 @@ onMounted(() => {
     command: "bruin.getPipelineAssets",
     source: "Materialization",
   });
+  
+  // Listen for fill-dependency-response events
+  window.addEventListener('fill-dependency-response', fillDependencyResponseHandler);
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener("click", handleClickOutside);
+  
+  // Remove fill-dependency-response event listener
+  window.removeEventListener('fill-dependency-response', fillDependencyResponseHandler);
 
   // Clear any pending save timeout
   if (saveTimeout) {
@@ -1053,11 +1103,32 @@ const toggleDependencyMode = (index) => {
   sendDependenciesUpdate();
 };
 
-const fillFromDB = () => {
+const fillFromQuery = () => {
+  fillQueryStatus.value = 'loading';
+  fillQueryError.value = null;
+  
   vscode.postMessage({
     command: "bruin.fillAssetDependency",
-    source: "Materialization_fillFromDB",
+    source: "Materialization_fillFromQuery",
   });
+};
+
+const handleFillQuerySuccess = () => {
+  fillQueryStatus.value = 'success';
+  fillQueryError.value = null;
+  
+  // Keep success state (check icon) permanently
+};
+
+const handleFillQueryError = (errorMessage) => {
+  fillQueryStatus.value = 'error';
+  fillQueryError.value = errorMessage || 'Failed to fill dependencies from query.';
+  
+  // Reset to idle after 5 seconds
+  setTimeout(() => {
+    fillQueryStatus.value = 'idle';
+    fillQueryError.value = null;
+  }, 5000);
 };
 
 // Watch for dependencies prop changes

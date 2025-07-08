@@ -425,15 +425,40 @@ export class BruinPanel {
           case "bruin.fillAssetDependency":
             if (!this._lastRenderedDocumentUri) {
               console.error("No active document to fill asset dependency.");
+              this._panel.webview.postMessage({
+                command: "fill-dependency-response",
+                status: "error",
+                message: "No active document to fill asset dependency."
+              });
               return;
             }
-            const assetPath = this._lastRenderedDocumentUri.fsPath;
-            const escapedAssetPath = assetPath ? escapeFilePath(assetPath) : ""; 
-            const assetWorkspaceDir = await bruinWorkspaceDirectory(assetPath);
             
-            const command = [ "patch", "fill-asset-dependencies", escapedAssetPath];
-            await runBruinCommand(command, assetWorkspaceDir,);  
+            try {
+              const assetPath = this._lastRenderedDocumentUri.fsPath;
+              const escapedAssetPath = assetPath ? escapeFilePath(assetPath) : ""; 
+              const assetWorkspaceDir = await bruinWorkspaceDirectory(assetPath);
+              
+              const command = [ "patch", "fill-asset-dependencies", escapedAssetPath];
+              await runBruinCommand(command, assetWorkspaceDir);  
 
+              // Send success response
+              this._panel.webview.postMessage({
+                command: "fill-dependency-response",
+                status: "success",
+                message: "Dependencies filled successfully from query."
+              });
+              
+              // Re-parse the asset to update the UI
+              parseAssetCommand(this._lastRenderedDocumentUri);
+              
+            } catch (error) {
+              console.error("Error filling dependencies from query:", error);
+              this._panel.webview.postMessage({
+                command: "fill-dependency-response",
+                status: "error",
+                message: `Failed to fill dependencies from query: ${error}`
+              });
+            }
             return;
 
           case "bruin.fillAssetColumn":
