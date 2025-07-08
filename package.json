@@ -2,7 +2,7 @@
   "name": "bruin",
   "displayName": "Bruin",
   "description": "Manage your Bruin data assets from within VS Code.",
-  "version": "0.56.1",
+  "version": "0.57.0",
   "engines": {
     "vscode": "^1.87.0"
   },
@@ -101,7 +101,6 @@
         {
           "id": "bruinConnections",
           "name": "Databases"
-          
         }
       ],
       "bruin-assetLineageView": [
@@ -287,7 +286,6 @@
           "when": "view == bruinConnections && (viewItem == 'schema_favorite' || viewItem == 'schema_unfavorite') ",
           "group": "inline@2"
         },
-
         {
           "command": "bruin.refreshSchema",
           "when": "view == bruinFavorites && (viewItem == 'favorite_schema' || viewItem == 'playground')",
