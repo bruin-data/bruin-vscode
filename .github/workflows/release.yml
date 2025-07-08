@@ -35,9 +35,6 @@ jobs:
         npm run compile
         npm run build:webview
 
-    - name: Package extension
-      run: vsce package
-
     - name: Get version from tag
       id: get_version
       run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
@@ -45,6 +42,9 @@ jobs:
     - name: Update package.json version
       run: |
         npm version ${{ steps.get_version.outputs.VERSION }} --no-git-tag-version
+
+    - name: Package extension
+      run: vsce package
 
     - name: Publish to Open-VSX
       run: ovsx publish bruin-${{ steps.get_version.outputs.VERSION }}.vsix -p ${{ secrets.OVSX_PAT }}
