@@ -16,7 +16,7 @@
       
       <!-- Source Connection -->
       <div class="flex items-center gap-2">
-        <span class="text-xs text-editor-fg min-w-[80px] font-medium">Connection:</span>
+        <span class="text-2xs text-editor-fg min-w-[80px] opacity-70">Connection:</span>
         <div 
           class="flex-1 text-xs text-editor-fg"
           :class="{ 'cursor-pointer hover:bg-input-background px-2 py-1 rounded transition-colors': !editingField.source_connection }"
@@ -43,7 +43,7 @@
 
       <!-- Source Table -->
       <div class="flex items-center gap-2">
-        <span class="text-xs text-editor-fg min-w-[80px] font-medium">Table:</span>
+        <span class="text-2xs text-editor-fg min-w-[80px] opacity-70">Table:</span>
         <div 
           class="flex-1 text-xs text-editor-fg"
           :class="{ 'cursor-pointer hover:bg-input-background px-2 py-1 rounded transition-colors': !editingField.source_table }"
@@ -82,7 +82,7 @@
       <div v-if="expandedSections.destination" class="p-2 space-y-1 bg-editor-bg border-t border-commandCenter-border rounded-b">
       
       <div class="flex items-center gap-2">
-        <span class="text-xs text-editor-fg min-w-[80px] font-medium">Platform:</span>
+        <span class="text-2xs text-editor-fg min-w-[80px] opacity-70">Platform:</span>
         <div 
           class="flex-1 text-xs text-editor-fg"
           :class="{ 'cursor-pointer hover:bg-input-background px-2 py-1 rounded transition-colors': !editingField.destination }"
@@ -125,7 +125,7 @@
         
         <!-- Source Identifier -->
         <div class="flex items-center gap-2">
-          <span class="text-xs text-editor-fg min-w-[80px] font-medium">Source:</span>
+          <span class="text-2xs text-editor-fg min-w-[80px] opacity-70">Source:</span>
           <div 
             class="flex-1 text-xs text-editor-fg"
             :class="{ 'cursor-pointer hover:bg-input-background px-2 py-1 rounded transition-colors': !editingField.source }"
@@ -149,7 +149,7 @@
 
         <!-- Incremental Strategy -->
         <div class="flex items-center gap-2">
-          <span class="text-xs text-editor-fg min-w-[80px] font-medium">Strategy:</span>
+          <span class="text-2xs text-editor-fg min-w-[80px] opacity-70">Strategy:</span>
           <div 
             class="flex-1 text-xs text-editor-fg"
             :class="{ 'cursor-pointer hover:bg-input-background px-2 py-1 rounded transition-colors': !editingField.incremental_strategy }"
@@ -175,7 +175,7 @@
 
         <!-- Incremental Key -->
         <div class="flex items-center gap-2">
-          <span class="text-xs text-editor-fg min-w-[80px] font-medium">Key:</span>
+          <span class="text-2xs text-editor-fg min-w-[80px] opacity-70">Key:</span>
           <div 
             class="flex-1 text-xs text-editor-fg"
             :class="{ 'cursor-pointer hover:bg-input-background px-2 py-1 rounded transition-colors': !editingField.incremental_key }"
