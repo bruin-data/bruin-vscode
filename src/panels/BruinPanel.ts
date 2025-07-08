@@ -9,8 +9,8 @@ import {
   createIntegratedTerminal,
   getCurrentPipelinePath,
   runInIntegratedTerminal,
-  runBruinCommandInIntegratedTerminal,
   escapeFilePath,
+  runBruinCommand,
 
 
 } from "../bruin";
@@ -432,7 +432,7 @@ export class BruinPanel {
             const assetWorkspaceDir = await bruinWorkspaceDirectory(assetPath);
             
             const command = [ "patch", "fill-asset-dependencies", escapedAssetPath];
-            await runBruinCommandInIntegratedTerminal(command, assetWorkspaceDir,"bruin");  
+            await runBruinCommand(command, assetWorkspaceDir,);  
 
             return;
 
@@ -446,7 +446,7 @@ export class BruinPanel {
             const assetWorkspaceDirFillColumn = await bruinWorkspaceDirectory(assetPathFillColumn);
 
             const commandFillColumn = [ "patch", "fill-columns-from-db", escapedAssetPathFillColumn];
-            await runBruinCommandInIntegratedTerminal(commandFillColumn, assetWorkspaceDirFillColumn,"bruin");  
+            await runBruinCommand(commandFillColumn, assetWorkspaceDirFillColumn);  
 
             return;
 

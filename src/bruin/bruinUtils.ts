@@ -10,6 +10,8 @@ import { getPathSeparator } from "../extension/configuration";
 import { getBruinExecutablePath } from "../providers/BruinExecutableService";
 import { BruinCommand } from "./bruinCommand";
 import { BruinCommandOptions } from "../types";
+import { stat } from "fs";
+import { ExecException } from "child_process";
 
 /**
  * Checks if the Bruin binary is available in the system path.
@@ -241,13 +243,45 @@ export const runInIntegratedTerminal = async (
   await new Promise((resolve) => setTimeout(resolve, 1000));
 };
 
+export const runBruinCommand = (
+	commandArgs: string[],
+	workingDir: string | undefined,
+	ignoresErrors = false
+): Promise<string> => {
+	return new Promise((resolve, reject) => {
+		const bruinExecutable = getBruinExecutablePath();
+		const command = [bruinExecutable, ...commandArgs].join(" ");
+		console.log("RUNNING", command, workingDir);
+		exec(
+			command,
+			{ cwd: workingDir },
+			(error: ExecException | null, stdout: string, stderr: string) => {
+				if (ignoresErrors) {
+					if (error) {
+						console.error(error);
+					}
+					return resolve(stdout || stderr);
+				}
+				if (error) {
+					console.error("runBruinCommand error", error);
+					console.error("runBruinCommand stderr", stderr);
+					return reject(stderr || error.message);
+				}
+				if (stderr) {
+					// Some commands might output to stderr for info, so we'll log it as a warning
+					console.warn("runBruinCommand stderr", stderr);
+				}
+				return resolve(stdout);
+			}
+		);
+	});
+};
 
-export const runBruinCommandInIntegratedTerminal = async (
+export const runCommandInIntegratedTerminal = async (
   commandArgs: string[],
-  workingDir?: string | undefined,
-  bruinExecutablePath?: string
+  workingDir?: string | undefined
 ): Promise<void> => {
-  const bruinExecutable = bruinExecutablePath ? "bruin" : getBruinExecutablePath();
+  const bruinExecutable = getBruinExecutablePath();
   const terminal = await createIntegratedTerminal(workingDir);
   
   const executable = ((terminal.creationOptions as vscode.TerminalOptions).shellPath?.includes("bash")) 
