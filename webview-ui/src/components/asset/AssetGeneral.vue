@@ -209,7 +209,7 @@
       />
       <div class="">
         <div v-if="props.assetType === 'ingestr' && !isError" class="mt-1">
-          <IngestrAssetDisplay :parameters="ingestrParameters" @save="handleIngestrSave" />
+          <IngestrAssetDisplay :parameters="ingestrParameters" :columns="props.columns" @save="handleIngestrSave" />
         </div>
         <div v-else-if="language === 'sql'" class="mt-1">
           <SqlEditor :code="code" :copied="false" :language="language" :showIntervalAlert="showIntervalAlert"/>
@@ -270,7 +270,8 @@ const props = defineProps<{
   selectedEnvironment: string;
   hasIntervalModifiers: boolean;
   assetType?: string;
-  parameters?: any;
+  parameters: any;
+  columns: any[];
 }>();
 
 /**

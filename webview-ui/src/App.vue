@@ -454,6 +454,7 @@ const tabs = ref([
       selectedEnvironment: selectedEnvironment.value,
       hasIntervalModifiers: hasIntervalModifiers.value,
       parameters: ingestrParameters.value,
+      columns: columns.value,
     })),
     emits: ["update:assetName", "update:description"],
   },
