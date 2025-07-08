@@ -1,6 +1,6 @@
 import { Uri } from "vscode";
 import { bruinWorkspaceDirectory } from "../../bruin";
-import { BruinEnvironmentManager } from "../../bruin/bruinEnvironments";
+import { BruinEnvironments } from "../../bruin/bruinEnvironments";
 import { getBruinExecutablePath } from "../../providers/BruinExecutableService";
 
 /**
@@ -12,10 +12,10 @@ export const createEnvironment = async (
 ) => {
   console.log("Creating environment:", environmentName);
   
-  const bruinEnvironmentManager = new BruinEnvironmentManager(
+  const bruinEnvironmentManager = new BruinEnvironments(
     getBruinExecutablePath(),
     (await bruinWorkspaceDirectory(lastRenderedDocumentUri!.fsPath)!!) as string
   );
   
-  await bruinEnvironmentManager.createEnvironment(environmentName);
+  await bruinEnvironmentManager.create(environmentName);
 }; 
