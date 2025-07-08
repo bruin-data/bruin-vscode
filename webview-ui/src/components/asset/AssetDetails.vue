@@ -82,6 +82,9 @@
         :environments="environments"
         :selectedEnvironment="selectedEnvironment"
         :hasIntervalModifiers="hasIntervalModifiers"
+        :assetType="props.type"
+        :parameters="parameters"
+        :columns="props.columns || []"
       />
     </div>
   </div>
@@ -106,6 +109,8 @@ const props = defineProps<{
   environments: string[];
   selectedEnvironment: string;
   hasIntervalModifiers: boolean;
+  parameters?: any;
+  columns?: any[];
 }>();
 
 const descriptionRef = ref<HTMLElement | null>(null);

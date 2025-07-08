@@ -208,7 +208,10 @@
         @warningClose="handleWarningClose"
       />
       <div class="">
-        <div v-if="language === 'sql'" class="mt-1">
+        <div v-if="props.assetType === 'ingestr' && !isError" class="mt-1">
+          <IngestrAssetDisplay :parameters="ingestrParameters" :columns="props.columns" @save="handleIngestrSave" />
+        </div>
+        <div v-else-if="language === 'sql'" class="mt-1">
           <SqlEditor :code="code" :copied="false" :language="language" :showIntervalAlert="showIntervalAlert"/>
         </div>
         <div v-else class="overflow-hidden w-full h-20">
@@ -242,6 +245,7 @@ import {
 import "@/assets/index.css";
 import DateInput from "@/components/ui/date-inputs/DateInput.vue";
 import SqlEditor from "@/components/asset/SqlEditor.vue";
+import IngestrAssetDisplay from "@/components/asset/IngestrAssetDisplay.vue";
 import CheckboxGroup from "@/components/ui/checkbox-group/CheckboxGroup.vue";
 import EnvSelectMenu from "@/components/ui/select-menu/EnvSelectMenu.vue";
 import { updateValue, resetStates, determineValidationStatus } from "@/utilities/helper";
@@ -265,6 +269,9 @@ const props = defineProps<{
   environments: string[];
   selectedEnvironment: string;
   hasIntervalModifiers: boolean;
+  assetType?: string;
+  parameters: any;
+  columns: any[];
 }>();
 
 /**
@@ -316,6 +323,11 @@ const showFullRefreshConfirmation = (runAction: () => void) => {
   pendingRunAction.value = runAction;
   showFullRefreshAlert.value = true;
 };
+
+// Computed property for ingestr parameters
+const ingestrParameters = computed(() => {
+  return props.parameters || {};
+});
 
 /**
  * Computed properties for error handling and warnings
@@ -702,6 +714,20 @@ function handleBruinValidateAllPipelines() {
 function resetDatesOnSchedule() {
   resetStartEndDate(props.schedule, today.getTime(), startDate, endDate);
 }
+
+/**
+ * Handle ingestr parameters save using setAssetDetails
+ */
+function handleIngestrSave(parameters) {
+  vscode.postMessage({
+    command: "bruin.setAssetDetails",
+    payload: {
+      parameters: parameters,
+    },
+    source: "AssetGeneral_ingestrSave",
+  });
+}
+
 
 /**
  * Event listener for message receiving

@@ -110,6 +110,7 @@ export const parseAssetDetails = (data: string) => {
     tags: asset.tags || undefined,
     columns: asset.columns ? transformColumnData(asset.columns) : [],
     custom_checks: asset.custom_checks || [],
+    parameters: asset.parameters || undefined,
   };
 };
 

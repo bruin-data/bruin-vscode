@@ -337,7 +337,11 @@ const intervalModifiers = computed(() => {
   console.warn("Interval modifiers from app:", assetDetailsProps.value?.interval_modifiers);
   return assetDetailsProps.value?.interval_modifiers || false;
 });
-
+const ingestrParameters = computed(() => {
+  if (!data.value) return null;
+  const parsedDetails = parseAssetDetails(data.value);
+  return parsedDetails?.parameters;
+});
 const hasIntervalModifiers = computed(() => {
   const intervalModifiersValue = assetDetailsProps.value?.interval_modifiers ? true : false;
   return intervalModifiersValue;
@@ -449,6 +453,8 @@ const tabs = ref([
       environments: environmentsList.value,
       selectedEnvironment: selectedEnvironment.value,
       hasIntervalModifiers: hasIntervalModifiers.value,
+      parameters: ingestrParameters.value,
+      columns: columns.value,
     })),
     emits: ["update:assetName", "update:description"],
   },

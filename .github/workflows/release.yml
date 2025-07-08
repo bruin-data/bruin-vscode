@@ -42,6 +42,10 @@ jobs:
       id: get_version
       run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
+    - name: Update package.json version
+      run: |
+        npm version ${{ steps.get_version.outputs.VERSION }} --no-git-tag-version
+
     - name: Publish to Open-VSX
       run: ovsx publish bruin-${{ steps.get_version.outputs.VERSION }}.vsix -p ${{ secrets.OVSX_PAT }}
       env:
