@@ -489,6 +489,7 @@
     "dotenv": "^16.4.7",
     "elkjs": "^0.9.3",
     "fs-extra": "^11.3.0",
+    "js-yaml": "^4.1.0",
     "luxon": "^3.4.4",
     "markdown-it": "^14.1.0",
     "proxyquire": "^2.1.3",
