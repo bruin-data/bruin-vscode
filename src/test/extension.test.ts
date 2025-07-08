@@ -1886,7 +1886,7 @@ suite("BruinPanel Tests", () => {
     });
      test("handles bruin.fillAssetDependency command", async () => {
       const escapeStub = sinon.stub(bruinUtils, "escapeFilePath").returns("/escaped/path/test.sql");
-      const runStub = sinon.stub(bruinUtils, "runBruinCommandInIntegratedTerminal");
+      const runStub = sinon.stub(bruinUtils, "runBruinCommand");
       
       await (windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0]({ 
         command: "bruin.fillAssetDependency" });
@@ -1906,7 +1906,7 @@ suite("BruinPanel Tests", () => {
     });
     test("handles bruin.fillAssetColumn command", async () => {
       const escapeStub = sinon.stub(bruinUtils, "escapeFilePath").returns("/escaped/path/test.sql");
-      const runStub = sinon.stub(bruinUtils, "runBruinCommandInIntegratedTerminal");
+      const runStub = sinon.stub(bruinUtils, "runBruinCommand");
       
       await (windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0]({ 
         command: "bruin.fillAssetColumn" });
