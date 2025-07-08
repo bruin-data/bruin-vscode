@@ -1,4 +1,7 @@
 # Changelog
+## [0.57.0] - [2025-07-08]
+- Added Ingest Asset UI with dropdowns for selecting source and destination connections.
+
 ## [0.56.1] - [2025-07-07]
 - Added missing LIMIT to query execution.
 
