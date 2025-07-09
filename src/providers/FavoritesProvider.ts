@@ -111,7 +111,6 @@ export class FavoritesProvider implements vscode.TreeDataProvider<FavoriteItem> 
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || this.extensionPath;
     this.bruinConnections = new BruinConnections("bruin", workspaceFolder);
     this.loadFavorites();
-    this.loadConnections();
   }
 
   private loadFavorites(): void {
@@ -340,6 +339,11 @@ export class FavoritesProvider implements vscode.TreeDataProvider<FavoriteItem> 
 
   async getChildren(element?: FavoriteItem): Promise<FavoriteItem[]> {
     if (!element) {
+      // Root level - lazy load connections first if not already loaded
+      if (this.connections.length === 0) {
+        await this.loadConnections();
+      }
+      
       // Root level - return connections with environment as description
       const groupedConnections = this.groupFavoritesByConnection();
       return groupedConnections.map((connection) => {

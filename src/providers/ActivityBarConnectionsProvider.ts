@@ -133,7 +133,6 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
     this.bruinConnections = new BruinConnections("bruin", workspaceFolder);
     this.loadFavoritesFromSettings();
     this.loadTableFavoritesFromSettings();
-    this.loadConnections();
   }
 
   // Load favorites from VS Code settings
@@ -361,6 +360,11 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
 
   async getChildren(element?: ConnectionItem): Promise<ConnectionItem[]> {
     if (!element) {
+      // Root level - lazy load connections first if not already loaded
+      if (this.connections.length === 0) {
+        await this.loadConnections();
+      }
+      
       // Root level - return environments
       const environments = this.getEnvironments();
       return environments.map((env) => {
