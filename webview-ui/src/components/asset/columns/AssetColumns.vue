@@ -1,8 +1,36 @@
 <template>
   <div class="flex flex-col py-4 sm:py-1 h-full w-full min-w-56 relative">
     <div class="flex justify-end mb-4 space-x-2">
-      <vscode-button @click="fillColumnsFromDB"> Fill from DB </vscode-button>
+      <vscode-button @click="fillColumnsFromDB" :disabled="fillColumnsStatus === 'loading'">
+        <template v-if="fillColumnsStatus === 'loading'">
+          <svg class="animate-spin mr-1 h-4 w-4 text-editor-bg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+        </template>
+        <template v-else-if="fillColumnsStatus === 'success'">
+          <svg class="h-4 w-4 mr-1 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+          </svg>
+        </template>
+        <template v-else-if="fillColumnsStatus === 'error'">
+          <svg class="h-4 w-4 mr-1 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </template>
+        Fill from DB
+      </vscode-button>
       <vscode-button @click="handleAddColumn" class="py-1 focus:outline-none disabled:cursor-not-allowed" :disabled="isConfigFile"> Add column </vscode-button>
+    </div>
+    
+    <!-- Status message for fill operation -->
+    <div v-if="fillColumnsMessage && fillColumnsStatus !== 'loading'" class="mb-4">
+      <div v-if="fillColumnsStatus === 'success'" class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded text-sm">
+        {{ fillColumnsMessage }}
+      </div>
+      <div v-else-if="fillColumnsStatus === 'error'" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded text-sm">
+        {{ fillColumnsMessage }}
+      </div>
     </div>
 
     <!-- Header Row -->
@@ -255,7 +283,7 @@
 </template>
 
 <script setup>
-import { ref, watch, computed, nextTick } from "vue";
+import { ref, watch, computed, nextTick, onMounted, onUnmounted } from "vue";
 import {
   TrashIcon,
   PencilIcon,
@@ -292,6 +320,10 @@ const newAcceptedValuesInput = ref("");
 const error = ref(null);
 const showAddCheckDropdown = ref(null);
 const isConfigFile = computed(() => props.isConfigFile);
+
+// Fill columns from DB status
+const fillColumnsStatus = ref(null);
+const fillColumnsMessage = ref(null);
 const updatePatternValue = () => {
   const patternCheck = editingColumn.value.checks.find((check) => check.name === "pattern");
   if (patternCheck) {
@@ -609,10 +641,51 @@ const deleteColumn = (index) => {
 };
 
 const fillColumnsFromDB = () => {
+  fillColumnsStatus.value = "loading";
+  fillColumnsMessage.value = null;
   vscode.postMessage({
     command: "bruin.fillAssetColumn",
   });
 };
+
+// Helper function to update values based on message status
+const updateValue = (envelope, status) => {
+  return envelope.payload.status === status ? envelope.payload.message : null;
+};
+
+// Message handler for fill operations
+const handleMessage = (event) => {
+  const envelope = event.data;
+  
+  switch (envelope.command) {
+    case "fill-columns-message":
+      if (envelope.payload.status === "loading") {
+        fillColumnsStatus.value = "loading";
+        fillColumnsMessage.value = envelope.payload.message;
+      } else if (envelope.payload.status === "success") {
+        fillColumnsStatus.value = "success";
+        fillColumnsMessage.value = envelope.payload.message;
+        // Reset status after a delay
+        setTimeout(() => {
+          fillColumnsStatus.value = null;
+          fillColumnsMessage.value = null;
+        }, 3000);
+      } else if (envelope.payload.status === "error") {
+        fillColumnsStatus.value = "error";
+        fillColumnsMessage.value = envelope.payload.message;
+      }
+      break;
+  }
+};
+
+// Register message handler
+onMounted(() => {
+  window.addEventListener("message", handleMessage);
+});
+
+onUnmounted(() => {
+  window.removeEventListener("message", handleMessage);
+});
 
 watch(
   () => props.columns,

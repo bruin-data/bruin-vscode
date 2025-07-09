@@ -14,6 +14,7 @@ import {
 
 
 } from "../bruin";
+import { BruinFill } from "../bruin/bruinFill";
 import * as vscode from "vscode";
 import { renderCommandWithFlags } from "../extension/commands/renderCommand";
 import {
@@ -428,11 +429,13 @@ export class BruinPanel {
               return;
             }
             const assetPath = this._lastRenderedDocumentUri.fsPath;
-            const escapedAssetPath = assetPath ? escapeFilePath(assetPath) : ""; 
             const assetWorkspaceDir = await bruinWorkspaceDirectory(assetPath);
             
-            const command = [ "patch", "fill-asset-dependencies", escapedAssetPath];
-            await runBruinCommandInIntegratedTerminal(command, assetWorkspaceDir,"bruin");  
+            const fillDependencies = new BruinFill(
+              getBruinExecutablePath(),
+              assetWorkspaceDir
+            );
+            await fillDependencies.fillDependencies(assetPath);
 
             return;
 
@@ -442,11 +445,13 @@ export class BruinPanel {
               return;
             }
             const assetPathFillColumn = this._lastRenderedDocumentUri.fsPath;
-            const escapedAssetPathFillColumn = assetPathFillColumn ? escapeFilePath(assetPathFillColumn) : ""; 
             const assetWorkspaceDirFillColumn = await bruinWorkspaceDirectory(assetPathFillColumn);
 
-            const commandFillColumn = [ "patch", "fill-columns-from-db", escapedAssetPathFillColumn];
-            await runBruinCommandInIntegratedTerminal(commandFillColumn, assetWorkspaceDirFillColumn,"bruin");  
+            const fillColumns = new BruinFill(
+              getBruinExecutablePath(),
+              assetWorkspaceDirFillColumn
+            );
+            await fillColumns.fillColumns(assetPathFillColumn);
 
             return;
 
