@@ -136,7 +136,6 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
     this.bruinConnections = new BruinConnections("bruin", workspaceFolder);
     this.loadFavoritesFromSettings();
     this.loadTableFavoritesFromSettings();
-    // Don't load connections in constructor - wait for lazy loading in getChildren
   }
 
   // Check if the current workspace is a Bruin project

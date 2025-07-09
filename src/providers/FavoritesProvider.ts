@@ -116,7 +116,6 @@ export class FavoritesProvider implements vscode.TreeDataProvider<FavoriteItem> 
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || this.extensionPath;
     this.bruinConnections = new BruinConnections("bruin", workspaceFolder);
     this.loadFavorites();
-    // Don't load connections in constructor - wait for lazy loading in getChildren
   }
 
   // Check if the current workspace is a Bruin project
@@ -316,8 +315,15 @@ export class FavoritesProvider implements vscode.TreeDataProvider<FavoriteItem> 
   private groupFavoritesByConnection(): FavoriteConnection[] {
     const connectionMap = new Map<string, FavoriteConnection>();
 
-    // Process schema favorites
+    // Get current workspace connection names for filtering
+    const currentConnectionNames = new Set(this.connections.map(conn => conn.name));
+
+    // Process schema favorites - only include those with connections in current workspace
     this.favorites.forEach((favorite) => {
+      if (!currentConnectionNames.has(favorite.connectionName)) {
+        return; // Skip favorites for connections not in current workspace
+      }
+      
       const environment = favorite.environment || this.getConnectionEnvironment(favorite.connectionName) || 'default';
       const connectionKey = `${favorite.connectionName}.${environment}`;
       
@@ -332,8 +338,12 @@ export class FavoritesProvider implements vscode.TreeDataProvider<FavoriteItem> 
       connectionMap.get(connectionKey)!.schemas.push(favorite);
     });
 
-    // Process table favorites
+    // Process table favorites - only include those with connections in current workspace
     this.tableFavorites.forEach((favorite) => {
+      if (!currentConnectionNames.has(favorite.connectionName)) {
+        return; // Skip favorites for connections not in current workspace
+      }
+      
       const environment = favorite.environment || this.getConnectionEnvironment(favorite.connectionName) || 'default';
       const connectionKey = `${favorite.connectionName}.${environment}`;
       
