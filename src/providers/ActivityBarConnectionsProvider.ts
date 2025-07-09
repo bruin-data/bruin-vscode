@@ -111,6 +111,8 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
   private columnsCache = new Map<string, Column[]>(); // Cache for columns
   private favorites = new Set<string>(); // Store favorite schema keys as "connectionName.environment.schemaName"
   private tableFavorites = new Set<string>(); // Store favorite table keys as "connectionName.environment.schemaName.tableName"
+  private connectionsLoaded = false; // Track if connections have been loaded
+  private connectionLoadError: string | null = null; // Track connection loading errors
 
   // Allowed connection types
   private readonly allowedConnectionTypes = [
@@ -196,6 +198,8 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
     this.columnsCache.clear();
     this.loadFavoritesFromSettings();
     this.loadTableFavoritesFromSettings();
+    this.connectionsLoaded = false;
+    this.connectionLoadError = null;
     this.loadConnections();
   }
 
@@ -304,11 +308,18 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
 
       if (connections && connections.length > 0) {
         this.setConnections(connections);
+      } else {
+        this.connections = [];
       }
 
+      this.connectionsLoaded = true;
+      this.connectionLoadError = null;
       this._onDidChangeTreeData.fire();
     } catch (error) {
       console.error("ActivityBarConnectionsProvider: Error loading connections:", error);
+      this.connectionsLoaded = true;
+      this.connectionLoadError = error instanceof Error ? error.message : String(error);
+      this.connections = [];
       this._onDidChangeTreeData.fire();
     }
   }
@@ -361,8 +372,32 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
   async getChildren(element?: ConnectionItem): Promise<ConnectionItem[]> {
     if (!element) {
       // Root level - lazy load connections first if not already loaded
-      if (this.connections.length === 0) {
+      if (!this.connectionsLoaded) {
         await this.loadConnections();
+      }
+      
+      // If there was an error loading connections, show error message
+      if (this.connectionLoadError) {
+        return [
+          new ConnectionItem(
+            "Error loading connections",
+            vscode.TreeItemCollapsibleState.None,
+            {} as any,
+            "connections"
+          )
+        ];
+      }
+      
+      // If no connections found, show simple message
+      if (this.connections.length === 0) {
+        return [
+          new ConnectionItem(
+            "No database connections found",
+            vscode.TreeItemCollapsibleState.None,
+            {} as any,
+            "connections"
+          )
+        ];
       }
       
       // Root level - return environments
