@@ -371,19 +371,7 @@ export class FavoritesProvider implements vscode.TreeDataProvider<FavoriteItem> 
   }
 
   async getChildren(element?: FavoriteItem): Promise<FavoriteItem[]> {
-    if (!element) {
-      // Check if we're in a Bruin workspace before loading connections
-      if (!(await this.isBruinWorkspace())) {
-        return [
-          new FavoriteItem(
-            "No Bruin project detected",
-            vscode.TreeItemCollapsibleState.None,
-            {} as any,
-            "favorite_connection"
-          )
-        ];
-      }
-      
+    if (!element) {      
       // Root level - lazy load connections first if not already loaded
       if (!this.connectionsLoaded) {
         await this.loadConnections();

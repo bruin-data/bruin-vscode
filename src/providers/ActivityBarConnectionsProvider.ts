@@ -1,10 +1,7 @@
 import * as vscode from "vscode";
-import * as fs from "fs";
-import * as path from "path";
 import { BruinDBTCommand } from "../bruin/bruinDBTCommand";
 import { BruinConnections } from "../bruin/bruinConnections";
 import { Connection } from "../utilities/helperUtils";
-import { bruinWorkspaceDirectory } from "../bruin/bruinUtils";
 import {
   getSchemaFavorites,
   saveSchemaFavorites,
@@ -136,17 +133,6 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
     this.bruinConnections = new BruinConnections("bruin", workspaceFolder);
     this.loadFavoritesFromSettings();
     this.loadTableFavoritesFromSettings();
-  }
-
-  // Check if the current workspace is a Bruin project
-  private async isBruinWorkspace(): Promise<boolean> {
-    const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-    if (!workspaceFolder) {
-      return false;
-    }
-    
-    const bruinWorkspace = await bruinWorkspaceDirectory(workspaceFolder);
-    return bruinWorkspace !== undefined;
   }
 
   // Load favorites from VS Code settings
@@ -382,19 +368,7 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
   }
 
   async getChildren(element?: ConnectionItem): Promise<ConnectionItem[]> {
-    if (!element) {
-      // Check if we're in a Bruin workspace before loading connections
-      if (!(await this.isBruinWorkspace())) {
-        return [
-          new ConnectionItem(
-            "No Bruin project detected",
-            vscode.TreeItemCollapsibleState.None,
-            {} as any,
-            "connections"
-          )
-        ];
-      }
-      
+    if (!element) { 
       // Root level - lazy load connections first if not already loaded
       if (!this.connectionsLoaded) {
         await this.loadConnections();
