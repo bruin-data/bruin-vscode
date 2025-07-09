@@ -9,7 +9,7 @@
     <div v-if="!isCreating">
       <div class="flex items-center w-full mb-2">
         <div class="flex items-center">
-          <h3 class="text-lg font-medium text-editor-fg">Manage Environments</h3>
+          <h3 class="text-lg font-medium text-editor-fg">Environments</h3>
         </div>
       </div>
       
@@ -67,7 +67,7 @@
           v-model="newEnvironmentName"
           type="text"
           placeholder="Enter environment name"
-          class="w-full px-3 py-2 bg-input-background text-input-foreground border border-input-border rounded focus:outline-none focus:ring-2 focus:ring-inputOption-activeBorder"
+          class="w-1/2 px-3 py-2 bg-input-background text-input-foreground border border-input-border rounded focus:outline-none focus:ring-2 focus:ring-inputOption-activeBorder"
           @keyup.enter="createEnvironment"
           ref="environmentInput"
         />
