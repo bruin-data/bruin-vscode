@@ -1,4 +1,7 @@
 # Changelog
+## [0.58.0] - [2025-07-09]
+- Add environment management UI allowing users to create new environments.
+
 ## [0.57.0] - [2025-07-08]
 - Added Ingest Asset UI with dropdowns for selecting source and destination connections.
 

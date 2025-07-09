@@ -55,6 +55,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.58.0**: Add environment management UI allowing users to create new environments.
 - **0.57.0**: Added Ingest Asset UI with dropdowns for selecting source and destination connections.
 - **0.56.1**: Added missing LIMIT to query execution.
 - **0.56.0**: Grouped databases by environment to avoid confusion with duplicates.
