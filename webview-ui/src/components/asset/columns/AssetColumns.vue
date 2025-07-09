@@ -676,11 +676,14 @@ const handleMessage = (event) => {
       } else if (envelope.payload.status === "success") {
         fillColumnsStatus.value = "success";
         fillColumnsMessage.value = envelope.payload.message;
-        // Don't auto-reset success status
+        setTimeout(() => {
+          fillColumnsStatus.value = null;
+          fillColumnsMessage.value = null;
+        },10000);
       } else if (envelope.payload.status === "error") {
         fillColumnsStatus.value = "error";
         fillColumnsMessage.value = envelope.payload.message;
-        // Don't auto-reset error messages
+        
       }
       break;
   }

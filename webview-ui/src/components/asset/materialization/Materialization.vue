@@ -1105,7 +1105,10 @@ const handleMessage = (event) => {
       } else if (envelope.payload.status === "success") {
         fillDependenciesStatus.value = "success";
         fillDependenciesMessage.value = envelope.payload.message;
-        // Don't auto-reset success status
+        setTimeout(() => {
+          fillDependenciesStatus.value = null;
+          fillDependenciesMessage.value = null;
+        }, 10000);
       } else if (envelope.payload.status === "error") {
         fillDependenciesStatus.value = "error";
         fillDependenciesMessage.value = envelope.payload.message;
