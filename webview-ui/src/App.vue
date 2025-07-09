@@ -1,5 +1,5 @@
 <template>
-  <div v-if="!isBruinInstalled" class="flex items-center space-x-2 w-full justify-between pt-2">
+  <div v-if="isBruinInstalled === false" class="flex items-center space-x-2 w-full justify-between pt-2">
     <BruinSettings
       :isBruinInstalled="isBruinInstalled"
       :environments="environmentsList"
@@ -158,7 +158,7 @@ const data = ref(
     },
   })
 );
-const isBruinInstalled = ref(false);
+const isBruinInstalled = ref(true);
 const lastRenderedDocument = ref(""); 
 const pipelineAssetsData = ref([]);
 const handleMessage = (event: MessageEvent) => {
