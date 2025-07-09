@@ -7,6 +7,7 @@ export const useConnectionsStore = defineStore("connections", {
     error: null,
     connectionsSchema: null,
     defaultEnvironment: null,
+    environments: [] as string[],
   }),
   actions: {
     updateConnectionsSchema(connectionsSchema) {
@@ -52,6 +53,16 @@ export const useConnectionsStore = defineStore("connections", {
 
     getDefaultEnvironment() {
       return this.defaultEnvironment; // Return the stored default environment
+    },
+
+    updateEnvironments(environmentsList: string[]) {
+      this.environments = environmentsList;
+    },
+
+    addEnvironment(environmentName: string) {
+      if (!this.environments.includes(environmentName)) {
+        this.environments.push(environmentName);
+      }
     },
 
   },

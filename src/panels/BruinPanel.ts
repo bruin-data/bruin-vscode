@@ -30,6 +30,7 @@ import {
   getConnectionsListFromSchema,
   testConnection,
 } from "../extension/commands/manageConnections";
+import { createEnvironment } from "../extension/commands/manageEnvironments";
 import { openGlossary } from "../bruin/bruinGlossaryUtility";
 import { QueryPreviewPanel } from "./QueryPreviewPanel";
 import { getBruinExecutablePath } from "../providers/BruinExecutableService";
@@ -654,6 +655,32 @@ export class BruinPanel {
           case "bruin.getPipelineAssets":
             console.log("Getting pipeline assets");
             flowLineageCommand(this._lastRenderedDocumentUri, "BruinPanel");
+            break;
+          case "bruin.createEnvironment":
+            const { environmentName } = message.payload;
+            console.log("Creating environment:", environmentName);
+            try {
+              await createEnvironment(environmentName, this._lastRenderedDocumentUri);
+              // Refresh the environments list after creation
+              await getEnvListCommand(this._lastRenderedDocumentUri);
+              BruinPanel.postMessage("environment-created-message", {
+                status: "success",
+                message: `Environment "${environmentName}" created successfully`
+              });
+            } catch (error) {
+              const errorMessage = String(error);
+              let userMessage = `Failed to create environment: ${errorMessage}`;
+              
+              // Check for outdated CLI version
+              if (errorMessage.includes("No help topic for 'create'")) {
+                userMessage = "It seems like your CLI version may be outdated. Please update it to use the create command.";
+              }
+              
+              BruinPanel.postMessage("environment-created-message", {
+                status: "error",
+                message: userMessage
+              });
+            }
             break;
         }
       },
