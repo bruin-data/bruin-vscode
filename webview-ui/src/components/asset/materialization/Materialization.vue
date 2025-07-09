@@ -248,9 +248,29 @@
                 @click="fillFromDB"
                 class="text-xs flex-shrink-0"
                 title="Automatically fill dependencies from database schema"
+                :disabled="fillDependenciesStatus === 'loading'"
               >
+                <template v-if="fillDependenciesStatus === 'loading'">
+                  <svg class="animate-spin mr-1 h-4 w-4 text-editor-bg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                </template>
+                <template v-else-if="fillDependenciesStatus === 'success'">
+                  <span class="codicon codicon-check text-sm mr-1 text-editor-button-fg" aria-hidden="true"></span>
+                </template>
+                <template v-else-if="fillDependenciesStatus === 'error'">
+                  <span class="codicon codicon-error text-sm mr-1 text-editorError-foreground" aria-hidden="true"></span>
+                </template>
                 Fill from Query
               </vscode-button>
+            </div>
+            
+            <!-- Error message for fill dependencies operation -->
+            <div v-if="fillDependenciesMessage && fillDependenciesStatus === 'error'" class="mt-2">
+              <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded text-sm">
+                {{ fillDependenciesMessage }}
+              </div>
             </div>
           </div>
         </div>
@@ -447,8 +467,9 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from "vue";
+import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount, onUnmounted } from "vue";
 import { vscode } from "@/utilities/vscode";
+// Removed Heroicons import - using codicons instead
 
 // Collapsible sections state
 const expandedSections = ref({
@@ -926,11 +947,16 @@ const handleClickOutside = (event) => {
 
 onMounted(() => {
   window.addEventListener("click", handleClickOutside);
+  window.addEventListener("message", handleMessage);
   populateIntervalFormFields();
   vscode.postMessage({
     command: "bruin.getPipelineAssets",
     source: "Materialization",
   });
+});
+
+onUnmounted(() => {
+  window.removeEventListener("message", handleMessage);
 });
 
 onBeforeUnmount(() => {
@@ -1053,11 +1079,43 @@ const toggleDependencyMode = (index) => {
   sendDependenciesUpdate();
 };
 
+// Fill dependencies from DB status
+const fillDependenciesStatus = ref(null);
+const fillDependenciesMessage = ref(null);
+
 const fillFromDB = () => {
+  // Clear any existing error messages
+  fillDependenciesStatus.value = "loading";
+  fillDependenciesMessage.value = null;
   vscode.postMessage({
     command: "bruin.fillAssetDependency",
     source: "Materialization_fillFromDB",
   });
+};
+
+// Message handler for fill dependencies operations
+const handleMessage = (event) => {
+  const envelope = event.data;
+  
+  switch (envelope.command) {
+    case "fill-dependencies-message":
+      if (envelope.payload.status === "loading") {
+        fillDependenciesStatus.value = "loading";
+        fillDependenciesMessage.value = envelope.payload.message;
+      } else if (envelope.payload.status === "success") {
+        fillDependenciesStatus.value = "success";
+        fillDependenciesMessage.value = envelope.payload.message;
+        setTimeout(() => {
+          fillDependenciesStatus.value = null;
+          fillDependenciesMessage.value = null;
+        }, 10000);
+      } else if (envelope.payload.status === "error") {
+        fillDependenciesStatus.value = "error";
+        fillDependenciesMessage.value = envelope.payload.message;
+        // Don't auto-reset error messages
+      }
+      break;
+  }
 };
 
 // Watch for dependencies prop changes
