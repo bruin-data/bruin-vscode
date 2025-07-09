@@ -1,123 +1,125 @@
 <template>
-  <div v-if="isBruinInstalled === false" class="flex items-center space-x-2 w-full justify-between pt-2">
+  <div v-if="isBruinInstalled">
+    <div class="flex flex-col pt-1">
+      <div v-if="isNotAsset && showConvertMessage" class="w-full">
+        <NonAssetMessage
+          :showConvertMessage="showConvertMessage"
+          :fileType="nonAssetFileType"
+          :filePath="nonAssetFilePath"
+        />
+      </div>
+
+      <div v-else-if="!isNotAsset && !showConvertMessage" class="">
+        <div class="flex items-center space-x-2 w-full justify-between min-h-6">
+          <div class="flex items-baseline w-3/4 min-w-0 font-md text-editor-fg text-lg font-mono">
+            <div class="flex-grow min-w-0 overflow-hidden">
+              <div class="flex items-center w-full">
+                <div
+                  id="asset-name-container"
+                  class="w-full font-mono text-lg text-editor-fg"
+                  :class="{ 'cursor-pointer': !isEditingName, 'hover-background': !isEditingName }"
+                  @click="focusName"
+                >
+                  <template v-if="isEditingName">
+                    <input
+                      id="asset-name-input"
+                      v-model="editingName"
+                      @blur="saveNameEdit"
+                      @keyup.enter="saveNameEdit"
+                      @mouseleave="handleInputMouseLeave"
+                      ref="nameInput"
+                      class="w-full text-lg bg-input-background border-0 p-0 text-editor-fg font-mono truncate"
+                    />
+                  </template>
+                  <template v-else>
+                    <span
+                      v-if="assetDetailsProps?.name && assetDetailsProps?.name !== 'undefined'"
+                      id="input-name"
+                      class="block truncate"
+                    >
+                      {{ displayName }}
+                    </span>
+                  </template>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex w-1/4 items-center space-x-2 justify-end flex-shrink-0">
+            <vscode-button
+              appearance="secondary"
+              v-if="versionStatus.status === 'outdated'"
+              @click="updateBruinCli"
+              class="flex-shrink-0"
+            >
+              <div class="flex items-center space-x-1 whitespace-nowrap">
+                <span class="codicon codicon-circle-filled text-editorLink-activeFg"></span>
+                Update CLI
+              </div>
+            </vscode-button>
+
+            <div class="flex items-center tags">
+              <DescriptionItem
+                v-if="assetType"
+                :value="assetType"
+                :className="assetDetailsProps?.type ? badgeClass.badgeStyle : badgeClass.grayBadge"
+              />
+              <DescriptionItem
+                v-if="displaySchedule"
+                :value="displaySchedule"
+                :className="badgeClass.grayBadge"
+                class="xs:flex hidden overflow-hidden truncate"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+      <vscode-panels
+        v-if="!showConvertMessage"
+        :activeid="`tab-${activeTab}`"
+        aria-label="Tabbed Content"
+        class="pl-0"
+      >
+        <vscode-panel-tab
+          v-for="(tab, index) in visibleTabs"
+          :key="`tab-${index}`"
+          :id="`tab-${index}`"
+          @click="activeTab = index"
+        >
+          <div class="flex items-center justify-center gap-1">
+            <span>{{ tab.label }}</span>
+            <span
+              v-if="tab.label === 'Settings' && versionStatus.status === 'outdated'"
+              class="h-[3px] w-[3px] rounded-full bg-yellow-400 mt-0.5"
+            ></span>
+          </div>
+        </vscode-panel-tab>
+
+        <vscode-panel-view
+          v-for="(tab, index) in visibleTabs"
+          :key="`view-${index}`"
+          :id="`view-${index}`"
+          class="px-0"
+        >
+          <keep-alive>
+            <component
+              v-if="isTabActive(index)"
+              :is="tab.component"
+              v-bind="tab.props"
+              class="flex w-full h-full"
+              @update:description="updateDescription"
+            />
+          </keep-alive>
+        </vscode-panel-view>
+      </vscode-panels>
+    </div>
+  </div>
+  <div class="flex items-center space-x-2 w-full justify-between pt-2" v-else>
     <BruinSettings
       :isBruinInstalled="isBruinInstalled"
       :environments="environmentsList"
       class="flex w-full"
     />
-  </div>
-  <div v-else class="flex flex-col pt-1">
-    <div v-if="isNotAsset && showConvertMessage" class="w-full">
-      <NonAssetMessage
-        :showConvertMessage="showConvertMessage"
-        :fileType="nonAssetFileType"
-        :filePath="nonAssetFilePath"
-      />
-    </div>
-
-    <div v-else-if="!isNotAsset && !showConvertMessage" class="">
-      <div class="flex items-center space-x-2 w-full justify-between min-h-6">
-        <div class="flex items-baseline w-3/4 min-w-0 font-md text-editor-fg text-lg font-mono">
-          <div class="flex-grow min-w-0 overflow-hidden">
-            <div class="flex items-center w-full">
-              <div
-                id="asset-name-container"
-                class="w-full font-mono text-lg text-editor-fg"
-                :class="{ 'cursor-pointer': !isEditingName, 'hover-background': !isEditingName }"
-                @click="focusName"
-              >
-                <template v-if="isEditingName">
-                  <input
-                    id="asset-name-input"
-                    v-model="editingName"
-                    @blur="saveNameEdit"
-                    @keyup.enter="saveNameEdit"
-                    @mouseleave="handleInputMouseLeave"
-                    ref="nameInput"
-                    class="w-full text-lg bg-input-background border-0 p-0 text-editor-fg font-mono truncate"
-                  />
-                </template>
-                <template v-else>
-                  <span
-                    v-if="assetDetailsProps?.name && assetDetailsProps?.name !== 'undefined'"
-                    id="input-name"
-                    class="block truncate"
-                  >
-                    {{ displayName }}
-                  </span>
-                </template>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="flex w-1/4 items-center space-x-2 justify-end flex-shrink-0">
-          <vscode-button
-            appearance="secondary"
-            v-if="versionStatus.status === 'outdated'"
-            @click="updateBruinCli"
-            class="flex-shrink-0"
-          >
-            <div class="flex items-center space-x-1 whitespace-nowrap">
-              <span class="codicon codicon-circle-filled text-editorLink-activeFg"></span>
-              Update CLI
-            </div>
-          </vscode-button>
-
-          <div class="flex items-center tags">
-            <DescriptionItem
-              v-if="assetType"
-              :value="assetType"
-              :className="assetDetailsProps?.type ? badgeClass.badgeStyle : badgeClass.grayBadge"
-            />
-            <DescriptionItem
-              v-if="displaySchedule"
-              :value="displaySchedule"
-              :className="badgeClass.grayBadge"
-              class="xs:flex hidden overflow-hidden truncate"
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-    <vscode-panels
-      v-if="!showConvertMessage"
-      :activeid="`tab-${activeTab}`"
-      aria-label="Tabbed Content"
-      class="pl-0"
-    >
-      <vscode-panel-tab
-        v-for="(tab, index) in visibleTabs"
-        :key="`tab-${index}`"
-        :id="`tab-${index}`"
-        @click="activeTab = index"
-      >
-        <div class="flex items-center justify-center gap-1">
-          <span>{{ tab.label }}</span>
-          <span
-            v-if="tab.label === 'Settings' && versionStatus.status === 'outdated'"
-            class="h-[3px] w-[3px] rounded-full bg-yellow-400 mt-0.5"
-          ></span>
-        </div>
-      </vscode-panel-tab>
-
-      <vscode-panel-view
-        v-for="(tab, index) in visibleTabs"
-        :key="`view-${index}`"
-        :id="`view-${index}`"
-        class="px-0"
-      >
-        <keep-alive>
-          <component
-            v-if="isTabActive(index)"
-            :is="tab.component"
-            v-bind="tab.props"
-            class="flex w-full h-full"
-            @update:description="updateDescription"
-          />
-        </keep-alive>
-      </vscode-panel-view>
-    </vscode-panels>
   </div>
 </template>
 <script setup lang="ts">
@@ -499,12 +501,6 @@ const tabs = ref([
 
 // Computed property to determine which tabs to show based on the document type
 const visibleTabs = computed(() => {
-  // If CLI is not installed, show no tabs
-  if (!isBruinInstalled.value) {
-    console.log("CLI not installed, showing no tabs.");
-    return [];
-  }
-  
   if (isBruinYml.value) {
     // Only show the "Settings" tab
     console.log("Showing only Settings tab for Bruin YAML file.");
@@ -524,7 +520,6 @@ onMounted(async () => {
   loadEnvironmentsList();
   vscode.postMessage({ command: "getLastRenderedDocument" });
   vscode.postMessage({ command: "bruin.checkBruinCLIVersion" });
-  vscode.postMessage({ command: "bruin.checkBruinCLIInstallation" });
   // Track page view
   /* try {
     rudderStack.trackPageView("Asset Details Page", {
@@ -566,16 +561,6 @@ watch(activeTab, (newTab, oldTab) => {
   });
 });
 
-// Watch for CLI installation status changes
-watch(isBruinInstalled, (newStatus) => {
-  console.log("CLI installation status changed to:", newStatus);
-  if (newStatus) {
-    // CLI is now installed, load the necessary data
-    loadAssetData();
-    loadEnvironmentsList();
-  }
-});
-
 const updateDescription = (newDescription) => {
   console.log("Updating description with new data:", newDescription);
   if (assetDetailsProps.value) {
@@ -592,20 +577,12 @@ const updateDescription = (newDescription) => {
 
 // Function to load asset data
 function loadAssetData() {
-  if (!isBruinInstalled.value) {
-    console.log("CLI not installed, skipping asset data load.");
-    return;
-  }
   console.log("Loading asset data from Bruin.");
   vscode.postMessage({ command: "bruin.getAssetDetails" });
 }
 
 // Function to load the list of environments
 function loadEnvironmentsList() {
-  if (!isBruinInstalled.value) {
-    console.log("CLI not installed, skipping environments list load.");
-    return;
-  }
   console.log("Loading environments list from Bruin.");
   vscode.postMessage({ command: "bruin.getEnvironmentsList" });
 }
@@ -639,10 +616,6 @@ const badgeClass = computed(() => {
 });
 
 const isTabActive = (index) => {
-  // If CLI is not installed, no tabs should be active
-  if (!isBruinInstalled.value) {
-    return false;
-  }
   return tabs.value[index].props && activeTab.value === index;
 };
 
