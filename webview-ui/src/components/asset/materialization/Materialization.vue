@@ -257,10 +257,10 @@
                   </svg>
                 </template>
                 <template v-else-if="fillDependenciesStatus === 'success'">
-                  <CheckCircleIcon class="h-4 w-4 mr-1 text-editor-button-fg" aria-hidden="true" />
+                  <span class="codicon codicon-check text-sm mr-1 text-editor-button-fg" aria-hidden="true"></span>
                 </template>
                 <template v-else-if="fillDependenciesStatus === 'error'">
-                  <XCircleIcon class="h-4 w-4 mr-1 text-editorError-foreground" aria-hidden="true" />
+                  <span class="codicon codicon-error text-sm mr-1 text-editorError-foreground" aria-hidden="true"></span>
                 </template>
                 Fill from Query
               </vscode-button>
@@ -469,7 +469,7 @@
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount, onUnmounted } from "vue";
 import { vscode } from "@/utilities/vscode";
-import { CheckCircleIcon, XCircleIcon } from "@heroicons/vue/24/solid";
+// Removed Heroicons import - using codicons instead
 
 // Collapsible sections state
 const expandedSections = ref({

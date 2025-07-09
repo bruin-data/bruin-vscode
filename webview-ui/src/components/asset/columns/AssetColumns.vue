@@ -25,10 +25,10 @@
           </svg>
         </template>
         <template v-else-if="fillColumnsStatus === 'success'">
-          <CheckCircleIcon class="h-4 w-4 mr-1 text-editor-button-fg" aria-hidden="true" />
+          <span class="codicon codicon-check h-4 w-4 mr-1 text-editor-button-fg" aria-hidden="true"></span>
         </template>
         <template v-else-if="fillColumnsStatus === 'error'">
-          <XCircleIcon class="h-4 w-4 mr-1 text-editorError-foreground" aria-hidden="true" />
+          <span class="codicon codicon-error h-4 w-4 mr-1 text-editorError-foreground" aria-hidden="true"></span>
         </template>
         Fill from DB
       </vscode-button>
@@ -302,11 +302,11 @@ import {
   LinkIcon,
   KeyIcon,
 } from "@heroicons/vue/20/solid";
-import { CheckCircleIcon, XCircleIcon } from "@heroicons/vue/24/solid";
 import DeleteAlert from "@/components/ui/alerts/AlertWithActions.vue";
 import { vscode } from "@/utilities/vscode";
 import { v4 as uuidv4 } from "uuid"; // Import UUID library to generate unique IDs
 import ErrorAlert from "@/components/ui/alerts/ErrorAlert.vue";
+import { updateValue } from "@/utilities/helper";
 
 const props = defineProps({
   columns: {
@@ -659,10 +659,7 @@ const fillColumnsFromDB = () => {
   });
 };
 
-// Helper function to update values based on message status
-const updateValue = (envelope, status) => {
-  return envelope.payload.status === status ? envelope.payload.message : null;
-};
+
 
 // Message handler for fill operations
 const handleMessage = (event) => {
@@ -670,20 +667,23 @@ const handleMessage = (event) => {
   
   switch (envelope.command) {
     case "fill-columns-message":
-      if (envelope.payload.status === "loading") {
+      const loadingMessage = updateValue(envelope, "loading");
+      const successMessage = updateValue(envelope, "success");
+      const errorMessage = updateValue(envelope, "error");
+      
+      if (loadingMessage) {
         fillColumnsStatus.value = "loading";
-        fillColumnsMessage.value = envelope.payload.message;
-      } else if (envelope.payload.status === "success") {
+        fillColumnsMessage.value = loadingMessage;
+      } else if (successMessage) {
         fillColumnsStatus.value = "success";
-        fillColumnsMessage.value = envelope.payload.message;
+        fillColumnsMessage.value = successMessage;
         setTimeout(() => {
           fillColumnsStatus.value = null;
           fillColumnsMessage.value = null;
-        },10000);
-      } else if (envelope.payload.status === "error") {
+        }, 10000);
+      } else if (errorMessage) {
         fillColumnsStatus.value = "error";
-        fillColumnsMessage.value = envelope.payload.message;
-        
+        fillColumnsMessage.value = errorMessage;
       }
       break;
   }
