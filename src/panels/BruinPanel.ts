@@ -668,9 +668,17 @@ export class BruinPanel {
                 message: `Environment "${environmentName}" created successfully`
               });
             } catch (error) {
+              const errorMessage = String(error);
+              let userMessage = `Failed to create environment: ${errorMessage}`;
+              
+              // Check for outdated CLI version
+              if (errorMessage.includes("No help topic for 'create'")) {
+                userMessage = "It seems like your CLI version may be outdated. Please update it to use the create command.";
+              }
+              
               BruinPanel.postMessage("environment-created-message", {
                 status: "error",
-                message: `Failed to create environment: ${error}`
+                message: userMessage
               });
             }
             break;
