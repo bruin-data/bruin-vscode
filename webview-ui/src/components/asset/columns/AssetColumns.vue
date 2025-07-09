@@ -1,9 +1,47 @@
 <template>
   <div class="flex flex-col py-4 sm:py-1 h-full w-full min-w-56 relative">
     <div class="flex justify-end mb-4 space-x-2">
-      <vscode-button @click="fillColumnsFromDB"> Fill from DB </vscode-button>
+      <vscode-button @click="fillColumnsFromDB" :disabled="fillColumnsStatus === 'loading'">
+        <template v-if="fillColumnsStatus === 'loading'">
+          <svg
+            class="animate-spin mr-1 h-4 w-4 text-editor-bg"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              class="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="4"
+            ></circle>
+            <path
+              class="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            ></path>
+          </svg>
+        </template>
+        <template v-else-if="fillColumnsStatus === 'success'">
+          <span class="codicon codicon-check h-4 w-4 mr-1 text-editor-button-fg" aria-hidden="true"></span>
+        </template>
+        <template v-else-if="fillColumnsStatus === 'error'">
+          <span class="codicon codicon-error h-4 w-4 mr-1 text-editorError-foreground" aria-hidden="true"></span>
+        </template>
+        Fill from DB
+      </vscode-button>
       <vscode-button @click="handleAddColumn" class="py-1 focus:outline-none disabled:cursor-not-allowed" :disabled="isConfigFile"> Add column </vscode-button>
     </div>
+    
+    <!-- Error message for fill operation -->
+    <SimpleErrorAlert 
+      v-if="fillColumnsMessage && fillColumnsStatus === 'error'" 
+      :errorMessage="fillColumnsMessage" 
+      errorPhase="Fill Columns" 
+      @error-close="fillColumnsStatus = null; fillColumnsMessage = null" 
+    />
 
     <!-- Header Row -->
     <div
@@ -250,12 +288,12 @@
       </div>
     </div>
 
-    <ErrorAlert :errorMessage="error" class="mb-4" @error-close="closeError"> </ErrorAlert>
+    <SimpleErrorAlert :errorMessage="error" class="mb-4" @error-close="closeError"> </SimpleErrorAlert>
   </div>
 </template>
 
 <script setup>
-import { ref, watch, computed, nextTick } from "vue";
+import { ref, watch, computed, nextTick, onMounted, onUnmounted } from "vue";
 import {
   TrashIcon,
   PencilIcon,
@@ -268,7 +306,8 @@ import {
 import DeleteAlert from "@/components/ui/alerts/AlertWithActions.vue";
 import { vscode } from "@/utilities/vscode";
 import { v4 as uuidv4 } from "uuid"; // Import UUID library to generate unique IDs
-import ErrorAlert from "@/components/ui/alerts/ErrorAlert.vue";
+import SimpleErrorAlert from "@/components/ui/alerts/SimpleErrorAlert.vue";
+import { updateValue } from "@/utilities/helper";
 
 const props = defineProps({
   columns: {
@@ -292,6 +331,10 @@ const newAcceptedValuesInput = ref("");
 const error = ref(null);
 const showAddCheckDropdown = ref(null);
 const isConfigFile = computed(() => props.isConfigFile);
+
+// Fill columns from DB status
+const fillColumnsStatus = ref(null);
+const fillColumnsMessage = ref(null);
 const updatePatternValue = () => {
   const patternCheck = editingColumn.value.checks.find((check) => check.name === "pattern");
   if (patternCheck) {
@@ -609,10 +652,52 @@ const deleteColumn = (index) => {
 };
 
 const fillColumnsFromDB = () => {
+  // Clear any existing error messages
+  fillColumnsStatus.value = "loading";
+  fillColumnsMessage.value = null;
   vscode.postMessage({
     command: "bruin.fillAssetColumn",
   });
 };
+
+
+
+// Message handler for fill operations
+const handleMessage = (event) => {
+  const envelope = event.data;
+  
+  switch (envelope.command) {
+    case "fill-columns-message":
+      const loadingMessage = updateValue(envelope, "loading");
+      const successMessage = updateValue(envelope, "success");
+      const errorMessage = updateValue(envelope, "error");
+      
+      if (loadingMessage) {
+        fillColumnsStatus.value = "loading";
+        fillColumnsMessage.value = loadingMessage;
+      } else if (successMessage) {
+        fillColumnsStatus.value = "success";
+        fillColumnsMessage.value = successMessage;
+        setTimeout(() => {
+          fillColumnsStatus.value = null;
+          fillColumnsMessage.value = null;
+        }, 10000);
+      } else if (errorMessage) {
+        fillColumnsStatus.value = "error";
+        fillColumnsMessage.value = errorMessage;
+      }
+      break;
+  }
+};
+
+// Register message handler
+onMounted(() => {
+  window.addEventListener("message", handleMessage);
+});
+
+onUnmounted(() => {
+  window.removeEventListener("message", handleMessage);
+});
 
 watch(
   () => props.columns,

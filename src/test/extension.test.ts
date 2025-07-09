@@ -1885,42 +1885,55 @@ suite("BruinPanel Tests", () => {
       // Assert no error was thrown or expect a specific handling behavior (e.g., logging)
     });
      test("handles bruin.fillAssetDependency command", async () => {
-      const escapeStub = sinon.stub(bruinUtils, "escapeFilePath").returns("/escaped/path/test.sql");
-      const runStub = sinon.stub(bruinUtils, "runBruinCommandInIntegratedTerminal");
+      const getBruinExecutablePathStub = sinon.stub().returns("/path/to/bruin");
+      const fillDependenciesStub = sinon.stub();
+      const BruinFillStub = sinon.stub().returns({
+        fillDependencies: fillDependenciesStub
+      });
+      const postMessageStub = sinon.stub(BruinPanel, "postMessage");
+      
+      // Mock the modules
+      const bruinExecutableServiceModule = await import("../providers/BruinExecutableService");
+      sinon.replace(bruinExecutableServiceModule, "getBruinExecutablePath", getBruinExecutablePathStub);
+      
+      const bruinFillModule = await import("../bruin/bruinFill");
+      sinon.replace(bruinFillModule, "BruinFill", BruinFillStub as any);
       
       await (windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0]({ 
         command: "bruin.fillAssetDependency" });
 
-      assert.ok(escapeStub.calledOnceWith(mockDocumentUri.fsPath) && bruinWorkspaceDirectoryStub.calledOnceWith(mockDocumentUri.fsPath) 
-     && runStub.calledOnce);
+      // Verify workspace directory lookup and BruinFill instantiation
+      assert.ok(bruinWorkspaceDirectoryStub.calledOnceWith(mockDocumentUri.fsPath));
+      assert.ok(BruinFillStub.calledOnceWith("/path/to/bruin", "/mock/workspace"));
+      assert.ok(fillDependenciesStub.calledOnceWith(mockDocumentUri.fsPath));
       
-      const [command, workspaceDir] = runStub.firstCall.args;
-      assert.deepStrictEqual(command, ["patch", "fill-asset-dependencies", "/escaped/path/test.sql"]);
-      assert.strictEqual(workspaceDir, "/mock/workspace");
-      
-      escapeStub.restore();
-      runStub.restore();
-
-
-
+      postMessageStub.restore();
     });
     test("handles bruin.fillAssetColumn command", async () => {
-      const escapeStub = sinon.stub(bruinUtils, "escapeFilePath").returns("/escaped/path/test.sql");
-      const runStub = sinon.stub(bruinUtils, "runBruinCommandInIntegratedTerminal");
+      const getBruinExecutablePathStub = sinon.stub().returns("/path/to/bruin");
+      const fillColumnsStub = sinon.stub();
+      const BruinFillStub = sinon.stub().returns({
+        fillColumns: fillColumnsStub
+      });
+      const postMessageStub = sinon.stub(BruinPanel, "postMessage");
+      
+      // Mock the modules
+      const bruinExecutableServiceModule = await import("../providers/BruinExecutableService");
+      sinon.replace(bruinExecutableServiceModule, "getBruinExecutablePath", getBruinExecutablePathStub);
+      
+      const bruinFillModule = await import("../bruin/bruinFill");
+      sinon.replace(bruinFillModule, "BruinFill", BruinFillStub as any);
       
       await (windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0]({ 
         command: "bruin.fillAssetColumn" });
-        assert.ok(escapeStub.calledOnceWith(mockDocumentUri.fsPath) && bruinWorkspaceDirectoryStub.calledOnceWith(mockDocumentUri.fsPath) 
-        && runStub.calledOnce);
 
-        const [command, workspaceDir] = runStub.firstCall.args;
-       assert.deepStrictEqual(command, ["patch", "fill-columns-from-db", "/escaped/path/test.sql"]);
-       assert.strictEqual(workspaceDir, "/mock/workspace");
+      // Verify workspace directory lookup and BruinFill instantiation
+      assert.ok(bruinWorkspaceDirectoryStub.calledOnceWith(mockDocumentUri.fsPath));
+      assert.ok(BruinFillStub.calledOnceWith("/path/to/bruin", "/mock/workspace"));
+      assert.ok(fillColumnsStub.calledOnceWith(mockDocumentUri.fsPath));
       
-      escapeStub.restore();
-      runStub.restore();
+      postMessageStub.restore();
     });
-
 
     test("validateCurrentPipeline with no active document", async () => {
       windowActiveTextEditorStub.value(undefined); // Simulate no active text editor
