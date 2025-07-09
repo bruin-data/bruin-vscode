@@ -36,11 +36,12 @@
     </div>
     
     <!-- Error message for fill operation -->
-    <div v-if="fillColumnsMessage && fillColumnsStatus === 'error'" class="mb-4">
-      <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded text-sm">
-        {{ fillColumnsMessage }}
-      </div>
-    </div>
+    <SimpleErrorAlert 
+      v-if="fillColumnsMessage && fillColumnsStatus === 'error'" 
+      :errorMessage="fillColumnsMessage" 
+      errorPhase="Fill Columns" 
+      @error-close="fillColumnsStatus = null; fillColumnsMessage = null" 
+    />
 
     <!-- Header Row -->
     <div
@@ -287,7 +288,7 @@
       </div>
     </div>
 
-    <ErrorAlert :errorMessage="error" class="mb-4" @error-close="closeError"> </ErrorAlert>
+    <SimpleErrorAlert :errorMessage="error" class="mb-4" @error-close="closeError"> </SimpleErrorAlert>
   </div>
 </template>
 
@@ -305,7 +306,7 @@ import {
 import DeleteAlert from "@/components/ui/alerts/AlertWithActions.vue";
 import { vscode } from "@/utilities/vscode";
 import { v4 as uuidv4 } from "uuid"; // Import UUID library to generate unique IDs
-import ErrorAlert from "@/components/ui/alerts/ErrorAlert.vue";
+import SimpleErrorAlert from "@/components/ui/alerts/SimpleErrorAlert.vue";
 import { updateValue } from "@/utilities/helper";
 
 const props = defineProps({
