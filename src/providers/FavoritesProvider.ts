@@ -1,4 +1,6 @@
 import * as vscode from "vscode";
+import * as fs from "fs";
+import * as path from "path";
 import {
   getSchemaFavorites,
   saveSchemaFavorites,
@@ -12,6 +14,7 @@ import {
 import { BruinDBTCommand } from "../bruin/bruinDBTCommand";
 import { BruinConnections } from "../bruin/bruinConnections";
 import { Connection } from "../utilities/helperUtils";
+import { bruinWorkspaceDirectory } from "../bruin/bruinUtils";
 
 // Define interfaces for the hierarchical structure
 interface FavoriteConnection {
@@ -105,13 +108,26 @@ export class FavoritesProvider implements vscode.TreeDataProvider<FavoriteItem> 
   private columnsCache = new Map<string, FavoriteColumn[]>(); // Cache for columns per table
   private connections: Connection[] = []; // Store connection data for environment info
   private bruinConnections: BruinConnections;
+  private connectionsLoaded = false; // Track if connections have been loaded
+  private connectionLoadError: string | null = null; // Track connection loading errors
 
   constructor() {
     this.extensionPath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || "";
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || this.extensionPath;
     this.bruinConnections = new BruinConnections("bruin", workspaceFolder);
     this.loadFavorites();
-    this.loadConnections();
+    // Don't load connections in constructor - wait for lazy loading in getChildren
+  }
+
+  // Check if the current workspace is a Bruin project
+  private async isBruinWorkspace(): Promise<boolean> {
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    if (!workspaceFolder) {
+      return false;
+    }
+    
+    const bruinWorkspace = await bruinWorkspaceDirectory(workspaceFolder);
+    return bruinWorkspace !== undefined;
   }
 
   private loadFavorites(): void {
@@ -122,8 +138,12 @@ export class FavoritesProvider implements vscode.TreeDataProvider<FavoriteItem> 
   private async loadConnections(): Promise<void> {
     try {
       this.connections = await this.bruinConnections.getConnectionsForActivityBar();
+      this.connectionsLoaded = true;
+      this.connectionLoadError = null;
     } catch (error) {
       console.error("FavoritesProvider: Error loading connections:", error);
+      this.connectionsLoaded = true;
+      this.connectionLoadError = error instanceof Error ? error.message : String(error);
       this.connections = [];
     }
   }
@@ -137,6 +157,8 @@ export class FavoritesProvider implements vscode.TreeDataProvider<FavoriteItem> 
     this.tableCache.clear();
     this.columnsCache.clear();
     this.loadFavorites();
+    this.connectionsLoaded = false;
+    this.connectionLoadError = null;
     this.loadConnections();
     this._onDidChangeTreeData.fire();
   }
@@ -340,6 +362,50 @@ export class FavoritesProvider implements vscode.TreeDataProvider<FavoriteItem> 
 
   async getChildren(element?: FavoriteItem): Promise<FavoriteItem[]> {
     if (!element) {
+      // Check if we're in a Bruin workspace before loading connections
+      if (!(await this.isBruinWorkspace())) {
+        return [
+          new FavoriteItem(
+            "No Bruin project detected",
+            vscode.TreeItemCollapsibleState.None,
+            {} as any,
+            "favorite_connection"
+          )
+        ];
+      }
+      
+      // Root level - lazy load connections first if not already loaded
+      if (!this.connectionsLoaded) {
+        await this.loadConnections();
+      }
+      
+      // Check if there are any favorites at all
+      const hasFavorites = this.favorites.length > 0 || this.tableFavorites.length > 0;
+      
+      // If no favorites, show simple message
+      if (!hasFavorites) {
+        return [
+          new FavoriteItem(
+            "No favorites added",
+            vscode.TreeItemCollapsibleState.None,
+            {} as any,
+            "favorite_connection"
+          )
+        ];
+      }
+      
+      // If there was an error loading connections, show error message
+      if (this.connectionLoadError) {
+        return [
+          new FavoriteItem(
+            "Error loading connection info",
+            vscode.TreeItemCollapsibleState.None,
+            {} as any,
+            "favorite_connection"
+          )
+        ];
+      }
+      
       // Root level - return connections with environment as description
       const groupedConnections = this.groupFavoritesByConnection();
       return groupedConnections.map((connection) => {

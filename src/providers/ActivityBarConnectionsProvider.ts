@@ -4,6 +4,7 @@ import * as path from "path";
 import { BruinDBTCommand } from "../bruin/bruinDBTCommand";
 import { BruinConnections } from "../bruin/bruinConnections";
 import { Connection } from "../utilities/helperUtils";
+import { bruinWorkspaceDirectory } from "../bruin/bruinUtils";
 import {
   getSchemaFavorites,
   saveSchemaFavorites,
@@ -111,6 +112,8 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
   private columnsCache = new Map<string, Column[]>(); // Cache for columns
   private favorites = new Set<string>(); // Store favorite schema keys as "connectionName.environment.schemaName"
   private tableFavorites = new Set<string>(); // Store favorite table keys as "connectionName.environment.schemaName.tableName"
+  private connectionsLoaded = false; // Track if connections have been loaded
+  private connectionLoadError: string | null = null; // Track connection loading errors
 
   // Allowed connection types
   private readonly allowedConnectionTypes = [
@@ -133,7 +136,18 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
     this.bruinConnections = new BruinConnections("bruin", workspaceFolder);
     this.loadFavoritesFromSettings();
     this.loadTableFavoritesFromSettings();
-    this.loadConnections();
+    // Don't load connections in constructor - wait for lazy loading in getChildren
+  }
+
+  // Check if the current workspace is a Bruin project
+  private async isBruinWorkspace(): Promise<boolean> {
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    if (!workspaceFolder) {
+      return false;
+    }
+    
+    const bruinWorkspace = await bruinWorkspaceDirectory(workspaceFolder);
+    return bruinWorkspace !== undefined;
   }
 
   // Load favorites from VS Code settings
@@ -197,6 +211,8 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
     this.columnsCache.clear();
     this.loadFavoritesFromSettings();
     this.loadTableFavoritesFromSettings();
+    this.connectionsLoaded = false;
+    this.connectionLoadError = null;
     this.loadConnections();
   }
 
@@ -305,11 +321,18 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
 
       if (connections && connections.length > 0) {
         this.setConnections(connections);
+      } else {
+        this.connections = [];
       }
 
+      this.connectionsLoaded = true;
+      this.connectionLoadError = null;
       this._onDidChangeTreeData.fire();
     } catch (error) {
       console.error("ActivityBarConnectionsProvider: Error loading connections:", error);
+      this.connectionsLoaded = true;
+      this.connectionLoadError = error instanceof Error ? error.message : String(error);
+      this.connections = [];
       this._onDidChangeTreeData.fire();
     }
   }
@@ -361,24 +384,49 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
 
   async getChildren(element?: ConnectionItem): Promise<ConnectionItem[]> {
     if (!element) {
-      // Root level - return environments
-      const environments = this.getEnvironments();
-      return environments.map((env) => {
-        const item = new ConnectionItem(
-          env.name,
-          vscode.TreeItemCollapsibleState.Collapsed,
-          env,
-          "environment"
-        );
-        item.tooltip = `Environment: ${env.name} (${env.connections.length} connections)`;
-        return item;
-      });
-    }
-
-    if (element.contextValue === "environment" && "connections" in element.itemData) {
-      // Environment level - return connections for this environment
-      const environment = element.itemData as EnvironmentData;
-      return environment.connections
+      // Check if we're in a Bruin workspace before loading connections
+      if (!(await this.isBruinWorkspace())) {
+        return [
+          new ConnectionItem(
+            "No Bruin project detected",
+            vscode.TreeItemCollapsibleState.None,
+            {} as any,
+            "connections"
+          )
+        ];
+      }
+      
+      // Root level - lazy load connections first if not already loaded
+      if (!this.connectionsLoaded) {
+        await this.loadConnections();
+      }
+      
+      // If there was an error loading connections, show error message
+      if (this.connectionLoadError) {
+        return [
+          new ConnectionItem(
+            "Error loading connections",
+            vscode.TreeItemCollapsibleState.None,
+            {} as any,
+            "connections"
+          )
+        ];
+      }
+      
+      // If no connections found, show simple message
+      if (this.connections.length === 0) {
+        return [
+          new ConnectionItem(
+            "No database connections found",
+            vscode.TreeItemCollapsibleState.None,
+            {} as any,
+            "connections"
+          )
+        ];
+      }
+      
+      // Root level - return connections directly with environment info
+      return this.connections
         .filter((connection) => this.allowedConnectionTypes.includes(connection.type.toLowerCase()))
         .map((connection) => {
           const item = new ConnectionItem(
@@ -388,9 +436,11 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
             "bruin_connection"
           );
           item.tooltip = `${connection.type}`;
+          item.description = connection.environment || 'default';
           return item;
         });
     }
+
 
     if (element.contextValue === "bruin_connection" && "name" in element.itemData) {
       const connection = element.itemData as ConnectionDisplayData;
