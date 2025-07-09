@@ -1,4 +1,7 @@
 # Changelog
+## [0.58.1] - [2025-07-09]
+- Changed "Fill from DB" to run in the background instead of the terminal.
+
 ## [0.58.0] - [2025-07-09]
 - Add environment management UI allowing users to create new environments.
 

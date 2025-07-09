@@ -55,6 +55,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.58.1**: Changed "Fill from DB" to run in the background instead of the terminal.
 - **0.58.0**: Add environment management UI allowing users to create new environments.
 - **0.57.0**: Added Ingest Asset UI with dropdowns for selecting source and destination connections.
 - **0.56.1**: Added missing LIMIT to query execution.
@@ -67,18 +68,6 @@ Bruin is a unified analytics platform that enables data professionals to work en
 - **0.54.2**: Fixed the Query Preview Panel recreation on database load to prevent previous query output loss.
 - **0.54.1**: Fixed the Bruin Panel rendering issue.
 - **0.54.0**: Added human-readable cron preview via CodeLens in pipeline YAML files.
-- **0.53.2**: Relocated fill from DB buttons to the asset columns and materialization tabs and improved query output rendering.
-- **0.53.1**: Added default `Exclude Tag` input to the extension settings to exclude assets with specific tags from being validated.
-- **0.53.0**: Added pipeline asset and dependency management, including collapsible sections, improved layout, and support for external dependencies.
-- **0.52.0**: Added an Activity Bar to browse databases, view table details, and preview queries.
-- **0.51.7**: Added support and validation for the `private_key_path` field in Snowflake connections.
-- **0.51.6**: Added support for `fill` asset dependencies and columns from DB.
-- **0.51.5**: Added confirmation prompt before running with `full-refresh`.
-- **0.51.4**: Fixed customCheck not showing on first render, added missing sensor types to the YAML schema, and expanded snippet completions.
-- **0.51.3**: Enhanced Snowflake connection support with private key authentication, including validation and improved input handling.
-- **0.51.2**: Enabled auto-saving for materialization changes, removing the manual save button.
-- **0.51.1**: Fixed BQ connection updates and improved service account credential handling.
-- **0.51.0**: Added inline "Preview" button using CodeLens for top-level queries in the editor.
 
 For a full changelog, see Bruin Extension [Changelog](https://marketplace.visualstudio.com/items/bruin.bruin/changelog).
 
