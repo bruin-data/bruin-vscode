@@ -659,9 +659,20 @@ export class BruinPanel {
           case "bruin.createEnvironment":
             const { environmentName } = message.payload;
             console.log("Creating environment:", environmentName);
-            await createEnvironment(environmentName, this._lastRenderedDocumentUri);
-            // Refresh the environments list after creation
-            await getEnvListCommand(this._lastRenderedDocumentUri);
+            try {
+              await createEnvironment(environmentName, this._lastRenderedDocumentUri);
+              // Refresh the environments list after creation
+              await getEnvListCommand(this._lastRenderedDocumentUri);
+              BruinPanel.postMessage("environment-created-message", {
+                status: "success",
+                message: `Environment "${environmentName}" created successfully`
+              });
+            } catch (error) {
+              BruinPanel.postMessage("environment-created-message", {
+                status: "error",
+                message: `Failed to create environment: ${error}`
+              });
+            }
             break;
         }
       },

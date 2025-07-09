@@ -1,9 +1,12 @@
 <template>
   <div class="bg-editorWidget-bg shadow sm:rounded-lg p-6 relative">
     <span 
-      @click="isCollapsed = !isCollapsed"
-      class="codicon absolute top-4 right-4 cursor-pointer" 
-      :class="isCollapsed ? 'codicon-chevron-down' : 'codicon-chevron-up'"
+      @click="!isCreating && (isCollapsed = !isCollapsed)"
+      class="codicon absolute top-4 right-4 z-10" 
+      :class="[
+        isCollapsed ? 'codicon-chevron-down' : 'codicon-chevron-up',
+        !isCreating ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'
+      ]"
     ></span>
 
     <div v-if="!isCreating">
@@ -67,8 +70,8 @@
           v-model="newEnvironmentName"
           type="text"
           placeholder="Enter environment name"
-          class="w-1/2 px-3 py-2 bg-input-background text-input-foreground border border-input-border rounded focus:outline-none focus:ring-2 focus:ring-inputOption-activeBorder"
-          @keyup.enter="createEnvironment"
+          class="w-1/2 px-3 py-2 h-8 bg-input-background text-input-foreground border border-input-border rounded focus:outline-none focus:ring-2 focus:ring-inputOption-activeBorder"
+          @keyup.enter="createEnvironment"    
           ref="environmentInput"
         />
         <div v-if="errorMessage" class="text-errorForeground text-sm mt-1">
