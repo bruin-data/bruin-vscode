@@ -9,9 +9,7 @@
           </svg>
         </template>
         <template v-else-if="fillColumnsStatus === 'success'">
-          <svg class="h-4 w-4 mr-1 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-          </svg>
+          <CheckCircleIcon class="h-4 w-4 mr-1 text-editor-button-fg" aria-hidden="true" />
         </template>
         <template v-else-if="fillColumnsStatus === 'error'">
           <svg class="h-4 w-4 mr-1 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -23,12 +21,9 @@
       <vscode-button @click="handleAddColumn" class="py-1 focus:outline-none disabled:cursor-not-allowed" :disabled="isConfigFile"> Add column </vscode-button>
     </div>
     
-    <!-- Status message for fill operation -->
-    <div v-if="fillColumnsMessage && fillColumnsStatus !== 'loading'" class="mb-4">
-      <div v-if="fillColumnsStatus === 'success'" class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded text-sm">
-        {{ fillColumnsMessage }}
-      </div>
-      <div v-else-if="fillColumnsStatus === 'error'" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded text-sm">
+    <!-- Error message for fill operation -->
+    <div v-if="fillColumnsMessage && fillColumnsStatus === 'error'" class="mb-4">
+      <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded text-sm">
         {{ fillColumnsMessage }}
       </div>
     </div>
@@ -641,6 +636,7 @@ const deleteColumn = (index) => {
 };
 
 const fillColumnsFromDB = () => {
+  // Clear any existing error messages
   fillColumnsStatus.value = "loading";
   fillColumnsMessage.value = null;
   vscode.postMessage({
@@ -665,14 +661,11 @@ const handleMessage = (event) => {
       } else if (envelope.payload.status === "success") {
         fillColumnsStatus.value = "success";
         fillColumnsMessage.value = envelope.payload.message;
-        // Reset status after a delay
-        setTimeout(() => {
-          fillColumnsStatus.value = null;
-          fillColumnsMessage.value = null;
-        }, 3000);
+        // Don't auto-reset success status
       } else if (envelope.payload.status === "error") {
         fillColumnsStatus.value = "error";
         fillColumnsMessage.value = envelope.payload.message;
+        // Don't auto-reset error messages
       }
       break;
   }

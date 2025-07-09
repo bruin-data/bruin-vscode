@@ -431,6 +431,15 @@ export class BruinPanel {
             const assetPath = this._lastRenderedDocumentUri.fsPath;
             const assetWorkspaceDir = await bruinWorkspaceDirectory(assetPath);
             
+            if (!assetWorkspaceDir) {
+              console.error("Could not find Bruin workspace directory.");
+              BruinPanel.postMessage("fill-dependencies-message", {
+                status: "error",
+                message: "Could not find Bruin workspace directory. Make sure you're in a Bruin project.",
+              });
+              return;
+            }
+
             const fillDependencies = new BruinFill(
               getBruinExecutablePath(),
               assetWorkspaceDir
@@ -446,6 +455,15 @@ export class BruinPanel {
             }
             const assetPathFillColumn = this._lastRenderedDocumentUri.fsPath;
             const assetWorkspaceDirFillColumn = await bruinWorkspaceDirectory(assetPathFillColumn);
+
+            if (!assetWorkspaceDirFillColumn) {
+              console.error("Could not find Bruin workspace directory.");
+              BruinPanel.postMessage("fill-columns-message", {
+                status: "error",
+                message: "Could not find Bruin workspace directory. Make sure you're in a Bruin project.",
+              });
+              return;
+            }
 
             const fillColumns = new BruinFill(
               getBruinExecutablePath(),
