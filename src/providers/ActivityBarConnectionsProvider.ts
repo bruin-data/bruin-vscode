@@ -426,6 +426,17 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
       
       if (this.databaseCache.has(cacheKey)) {
         return this.databaseCache.get(cacheKey)!.map((schema) => {
+          // Handle placeholder items (no databases found)
+          if (schema.isPlaceholder) {
+            const schemaItem = new ConnectionItem(
+              "No databases found",
+              vscode.TreeItemCollapsibleState.None,
+              schema,
+              "schema"
+            );
+            return schemaItem;
+          }
+          
           const isFavorite = this.isSchemaFavorite(schema);
           const contextValue = isFavorite ? "schema_favorite" : "schema_unfavorite";
           const schemaItem = new ConnectionItem(
@@ -444,6 +455,17 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
         const schemas = this.parseDbSummary(summary, connectionName, environment);
         this.databaseCache.set(cacheKey, schemas);
         return schemas.map((schema) => {
+          // Handle placeholder items (no databases found)
+          if (schema.isPlaceholder) {
+            const schemaItem = new ConnectionItem(
+              "No databases found",
+              vscode.TreeItemCollapsibleState.None,
+              schema,
+              "schema"
+            );
+            return schemaItem;
+          }
+          
           const isFavorite = this.isSchemaFavorite(schema);
           const contextValue = isFavorite ? "schema_favorite" : "schema_unfavorite";
           const schemaItem = new ConnectionItem(
@@ -463,10 +485,17 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
 
     if (
       (element.contextValue === "schema_favorite" ||
-        element.contextValue === "schema_unfavorite") &&
+        element.contextValue === "schema_unfavorite" ||
+        element.contextValue === "schema") &&
       "tables" in element.itemData
     ) {
       const schema = element.itemData as Schema;
+      
+      // Handle placeholder schemas (no databases found)
+      if (schema.isPlaceholder) {
+        return []; // No children for placeholder schemas
+      }
+      
       const environment = schema.environment || 'default';
       
       try {
