@@ -34,6 +34,7 @@ interface Schema {
   connectionName: string;
   environment?: string;
   isFavorite?: boolean;
+  isPlaceholder?: boolean;
 }
 
 interface Table {
@@ -639,11 +640,42 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
   }
 
   private parseDbSummary(summary: any, connectionName: string, environment?: string): Schema[] {
-    const schemasArray = Array.isArray(summary) ? summary : summary?.databases;
+    // Handle null/undefined/empty responses gracefully
+    if (!summary) {
+      console.warn(`No database summary returned for connection '${connectionName}'${environment ? ` in environment '${environment}'` : ''}`);
+      return [];
+    }
+
+    // Extract the schemas array from various possible formats
+    let schemasArray;
+    
+    if (Array.isArray(summary)) {
+      // Format 1: Direct array
+      schemasArray = summary;
+    } else if (summary?.databases !== undefined) {
+      // Format 2: Object with databases property (could be null or array)
+      schemasArray = summary.databases;
+    } else {
+      schemasArray = null;
+    }
+
+    // Handle null databases (empty connection)
+    if (schemasArray === null) {
+      console.log(`Connection '${connectionName}' has no databases (count: ${summary?.count || 0})`);
+      // Return a special placeholder item to show in the UI
+      return [{
+        name: summary?.count === 0 ? "No databases available" : `No databases found (${summary?.count || 0})`,
+        tables: [],
+        connectionName: connectionName,
+        environment: environment,
+        isPlaceholder: true
+      }];
+    }
 
     if (!Array.isArray(schemasArray)) {
+      console.error("Received summary format:", JSON.stringify(summary, null, 2));
       throw new Error(
-        "Invalid summary format: not an array or object with a 'databases' property."
+        `Invalid summary format for connection '${connectionName}': expected array or object with 'databases' property, got ${typeof summary}`
       );
     }
     return schemasArray.map((item) => {
