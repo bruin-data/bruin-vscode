@@ -98,6 +98,16 @@ export class BruinPanel {
         }
       }),
 
+      // Watch for external changes to .bruin.yml files (e.g., from bruin init)
+      workspace.createFileSystemWatcher("**/.bruin.yml").onDidChange(async (uri) => {
+        console.log("External .bruin.yml file changed:", uri.fsPath);
+        getEnvListCommand(this._lastRenderedDocumentUri);
+        getConnections(this._lastRenderedDocumentUri);
+        
+        // Also refresh the activity bar connections
+        vscode.commands.executeCommand('bruin.refreshConnections');
+      }),
+
       window.onDidChangeActiveTextEditor(async (editor) => {
         console.log("onDidChangeActiveTextEditor", editor);
         if (editor && editor.document.uri) {
