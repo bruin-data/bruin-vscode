@@ -1794,13 +1794,11 @@ suite("BruinPanel Tests", () => {
     bruinValidateStub = sinon.stub(BruinValidate.prototype, "validate");
     parseAssetCommandStub = sinon.stub(BruinInternalParse.prototype, "parseAsset");
     patchAssetCommandStub = sinon.stub(BruinInternalPatch.prototype, "patchAsset");
-    getConnectionsStub = sinon.stub(BruinConnections.prototype, "getConnections");
+    getConnectionsStub = sinon.stub();
     getEnvListCommandStub = sinon.stub(BruinEnvList.prototype, "getEnvironmentsList");
-    getConnectionsListFromSchemaStub = sinon
-      .stub(BruinGetAllBruinConnections.prototype, "getConnectionsListFromSchema")
-      .resolves();
-    deleteConnectionStub = sinon.stub(BruinDeleteConnection.prototype, "deleteConnection");
-    createConnectionStub = sinon.stub(BruinCreateConnection.prototype, "createConnection");
+    getConnectionsListFromSchemaStub = sinon.stub();
+    deleteConnectionStub = sinon.stub();
+    createConnectionStub = sinon.stub();
     // Stub runInIntegratedTerminal
     runInTerminalStub = sinon.stub(bruinUtils, "runInIntegratedTerminal");
 
@@ -1812,6 +1810,13 @@ suite("BruinPanel Tests", () => {
         isWindows: true,
         gitAvailable: true,
       });
+
+    // Stub imported functions
+    const manageConnectionsModule = require("../extension/commands/manageConnections");
+    sinon.replace(manageConnectionsModule, "getConnections", getConnectionsStub);
+    sinon.replace(manageConnectionsModule, "getConnectionsListFromSchema", getConnectionsListFromSchemaStub);
+    sinon.replace(manageConnectionsModule, "deleteConnection", deleteConnectionStub);
+    sinon.replace(manageConnectionsModule, "createConnection", createConnectionStub);
   });
 
   teardown(() => {
@@ -2058,7 +2063,6 @@ suite("BruinPanel Tests", () => {
         getConnectionsStub.calledOnce,
         "Get connections list command should be called once"
       );
-      getConnectionsStub.restore();
     });
 
     test("handles bruin.getConnectionsSchema command", async () => {
@@ -2072,7 +2076,6 @@ suite("BruinPanel Tests", () => {
         getConnectionsListFromSchemaStub.calledOnce,
         "Get connections schema command should be called once"
       );
-      getConnectionsListFromSchemaStub.restore();
     });
 
     test("handles bruin.editConnection command", async () => {
@@ -2087,8 +2090,6 @@ suite("BruinPanel Tests", () => {
 
       assert.ok(deleteConnectionStub.calledOnce, "Delete connection should be called once");
       assert.ok(createConnectionStub.calledOnce, "Create connection should be called once");
-      deleteConnectionStub.restore();
-      createConnectionStub.restore();
     });
 
     test("handles bruin.deleteConnection command", async () => {
@@ -2103,7 +2104,6 @@ suite("BruinPanel Tests", () => {
       await messageHandler(message);
 
       assert.ok(deleteConnectionStub.calledOnce, "Delete connection should be called once");
-      deleteConnectionStub.restore();
     });
 
     test("handles bruin.createConnection command", async () => {
@@ -2117,7 +2117,6 @@ suite("BruinPanel Tests", () => {
       await messageHandler(message);
 
       assert.ok(createConnectionStub.calledOnce, "Create connection should be called once");
-      createConnectionStub.restore();
     });
 
   
@@ -5828,15 +5827,8 @@ suite(" Query export Tests", () => {
         
         await new Promise(resolve => setTimeout(resolve, 100));
 
-        // Get environment items (root level)
-        const environmentItems = await provider.getChildren();
-        assert.ok(environmentItems.length > 0, "Should have environment items");
-
-        const environmentItem = environmentItems[0];
-        assert.strictEqual(environmentItem.contextValue, 'environment', "Should have environment context");
-
-        // Get connection items under environment
-        const connectionItems = await provider.getChildren(environmentItem);
+        // Get connection items (root level)
+        const connectionItems = await provider.getChildren();
         assert.ok(connectionItems.length > 0, "Should have connection items");
 
         const connectionItem = connectionItems[0];
@@ -5935,10 +5927,8 @@ suite(" Query export Tests", () => {
         
         await new Promise(resolve => setTimeout(resolve, 100));
 
-        // Navigate to table items through environment structure
-        const environmentItems = await provider.getChildren();
-        const environmentItem = environmentItems[0];
-        const connectionItems = await provider.getChildren(environmentItem);
+        // Navigate to table items through connection structure
+        const connectionItems = await provider.getChildren();
         const connectionItem = connectionItems[0];
         const schemaItems = await provider.getChildren(connectionItem);
         const schemaItem = schemaItems[0];
@@ -6017,9 +6007,7 @@ suite(" Query export Tests", () => {
         await new Promise(resolve => setTimeout(resolve, 100));
 
         // Navigate to schema
-        const environmentItems = await provider.getChildren();
-        const environmentItem = environmentItems[0];
-        const connectionItems = await provider.getChildren(environmentItem);
+        const connectionItems = await provider.getChildren();
         const connectionItem = connectionItems[0];
         const schemaItems = await provider.getChildren(connectionItem);
         const schemaItem = schemaItems[0];
