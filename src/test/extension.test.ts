@@ -6067,9 +6067,7 @@ suite(" Query export Tests", () => {
         await new Promise(resolve => setTimeout(resolve, 100));
 
         // Navigate to table
-        const environmentItems = await provider.getChildren();
-        const environmentItem = environmentItems[0];
-        const connectionItems = await provider.getChildren(environmentItem);
+        const connectionItems = await provider.getChildren();
         const connectionItem = connectionItems[0];
         const schemaItems = await provider.getChildren(connectionItem);
         const schemaItem = schemaItems[0];
