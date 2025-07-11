@@ -49,22 +49,11 @@ export class QuerySelectionCodeLensProvider implements vscode.CodeLensProvider {
       return codeLenses;
     }
 
-    // Check if selected text looks like SQL
-    const sqlKeywords = [
-      "SELECT", "INSERT", "UPDATE", "DELETE", "WITH", "CREATE", "DROP", 
-      "ALTER", "TRUNCATE", "MERGE", "UPSERT", "REPLACE", "CALL", "EXEC"
-    ];
-    
-    const firstWord = selectedText.split(/\s+/)[0]?.toUpperCase();
-    if (!sqlKeywords.includes(firstWord || '')) {
-      return codeLenses;
-    }
-
     // Create CodeLens at the start of the selection
     const codeLensRange = new vscode.Range(selection.start, selection.start);
     
     const previewCodeLens = new vscode.CodeLens(codeLensRange, {
-      title: "Preview",
+      title: "Preview selected query",
       command: "bruin.previewSelectedQuery",
       arguments: []
     });
