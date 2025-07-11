@@ -263,6 +263,13 @@
           "group": "navigation"
         }
       ],
+      "editor/context": [
+        {
+          "command": "bruin.previewSelectedQuery",
+          "when": "editorHasSelection",
+          "group": "1_modification"
+        }
+      ],
       "view/title": [
         {
           "command": "bruin.refreshConnections",
@@ -431,6 +438,21 @@
         "category": "Bruin",
         "icon": "$(star-full)",
         "description": "Remove table from favorites list."
+      },
+      {
+        "command": "bruin.previewSelectedQuery",
+        "title": "Preview Selected Query",
+        "category": "Bruin",
+        "icon": "$(play)",
+        "description": "Preview the selected SQL query in the Query Preview panel."
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "bruin.previewSelectedQuery",
+        "key": "ctrl+shift+r",
+        "mac": "cmd+shift+r",
+        "when": "editorTextFocus && editorHasSelection && resourceExtname == .sql"
       }
     ]
   },

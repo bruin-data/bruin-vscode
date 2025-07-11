@@ -23,6 +23,7 @@ import { QueryPreviewPanel } from "../panels/QueryPreviewPanel";
 import { BruinPanel } from "../panels/BruinPanel";
 import { QueryCodeLensProvider } from "../providers/queryCodeLensProvider";
 import { ScheduleCodeLensProvider } from "../providers/scheduleCodeLensProvider";
+import { QueryQuickActionProvider } from "../providers/queryQuickActionProvider";
 import { getQueryOutput } from "./commands/queryCommands";
 import { ActivityBarConnectionsProvider } from "../providers/ActivityBarConnectionsProvider";
 import { FavoritesProvider } from "../providers/FavoritesProvider";
@@ -191,6 +192,36 @@ export async function activate(context: ExtensionContext) {
     new ScheduleCodeLensProvider()
   );
   context.subscriptions.push(scheduleCodeLensProvider);
+
+  // Register the query quick action provider for SQL files
+  const queryQuickActionProvider = languages.registerCodeActionsProvider(
+    { language: "sql" },
+    new QueryQuickActionProvider(),
+    {
+      providedCodeActionKinds: QueryQuickActionProvider.providedCodeActionKinds,
+    }
+  );
+  context.subscriptions.push(queryQuickActionProvider);
+
+  // Register for BigQuery SQL
+  const queryQuickActionProviderBigQuery = languages.registerCodeActionsProvider(
+    { language: "sql-bigquery" },
+    new QueryQuickActionProvider(),
+    {
+      providedCodeActionKinds: QueryQuickActionProvider.providedCodeActionKinds,
+    }
+  );
+  context.subscriptions.push(queryQuickActionProviderBigQuery);
+
+  // Register for Snowflake SQL
+  const queryQuickActionProviderSnowflake = languages.registerCodeActionsProvider(
+    { language: "snowflake-sql" },
+    new QueryQuickActionProvider(),
+    {
+      providedCodeActionKinds: QueryQuickActionProvider.providedCodeActionKinds,
+    }
+  );
+  context.subscriptions.push(queryQuickActionProviderSnowflake);
 
   subscribeToConfigurationChanges();
 
@@ -388,6 +419,59 @@ export async function activate(context: ExtensionContext) {
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         vscode.window.showErrorMessage(`Error running query: ${errorMessage}`);
+      }
+    }),
+    commands.registerCommand("bruin.previewSelectedQuery", async () => {
+      try {
+        trackEvent("Command Executed", { command: "previewSelectedQuery" });
+        const editor = window.activeTextEditor;
+        
+        if (!editor) {
+          vscode.window.showWarningMessage("No active editor found");
+          return;
+        }
+
+        const selection = editor.selection;
+        if (selection.isEmpty) {
+          vscode.window.showWarningMessage("Please select a query to preview");
+          return;
+        }
+
+        const selectedText = editor.document.getText(selection).trim();
+        if (!selectedText) {
+          vscode.window.showWarningMessage("Selected text is empty");
+          return;
+        }
+
+        // Check if selected text looks like SQL
+        const sqlKeywords = ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'WITH', 'CREATE'];
+        const firstWord = selectedText.split(/\s+/)[0]?.toUpperCase();
+        if (!sqlKeywords.includes(firstWord || '')) {
+          vscode.window.showWarningMessage("Selected text doesn't appear to be a SQL query");
+          return;
+        }
+
+        // Use the same logic as bruin.runQuery but with the selected text
+        QueryPreviewPanel.setLastExecutedQuery(selectedText);
+        const activeTabId = QueryPreviewPanel.getActiveTabId();
+
+        QueryPreviewPanel.postMessage("query-output-message", {
+          status: "loading",
+          message: true,
+          tabId: activeTabId,
+        });
+        await QueryPreviewPanel.focusSafely();
+        
+        QueryPreviewPanel.postMessage("bruin.executePreviewQuery", { 
+          status: "success",
+          message: "",
+          tabId: activeTabId
+        });
+        
+        vscode.window.showInformationMessage("Previewing selected query...");
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error previewing selected query: ${errorMessage}`);
       }
     }),
     commands.registerCommand("bruin.renderSQL", async () => {
