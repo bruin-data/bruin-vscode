@@ -1,4 +1,7 @@
 # Changelog
+## [0.58.3] - [2025-07-11]
+- Improved detect asset logic.
+
 ## [0.58.2] - [2025-07-11]
 - Improved the Activity Bar and Side Panel rendering.
 
