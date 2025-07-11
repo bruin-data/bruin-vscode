@@ -1,4 +1,7 @@
 # Changelog
+## [0.58.4] - [2025-07-11]
+- Improved query detection and added CodeLens-based preview for selected queries.
+
 ## [0.58.3] - [2025-07-11]
 - Improved detect asset logic.
 
