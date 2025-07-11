@@ -1,4 +1,7 @@
 # Changelog
+## [0.58.2] - [2025-07-11]
+- Improved the Activity Bar and Side Panel rendering.
+
 ## [0.58.1] - [2025-07-09]
 - Changed "Fill from DB" to run in the background instead of the terminal.
 
