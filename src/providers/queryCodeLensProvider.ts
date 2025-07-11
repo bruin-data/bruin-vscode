@@ -44,8 +44,9 @@ export class QueryCodeLensProvider implements vscode.CodeLensProvider {
         continue;
       }
 
-      // Only show preview for SQL statements (SELECT, INSERT, UPDATE, DELETE, WITH, etc.)
-      if (!this.isSqlStatement(statement.text)) {
+      // Skip comments
+      const trimmed = statement.text.trim();
+      if (trimmed.startsWith('--') || trimmed.startsWith('/*')) {
         continue;
       }
 
@@ -164,21 +165,6 @@ export class QueryCodeLensProvider implements vscode.CodeLensProvider {
     }
 
     return statements;
-  }
-
-
-  private isSqlStatement(text: string): boolean {
-    // Remove comments and trim
-    const cleanText = text.replace(/--.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '').trim();
-    
-    // Check if it starts with common SQL keywords
-    const sqlKeywords = [
-      'SELECT', 'INSERT', 'UPDATE', 'DELETE', 'WITH', 'CREATE', 'DROP', 
-      'ALTER', 'TRUNCATE', 'MERGE', 'UPSERT', 'REPLACE', 'CALL', 'EXEC'
-    ];
-    
-    const firstWord = cleanText.split(/\s+/)[0]?.toUpperCase();
-    return sqlKeywords.includes(firstWord || '');
   }
 
   private isInsideBruinBlock(position: vscode.Position, bruinBlocks: vscode.Range[]): boolean {

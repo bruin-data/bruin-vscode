@@ -411,9 +411,7 @@ export async function activate(context: ExtensionContext) {
     }),
     commands.registerCommand("bruin.previewSelectedQuery", async () => {
       try {
-        trackEvent("Command Executed", { command: "previewSelectedQuery" });
         const editor = window.activeTextEditor;
-        
         if (!editor) {
           vscode.window.showWarningMessage("No active editor found");
           return;
@@ -431,15 +429,7 @@ export async function activate(context: ExtensionContext) {
           return;
         }
 
-        // Check if selected text looks like SQL
-        const sqlKeywords = ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'WITH', 'CREATE'];
-        const firstWord = selectedText.split(/\s+/)[0]?.toUpperCase();
-        if (!sqlKeywords.includes(firstWord || '')) {
-          vscode.window.showWarningMessage("Selected text doesn't appear to be a SQL query");
-          return;
-        }
-
-        // Use the same logic as bruin.runQuery but with the selected text
+        // Just run the selected text as a query
         QueryPreviewPanel.setLastExecutedQuery(selectedText);
         const activeTabId = QueryPreviewPanel.getActiveTabId();
 
@@ -449,15 +439,16 @@ export async function activate(context: ExtensionContext) {
           tabId: activeTabId,
         });
         await QueryPreviewPanel.focusSafely();
-        
+
         QueryPreviewPanel.postMessage("bruin.executePreviewQuery", { 
           status: "success",
           message: "",
           tabId: activeTabId
         });
-        
+
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error previewing query: ${errorMessage}`);
       }
     }),
     commands.registerCommand("bruin.renderSQL", async () => {
