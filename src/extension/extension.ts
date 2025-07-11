@@ -23,12 +23,9 @@ import { QueryPreviewPanel } from "../panels/QueryPreviewPanel";
 import { BruinPanel } from "../panels/BruinPanel";
 import { QueryCodeLensProvider } from "../providers/queryCodeLensProvider";
 import { ScheduleCodeLensProvider } from "../providers/scheduleCodeLensProvider";
-import { QueryQuickActionProvider } from "../providers/queryQuickActionProvider";
-import { getQueryOutput } from "./commands/queryCommands";
+import { QuerySelectionCodeLensProvider } from "../providers/querySelectionCodeLensProvider";
 import { ActivityBarConnectionsProvider } from "../providers/ActivityBarConnectionsProvider";
 import { FavoritesProvider } from "../providers/FavoritesProvider";
-import { isBruinAsset, isBruinPipeline } from "../utilities/helperUtils";
-import { getBruinExecutablePath } from "../providers/BruinExecutableService";
 import { TableDetailsPanel } from "../panels/TableDetailsPanel";
 
 let analyticsClient: any = null;
@@ -193,35 +190,26 @@ export async function activate(context: ExtensionContext) {
   );
   context.subscriptions.push(scheduleCodeLensProvider);
 
-  // Register the query quick action provider for SQL files
-  const queryQuickActionProvider = languages.registerCodeActionsProvider(
+  // Register the query selection CodeLens provider for SQL files
+  const querySelectionCodeLensProvider = languages.registerCodeLensProvider(
     { language: "sql" },
-    new QueryQuickActionProvider(),
-    {
-      providedCodeActionKinds: QueryQuickActionProvider.providedCodeActionKinds,
-    }
+    new QuerySelectionCodeLensProvider()
   );
-  context.subscriptions.push(queryQuickActionProvider);
+  context.subscriptions.push(querySelectionCodeLensProvider);
 
   // Register for BigQuery SQL
-  const queryQuickActionProviderBigQuery = languages.registerCodeActionsProvider(
+  const querySelectionCodeLensProviderBigQuery = languages.registerCodeLensProvider(
     { language: "sql-bigquery" },
-    new QueryQuickActionProvider(),
-    {
-      providedCodeActionKinds: QueryQuickActionProvider.providedCodeActionKinds,
-    }
+    new QuerySelectionCodeLensProvider()
   );
-  context.subscriptions.push(queryQuickActionProviderBigQuery);
+  context.subscriptions.push(querySelectionCodeLensProviderBigQuery);
 
   // Register for Snowflake SQL
-  const queryQuickActionProviderSnowflake = languages.registerCodeActionsProvider(
+  const querySelectionCodeLensProviderSnowflake = languages.registerCodeLensProvider(
     { language: "snowflake-sql" },
-    new QueryQuickActionProvider(),
-    {
-      providedCodeActionKinds: QueryQuickActionProvider.providedCodeActionKinds,
-    }
+    new QuerySelectionCodeLensProvider()
   );
-  context.subscriptions.push(queryQuickActionProviderSnowflake);
+  context.subscriptions.push(querySelectionCodeLensProviderSnowflake);
 
   subscribeToConfigurationChanges();
 
