@@ -20,6 +20,8 @@ export const useConnectionsStore = defineStore("connections", {
         }
         return conn;
       });
+      // Clear any previous errors when valid connections data arrives
+      this.error = null;
     },
     addDuplicatedConnection(connection) {
       const duplicatedConnection = { ...connection, id: uuidv4(), name: `${connection.name} (Copy)` };
