@@ -34,7 +34,9 @@ import {
 import { createEnvironment } from "../extension/commands/manageEnvironments";
 import { openGlossary } from "../bruin/bruinGlossaryUtility";
 import { QueryPreviewPanel } from "./QueryPreviewPanel";
-import { getBruinExecutablePath } from "../providers/BruinExecutableService";
+import { 
+  getBruinExecutablePath
+} from "../providers/BruinExecutableService";
 import path = require("path");
 import { isBruinAsset } from "../utilities/helperUtils";
 
@@ -96,6 +98,16 @@ export class BruinPanel {
         }
       }),
 
+      // Watch for external changes to .bruin.yml files (e.g., from bruin init)
+      workspace.createFileSystemWatcher("**/.bruin.yml").onDidChange(async (uri) => {
+        console.log("External .bruin.yml file changed:", uri.fsPath);
+        getEnvListCommand(this._lastRenderedDocumentUri);
+        getConnections(this._lastRenderedDocumentUri);
+        
+        // Also refresh the activity bar connections
+        vscode.commands.executeCommand('bruin.refreshConnections');
+      }),
+
       window.onDidChangeActiveTextEditor(async (editor) => {
         console.log("onDidChangeActiveTextEditor", editor);
         if (editor && editor.document.uri) {
@@ -126,10 +138,57 @@ export class BruinPanel {
     if (window.activeTextEditor) {
       this._lastRenderedDocumentUri = window.activeTextEditor.document.uri;
     }
-    this._panel.webview.html = this._getWebviewContent(this._panel.webview, extensionUri);
+    
+    // Set up webview content asynchronously
+    this._initializeWebview(extensionUri);
+  }
+
+  /**
+   * Initialize webview content asynchronously
+   */
+  private async _initializeWebview(extensionUri: Uri): Promise<void> {
+    // Set up webview first with default status (fast)
+    this._panel.webview.html = this._getWebviewContent(this._panel.webview, extensionUri, false);
     this._lastRenderedDocumentUri = window.activeTextEditor?.document.uri;
     this._setWebviewMessageListener(this._panel.webview);
+    
+    // Then check CLI status and update
+    setTimeout(async () => {
+      const initialCliStatus = await this._getInitialCliStatus();
+      
+      // Send the actual CLI status
+      this._panel.webview.postMessage({
+        command: "bruinCliInstallationStatus",
+        installed: initialCliStatus,
+        isWindows: process.platform === "win32",
+        gitAvailable: false,
+      });
+      
+      // Load data if CLI is installed
+      if (initialCliStatus && this._lastRenderedDocumentUri) {
+        parseAssetCommand(this._lastRenderedDocumentUri);
+        getEnvListCommand(this._lastRenderedDocumentUri);
+      }
+      
+      // Do full check to confirm
+      this.checkAndUpdateBruinCliStatus();
+    }, 50);
   }
+
+  /**
+   * Get initial CLI status - use existing check function
+   */
+  private async _getInitialCliStatus(): Promise<boolean> {
+    try {
+      const bruinInstaller = new BruinInstallCLI();
+      const { installed } = await bruinInstaller.checkBruinCliInstallation();
+      return installed;
+    } catch {
+      return false;
+    }
+  }
+
+
   public static restore(panel: WebviewPanel, extensionUri: Uri): BruinPanel {
     const bruinPanel = new BruinPanel(panel, extensionUri);
 
@@ -137,6 +196,8 @@ export class BruinPanel {
       command: 'setDefaultCheckboxStates',
       payload: bruinPanel._checkboxState
   });
+  
+  // Initial CLI status already sent in constructor
     return bruinPanel;
   }
 
@@ -227,7 +288,7 @@ export class BruinPanel {
     ".bruin.yaml",
   ];
 
-  private _getWebviewContent(webview: Webview, extensionUri: Uri) {
+  private _getWebviewContent(webview: Webview, extensionUri: Uri, initialCliStatus: boolean = false): string {
     const stylesUri = getUri(webview, extensionUri, ["webview-ui", "build", "assets", "index.css"]);
     const scriptUri = getUri(webview, extensionUri, ["webview-ui", "build", "assets", "index.js"]);
     const codiconsUri = webview.asWebviewUri(
@@ -264,6 +325,10 @@ export class BruinPanel {
           <link rel="stylesheet" href="${stylesUriCustomElt}">
           <link rel="stylesheet" href="${codiconsUri}">
           <title>Bruin Panel</title>
+          <script nonce="${nonce}">
+            // Set initial CLI status before Vue app loads
+            window.initialBruinCliStatus = ${initialCliStatus};
+          </script>
         </head>
         <body>
           <div id="app"></div>
@@ -754,6 +819,8 @@ export class BruinPanel {
           versionStatus,
         });
       });
+      
+      // Recheck after installation
       await this.checkAndUpdateBruinCliStatus();
     } catch (error) {
       console.error("Error installing/updating Bruin CLI:", error);
@@ -770,6 +837,9 @@ export class BruinPanel {
           versionStatus,
         });
       });
+      
+      // Recheck after update
+      await this.checkAndUpdateBruinCliStatus();
     } catch (error) {
       console.error("Error updating Bruin CLI:", error);
       vscode.window.showErrorMessage("Failed to update Bruin CLI. Please try again.");

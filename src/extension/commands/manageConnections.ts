@@ -1,4 +1,5 @@
 import { Uri } from "vscode";
+import * as vscode from "vscode";
 import { bruinWorkspaceDirectory } from "../../bruin";
 import {
   BruinConnections,
@@ -9,20 +10,51 @@ import {
 } from "../../bruin/bruinConnections";
 import { getBruinExecutablePath } from "../../providers/BruinExecutableService";
 
+/**
+ * Get working directory for Bruin commands with fallback to workspace root
+ */
+async function getWorkingDirectory(lastRenderedDocumentUri: Uri | undefined): Promise<string> {
+  try {
+    if (lastRenderedDocumentUri) {
+      const workspaceDir = await bruinWorkspaceDirectory(lastRenderedDocumentUri.fsPath);
+      if (workspaceDir) {
+        return workspaceDir;
+      }
+    }
+    
+    // Fallback to the first workspace folder
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+    if (workspaceFolder) {
+      return workspaceFolder.uri.fsPath;
+    }
+    
+    throw new Error("No workspace found");
+  } catch (error) {
+    console.error("Error getting working directory:", error);
+    throw new Error(`Failed to determine working directory: ${error}`);
+  }
+}
+
 export const getConnections = async (lastRenderedDocumentUri: Uri | undefined) => {
-  const bruinConnections = new BruinConnections(
-    getBruinExecutablePath(),
-    (await bruinWorkspaceDirectory(lastRenderedDocumentUri!.fsPath)!!) as string
-  );
-  await bruinConnections.getConnections();
+  try {
+    const workingDirectory = await getWorkingDirectory(lastRenderedDocumentUri);
+    const bruinConnections = new BruinConnections(getBruinExecutablePath(), workingDirectory);
+    await bruinConnections.getConnections();
+  } catch (error) {
+    console.error("Error getting connections:", error);
+    throw error;
+  }
 };
 
 export const getConnectionsListFromSchema = async (lastRenderedDocumentUri: Uri | undefined) => {
-  const bruinConnections = new BruinGetAllBruinConnections(
-    getBruinExecutablePath(),
-    (await bruinWorkspaceDirectory(lastRenderedDocumentUri!.fsPath)!!) as string
-  );
-  await bruinConnections.getConnectionsListFromSchema();
+  try {
+    const workingDirectory = await getWorkingDirectory(lastRenderedDocumentUri);
+    const bruinConnections = new BruinGetAllBruinConnections(getBruinExecutablePath(), workingDirectory);
+    await bruinConnections.getConnectionsListFromSchema();
+  } catch (error) {
+    console.error("Error getting connections list from schema:", error);
+    throw error;
+  }
 };
 
 export const deleteConnection = async (
@@ -30,12 +62,15 @@ export const deleteConnection = async (
   connectionName: string,
   lastRenderedDocumentUri: Uri | undefined
 ) => {
-  console.log("Deleting connection:", { env, connectionName });
-  const bruinConnections = new BruinDeleteConnection(
-    getBruinExecutablePath(),
-    (await bruinWorkspaceDirectory(lastRenderedDocumentUri!.fsPath)!!) as string
-  );
-  await bruinConnections.deleteConnection(env, connectionName);
+  try {
+    console.log("Deleting connection:", { env, connectionName });
+    const workingDirectory = await getWorkingDirectory(lastRenderedDocumentUri);
+    const bruinConnections = new BruinDeleteConnection(getBruinExecutablePath(), workingDirectory);
+    await bruinConnections.deleteConnection(env, connectionName);
+  } catch (error) {
+    console.error("Error deleting connection:", error);
+    throw error;
+  }
 };
 
 export const createConnection = async (
@@ -45,26 +80,31 @@ export const createConnection = async (
   credentials: any,
   lastRenderedDocumentUri: Uri | undefined
 ) => {
-  console.log("Creating connection");
-  const bruinConnections = new BruinCreateConnection(
-    getBruinExecutablePath(),
-    (await bruinWorkspaceDirectory(lastRenderedDocumentUri!.fsPath)!!) as string
-  );
-  await bruinConnections.createConnection(env, connectionName, connectionType, credentials);
+  try {
+    console.log("Creating connection");
+    const workingDirectory = await getWorkingDirectory(lastRenderedDocumentUri);
+    const bruinConnections = new BruinCreateConnection(getBruinExecutablePath(), workingDirectory);
+    await bruinConnections.createConnection(env, connectionName, connectionType, credentials);
+  } catch (error) {
+    console.error("Error creating connection:", error);
+    throw error;
+  }
 };
 
-
- export const testConnection = async ( 
+export const testConnection = async ( 
   env: string,
   connectionName: string,
   connectionType: string,
   lastRenderedDocumentUri: Uri | undefined
 ) => {
-  console.log("Testing connection");
-  const bruinConnection = new BruinTestConnection(
-    getBruinExecutablePath(),
-    (await bruinWorkspaceDirectory(lastRenderedDocumentUri!.fsPath)!!) as string
-  );
-  await bruinConnection.testConnection(env, connectionName, connectionType);
+  try {
+    console.log("Testing connection");
+    const workingDirectory = await getWorkingDirectory(lastRenderedDocumentUri);
+    const bruinConnection = new BruinTestConnection(getBruinExecutablePath(), workingDirectory);
+    await bruinConnection.testConnection(env, connectionName, connectionType);
+  } catch (error) {
+    console.error("Error testing connection:", error);
+    throw error;
+  }
 };
 

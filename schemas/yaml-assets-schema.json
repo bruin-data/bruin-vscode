@@ -411,33 +411,60 @@
       ]
     },
     "columnCheckValue": {
-      "type": "object",
-      "properties": {
-        "IntArray": {
-          "type": "array",
-          "items": {
-            "type": "integer"
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "IntArray": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              }
+            },
+            "Int": {
+              "type": "integer"
+            },
+            "Float": {
+              "type": "number"
+            },
+            "StringArray": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "String": {
+              "type": "string"
+            },
+            "Bool": {
+              "type": "boolean"
+            }
           }
         },
-        "Int": {
-          "type": "integer"
-        },
-        "Float": {
-          "type": "number"
-        },
-        "StringArray": {
+        {
           "type": "array",
           "items": {
-            "type": "string"
+            "oneOf": [
+              { "type": "string" },
+              { "type": "integer" },
+              { "type": "number" },
+              { "type": "boolean" }
+            ]
           }
         },
-        "String": {
+        {
           "type": "string"
         },
-        "Bool": {
+        {
+          "type": "integer"
+        },
+        {
+          "type": "number"
+        },
+        {
           "type": "boolean"
         }
-      }
+      ]
     },
     "customCheck": {
       "type": "object",

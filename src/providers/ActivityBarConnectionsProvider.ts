@@ -1,6 +1,4 @@
 import * as vscode from "vscode";
-import * as fs from "fs";
-import * as path from "path";
 import { BruinDBTCommand } from "../bruin/bruinDBTCommand";
 import { BruinConnections } from "../bruin/bruinConnections";
 import { Connection } from "../utilities/helperUtils";
@@ -36,6 +34,7 @@ interface Schema {
   connectionName: string;
   environment?: string;
   isFavorite?: boolean;
+  isPlaceholder?: boolean;
 }
 
 interface Table {
@@ -111,6 +110,8 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
   private columnsCache = new Map<string, Column[]>(); // Cache for columns
   private favorites = new Set<string>(); // Store favorite schema keys as "connectionName.environment.schemaName"
   private tableFavorites = new Set<string>(); // Store favorite table keys as "connectionName.environment.schemaName.tableName"
+  private connectionsLoaded = false; // Track if connections have been loaded
+  private connectionLoadError: string | null = null; // Track connection loading errors
 
   // Allowed connection types
   private readonly allowedConnectionTypes = [
@@ -133,7 +134,6 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
     this.bruinConnections = new BruinConnections("bruin", workspaceFolder);
     this.loadFavoritesFromSettings();
     this.loadTableFavoritesFromSettings();
-    this.loadConnections();
   }
 
   // Load favorites from VS Code settings
@@ -197,6 +197,8 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
     this.columnsCache.clear();
     this.loadFavoritesFromSettings();
     this.loadTableFavoritesFromSettings();
+    this.connectionsLoaded = false;
+    this.connectionLoadError = null;
     this.loadConnections();
   }
 
@@ -305,11 +307,18 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
 
       if (connections && connections.length > 0) {
         this.setConnections(connections);
+      } else {
+        this.connections = [];
       }
 
+      this.connectionsLoaded = true;
+      this.connectionLoadError = null;
       this._onDidChangeTreeData.fire();
     } catch (error) {
       console.error("ActivityBarConnectionsProvider: Error loading connections:", error);
+      this.connectionsLoaded = true;
+      this.connectionLoadError = error instanceof Error ? error.message : String(error);
+      this.connections = [];
       this._onDidChangeTreeData.fire();
     }
   }
@@ -360,25 +369,38 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
   }
 
   async getChildren(element?: ConnectionItem): Promise<ConnectionItem[]> {
-    if (!element) {
-      // Root level - return environments
-      const environments = this.getEnvironments();
-      return environments.map((env) => {
-        const item = new ConnectionItem(
-          env.name,
-          vscode.TreeItemCollapsibleState.Collapsed,
-          env,
-          "environment"
-        );
-        item.tooltip = `Environment: ${env.name} (${env.connections.length} connections)`;
-        return item;
-      });
-    }
-
-    if (element.contextValue === "environment" && "connections" in element.itemData) {
-      // Environment level - return connections for this environment
-      const environment = element.itemData as EnvironmentData;
-      return environment.connections
+    if (!element) { 
+      // Root level - lazy load connections first if not already loaded
+      if (!this.connectionsLoaded) {
+        await this.loadConnections();
+      }
+      
+      // If there was an error loading connections, show error message
+      if (this.connectionLoadError) {
+        return [
+          new ConnectionItem(
+            "Error loading connections",
+            vscode.TreeItemCollapsibleState.None,
+            {} as any,
+            "connections"
+          )
+        ];
+      }
+      
+      // If no connections found, show simple message
+      if (this.connections.length === 0) {
+        return [
+          new ConnectionItem(
+            "No database connections found",
+            vscode.TreeItemCollapsibleState.None,
+            {} as any,
+            "connections"
+          )
+        ];
+      }
+      
+      // Root level - return connections directly with environment info
+      return this.connections
         .filter((connection) => this.allowedConnectionTypes.includes(connection.type.toLowerCase()))
         .map((connection) => {
           const item = new ConnectionItem(
@@ -388,9 +410,11 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
             "bruin_connection"
           );
           item.tooltip = `${connection.type}`;
+          item.description = connection.environment || 'default';
           return item;
         });
     }
+
 
     if (element.contextValue === "bruin_connection" && "name" in element.itemData) {
       const connection = element.itemData as ConnectionDisplayData;
@@ -402,6 +426,17 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
       
       if (this.databaseCache.has(cacheKey)) {
         return this.databaseCache.get(cacheKey)!.map((schema) => {
+          // Handle placeholder items (no databases found)
+          if (schema.isPlaceholder) {
+            const schemaItem = new ConnectionItem(
+              "No databases found",
+              vscode.TreeItemCollapsibleState.None,
+              schema,
+              "schema"
+            );
+            return schemaItem;
+          }
+          
           const isFavorite = this.isSchemaFavorite(schema);
           const contextValue = isFavorite ? "schema_favorite" : "schema_unfavorite";
           const schemaItem = new ConnectionItem(
@@ -420,6 +455,17 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
         const schemas = this.parseDbSummary(summary, connectionName, environment);
         this.databaseCache.set(cacheKey, schemas);
         return schemas.map((schema) => {
+          // Handle placeholder items (no databases found)
+          if (schema.isPlaceholder) {
+            const schemaItem = new ConnectionItem(
+              "No databases found",
+              vscode.TreeItemCollapsibleState.None,
+              schema,
+              "schema"
+            );
+            return schemaItem;
+          }
+          
           const isFavorite = this.isSchemaFavorite(schema);
           const contextValue = isFavorite ? "schema_favorite" : "schema_unfavorite";
           const schemaItem = new ConnectionItem(
@@ -439,10 +485,17 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
 
     if (
       (element.contextValue === "schema_favorite" ||
-        element.contextValue === "schema_unfavorite") &&
+        element.contextValue === "schema_unfavorite" ||
+        element.contextValue === "schema") &&
       "tables" in element.itemData
     ) {
       const schema = element.itemData as Schema;
+      
+      // Handle placeholder schemas (no databases found)
+      if (schema.isPlaceholder) {
+        return []; // No children for placeholder schemas
+      }
+      
       const environment = schema.environment || 'default';
       
       try {
@@ -616,11 +669,42 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
   }
 
   private parseDbSummary(summary: any, connectionName: string, environment?: string): Schema[] {
-    const schemasArray = Array.isArray(summary) ? summary : summary?.databases;
+    // Handle null/undefined/empty responses gracefully
+    if (!summary) {
+      console.warn(`No database summary returned for connection '${connectionName}'${environment ? ` in environment '${environment}'` : ''}`);
+      return [];
+    }
+
+    // Extract the schemas array from various possible formats
+    let schemasArray;
+    
+    if (Array.isArray(summary)) {
+      // Format 1: Direct array
+      schemasArray = summary;
+    } else if (summary?.databases !== undefined) {
+      // Format 2: Object with databases property (could be null or array)
+      schemasArray = summary.databases;
+    } else {
+      schemasArray = null;
+    }
+
+    // Handle null databases (empty connection)
+    if (schemasArray === null) {
+      console.log(`Connection '${connectionName}' has no databases (count: ${summary?.count || 0})`);
+      // Return a special placeholder item to show in the UI
+      return [{
+        name: summary?.count === 0 ? "No databases available" : `No databases found (${summary?.count || 0})`,
+        tables: [],
+        connectionName: connectionName,
+        environment: environment,
+        isPlaceholder: true
+      }];
+    }
 
     if (!Array.isArray(schemasArray)) {
+      console.error("Received summary format:", JSON.stringify(summary, null, 2));
       throw new Error(
-        "Invalid summary format: not an array or object with a 'databases' property."
+        `Invalid summary format for connection '${connectionName}': expected array or object with 'databases' property, got ${typeof summary}`
       );
     }
     return schemasArray.map((item) => {
