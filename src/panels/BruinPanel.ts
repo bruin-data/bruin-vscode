@@ -39,6 +39,7 @@ import {
 } from "../providers/BruinExecutableService";
 import path = require("path");
 import { isBruinAsset } from "../utilities/helperUtils";
+import { BruinInternalParse } from "../bruin/bruinInternalParse";
 
 import { getDefaultCheckboxSettings, getDefaultExcludeTag } from "../extension/configuration";
 import { exec } from "child_process";
@@ -251,6 +252,12 @@ export class BruinPanel {
    */
   public dispose() {
     BruinPanel.currentPanel = undefined;
+
+    // Clear any pending asset detection timer
+    if (this._assetDetectionDebounceTimer) {
+      clearTimeout(this._assetDetectionDebounceTimer);
+      this._assetDetectionDebounceTimer = undefined;
+    }
 
     // Dispose of the current webview panel
     this._panel.dispose();
@@ -852,7 +859,21 @@ export class BruinPanel {
 
     const filePath = fileUri.fsPath;
 
+    // Clear any existing timer to prevent overlapping calls
+    if (this._assetDetectionDebounceTimer) {
+      clearTimeout(this._assetDetectionDebounceTimer);
+    }
+
+    // Debounce asset detection to prevent race conditions
+    this._assetDetectionDebounceTimer = setTimeout(async () => {
+      await this._performAssetDetection(filePath, fileUri);
+    }, 150);
+  }
+
+  private async _performAssetDetection(filePath: string, fileUri: Uri): Promise<void> {
     try {
+      console.log("_performAssetDetection: Starting detection for", filePath);
+      
       // Check for config files first (highest priority)
       const isConfigFile =
         filePath.endsWith("pipeline.yml") ||
@@ -861,24 +882,26 @@ export class BruinPanel {
         filePath.endsWith(".bruin.yaml");
 
       if (isConfigFile) {
-        console.log("IsAssetDetection : File is a config file", filePath);
+        console.log("_performAssetDetection: File is a config file", filePath);
         this._panel.webview.postMessage({
           command: "clear-convert-message",
           isAsset: false,
           isConfig: true,
+          filePath: filePath
         });
         parseAssetCommand(fileUri);
         return;
       }
 
       const isAsset = await this._isAssetFile(filePath);
-      console.log("IsAssetDetection : File is an asset", filePath, isAsset);
+      console.log("_performAssetDetection: CLI determined file is an asset:", filePath, isAsset);
       if (isAsset) {
         this._panel.webview.postMessage({
           command: "clear-convert-message",
           isAsset: true,
+          filePath: filePath
         });
-        console.log("IsAssetDetection : Sending clear message to the UI for asset:", filePath);
+        console.log("_performAssetDetection: Sending clear message to the UI for asset:", filePath);
         parseAssetCommand(fileUri);
         return;
       }
@@ -889,6 +912,7 @@ export class BruinPanel {
       const isSupportedFileType = ["yml", "yaml", "py", "sql"].includes(fileExt);
 
       if (inAssetsFolder && isSupportedFileType) {
+        console.log("_performAssetDetection: Showing convert message for", filePath);
         this._panel.webview.postMessage({
           command: "non-asset-file",
           showConvertMessage: true,
@@ -897,32 +921,41 @@ export class BruinPanel {
         });
       } else {
         console.log(
-          "IsAssetDetection : File is not an asset but doesn't habve a supported extension or is not in the assets folder",
+          "_performAssetDetection: File doesn't qualify for conversion",
           filePath,
-          inAssetsFolder,
-          isSupportedFileType
+          "inAssetsFolder:", inAssetsFolder,
+          "isSupportedFileType:", isSupportedFileType
         );
         this._panel.webview.postMessage({
           command: "non-asset-file",
           showConvertMessage: false,
+          filePath: filePath,
         });
       }
     } catch (error) {
-      console.error("Error in asset detection flow:", error);
+      console.error("_performAssetDetection: Error in asset detection flow:", error);
+      // On error, clear convert message to prevent stale UI
+      this._panel.webview.postMessage({
+        command: "clear-convert-message",
+        isAsset: false,
+        filePath: filePath
+      });
     }
   }
 
   private async _isAssetFile(filePath: string): Promise<boolean> {
-    console.log(`_isAssetFile: Checking if file is asset: ${filePath}`);
-
-    if (filePath.endsWith(".asset.yml") || filePath.endsWith(".asset.yaml")) {
-      console.log(`_isAssetFile: File identified as asset by extension: ${filePath}`);
-      return true;
-    }
+    console.log(`_isAssetFile: Checking if file is asset using CLI only: ${filePath}`);
 
     try {
-      const isAsset = await isBruinAsset(filePath, [".sql", ".py", ".yml", ".yaml"]);
-      console.log(`_isAssetFile: Asset check result for ${filePath}: ${isAsset}`);
+      // Use CLI internal parse command to check if file is an asset - NO REGEX
+      const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || "";
+      const parser = new BruinInternalParse(
+        getBruinExecutablePath(),
+        workspaceFolder
+      );
+      
+      const isAsset = await parser.checkIfAsset(filePath);
+      console.log(`_isAssetFile: CLI-only asset check result for ${filePath}: ${isAsset}`);
       return isAsset;
     } catch (error) {
       console.error(`_isAssetFile: Error checking if file is asset (${filePath}):`, error);
@@ -950,17 +983,43 @@ export class BruinPanel {
     const fileExt = this._getFileExtension(filePath);
 
     try {
+      console.log("_convertToAsset: Starting conversion for", filePath);
+      
+      // First, clear the convert message immediately to provide user feedback
+      this._panel.webview.postMessage({
+        command: "clear-convert-message",
+        isAsset: false,
+        filePath: filePath
+      });
+
       if (fileExt === "yml" || fileExt === "yaml") {
         // For YAML files, rename to *.asset.yml
         const newPath = filePath.replace(`.${fileExt}`, `.asset.${fileExt}`);
+        console.log("_convertToAsset: Renaming", filePath, "to", newPath);
+        
         await workspace.fs.rename(Uri.file(filePath), Uri.file(newPath), { overwrite: false });
 
-        // Update the rendered document and parse it
+        // Update the rendered document and wait a bit for file system to settle
         this._lastRenderedDocumentUri = Uri.file(newPath);
-        parseAssetCommand(this._lastRenderedDocumentUri);
+        
+        // Give file system time to settle before checking asset status
+        setTimeout(async () => {
+          console.log("_convertToAsset: Parsing converted asset", newPath);
+          parseAssetCommand(this._lastRenderedDocumentUri!);
+          
+          // Trigger asset detection to ensure UI is updated correctly
+          await this._handleAssetDetection(this._lastRenderedDocumentUri!);
+        }, 300);
+        
       } else if (fileExt === "py" || fileExt === "sql") {
         // For Python/SQL files, call convert command
+        console.log("_convertToAsset: Converting", filePath, "using CLI command");
         convertFileToAssetCommand(this._lastRenderedDocumentUri);
+        
+        // Give conversion time to complete before re-checking
+        setTimeout(async () => {
+          await this._handleAssetDetection(this._lastRenderedDocumentUri!);
+        }, 500);
       }
     } catch (error) {
       console.error("_convertToAsset: Error converting to asset:", error);

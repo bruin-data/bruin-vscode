@@ -172,17 +172,48 @@ const handleMessage = (event: MessageEvent) => {
         environments.value = updateValue(message, "success");
         connectionsStore.setDefaultEnvironment(selectedEnvironment.value);
         break;
-      case "clear-convert-message":
-        console.log("In App.vue : clear-convert-message message received");
+      case "clear-convert-message": {
+        console.log("In App.vue : clear-convert-message message received", message);
+        
+        // Only clear if this message is for the current file or no specific file mentioned
+        const currentFile = lastRenderedDocument.value;
+        const messageFile = message.filePath;
+        
+        if (messageFile && currentFile && messageFile !== currentFile) {
+          console.log("In App.vue : Ignoring clear-convert-message for different file", {
+            current: currentFile,
+            message: messageFile
+          });
+          break;
+        }
+        
+        console.log("In App.vue : Clearing convert message state");
         isNotAsset.value = false;
         showConvertMessage.value = false;
+        // Clear all conversion-related state to prevent stale UI
+        nonAssetFileType.value = "";
+        nonAssetFilePath.value = "";
         rudderStack.trackEvent("Asset Converted and Clear Convert Message", {
           assetName: message.assetName,
         });
         break;
-      case "non-asset-file":
+      }
+      case "non-asset-file": {
         console.log("In App.vue : non-asset-file message received", message);
         console.log("In App.vue : non-asset-file showConvertMessage", message.showConvertMessage);
+        
+        // Only update state if this message is for the current file
+        const currentFilePath = lastRenderedDocument.value;
+        const messageFilePath = message.filePath;
+        
+        if (messageFilePath && currentFilePath && messageFilePath !== currentFilePath) {
+          console.log("In App.vue : Ignoring non-asset-file message for different file", {
+            current: currentFilePath,
+            message: messageFilePath
+          });
+          break;
+        }
+        
         isNotAsset.value = true;
         rudderStack.trackEvent("Non Asset File", {
           assetName: message.assetName,
@@ -199,12 +230,16 @@ const handleMessage = (event: MessageEvent) => {
         } else {
           console.log("In App.vue : non-asset-file showConvertMessage false");
           showConvertMessage.value = false;
+          // Clear stale convert state when hiding message
+          nonAssetFileType.value = "";
+          nonAssetFilePath.value = "";
           rudderStack.trackEvent("Non Asset File Show Convert Message False", {
             assetName: message.assetName,
             filePath: message.filePath,
           });
         }
         break;
+      }
       case "parse-message": {
         parseError.value = updateValue(message, "error");
         const parsed = updateValue(message, "success");
