@@ -456,10 +456,8 @@ export async function activate(context: ExtensionContext) {
           tabId: activeTabId
         });
         
-        vscode.window.showInformationMessage("Previewing selected query...");
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        vscode.window.showErrorMessage(`Error previewing selected query: ${errorMessage}`);
       }
     }),
     commands.registerCommand("bruin.renderSQL", async () => {
