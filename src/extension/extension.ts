@@ -209,7 +209,7 @@ export async function activate(context: ExtensionContext) {
       try {
         trackEvent("Command Executed", { command: "refreshConnections" });
         activityBarConnectionsProvider.refresh();
-        vscode.window.showInformationMessage("Connections refreshed successfully!");
+        //vscode.window.showInformationMessage("Connections refreshed successfully!");
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         vscode.window.showErrorMessage(`Error refreshing connections: ${errorMessage}`);

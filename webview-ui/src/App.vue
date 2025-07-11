@@ -208,7 +208,9 @@ const handleMessage = (event: MessageEvent) => {
       case "parse-message": {
         parseError.value = updateValue(message, "error");
         const parsed = updateValue(message, "success");
-        if (!parseError.value) {
+        if (!parseError.value && parsed) {
+          // Clear any previous parse errors when valid data is received
+          parseError.value = null;
           isNotAsset.value = false;
           showConvertMessage.value = false;
           // Handle pipelineConfig (from pipeline.yml)
