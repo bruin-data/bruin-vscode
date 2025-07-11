@@ -59,6 +59,48 @@ export class BruinInternalParse extends BruinCommand {
     }
   }
 
+  /**
+   * Check if a file is an asset without posting to panels.
+   * Returns true if file is an asset, false if not.
+   * Uses CLI 'internal parse-asset' command to determine asset status.
+   */
+  public async checkIfAsset(filePath: string): Promise<boolean> {
+    try {
+      console.log("checkIfAsset: Checking asset status for", filePath);
+      
+      // Config files are not assets in the conversion sense
+      if (filePath.endsWith("pipeline.yml") || filePath.endsWith("pipeline.yaml") ||
+          filePath.endsWith("bruin.yml") || filePath.endsWith("bruin.yaml")) {
+        console.log("checkIfAsset: Config file detected, returning true");
+        return true; // They are valid bruin files, just not convertible assets
+      }
+
+      // Run CLI parse command to check if file is an asset
+      const result = await this.run(["parse-asset", filePath], { ignoresErrors: true });
+      
+      if (!result || result.trim() === "") {
+        console.log("checkIfAsset: No result from CLI, returning false");
+        return false;
+      }
+
+      const parsed = JSON.parse(result);
+      console.log("checkIfAsset: CLI result parsed:", { 
+        hasAsset: parsed.asset !== null && parsed.asset !== undefined,
+        assetValue: parsed.asset 
+      });
+      
+      // If asset is null, it means the file is not an asset
+      // Example: {"asset":null,"pipeline":{"name":"bruin-duckdb","schedule":"daily"},"repo":{"path":"..."}}
+      const isAsset = parsed.asset !== null && parsed.asset !== undefined;
+      console.log("checkIfAsset: Final result for", filePath, ":", isAsset);
+      return isAsset;
+      
+    } catch (error) {
+      console.log("checkIfAsset: Error checking asset status for", filePath, ":", error);
+      return false;
+    }
+  }
+
   private postMessageToPanels(status: string, message: string | any) {
     BruinPanel.postMessage("parse-message", { status, message });
   }
