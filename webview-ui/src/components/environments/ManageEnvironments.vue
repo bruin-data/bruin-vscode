@@ -1,15 +1,15 @@
 <template>
   <div class="bg-editorWidget-bg shadow sm:rounded-lg p-6 relative">
     <span 
-      @click="!isCreating && (isCollapsed = !isCollapsed)"
+      @click="!isCreating && !isEditing && (isCollapsed = !isCollapsed)"
       class="codicon absolute top-4 right-4 z-10" 
       :class="[
         isCollapsed ? 'codicon-chevron-down' : 'codicon-chevron-up',
-        !isCreating ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'
+        !isCreating && !isEditing ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'
       ]"
     ></span>
 
-    <div v-if="!isCreating">
+    <div v-if="!isCreating && !isEditing">
       <div class="flex items-center w-full mb-2">
         <div class="flex items-center">
           <h3 class="text-lg font-medium text-editor-fg">Environments</h3>
@@ -42,7 +42,7 @@
                 >
                   Name
                 </th>
-                <th class="px-2 py-2 text-right text-sm font-semibold text-editor-fg opacity-70 w-20">
+                <th class="px-2 py-2 text-right text-sm font-semibold text-editor-fg opacity-70 w-24">
                   Actions
                 </th>
               </tr>
@@ -52,7 +52,14 @@
                 <td class="whitespace-nowrap px-2 py-2 text-sm font-medium text-editor-fg">
                   {{ env }}
                 </td>
-                <td class="px-2 py-2 text-right w-20">
+                <td class="px-2 py-2 text-right w-24">
+                  <button
+                    @click="startEdit(env)" 
+                    class="text-descriptionFg hover:text-editor-fg mr-3"
+                    title="Edit"
+                  >
+                    <PencilIcon class="h-4 w-4 inline-block" />
+                  </button>
                   <button
                     @click="confirmDelete(env)" 
                     class="text-descriptionFg opacity-70 hover:text-editorError-foreground"
@@ -72,7 +79,7 @@
       </div>
     </div>
 
-    <div v-else>
+    <div v-else-if="isCreating">
       <h4 class="text-lg font-medium text-editor-fg mb-4">Create New Environment</h4>
 
       <div class="mb-4">
@@ -102,6 +109,36 @@
       </div>
     </div>
 
+    <div v-else-if="isEditing">
+      <h4 class="text-lg font-medium text-editor-fg mb-4">Edit Environment</h4>
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-editor-fg mb-2"> Environment Name </label>
+        <input
+          v-model="editEnvironmentName"
+          type="text"
+          placeholder="Enter environment name"
+          class="w-1/2 px-3 py-2 h-8 bg-input-background text-input-foreground border border-input-border rounded focus:outline-none focus:ring-2 focus:ring-inputOption-activeBorder"
+          @keyup.enter="updateEnvironment"    
+          ref="editEnvironmentInput"
+        />
+        <div v-if="errorMessage" class="text-errorForeground text-sm mt-1">
+          {{ errorMessage }}
+        </div>
+      </div>
+
+      <div class="flex justify-end space-x-2">
+        <vscode-button @click="cancelEdit" appearance="secondary"> Cancel </vscode-button>
+        <vscode-button
+          @click="updateEnvironment"
+          appearance="primary"
+          :disabled="!editEnvironmentName.trim() || editEnvironmentName === currentEditingEnvironment"
+        >
+          Update
+        </vscode-button>
+      </div>
+    </div>
+
     <!-- Delete Confirmation Dialog -->
     <div v-if="showDeleteConfirm" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div class="bg-editorWidget-bg border border-commandCenter-border rounded-lg p-6 max-w-md w-full mx-4">
@@ -120,7 +157,7 @@
 
 <script setup lang="ts">
 import { ref, nextTick, onMounted, watch } from "vue";
-import { TrashIcon } from "@heroicons/vue/24/outline";
+import { TrashIcon, PencilIcon } from "@heroicons/vue/24/outline";
 import { vscode } from "@/utilities/vscode";
 
 const props = defineProps<{
@@ -128,10 +165,14 @@ const props = defineProps<{
 }>();
 
 const isCreating = ref(false);
+const isEditing = ref(false);
 const isCollapsed = ref(true);
 const newEnvironmentName = ref("");
+const editEnvironmentName = ref("");
+const currentEditingEnvironment = ref("");
 const errorMessage = ref("");
 const environmentInput = ref<HTMLInputElement | null>(null);
+const editEnvironmentInput = ref<HTMLInputElement | null>(null);
 const showDeleteConfirm = ref(false);
 const environmentToDelete = ref("");
 
@@ -142,6 +183,12 @@ onMounted(() => {
 watch(isCreating, (newValue) => {
   if (newValue) {
     focusInput();
+  }
+});
+
+watch(isEditing, (newValue) => {
+  if (newValue) {
+    focusEditInput();
   }
 });
 
@@ -165,12 +212,34 @@ const handleMessage = (event: MessageEvent) => {
         console.error("Failed to delete environment:", message.payload.message);
       }
       break;
+    case "environment-updated-message":
+      if (message.payload.status === "success") {
+        console.log("Environment updated successfully:", message.payload.message);
+        cancelEdit();
+      } else {
+        errorMessage.value = message.payload.message || "Failed to update environment";
+      }
+      break;
   }
 };
 
 const cancelCreation = () => {
   isCreating.value = false;
   newEnvironmentName.value = "";
+  errorMessage.value = "";
+};
+
+const cancelEdit = () => {
+  isEditing.value = false;
+  editEnvironmentName.value = "";
+  currentEditingEnvironment.value = "";
+  errorMessage.value = "";
+};
+
+const startEdit = (environmentName: string) => {
+  currentEditingEnvironment.value = environmentName;
+  editEnvironmentName.value = environmentName;
+  isEditing.value = true;
   errorMessage.value = "";
 };
 
@@ -206,6 +275,44 @@ const createEnvironment = async () => {
   }
 };
 
+const updateEnvironment = async () => {
+  if (!editEnvironmentName.value.trim()) {
+    errorMessage.value = "Environment name is required";
+    return;
+  }
+
+  if (!/^[a-zA-Z0-9_-]+$/.test(editEnvironmentName.value)) {
+    errorMessage.value =
+      "Environment name can only contain letters, numbers, underscores, and hyphens";
+    return;
+  }
+
+  if (editEnvironmentName.value === currentEditingEnvironment.value) {
+    errorMessage.value = "New name must be different from current name";
+    return;
+  }
+
+  if (props.environments.includes(editEnvironmentName.value)) {
+    errorMessage.value = "Environment name already exists";
+    return;
+  }
+
+  errorMessage.value = "";
+
+  try {
+    await vscode.postMessage({
+      command: "bruin.updateEnvironment",
+      payload: {
+        currentName: currentEditingEnvironment.value,
+        newName: editEnvironmentName.value,
+      },
+    });
+  } catch (error) {
+    console.error("Error updating environment:", error);
+    errorMessage.value = "Failed to update environment";
+  }
+};
+
 const confirmDelete = (environmentName: string) => {
   environmentToDelete.value = environmentName;
   showDeleteConfirm.value = true;
@@ -233,6 +340,13 @@ const focusInput = async () => {
   await nextTick();
   if (environmentInput.value) {
     environmentInput.value.focus();
+  }
+};
+
+const focusEditInput = async () => {
+  await nextTick();
+  if (editEnvironmentInput.value) {
+    editEnvironmentInput.value.focus();
   }
 };
 </script>
