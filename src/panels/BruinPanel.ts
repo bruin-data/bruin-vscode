@@ -31,7 +31,7 @@ import {
   getConnectionsListFromSchema,
   testConnection,
 } from "../extension/commands/manageConnections";
-import { createEnvironment } from "../extension/commands/manageEnvironments";
+import { createEnvironment, deleteEnvironment, updateEnvironment } from "../extension/commands/manageEnvironments";
 import { openGlossary } from "../bruin/bruinGlossaryUtility";
 import { QueryPreviewPanel } from "./QueryPreviewPanel";
 import { 
@@ -772,6 +772,58 @@ export class BruinPanel {
               }
               
               BruinPanel.postMessage("environment-created-message", {
+                status: "error",
+                message: userMessage
+              });
+            }
+            break;
+          case "bruin.deleteEnvironment":
+            const { environmentName: deleteEnvName } = message.payload;
+            console.log("Deleting environment:", deleteEnvName);
+            try {
+              await deleteEnvironment(deleteEnvName, this._lastRenderedDocumentUri);
+              // Refresh the environments list after deletion
+              await getEnvListCommand(this._lastRenderedDocumentUri);
+              BruinPanel.postMessage("environment-deleted-message", {
+                status: "success",
+                message: `Environment "${deleteEnvName}" deleted successfully`
+              });
+            } catch (error) {
+              const errorMessage = String(error);
+              let userMessage = `Failed to delete environment: ${errorMessage}`;
+              
+              // Check for outdated CLI version
+              if (errorMessage.includes("No help topic for 'delete'")) {
+                userMessage = "It seems like your CLI version may be outdated. Please update it to use the delete command.";
+              }
+              
+              BruinPanel.postMessage("environment-deleted-message", {
+                status: "error",
+                message: userMessage
+              });
+            }
+            break;
+          case "bruin.updateEnvironment":
+            const { currentName, newName } = message.payload;
+            console.log("Updating environment:", currentName, "to", newName);
+            try {
+              await updateEnvironment(currentName, newName, this._lastRenderedDocumentUri);
+              // Refresh the environments list after update
+              await getEnvListCommand(this._lastRenderedDocumentUri);
+              BruinPanel.postMessage("environment-updated-message", {
+                status: "success",
+                message: `Environment "${currentName}" updated to "${newName}" successfully`
+              });
+            } catch (error) {
+              const errorMessage = String(error);
+              let userMessage = `Failed to update environment: ${errorMessage}`;
+              
+              // Check for outdated CLI version
+              if (errorMessage.includes("No help topic for 'update'")) {
+                userMessage = "It seems like your CLI version may be outdated. Please update it to use the update command.";
+              }
+              
+              BruinPanel.postMessage("environment-updated-message", {
                 status: "error",
                 message: userMessage
               });
