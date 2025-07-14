@@ -1,4 +1,8 @@
 # Changelog
+
+## [0.58.5] - [2025-07-14]
+- Recovered the partition by and cluster ui and fixed the columns actions being hidden.
+
 ## [0.58.4] - [2025-07-14]
 - Enhanced the environment management UI with delete and update actions.
 
