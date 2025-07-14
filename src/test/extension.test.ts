@@ -1999,20 +1999,19 @@ suite("BruinPanel Tests", () => {
       ).firstCall.args[0];
       const message = { command: "checkBruinCliInstallation" };
 
-      try {
-        await messageHandler(message);
-            } catch (error) {
-        console.error("Error in messageHandler:", error);
-        throw error;
-      }
-      
-      // Add a small delay to ensure async operations complete in CI
-      await new Promise(resolve => setTimeout(resolve, 10));
-      
-      // Add a small delay to ensure async operations complete in CI
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await messageHandler(message);
 
-      assert.ok(bruinInstallCliStub.calledOnce, "CLI installation check should be performed");
+      // Wait up to 500ms for the stub to be called
+      let attempts = 0;
+      while (!bruinInstallCliStub.calledOnce && attempts < 10) {
+        await new Promise(resolve => setTimeout(resolve, 50));
+        attempts++;
+      }
+
+      assert.ok(
+        bruinInstallCliStub.calledOnce,
+        `CLI installation check should be performed, but was called ${bruinInstallCliStub.callCount} times`
+      );
     });
     /*     test('handles bruin.getAssetLineage command', async () => {
       const messageHandler = (windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0];
