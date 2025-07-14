@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col py-4 sm:py-1 h-full w-full min-w-56 relative">
     <div class="flex justify-end mb-4 space-x-2">
-      <vscode-button @click="fillColumnsFromDB" :disabled="fillColumnsStatus === 'loading'">
+      <vscode-button @click="fillColumnsFromDB" :disabled="fillColumnsStatus === 'loading'" class="py-1 focus:outline-none disabled:cursor-not-allowed flex-shrink-0 whitespace-nowrap">
         <template v-if="fillColumnsStatus === 'loading'">
           <svg
             class="animate-spin mr-1 h-4 w-4 text-editor-bg"
@@ -32,7 +32,7 @@
         </template>
         Fill from DB
       </vscode-button>
-      <vscode-button @click="handleAddColumn" class="py-1 focus:outline-none disabled:cursor-not-allowed" :disabled="isConfigFile"> Add column </vscode-button>
+      <vscode-button @click="handleAddColumn" class="py-1 focus:outline-none disabled:cursor-not-allowed flex-shrink-0 whitespace-nowrap" :disabled="isConfigFile"> Add column </vscode-button>
     </div>
     
     <!-- Error message for fill operation -->
@@ -51,11 +51,11 @@
             <th class="px-2 py-1 text-left" style="width: 2rem;" title="Primary key">
               <KeyIcon class="h-4 w-4 text-editor-fg opacity-60" />
             </th>
-            <th class="px-2 py-1 text-left" style="min-width: 120px;">Name</th>
-            <th class="px-2 py-1 text-left" style="min-width: 80px; max-width: 120px;">Type</th>
-            <th class="px-2 py-1 text-left" style="min-width: 100px;">Description</th>
-            <th class="px-2 py-1 text-left" style="min-width: 100px;">Checks</th>
-            <th class="px-2 py-1 text-center" style="min-width: 100px; max-width: 120px;">Actions</th>
+            <th class="px-2 py-1 text-left" style="width: 100px;">Name</th>
+            <th class="px-2 py-1 text-left" style="width: 80px;">Type</th>
+            <th class="px-2 py-1 text-left" style="width: 120px;">Description</th>
+            <th class="px-2 py-1 text-left" style="width: 150px;">Checks</th>
+            <th class="px-2 py-1 text-center" style="width: 100px;">Actions</th>
           </tr>
         </thead>
         <tbody v-if="localColumns.length">
@@ -73,7 +73,7 @@
               </vscode-checkbox>
             </td>
             <!-- Name -->
-            <td class="px-2 py-1 font-medium font-mono text-xs" style="min-width: 120px;">
+            <td class="px-2 py-1 font-medium font-mono text-xs" style="width: 100px;">
               <div v-if="editingIndex === index" class="flex flex-col gap-1">
                 <input
                   v-model="editingColumn.name"
@@ -102,7 +102,7 @@
             </td>
 
             <!-- Type -->
-            <td class="px-2 py-1 text-xs" style="min-width: 80px; max-width: 120px;">
+            <td class="px-2 py-1 text-xs" style="width: 80px;">
               <div v-if="editingIndex === index" class="flex flex-col gap-1">
                 <div class="flex items-center">
                   <input
@@ -119,7 +119,7 @@
             </td>
 
             <!-- Description -->
-            <td class="px-2 py-1 text-xs" style="min-width: 100px;">
+            <td class="px-2 py-1 text-xs" style="width: 120px;">
               <textarea
                 v-if="editingIndex === index"
                 v-model="editingColumn.description"
@@ -137,7 +137,7 @@
             </td>
 
             <!-- Checks -->
-            <td class="px-2 py-1" style="min-width: 100px;">
+            <td class="px-2 py-1" style="width: 150px;">
               <div class="flex flex-wrap gap-1">
                 <template v-if="editingIndex === index">
                   <div class="flex flex-wrap gap-1">
@@ -240,7 +240,7 @@
             </td>
 
             <!-- Actions -->
-            <td class="px-2 py-1 text-center" style="min-width: 100px; max-width: 120px;">
+            <td class="px-2 py-1 text-center" style="width: 100px;">
               <div class="flex justify-center items-center space-x-1">
                 <vscode-button
                   v-if="editingIndex === index"
