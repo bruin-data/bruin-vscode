@@ -388,8 +388,12 @@ export async function activate(context: ExtensionContext) {
         trackEvent("Command Executed", { command: "runQuery" });
         const document = await workspace.openTextDocument(uri);
         const query = document.getText(range);
-        QueryPreviewPanel.setLastExecutedQuery(query);
         const activeTabId = QueryPreviewPanel.getActiveTabId();
+        
+        // Store the extracted query for the specific tab
+        QueryPreviewPanel.setTabQuery(activeTabId, query);
+        QueryPreviewPanel.setTabAssetPath(activeTabId, uri.fsPath);
+        QueryPreviewPanel.setLastExecutedQuery(query);
 
         QueryPreviewPanel.postMessage("query-output-message", {
           status: "loading",
@@ -398,11 +402,12 @@ export async function activate(context: ExtensionContext) {
         });
         await QueryPreviewPanel.focusSafely();
         
-        // Send message to webview to execute query with current limit
+        // Send message to webview to execute query with current limit, including the extracted query
         QueryPreviewPanel.postMessage("bruin.executePreviewQuery", { 
           status: "success",
           message: "",
-          tabId: activeTabId
+          tabId: activeTabId,
+          extractedQuery: query
         }); 
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);

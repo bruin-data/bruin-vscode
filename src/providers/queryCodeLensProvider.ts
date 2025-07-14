@@ -44,9 +44,9 @@ export class QueryCodeLensProvider implements vscode.CodeLensProvider {
         continue;
       }
 
-      // Skip comments
+      // Skip statements that are entirely comments (no SQL content)
       const trimmed = statement.text.trim();
-      if (trimmed.startsWith('--') || trimmed.startsWith('/*')) {
+      if (this.isOnlyComments(trimmed)) {
         continue;
       }
 
@@ -128,6 +128,12 @@ export class QueryCodeLensProvider implements vscode.CodeLensProvider {
         }
       }
 
+      // Skip characters that are part of line comments
+      if (inLineComment) {
+        currentStatement += char;
+        continue;
+      }
+
       // Handle string literals (only if not in comments)
       if (!inLineComment && !inBlockComment) {
         if (char === "'" && prevChar !== '\\') {
@@ -176,5 +182,38 @@ export class QueryCodeLensProvider implements vscode.CodeLensProvider {
     const openParens = (textBefore.match(/\(/g) || []).length;
     const closeParens = (textBefore.match(/\)/g) || []).length;
     return openParens > closeParens;
+  }
+
+  private isOnlyComments(text: string): boolean {
+    // Split text into lines and check if any line contains non-comment content
+    const lines = text.split('\n');
+    let hasNonCommentContent = false;
+    
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      
+      // Skip empty lines
+      if (!trimmedLine) {
+        continue;
+      }
+      
+      // Check if line is a line comment
+      if (trimmedLine.startsWith('--')) {
+        continue;
+      }
+      
+      // Check if line is inside a block comment
+      // For simplicity, we'll assume block comments are on separate lines
+      if (trimmedLine.startsWith('/*') && trimmedLine.endsWith('*/')) {
+        continue;
+      }
+      
+      // If we find any line that's not a comment or empty, this is not only comments
+      hasNonCommentContent = true;
+      break;
+    }
+    
+    // Return true if no non-comment content was found
+    return !hasNonCommentContent;
   }
 }

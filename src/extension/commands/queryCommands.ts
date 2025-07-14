@@ -16,12 +16,6 @@ export const getQueryOutput = async (environment: string, limit: string, lastRen
     return;
   }
   
-  // Get the selected text (if any)
-  const selection = editor.selection;
-  let selectedQuery = selection && !selection.isEmpty 
-    ? editor.document.getText(new vscode.Range(selection.start, selection.end))
-    : "";
-
   const workspaceFolder = workspace.getWorkspaceFolder(editor.document.uri);
   if (!workspaceFolder) {
     window.showErrorMessage('No workspace folder found');
@@ -31,21 +25,46 @@ export const getQueryOutput = async (environment: string, limit: string, lastRen
     return;
   }
   
-  let fileContentString = "";
-  try {
-    const fileContent = await workspace.fs.readFile(lastRenderedDocumentUri);
-    fileContentString = Buffer.from(fileContent).toString('utf-8');
-  } catch (error) {
-    console.log("Could not read file content:", error);
-    fileContentString = "";
+  const currentTabId = tabId || 'tab-1';
+  
+  // Check if we already have a stored query for this tab (from CodeLens)
+  let selectedQuery = QueryPreviewPanel.getTabQuery(currentTabId);
+  
+  // If no stored query, fall back to selection or file content detection
+  if (!selectedQuery) {
+    // Get the selected text (if any)
+    const selection = editor.selection;
+    selectedQuery = selection && !selection.isEmpty 
+      ? editor.document.getText(new vscode.Range(selection.start, selection.end))
+      : "";
+
+    let fileContentString = "";
+    try {
+      const fileContent = await workspace.fs.readFile(lastRenderedDocumentUri);
+      fileContentString = Buffer.from(fileContent).toString('utf-8');
+    } catch (error) {
+      console.log("Could not read file content:", error);
+      fileContentString = "";
+    }
+    
+    // If no query is selected, use the entire file content as the query
+    if (!selectedQuery) {
+      // Remove connection comment lines from the query content
+      selectedQuery = fileContentString
+        .split('\n')
+        .filter((line: string) => !line.trim().match(/^--\s*connection:\s*/i))
+        .join('\n')
+        .trim();
+    }
   }
   
-  // Detect connection name and query from file content if not provided
+  // Detect connection name from file content if not provided
   let detectedConnectionName = connectionName;
   const isSqlAsset = await isBruinSqlAsset(lastRenderedDocumentUri.fsPath);
-  if(!isSqlAsset) {
-  if (!detectedConnectionName || !selectedQuery) {
+  if(!isSqlAsset && !detectedConnectionName) {
     try {
+      const fileContent = await workspace.fs.readFile(lastRenderedDocumentUri);
+      const fileContentString = Buffer.from(fileContent).toString('utf-8');
       if (fileContentString) {
         // Look for connection comment pattern: -- connection: connection-name
         const connectionMatch = fileContentString.match(/--\s*connection:\s*([^\n\r]+)/i);
@@ -55,25 +74,13 @@ export const getQueryOutput = async (environment: string, limit: string, lastRen
         } else {
           console.log("❌ No connection pattern found in file content");
         }
-
-        // If no query is selected, use the entire file content as the query
-        if (!selectedQuery) {
-          // Remove connection comment lines from the query content
-          selectedQuery = fileContentString
-            .split('\n')
-            .filter((line: string) => !line.trim().match(/^--\s*connection:\s*/i))
-            .join('\n')
-            .trim();
-        }
       }
     } catch (error) {
-      console.error("Error reading file for connection and query detection:", error);
+      console.error("Error reading file for connection detection:", error);
     }
-  }
   }
 
   // Store the query in the preview panel for the specific tab
-  const currentTabId = tabId || 'tab-1';
   QueryPreviewPanel.setTabQuery(currentTabId, selectedQuery);
   QueryPreviewPanel.setTabAssetPath(currentTabId, lastRenderedDocumentUri.fsPath);
 
