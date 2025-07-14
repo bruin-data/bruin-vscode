@@ -9,5 +9,10 @@ export class BruinEnvironments extends BruinCommand {
     const flags = ["create", "--name", environment, "-o", "json"];
     return this.run(flags);
   }
+
+  public async delete(environment: string): Promise<string> {
+    const flags = ["delete", "--force", "--name", environment, "-o", "json"];
+    return this.run(flags);
+  }
 }
 
