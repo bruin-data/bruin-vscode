@@ -19,6 +19,8 @@ export const parsePipelineData = (pipelineJson): PipelineAssets => {
       id: asset.id,
       name: asset.name,
       type: asset.type,
+      pipeline: asset.pipeline || '',
+      path: asset.path || '',
       upstreams: [],
       downstream: [],
     };
