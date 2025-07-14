@@ -691,13 +691,26 @@ const handleMessage = (event) => {
   }
 };
 
+// Handle click outside to close dropdown
+const handleClickOutside = (event) => {
+  const target = event.target;
+  const dropdown = target.closest('vscode-dropdown');
+  const button = target.closest('vscode-button[aria-label="Add check"]');
+  
+  if (!dropdown && !button) {
+    showAddCheckDropdown.value = null;
+  }
+};
+
 // Register message handler
 onMounted(() => {
   window.addEventListener("message", handleMessage);
+  document.addEventListener("click", handleClickOutside);
 });
 
 onUnmounted(() => {
   window.removeEventListener("message", handleMessage);
+  document.removeEventListener("click", handleClickOutside);
 });
 
 watch(
