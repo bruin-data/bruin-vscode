@@ -576,7 +576,7 @@ export class BruinPanel {
             });
             break;
           case "checkBruinCliInstallation":
-            this.checkAndUpdateBruinCliStatus();
+            await this.checkAndUpdateBruinCliStatus();
             break;
           case "checkInstallationsInfo":
             this.checkInstallationsInfo();
