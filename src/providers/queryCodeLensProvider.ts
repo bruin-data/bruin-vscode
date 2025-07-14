@@ -37,6 +37,8 @@ export class QueryCodeLensProvider implements vscode.CodeLensProvider {
     // Search for SQL statements separated by semicolons in the masked text
     // This regex finds statements that end with semicolon or end of file
     const statements = this.parseStatements(maskedText);
+    console.log('Found statements:', statements.length);
+    console.log('Statements:', statements.map(s => ({ text: s.text, start: s.startOffset, end: s.endOffset })));
 
     for (const [idx, statement] of statements.entries()) {
       if (token.isCancellationRequested) {
@@ -50,7 +52,10 @@ export class QueryCodeLensProvider implements vscode.CodeLensProvider {
 
       // Skip statements that are entirely comments (no SQL content)
       const trimmed = statement.text.trim();
+      console.log('Processing statement:', JSON.stringify(trimmed));
+      console.log('Is only comments:', this.isOnlyComments(trimmed));
       if (this.isOnlyComments(trimmed)) {
+        console.log('Skipping statement - only comments');
         continue;
       }
 
@@ -206,31 +211,40 @@ export class QueryCodeLensProvider implements vscode.CodeLensProvider {
     const lines = text.split('\n');
     let hasNonCommentContent = false;
     
+    console.log('Checking if only comments. Lines:', lines.length);
+    
     for (const line of lines) {
       const trimmedLine = line.trim();
+      console.log('Line:', JSON.stringify(trimmedLine));
       
       // Skip empty lines
       if (!trimmedLine) {
+        console.log('Empty line, skipping');
         continue;
       }
       
       // Check if line is a line comment
       if (trimmedLine.startsWith('--')) {
+        console.log('Line comment, skipping');
         continue;
       }
       
       // Check if line is inside a block comment
       // For simplicity, we'll assume block comments are on separate lines
       if (trimmedLine.startsWith('/*') && trimmedLine.endsWith('*/')) {
+        console.log('Block comment, skipping');
         continue;
       }
       
       // If we find any line that's not a comment or empty, this is not only comments
+      console.log('Found non-comment content:', trimmedLine);
       hasNonCommentContent = true;
       break;
     }
     
     // Return true if no non-comment content was found
-    return !hasNonCommentContent;
+    const result = !hasNonCommentContent;
+    console.log('Final result:', result);
+    return result;
   }
 }
