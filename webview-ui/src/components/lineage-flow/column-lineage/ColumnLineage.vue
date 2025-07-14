@@ -13,6 +13,7 @@
       :draggable="true"
       :node-draggable="true"
       @nodesDragged="onNodesDragged"
+      @click="onFlowClick"
       ref="flowRef"
     >
       <Background />
@@ -25,6 +26,12 @@
           :label="nodeProps.data.label"
           :show-expand-buttons="false"
           :show-columns="true"
+          :hovered-column="hoveredColumn"
+          :selected-node-id="null"
+          @column-hover="onColumnHover"
+          @column-leave="onColumnLeave"
+          @columns-toggled="onColumnsToggled"
+          :is-column-lineage-mode="true"
         />
       </template>
       
@@ -53,7 +60,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick, computed, defineProps, defineEmits } from "vue";
+import { ref, watch, nextTick, computed, defineProps, defineEmits, onUnmounted } from "vue";
 import { Panel, PanelPosition, VueFlow, useVueFlow } from "@vue-flow/core";
 import { Background } from "@vue-flow/background";
 import { Controls } from "@vue-flow/controls";
@@ -68,100 +75,180 @@ const props = defineProps<{
 
 const emit = defineEmits(['change-view']);
 
-const { nodes, edges, setNodes, setEdges, fitView } = useVueFlow();
+const { nodes, edges, setNodes, setEdges, fitView, getViewport } = useVueFlow();
 const elements = computed(() => [...nodes.value, ...edges.value]);
 const isLayouting = ref(false);
 const flowRef = ref(null);
 const elk = new ELK();
 
+// Column hover state
+const hoveredColumn = ref<{ table: string; column: string } | null>(null);
+const hoverTimeout = ref<NodeJS.Timeout | null>(null);
+
+// Column expand/collapse state for each node
+const nodeColumnsExpanded = ref<{ [nodeId: string]: boolean }>({});
+
+
+
+
+
 const handleViewSwitch = () => {
   emit('change-view', 'direct');
 };
 
-const applyLayout = async (inputNodes?: any[], inputEdges?: any[]) => {
-  const nodesToLayout = inputNodes || nodes.value;
-  const edgesToLayout = inputEdges || edges.value;
-  
-  if (nodesToLayout.length === 0) return { nodes: [], edges: [] };
-  
-  const elkGraph = {
-    id: "root",
-    layoutOptions: {
-      "elk.algorithm": "layered",
-      "elk.direction": "RIGHT",
-      "elk.layered.spacing.nodeNodeBetweenLayers": "150",
-      "elk.spacing.nodeNode": "50",
-      "elk.layered.nodePlacement.strategy": "NETWORK_SIMPLEX",
-      "elk.layered.nodePlacement.bk.fixedAlignment": "BALANCED",
-      "elk.layered.crossingMinimization.strategy": "LAYER_SWEEP",
-      "elk.layered.cycleBreaking.strategy": "DEPTH_FIRST",
-      "elk.layered.layering.strategy": "NETWORK_SIMPLEX",
-      "elk.layered.considerModelOrder.strategy": "PREFER_NODES",
-      "elk.layered.crossingMinimization.semiInteractive": "true",
-      "elk.layered.unnecessaryBendpoints": "true",
-    },
-    children: nodesToLayout.map((node) => {
-      const columns = node.data.asset.columns || [];
-      const baseHeight = 70; 
-      const heightPerColumn = 15;
-      const newHeight = baseHeight + columns.length * heightPerColumn;
-
-      return {
-        id: node.id,
-        width: 150,
-        height: newHeight,
-        labels: [{ text: node.data.label }],
-      };
-    }),
-    edges: edgesToLayout.map((edge) => ({
-      id: edge.id,
-      sources: [edge.source],
-      targets: [edge.target],
-    })),
-  };
-
-  try {
-    const layout = await elk.layout(elkGraph);
-    
-    if (layout.children && layout.children.length) {
-      const layoutedNodes = nodesToLayout.map((node) => {
-        const layoutNode = layout.children?.find((child: any) => child.id === node.id);
-        return layoutNode
-          ? {
-              ...node,
-              position: {
-                x: layoutNode.x ?? 0,
-                y: layoutNode.y ?? 0,
-              },
-              zIndex: 1,
-            }
-          : node;
-      });
-      
-      return { nodes: layoutedNodes, edges: edgesToLayout };
-    }
-  } catch (error) {
-    console.error("Failed to apply ELK layout:", error);
+// Column hover handlers
+const onColumnHover = (columnInfo: { table: string; column: string }) => {
+  // Clear any pending timeout
+  if (hoverTimeout.value) {
+    clearTimeout(hoverTimeout.value);
+    hoverTimeout.value = null;
   }
   
-  return { nodes: nodesToLayout, edges: edgesToLayout };
+  hoveredColumn.value = columnInfo;
+  updateEdgeHighlighting();
 };
+
+const onColumnLeave = () => {
+  // Clear timeout if exists
+  if (hoverTimeout.value) {
+    clearTimeout(hoverTimeout.value);
+  }
+  
+  // Shorter delay for better responsiveness when mouse leaves column
+  hoverTimeout.value = setTimeout(() => {
+    hoveredColumn.value = null;
+    updateEdgeHighlighting();
+  }, 50);
+};
+
+// Clear hover state when clicking on flow background
+const onFlowClick = () => {
+  if (hoveredColumn.value) {
+    hoveredColumn.value = null;
+    updateEdgeHighlighting();
+  }
+};
+
+
+
+const onColumnsToggled = async (nodeId: string, isExpanded: boolean) => {
+  nodeColumnsExpanded.value[nodeId] = isExpanded;
+  updateEdgeHandles();
+};
+
+// Update edge handles based on column expand/collapse state
+const updateEdgeHandles = () => {
+  const updatedEdges = edges.value.map(edge => {
+    if (!edge.data?.isColumnLineage) return edge;
+    
+    const sourceExpanded = nodeColumnsExpanded.value[edge.source] === true;
+    const targetExpanded = nodeColumnsExpanded.value[edge.target] === true;
+    
+    const newEdge = { ...edge };
+    
+    if (sourceExpanded && edge.data.sourceColumn) {
+      newEdge.sourceHandle = `${edge.source}-${edge.data.sourceColumn}`;
+    } else {
+      newEdge.sourceHandle = undefined;
+    }
+    
+    if (targetExpanded && edge.data.targetColumn) {
+      newEdge.targetHandle = `${edge.target}-${edge.data.targetColumn}`;
+    } else {
+      newEdge.targetHandle = undefined;
+    }
+    
+    return newEdge;
+  });
+  
+  setEdges(updatedEdges);
+};
+
+// Update edge highlighting based on hovered column
+const updateEdgeHighlighting = () => {
+  const updatedEdges = edges.value.map(edge => {
+    if (!hoveredColumn.value || !edge.data?.isColumnLineage) {
+      // Reset to default style - keep existing handles
+      return {
+        ...edge,
+        style: {
+          stroke: '#ffffff',
+          strokeWidth: 2,
+          strokeDasharray: '5,5',
+          opacity: hoveredColumn.value ? 0.2 : 1
+        },
+        markerEnd: 'arrowclosed'
+      };
+    }
+    
+    // Check if this edge is connected to the hovered column
+    const isConnected = isEdgeConnectedToColumn(edge, hoveredColumn.value);
+    
+    if (isConnected) {
+      return {
+        ...edge,
+        style: {
+          stroke: 'var(--vscode-progressBar-background)', // VSCode progress bar color
+          strokeWidth: 3,
+          strokeDasharray: '5,5',
+          opacity: 1
+        },
+        markerEnd: 'arrowclosed'
+      };
+    } else {
+      return {
+        ...edge,
+        style: {
+          stroke: '#ffffff',
+          strokeWidth: 2,
+          strokeDasharray: '5,5',
+          opacity: 0.2 // Fade non-connected edges
+        },
+        markerEnd: 'arrowclosed'
+      };
+    }
+  });
+  
+  setEdges(updatedEdges);
+};
+
+// Check if an edge is connected to the hovered column
+const isEdgeConnectedToColumn = (edge: any, hoveredColumn: { table: string; column: string }) => {
+  if (!edge.data?.isColumnLineage) return false;
+  
+  const sourceColumn = edge.data.sourceColumn;
+  const targetColumn = edge.data.targetColumn;
+  const sourceTable = edge.source;
+  const targetTable = edge.target;
+  
+  // Check if either end of the edge matches the hovered column
+  const isSourceMatch = sourceTable === hoveredColumn.table && sourceColumn === hoveredColumn.column;
+  const isTargetMatch = targetTable === hoveredColumn.table && targetColumn === hoveredColumn.column;
+  
+  return isSourceMatch || isTargetMatch;
+};
+
+
 
 const updateGraph = async () => {
   isLayouting.value = true;
   
   try {
     if (props.graphData.nodes.length > 0) {
-      const layoutedGraphData = await applyLayout(props.graphData.nodes, props.graphData.edges);
+      setNodes(props.graphData.nodes);
+      setEdges(props.graphData.edges);
       
-      setNodes(layoutedGraphData.nodes);
-      setEdges(layoutedGraphData.edges);
+      props.graphData.nodes.forEach(node => {
+        const nodeId = node.id;
+        if (nodeColumnsExpanded.value[nodeId] === undefined) {
+          nodeColumnsExpanded.value[nodeId] = false;
+        }
+      });
       
       await nextTick();
+      updateEdgeHandles();
+      
       isLayouting.value = false;
-      
-      await nextTick();
-      fitView({ padding: 0.2, duration: 300 });
     } else {
       setNodes([]);
       setEdges([]);
@@ -173,7 +260,8 @@ const updateGraph = async () => {
   }
 };
 
-const onNodesDragged = (draggedNodes: NodeDragEvent[]) => {
+const onNodesDragged = (...args: any[]) => {
+  const draggedNodes = args[0] as NodeDragEvent[];
   setNodes(
     nodes.value.map((node) => {
       const draggedNode = draggedNodes.find((n) => n.node.id === node.id);
@@ -185,6 +273,13 @@ const onNodesDragged = (draggedNodes: NodeDragEvent[]) => {
 watch(() => props.graphData, () => {
   updateGraph();
 }, { deep: true, immediate: true });
+
+// Cleanup timeout on unmount
+onUnmounted(() => {
+  if (hoverTimeout.value) {
+    clearTimeout(hoverTimeout.value);
+  }
+});
 
 </script>
 

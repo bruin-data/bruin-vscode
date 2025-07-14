@@ -39,14 +39,38 @@ export function generateGraphFromJSON(asset) {
     assetData.downstream?.forEach((downstreamAsset) => {
       const childNode = getNode(downstreamAsset);
       childNode.data.asset.hasUpstreams = true;
-      localEdges.push({ id: `${node.id}-${childNode.id}`, source: node.id, target: childNode.id });
+      localEdges.push({ 
+        id: `${node.id}-${childNode.id}`, 
+        source: node.id, 
+        target: childNode.id,
+        style: {
+          stroke: '#ffffff',
+          strokeWidth: 1
+        },
+        markerEnd: {
+          type: 'arrowclosed',
+          color: '#ffffff'
+        }
+      });
     });
 
     const allUpstreams = [...(assetData.upstreams || []), ...(assetData.upstream || [])];
     allUpstreams.forEach((upstreamAsset) => {
       const parentNode = getNode(upstreamAsset);
       parentNode.data.asset.hasDownstreams = true;
-      localEdges.push({ id: `${parentNode.id}-${node.id}`, source: parentNode.id, target: node.id });
+      localEdges.push({ 
+        id: `${parentNode.id}-${node.id}`, 
+        source: parentNode.id, 
+        target: node.id,
+        style: {
+          stroke: '#ffffff',
+          strokeWidth: 1
+        },
+        markerEnd: {
+          type: 'arrowclosed',
+          color: '#ffffff'
+        }
+      });
     });
   };
 
@@ -86,12 +110,52 @@ export const generateGraphWithColumnData = (columnData: any) => {
   const asset = columnData.asset;
   const nodes: any[] = [];
   const edges: any[] = [];
+  const columnNodeMap = new Map();
   
-  // Create main asset node with columns - using same structure as generateGraphFromJSON
+  // Create upstream table nodes first
+  const upstreamTables = new Set();
+  if (asset.columns) {
+    asset.columns.forEach((column: any) => {
+      if (column.upstreams) {
+        column.upstreams.forEach((upstream: any) => {
+          upstreamTables.add(upstream.table);
+        });
+      }
+    });
+  }
+  
+  // Create upstream table nodes
+  Array.from(upstreamTables).forEach((tableName, index: number) => {
+    const upstreamAsset = asset.upstreams?.find((u: any) => u.value === tableName);
+    const upstreamNode = {
+      id: tableName,
+      type: 'custom',
+      position: { x: -400, y: index * 200 },
+      data: {
+        label: tableName,
+        type: 'asset',
+        asset: {
+          name: tableName,
+          type: upstreamAsset?.type || "asset",
+          pipeline: asset.pipeline || "unknown",
+          path: upstreamAsset?.path || "unknown",
+          columns: upstreamAsset?.columns || [],
+          isFocusAsset: false,
+          hasUpstreams: false,
+          hasDownstreams: true
+        },
+        hasUpstreamForClicking: false,
+        hasDownstreamForClicking: false
+      }
+    };
+    nodes.push(upstreamNode);
+  });
+  
+  // Create main asset node with columns
   const mainNode = {
     id: asset.name,
     type: 'custom',
-    position: { x: 0, y: 0 },
+    position: { x: 200, y: 0 },
     data: {
       label: asset.name,
       type: 'asset',
@@ -99,7 +163,7 @@ export const generateGraphWithColumnData = (columnData: any) => {
         name: asset.name,
         type: asset.type || "unknown",
         pipeline: asset.pipeline || "unknown",
-        path: asset.definition_file?.path || asset.path || "unknown",
+        path: asset.executable_file?.path || asset.definition_file?.path || asset.path || "unknown",
         columns: asset.columns || [],
         isFocusAsset: true,
         hasUpstreams: asset.upstreams?.length > 0,
@@ -111,40 +175,35 @@ export const generateGraphWithColumnData = (columnData: any) => {
   };
   nodes.push(mainNode);
   
-  // Create upstream nodes with their columns - using same structure
-  if (asset.upstreams) {
-    asset.upstreams.forEach((upstream: any, index: number) => {
-      const upstreamNode = {
-        id: upstream.value,
-        type: 'custom',
-        position: { x: -300, y: index * 150 },
-        data: {
-          label: upstream.value,
-          type: 'asset',
-          asset: {
-            name: upstream.value,
-            type: upstream.type || "asset",
-            pipeline: asset.pipeline || "unknown",
-            path: "unknown",
-            columns: upstream.columns || [],
-            isFocusAsset: false,
-            hasUpstreams: false,
-            hasDownstreams: true
-          },
-          hasUpstreamForClicking: false,
-          hasDownstreamForClicking: false
-        }
-      };
-      nodes.push(upstreamNode);
-      
-      // Create edge
-      const edge = {
-        id: `${upstream.value}-${asset.name}`,
-        source: upstream.value,
-        target: asset.name,
-        type: 'default'
-      };
-      edges.push(edge);
+  // Create column-level edges
+  if (asset.columns) {
+    asset.columns.forEach((column: any) => {
+      if (column.upstreams && column.upstreams.length > 0) {
+        column.upstreams.forEach((upstream: any, upstreamIndex: number) => {
+                     // Create edge from upstream column to target column
+           const edgeId = `${upstream.table}.${upstream.column}-${asset.name}.${column.name}`;
+           const edge = {
+             id: edgeId,
+             source: upstream.table,
+             target: asset.name,
+             type: 'default',
+             sourceHandle: `${upstream.table}-${upstream.column}`,
+             targetHandle: `${asset.name}-${column.name}`,
+             data: {
+               sourceColumn: upstream.column,
+               targetColumn: column.name,
+               isColumnLineage: true
+             },
+             style: {
+               stroke: '#ffffff',
+               strokeWidth: 2,
+               strokeDasharray: '5,5'
+             },
+             markerEnd: 'arrowclosed'
+           };
+          edges.push(edge);
+        });
+      }
     });
   }
   

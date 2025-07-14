@@ -42,6 +42,7 @@ export interface Asset {
   hasDownstreams: boolean;
   isFocusAsset?: boolean;
   definition_file?: {path: string};
+  columns?: Array<{ name: string; type: string; primary_key?: boolean; upstreams?: Array<{ table: string; column: string }> }>;
 }
 
 export interface Project {

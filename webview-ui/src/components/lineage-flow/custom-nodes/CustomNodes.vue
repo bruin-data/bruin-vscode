@@ -62,12 +62,13 @@
               </div>
             </div>
             
-            <!-- Columns Toggle Button -->
+            <!-- Columns Toggle Button (only for non-focus assets) -->
             <div 
-              v-if="showColumns && nodeColumns && nodeColumns.length > 0" 
-              class="ml-2 transform transition-transform duration-200 opacity-60" 
+              v-if="showColumns && nodeColumns && nodeColumns.length > 0 && canToggleColumns" 
+              class="ml-2 transform transition-transform duration-200 opacity-60 cursor-pointer" 
               :class="{ 'rotate-180': columnsExpanded }"
               :title="`${columnsExpanded ? 'Hide' : 'Show'} columns (${nodeColumns.length})`"
+              @click.stop="toggleColumnsExpanded"
             >
               <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
@@ -77,15 +78,45 @@
         </div>
 
         <!-- Columns Section -->
-        <div v-if="showColumns && columnsExpanded" class="columns-section border border-white/20 border-t-0 rounded-b p-2 absolute top-full left-0 right-0 z-10 bg-inherit" :class="selectedStyle.main" @click.stop>
+        <div 
+          v-if="showColumns && columnsExpanded" 
+          class="columns-section border border-white/20 border-t-0 rounded-b p-2 absolute top-full left-0 right-0 z-50 bg-inherit shadow-lg" 
+          :class="selectedStyle.main" 
+          @click.stop
+          @mouseleave="handleColumnsLeave"
+        >
           <div class="transition-all duration-200 ease-in-out">
             <div v-if="nodeColumns && nodeColumns.length > 0">
                               <div 
                   v-for="(column, index) in nodeColumns" 
                   :key="index"
-                  class="flex items-center text-xs py-1 px-2 rounded border border-white/10 transition-colors font-mono hover:bg-white/25 hover:border-white/40 cursor-pointer"
-                  :class="selectedStyle.main"
+                  class="flex items-center text-xs py-1.5 px-2 rounded border border-white/10 transition-all duration-200 font-mono hover:bg-white/25 hover:border-white/40 cursor-pointer relative"
+                  :class="[
+                    selectedStyle.main,
+                    isColumnLineageMode ? getColumnHighlightClass(column) : ''
+                  ]"
+                  @mouseenter="isColumnLineageMode ? onColumnHover(column) : null"
                 >
+                <!-- Source handle for upstream columns (only in column lineage mode) -->
+                <Handle
+                  v-if="!data.asset?.isFocusAsset && columnsExpanded && isColumnLineageMode && data.asset"
+                  :id="`${data.asset.name}-${column.name}`"
+                  type="source"
+                  :position="Position.Right"
+                  class="!w-2 !h-2 !bg-emerald-500 !border-emerald-600"
+                  style="right: -8px; top: 50%; transform: translateY(-50%)"
+                />
+                
+                <!-- Target handle for focus asset columns (only in column lineage mode) -->
+                <Handle
+                  v-if="data.asset?.isFocusAsset && columnsExpanded && isColumnLineageMode && data.asset"
+                  :id="`${data.asset.name}-${column.name}`"
+                  type="target"
+                  :position="Position.Left"
+                  class="!w-2 !h-2 !bg-emerald-500 !border-emerald-600"
+                  style="left: -8px; top: 50%; transform: translateY(-50%)"
+                />
+                
                 <div class="w-2 h-2 rounded-full mr-2 flex-shrink-0" :class="getColumnTypeColor(column.type)"></div>
                 <div class="flex-1 min-w-0">
                   <div class="font-medium truncate">{{ column.name }}</div>
@@ -126,6 +157,7 @@
       @goToDetails="handleGoToDetails"
     />
   </div>
+  <!-- Invisible handles for VueFlow functionality only -->
   <Handle
     v-if="assetHasDownstreams || assetHasUpstreams"
     type="source"
@@ -154,16 +186,39 @@ import {
 import type { BruinNodeProps } from "@/types";
 
 const props = defineProps<BruinNodeProps & {
-  selectedNodeId: string | null;
+  selectedNodeId?: string | null;
   expandAllDownstreams?: boolean;
   expandAllUpstreams?: boolean;
   expandedNodes?: { [key: string]: boolean };
   showExpandButtons: boolean;
   showColumns?: boolean;  // New prop for showing columns
+  hoveredColumn?: { table: string; column: string } | null;
+  isColumnLineageMode?: boolean; // Indicates if we're in column lineage mode
 }>();
-const emit = defineEmits(["add-upstream", "add-downstream", "node-click", "toggle-node-expand"]);
+const emit = defineEmits(["add-upstream", "add-downstream", "node-click", "toggle-node-expand", "column-hover", "column-leave", "columns-toggled"]);
 
-const columnsExpanded = ref(props.data.asset?.isFocusAsset || false);
+// Initially all columns are collapsed except focus asset
+const columnsExpandedState = ref(false);
+
+// Focus asset columns should always stay expanded, others start collapsed
+const canToggleColumns = computed(() => !props.data.asset?.isFocusAsset);
+
+const columnsExpanded = computed({
+  get: () => props.data.asset?.isFocusAsset || columnsExpandedState.value,
+  set: (value) => {
+    if (canToggleColumns.value) {
+      columnsExpandedState.value = value;
+    }
+  }
+});
+
+// Notify parent about initial column expand state (only in column lineage mode)
+onMounted(() => {
+  const nodeId = props.data.asset?.name || '';
+  if (nodeId && isColumnLineageMode.value) {
+    emit('columns-toggled', nodeId, columnsExpanded.value);
+  }
+});
 
 const selectedStyle = computed(() => styles[props.data?.asset?.type || "default"] || defaultStyle);
 const selectedStatusStyle = computed(() => statusStyles[props.status || ""]);
@@ -215,6 +270,8 @@ const nodeColumns = computed(() => {
   return props.data.asset.columns;
 });
 
+const isColumnLineageMode = computed(() => props.isColumnLineageMode || false);
+
 
 
 const getColumnTypeColor = (type: string) => {
@@ -260,8 +317,8 @@ const togglePopup = (event) => {
 
 const handleNodeClick = (event) => {
   event.stopPropagation();
-  // Always toggle columns if they exist
-  if (showColumns.value && nodeColumns.value && nodeColumns.value.length > 0) {
+  // Toggle columns only if allowed (non-focus assets)
+  if (showColumns.value && nodeColumns.value && nodeColumns.value.length > 0 && canToggleColumns.value) {
     toggleColumnsExpanded();
   }
   // Also handle popup logic
@@ -276,6 +333,65 @@ const handleGoToDetails = (asset) => {
 };
 
 const label = computed(() => props.data.asset?.name || '');
+
+// Column hover functions (only for column lineage mode)
+const onColumnHover = (column: any) => {
+  if (!isColumnLineageMode.value) return;
+  const tableName = props.data.asset?.name || '';
+  emit('column-hover', { table: tableName, column: column.name });
+};
+
+const onColumnLeave = () => {
+  if (!isColumnLineageMode.value) return;
+  emit('column-leave');
+};
+
+// Handle mouse leave from entire columns section
+const handleColumnsLeave = () => {
+  if (!isColumnLineageMode.value) return;
+  emit('column-leave');
+};
+
+// Check if column should be highlighted based on hover state (only in column lineage mode)
+const getColumnHighlightClass = (column: any) => {
+  if (!isColumnLineageMode.value || !props.hoveredColumn) return '';
+  
+  const tableName = props.data.asset?.name || '';
+  const isCurrentColumn = props.hoveredColumn.table === tableName && props.hoveredColumn.column === column.name;
+  
+  // Check if this column is connected to the hovered column
+  const isConnected = isColumnConnected(column, props.hoveredColumn);
+  
+  if (isCurrentColumn) {
+    return 'ring-2 ring-progressBar-bg bg-inputOption-hoverBackground border-progressBar-bg';
+  } else if (isConnected) {
+    return 'ring-1 ring-editorLink-activeFg bg-editorWidget-bg border-editorLink-activeFg';
+  } else {
+    return 'opacity-40';
+  }
+};
+
+// Check if a column is connected to the hovered column
+const isColumnConnected = (column: any, hoveredColumn: { table: string; column: string }) => {
+  const tableName = props.data.asset?.name || '';
+  
+  // If this is the same column, it's always connected
+  if (tableName === hoveredColumn.table && column.name === hoveredColumn.column) {
+    return true;
+  }
+  
+  // Check if this column has upstreams that match the hovered column
+  if (column.upstreams) {
+    return column.upstreams.some((upstream: any) => 
+      upstream.table === hoveredColumn.table && upstream.column === hoveredColumn.column
+    );
+  }
+  
+  // Check if hovered column has upstreams that match this column  
+  // (This would require access to all columns data, which we might not have here)
+  
+  return false;
+};
 const isExpanded = computed(() => props.expandedNodes?.[props.data.asset?.name || ''] || false);
 
 const isTruncated = computed(() => label.value.length > 26);
@@ -295,7 +411,14 @@ const toggleExpand = () => {
 };
 
 const toggleColumnsExpanded = () => {
-  columnsExpanded.value = !columnsExpanded.value;
+  // Don't toggle for focus assets
+  if (!canToggleColumns.value) return;
+  
+  columnsExpandedState.value = !columnsExpandedState.value;
+  if (isColumnLineageMode.value) {
+    const nodeId = props.data.asset?.name || '';
+    emit('columns-toggled', nodeId, columnsExpanded.value);
+  }
 };
 
 const handleClickOutside = (event) => {
