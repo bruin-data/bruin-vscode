@@ -86,6 +86,168 @@
         </div>
       </div>
 
+      <!-- Advanced Section -->
+      <div class="collapsible-section">
+        <div class="section-header" @click="toggleSection('advanced')">
+          <div class="flex items-center justify-between w-full">
+            <h2 class="text-sm font-medium text-editor-fg">Advanced Settings</h2>
+            <span
+              class="codicon transition-transform duration-200"
+              :class="expandedSections.advanced ? 'codicon-chevron-down' : 'codicon-chevron-right'"
+            ></span>
+          </div>
+        </div>
+
+        <div v-if="expandedSections.advanced" class="section-content">
+          <!-- Interval Modifiers -->
+          <div class="field-group">
+            <label class="field-label">Interval Modifiers</label>
+            <div class="flex gap-x-4 gap-y-2 w-full justify-between">
+              <div class="flex-1">
+                <label class="block text-xs font-medium text-editor-fg mb-1">Start</label>
+                <div class="flex gap-2">
+                  <input
+                    :value="startIntervalValue"
+                    @input="
+                      startIntervalValue = $event.target.value;
+                      handleIntervalChange('start');
+                    "
+                    @change="handleIntervalChange('start')"
+                    class="w-1/2 border-0 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
+                    placeholder="e.g., -2"
+                  />
+                  <select
+                    :value="startIntervalUnit"
+                    @change="
+                      startIntervalUnit = $event.target.value;
+                      handleIntervalChange('start');
+                    "
+                    class="w-1/2 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
+                  >
+                    <option value="" class="text-xs opacity-60" disabled>select unit...</option>
+                    <option v-for="unit in intervalUnits" :key="unit" :value="unit">
+                      {{ unit }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="flex-1">
+                <label class="block text-xs font-medium text-editor-fg mb-1">End</label>
+                <div class="flex gap-2">
+                  <input
+                    :value="endIntervalValue"
+                    @input="
+                      endIntervalValue = $event.target.value;
+                      handleIntervalChange('end');
+                    "
+                    @change="handleIntervalChange('end')"
+                    class="w-1/2 border-0 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
+                    placeholder="e.g., 1"
+                  />
+                  <select
+                    :value="endIntervalUnit"
+                    @change="
+                      endIntervalUnit = $event.target.value;
+                      handleIntervalChange('end');
+                    "
+                    class="w-1/2 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
+                  >
+                    <option value="" class="text-xs opacity-60" disabled>select unit...</option>
+                    <option v-for="unit in intervalUnits" :key="unit" :value="unit">
+                      {{ unit }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Partition By and Cluster By -->
+          <div v-if="localMaterialization.type === 'table'" class="flex gap-x-4 gap-y-2 w-full justify-between" @click="handleClickOutside">
+            <div class="flex-1">
+              <label class="block text-xs font-medium text-editor-fg mb-1">Partitioning</label>
+              <div class="relative w-full max-w-[250px]" ref="partitionContainer">
+                <input
+                  v-model="partitionInput"
+                  placeholder="Column or expression..."
+                  class="w-full border-0 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg pr-6 h-6"
+                  @focus="isPartitionDropdownOpen = true"
+                  @blur="handlePartitionInputBlur"
+                  @input="handlePartitionInput"
+                  @keydown.enter="handlePartitionEnter"
+                />
+                <span
+                  class="absolute inset-y-0 right-0 flex items-center pr-2 cursor-pointer"
+                  @click="isPartitionDropdownOpen = !isPartitionDropdownOpen"
+                >
+                  <span class="codicon codicon-chevron-down text-xs"></span>
+                </span>
+
+                <div
+                  v-if="isPartitionDropdownOpen"
+                  class="absolute z-10 w-full bg-dropdown-bg border border-commandCenter-border shadow-lg mt-1 max-h-60 overflow-y-auto"
+                >
+                  <div
+                    class="px-3 py-2 hover:bg-list-hoverBackground hover:text-list-activeSelectionForeground cursor-pointer"
+                    @mousedown.prevent="
+                      selectPartitionColumn('');
+                      isPartitionDropdownOpen = false;
+                    "
+                  >
+                    <span class="text-xs opacity-70">Clear selection</span>
+                  </div>
+                  <div
+                    v-for="column in filteredPartitionColumns"
+                    :key="column.name"
+                    class="px-3 py-2 hover:bg-list-hoverBackground hover:text-list-activeSelectionForeground cursor-pointer"
+                    @mousedown.prevent="selectPartitionColumn(column.name)"
+                  >
+                    {{ column.name }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex-1">
+              <label class="block text-xs font-medium text-editor-fg mb-1">Clustering</label>
+              <div class="relative w-full max-w-[250px]" ref="clusterContainer">
+                <input
+                  ref="clusterInput"
+                  v-model="clusterInputValue"
+                  readonly
+                  placeholder="Columns..."
+                  class="w-full border-0 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg pr-6 h-6 cursor-pointer"
+                  @click="isClusterDropdownOpen = !isClusterDropdownOpen"
+                  @keydown.delete="removeLastClusterColumn"
+                />
+                <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                  <span class="codicon codicon-chevron-down text-xs"></span>
+                </span>
+
+                <div
+                  v-if="isClusterDropdownOpen"
+                  class="absolute z-10 w-full bg-dropdown-bg border border-commandCenter-border shadow-lg mt-1 max-h-60 overflow-y-auto"
+                >
+                  <div
+                    v-for="column in props.columns"
+                    :key="column.name"
+                    class="px-3 py-2 hover:bg-list-hoverBackground hover:text-list-activeSelectionForeground cursor-pointer flex items-center"
+                    @click="toggleClusterColumn(column.name)"
+                  >
+                    <span
+                      class="codicon text-xs mr-2"
+                      :class="isColumnSelected(column.name) ? 'codicon-check' : 'codicon-blank'"
+                    ></span>
+                    <span>{{ column.name }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Dependencies Section -->
       <div class="collapsible-section overflow-visible">
         <div class="section-header" @click="toggleSection('dependencies')">
@@ -383,85 +545,6 @@
           </div>
         </div>
       </div>
-
-      <!-- Advanced Section -->
-      <div class="collapsible-section">
-        <div class="section-header" @click="toggleSection('advanced')">
-          <div class="flex items-center justify-between w-full">
-            <h2 class="text-sm font-medium text-editor-fg">Advanced Settings</h2>
-            <span
-              class="codicon transition-transform duration-200"
-              :class="expandedSections.advanced ? 'codicon-chevron-down' : 'codicon-chevron-right'"
-            ></span>
-          </div>
-        </div>
-
-        <div v-if="expandedSections.advanced" class="section-content">
-          <!-- Interval Modifiers -->
-          <div class="field-group">
-            <label class="field-label">Interval Modifiers</label>
-            <div class="flex gap-x-4 gap-y-2 w-full justify-between">
-              <div class="flex-1">
-                <label class="block text-xs font-medium text-editor-fg mb-1">Start</label>
-                <div class="flex gap-2">
-                  <input
-                    :value="startIntervalValue"
-                    @input="
-                      startIntervalValue = $event.target.value;
-                      handleIntervalChange('start');
-                    "
-                    @change="handleIntervalChange('start')"
-                    class="w-1/2 border-0 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
-                    placeholder="e.g., -2"
-                  />
-                  <select
-                    :value="startIntervalUnit"
-                    @change="
-                      startIntervalUnit = $event.target.value;
-                      handleIntervalChange('start');
-                    "
-                    class="w-1/2 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
-                  >
-                    <option value="" class="text-xs opacity-60" disabled>select unit...</option>
-                    <option v-for="unit in intervalUnits" :key="unit" :value="unit">
-                      {{ unit }}
-                    </option>
-                  </select>
-                </div>
-              </div>
-
-              <div class="flex-1">
-                <label class="block text-xs font-medium text-editor-fg mb-1">End</label>
-                <div class="flex gap-2">
-                  <input
-                    :value="endIntervalValue"
-                    @input="
-                      endIntervalValue = $event.target.value;
-                      handleIntervalChange('end');
-                    "
-                    @change="handleIntervalChange('end')"
-                    class="w-1/2 border-0 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
-                    placeholder="e.g., 1"
-                  />
-                  <select
-                    :value="endIntervalUnit"
-                    @change="
-                      endIntervalUnit = $event.target.value;
-                      handleIntervalChange('end');
-                    "
-                    class="w-1/2 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
-                  >
-                    <option value="" class="text-xs opacity-60" disabled>select unit...</option>
-                    <option v-for="unit in intervalUnits" :key="unit" :value="unit">
-                      {{ unit }}
-                    </option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 </template>
@@ -549,6 +632,78 @@ const isPartitionDropdownOpen = ref(false);
 const isClusterDropdownOpen = ref(false);
 const partitionContainer = ref(null);
 const clusterContainer = ref(null);
+const partitionInput = ref("");
+const partitionDropdownStyle = ref({});
+const clusterDropdownStyle = ref({});
+
+// Owner editing functions
+const startEditingOwner = () => {
+  isEditingOwner.value = true;
+  editingOwner.value = owner.value;
+  nextTick(() => {
+    ownerInput.value?.focus();
+  });
+};
+
+const saveOwnerEdit = () => {
+  owner.value = editingOwner.value.trim();
+  isEditingOwner.value = false;
+  vscode.postMessage({
+    command: "bruin.setAssetDetails",
+    payload: {
+      owner: owner.value,
+    },
+    source: "saveOwnerEdit",
+  });
+};
+
+const cancelOwnerEdit = () => {
+  editingOwner.value = owner.value;
+  isEditingOwner.value = false;
+};
+
+const handleOwnerInputMouseLeave = () => {
+  if (isEditingOwner.value) {
+    saveOwnerEdit();
+  }
+};
+
+// Tag management functions
+const startAddingTag = () => {
+  isAddingTag.value = true;
+  nextTick(() => {
+    tagInput.value?.focus();
+  });
+};
+
+const confirmAddTag = () => {
+  if (newTag.value.trim() && !tags.value.includes(newTag.value.trim())) {
+    tags.value.push(newTag.value.trim());
+    sendTagUpdate();
+  }
+  newTag.value = "";
+  isAddingTag.value = false;
+};
+
+const cancelAddTag = () => {
+  newTag.value = "";
+  isAddingTag.value = false;
+};
+
+const removeTag = (index) => {
+  tags.value.splice(index, 1);
+  sendTagUpdate();
+};
+
+const sendTagUpdate = () => {
+  vscode.postMessage({
+    command: "bruin.setAssetDetails",
+    payload: {
+      tags: [...tags.value],
+    },
+    source: "saveTags",
+  });
+};
 
 // Dependencies related reactive variables
 const dependencies = ref([...props.dependencies] || []);
@@ -717,91 +872,6 @@ watch(
   { immediate: true, deep: true }
 );
 
-const partitionInput = ref("");
-
-const startEditingOwner = () => {
-  isEditingOwner.value = true;
-  editingOwner.value = owner.value;
-  nextTick(() => {
-    ownerInput.value?.focus();
-  });
-};
-
-const saveOwnerEdit = () => {
-  owner.value = editingOwner.value.trim();
-  isEditingOwner.value = false;
-  vscode.postMessage({
-    command: "bruin.setAssetDetails",
-    payload: {
-      owner: owner.value,
-    },
-    source: "saveOwnerEdit",
-  });
-};
-
-const cancelOwnerEdit = () => {
-  editingOwner.value = owner.value;
-  isEditingOwner.value = false;
-};
-
-const handleOwnerInputMouseLeave = () => {
-  if (isEditingOwner.value) {
-    saveOwnerEdit();
-  }
-};
-
-const startAddingTag = () => {
-  isAddingTag.value = true;
-  nextTick(() => {
-    tagInput.value?.focus();
-  });
-};
-
-const confirmAddTag = () => {
-  if (newTag.value.trim() && !tags.value.includes(newTag.value.trim())) {
-    tags.value.push(newTag.value.trim());
-    sendTagUpdate();
-  }
-  newTag.value = "";
-  isAddingTag.value = false;
-};
-
-const cancelAddTag = () => {
-  newTag.value = "";
-  isAddingTag.value = false;
-};
-
-const removeTag = (index) => {
-  tags.value.splice(index, 1);
-  sendTagUpdate();
-};
-
-const sendTagUpdate = () => {
-  vscode.postMessage({
-    command: "bruin.setAssetDetails",
-    payload: {
-      tags: [...tags.value],
-    },
-    source: "saveTags",
-  });
-};
-
-watch(
-  () => props.owner,
-  (newOwner) => {
-    owner.value = newOwner || "";
-  },
-  { immediate: true }
-);
-
-watch(
-  () => props.tags,
-  (newTags) => {
-    tags.value = [...newTags] || [];
-  },
-  { immediate: true, deep: true }
-);
-
 const defaultMaterialization = {
   type: "null",
   strategy: undefined,
@@ -837,6 +907,7 @@ watch(
   (newVal) => {
     localMaterialization.value = initializeLocalMaterialization(newVal);
     partitionInput.value = localMaterialization.value.partition_by || "";
+    clusterInputValue.value = localMaterialization.value.cluster_by.join(", ");
   },
   { immediate: true, deep: true }
 );
@@ -899,6 +970,34 @@ watch(
     debouncedSave();
   }
 );
+
+// Watch for partition_by changes to update the input field
+watch(
+  () => localMaterialization.value.partition_by,
+  (newPartitionBy) => {
+    partitionInput.value = newPartitionBy || "";
+  },
+  { immediate: true }
+);
+
+// Watch for cluster_by changes to update the input field
+watch(
+  () => localMaterialization.value.cluster_by,
+  (newClusterBy) => {
+    clusterInputValue.value = newClusterBy.join(", ");
+  },
+  { immediate: true }
+);
+
+const sendMaterializationUpdate = () => {
+  vscode.postMessage({
+    command: "bruin.setAssetDetails",
+    payload: {
+      materialization: JSON.parse(JSON.stringify(localMaterialization.value)),
+    },
+    source: "Materialization_autoSave",
+  });
+};
 
 const showStrategyOptions = computed(() => {
   return (
@@ -1133,6 +1232,23 @@ watch(
   { immediate: true, deep: true }
 );
 
+// Watch for owner and tags prop changes
+watch(
+  () => props.owner,
+  (newOwner) => {
+    owner.value = newOwner || "";
+  },
+  { immediate: true }
+);
+
+watch(
+  () => props.tags,
+  (newTags) => {
+    tags.value = [...newTags] || [];
+  },
+  { immediate: true, deep: true }
+);
+
 // Watch for pipelineAssets prop changes
 watch(
   () => props.pipelineAssets,
@@ -1175,6 +1291,123 @@ const updateDropdownPosition = () => {
       top: `${rect.bottom + 4}px`,
       left: `${rect.left}px`,
     };
+  }
+};
+
+// Partition By dropdown logic
+const partitionColumns = computed(() => {
+  return props.columns.filter(col => col.type === 'string' || col.type === 'timestamp' || col.type === 'date');
+});
+
+const filteredPartitionColumns = computed(() => {
+  const query = partitionInput.value.toLowerCase();
+  if (!query || isPartitionDropdownOpen.value) {
+    return props.columns;
+  }
+  return props.columns.filter((column) => column.name.toLowerCase().includes(query));
+});
+
+const clusterInputValue = computed(() => {
+  return localMaterialization.value.cluster_by.join(", ") || "";
+});
+
+const selectPartitionColumn = (columnName) => {
+  if (columnName === "") {
+    localMaterialization.value.partition_by = "";
+    partitionInput.value = "";
+  } else {
+    localMaterialization.value.partition_by = columnName;
+    partitionInput.value = columnName;
+  }
+  isPartitionDropdownOpen.value = false;
+  debouncedSave();
+};
+
+const handlePartitionInput = () => {
+  localMaterialization.value.partition_by = partitionInput.value;
+  isPartitionDropdownOpen.value = true;
+  
+  // Save changes immediately
+  debouncedSave();
+};
+
+const handlePartitionInputBlur = () => {
+  setTimeout(() => {
+    isPartitionDropdownOpen.value = false;
+  }, 100);
+};
+
+const handlePartitionEnter = () => {
+  isPartitionDropdownOpen.value = false;
+};
+
+const updatePartitionDropdownPosition = () => {
+  if (partitionContainer.value) {
+    const rect = partitionContainer.value.getBoundingClientRect();
+    const containerHeight = rect.height;
+    const dropdownHeight = 240; // Approximate max height of dropdown
+    
+    // Check if there's enough space below
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    
+    if (spaceBelow >= dropdownHeight || spaceBelow > spaceAbove) {
+      // Position below
+      partitionDropdownStyle.value = {
+        top: `${containerHeight + 4}px`,
+        left: '0px',
+        right: '0px',
+      };
+    } else {
+      // Position above
+      partitionDropdownStyle.value = {
+        bottom: `${containerHeight + 4}px`,
+        left: '0px',
+        right: '0px',
+      };
+    }
+  }
+};
+
+// Cluster By dropdown logic
+const clusterColumns = computed(() => {
+  return props.columns;
+});
+
+const filteredClusterColumns = computed(() => {
+  const query = clusterInputValue.value.toLowerCase();
+  if (!query) {
+    return clusterColumns.value;
+  }
+  return clusterColumns.value.filter(col => col.name.toLowerCase().includes(query));
+});
+
+const isColumnSelected = (columnName) => {
+  return localMaterialization.value.cluster_by?.includes(columnName);
+};
+
+const toggleClusterColumn = (columnName) => {
+  if (!localMaterialization.value.cluster_by) {
+    localMaterialization.value.cluster_by = [];
+  }
+
+  const index = localMaterialization.value.cluster_by.indexOf(columnName);
+  if (index > -1) {
+    localMaterialization.value.cluster_by.splice(index, 1);
+  } else {
+    localMaterialization.value.cluster_by.push(columnName);
+  }
+  
+  // Save changes immediately
+  debouncedSave();
+};
+
+const removeLastClusterColumn = () => {
+  if (localMaterialization.value.cluster_by.length > 0) {
+    localMaterialization.value.cluster_by.pop();
+    
+    // Save changes immediately
+    debouncedSave();
   }
 };
 </script>
@@ -1264,3 +1497,4 @@ select {
   @apply text-xs p-1;
 }
 </style>
+
