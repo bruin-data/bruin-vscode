@@ -62,31 +62,41 @@
         </div>
 
         <!-- Columns Section -->
-        <div v-if="showColumns" class="columns-section border border-white/20 border-t-0 rounded-b bg-editor-bg p-3">
-          <div class="text-xs font-semibold text-editor-fg mb-3 opacity-70 flex items-center">
-            <span>Columns</span>
-            <span v-if="nodeColumns && nodeColumns.length > 0" class="ml-1 text-2xs opacity-50">({{ nodeColumns.length }})</span>
+        <div v-if="showColumns" class="columns-section border border-white/20 border-t-0 rounded-b p-2" :class="selectedStyle.main">
+          <div class="text-xs font-semibold mb-2 opacity-70 flex items-center justify-between px-1 cursor-pointer" @click.stop="toggleColumnsExpanded">
+            <div class="flex items-center">
+              <span>Columns</span>
+              <span v-if="nodeColumns && nodeColumns.length > 0" class="ml-1 text-2xs opacity-50">({{ nodeColumns.length }})</span>
+            </div>
+            <div class="transform transition-transform duration-200" :class="{ 'rotate-180': columnsExpanded }">
+              <svg class="w-3 h-3 opacity-60" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+              </svg>
+            </div>
           </div>
-          <div v-if="nodeColumns && nodeColumns.length > 0" class="space-y-1.5 max-h-96 overflow-y-auto">
-            <div 
-              v-for="(column, index) in nodeColumns" 
-              :key="index"
-              class="flex items-center text-xs py-1.5 px-2 rounded hover:bg-input-background transition-colors"
-            >
-              <div class="w-2.5 h-2.5 rounded-full mr-3 flex-shrink-0 shadow-sm" :class="getColumnTypeColor(column.type)"></div>
-              <div class="flex-1 min-w-0">
-                <div class="font-medium text-editor-fg truncate">{{ column.name }}</div>
-                <div class="text-2xs text-editor-fg opacity-60 mt-0.5">{{ column.type }}</div>
-              </div>
-              <div v-if="column.primary_key" class="ml-2 flex-shrink-0">
-                <div class="w-3.5 h-3.5 rounded bg-yellow-500 flex items-center justify-center">
-                  <span class="text-white text-2xs font-bold">K</span>
+          <div v-if="columnsExpanded" class="transition-all duration-200 ease-in-out">
+            <div v-if="nodeColumns && nodeColumns.length > 0" class="space-y-1 max-h-96 overflow-y-auto">
+              <div 
+                v-for="(column, index) in nodeColumns" 
+                :key="index"
+                class="flex items-center text-xs py-1 px-2 rounded border border-white/10 transition-colors font-mono"
+                :class="selectedStyle.main"
+              >
+                <div class="w-2 h-2 rounded-full mr-2 flex-shrink-0" :class="getColumnTypeColor(column.type)"></div>
+                <div class="flex-1 min-w-0">
+                  <div class="font-medium truncate">{{ column.name }}</div>
+                </div>
+                <div class="text-2xs opacity-60 ml-2 flex-shrink-0">{{ column.type }}</div>
+                <div v-if="column.primary_key" class="ml-2 flex-shrink-0">
+                  <div class="w-3 h-3 rounded bg-yellow-500 flex items-center justify-center">
+                    <span class="text-white text-2xs font-bold">K</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-          <div v-else class="text-xs text-editor-fg opacity-50 italic px-2">
-            No columns defined
+            <div v-else class="text-xs opacity-50 italic px-2 font-mono">
+              No columns defined
+            </div>
           </div>
         </div>
       </div>
@@ -149,6 +159,8 @@ const props = defineProps<BruinNodeProps & {
 }>();
 const emit = defineEmits(["add-upstream", "add-downstream", "node-click", "toggle-node-expand"]);
 
+const columnsExpanded = ref(false);
+
 const selectedStyle = computed(() => styles[props.data?.asset?.type || "default"] || defaultStyle);
 const selectedStatusStyle = computed(() => statusStyles[props.status || ""]);
 const isAsset = computed(() => props.data.type === "asset");
@@ -202,10 +214,8 @@ const nodeColumns = computed(() => {
 
 
 const getColumnTypeColor = (type: string) => {
-  // Node tipine göre uyumlu renkler kullan - daha koyu tonlar için 600/700 seviyesi
   const assetType = props.data.asset?.type || 'default';
   
-  // Node label rengine uyumlu column renkleri (daha parlak ve görünür)
   const assetTypeColors: { [key: string]: string } = {
     'bq.sql': 'bg-sky-600',
     'external': 'bg-rose-600', 
@@ -263,6 +273,10 @@ const truncatedLabel = computed(() => {
 
 const toggleExpand = () => {
   emit("toggle-node-expand", props.data.asset?.name);
+};
+
+const toggleColumnsExpanded = () => {
+  columnsExpanded.value = !columnsExpanded.value;
 };
 
 const handleClickOutside = (event) => {
