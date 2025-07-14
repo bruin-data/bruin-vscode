@@ -167,7 +167,7 @@
           <div v-if="localMaterialization.type === 'table'" class="flex gap-x-4 gap-y-2 w-full justify-between" @click="handleClickOutside">
             <div class="flex-1">
               <label class="block text-xs font-medium text-editor-fg mb-1">Partitioning</label>
-              <div class="relative w-full max-w-[250px]" ref="partitionContainer">
+              <div class="relative w-full" ref="partitionContainer">
                 <input
                   v-model="partitionInput"
                   placeholder="Column or expression..."
@@ -211,7 +211,7 @@
 
             <div class="flex-1">
               <label class="block text-xs font-medium text-editor-fg mb-1">Clustering</label>
-              <div class="relative w-full max-w-[250px]" ref="clusterContainer">
+              <div class="relative w-full" ref="clusterContainer">
                 <input
                   ref="clusterInput"
                   v-model="clusterInputValue"
