@@ -10,10 +10,16 @@
     ></span>
 
     <div v-if="!isCreating">
-      <div class="flex items-center justify-between w-full mb-2">
+      <div class="flex items-center w-full mb-2">
         <div class="flex items-center">
           <h3 class="text-lg font-medium text-editor-fg">Environments</h3>
         </div>
+      </div>
+      
+      <div class="flex items-center justify-between mb-4">
+        <p class="text-sm text-editor-fg opacity-70">
+          Manage your environments and create new ones
+        </p>
         <vscode-button @click.stop="isCreating = true" appearance="primary">
           <div class="flex items-center">
             <span class="codicon codicon-plus"></span>
@@ -21,10 +27,6 @@
           </div>
         </vscode-button>
       </div>
-      
-      <p class="text-sm text-editor-fg opacity-70 mb-4">
-         Manage your environments and create new ones
-      </p>
 
       <div v-if="!isCollapsed">
         <div v-if="environments.length === 0" class="text-sm text-editor-fg opacity-70">
@@ -51,13 +53,13 @@
                   {{ env }}
                 </td>
                 <td class="px-2 py-2 text-right w-20">
-                  <vscode-button 
+                  <button
                     @click="confirmDelete(env)" 
-                    appearance="secondary"
-                    class="text-red-500 hover:text-red-400"
+                    class="text-descriptionFg opacity-70 hover:text-editorError-foreground"
+                    title="Delete"
                   >
-                    <span class="codicon codicon-trash"></span>
-                  </vscode-button>
+                    <TrashIcon class="h-4 w-4 inline-block" />
+                  </button>
                 </td>
               </tr>
             </tbody>
@@ -118,6 +120,7 @@
 
 <script setup lang="ts">
 import { ref, nextTick, onMounted, watch } from "vue";
+import { TrashIcon } from "@heroicons/vue/24/outline";
 import { vscode } from "@/utilities/vscode";
 
 const props = defineProps<{
