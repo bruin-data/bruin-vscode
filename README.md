@@ -55,6 +55,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.58.4**: Enhanced the environment management UI with delete and update actions.
 - **0.58.3**: Improved detect asset logic.
 - **0.58.2**: Improved the Activity Bar and Side Panel rendering.
 - **0.58.1**: Changed "Fill from DB" to run in the background instead of the terminal.
