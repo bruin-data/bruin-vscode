@@ -262,12 +262,48 @@ export abstract class BaseLineagePanel implements vscode.WebviewViewProvider, vs
           }
           this.refresh(vscode.window.activeTextEditor!!);
           break;
+        case "bruin.getColumnLineage":
+          this.handleColumnLineageRequest(message.payload);
+          break;
       }
     });
     webview.postMessage({
       command: "init",
       panelType: this.panelType
     });
+  }
+
+  private async handleColumnLineageRequest(payload: { filePath?: string }) {
+    try {
+      const { BruinLineageInternalParse } = await import("../bruin/bruinFlowLineage");
+      const { getBruinExecutablePath } = await import("../providers/BruinExecutableService");
+      const bruinLineage = new BruinLineageInternalParse(
+        getBruinExecutablePath(),
+        ""
+      );
+      
+      const filePath = payload.filePath || this._lastRenderedDocumentUri?.fsPath;
+      if (!filePath) {
+        this.postMessage("column-lineage-message", {
+          status: "error",
+          message: "No file path available for column lineage"
+        });
+        return;
+      }
+
+      const columnLineageData = await bruinLineage.parseAssetColumnLineage(filePath);
+      
+      this.postMessage("column-lineage-message", {
+        status: "success",
+        message: columnLineageData
+      });
+    } catch (error: any) {
+      console.error("Error fetching column lineage:", error);
+      this.postMessage("column-lineage-message", {
+        status: "error",
+        message: error.message || "Failed to fetch column lineage"
+      });
+    }
   }
 
   public postMessage(

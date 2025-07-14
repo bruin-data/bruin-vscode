@@ -102,4 +102,69 @@ export class BruinLineageInternalParse extends BruinCommand {
       console.error("Parsing command error", error);
     }
   }
+
+  /**
+   * Parse asset with column-level lineage information using the -c flag
+   *
+   * @param {string} filePath - The path of the asset to be parsed.
+   * @param {BruinCommandOptions} [options={}] - Optional parameters for execution, including flags and errors.
+   * @returns {Promise<any>} A promise that resolves with the column lineage data.
+   */
+  public async parseAssetColumnLineage(
+    filePath: string,
+    { flags = ["parse-asset", "-c"], ignoresErrors = false }: BruinCommandOptions = {}
+  ): Promise<any> {
+    try {
+      if (isConfigFile(filePath)) {
+        throw new Error("Cannot parse column lineage for config files");
+      }
+      
+      const result = await this.run([...flags, filePath], { ignoresErrors });
+      const columnLineageData = JSON.parse(result);
+      
+      console.log("Column lineage data:", columnLineageData);
+      
+      // Enrich upstream assets with their column information
+      if (columnLineageData.asset && columnLineageData.asset.upstreams) {
+        const pipelinePath = await getCurrentPipelinePath(filePath);
+        
+        if (pipelinePath) {
+          for (const upstream of columnLineageData.asset.upstreams) {
+            try {
+              // Get pipeline data to find upstream asset details
+              const pipelineResult = await this.run(["parse-pipeline", pipelinePath], { ignoresErrors: true });
+              const pipelineData = JSON.parse(pipelineResult);
+              
+              // Find the upstream asset in pipeline data
+              const upstreamAsset = pipelineData.assets.find((asset: any) => asset.name === upstream.value);
+              if (upstreamAsset && upstreamAsset.columns) {
+                upstream.columns = upstreamAsset.columns;
+                upstream.type = upstreamAsset.type;
+                upstream.path = upstreamAsset.definition_file?.path;
+              }
+            } catch (err) {
+              console.warn(`Could not fetch column data for upstream asset: ${upstream.value}`, err);
+              upstream.columns = [];
+            }
+          }
+        }
+      }
+      
+      // Return the enriched column lineage data
+      return columnLineageData;
+    } catch (error: any) {
+      const errorMessage = typeof error === "object" && error.error
+        ? error.error 
+        : String(error);
+  
+      if (errorMessage.includes("No help topic for")) {
+        const formattedError = "Bruin CLI is not installed or is outdated. Please install or update Bruin CLI to use this feature.";
+        vscode.window.showErrorMessage(formattedError);
+        throw new Error(formattedError);
+      } else {
+        console.error("Column lineage parsing error", error);
+        throw new Error(errorMessage);
+      }
+    }
+  }
 }

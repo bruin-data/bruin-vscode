@@ -62,23 +62,30 @@
         </div>
 
         <!-- Columns Section -->
-        <div v-if="showColumns" class="columns-section border border-white/20 border-t-0 rounded-b bg-editor-bg p-2">
-          <div class="text-xs font-semibold text-editor-fg mb-2 opacity-70">Columns</div>
-          <div v-if="nodeColumns && nodeColumns.length > 0" class="space-y-1">
+        <div v-if="showColumns" class="columns-section border border-white/20 border-t-0 rounded-b bg-editor-bg p-3">
+          <div class="text-xs font-semibold text-editor-fg mb-3 opacity-70 flex items-center">
+            <span>Columns</span>
+            <span v-if="nodeColumns && nodeColumns.length > 0" class="ml-1 text-2xs opacity-50">({{ nodeColumns.length }})</span>
+          </div>
+          <div v-if="nodeColumns && nodeColumns.length > 0" class="space-y-1.5 max-h-96 overflow-y-auto">
             <div 
-              v-for="(column, index) in nodeColumns.slice(0, maxColumnsToShow)" 
+              v-for="(column, index) in nodeColumns" 
               :key="index"
-              class="flex items-center text-xs"
+              class="flex items-center text-xs py-1.5 px-2 rounded hover:bg-input-background transition-colors"
             >
-              <div class="w-2 h-2 rounded-full mr-2 flex-shrink-0" :class="getColumnTypeColor(column.type)"></div>
-              <span class="font-medium text-editor-fg mr-2 truncate flex-shrink-0 min-w-0">{{ column.name }}</span>
-              <span class="text-editor-fg opacity-60 text-2xs truncate">{{ column.type }}</span>
-            </div>
-            <div v-if="nodeColumns.length > maxColumnsToShow" class="text-xs text-editor-fg opacity-50 italic">
-              +{{ nodeColumns.length - maxColumnsToShow }} more columns
+              <div class="w-2.5 h-2.5 rounded-full mr-3 flex-shrink-0 shadow-sm" :class="getColumnTypeColor(column.type)"></div>
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-editor-fg truncate">{{ column.name }}</div>
+                <div class="text-2xs text-editor-fg opacity-60 mt-0.5">{{ column.type }}</div>
+              </div>
+              <div v-if="column.primary_key" class="ml-2 flex-shrink-0">
+                <div class="w-3.5 h-3.5 rounded bg-yellow-500 flex items-center justify-center">
+                  <span class="text-white text-2xs font-bold">K</span>
+                </div>
+              </div>
             </div>
           </div>
-          <div v-else class="text-xs text-editor-fg opacity-50 italic">
+          <div v-else class="text-xs text-editor-fg opacity-50 italic px-2">
             No columns defined
           </div>
         </div>
@@ -175,7 +182,7 @@ const isNodeDownstreamExpanded = computed(() => {
   return nodeName ? props.expandedNodes?.[`${nodeName}_downstream`] : false;
 });
 
-const assetClass = computed(() => `rounded w-56 ${props.status ? selectedStatusStyle.value : ''}`);
+const assetClass = computed(() => `rounded ${props.status ? selectedStatusStyle.value : ''} ${showColumns.value ? 'w-80' : 'w-56'}`);
 
 const assetHighlightClass = computed(() => {
   return props.data.asset?.isFocusAsset
@@ -192,25 +199,40 @@ const nodeColumns = computed(() => {
   return props.data.asset.columns;
 });
 
-const maxColumnsToShow = ref(5); // Show max 5 columns by default
+
 
 const getColumnTypeColor = (type: string) => {
-  const typeColors: { [key: string]: string } = {
-    'integer': 'bg-blue-500',
-    'string': 'bg-green-500', 
-    'varchar': 'bg-green-500',
-    'float': 'bg-yellow-500',
-    'boolean': 'bg-purple-500',
-    'date': 'bg-red-500',
-    'timestamp': 'bg-red-600',
-    'decimal': 'bg-orange-500',
-    'text': 'bg-green-600',
-    'bigint': 'bg-blue-600',
-    'default': 'bg-gray-500'
+  // Node tipine göre uyumlu renkler kullan - daha koyu tonlar için 600/700 seviyesi
+  const assetType = props.data.asset?.type || 'default';
+  
+  // Node label rengine uyumlu column renkleri (daha parlak ve görünür)
+  const assetTypeColors: { [key: string]: string } = {
+    'bq.sql': 'bg-sky-600',
+    'external': 'bg-rose-600', 
+    'sf.sql': 'bg-orange-600',
+    'pg.sql': 'bg-cyan-600',
+    'rs.sql': 'bg-fuchsia-600',
+    'ms.sql': 'bg-violet-600',
+    'synapse.sql': 'bg-purple-600',
+    'ingestr': 'bg-amber-600',
+    'duckdb.seed': 'bg-rose-600',
+    'emr_serverless.spark': 'bg-lime-600',
+    'emr_serverless.pyspark': 'bg-lime-600', 
+    'bq.seed': 'bg-blue-600',
+    'athena.seed': 'bg-teal-600',
+    'clickhouse.seed': 'bg-pink-600',
+    'databricks.seed': 'bg-red-600',
+    'ms.seed': 'bg-violet-600',
+    'pg.seed': 'bg-cyan-600',
+    'rs.seed': 'bg-fuchsia-600',
+    'sf.seed': 'bg-orange-600',
+    'synapse.seed': 'bg-purple-600',
+    'python': 'bg-green-600',
+    'python.beta': 'bg-green-600',
+    'default': 'bg-gray-600'
   };
   
-  const lowerType = type?.toLowerCase() || '';
-  return typeColors[lowerType] || typeColors['default'];
+  return assetTypeColors[assetType] || assetTypeColors['default'];
 };
 
 const onAddUpstream = () => emit("add-upstream", props.data.asset?.name);
@@ -286,21 +308,40 @@ onUnmounted(() => {
 
 .node-content {
   width: 224px; /* Consistent width */
-  transition: height 0.3s ease;
+  transition: all 0.3s ease;
+}
+
+.node-content.with-columns {
+  width: 320px; /* Wider when showing columns */
 }
 
 .node-content.expanded {
   height: auto; /* Allow height to adjust based on content */
 }
 
-.node-content.with-columns {
-  @apply min-h-fit;
-}
+
 
 .columns-section {
   @apply transition-all duration-200 ease-in-out;
-  min-width: 200px;
-  max-width: 300px;
+  min-width: 280px;
+  max-width: 100%;
+}
+
+.columns-section::-webkit-scrollbar {
+  width: 4px;
+}
+
+.columns-section::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.columns-section::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+}
+
+.columns-section::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .icon-wrapper {

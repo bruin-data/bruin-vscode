@@ -1,11 +1,14 @@
 <template>
   <div class="flow">
-    <div v-if="isLoading || isLayouting" class="loading-overlay">
+    <div v-if="isLoading || isLayouting || isLoadingColumnLineage" class="loading-overlay">
       <vscode-progress-ring></vscode-progress-ring>
-      <span class="ml-2">{{ isLayouting ? 'Positioning graph...' : 'Loading lineage data...' }}</span>
+      <span class="ml-2">{{ 
+        isLoadingColumnLineage ? 'Loading column lineage...' :
+        isLayouting ? 'Positioning graph...' : 'Loading lineage data...' 
+      }}</span>
     </div>
-    <div v-else-if="error" class="error-message">
-      <span class="ml-2">{{ error }}</span>
+    <div v-else-if="error || columnLineageError" class="error-message">
+      <span class="ml-2">{{ columnLineageError || error }}</span>
     </div>
     
     <!-- Asset View -->
@@ -154,6 +157,7 @@ import type { AssetDataset } from "@/types";
 import { getAssetDataset } from "./useAssetLineage";
 import { XMarkIcon } from "@heroicons/vue/20/solid";
 import { FunnelIcon } from "@heroicons/vue/24/outline";
+import { vscode } from "@/utilities/vscode";
 
 const props = defineProps<{
   assetDataset?: AssetDataset | null;
@@ -180,6 +184,11 @@ const filterType = ref<"direct" | "all" | "column">("direct");
 const expandAllDownstreams = ref(false);
 const expandAllUpstreams = ref(false);
 const expandedNodes = ref<{ [key: string]: boolean }>({});
+
+// Column lineage state
+const columnLineageData = ref<any>(null);
+const isLoadingColumnLineage = ref(false);
+const columnLineageError = ref<string | null>(null);
 
 // Layout
 const elk = new ELK();
@@ -224,7 +233,10 @@ const currentGraphData = computed(() => {
   }
   
   if (filterType.value === "column") {
-    // Column level lineage logic will be implemented here
+    // Return column lineage data if available, otherwise base data
+    if (columnLineageData.value) {
+      return generateGraphWithColumnData(columnLineageData.value);
+    }
     return baseGraphData.value;
   }
   
@@ -576,14 +588,34 @@ const handleAllFilter = (event: Event) => {
   // updateGraph will be called automatically via watcher
 };
 
-const handleColumnFilter = (event: Event) => {
+const handleColumnFilter = async (event: Event) => {
   event.stopPropagation();
   filterType.value = "column";
   expandAllUpstreams.value = false;
   expandAllDownstreams.value = false;
   // Clear expansion state when switching to column level lineage
   expandedNodes.value = {};
-  // updateGraph will be called automatically via watcher
+  
+  // Fetch column lineage data
+  await fetchColumnLineageData();
+};
+
+const fetchColumnLineageData = async () => {
+  try {
+    isLoadingColumnLineage.value = true;
+    columnLineageError.value = null;
+    
+    // Request column lineage data from the backend
+    vscode.postMessage({
+      command: "bruin.getColumnLineage",
+      payload: {}
+    });
+  } catch (error: any) {
+    console.error("Error requesting column lineage:", error);
+    columnLineageError.value = error.message || "Failed to fetch column lineage";
+  } finally {
+    isLoadingColumnLineage.value = false;
+  }
 };
 
 const handleReset = async (event: Event) => {
@@ -617,7 +649,116 @@ const handlePipelineView = async (event?: Event) => {
  */
 onMounted(() => {
   processProperties();
+  
+  // Listen for column lineage data from the backend
+  const handleMessage = (event: MessageEvent) => {
+    const message = event.data;
+    if (message.command === "column-lineage-message") {
+      isLoadingColumnLineage.value = false;
+      if (message.payload.status === "success") {
+        columnLineageData.value = message.payload.message;
+        columnLineageError.value = null;
+        // Update graph with column lineage data
+        updateGraphWithColumnLineage();
+      } else {
+        columnLineageError.value = message.payload.message;
+        columnLineageData.value = null;
+      }
+    }
+  };
+  
+  window.addEventListener("message", handleMessage);
+  
+  // Cleanup listener on unmount
+  onUnmounted(() => {
+    window.removeEventListener("message", handleMessage);
+  });
 });
+
+const updateGraphWithColumnLineage = () => {
+  if (!columnLineageData.value) return;
+  
+  // Update the base graph data with column information
+  const { nodes: newNodes, edges: newEdges } = generateGraphWithColumnData(columnLineageData.value);
+  setNodes(newNodes);
+  setEdges(newEdges);
+  
+  // Apply layout
+  nextTick(async () => {
+    await updateNodePositions();
+    fitView();
+  });
+};
+
+const generateGraphWithColumnData = (columnData: any) => {
+  // Create nodes with column information from the column lineage data
+  const asset = columnData.asset;
+  const nodes: any[] = [];
+  const edges: any[] = [];
+  
+  // Create main asset node with columns - using same structure as generateGraphFromJSON
+  const mainNode = {
+    id: asset.name,
+    type: 'custom',
+    position: { x: 0, y: 0 },
+    data: {
+      label: asset.name,
+      type: 'asset',
+      asset: {
+        name: asset.name,
+        type: asset.type || "unknown",
+        pipeline: asset.pipeline || "unknown",
+        path: asset.definition_file?.path || asset.path || "unknown",
+        columns: asset.columns || [],
+        isFocusAsset: true,
+        hasUpstreams: asset.upstreams?.length > 0,
+        hasDownstreams: false
+      },
+      hasUpstreamForClicking: false,
+      hasDownstreamForClicking: false
+    }
+  };
+  nodes.push(mainNode);
+  
+  // Create upstream nodes with their columns - using same structure
+  if (asset.upstreams) {
+    asset.upstreams.forEach((upstream: any, index: number) => {
+      const upstreamNode = {
+        id: upstream.value,
+        type: 'custom',
+        position: { x: -300, y: index * 150 },
+        data: {
+          label: upstream.value,
+          type: 'asset',
+          asset: {
+            name: upstream.value,
+            type: upstream.type || "asset",
+            pipeline: asset.pipeline || "unknown",
+            path: "unknown",
+            columns: upstream.columns || [],
+            isFocusAsset: false,
+            hasUpstreams: false,
+            hasDownstreams: true
+          },
+          hasUpstreamForClicking: false,
+          hasDownstreamForClicking: false
+        }
+      };
+      nodes.push(upstreamNode);
+      
+      // Create edge
+      const edge = {
+        id: `${upstream.value}-${asset.name}`,
+        source: upstream.value,
+        target: asset.name,
+        type: 'default'
+      };
+      edges.push(edge);
+    });
+  }
+  
+  return { nodes, edges };
+};
 
 // Watch for filter changes to automatically update graph
 watch(
