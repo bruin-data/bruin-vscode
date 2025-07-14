@@ -33,8 +33,6 @@ export class QueryCodeLensProvider implements vscode.CodeLensProvider {
     // Search for SQL statements separated by semicolons in the masked text
     // This regex finds statements that end with semicolon or end of file
     const statements = this.parseStatements(maskedText);
-    console.log('Found statements:', statements.length);
-    console.log('Statements:', statements.map(s => ({ text: s.text, start: s.startOffset, end: s.endOffset })));
 
     for (const statement of statements) {
       if (token.isCancellationRequested) {
@@ -48,10 +46,7 @@ export class QueryCodeLensProvider implements vscode.CodeLensProvider {
 
       // Skip statements that are entirely comments (no SQL content)
       const trimmed = statement.text.trim();
-      console.log('Processing statement:', JSON.stringify(trimmed));
-      console.log('Is only comments:', this.isOnlyComments(trimmed));
       if (this.isOnlyComments(trimmed)) {
-        console.log('Skipping statement - only comments');
         continue;
       }
 
@@ -66,9 +61,26 @@ export class QueryCodeLensProvider implements vscode.CodeLensProvider {
         continue;
       }
 
-      const startPos = document.positionAt(statement.startOffset);
+      // Find the actual SQL start position by searching for the first non-comment line
+      const statementText = statement.text;
+      const lines = statementText.split('\n');
+      let sqlStartLine = 0;
+      
+      for (let i = 0; i < lines.length; i++) {
+        const trimmedLine = lines[i].trim();
+        
+        if (trimmedLine && !trimmedLine.startsWith('--') && !(trimmedLine.startsWith('/*') && trimmedLine.endsWith('*/'))) {
+          // Found the first non-comment line
+          sqlStartLine = i;
+          break;
+        }
+      }
+      
+      // Calculate the position in the document
+      const statementStartPos = document.positionAt(statement.startOffset);
+      const sqlStartPos = new vscode.Position(statementStartPos.line + sqlStartLine, 0);
       const endPos = document.positionAt(statement.endOffset);
-      const queryRange = new vscode.Range(startPos, endPos);
+      const queryRange = new vscode.Range(sqlStartPos, endPos);
 
       // Create CodeLens for each statement
       codeLenses.push(
@@ -194,40 +206,31 @@ export class QueryCodeLensProvider implements vscode.CodeLensProvider {
     const lines = text.split('\n');
     let hasNonCommentContent = false;
     
-    console.log('Checking if only comments. Lines:', lines.length);
-    
     for (const line of lines) {
       const trimmedLine = line.trim();
-      console.log('Line:', JSON.stringify(trimmedLine));
       
       // Skip empty lines
       if (!trimmedLine) {
-        console.log('Empty line, skipping');
         continue;
       }
       
       // Check if line is a line comment
       if (trimmedLine.startsWith('--')) {
-        console.log('Line comment, skipping');
         continue;
       }
       
       // Check if line is inside a block comment
       // For simplicity, we'll assume block comments are on separate lines
       if (trimmedLine.startsWith('/*') && trimmedLine.endsWith('*/')) {
-        console.log('Block comment, skipping');
         continue;
       }
       
       // If we find any line that's not a comment or empty, this is not only comments
-      console.log('Found non-comment content:', trimmedLine);
       hasNonCommentContent = true;
       break;
     }
     
     // Return true if no non-comment content was found
-    const result = !hasNonCommentContent;
-    console.log('Final result:', result);
-    return result;
+    return !hasNonCommentContent;
   }
 }
