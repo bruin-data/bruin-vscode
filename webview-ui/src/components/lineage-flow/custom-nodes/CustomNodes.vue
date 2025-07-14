@@ -12,7 +12,7 @@
       </div>
     </div>
 
-    <div class="node-content" :class="[assetClass, { expanded: isExpanded, 'with-columns': showColumns }]" @click="togglePopup">
+    <div class="node-content" :class="[assetClass, { expanded: isExpanded, 'with-columns': showColumns }]" @click="handleNodeClick">
       <div
         v-if="data.type === 'asset'"
         :class="assetHighlightClass"
@@ -41,47 +41,51 @@
         </div>
 
         <div
-          class="font-mono py-1 text-left px-1 border border-white/20"
+          class="font-mono py-1 text-left px-1 border border-white/20 relative"
           :class="[selectedStyle.main, status ? '' : 'rounded-tl', showColumns ? 'rounded-none' : 'rounded-b']"
         >
-          <div class="relative group">
-            <!-- Truncated Text with Expand Option -->
-            <div class="dynamic-text" :style="{ fontSize: computedFontSize }" @click.stop="toggleExpand">
-              {{ isExpanded ? label : truncatedLabel }}
+          <div class="relative group flex items-center justify-between">
+            <!-- Asset Name Section -->
+            <div class="flex-1">
+              <!-- Truncated Text with Expand Option -->
+              <div class="dynamic-text" :style="{ fontSize: computedFontSize }" @click.stop="toggleExpand">
+                {{ isExpanded ? label : truncatedLabel }}
+              </div>
+              <!-- Tooltip -->
+              <div
+                v-if="isTruncated && !isExpanded"
+                class="absolute left-0 top-0 w-max font-mono rounded opacity-0 whitespace-nowrap group-hover:opacity-100 transition-opacity duration-200 group-hover:cursor-pointer"
+                :class="selectedStyle.main"
+                @click.stop="toggleExpand"
+              >
+                {{ label }}
+              </div>
             </div>
-            <!-- Tooltip -->
-            <div
-              v-if="isTruncated && !isExpanded"
-              class="absolute left-0 top-0 w-max font-mono rounded opacity-0 whitespace-nowrap group-hover:opacity-100 transition-opacity duration-200 group-hover:cursor-pointer"
-              :class="selectedStyle.main"
-              @click.stop="toggleExpand"
+            
+            <!-- Columns Toggle Button -->
+            <div 
+              v-if="showColumns && nodeColumns && nodeColumns.length > 0" 
+              class="ml-2 transform transition-transform duration-200 opacity-60" 
+              :class="{ 'rotate-180': columnsExpanded }"
+              :title="`${columnsExpanded ? 'Hide' : 'Show'} columns (${nodeColumns.length})`"
             >
-              {{ label }}
+              <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+              </svg>
             </div>
           </div>
         </div>
 
         <!-- Columns Section -->
-        <div v-if="showColumns" class="columns-section border border-white/20 border-t-0 rounded-b p-2" :class="selectedStyle.main">
-          <div class="text-xs font-semibold mb-2 opacity-70 flex items-center justify-between px-1 cursor-pointer" @click.stop="toggleColumnsExpanded">
-            <div class="flex items-center">
-              <span>Columns</span>
-              <span v-if="nodeColumns && nodeColumns.length > 0" class="ml-1 text-2xs opacity-50">({{ nodeColumns.length }})</span>
-            </div>
-            <div class="transform transition-transform duration-200" :class="{ 'rotate-180': columnsExpanded }">
-              <svg class="w-3 h-3 opacity-60" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-              </svg>
-            </div>
-          </div>
-          <div v-if="columnsExpanded" class="transition-all duration-200 ease-in-out">
-            <div v-if="nodeColumns && nodeColumns.length > 0" class="space-y-1 max-h-96 overflow-y-auto">
-              <div 
-                v-for="(column, index) in nodeColumns" 
-                :key="index"
-                class="flex items-center text-xs py-1 px-2 rounded border border-white/10 transition-colors font-mono"
-                :class="selectedStyle.main"
-              >
+        <div v-if="showColumns && columnsExpanded" class="columns-section border border-white/20 border-t-0 rounded-b p-2 absolute top-full left-0 right-0 z-10 bg-inherit" :class="selectedStyle.main" @click.stop>
+          <div class="transition-all duration-200 ease-in-out">
+            <div v-if="nodeColumns && nodeColumns.length > 0">
+                              <div 
+                  v-for="(column, index) in nodeColumns" 
+                  :key="index"
+                  class="flex items-center text-xs py-1 px-2 rounded border border-white/10 transition-colors font-mono hover:bg-white/25 hover:border-white/40 cursor-pointer"
+                  :class="selectedStyle.main"
+                >
                 <div class="w-2 h-2 rounded-full mr-2 flex-shrink-0" :class="getColumnTypeColor(column.type)"></div>
                 <div class="flex-1 min-w-0">
                   <div class="font-medium truncate">{{ column.name }}</div>
@@ -159,7 +163,7 @@ const props = defineProps<BruinNodeProps & {
 }>();
 const emit = defineEmits(["add-upstream", "add-downstream", "node-click", "toggle-node-expand"]);
 
-const columnsExpanded = ref(false);
+const columnsExpanded = ref(props.data.asset?.isFocusAsset || false);
 
 const selectedStyle = computed(() => styles[props.data?.asset?.type || "default"] || defaultStyle);
 const selectedStatusStyle = computed(() => statusStyles[props.status || ""]);
@@ -254,6 +258,16 @@ const togglePopup = (event) => {
   emit("node-click", props.data.asset?.name, event);
 };
 
+const handleNodeClick = (event) => {
+  event.stopPropagation();
+  // Always toggle columns if they exist
+  if (showColumns.value && nodeColumns.value && nodeColumns.value.length > 0) {
+    toggleColumnsExpanded();
+  }
+  // Also handle popup logic
+  emit("node-click", props.data.asset?.name, event);
+};
+
 const closePopup = () => emit("node-click", null, new MouseEvent('click'));
 
 const handleGoToDetails = (asset) => {
@@ -272,7 +286,12 @@ const truncatedLabel = computed(() => {
 });
 
 const toggleExpand = () => {
+  // Toggle node name expansion
   emit("toggle-node-expand", props.data.asset?.name);
+  // Also toggle columns if they exist
+  if (showColumns.value && nodeColumns.value && nodeColumns.value.length > 0) {
+    toggleColumnsExpanded();
+  }
 };
 
 const toggleColumnsExpanded = () => {
@@ -336,7 +355,7 @@ onUnmounted(() => {
 
 
 .columns-section {
-  @apply transition-all duration-200 ease-in-out;
+  @apply transition-all duration-200 ease-in-out shadow-lg;
   min-width: 280px;
   max-width: 100%;
 }
