@@ -35,6 +35,7 @@
           @node-click="onNodeClick"
           :selected-node-id="selectedNodeId"
           :show-expand-buttons="filterType === 'direct'"
+          :show-columns="filterType === 'column'"
         />
       </template>
       
@@ -72,6 +73,10 @@
             </vscode-radio>
               <vscode-radio value="direct" class="radio-item" @click="handleDirectFilter">
                 <span class="radio-label text-editor-fg">Direct Dependencies</span>
+              </vscode-radio>
+
+              <vscode-radio value="column" class="radio-item" @click="handleColumnFilter">
+                <span class="radio-label text-editor-fg">Column Level Lineage</span>
               </vscode-radio>
 
               <vscode-radio value="all" class="radio-item" @click="handleAllFilter">
@@ -171,7 +176,7 @@ const isLayouting = ref(false);
 const error = ref<string | null>(props.LineageError);
 
 // Filter state
-const filterType = ref<"direct" | "all">("direct");
+const filterType = ref<"direct" | "all" | "column">("direct");
 const expandAllDownstreams = ref(false);
 const expandAllUpstreams = ref(false);
 const expandedNodes = ref<{ [key: string]: boolean }>({});
@@ -182,6 +187,7 @@ const elk = new ELK();
 // Computed properties for performance
 const filterLabel = computed(() => {
   if (filterType.value === "direct") return "Direct Dependencies";
+  if (filterType.value === "column") return "Column Level Lineage";
   if (expandAllUpstreams.value && expandAllDownstreams.value) return "All Dependencies";
   if (expandAllDownstreams.value) return "All Downstreams";
   return "All Upstreams";
@@ -214,6 +220,11 @@ const allUpstreamAssets = computed(() => {
 // Computed graph data based on current filter
 const currentGraphData = computed(() => {
   if (filterType.value === "direct") {
+    return baseGraphData.value;
+  }
+  
+  if (filterType.value === "column") {
+    // Column level lineage logic will be implemented here
     return baseGraphData.value;
   }
   
@@ -562,6 +573,16 @@ const handleAllFilter = (event: Event) => {
   filterType.value = "all";
   expandAllUpstreams.value = true;
   expandAllDownstreams.value = true;
+  // updateGraph will be called automatically via watcher
+};
+
+const handleColumnFilter = (event: Event) => {
+  event.stopPropagation();
+  filterType.value = "column";
+  expandAllUpstreams.value = false;
+  expandAllDownstreams.value = false;
+  // Clear expansion state when switching to column level lineage
+  expandedNodes.value = {};
   // updateGraph will be called automatically via watcher
 };
 

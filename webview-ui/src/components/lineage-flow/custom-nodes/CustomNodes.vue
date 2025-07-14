@@ -12,7 +12,7 @@
       </div>
     </div>
 
-    <div class="node-content" :class="[assetClass, { expanded: isExpanded }]" @click="togglePopup">
+    <div class="node-content" :class="[assetClass, { expanded: isExpanded, 'with-columns': showColumns }]" @click="togglePopup">
       <div
         v-if="data.type === 'asset'"
         :class="assetHighlightClass"
@@ -41,8 +41,8 @@
         </div>
 
         <div
-          class="rounded-b font-mono py-1 text-left px-1 border border-white/20"
-          :class="[selectedStyle.main, status ? '' : 'rounded-tl']"
+          class="font-mono py-1 text-left px-1 border border-white/20"
+          :class="[selectedStyle.main, status ? '' : 'rounded-tl', showColumns ? 'rounded-none' : 'rounded-b']"
         >
           <div class="relative group">
             <!-- Truncated Text with Expand Option -->
@@ -58,6 +58,28 @@
             >
               {{ label }}
             </div>
+          </div>
+        </div>
+
+        <!-- Columns Section -->
+        <div v-if="showColumns" class="columns-section border border-white/20 border-t-0 rounded-b bg-editor-bg p-2">
+          <div class="text-xs font-semibold text-editor-fg mb-2 opacity-70">Columns</div>
+          <div v-if="nodeColumns && nodeColumns.length > 0" class="space-y-1">
+            <div 
+              v-for="(column, index) in nodeColumns.slice(0, maxColumnsToShow)" 
+              :key="index"
+              class="flex items-center text-xs"
+            >
+              <div class="w-2 h-2 rounded-full mr-2 flex-shrink-0" :class="getColumnTypeColor(column.type)"></div>
+              <span class="font-medium text-editor-fg mr-2 truncate flex-shrink-0 min-w-0">{{ column.name }}</span>
+              <span class="text-editor-fg opacity-60 text-2xs truncate">{{ column.type }}</span>
+            </div>
+            <div v-if="nodeColumns.length > maxColumnsToShow" class="text-xs text-editor-fg opacity-50 italic">
+              +{{ nodeColumns.length - maxColumnsToShow }} more columns
+            </div>
+          </div>
+          <div v-else class="text-xs text-editor-fg opacity-50 italic">
+            No columns defined
           </div>
         </div>
       </div>
@@ -116,6 +138,7 @@ const props = defineProps<BruinNodeProps & {
   expandAllUpstreams?: boolean;
   expandedNodes?: { [key: string]: boolean };
   showExpandButtons: boolean;
+  showColumns?: boolean;  // New prop for showing columns
 }>();
 const emit = defineEmits(["add-upstream", "add-downstream", "node-click", "toggle-node-expand"]);
 
@@ -159,6 +182,36 @@ const assetHighlightClass = computed(() => {
     ? 'ring-2 ring-offset-4 ring-indigo-300 outline-2 outline-dashed outline-offset-8 outline-indigo-300 rounded'
     : '';
 });
+
+const showColumns = computed(() => props.showColumns && isAsset.value);
+
+const nodeColumns = computed(() => {
+  if (!showColumns.value || !props.data.asset?.columns) {
+    return [];
+  }
+  return props.data.asset.columns;
+});
+
+const maxColumnsToShow = ref(5); // Show max 5 columns by default
+
+const getColumnTypeColor = (type: string) => {
+  const typeColors: { [key: string]: string } = {
+    'integer': 'bg-blue-500',
+    'string': 'bg-green-500', 
+    'varchar': 'bg-green-500',
+    'float': 'bg-yellow-500',
+    'boolean': 'bg-purple-500',
+    'date': 'bg-red-500',
+    'timestamp': 'bg-red-600',
+    'decimal': 'bg-orange-500',
+    'text': 'bg-green-600',
+    'bigint': 'bg-blue-600',
+    'default': 'bg-gray-500'
+  };
+  
+  const lowerType = type?.toLowerCase() || '';
+  return typeColors[lowerType] || typeColors['default'];
+};
 
 const onAddUpstream = () => emit("add-upstream", props.data.asset?.name);
 const onAddDownstream = () => emit("add-downstream", props.data.asset?.name);
@@ -240,6 +293,16 @@ onUnmounted(() => {
   height: auto; /* Allow height to adjust based on content */
 }
 
+.node-content.with-columns {
+  @apply min-h-fit;
+}
+
+.columns-section {
+  @apply transition-all duration-200 ease-in-out;
+  min-width: 200px;
+  max-width: 300px;
+}
+
 .icon-wrapper {
   position: absolute;
   top: 72%;
@@ -265,5 +328,10 @@ onUnmounted(() => {
 
 .right-icon {
   right: -28px;
+}
+
+.text-2xs {
+  font-size: 0.625rem;
+  line-height: 0.75rem;
 }
 </style>
