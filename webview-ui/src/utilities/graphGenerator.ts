@@ -79,3 +79,74 @@ export function generateGraphForDownstream(nodeName: string, pipelineData: any) 
     isFocusAsset: false,
   });
 }
+
+
+export const generateGraphWithColumnData = (columnData: any) => {
+  // Create nodes with column information from the column lineage data
+  const asset = columnData.asset;
+  const nodes: any[] = [];
+  const edges: any[] = [];
+  
+  // Create main asset node with columns - using same structure as generateGraphFromJSON
+  const mainNode = {
+    id: asset.name,
+    type: 'custom',
+    position: { x: 0, y: 0 },
+    data: {
+      label: asset.name,
+      type: 'asset',
+      asset: {
+        name: asset.name,
+        type: asset.type || "unknown",
+        pipeline: asset.pipeline || "unknown",
+        path: asset.definition_file?.path || asset.path || "unknown",
+        columns: asset.columns || [],
+        isFocusAsset: true,
+        hasUpstreams: asset.upstreams?.length > 0,
+        hasDownstreams: false
+      },
+      hasUpstreamForClicking: false,
+      hasDownstreamForClicking: false
+    }
+  };
+  nodes.push(mainNode);
+  
+  // Create upstream nodes with their columns - using same structure
+  if (asset.upstreams) {
+    asset.upstreams.forEach((upstream: any, index: number) => {
+      const upstreamNode = {
+        id: upstream.value,
+        type: 'custom',
+        position: { x: -300, y: index * 150 },
+        data: {
+          label: upstream.value,
+          type: 'asset',
+          asset: {
+            name: upstream.value,
+            type: upstream.type || "asset",
+            pipeline: asset.pipeline || "unknown",
+            path: "unknown",
+            columns: upstream.columns || [],
+            isFocusAsset: false,
+            hasUpstreams: false,
+            hasDownstreams: true
+          },
+          hasUpstreamForClicking: false,
+          hasDownstreamForClicking: false
+        }
+      };
+      nodes.push(upstreamNode);
+      
+      // Create edge
+      const edge = {
+        id: `${upstream.value}-${asset.name}`,
+        source: upstream.value,
+        target: asset.name,
+        type: 'default'
+      };
+      edges.push(edge);
+    });
+  }
+  
+  return { nodes, edges };
+};

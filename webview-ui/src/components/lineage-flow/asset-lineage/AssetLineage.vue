@@ -11,9 +11,16 @@
       <span class="ml-2">{{ columnLineageError || error }}</span>
     </div>
     
+    <!-- Column Lineage View -->
+    <ColumnLineage 
+      v-if="filterType === 'column' && !isLoadingColumnLineage && !columnLineageError"
+      :graph-data="columnGraphData" 
+      @change-view="handleViewChange"
+    />
+
     <!-- Asset View -->
     <VueFlow
-      v-if="!showPipelineView && !isLayouting"
+      v-if="!showPipelineView && !isLayouting && filterType !== 'column'"
       v-model:elements="elements"
       :fit-view-on-init="false"
       class="basic-flow"
@@ -38,12 +45,12 @@
           @node-click="onNodeClick"
           :selected-node-id="selectedNodeId"
           :show-expand-buttons="filterType === 'direct'"
-          :show-columns="filterType === 'column'"
+          :show-columns="false"
         />
       </template>
       
       <!-- Filter Panel -->
-      <Panel position="top-right">
+      <Panel v-if="filterType !== 'column'" position="top-right">
         <div
           v-if="!expandPanel"
           @click="expandPanel = !expandPanel"
@@ -148,6 +155,8 @@ import { computed, onMounted, defineProps, watch, ref, nextTick, onUnmounted, sh
 import ELK from "elkjs/lib/elk.bundled.js";
 import CustomNode from "@/components/lineage-flow/custom-nodes/CustomNodes.vue";
 import PipelineLineage from "@/components/lineage-flow/pipeline-lineage/PipelineLineage.vue";
+import ColumnLineage from "@/components/lineage-flow/column-lineage/ColumnLineage.vue";
+import { useColumnLineage } from "@/components/lineage-flow/column-lineage/useColumnLineage";
 import {
   generateGraphFromJSON,
   generateGraphForDownstream,
@@ -166,10 +175,28 @@ const props = defineProps<{
   LineageError: string | null;
 }>();
 
+const handleViewChange = (newFilterType: 'direct' | 'all' | 'column' | 'pipeline') => {
+  if (newFilterType === 'pipeline') {
+    showPipelineView.value = true;
+  } else {
+    showPipelineView.value = false;
+    filterType.value = newFilterType;
+  }
+};
+
 // Core Vue Flow state
 const flowRef = ref(null);
 const { nodes, edges, addNodes, addEdges, setNodes, setEdges, fitView } = useVueFlow();
 const elements = computed(() => [...nodes.value, ...edges.value]);
+
+// Column Lineage State
+const { 
+  isLoadingColumnLineage, 
+  columnLineageError, 
+  graphData: columnGraphData, 
+  fetchColumnLineageData 
+} = useColumnLineage();
+
 
 // UI state
 const expandPanel = ref(false);
@@ -184,11 +211,6 @@ const filterType = ref<"direct" | "all" | "column">("direct");
 const expandAllDownstreams = ref(false);
 const expandAllUpstreams = ref(false);
 const expandedNodes = ref<{ [key: string]: boolean }>({});
-
-// Column lineage state
-const columnLineageData = ref<any>(null);
-const isLoadingColumnLineage = ref(false);
-const columnLineageError = ref<string | null>(null);
 
 // Layout
 const elk = new ELK();
@@ -233,11 +255,8 @@ const currentGraphData = computed(() => {
   }
   
   if (filterType.value === "column") {
-    // Return column lineage data if available, otherwise base data
-    if (columnLineageData.value) {
-      return generateGraphWithColumnData(columnLineageData.value);
-    }
-    return baseGraphData.value;
+    // This view is now handled by the ColumnLineage component
+    return { nodes: [], edges: [] };
   }
   
   if (filterType.value === "all") {
@@ -591,30 +610,8 @@ const handleAllFilter = (event: Event) => {
 const handleColumnFilter = async (event: Event) => {
   event.stopPropagation();
   filterType.value = "column";
-  expandAllUpstreams.value = false;
-  expandAllDownstreams.value = false;
-  // Clear expansion state when switching to column level lineage
-  expandedNodes.value = {};
-  
-  // Fetch column lineage data
-  await fetchColumnLineageData();
-};
-
-const fetchColumnLineageData = async () => {
-  try {
-    isLoadingColumnLineage.value = true;
-    columnLineageError.value = null;
-    
-    // Request column lineage data from the backend
-    vscode.postMessage({
-      command: "bruin.getColumnLineage",
-      payload: {}
-    });
-  } catch (error: any) {
-    console.error("Error requesting column lineage:", error);
-    columnLineageError.value = error.message || "Failed to fetch column lineage";
-  } finally {
-    isLoadingColumnLineage.value = false;
+  if (!columnGraphData.value.nodes.length) {
+    fetchColumnLineageData();
   }
 };
 
@@ -653,18 +650,7 @@ onMounted(() => {
   // Listen for column lineage data from the backend
   const handleMessage = (event: MessageEvent) => {
     const message = event.data;
-    if (message.command === "column-lineage-message") {
-      isLoadingColumnLineage.value = false;
-      if (message.payload.status === "success") {
-        columnLineageData.value = message.payload.message;
-        columnLineageError.value = null;
-        // Update graph with column lineage data
-        updateGraphWithColumnLineage();
-      } else {
-        columnLineageError.value = message.payload.message;
-        columnLineageData.value = null;
-      }
-    }
+    // The column-lineage-message is now handled in useColumnLineage
   };
   
   window.addEventListener("message", handleMessage);
@@ -675,91 +661,7 @@ onMounted(() => {
   });
 });
 
-const updateGraphWithColumnLineage = () => {
-  if (!columnLineageData.value) return;
-  
-  // Update the base graph data with column information
-  const { nodes: newNodes, edges: newEdges } = generateGraphWithColumnData(columnLineageData.value);
-  setNodes(newNodes);
-  setEdges(newEdges);
-  
-  // Apply layout
-  nextTick(async () => {
-    await updateNodePositions();
-    fitView();
-  });
-};
-
-const generateGraphWithColumnData = (columnData: any) => {
-  // Create nodes with column information from the column lineage data
-  const asset = columnData.asset;
-  const nodes: any[] = [];
-  const edges: any[] = [];
-  
-  // Create main asset node with columns - using same structure as generateGraphFromJSON
-  const mainNode = {
-    id: asset.name,
-    type: 'custom',
-    position: { x: 0, y: 0 },
-    data: {
-      label: asset.name,
-      type: 'asset',
-      asset: {
-        name: asset.name,
-        type: asset.type || "unknown",
-        pipeline: asset.pipeline || "unknown",
-        path: asset.definition_file?.path || asset.path || "unknown",
-        columns: asset.columns || [],
-        isFocusAsset: true,
-        hasUpstreams: asset.upstreams?.length > 0,
-        hasDownstreams: false
-      },
-      hasUpstreamForClicking: false,
-      hasDownstreamForClicking: false
-    }
-  };
-  nodes.push(mainNode);
-  
-  // Create upstream nodes with their columns - using same structure
-  if (asset.upstreams) {
-    asset.upstreams.forEach((upstream: any, index: number) => {
-      const upstreamNode = {
-        id: upstream.value,
-        type: 'custom',
-        position: { x: -300, y: index * 150 },
-        data: {
-          label: upstream.value,
-          type: 'asset',
-          asset: {
-            name: upstream.value,
-            type: upstream.type || "asset",
-            pipeline: asset.pipeline || "unknown",
-            path: "unknown",
-            columns: upstream.columns || [],
-            isFocusAsset: false,
-            hasUpstreams: false,
-            hasDownstreams: true
-          },
-          hasUpstreamForClicking: false,
-          hasDownstreamForClicking: false
-        }
-      };
-      nodes.push(upstreamNode);
-      
-      // Create edge
-      const edge = {
-        id: `${upstream.value}-${asset.name}`,
-        source: upstream.value,
-        target: asset.name,
-        type: 'default'
-      };
-      edges.push(edge);
-    });
-  }
-  
-  return { nodes, edges };
-};
-
+// REMOVED updateGraphWithColumnLineage, generateGraphWithColumnData and the message listener logic for column lineage
 // Watch for filter changes to automatically update graph
 watch(
   () => [filterType.value, expandAllUpstreams.value, expandAllDownstreams.value],
@@ -781,6 +683,7 @@ watch(
   },
   { immediate: false }
 );
+
 </script>
 
 <style>
