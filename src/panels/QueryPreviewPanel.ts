@@ -284,9 +284,16 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
           const tabId = message.payload.tabId || "tab-1";
           const startDate = message.payload.startDate || "";
           const endDate = message.payload.endDate || "";
+          const extractedQuery = message.payload.query || "";
+          
+          // If we have an extracted query from CodeLens, store it for this tab
+          if (extractedQuery) {
+            QueryPreviewPanel.setTabQuery(tabId, extractedQuery);
+          }
+          
           this.loadAndSendQueryOutput(this.environment, this.limit, tabId, startDate, endDate);
           console.log(
-            "Received limit and tabId from webview in the Query Preview panel",
+            "Received limit, tabId, and query from webview in the Query Preview panel",
             message.payload
           );
           break;
@@ -314,7 +321,7 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
 
   public static postMessage(
     name: string,
-    data: string | { status: string; message: string | any; tabId?: string }
+    data: string | { status: string; message: string | any; tabId?: string; [key: string]: any }
   ) {
     if (this._view) {
       console.log("Posting message to webview in the Query Preview panel", name, data);

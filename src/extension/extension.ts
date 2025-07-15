@@ -23,11 +23,9 @@ import { QueryPreviewPanel } from "../panels/QueryPreviewPanel";
 import { BruinPanel } from "../panels/BruinPanel";
 import { QueryCodeLensProvider } from "../providers/queryCodeLensProvider";
 import { ScheduleCodeLensProvider } from "../providers/scheduleCodeLensProvider";
-import { getQueryOutput } from "./commands/queryCommands";
+import { QuerySelectionCodeLensProvider } from "../providers/querySelectionCodeLensProvider";
 import { ActivityBarConnectionsProvider } from "../providers/ActivityBarConnectionsProvider";
 import { FavoritesProvider } from "../providers/FavoritesProvider";
-import { isBruinAsset, isBruinPipeline } from "../utilities/helperUtils";
-import { getBruinExecutablePath } from "../providers/BruinExecutableService";
 import { TableDetailsPanel } from "../panels/TableDetailsPanel";
 
 let analyticsClient: any = null;
@@ -191,6 +189,27 @@ export async function activate(context: ExtensionContext) {
     new ScheduleCodeLensProvider()
   );
   context.subscriptions.push(scheduleCodeLensProvider);
+
+  // Register the query selection CodeLens provider for SQL files
+  const querySelectionCodeLensProvider = languages.registerCodeLensProvider(
+    { language: "sql" },
+    new QuerySelectionCodeLensProvider()
+  );
+  context.subscriptions.push(querySelectionCodeLensProvider);
+
+  // Register for BigQuery SQL
+  const querySelectionCodeLensProviderBigQuery = languages.registerCodeLensProvider(
+    { language: "sql-bigquery" },
+    new QuerySelectionCodeLensProvider()
+  );
+  context.subscriptions.push(querySelectionCodeLensProviderBigQuery);
+
+  // Register for Snowflake SQL
+  const querySelectionCodeLensProviderSnowflake = languages.registerCodeLensProvider(
+    { language: "snowflake-sql" },
+    new QuerySelectionCodeLensProvider()
+  );
+  context.subscriptions.push(querySelectionCodeLensProviderSnowflake);
 
   subscribeToConfigurationChanges();
 
@@ -364,13 +383,28 @@ export async function activate(context: ExtensionContext) {
         vscode.window.showErrorMessage(`Error removing table from favorites: ${errorMessage}`);
       }
     }),
-    commands.registerCommand("bruin.runQuery", async (uri: vscode.Uri, range: vscode.Range) => {
+    commands.registerCommand("bruin.runQuery", async (uri: vscode.Uri, range: vscode.Range, isAsset?: boolean, queryCount?: number, queryText?: string) => {
       try {
         trackEvent("Command Executed", { command: "runQuery" });
         const document = await workspace.openTextDocument(uri);
-        const query = document.getText(range);
-        QueryPreviewPanel.setLastExecutedQuery(query);
         const activeTabId = QueryPreviewPanel.getActiveTabId();
+        
+        // Determine what to send based on asset status and query count
+        let queryToSend = "";
+        let shouldSendQuery = true;
+        
+        if (isAsset && queryCount === 1) {
+          shouldSendQuery = false;
+        } else if (isAsset && queryCount && queryCount > 1 && queryText) {
+          queryToSend = queryText;
+        } else {
+          queryToSend = document.getText(range);
+        }
+        
+        // Store the extracted query for the specific tab
+        QueryPreviewPanel.setTabQuery(activeTabId, queryToSend);
+        QueryPreviewPanel.setTabAssetPath(activeTabId, uri.fsPath);
+        QueryPreviewPanel.setLastExecutedQuery(queryToSend);
 
         QueryPreviewPanel.postMessage("query-output-message", {
           status: "loading",
@@ -383,11 +417,60 @@ export async function activate(context: ExtensionContext) {
         QueryPreviewPanel.postMessage("bruin.executePreviewQuery", { 
           status: "success",
           message: "",
-          tabId: activeTabId
+          tabId: activeTabId,
+          extractedQuery: shouldSendQuery ? queryToSend : ""
         }); 
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         vscode.window.showErrorMessage(`Error running query: ${errorMessage}`);
+      }
+    }),
+    commands.registerCommand("bruin.previewSelectedQuery", async (selectedQueryText?: string) => {
+      try {
+        const editor = window.activeTextEditor;
+        if (!editor) {
+          vscode.window.showWarningMessage("No active editor found");
+          return;
+        }
+
+        let selectedText = selectedQueryText;
+        
+        // If no query text provided, get it from the current selection
+        if (!selectedText) {
+          const selection = editor.selection;
+          if (selection.isEmpty) {
+            vscode.window.showWarningMessage("Please select a query to preview");
+            return;
+          }
+
+          selectedText = editor.document.getText(selection).trim();
+          if (!selectedText) {
+            vscode.window.showWarningMessage("Selected text is empty");
+            return;
+          }
+        }
+
+        // Just run the selected text as a query
+        QueryPreviewPanel.setLastExecutedQuery(selectedText);
+        const activeTabId = QueryPreviewPanel.getActiveTabId();
+
+        QueryPreviewPanel.postMessage("query-output-message", {
+          status: "loading",
+          message: true,
+          tabId: activeTabId,
+        });
+        await QueryPreviewPanel.focusSafely();
+
+        QueryPreviewPanel.postMessage("bruin.executePreviewQuery", { 
+          status: "success",
+          message: "",
+          tabId: activeTabId,
+          extractedQuery: selectedText
+        });
+
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error previewing query: ${errorMessage}`);
       }
     }),
     commands.registerCommand("bruin.renderSQL", async () => {

@@ -2,7 +2,7 @@
   "name": "bruin",
   "displayName": "Bruin",
   "description": "Manage your Bruin data assets from within VS Code.",
-  "version": "0.58.5",
+  "version": "0.58.6",
   "engines": {
     "vscode": "^1.87.0"
   },
@@ -263,6 +263,13 @@
           "group": "navigation"
         }
       ],
+      "editor/context": [
+        {
+          "command": "bruin.previewSelectedQuery",
+          "when": "editorHasSelection",
+          "group": "1_modification"
+        }
+      ],
       "view/title": [
         {
           "command": "bruin.refreshConnections",
@@ -431,6 +438,21 @@
         "category": "Bruin",
         "icon": "$(star-full)",
         "description": "Remove table from favorites list."
+      },
+      {
+        "command": "bruin.previewSelectedQuery",
+        "title": "Preview Selected Query",
+        "category": "Bruin",
+        "icon": "$(play)",
+        "description": "Preview the selected SQL query in the Query Preview panel."
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "bruin.previewSelectedQuery",
+        "key": "ctrl+shift+r",
+        "mac": "cmd+shift+r",
+        "when": "editorTextFocus && editorHasSelection && resourceExtname == .sql"
       }
     ]
   },

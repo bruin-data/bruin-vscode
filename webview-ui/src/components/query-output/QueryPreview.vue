@@ -591,6 +591,7 @@ window.addEventListener("message", (event) => {
     // Handle preview intellisense query execution with current limit
     const tabId = message.payload.tabId || activeTab.value;
     const selectedEnvironment = currentEnvironment.value;
+    const extractedQuery = message.payload.extractedQuery || "";
     
     // Send query execution request with current limit from UI
     vscode.postMessage({
@@ -598,7 +599,7 @@ window.addEventListener("message", (event) => {
       payload: {
         environment: selectedEnvironment,
         limit: limit.value.toString(),
-        query: "",
+        query: extractedQuery,
         tabId: tabId,
       },
     });
