@@ -45,6 +45,99 @@ Bruin is a unified analytics platform that enables data professionals to work en
 - Autocomplete support for `.bruin.yml`, `pipeline.yml`, and `*.asset.yml` files with predefined options and schema validations.
 - Snippets for creating Bruin root configuration, pipelines, and assets.
 
+## Column-Level Lineage Support
+
+The Bruin VS Code extension now supports column-level lineage analysis, providing detailed insights into data flow at the column level while maintaining full backward compatibility with existing pipeline functionality.
+
+### Features
+
+- **Column Information**: Get detailed column metadata including names, types, constraints, and custom checks
+- **Column-Level Lineage**: Track data lineage at the column level to understand which source columns feed into each destination column
+- **Schema Analysis**: Alternative schema analysis using `--with-schema` flag
+- **Backward Compatibility**: All existing pipeline parsing functionality remains unchanged
+
+### Usage
+
+#### Parse Pipeline with Columns
+
+```typescript
+import { parsePipelineWithColumnsCommand } from './src/extension/commands/parseAssetCommand';
+
+// Parse pipeline with column information
+const pipelineData = await parsePipelineWithColumnsCommand(documentUri, true);
+console.log('Assets with columns:', pipelineData?.assets);
+console.log('Column lineage:', pipelineData?.columnLineage);
+```
+
+#### Get Comprehensive Column Information
+
+```typescript
+import { getPipelineColumnsInfoCommand } from './src/extension/commands/parseAssetCommand';
+
+// Get detailed column information for all assets
+const columnsInfo = await getPipelineColumnsInfoCommand(documentUri);
+console.log('Pipeline assets:', columnsInfo?.assets);
+console.log('Global column lineage:', columnsInfo?.globalColumnLineage);
+```
+
+#### Parse Asset Lineage with Columns
+
+```typescript
+import { parseAssetLineageWithColumnsCommand } from './src/extension/commands/parseAssetCommand';
+
+// Parse specific asset with column lineage
+await parseAssetLineageWithColumnsCommand(documentUri, "BruinPanel", true);
+```
+
+### CLI Command Integration
+
+The extension uses the following Bruin CLI commands:
+
+- `bruin internal parse-pipeline -c <filepath>` - Parse pipeline with column information
+- `bruin internal parse-pipeline --with-schema <filepath>` - Parse pipeline with schema information
+- `bruin internal parse-pipeline <filepath>` - Standard pipeline parsing (unchanged)
+
+### Data Structure
+
+The enhanced pipeline data includes:
+
+```typescript
+interface EnhancedPipelineData {
+  name: string;
+  schedule: string;
+  description: string;
+  assets: any[];
+  columnLineage?: Record<string, ColumnLineage[]>;
+  schemaInfo?: Record<string, any>;
+  raw: any;
+}
+
+interface ColumnInfo {
+  name: string;
+  type: string;
+  description?: string;
+  primary_key?: boolean;
+  not_null?: boolean;
+  checks?: ColumnCheck[];
+  entity_attribute?: string;
+}
+
+interface ColumnLineage {
+  column: string;
+  source_columns: Array<{
+    asset: string;
+    column: string;
+  }>;
+}
+```
+
+### Backward Compatibility
+
+- All existing commands and functionality remain unchanged
+- New methods are additive and don't modify existing behavior
+- Existing pipeline parsing continues to work exactly as before
+- Column functionality is opt-in via new methods or flags
+
 ## Installation
 
 1. Open Visual Studio Code.
