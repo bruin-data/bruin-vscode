@@ -1,4 +1,6 @@
 # Changelog
+## [0.58.6] - [2025-07-15]
+- Fixed the query preview code lens. 
 
 ## [0.58.5] - [2025-07-14]
 - Recovered the partition by and cluster ui and fixed the columns actions being hidden.
