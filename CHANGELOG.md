@@ -1,4 +1,8 @@
 # Changelog
+
+## [0.58.7] - [2025-07-15]
+- Fixed the query preview for the first query in multiple queries file.
+
 ## [0.58.6] - [2025-07-15]
 - Fixed the query preview code lens. 
 
