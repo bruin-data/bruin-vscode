@@ -38,7 +38,7 @@ export class QueryCodeLensProvider implements vscode.CodeLensProvider {
     // This regex finds statements that end with semicolon or end of file
     const statements = this.parseStatements(maskedText);
 
-    for (const statement of statements) {
+    for (const [idx, statement] of statements.entries()) {
       if (token.isCancellationRequested) {
         return codeLenses;
       }
@@ -69,17 +69,13 @@ export class QueryCodeLensProvider implements vscode.CodeLensProvider {
       const statementText = statement.text;
       const lines = statementText.split('\n');
       let sqlStartLine = 0;
-      
       for (let i = 0; i < lines.length; i++) {
         const trimmedLine = lines[i].trim();
-        
         if (trimmedLine && !trimmedLine.startsWith('--') && !(trimmedLine.startsWith('/*') && trimmedLine.endsWith('*/'))) {
-          // Found the first non-comment line
           sqlStartLine = i;
           break;
         }
       }
-      
       // Calculate the position in the document
       const statementStartPos = document.positionAt(statement.startOffset);
       const sqlStartPos = new vscode.Position(statementStartPos.line + sqlStartLine, 0);
@@ -91,7 +87,7 @@ export class QueryCodeLensProvider implements vscode.CodeLensProvider {
         new vscode.CodeLens(queryRange, {
           title: "Preview",
           command: "bruin.runQuery",
-          arguments: [document.uri, queryRange, isAsset, codeLenses.length + 1, statement.text],
+          arguments: [document.uri, queryRange, isAsset, statements.length, statement.text],
         })
       );
     }
