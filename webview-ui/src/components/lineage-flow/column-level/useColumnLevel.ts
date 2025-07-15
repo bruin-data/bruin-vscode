@@ -21,8 +21,28 @@ function buildColumnLineage(pipelineData: { assets: any[], column_lineage?: Reco
     assetMap[asset.name] = {
       ...asset,
       columns: asset.columns || [],
-      hasColumnLineage: Boolean(columnLineageMap[asset.name] && columnLineageMap[asset.name].length > 0)
+      hasColumnLineage: Boolean(columnLineageMap[asset.name] && columnLineageMap[asset.name].length > 0),
+      upstreams: asset.upstreams || [],
+      downstreams: [] // Initialize empty downstreams array
     };
+  });
+
+  // Calculate downstream relationships dynamically
+  assets.forEach(asset => {
+    if (Array.isArray(asset.upstreams)) {
+      asset.upstreams.forEach(upstream => {
+        if (upstream.type === 'asset' && upstream.value && assetMap[upstream.value]) {
+          const upstreamAsset = assetMap[upstream.value];
+          if (!upstreamAsset.downstreams) {
+            upstreamAsset.downstreams = [];
+          }
+          upstreamAsset.downstreams.push({
+            type: 'asset',
+            value: asset.name
+          });
+        }
+      });
+    }
   });
 
   return {
@@ -54,6 +74,7 @@ function generateColumnGraph(
   // First, add the focus asset
   const focusAsset = assetMap[focusAssetName];
   if (focusAsset) {
+    console.log(`Focus asset ${focusAssetName} downstreams:`, focusAsset.downstreams);
     nodes.push(createColumnNode(focusAsset, true, columnLineageMap[focusAssetName] || []));
     processedAssets.add(focusAssetName);
 
@@ -83,10 +104,12 @@ function generateColumnGraph(
     }
 
     // Add direct downstream assets
-    if (focusAsset.downstreams) {
+    if (focusAsset.downstreams && focusAsset.downstreams.length > 0) {
+      console.log(`Adding ${focusAsset.downstreams.length} downstream assets for ${focusAssetName}`);
       focusAsset.downstreams.forEach(downstream => {
         if (downstream.type === 'asset' && downstream.value && assetMap[downstream.value]) {
           const downstreamAsset = assetMap[downstream.value];
+          console.log(`Adding downstream asset: ${downstream.value}`);
           nodes.push(createColumnNode(downstreamAsset, false, columnLineageMap[downstream.value] || []));
           processedAssets.add(downstream.value);
 
@@ -105,6 +128,8 @@ function generateColumnGraph(
           });
         }
       });
+    } else {
+      console.log(`No downstream assets found for ${focusAssetName}`);
     }
 
     // Add edges between directly connected upstream and downstream assets
@@ -160,12 +185,15 @@ function generateColumnGraph(
     });
 
     // Add column-level edges for direct downstream connections
+    console.log(`Processing column-level downstream connections for processed assets:`, Array.from(processedAssets));
     processedAssets.forEach(assetName => {
       if (assetName !== focusAssetName) {
         const assetColumnLineage = columnLineageMap[assetName] || [];
+        console.log(`Checking asset ${assetName} column lineage:`, assetColumnLineage.length, 'entries');
         assetColumnLineage.forEach(columnLineage => {
           columnLineage.source_columns.forEach(sourceCol => {
             if (sourceCol.asset === focusAssetName) {
+              console.log(`Creating column-level downstream edge: ${focusAssetName}:${sourceCol.column} -> ${assetName}:${columnLineage.column}`);
               edges.push({
                 id: `column-${focusAssetName}-${sourceCol.column}-to-${assetName}-${columnLineage.column}`,
                 source: focusAssetName,
