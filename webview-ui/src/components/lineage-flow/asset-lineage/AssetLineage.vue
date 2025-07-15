@@ -95,6 +95,10 @@
                   </div>
                 </div>
               </vscode-radio>
+
+              <vscode-radio value="column" class="radio-item" @click="handleColumnLevelLineage">
+                <span class="radio-label text-editor-fg">Column Level Lineage</span>
+              </vscode-radio>
             </vscode-radio-group>
           </div>
           
