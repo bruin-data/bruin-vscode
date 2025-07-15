@@ -383,17 +383,28 @@ export async function activate(context: ExtensionContext) {
         vscode.window.showErrorMessage(`Error removing table from favorites: ${errorMessage}`);
       }
     }),
-    commands.registerCommand("bruin.runQuery", async (uri: vscode.Uri, range: vscode.Range) => {
+    commands.registerCommand("bruin.runQuery", async (uri: vscode.Uri, range: vscode.Range, isAsset?: boolean, queryCount?: number, queryText?: string) => {
       try {
         trackEvent("Command Executed", { command: "runQuery" });
         const document = await workspace.openTextDocument(uri);
-        const query = document.getText(range);
         const activeTabId = QueryPreviewPanel.getActiveTabId();
         
+        // Determine what to send based on asset status and query count
+        let queryToSend = "";
+        let shouldSendQuery = true;
+        
+        if (isAsset && queryCount === 1) {
+          shouldSendQuery = false;
+        } else if (isAsset && queryCount && queryCount > 1 && queryText) {
+          queryToSend = queryText;
+        } else {
+          queryToSend = document.getText(range);
+        }
+        
         // Store the extracted query for the specific tab
-        QueryPreviewPanel.setTabQuery(activeTabId, query);
+        QueryPreviewPanel.setTabQuery(activeTabId, queryToSend);
         QueryPreviewPanel.setTabAssetPath(activeTabId, uri.fsPath);
-        QueryPreviewPanel.setLastExecutedQuery(query);
+        QueryPreviewPanel.setLastExecutedQuery(queryToSend);
 
         QueryPreviewPanel.postMessage("query-output-message", {
           status: "loading",
@@ -402,19 +413,19 @@ export async function activate(context: ExtensionContext) {
         });
         await QueryPreviewPanel.focusSafely();
         
-        // Send message to webview to execute query with current limit, including the extracted query
+        // Send message to webview to execute query with current limit
         QueryPreviewPanel.postMessage("bruin.executePreviewQuery", { 
           status: "success",
           message: "",
           tabId: activeTabId,
-          extractedQuery: query
+          extractedQuery: shouldSendQuery ? queryToSend : ""
         }); 
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         vscode.window.showErrorMessage(`Error running query: ${errorMessage}`);
       }
     }),
-    commands.registerCommand("bruin.previewSelectedQuery", async () => {
+    commands.registerCommand("bruin.previewSelectedQuery", async (selectedQueryText?: string) => {
       try {
         const editor = window.activeTextEditor;
         if (!editor) {
@@ -422,16 +433,21 @@ export async function activate(context: ExtensionContext) {
           return;
         }
 
-        const selection = editor.selection;
-        if (selection.isEmpty) {
-          vscode.window.showWarningMessage("Please select a query to preview");
-          return;
-        }
-
-        const selectedText = editor.document.getText(selection).trim();
+        let selectedText = selectedQueryText;
+        
+        // If no query text provided, get it from the current selection
         if (!selectedText) {
-          vscode.window.showWarningMessage("Selected text is empty");
-          return;
+          const selection = editor.selection;
+          if (selection.isEmpty) {
+            vscode.window.showWarningMessage("Please select a query to preview");
+            return;
+          }
+
+          selectedText = editor.document.getText(selection).trim();
+          if (!selectedText) {
+            vscode.window.showWarningMessage("Selected text is empty");
+            return;
+          }
         }
 
         // Just run the selected text as a query
@@ -448,7 +464,8 @@ export async function activate(context: ExtensionContext) {
         QueryPreviewPanel.postMessage("bruin.executePreviewQuery", { 
           status: "success",
           message: "",
-          tabId: activeTabId
+          tabId: activeTabId,
+          extractedQuery: selectedText
         });
 
       } catch (error) {

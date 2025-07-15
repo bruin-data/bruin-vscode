@@ -1,12 +1,16 @@
 import * as vscode from "vscode";
+import { isBruinSqlAsset } from "../utilities/helperUtils";
 
 export class QueryCodeLensProvider implements vscode.CodeLensProvider {
-  public provideCodeLenses(
+  public async provideCodeLenses(
     document: vscode.TextDocument,
     token: vscode.CancellationToken
-  ): vscode.CodeLens[] {
+  ): Promise<vscode.CodeLens[]> {
     const codeLenses: vscode.CodeLens[] = [];
     const text = document.getText();
+
+    // Check if this is an asset file
+    const isAsset = await isBruinSqlAsset(document.fileName);
 
     // Identify all Bruin metadata blocks and their positions
     const bruinBlocks: vscode.Range[] = [];
@@ -87,7 +91,7 @@ export class QueryCodeLensProvider implements vscode.CodeLensProvider {
         new vscode.CodeLens(queryRange, {
           title: "Preview",
           command: "bruin.runQuery",
-          arguments: [document.uri, queryRange],
+          arguments: [document.uri, queryRange, isAsset, codeLenses.length + 1, statement.text],
         })
       );
     }

@@ -321,7 +321,7 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
 
   public static postMessage(
     name: string,
-    data: string | { status: string; message: string | any; tabId?: string }
+    data: string | { status: string; message: string | any; tabId?: string; [key: string]: any }
   ) {
     if (this._view) {
       console.log("Posting message to webview in the Query Preview panel", name, data);

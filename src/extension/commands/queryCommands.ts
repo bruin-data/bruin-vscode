@@ -27,11 +27,16 @@ export const getQueryOutput = async (environment: string, limit: string, lastRen
   
   const currentTabId = tabId || 'tab-1';
   
+  // Check if this is an asset file
+  const isAsset = await isBruinSqlAsset(lastRenderedDocumentUri.fsPath);
+  
   // Check if we already have a stored query for this tab (from CodeLens)
   let selectedQuery = QueryPreviewPanel.getTabQuery(currentTabId);
   
-  // If no stored query, fall back to selection or file content detection
-  if (!selectedQuery) {
+  if (isAsset && !selectedQuery) {
+    // Don't set a query - let the asset path be used instead
+  } else if (!selectedQuery) {
+    // For non-asset files, fall back to selection or file content detection
     // Get the selected text (if any)
     const selection = editor.selection;
     selectedQuery = selection && !selection.isEmpty 
@@ -89,8 +94,10 @@ export const getQueryOutput = async (environment: string, limit: string, lastRen
     workspaceFolder.uri.fsPath
   );
    console.log("Receiving dates", startDate, endDate);
-  // Pass the detected query (either selected text or entire file content)
-  await output.getOutput(environment, lastRenderedDocumentUri.fsPath, limit, tabId, detectedConnectionName, startDate, endDate, { query: selectedQuery });
+  
+  const queryToPass = isAsset && !selectedQuery ? "" : selectedQuery;
+  
+  await output.getOutput(environment, lastRenderedDocumentUri.fsPath, limit, tabId, detectedConnectionName, startDate, endDate, { query: queryToPass });
 };
 
 export const exportQueryResults = async (lastRenderedDocumentUri: Uri | undefined, tabId?: string, connectionName?: string) => {
