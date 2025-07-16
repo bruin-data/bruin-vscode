@@ -152,18 +152,62 @@ const recalculateAllPositions = () => {
     return node;
   });
   
-  // Step 2: Sort nodes by Y position to apply spacing from top to bottom
-  const sortedNodes = [...nodesWithOriginalPositions].sort((a, b) => a.position.y - b.position.y);
+  // Step 2: Identify focus asset and categorize nodes
+  const focusNode = nodesWithOriginalPositions.find(node => node.data?.asset?.isFocusAsset);
+  if (!focusNode) {
+    // Fallback to old behavior if no focus asset found
+    applyCumulativeSpacing(nodesWithOriginalPositions);
+    return;
+  }
   
-  // Step 3: Apply spacing based on expanded state (exclude focus assets)
+  const upstreamNodes = [];
+  const downstreamNodes = [];
+  const focusNodes = [];
+  
+  nodesWithOriginalPositions.forEach(node => {
+    if (node.data?.asset?.isFocusAsset) {
+      focusNodes.push(node);
+    } else if (node.position.x < focusNode.position.x) {
+      upstreamNodes.push(node);
+    } else {
+      downstreamNodes.push(node);
+    }
+  });
+  
+  // Step 3: Apply spacing independently for upstream and downstream nodes
+  const spacedUpstreamNodes = applyDirectionalSpacing(upstreamNodes, 'upstream');
+  const spacedDownstreamNodes = applyDirectionalSpacing(downstreamNodes, 'downstream');
+  
+  // Step 4: Combine all nodes with their new positions
+  const finalNodes = [
+    ...spacedUpstreamNodes,
+    ...focusNodes, // Focus nodes keep their original positions
+    ...spacedDownstreamNodes
+  ];
+  
+  // Update nodes with new positions
+  setNodes(finalNodes);
+  
+  // Save the new positions
+  setTimeout(() => {
+    saveNodePositions();
+  }, 100);
+};
+
+// Apply spacing logic for nodes in a specific direction (upstream or downstream)
+const applyDirectionalSpacing = (nodes, direction) => {
+  if (nodes.length === 0) return [];
+  
+  // Sort nodes by Y position to apply spacing from top to bottom
+  const sortedNodes = [...nodes].sort((a, b) => a.position.y - b.position.y);
+  
   let cumulativeOffset = 0;
-  const finalNodes = sortedNodes.map(node => {
+  return sortedNodes.map(node => {
     const isExpanded = expandedNodes.value[node.id];
     const hasColumns = node.data?.columns?.length > 0;
     const isFocusAsset = node.data?.asset?.isFocusAsset;
     
     // Calculate the vertical space this node needs
-    // Focus assets don't contribute to spacing even if they're expanded
     let nodeOffset = 0;
     if (isExpanded && hasColumns && !isFocusAsset) {
       const columnCount = node.data.columns.length;
@@ -176,7 +220,37 @@ const recalculateAllPositions = () => {
       y: node.position.y + cumulativeOffset
     };
     
-    // Add this node's offset to the cumulative total (only for non-focus assets)
+    // Add this node's offset to the cumulative total
+    cumulativeOffset += nodeOffset;
+    
+    return {
+      ...node,
+      position: newPosition
+    };
+  });
+};
+
+// Fallback function for cumulative spacing (old behavior)
+const applyCumulativeSpacing = (nodes) => {
+  const sortedNodes = [...nodes].sort((a, b) => a.position.y - b.position.y);
+  
+  let cumulativeOffset = 0;
+  const finalNodes = sortedNodes.map(node => {
+    const isExpanded = expandedNodes.value[node.id];
+    const hasColumns = node.data?.columns?.length > 0;
+    const isFocusAsset = node.data?.asset?.isFocusAsset;
+    
+    let nodeOffset = 0;
+    if (isExpanded && hasColumns && !isFocusAsset) {
+      const columnCount = node.data.columns.length;
+      nodeOffset = columnCount * 18; // 18px per column
+    }
+    
+    const newPosition = {
+      x: node.position.x,
+      y: node.position.y + cumulativeOffset
+    };
+    
     cumulativeOffset += nodeOffset;
     
     return {
@@ -185,13 +259,7 @@ const recalculateAllPositions = () => {
     };
   });
   
-  // Update nodes with new positions
   setNodes(finalNodes);
-  
-  // Save the new positions
-  setTimeout(() => {
-    saveNodePositions();
-  }, 100);
 };
 
 // Save original positions of all nodes (only once when first initialized)
