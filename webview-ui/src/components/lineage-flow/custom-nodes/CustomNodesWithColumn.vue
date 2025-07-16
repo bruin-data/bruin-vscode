@@ -86,8 +86,8 @@
                 }"
               >
                 <div class="column-info flex items-center justify-between flex-1">
-                  <span class="column-name font-medium text-xs">{{ column.name }}</span>
-                  <span class="column-type opacity-60" style="font-size: 10px;">{{ column.type }}</span>
+                  <span class="column-name font-medium" style="font-size: 8px;">{{ column.name }}</span>
+                  <span class="column-type opacity-60" style="font-size: 9px;">{{ column.type }}</span>
                 </div>
                 
                 <!-- Column lineage indicator -->
@@ -264,26 +264,48 @@ const toggleExpand = () => {
 };
 
 const isTargetColumn = (columnName: string): boolean => {
-  // A column is a target if it has lineage (receives data from other columns)
-  return columnLineage.value.some(lineage => lineage.column === columnName);
-};
-
-const isSourceColumn = (columnName: string): boolean => {
-  // For the focus asset, check if this column is referenced as a source in any downstream asset
-  if (props.data?.asset?.isFocusAsset && props.data?.asset?.hasDownstreams) {
-    // This would require access to global column lineage data to check if this column
-    // is referenced in downstream assets. For now, assume any column can be a source.
-    return true;
+  // For the focus asset, a column is a target if it's in the columnLineage data
+  if (props.data?.asset?.isFocusAsset) {
+    return columnLineage.value.some((lineage: ColumnLineage) => lineage.column === columnName);
   }
   
-  // For upstream assets, check if this column is a source for the focus asset
-  if (!props.data?.asset?.isFocusAsset && props.data?.asset?.hasDownstreams) {
-    // This column is a source if it's referenced in the focus asset's column lineage
-    // We'll assume it's a source if the asset has downstreams (this could be refined with more data)
-    return true;
+  // For downstream assets, a column is a target if it's in that asset's lineage data
+  // and its source comes from the focus asset
+  if (!props.data?.asset?.isFocusAsset) {
+    // This logic needs to know the focus asset. Without it, we can't be sure.
+    // For now, let's assume it's a target if it appears in any lineage for that asset.
+    return columnLineage.value.some((lineage: ColumnLineage) => lineage.column === columnName);
   }
   
   return false;
+};
+
+const isSourceColumn = (columnName: string): boolean => {
+  // A column is a source if it is listed as a source in any of the lineage entries
+  // for the current asset. This applies to both focus and upstream assets.
+  
+  // This requires checking the columnLineage of downstream assets, which is not directly
+  // available here. We need to rely on the data passed. A simplified check can be done
+  // on the `columnLineage` data available for the current node.
+  if (props.data?.asset?.isFocusAsset && props.data?.asset?.hasDownstreams) {
+    // For the focus asset, it's a source if any downstream asset uses it.
+    // This is hard to check without global context, so we look if it's a source in any defined lineage.
+    // A better approach would be to check the lineage of all assets.
+    // Let's assume for now that if an asset has downstreams, its columns could be sources.
+    // The most accurate check is to see if any column in *another* asset's lineage points to this one.
+    // This info is not present here. A practical approximation:
+    return true; 
+  }
+
+  // For an upstream asset, check if any of its columns are used as a source in the focus asset's lineage
+  if (!props.data.asset?.isFocusAsset && columnLineage.value.length > 0) {
+    return columnLineage.value.some((lineage: ColumnLineage) => 
+      lineage.source_columns.some(sc => sc.column === columnName)
+    );
+  }
+  
+  // It's a source if it's used in a downstream asset's lineage, which we assume true if it has downstreams
+  return !!props.data.asset?.hasDownstreams;
 };
 
 const hasColumnLineage = (columnName: string): boolean => {
