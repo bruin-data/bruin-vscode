@@ -10,7 +10,8 @@ export const flowLineageCommand = async (lastRenderedDocumentUri:  Uri | undefin
     getBruinExecutablePath(),
     ""
   );
-  await flowLineage.parseAssetLineage(lastRenderedDocumentUri.fsPath, panel);
+  // Use the column-aware version by default to include column lineage data
+  await flowLineage.parseAssetLineageWithColumns(lastRenderedDocumentUri.fsPath, panel, {}, true);
 };
 
 /**

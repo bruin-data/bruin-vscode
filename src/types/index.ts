@@ -12,13 +12,19 @@ export type BruinCommandOptions = {
 
 // Column lineage types for enhanced pipeline parsing
 export interface ColumnInfo {
+  entity_attribute?: string | null;
   name: string;
   type: string;
   description?: string;
   primary_key?: boolean;
-  not_null?: boolean;
+  update_on_merge?: boolean;
   checks?: ColumnCheck[];
-  entity_attribute?: string;
+  upstreams?: ColumnUpstream[];
+}
+
+export interface ColumnUpstream {
+  column: string;
+  table: string;
 }
 
 export interface ColumnCheck {
@@ -26,6 +32,7 @@ export interface ColumnCheck {
   name: string;
   value?: any;
   blocking?: boolean;
+  description?: string;
 }
 
 export interface ColumnLineage {

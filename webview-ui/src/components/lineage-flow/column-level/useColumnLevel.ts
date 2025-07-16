@@ -1,4 +1,4 @@
-import type { AssetColumnInfo, ColumnInfo, ColumnLineage } from '@/types';
+import type { AssetColumnInfo, ColumnInfo, ColumnLineage, ColumnUpstream } from '@/types';
 import type { Node, Edge } from "@vue-flow/core";
 
 /**
@@ -14,17 +14,51 @@ function buildColumnLineage(pipelineData: { assets: any[], column_lineage?: Reco
   // Extract assets and create lookup map
   const assets = pipelineData.assets || [];
   const assetMap: { [key: string]: any } = {};
-  const columnLineageMap = pipelineData.column_lineage || {};
+  let columnLineageMap = pipelineData.column_lineage || {};
 
   // Create asset map and process column information
   assets.forEach(asset => {
     assetMap[asset.name] = {
       ...asset,
       columns: asset.columns || [],
-      hasColumnLineage: Boolean(columnLineageMap[asset.name] && columnLineageMap[asset.name].length > 0),
+      hasColumnLineage: false, // Will be set below
       upstreams: asset.upstreams || [],
       downstreams: [] // Initialize empty downstreams array
     };
+  });
+
+  // If no column_lineage at pipeline level, build it from individual column upstreams
+  if (!pipelineData.column_lineage || Object.keys(pipelineData.column_lineage).length === 0) {
+    columnLineageMap = {};
+    
+    assets.forEach(asset => {
+      if (asset.columns && Array.isArray(asset.columns)) {
+        const assetColumnLineage: ColumnLineage[] = [];
+        
+        asset.columns.forEach((column: ColumnInfo) => {
+          if (column.upstreams && Array.isArray(column.upstreams) && column.upstreams.length > 0) {
+            const lineageEntry: ColumnLineage = {
+              column: column.name,
+              source_columns: column.upstreams.map((upstream: ColumnUpstream) => ({
+                asset: upstream.table,
+                column: upstream.column
+              }))
+            };
+            assetColumnLineage.push(lineageEntry);
+          }
+        });
+        
+        if (assetColumnLineage.length > 0) {
+          columnLineageMap[asset.name] = assetColumnLineage;
+        }
+      }
+    });
+  }
+
+  // Update hasColumnLineage flag based on actual column lineage data
+  Object.keys(assetMap).forEach(assetName => {
+    const hasLineage = Boolean(columnLineageMap[assetName] && columnLineageMap[assetName].length > 0);
+    assetMap[assetName].hasColumnLineage = hasLineage;
   });
 
   // Calculate downstream relationships dynamically
@@ -132,76 +166,7 @@ function generateColumnGraph(
       console.log(`No downstream assets found for ${focusAssetName}`);
     }
 
-    // Add column-level edges: upstream assets to focus asset columns
-    const focusAssetLineage = columnLineageMap[focusAssetName] || [];
-
-    focusAssetLineage.forEach(lineage => {
-      const targetColumn = lineage.column;
-
-      lineage.source_columns.forEach(sourceCol => {
-        // Ensure the source asset is in the current graph view (only upstream assets)
-        if (processedAssets.has(sourceCol.asset) && sourceCol.asset !== focusAssetName) {
-          edges.push({
-            id: `column-${sourceCol.asset}-${sourceCol.column}-to-${focusAssetName}-${targetColumn}`,
-            source: sourceCol.asset,
-            sourceHandle: `column-${sourceCol.column}`,
-            target: focusAssetName,
-            targetHandle: `column-${targetColumn}`,
-            data: {
-              sourceColumn: sourceCol.column,
-              targetColumn: targetColumn,
-              sourceAsset: sourceCol.asset,
-              targetAsset: focusAssetName,
-              type: 'column-lineage'
-            },
-            style: {
-              stroke: '#8b5cf6',
-              strokeWidth: 2,
-              strokeDasharray: '5,5'
-            }
-          });
-        }
-      });
-    });
-
-    // Add column-level edges: from focus asset columns to downstream assets
-    processedAssets.forEach(assetName => {
-      if (assetName !== focusAssetName && columnLineageMap[assetName]) {
-        // Check if this asset is a downstream asset
-        const isDownstream = focusAsset.downstreams?.some(ds => ds.value === assetName);
-        if (isDownstream) {
-          const downstreamAssetLineage = columnLineageMap[assetName];
-          
-          downstreamAssetLineage.forEach(lineage => {
-            lineage.source_columns.forEach(sourceCol => {
-              // Check if this source column comes from the focus asset
-              if (sourceCol.asset === focusAssetName) {
-                const edgeId = `column-${focusAssetName}-${sourceCol.column}-to-${assetName}-${lineage.column}`;
-                edges.push({
-                  id: edgeId,
-                  source: focusAssetName,
-                  sourceHandle: `column-${sourceCol.column}`,
-                  target: assetName,
-                  targetHandle: `column-${lineage.column}`,
-                  data: {
-                    sourceColumn: sourceCol.column,
-                    targetColumn: lineage.column,
-                    sourceAsset: focusAssetName,
-                    targetAsset: assetName,
-                    type: 'column-lineage'
-                  },
-                  style: {
-                    stroke: '#8b5cf6',
-                    strokeWidth: 2,
-                    strokeDasharray: '5,5'
-                  }
-                });
-              }
-            });
-          });
-        }
-      }
-    });
+    // Column-level edge creation has been removed
   }
 
   return { nodes, edges };

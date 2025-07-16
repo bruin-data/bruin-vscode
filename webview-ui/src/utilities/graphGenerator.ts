@@ -149,67 +149,7 @@ export function generateColumnGraphFromJSON(asset, columnLineageMap = {}) {
         });
       });
 
-      // Add column lineage edges only for the focus asset
-      const assetColumnLineage = columnLineageMap[assetData.name] || [];
-      assetColumnLineage.forEach(columnLineage => {
-        columnLineage.source_columns.forEach(sourceCol => {
-          const sourceNodeExists = localNodes.has(sourceCol.asset);
-          if (sourceNodeExists && sourceCol.asset !== assetData.name) {
-            const edgeId = `column-${sourceCol.asset}-${sourceCol.column}-to-${assetData.name}-${columnLineage.column}`;
-            localEdges.push({
-              id: edgeId,
-              source: sourceCol.asset,
-              sourceHandle: `column-${sourceCol.column}`,
-              target: assetData.name,
-              targetHandle: `column-${columnLineage.column}`,
-              data: {
-                sourceColumn: sourceCol.column,
-                targetColumn: columnLineage.column,
-                sourceAsset: sourceCol.asset,
-                targetAsset: assetData.name,
-                type: 'column-lineage'
-              },
-              style: {
-                stroke: '#8b5cf6', // Purple color for column lineage
-                strokeWidth: 2,
-                strokeDasharray: '5,5'
-              }
-            });
-          }
-        });
-      });
-
-      // Add column lineage edges from focus to downstream assets
-      assetData.downstream?.forEach((downstreamAsset) => {
-        const downstreamColumnLineage = columnLineageMap[downstreamAsset.name] || [];
-        downstreamColumnLineage.forEach(lineage => {
-          lineage.source_columns.forEach(sourceCol => {
-            // Check if this source column comes from the focus asset
-            if (sourceCol.asset === assetData.name) {
-              const edgeId = `column-${assetData.name}-${sourceCol.column}-to-${downstreamAsset.name}-${lineage.column}`;
-              localEdges.push({
-                id: edgeId,
-                source: assetData.name,
-                sourceHandle: `column-${sourceCol.column}`,
-                target: downstreamAsset.name,
-                targetHandle: `column-${lineage.column}`,
-                data: {
-                  sourceColumn: sourceCol.column,
-                  targetColumn: lineage.column,
-                  sourceAsset: assetData.name,
-                  targetAsset: downstreamAsset.name,
-                  type: 'column-lineage'
-                },
-                style: {
-                  stroke: '#8b5cf6',
-                  strokeWidth: 2,
-                  strokeDasharray: '5,5'
-                }
-              });
-            }
-          });
-        });
-      });
+      // Column lineage edge creation has been removed
     }
   };
 
@@ -232,44 +172,10 @@ export function generateColumnGraphForUpstream(nodeName: string, pipelineData: a
     columns: upstreamAsset.columns || [],
   }, columnLineageMap);
 
-  // Only add column lineage edges from upstream to focus asset (if focus asset exists)
-  if (focusAsset && columnLineageMap[focusAsset.name]) {
-    const focusAssetLineage = columnLineageMap[focusAsset.name];
-    
-    focusAssetLineage.forEach(lineage => {
-      lineage.source_columns.forEach(sourceCol => {
-        // Check if this source column comes from the current upstream asset
-        if (sourceCol.asset === nodeName) {
-          const edgeId = `column-${nodeName}-${sourceCol.column}-to-${focusAsset.name}-${lineage.column}`;
-          
-          // Only add if edge doesn't already exist
-          const edgeExists = result.edges.some(edge => edge.id === edgeId);
-          if (!edgeExists) {
-            result.edges.push({
-              id: edgeId,
-              source: nodeName,
-              sourceHandle: `column-${sourceCol.column}`,
-              target: focusAsset.name,
-              targetHandle: `column-${lineage.column}`,
-              data: {
-                sourceColumn: sourceCol.column,
-                targetColumn: lineage.column,
-                sourceAsset: nodeName,
-                targetAsset: focusAsset.name,
-                type: 'column-lineage'
-              },
-              style: {
-                stroke: '#8b5cf6', // Purple color for column lineage
-                strokeWidth: 2,
-                strokeDasharray: '5,5' // Dashed lines
-              }
-            });
-          }
-        }
-      });
-    });
-
-    // Add asset-level edge from upstream to focus
+  // Column lineage edge creation has been removed
+  
+  // Add asset-level edge from upstream to focus
+  if (focusAsset) {
     const assetEdgeId = `asset-${nodeName}-to-${focusAsset.name}`;
     const assetEdgeExists = result.edges.some(edge => edge.id === assetEdgeId);
     if (!assetEdgeExists) {
@@ -301,44 +207,10 @@ export function generateColumnGraphForDownstream(nodeName: string, pipelineData:
     columns: downstreamAsset.columns || [],
   }, columnLineageMap);
 
-  // Only add column lineage edges from focus asset to downstream (if focus asset exists)
-  if (focusAsset && columnLineageMap[nodeName]) {
-    const downstreamAssetLineage = columnLineageMap[nodeName];
-    
-    downstreamAssetLineage.forEach(lineage => {
-      lineage.source_columns.forEach(sourceCol => {
-        // Check if this source column comes from the focus asset
-        if (sourceCol.asset === focusAsset.name) {
-          const edgeId = `column-${focusAsset.name}-${sourceCol.column}-to-${nodeName}-${lineage.column}`;
-          
-          // Only add the edge if it's not already present
-          const edgeExists = result.edges.some(edge => edge.id === edgeId);
-          if (!edgeExists) {
-            result.edges.push({
-              id: edgeId,
-              source: focusAsset.name,
-              sourceHandle: `column-${sourceCol.column}`,
-              target: nodeName,
-              targetHandle: `column-${lineage.column}`,
-              data: {
-                sourceColumn: sourceCol.column,
-                targetColumn: lineage.column,
-                sourceAsset: focusAsset.name,
-                targetAsset: nodeName,
-                type: 'column-lineage'
-              },
-              style: {
-                stroke: '#8b5cf6', // Purple color for column lineage
-                strokeWidth: 2,
-                strokeDasharray: '5,5' // Dashed lines
-              }
-            });
-          }
-        }
-      });
-    });
-
-    // Add asset-level edge from focus to downstream
+  // Column lineage edge creation has been removed
+  
+  // Add asset-level edge from focus to downstream
+  if (focusAsset) {
     const assetEdgeId = `asset-${focusAsset.name}-to-${nodeName}`;
     const assetEdgeExists = result.edges.some(edge => edge.id === assetEdgeId);
     if (!assetEdgeExists) {

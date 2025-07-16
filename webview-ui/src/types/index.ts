@@ -44,6 +44,49 @@ export interface Asset {
   definition_file?: {path: string};
 }
 
+// Column lineage types for enhanced pipeline parsing
+export interface ColumnInfo {
+  entity_attribute?: string | null;
+  name: string;
+  type: string;
+  description?: string;
+  primary_key?: boolean;
+  update_on_merge?: boolean;
+  checks?: ColumnCheck[];
+  upstreams?: ColumnUpstream[];
+}
+
+export interface ColumnUpstream {
+  column: string;
+  table: string;
+}
+
+export interface ColumnCheck {
+  id?: string;
+  name: string;
+  value?: any;
+  blocking?: boolean;
+  description?: string;
+}
+
+export interface ColumnLineage {
+  column: string;
+  source_columns: Array<{
+    asset: string;
+    column: string;
+  }>;
+}
+
+export interface AssetColumnInfo {
+  id: string;
+  name: string;
+  type: string;
+  columns: ColumnInfo[];
+  columnLineage: ColumnLineage[];
+  upstreams: any[];
+  downstreams: any[];
+}
+
 export interface Project {
   name: string;
   id: string;
@@ -173,42 +216,6 @@ export interface IngestrParameters {
   destination: string;
   incremental_strategy?: string;
   incremental_key?: string;
-}
-
-// Column lineage types for enhanced pipeline parsing
-export interface ColumnInfo {
-  name: string;
-  type: string;
-  description?: string;
-  primary_key?: boolean;
-  not_null?: boolean;
-  checks?: ColumnCheck[];
-  entity_attribute?: string;
-}
-
-export interface ColumnCheck {
-  id?: string;
-  name: string;
-  value?: any;
-  blocking?: boolean;
-}
-
-export interface ColumnLineage {
-  column: string;
-  source_columns: Array<{
-    asset: string;
-    column: string;
-  }>;
-}
-
-export interface AssetColumnInfo {
-  id: string;
-  name: string;
-  type: string;
-  columns: ColumnInfo[];
-  columnLineage: ColumnLineage[];
-  upstreams: any[];
-  downstreams: any[];
 }
 
 export interface PipelineColumnInfo {
