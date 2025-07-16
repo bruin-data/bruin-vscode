@@ -118,12 +118,16 @@ const savedNodePositions = ref<{ [key: string]: { x: number; y: number } }>({});
 const isRestoringPositions = ref(false);
 
 const toggleNodeExpand = (nodeId: string) => {
-  const wasExpanded = expandedNodes.value[nodeId];
-  expandedNodes.value[nodeId] = !wasExpanded;
-  
-  // Calculate vertical shift based on column count
   const currentNodes = getNodes.value;
   const expandedNode = currentNodes.find(node => node.id === nodeId);
+  
+  // Prevent focus assets from being collapsed
+  if (expandedNode?.data?.asset?.isFocusAsset) {
+    return;
+  }
+  
+  const wasExpanded = expandedNodes.value[nodeId];
+  expandedNodes.value[nodeId] = !wasExpanded;
   
   if (expandedNode) {
     const columnCount = expandedNode.data?.columns?.length || 0;
@@ -278,6 +282,14 @@ watch(
 const onNodesInitialized = () => {
   console.log("Column lineage nodes initialized");
   fitView();
+  
+  // Auto-expand focus asset nodes
+  const currentNodes = getNodes.value;
+  currentNodes.forEach(node => {
+    if (node.data?.asset?.isFocusAsset) {
+      expandedNodes.value[node.id] = true;
+    }
+  });
   
   // Save positions after nodes are initialized and layout is applied
   // Use a small delay to ensure layout has been applied

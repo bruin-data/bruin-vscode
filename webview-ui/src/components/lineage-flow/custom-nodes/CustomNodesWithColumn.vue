@@ -52,7 +52,7 @@
             
             <!-- Columns Toggle Button -->
             <button 
-              v-if="hasColumns"
+              v-if="hasColumns && !data?.asset?.isFocusAsset"
               @click.stop="toggleColumnsExpanded"
               class="columns-toggle-btn ml-2 text-xs opacity-60 hover:opacity-100 flex-shrink-0"
               :class="{ 'expanded': showColumns }"
@@ -140,6 +140,11 @@ const emit = defineEmits<{
 const showColumns = ref(false);
 const showAllColumns = ref(false);
 const maxVisibleColumns = 5;
+
+// Auto-expand columns for focus assets
+if (props.data?.asset?.isFocusAsset) {
+  showColumns.value = true;
+}
 
 // Computed properties
 const columns = computed(() => props.data?.columns || props.data?.asset?.columns || []);
