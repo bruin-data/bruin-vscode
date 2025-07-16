@@ -41,8 +41,9 @@
         </div>
 
         <div
-          class="rounded-b font-mono py-1 text-left px-1 border border-white/20"
+          class="rounded-b font-mono py-1 text-left px-1 border border-white/20 cursor-pointer"
           :class="[selectedStyle.main, status ? '' : 'rounded-tl']"
+          @click="handleNodeClick"
         >
           <div class="relative group flex items-center justify-between">
             <!-- Node Name with Expand Option -->
@@ -133,7 +134,7 @@ const emit = defineEmits<{
   (e: 'node-click', nodeId: string): void;
   (e: 'add-upstream', nodeId: string): void;
   (e: 'add-downstream', nodeId: string): void;
-  (e: 'toggle-node-expand', nodeId: string): void;
+  (e: 'toggle-node-expand', nodeId: string, type?: string): void;
 }>();
 
 // Column display state
@@ -206,20 +207,32 @@ const computedFontSize = computed(() => {
 });
 
 // Methods
+const handleNodeClick = () => {
+  // Toggle columns if the node has columns and is not a focus asset (focus assets are always expanded)
+  if (hasColumns.value && !props.data?.asset?.isFocusAsset) {
+    showColumns.value = !showColumns.value;
+    // Emit node expand event to trigger position restoration in column lineage
+    emit("toggle-node-expand", props.data?.asset?.name, "columns");
+  }
+  
+  // Also emit the node click event for other functionality
+  emit("node-click", props.data?.asset?.name || props.data?.id);
+};
+
 const toggleColumnsExpanded = () => {
   showColumns.value = !showColumns.value;
   // Emit node expand event to trigger position restoration in column lineage
-  emit("toggle-node-expand", props.data?.asset?.name);
+  emit("toggle-node-expand", props.data?.asset?.name, "columns");
 };
 
 const toggleShowAllColumns = () => {
   showAllColumns.value = !showAllColumns.value;
   // Emit node expand event to trigger position restoration in column lineage
-  emit("toggle-node-expand", props.data?.asset?.name);
+  emit("toggle-node-expand", props.data?.asset?.name, "columns");
 };
 
 const toggleExpand = () => {
-  emit("toggle-node-expand", props.data?.asset?.name);
+  emit("toggle-node-expand", props.data?.asset?.name, "node");
 };
 
 // Column lineage detection functions removed

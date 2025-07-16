@@ -115,9 +115,10 @@ const expandedNodes = ref<{ [key: string]: boolean }>({});
 
 // Add position storage for consistent layout
 const savedNodePositions = ref<{ [key: string]: { x: number; y: number } }>({});
+const originalNodePositions = ref<{ [key: string]: { x: number; y: number } }>({});
 const isRestoringPositions = ref(false);
 
-const toggleNodeExpand = (nodeId: string) => {
+const toggleNodeExpand = (nodeId: string, type?: string) => {
   const currentNodes = getNodes.value;
   const expandedNode = currentNodes.find(node => node.id === nodeId);
   
@@ -129,39 +130,86 @@ const toggleNodeExpand = (nodeId: string) => {
   const wasExpanded = expandedNodes.value[nodeId];
   expandedNodes.value[nodeId] = !wasExpanded;
   
-  if (expandedNode) {
-    const columnCount = expandedNode.data?.columns?.length || 0;
-    const verticalShift = columnCount * 18; // 25px per column
-    
-    // Find nodes that are below the expanded node
-    const updatedNodes = currentNodes.map(node => {
-      if (node.id === nodeId) {
-        return node; // Don't move the expanded node itself
-      }
-      
-      // Only move nodes that are below the expanded node (higher Y position)
-      if (node.position.y > expandedNode.position.y) {
-        const newY = wasExpanded 
-          ? node.position.y - verticalShift // Collapse: move up
-          : node.position.y + verticalShift; // Expand: move down
-        
-        return {
-          ...node,
-          position: { ...node.position, y: newY }
-        };
-      }
-      
-      return node;
-    });
-    
-    // Update nodes with new positions
-    setNodes(updatedNodes);
-    
-    // Update saved positions to reflect the new layout
-    setTimeout(() => {
-      saveNodePositions();
-    }, 100);
+  // Only perform spacing algorithm when columns are toggled
+  if (type === "columns") {
+    recalculateAllPositions();
   }
+};
+
+// Recalculate all positions based on which nodes are expanded
+const recalculateAllPositions = () => {
+  const currentNodes = getNodes.value;
+  
+  // Step 1: Reset all nodes to their original positions
+  const nodesWithOriginalPositions = currentNodes.map(node => {
+    const originalPosition = originalNodePositions.value[node.id];
+    if (originalPosition) {
+      return {
+        ...node,
+        position: { x: originalPosition.x, y: originalPosition.y }
+      };
+    }
+    return node;
+  });
+  
+  // Step 2: Sort nodes by Y position to apply spacing from top to bottom
+  const sortedNodes = [...nodesWithOriginalPositions].sort((a, b) => a.position.y - b.position.y);
+  
+  // Step 3: Apply spacing based on expanded state (exclude focus assets)
+  let cumulativeOffset = 0;
+  const finalNodes = sortedNodes.map(node => {
+    const isExpanded = expandedNodes.value[node.id];
+    const hasColumns = node.data?.columns?.length > 0;
+    const isFocusAsset = node.data?.asset?.isFocusAsset;
+    
+    // Calculate the vertical space this node needs
+    // Focus assets don't contribute to spacing even if they're expanded
+    let nodeOffset = 0;
+    if (isExpanded && hasColumns && !isFocusAsset) {
+      const columnCount = node.data.columns.length;
+      nodeOffset = columnCount * 18; // 18px per column
+    }
+    
+    // Apply the cumulative offset to this node
+    const newPosition = {
+      x: node.position.x,
+      y: node.position.y + cumulativeOffset
+    };
+    
+    // Add this node's offset to the cumulative total (only for non-focus assets)
+    cumulativeOffset += nodeOffset;
+    
+    return {
+      ...node,
+      position: newPosition
+    };
+  });
+  
+  // Update nodes with new positions
+  setNodes(finalNodes);
+  
+  // Save the new positions
+  setTimeout(() => {
+    saveNodePositions();
+  }, 100);
+};
+
+// Save original positions of all nodes (only once when first initialized)
+const saveOriginalPositions = () => {
+  // Only save original positions if they haven't been saved yet
+  if (Object.keys(originalNodePositions.value).length > 0) {
+    return;
+  }
+  
+  const currentNodes = getNodes.value;
+  const positions: { [key: string]: { x: number; y: number } } = {};
+  
+  currentNodes.forEach(node => {
+    positions[node.id] = { x: node.position.x, y: node.position.y };
+  });
+  
+  originalNodePositions.value = positions;
+  console.log("Saved original node positions for column lineage:", positions);
 };
 
 // Save current positions of all nodes
@@ -242,6 +290,7 @@ watch(
       elements.value = { nodes: [], edges: [] };
       // Clear saved positions when data is cleared
       savedNodePositions.value = {};
+      originalNodePositions.value = {};
       return;
     }
     
@@ -260,6 +309,7 @@ watch(
       elements.value = { nodes: [], edges: [] };
       // Clear saved positions when no data
       savedNodePositions.value = {};
+      originalNodePositions.value = {};
       error.value = "No column lineage data found. To view column-level lineage, ensure the pipeline data includes column information by using the 'parse pipeline -c' command or refresh the lineage data.";
       return;
     }
@@ -291,10 +341,13 @@ const onNodesInitialized = () => {
     }
   });
   
-  // Save positions after nodes are initialized and layout is applied
+  // Save both original and current positions after nodes are initialized and layout is applied
   // Use a small delay to ensure layout has been applied
   setTimeout(() => {
+    saveOriginalPositions();
     saveNodePositions();
+    // Apply initial spacing for focus assets that are auto-expanded
+    recalculateAllPositions();
   }, 100);
 };
 
