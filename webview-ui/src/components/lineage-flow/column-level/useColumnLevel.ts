@@ -86,7 +86,7 @@ function generateColumnGraph(
           nodes.push(createColumnNode(upstreamAsset, false, columnLineageMap[upstream.value] || []));
           processedAssets.add(upstream.value);
 
-          // Add asset-level edge
+          // Add asset-level edge from upstream to focus
           edges.push({
             id: `asset-${upstream.value}-to-${focusAssetName}`,
             source: upstream.value,
@@ -113,7 +113,7 @@ function generateColumnGraph(
           nodes.push(createColumnNode(downstreamAsset, false, columnLineageMap[downstream.value] || []));
           processedAssets.add(downstream.value);
 
-          // Add asset-level edge
+          // Add asset-level edge from focus to downstream
           edges.push({
             id: `asset-${focusAssetName}-to-${downstream.value}`,
             source: focusAssetName,
@@ -132,46 +132,26 @@ function generateColumnGraph(
       console.log(`No downstream assets found for ${focusAssetName}`);
     }
 
-    // Add edges between directly connected upstream and downstream assets
-    if (focusAsset.upstreams && focusAsset.downstreams) {
-      focusAsset.upstreams.forEach(upstream => {
-        if (upstream.type === 'asset' && upstream.value && assetMap[upstream.value]) {
-          focusAsset.downstreams.forEach(downstream => {
-            if (downstream.type === 'asset' && downstream.value && assetMap[downstream.value]) {
-              // Check if there's a direct connection between upstream and downstream
-              const upstreamAsset = assetMap[upstream.value];
-              if (upstreamAsset.downstreams?.some(d => d.value === downstream.value)) {
-                edges.push({
-                  id: `asset-${upstream.value}-to-${downstream.value}`,
-                  source: upstream.value,
-                  target: downstream.value,
-                  data: {
-                    type: 'asset-lineage'
-                  },
-                  style: {
-                    stroke: '#6b7280',
-                    strokeWidth: 1
-                  }
-                });
-              }
-            }
-          });
-        }
-      });
-    }
+    // Add column-level edges: upstream assets to focus asset columns
+    const focusAssetLineage = columnLineageMap[focusAssetName] || [];
 
-    // Add column-level edges for direct upstream connections
-    const focusAssetColumnLineage = columnLineageMap[focusAssetName] || [];
-    focusAssetColumnLineage.forEach(columnLineage => {
-      columnLineage.source_columns.forEach(sourceCol => {
-        if (processedAssets.has(sourceCol.asset)) {
+    focusAssetLineage.forEach(lineage => {
+      const targetColumn = lineage.column;
+
+      lineage.source_columns.forEach(sourceCol => {
+        // Ensure the source asset is in the current graph view (only upstream assets)
+        if (processedAssets.has(sourceCol.asset) && sourceCol.asset !== focusAssetName) {
           edges.push({
-            id: `column-${sourceCol.asset}-${sourceCol.column}-to-${focusAssetName}-${columnLineage.column}`,
+            id: `column-${sourceCol.asset}-${sourceCol.column}-to-${focusAssetName}-${targetColumn}`,
             source: sourceCol.asset,
+            sourceHandle: `column-${sourceCol.column}`,
             target: focusAssetName,
+            targetHandle: `column-${targetColumn}`,
             data: {
               sourceColumn: sourceCol.column,
-              targetColumn: columnLineage.column,
+              targetColumn: targetColumn,
+              sourceAsset: sourceCol.asset,
+              targetAsset: focusAssetName,
               type: 'column-lineage'
             },
             style: {
@@ -184,34 +164,42 @@ function generateColumnGraph(
       });
     });
 
-    // Add column-level edges for direct downstream connections
-    console.log(`Processing column-level downstream connections for processed assets:`, Array.from(processedAssets));
+    // Add column-level edges: from focus asset columns to downstream assets
     processedAssets.forEach(assetName => {
-      if (assetName !== focusAssetName) {
-        const assetColumnLineage = columnLineageMap[assetName] || [];
-        console.log(`Checking asset ${assetName} column lineage:`, assetColumnLineage.length, 'entries');
-        assetColumnLineage.forEach(columnLineage => {
-          columnLineage.source_columns.forEach(sourceCol => {
-            if (sourceCol.asset === focusAssetName) {
-              console.log(`Creating column-level downstream edge: ${focusAssetName}:${sourceCol.column} -> ${assetName}:${columnLineage.column}`);
-              edges.push({
-                id: `column-${focusAssetName}-${sourceCol.column}-to-${assetName}-${columnLineage.column}`,
-                source: focusAssetName,
-                target: assetName,
-                data: {
-                  sourceColumn: sourceCol.column,
-                  targetColumn: columnLineage.column,
-                  type: 'column-lineage'
-                },
-                style: {
-                  stroke: '#8b5cf6',
-                  strokeWidth: 2,
-                  strokeDasharray: '5,5'
-                }
-              });
-            }
+      if (assetName !== focusAssetName && columnLineageMap[assetName]) {
+        // Check if this asset is a downstream asset
+        const isDownstream = focusAsset.downstreams?.some(ds => ds.value === assetName);
+        if (isDownstream) {
+          const downstreamAssetLineage = columnLineageMap[assetName];
+          
+          downstreamAssetLineage.forEach(lineage => {
+            lineage.source_columns.forEach(sourceCol => {
+              // Check if this source column comes from the focus asset
+              if (sourceCol.asset === focusAssetName) {
+                const edgeId = `column-${focusAssetName}-${sourceCol.column}-to-${assetName}-${lineage.column}`;
+                edges.push({
+                  id: edgeId,
+                  source: focusAssetName,
+                  sourceHandle: `column-${sourceCol.column}`,
+                  target: assetName,
+                  targetHandle: `column-${lineage.column}`,
+                  data: {
+                    sourceColumn: sourceCol.column,
+                    targetColumn: lineage.column,
+                    sourceAsset: focusAssetName,
+                    targetAsset: assetName,
+                    type: 'column-lineage'
+                  },
+                  style: {
+                    stroke: '#8b5cf6',
+                    strokeWidth: 2,
+                    strokeDasharray: '5,5'
+                  }
+                });
+              }
+            });
           });
-        });
+        }
       }
     });
   }

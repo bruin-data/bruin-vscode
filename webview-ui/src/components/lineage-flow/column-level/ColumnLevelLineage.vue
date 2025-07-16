@@ -150,6 +150,7 @@ const getDownstreamNodesAndEdges = (nodeId: string, allEdges: Edge[]) => {
 
 // Enhanced hover highlighting that considers column lineage
 onNodeMouseEnter((event: NodeMouseEvent) => {
+  /*
   const hoveredNode = event.node;
   const allNodes = getNodes.value;
   const allEdges = getEdges.value;
@@ -174,9 +175,11 @@ onNodeMouseEnter((event: NodeMouseEvent) => {
       edge.class = `${edge.class || ''} column-highlight`.trim();
     }
   });
+  */
 });
 
 onNodeMouseLeave(() => {
+  /*
   getNodes.value.forEach((node) => {
     if (node.class && typeof node.class === 'string') {
       node.class = node.class.replace(/faded/g, '').trim();
@@ -187,6 +190,7 @@ onNodeMouseLeave(() => {
       edge.class = edge.class.replace(/faded|column-highlight/g, '').trim();
     }
   });
+  */
 });
 
 const handleViewSwitch = () => {

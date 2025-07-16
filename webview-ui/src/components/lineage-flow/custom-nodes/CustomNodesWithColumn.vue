@@ -1,98 +1,162 @@
 <template>
-  <div
-    class="custom-node-with-column"
-    :class="{ 'focus-asset': data?.asset?.isFocusAsset }"
-    @click="onNodeClick"
-  >
-    <!-- Node Header -->
-    <div class="node-header">
-      <div class="node-info">
-        <div class="node-name">{{ data.label }}</div>
-        <div class="node-type">{{ data?.asset?.type || 'unknown' }}</div>
-      </div>
-      
-      <!-- Expand/Collapse Button for Columns -->
-      <button 
-        v-if="hasColumns"
-        @click.stop="toggleColumnsExpanded"
-        class="columns-toggle-btn"
-        :class="{ 'expanded': showColumns }"
+  <div class="custom-node-wrapper">
+    <div v-if="showExpandButtons">
+      <div
+        v-if="showUpstreamIcon"
+        @click.stop="onAddUpstream"
+        class="icon-wrapper left-icon bg-commandCenter-border"
+        :class="{ invisible: !data?.hasUpstreamForClicking }"
+        title="Show Upstreams"
       >
-        <ChevronDownIcon class="w-4 h-4" />
-      </button>
+        <PlusIcon class="h-4 w-4 fill-gray-300 text-gray-700/50 hover:text-gray-700" />
+      </div>
     </div>
 
-    <!-- Columns Section -->
-    <div v-if="showColumns && hasColumns" class="columns-section">
-      <div class="columns-header">
-        <span class="columns-title">Columns ({{ columns.length }})</span>
-      </div>
-      
-      <div class="columns-list">
-        <div 
-          v-for="column in visibleColumns" 
-          :key="column.name"
-          class="column-item"
-          :class="{ 
-            'has-lineage': hasColumnLineage(column.name),
-            'highlight-column': highlightedColumns.includes(column.name)
-          }"
-        >
-          <div class="column-info">
-            <span class="column-name">{{ column.name }}</span>
-            <span class="column-type">{{ column.type }}</span>
+    <div class="node-content" :class="[assetClass, { expanded: showColumns }]" @click="onNodeClick">
+      <div
+        v-if="data.type === 'asset' || data?.asset"
+        :class="assetHighlightClass"
+      >
+        <div class="flex justify-between" :class="selectedStatusStyle">
+          <div class="flex items-center px-2 font-mono text-sm font-semibold space-x-1">
+            <div
+              v-if="status === 'running'"
+              class="flex-none rounded-full p-0.5 animate-pulse bg-yellow-400"
+            >
+              <div class="h-1 w-1 rounded-full bg-yellow-500" />
+            </div>
+            <div v-else-if="status === 'failed'" class="flex-none rounded-full p-0.5 bg-red-500">
+              <div class="h-1 w-1 rounded-full bg-red-600" />
+            </div>
+            <div>
+              <p class="">{{ status || '' }}</p>
+            </div>
           </div>
-          
-          <!-- Column lineage indicator -->
-          <div v-if="hasColumnLineage(column.name)" class="column-lineage-indicator">
-            <ArrowRightIcon class="w-3 h-3" />
+          <div
+            class="text-center rounded-t px-2 font-mono text-sm truncate border-t border-white/20"
+            :class="selectedStyle.label"
+          >
+            {{ data?.asset?.type || data.type || 'unknown' }}
+          </div>
+        </div>
+
+        <div
+          class="rounded-b font-mono py-1 text-left px-1 border border-white/20"
+          :class="[selectedStyle.main, status ? '' : 'rounded-tl']"
+        >
+          <div class="relative group flex items-center justify-between">
+            <!-- Node Name with Expand Option -->
+            <div class="dynamic-text flex-1" :style="{ fontSize: computedFontSize }" @click.stop="toggleExpand">
+              {{ isExpanded ? label : truncatedLabel }}
+            </div>
+            
+            <!-- Columns Toggle Button -->
+            <button 
+              v-if="hasColumns"
+              @click.stop="toggleColumnsExpanded"
+              class="columns-toggle-btn ml-2 text-xs opacity-60 hover:opacity-100 flex-shrink-0"
+              :class="{ 'expanded': showColumns }"
+              title="Toggle Columns"
+            >
+              <ChevronDownIcon class="w-3 h-3" />
+            </button>
+            
+            <!-- Tooltip -->
+            <div
+              v-if="isTruncated && !isExpanded"
+              class="absolute left-0 top-0 w-max font-mono rounded opacity-0 whitespace-nowrap group-hover:opacity-100 transition-opacity duration-200 group-hover:cursor-pointer"
+              :class="selectedStyle.main"
+              @click.stop="toggleExpand"
+            >
+              {{ label }}
+            </div>
+          </div>
+
+          <!-- Columns Section -->
+          <div v-if="hasColumns && showColumns" class="mt-1 border-t border-white/20 pt-1">
+            <div class="columns-list text-xs">
+              <div 
+                v-for="(column, index) in columns" 
+                :key="column.name"
+                class="column-item flex items-center justify-between py-0 px-0.5 rounded text-xs relative"
+                :class="{ 
+                  'has-lineage': hasColumnLineage(column.name),
+                  'highlight-column': highlightedColumns.includes(column.name),
+                  'bg-white/10': hasColumnLineage(column.name)
+                }"
+              >
+                <div class="column-info flex items-center justify-between flex-1">
+                  <span class="column-name font-medium text-xs">{{ column.name }}</span>
+                  <span class="column-type opacity-60" style="font-size: 10px;">{{ column.type }}</span>
+                </div>
+                
+                <!-- Column lineage indicator -->
+                <div v-if="hasColumnLineage(column.name)" class="column-lineage-indicator">
+                  <ArrowRightIcon class="w-2 h-2" />
+                </div>
+
+                <!-- Target Handle for incoming lineage -->
+                <Handle
+                  v-if="isTargetColumn(column.name)"
+                  :id="`column-${column.name}`"
+                  type="target"
+                  :position="Position.Left"
+                  class="column-handle"
+                  :style="{ 
+                    top: '50%', 
+                    left: '-6px',
+                    transform: 'translateY(-50%)',
+                    width: '8px',
+                    height: '8px'
+                  }"
+                />
+
+                <!-- Source Handle for outgoing lineage -->
+                <Handle
+                  v-if="isSourceColumn(column.name)"
+                  :id="`column-${column.name}`"
+                  type="source"
+                  :position="Position.Right"
+                  class="column-handle"
+                  :style="{ 
+                    top: '50%', 
+                    right: '-6px',
+                    transform: 'translateY(-50%)',
+                    width: '8px',
+                    height: '8px'
+                  }"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>
-      
-      <!-- Show more/less for large column lists -->
-      <div v-if="columns.length > maxVisibleColumns" class="columns-pagination">
-        <button 
-          @click.stop="toggleShowAllColumns"
-          class="show-more-btn"
-        >
-          {{ showAllColumns ? 'Show Less' : `Show All (${columns.length})` }}
-        </button>
+    </div>
+
+    <div v-if="showExpandButtons">
+      <div
+        v-if="showDownstreamIcon"
+        @click.stop="onAddDownstream"
+        class="icon-wrapper right-icon bg-commandCenter-border"
+        title="Show Downstreams"
+      >
+        <PlusIcon class="h-4 w-4 fill-gray-300 text-gray-700/50 hover:text-gray-700" />
       </div>
     </div>
-
-    <!-- Asset Connection Handles -->
-    <Handle
-      id="upstream"
-      type="target"
-      :position="Position.Left"
-      class="handle-upstream opacity-0"
-    />
-    
-    <Handle
-      id="downstream"
-      type="source"
-      :position="Position.Right"
-      class="handle-downstream opacity-0"
-    />
-
-    <!-- Upstream/Downstream Expand Buttons -->
-    <div
-      v-if="showUpstreamIcon"
-      class="expand-icon upstream-icon"
-      @click.stop="onAddUpstream"
-    >
-      <PlusIcon class="w-4 h-4" />
-    </div>
-
-    <div
-      v-if="showDownstreamIcon"
-      class="expand-icon downstream-icon"
-      @click.stop="onAddDownstream"
-    >
-      <PlusIcon class="w-4 h-4" />
-    </div>
   </div>
+
+  <Handle
+    v-if="assetHasDownstreams || assetHasUpstreams"
+    type="source"
+    class="opacity-0"
+    :position="Position.Right"
+  />
+  <Handle
+    v-if="assetHasUpstreams || assetHasDownstreams"
+    type="target"
+    class="opacity-0"
+    :position="Position.Left"
+  />
 </template>
 
 <script setup lang="ts">
@@ -100,12 +164,18 @@ import { computed, ref, defineEmits } from "vue";
 import { Handle, Position } from "@vue-flow/core";
 import { PlusIcon, ChevronDownIcon, ArrowRightIcon } from "@heroicons/vue/24/outline";
 import type { BruinNodeProps, ColumnInfo, ColumnLineage } from "@/types";
+import {
+  defaultStyle,
+  statusStyles,
+  styles,
+} from "@/components/lineage-flow/custom-nodes/CustomNodeStyles";
 
 const props = defineProps<{
   data: BruinNodeProps["data"];
   selectedNodeId?: string | null;
   expandedNodes?: { [key: string]: boolean };
   showExpandButtons?: boolean;
+  status?: string;
 }>();
 
 const emit = defineEmits<{
@@ -141,6 +211,45 @@ const showDownstreamIcon = computed(() => {
   return props.showExpandButtons && props.data?.hasDownstreamForClicking;
 });
 
+// Style-related computed properties (matching CustomNodes.vue)
+const selectedStyle = computed(() => styles[props.data?.asset?.type || "default"] || defaultStyle);
+const selectedStatusStyle = computed(() => statusStyles[props.status || ""]);
+const isAsset = computed(() => props.data.type === "asset" || props.data?.asset);
+
+const assetHasUpstreams = computed(() => isAsset.value && props.data?.asset?.hasUpstreams !== undefined);
+const assetHasDownstreams = computed(() => isAsset.value && props.data?.asset?.hasDownstreams);
+
+const assetClass = computed(() => `rounded w-56 ${props.status ? selectedStatusStyle.value : ''}`);
+
+const assetHighlightClass = computed(() => {
+  return props.data?.asset?.isFocusAsset
+    ? 'ring-2 ring-offset-4 ring-indigo-300 outline-2 outline-dashed outline-offset-8 outline-indigo-300 rounded'
+    : '';
+});
+
+// Label and expansion properties
+const label = computed(() => props.data?.asset?.name || props.data?.label || '');
+const isExpanded = computed(() => props.expandedNodes?.[props.data?.asset?.name || ''] || false);
+
+const isTruncated = computed(() => label.value.length > 26);
+const truncatedLabel = computed(() => {
+  const maxLength = 26;
+  const name = label.value;
+  return name.length > maxLength ? `${name.slice(0, maxLength)}...` : name;
+});
+
+const computedFontSize = computed(() => {
+  const baseSize = 12; // px
+  const maxLength = 24;
+  const length = label.value?.length || 0;
+
+  if (length > maxLength) {
+    const scale = Math.max(0.85, 1 - (length - maxLength) * 0.015);
+    return `${baseSize * scale}px`;
+  }
+  return `${baseSize}px`;
+});
+
 // Methods
 const toggleColumnsExpanded = () => {
   showColumns.value = !showColumns.value;
@@ -150,8 +259,35 @@ const toggleShowAllColumns = () => {
   showAllColumns.value = !showAllColumns.value;
 };
 
+const toggleExpand = () => {
+  emit("toggle-node-expand", props.data?.asset?.name);
+};
+
+const isTargetColumn = (columnName: string): boolean => {
+  // A column is a target if it has lineage (receives data from other columns)
+  return columnLineage.value.some(lineage => lineage.column === columnName);
+};
+
+const isSourceColumn = (columnName: string): boolean => {
+  // For the focus asset, check if this column is referenced as a source in any downstream asset
+  if (props.data?.asset?.isFocusAsset && props.data?.asset?.hasDownstreams) {
+    // This would require access to global column lineage data to check if this column
+    // is referenced in downstream assets. For now, assume any column can be a source.
+    return true;
+  }
+  
+  // For upstream assets, check if this column is a source for the focus asset
+  if (!props.data?.asset?.isFocusAsset && props.data?.asset?.hasDownstreams) {
+    // This column is a source if it's referenced in the focus asset's column lineage
+    // We'll assume it's a source if the asset has downstreams (this could be refined with more data)
+    return true;
+  }
+  
+  return false;
+};
+
 const hasColumnLineage = (columnName: string): boolean => {
-  return columnLineage.value.some((lineage: ColumnLineage) => lineage.column === columnName);
+  return isTargetColumn(columnName) || isSourceColumn(columnName);
 };
 
 const onNodeClick = () => {
@@ -174,32 +310,59 @@ const onAddDownstream = () => {
 </script>
 
 <style scoped>
-.custom-node-with-column {
-  @apply relative bg-editor-bg border border-notificationCenter-border rounded-lg shadow-sm hover:shadow-md transition-all duration-200 min-w-56 max-w-80;
+.custom-node-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
 }
 
-.custom-node-with-column.focus-asset {
-  @apply border-accent ring-2 ring-accent/20;
+.dynamic-text {
+  white-space: pre-wrap; /* Allow text to wrap */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+  transition: font-size 0.2s ease;
+  cursor: pointer;
 }
 
-.node-header {
-  @apply flex items-center justify-between p-3 border-b border-notificationCenter-border;
+.node-content {
+  width: 224px; /* Consistent width */
+  transition: height 0.3s ease;
 }
 
-.node-info {
-  @apply flex-1;
+.node-content.expanded {
+  height: auto; /* Allow height to adjust based on content */
 }
 
-.node-name {
-  @apply text-sm font-medium text-editor-fg truncate;
+.icon-wrapper {
+  position: absolute;
+  top: 72%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(55, 65, 81, 0.3);
+  border-radius: 4px;
+  cursor: pointer;
+  z-index: 10;
 }
 
-.node-type {
-  @apply text-xs text-foreground opacity-70 mt-1;
+.icon-wrapper:hover {
+  border-color: rgba(55, 65, 81, 0.5);
+}
+
+.left-icon {
+  left: -28px;
+}
+
+.right-icon {
+  right: -28px;
 }
 
 .columns-toggle-btn {
-  @apply p-1 rounded hover:bg-editor-button-hover-bg transition-colors text-foreground;
   transform: rotate(0deg);
   transition: transform 0.2s ease;
 }
@@ -208,72 +371,32 @@ const onAddDownstream = () => {
   transform: rotate(180deg);
 }
 
-.columns-section {
-  @apply border-t border-notificationCenter-border;
-}
-
-.columns-header {
-  @apply px-3 py-2 bg-editor-bg border-b border-notificationCenter-border;
-}
-
-.columns-title {
-  @apply text-xs font-medium text-foreground uppercase tracking-wide;
-}
-
 .columns-list {
-  @apply max-h-48 overflow-y-auto;
-}
-
-.column-item {
-  @apply flex items-center justify-between px-3 py-2 hover:bg-editor-button-hover-bg transition-colors;
+  /* No max-height or overflow to show all columns when expanded */
 }
 
 .column-item.has-lineage {
-  @apply bg-accent/5 border-l-2 border-accent;
+  border-left: 2px solid rgba(99, 102, 241, 0.5);
 }
 
 .column-item.highlight-column {
-  @apply bg-yellow-500/10 border-l-2 border-yellow-500;
-}
-
-.column-info {
-  @apply flex flex-col flex-1;
-}
-
-.column-name {
-  @apply text-sm text-editor-fg font-medium;
-}
-
-.column-type {
-  @apply text-xs text-foreground opacity-70;
+  background-color: rgba(234, 179, 8, 0.1);
+  border-left: 2px solid rgb(234, 179, 8);
 }
 
 .column-lineage-indicator {
-  @apply text-accent;
+  color: rgb(99, 102, 241);
 }
 
-.columns-pagination {
-  @apply px-3 py-2 border-t border-notificationCenter-border;
+.column-handle {
+  background-color: rgb(99, 102, 241);
+  border: 2px solid rgb(255, 255, 255);
+  border-radius: 50%;
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
 }
 
-.show-more-btn {
-  @apply text-xs text-accent hover:text-accent/80 transition-colors font-medium;
-}
-
-.expand-icon {
-  @apply absolute bg-accent text-white rounded-full p-1 cursor-pointer hover:bg-accent/80 transition-colors shadow-md;
-}
-
-.upstream-icon {
-  @apply -left-3 top-1/2 transform -translate-y-1/2;
-}
-
-.downstream-icon {
-  @apply -right-3 top-1/2 transform -translate-y-1/2;
-}
-
-.handle-upstream,
-.handle-downstream {
-  @apply w-3 h-3 border-2 border-editor-bg;
+.column-handle:hover {
+  opacity: 1;
 }
 </style>
