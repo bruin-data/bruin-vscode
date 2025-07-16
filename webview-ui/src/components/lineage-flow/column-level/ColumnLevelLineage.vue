@@ -109,12 +109,70 @@ const props = defineProps<{
   LineageError: string | null;
 }>();
 
-const { fitView, onNodeMouseEnter, onNodeMouseLeave, getNodes, getEdges } = useVueFlow();
+const { fitView, onNodeMouseEnter, onNodeMouseLeave, getNodes, getEdges, setNodes } = useVueFlow();
 const selectedNodeId = ref<string | null>(null);
 const expandedNodes = ref<{ [key: string]: boolean }>({});
 
+// Add position storage for consistent layout
+const savedNodePositions = ref<{ [key: string]: { x: number; y: number } }>({});
+const isRestoringPositions = ref(false);
+
 const toggleNodeExpand = (nodeId: string) => {
   expandedNodes.value[nodeId] = !expandedNodes.value[nodeId];
+  
+  // Restore all nodes to their saved positions when any node is expanded/collapsed
+  // Use setTimeout to ensure DOM updates are complete before restoring positions
+  setTimeout(() => {
+    restoreNodePositions();
+  }, 50);
+};
+
+// Save current positions of all nodes
+const saveNodePositions = () => {
+  // Don't save positions while we're restoring them
+  if (isRestoringPositions.value) {
+    return;
+  }
+  
+  const currentNodes = getNodes.value;
+  const positions: { [key: string]: { x: number; y: number } } = {};
+  
+  currentNodes.forEach(node => {
+    positions[node.id] = { x: node.position.x, y: node.position.y };
+  });
+  
+  savedNodePositions.value = positions;
+  console.log("Saved node positions for column lineage:", positions);
+};
+
+// Restore nodes to their saved positions
+const restoreNodePositions = () => {
+  if (Object.keys(savedNodePositions.value).length === 0) {
+    console.log("No saved positions to restore");
+    return;
+  }
+  
+  isRestoringPositions.value = true;
+  
+  const currentNodes = getNodes.value;
+  const updatedNodes = currentNodes.map(node => {
+    const savedPosition = savedNodePositions.value[node.id];
+    if (savedPosition) {
+      return {
+        ...node,
+        position: { x: savedPosition.x, y: savedPosition.y }
+      };
+    }
+    return node;
+  });
+  
+  setNodes(updatedNodes);
+  console.log("Restored node positions for column lineage");
+  
+  // Reset the flag after restoration is complete
+  setTimeout(() => {
+    isRestoringPositions.value = false;
+  }, 100);
 };
 
 const emit = defineEmits<{
@@ -145,6 +203,8 @@ watch(
   async (newPipelineData) => {
     if (!newPipelineData) {
       elements.value = { nodes: [], edges: [] };
+      // Clear saved positions when data is cleared
+      savedNodePositions.value = {};
       return;
     }
     
@@ -161,6 +221,8 @@ watch(
       
       // Show empty graph but provide guidance
       elements.value = { nodes: [], edges: [] };
+      // Clear saved positions when no data
+      savedNodePositions.value = {};
       error.value = "No column lineage data found. To view column-level lineage, ensure the pipeline data includes column information by using the 'parse pipeline -c' command or refresh the lineage data.";
       return;
     }
@@ -183,7 +245,28 @@ watch(
 const onNodesInitialized = () => {
   console.log("Column lineage nodes initialized");
   fitView();
+  
+  // Save positions after nodes are initialized and layout is applied
+  // Use a small delay to ensure layout has been applied
+  setTimeout(() => {
+    saveNodePositions();
+  }, 100);
 };
+
+// Also save positions whenever the elements change (e.g., when layout is applied)
+watch(
+  () => elements.value.nodes,
+  (newNodes) => {
+    if (newNodes && newNodes.length > 0 && !isRestoringPositions.value) {
+      // Wait for Vue to update the DOM and then save positions
+      // This ensures we capture the final positioned nodes
+      setTimeout(() => {
+        saveNodePositions();
+      }, 200);
+    }
+  },
+  { deep: true }
+);
 
 const onNodeClick = (nodeId: string) => {
   selectedNodeId.value = selectedNodeId.value === nodeId ? null : nodeId;

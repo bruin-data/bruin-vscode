@@ -212,10 +212,14 @@ const computedFontSize = computed(() => {
 // Methods
 const toggleColumnsExpanded = () => {
   showColumns.value = !showColumns.value;
+  // Emit node expand event to trigger position restoration in column lineage
+  emit("toggle-node-expand", props.data?.asset?.name);
 };
 
 const toggleShowAllColumns = () => {
   showAllColumns.value = !showAllColumns.value;
+  // Emit node expand event to trigger position restoration in column lineage
+  emit("toggle-node-expand", props.data?.asset?.name);
 };
 
 const toggleExpand = () => {
