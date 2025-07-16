@@ -41,7 +41,7 @@
         </div>
 
         <div
-          class="rounded-b font-mono py-1 text-left px-1 border border-white/20 cursor-pointer"
+          class="rounded-b font-mono py-1 text-left px-1 border border-white/20 cursor-pointer relative"
           :class="[selectedStyle.main, status ? '' : 'rounded-tl']"
           @click="handleNodeClick"
         >
@@ -63,6 +63,22 @@
             </button>
             
           </div>
+
+          <!-- Handle positioning at header level -->
+          <Handle
+            v-if="assetHasDownstreams || assetHasUpstreams"
+            type="source"
+            class="opacity-0"
+            :position="Position.Right"
+            :style="{ top: '12px', right: '-6px' }"
+          />
+          <Handle
+            v-if="assetHasUpstreams || assetHasDownstreams"
+            type="target"
+            class="opacity-0"
+            :position="Position.Left"
+            :style="{ top: '12px', left: '-6px' }"
+          />
 
           <!-- Columns Section -->
           <div v-if="hasColumns && showColumns" class="mt-1 border-t border-white/20 pt-1">
@@ -96,19 +112,6 @@
       </div>
     </div>
   </div>
-
-  <Handle
-    v-if="assetHasDownstreams || assetHasUpstreams"
-    type="source"
-    class="opacity-0"
-    :position="Position.Right"
-  />
-  <Handle
-    v-if="assetHasUpstreams || assetHasDownstreams"
-    type="target"
-    class="opacity-0"
-    :position="Position.Left"
-  />
 </template>
 
 <script setup lang="ts">
