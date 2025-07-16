@@ -118,13 +118,46 @@ const savedNodePositions = ref<{ [key: string]: { x: number; y: number } }>({});
 const isRestoringPositions = ref(false);
 
 const toggleNodeExpand = (nodeId: string) => {
-  expandedNodes.value[nodeId] = !expandedNodes.value[nodeId];
+  const wasExpanded = expandedNodes.value[nodeId];
+  expandedNodes.value[nodeId] = !wasExpanded;
   
-  // Restore all nodes to their saved positions when any node is expanded/collapsed
-  // Use setTimeout to ensure DOM updates are complete before restoring positions
-  setTimeout(() => {
-    restoreNodePositions();
-  }, 50);
+  // Calculate vertical shift based on column count
+  const currentNodes = getNodes.value;
+  const expandedNode = currentNodes.find(node => node.id === nodeId);
+  
+  if (expandedNode) {
+    const columnCount = expandedNode.data?.columns?.length || 0;
+    const verticalShift = columnCount * 18; // 25px per column
+    
+    // Find nodes that are below the expanded node
+    const updatedNodes = currentNodes.map(node => {
+      if (node.id === nodeId) {
+        return node; // Don't move the expanded node itself
+      }
+      
+      // Only move nodes that are below the expanded node (higher Y position)
+      if (node.position.y > expandedNode.position.y) {
+        const newY = wasExpanded 
+          ? node.position.y - verticalShift // Collapse: move up
+          : node.position.y + verticalShift; // Expand: move down
+        
+        return {
+          ...node,
+          position: { ...node.position, y: newY }
+        };
+      }
+      
+      return node;
+    });
+    
+    // Update nodes with new positions
+    setNodes(updatedNodes);
+    
+    // Update saved positions to reflect the new layout
+    setTimeout(() => {
+      saveNodePositions();
+    }, 100);
+  }
 };
 
 // Save current positions of all nodes

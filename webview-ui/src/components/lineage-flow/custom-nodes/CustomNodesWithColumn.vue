@@ -61,15 +61,6 @@
               <ChevronDownIcon class="w-3 h-3" />
             </button>
             
-            <!-- Tooltip -->
-            <div
-              v-if="isTruncated && !isExpanded"
-              class="absolute left-0 top-0 w-max font-mono rounded opacity-0 whitespace-nowrap group-hover:opacity-100 transition-opacity duration-200 group-hover:cursor-pointer"
-              :class="selectedStyle.main"
-              @click.stop="toggleExpand"
-            >
-              {{ label }}
-            </div>
           </div>
 
           <!-- Columns Section -->
