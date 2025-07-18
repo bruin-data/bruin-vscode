@@ -755,7 +755,8 @@ const strategyOptions = [
   { value: "merge", label: "Merge" },
   { value: "time_interval", label: "Time Interval" },
   { value: "ddl", label: "DDL" },
-  { value: "scd2", label: "SCD2" },
+  { value: "scd2_by_time", label: "SCD2 by Time" },
+  { value: "scd2_by_column", label: "SCD2 by Column" },
 ];
 
 const startIntervalValue = ref(0);

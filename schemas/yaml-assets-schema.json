@@ -98,7 +98,8 @@
                 "databricks",
                 "synapse",
                 "duckdb",
-                "clickhouse"
+                "clickhouse",
+                "gcs"
               ],
               "description": "The destination system",
               "additionalProperties": true

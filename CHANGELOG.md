@@ -1,4 +1,6 @@
 # Changelog
+## [0.58.8] - [2025-07-18]
+- Added GCS as a destination option in the Ingestr Asset UI and schema.
 
 ## [0.58.7] - [2025-07-15]
 - Fixed the query preview for the first query in multiple queries file.

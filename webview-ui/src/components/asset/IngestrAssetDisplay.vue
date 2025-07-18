@@ -224,6 +224,7 @@ const AVAILABLE_DESTINATIONS = [
   { value: 'redshift', label: 'Redshift' },
   { value: 'snowflake', label: 'Snowflake' },
   { value: 'synapse', label: 'Synapse' },
+  { value: 'gcs', label: 'Google Cloud Storage' },
 ] as const;
 
 // Available incremental strategies

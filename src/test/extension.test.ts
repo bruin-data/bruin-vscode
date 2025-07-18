@@ -2000,6 +2000,9 @@ suite("BruinPanel Tests", () => {
       const message = { command: "checkBruinCliInstallation" };
 
       await messageHandler(message);
+      
+      // Add a small delay to ensure async operations complete in CI
+      await new Promise(resolve => setTimeout(resolve, 10));
 
       assert.ok(bruinInstallCliStub.calledOnce, "CLI installation check should be performed");
     });
