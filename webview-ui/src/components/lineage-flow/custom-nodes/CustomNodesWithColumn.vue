@@ -93,7 +93,40 @@
                   <span class="column-type opacity-60" style="font-size: 9px;">{{ column.type }}</span>
                 </div>
                 
-                <!-- Column lineage indicators and handles removed -->
+                <!-- Upstream handle (target) -->
+                <Handle
+                  :id="`${data?.asset?.name}-${column.name}-upstream`"
+                  type="target"
+                  class="column-handle upstream"
+                  :position="Position.Left"
+                  :style="{ 
+                    top: '50%', 
+                    left: '-6px',
+                    transform: 'translateY(-50%)',
+                    width: '8px',
+                    height: '8px',
+                    background: '#10b981',
+                    border: '1px solid #fff'
+                  }"
+                />
+                
+                <!-- Downstream handle (source) -->
+                <Handle
+                  :id="`${data?.asset?.name}-${column.name}-downstream`"
+                  type="source"
+                  class="column-handle downstream"
+                  :position="Position.Right"
+                  :style="{ 
+                    top: '50%', 
+                    right: '-6px',
+                    transform: 'translateY(-50%)',
+                    width: '8px',
+                    height: '8px',
+                    background: '#f59e0b',
+                    border: '1px solid #fff'
+                  }"
+                />
+
               </div>
             </div>
           </div>
@@ -257,6 +290,8 @@ const onAddDownstream = () => {
     emit('add-downstream', props.data.asset.name);
   }
 };
+
+
 </script>
 
 <style scoped>

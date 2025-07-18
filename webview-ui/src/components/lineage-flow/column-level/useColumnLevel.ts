@@ -166,7 +166,49 @@ function generateColumnGraph(
       console.log(`No downstream assets found for ${focusAssetName}`);
     }
 
-    // Column-level edge creation has been removed
+    // Add column-level edges based on column lineage information
+    processedAssets.forEach(assetName => {
+      const assetColumnLineage = columnLineageMap[assetName];
+      if (assetColumnLineage && assetColumnLineage.length > 0) {
+        assetColumnLineage.forEach(lineage => {
+          // Create edges from source columns to target column
+          lineage.source_columns.forEach(sourceColumn => {
+            if (processedAssets.has(sourceColumn.asset)) {
+              const edgeId = `column-${sourceColumn.asset}.${sourceColumn.column}-to-${assetName}.${lineage.column}`;
+              edges.push({
+                id: edgeId,
+                source: sourceColumn.asset,
+                target: assetName,
+                sourceHandle: `${sourceColumn.asset}-${sourceColumn.column}-downstream`,
+                targetHandle: `${assetName}-${lineage.column}-upstream`,
+                label: `${sourceColumn.column} → ${lineage.column}`,
+                data: {
+                  type: 'column-lineage',
+                  sourceColumn: sourceColumn.column,
+                  targetColumn: lineage.column,
+                  sourceAsset: sourceColumn.asset,
+                  targetAsset: assetName
+                },
+                style: {
+                  stroke: '#3b82f6',
+                  strokeWidth: 2,
+                  strokeDasharray: '5,5'
+                },
+                labelStyle: {
+                  fontSize: '10px',
+                  fontWeight: 'bold',
+                  fill: '#3b82f6',
+                  background: '#ffffff',
+                  padding: '2px 4px',
+                  borderRadius: '4px',
+                  border: '1px solid #3b82f6'
+                }
+              });
+            }
+          });
+        });
+      }
+    });
   }
 
   return { nodes, edges };
@@ -224,6 +266,8 @@ function getAssetDatasetWithColumns(jsonData: any, assetId: string) {
     hasColumnLineage: assetColumnLineage.length > 0
   };
 }
+
+
 
 // Export the utility functions
 export {
