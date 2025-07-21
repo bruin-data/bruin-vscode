@@ -55,6 +55,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.58.8**: Added GCS as a destination option in the Ingestr Asset UI and schema.
 - **0.58.7**: Fixed the query preview for the first query in multiple queries file.
 - **0.58.6**: Fixed the query preview code lens. 
 - **0.58.5**: Recovered the partition by and cluster ui and fixed the columns actions being hidden.
