@@ -1005,8 +1005,8 @@ suite('generateGraph', () => {
 
 });
 
-suite('useColumnLevel - generateColumnGraph', () => {
-  test('should create column-level edges from source columns to target columns', () => {
+suite('createColumnLevelEdges', () => {
+  test('should create column level edges correctly', () => {
     const processedAssets = new Set(['asset1', 'asset2']);
     const columnLineageMap = {
       'asset2': [
@@ -1030,10 +1030,11 @@ suite('useColumnLevel - generateColumnGraph', () => {
     expect(edges[0].id).toBe('column-asset1.source_col-to-asset2.target_col');
     expect(edges[0].source).toBe('asset1');
     expect(edges[0].target).toBe('asset2');
-    expect(edges[0].label).toBe('source_col → target_col');
     expect(edges[0].data.type).toBe('column-lineage');
     expect(edges[0].data.sourceColumn).toBe('source_col');
     expect(edges[0].data.targetColumn).toBe('target_col');
+    expect(edges[0].data.sourceAsset).toBe('asset1');
+    expect(edges[0].data.targetAsset).toBe('asset2');
   });
 
   test('should not create edges for assets not in processedAssets', () => {
@@ -1142,22 +1143,25 @@ suite('useColumnLevel - generateColumnGraph', () => {
     // Check upstream1 to upstream edge
     const upstream1ToUpstreamEdge = edges.find(e => e.source === 'upstream_asset1' && e.target === 'upstream_asset');
     expect(upstream1ToUpstreamEdge).toBeDefined();
-    expect(upstream1ToUpstreamEdge?.label).toBe('upstream_col1 → upstream_col');
     expect(upstream1ToUpstreamEdge?.data.sourceAsset).toBe('upstream_asset1');
     expect(upstream1ToUpstreamEdge?.data.targetAsset).toBe('upstream_asset');
+    expect(upstream1ToUpstreamEdge?.data.sourceColumn).toBe('upstream_col1');
+    expect(upstream1ToUpstreamEdge?.data.targetColumn).toBe('upstream_col');
     
     // Check upstream to focus edge
     const upstreamToFocusEdge = edges.find(e => e.source === 'upstream_asset' && e.target === 'focus_asset');
     expect(upstreamToFocusEdge).toBeDefined();
-    expect(upstreamToFocusEdge?.label).toBe('upstream_col → focus_col');
     expect(upstreamToFocusEdge?.data.sourceAsset).toBe('upstream_asset');
     expect(upstreamToFocusEdge?.data.targetAsset).toBe('focus_asset');
+    expect(upstreamToFocusEdge?.data.sourceColumn).toBe('upstream_col');
+    expect(upstreamToFocusEdge?.data.targetColumn).toBe('focus_col');
     
     // Check focus to downstream edge
     const focusToDownstreamEdge = edges.find(e => e.source === 'focus_asset' && e.target === 'downstream_asset');
     expect(focusToDownstreamEdge).toBeDefined();
-    expect(focusToDownstreamEdge?.label).toBe('focus_col → downstream_col');
     expect(focusToDownstreamEdge?.data.sourceAsset).toBe('focus_asset');
     expect(focusToDownstreamEdge?.data.targetAsset).toBe('downstream_asset');
+    expect(focusToDownstreamEdge?.data.sourceColumn).toBe('focus_col');
+    expect(focusToDownstreamEdge?.data.targetColumn).toBe('downstream_col');
   });
 });

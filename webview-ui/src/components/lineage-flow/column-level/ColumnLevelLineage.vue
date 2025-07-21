@@ -205,9 +205,7 @@ const recalculateAllPositions = (): void => {
   setNodes(finalNodes);
   
   // Save the new positions
-  setTimeout(() => {
-    saveNodePositions();
-  }, 100);
+  saveNodePositions();
 };
 
 const applyDirectionalSpacing = (nodes: GraphNode[], direction: 'upstream' | 'downstream'): GraphNode[] => {
@@ -334,11 +332,9 @@ const onNodesInitialized = (): void => {
   });
   
   // Save both original and current positions after nodes are initialized and layout is applied
-  setTimeout(() => {
-    saveOriginalPositions();
-    saveNodePositions();
-    recalculateAllPositions();
-  }, 100);
+  saveOriginalPositions();
+  saveNodePositions();
+  recalculateAllPositions();
 };
 
 // Watch for pipeline data changes
@@ -388,9 +384,7 @@ watch(
   () => elements.value.nodes,
   (newNodes) => {
     if (newNodes && newNodes.length > 0 && !isRestoringPositions.value) {
-      setTimeout(() => {
-        saveNodePositions();
-      }, 200);
+      saveNodePositions();
     }
   },
   { deep: true }
