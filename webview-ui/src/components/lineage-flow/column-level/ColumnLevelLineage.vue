@@ -7,7 +7,7 @@
         <p class="error-description">{{ error }}</p>
         <div class="error-actions">
           <vscode-button 
-            @click="handleViewSwitch()"
+            @click="handleViewSwitch"
             appearance="primary"
             class="action-btn"
           >
@@ -32,7 +32,7 @@
       <Panel position="top-right">
         <div class="navigation-controls">
           <vscode-button 
-            @click="handleViewSwitch()"
+            @click="handleViewSwitch"
             appearance="secondary"
             class="view-switch-btn"
           >
@@ -62,6 +62,7 @@
           :selected-node-id="selectedNodeId"
           @node-click="onNodeClick"
           :show-expand-buttons="false"
+          :label="nodeProps.data?.asset?.name || nodeProps.data?.label || ''"
         />
       </template>
       
@@ -74,8 +75,6 @@
         class="custom-controls"
       />
     </VueFlow>
-
-    <!-- Column lineage legend removed -->
   </div>
 </template>
 
@@ -84,9 +83,8 @@ import {
   PanelPosition,
   VueFlow,
   useVueFlow,
-  type Edge,
   Panel,
-  type NodeMouseEvent,
+  type GraphNode
 } from "@vue-flow/core";
 import { Background } from "@vue-flow/background";
 import { Controls } from "@vue-flow/controls";
@@ -95,12 +93,24 @@ import "@vue-flow/controls/dist/style.css";
 import { ref, watch, defineEmits } from "vue";
 import CustomNodeWithColumn from "@/components/lineage-flow/custom-nodes/CustomNodesWithColumn.vue";
 import CustomNode from "@/components/lineage-flow/custom-nodes/CustomNodes.vue";
-import {
-  buildColumnLineage,
-  generateColumnGraph,
-} from "@/components/lineage-flow/column-level/useColumnLevel";
+import { buildColumnLineage } from "@/components/lineage-flow/column-level/useColumnLevel";
+import { generateColumnGraph } from "@/utilities/graphGenerator";
 import { applyLayout } from "@/components/lineage-flow/pipeline-lineage/pipelineLineageBuilder";
 import type { AssetDataset } from "@/types";
+
+interface NodePosition {
+  x: number;
+  y: number;
+}
+
+interface NodePositions {
+  [key: string]: NodePosition;
+}
+
+interface GraphElements {
+  nodes: any[];
+  edges: any[];
+}
 
 const props = defineProps<{
   assetDataset?: AssetDataset | null;
@@ -109,16 +119,25 @@ const props = defineProps<{
   LineageError: string | null;
 }>();
 
-const { fitView, onNodeMouseEnter, onNodeMouseLeave, getNodes, getEdges, setNodes } = useVueFlow();
+const { fitView, getNodes, setNodes } = useVueFlow();
 const selectedNodeId = ref<string | null>(null);
 const expandedNodes = ref<{ [key: string]: boolean }>({});
-
-// Add position storage for consistent layout
-const savedNodePositions = ref<{ [key: string]: { x: number; y: number } }>({});
-const originalNodePositions = ref<{ [key: string]: { x: number; y: number } }>({});
+const savedNodePositions = ref<NodePositions>({});
+const originalNodePositions = ref<NodePositions>({});
 const isRestoringPositions = ref(false);
+const error = ref<string | null>(props.LineageError);
+const elements = ref<GraphElements>({ nodes: [], edges: [] });
 
-const toggleNodeExpand = (nodeId: string, type?: string) => {
+const emit = defineEmits<{
+  showPipelineView: [data: {
+    assetId?: string;
+    assetDataset?: AssetDataset | null;
+    pipelineData: any;
+    LineageError: string | null;
+  }];
+}>();
+
+const toggleNodeExpand = (nodeId: string, type?: string): void => {
   const currentNodes = getNodes.value;
   const expandedNode = currentNodes.find(node => node.id === nodeId);
   
@@ -136,11 +155,10 @@ const toggleNodeExpand = (nodeId: string, type?: string) => {
   }
 };
 
-// Recalculate all positions based on which nodes are expanded
-const recalculateAllPositions = () => {
+const recalculateAllPositions = (): void => {
   const currentNodes = getNodes.value;
   
-  // Step 1: Reset all nodes to their original positions
+  // Reset all nodes to their original positions
   const nodesWithOriginalPositions = currentNodes.map(node => {
     const originalPosition = originalNodePositions.value[node.id];
     if (originalPosition) {
@@ -152,17 +170,16 @@ const recalculateAllPositions = () => {
     return node;
   });
   
-  // Step 2: Identify focus asset and categorize nodes
+  // Identify focus asset and categorize nodes
   const focusNode = nodesWithOriginalPositions.find(node => node.data?.asset?.isFocusAsset);
   if (!focusNode) {
-    // Fallback to old behavior if no focus asset found
     applyCumulativeSpacing(nodesWithOriginalPositions);
     return;
   }
   
-  const upstreamNodes = [];
-  const downstreamNodes = [];
-  const focusNodes = [];
+  const upstreamNodes: GraphNode[] = [];
+  const downstreamNodes: GraphNode[] = [];
+  const focusNodes: GraphNode[] = [];
   
   nodesWithOriginalPositions.forEach(node => {
     if (node.data?.asset?.isFocusAsset) {
@@ -174,18 +191,17 @@ const recalculateAllPositions = () => {
     }
   });
   
-  // Step 3: Apply spacing independently for upstream and downstream nodes
+  // Apply spacing independently for upstream and downstream nodes
   const spacedUpstreamNodes = applyDirectionalSpacing(upstreamNodes, 'upstream');
   const spacedDownstreamNodes = applyDirectionalSpacing(downstreamNodes, 'downstream');
   
-  // Step 4: Combine all nodes with their new positions
+  // Combine all nodes with their new positions
   const finalNodes = [
     ...spacedUpstreamNodes,
     ...focusNodes, // Focus nodes keep their original positions
     ...spacedDownstreamNodes
   ];
   
-  // Update nodes with new positions
   setNodes(finalNodes);
   
   // Save the new positions
@@ -194,8 +210,7 @@ const recalculateAllPositions = () => {
   }, 100);
 };
 
-// Apply spacing logic for nodes in a specific direction (upstream or downstream)
-const applyDirectionalSpacing = (nodes, direction) => {
+const applyDirectionalSpacing = (nodes: GraphNode[], direction: 'upstream' | 'downstream'): GraphNode[] => {
   if (nodes.length === 0) return [];
   
   // Sort nodes by Y position to apply spacing from top to bottom
@@ -230,8 +245,7 @@ const applyDirectionalSpacing = (nodes, direction) => {
   });
 };
 
-// Fallback function for cumulative spacing (old behavior)
-const applyCumulativeSpacing = (nodes) => {
+const applyCumulativeSpacing = (nodes: GraphNode[]): void => {
   const sortedNodes = [...nodes].sort((a, b) => a.position.y - b.position.y);
   
   let cumulativeOffset = 0;
@@ -262,15 +276,13 @@ const applyCumulativeSpacing = (nodes) => {
   setNodes(finalNodes);
 };
 
-// Save original positions of all nodes (only once when first initialized)
-const saveOriginalPositions = () => {
-  // Only save original positions if they haven't been saved yet
+const saveOriginalPositions = (): void => {
   if (Object.keys(originalNodePositions.value).length > 0) {
     return;
   }
   
   const currentNodes = getNodes.value;
-  const positions: { [key: string]: { x: number; y: number } } = {};
+  const positions: NodePositions = {};
   
   currentNodes.forEach(node => {
     positions[node.id] = { x: node.position.x, y: node.position.y };
@@ -280,15 +292,13 @@ const saveOriginalPositions = () => {
   console.log("Saved original node positions for column lineage:", positions);
 };
 
-// Save current positions of all nodes
-const saveNodePositions = () => {
-  // Don't save positions while we're restoring them
+const saveNodePositions = (): void => {
   if (isRestoringPositions.value) {
     return;
   }
   
   const currentNodes = getNodes.value;
-  const positions: { [key: string]: { x: number; y: number } } = {};
+  const positions: NodePositions = {};
   
   currentNodes.forEach(node => {
     positions[node.id] = { x: node.position.x, y: node.position.y };
@@ -298,48 +308,7 @@ const saveNodePositions = () => {
   console.log("Saved node positions for column lineage:", positions);
 };
 
-// Restore nodes to their saved positions
-const restoreNodePositions = () => {
-  if (Object.keys(savedNodePositions.value).length === 0) {
-    console.log("No saved positions to restore");
-    return;
-  }
-  
-  isRestoringPositions.value = true;
-  
-  const currentNodes = getNodes.value;
-  const updatedNodes = currentNodes.map(node => {
-    const savedPosition = savedNodePositions.value[node.id];
-    if (savedPosition) {
-      return {
-        ...node,
-        position: { x: savedPosition.x, y: savedPosition.y }
-      };
-    }
-    return node;
-  });
-  
-  setNodes(updatedNodes);
-  console.log("Restored node positions for column lineage");
-  
-  // Reset the flag after restoration is complete
-  setTimeout(() => {
-    isRestoringPositions.value = false;
-  }, 100);
-};
-
-const emit = defineEmits<{
-  (e: 'showPipelineView', data: {
-    assetId?: string;
-    assetDataset?: AssetDataset | null;
-    pipelineData: any;
-    LineageError: string | null;
-  }): void;
-}>();
-
-// Column lineage hover highlighting functions removed
-
-const handleViewSwitch = () => {
+const handleViewSwitch = (): void => {
   emit('showPipelineView', {
     assetId: props.assetDataset?.id,
     assetDataset: props.assetDataset,
@@ -348,15 +317,36 @@ const handleViewSwitch = () => {
   });
 };
 
-const error = ref<string | null>(props.LineageError);
-const elements = ref<any>({ nodes: [], edges: [] });
+const onNodeClick = (nodeId: string): void => {
+  selectedNodeId.value = selectedNodeId.value === nodeId ? null : nodeId;
+};
 
+const onNodesInitialized = (): void => {
+  console.log("Column lineage nodes initialized");
+  fitView();
+  
+  // Auto-expand focus asset nodes
+  const currentNodes = getNodes.value;
+  currentNodes.forEach(node => {
+    if (node.data?.asset?.isFocusAsset) {
+      expandedNodes.value[node.id] = true;
+    }
+  });
+  
+  // Save both original and current positions after nodes are initialized and layout is applied
+  setTimeout(() => {
+    saveOriginalPositions();
+    saveNodePositions();
+    recalculateAllPositions();
+  }, 100);
+};
+
+// Watch for pipeline data changes
 watch(
   () => props.pipelineData,
   async (newPipelineData) => {
     if (!newPipelineData) {
       elements.value = { nodes: [], edges: [] };
-      // Clear saved positions when data is cleared
       savedNodePositions.value = {};
       originalNodePositions.value = {};
       return;
@@ -373,16 +363,13 @@ watch(
     if (!hasColumnData) {
       console.warn("No column lineage data available. The data may have been parsed without the -c flag.");
       
-      // Show empty graph but provide guidance
       elements.value = { nodes: [], edges: [] };
-      // Clear saved positions when no data
       savedNodePositions.value = {};
       originalNodePositions.value = {};
       error.value = "No column lineage data found. To view column-level lineage, ensure the pipeline data includes column information by using the 'parse pipeline -c' command or refresh the lineage data.";
       return;
     }
     
-    // Reset error if we have data
     error.value = null;
     
     const lineageData = buildColumnLineage(newPipelineData);
@@ -390,42 +377,17 @@ watch(
       lineageData,
       props.assetDataset?.name || ""
     );
-    
     const { nodes: layoutNodes, edges: layoutEdges } = await applyLayout(initialNodes, initialEdges);
     elements.value = { nodes: layoutNodes, edges: layoutEdges };
   },
   { immediate: true }
 );
 
-const onNodesInitialized = () => {
-  console.log("Column lineage nodes initialized");
-  fitView();
-  
-  // Auto-expand focus asset nodes
-  const currentNodes = getNodes.value;
-  currentNodes.forEach(node => {
-    if (node.data?.asset?.isFocusAsset) {
-      expandedNodes.value[node.id] = true;
-    }
-  });
-  
-  // Save both original and current positions after nodes are initialized and layout is applied
-  // Use a small delay to ensure layout has been applied
-  setTimeout(() => {
-    saveOriginalPositions();
-    saveNodePositions();
-    // Apply initial spacing for focus assets that are auto-expanded
-    recalculateAllPositions();
-  }, 100);
-};
-
-// Also save positions whenever the elements change (e.g., when layout is applied)
+// Watch for elements changes to save positions
 watch(
   () => elements.value.nodes,
   (newNodes) => {
     if (newNodes && newNodes.length > 0 && !isRestoringPositions.value) {
-      // Wait for Vue to update the DOM and then save positions
-      // This ensures we capture the final positioned nodes
       setTimeout(() => {
         saveNodePositions();
       }, 200);
@@ -433,10 +395,6 @@ watch(
   },
   { deep: true }
 );
-
-const onNodeClick = (nodeId: string) => {
-  selectedNodeId.value = selectedNodeId.value === nodeId ? null : nodeId;
-};
 </script>
 
 <style>
@@ -448,10 +406,6 @@ const onNodeClick = (nodeId: string) => {
   opacity: 0.3;
   transition: opacity 0.2s ease-in-out;
 }
-
-
-
-
 
 .flow {
   @apply flex h-screen w-full p-0 !important;
@@ -479,8 +433,6 @@ const onNodeClick = (nodeId: string) => {
 .custom-controls .vue-flow__controls-button:hover {
   background-color: #444 !important;
 }
-
-
 
 .navigation-controls {
   @apply flex gap-2;

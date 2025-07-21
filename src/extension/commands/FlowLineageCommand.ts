@@ -76,11 +76,5 @@ export const getColumnLineageCommand = async (
     ""
   );
   
-  try {
-    return await flowLineage.getPipelineColumnsInfo(lastRenderedDocumentUri.fsPath);
-  } catch (error) {
-    console.error("Error getting column lineage:", error);
-    throw error;
-  }
 };
   

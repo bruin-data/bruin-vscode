@@ -19,7 +19,8 @@ import { mount } from "@vue/test-utils";
 import "./mocks/vueFlow"; // Import the mocks
 import { ref } from "vue";
 import { buildPipelineLineage, generateGraph } from "@/components/lineage-flow/pipeline-lineage/pipelineLineageBuilder";
-import { buildColumnLineage, generateColumnGraph, getAssetDatasetWithColumns, createColumnLevelEdges } from "@/components/lineage-flow/column-level/useColumnLevel";
+import { buildColumnLineage, getAssetDatasetWithColumns } from "@/components/lineage-flow/column-level/useColumnLevel";
+import { generateColumnGraph, createColumnLevelEdges } from "@/utilities/graphGenerator";
 
 vi.mock("markdown-it");
 

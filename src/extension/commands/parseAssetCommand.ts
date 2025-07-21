@@ -63,30 +63,6 @@ export const parseAssetLineageWithColumnsCommand = async (
   }
 };
 
-/**
- * Get comprehensive column information for all assets in a pipeline.
- * This command provides detailed column metadata and lineage information.
- * 
- * @param lastRenderedDocumentUri - URI of the current document
- * @returns Promise with detailed column information for all assets
- */
-export const getPipelineColumnsInfoCommand = async (
-  lastRenderedDocumentUri: Uri | undefined
-): Promise<PipelineColumnInfo | null> => {
-  if (!lastRenderedDocumentUri) {
-    return null;
-  }
-  
-  const bruinExec = getBruinExecutablePath();
-  const parser = new BruinLineageInternalParse(bruinExec, "");
-  
-  try {
-    return await parser.getPipelineColumnsInfo(lastRenderedDocumentUri.fsPath);
-  } catch (error) {
-    console.error("Error getting pipeline columns info:", error);
-    throw error;
-  }
-};
 
 
 
