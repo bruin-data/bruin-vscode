@@ -95,35 +95,37 @@
                 
                 <!-- Upstream handle (target) -->
                 <Handle
-                  :id="`${data?.asset?.name}-${column.name}-upstream`"
+                  :id="`col-${data?.asset?.name?.toLowerCase()}-${column.name.toLowerCase()}-${index}-upstream`"
                   type="target"
                   class="column-handle upstream"
                   :position="Position.Left"
                   :style="{ 
                     top: '50%', 
-                    left: '-6px',
+                    left: '-8px',
                     transform: 'translateY(-50%)',
-                    width: '8px',
-                    height: '8px',
+                    width: '10px',
+                    height: '10px',
                     background: '#10b981',
-                    border: '1px solid #fff'
+                    border: '2px solid #fff',
+                    opacity: '1'
                   }"
                 />
                 
                 <!-- Downstream handle (source) -->
                 <Handle
-                  :id="`${data?.asset?.name}-${column.name}-downstream`"
+                  :id="`col-${data?.asset?.name?.toLowerCase()}-${column.name.toLowerCase()}-${index}-downstream`"
                   type="source"
                   class="column-handle downstream"
                   :position="Position.Right"
                   :style="{ 
                     top: '50%', 
-                    right: '-6px',
+                    right: '-8px',
                     transform: 'translateY(-50%)',
-                    width: '8px',
-                    height: '8px',
+                    width: '10px',
+                    height: '10px',
                     background: '#f59e0b',
-                    border: '1px solid #fff'
+                    border: '2px solid #fff',
+                    opacity: '1'
                   }"
                 />
 

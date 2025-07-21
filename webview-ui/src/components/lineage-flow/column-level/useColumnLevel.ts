@@ -110,7 +110,7 @@ function generateColumnGraph(
   if (focusAsset) {
     console.log(`Focus asset ${focusAssetName} downstreams:`, focusAsset.downstreams);
     nodes.push(createColumnNode(focusAsset, true, columnLineageMap[focusAssetName] || []));
-    processedAssets.add(focusAssetName);
+    processedAssets.add(focusAssetName.toLowerCase());
 
     // Add direct upstream assets
     if (focusAsset.upstreams) {
@@ -118,7 +118,7 @@ function generateColumnGraph(
         if (upstream.type === 'asset' && upstream.value && assetMap[upstream.value]) {
           const upstreamAsset = assetMap[upstream.value];
           nodes.push(createColumnNode(upstreamAsset, false, columnLineageMap[upstream.value] || []));
-          processedAssets.add(upstream.value);
+          processedAssets.add(upstream.value.toLowerCase());
 
           // Add asset-level edge from upstream to focus
           edges.push({
@@ -145,7 +145,7 @@ function generateColumnGraph(
           const downstreamAsset = assetMap[downstream.value];
           console.log(`Adding downstream asset: ${downstream.value}`);
           nodes.push(createColumnNode(downstreamAsset, false, columnLineageMap[downstream.value] || []));
-          processedAssets.add(downstream.value);
+          processedAssets.add(downstream.value.toLowerCase());
 
           // Add asset-level edge from focus to downstream
           edges.push({
@@ -167,43 +167,61 @@ function generateColumnGraph(
     }
 
     // Add column-level edges based on column lineage information
+    const edgeSet = new Set<string>(); // Track unique edges to prevent duplicates
+    
     processedAssets.forEach(assetName => {
       const assetColumnLineage = columnLineageMap[assetName];
       if (assetColumnLineage && assetColumnLineage.length > 0) {
         assetColumnLineage.forEach(lineage => {
           // Create edges from source columns to target column
           lineage.source_columns.forEach(sourceColumn => {
-            if (processedAssets.has(sourceColumn.asset)) {
-              const edgeId = `column-${sourceColumn.asset}.${sourceColumn.column}-to-${assetName}.${lineage.column}`;
-              edges.push({
-                id: edgeId,
-                source: sourceColumn.asset,
-                target: assetName,
-                sourceHandle: `${sourceColumn.asset}-${sourceColumn.column}-downstream`,
-                targetHandle: `${assetName}-${lineage.column}-upstream`,
-                label: `${sourceColumn.column} → ${lineage.column}`,
-                data: {
-                  type: 'column-lineage',
-                  sourceColumn: sourceColumn.column,
-                  targetColumn: lineage.column,
-                  sourceAsset: sourceColumn.asset,
-                  targetAsset: assetName
-                },
-                style: {
-                  stroke: '#3b82f6',
-                  strokeWidth: 2,
-                  strokeDasharray: '5,5'
-                },
-                labelStyle: {
-                  fontSize: '10px',
-                  fontWeight: 'bold',
-                  fill: '#3b82f6',
-                  background: '#ffffff',
-                  padding: '2px 4px',
-                  borderRadius: '4px',
-                  border: '1px solid #3b82f6'
-                }
-              });
+            if (processedAssets.has(sourceColumn.asset.toLowerCase())) {
+              const edgeId = `column-${sourceColumn.asset.toLowerCase()}.${sourceColumn.column.toLowerCase()}-to-${assetName.toLowerCase()}.${lineage.column.toLowerCase()}`;
+              
+              // Prevent duplicate edges when asset is both source and target
+              if (!edgeSet.has(edgeId)) {
+                edgeSet.add(edgeId);
+                
+                // Find column indices for unique handle IDs
+                const sourceAsset = assetMap[sourceColumn.asset];
+                const targetAsset = assetMap[assetName];
+                const sourceColumnIndex = sourceAsset?.columns?.findIndex(c => c.name.toLowerCase() === sourceColumn.column.toLowerCase()) ?? 0;
+                const targetColumnIndex = targetAsset?.columns?.findIndex(c => c.name.toLowerCase() === lineage.column.toLowerCase()) ?? 0;
+                
+                // Use unique handle IDs with column indices - convert to lowercase
+                const sourceHandle = `col-${sourceColumn.asset.toLowerCase()}-${sourceColumn.column.toLowerCase()}-${sourceColumnIndex}-downstream`;
+                const targetHandle = `col-${assetName.toLowerCase()}-${lineage.column.toLowerCase()}-${targetColumnIndex}-upstream`;
+                
+                edges.push({
+                  id: edgeId,
+                  source: sourceColumn.asset,
+                  target: assetName,
+                  sourceHandle: sourceHandle,
+                  targetHandle: targetHandle,
+                  label: `${sourceColumn.column} → ${lineage.column}`,
+                  data: {
+                    type: 'column-lineage',
+                    sourceColumn: sourceColumn.column,
+                    targetColumn: lineage.column,
+                    sourceAsset: sourceColumn.asset,
+                    targetAsset: assetName
+                  },
+                  style: {
+                    stroke: '#3b82f6',
+                    strokeWidth: 0.3,
+                    strokeDasharray: '5,5'
+                  },
+                  labelStyle: {
+                    fontSize: '10px',
+                    fontWeight: 'bold',
+                    fill: '#3b82f6',
+                    background: '#ffffff',
+                    padding: '2px 4px',
+                    borderRadius: '4px',
+                    border: '1px solid #3b82f6'
+                  }
+                });
+              }
             }
           });
         });

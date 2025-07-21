@@ -19,6 +19,7 @@ import { mount } from "@vue/test-utils";
 import "./mocks/vueFlow"; // Import the mocks
 import { ref } from "vue";
 import { buildPipelineLineage, generateGraph } from "@/components/lineage-flow/pipeline-lineage/pipelineLineageBuilder";
+import { buildColumnLineage, generateColumnGraph, getAssetDatasetWithColumns } from "@/components/lineage-flow/column-level/useColumnLevel";
 
 vi.mock("markdown-it");
 
@@ -1001,4 +1002,251 @@ suite('generateGraph', () => {
     expect(result.edges[0].target).toBe('asset2');
   });
 
+});
+
+suite('useColumnLevel - generateColumnGraph', () => {
+  test('should create column-level edges from source columns to target columns', () => {
+    const processedAssets = new Set(['asset1', 'asset2']);
+    const columnLineageMap = {
+      'asset2': [
+        {
+          column: 'target_col',
+          source_columns: [
+            { asset: 'asset1', column: 'source_col' }
+          ]
+        }
+      ]
+    };
+    
+    const edges: any[] = [];
+  
+    processedAssets.forEach(assetName => {
+      const assetColumnLineage = columnLineageMap[assetName];
+      if (assetColumnLineage && assetColumnLineage.length > 0) {
+        assetColumnLineage.forEach(lineage => {
+          lineage.source_columns.forEach(sourceColumn => {
+            if (processedAssets.has(sourceColumn.asset)) {
+              const edgeId = `column-${sourceColumn.asset}.${sourceColumn.column}-to-${assetName}.${lineage.column}`;
+              edges.push({
+                id: edgeId,
+                source: sourceColumn.asset,
+                target: assetName,
+                sourceHandle: `${sourceColumn.asset}-${sourceColumn.column}-downstream`,
+                targetHandle: `${assetName}-${lineage.column}-upstream`,
+                label: `${sourceColumn.column} → ${lineage.column}`,
+                data: {
+                  type: 'column-lineage',
+                  sourceColumn: sourceColumn.column,
+                  targetColumn: lineage.column,
+                  sourceAsset: sourceColumn.asset,
+                  targetAsset: assetName
+                },
+                style: {
+                  stroke: '#3b82f6',
+                  strokeWidth: 2,
+                  strokeDasharray: '5,5'
+                },
+                labelStyle: {
+                  fontSize: '10px',
+                  fontWeight: 'bold',
+                  fill: '#3b82f6',
+                  background: '#ffffff',
+                  padding: '2px 4px',
+                  borderRadius: '4px',
+                  border: '1px solid #3b82f6'
+                }
+              });
+            }
+          });
+        });
+      }
+    });
+    
+    
+    expect(edges).toHaveLength(1);
+    expect(edges[0].id).toBe('column-asset1.source_col-to-asset2.target_col');
+    expect(edges[0].source).toBe('asset1');
+    expect(edges[0].target).toBe('asset2');
+    expect(edges[0].label).toBe('source_col → target_col');
+    expect(edges[0].data.type).toBe('column-lineage');
+    expect(edges[0].data.sourceColumn).toBe('source_col');
+    expect(edges[0].data.targetColumn).toBe('target_col');
+  });
+
+  test('should not create edges for assets not in processedAssets', () => {
+    const processedAssets = new Set(['asset2']);
+    const columnLineageMap = {
+      'asset2': [
+        {
+          column: 'target_col',
+          source_columns: [
+            { asset: 'asset1', column: 'source_col' } 
+          ]
+        }
+      ]
+    };
+    
+    const edges: any[] = [];
+    
+    processedAssets.forEach(assetName => {
+      const assetColumnLineage = columnLineageMap[assetName];
+      if (assetColumnLineage && assetColumnLineage.length > 0) {
+        assetColumnLineage.forEach(lineage => {
+          lineage.source_columns.forEach(sourceColumn => {
+            if (processedAssets.has(sourceColumn.asset)) {
+              edges.push({
+                id: `column-${sourceColumn.asset}.${sourceColumn.column}-to-${assetName}.${lineage.column}`
+              });
+            }
+          });
+        });
+      }
+    });
+    
+    expect(edges).toHaveLength(0);
+  });
+
+  test('should handle multiple source columns for same target column', () => {
+    const processedAssets = new Set(['asset1', 'asset2', 'asset3']);
+    const columnLineageMap = {
+      'asset3': [
+        {
+          column: 'target_col',
+          source_columns: [
+            { asset: 'asset1', column: 'col_a' },
+            { asset: 'asset2', column: 'col_b' }
+          ]
+        }
+      ]
+    };
+    
+    const edges: any[] = [];
+    
+    processedAssets.forEach(assetName => {
+      const assetColumnLineage = columnLineageMap[assetName];
+      if (assetColumnLineage && assetColumnLineage.length > 0) {
+        assetColumnLineage.forEach(lineage => {
+          lineage.source_columns.forEach(sourceColumn => {
+            if (processedAssets.has(sourceColumn.asset)) {
+              const edgeId = `column-${sourceColumn.asset}.${sourceColumn.column}-to-${assetName}.${lineage.column}`;
+              edges.push({
+                id: edgeId,
+                source: sourceColumn.asset,
+                target: assetName,
+                label: `${sourceColumn.column} → ${lineage.column}`
+              });
+            }
+          });
+        });
+      }
+    });
+    
+    expect(edges).toHaveLength(2);
+    expect(edges[0].id).toBe('column-asset1.col_a-to-asset3.target_col');
+    expect(edges[1].id).toBe('column-asset2.col_b-to-asset3.target_col');
+  });
+
+  test('should handle empty column lineage map', () => {
+    const processedAssets = new Set(['asset1', 'asset2']);
+    const columnLineageMap = {};
+    const edges: any[] = [];
+    
+    processedAssets.forEach(assetName => {
+      const assetColumnLineage = columnLineageMap[assetName];
+      if (assetColumnLineage && assetColumnLineage.length > 0) {
+        assetColumnLineage.forEach(lineage => {
+          lineage.source_columns.forEach(sourceColumn => {
+            if (processedAssets.has(sourceColumn.asset)) {
+              edges.push({ id: `test-${sourceColumn.asset}-${assetName}` });
+            }
+          });
+        });
+      }
+    });
+    
+    expect(edges).toHaveLength(0);
+  });
+
+  test('should create column lineage with focus asset having upstream and downstream', () => {
+    const processedAssets = new Set(['upstream_asset1', 'upstream_asset', 'focus_asset', 'downstream_asset']);
+    const columnLineageMap = {
+      'upstream_asset': [
+        {
+          column: 'upstream_col',
+          source_columns: [
+            { asset: 'upstream_asset1', column: 'upstream_col1' }
+          ]
+        }
+      ],
+      'focus_asset': [
+        {
+          column: 'focus_col',
+          source_columns: [
+            { asset: 'upstream_asset', column: 'upstream_col' }
+          ]
+        }
+      ],
+      'downstream_asset': [
+        {
+          column: 'downstream_col',
+          source_columns: [
+            { asset: 'focus_asset', column: 'focus_col' }
+          ]
+        }
+      ]
+    };
+    
+    const edges: any[] = [];
+    
+    processedAssets.forEach(assetName => {
+      const assetColumnLineage = columnLineageMap[assetName];
+      if (assetColumnLineage && assetColumnLineage.length > 0) {
+        assetColumnLineage.forEach(lineage => {
+          lineage.source_columns.forEach(sourceColumn => {
+            if (processedAssets.has(sourceColumn.asset)) {
+              const edgeId = `column-${sourceColumn.asset}.${sourceColumn.column}-to-${assetName}.${lineage.column}`;
+              edges.push({
+                id: edgeId,
+                source: sourceColumn.asset,
+                target: assetName,
+                sourceHandle: `${sourceColumn.asset}-${sourceColumn.column}-downstream`,
+                targetHandle: `${assetName}-${lineage.column}-upstream`,
+                label: `${sourceColumn.column} → ${lineage.column}`,
+                data: {
+                  type: 'column-lineage',
+                  sourceColumn: sourceColumn.column,
+                  targetColumn: lineage.column,
+                  sourceAsset: sourceColumn.asset,
+                  targetAsset: assetName
+                }
+              });
+            }
+          });
+        });
+      }
+    });
+    
+    expect(edges).toHaveLength(3);
+    
+    // Check upstream1 to upstream edge
+    const upstream1ToUpstreamEdge = edges.find(e => e.source === 'upstream_asset1' && e.target === 'upstream_asset');
+    expect(upstream1ToUpstreamEdge).toBeDefined();
+    expect(upstream1ToUpstreamEdge?.label).toBe('upstream_col1 → upstream_col');
+    expect(upstream1ToUpstreamEdge?.data.sourceAsset).toBe('upstream_asset1');
+    expect(upstream1ToUpstreamEdge?.data.targetAsset).toBe('upstream_asset');
+    
+    // Check upstream to focus edge
+    const upstreamToFocusEdge = edges.find(e => e.source === 'upstream_asset' && e.target === 'focus_asset');
+    expect(upstreamToFocusEdge).toBeDefined();
+    expect(upstreamToFocusEdge?.label).toBe('upstream_col → focus_col');
+    expect(upstreamToFocusEdge?.data.sourceAsset).toBe('upstream_asset');
+    expect(upstreamToFocusEdge?.data.targetAsset).toBe('focus_asset');
+    
+    // Check focus to downstream edge
+    const focusToDownstreamEdge = edges.find(e => e.source === 'focus_asset' && e.target === 'downstream_asset');
+    expect(focusToDownstreamEdge).toBeDefined();
+    expect(focusToDownstreamEdge?.label).toBe('focus_col → downstream_col');
+    expect(focusToDownstreamEdge?.data.sourceAsset).toBe('focus_asset');
+    expect(focusToDownstreamEdge?.data.targetAsset).toBe('downstream_asset');
+  });
 });
