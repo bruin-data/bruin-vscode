@@ -19,7 +19,7 @@ import { mount } from "@vue/test-utils";
 import "./mocks/vueFlow"; // Import the mocks
 import { ref } from "vue";
 import { buildPipelineLineage, generateGraph } from "@/components/lineage-flow/pipeline-lineage/pipelineLineageBuilder";
-import { buildColumnLineage, generateColumnGraph, getAssetDatasetWithColumns } from "@/components/lineage-flow/column-level/useColumnLevel";
+import { buildColumnLineage, generateColumnGraph, getAssetDatasetWithColumns, createColumnLevelEdges } from "@/components/lineage-flow/column-level/useColumnLevel";
 
 vi.mock("markdown-it");
 
@@ -1018,50 +1018,12 @@ suite('useColumnLevel - generateColumnGraph', () => {
       ]
     };
     
-    const edges: any[] = [];
-  
-    processedAssets.forEach(assetName => {
-      const assetColumnLineage = columnLineageMap[assetName];
-      if (assetColumnLineage && assetColumnLineage.length > 0) {
-        assetColumnLineage.forEach(lineage => {
-          lineage.source_columns.forEach(sourceColumn => {
-            if (processedAssets.has(sourceColumn.asset)) {
-              const edgeId = `column-${sourceColumn.asset}.${sourceColumn.column}-to-${assetName}.${lineage.column}`;
-              edges.push({
-                id: edgeId,
-                source: sourceColumn.asset,
-                target: assetName,
-                sourceHandle: `${sourceColumn.asset}-${sourceColumn.column}-downstream`,
-                targetHandle: `${assetName}-${lineage.column}-upstream`,
-                label: `${sourceColumn.column} → ${lineage.column}`,
-                data: {
-                  type: 'column-lineage',
-                  sourceColumn: sourceColumn.column,
-                  targetColumn: lineage.column,
-                  sourceAsset: sourceColumn.asset,
-                  targetAsset: assetName
-                },
-                style: {
-                  stroke: '#3b82f6',
-                  strokeWidth: 2,
-                  strokeDasharray: '5,5'
-                },
-                labelStyle: {
-                  fontSize: '10px',
-                  fontWeight: 'bold',
-                  fill: '#3b82f6',
-                  background: '#ffffff',
-                  padding: '2px 4px',
-                  borderRadius: '4px',
-                  border: '1px solid #3b82f6'
-                }
-              });
-            }
-          });
-        });
-      }
-    });
+    const assetMap = {
+      'asset1': { columns: [{ name: 'source_col' }] },
+      'asset2': { columns: [{ name: 'target_col' }] }
+    };
     
+    const edges = createColumnLevelEdges(processedAssets, columnLineageMap, assetMap);
     
     expect(edges).toHaveLength(1);
     expect(edges[0].id).toBe('column-asset1.source_col-to-asset2.target_col');
@@ -1086,22 +1048,12 @@ suite('useColumnLevel - generateColumnGraph', () => {
       ]
     };
     
-    const edges: any[] = [];
+    const assetMap = {
+      'asset1': { columns: [{ name: 'source_col' }] },
+      'asset2': { columns: [{ name: 'target_col' }] }
+    };
     
-    processedAssets.forEach(assetName => {
-      const assetColumnLineage = columnLineageMap[assetName];
-      if (assetColumnLineage && assetColumnLineage.length > 0) {
-        assetColumnLineage.forEach(lineage => {
-          lineage.source_columns.forEach(sourceColumn => {
-            if (processedAssets.has(sourceColumn.asset)) {
-              edges.push({
-                id: `column-${sourceColumn.asset}.${sourceColumn.column}-to-${assetName}.${lineage.column}`
-              });
-            }
-          });
-        });
-      }
-    });
+    const edges = createColumnLevelEdges(processedAssets, columnLineageMap, assetMap);
     
     expect(edges).toHaveLength(0);
   });
@@ -1120,26 +1072,13 @@ suite('useColumnLevel - generateColumnGraph', () => {
       ]
     };
     
-    const edges: any[] = [];
+    const assetMap = {
+      'asset1': { columns: [{ name: 'col_a' }] },
+      'asset2': { columns: [{ name: 'col_b' }] },
+      'asset3': { columns: [{ name: 'target_col' }] }
+    };
     
-    processedAssets.forEach(assetName => {
-      const assetColumnLineage = columnLineageMap[assetName];
-      if (assetColumnLineage && assetColumnLineage.length > 0) {
-        assetColumnLineage.forEach(lineage => {
-          lineage.source_columns.forEach(sourceColumn => {
-            if (processedAssets.has(sourceColumn.asset)) {
-              const edgeId = `column-${sourceColumn.asset}.${sourceColumn.column}-to-${assetName}.${lineage.column}`;
-              edges.push({
-                id: edgeId,
-                source: sourceColumn.asset,
-                target: assetName,
-                label: `${sourceColumn.column} → ${lineage.column}`
-              });
-            }
-          });
-        });
-      }
-    });
+    const edges = createColumnLevelEdges(processedAssets, columnLineageMap, assetMap);
     
     expect(edges).toHaveLength(2);
     expect(edges[0].id).toBe('column-asset1.col_a-to-asset3.target_col');
@@ -1149,20 +1088,12 @@ suite('useColumnLevel - generateColumnGraph', () => {
   test('should handle empty column lineage map', () => {
     const processedAssets = new Set(['asset1', 'asset2']);
     const columnLineageMap = {};
-    const edges: any[] = [];
+    const assetMap = {
+      'asset1': { columns: [] },
+      'asset2': { columns: [] }
+    };
     
-    processedAssets.forEach(assetName => {
-      const assetColumnLineage = columnLineageMap[assetName];
-      if (assetColumnLineage && assetColumnLineage.length > 0) {
-        assetColumnLineage.forEach(lineage => {
-          lineage.source_columns.forEach(sourceColumn => {
-            if (processedAssets.has(sourceColumn.asset)) {
-              edges.push({ id: `test-${sourceColumn.asset}-${assetName}` });
-            }
-          });
-        });
-      }
-    });
+    const edges = createColumnLevelEdges(processedAssets, columnLineageMap, assetMap);
     
     expect(edges).toHaveLength(0);
   });
@@ -1196,35 +1127,14 @@ suite('useColumnLevel - generateColumnGraph', () => {
       ]
     };
     
-    const edges: any[] = [];
+    const assetMap = {
+      'upstream_asset1': { columns: [{ name: 'upstream_col1' }] },
+      'upstream_asset': { columns: [{ name: 'upstream_col' }] },
+      'focus_asset': { columns: [{ name: 'focus_col' }] },
+      'downstream_asset': { columns: [{ name: 'downstream_col' }] }
+    };
     
-    processedAssets.forEach(assetName => {
-      const assetColumnLineage = columnLineageMap[assetName];
-      if (assetColumnLineage && assetColumnLineage.length > 0) {
-        assetColumnLineage.forEach(lineage => {
-          lineage.source_columns.forEach(sourceColumn => {
-            if (processedAssets.has(sourceColumn.asset)) {
-              const edgeId = `column-${sourceColumn.asset}.${sourceColumn.column}-to-${assetName}.${lineage.column}`;
-              edges.push({
-                id: edgeId,
-                source: sourceColumn.asset,
-                target: assetName,
-                sourceHandle: `${sourceColumn.asset}-${sourceColumn.column}-downstream`,
-                targetHandle: `${assetName}-${lineage.column}-upstream`,
-                label: `${sourceColumn.column} → ${lineage.column}`,
-                data: {
-                  type: 'column-lineage',
-                  sourceColumn: sourceColumn.column,
-                  targetColumn: lineage.column,
-                  sourceAsset: sourceColumn.asset,
-                  targetAsset: assetName
-                }
-              });
-            }
-          });
-        });
-      }
-    });
+    const edges = createColumnLevelEdges(processedAssets, columnLineageMap, assetMap);
     
     expect(edges).toHaveLength(3);
     

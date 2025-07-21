@@ -1,4 +1,4 @@
-import { BruinCommandOptions, EnhancedPipelineData, PipelineColumnInfo } from "../types";
+  import { BruinCommandOptions, EnhancedPipelineData, PipelineColumnInfo } from "../types";
 import { BruinCommand } from "./bruinCommand";
 import { updateLineageData } from "../panels/LineagePanel";
 import { getCurrentPipelinePath } from "./bruinUtils";
@@ -10,6 +10,8 @@ import { BruinPanel } from "../panels/BruinPanel";
  */
 
 export class BruinLineageInternalParse extends BruinCommand {
+
+  
   /**
    * Parses pipeline.yml and returns pipeline-level metadata (name, schedule, etc).
    * Does NOT look for assets or post to LineagePanel.
@@ -29,61 +31,7 @@ export class BruinLineageInternalParse extends BruinCommand {
     };
   }
 
-  /**
-   * Parses pipeline.yml with column-level information.
-   * Extends the standard pipeline parsing to include column lineage.
-   * 
-   * @param filePath - Path to the pipeline.yml file
-   * @param options - Command options including flags and error handling
-   * @returns Promise with enhanced pipeline data including column information
-   */
-  public async parsePipelineWithColumns(
-    filePath: string,
-    { flags = ["parse-pipeline"], ignoresErrors = false }: BruinCommandOptions = {}
-  ): Promise<EnhancedPipelineData> {
-    // Add the -c flag to get column-level information
-    const columnsFlags = [...flags, "-c"];
-    const result = await this.run([...columnsFlags, filePath], { ignoresErrors });
-    const pipelineData = JSON.parse(result);
-    console.log("Pipeline data with columns from parsePipelineWithColumns", pipelineData);
-    
-    return {
-      name: pipelineData.name || '',
-      schedule: pipelineData.schedule || '',
-      description: pipelineData.description || '',
-      assets: pipelineData.assets || [],
-      columnLineage: pipelineData.column_lineage || {},
-      raw: pipelineData
-    };
-  }
 
-  /**
-   * Alternative method using --with-schema flag for schema information.
-   * This provides another way to get column information if -c flag is not sufficient.
-   * 
-   * @param filePath - Path to the pipeline.yml file  
-   * @param options - Command options including flags and error handling
-   * @returns Promise with enhanced pipeline data including schema information
-   */
-  public async parsePipelineWithSchema(
-    filePath: string,
-    { flags = ["parse-pipeline"], ignoresErrors = false }: BruinCommandOptions = {}
-  ): Promise<EnhancedPipelineData> {
-    // Add the --with-schema flag to get schema-level information
-    const schemaFlags = [...flags, "--with-schema"];
-    const result = await this.run([...schemaFlags, filePath], { ignoresErrors });
-    const pipelineData = JSON.parse(result);
-    console.log("Pipeline data with schema from parsePipelineWithSchema", pipelineData);
-    
-    return {
-      name: pipelineData.name || '',
-      schedule: pipelineData.schedule || '',
-      description: pipelineData.description || '',
-      assets: pipelineData.assets || [],
-      schemaInfo: pipelineData.schema_info || {},
-      raw: pipelineData
-    };
-  }
 
   /**
    * Specifies the Bruin command string.
@@ -212,8 +160,17 @@ export class BruinLineageInternalParse extends BruinCommand {
           id: asset.id,
           name: asset.name,
           pipeline: result,
-          ...(includeColumns && pipelineData.column_lineage && {
-            columnLineage: pipelineData.column_lineage
+          // Always include column lineage data if columns are requested
+          ...(includeColumns && {
+            columnLineage: pipelineData.column_lineage || {},
+            // Also include asset-level column information for validation
+            hasColumnData: Boolean(
+              pipelineData.column_lineage || 
+              pipelineData.assets?.some((a: any) => 
+                a.columns?.length > 0 && 
+                a.columns.some((col: any) => col.upstreams?.length > 0)
+              )
+            )
           })
         };
         

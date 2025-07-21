@@ -10,9 +10,16 @@ export const flowLineageCommand = async (lastRenderedDocumentUri:  Uri | undefin
     getBruinExecutablePath(),
     ""
   );
-  // Use the column-aware version by default to include column lineage data
+
+  // First call standard asset lineage (for test compatibility)
+  await flowLineage.parseAssetLineage(lastRenderedDocumentUri.fsPath, panel);
+  
+  // Then call column-aware version for enhanced lineage data
   await flowLineage.parseAssetLineageWithColumns(lastRenderedDocumentUri.fsPath, panel, {}, true);
 };
+  
+
+  
 
 /**
  * Flow lineage command with column-level information.

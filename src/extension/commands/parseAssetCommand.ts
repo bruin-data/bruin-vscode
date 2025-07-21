@@ -27,36 +27,7 @@ export const patchAssetCommand = async (body: object, lastRenderedDocumentUri: U
   await patched.patchAsset(body, lastRenderedDocumentUri.fsPath);
 };
 
-/**
- * Parse pipeline with column-level information.
- * This command extends the standard pipeline parsing to include column lineage data using the -c flag.
- * 
- * @param lastRenderedDocumentUri - URI of the current document
- * @param includeColumns - Whether to include column-level information (default: true)
- * @returns Promise that resolves when parsing is complete
- */
-export const parsePipelineWithColumnsCommand = async (
-  lastRenderedDocumentUri: Uri | undefined,
-  includeColumns: boolean = true
-): Promise<EnhancedPipelineData | undefined> => {
-  if (!lastRenderedDocumentUri) {
-    return;
-  }
-  
-  const bruinExec = getBruinExecutablePath();
-  const parser = new BruinLineageInternalParse(bruinExec, "");
-  
-  try {
-    if (includeColumns) {
-      return await parser.parsePipelineWithColumns(lastRenderedDocumentUri.fsPath);
-    } else {
-      return await parser.parsePipelineConfig(lastRenderedDocumentUri.fsPath);
-    }
-  } catch (error) {
-    console.error("Error parsing pipeline with columns:", error);
-    throw error;
-  }
-};
+
 
 /**
  * Parse asset lineage with column-level information.
@@ -117,30 +88,7 @@ export const getPipelineColumnsInfoCommand = async (
   }
 };
 
-/**
- * Parse pipeline with schema information using the --with-schema flag.
- * This provides an alternative way to get column information.
- * 
- * @param lastRenderedDocumentUri - URI of the current document
- * @returns Promise with pipeline data including schema information
- */
-export const parsePipelineWithSchemaCommand = async (
-  lastRenderedDocumentUri: Uri | undefined
-): Promise<EnhancedPipelineData | null> => {
-  if (!lastRenderedDocumentUri) {
-    return null;
-  }
-  
-  const bruinExec = getBruinExecutablePath();
-  const parser = new BruinLineageInternalParse(bruinExec, "");
-  
-  try {
-    return await parser.parsePipelineWithSchema(lastRenderedDocumentUri.fsPath);
-  } catch (error) {
-    console.error("Error parsing pipeline with schema:", error);
-    throw error;
-  }
-};
+
 
 export const convertFileToAssetCommand = async (lastRenderedDocumentUri: Uri | undefined) => {
   if (!lastRenderedDocumentUri) {
