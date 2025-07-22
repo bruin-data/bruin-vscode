@@ -135,7 +135,7 @@ import { PanelPosition, VueFlow, useVueFlow, Panel } from "@vue-flow/core";
 import { Background } from "@vue-flow/background";
 import { Controls } from "@vue-flow/controls";
 import "@vue-flow/controls/dist/style.css";
-import type { NodeDragEvent, XYPosition } from "@vue-flow/core";
+import type { NodeDragEvent, XYPosition, NodeMouseEvent, Edge } from "@vue-flow/core";
 import { computed, onMounted, defineProps, watch, ref, nextTick, onUnmounted, shallowRef } from "vue";
 import ELK from "elkjs/lib/elk.bundled.js";
 import CustomNode from "@/components/lineage-flow/custom-nodes/CustomNodes.vue";
@@ -159,7 +159,7 @@ const props = defineProps<{
 
 // Core Vue Flow state
 const flowRef = ref(null);
-const { nodes, edges, addNodes, addEdges, setNodes, setEdges, fitView } = useVueFlow();
+const { nodes, edges, addNodes, addEdges, setNodes, setEdges, fitView, onNodeMouseEnter, onNodeMouseLeave, getNodes, getEdges } = useVueFlow();
 const elements = computed(() => [...nodes.value, ...edges.value]);
 
 // UI state
@@ -284,6 +284,55 @@ const fetchAllUpstreams = (assetName: string, upstreamAssets: any[] = []): any[]
 };
 
 /**
+ * Utility functions for hover functionality
+ */
+const getUpstreamNodesAndEdges = (nodeId: string, allEdges: Edge[]) => {
+  const upstreamNodes = new Set<string>([nodeId]);
+  const upstreamEdges = new Set<Edge>();
+  const queue = [nodeId];
+  const visited = new Set<string>([nodeId]);
+
+  while (queue.length > 0) {
+    const currentNodeId = queue.shift()!;
+    const incomingEdges = allEdges.filter((edge) => edge.target === currentNodeId);
+
+    for (const edge of incomingEdges) {
+      if (!visited.has(edge.source)) {
+        visited.add(edge.source);
+        upstreamNodes.add(edge.source);
+        queue.push(edge.source);
+      }
+      upstreamEdges.add(edge);
+    }
+  }
+
+  return { upstreamNodes, upstreamEdges };
+};
+
+const getDownstreamNodesAndEdges = (nodeId: string, allEdges: Edge[]) => {
+  const downstreamNodes = new Set<string>([nodeId]);
+  const downstreamEdges = new Set<Edge>();
+  const queue = [nodeId];
+  const visited = new Set<string>([nodeId]);
+
+  while (queue.length > 0) {
+    const currentNodeId = queue.shift()!;
+    const outgoingEdges = allEdges.filter((edge) => edge.source === currentNodeId);
+
+    for (const edge of outgoingEdges) {
+      if (!visited.has(edge.target)) {
+        visited.add(edge.target);
+        downstreamNodes.add(edge.target);
+        queue.push(edge.target);
+      }
+      downstreamEdges.add(edge);
+    }
+  }
+
+  return { downstreamNodes, downstreamEdges };
+};
+
+/**
  * Node interaction handlers
  */
 const onNodeClick = (nodeId: string) => {
@@ -363,6 +412,46 @@ const applyLayout = async (inputNodes?: any[], inputEdges?: any[]) => {
   
   return { nodes: nodesToLayout, edges: edgesToLayout };
 };
+
+/**
+ * Hover event handlers
+ */
+onNodeMouseEnter((event: NodeMouseEvent) => {
+  const hoveredNode = event.node;
+  const allNodes = getNodes.value;
+  const allEdges = getEdges.value;
+
+  const { upstreamNodes, upstreamEdges } = getUpstreamNodesAndEdges(hoveredNode.id, allEdges);
+  const { downstreamNodes, downstreamEdges } = getDownstreamNodesAndEdges(hoveredNode.id, allEdges);
+
+  const highlightNodes = new Set([...upstreamNodes, ...downstreamNodes]);
+  const highlightEdges = new Set([...upstreamEdges, ...downstreamEdges]);
+
+  allNodes.forEach((node) => {
+    if (!highlightNodes.has(node.id)) {
+      node.class = `${node.class || ''} faded`.trim();
+    }
+  });
+
+  allEdges.forEach((edge) => {
+    if (!highlightEdges.has(edge)) {
+      edge.class = `${edge.class || ''} faded`.trim();
+    }
+  });
+});
+
+onNodeMouseLeave(() => {
+  getNodes.value.forEach((node) => {
+    if (node.class && typeof node.class === 'string') {
+      node.class = node.class.replace(/faded/g, '').trim();
+    }
+  });
+  getEdges.value.forEach((edge) => {
+    if (edge.class && typeof edge.class === 'string') {
+      edge.class = edge.class.replace(/faded/g, '').trim();
+    }
+  });
+});
 
 /**
  * Simplified graph update function using computed properties
@@ -624,6 +713,12 @@ watch(
 <style>
 @import "@vue-flow/core/dist/style.css";
 @import "@vue-flow/core/dist/theme-default.css";
+
+.vue-flow__node.faded,
+.vue-flow__edge.faded {
+  opacity: 0.3;
+  transition: opacity 0.2s ease-in-out;
+}
 
 .flow {
   @apply flex h-screen w-full p-0 !important;
