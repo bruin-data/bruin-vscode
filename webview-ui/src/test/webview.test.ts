@@ -19,6 +19,8 @@ import { mount } from "@vue/test-utils";
 import "./mocks/vueFlow"; // Import the mocks
 import { ref } from "vue";
 import { buildPipelineLineage, generateGraph } from "@/components/lineage-flow/pipeline-lineage/pipelineLineageBuilder";
+import { buildColumnLineage, getAssetDatasetWithColumns } from "@/components/lineage-flow/column-level/useColumnLevel";
+import { generateColumnGraph, createColumnLevelEdges } from "@/utilities/graphGenerator";
 
 vi.mock("markdown-it");
 
@@ -1001,6 +1003,167 @@ suite('generateGraph', () => {
     expect(result.edges[0].target).toBe('asset2');
   });
 
+});
+
+suite('createColumnLevelEdges', () => {
+  test('should create column level edges correctly', () => {
+    const processedAssets = new Set(['asset1', 'asset2']);
+    const columnLineageMap = {
+      'asset2': [
+        {
+          column: 'target_col',
+          source_columns: [
+            { asset: 'asset1', column: 'source_col' }
+          ]
+        }
+      ]
+    };
+    
+    const assetMap = {
+      'asset1': { columns: [{ name: 'source_col' }] },
+      'asset2': { columns: [{ name: 'target_col' }] }
+    };
+    
+    const edges = createColumnLevelEdges(processedAssets, columnLineageMap, assetMap);
+    
+    expect(edges).toHaveLength(1);
+    expect(edges[0].id).toBe('column-asset1.source_col-to-asset2.target_col');
+    expect(edges[0].source).toBe('asset1');
+    expect(edges[0].target).toBe('asset2');
+    expect(edges[0].data.type).toBe('column-lineage');
+    expect(edges[0].data.sourceColumn).toBe('source_col');
+    expect(edges[0].data.targetColumn).toBe('target_col');
+    expect(edges[0].data.sourceAsset).toBe('asset1');
+    expect(edges[0].data.targetAsset).toBe('asset2');
+  });
+
+  test('should not create edges for assets not in processedAssets', () => {
+    const processedAssets = new Set(['asset2']);
+    const columnLineageMap = {
+      'asset2': [
+        {
+          column: 'target_col',
+          source_columns: [
+            { asset: 'asset1', column: 'source_col' } 
+          ]
+        }
+      ]
+    };
+    
+    const assetMap = {
+      'asset1': { columns: [{ name: 'source_col' }] },
+      'asset2': { columns: [{ name: 'target_col' }] }
+    };
+    
+    const edges = createColumnLevelEdges(processedAssets, columnLineageMap, assetMap);
+    
+    expect(edges).toHaveLength(0);
+  });
+
+  test('should handle multiple source columns for same target column', () => {
+    const processedAssets = new Set(['asset1', 'asset2', 'asset3']);
+    const columnLineageMap = {
+      'asset3': [
+        {
+          column: 'target_col',
+          source_columns: [
+            { asset: 'asset1', column: 'col_a' },
+            { asset: 'asset2', column: 'col_b' }
+          ]
+        }
+      ]
+    };
+    
+    const assetMap = {
+      'asset1': { columns: [{ name: 'col_a' }] },
+      'asset2': { columns: [{ name: 'col_b' }] },
+      'asset3': { columns: [{ name: 'target_col' }] }
+    };
+    
+    const edges = createColumnLevelEdges(processedAssets, columnLineageMap, assetMap);
+    
+    expect(edges).toHaveLength(2);
+    expect(edges[0].id).toBe('column-asset1.col_a-to-asset3.target_col');
+    expect(edges[1].id).toBe('column-asset2.col_b-to-asset3.target_col');
+  });
+
+  test('should handle empty column lineage map', () => {
+    const processedAssets = new Set(['asset1', 'asset2']);
+    const columnLineageMap = {};
+    const assetMap = {
+      'asset1': { columns: [] },
+      'asset2': { columns: [] }
+    };
+    
+    const edges = createColumnLevelEdges(processedAssets, columnLineageMap, assetMap);
+    
+    expect(edges).toHaveLength(0);
+  });
+
+  test('should create column lineage with focus asset having upstream and downstream', () => {
+    const processedAssets = new Set(['upstream_asset1', 'upstream_asset', 'focus_asset', 'downstream_asset']);
+    const columnLineageMap = {
+      'upstream_asset': [
+        {
+          column: 'upstream_col',
+          source_columns: [
+            { asset: 'upstream_asset1', column: 'upstream_col1' }
+          ]
+        }
+      ],
+      'focus_asset': [
+        {
+          column: 'focus_col',
+          source_columns: [
+            { asset: 'upstream_asset', column: 'upstream_col' }
+          ]
+        }
+      ],
+      'downstream_asset': [
+        {
+          column: 'downstream_col',
+          source_columns: [
+            { asset: 'focus_asset', column: 'focus_col' }
+          ]
+        }
+      ]
+    };
+    
+    const assetMap = {
+      'upstream_asset1': { columns: [{ name: 'upstream_col1' }] },
+      'upstream_asset': { columns: [{ name: 'upstream_col' }] },
+      'focus_asset': { columns: [{ name: 'focus_col' }] },
+      'downstream_asset': { columns: [{ name: 'downstream_col' }] }
+    };
+    
+    const edges = createColumnLevelEdges(processedAssets, columnLineageMap, assetMap);
+    
+    expect(edges).toHaveLength(3);
+    
+    // Check upstream1 to upstream edge
+    const upstream1ToUpstreamEdge = edges.find(e => e.source === 'upstream_asset1' && e.target === 'upstream_asset');
+    expect(upstream1ToUpstreamEdge).toBeDefined();
+    expect(upstream1ToUpstreamEdge?.data.sourceAsset).toBe('upstream_asset1');
+    expect(upstream1ToUpstreamEdge?.data.targetAsset).toBe('upstream_asset');
+    expect(upstream1ToUpstreamEdge?.data.sourceColumn).toBe('upstream_col1');
+    expect(upstream1ToUpstreamEdge?.data.targetColumn).toBe('upstream_col');
+    
+    // Check upstream to focus edge
+    const upstreamToFocusEdge = edges.find(e => e.source === 'upstream_asset' && e.target === 'focus_asset');
+    expect(upstreamToFocusEdge).toBeDefined();
+    expect(upstreamToFocusEdge?.data.sourceAsset).toBe('upstream_asset');
+    expect(upstreamToFocusEdge?.data.targetAsset).toBe('focus_asset');
+    expect(upstreamToFocusEdge?.data.sourceColumn).toBe('upstream_col');
+    expect(upstreamToFocusEdge?.data.targetColumn).toBe('focus_col');
+    
+    // Check focus to downstream edge
+    const focusToDownstreamEdge = edges.find(e => e.source === 'focus_asset' && e.target === 'downstream_asset');
+    expect(focusToDownstreamEdge).toBeDefined();
+    expect(focusToDownstreamEdge?.data.sourceAsset).toBe('focus_asset');
+    expect(focusToDownstreamEdge?.data.targetAsset).toBe('downstream_asset');
+    expect(focusToDownstreamEdge?.data.sourceColumn).toBe('focus_col');
+    expect(focusToDownstreamEdge?.data.targetColumn).toBe('downstream_col');
+  });
 });
 
 suite('AssetLineage hover functionality', () => {
