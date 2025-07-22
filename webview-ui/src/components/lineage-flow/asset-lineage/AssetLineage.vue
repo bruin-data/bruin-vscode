@@ -67,7 +67,7 @@
           <!-- Filter Options (only shown for Asset View) -->
           <div v-if="!showPipelineView && !showColumnView">
             <vscode-radio-group :value="filterType" orientation="vertical" class="radio-group">
-              <vscode-radio value="pipeline" class="radio-item" @click="handlePipelineView">
+              <vscode-radio value="pipeline" class="radio-item" @click="(event) => { event.stopPropagation(); handlePipelineView(); }">
               <span class="radio-label">Full Pipeline</span>
             </vscode-radio>
               <vscode-radio value="direct" class="radio-item" @click="handleDirectFilter">
@@ -96,7 +96,7 @@
                 </div>
               </vscode-radio>
 
-              <vscode-radio value="column" class="radio-item" @click="handleColumnLevelLineage">
+              <vscode-radio value="column" class="radio-item" @click="(event) => { event.stopPropagation(); handleColumnLevelLineage(); }">
                 <span class="radio-label text-editor-fg">Column Level Lineage</span>
               </vscode-radio>
             </vscode-radio-group>
@@ -606,14 +606,12 @@ const handleAssetView = (emittedData: {
   nextTick(() => processProperties());
 };
 
-const handlePipelineView = async (event?: Event) => {
-  if (event) event.stopPropagation();
+const handlePipelineView = async (data?: any) => {
   showPipelineView.value = true;
   showColumnView.value = false;
 };
 
-const handleColumnLevelLineage = async (event?: Event) => {
-  if (event) event.stopPropagation();
+const handleColumnLevelLineage = async (data?: any) => {
   showColumnView.value = true;
   showPipelineView.value = false;
 };

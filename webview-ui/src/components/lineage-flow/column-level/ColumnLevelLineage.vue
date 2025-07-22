@@ -50,6 +50,8 @@
           :selected-node-id="selectedNodeId"
           @node-click="onNodeClick"
           :show-expand-buttons="false"
+          @column-hover="handleColumnHover"
+          @column-leave="handleColumnLeave"
         />
       </template>
       
@@ -112,6 +114,11 @@ interface GraphElements {
   edges: any[];
 }
 
+interface HoveredColumn {
+  assetName: string;
+  columnName: string;
+}
+
 const props = defineProps<{
   assetDataset?: AssetDataset | null;
   pipelineData: any;
@@ -119,7 +126,7 @@ const props = defineProps<{
   LineageError: string | null;
 }>();
 
-const { fitView, getNodes, setNodes } = useVueFlow();
+const { fitView, getNodes, setNodes, getEdges, setEdges } = useVueFlow();
 const selectedNodeId = ref<string | null>(null);
 const expandedNodes = ref<{ [key: string]: boolean }>({});
 const savedNodePositions = ref<NodePositions>({});
@@ -127,6 +134,7 @@ const originalNodePositions = ref<NodePositions>({});
 const isRestoringPositions = ref(false);
 const error = ref<string | null>(props.LineageError);
 const elements = ref<GraphElements>({ nodes: [], edges: [] });
+const hoveredColumn = ref<HoveredColumn | null>(null);
 
 const emit = defineEmits<{
   showPipelineView: [data: {
@@ -335,6 +343,129 @@ const onNodesInitialized = (): void => {
   saveOriginalPositions();
   saveNodePositions();
   recalculateAllPositions();
+};
+
+// Handle column hover events
+const handleColumnHover = (assetName: string, columnName: string): void => {
+  hoveredColumn.value = { assetName, columnName };
+  highlightColumnAndEdges(assetName, columnName);
+};
+
+const handleColumnLeave = (): void => {
+  hoveredColumn.value = null;
+  resetEdgeStyles();
+};
+
+// Highlight column and its connected edges recursively
+const highlightColumnAndEdges = (assetName: string, columnName: string): void => {
+  const currentEdges = getEdges.value;
+  
+  console.log('Hovering over column:', { assetName, columnName });
+  
+  // Find all connected edges recursively
+  const allConnectedEdges = findAllConnectedEdges(assetName, columnName, currentEdges);
+  
+  console.log('All connected edges found:', allConnectedEdges.length, allConnectedEdges.map(e => e.id));
+  
+  // Update edge styles
+  const updatedEdges = currentEdges.map(edge => {
+    const isConnected = allConnectedEdges.some(connectedEdge => connectedEdge.id === edge.id);
+    const currentStyle = typeof edge.style === 'object' ? edge.style : {};
+    
+    return {
+      ...edge,
+      style: {
+        ...currentStyle,
+        stroke: isConnected ? '#3B82F6' : (currentStyle.stroke || '#6b7280'),
+        strokeWidth: isConnected ? 2 : (currentStyle.strokeWidth || 1),
+        transition: 'stroke 0.2s ease, stroke-width 0.2s ease'
+      }
+    };
+  });
+  
+  setEdges(updatedEdges);
+};
+
+// Find all edges connected to a column recursively (both upstream and downstream)
+const findAllConnectedEdges = (assetName: string, columnName: string, allEdges: any[], visited = new Set<string>()): any[] => {
+  const connectedEdges: any[] = [];
+  const currentKey = `${assetName.toLowerCase()}.${columnName.toLowerCase()}`;
+  
+  // Avoid infinite loops
+  if (visited.has(currentKey)) {
+    return connectedEdges;
+  }
+  visited.add(currentKey);
+  
+  // Find direct edges connected to this column
+  const directEdges = allEdges.filter(edge => {
+    if (edge.data?.type !== 'column-lineage') return false;
+    
+    const sourceAssetMatch = edge.data.sourceAsset?.toLowerCase() === assetName.toLowerCase();
+    const sourceColumnMatch = edge.data.sourceColumn?.toLowerCase() === columnName.toLowerCase();
+    const targetAssetMatch = edge.data.targetAsset?.toLowerCase() === assetName.toLowerCase();
+    const targetColumnMatch = edge.data.targetColumn?.toLowerCase() === columnName.toLowerCase();
+    
+    return (sourceAssetMatch && sourceColumnMatch) || (targetAssetMatch && targetColumnMatch);
+  });
+  
+  // Add direct edges
+  connectedEdges.push(...directEdges);
+  
+  // Recursively find edges for connected columns
+  directEdges.forEach(edge => {
+    // If this column is the source, follow downstream
+    if (edge.data.sourceAsset?.toLowerCase() === assetName.toLowerCase() && 
+        edge.data.sourceColumn?.toLowerCase() === columnName.toLowerCase()) {
+      const downstreamEdges = findAllConnectedEdges(
+        edge.data.targetAsset,
+        edge.data.targetColumn,
+        allEdges,
+        visited
+      );
+      connectedEdges.push(...downstreamEdges);
+    }
+    
+    // If this column is the target, follow upstream
+    if (edge.data.targetAsset?.toLowerCase() === assetName.toLowerCase() && 
+        edge.data.targetColumn?.toLowerCase() === columnName.toLowerCase()) {
+      const upstreamEdges = findAllConnectedEdges(
+        edge.data.sourceAsset,
+        edge.data.sourceColumn,
+        allEdges,
+        visited
+      );
+      connectedEdges.push(...upstreamEdges);
+    }
+  });
+  
+  // Remove duplicates
+  const uniqueEdges = connectedEdges.filter((edge, index, self) => 
+    index === self.findIndex(e => e.id === edge.id)
+  );
+  
+  return uniqueEdges;
+};
+
+// Reset all edge styles to original
+const resetEdgeStyles = (): void => {
+  const currentEdges = getEdges.value;
+  
+  const resetEdges = currentEdges.map(edge => {
+    const currentStyle = typeof edge.style === 'object' ? edge.style : {};
+    
+    return {
+      ...edge,
+      style: {
+        ...currentStyle,
+        stroke: edge.data?.type === 'column-lineage' ? '#6b7280' : '#6b7280',
+        strokeWidth: edge.data?.type === 'column-lineage' ? 0.3 : 1,
+        transition: 'stroke 0.2s ease, stroke-width 0.2s ease'
+      }
+    };
+  });
+  
+  setEdges(resetEdges);
 };
 
 // Watch for pipeline data changes

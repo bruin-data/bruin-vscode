@@ -108,7 +108,9 @@
               <div 
                 v-for="(column, index) in columns" 
                 :key="column.name"
-                class="column-item flex items-center justify-between py-0 px-0.5 rounded text-xs relative"
+                class="column-item flex items-center justify-between py-0 px-0.5 rounded text-xs relative cursor-pointer hover:bg-gray-100"
+                @mouseenter="handleColumnHover(column.name)"
+                @mouseleave="handleColumnLeave"
               >
                 <div class="column-info flex items-center justify-between flex-1">
                   <span class="column-name font-medium" style="font-size: 8px;">{{ column.name }}</span>
@@ -190,12 +192,14 @@ const props = defineProps<{
   status?: string;
 }>();
 
-const emit = defineEmits<{
-  (e: 'node-click', nodeId: string): void;
-  (e: 'add-upstream', nodeId: string): void;
-  (e: 'add-downstream', nodeId: string): void;
-  (e: 'toggle-node-expand', nodeId: string, type?: string): void;
-}>();
+const emit = defineEmits([
+  'node-click',
+  'add-upstream', 
+  'add-downstream',
+  'toggle-node-expand',
+  'column-hover',
+  'column-leave'
+]);
 
 // Column display state
 const showColumns = ref(false);
@@ -326,6 +330,17 @@ const onAddDownstream = () => {
   }
 };
 
+// Column hover handlers
+const handleColumnHover = (columnName: string) => {
+  if (props.data?.asset?.name) {
+    emit('column-hover', props.data.asset.name, columnName);
+  }
+};
+
+const handleColumnLeave = () => {
+  emit('column-leave');
+};
+
 
 </script>
 
@@ -418,5 +433,14 @@ const onAddDownstream = () => {
 
 .column-handle:hover {
   opacity: 1;
+}
+
+.column-item:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+  border-left: 2px solid #3B82F6;
+}
+
+.column-item {
+  transition: background-color 0.2s ease, border-left 0.2s ease;
 }
 </style>
