@@ -103,7 +103,7 @@
           </template>
 
           <!-- Columns Section -->
-          <div v-if="hasColumns && showColumns" class="mt-1 border-t border-white/20 pt-1">
+          <div v-if="hasColumns && showColumns" class="mt-1 border-t border-white/20 pt-1 bg-white rounded">
             <div class="columns-list text-xs">
               <div 
                 v-for="(column, index) in columns" 
@@ -115,11 +115,11 @@
                   <span class="column-type opacity-60" style="font-size: 9px;">{{ column.type }}</span>
                 </div>
                 
-                <!-- Upstream handle (target) -->
+                <!-- Upstream handle (target) - hidden -->
                 <Handle
                   :id="`col-${data?.asset?.name?.toLowerCase()}-${column.name.toLowerCase()}-${index}-upstream`"
                   type="target"
-                  class="column-handle upstream"
+                  class="column-handle upstream opacity-0"
                   :position="Position.Left"
                   :style="{ 
                     top: '50%', 
@@ -129,15 +129,15 @@
                     height: '10px',
                     background: '#10b981',
                     border: '2px solid #fff',
-                    opacity: '1'
+                    opacity: '0'
                   }"
                 />
                 
-                <!-- Downstream handle (source) -->
+                <!-- Downstream handle (source) - hidden -->
                 <Handle
                   :id="`col-${data?.asset?.name?.toLowerCase()}-${column.name.toLowerCase()}-${index}-downstream`"
                   type="source"
-                  class="column-handle downstream"
+                  class="column-handle downstream opacity-0"
                   :position="Position.Right"
                   :style="{ 
                     top: '50%', 
@@ -147,7 +147,7 @@
                     height: '10px',
                     background: '#f59e0b',
                     border: '2px solid #fff',
-                    opacity: '1'
+                    opacity: '0'
                   }"
                 />
 
