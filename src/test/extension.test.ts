@@ -2001,16 +2001,13 @@ suite("BruinPanel Tests", () => {
 
       try {
         await messageHandler(message);
-            } catch (error) {
+      } catch (error) {
         console.error("Error in messageHandler:", error);
         throw error;
       }
       
-      // Add a small delay to ensure async operations complete in CI
-      await new Promise(resolve => setTimeout(resolve, 10));
-      
-      // Add a small delay to ensure async operations complete in CI
-      await new Promise(resolve => setTimeout(resolve, 10));
+      // Wait for all async operations to complete
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       assert.ok(bruinInstallCliStub.calledOnce, "CLI installation check should be performed");
     });
