@@ -1997,14 +1997,25 @@ suite("BruinPanel Tests", () => {
       // Reset stub to ensure clean state
       bruinInstallCliStub.resetHistory();
       
+      // Reset stub to ensure clean state
+      bruinInstallCliStub.resetHistory();
+      
       const messageHandler = (
         windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub
       ).firstCall.args[0];
       const message = { command: "checkBruinCliInstallation" };
 
       try {
+        try {
         await messageHandler(message);
       } catch (error) {
+        console.error("Error in messageHandler:", error);
+        throw error;
+      }
+      
+      // Add a small delay to ensure async operations complete in CI
+      await new Promise(resolve => setTimeout(resolve, 10));
+            } catch (error) {
         console.error("Error in messageHandler:", error);
         throw error;
       }
