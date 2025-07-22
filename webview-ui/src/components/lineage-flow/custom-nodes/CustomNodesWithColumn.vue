@@ -64,7 +64,7 @@
             
           </div>
 
-          <!-- Handle positioning at header level -->
+          <!-- Asset-level handles at header level -->
           <Handle
             v-if="assetHasDownstreams || assetHasUpstreams"
             type="source"
@@ -79,6 +79,28 @@
             :position="Position.Left"
             :style="{ top: '12px', left: '-6px' }"
           />
+          
+          <!-- Additional handles for column-level edges when columns are collapsed -->
+          <template v-if="hasColumns && !showColumns">
+            <Handle
+              v-for="(column, index) in columns"
+              :key="`collapsed-col-${column.name}-${index}-upstream`"
+              :id="`col-${data?.asset?.name?.toLowerCase()}-${column.name.toLowerCase()}-${index}-upstream`"
+              type="target"
+              class="opacity-0"
+              :position="Position.Left"
+              :style="{ top: '12px', left: '-6px' }"
+            />
+            <Handle
+              v-for="(column, index) in columns"
+              :key="`collapsed-col-${column.name}-${index}-downstream`"
+              :id="`col-${data?.asset?.name?.toLowerCase()}-${column.name.toLowerCase()}-${index}-downstream`"
+              type="source"
+              class="opacity-0"
+              :position="Position.Right"
+              :style="{ top: '12px', right: '-6px' }"
+            />
+          </template>
 
           <!-- Columns Section -->
           <div v-if="hasColumns && showColumns" class="mt-1 border-t border-white/20 pt-1">
@@ -186,7 +208,10 @@ if (props.data?.asset?.isFocusAsset) {
 }
 
 // Computed properties
-const columns = computed(() => props.data?.columns || props.data?.asset?.columns || []);
+const columns = computed(() => {
+  // Handle different data structures for columns
+  return props.data?.columns || (props.data?.asset as any)?.columns || [];
+});
 // Column lineage computed property removed
 const hasColumns = computed(() => columns.value.length > 0);
 
@@ -250,7 +275,9 @@ const handleNodeClick = () => {
   if (hasColumns.value && !props.data?.asset?.isFocusAsset) {
     showColumns.value = !showColumns.value;
     // Emit node expand event to trigger position restoration in column lineage
-    emit("toggle-node-expand", props.data?.asset?.name, "columns");
+    if (props.data?.asset?.name) {
+      emit("toggle-node-expand", props.data.asset.name, "columns");
+    }
   }
   
   // Also emit the node click event for other functionality
@@ -260,17 +287,23 @@ const handleNodeClick = () => {
 const toggleColumnsExpanded = () => {
   showColumns.value = !showColumns.value;
   // Emit node expand event to trigger position restoration in column lineage
-  emit("toggle-node-expand", props.data?.asset?.name, "columns");
+  if (props.data?.asset?.name) {
+    emit("toggle-node-expand", props.data.asset.name, "columns");
+  }
 };
 
 const toggleShowAllColumns = () => {
   showAllColumns.value = !showAllColumns.value;
   // Emit node expand event to trigger position restoration in column lineage
-  emit("toggle-node-expand", props.data?.asset?.name, "columns");
+  if (props.data?.asset?.name) {
+    emit("toggle-node-expand", props.data.asset.name, "columns");
+  }
 };
 
 const toggleExpand = () => {
-  emit("toggle-node-expand", props.data?.asset?.name, "node");
+  if (props.data?.asset?.name) {
+    emit("toggle-node-expand", props.data.asset.name, "node");
+  }
 };
 
 // Column lineage detection functions removed
