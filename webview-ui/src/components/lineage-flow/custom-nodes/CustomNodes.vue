@@ -11,7 +11,7 @@
         <PlusIcon class="h-4 w-4 fill-gray-300 text-gray-700/50 hover:text-gray-700" />
       </div>
     </div>
-
+ 
     <div class="node-content" :class="assetClass" @click="togglePopup">
       <div
         v-if="data.type === 'asset'"
