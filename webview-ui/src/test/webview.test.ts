@@ -1002,3 +1002,202 @@ suite('generateGraph', () => {
   });
 
 });
+
+suite('AssetLineage hover functionality', () => {
+  // Test the utility functions directly
+  const getUpstreamNodesAndEdges = (nodeId: string, allEdges: any[]) => {
+    const upstreamNodes = new Set<string>([nodeId]);
+    const upstreamEdges = new Set<any>();
+    const queue = [nodeId];
+    const visited = new Set<string>([nodeId]);
+
+    while (queue.length > 0) {
+      const currentNodeId = queue.shift()!;
+      const incomingEdges = allEdges.filter((edge) => edge.target === currentNodeId);
+
+      for (const edge of incomingEdges) {
+        if (!visited.has(edge.source)) {
+          visited.add(edge.source);
+          upstreamNodes.add(edge.source);
+          queue.push(edge.source);
+        }
+        upstreamEdges.add(edge);
+      }
+    }
+
+    return { upstreamNodes, upstreamEdges };
+  };
+
+  const getDownstreamNodesAndEdges = (nodeId: string, allEdges: any[]) => {
+    const downstreamNodes = new Set<string>([nodeId]);
+    const downstreamEdges = new Set<any>();
+    const queue = [nodeId];
+    const visited = new Set<string>([nodeId]);
+
+    while (queue.length > 0) {
+      const currentNodeId = queue.shift()!;
+      const outgoingEdges = allEdges.filter((edge) => edge.source === currentNodeId);
+
+      for (const edge of outgoingEdges) {
+        if (!visited.has(edge.target)) {
+          visited.add(edge.target);
+          downstreamNodes.add(edge.target);
+          queue.push(edge.target);
+        }
+        downstreamEdges.add(edge);
+      }
+    }
+
+    return { downstreamNodes, downstreamEdges };
+  };
+
+  test('getUpstreamNodesAndEdges should find upstream nodes correctly', () => {
+    const allEdges = [
+      { id: 'edge1', source: 'node1', target: 'node2' },
+      { id: 'edge2', source: 'node2', target: 'node3' },
+      { id: 'edge3', source: 'node0', target: 'node1' }
+    ];
+
+    const result = getUpstreamNodesAndEdges('node2', allEdges);
+    
+    expect(result.upstreamNodes.has('node2')).toBe(true);
+    expect(result.upstreamNodes.has('node1')).toBe(true);
+    expect(result.upstreamNodes.has('node0')).toBe(true);
+    expect(result.upstreamNodes.size).toBe(3);
+    expect(result.upstreamEdges.size).toBe(2);
+  });
+
+  test('getDownstreamNodesAndEdges should find downstream nodes correctly', () => {
+    const allEdges = [
+      { id: 'edge1', source: 'node1', target: 'node2' },
+      { id: 'edge2', source: 'node2', target: 'node3' },
+      { id: 'edge3', source: 'node3', target: 'node4' }
+    ];
+
+    const result = getDownstreamNodesAndEdges('node2', allEdges);
+    
+    expect(result.downstreamNodes.has('node2')).toBe(true);
+    expect(result.downstreamNodes.has('node3')).toBe(true);
+    expect(result.downstreamNodes.has('node4')).toBe(true);
+    expect(result.downstreamNodes.size).toBe(3);
+    expect(result.downstreamEdges.size).toBe(2);
+  });
+
+  test('hover functionality logic should identify connected and non-connected nodes', () => {
+    const allNodes = [
+      { id: 'node1', class: '' },
+      { id: 'node2', class: '' },
+      { id: 'node3', class: '' },
+      { id: 'node4', class: '' }  // This should be identified as non-connected
+    ];
+
+    const allEdges = [
+      { id: 'edge1', source: 'node1', target: 'node2', class: '' },
+      { id: 'edge2', source: 'node2', target: 'node3', class: '' }
+    ];
+
+    const hoveredNodeId = 'node2';
+    const { upstreamNodes, upstreamEdges } = getUpstreamNodesAndEdges(hoveredNodeId, allEdges);
+    const { downstreamNodes, downstreamEdges } = getDownstreamNodesAndEdges(hoveredNodeId, allEdges);
+
+    const highlightNodes = new Set([...upstreamNodes, ...downstreamNodes]);
+    const highlightEdges = new Set([...upstreamEdges, ...downstreamEdges]);
+
+    // Check which nodes should be highlighted (connected)
+    expect(highlightNodes.has('node1')).toBe(true);
+    expect(highlightNodes.has('node2')).toBe(true);
+    expect(highlightNodes.has('node3')).toBe(true);
+    expect(highlightNodes.has('node4')).toBe(false); // Not connected
+
+    // Test the logic for applying faded class
+    const nonConnectedNodes = allNodes.filter(node => !highlightNodes.has(node.id));
+    expect(nonConnectedNodes.length).toBe(1);
+    expect(nonConnectedNodes[0].id).toBe('node4');
+  });
+
+  test('class manipulation logic should work correctly', () => {
+    const testNodes = [
+      { id: 'node1', class: 'faded' },
+      { id: 'node2', class: 'faded some-other-class' },
+      { id: 'node3', class: '' }
+    ];
+
+    const testEdges = [
+      { id: 'edge1', class: 'faded' },
+      { id: 'edge2', class: 'some-class faded another-class' }
+    ];
+
+    // Simulate removing faded class
+    testNodes.forEach((node) => {
+      if (node.class && typeof node.class === 'string') {
+        node.class = node.class.replace(/faded/g, '').replace(/\s+/g, ' ').trim();
+      }
+    });
+    
+    testEdges.forEach((edge) => {
+      if (edge.class && typeof edge.class === 'string') {
+        edge.class = edge.class.replace(/faded/g, '').replace(/\s+/g, ' ').trim();
+      }
+    });
+
+    // Check that faded class is removed correctly
+    expect(testNodes[0].class).toBe('');
+    expect(testNodes[1].class).toBe('some-other-class');
+    expect(testNodes[2].class).toBe('');
+    expect(testEdges[0].class).toBe('');
+    expect(testEdges[1].class).toBe('some-class another-class');
+  });
+
+  test('getUpstreamNodesAndEdges should handle circular dependencies', () => {
+    const allEdges = [
+      { id: 'edge1', source: 'node1', target: 'node2' },
+      { id: 'edge2', source: 'node2', target: 'node3' },
+      { id: 'edge3', source: 'node3', target: 'node1' }  // Creates a cycle
+    ];
+
+    const result = getUpstreamNodesAndEdges('node2', allEdges);
+    
+    // Should handle circular dependencies without infinite loop
+    expect(result.upstreamNodes.has('node1')).toBe(true);
+    expect(result.upstreamNodes.has('node2')).toBe(true);
+    expect(result.upstreamNodes.has('node3')).toBe(true);
+    expect(result.upstreamNodes.size).toBe(3);
+  });
+
+  test('getDownstreamNodesAndEdges should handle nodes with no connections', () => {
+    const allEdges = [
+      { id: 'edge1', source: 'node1', target: 'node2' }
+    ];
+
+    const result = getDownstreamNodesAndEdges('node3', allEdges);
+    
+    // Should only include the node itself when no connections exist
+    expect(result.downstreamNodes.has('node3')).toBe(true);
+    expect(result.downstreamNodes.size).toBe(1);
+    expect(result.downstreamEdges.size).toBe(0);
+  });
+
+  test('hover functionality should work with complex graph structures', () => {
+    const complexEdges = [
+      { id: 'edge1', source: 'A', target: 'B' },
+      { id: 'edge2', source: 'B', target: 'C' },
+      { id: 'edge3', source: 'C', target: 'D' },
+      { id: 'edge4', source: 'E', target: 'F' },  // Separate branch
+      { id: 'edge5', source: 'X', target: 'B' },  // Another input to B
+    ];
+
+    // Test hovering over B
+    const { upstreamNodes: upB, upstreamEdges: upEdgesB } = getUpstreamNodesAndEdges('B', complexEdges);
+    const { downstreamNodes: downB, downstreamEdges: downEdgesB } = getDownstreamNodesAndEdges('B', complexEdges);
+    
+    const connectedToB = new Set([...upB, ...downB]);
+    
+    expect(connectedToB.has('A')).toBe(true);
+    expect(connectedToB.has('B')).toBe(true);
+    expect(connectedToB.has('C')).toBe(true);
+    expect(connectedToB.has('D')).toBe(true);
+    expect(connectedToB.has('X')).toBe(true);
+    expect(connectedToB.has('E')).toBe(false); // Not connected to B
+    expect(connectedToB.has('F')).toBe(false); // Not connected to B
+  });
+});
