@@ -1994,13 +1994,8 @@ suite("BruinPanel Tests", () => {
     });
 
     test("handles checkBruinCliInstallation command", async () => {
-      // Create a fresh stub specific to this test to avoid conflicts
-      const testStub = sinon.stub(BruinInstallCLI.prototype, "checkBruinCliInstallation")
-        .resolves({
-          installed: false,
-          isWindows: true,
-          gitAvailable: true,
-        });
+      // Reset the existing stub's call history
+      bruinInstallCliStub.resetHistory();
 
       const message = { command: "checkBruinCliInstallation" };
 
@@ -2014,10 +2009,7 @@ suite("BruinPanel Tests", () => {
       // Wait for all async operations to complete
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      assert.ok(testStub.calledOnce, "CLI installation check should be performed");
-      
-      // Clean up the test-specific stub
-      testStub.restore();
+      assert.ok(bruinInstallCliStub.calledOnce, "CLI installation check should be performed");
     });
     /*     test('handles bruin.getAssetLineage command', async () => {
       const messageHandler = (windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0];
