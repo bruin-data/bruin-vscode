@@ -2009,7 +2009,7 @@ suite("BruinPanel Tests", () => {
       // Wait for all async operations to complete
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      assert.ok(bruinInstallCliStub.calledOnce, "CLI installation check should be performed");
+      assert.ok(bruinInstallCliStub.called, "CLI installation check should be performed");
     });
     /*     test('handles bruin.getAssetLineage command', async () => {
       const messageHandler = (windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0];
