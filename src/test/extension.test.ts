@@ -1994,16 +1994,14 @@ suite("BruinPanel Tests", () => {
     });
 
     test("handles checkBruinCliInstallation command", async () => {
-      // Ensure stub is properly reset and configured for this test
-      bruinInstallCliStub.resetHistory();
-      
-      // Ensure the panel's webview postMessage is properly stubbed
-      const panel = BruinPanel.currentPanel;
-      const postMessageStub = sinon.stub(panel!['_panel'].webview, 'postMessage');
-      
-      const messageHandler = (
-        windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub
-      ).firstCall.args[0];
+      // Create a fresh stub specific to this test to avoid conflicts
+      const testStub = sinon.stub(BruinInstallCLI.prototype, "checkBruinCliInstallation")
+        .resolves({
+          installed: false,
+          isWindows: true,
+          gitAvailable: true,
+        });
+
       const message = { command: "checkBruinCliInstallation" };
 
       try {
@@ -2016,10 +2014,10 @@ suite("BruinPanel Tests", () => {
       // Wait for all async operations to complete
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      assert.ok(bruinInstallCliStub.calledOnce, "CLI installation check should be performed");
+      assert.ok(testStub.calledOnce, "CLI installation check should be performed");
       
-      // Clean up
-      postMessageStub.restore();
+      // Clean up the test-specific stub
+      testStub.restore();
     });
     /*     test('handles bruin.getAssetLineage command', async () => {
       const messageHandler = (windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0];
