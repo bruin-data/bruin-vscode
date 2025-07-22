@@ -1997,6 +1997,10 @@ suite("BruinPanel Tests", () => {
       // Ensure stub is properly reset and configured for this test
       bruinInstallCliStub.resetHistory();
       
+      // Ensure the panel's webview postMessage is properly stubbed
+      const panel = BruinPanel.currentPanel;
+      const postMessageStub = sinon.stub(panel!['_panel'].webview, 'postMessage');
+      
       const messageHandler = (
         windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub
       ).firstCall.args[0];
@@ -2013,6 +2017,9 @@ suite("BruinPanel Tests", () => {
       await new Promise(resolve => setTimeout(resolve, 100));
 
       assert.ok(bruinInstallCliStub.calledOnce, "CLI installation check should be performed");
+      
+      // Clean up
+      postMessageStub.restore();
     });
     /*     test('handles bruin.getAssetLineage command', async () => {
       const messageHandler = (windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0];
