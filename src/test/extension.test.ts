@@ -1994,13 +1994,24 @@ suite("BruinPanel Tests", () => {
     });
 
     test("handles checkBruinCliInstallation command", async () => {
+      // Reset stub to ensure clean state
+      bruinInstallCliStub.resetHistory();
+      
       const messageHandler = (
         windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub
       ).firstCall.args[0];
       const message = { command: "checkBruinCliInstallation" };
 
-      await messageHandler(message);
-
+      try {
+        await messageHandler(message);
+      } catch (error) {
+        console.error("Error in messageHandler:", error);
+        throw error;
+      }
+      
+      // Add a small delay to ensure async operations complete in CI
+      await new Promise(resolve => setTimeout(resolve, 10));
+      
       assert.ok(bruinInstallCliStub.calledOnce, "CLI installation check should be performed");
     });
     /*     test('handles bruin.getAssetLineage command', async () => {
