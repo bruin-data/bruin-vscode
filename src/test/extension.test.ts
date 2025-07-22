@@ -1994,6 +1994,9 @@ suite("BruinPanel Tests", () => {
     });
 
     test("handles checkBruinCliInstallation command", async () => {
+      // Ensure stub is properly reset and configured for this test
+      bruinInstallCliStub.resetHistory();
+      
       const messageHandler = (
         windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub
       ).firstCall.args[0];
