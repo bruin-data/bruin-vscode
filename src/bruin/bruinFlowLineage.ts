@@ -1,4 +1,4 @@
-import { BruinCommandOptions } from "../types";
+  import { BruinCommandOptions, EnhancedPipelineData, PipelineColumnInfo } from "../types";
 import { BruinCommand } from "./bruinCommand";
 import { updateLineageData } from "../panels/LineagePanel";
 import { getCurrentPipelinePath } from "./bruinUtils";
@@ -10,6 +10,8 @@ import { BruinPanel } from "../panels/BruinPanel";
  */
 
 export class BruinLineageInternalParse extends BruinCommand {
+
+  
   /**
    * Parses pipeline.yml and returns pipeline-level metadata (name, schedule, etc).
    * Does NOT look for assets or post to LineagePanel.
@@ -28,6 +30,8 @@ export class BruinLineageInternalParse extends BruinCommand {
       raw: pipelineData
     };
   }
+
+
 
   /**
    * Specifies the Bruin command string.
@@ -102,4 +106,102 @@ export class BruinLineageInternalParse extends BruinCommand {
       console.error("Parsing command error", error);
     }
   }
+
+  /**
+   * Parse asset lineage with column-level information.
+   * Extends the standard asset lineage parsing to include column lineage data.
+   * 
+   * @param filePath - The path of the asset to be analyzed
+   * @param panel - Optional panel name for messaging
+   * @param options - Command options including flags and error handling
+   * @param includeColumns - Whether to include column-level lineage information
+   * @returns Promise that resolves when the execution is complete or an error is caught
+   */
+  public async parseAssetLineageWithColumns(
+    filePath: string,
+    panel?: string,
+    { flags = ["parse-pipeline"], ignoresErrors = false }: BruinCommandOptions = {},
+    includeColumns: boolean = true
+  ): Promise<void> {
+    try {
+      if(isConfigFile(filePath)) {
+        return;
+      }
+      
+      // Add -c flag if requested for column information
+      const enhancedFlags = includeColumns 
+        ? [...flags, "-c"] 
+        : flags;
+      
+      const result = await this.run([...enhancedFlags, await getCurrentPipelinePath(filePath) as string], { ignoresErrors });
+      const pipelineData = JSON.parse(result);
+      const asset = pipelineData.assets.find(
+        (asset: any) => asset.definition_file.path === filePath
+      );
+      
+      if(panel === "BruinPanel"){
+        const pipelineAssets = JSON.parse(result).assets;
+        BruinPanel.postMessage("pipeline-assets", {
+          status: "success",
+          message: pipelineAssets,
+        });
+        
+        // Send additional column lineage data if available
+        if (includeColumns && pipelineData.column_lineage) {
+          BruinPanel.postMessage("column-lineage", {
+            status: "success",
+            message: pipelineData.column_lineage,
+          });
+        }
+      }
+      
+      if (asset) {
+        const lineageData = {
+          id: asset.id,
+          name: asset.name,
+          pipeline: result,
+          // Always include column lineage data if columns are requested
+          ...(includeColumns && {
+            columnLineage: pipelineData.column_lineage || {},
+            // Also include asset-level column information for validation
+            hasColumnData: Boolean(
+              pipelineData.column_lineage || 
+              pipelineData.assets?.some((a: any) => 
+                a.columns?.length > 0 && 
+                a.columns.some((col: any) => col.upstreams?.length > 0)
+              )
+            )
+          })
+        };
+        
+        updateLineageData({
+          status: "success",
+          message: lineageData,
+        });
+      } else {
+        throw new Error("Asset not found in pipeline data");
+      }
+    } catch (error : any) {
+      const errorMessage =  typeof error === "object" && error.error
+        ? error.error 
+        : String(error);
+  
+      if (errorMessage.includes("No help topic for")) {
+        const formattedError = "Bruin CLI is not installed or is outdated. Please install or update Bruin CLI to use this feature.";
+        vscode.window.showErrorMessage(formattedError);
+        updateLineageData({
+          status: "error",
+          message: formattedError,
+        });
+      } else {
+        updateLineageData({
+          status: "error",
+          message: errorMessage,
+        });
+      }
+  
+      console.error("Parsing command error", error);
+    }
+  }
+
 }

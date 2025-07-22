@@ -1999,7 +1999,15 @@ suite("BruinPanel Tests", () => {
       ).firstCall.args[0];
       const message = { command: "checkBruinCliInstallation" };
 
-      await messageHandler(message);
+      try {
+        await messageHandler(message);
+            } catch (error) {
+        console.error("Error in messageHandler:", error);
+        throw error;
+      }
+      
+      // Add a small delay to ensure async operations complete in CI
+      await new Promise(resolve => setTimeout(resolve, 10));
       
       // Add a small delay to ensure async operations complete in CI
       await new Promise(resolve => setTimeout(resolve, 10));
@@ -4358,6 +4366,7 @@ suite(" Query export Tests", () => {
     let BruinLineageInternalParseStub: sinon.SinonStub;
     let getBruinExecutablePathStub: sinon.SinonStub;
     let parseAssetLineageStub: sinon.SinonStub;
+    let parseAssetLineageWithColumnsStub: sinon.SinonStub;
     let mockBruinLineageInternalParse: any;
 
     setup(async () => {
@@ -4368,10 +4377,12 @@ suite(" Query export Tests", () => {
       // Setup stubs
       getBruinExecutablePathStub = sinon.stub();
       parseAssetLineageStub = sinon.stub();
+      parseAssetLineageWithColumnsStub = sinon.stub();
       
       // Mock BruinLineageInternalParse instance
       mockBruinLineageInternalParse = {
-        parseAssetLineage: parseAssetLineageStub
+        parseAssetLineage: parseAssetLineageStub,
+        parseAssetLineageWithColumns: parseAssetLineageWithColumnsStub
       };
       
       // Mock BruinLineageInternalParse constructor
@@ -4395,6 +4406,7 @@ suite(" Query export Tests", () => {
       
       getBruinExecutablePathStub.returns(bruinExecutablePath);
       parseAssetLineageStub.resolves();
+      parseAssetLineageWithColumnsStub.resolves();
       
       await flowLineageCommand(testUri);
       
@@ -4403,6 +4415,8 @@ suite(" Query export Tests", () => {
       sinon.assert.calledWith(BruinLineageInternalParseStub, bruinExecutablePath, "");
       sinon.assert.calledOnce(parseAssetLineageStub);
       sinon.assert.calledWith(parseAssetLineageStub, testUri.fsPath);
+      sinon.assert.calledOnce(parseAssetLineageWithColumnsStub);
+      sinon.assert.calledWith(parseAssetLineageWithColumnsStub, testUri.fsPath);
     });
 
     test("should return early when URI is undefined", async () => {
@@ -4411,6 +4425,7 @@ suite(" Query export Tests", () => {
       sinon.assert.notCalled(getBruinExecutablePathStub);
       sinon.assert.notCalled(BruinLineageInternalParseStub);
       sinon.assert.notCalled(parseAssetLineageStub);
+      sinon.assert.notCalled(parseAssetLineageWithColumnsStub);
     });
 
     test("should return early when URI is null", async () => {
@@ -4419,6 +4434,7 @@ suite(" Query export Tests", () => {
       sinon.assert.notCalled(getBruinExecutablePathStub);
       sinon.assert.notCalled(BruinLineageInternalParseStub);
       sinon.assert.notCalled(parseAssetLineageStub);
+      sinon.assert.notCalled(parseAssetLineageWithColumnsStub);
     });
 
     test("should handle parseAssetLineage errors", async () => {
@@ -4428,6 +4444,7 @@ suite(" Query export Tests", () => {
       
       getBruinExecutablePathStub.returns(bruinExecutablePath);
       parseAssetLineageStub.rejects(error);
+      parseAssetLineageWithColumnsStub.resolves();
       
       try {
         await flowLineageCommand(testUri);
@@ -4439,6 +4456,7 @@ suite(" Query export Tests", () => {
       sinon.assert.calledOnce(getBruinExecutablePathStub);
       sinon.assert.calledOnce(BruinLineageInternalParseStub);
       sinon.assert.calledOnce(parseAssetLineageStub);
+      sinon.assert.notCalled(parseAssetLineageWithColumnsStub);
     });
 
     test("should handle getBruinExecutablePath errors", async () => {
@@ -4465,11 +4483,14 @@ suite(" Query export Tests", () => {
       
       getBruinExecutablePathStub.returns(bruinExecutablePath);
       parseAssetLineageStub.resolves();
+      parseAssetLineageWithColumnsStub.resolves();
       
       await flowLineageCommand(testUri);
       
       sinon.assert.calledOnce(parseAssetLineageStub);
       sinon.assert.calledWith(parseAssetLineageStub, testUri.fsPath);
+      sinon.assert.calledOnce(parseAssetLineageWithColumnsStub);
+      sinon.assert.calledWith(parseAssetLineageWithColumnsStub, testUri.fsPath);
     });
 
     test("should work with complex file paths", async () => {
@@ -4478,11 +4499,14 @@ suite(" Query export Tests", () => {
       
       getBruinExecutablePathStub.returns(bruinExecutablePath);
       parseAssetLineageStub.resolves();
+      parseAssetLineageWithColumnsStub.resolves();
       
       await flowLineageCommand(testUri);
       
       sinon.assert.calledOnce(parseAssetLineageStub);
       sinon.assert.calledWith(parseAssetLineageStub, testUri.fsPath);
+      sinon.assert.calledOnce(parseAssetLineageWithColumnsStub);
+      sinon.assert.calledWith(parseAssetLineageWithColumnsStub, testUri.fsPath);
     });
 
     test("should use correct working directory", async () => {
@@ -4491,6 +4515,7 @@ suite(" Query export Tests", () => {
       
       getBruinExecutablePathStub.returns(bruinExecutablePath);
       parseAssetLineageStub.resolves();
+      parseAssetLineageWithColumnsStub.resolves();
       
       await flowLineageCommand(testUri);
       
@@ -4505,6 +4530,7 @@ suite(" Query export Tests", () => {
       
       getBruinExecutablePathStub.returns(bruinExecutablePath);
       parseAssetLineageStub.resolves();
+      parseAssetLineageWithColumnsStub.resolves();
       
       await flowLineageCommand(testUri1);
       await flowLineageCommand(testUri2);
@@ -4514,6 +4540,9 @@ suite(" Query export Tests", () => {
       sinon.assert.calledTwice(parseAssetLineageStub);
       sinon.assert.calledWith(parseAssetLineageStub.firstCall, testUri1.fsPath);
       sinon.assert.calledWith(parseAssetLineageStub.secondCall, testUri2.fsPath);
+      sinon.assert.calledTwice(parseAssetLineageWithColumnsStub);
+      sinon.assert.calledWith(parseAssetLineageWithColumnsStub.firstCall, testUri1.fsPath);
+      sinon.assert.calledWith(parseAssetLineageWithColumnsStub.secondCall, testUri2.fsPath);
     });
   });
 

@@ -10,7 +10,7 @@
     
     <!-- Asset View -->
     <VueFlow
-      v-if="!showPipelineView && !isLayouting"
+      v-if="!showPipelineView && !showColumnView && !isLayouting"
       v-model:elements="elements"
       :fit-view-on-init="false"
       class="basic-flow"
@@ -46,7 +46,7 @@
           class="flex items-center p-2 gap-1 bg-transparent border border-notificationCenter-border rounded cursor-pointer hover:bg-editorWidget-bg transition-colors"
         >
           <FunnelIcon class="w-4 h-4 text-progressBar-bg" />
-          <span class="text-[0.65rem] text-editor-fg">{{ showPipelineView ? 'Pipeline View' : filterLabel }}</span>
+          <span class="text-[0.65rem] text-editor-fg">{{ filterLabel }}</span>
         </div>
         <div
           v-else
@@ -65,9 +65,9 @@
           </div>
 
           <!-- Filter Options (only shown for Asset View) -->
-          <div v-if="!showPipelineView">
+          <div v-if="!showPipelineView && !showColumnView">
             <vscode-radio-group :value="filterType" orientation="vertical" class="radio-group">
-              <vscode-radio value="pipeline" class="radio-item" @click="handlePipelineView">
+              <vscode-radio value="pipeline" class="radio-item" @click="(event) => { event.stopPropagation(); handlePipelineView(); }">
               <span class="radio-label">Full Pipeline</span>
             </vscode-radio>
               <vscode-radio value="direct" class="radio-item" @click="handleDirectFilter">
@@ -94,6 +94,10 @@
                     </button>
                   </div>
                 </div>
+              </vscode-radio>
+
+              <vscode-radio value="column" class="radio-item" @click="(event) => { event.stopPropagation(); handleColumnLevelLineage(); }">
+                <span class="radio-label text-editor-fg">Column Level Lineage</span>
               </vscode-radio>
             </vscode-radio-group>
           </div>
@@ -127,6 +131,16 @@
       :LineageError="props.LineageError"
       @showAssetView="handleAssetView"
     />
+    
+    <!-- Column Level View - Using the separate ColumnLevelLineage component -->
+    <ColumnLevelLineage
+      v-if="showColumnView"
+      :assetDataset="props.assetDataset"
+      :pipelineData="props.pipelineData"
+      :isLoading="isLoading"
+      :LineageError="props.LineageError"
+      @showPipelineView="handlePipelineView"
+    />
   </div>
 </template>
 
@@ -140,6 +154,7 @@ import { computed, onMounted, defineProps, watch, ref, nextTick, onUnmounted, sh
 import ELK from "elkjs/lib/elk.bundled.js";
 import CustomNode from "@/components/lineage-flow/custom-nodes/CustomNodes.vue";
 import PipelineLineage from "@/components/lineage-flow/pipeline-lineage/PipelineLineage.vue";
+import ColumnLevelLineage from "@/components/lineage-flow/column-level/ColumnLevelLineage.vue";
 import {
   generateGraphFromJSON,
   generateGraphForDownstream,
@@ -166,6 +181,7 @@ const elements = computed(() => [...nodes.value, ...edges.value]);
 const expandPanel = ref(false);
 const selectedNodeId = ref<string | null>(null);
 const showPipelineView = ref(false);
+const showColumnView = ref(false);
 const isLoading = ref(true);
 const isLayouting = ref(false);
 const error = ref<string | null>(props.LineageError);
@@ -181,6 +197,8 @@ const elk = new ELK();
 
 // Computed properties for performance
 const filterLabel = computed(() => {
+  if (showPipelineView.value) return "Pipeline View";
+  if (showColumnView.value) return "Column Level Lineage";
   if (filterType.value === "direct") return "Direct Dependencies";
   if (expandAllUpstreams.value && expandAllDownstreams.value) return "All Dependencies";
   if (expandAllDownstreams.value) return "All Downstreams";
@@ -368,7 +386,7 @@ const applyLayout = async (inputNodes?: any[], inputEdges?: any[]) => {
  * Simplified graph update function using computed properties
  */
 const updateGraph = async () => {
-  if (!showPipelineView.value) {
+  if (!showPipelineView.value && !showColumnView.value) {
     isLayouting.value = true;
     
     try {
@@ -570,6 +588,7 @@ const handleReset = async (event: Event) => {
   resetFilterState();
   expandedNodes.value = {};
   showPipelineView.value = false;
+  showColumnView.value = false;
   await updateGraph();
 };
 
@@ -583,12 +602,18 @@ const handleAssetView = (emittedData: {
   LineageError: string | null;
 }) => {
   showPipelineView.value = false;
+  showColumnView.value = false;
   nextTick(() => processProperties());
 };
 
-const handlePipelineView = async (event?: Event) => {
-  if (event) event.stopPropagation();
+const handlePipelineView = async (data?: any) => {
   showPipelineView.value = true;
+  showColumnView.value = false;
+};
+
+const handleColumnLevelLineage = async (data?: any) => {
+  showColumnView.value = true;
+  showPipelineView.value = false;
 };
 
 /**
@@ -602,7 +627,7 @@ onMounted(() => {
 watch(
   () => [filterType.value, expandAllUpstreams.value, expandAllDownstreams.value],
   () => {
-    if (props.assetDataset && props.pipelineData && !showPipelineView.value) {
+    if (props.assetDataset && props.pipelineData && !showPipelineView.value && !showColumnView.value) {
       updateGraph();
     }
   },
@@ -613,7 +638,7 @@ watch(
 watch(
   () => [props.assetDataset, props.pipelineData],
   ([newAssetDataset, newPipelineData]) => {
-    if (newAssetDataset && newPipelineData && !showPipelineView.value) {
+    if (newAssetDataset && newPipelineData && !showPipelineView.value && !showColumnView.value) {
       processProperties();
     }
   },
