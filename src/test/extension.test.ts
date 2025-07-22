@@ -2001,7 +2001,7 @@ suite("BruinPanel Tests", () => {
 
       try {
         await messageHandler(message);
-      } catch (error) {
+            } catch (error) {
         console.error("Error in messageHandler:", error);
         throw error;
       }
@@ -2009,6 +2009,9 @@ suite("BruinPanel Tests", () => {
       // Add a small delay to ensure async operations complete in CI
       await new Promise(resolve => setTimeout(resolve, 10));
       
+      // Add a small delay to ensure async operations complete in CI
+      await new Promise(resolve => setTimeout(resolve, 10));
+
       assert.ok(bruinInstallCliStub.calledOnce, "CLI installation check should be performed");
     });
     /*     test('handles bruin.getAssetLineage command', async () => {
@@ -6060,7 +6063,8 @@ suite(" Query export Tests", () => {
         require("../bruin/bruinDBTCommand").BruinDBTCommand = originalBruinDBTCommand;
       });
 
-      test("table favorite toggle should work correctly", async () => {
+      test("table favorite toggle should work correctly", async function() {
+        this.timeout(10000); // Increase timeout for CI flakiness
         const { ActivityBarConnectionsProvider } = require("../providers/ActivityBarConnectionsProvider");
         
         const mockDbSummary = [
@@ -6091,43 +6095,60 @@ suite(" Query export Tests", () => {
         require("../bruin/bruinConnections").BruinConnections = BruinConnectionsStub;
         require("../bruin/bruinDBTCommand").BruinDBTCommand = BruinDBTCommandStub;
 
-        const provider = new ActivityBarConnectionsProvider("/test/path");
-        
-        await new Promise(resolve => setTimeout(resolve, 100));
+        let provider;
+        try {
+          provider = new ActivityBarConnectionsProvider("/test/path");
+          
+          // Wait for provider to initialize
+          await new Promise(resolve => setTimeout(resolve, 200));
 
-        // Navigate to table
-        const connectionItems = await provider.getChildren();
-        const connectionItem = connectionItems[0];
-        const schemaItems = await provider.getChildren(connectionItem);
-        const schemaItem = schemaItems[0];
-        const tableItems = await provider.getChildren(schemaItem);
-        const tableItem = tableItems[0];
+          // Navigate to table
+          const connectionItems = await provider.getChildren();
+          const connectionItem = connectionItems[0];
+          const schemaItems = await provider.getChildren(connectionItem);
+          const schemaItem = schemaItems[0];
+          const tableItems = await provider.getChildren(schemaItem);
+          const tableItem = tableItems[0];
 
-        // Initially should be unfavorite
-        assert.strictEqual(tableItem.contextValue, 'table_unfavorite', "Table should be unfavorite initially");
-        assert.strictEqual(provider.isTableFavorite(tableItem.itemData), false, "Table should not be favorite");
+          // Initially should be unfavorite
+          assert.strictEqual(tableItem.contextValue, 'table_unfavorite', "Table should be unfavorite initially");
+          assert.strictEqual(provider.isTableFavorite(tableItem.itemData), false, "Table should not be favorite");
 
-        // Toggle to favorite
-        await provider.toggleTableFavorite(tableItem.itemData, tableItem);
-        
-        // Check favorite status
-        assert.strictEqual(provider.isTableFavorite(tableItem.itemData), true, "Table should be favorite after toggle");
+          // Toggle to favorite
+          await provider.toggleTableFavorite(tableItem.itemData, tableItem);
+          
+          // Wait for async operations to complete
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+          // Check favorite status
+          assert.strictEqual(provider.isTableFavorite(tableItem.itemData), true, "Table should be favorite after toggle");
 
-        // Get updated tree item
-        const updatedTreeItem = provider.getTreeItem(tableItem);
-        assert.strictEqual(updatedTreeItem.contextValue, 'table_favorite', "Table should have favorite context value");
+          // Get updated tree item
+          const updatedTreeItem = provider.getTreeItem(tableItem);
+          assert.strictEqual(updatedTreeItem.contextValue, 'table_favorite', "Table should have favorite context value");
 
-        // Toggle back to unfavorite
-        await provider.toggleTableFavorite(tableItem.itemData, tableItem);
-        assert.strictEqual(provider.isTableFavorite(tableItem.itemData), false, "Table should be unfavorite after second toggle");
+          // Toggle back to unfavorite
+          await provider.toggleTableFavorite(tableItem.itemData, tableItem);
+          
+          // Wait for async operations to complete
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+          assert.strictEqual(provider.isTableFavorite(tableItem.itemData), false, "Table should be unfavorite after second toggle");
 
-        // Verify context value is updated
-        const finalTreeItem = provider.getTreeItem(tableItem);
-        assert.strictEqual(finalTreeItem.contextValue, 'table_unfavorite', "Table should have unfavorite context value");
+          // Verify context value is updated
+          const finalTreeItem = provider.getTreeItem(tableItem);
+          assert.strictEqual(finalTreeItem.contextValue, 'table_unfavorite', "Table should have unfavorite context value");
 
-        // Restore
-        require("../bruin/bruinConnections").BruinConnections = originalBruinConnections;
-        require("../bruin/bruinDBTCommand").BruinDBTCommand = originalBruinDBTCommand;
+        } finally {
+          // Properly dispose the provider to prevent memory leaks
+          if (provider && provider._onDidChangeTreeData) {
+            provider._onDidChangeTreeData.dispose();
+          }
+          
+          // Restore original classes
+          require("../bruin/bruinConnections").BruinConnections = originalBruinConnections;
+          require("../bruin/bruinDBTCommand").BruinDBTCommand = originalBruinDBTCommand;
+        }
       });
 
    

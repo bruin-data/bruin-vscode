@@ -1,4 +1,19 @@
 # Changelog
+## [0.58.8] - [2025-07-18]
+- Added GCS as a destination option in the Ingestr Asset UI and schema.
+
+## [0.58.7] - [2025-07-15]
+- Fixed the query preview for the first query in multiple queries file.
+
+## [0.58.6] - [2025-07-15]
+- Fixed the query preview code lens. 
+
+## [0.58.5] - [2025-07-14]
+- Recovered the partition by and cluster ui and fixed the columns actions being hidden.
+
+## [0.58.4] - [2025-07-14]
+- Enhanced the environment management UI with delete and update actions.
+
 ## [0.58.3] - [2025-07-11]
 - Improved detect asset logic.
 
