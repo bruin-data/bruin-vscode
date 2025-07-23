@@ -29,17 +29,21 @@
       :node-draggable="true"
     >
       <Background />
-      <Panel position="top-right">
-        <div class="navigation-controls">
-          <vscode-button 
-            @click="handleViewSwitch"
-            appearance="secondary"
-            class="view-switch-btn"
-          >
-            Pipeline View
-          </vscode-button>
-        </div>
-      </Panel>
+      <FilterTab
+        :filterType="filterType"
+        :expandAllUpstreams="expandAllUpstreams"
+        :expandAllDownstreams="expandAllDownstreams"
+        :showPipelineView="false"
+        :showColumnView="true"
+        @update:filterType="() => {}"
+        @update:expandAllUpstreams="() => {}"
+        @update:expandAllDownstreams="() => {}"
+        @pipeline-view="handleViewSwitch"
+        @column-view="handleAssetViewSwitch"
+        @asset-view="handleAssetViewWithFilter"
+        @reset="handleReset"
+      />
+     
       
       <!-- Custom node template for column display -->
       <template #node-customWithColumn="nodeProps">
@@ -95,6 +99,7 @@ import "@vue-flow/controls/dist/style.css";
 import { ref, watch, defineEmits } from "vue";
 import CustomNodeWithColumn from "@/components/lineage-flow/custom-nodes/CustomNodesWithColumn.vue";
 import CustomNode from "@/components/lineage-flow/custom-nodes/CustomNodes.vue";
+import FilterTab from "@/components/lineage-flow/filterTab/filterTab.vue";
 import { buildColumnLineage } from "@/components/lineage-flow/column-level/useColumnLevel";
 import { generateColumnGraph } from "@/utilities/graphGenerator";
 import { applyLayout } from "@/components/lineage-flow/pipeline-lineage/pipelineLineageBuilder";
@@ -136,12 +141,24 @@ const error = ref<string | null>(props.LineageError);
 const elements = ref<GraphElements>({ nodes: [], edges: [] });
 const hoveredColumn = ref<HoveredColumn | null>(null);
 
+// Filter state - only for display purposes, actual filtering happens in Asset view
+const filterType = ref<"direct" | "all">("all");
+const expandAllUpstreams = ref(true);
+const expandAllDownstreams = ref(true);
+
 const emit = defineEmits<{
   showPipelineView: [data: {
     assetId?: string;
     assetDataset?: AssetDataset | null;
     pipelineData: any;
     LineageError: string | null;
+  }];
+  showAssetView: [data: {
+    assetId?: string;
+    assetDataset?: AssetDataset | null;
+    pipelineData: any;
+    LineageError: string | null;
+    filterState?: { filterType: "direct" | "all"; expandAllUpstreams: boolean; expandAllDownstreams: boolean };
   }];
 }>();
 
@@ -323,6 +340,25 @@ const handleViewSwitch = (): void => {
   });
 };
 
+const handleAssetViewSwitch = (): void => {
+  emit('showAssetView', {
+    assetId: props.assetDataset?.id,
+    assetDataset: props.assetDataset,
+    pipelineData: props.pipelineData,
+    LineageError: props.LineageError
+  });
+};
+
+const handleAssetViewWithFilter = (filterState?: { filterType: "direct" | "all"; expandAllUpstreams: boolean; expandAllDownstreams: boolean }) => {
+  emit('showAssetView', {
+    assetId: props.assetDataset?.id,
+    assetDataset: props.assetDataset,
+    pipelineData: props.pipelineData,
+    LineageError: props.LineageError,
+    filterState: filterState
+  });
+};
+
 const onNodeClick = (nodeId: string): void => {
   selectedNodeId.value = selectedNodeId.value === nodeId ? null : nodeId;
 };
@@ -354,6 +390,12 @@ const handleColumnHover = (assetName: string, columnName: string): void => {
 const handleColumnLeave = (): void => {
   hoveredColumn.value = null;
   resetEdgeStyles();
+};
+
+// Handle filter reset - navigate to Asset view and reset filters
+const handleReset = (): void => {
+  // Navigate to Asset view when resetting from Column view
+  handleAssetViewSwitch();
 };
 
 // Highlight column and its connected edges recursively

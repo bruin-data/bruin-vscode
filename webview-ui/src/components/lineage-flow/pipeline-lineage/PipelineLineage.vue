@@ -10,17 +10,21 @@
       :node-draggable="true"
     >
       <Background />
-      <Panel position="top-right">
-      <div class="navigation-controls">
-        <vscode-button 
-          @click="handleViewSwitch()"
-          appearance="secondary"
-          class="view-switch-btn"
-        >
-          Asset View
-        </vscode-button>
-      </div>
-    </Panel>
+      <FilterTab
+        :filterType="filterType"
+        :expandAllUpstreams="expandAllUpstreams"
+        :expandAllDownstreams="expandAllDownstreams"
+        :showPipelineView="true"
+        :showColumnView="false"
+        @update:filterType="() => {}"
+        @update:expandAllUpstreams="() => {}"
+        @update:expandAllDownstreams="() => {}"
+        @pipeline-view="handleViewSwitch"
+        @column-view="handleColumnViewSwitch"
+        @asset-view="handleAssetViewWithFilter"
+        @reset="handleReset"
+      />
+    
       <template #node-custom="nodeProps">
         <CustomNode
           :expanded-nodes="expandedNodes"
@@ -59,6 +63,7 @@ import { MiniMap } from "@vue-flow/minimap";
 import "@vue-flow/controls/dist/style.css";
 import { ref, watch, defineEmits } from "vue";
 import CustomNode from "@/components/lineage-flow/custom-nodes/CustomNodes.vue";
+import FilterTab from "@/components/lineage-flow/filterTab/filterTab.vue";
 import {
   applyLayout,
   buildPipelineLineage,
@@ -76,12 +81,24 @@ const { fitView, onNodeMouseEnter, onNodeMouseLeave, getNodes, getEdges } = useV
 const selectedNodeId = ref<string | null>(null);
 const expandedNodes = ref<{ [key: string]: boolean }>({});
 
+// Filter state - only for display purposes, actual filtering happens in Asset view
+const filterType = ref<"direct" | "all">("all");
+const expandAllUpstreams = ref(true);
+const expandAllDownstreams = ref(true);
+
 const toggleNodeExpand = (nodeId: string) => {
   expandedNodes.value[nodeId] = !expandedNodes.value[nodeId];
 };
 
 const emit = defineEmits<{
   (e: 'showAssetView', data: {
+    assetId?: string;
+    assetDataset?: AssetDataset | null;
+    pipelineData: any;
+    LineageError: string | null;
+    filterState?: { filterType: "direct" | "all"; expandAllUpstreams: boolean; expandAllDownstreams: boolean };
+  }): void;
+  (e: 'showColumnView', data: {
     assetId?: string;
     assetDataset?: AssetDataset | null;
     pipelineData: any;
@@ -173,6 +190,36 @@ onNodeMouseLeave(() => {
 });
 
 const handleViewSwitch = () => {
+  emit('showAssetView', {
+    assetId: props.assetDataset?.id,
+    assetDataset: props.assetDataset,
+    pipelineData: props.pipelineData,
+    LineageError: props.LineageError
+  });
+};
+
+const handleColumnViewSwitch = () => {
+  emit('showColumnView', {
+    assetId: props.assetDataset?.id,
+    assetDataset: props.assetDataset,
+    pipelineData: props.pipelineData,
+    LineageError: props.LineageError
+  });
+};
+
+const handleAssetViewWithFilter = (filterState?: { filterType: "direct" | "all"; expandAllUpstreams: boolean; expandAllDownstreams: boolean }) => {
+  emit('showAssetView', {
+    assetId: props.assetDataset?.id,
+    assetDataset: props.assetDataset,
+    pipelineData: props.pipelineData,
+    LineageError: props.LineageError,
+    filterState: filterState
+  });
+};
+
+// Handle filter reset - navigate to Asset view and reset filters
+const handleReset = (): void => {
+  // Navigate to Asset view when resetting from Pipeline view
   emit('showAssetView', {
     assetId: props.assetDataset?.id,
     assetDataset: props.assetDataset,
