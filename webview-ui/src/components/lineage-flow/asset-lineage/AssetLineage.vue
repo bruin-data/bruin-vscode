@@ -50,7 +50,7 @@
         @update:expand-all-downstreams="expandAllDownstreams = $event"
         @pipeline-view="handlePipelineView"
         @column-view="handleColumnLevelLineage"
-        @asset-view="() => {}"
+        @asset-view="(filterState) => { if (filterState) handleAssetView({ assetId: props.assetDataset?.id, assetDataset: props.assetDataset, pipelineData: props.pipelineData, LineageError: props.LineageError, filterState }); }"
         @reset="handleReset"
       />
       
@@ -499,9 +499,23 @@ const handleAssetView = (emittedData: {
   assetDataset?: AssetDataset | null;
   pipelineData: any;
   LineageError: string | null;
+  filterState?: { filterType: "direct" | "all"; expandAllUpstreams: boolean; expandAllDownstreams: boolean };
 }) => {
   showPipelineView.value = false;
   showColumnView.value = false;
+  
+  // Apply filter state if provided
+  if (emittedData.filterState) {
+    filterType.value = emittedData.filterState.filterType;
+    expandAllUpstreams.value = emittedData.filterState.expandAllUpstreams;
+    expandAllDownstreams.value = emittedData.filterState.expandAllDownstreams;
+    
+    // Clear expanded nodes if switching to direct view
+    if (emittedData.filterState.filterType === 'direct') {
+      expandedNodes.value = {};
+    }
+  }
+  
   nextTick(() => processProperties());
 };
 

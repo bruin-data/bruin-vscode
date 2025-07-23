@@ -109,7 +109,7 @@ const emit = defineEmits<{
   "update:expandAllDownstreams": [value: boolean];
   "pipeline-view": [];
   "column-view": [];
-  "asset-view": [];
+  "asset-view": [filterState?: { filterType: "direct" | "all"; expandAllUpstreams: boolean; expandAllDownstreams: boolean }];
   "reset": [];
 }>();
 
@@ -150,27 +150,37 @@ const toggleDownstream = (event: Event) => {
 const handleDirectFilter = (event: Event) => {
   event.stopPropagation();
   
-  // If we're in Pipeline or Column view, navigate to Asset view first
-  if (props.showPipelineView || props.showColumnView) {
-    emit("asset-view");
+  // If we're in Asset view, just update the filter state
+  if (!props.showPipelineView && !props.showColumnView) {
+    emit("update:filterType", "direct");
+    emit("update:expandAllUpstreams", false);
+    emit("update:expandAllDownstreams", false);
+  } else {
+    // If we're in Pipeline or Column view, navigate to Asset view with filter state
+    emit("asset-view", {
+      filterType: "direct",
+      expandAllUpstreams: false,
+      expandAllDownstreams: false
+    });
   }
-  
-  emit("update:filterType", "direct");
-  emit("update:expandAllUpstreams", false);
-  emit("update:expandAllDownstreams", false);
 };
 
 const handleAllFilter = (event: Event) => {
   event.stopPropagation();
   
-  // If we're in Pipeline or Column view, navigate to Asset view first
-  if (props.showPipelineView || props.showColumnView) {
-    emit("asset-view");
+  // If we're in Asset view, just update the filter state
+  if (!props.showPipelineView && !props.showColumnView) {
+    emit("update:filterType", "all");
+    emit("update:expandAllUpstreams", true);
+    emit("update:expandAllDownstreams", true);
+  } else {
+    // If we're in Pipeline or Column view, navigate to Asset view with filter state
+    emit("asset-view", {
+      filterType: "all",
+      expandAllUpstreams: true,
+      expandAllDownstreams: true
+    });
   }
-  
-  emit("update:filterType", "all");
-  emit("update:expandAllUpstreams", true);
-  emit("update:expandAllDownstreams", true);
 };
 
 const handleReset = (event: Event) => {

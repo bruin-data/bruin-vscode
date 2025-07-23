@@ -35,12 +35,12 @@
         :expandAllDownstreams="expandAllDownstreams"
         :showPipelineView="false"
         :showColumnView="true"
-        @update:filterType="filterType = $event"
-        @update:expandAllUpstreams="expandAllUpstreams = $event"
-        @update:expandAllDownstreams="expandAllDownstreams = $event"
+        @update:filterType="() => {}"
+        @update:expandAllUpstreams="() => {}"
+        @update:expandAllDownstreams="() => {}"
         @pipeline-view="handleViewSwitch"
         @column-view="handleAssetViewSwitch"
-        @asset-view="handleAssetViewSwitch"
+        @asset-view="handleAssetViewWithFilter"
         @reset="handleReset"
       />
      
@@ -141,7 +141,7 @@ const error = ref<string | null>(props.LineageError);
 const elements = ref<GraphElements>({ nodes: [], edges: [] });
 const hoveredColumn = ref<HoveredColumn | null>(null);
 
-// Filter state
+// Filter state - only for display purposes, actual filtering happens in Asset view
 const filterType = ref<"direct" | "all">("all");
 const expandAllUpstreams = ref(true);
 const expandAllDownstreams = ref(true);
@@ -158,6 +158,7 @@ const emit = defineEmits<{
     assetDataset?: AssetDataset | null;
     pipelineData: any;
     LineageError: string | null;
+    filterState?: { filterType: "direct" | "all"; expandAllUpstreams: boolean; expandAllDownstreams: boolean };
   }];
 }>();
 
@@ -345,6 +346,16 @@ const handleAssetViewSwitch = (): void => {
     assetDataset: props.assetDataset,
     pipelineData: props.pipelineData,
     LineageError: props.LineageError
+  });
+};
+
+const handleAssetViewWithFilter = (filterState?: { filterType: "direct" | "all"; expandAllUpstreams: boolean; expandAllDownstreams: boolean }) => {
+  emit('showAssetView', {
+    assetId: props.assetDataset?.id,
+    assetDataset: props.assetDataset,
+    pipelineData: props.pipelineData,
+    LineageError: props.LineageError,
+    filterState: filterState
   });
 };
 

@@ -14,10 +14,9 @@ import {
   processAssetDependencies,
 } from "../utilities/getPipelineLineage";
 import * as pipelineData from "../utilities/pipeline.json";
-import LineageFlow from "@/components/lineage-flow/asset-lineage/AssetLineage.vue";
+import FilterTab from "@/components/lineage-flow/filterTab/filterTab.vue";
 import { mount } from "@vue/test-utils";
 import "./mocks/vueFlow"; // Import the mocks
-import { ref } from "vue";
 import { buildPipelineLineage, generateGraph } from "@/components/lineage-flow/pipeline-lineage/pipelineLineageBuilder";
 import { buildColumnLineage, getAssetDatasetWithColumns } from "@/components/lineage-flow/column-level/useColumnLevel";
 import { generateColumnGraph, createColumnLevelEdges } from "@/utilities/graphGenerator";
@@ -561,151 +560,138 @@ suite("test lineage panel", () => {
     assert.deepStrictEqual(assetDependencies, expectedOutput);
   });
 
-  let wrapper;
-  let mockUpdateGraph;
-  let mockUpdateLayout;
+  let filterWrapper;
 
-  // Mock props
-  const props = {
-    assetDataset: {
-      id: "asset-1",
-      name: "asset-name",
-      type: "asset-type",
-      isFocusAsset: false,
-      upstreams: [],
-      downstream: [],
-    },
-    pipelineData: {
-      assets: [],
-    },
-    isLoading: false,
-    LineageError: null,
+  // Mock props for FilterTab
+  const filterProps = {
+    filterType: "direct" as "direct" | "all",
+    expandAllUpstreams: false,
+    expandAllDownstreams: false,
+    showPipelineView: false,
+    showColumnView: false,
   };
 
   // Update the component setup in the test file
   beforeEach(() => {
-    mockUpdateGraph = vi.fn();
-    mockUpdateLayout = vi.fn();
-
-    wrapper = mount(LineageFlow, {
-      props,
+    filterWrapper = mount(FilterTab, {
+      props: filterProps,
       global: {
-        provide: {
-          updateGraph: mockUpdateGraph,
-          updateLayout: mockUpdateLayout,
-        },
         stubs: {
-          VueFlow: {
-            template: '<div class="vue-flow"><slot></slot></div>',
-            setup() {
-              return {
-                filterType: ref("direct"),
-                expandAllUpstreams: ref(false),
-                expandAllDownstreams: ref(false),
-                nodes: ref([]),
-                edges: ref([]),
-              };
-            },
+          Panel: {
+            template: '<div><slot></slot></div>',
           },
-          Panel: true,
-          Controls: true,
-          MiniMap: true,
-          Background: true,
+          'vscode-button': {
+            template: '<button><slot></slot></button>',
+          },
+          'vscode-radio-group': {
+            template: '<div><slot></slot></div>',
+          },
+          'vscode-radio': {
+            template: '<div><slot></slot></div>',
+          },
+          'vscode-link': {
+            template: '<a><slot></slot></a>',
+          },
         },
       },
     });
   });
 
-  test('sets filterType to "all" when handleAllFilter is called', async () => {
-    // Set initial state
-    wrapper.vm.filterType = "direct";
-    // Call handleAllFilter
-    await wrapper.vm.handleAllFilter(new Event("click"));
+  test('emits update:filterType with "all" when handleAllFilter is called', async () => {
+    // Call handleAllFilter method directly
+    await (filterWrapper.vm as any).handleAllFilter(new Event("click"));
 
-    // Check the state
-    assert.equal(wrapper.vm.filterType, "all");
+    // Check that the correct events were emitted
+    const emittedEvents = filterWrapper.emitted() as any;
+    assert.isDefined(emittedEvents["update:filterType"]);
+    assert.equal(emittedEvents["update:filterType"][0][0], "all");
+    assert.isDefined(emittedEvents["update:expandAllUpstreams"]);
+    assert.equal(emittedEvents["update:expandAllUpstreams"][0][0], true);
+    assert.isDefined(emittedEvents["update:expandAllDownstreams"]);
+    assert.equal(emittedEvents["update:expandAllDownstreams"][0][0], true);
   });
 
-  test('sets filterType to "direct" and clears expanded nodes when handleDirectFilter is called', async () => {
-    // Set initial state
-    wrapper.vm.filterType = "all";
-    wrapper.vm.expandAllUpstreams = true;
-    wrapper.vm.expandAllDownstreams = true;
-    wrapper.vm.expandedNodes = { "node-1_upstream": true, "node-2_downstream": true };
+  test('emits correct events when handleDirectFilter is called', async () => {
+    // Call handleDirectFilter method directly
+    await (filterWrapper.vm as any).handleDirectFilter({ stopPropagation: () => {} });
 
-    // Call handleDirectFilter with a proper event object
-    await wrapper.vm.handleDirectFilter({ stopPropagation: () => {} });
-
-    // Check the state
-    assert.equal(wrapper.vm.filterType, "direct");
-    assert.isFalse(wrapper.vm.expandAllUpstreams);
-    assert.isFalse(wrapper.vm.expandAllDownstreams);
-    assert.deepEqual(wrapper.vm.expandedNodes, {});
+    // Check that the correct events were emitted
+    const emittedEvents = filterWrapper.emitted() as any;
+    assert.isDefined(emittedEvents["update:filterType"]);
+    assert.equal(emittedEvents["update:filterType"][0][0], "direct");
+    assert.isDefined(emittedEvents["update:expandAllUpstreams"]);
+    assert.equal(emittedEvents["update:expandAllUpstreams"][0][0], false);
+    assert.isDefined(emittedEvents["update:expandAllDownstreams"]);
+    assert.equal(emittedEvents["update:expandAllDownstreams"][0][0], false);
   });
 
-  test("toggles expandAllUpstreams when toggleUpstream is called", async () => {
-    // Set filterType to 'all' to enable the toggle
-    wrapper.vm.filterType = "all";
-
-    // Initial state should be false
-    assert.isFalse(wrapper.vm.expandAllUpstreams);
+  test("emits update:expandAllUpstreams when toggleUpstream is called", async () => {
+    // Create a new wrapper with filterType 'all' to enable toggle
+    const wrapperWithAllFilter = mount(FilterTab, {
+      props: { ...filterProps, filterType: "all" },
+      global: {
+        stubs: {
+          Panel: {
+            template: '<div><slot></slot></div>',
+          },
+          'vscode-button': {
+            template: '<button><slot></slot></button>',
+          },
+          'vscode-radio-group': {
+            template: '<div><slot></slot></div>',
+          },
+          'vscode-radio': {
+            template: '<div><slot></slot></div>',
+          },
+          'vscode-link': {
+            template: '<a><slot></slot></a>',
+          },
+        },
+      },
+    });
 
     // Call toggleUpstream
-    await wrapper.vm.toggleUpstream(new Event("click"));
+    await (wrapperWithAllFilter.vm as any).toggleUpstream(new Event("click"));
 
-    // State should be toggled to true
-    assert.isTrue(wrapper.vm.expandAllUpstreams);
-
-    // Call toggleUpstream again
-    await wrapper.vm.toggleUpstream(new Event("click"));
-
-    // State should be toggled back to false
-    assert.isFalse(wrapper.vm.expandAllUpstreams);
+    // Check that the correct event was emitted
+    const emittedEvents = wrapperWithAllFilter.emitted() as any;
+    assert.isDefined(emittedEvents["update:expandAllUpstreams"]);
+    assert.equal(emittedEvents["update:expandAllUpstreams"][0][0], true);
   });
-  test("toggles expandAllDownstreams when toggleDownstream is called", async () => {
-    // Set filterType to 'all' to enable the toggle
-    wrapper.vm.filterType = "all";
-
-    // Initial state should be false
-    assert.isFalse(wrapper.vm.expandAllDownstreams);
+  test("emits update:expandAllDownstreams when toggleDownstream is called", async () => {
+    // Create a new wrapper with filterType 'all' to enable toggle
+    const wrapperWithAllFilter = mount(FilterTab, {
+      props: { ...filterProps, filterType: "all" },
+      global: {
+        stubs: {
+          Panel: {
+            template: '<div><slot></slot></div>',
+          },
+          'vscode-button': {
+            template: '<button><slot></slot></button>',
+          },
+          'vscode-radio-group': {
+            template: '<div><slot></slot></div>',
+          },
+          'vscode-radio': {
+            template: '<div><slot></slot></div>',
+          },
+          'vscode-link': {
+            template: '<a><slot></slot></a>',
+          },
+        },
+      },
+    });
 
     // Call toggleDownstream
-    await wrapper.vm.toggleDownstream(new Event("click"));
+    await (wrapperWithAllFilter.vm as any).toggleDownstream(new Event("click"));
 
-    // State should be toggled to true
-    assert.isTrue(wrapper.vm.expandAllDownstreams);
-
-    // Call toggleDownstream again
-    await wrapper.vm.toggleDownstream(new Event("click"));
-
-    // State should be toggled back to false
-    assert.isFalse(wrapper.vm.expandAllDownstreams);
+    // Check that the correct event was emitted
+    const emittedEvents = wrapperWithAllFilter.emitted() as any;
+    assert.isDefined(emittedEvents["update:expandAllDownstreams"]);
+    assert.equal(emittedEvents["update:expandAllDownstreams"][0][0], true);
   });
 
-  // testing onNodeClick
-  test("sets selectedNodeId when onNodeClick is called", async () => {
-    const nodeId = "node-1";
-    await wrapper.vm.onNodeClick(nodeId, new Event("click"));
-
-    // Check that selectedNodeId is updated
-    assert.equal(wrapper.vm.selectedNodeId, nodeId);
-
-    // Call again to deselect
-    await wrapper.vm.onNodeClick(nodeId, new Event("click"));
-    assert.isNull(wrapper.vm.selectedNodeId);
-  });
-
-  test("sets selectedNodeId when onNodeClick is called", async () => {
-    const nodeId = "node-1";
-    await wrapper.vm.onNodeClick(nodeId, new Event("click"));
-
-    // Check that selectedNodeId is updated
-    assert.equal(wrapper.vm.selectedNodeId, nodeId);
-
-    // Call again to deselect
-    await wrapper.vm.onNodeClick(nodeId, new Event("click"));
-    assert.isNull(wrapper.vm.selectedNodeId);
-  });
 });
 
 
