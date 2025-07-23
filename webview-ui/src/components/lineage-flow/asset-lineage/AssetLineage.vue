@@ -50,6 +50,7 @@
         @update:expand-all-downstreams="expandAllDownstreams = $event"
         @pipeline-view="handlePipelineView"
         @column-view="handleColumnLevelLineage"
+        @asset-view="() => {}"
         @reset="handleReset"
       />
       
@@ -70,6 +71,7 @@
       :isLoading="isLoading"
       :LineageError="props.LineageError"
       @showAssetView="handleAssetView"
+      @showColumnView="handleColumnLevelLineage"
     />
     
     <!-- Column Level View - Using the separate ColumnLevelLineage component -->
@@ -80,6 +82,7 @@
       :isLoading="isLoading"
       :LineageError="props.LineageError"
       @showPipelineView="handlePipelineView"
+      @showAssetView="handleAssetView"
     />
   </div>
 </template>

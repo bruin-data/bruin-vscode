@@ -24,16 +24,24 @@
         </vscode-button>
       </div>
 
-      <!-- Filter Options (only shown for Asset View) -->
-      <div v-if="!showPipelineView && !showColumnView">
-        <vscode-radio-group :value="filterType" orientation="vertical" class="radio-group">
-          <vscode-radio value="pipeline" class="radio-item" @click="(event) => { event.stopPropagation(); handlePipelineView(); }">
-          <span class="radio-label">Full Pipeline</span>
-        </vscode-radio>
+      <!-- View Options -->
+      <div class="view-options">
+        <vscode-radio-group :value="currentViewType" orientation="vertical" class="radio-group">
+          <!-- Full Pipeline option - always show -->
+          <vscode-radio 
+            value="pipeline" 
+            class="radio-item"
+            @click="(event) => { event.stopPropagation(); handlePipelineView(); }"
+          >
+            <span class="radio-label">Full Pipeline</span>
+          </vscode-radio>
+          
+          <!-- Direct Dependencies - available in all views -->
           <vscode-radio value="direct" class="radio-item" @click="handleDirectFilter">
             <span class="radio-label text-editor-fg">Direct Dependencies</span>
           </vscode-radio>
 
+          <!-- All Dependencies - available in all views -->
           <vscode-radio value="all" class="radio-item" @click="handleAllFilter">
             <div class="all-options">
               <span class="radio-label text-editor-fg">All Dependencies</span>
@@ -56,7 +64,12 @@
             </div>
           </vscode-radio>
 
-          <vscode-radio value="column" class="radio-item" @click="(event) => { event.stopPropagation(); handleColumnLevelLineage(); }">
+          <!-- Column Level option - always show -->
+          <vscode-radio 
+            value="column" 
+            class="radio-item"
+            @click="(event) => { event.stopPropagation(); handleColumnLevelLineage(); }"
+          >
             <span class="radio-label text-editor-fg">Column Level Lineage</span>
           </vscode-radio>
         </vscode-radio-group>
@@ -96,6 +109,7 @@ const emit = defineEmits<{
   "update:expandAllDownstreams": [value: boolean];
   "pipeline-view": [];
   "column-view": [];
+  "asset-view": [];
   "reset": [];
 }>();
 
@@ -110,6 +124,12 @@ const filterLabel = computed(() => {
   if (props.expandAllUpstreams && props.expandAllDownstreams) return "All Dependencies";
   if (props.expandAllDownstreams) return "All Downstreams";
   return "All Upstreams";
+});
+
+const currentViewType = computed(() => {
+  if (props.showPipelineView) return "pipeline";
+  if (props.showColumnView) return "column";
+  return props.filterType;
 });
 
 // Methods
@@ -129,6 +149,12 @@ const toggleDownstream = (event: Event) => {
 
 const handleDirectFilter = (event: Event) => {
   event.stopPropagation();
+  
+  // If we're in Pipeline or Column view, navigate to Asset view first
+  if (props.showPipelineView || props.showColumnView) {
+    emit("asset-view");
+  }
+  
   emit("update:filterType", "direct");
   emit("update:expandAllUpstreams", false);
   emit("update:expandAllDownstreams", false);
@@ -136,6 +162,12 @@ const handleDirectFilter = (event: Event) => {
 
 const handleAllFilter = (event: Event) => {
   event.stopPropagation();
+  
+  // If we're in Pipeline or Column view, navigate to Asset view first
+  if (props.showPipelineView || props.showColumnView) {
+    emit("asset-view");
+  }
+  
   emit("update:filterType", "all");
   emit("update:expandAllUpstreams", true);
   emit("update:expandAllDownstreams", true);
