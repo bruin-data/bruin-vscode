@@ -1,4 +1,8 @@
 # Changelog
+
+## [0.59.0] - [2025-07-23]
+- Added column level lineage view.
+
 ## [0.58.8] - [2025-07-18]
 - Added GCS as a destination option in the Ingestr Asset UI and schema.
 
