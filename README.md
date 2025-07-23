@@ -55,6 +55,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.59.1**: Add highlighing to the column level lineage view.
 - **0.59.0**: Added column level lineage view.
 - **0.58.8**: Added GCS as a destination option in the Ingestr Asset UI and schema.
 - **0.58.7**: Fixed the query preview for the first query in multiple queries file.
