@@ -381,11 +381,10 @@ const handleColumnLeave = (): void => {
   resetEdgeStyles();
 };
 
-// Handle filter reset
+// Handle filter reset - navigate to Asset view and reset filters
 const handleReset = (): void => {
-  filterType.value = "all";
-  expandAllUpstreams.value = true;
-  expandAllDownstreams.value = true;
+  // Navigate to Asset view when resetting from Column view
+  handleAssetViewSwitch();
 };
 
 // Highlight column and its connected edges recursively

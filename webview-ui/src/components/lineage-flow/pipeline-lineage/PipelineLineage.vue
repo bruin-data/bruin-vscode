@@ -206,11 +206,15 @@ const handleColumnViewSwitch = () => {
   });
 };
 
-// Handle filter reset
+// Handle filter reset - navigate to Asset view and reset filters
 const handleReset = (): void => {
-  filterType.value = "all";
-  expandAllUpstreams.value = true;
-  expandAllDownstreams.value = true;
+  // Navigate to Asset view when resetting from Pipeline view
+  emit('showAssetView', {
+    assetId: props.assetDataset?.id,
+    assetDataset: props.assetDataset,
+    pipelineData: props.pipelineData,
+    LineageError: props.LineageError
+  });
 };
 const error = ref<string | null>(props.LineageError);
 const elements = ref<any>({ nodes: [], edges: [] });
