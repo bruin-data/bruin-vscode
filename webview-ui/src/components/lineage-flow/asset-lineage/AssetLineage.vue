@@ -39,79 +39,19 @@
       </template>
       
       <!-- Filter Panel -->
-      <Panel position="top-right">
-        <div
-          v-if="!expandPanel"
-          @click="expandPanel = !expandPanel"
-          class="flex items-center p-2 gap-1 bg-transparent border border-notificationCenter-border rounded cursor-pointer hover:bg-editorWidget-bg transition-colors"
-        >
-          <FunnelIcon class="w-4 h-4 text-progressBar-bg" />
-          <span class="text-[0.65rem] text-editor-fg">{{ filterLabel }}</span>
-        </div>
-        <div
-          v-else
-          class="bg-transparent hover:bg-editorWidget-bg border border-notificationCenter-border rounded"
-        >
-          <div
-            class="flex items-center text-[0.65rem] justify-between border-b border-notificationCenter-border"
-          >
-            <div class="flex items-center gap-1">
-              <FunnelIcon class="w-4 h-4 text-progressBar-bg" />
-              <span class="text-[0.65rem] text-editor-fg uppercase p-1">view options</span>
-            </div>
-            <vscode-button appearance="icon" @click="expandPanel = false">
-              <XMarkIcon class="w-4 h-4 text-progressBar-bg" />
-            </vscode-button>
-          </div>
-
-          <!-- Filter Options (only shown for Asset View) -->
-          <div v-if="!showPipelineView && !showColumnView">
-            <vscode-radio-group :value="filterType" orientation="vertical" class="radio-group">
-              <vscode-radio value="pipeline" class="radio-item" @click="(event) => { event.stopPropagation(); handlePipelineView(); }">
-              <span class="radio-label">Full Pipeline</span>
-            </vscode-radio>
-              <vscode-radio value="direct" class="radio-item" @click="handleDirectFilter">
-                <span class="radio-label text-editor-fg">Direct Dependencies</span>
-              </vscode-radio>
-
-              <vscode-radio value="all" class="radio-item" @click="handleAllFilter">
-                <div class="all-options">
-                  <span class="radio-label text-editor-fg">All Dependencies</span>
-                  <div class="toggle-buttons">
-                    <button
-                      class="toggle-btn"
-                      :class="{ active: expandAllUpstreams }"
-                      @click.stop="toggleUpstream"
-                    >
-                      U
-                    </button>
-                    <button
-                      class="toggle-btn"
-                      :class="{ active: expandAllDownstreams }"
-                      @click.stop="toggleDownstream"
-                    >
-                      D
-                    </button>
-                  </div>
-                </div>
-              </vscode-radio>
-
-              <vscode-radio value="column" class="radio-item" @click="(event) => { event.stopPropagation(); handleColumnLevelLineage(); }">
-                <span class="radio-label text-editor-fg">Column Level Lineage</span>
-              </vscode-radio>
-            </vscode-radio-group>
-          </div>
-          
-          <div class="flex justify-end px-2 pb-1">
-            <vscode-link
-              @click="handleReset"
-              class="text-xs text-editor-fg hover:text-progressBar-bg transition-colorseset-link"
-            >
-              Reset
-            </vscode-link>
-          </div>
-        </div>
-      </Panel>
+      <FilterTab
+        :filter-type="filterType"
+        :expand-all-upstreams="expandAllUpstreams"
+        :expand-all-downstreams="expandAllDownstreams"
+        :show-pipeline-view="showPipelineView"
+        :show-column-view="showColumnView"
+        @update:filter-type="(value) => { filterType = value; if (value === 'direct') expandedNodes = {}; }"
+        @update:expand-all-upstreams="expandAllUpstreams = $event"
+        @update:expand-all-downstreams="expandAllDownstreams = $event"
+        @pipeline-view="handlePipelineView"
+        @column-view="handleColumnLevelLineage"
+        @reset="handleReset"
+      />
       
       <Controls
         :position="PanelPosition.BottomLeft"
@@ -145,7 +85,7 @@
 </template>
 
 <script setup lang="ts">
-import { PanelPosition, VueFlow, useVueFlow, Panel } from "@vue-flow/core";
+import { PanelPosition, VueFlow, useVueFlow } from "@vue-flow/core";
 import { Background } from "@vue-flow/background";
 import { Controls } from "@vue-flow/controls";
 import "@vue-flow/controls/dist/style.css";
@@ -155,6 +95,7 @@ import ELK from "elkjs/lib/elk.bundled.js";
 import CustomNode from "@/components/lineage-flow/custom-nodes/CustomNodes.vue";
 import PipelineLineage from "@/components/lineage-flow/pipeline-lineage/PipelineLineage.vue";
 import ColumnLevelLineage from "@/components/lineage-flow/column-level/ColumnLevelLineage.vue";
+import FilterTab from "@/components/lineage-flow/filterTab/filterTab.vue";
 import {
   generateGraphFromJSON,
   generateGraphForDownstream,
@@ -162,8 +103,6 @@ import {
 } from "@/utilities/graphGenerator";
 import type { AssetDataset } from "@/types";
 import { getAssetDataset } from "./useAssetLineage";
-import { XMarkIcon } from "@heroicons/vue/20/solid";
-import { FunnelIcon } from "@heroicons/vue/24/outline";
 
 const props = defineProps<{
   assetDataset?: AssetDataset | null;
@@ -178,7 +117,6 @@ const { nodes, edges, addNodes, addEdges, setNodes, setEdges, fitView } = useVue
 const elements = computed(() => [...nodes.value, ...edges.value]);
 
 // UI state
-const expandPanel = ref(false);
 const selectedNodeId = ref<string | null>(null);
 const showPipelineView = ref(false);
 const showColumnView = ref(false);
@@ -196,14 +134,6 @@ const expandedNodes = ref<{ [key: string]: boolean }>({});
 const elk = new ELK();
 
 // Computed properties for performance
-const filterLabel = computed(() => {
-  if (showPipelineView.value) return "Pipeline View";
-  if (showColumnView.value) return "Column Level Lineage";
-  if (filterType.value === "direct") return "Direct Dependencies";
-  if (expandAllUpstreams.value && expandAllDownstreams.value) return "All Dependencies";
-  if (expandAllDownstreams.value) return "All Downstreams";
-  return "All Upstreams";
-});
 
 // Memoized base graph generation
 const baseGraphData = computed(() => {
@@ -549,42 +479,8 @@ const resetFilterState = () => {
 /**
  * UI action handlers
  */
-const toggleUpstream = (event: Event) => {
-  event.stopPropagation();
-  if (filterType.value === "all") {
-    expandAllUpstreams.value = !expandAllUpstreams.value;
-    // updateGraph will be called automatically via watcher
-  }
-};
 
-const toggleDownstream = (event: Event) => {
-  event.stopPropagation();
-  if (filterType.value === "all") {
-    expandAllDownstreams.value = !expandAllDownstreams.value;
-    // updateGraph will be called automatically via watcher
-  }
-};
-
-const handleDirectFilter = (event: Event) => {
-  event.stopPropagation();
-  filterType.value = "direct";
-  expandAllUpstreams.value = false;
-  expandAllDownstreams.value = false;
-  // Clear expansion state when switching to direct dependencies
-  expandedNodes.value = {};
-  // updateGraph will be called automatically via watcher
-};
-
-const handleAllFilter = (event: Event) => {
-  event.stopPropagation();
-  filterType.value = "all";
-  expandAllUpstreams.value = true;
-  expandAllDownstreams.value = true;
-  // updateGraph will be called automatically via watcher
-};
-
-const handleReset = async (event: Event) => {
-  event.stopPropagation();
+const handleReset = async () => {
   resetFilterState();
   expandedNodes.value = {};
   showPipelineView.value = false;
@@ -679,34 +575,6 @@ watch(
 
 .error-message {
   flex-direction: column;
-}
-
-/* Radio group styling */
-.radio-group {
-  @apply px-1;
-}
-
-.radio-label {
-  @apply text-[0.65rem] font-normal;
-}
-
-/* Toggle buttons */
-.all-options {
-  @apply flex items-center justify-center w-full gap-2;
-}
-
-.toggle-buttons {
-  @apply flex gap-1;
-}
-
-.toggle-btn {
-  @apply w-5 h-5 text-center rounded-full border-2 border-notificationCenter-border bg-transparent 
-         text-[0.5rem] font-medium flex items-center justify-center cursor-pointer
-         transition-all duration-200;
-}
-
-.toggle-btn.active {
-  @apply bg-progressBar-bg border-progressBar-bg text-editor-fg;
 }
 
 vscode-checkbox {
