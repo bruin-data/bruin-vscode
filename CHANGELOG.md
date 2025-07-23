@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.59.1] - [2025-07-23]
+- Add highlighing to the column level lineage view.
+
 ## [0.59.0] - [2025-07-23]
 - Added column level lineage view.
 
