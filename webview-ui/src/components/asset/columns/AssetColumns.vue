@@ -186,13 +186,31 @@
                       <PlusIcon class="h-3 w-3" />
                     </vscode-button>
                     <div v-if="showPatternInput && editingIndex === index" class="mt-1 px-1">
-                      <input
-                        v-model="newPatternValue"
-                        @input="updatePatternValue"
-                        @keyup.enter="confirmPatternInput"
-                        placeholder="Enter regex"
-                        class="w-full px-1 min-w-28 bg-editorWidget-bg text-editor-fg text-xs border border-commandCenter-border"
-                      />
+                      <div class="flex items-center space-x-1">
+                        <input
+                          v-model="newPatternValue"
+                          @input="updatePatternValue"
+                          @keyup.enter="confirmPatternInput"
+                          placeholder="Enter regex"
+                          class="flex-1 px-1 min-w-28 bg-editorWidget-bg text-editor-fg text-xs border border-commandCenter-border"
+                        />
+                        <vscode-button
+                          appearance="icon"
+                          @click="confirmPatternInput"
+                          aria-label="Confirm pattern input"
+                          class="flex items-center flex-shrink-0"
+                        >
+                          <CheckIcon class="h-3 w-3" />
+                        </vscode-button>
+                        <vscode-button
+                          appearance="icon"
+                          @click="cancelPatternInput"
+                          aria-label="Cancel pattern input"
+                          class="flex items-center flex-shrink-0"
+                        >
+                          <XMarkIcon class="h-3 w-3" />
+                        </vscode-button>
+                      </div>
                     </div>
                   </div>
                   <div v-if="showAcceptedValuesInput && editingIndex === index" class="mt-1 px-1">
@@ -366,6 +384,12 @@ const confirmPatternInput = () => {
   }
 
   // Hide the input and reset the value
+  showPatternInput.value = false;
+  newPatternValue.value = "";
+};
+
+const cancelPatternInput = () => {
+  // Hide the input and reset the value without saving
   showPatternInput.value = false;
   newPatternValue.value = "";
 };
@@ -555,6 +579,15 @@ const removeCheck = (checkName) => {
   editingColumn.value.checks = editingColumn.value.checks.filter(
     (check) => check.name !== checkName
   );
+  
+  // Hide input fields when their corresponding checks are removed
+  if (checkName === "accepted_values") {
+    showAcceptedValuesInput.value = false;
+  } else if (checkName === "pattern") {
+    showPatternInput.value = false;
+    newPatternValue.value = "";
+  }
+  
   const payload = { columns: JSON.parse(JSON.stringify(localColumns.value)) };
   vscode.postMessage({
     command: "bruin.setAssetDetails",
