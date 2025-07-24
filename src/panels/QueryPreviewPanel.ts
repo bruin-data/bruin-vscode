@@ -284,13 +284,40 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
           const tabId = message.payload.tabId || "tab-1";
           const startDate = message.payload.startDate || "";
           const endDate = message.payload.endDate || "";
-          const extractedQuery = message.payload.query || "";
-          
-          // If we have an extracted query from CodeLens, store it for this tab
-          if (extractedQuery) {
-            QueryPreviewPanel.setTabQuery(tabId, extractedQuery);
+          let extractedQuery = message.payload.query || "";
+
+          // Check if the file is an asset
+          let isAsset = false;
+          if (this._lastRenderedDocumentUri) {
+            // Dynamically import the helper to avoid circular deps
+            const { isBruinSqlAsset } = await import("../utilities/helperUtils");
+            isAsset = await isBruinSqlAsset(this._lastRenderedDocumentUri.fsPath);
           }
-          
+
+          if (!isAsset) {
+            // If no query is provided, try to get the selection or full document text
+            if (!extractedQuery) {
+              const editor = vscode.window.activeTextEditor;
+              if (editor && editor.document.uri.fsPath === this._lastRenderedDocumentUri?.fsPath) {
+                const selection = editor.selection;
+                if (!selection.isEmpty) {
+                  extractedQuery = editor.document.getText(selection).trim();
+                } else {
+                  extractedQuery = editor.document.getText().trim();
+                }
+              } else if (this._lastRenderedDocumentUri) {
+                const doc = await vscode.workspace.openTextDocument(this._lastRenderedDocumentUri);
+                extractedQuery = doc.getText().trim();
+              }
+            }
+            if (extractedQuery) {
+              QueryPreviewPanel.setTabQuery(tabId, extractedQuery);
+            }
+          } else {
+            // For asset files, do not set or send a query, let the CLI handle it
+            extractedQuery = "";
+          }
+
           this.loadAndSendQueryOutput(this.environment, this.limit, tabId, startDate, endDate);
           console.log(
             "Received limit, tabId, and query from webview in the Query Preview panel",
