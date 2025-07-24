@@ -11,8 +11,8 @@
         <PlusIcon class="h-4 w-4 fill-gray-300 text-gray-700/50 hover:text-gray-700" />
       </div>
     </div>
-
-    <div class="node-content" :class="[assetClass, { expanded: isExpanded }]" @click="togglePopup">
+ 
+    <div class="node-content" :class="assetClass" @click="togglePopup">
       <div
         v-if="data.type === 'asset'"
         :class="assetHighlightClass"
@@ -45,16 +45,15 @@
           :class="[selectedStyle.main, status ? '' : 'rounded-tl']"
         >
           <div class="relative group">
-            <!-- Truncated Text with Expand Option -->
-            <div class="dynamic-text" :style="{ fontSize: computedFontSize }" @click.stop="toggleExpand">
-              {{ isExpanded ? label : truncatedLabel }}
+            <!-- Node Text -->
+            <div class="dynamic-text" :style="{ fontSize: computedFontSize }">
+              {{ truncatedLabel }}
             </div>
             <!-- Tooltip -->
             <div
-              v-if="isTruncated && !isExpanded"
-              class="absolute left-0 top-0 w-max font-mono rounded opacity-0 whitespace-nowrap group-hover:opacity-100 transition-opacity duration-200 group-hover:cursor-pointer"
+              v-if="isTruncated"
+              class="absolute left-0 top-0 w-max font-mono rounded opacity-0 whitespace-nowrap group-hover:opacity-100 transition-opacity duration-200"
               :class="selectedStyle.main"
-              @click.stop="toggleExpand"
             >
               {{ label }}
             </div>
@@ -98,7 +97,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, defineProps, defineEmits, onMounted, onUnmounted, ref } from "vue";
+import { computed, defineProps, defineEmits, onMounted, onUnmounted } from "vue";
 import { Handle, Position } from "@vue-flow/core";
 import { PlusIcon } from "@heroicons/vue/20/solid";
 import AssetProperties from "@/components/ui/asset/AssetProperties.vue";
@@ -117,7 +116,7 @@ const props = defineProps<BruinNodeProps & {
   expandedNodes?: { [key: string]: boolean };
   showExpandButtons: boolean;
 }>();
-const emit = defineEmits(["add-upstream", "add-downstream", "node-click", "toggle-node-expand"]);
+const emit = defineEmits(["add-upstream", "add-downstream", "node-click"]);
 
 const selectedStyle = computed(() => styles[props.data?.asset?.type || "default"] || defaultStyle);
 const selectedStatusStyle = computed(() => statusStyles[props.status || ""]);
@@ -177,7 +176,6 @@ const handleGoToDetails = (asset) => {
 };
 
 const label = computed(() => props.data.asset?.name || '');
-const isExpanded = computed(() => props.expandedNodes?.[props.data.asset?.name || ''] || false);
 
 const isTruncated = computed(() => label.value.length > 26);
 const truncatedLabel = computed(() => {
@@ -186,9 +184,6 @@ const truncatedLabel = computed(() => {
   return name.length > maxLength ? `${name.slice(0, maxLength)}...` : name;
 });
 
-const toggleExpand = () => {
-  emit("toggle-node-expand", props.data.asset?.name);
-};
 
 const handleClickOutside = (event) => {
   if (showPopup.value) closePopup();
@@ -228,7 +223,6 @@ onUnmounted(() => {
   text-overflow: ellipsis;
   line-height: 1.3;
   transition: font-size 0.2s ease;
-  cursor: pointer;
 }
 
 .node-content {
@@ -236,9 +230,6 @@ onUnmounted(() => {
   transition: height 0.3s ease;
 }
 
-.node-content.expanded {
-  height: auto; /* Allow height to adjust based on content */
-}
 
 .icon-wrapper {
   position: absolute;
