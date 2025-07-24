@@ -55,6 +55,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.59.3**: Updated query extraction logic for non-asset files and added pagination to the query preview.
 - **0.59.2**: Display CodeLens only when selection starts outside Bruin block.
 - **0.59.1**: Add highlighing to the column level lineage view.
 - **0.59.0**: Added column level lineage view.

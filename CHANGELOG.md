@@ -1,9 +1,12 @@
 # Changelog
+## [0.59.3] - [2025-07-24]
+- Updated query extraction logic for non-asset files and added pagination to the query preview.
+
 ## [0.59.2] - [2025-07-24]
-- Display CodeLens only when selection starts outside Bruin block.
+- Displayed CodeLens only when selection starts outside Bruin block.
 
 ## [0.59.1] - [2025-07-23]
-- Add highlighing to the column level lineage view.
+- Added highlighting to the column level lineage view.
 
 ## [0.59.0] - [2025-07-23]
 - Added column level lineage view.
