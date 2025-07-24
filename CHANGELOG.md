@@ -1,4 +1,6 @@
 # Changelog
+## [0.59.2] - [2025-07-24]
+- Display CodeLens only when selection starts outside Bruin block.
 
 ## [0.59.1] - [2025-07-23]
 - Add highlighing to the column level lineage view.
