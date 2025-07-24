@@ -259,14 +259,14 @@
               </thead>
               <tbody>
                 <tr
-                  v-for="(row, index) in currentTab.filteredRows"
-                  :key="index"
+                  v-for="(row, index) in paginatedRows"
+                  :key="(currentPage - 1) * pageSize + index"
                   class="hover:bg-menu-hoverBackground transition-colors duration-150"
                 >
                   <td
                     class="p-1 opacity-50 text-editor-fg font-mono border border-commandCenter-border"
                   >
-                    {{ index + 1 }}
+                    {{ (currentPage - 1) * pageSize + index + 1 }}
                   </td>
                   <td
                     v-for="(value, colIndex) in row"
@@ -321,6 +321,21 @@
                 </tr>
               </tbody>
             </table>
+            <div v-if="totalPages > 1" class="flex justify-center items-center my-2 gap-2">
+              <button @click="currentPage = 1" :disabled="currentPage === 1" title="First Page">
+                <span class="codicon codicon-chevron-double-left"></span>
+              </button>
+              <button @click="currentPage--" :disabled="currentPage === 1" title="Previous Page">
+                <span class="codicon codicon-chevron-left"></span>
+              </button>
+              <span>Page {{ currentPage }} of {{ totalPages }}</span>
+              <button @click="currentPage++" :disabled="currentPage === totalPages" title="Next Page">
+                <span class="codicon codicon-chevron-right"></span>
+              </button>
+              <button @click="currentPage = totalPages" :disabled="currentPage === totalPages" title="Last Page">
+                <span class="codicon codicon-chevron-double-right"></span>
+              </button>
+            </div>
           </div>
         </div>
       </template>
@@ -339,6 +354,7 @@ import {
   nextTick,
   shallowRef,
   triggerRef,
+  reactive,
 } from "vue";
 import { TableCellsIcon } from "@heroicons/vue/24/outline";
 import { vscode } from "@/utilities/vscode";
@@ -365,6 +381,7 @@ const hoveredTab = ref("");
 const copied = ref(false);
 // State for expanded cells
 const expandedCells = ref(new Set<string>());
+
 const defaultTab = {
   id: "tab-1",
   label: "Tab 1",
@@ -1101,6 +1118,25 @@ const formatCellValue = (value) => {
   }
   return { text: value, isNull: false };
 };
+
+const pageSize = 50;
+const currentPage = ref(1);
+
+const totalRows = computed(() => currentTab.value?.filteredRows?.length || 0);
+const totalPages = computed(() => Math.ceil(totalRows.value / pageSize));
+
+const paginatedRows = computed(() => {
+  if (!currentTab.value?.filteredRows) return [];
+  const start = (currentPage.value - 1) * pageSize;
+  return currentTab.value.filteredRows.slice(start, start + pageSize);
+});
+
+watch(
+  () => currentTab.value?.filteredRows,
+  () => {
+    currentPage.value = 1;
+  }
+);
 </script>
 
 <style scoped>
