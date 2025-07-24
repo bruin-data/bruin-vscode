@@ -10,7 +10,7 @@
     
     <!-- Asset View -->
     <VueFlow
-      v-if="!showPipelineView && !showColumnView && !isLayouting"
+      v-if="!showPipelineView && !showColumnView"
       v-model:elements="elements"
       :fit-view-on-init="false"
       class="basic-flow"
@@ -510,10 +510,7 @@ const onAddUpstream = async (nodeId: string) => {
   
   // Smart viewport adjustment to show new upstream nodes
   await nextTick();
-  const { fitView } = useVueFlow();
-  
-  // Use the exact same fit view as the control panel
-  fitView();
+  fitView({ padding: 0.2, duration: 300 });
 };
 
 const onAddDownstream = async (nodeId: string) => {
@@ -553,10 +550,7 @@ const onAddDownstream = async (nodeId: string) => {
   
   // Smart viewport adjustment to show new downstream nodes
   await nextTick();
-  const { fitView } = useVueFlow();
-  
-  // Use the exact same fit view as the control panel
-  fitView();
+  fitView({ padding: 0.2, duration: 300 });
 };
 
 /**
@@ -659,7 +653,7 @@ watch(
 }
 
 .flow {
-  @apply flex h-screen w-full p-0 !important;
+  @apply relative flex h-screen w-full p-0 !important;
 }
 
 .vue-flow__controls {
@@ -694,7 +688,7 @@ vscode-checkbox {
 }
 
 .loading-overlay {
-  @apply flex items-center justify-center w-full h-full bg-editor-bg;
+  @apply absolute top-0 left-0 z-10 flex items-center justify-center w-full h-full bg-editor-bg;
 }
 
 .error-message {
