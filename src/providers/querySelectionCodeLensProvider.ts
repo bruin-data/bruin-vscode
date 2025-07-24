@@ -49,9 +49,29 @@ export class QuerySelectionCodeLensProvider implements vscode.CodeLensProvider {
       return codeLenses;
     }
 
+    // Find all Bruin blocks in the document
+    const text = document.getText();
+    const bruinBlockRegex = /\/\*\s*@bruin[\s\S]*?@bruin\s*\*\//g;
+    let blockMatch;
+    const bruinBlocks: vscode.Range[] = [];
+    while ((blockMatch = bruinBlockRegex.exec(text)) !== null) {
+      const startPos = document.positionAt(blockMatch.index);
+      const endPos = document.positionAt(blockMatch.index + blockMatch[0].length);
+      bruinBlocks.push(new vscode.Range(startPos, endPos));
+    }
+
+    // Helper to check if a position is inside any Bruin block
+    const isInsideBruinBlock = (pos: vscode.Position) => {
+      return bruinBlocks.some(block => block.contains(pos));
+    };
+
+    // Only show CodeLens if selection start is outside any Bruin block
+    if (isInsideBruinBlock(selection.start)) {
+      return codeLenses;
+    }
+
     // Create CodeLens at the start of the selection
     const codeLensRange = new vscode.Range(selection.start, selection.start);
-    
     const previewCodeLens = new vscode.CodeLens(codeLensRange, {
       title: "Preview selected query",
       command: "bruin.previewSelectedQuery",
