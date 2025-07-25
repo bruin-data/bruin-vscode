@@ -6,8 +6,21 @@
       <div class="flex items-center w-full justify-between h-8">
         <div class="flex items-center gap-1 ml-2">
           <div class="flex items-center">
-            <vscode-button title="Run Query" appearance="icon" @click="runQuery">
+            <vscode-button 
+              v-if="!currentTab?.isLoading"
+              title="Run Query" 
+              appearance="icon" 
+              @click="runQuery"
+            >
               <span class="codicon codicon-play" style="font-size: 1.2em"></span>
+            </vscode-button>
+            <vscode-button
+              v-if="currentTab?.isLoading"
+              title="Cancel Query"
+              appearance="icon"
+              @click="cancelQuery"
+            >
+              <span class="codicon codicon-stop-circle text-red-500"></span>
             </vscode-button>
             <span class="text-3xs text-editor-fg uppercase px-1">Limit</span>
             <input
@@ -1137,6 +1150,13 @@ watch(
     currentPage.value = 1;
   }
 );
+
+const cancelQuery = () => {
+  vscode.postMessage({
+    command: "bruin.cancelQuery",
+    payload: { tabId: activeTab.value },
+  });
+};
 </script>
 
 <style scoped>
@@ -1204,11 +1224,11 @@ vscode-badge::part(control) {
 }
 .spinner {
   display: inline-block;
-  width: 16px;
-  height: 16px;
-  border: 2px solid var(--vscode-commandCenter-border);
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--vscode-progressBar-background, rgba(255, 255, 255, 0.2));
+  border-top: 3px solid var(--vscode-progressBar-foreground, #0078d4);
   border-radius: 50%;
-  border-right-color: transparent;
   animation: spin 1s linear infinite;
 }
 
