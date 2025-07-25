@@ -44,7 +44,7 @@
     />
 
     <!-- Column Table -->
-    <div class="flex-1 min-h-72 overflow-x-auto text-xs">
+    <div class="flex-1 min-h-72 overflow-x-auto text-xs mt-5">
       <table class="w-full min-w-fit">
         <thead class="sticky top-0 bg-editorWidget-bg z-10">
           <tr class="font-semibold text-xs opacity-65 border-b-2 border-editor-fg">
@@ -165,7 +165,7 @@
                       v-if="showAddCheckDropdown === index"
                       :data-dropdown-index="index"
                       class="w-28 z-50"
-                      @close="showAddCheckDropdown = null"
+                      @close="closeDropdown"
                     >
                       <vscode-dropdown-item
                         v-for="check in availableChecks(editingColumn)"
@@ -186,13 +186,16 @@
                       <PlusIcon class="h-3 w-3" />
                     </vscode-button>
                     <div v-if="showPatternInput && editingIndex === index" class="mt-1 px-1">
-                      <input
-                        v-model="newPatternValue"
-                        @input="updatePatternValue"
-                        @keyup.enter="confirmPatternInput"
-                        placeholder="Enter regex"
-                        class="w-full px-1 min-w-28 bg-editorWidget-bg text-editor-fg text-xs border border-commandCenter-border"
-                      />
+                      <div class="flex items-center space-x-1">
+                        <input
+                          v-model="newPatternValue"
+                          @input="updatePatternValue"
+                          @keyup.enter="confirmPatternInput"
+                          @keyup.escape="cancelPatternInput"
+                          placeholder="Enter regex or Esc"
+                          class="flex-1 px-1 min-w-28 bg-editorWidget-bg text-editor-fg text-xs border border-commandCenter-border"
+                        />
+                      </div>
                     </div>
                   </div>
                   <div v-if="showAcceptedValuesInput && editingIndex === index" class="mt-1 px-1">
@@ -366,6 +369,12 @@ const confirmPatternInput = () => {
   }
 
   // Hide the input and reset the value
+  showPatternInput.value = false;
+  newPatternValue.value = "";
+};
+
+const cancelPatternInput = () => {
+  // Hide the input and reset the value without saving
   showPatternInput.value = false;
   newPatternValue.value = "";
 };
@@ -555,6 +564,15 @@ const removeCheck = (checkName) => {
   editingColumn.value.checks = editingColumn.value.checks.filter(
     (check) => check.name !== checkName
   );
+  
+  // Hide input fields when their corresponding checks are removed
+  if (checkName === "accepted_values") {
+    showAcceptedValuesInput.value = false;
+  } else if (checkName === "pattern") {
+    showPatternInput.value = false;
+    newPatternValue.value = "";
+  }
+  
   const payload = { columns: JSON.parse(JSON.stringify(localColumns.value)) };
   vscode.postMessage({
     command: "bruin.setAssetDetails",
@@ -563,15 +581,70 @@ const removeCheck = (checkName) => {
   });
 };
 
+const ensureDropdownVisibility = (dropdown, container) => {
+  if (!dropdown || !container) return;
+  
+  // Add temporary overflow class to container
+  container.classList.add('dropdown-container-open');
+  
+  // Wait a bit for the dropdown to fully render
+  setTimeout(() => {
+    const dropdownRect = dropdown.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    
+    console.log('Dropdown rect:', dropdownRect);
+    console.log('Container rect:', containerRect);
+    
+    // Check if dropdown is clipped at the top of the container
+    if (dropdownRect.top < containerRect.top) {
+      const scrollOffset = containerRect.top - dropdownRect.top + 30;
+      console.log('Scrolling up by:', scrollOffset);
+      container.scrollBy({
+        top: -scrollOffset,
+        behavior: 'smooth'
+      });
+    }
+    // Check if dropdown is clipped at the bottom of the container
+    else if (dropdownRect.bottom > containerRect.bottom) {
+      const scrollOffset = dropdownRect.bottom - containerRect.bottom + 30;
+      console.log('Scrolling down by:', scrollOffset);
+      container.scrollBy({
+        top: scrollOffset,
+        behavior: 'smooth'
+      });
+    }
+    // Check if dropdown is clipped at the bottom of the viewport
+    else if (dropdownRect.bottom > viewportHeight) {
+      const scrollOffset = dropdownRect.bottom - viewportHeight + 50;
+      console.log('Scrolling viewport by:', scrollOffset);
+      window.scrollBy({
+        top: scrollOffset,
+        behavior: 'smooth'
+      });
+    }
+  }, 50);
+};
+
 const toggleAddCheckDropdown = (index) => {
   if (showAddCheckDropdown.value === index) {
-    showAddCheckDropdown.value = null;
+    closeDropdown();
   } else {
     showAddCheckDropdown.value = index;
     nextTick(() => {
       const dropdown = document.querySelector(`[data-dropdown-index="${index}"]`);
-      if (dropdown) {
+      const tableContainer = document.querySelector('.overflow-x-auto');
+      
+      if (dropdown && tableContainer) {
+        // First, scroll the row into view
         dropdown.scrollIntoView({ block: "nearest", inline: "nearest" });
+        
+        // Wait for dropdown to fully render, then ensure visibility
+        setTimeout(() => {
+          // Look for the actual dropdown listbox that contains the items
+          const dropdownListbox = dropdown.querySelector('vscode-dropdown-item') || dropdown;
+          ensureDropdownVisibility(dropdownListbox, tableContainer);
+        }, 100); // Increased delay to ensure dropdown content is fully rendered
       }
     });
   }
@@ -698,7 +771,30 @@ const handleClickOutside = (event) => {
   const button = target.closest('vscode-button[aria-label="Add check"]');
   
   if (!dropdown && !button) {
-    showAddCheckDropdown.value = null;
+    closeDropdown();
+  }
+};
+
+// Enhanced dropdown close function with cleanup
+const closeDropdown = () => {
+  if (showAddCheckDropdown.value !== null) {
+    // Remove temporary overflow class if it was added
+    const tableContainer = document.querySelector('.overflow-x-auto');
+    if (tableContainer) {
+      tableContainer.classList.remove('dropdown-container-open');
+    }
+  }
+  showAddCheckDropdown.value = null;
+};
+
+// Handle keyboard events for better accessibility
+const handleKeyDown = (event) => {
+  if (event.key === 'Escape') {
+    if (showAddCheckDropdown.value !== null) {
+      closeDropdown();
+    } else if (showPatternInput.value) {
+      cancelPatternInput();
+    }
   }
 };
 
@@ -706,11 +802,13 @@ const handleClickOutside = (event) => {
 onMounted(() => {
   window.addEventListener("message", handleMessage);
   document.addEventListener("click", handleClickOutside);
+  document.addEventListener("keydown", handleKeyDown);
 });
 
 onUnmounted(() => {
   window.removeEventListener("message", handleMessage);
   document.removeEventListener("click", handleClickOutside);
+  document.removeEventListener("keydown", handleKeyDown);
 });
 
 watch(
@@ -750,6 +848,30 @@ vscode-dropdown::part(control) {
   position: absolute;
   left: 0;
   z-index: 1000; /* Ensure it's above other elements */
+}
+
+vscode-dropdown::part(listbox) {
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1001;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Temporary class to adjust container overflow during dropdown display */
+.dropdown-container-open {
+  overflow: visible !important;
+  position: relative;
+}
+
+/* Enhanced dropdown positioning */
+.relative vscode-dropdown {
+  position: relative;
+}
+
+.relative vscode-dropdown::part(listbox) {
+  position: absolute;
+  z-index: 9999;
+  min-width: 100%;
 }
 
 input,
