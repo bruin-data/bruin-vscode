@@ -3239,15 +3239,26 @@ suite(" Query export Tests", () => {
       getQueryOutputStub = sinon.stub();
       exportQueryResultsStub = sinon.stub();
       
+      // Mock VSCode workspace methods
+      const mockDocument = {
+        getText: sinon.stub().returns("SELECT * FROM test_table"),
+      };
+      sinon.stub(vscode.workspace, "openTextDocument").resolves(mockDocument as any);
+      
       // Mock the module imports
       const queryCommandsModule = {
         getQueryOutput: getQueryOutputStub,
         exportQueryResults: exportQueryResultsStub,
       };
       
+      const helperUtilsModule = {
+        isBruinSqlAsset: sinon.stub().resolves(false),
+      };
+      
       // Use proxyquire to mock the imports
       const QueryPreviewPanelModule = proxyquire("../panels/QueryPreviewPanel", {
         "../extension/commands/queryCommands": queryCommandsModule,
+        "../utilities/helperUtils": helperUtilsModule,
       });
 
       queryPreviewPanel = new QueryPreviewPanelModule.QueryPreviewPanel(mockExtensionUri, mockExtensionContext);
