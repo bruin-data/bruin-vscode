@@ -195,14 +195,6 @@
                           placeholder="Enter regex or Esc"
                           class="flex-1 px-1 min-w-28 bg-editorWidget-bg text-editor-fg text-xs border border-commandCenter-border"
                         />
-                        <vscode-button
-                          appearance="icon"
-                          @click="confirmPatternInput"
-                          aria-label="Confirm pattern input"
-                          class="flex items-center flex-shrink-0"
-                        >
-                          <CheckIcon class="h-3 w-3" />
-                        </vscode-button>
                       </div>
                     </div>
                   </div>
