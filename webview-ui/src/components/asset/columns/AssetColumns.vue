@@ -44,7 +44,7 @@
     />
 
     <!-- Column Table -->
-    <div class="flex-1 min-h-72 overflow-x-auto text-xs">
+    <div class="flex-1 min-h-72 overflow-x-auto text-xs mt-5">
       <table class="w-full min-w-fit">
         <thead class="sticky top-0 bg-editorWidget-bg z-10">
           <tr class="font-semibold text-xs opacity-65 border-b-2 border-editor-fg">
