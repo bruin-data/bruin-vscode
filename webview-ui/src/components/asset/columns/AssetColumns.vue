@@ -191,7 +191,8 @@
                           v-model="newPatternValue"
                           @input="updatePatternValue"
                           @keyup.enter="confirmPatternInput"
-                          placeholder="Enter regex"
+                          @keyup.escape="cancelPatternInput"
+                          placeholder="Enter regex or Esc"
                           class="flex-1 px-1 min-w-28 bg-editorWidget-bg text-editor-fg text-xs border border-commandCenter-border"
                         />
                         <vscode-button
@@ -201,14 +202,6 @@
                           class="flex items-center flex-shrink-0"
                         >
                           <CheckIcon class="h-3 w-3" />
-                        </vscode-button>
-                        <vscode-button
-                          appearance="icon"
-                          @click="cancelPatternInput"
-                          aria-label="Cancel pattern input"
-                          class="flex items-center flex-shrink-0"
-                        >
-                          <XMarkIcon class="h-3 w-3" />
                         </vscode-button>
                       </div>
                     </div>
@@ -804,8 +797,12 @@ const closeDropdown = () => {
 
 // Handle keyboard events for better accessibility
 const handleKeyDown = (event) => {
-  if (event.key === 'Escape' && showAddCheckDropdown.value !== null) {
-    closeDropdown();
+  if (event.key === 'Escape') {
+    if (showAddCheckDropdown.value !== null) {
+      closeDropdown();
+    } else if (showPatternInput.value) {
+      cancelPatternInput();
+    }
   }
 };
 
