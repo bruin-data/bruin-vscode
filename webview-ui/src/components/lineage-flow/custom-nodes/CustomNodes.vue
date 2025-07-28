@@ -47,14 +47,6 @@
           <div class="relative group">
             <!-- Node Text -->
             <div class="dynamic-text" :style="{ fontSize: computedFontSize }">
-              {{ truncatedLabel }}
-            </div>
-            <!-- Tooltip -->
-            <div
-              v-if="isTruncated"
-              class="absolute left-0 top-0 w-max font-mono rounded opacity-0 whitespace-nowrap group-hover:opacity-100 transition-opacity duration-200"
-              :class="selectedStyle.main"
-            >
               {{ label }}
             </div>
           </div>
@@ -218,11 +210,15 @@ onUnmounted(() => {
   width: 100%;
 }
 .dynamic-text {
-  white-space: pre-wrap; /* Allow text to wrap */
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal; /* Allow text to wrap */
+  text-wrap: wrap;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
   line-height: 1.3;
   transition: font-size 0.2s ease;
+  max-width: 100%;
 }
 
 .node-content {
