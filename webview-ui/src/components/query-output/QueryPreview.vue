@@ -93,6 +93,10 @@
             >
               {{ currentTab?.parsedOutput.connectionName }}
             </vscode-badge>
+            <span class="text-2xs text-editor-fg opacity-65">Timeout:</span>
+            <vscode-badge class="default-badge">
+              {{ queryTimeout }}s
+            </vscode-badge>
           </div>
           <QuerySearch
             :visible="showSearchInput"
@@ -392,6 +396,7 @@ const limit = ref(100);
 const showSearchInput = ref(false);
 const hoveredTab = ref("");
 const copied = ref(false);
+const queryTimeout = ref(60); // Default timeout in seconds
 // State for expanded cells
 const expandedCells = ref(new Set<string>());
 
@@ -616,6 +621,10 @@ window.addEventListener("message", (event) => {
       activeTab.value = state.activeTab || "tab-1";
       expandedCells.value = new Set(state.expandedCells || []);
       showSearchInput.value = state.showSearchInput || false;
+    }
+  } else if (message.command === "bruin.timeoutResponse") {
+    if (message.payload && typeof message.payload.timeout === "number") {
+      queryTimeout.value = message.payload.timeout;
     }
   } else if (message.command === "bruin.executePreviewQuery") {
     // Handle preview intellisense query execution with current limit
@@ -1071,6 +1080,7 @@ onMounted(() => {
   modifierKey.value = isMac ? "⌘" : "Ctrl";
 
   vscode.postMessage({ command: "bruin.requestState" });
+  vscode.postMessage({ command: "bruin.requestTimeout" });
 });
 onUnmounted(() => {
   window.removeEventListener("keydown", handleKeyDown);
