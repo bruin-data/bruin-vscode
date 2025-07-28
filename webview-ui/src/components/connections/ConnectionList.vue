@@ -71,62 +71,67 @@
             <tbody>
               <tr
                 v-for="connection in connections"
-                :key="connection.name"
+                :key="connection.id"
                 class="hover:bg-editor-hoverBackground"
               >
                 <td
                   class="w-2/5 whitespace-nowrap px-2 py-2 text-sm font-medium text-editor-fg font-mono"
-                  :class="{ 'opacity-80 italic': !connection.name }"
+                  :class="{ 'opacity-80 italic': !connection.name || connection.isEmpty }"
                 >
-                  {{ connection.name || "undefined" }}
+                  {{ connection.isEmpty ? "No connections" : (connection.name || "undefined") }}
                 </td>
                 <td class="w-2/5 whitespace-nowrap px-2 py-2 text-sm text-descriptionFg font-mono">
-                  {{ connection.type }}
+                  {{ connection.isEmpty ? "-" : connection.type }}
                 </td>
                 <td class="w-1/5 whitespace-nowrap px-2 py-2 text-right text-sm font-medium">
-                  <button
-                    @click="$emit('edit-connection', connection)"
-                    class="text-descriptionFg hover:text-editor-fg mr-3"
-                    title="Edit"
-                  >
-                    <PencilIcon class="h-4 w-4 inline-block" />
-                  </button>
-                  <button
-                    @click="$emit('delete-connection', { name: connection.name, environment })"
-                    class="text-descriptionFg opacity-70 hover:text-editorError-foreground"
-                    title="Delete"
-                  >
-                    <TrashIcon class="h-4 w-4 inline-block" />
-                  </button>
-                  <div class="relative inline-block">
+                  <template v-if="!connection.isEmpty">
                     <button
-                      @click="toggleMenu(connection.name, $event)"
-                      class="text-descriptionFg hover:text-editor-fg"
+                      @click="$emit('edit-connection', connection)"
+                      class="text-descriptionFg hover:text-editor-fg mr-3"
+                      title="Edit"
                     >
-                      <EllipsisVerticalIcon class="h-5 w-5 inline-block" />
+                      <PencilIcon class="h-4 w-4 inline-block" />
                     </button>
-                    <div
-                      v-if="activeMenu === connection.name"
-                      class="fixed w-36 bg-editorWidget-bg border border-commandCenter-border rounded shadow-lg z-50"
-                      :style="getMenuStyle(connection.name)"
-                      ref="menuRef"
+                    <button
+                      @click="$emit('delete-connection', { name: connection.name, environment })"
+                      class="text-descriptionFg opacity-70 hover:text-editorError-foreground"
+                      title="Delete"
                     >
+                      <TrashIcon class="h-4 w-4 inline-block" />
+                    </button>
+                    <div class="relative inline-block">
                       <button
-                        @click="handleTestConnection(connection)"
-                        class="flex items-center w-full text-left px-3 py-2 text-sm text-editor-fg hover:bg-editor-button-hover-bg rounded-t"
+                        @click="toggleMenu(connection.name, $event)"
+                        class="text-descriptionFg hover:text-editor-fg"
                       >
-                        <BeakerIcon class="h-4 w-4 mr-2" />
-                        <span>Test</span>
+                        <EllipsisVerticalIcon class="h-5 w-5 inline-block" />
                       </button>
-                      <button
-                        @click="handleDuplicateConnection(connection)"
-                        class="flex items-center w-full text-left px-3 py-2 text-sm text-editor-fg hover:bg-editor-button-hover-bg rounded-b"
+                      <div
+                        v-if="activeMenu === connection.name"
+                        class="fixed w-36 bg-editorWidget-bg border border-commandCenter-border rounded shadow-lg z-50"
+                        :style="getMenuStyle(connection.name)"
+                        ref="menuRef"
                       >
-                        <DocumentDuplicateIcon class="h-4 w-4 mr-2" />
-                        <span>Duplicate</span>
-                      </button>
+                        <button
+                          @click="handleTestConnection(connection)"
+                          class="flex items-center w-full text-left px-3 py-2 text-sm text-editor-fg hover:bg-editor-button-hover-bg rounded-t"
+                        >
+                          <BeakerIcon class="h-4 w-4 mr-2" />
+                          <span>Test</span>
+                        </button>
+                        <button
+                          @click="handleDuplicateConnection(connection)"
+                          class="flex items-center w-full text-left px-3 py-2 text-sm text-editor-fg hover:bg-editor-button-hover-bg rounded-b"
+                        >
+                          <DocumentDuplicateIcon class="h-4 w-4 mr-2" />
+                          <span>Duplicate</span>
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  </template>
+                  <template v-else>
+                    <span class="text-descriptionFg opacity-50 text-xs">No actions available</span>
+                  </template>
                 </td>
               </tr>
             </tbody>

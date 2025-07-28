@@ -114,11 +114,8 @@ const getConnectionsListFromSchema = (payload) => {
 const handleConnectionsList = (payload) => {
   console.log("Received connections list payload:", payload); // Log payload for debugging
   if (payload.status === "success") {
-    const connectionsWithIds = payload.message.map((conn) => ({
-      ...conn,
-      id: conn.id || uuidv4(),
-    }));
-    connectionsStore.updateConnectionsFromMessage(connectionsWithIds);
+    // Pass the raw message directly to the store - it will handle both formats
+    connectionsStore.updateConnectionsFromMessage(payload.message);
   } else {
     connectionsStore.updateErrorFromMessage(payload.message);
     console.log("Error received in settings:", payload.message);
