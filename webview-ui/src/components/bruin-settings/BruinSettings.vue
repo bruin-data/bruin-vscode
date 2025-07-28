@@ -4,10 +4,6 @@
       <BruinCLI :versionStatus="versionStatus" />
     </div>
 
-    <div v-if="isBruinInstalled">
-      <ManageEnvironments :environments="environmentsList" />
-    </div>
-
     <div class="bg-editorWidget-bg shadow sm:rounded-lg">
       <ConnectionsList
         v-if="isBruinInstalled"
@@ -16,6 +12,9 @@
         @edit-connection="showConnectionForm"
         @delete-connection="confirmDeleteConnection"
         @duplicate-connection="handleDuplicateConnection"
+        @add-environment="handleAddEnvironment"
+        @edit-environment="handleEditEnvironment"
+        @delete-environment="handleDeleteEnvironment"
         :error="error"
       />
     </div>
@@ -42,6 +41,15 @@
       @confirm="deleteConnection"
       @cancel="cancelDeleteConnection"
     />
+
+    <DeleteAlert
+      v-if="showEnvironmentDeleteAlert"
+      title="Delete Environment"
+      :message="`Are you sure you want to delete environment '${environmentToDelete}'? This action cannot be undone.`"
+      confirm-text="Delete"
+      @confirm="deleteEnvironment"
+      @cancel="cancelDeleteEnvironment"
+    />
   </div>
 </template>
 
@@ -51,7 +59,6 @@ import BruinCLI from "@/components/bruin-settings/BruinCLI.vue";
 import ConnectionsList from "@/components/connections/ConnectionList.vue";
 import ConnectionForm from "@/components/connections/ConnectionsForm.vue";
 import DeleteAlert from "@/components/ui/alerts/AlertWithActions.vue";
-import ManageEnvironments from "@/components/environments/ManageEnvironments.vue";
 import { useConnectionsStore } from "@/store/bruinStore";
 import { vscode } from "@/utilities/vscode";
 import { v4 as uuidv4 } from "uuid";
@@ -74,6 +81,10 @@ const showDeleteAlert = ref(false);
 const connectionToDelete = ref(null);
 const formError = ref(null);
 const formRef = ref(null);
+
+// Environment states
+const showEnvironmentDeleteAlert = ref(false);
+const environmentToDelete = ref(null);
 
 const connectionFormKey = computed(() => {
   return connectionToEdit.value?.id ? `edit-${connectionToEdit.value.id}` : "new-connection";
@@ -103,6 +114,15 @@ const handleMessage = (event) => {
     case "connections-schema-message":
       getConnectionsListFromSchema(message.payload);
       break;
+    case "environment-created-message":
+      handleEnvironmentCreated(message.payload);
+      break;
+    case "environment-updated-message":
+      handleEnvironmentUpdated(message.payload);
+      break;
+    case "environment-deleted-message":
+      handleEnvironmentDeleted(message.payload);
+      break;
   }
 };
 
@@ -114,11 +134,8 @@ const getConnectionsListFromSchema = (payload) => {
 const handleConnectionsList = (payload) => {
   console.log("Received connections list payload:", payload); // Log payload for debugging
   if (payload.status === "success") {
-    const connectionsWithIds = payload.message.map((conn) => ({
-      ...conn,
-      id: conn.id || uuidv4(),
-    }));
-    connectionsStore.updateConnectionsFromMessage(connectionsWithIds);
+    // Pass the raw message directly to the store - it will handle both formats
+    connectionsStore.updateConnectionsFromMessage(payload.message);
   } else {
     connectionsStore.updateErrorFromMessage(payload.message);
     console.log("Error received in settings:", payload.message);
@@ -179,11 +196,15 @@ const handleConnectionEdited = (payload) => {
   }
 };
 
-const showConnectionForm = (connection = null, duplicate = false) => {
+const showConnectionForm = (connectionOrEnvironment = null, duplicate = false) => {
   // Reset form state before showing new data
   closeConnectionForm();
   nextTick(() => {
-    if (connection) {
+    // Check if it's a connection object (has name, type, etc.) or just an environment string
+    const isConnection = connectionOrEnvironment && typeof connectionOrEnvironment === 'object' && connectionOrEnvironment.name;
+    
+    if (isConnection) {
+      const connection = connectionOrEnvironment;
       const duplicatedName = duplicate ? `${connection.name} (Copy)` : connection.name;
       if (connection.type === "google_cloud_platform") {
         connectionToEdit.value = {
@@ -210,11 +231,13 @@ const showConnectionForm = (connection = null, duplicate = false) => {
       isEditing.value = !duplicate;
     } else {
       // Default empty connection object if creating a new connection
+      // If connectionOrEnvironment is a string, it's the environment name
+      const environment = typeof connectionOrEnvironment === 'string' ? connectionOrEnvironment : "";
       connectionToEdit.value = {
         id: uuidv4(),
         name: "",
         type: "",
-        environment: "",
+        environment: environment,
         credentials: {},
       };
       isEditing.value = false;
@@ -294,5 +317,88 @@ const deleteConnection = async () => {
 const cancelDeleteConnection = () => {
   showDeleteAlert.value = false;
   connectionToDelete.value = null;
+};
+
+// Environment handlers
+const handleAddEnvironment = async (environmentName) => {
+  try {
+    await vscode.postMessage({
+      command: "bruin.createEnvironment",
+      payload: {
+        environmentName: environmentName,
+      },
+    });
+  } catch (error) {
+    console.error("Error creating environment:", error);
+  }
+};
+
+const handleEditEnvironment = async (environmentData) => {
+  try {
+    await vscode.postMessage({
+      command: "bruin.updateEnvironment",
+      payload: {
+        currentName: environmentData.currentName,
+        newName: environmentData.newName,
+      },
+    });
+  } catch (error) {
+    console.error("Error updating environment:", error);
+  }
+};
+
+const handleDeleteEnvironment = (environmentName) => {
+  environmentToDelete.value = environmentName;
+  showEnvironmentDeleteAlert.value = true;
+};
+
+const confirmDeleteEnvironment = () => {
+  showEnvironmentDeleteAlert.value = true;
+};
+
+const deleteEnvironment = async () => {
+  try {
+    await vscode.postMessage({
+      command: "bruin.deleteEnvironment",
+      payload: {
+        environmentName: environmentToDelete.value,
+      },
+    });
+    showEnvironmentDeleteAlert.value = false;
+    environmentToDelete.value = null;
+  } catch (error) {
+    console.error("Error deleting environment:", error);
+  }
+};
+
+const cancelDeleteEnvironment = () => {
+  showEnvironmentDeleteAlert.value = false;
+  environmentToDelete.value = null;
+};
+
+const handleEnvironmentCreated = (payload) => {
+  if (payload.status === "success") {
+    console.log("Environment created successfully:", payload.message);
+  } else {
+    console.error("Failed to create environment:", payload.message);
+  }
+};
+
+const handleEnvironmentUpdated = (payload) => {
+  if (payload.status === "success") {
+    console.log("Environment updated successfully:", payload.message);
+  } else {
+    console.error("Failed to update environment:", payload.message);
+  }
+};
+
+const handleEnvironmentDeleted = (payload) => {
+  if (payload.status === "success") {
+    console.log("Environment deleted successfully:", payload.message);
+    showEnvironmentDeleteAlert.value = false;
+    environmentToDelete.value = null;
+  } else {
+    console.error("Failed to delete environment:", payload.message);
+  }
 };
 </script>

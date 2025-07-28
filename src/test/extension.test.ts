@@ -1806,10 +1806,9 @@ suite("BruinConnections Tests", () => {
     execFileStub.yields(null, stdout, "");
 
     await bruinConnections.getConnections();
-    const expectedConnections = extractNonNullConnections(connectionsResult);
     sinon.assert.calledWith(postMessageToPanelsStub, "connections-list-message", {
       status: "success",
-      message: expectedConnections,
+      message: connectionsResult,
     });
   });
 
@@ -1819,11 +1818,10 @@ suite("BruinConnections Tests", () => {
     execFileStub.yields(null, stdout, "");
 
     await bruinConnections.getConnections();
-    const expectedConnections = extractNonNullConnections(connections);
 
     sinon.assert.calledWith(postMessageToPanelsStub, "connections-list-message", {
       status: "success",
-      message: expectedConnections,
+      message: connections,
     });
   });
 

@@ -13,13 +13,77 @@ export const useConnectionsStore = defineStore("connections", {
     updateConnectionsSchema(connectionsSchema) {
       this.connectionsSchema = connectionsSchema;
     },
-    updateConnectionsFromMessage(connections) {
-      this.connections = connections.map((conn) => {
-        if (!conn.id) {
-          return { ...conn, id: uuidv4() };
+    updateConnectionsFromMessage(data) {
+      // Handle both old format (array) and new format (raw JSON)
+      if (Array.isArray(data)) {
+        // Old format - array of connections
+        this.connections = data.map((conn) => {
+          if (!conn.id) {
+            return { ...conn, id: uuidv4() };
+          }
+          return conn;
+        });
+      } else if (data && data.environments) {
+        // New format - raw JSON with environments
+        const connections = [];
+        
+        // Extract environments list
+        this.environments = Object.keys(data.environments);
+        
+        // Set default environment if available
+        if (data.default_environment) {
+          this.defaultEnvironment = data.default_environment;
         }
-        return conn;
-      });
+        
+        // Process each environment
+        Object.keys(data.environments).forEach((environmentName) => {
+          const environmentConnections = data.environments[environmentName].connections;
+          
+          // Check if environment has any connections
+          const hasConnections = environmentConnections && Object.keys(environmentConnections).length > 0;
+          
+          if (hasConnections) {
+            // Process each connection type
+            Object.keys(environmentConnections).forEach((connectionType) => {
+              const connection = environmentConnections[connectionType];
+              
+              if (Array.isArray(connection)) {
+                connection.forEach((conn) => {
+                  if (conn) {
+                    connections.push({
+                      id: uuidv4(),
+                      environment: environmentName,
+                      type: connectionType,
+                      ...conn,
+                    });
+                  }
+                });
+              } else if (connection !== null) {
+                connections.push({
+                  id: uuidv4(),
+                  environment: environmentName,
+                  type: connectionType,
+                  ...connection,
+                });
+              }
+            });
+          } else {
+            // Environment has no connections, add placeholder
+            connections.push({
+              id: uuidv4(),
+              environment: environmentName,
+              name: null,
+              type: null,
+              isEmpty: true,
+            });
+          }
+        });
+        
+        this.connections = connections;
+      } else {
+        this.connections = [];
+      }
+      
       // Clear any previous errors when valid connections data arrives
       this.error = null;
     },

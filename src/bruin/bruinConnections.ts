@@ -36,7 +36,7 @@ export class BruinConnections extends BruinCommand {
     await this.run([...commandFlags], { ignoresErrors })
       .then(
         (result) => {
-          const connections = extractNonNullConnections(JSON.parse(result));
+          const connections = JSON.parse(result);
           this.postMessageToPanels("success", connections);
           return connections;
         },

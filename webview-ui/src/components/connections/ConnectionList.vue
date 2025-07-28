@@ -3,25 +3,106 @@
     <div class="flex-col items-center">
       <div class="flex flex-col items-start space-y-2 mb-2">
         <h2 class="text-xl font-semibold text-editor-fg">Connections</h2>
-        <div v-if="!error" class="mt-2 max-w-xl text-sm text-editor-fg">
-          <p>
-            Manage your connections across different environments all in one place. View existing
-            connections, edit their details, or delete them as needed.
-          </p>
-        </div>
-      </div>
-      <div class="flex items-center justify-end">
-        <vscode-button @click="$emit('new-connection')" class="mt-2 font-semibold">
-          <div class="flex items-center">
-            <span class="codicon codicon-plus"></span> 
-            <span class="ml-1">Connection</span>
+        <div v-if="!error" class="mt-2 flex items-start justify-between w-full">
+          <div class="max-w-xl text-sm text-editor-fg">
+            <p>
+              Manage your connections across different environments all in one place. View existing
+              connections, edit their details, or delete them as needed.
+            </p>
           </div>
-        </vscode-button>
+          <div class="flex items-center space-x-2">
+            <vscode-button @click="addNewEnvironment" class="font-semibold">
+              <div class="flex items-center">
+                <span class="codicon codicon-plus"></span> 
+                <span class="ml-1">Environment</span>
+              </div>
+            </vscode-button>
+          </div>
+        </div>
       </div>
     </div>
 
     <div v-if="error">
       <AlertMessage :message="error" />
+    </div>
+
+    <!-- New Environment Section -->
+    <div v-if="creatingNewEnvironment" class="mt-6">
+      <div class="flex items-center justify-between mb-2 group">
+        <div class="flex flex-col items-start space-y-1">
+          <input
+            v-model="newEnvironmentName"
+            @blur="saveNewEnvironment"
+            @keyup.enter="saveNewEnvironment"
+            @keyup.esc="cancelNewEnvironment"
+            @input="newEnvironmentError = ''"
+            placeholder="Enter environment name"
+            class="text-sm font-medium text-editor-fg font-mono bg-transparent border-b border-editor-fg focus:outline-none px-1 py-0.5"
+            :class="{ 'border-editorError-foreground': newEnvironmentError }"
+            ref="newEnvironmentInput"
+          />
+          <div v-if="newEnvironmentError" class="text-xs text-editorError-foreground px-1">
+            {{ newEnvironmentError }}
+          </div>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button
+            @click="saveNewEnvironment"
+            class="text-descriptionFg hover:text-editor-fg p-1"
+            title="Save environment"
+          >
+            <span class="codicon codicon-check text-sm"></span>
+          </button>
+          <button
+            @click="cancelNewEnvironment"
+            class="text-descriptionFg opacity-70 hover:text-editorError-foreground p-1"
+            title="Cancel"
+          >
+            <span class="codicon codicon-close text-sm"></span>
+          </button>
+        </div>
+      </div>
+      <div class="relative bg-editorWidget-bg">
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-commandCenter-border">
+            <thead>
+              <tr>
+                <th
+                  scope="col"
+                  class="w-2/5 px-2 py-2 text-left text-sm font-semibold text-editor-fg opacity-70"
+                >
+                  Name
+                </th>
+                <th
+                  scope="col"
+                  class="w-2/5 px-2 py-2 text-left text-sm font-semibold text-editor-fg opacity-70"
+                >
+                  Type
+                </th>
+                <th
+                  scope="col"
+                  class="w-1/5 px-2 py-2 text-right text-sm font-semibold text-editor-fg opacity-70"
+                >
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="hover:bg-editor-hoverBackground">
+                <td class="w-2/5 whitespace-nowrap px-2 py-2 text-sm font-medium text-editor-fg opacity-50 italic">
+                  No connections yet
+                </td>
+                <td class="w-2/5 whitespace-nowrap px-2 py-2 text-sm text-descriptionFg">
+                  -
+                </td>
+                <td class="w-1/5 whitespace-nowrap px-2 py-2 text-right text-sm font-medium">
+                  -
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <div
@@ -30,9 +111,57 @@
       :key="environment"
       class="mt-6"
     >
-      <h3 class="text-lg font-medium text-editor-fg mb-2 font-mono">
-        {{ environment === defaultEnvironment ? `${environment} (default)` : environment }}
-      </h3>
+      <div class="flex items-center justify-between mb-2 group hover:bg-editor-hoverBackground rounded px-2 py-1 -mx-2 -my-1">
+        <div class="flex flex-col items-start space-y-1">
+          <div class="flex items-center space-x-2">
+            <input
+              v-if="editingEnvironment === environment"
+              v-model="editingEnvironmentName"
+              @blur="saveEnvironmentEdit"
+              @keyup.enter="saveEnvironmentEdit"
+              @keyup.esc="cancelEnvironmentEdit"
+              @input="editEnvironmentError = ''"
+              class="text-sm font-medium text-editor-fg font-mono bg-transparent border-b border-editor-fg focus:outline-none px-1 py-0.5"
+              :class="{ 'border-editorError-foreground': editEnvironmentError }"
+              ref="environmentInput"
+            />
+            <h3 
+              v-else
+              @dblclick="startEditingEnvironment(environment)"
+              class="text-sm font-medium text-editor-fg font-mono cursor-pointer px-1 py-0.5"
+            >
+              {{ environment === defaultEnvironment ? `${environment} (default)` : environment }}
+            </h3>
+            <div class="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              <button
+                v-if="editingEnvironment !== environment"
+                @click="startEditingEnvironment(environment)"
+                class="text-descriptionFg hover:text-editor-fg p-1"
+                title="Edit Environment"
+              >
+                <PencilIcon class="h-4 w-4 inline-block" />
+              </button>
+              <button
+                v-if="editingEnvironment !== environment"
+                @click="$emit('delete-environment', environment)"
+                class="text-descriptionFg opacity-70 hover:text-editorError-foreground p-1"
+                title="Delete Environment"
+              >
+                <TrashIcon class="h-4 w-4 inline-block" />
+              </button>
+            </div>
+          </div>
+          <div v-if="editingEnvironment === environment && editEnvironmentError" class="text-xs text-editorError-foreground px-1">
+            {{ editEnvironmentError }}
+          </div>
+        </div>
+        <vscode-button @click="$emit('new-connection', environment)" class="font-semibold">
+          <div class="flex items-center">
+            <span class="codicon codicon-plus"></span> 
+            <span class="ml-1">Connection</span>
+          </div>
+        </vscode-button>
+      </div>
       <div class="relative bg-editorWidget-bg">
         <div class="overflow-x-auto">
           <table class="min-w-full divide-y divide-commandCenter-border">
@@ -61,62 +190,67 @@
             <tbody>
               <tr
                 v-for="connection in connections"
-                :key="connection.name"
+                :key="connection.id"
                 class="hover:bg-editor-hoverBackground"
               >
                 <td
                   class="w-2/5 whitespace-nowrap px-2 py-2 text-sm font-medium text-editor-fg font-mono"
-                  :class="{ 'opacity-80 italic': !connection.name }"
+                  :class="{ 'opacity-80 italic': !connection.name || connection.isEmpty }"
                 >
-                  {{ connection.name || "undefined" }}
+                  {{ connection.isEmpty ? "No connections" : (connection.name || "undefined") }}
                 </td>
                 <td class="w-2/5 whitespace-nowrap px-2 py-2 text-sm text-descriptionFg font-mono">
-                  {{ connection.type }}
+                  {{ connection.isEmpty ? "-" : connection.type }}
                 </td>
                 <td class="w-1/5 whitespace-nowrap px-2 py-2 text-right text-sm font-medium">
-                  <button
-                    @click="$emit('edit-connection', connection)"
-                    class="text-descriptionFg hover:text-editor-fg mr-3"
-                    title="Edit"
-                  >
-                    <PencilIcon class="h-4 w-4 inline-block" />
-                  </button>
-                  <button
-                    @click="$emit('delete-connection', { name: connection.name, environment })"
-                    class="text-descriptionFg opacity-70 hover:text-editorError-foreground"
-                    title="Delete"
-                  >
-                    <TrashIcon class="h-4 w-4 inline-block" />
-                  </button>
-                  <div class="relative inline-block">
+                  <template v-if="!connection.isEmpty">
                     <button
-                      @click="toggleMenu(connection.name, $event)"
-                      class="text-descriptionFg hover:text-editor-fg"
+                      @click="$emit('edit-connection', connection)"
+                      class="text-descriptionFg hover:text-editor-fg mr-3"
+                      title="Edit"
                     >
-                      <EllipsisVerticalIcon class="h-5 w-5 inline-block" />
+                      <PencilIcon class="h-4 w-4 inline-block" />
                     </button>
-                    <div
-                      v-if="activeMenu === connection.name"
-                      class="fixed w-36 bg-editorWidget-bg border border-commandCenter-border rounded shadow-lg z-50"
-                      :style="getMenuStyle(connection.name)"
-                      ref="menuRef"
+                    <button
+                      @click="$emit('delete-connection', { name: connection.name, environment })"
+                      class="text-descriptionFg opacity-70 hover:text-editorError-foreground"
+                      title="Delete"
                     >
+                      <TrashIcon class="h-4 w-4 inline-block" />
+                    </button>
+                    <div class="relative inline-block">
                       <button
-                        @click="handleTestConnection(connection)"
-                        class="flex items-center w-full text-left px-3 py-2 text-sm text-editor-fg hover:bg-editor-button-hover-bg rounded-t"
+                        @click="toggleMenu(connection.name, $event)"
+                        class="text-descriptionFg hover:text-editor-fg"
                       >
-                        <BeakerIcon class="h-4 w-4 mr-2" />
-                        <span>Test</span>
+                        <EllipsisVerticalIcon class="h-5 w-5 inline-block" />
                       </button>
-                      <button
-                        @click="handleDuplicateConnection(connection)"
-                        class="flex items-center w-full text-left px-3 py-2 text-sm text-editor-fg hover:bg-editor-button-hover-bg rounded-b"
+                      <div
+                        v-if="activeMenu === connection.name"
+                        class="fixed w-36 bg-editorWidget-bg border border-commandCenter-border rounded shadow-lg z-50"
+                        :style="getMenuStyle(connection.name)"
+                        ref="menuRef"
                       >
-                        <DocumentDuplicateIcon class="h-4 w-4 mr-2" />
-                        <span>Duplicate</span>
-                      </button>
+                        <button
+                          @click="handleTestConnection(connection)"
+                          class="flex items-center w-full text-left px-3 py-2 text-sm text-editor-fg hover:bg-editor-button-hover-bg rounded-t"
+                        >
+                          <BeakerIcon class="h-4 w-4 mr-2" />
+                          <span>Test</span>
+                        </button>
+                        <button
+                          @click="handleDuplicateConnection(connection)"
+                          class="flex items-center w-full text-left px-3 py-2 text-sm text-editor-fg hover:bg-editor-button-hover-bg rounded-b"
+                        >
+                          <DocumentDuplicateIcon class="h-4 w-4 mr-2" />
+                          <span>Duplicate</span>
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  </template>
+                  <template v-else>
+                    <span class="text-descriptionFg opacity-50 text-xs">No actions available</span>
+                  </template>
                 </td>
               </tr>
             </tbody>
@@ -157,9 +291,13 @@ const error = computed(() => connectionsStore.error);
 const defaultEnvironment = computed(() => connectionsStore.getDefaultEnvironment());
 const emit = defineEmits([
   "new-connection",
+  "new-environment",
   "edit-connection",
   "delete-connection",
   "duplicate-connection",
+  "edit-environment",
+  "delete-environment",
+  "add-environment",
 ]);
 
 // Track which menu is currently active
@@ -172,12 +310,26 @@ const loadingMessage = ref(null);
 const menuRef = ref(null);
 const buttonRefs = ref({});
 
+// Environment editing states
+const editingEnvironment = ref(null);
+const editingEnvironmentName = ref('');
+const environmentInput = ref(null);
+const editEnvironmentError = ref('');
+const creatingNewEnvironment = ref(false);
+const newEnvironmentName = ref('');
+const newEnvironmentInput = ref(null);
+const newEnvironmentError = ref('');
+
 const groupedConnections = computed(() => {
   return connections.value.reduce((grouped, connection) => {
     const environment = connection.environment;
     (grouped[environment] = grouped[environment] || []).push(connection);
     return grouped;
   }, {});
+});
+
+const existingEnvironments = computed(() => {
+  return Object.keys(groupedConnections.value);
 });
 
 const toggleMenu = (connectionName, event) => {
@@ -271,6 +423,84 @@ const handleTestConnection = (connection) => {
 const handleDuplicateConnection = (connection) => {
   emit("duplicate-connection", connection);
   activeMenu.value = null; // Close menu after action
+};
+
+// Environment editing methods
+const startEditingEnvironment = (environment) => {
+  editingEnvironment.value = environment;
+  editingEnvironmentName.value = environment;
+  editEnvironmentError.value = '';
+  setTimeout(() => {
+    if (environmentInput.value) {
+      environmentInput.value.focus();
+      environmentInput.value.select();
+    }
+  }, 10);
+};
+
+const saveEnvironmentEdit = () => {
+  const newName = editingEnvironmentName.value.trim();
+  
+  if (!newName) {
+    editEnvironmentError.value = 'Environment name cannot be empty';
+    return;
+  }
+  
+  if (newName === editingEnvironment.value) {
+    cancelEnvironmentEdit();
+    return;
+  }
+  
+  if (existingEnvironments.value.includes(newName)) {
+    editEnvironmentError.value = `Environment "${newName}" already exists`;
+    return;
+  }
+  
+  emit('edit-environment', {
+    currentName: editingEnvironment.value,
+    newName: newName
+  });
+  
+  cancelEnvironmentEdit();
+};
+
+const cancelEnvironmentEdit = () => {
+  editingEnvironment.value = null;
+  editingEnvironmentName.value = '';
+  editEnvironmentError.value = '';
+};
+
+const addNewEnvironment = () => {
+  creatingNewEnvironment.value = true;
+  newEnvironmentName.value = '';
+  setTimeout(() => {
+    if (newEnvironmentInput.value) {
+      newEnvironmentInput.value.focus();
+    }
+  }, 10);
+};
+
+const saveNewEnvironment = () => {
+  const environmentName = newEnvironmentName.value.trim();
+  
+  if (!environmentName) {
+    newEnvironmentError.value = 'Environment name cannot be empty';
+    return;
+  }
+  
+  if (existingEnvironments.value.includes(environmentName)) {
+    newEnvironmentError.value = `Environment "${environmentName}" already exists`;
+    return;
+  }
+  
+  emit('add-environment', environmentName);
+  cancelNewEnvironment();
+};
+
+const cancelNewEnvironment = () => {
+  creatingNewEnvironment.value = false;
+  newEnvironmentName.value = '';
+  newEnvironmentError.value = '';
 };
 
 const handleMessage = (event) => {
