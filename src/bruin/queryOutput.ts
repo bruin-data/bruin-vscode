@@ -1,6 +1,7 @@
 import { QueryPreviewPanel } from "../panels/QueryPreviewPanel";
 import { BruinCommandOptions } from "../types";
 import { BruinCommand } from "./bruinCommand";
+import { getQueryTimeout } from "../extension/configuration";
 import * as child_process from "child_process";
 
 
@@ -67,6 +68,11 @@ export class BruinQueryOutput extends BruinCommand {
     if (endDate) {
       constructedFlags.push("--end-date", endDate);
     }
+    
+    // Add timeout flag from configuration
+    const timeoutSeconds = getQueryTimeout();
+    constructedFlags.push("--timeout", `${timeoutSeconds}`);
+    
     // Use provided flags or fallback to constructed flags
     const finalFlags = flags.length > 0 ? flags : constructedFlags;
 
@@ -107,6 +113,9 @@ export class BruinQueryOutput extends BruinCommand {
           errorMessage.includes("context canceled") ||
           errorMessage.includes("query execution failed: failed to initiate query read: context canceled")) {
         this.postMessageToPanels("cancelled", "Query cancelled by user.", tabId);
+      } else if (errorMessage.includes("timeout") || errorMessage.includes("timed out")) {
+        const timeoutSeconds = getQueryTimeout();
+        this.postMessageToPanels("error", `Query timed out after ${timeoutSeconds} seconds. You can adjust the timeout in VS Code settings (bruin.query.timeout).`, tabId);
       } else {
         this.postMessageToPanels("error", errorMessage, tabId);
       }
