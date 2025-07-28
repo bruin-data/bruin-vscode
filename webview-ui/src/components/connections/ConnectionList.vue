@@ -17,12 +17,6 @@
                 <span class="ml-1">Environment</span>
               </div>
             </vscode-button>
-            <vscode-button @click="$emit('new-connection')" class="font-semibold">
-              <div class="flex items-center">
-                <span class="codicon codicon-plus"></span> 
-                <span class="ml-1">Connection</span>
-              </div>
-            </vscode-button>
           </div>
         </div>
       </div>
@@ -38,9 +32,17 @@
       :key="environment"
       class="mt-6"
     >
-      <h3 class="text-lg font-medium text-editor-fg mb-2 font-mono">
-        {{ environment === defaultEnvironment ? `${environment} (default)` : environment }}
-      </h3>
+      <div class="flex items-center justify-between mb-2">
+        <h3 class="text-lg font-medium text-editor-fg font-mono">
+          {{ environment === defaultEnvironment ? `${environment} (default)` : environment }}
+        </h3>
+        <vscode-button @click="$emit('new-connection', environment)" class="font-semibold">
+          <div class="flex items-center">
+            <span class="codicon codicon-plus"></span> 
+            <span class="ml-1">Connection</span>
+          </div>
+        </vscode-button>
+      </div>
       <div class="relative bg-editorWidget-bg">
         <div class="overflow-x-auto">
           <table class="min-w-full divide-y divide-commandCenter-border">
