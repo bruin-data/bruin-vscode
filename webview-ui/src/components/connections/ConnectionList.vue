@@ -33,9 +33,27 @@
       class="mt-6"
     >
       <div class="flex items-center justify-between mb-2">
-        <h3 class="text-lg font-medium text-editor-fg font-mono">
-          {{ environment === defaultEnvironment ? `${environment} (default)` : environment }}
-        </h3>
+        <div class="flex items-center space-x-2">
+          <h3 class="text-lg font-medium text-editor-fg font-mono">
+            {{ environment === defaultEnvironment ? `${environment} (default)` : environment }}
+          </h3>
+          <div class="flex items-center space-x-1">
+            <button
+              @click="$emit('edit-environment', environment)"
+              class="text-descriptionFg hover:text-editor-fg"
+              title="Edit Environment"
+            >
+              <PencilIcon class="h-4 w-4 inline-block" />
+            </button>
+            <button
+              @click="$emit('delete-environment', environment)"
+              class="text-descriptionFg opacity-70 hover:text-editorError-foreground"
+              title="Delete Environment"
+            >
+              <TrashIcon class="h-4 w-4 inline-block" />
+            </button>
+          </div>
+        </div>
         <vscode-button @click="$emit('new-connection', environment)" class="font-semibold">
           <div class="flex items-center">
             <span class="codicon codicon-plus"></span> 
@@ -176,6 +194,8 @@ const emit = defineEmits([
   "edit-connection",
   "delete-connection",
   "duplicate-connection",
+  "edit-environment",
+  "delete-environment",
 ]);
 
 // Track which menu is currently active
