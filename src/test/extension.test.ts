@@ -1492,6 +1492,218 @@ suite("BruinCommand Tests", () => {
       assert.strictEqual(error, stderr);
     }
   });
+
+  suite("runCancellable Tests", () => {
+    let spawnStub: sinon.SinonStub;
+    let mockProcess: any;
+
+    setup(() => {
+      // Mock child process
+      mockProcess = {
+        stdout: { on: sinon.stub() },
+        stderr: { on: sinon.stub() },
+        on: sinon.stub(),
+        kill: sinon.stub()
+      };
+      spawnStub = sinon.stub(require("child_process"), "spawn").returns(mockProcess);
+    });
+
+    teardown(() => {
+      spawnStub.restore();
+    });
+
+    test("runCancellable should return promise and process", () => {
+      const query = ["--test"];
+      const result = (bruinCommand as any).runCancellable(query);
+
+      assert.ok(result.promise instanceof Promise, "Should return a promise");
+      assert.strictEqual(result.process, mockProcess, "Should return the spawned process");
+      
+      sinon.assert.calledOnceWithExactly(spawnStub, 
+        "path/to/bruin", 
+        ["test-command", "--test"],
+        { cwd: "path/to/working/directory" }
+      );
+    });
+
+    test("runCancellable should resolve with stdout on success", async () => {
+      const query = ["--test"];
+      const stdout = "Command executed successfully";
+      
+      // Setup process event handlers
+      mockProcess.stdout.on.withArgs("data").yields(Buffer.from(stdout));
+      mockProcess.stderr.on.withArgs("data").yields(Buffer.from(""));
+      mockProcess.on.withArgs("close").yields(0, null); // Exit code 0, no signal
+
+      const { promise } = (bruinCommand as any).runCancellable(query);
+      const result = await promise;
+
+      assert.strictEqual(result, stdout);
+    });
+
+    test("runCancellable should reject with stderr on failure", async () => {
+      const query = ["--test"];
+      const stderr = "Command failed";
+      
+      // Setup process event handlers
+      mockProcess.stdout.on.withArgs("data").yields(Buffer.from(""));
+      mockProcess.stderr.on.withArgs("data").yields(Buffer.from(stderr));
+      mockProcess.on.withArgs("close").yields(1, null); // Exit code 1, no signal
+
+      const { promise } = (bruinCommand as any).runCancellable(query);
+      
+      try {
+        await promise;
+        assert.fail("Expected promise to be rejected");
+      } catch (error) {
+        assert.strictEqual(error, stderr);
+      }
+    });
+
+    test("runCancellable should reject when cancelled with SIGINT", async () => {
+      const query = ["--test"];
+      
+      // Setup process event handlers for cancellation
+      mockProcess.stdout.on.withArgs("data").yields(Buffer.from(""));
+      mockProcess.stderr.on.withArgs("data").yields(Buffer.from(""));
+      mockProcess.on.withArgs("close").yields(null, "SIGINT"); // No exit code, SIGINT signal
+
+      const { promise } = (bruinCommand as any).runCancellable(query);
+      
+      try {
+        await promise;
+        assert.fail("Expected promise to be rejected");
+      } catch (error) {
+        assert.ok(error instanceof Error);
+        assert.strictEqual(error.message, "Command was cancelled");
+      }
+    });
+
+    test("runCancellable should reject when cancelled with SIGTERM", async () => {
+      const query = ["--test"];
+      
+      // Setup process event handlers for cancellation
+      mockProcess.stdout.on.withArgs("data").yields(Buffer.from(""));
+      mockProcess.stderr.on.withArgs("data").yields(Buffer.from(""));
+      mockProcess.on.withArgs("close").yields(null, "SIGTERM"); // No exit code, SIGTERM signal
+
+      const { promise } = (bruinCommand as any).runCancellable(query);
+      
+      try {
+        await promise;
+        assert.fail("Expected promise to be rejected");
+      } catch (error) {
+        assert.ok(error instanceof Error);
+        assert.strictEqual(error.message, "Command was cancelled");
+      }
+    });
+
+    test("runCancellable should resolve empty string when ignoresErrors is true", async () => {
+      const query = ["--test"];
+      const stderr = "Some error";
+      
+      // Setup process event handlers
+      mockProcess.stdout.on.withArgs("data").yields(Buffer.from(""));
+      mockProcess.stderr.on.withArgs("data").yields(Buffer.from(stderr));
+      mockProcess.on.withArgs("close").yields(1, null); // Exit code 1, no signal
+
+      const { promise } = (bruinCommand as any).runCancellable(query, { ignoresErrors: true });
+      const result = await promise;
+
+      assert.strictEqual(result, "");
+    });
+
+    test("runCancellable should handle process error event", async () => {
+      const query = ["--test"];
+      const error = new Error("Process error");
+      
+      // Setup process event handlers
+      mockProcess.stdout.on.withArgs("data").returns();
+      mockProcess.stderr.on.withArgs("data").returns();
+      mockProcess.on.withArgs("error").yields(error);
+
+      const { promise } = (bruinCommand as any).runCancellable(query);
+      
+      try {
+        await promise;
+        assert.fail("Expected promise to be rejected");
+      } catch (err) {
+        assert.strictEqual(err, error);
+      }
+    });
+
+    test("runCancellable should accumulate stdout data from multiple chunks", async () => {
+      const query = ["--test"];
+      const chunk1 = "First chunk ";
+      const chunk2 = "Second chunk";
+      
+      // Setup process event handlers with multiple data events
+      mockProcess.stdout.on.withArgs("data").callsFake((event: any, callback: any) => {
+        if (event === "data") {
+          callback(Buffer.from(chunk1));
+          callback(Buffer.from(chunk2));
+        }
+      });
+      
+      mockProcess.stderr.on.withArgs("data").yields(Buffer.from(""));
+      mockProcess.on.withArgs("close").yields(0, null);
+
+      const { promise } = (bruinCommand as any).runCancellable(query);
+      const result = await promise;
+
+      assert.strictEqual(result, chunk1 + chunk2);
+    });
+
+    test("runCancellable should accumulate stderr data from multiple chunks", async () => {
+      const query = ["--test"];
+      const chunk1 = "Error part 1 ";
+      const chunk2 = "Error part 2";
+      
+      // Setup process event handlers with multiple data events
+      mockProcess.stdout.on.withArgs("data").yields(Buffer.from(""));
+      
+      mockProcess.stderr.on.withArgs("data").callsFake((event: any, callback: any) => {
+        if (event === "data") {
+          callback(Buffer.from(chunk1));
+          callback(Buffer.from(chunk2));
+        }
+      });
+      
+      mockProcess.on.withArgs("close").yields(1, null); // Exit code 1
+
+      const { promise } = (bruinCommand as any).runCancellable(query);
+      
+      try {
+        await promise;
+        assert.fail("Expected promise to be rejected");
+      } catch (error) {
+        assert.strictEqual(error, chunk1 + chunk2);
+      }
+    });
+
+    test("runCancellable process should be killable", () => {
+      const query = ["--test"];
+      const { process } = (bruinCommand as any).runCancellable(query);
+
+      // Verify the process can be killed
+      process.kill("SIGINT");
+      sinon.assert.calledOnceWithExactly(mockProcess.kill, "SIGINT");
+    });
+
+    test("runCancellable should handle empty query array", () => {
+      const query: string[] = [];
+      const result = (bruinCommand as any).runCancellable(query);
+
+      assert.ok(result.promise instanceof Promise);
+      assert.strictEqual(result.process, mockProcess);
+      
+      sinon.assert.calledOnceWithExactly(spawnStub, 
+        "path/to/bruin", 
+        ["test-command"],
+        { cwd: "path/to/working/directory" }
+      );
+    });
+  });
 });
 suite("Lineage Command Tests", () => {
   let displayLineageStub: sinon.SinonStub;
