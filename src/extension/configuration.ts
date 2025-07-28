@@ -24,6 +24,11 @@ export function getPathSeparator(): string {
   return pathSeparator;
 }
 
+export function getQueryTimeout(): number {
+  const config = vscode.workspace.getConfiguration("bruin.query");
+  return config.get<number>("timeout", 1000); // Default to 1000 seconds
+}
+
 let documentInitState = new Map();
 
 export async function toggleFoldingsCommand(toggled: boolean): Promise<void> {
