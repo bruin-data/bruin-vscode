@@ -215,7 +215,7 @@
         "bruin.query.timeout": {
           "type": "number",
           "default": 1000,
-          "description": "Timeout in seconds for query execution (5-300 seconds)"
+          "description": "Timeout in seconds for query execution (default: 1000 seconds)"
         }
       }
     },
