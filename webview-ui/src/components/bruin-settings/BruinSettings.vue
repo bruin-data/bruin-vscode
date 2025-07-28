@@ -4,47 +4,6 @@
       <BruinCLI :versionStatus="versionStatus" />
     </div>
 
-    <!-- Environment Form -->
-    <div v-if="showEnvironmentForm" ref="environmentFormRef" class="mt-6 bg-editorWidget-bg shadow sm:rounded-lg p-6">
-      <h4 class="text-lg font-medium text-editor-fg mb-4">
-        {{ isEditingEnvironment ? 'Edit Environment' : 'Create New Environment' }}
-      </h4>
-
-      <div class="mb-4">
-        <label class="block text-sm font-medium text-editor-fg mb-2">Environment Name</label>
-        <input
-          v-if="!isEditingEnvironment"
-          v-model="newEnvironmentName"
-          type="text"
-          placeholder="Enter environment name"
-          class="w-1/2 px-3 py-2 h-8 bg-input-background text-input-foreground border border-input-border rounded focus:outline-none focus:ring-2 focus:ring-inputOption-activeBorder"
-          @keyup.enter="handleEnvironmentSubmit"
-        />
-        <input
-          v-else
-          v-model="editEnvironmentName"
-          type="text"
-          placeholder="Enter environment name"
-          class="w-1/2 px-3 py-2 h-8 bg-input-background text-input-foreground border border-input-border rounded focus:outline-none focus:ring-2 focus:ring-inputOption-activeBorder"
-          @keyup.enter="handleEnvironmentSubmit"
-        />
-        <div v-if="environmentFormError" class="text-errorForeground text-sm mt-1">
-          {{ environmentFormError }}
-        </div>
-      </div>
-
-      <div class="flex justify-end space-x-2">
-        <vscode-button @click="closeEnvironmentForm" appearance="secondary">Cancel</vscode-button>
-        <vscode-button
-          @click="handleEnvironmentSubmit"
-          appearance="primary"
-          :disabled="isEditingEnvironment ? !editEnvironmentName.trim() : !newEnvironmentName.trim()"
-        >
-          {{ isEditingEnvironment ? 'Update' : 'Create' }}
-        </vscode-button>
-      </div>
-    </div>
-
     <div class="bg-editorWidget-bg shadow sm:rounded-lg">
       <ConnectionsList
         v-if="isBruinInstalled"
@@ -53,7 +12,7 @@
         @edit-connection="showConnectionForm"
         @delete-connection="confirmDeleteConnection"
         @duplicate-connection="handleDuplicateConnection"
-        @new-environment="handleNewEnvironment"
+        @add-environment="handleAddEnvironment"
         @edit-environment="handleEditEnvironment"
         @delete-environment="handleDeleteEnvironment"
         :error="error"
@@ -123,16 +82,9 @@ const connectionToDelete = ref(null);
 const formError = ref(null);
 const formRef = ref(null);
 
-// Environment form states
-const showEnvironmentForm = ref(false);
-const isEditingEnvironment = ref(false);
-const environmentToEdit = ref(null);
-const newEnvironmentName = ref("");
-const editEnvironmentName = ref("");
+// Environment states
 const showEnvironmentDeleteAlert = ref(false);
 const environmentToDelete = ref(null);
-const environmentFormError = ref(null);
-const environmentFormRef = ref(null);
 
 const connectionFormKey = computed(() => {
   return connectionToEdit.value?.id ? `edit-${connectionToEdit.value.id}` : "new-connection";
@@ -368,96 +320,36 @@ const cancelDeleteConnection = () => {
 };
 
 // Environment handlers
-const handleNewEnvironment = async () => {
-  showEnvironmentForm.value = true;
-  isEditingEnvironment.value = false;
-  newEnvironmentName.value = "";
-  environmentFormError.value = null;
-  
-  await nextTick();
-  if (environmentFormRef.value) {
-    environmentFormRef.value.scrollIntoView({ behavior: 'smooth', block: 'start' });
+const handleAddEnvironment = async (environmentName) => {
+  try {
+    await vscode.postMessage({
+      command: "bruin.createEnvironment",
+      payload: {
+        environmentName: environmentName,
+      },
+    });
+  } catch (error) {
+    console.error("Error creating environment:", error);
   }
 };
 
-const handleEditEnvironment = async (environmentName) => {
-  showEnvironmentForm.value = true;
-  isEditingEnvironment.value = true;
-  environmentToEdit.value = environmentName;
-  editEnvironmentName.value = environmentName;
-  environmentFormError.value = null;
-  
-  await nextTick();
-  if (environmentFormRef.value) {
-    environmentFormRef.value.scrollIntoView({ behavior: 'smooth', block: 'start' });
+const handleEditEnvironment = async (environmentData) => {
+  try {
+    await vscode.postMessage({
+      command: "bruin.updateEnvironment",
+      payload: {
+        currentName: environmentData.currentName,
+        newName: environmentData.newName,
+      },
+    });
+  } catch (error) {
+    console.error("Error updating environment:", error);
   }
 };
 
 const handleDeleteEnvironment = (environmentName) => {
   environmentToDelete.value = environmentName;
   showEnvironmentDeleteAlert.value = true;
-};
-
-const closeEnvironmentForm = () => {
-  showEnvironmentForm.value = false;
-  isEditingEnvironment.value = false;
-  environmentToEdit.value = null;
-  newEnvironmentName.value = "";
-  editEnvironmentName.value = "";
-  environmentFormError.value = null;
-};
-
-const handleEnvironmentSubmit = async () => {
-  const environmentName = isEditingEnvironment.value ? editEnvironmentName.value : newEnvironmentName.value;
-  
-  if (!environmentName.trim()) {
-    environmentFormError.value = "Environment name is required";
-    return;
-  }
-
-  if (!/^[a-zA-Z0-9_-]+$/.test(environmentName)) {
-    environmentFormError.value = "Environment name can only contain letters, numbers, underscores, and hyphens";
-    return;
-  }
-
-  if (!isEditingEnvironment.value && props.environments.includes(environmentName)) {
-    environmentFormError.value = "Environment already exists";
-    return;
-  }
-
-  if (isEditingEnvironment.value && environmentName === environmentToEdit.value) {
-    environmentFormError.value = "New name must be different from current name";
-    return;
-  }
-
-  if (isEditingEnvironment.value && props.environments.includes(environmentName)) {
-    environmentFormError.value = "Environment name already exists";
-    return;
-  }
-
-  environmentFormError.value = null;
-
-  try {
-    if (isEditingEnvironment.value) {
-      await vscode.postMessage({
-        command: "bruin.updateEnvironment",
-        payload: {
-          currentName: environmentToEdit.value,
-          newName: environmentName,
-        },
-      });
-    } else {
-      await vscode.postMessage({
-        command: "bruin.createEnvironment",
-        payload: {
-          environmentName: environmentName,
-        },
-      });
-    }
-  } catch (error) {
-    console.error("Error with environment:", error);
-    environmentFormError.value = "Failed to process environment";
-  }
 };
 
 const confirmDeleteEnvironment = () => {
@@ -487,18 +379,16 @@ const cancelDeleteEnvironment = () => {
 const handleEnvironmentCreated = (payload) => {
   if (payload.status === "success") {
     console.log("Environment created successfully:", payload.message);
-    closeEnvironmentForm();
   } else {
-    environmentFormError.value = payload.message || "Failed to create environment";
+    console.error("Failed to create environment:", payload.message);
   }
 };
 
 const handleEnvironmentUpdated = (payload) => {
   if (payload.status === "success") {
     console.log("Environment updated successfully:", payload.message);
-    closeEnvironmentForm();
   } else {
-    environmentFormError.value = payload.message || "Failed to update environment";
+    console.error("Failed to update environment:", payload.message);
   }
 };
 
