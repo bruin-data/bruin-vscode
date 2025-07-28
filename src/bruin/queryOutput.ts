@@ -1,6 +1,7 @@
 import { QueryPreviewPanel } from "../panels/QueryPreviewPanel";
 import { BruinCommandOptions } from "../types";
 import { BruinCommand } from "./bruinCommand";
+import * as child_process from "child_process";
 
 
 /**
@@ -24,6 +25,8 @@ export class BruinQueryOutput extends BruinCommand {
    * @returns {Promise<void>} A promise that resolves when the execution is complete or an error is caught.
    */
   public isLoading: boolean = false;
+  // Map to track running processes by tabId
+  private static runningProcesses: Map<string, child_process.ChildProcess> = new Map();
 
   public async getOutput(
     environment: string,
@@ -68,7 +71,20 @@ export class BruinQueryOutput extends BruinCommand {
     const finalFlags = flags.length > 0 ? flags : constructedFlags;
 
     try {
-      const result = await this.run(finalFlags, { ignoresErrors });
+      const { promise, process } = this.runCancellable(finalFlags, { ignoresErrors });
+      
+      // Store the process for potential cancellation
+      if (tabId) {
+        BruinQueryOutput.runningProcesses.set(tabId, process);
+      }
+
+      const result = await promise;
+      
+      // Remove process from tracking once completed
+      if (tabId) {
+        BruinQueryOutput.runningProcesses.delete(tabId);
+      }
+
       if (result.includes("flag provided but not defined")) {
         this.postMessageToPanels(
           "error",
@@ -79,13 +95,34 @@ export class BruinQueryOutput extends BruinCommand {
       console.log("SQL query output:", result);
       this.postMessageToPanels("success", result, tabId);
     } catch (error: any) {
+      // Remove process from tracking on error
+      if (tabId) {
+        BruinQueryOutput.runningProcesses.delete(tabId);
+      }
+      
       console.error("Error occurred while running query:", error);
       const errorMessage = error.message || error.toString();
-      this.postMessageToPanels("error", errorMessage, tabId);
+      
+      if (errorMessage.includes("Command was cancelled") || 
+          errorMessage.includes("context canceled") ||
+          errorMessage.includes("query execution failed: failed to initiate query read: context canceled")) {
+        this.postMessageToPanels("cancelled", "Query cancelled by user.", tabId);
+      } else {
+        this.postMessageToPanels("error", errorMessage, tabId);
+      }
     }
     finally {
       this.isLoading = false;
       this.postMessageToPanels("loading", this.isLoading, tabId);
+    }
+  }
+
+  // Static method to cancel a running query by tabId
+  public static cancelQuery(tabId: string) {
+    const proc = BruinQueryOutput.runningProcesses.get(tabId);
+    if (proc) {
+      proc.kill("SIGINT"); // Mimic Ctrl+C
+      BruinQueryOutput.runningProcesses.delete(tabId);
     }
   }
 
