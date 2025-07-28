@@ -2605,6 +2605,10 @@ class TestableBruinQueryOutput extends BruinQueryOutput {
   public run(query: string[], options?: { ignoresErrors?: boolean }): Promise<string> {
     return super.run(query, options);
   }
+  
+  public runCancellable(query: string[], options?: { ignoresErrors?: boolean }): { promise: Promise<string>; process: any } {
+    return super.runCancellable(query, options);
+  }
 }
 
 class TestableBruinQueryExport extends BruinExportQueryOutput {
@@ -2814,8 +2818,12 @@ suite("BruinQueryOutput", () => {
     const asset = "exampleAsset";
     const limit = "10";
   
-    // Stub the `run` method on the actual instance
-    sinon.stub(bruinQueryOutput, "run").resolves("Incorrect Usage: flag provided but not defined: -env");
+    // Stub the `runCancellable` method on the actual instance
+    const mockProcess = { kill: sinon.stub() };
+    sinon.stub(bruinQueryOutput, "runCancellable").returns({
+      promise: Promise.resolve("Incorrect Usage: flag provided but not defined: -env"),
+      process: mockProcess as any
+    });
   
     await bruinQueryOutput.getOutput(environment, asset, limit);
   
@@ -2831,8 +2839,12 @@ suite("BruinQueryOutput", () => {
     const asset = "exampleAsset";
     const limit = "10";
   
-    // Stub the `run` method to throw an error
-    sinon.stub(bruinQueryOutput, "run").rejects(new Error("Mock error"));
+    // Stub the `runCancellable` method to throw an error
+    const mockProcess = { kill: sinon.stub() };
+    sinon.stub(bruinQueryOutput, "runCancellable").returns({
+      promise: Promise.reject(new Error("Mock error")),
+      process: mockProcess as any
+    });
   
     await bruinQueryOutput.getOutput(environment, asset, limit);
   
