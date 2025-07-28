@@ -3,20 +3,28 @@
     <div class="flex-col items-center">
       <div class="flex flex-col items-start space-y-2 mb-2">
         <h2 class="text-xl font-semibold text-editor-fg">Connections</h2>
-        <div v-if="!error" class="mt-2 max-w-xl text-sm text-editor-fg">
-          <p>
-            Manage your connections across different environments all in one place. View existing
-            connections, edit their details, or delete them as needed.
-          </p>
-        </div>
-      </div>
-      <div class="flex items-center justify-end">
-        <vscode-button @click="$emit('new-connection')" class="mt-2 font-semibold">
-          <div class="flex items-center">
-            <span class="codicon codicon-plus"></span> 
-            <span class="ml-1">Connection</span>
+        <div v-if="!error" class="mt-2 flex items-start justify-between w-full">
+          <div class="max-w-xl text-sm text-editor-fg">
+            <p>
+              Manage your connections across different environments all in one place. View existing
+              connections, edit their details, or delete them as needed.
+            </p>
           </div>
-        </vscode-button>
+          <div class="flex items-center space-x-2">
+            <vscode-button @click="$emit('new-environment')" class="font-semibold">
+              <div class="flex items-center">
+                <span class="codicon codicon-plus"></span> 
+                <span class="ml-1">Environment</span>
+              </div>
+            </vscode-button>
+            <vscode-button @click="$emit('new-connection')" class="font-semibold">
+              <div class="flex items-center">
+                <span class="codicon codicon-plus"></span> 
+                <span class="ml-1">Connection</span>
+              </div>
+            </vscode-button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -157,6 +165,7 @@ const error = computed(() => connectionsStore.error);
 const defaultEnvironment = computed(() => connectionsStore.getDefaultEnvironment());
 const emit = defineEmits([
   "new-connection",
+  "new-environment",
   "edit-connection",
   "delete-connection",
   "duplicate-connection",
