@@ -15,6 +15,7 @@ import {
   setupFoldingOnOpen,
   subscribeToConfigurationChanges,
   toggleFoldingsCommand,
+  getQueryTimeout,
 } from "./configuration";
 import { renderCommand } from "./commands/renderCommand";
 import { AssetLineagePanel } from "../panels/LineagePanel";
@@ -169,6 +170,19 @@ export async function activate(context: ExtensionContext) {
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(AssetLineagePanel.viewId, assetLineagePanel),
     window.registerWebviewViewProvider(QueryPreviewPanel.viewId, queryPreviewWebviewProvider)
+  );
+
+  // Add configuration change listener for query timeout
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration("bruin.query.timeout")) {
+        const newTimeout = getQueryTimeout();
+        QueryPreviewPanel.postMessage("query-output-message", {
+          status: "timeoutUpdate",
+          message: { timeout: newTimeout }
+        });
+      }
+    })
   );
 
   const foldingDisposable = languages.registerFoldingRangeProvider(SUPPORTED_LANGUAGES, {

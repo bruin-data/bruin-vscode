@@ -211,6 +211,11 @@
           },
           "default": [],
           "description": "List of favorite tables with their schema and connection names."
+        },
+        "bruin.query.timeout": {
+          "type": "number",
+          "default": 1000,
+          "description": "Timeout in seconds for query execution (default: 1000 seconds)"
         }
       }
     },

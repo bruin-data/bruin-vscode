@@ -84,4 +84,68 @@ export abstract class BruinCommand {
       );
     });
   }
+
+  /**
+   * Executes the command with cancellation support.
+   * Returns both the promise and the child process for cancellation.
+   */
+  protected runCancellable(
+    query: string[],
+    { 
+      ignoresErrors = false, 
+    }: { 
+      ignoresErrors?: boolean; 
+    } = {}
+  ): { promise: Promise<string>; process: child_process.ChildProcess } {
+    const startTime = Date.now();
+    const commandString = `${this.bruinExecutable} ${this.execArgs(query).join(' ')}`;
+    
+    console.log(`[${new Date().toISOString()}] Starting command: ${commandString}`);
+    
+    const proc = child_process.spawn(this.bruinExecutable, this.execArgs(query), {
+      cwd: this.workingDirectory,
+    });
+
+    const promise = new Promise<string>((resolve, reject) => {
+      let stdout = "";
+      let stderr = "";
+
+      proc.stdout?.on("data", (data) => {
+        stdout += data.toString();
+      });
+
+      proc.stderr?.on("data", (data) => {
+        stderr += data.toString();
+      });
+
+      proc.on("close", (code, signal) => {
+        const endTime = Date.now();
+        const duration = endTime - startTime;
+        
+        console.log(`[${new Date().toISOString()}] Command completed in ${duration}ms ${commandString}`);
+
+        if (signal === "SIGINT" || signal === "SIGTERM") {
+          reject(new Error("Command was cancelled"));
+        } else if (code === 0) {
+          resolve(removeAnsiColors(stdout));
+        } else {
+          console.error(`[${new Date().toISOString()}] Command failed after ${duration}ms:`, stderr || stdout);
+          if (ignoresErrors) {
+            resolve("");
+          } else {
+            reject(removeAnsiColors(stderr || stdout));
+          }
+        }
+      });
+
+      proc.on("error", (error) => {
+        const endTime = Date.now();
+        const duration = endTime - startTime;
+        console.error(`[${new Date().toISOString()}] Command failed after ${duration}ms:`, error.message);
+        reject(error);
+      });
+    });
+
+    return { promise, process: proc };
+  }
 }

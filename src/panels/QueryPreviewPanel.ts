@@ -3,6 +3,8 @@ import { getNonce } from "../utilities/getNonce";
 import { getUri } from "../utilities/getUri";
 import { exportQueryResults, getQueryOutput } from "../extension/commands/queryCommands";
 import { getEnvListCommand } from "../extension/commands/getEnvListCommand";
+import { BruinQueryOutput } from "../bruin/queryOutput";
+import { getQueryTimeout } from "../extension/configuration";
 
 export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Disposable {
   public static readonly viewId = "bruin.QueryPreviewView";
@@ -341,6 +343,17 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
           } else if (this._lastRenderedDocumentUri) {
             exportQueryResults(this._lastRenderedDocumentUri, exportTabId, connectionName);
           }
+          break;
+        case "bruin.cancelQuery":
+          const cancelTabId = message.payload?.tabId;
+          BruinQueryOutput.cancelQuery(cancelTabId);
+          break;
+        case "bruin.requestTimeout":
+          const timeout = getQueryTimeout();
+          webview.postMessage({
+            command: "bruin.timeoutResponse",
+            payload: { timeout },
+          });
           break;
       }
     });

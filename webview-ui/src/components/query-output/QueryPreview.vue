@@ -6,8 +6,21 @@
       <div class="flex items-center w-full justify-between h-8">
         <div class="flex items-center gap-1 ml-2">
           <div class="flex items-center">
-            <vscode-button title="Run Query" appearance="icon" @click="runQuery">
+            <vscode-button 
+              v-if="!currentTab?.isLoading"
+              title="Run Query" 
+              appearance="icon" 
+              @click="runQuery"
+            >
               <span class="codicon codicon-play" style="font-size: 1.2em"></span>
+            </vscode-button>
+            <vscode-button
+              v-if="currentTab?.isLoading"
+              title="Cancel Query"
+              appearance="icon"
+              @click="cancelQuery"
+            >
+              <span class="codicon codicon-stop-circle text-red-500"></span>
             </vscode-button>
             <span class="text-3xs text-editor-fg uppercase px-1">Limit</span>
             <input
@@ -79,6 +92,10 @@
               class="truncate"
             >
               {{ currentTab?.parsedOutput.connectionName }}
+            </vscode-badge>
+            <span class="text-2xs text-editor-fg opacity-65">Timeout:</span>
+            <vscode-badge class="default-badge">
+              {{ queryTimeout }}s
             </vscode-badge>
           </div>
           <QuerySearch
@@ -379,6 +396,7 @@ const limit = ref(100);
 const showSearchInput = ref(false);
 const hoveredTab = ref("");
 const copied = ref(false);
+const queryTimeout = ref(60); // Default timeout in seconds
 // State for expanded cells
 const expandedCells = ref(new Set<string>());
 
@@ -604,6 +622,10 @@ window.addEventListener("message", (event) => {
       expandedCells.value = new Set(state.expandedCells || []);
       showSearchInput.value = state.showSearchInput || false;
     }
+  } else if (message.command === "bruin.timeoutResponse") {
+    if (message.payload && typeof message.payload.timeout === "number") {
+      queryTimeout.value = message.payload.timeout;
+    }
   } else if (message.command === "bruin.executePreviewQuery") {
     // Handle preview intellisense query execution with current limit
     const tabId = message.payload.tabId || activeTab.value;
@@ -624,6 +646,14 @@ window.addEventListener("message", (event) => {
 
   // Handle tab-specific query results
   if (message.command === "query-output-message") {
+    // Handle global timeout updates
+    if (message.payload.status === "timeoutUpdate") {
+      if (message.payload.message && typeof message.payload.message.timeout === "number") {
+        queryTimeout.value = message.payload.message.timeout;
+      }
+      return;
+    }
+
     // Extract the tab ID from the message if available
     const tabId = message.payload?.tabId;
     if (!tabId) {
@@ -1058,6 +1088,7 @@ onMounted(() => {
   modifierKey.value = isMac ? "⌘" : "Ctrl";
 
   vscode.postMessage({ command: "bruin.requestState" });
+  vscode.postMessage({ command: "bruin.requestTimeout" });
 });
 onUnmounted(() => {
   window.removeEventListener("keydown", handleKeyDown);
@@ -1137,6 +1168,13 @@ watch(
     currentPage.value = 1;
   }
 );
+
+const cancelQuery = () => {
+  vscode.postMessage({
+    command: "bruin.cancelQuery",
+    payload: { tabId: activeTab.value },
+  });
+};
 </script>
 
 <style scoped>
@@ -1204,11 +1242,11 @@ vscode-badge::part(control) {
 }
 .spinner {
   display: inline-block;
-  width: 16px;
-  height: 16px;
-  border: 2px solid var(--vscode-commandCenter-border);
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--vscode-progressBar-background, rgba(255, 255, 255, 0.2));
+  border-top: 3px solid var(--vscode-progressBar-foreground, #0078d4);
   border-radius: 50%;
-  border-right-color: transparent;
   animation: spin 1s linear infinite;
 }
 
