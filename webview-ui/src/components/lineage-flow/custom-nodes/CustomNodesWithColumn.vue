@@ -48,7 +48,7 @@
           <div class="relative group flex items-center justify-between">
             <!-- Node Name with Expand Option -->
             <div class="dynamic-text flex-1" :style="{ fontSize: computedFontSize }" @click.stop="toggleExpand">
-              {{ isExpanded ? label : truncatedLabel }}
+              {{ label }}
             </div>
             
             <!-- Columns Toggle Button -->
@@ -353,12 +353,16 @@ const handleColumnLeave = () => {
 }
 
 .dynamic-text {
-  white-space: pre-wrap; /* Allow text to wrap */
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal; /* Allow text to wrap */
+  text-wrap: wrap;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
   line-height: 1.3;
   transition: font-size 0.2s ease;
   cursor: pointer;
+  max-width: 100%;
 }
 
 .node-content {
