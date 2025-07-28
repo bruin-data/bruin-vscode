@@ -55,6 +55,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.60.0**: Added support for query timeout and cancellation and improved environemnt management UI.
 - **0.59.3**: Updated query extraction logic for non-asset files and added pagination to the query preview.
 - **0.59.2**: Display CodeLens only when selection starts outside Bruin block.
 - **0.59.1**: Add highlighing to the column level lineage view.
@@ -69,16 +70,6 @@ Bruin is a unified analytics platform that enables data professionals to work en
 - **0.58.1**: Changed "Fill from DB" to run in the background instead of the terminal.
 - **0.58.0**: Add environment management UI allowing users to create new environments.
 - **0.57.0**: Added Ingest Asset UI with dropdowns for selecting source and destination connections.
-- **0.56.1**: Added missing LIMIT to query execution.
-- **0.56.0**: Grouped databases by environment to avoid confusion with duplicates.
-- **0.55.2**: Fixed asset node Click navigation & long name expansion in Lineage view.
-- **0.55.1**: Added support for dependency mode and SCD2 strategy.
-- **0.55.0**: Added support for highlighting the asset path in the lineage view.
-- **0.54.4**: Added support for additional seed asset types in snippets, schema and UI.
-- **0.54.3**: Conditionally show the `Fill from Query` button based on whether the active file is a SQL file.
-- **0.54.2**: Fixed the Query Preview Panel recreation on database load to prevent previous query output loss.
-- **0.54.1**: Fixed the Bruin Panel rendering issue.
-- **0.54.0**: Added human-readable cron preview via CodeLens in pipeline YAML files.
 
 For a full changelog, see Bruin Extension [Changelog](https://marketplace.visualstudio.com/items/bruin.bruin/changelog).
 

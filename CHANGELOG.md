@@ -1,4 +1,7 @@
 # Changelog
+## [0.60.0] - [2025-07-28]
+- Added support for query timeout and cancellation and improved environemnt management UI.
+
 ## [0.59.3] - [2025-07-24]
 - Updated query extraction logic for non-asset files and added pagination to the query preview.
 
