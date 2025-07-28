@@ -4,14 +4,13 @@ import { getDependsSectionOffsets, isBruinSqlAsset } from '../utilities/helperUt
 import { getCurrentPipelinePath } from '../bruin/bruinUtils';
 import { getBruinExecutablePath } from '../providers/BruinExecutableService';
 import * as path from 'path';
-import * as fs from 'fs';
 
 export class BruinLanguageServer {
-    private parser: BruinLineageInternalParse;
+    private pipelineParser: BruinLineageInternalParse;
     private pipelineCache: Map<string, any> = new Map();
 
     constructor() {
-        this.parser = new BruinLineageInternalParse(getBruinExecutablePath(), "");
+        this.pipelineParser = new BruinLineageInternalParse(getBruinExecutablePath(), "");
     }
 
     /**
@@ -40,7 +39,7 @@ export class BruinLanguageServer {
             }
 
             // Parse pipeline data using the public method
-            const pipelineResult = await this.parser.parsePipelineConfig(pipelinePath);
+            const pipelineResult = await this.pipelineParser.parsePipelineConfig(pipelinePath);
             const pipelineData = pipelineResult.raw;
             
             // Cache the result
@@ -144,7 +143,7 @@ class BruinDefinitionProvider implements vscode.DefinitionProvider {
         try {
             // Find the asset file for this dependency
             const assetFilePath = await this.languageServer.findAssetFile(dependencyName, document.fileName);
-            if (!assetFilePath || !fs.existsSync(assetFilePath)) {
+            if (!assetFilePath) {
                 return null;
             }
 
