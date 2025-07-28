@@ -646,6 +646,14 @@ window.addEventListener("message", (event) => {
 
   // Handle tab-specific query results
   if (message.command === "query-output-message") {
+    // Handle global timeout updates
+    if (message.payload.status === "timeoutUpdate") {
+      if (message.payload.message && typeof message.payload.message.timeout === "number") {
+        queryTimeout.value = message.payload.message.timeout;
+      }
+      return;
+    }
+
     // Extract the tab ID from the message if available
     const tabId = message.payload?.tabId;
     if (!tabId) {
