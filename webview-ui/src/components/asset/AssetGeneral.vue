@@ -112,7 +112,7 @@
                 leave-from-class="transform opacity-100 scale-100"
                 leave-to-class="transform opacity-0 scale-95"
               >
-                <MenuItems class="absolute right-2 z-10 -mr-1 w-48 origin-top-right">
+                <MenuItems class="absolute left-0 2xs:right-2 z-10 2xs:-mr-1 w-48 origin-top-left 2xs:origin-top-right">
                   <div class="p-1 bg-editorWidget-bg rounded-sm border border-commandCenter-border">
                     <MenuItem key="validate-current">
                       <vscode-button
@@ -160,7 +160,7 @@
                 leave-from-class="transform opacity-100 scale-100"
                 leave-to-class="transform opacity-0 scale-95"
               >
-                <MenuItems class="absolute right-0 z-10 w-48 origin-top-right">
+                <MenuItems class="absolute left-0 2xs:right-0 z-10 w-48 origin-top-left 2xs:origin-top-right">
                   <div class="p-1 bg-editorWidget-bg rounded-sm border border-commandCenter-border">
                     <MenuItem key="run-with-downstream" v-slot="{ active }">
                       <vscode-button
