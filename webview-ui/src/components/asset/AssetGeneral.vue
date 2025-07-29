@@ -10,7 +10,7 @@
             :options="environments"
             @selected-env="setSelectedEnv"
             :selectedEnvironment="selectedEnvironment"
-            class="flex-shrink-0 hidden xs:flex"
+            class="flex-shrink-0"
           />
           <!-- Date Controls and Checkbox Group -->
           <div id="controls" class="flex flex-col xs:w-1/2">
@@ -46,15 +46,7 @@
       </div>
 
       <!-- Action Buttons Row -->
-      <div class="flex flex-col xs:flex-row gap-2 justify-between items-start xs:items-end">
-        <div class="w-full xs:w-auto">
-          <EnvSelectMenu
-            :options="environments"
-            @selected-env="setSelectedEnv"
-            :selectedEnvironment="selectedEnvironment"
-            class="flex-shrink-0 hidden xs:hidden 2xs:flex"
-          />
-        </div>
+      <div class="flex flex-col xs:flex-row gap-2 justify-end items-start xs:items-end">
 
         <div class="flex flex-col 2xs:flex-row flex-wrap gap-2 justify-start xs:justify-end items-stretch 2xs:items-center w-full xs:w-auto">
           <!-- Validate Button Group -->
@@ -112,7 +104,7 @@
                 leave-from-class="transform opacity-100 scale-100"
                 leave-to-class="transform opacity-0 scale-95"
               >
-                <MenuItems class="absolute left-0 xs:right-0 xs:left-auto z-10 w-40 xs:w-48 origin-top-left xs:origin-top-right max-w-[calc(100vw-2rem)]">
+                <MenuItems class="absolute right-0 left-auto z-10 w-40 xs:w-48 origin-top-right max-w-[calc(100vw-2rem)]">
                   <div class="p-1 bg-editorWidget-bg rounded-sm border border-commandCenter-border">
                     <MenuItem key="validate-current">
                       <vscode-button
