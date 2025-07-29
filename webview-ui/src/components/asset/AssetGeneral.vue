@@ -46,8 +46,8 @@
       </div>
 
       <!-- Action Buttons Row -->
-      <div class="flex flex-wrap justify-between items-end space-y-1">
-        <div class="flex-1 relative">
+      <div class="flex flex-col xs:flex-row gap-2 justify-between items-start xs:items-end">
+        <div class="w-full xs:w-auto">
           <EnvSelectMenu
             :options="environments"
             @selected-env="setSelectedEnv"
@@ -56,7 +56,7 @@
           />
         </div>
 
-        <div class="flex justify-end items-center space-x-2 sm:space-x-4 sm:mt-0">
+        <div class="flex flex-wrap gap-2 justify-start xs:justify-end items-center w-full xs:w-auto">
           <!-- Validate Button Group -->
           <div class="inline-flex">
             <vscode-button
