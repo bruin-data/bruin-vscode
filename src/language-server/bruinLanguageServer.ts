@@ -1,16 +1,33 @@
 import * as vscode from 'vscode';
 import { BruinLineageInternalParse } from '../bruin/bruinFlowLineage';
+import { BruinInternalParse } from '../bruin/bruinInternalParse';
 import { getDependsSectionOffsets, isBruinSqlAsset } from '../utilities/helperUtils';
 import { getCurrentPipelinePath } from '../bruin/bruinUtils';
 import { getBruinExecutablePath } from '../providers/BruinExecutableService';
 import * as path from 'path';
 
+/**
+ * Extended asset parser that returns data instead of posting to panels
+ */
+class BruinAssetParser extends BruinInternalParse {
+    public async parseAssetWithResult(filePath: string): Promise<any> {
+        try {
+            const result = await this.run(['parse-asset', filePath], { ignoresErrors: false });
+            return JSON.parse(result);
+        } catch (error) {
+            return null;
+        }
+    }
+}
+
 export class BruinLanguageServer {
     private pipelineParser: BruinLineageInternalParse;
+    private assetParser: BruinAssetParser;
     private pipelineCache: Map<string, any> = new Map();
 
     constructor() {
         this.pipelineParser = new BruinLineageInternalParse(getBruinExecutablePath(), "");
+        this.assetParser = new BruinAssetParser(getBruinExecutablePath(), "");
     }
 
     /**
@@ -38,7 +55,6 @@ export class BruinLanguageServer {
                 return this.pipelineCache.get(pipelinePath);
             }
 
-            // Parse pipeline data using the public method
             const pipelineResult = await this.pipelineParser.parsePipelineConfig(pipelinePath);
             const pipelineData = pipelineResult.raw;
             
@@ -54,21 +70,20 @@ export class BruinLanguageServer {
 
     /**
      * Find the file path for a given asset dependency
+     * Uses pipeline data for fast lookup, falls back to direct asset parsing if needed
      */
     public async findAssetFile(dependencyName: string, currentFilePath: string): Promise<string | null> {
         try {
+            // Method 1: Fast pipeline lookup (preferred)
             const pipelineData = await this.getPipelineData(currentFilePath);
-            if (!pipelineData || !pipelineData.assets) {
-                return null;
-            }
+            if (pipelineData && pipelineData.assets) {
+                const asset = pipelineData.assets.find((asset: any) => 
+                    asset.name === dependencyName || asset.id === dependencyName
+                );
 
-            // Find the asset with matching name
-            const asset = pipelineData.assets.find((asset: any) => 
-                asset.name === dependencyName || asset.id === dependencyName
-            );
-
-            if (asset && asset.definition_file && asset.definition_file.path) {
-                return asset.definition_file.path;
+                if (asset && asset.definition_file && asset.definition_file.path) {
+                    return asset.definition_file.path;
+                }
             }
 
             return null;
