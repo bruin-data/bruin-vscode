@@ -17,23 +17,23 @@
             <div class="flex flex-col xs:flex-row gap-1 w-full justify-between xs:justify-end">
               <DateInput label="Start Date" v-model="startDate" />
               <DateInput label="End Date" v-model="endDate" />
-            </div>
-            <div class="flex items-center self-start xs:self-end mt-1 xs:mt-0">
-              <button
-                type="button"
-                @click="resetDatesOnSchedule"
-                :title="`Reset Start and End Date`"
-                class="rounded-sm bg-editor-button-bg p-1 text-editor-button-fg hover:bg-editor-button-hover-bg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <ArrowPathRoundedSquareIcon class="h-3 w-3" aria-hidden="true" />
-              </button>
-              <div class="relative ml-1">
-                <ChevronUpIcon
-                  v-if="showCheckboxGroup"
-                  class="h-4 w-4"
-                  @click="updateVisibility"
-                />
-                <ChevronDownIcon v-else class="h-4 w-4" @click="updateVisibility" />
+              <div class="flex items-center gap-1 self-start xs:self-end">
+                <button
+                  type="button"
+                  @click="resetDatesOnSchedule"
+                  :title="`Reset Start and End Date`"
+                  class="rounded-sm bg-editor-button-bg p-1 text-editor-button-fg hover:bg-editor-button-hover-bg disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ArrowPathRoundedSquareIcon class="h-3 w-3" aria-hidden="true" />
+                </button>
+                <div class="relative">
+                  <ChevronUpIcon
+                    v-if="showCheckboxGroup"
+                    class="h-4 w-4"
+                    @click="updateVisibility"
+                  />
+                  <ChevronDownIcon v-else class="h-4 w-4" @click="updateVisibility" />
+                </div>
               </div>
             </div>
           </div>
