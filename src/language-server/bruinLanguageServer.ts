@@ -17,36 +17,20 @@ export class BruinLanguageServer {
      * Register the language server providers with VSCode
      */
     public registerProviders(context: vscode.ExtensionContext): void {
-        // Register document link provider for both SQL and Python files
-        const sqlLinkProvider = vscode.languages.registerDocumentLinkProvider(
-            { scheme: 'file', language: 'sql' },
+        // Register document link provider for all file types - let the provider decide based on depends section
+        const linkProvider = vscode.languages.registerDocumentLinkProvider(
+            { scheme: 'file' }, // No language restriction - works on any file type
             new BruinDocumentLinkProvider(this)
         );
 
-        const pythonLinkProvider = vscode.languages.registerDocumentLinkProvider(
-            { scheme: 'file', language: 'python' },
-            new BruinDocumentLinkProvider(this)
-        );
-
-        // Register completion provider for both SQL and Python files
-        const sqlCompletionProvider = vscode.languages.registerCompletionItemProvider(
-            { scheme: 'file', language: 'sql' },
+        // Register completion provider for all file types
+        const completionProvider = vscode.languages.registerCompletionItemProvider(
+            { scheme: 'file' }, // No language restriction - works on any file type
             new BruinCompletionProvider(this),
             '-', ' ' // Trigger on dash and space
         );
 
-        const pythonCompletionProvider = vscode.languages.registerCompletionItemProvider(
-            { scheme: 'file', language: 'python' },
-            new BruinCompletionProvider(this),
-            '-', ' ' // Trigger on dash and space
-        );
-
-        context.subscriptions.push(
-            sqlLinkProvider, 
-            pythonLinkProvider, 
-            sqlCompletionProvider, 
-            pythonCompletionProvider
-        );
+        context.subscriptions.push(linkProvider, completionProvider);
     }
 
     /**
