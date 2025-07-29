@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col w-full xs:min-w-32">
+  <div class="flex flex-col w-full xs:min-w-32 max-w-40">
     <label class="text-xs text-editor-fg mb-1 font-medium whitespace-nowrap">
       {{ label }}
       <span class="text-3xs italic font-mono opacity-65 text-editor-fg">(UTC)</span>
@@ -8,7 +8,7 @@
       <input
         ref="textInput"
         type="text"
-        class="w-full text-2xs px-1 border-0 py-0.5 bg-dropdown-bg pr-6"
+        class="w-full text-2xs px-1 border-0 py-0.5 bg-dropdown-bg pr-6 min-w-0"
         :value="displayValue"
         @input="handleTextInput"
         @blur="validateInput"

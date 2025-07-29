@@ -996,10 +996,9 @@ export class BruinPanel {
   }
 
   private async _isAssetFile(filePath: string): Promise<boolean> {
-    console.log(`_isAssetFile: Checking if file is asset using CLI only: ${filePath}`);
 
     try {
-      // Use CLI internal parse command to check if file is an asset - NO REGEX
+      // Primary method: Use CLI internal parse command
       const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || "";
       const parser = new BruinInternalParse(
         getBruinExecutablePath(),
@@ -1007,10 +1006,42 @@ export class BruinPanel {
       );
       
       const isAsset = await parser.checkIfAsset(filePath);
-      console.log(`_isAssetFile: CLI-only asset check result for ${filePath}: ${isAsset}`);
-      return isAsset;
+      console.log(`_isAssetFile: CLI asset check result for ${filePath}: ${isAsset}`);
+      
+      if (isAsset) {
+        return true;
+      }
+      
+      // Fallback: If CLI says it's not an asset, use regex-based detection
+      // This helps with malformed files that CLI can't parse but are still assets
+      console.log(`_isAssetFile: CLI returned false, checking with regex fallback for ${filePath}`);
+      const fileExt = this._getFileExtension(filePath);
+      const validExtensions = [".sql", ".py", ".yml", ".yaml"];
+      
+      if (validExtensions.includes(`.${fileExt}`)) {
+        const fallbackResult = await isBruinAsset(filePath, validExtensions);
+        console.log(`_isAssetFile: Regex fallback result for ${filePath}: ${fallbackResult}`);
+        return fallbackResult;
+      }
+      
+      return false;
     } catch (error) {
       console.error(`_isAssetFile: Error checking if file is asset (${filePath}):`, error);
+      
+      // Last resort fallback: try regex detection even on error
+      try {
+        const fileExt = this._getFileExtension(filePath);
+        const validExtensions = [".sql", ".py", ".yml", ".yaml"];
+        
+        if (validExtensions.includes(`.${fileExt}`)) {
+          const fallbackResult = await isBruinAsset(filePath, validExtensions);
+          console.log(`_isAssetFile: Error fallback result for ${filePath}: ${fallbackResult}`);
+          return fallbackResult;
+        }
+      } catch (fallbackError) {
+        console.error(`_isAssetFile: Fallback also failed for ${filePath}:`, fallbackError);
+      }
+      
       return false;
     }
   }
