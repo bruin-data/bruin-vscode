@@ -23,7 +23,14 @@ export class BruinLanguageServer {
             new BruinDocumentLinkProvider(this)
         );
 
-        context.subscriptions.push(linkProvider);
+        // Register completion provider for autocomplete in depends section
+        const completionProvider = vscode.languages.registerCompletionItemProvider(
+            { scheme: 'file', language: 'sql' },
+            new BruinCompletionProvider(this),
+            '-', ' ' // Trigger on dash and space
+        );
+
+        context.subscriptions.push(linkProvider, completionProvider);
     }
 
     /**
@@ -156,6 +163,92 @@ class BruinDocumentLinkProvider implements vscode.DocumentLinkProvider {
     }
 }
 
+/**
+ * Completion provider for asset dependencies autocomplete
+ */
+class BruinCompletionProvider implements vscode.CompletionItemProvider {
+    constructor(private languageServer: BruinLanguageServer) {}
+
+    async provideCompletionItems(
+        document: vscode.TextDocument,
+        position: vscode.Position,
+        token: vscode.CancellationToken,
+        context: vscode.CompletionContext
+    ): Promise<vscode.CompletionItem[]> {
+        // Check if this is a Bruin SQL asset
+        if (!await isBruinSqlAsset(document.fileName)) {
+            return [];
+        }
+
+        // Check if we're in the depends section
+        const { start, end } = getDependsSectionOffsets(document);
+        if (start === -1 || end === -1) {
+            return [];
+        }
+
+        const currentOffset = document.offsetAt(position);
+        if (currentOffset < start || currentOffset > end) {
+            return [];
+        }
+
+        // Check if we're on a dependency line (starts with "- " or just after it)
+        const lineText = document.lineAt(position.line).text;
+        const trimmedLine = lineText.trim();
+        
+        // Only provide completions on dependency lines
+        if (!trimmedLine.startsWith('-') && !lineText.includes('-')) {
+            return [];
+        }
+
+        try {
+            // Get all available assets from pipeline
+            const pipelineData = await this.languageServer.getPipelineData(document.fileName);
+            if (!pipelineData || !pipelineData.assets) {
+                return [];
+            }
+
+            // Get current asset name to exclude from suggestions
+            const currentAsset = pipelineData.assets.find((asset: any) => 
+                asset.definition_file && asset.definition_file.path === document.fileName
+            );
+            const currentAssetName = currentAsset?.name || currentAsset?.id;
+
+            // Create completion items for all other assets
+            const completions: vscode.CompletionItem[] = [];
+
+            for (const asset of pipelineData.assets) {
+                const assetName = asset.name || asset.id;
+                
+                // Skip current asset and assets without names
+                if (!assetName || assetName === currentAssetName) {
+                    continue;
+                }
+
+                const completion = new vscode.CompletionItem(assetName, vscode.CompletionItemKind.Reference);
+                completion.detail = `Asset: ${asset.type || 'unknown'}`;
+                completion.documentation = new vscode.MarkdownString(
+                    `**Asset:** \`${assetName}\`\n\n` +
+                    `**Type:** ${asset.type || 'unknown'}\n\n` +
+                    `**File:** \`${vscode.workspace.asRelativePath(asset.definition_file?.path || '')}\``
+                );
+
+                // Add sorting priority (shorter names first, then alphabetical)
+                completion.sortText = `${assetName.length.toString().padStart(3, '0')}_${assetName}`;
+
+                // Configure insertion behavior
+                completion.insertText = assetName;
+                completion.filterText = assetName;
+
+                completions.push(completion);
+            }
+
+            return completions;
+        } catch (error) {
+            console.error('Error providing completions:', error);
+            return [];
+        }
+    }
+}
 
 /**
  * File system watcher to clear cache when pipeline files change
