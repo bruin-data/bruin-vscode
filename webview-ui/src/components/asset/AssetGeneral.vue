@@ -50,7 +50,7 @@
 
         <div class="flex flex-col 2xs:flex-row flex-wrap gap-2 justify-start xs:justify-end items-stretch 2xs:items-center w-full xs:w-auto">
           <!-- Validate Button Group -->
-          <div class="inline-flex w-full 2xs:w-auto">
+          <div class="inline-flex">
             <vscode-button
               @click="handleBruinValidateCurrentAsset"
               :disabled="isNotAsset || isError"
@@ -129,7 +129,7 @@
           </div>
 
           <!-- Run Button Group -->
-          <div class="inline-flex w-full 2xs:w-auto sm:mt-0">
+          <div class="inline-flex">
             <vscode-button @click="runAssetOnly" :disabled="isNotAsset || isError">
               <div class="flex items-center">
                 <PlayIcon class="h-4 w-4 mr-1" aria-hidden="true" />
