@@ -1,4 +1,7 @@
 # Changelog
+## [0.60.1] - [2025-07-29]
+- Added support for nullable and owner properties in the asset columns and improved the UI responsiveness.
+
 ## [0.60.0] - [2025-07-28]
 - Added support for query timeout and cancellation and improved environemnt management UI.
 

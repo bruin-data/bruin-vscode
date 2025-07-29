@@ -55,6 +55,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.60.1**: Added support for nullable and owner properties in the asset columns and improved the UI responsiveness.
 - **0.60.0**: Added support for query timeout and cancellation and improved environemnt management UI.
 - **0.59.3**: Updated query extraction logic for non-asset files and added pagination to the query preview.
 - **0.59.2**: Display CodeLens only when selection starts outside Bruin block.
