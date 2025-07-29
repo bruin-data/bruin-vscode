@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { BruinLineageInternalParse } from '../bruin/bruinFlowLineage';
-import { getDependsSectionOffsets, isBruinSqlAsset } from '../utilities/helperUtils';
+import { getDependsSectionOffsets } from '../utilities/helperUtils';
 import { getCurrentPipelinePath } from '../bruin/bruinUtils';
 import { getBruinExecutablePath } from '../providers/BruinExecutableService';
 import * as path from 'path';
@@ -17,20 +17,36 @@ export class BruinLanguageServer {
      * Register the language server providers with VSCode
      */
     public registerProviders(context: vscode.ExtensionContext): void {
-        // Register document link provider to make dependencies clickable
-        const linkProvider = vscode.languages.registerDocumentLinkProvider(
+        // Register document link provider for both SQL and Python files
+        const sqlLinkProvider = vscode.languages.registerDocumentLinkProvider(
             { scheme: 'file', language: 'sql' },
             new BruinDocumentLinkProvider(this)
         );
 
-        // Register completion provider for autocomplete in depends section
-        const completionProvider = vscode.languages.registerCompletionItemProvider(
+        const pythonLinkProvider = vscode.languages.registerDocumentLinkProvider(
+            { scheme: 'file', language: 'python' },
+            new BruinDocumentLinkProvider(this)
+        );
+
+        // Register completion provider for both SQL and Python files
+        const sqlCompletionProvider = vscode.languages.registerCompletionItemProvider(
             { scheme: 'file', language: 'sql' },
             new BruinCompletionProvider(this),
             '-', ' ' // Trigger on dash and space
         );
 
-        context.subscriptions.push(linkProvider, completionProvider);
+        const pythonCompletionProvider = vscode.languages.registerCompletionItemProvider(
+            { scheme: 'file', language: 'python' },
+            new BruinCompletionProvider(this),
+            '-', ' ' // Trigger on dash and space
+        );
+
+        context.subscriptions.push(
+            sqlLinkProvider, 
+            pythonLinkProvider, 
+            sqlCompletionProvider, 
+            pythonCompletionProvider
+        );
     }
 
     /**
@@ -70,7 +86,7 @@ export class BruinLanguageServer {
 
             // Find the asset with matching name
             const asset = pipelineData.assets.find((asset: any) => 
-                asset.name === dependencyName || asset.id === dependencyName
+                asset.name === dependencyName
             );
 
             if (asset && asset.definition_file && asset.definition_file.path) {
@@ -90,7 +106,6 @@ export class BruinLanguageServer {
      */
     public clearCache(filePath?: string): void {
         if (filePath) {
-            // Clear specific pipeline cache
             const entries = Array.from(this.pipelineCache.entries());
             entries.forEach(([pipelinePath, _]) => {
                 if (filePath.startsWith(path.dirname(pipelinePath))) {
@@ -98,7 +113,6 @@ export class BruinLanguageServer {
                 }
             });
         } else {
-            // Clear all cache
             this.pipelineCache.clear();
         }
     }
@@ -106,7 +120,7 @@ export class BruinLanguageServer {
 
 
 /**
- * Document link provider to make dependencies clickable (blue underlined links)
+ * Document link provider to make dependencies clickable
  */
 class BruinDocumentLinkProvider implements vscode.DocumentLinkProvider {
     constructor(private languageServer: BruinLanguageServer) {}
@@ -115,11 +129,6 @@ class BruinDocumentLinkProvider implements vscode.DocumentLinkProvider {
         document: vscode.TextDocument,
         token: vscode.CancellationToken
     ): Promise<vscode.DocumentLink[]> {
-        // Check if this is a Bruin SQL asset
-        if (!await isBruinSqlAsset(document.fileName)) {
-            return [];
-        }
-
         const links: vscode.DocumentLink[] = [];
         const { start, end } = getDependsSectionOffsets(document);
         
@@ -175,11 +184,6 @@ class BruinCompletionProvider implements vscode.CompletionItemProvider {
         token: vscode.CancellationToken,
         context: vscode.CompletionContext
     ): Promise<vscode.CompletionItem[]> {
-        // Check if this is a Bruin SQL asset
-        if (!await isBruinSqlAsset(document.fileName)) {
-            return [];
-        }
-
         // Check if we're in the depends section
         const { start, end } = getDependsSectionOffsets(document);
         if (start === -1 || end === -1) {
