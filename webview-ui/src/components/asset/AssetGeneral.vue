@@ -10,14 +10,14 @@
             :options="environments"
             @selected-env="setSelectedEnv"
             :selectedEnvironment="selectedEnvironment"
-            class="flex-shrink-0 hidden xs:flex"
+            class="flex-shrink-0"
           />
           <!-- Date Controls and Checkbox Group -->
           <div id="controls" class="flex flex-col xs:w-1/2">
-            <div class="flex gap-1 w-full justify-between xs:justify-end">
+            <div class="flex flex-col xs:flex-row gap-1 w-full justify-between xs:justify-end">
               <DateInput label="Start Date" v-model="startDate" />
               <DateInput label="End Date" v-model="endDate" />
-              <div class="flex items-center self-end">
+              <div class="flex items-center gap-1 self-start xs:self-end">
                 <button
                   type="button"
                   @click="resetDatesOnSchedule"
@@ -26,7 +26,7 @@
                 >
                   <ArrowPathRoundedSquareIcon class="h-3 w-3" aria-hidden="true" />
                 </button>
-                <div class="relative ml-1">
+                <div class="relative">
                   <ChevronUpIcon
                     v-if="showCheckboxGroup"
                     class="h-4 w-4"
@@ -46,17 +46,9 @@
       </div>
 
       <!-- Action Buttons Row -->
-      <div class="flex flex-wrap justify-between items-end space-y-1">
-        <div class="flex-1 relative">
-          <EnvSelectMenu
-            :options="environments"
-            @selected-env="setSelectedEnv"
-            :selectedEnvironment="selectedEnvironment"
-            class="flex-shrink-0 hidden xs:hidden 2xs:flex"
-          />
-        </div>
+      <div class="flex flex-col xs:flex-row gap-2 justify-end items-start xs:items-end">
 
-        <div class="flex justify-end items-center space-x-2 sm:space-x-4 sm:mt-0">
+        <div class="flex flex-col 2xs:flex-row flex-wrap gap-2 justify-start xs:justify-end items-stretch 2xs:items-center w-full xs:w-auto">
           <!-- Validate Button Group -->
           <div class="inline-flex">
             <vscode-button
@@ -112,7 +104,7 @@
                 leave-from-class="transform opacity-100 scale-100"
                 leave-to-class="transform opacity-0 scale-95"
               >
-                <MenuItems class="absolute right-2 z-10 -mr-1 w-48 origin-top-right">
+                <MenuItems class="absolute right-0 left-auto z-10 w-40 xs:w-48 origin-top-right max-w-[calc(100vw-2rem)]">
                   <div class="p-1 bg-editorWidget-bg rounded-sm border border-commandCenter-border">
                     <MenuItem key="validate-current">
                       <vscode-button
@@ -137,7 +129,7 @@
           </div>
 
           <!-- Run Button Group -->
-          <div class="inline-flex sm:mt-0">
+          <div class="inline-flex">
             <vscode-button @click="runAssetOnly" :disabled="isNotAsset || isError">
               <div class="flex items-center">
                 <PlayIcon class="h-4 w-4 mr-1" aria-hidden="true" />
@@ -160,7 +152,7 @@
                 leave-from-class="transform opacity-100 scale-100"
                 leave-to-class="transform opacity-0 scale-95"
               >
-                <MenuItems class="absolute right-0 z-10 w-48 origin-top-right">
+                <MenuItems class="absolute left-0 xs:right-0 xs:left-auto z-10 w-40 xs:w-48 origin-top-left xs:origin-top-right max-w-[calc(100vw-2rem)]">
                   <div class="p-1 bg-editorWidget-bg rounded-sm border border-commandCenter-border">
                     <MenuItem key="run-with-downstream" v-slot="{ active }">
                       <vscode-button
