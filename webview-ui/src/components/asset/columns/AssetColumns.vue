@@ -1,6 +1,6 @@
 <template>
-  <div class="flex flex-col py-4 sm:py-1 h-full w-full min-w-56 relative">
-    <div class="flex flex-wrap justify-end gap-2 mb-4 min-w-0">
+  <div class="flex flex-col py-4 sm:py-1 h-full w-full relative">
+    <div class="flex justify-end mb-4 space-x-2">
       <vscode-button @click="fillColumnsFromDB" :disabled="fillColumnsStatus === 'loading'" class="py-1 focus:outline-none disabled:cursor-not-allowed flex-shrink-0 whitespace-nowrap">
         <template v-if="fillColumnsStatus === 'loading'">
           <svg
@@ -45,17 +45,21 @@
 
     <!-- Column Table -->
     <div class="flex-1 min-h-72 overflow-x-auto text-xs mt-5">
-      <table class="w-full min-w-fit">
+      <table class="w-full min-w-fit text-xs">
         <thead class="sticky top-0 bg-editorWidget-bg z-10">
           <tr class="font-semibold text-xs opacity-65 border-b-2 border-editor-fg">
             <th class="px-2 py-1 text-left" style="width: 2rem;" title="Primary key">
               <KeyIcon class="h-4 w-4 text-editor-fg opacity-60" />
             </th>
-            <th class="px-2 py-1 text-left" style="width: 100px;">Name</th>
+            <th class="px-2 py-1 text-center" style="width: 2rem;" title="Nullable">
+              Null
+            </th>
+            <th class="px-2 py-1 text-left" style="width: 120px;">Name</th>
             <th class="px-2 py-1 text-left" style="width: 80px;">Type</th>
             <th class="px-2 py-1 text-left" style="width: 120px;">Description</th>
-            <th class="px-2 py-1 text-left" style="width: 150px;">Checks</th>
-            <th class="px-2 py-1 text-center" style="width: 100px;">Actions</th>
+            <th class="px-2 py-1 text-left" style="width: 80px;">Owner</th>
+            <th class="px-2 py-1 text-left" style="width: 120px;">Checks</th>
+            <th class="px-2 py-1 text-center" style="width: 80px;">Actions</th>
           </tr>
         </thead>
         <tbody v-if="localColumns.length">
@@ -72,6 +76,19 @@
               >
               </vscode-checkbox>
             </td>
+            
+            <!-- Nullable -->
+            <td class="px-2 py-1 text-center" style="width: 2rem;">
+              <span
+                @click="toggleNullableDirect(index)"
+                class="cursor-pointer hover:opacity-80 text-xs font-mono"
+                :class="column.nullable ? 'text-editorInfo-foreground' : 'text-editor-fg opacity-50'"
+                :title="column.nullable ? 'Nullable (click to disable)' : 'Not nullable (click to enable)'"
+              >
+                {{ column.nullable ? '✓' : '✗' }}
+              </span>
+            </td>
+            
             <!-- Name -->
             <td class="px-2 py-1 font-medium font-mono text-xs" style="width: 100px;">
               <div v-if="editingIndex === index" class="flex flex-col gap-1">
@@ -135,6 +152,28 @@
                 {{ column.description || "No description provided." }}
               </div>
             </td>
+
+            <!-- Owner -->
+            <td class="px-2 py-1" style="width: 80px;">
+              <div v-if="editingIndex === index" class="flex flex-col gap-1">
+                <input
+                  v-model="editingColumn.owner"
+                  class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs"
+                  placeholder="Enter owner"
+                />
+              </div>
+              <div v-else>
+                <span
+                  class=" hover:opacity-80 truncate block"
+                  :class="column.owner ? 'text-editor-fg' : 'text-editor-fg opacity-50 italic'"
+                  :title="column.owner ? `Owner: ${column.owner}` : 'No owner'"
+                >
+                  {{ column.owner || 'none' }}
+                </span>
+              </div>
+            </td>
+            
+
 
             <!-- Checks -->
             <td class="px-2 py-1" style="width: 150px;">
@@ -325,7 +364,16 @@ const props = defineProps({
 });
 
 const showDeleteAlert = ref(false);
-const localColumns = ref([...props.columns]);
+const localColumns = ref(props.columns.map((column) => ({
+  ...column,
+  checks: column.checks || [],
+  primary_key: !!column.primary_key,
+  nullable: column.nullable !== undefined ? column.nullable : true,
+  update_on_merge: column.update_on_merge !== undefined ? column.update_on_merge : false,
+  owner: column.owner || "",
+  domains: column.domains || [],
+  meta: column.meta || {},
+})));
 const editingIndex = ref(null);
 const editingColumn = ref({});
 const showPatternInput = ref(false);
@@ -335,6 +383,10 @@ const newAcceptedValuesInput = ref("");
 const error = ref(null);
 const showAddCheckDropdown = ref(null);
 const isConfigFile = computed(() => props.isConfigFile);
+
+// Reactive inputs for inline editing
+const domainsInput = ref("");
+const metaInput = ref("");
 
 // Fill columns from DB status
 const fillColumnsStatus = ref(null);
@@ -347,7 +399,6 @@ const updatePatternValue = () => {
 };
 
 const openGlossaryLink = (entityAttribute) => {
-  console.log("Opening glossary for entity:", entityAttribute);
   vscode.postMessage({ command: "bruin.openGlossary" });
 };
 
@@ -404,15 +455,22 @@ const addColumn = () => {
       checks: [],
       entity_attribute: null,
       primary_key: false,
+      nullable: true,
+      update_on_merge: false,
+      owner: "",
+      domains: [],
+      meta: {},
     };
 
     // Add new column to local columns
     localColumns.value.push(newColumn);
     editingIndex.value = localColumns.value.length - 1;
     editingColumn.value = JSON.parse(JSON.stringify(newColumn));
+    
+    // Initialize input fields for new column
+    domainsInput.value = "";
+    metaInput.value = "{}";
   } catch (error) {
-    console.error("Error adding new column:", error);
-    // Show an error message to the user
     showError(`"Failed to add new column. Please try again. \n" ${error}`);
   }
 };
@@ -430,14 +488,43 @@ const togglePrimaryKey = (event, index) => {
     primary_key: isChecked,
   };
 
-  const payload = { columns: JSON.parse(JSON.stringify(localColumns.value)) };
-  console.warn("Primary Key toggled for column:", col.name);
+  const formattedColumns = formatColumnsForPayload(localColumns.value);
+  const payload = { columns: formattedColumns };
   vscode.postMessage({
     command: "bruin.setAssetDetails",
     payload: payload,
     source: "togglePrimaryKey",
   });
 };
+
+const toggleNullableDirect = (index) => {
+  const col = localColumns.value[index];
+  if (!col) return;
+
+  localColumns.value[index] = {
+    ...col,
+    nullable: !col.nullable,
+  };
+
+  try {
+    const formattedColumns = formatColumnsForPayload(localColumns.value);
+    const payload = { columns: formattedColumns };
+    
+    // Ensure payload is serializable
+    const payloadStr = JSON.stringify(payload);
+    const safePayload = JSON.parse(payloadStr);
+    
+    vscode.postMessage({
+      command: "bruin.setAssetDetails",
+      payload: safePayload,
+      source: "toggleNullableDirect",
+    });
+  } catch (error) {
+    // Revert the change if there's an error
+    localColumns.value[index] = col;
+  }
+};
+
 
 const saveChanges = (index) => {
   try {
@@ -455,13 +542,7 @@ const saveChanges = (index) => {
     showPatternInput.value = false;
 
     // Prepare and send data
-    const formattedColumns = localColumns.value.map((column) => ({
-      ...column,
-      checks: formatChecks(column.checks),
-      entity_attribute: column.entity_attribute || null,
-      primary_key: column.primary_key,
-    }));
-
+    const formattedColumns = formatColumnsForPayload(localColumns.value);
     const payload = { columns: formattedColumns };
     const payloadStr = JSON.stringify(payload);
     const safePayload = JSON.parse(payloadStr);
@@ -473,7 +554,6 @@ const saveChanges = (index) => {
     });
 
   } catch (error) {
-    console.error("Error saving column changes:", error);
     showError(`Failed to save column changes. Please try again. \n ${error}`);
   }
 };
@@ -504,6 +584,47 @@ const formatChecks = (checks) => {
     }
   });
   return formattedChecks;
+};
+
+const formatColumnsForPayload = (columns) => {
+  return columns.map((column) => {
+    // Ensure all values are serializable
+    const safeColumn = {
+      name: String(column.name || ""),
+      type: String(column.type || ""),
+      description: String(column.description || ""),
+      checks: formatChecks(column.checks || []),
+      entity_attribute: column.entity_attribute || null,
+      primary_key: Boolean(column.primary_key),
+      nullable: Boolean(column.nullable !== undefined ? column.nullable : true),
+      update_on_merge: Boolean(column.update_on_merge !== undefined ? column.update_on_merge : false),
+      owner: String(column.owner || ""),
+      domains: Array.isArray(column.domains) ? [...column.domains] : [],
+      meta: column.meta && typeof column.meta === 'object' ? { ...column.meta } : {},
+    };
+    
+    // Test serialization to catch any issues
+    try {
+      JSON.stringify(safeColumn);
+    } catch (error) {
+      // Return a safe fallback
+      return {
+        name: String(column.name || ""),
+        type: String(column.type || ""),
+        description: String(column.description || ""),
+        checks: [],
+        entity_attribute: null,
+        primary_key: false,
+        nullable: true,
+        update_on_merge: false,
+        owner: "",
+        domains: [],
+        meta: {},
+      };
+    }
+    
+    return safeColumn;
+  });
 };
 
 const getActiveChecks = computed(() => (column) => {
@@ -573,7 +694,8 @@ const removeCheck = (checkName) => {
     newPatternValue.value = "";
   }
   
-  const payload = { columns: JSON.parse(JSON.stringify(localColumns.value)) };
+  const formattedColumns = formatColumnsForPayload(localColumns.value);
+  const payload = { columns: formattedColumns };
   vscode.postMessage({
     command: "bruin.setAssetDetails",
     payload: payload,
@@ -587,43 +709,37 @@ const ensureDropdownVisibility = (dropdown, container) => {
   // Add temporary overflow class to container
   container.classList.add('dropdown-container-open');
   
-  // Wait a bit for the dropdown to fully render
-  setTimeout(() => {
-    const dropdownRect = dropdown.getBoundingClientRect();
-    const containerRect = container.getBoundingClientRect();
-    const viewportHeight = window.innerHeight;
-    
-    console.log('Dropdown rect:', dropdownRect);
-    console.log('Container rect:', containerRect);
-    
-    // Check if dropdown is clipped at the top of the container
-    if (dropdownRect.top < containerRect.top) {
-      const scrollOffset = containerRect.top - dropdownRect.top + 30;
-      console.log('Scrolling up by:', scrollOffset);
-      container.scrollBy({
-        top: -scrollOffset,
-        behavior: 'smooth'
-      });
-    }
-    // Check if dropdown is clipped at the bottom of the container
-    else if (dropdownRect.bottom > containerRect.bottom) {
-      const scrollOffset = dropdownRect.bottom - containerRect.bottom + 30;
-      console.log('Scrolling down by:', scrollOffset);
-      container.scrollBy({
-        top: scrollOffset,
-        behavior: 'smooth'
-      });
-    }
-    // Check if dropdown is clipped at the bottom of the viewport
-    else if (dropdownRect.bottom > viewportHeight) {
-      const scrollOffset = dropdownRect.bottom - viewportHeight + 50;
-      console.log('Scrolling viewport by:', scrollOffset);
-      window.scrollBy({
-        top: scrollOffset,
-        behavior: 'smooth'
-      });
-    }
-  }, 50);
+      // Wait a bit for the dropdown to fully render
+    setTimeout(() => {
+      const dropdownRect = dropdown.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      
+      // Check if dropdown is clipped at the top of the container
+      if (dropdownRect.top < containerRect.top) {
+        const scrollOffset = containerRect.top - dropdownRect.top + 30;
+        container.scrollBy({
+          top: -scrollOffset,
+          behavior: 'smooth'
+        });
+      }
+      // Check if dropdown is clipped at the bottom of the container
+      else if (dropdownRect.bottom > containerRect.bottom) {
+        const scrollOffset = dropdownRect.bottom - containerRect.bottom + 30;
+        container.scrollBy({
+          top: scrollOffset,
+          behavior: 'smooth'
+        });
+      }
+      // Check if dropdown is clipped at the bottom of the viewport
+      else if (dropdownRect.bottom > viewportHeight) {
+        const scrollOffset = dropdownRect.bottom - viewportHeight + 50;
+        window.scrollBy({
+          top: scrollOffset,
+          behavior: 'smooth'
+        });
+      }
+    }, 50);
 };
 
 const toggleAddCheckDropdown = (index) => {
@@ -703,9 +819,20 @@ const startEditing = (index) => {
   editingIndex.value = index;
   // Create a deep copy to avoid reference issues
   editingColumn.value = JSON.parse(JSON.stringify(localColumns.value[index]));
-  // Ensure primary_key is properly set in the editing copy
+  // Ensure fields are properly set in the editing copy
   editingColumn.value.primary_key = !!localColumns.value[index].primary_key;
+  editingColumn.value.nullable = localColumns.value[index].nullable !== undefined ? localColumns.value[index].nullable : true;
+  editingColumn.value.update_on_merge = localColumns.value[index].update_on_merge !== undefined ? localColumns.value[index].update_on_merge : false;
+  editingColumn.value.owner = localColumns.value[index].owner || "";
+  editingColumn.value.domains = localColumns.value[index].domains || [];
+  editingColumn.value.meta = localColumns.value[index].meta || {};
+  
+  // Populate input fields for inline editing
+  domainsInput.value = (localColumns.value[index].domains || []).join(", ");
+  metaInput.value = JSON.stringify(localColumns.value[index].meta || {}, null, 2);
 };
+
+
 
 const deleteColumn = (index) => {
   localColumns.value.splice(index, 1);
@@ -717,7 +844,8 @@ const deleteColumn = (index) => {
     }
   }
   showDeleteAlert.value = false;
-  const payload = { columns: JSON.parse(JSON.stringify(localColumns.value)) };
+  const formattedColumns = formatColumnsForPayload(localColumns.value);
+  const payload = { columns: formattedColumns };
   vscode.postMessage({
     command: "bruin.setAssetDetails",
     payload: payload,
@@ -818,6 +946,11 @@ watch(
       ...column,
       checks: column.checks || [],
       primary_key: !!column.primary_key,
+      nullable: column.nullable !== undefined ? column.nullable : true,
+      update_on_merge: column.update_on_merge !== undefined ? column.update_on_merge : false,
+      owner: column.owner || "",
+      domains: column.domains || [],
+      meta: column.meta || {},
     }));
   },
   { deep: true }
@@ -886,4 +1019,27 @@ input:focus,
 select:focus {
   outline: none;
 }
+
+/* Compact table styles */
+table {
+  font-size: 0.75rem;
+}
+
+th, td {
+  padding: 0.25rem 0.5rem;
+  white-space: nowrap;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  table {
+    font-size: 0.7rem;
+  }
+  
+  th, td {
+    padding: 0.125rem 0.25rem;
+  }
+}
+
+
 </style>
