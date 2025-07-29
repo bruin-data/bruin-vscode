@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col py-4 sm:py-1 h-full w-full min-w-56 relative">
-    <div class="flex justify-end mb-4 space-x-2">
+    <div class="flex flex-wrap justify-end gap-2 mb-4 min-w-0">
       <vscode-button @click="fillColumnsFromDB" :disabled="fillColumnsStatus === 'loading'" class="py-1 focus:outline-none disabled:cursor-not-allowed flex-shrink-0 whitespace-nowrap">
         <template v-if="fillColumnsStatus === 'loading'">
           <svg
