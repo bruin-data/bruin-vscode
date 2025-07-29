@@ -17,13 +17,13 @@ export class BruinLanguageServer {
      * Register the language server providers with VSCode
      */
     public registerProviders(context: vscode.ExtensionContext): void {
-        // Register go-to-definition provider for SQL files
-        const definitionProvider = vscode.languages.registerDefinitionProvider(
+        // Register document link provider to make dependencies clickable
+        const linkProvider = vscode.languages.registerDocumentLinkProvider(
             { scheme: 'file', language: 'sql' },
-            new BruinDefinitionProvider(this)
+            new BruinDocumentLinkProvider(this)
         );
 
-        context.subscriptions.push(definitionProvider);
+        context.subscriptions.push(linkProvider);
     }
 
     /**
@@ -78,6 +78,7 @@ export class BruinLanguageServer {
         }
     }
 
+
     /**
      * Clear pipeline cache when files change
      */
@@ -97,67 +98,65 @@ export class BruinLanguageServer {
     }
 }
 
+
 /**
- * Definition provider for Bruin SQL assets
+ * Document link provider to make dependencies clickable (blue underlined links)
  */
-class BruinDefinitionProvider implements vscode.DefinitionProvider {
+class BruinDocumentLinkProvider implements vscode.DocumentLinkProvider {
     constructor(private languageServer: BruinLanguageServer) {}
 
-    async provideDefinition(
+    async provideDocumentLinks(
         document: vscode.TextDocument,
-        position: vscode.Position,
         token: vscode.CancellationToken
-    ): Promise<vscode.Definition | null> {
+    ): Promise<vscode.DocumentLink[]> {
         // Check if this is a Bruin SQL asset
         if (!await isBruinSqlAsset(document.fileName)) {
-            return null;
+            return [];
         }
 
-        // Check if the position is within the depends section
+        const links: vscode.DocumentLink[] = [];
         const { start, end } = getDependsSectionOffsets(document);
+        
         if (start === -1 || end === -1) {
-            return null;
+            return [];
         }
 
-        const currentOffset = document.offsetAt(position);
-        if (currentOffset < start || currentOffset > end) {
-            return null;
-        }
+        const dependsText = document.getText(new vscode.Range(
+            document.positionAt(start),
+            document.positionAt(end)
+        ));
 
-        // Get the word at the current position
-        const wordRange = document.getWordRangeAtPosition(position, /[a-zA-Z0-9_.-]+/);
-        if (!wordRange) {
-            return null;
-        }
+        // Find all dependency names in the depends section
+        const dependencyRegex = /^\s*-\s+([a-zA-Z0-9_.-]+)/gm;
+        let match;
 
-        const dependencyName = document.getText(wordRange);
-        if (!dependencyName) {
-            return null;
-        }
+        while ((match = dependencyRegex.exec(dependsText)) !== null) {
+            const dependencyName = match[1];
+            const matchStart = start + match.index + match[0].indexOf(dependencyName);
+            const matchEnd = matchStart + dependencyName.length;
 
-        // Skip if this is the "depends:" keyword itself
-        if (dependencyName === 'depends') {
-            return null;
-        }
-
-        try {
-            // Find the asset file for this dependency
-            const assetFilePath = await this.languageServer.findAssetFile(dependencyName, document.fileName);
-            if (!assetFilePath) {
-                return null;
+            try {
+                const assetFilePath = await this.languageServer.findAssetFile(dependencyName, document.fileName);
+                if (assetFilePath) {
+                    const link = new vscode.DocumentLink(
+                        new vscode.Range(
+                            document.positionAt(matchStart),
+                            document.positionAt(matchEnd)
+                        ),
+                        vscode.Uri.file(assetFilePath)
+                    );
+                    link.tooltip = `Go to ${dependencyName}`;
+                    links.push(link);
+                }
+            } catch (error) {
+                console.error(`Error creating link for ${dependencyName}:`, error);
             }
-
-            // Return the definition location
-            return new vscode.Location(
-                vscode.Uri.file(assetFilePath),
-                new vscode.Position(0, 0)
-            );
-        } catch (error) {
-            console.error('Error providing definition:', error);
-            return null;
         }
+
+        return links;
     }
 }
+
 
 /**
  * File system watcher to clear cache when pipeline files change
