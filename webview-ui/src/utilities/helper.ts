@@ -195,6 +195,11 @@ export const transformColumnData = (columns) => {
       checks: column.checks,
       entity_attribute: column.entity_attribute,
       primary_key: column.primary_key,
+      nullable: column.nullable,
+      update_on_merge: column.update_on_merge,
+      owner: column.owner,
+      domains: column.domains,
+      meta: column.meta,
     };
     return newColumn;
   });
