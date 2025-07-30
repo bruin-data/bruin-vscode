@@ -29,6 +29,7 @@ import { ActivityBarConnectionsProvider } from "../providers/ActivityBarConnecti
 import { FavoritesProvider } from "../providers/FavoritesProvider";
 import { TableDetailsPanel } from "../panels/TableDetailsPanel";
 import { BruinLanguageServer, registerFileWatcher } from "../language-server/bruinLanguageServer";
+import { BruinAssetLanguageServer } from "../language-server/assetLanguageServer";
 
 let analyticsClient: any = null;
 
@@ -238,6 +239,10 @@ export async function activate(context: ExtensionContext) {
   const bruinLanguageServer = new BruinLanguageServer();
   bruinLanguageServer.registerProviders(context);
   registerFileWatcher(bruinLanguageServer, context);
+
+  // Initialize Bruin Asset Language Server
+  const bruinAssetLanguageServer = new BruinAssetLanguageServer();
+  bruinAssetLanguageServer.registerProviders(context);
 
   const defaultFoldingState = bruinConfig.get("bruin.FoldingState", "folded");
   let toggled = defaultFoldingState === "folded";
