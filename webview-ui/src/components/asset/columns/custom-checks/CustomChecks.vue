@@ -29,8 +29,12 @@
                 :id="`custom-check-name-input-${index}`"
                 v-model="(editingCustomCheck as CustomChecks).name"
                 class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs"
+                :class="{ 'border border-red-500': isDuplicateName }"
                 rows="2"
                 ></textarea>
+              <div v-if="isDuplicateName" class="text-xs text-red-500 mt-1">
+                A check with this name already exists.
+              </div>
             </div>
             <div v-else class="break-words whitespace-normal truncate" :title="check.name">
               {{ check.name }}
@@ -120,8 +124,10 @@
                 :id="`custom-check-save-button-${index}`"
                 appearance="icon"
                 @click="saveCustomChecks"
+                :disabled="isSaveDisabled"
                 aria-label="Save"
                 class="flex items-center"
+                :class="{ 'opacity-50 cursor-not-allowed': isSaveDisabled }"
               >
                 <CheckIcon class="h-3 w-3" />
               </vscode-button>
@@ -215,6 +221,22 @@ const isCountDisabled = computed(() => {
   return hasValue(editingCustomCheck.value.value);
 });
 
+// Computed property to check for duplicate names
+const isDuplicateName = computed(() => {
+  if (!editingCustomCheck.value || !editingCustomCheck.value.name) return false;
+  
+  const currentName = editingCustomCheck.value.name.trim().toLowerCase();
+  return localCustomChecks.value.some((check, index) => 
+    index !== editingIndex.value && 
+    check.name.trim().toLowerCase() === currentName
+  );
+});
+
+// Computed property to determine if save should be disabled
+const isSaveDisabled = computed(() => {
+  return isDuplicateName.value || !editingCustomCheck.value?.name?.trim();
+});
+
 // Watchers for mutual exclusivity
 watch(() => editingCustomCheck.value?.value, (newValue) => {
   if (editingCustomCheck.value && hasValue(newValue)) {
@@ -280,9 +302,15 @@ const deleteCustomCheck = (index: number) => {
 const saveCustomChecks = () => {
   try {
     if (editingIndex.value !== null && editingCustomCheck.value) {
+      // Prevent saving if validation fails
+      if (isSaveDisabled.value) {
+        return;
+      }
+
       // Convert value and count to numbers explicitly
       const updatedCheck = {
         ...editingCustomCheck.value,
+        name: editingCustomCheck.value.name.trim(),
         value: Number(editingCustomCheck.value.value) || 0,
         count: Number(editingCustomCheck.value.count) || 0,
       };
