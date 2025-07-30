@@ -17,17 +17,15 @@ export class BruinLanguageServer {
      * Register the language server providers with VSCode
      */
     public registerProviders(context: vscode.ExtensionContext): void {
-        // Register document link provider for all file types - let the provider decide based on depends section
         const linkProvider = vscode.languages.registerDocumentLinkProvider(
-            { scheme: 'file' }, // No language restriction - works on any file type
+            { scheme: 'file' }, 
             new BruinDocumentLinkProvider(this)
         );
 
-        // Register completion provider for all file types
         const completionProvider = vscode.languages.registerCompletionItemProvider(
-            { scheme: 'file' }, // No language restriction - works on any file type
+            { scheme: 'file' }, 
             new BruinCompletionProvider(this),
-            '-', ' ' // Trigger on dash and space
+            '-', ' ' 
         );
 
         context.subscriptions.push(linkProvider, completionProvider);
@@ -68,7 +66,6 @@ export class BruinLanguageServer {
                 return null;
             }
 
-            // Find the asset with matching name
             const asset = pipelineData.assets.find((asset: any) => 
                 asset.name === dependencyName
             );
@@ -125,7 +122,6 @@ class BruinDocumentLinkProvider implements vscode.DocumentLinkProvider {
             document.positionAt(end)
         ));
 
-        // Find all dependency names in the depends section
         const dependencyRegex = /^\s*-\s+([a-zA-Z0-9_.-]+)/gm;
         let match;
 
@@ -168,7 +164,6 @@ class BruinCompletionProvider implements vscode.CompletionItemProvider {
         token: vscode.CancellationToken,
         context: vscode.CompletionContext
     ): Promise<vscode.CompletionItem[]> {
-        // Check if we're in the depends section
         const { start, end } = getDependsSectionOffsets(document);
         if (start === -1 || end === -1) {
             return [];
@@ -179,35 +174,29 @@ class BruinCompletionProvider implements vscode.CompletionItemProvider {
             return [];
         }
 
-        // Check if we're on a dependency line (starts with "- " or just after it)
         const lineText = document.lineAt(position.line).text;
         const trimmedLine = lineText.trim();
         
-        // Only provide completions on dependency lines
         if (!trimmedLine.startsWith('-') && !lineText.includes('-')) {
             return [];
         }
 
         try {
-            // Get all available assets from pipeline
             const pipelineData = await this.languageServer.getPipelineData(document.fileName);
             if (!pipelineData || !pipelineData.assets) {
                 return [];
             }
 
-            // Get current asset name to exclude from suggestions
             const currentAsset = pipelineData.assets.find((asset: any) => 
                 asset.definition_file && asset.definition_file.path === document.fileName
             );
             const currentAssetName = currentAsset?.name || currentAsset?.id;
 
-            // Create completion items for all other assets
             const completions: vscode.CompletionItem[] = [];
 
             for (const asset of pipelineData.assets) {
                 const assetName = asset.name || asset.id;
                 
-                // Skip current asset and assets without names
                 if (!assetName || assetName === currentAssetName) {
                     continue;
                 }
@@ -220,10 +209,8 @@ class BruinCompletionProvider implements vscode.CompletionItemProvider {
                     `**File:** \`${vscode.workspace.asRelativePath(asset.definition_file?.path || '')}\``
                 );
 
-                // Add sorting priority (shorter names first, then alphabetical)
                 completion.sortText = `${assetName.length.toString().padStart(3, '0')}_${assetName}`;
 
-                // Configure insertion behavior
                 completion.insertText = assetName;
                 completion.filterText = assetName;
 
@@ -242,7 +229,6 @@ class BruinCompletionProvider implements vscode.CompletionItemProvider {
  * File system watcher to clear cache when pipeline files change
  */
 export function registerFileWatcher(languageServer: BruinLanguageServer, context: vscode.ExtensionContext): void {
-    // Watch for changes to pipeline.yml files
     const pipelineWatcher = vscode.workspace.createFileSystemWatcher('**/pipeline.{yml,yaml}');
     
     pipelineWatcher.onDidChange((uri) => {
@@ -257,20 +243,16 @@ export function registerFileWatcher(languageServer: BruinLanguageServer, context
         languageServer.clearCache(uri.fsPath);
     });
 
-    // Watch for changes to SQL asset files
-    const sqlWatcher = vscode.workspace.createFileSystemWatcher('**/*.sql');
+    // Watch for any changes in assets folders
+    const assetsWatcher = vscode.workspace.createFileSystemWatcher('**/assets/**');
     
-    sqlWatcher.onDidChange((uri) => {
+    const handleAssetChange = (uri: vscode.Uri) => {
         languageServer.clearCache(uri.fsPath);
-    });
+    };
 
-    sqlWatcher.onDidCreate((uri) => {
-        languageServer.clearCache(uri.fsPath);
-    });
+    assetsWatcher.onDidChange(handleAssetChange);
+    assetsWatcher.onDidCreate(handleAssetChange);
+    assetsWatcher.onDidDelete(handleAssetChange);
 
-    sqlWatcher.onDidDelete((uri) => {
-        languageServer.clearCache(uri.fsPath);
-    });
-
-    context.subscriptions.push(pipelineWatcher, sqlWatcher);
+    context.subscriptions.push(pipelineWatcher, assetsWatcher);
 }
