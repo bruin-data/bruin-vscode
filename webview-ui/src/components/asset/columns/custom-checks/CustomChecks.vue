@@ -10,6 +10,7 @@
         <tr class="border-opacity-test text-xs font-semibold text-left opacity-65 border-b-2">
           <th class="px-2 py-1 w-1/4">Name</th>
           <th class="px-2 py-1 w-1/6 text-center">Value</th>
+          <th class="px-2 py-1 w-1/6 text-center">Count</th>
           <th class="px-2 py-1 w-1/4 text-center">Description</th>
           <th class="px-2 py-1 w-1/2">Query</th>
           <th class="px-2 py-1 w-1/4"></th>
@@ -28,8 +29,12 @@
                 :id="`custom-check-name-input-${index}`"
                 v-model="(editingCustomCheck as CustomChecks).name"
                 class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs"
+                :class="{ 'border border-red-500': isDuplicateName }"
                 rows="2"
                 ></textarea>
+              <div v-if="isDuplicateName" class="text-xs text-red-500 mt-1">
+                A check with this name already exists.
+              </div>
             </div>
             <div v-else class="break-words whitespace-normal truncate" :title="check.name">
               {{ check.name }}
@@ -41,7 +46,9 @@
               <input
                 :id="`custom-check-value-input-${index}`"
                 v-model="(editingCustomCheck as CustomChecks).value"
+                :disabled="isValueDisabled"
                 class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs"
+                :class="{ 'opacity-50 cursor-not-allowed': isValueDisabled }"
               />
             </div>
             <div
@@ -50,6 +57,26 @@
               :title="String(check.value)"
             >
               {{ check.value }}
+            </div>
+            <div v-else class="italic opacity-70 truncate whitespace-normal">undefined</div>
+          </td>
+          <!-- Count -->
+          <td class="px-2 py-1 font-medium font-mono text-xs w-1/6 text-center">
+            <div v-if="editingIndex === index" class="flex flex-col gap-1">
+              <input
+                :id="`custom-check-count-input-${index}`"
+                v-model="(editingCustomCheck as CustomChecks).count"
+                :disabled="isCountDisabled"
+                class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs"
+                :class="{ 'opacity-50 cursor-not-allowed': isCountDisabled }"
+              />
+            </div>
+            <div
+              v-else-if="check.count !== null && check.count !== undefined"
+              class="truncate"
+              :title="String(check.count)"
+            >
+              {{ check.count }}
             </div>
             <div v-else class="italic opacity-70 truncate whitespace-normal">undefined</div>
           </td>
@@ -97,8 +124,10 @@
                 :id="`custom-check-save-button-${index}`"
                 appearance="icon"
                 @click="saveCustomChecks"
+                :disabled="isSaveDisabled"
                 aria-label="Save"
                 class="flex items-center"
+                :class="{ 'opacity-50 cursor-not-allowed': isSaveDisabled }"
               >
                 <CheckIcon class="h-3 w-3" />
               </vscode-button>
@@ -158,11 +187,15 @@
 import type { CustomChecks } from "@/types";
 import "highlight.js/styles/default.css";
 import hljs from "highlight.js/lib/core";
-import { ref, watch } from "vue";
+import sql from "highlight.js/lib/languages/sql";
+import { ref, watch, computed } from "vue";
 import { v4 as uuidv4 } from "uuid";
 import { vscode } from "@/utilities/vscode";
 import { CheckIcon, TrashIcon, PencilIcon, XMarkIcon } from "@heroicons/vue/24/solid";
 import DeleteAlert from "@/components/ui/alerts/AlertWithActions.vue";
+
+// Register SQL language for syntax highlighting
+hljs.registerLanguage('sql', sql);
 
 const props = defineProps<{
   customChecks: CustomChecks[];
@@ -174,12 +207,60 @@ const editingIndex = ref<number | null>(null);
 const editingCustomCheck = ref<CustomChecks | null>(null);
 
 const showDeleteAlert = ref<number | null>(null);
+const isNewCheck = ref<boolean>(false);
+
+// Helper function to check if a field has a meaningful value
+const hasValue = (field: any) => {
+  return field !== null && field !== undefined && field !== '' && field !== 0;
+};
+
+// Computed properties for mutual exclusivity
+const isValueDisabled = computed(() => {
+  if (!editingCustomCheck.value) return false;
+  return hasValue(editingCustomCheck.value.count);
+});
+
+const isCountDisabled = computed(() => {
+  if (!editingCustomCheck.value) return false;
+  return hasValue(editingCustomCheck.value.value);
+});
+
+// Computed property to check for duplicate names
+const isDuplicateName = computed(() => {
+  if (!editingCustomCheck.value || !editingCustomCheck.value.name) return false;
+  
+  const currentName = editingCustomCheck.value.name.trim().toLowerCase();
+  return localCustomChecks.value.some((check, index) => 
+    index !== editingIndex.value && 
+    check.name.trim().toLowerCase() === currentName
+  );
+});
+
+// Computed property to determine if save should be disabled
+const isSaveDisabled = computed(() => {
+  return isDuplicateName.value || !editingCustomCheck.value?.name?.trim();
+});
+
+// Watchers for mutual exclusivity
+watch(() => editingCustomCheck.value?.value, (newValue) => {
+  if (editingCustomCheck.value && hasValue(newValue)) {
+    editingCustomCheck.value.count = 0;
+  }
+});
+
+watch(() => editingCustomCheck.value?.count, (newCount) => {
+  if (editingCustomCheck.value && hasValue(newCount)) {
+    editingCustomCheck.value.value = 0;
+  }
+});
+
 const addCustomCheck = () => {
   try {
     const newCustomCheck = {
       id: uuidv4(),
       name: "New Custom Check",
-      value: 1,
+      value: 0,
+      count: 0,
       description: "Description for the new custom check",
       query: "",
     };
@@ -187,6 +268,7 @@ const addCustomCheck = () => {
     localCustomChecks.value.push(newCustomCheck);
     editingIndex.value = localCustomChecks.value.length - 1;
     editingCustomCheck.value = JSON.parse(JSON.stringify(newCustomCheck)) as CustomChecks;
+    isNewCheck.value = true;
   } catch (error) {
     console.error("Error adding new custom check:", error);
   }
@@ -197,11 +279,18 @@ const startEditing = (index: number) => {
   editingCustomCheck.value = JSON.parse(
     JSON.stringify(localCustomChecks.value[index])
   ) as CustomChecks;
+  isNewCheck.value = false;
 };
 
 const resetEditing = () => {
+  // If it's a new check being cancelled, remove it from the array
+  if (isNewCheck.value && editingIndex.value !== null) {
+    localCustomChecks.value.splice(editingIndex.value, 1);
+  }
+  
   editingIndex.value = null;
   editingCustomCheck.value = null;
+  isNewCheck.value = false;
 };
 
 const deleteCustomCheck = (index: number) => {
@@ -217,10 +306,17 @@ const deleteCustomCheck = (index: number) => {
 const saveCustomChecks = () => {
   try {
     if (editingIndex.value !== null && editingCustomCheck.value) {
-      // Convert value to number explicitly
+      // Prevent saving if validation fails
+      if (isSaveDisabled.value) {
+        return;
+      }
+
+      // Convert value and count to numbers explicitly
       const updatedCheck = {
         ...editingCustomCheck.value,
+        name: editingCustomCheck.value.name.trim(),
         value: Number(editingCustomCheck.value.value) || 0,
+        count: Number(editingCustomCheck.value.count) || 0,
       };
 
       // Update local checks
@@ -229,10 +325,12 @@ const saveCustomChecks = () => {
 
     editingIndex.value = null;
     editingCustomCheck.value = null;
+    isNewCheck.value = false;
 
     const formattedCustomChecks = localCustomChecks.value.map((check) => ({
       ...check,
-      value: Number(check.value) || 0, 
+      value: Number(check.value) || 0,
+      count: Number(check.count) || 0,
     }));
 
     vscode.postMessage({
@@ -245,8 +343,8 @@ const saveCustomChecks = () => {
     console.error("Error saving custom checks:", error);
   }
 };
-const highlightedLines = (query) => {
-  if (!query) return []; 
+const highlightedLines = (query: string) => {
+  if (!query) return ""; 
   const highlighted = hljs.highlight(query, { language: "sql" }).value;
 
   let lines = highlighted.split("\n");
@@ -263,8 +361,10 @@ watch(
     editingIndex.value = null;
     editingCustomCheck.value = null;
     showDeleteAlert.value = null;
+    isNewCheck.value = false;
     localCustomChecks.value = newCustomChecks.map((check) => ({
       ...check,
+      count: check.count ?? 0,
     }));
   },
   { deep: true, immediate: true }
