@@ -55,6 +55,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.61.2**: Fixed the validate all command to use the right workspace directory.
 - **0.61.1**: Add count field to custom checks.
 - **0.61.0**: Added language server support for asset dependencies go to definition and completion.
 - **0.60.1**: Added support for nullable and owner properties in the asset columns and improved the UI responsiveness.

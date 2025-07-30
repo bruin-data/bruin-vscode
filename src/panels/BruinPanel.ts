@@ -376,21 +376,33 @@ export class BruinPanel {
         const command = message.command;
         switch (command) {
           case "bruin.validateAll":
-            const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-            if (!workspaceFolder) {
-              console.error("No workspace folder found.");
+            let bruinWorkspaceDir: string | undefined;
+            
+            if (this._lastRenderedDocumentUri) {
+              bruinWorkspaceDir = await bruinWorkspaceDirectory(this._lastRenderedDocumentUri.fsPath);
+            }
+            
+            if (!bruinWorkspaceDir) {
+              const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+              if (!workspaceFolder) {
+                console.error("No workspace folder found.");
+                return;
+              }
+              bruinWorkspaceDir = await bruinWorkspaceDirectory(workspaceFolder.uri.fsPath);
+            }
+
+            if (!bruinWorkspaceDir) {
+              console.error("No Bruin workspace directory found. Make sure .bruin.yml exists in the project.");
               return;
             }
 
             const validatorAll = new BruinValidate(
               getBruinExecutablePath(),
-              workspaceFolder.uri.fsPath
+              bruinWorkspaceDir
             );
 
-            // Get default exclude tag
             const defaultExcludeTag = getDefaultExcludeTag();
-            console.log("Using default exclude tag for validateAll:", defaultExcludeTag);
-            await validatorAll.validate(workspaceFolder.uri.fsPath, {}, defaultExcludeTag);
+            await validatorAll.validate(bruinWorkspaceDir, {}, defaultExcludeTag);
             break;
           case "bruin.checkTelemtryPreference":
             const config = workspace.getConfiguration("bruin");
