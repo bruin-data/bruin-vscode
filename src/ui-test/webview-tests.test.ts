@@ -766,9 +766,9 @@ describe("Bruin Webview Test", function () {
         for (let i = 0; i < existingChecks.length; i++) {
           const check = existingChecks[i];
           
-          // Check that the row has the expected columns (Name, Value, Description, Query, Actions)
+          // Check that the row has the expected columns (Name, Value, Count, Description, Query, Actions)
           const columns = await check.findElements(By.css('td'));
-          assert.strictEqual(columns.length, 5, `Custom check row ${i} should have 5 columns`);
+          assert.strictEqual(columns.length, 6, `Custom check row ${i} should have 6 columns`);
           
           // Verify the name column is not empty
           const nameCell = columns[0];
@@ -776,7 +776,7 @@ describe("Bruin Webview Test", function () {
           assert.ok(nameText.length > 0, `Custom check ${i} should have a name`);
           
           // Verify the query column is not empty
-          const queryCell = columns[3];
+          const queryCell = columns[4];
           const queryText = await queryCell.getText();
           assert.ok(queryText.length > 0, `Custom check ${i} should have a query`);
           
@@ -831,6 +831,12 @@ describe("Bruin Webview Test", function () {
         "Value input field not found"
       );
       
+      const countField = await driver.wait(
+        until.elementLocated(By.id(`custom-check-count-input-${newRowIndex}`)),
+        10000,
+        "Count input field not found"
+      );
+      
       const descriptionField = await driver.wait(
         until.elementLocated(By.id(`custom-check-description-input-${newRowIndex}`)),
         10000,
@@ -881,10 +887,13 @@ describe("Bruin Webview Test", function () {
       const displayedValue = await cells[1].getText();
       assert.strictEqual(displayedValue, checkValue, `Custom check value should be "${checkValue}"`);
       
-      const displayedDescription = await cells[2].getText();
+      const displayedCount = await cells[2].getText();
+      assert.strictEqual(displayedCount, "0", `Custom check count should be "0" when value is set`);
+      
+      const displayedDescription = await cells[3].getText();
       assert.strictEqual(displayedDescription, checkDescription, `Custom check description should be "${checkDescription}"`);
       
-      const displayedQuery = await cells[3].getText();
+      const displayedQuery = await cells[4].getText();
       assert.ok(displayedQuery.includes("SELECT"), `Custom check query should contain the SQL query`);
       
       console.log(`Successfully added and verified custom check: ${checkName}`);
@@ -977,7 +986,7 @@ describe("Bruin Webview Test", function () {
       const finalName = await finalCells[0].getText();
       assert.strictEqual(finalName, updatedName, `Custom check name should be updated to "${updatedName}"`);
       
-      const finalQuery = await finalCells[3].getText();
+      const finalQuery = await finalCells[4].getText();
       assert.ok(finalQuery.includes("COUNT"), `Custom check query should be updated to include "COUNT"`);
       
       console.log(`Successfully edited custom check from "${originalName}" to "${updatedName}"`);
@@ -1109,7 +1118,7 @@ describe("Bruin Webview Test", function () {
       );
       
       const queryCell = await savedRow.findElements(By.css('td'));
-      const queryElement = queryCell[3];
+      const queryElement = queryCell[4];
       
       // Check if the query contains highlighted elements (should have HTML tags for syntax highlighting)
       const queryHTML = await queryElement.getAttribute('innerHTML');
