@@ -109,7 +109,7 @@
       v-else
       v-for="(connections, environment) in groupedConnections"
       :key="environment"
-      class="mt-6"
+      class="mt-8"
     >
       <div class="flex items-center justify-between mb-2 group hover:bg-editor-hoverBackground rounded px-2 py-1 -mx-2 -my-1">
         <div class="flex flex-col items-start space-y-1">
