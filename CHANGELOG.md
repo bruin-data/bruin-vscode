@@ -1,4 +1,8 @@
 # Changelog
+
+## [0.61.1] - [2025-07-30]
+- Add count field to custom checks.
+
 ## [0.61.0] - [2025-07-30]
 - Added language server support for asset dependencies go to definition and completion.
 
