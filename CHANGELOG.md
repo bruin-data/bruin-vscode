@@ -1,4 +1,7 @@
 # Changelog
+## [0.61.0] - [2025-07-30]
+- Added language server support for asset dependencies go to definition and completion.
+
 ## [0.60.1] - [2025-07-29]
 - Added support for nullable and owner properties in the asset columns and improved the UI responsiveness.
 
