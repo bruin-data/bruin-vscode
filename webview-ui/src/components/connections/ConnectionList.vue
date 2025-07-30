@@ -11,7 +11,9 @@
             </p>
           </div>
           <div class="flex items-center space-x-2">
-            <vscode-button @click="addNewEnvironment" class="font-semibold">
+            <vscode-button @click="addNewEnvironment" 
+            class="font-semibold"
+            appearance="secondary">
               <div class="flex items-center">
                 <span class="codicon codicon-plus"></span> 
                 <span class="ml-1">Environment</span>
@@ -109,7 +111,7 @@
       v-else
       v-for="(connections, environment) in groupedConnections"
       :key="environment"
-      class="mt-6"
+      class="mt-8"
     >
       <div class="flex items-center justify-between mb-2 group hover:bg-editor-hoverBackground rounded px-2 py-1 -mx-2 -my-1">
         <div class="flex flex-col items-start space-y-1">
