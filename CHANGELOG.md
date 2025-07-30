@@ -1,4 +1,6 @@
 # Changelog
+## [0.61.2] - [2025-07-30]
+- Fixed the validate all command to use the right workspace directory.
 
 ## [0.61.1] - [2025-07-30]
 - Add count field to custom checks.
