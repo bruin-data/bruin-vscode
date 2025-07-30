@@ -11,7 +11,9 @@
             </p>
           </div>
           <div class="flex items-center space-x-2">
-            <vscode-button @click="addNewEnvironment" class="font-semibold">
+            <vscode-button @click="addNewEnvironment" 
+            class="font-semibold"
+            appearance="secondary">
               <div class="flex items-center">
                 <span class="codicon codicon-plus"></span> 
                 <span class="ml-1">Environment</span>
