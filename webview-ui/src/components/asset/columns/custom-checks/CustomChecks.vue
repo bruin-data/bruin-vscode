@@ -232,7 +232,7 @@ const addCustomCheck = () => {
     const newCustomCheck = {
       id: uuidv4(),
       name: "New Custom Check",
-      value: 1,
+      value: 0,
       count: 0,
       description: "Description for the new custom check",
       query: "",
