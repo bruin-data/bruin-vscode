@@ -187,11 +187,15 @@
 import type { CustomChecks } from "@/types";
 import "highlight.js/styles/default.css";
 import hljs from "highlight.js/lib/core";
+import sql from "highlight.js/lib/languages/sql";
 import { ref, watch, computed } from "vue";
 import { v4 as uuidv4 } from "uuid";
 import { vscode } from "@/utilities/vscode";
 import { CheckIcon, TrashIcon, PencilIcon, XMarkIcon } from "@heroicons/vue/24/solid";
 import DeleteAlert from "@/components/ui/alerts/AlertWithActions.vue";
+
+// Register SQL language for syntax highlighting
+hljs.registerLanguage('sql', sql);
 
 const props = defineProps<{
   customChecks: CustomChecks[];
@@ -340,7 +344,7 @@ const saveCustomChecks = () => {
   }
 };
 const highlightedLines = (query: string) => {
-  if (!query) return []; 
+  if (!query) return ""; 
   const highlighted = hljs.highlight(query, { language: "sql" }).value;
 
   let lines = highlighted.split("\n");
