@@ -173,6 +173,7 @@ export interface CustomChecks {
   id: string;
   name: string;
   value: number;
+  count?: number;
   query: string;
 }
 
