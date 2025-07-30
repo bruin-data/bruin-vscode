@@ -28,6 +28,7 @@ import { QuerySelectionCodeLensProvider } from "../providers/querySelectionCodeL
 import { ActivityBarConnectionsProvider } from "../providers/ActivityBarConnectionsProvider";
 import { FavoritesProvider } from "../providers/FavoritesProvider";
 import { TableDetailsPanel } from "../panels/TableDetailsPanel";
+import { BruinLanguageServer, registerFileWatcher } from "../language-server/bruinLanguageServer";
 
 let analyticsClient: any = null;
 
@@ -232,6 +233,11 @@ export async function activate(context: ExtensionContext) {
 
   const favoritesProvider = new FavoritesProvider();
   vscode.window.registerTreeDataProvider("bruinFavorites", favoritesProvider);
+
+  // Initialize Bruin Language Server
+  const bruinLanguageServer = new BruinLanguageServer();
+  bruinLanguageServer.registerProviders(context);
+  registerFileWatcher(bruinLanguageServer, context);
 
   const defaultFoldingState = bruinConfig.get("bruin.FoldingState", "folded");
   let toggled = defaultFoldingState === "folded";
