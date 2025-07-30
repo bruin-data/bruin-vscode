@@ -197,6 +197,7 @@ const editingIndex = ref<number | null>(null);
 const editingCustomCheck = ref<CustomChecks | null>(null);
 
 const showDeleteAlert = ref<number | null>(null);
+const isNewCheck = ref<boolean>(false);
 
 // Helper function to check if a field has a meaningful value
 const hasValue = (field: any) => {
@@ -241,6 +242,7 @@ const addCustomCheck = () => {
     localCustomChecks.value.push(newCustomCheck);
     editingIndex.value = localCustomChecks.value.length - 1;
     editingCustomCheck.value = JSON.parse(JSON.stringify(newCustomCheck)) as CustomChecks;
+    isNewCheck.value = true;
   } catch (error) {
     console.error("Error adding new custom check:", error);
   }
@@ -251,11 +253,18 @@ const startEditing = (index: number) => {
   editingCustomCheck.value = JSON.parse(
     JSON.stringify(localCustomChecks.value[index])
   ) as CustomChecks;
+  isNewCheck.value = false;
 };
 
 const resetEditing = () => {
+  // If it's a new check being cancelled, remove it from the array
+  if (isNewCheck.value && editingIndex.value !== null) {
+    localCustomChecks.value.splice(editingIndex.value, 1);
+  }
+  
   editingIndex.value = null;
   editingCustomCheck.value = null;
+  isNewCheck.value = false;
 };
 
 const deleteCustomCheck = (index: number) => {
@@ -284,6 +293,7 @@ const saveCustomChecks = () => {
 
     editingIndex.value = null;
     editingCustomCheck.value = null;
+    isNewCheck.value = false;
 
     const formattedCustomChecks = localCustomChecks.value.map((check) => ({
       ...check,
@@ -319,6 +329,7 @@ watch(
     editingIndex.value = null;
     editingCustomCheck.value = null;
     showDeleteAlert.value = null;
+    isNewCheck.value = false;
     localCustomChecks.value = newCustomChecks.map((check) => ({
       ...check,
       count: check.count ?? 0,
