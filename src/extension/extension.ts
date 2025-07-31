@@ -28,8 +28,7 @@ import { QuerySelectionCodeLensProvider } from "../providers/querySelectionCodeL
 import { ActivityBarConnectionsProvider } from "../providers/ActivityBarConnectionsProvider";
 import { FavoritesProvider } from "../providers/FavoritesProvider";
 import { TableDetailsPanel } from "../panels/TableDetailsPanel";
-import { BruinLanguageServer, registerFileWatcher } from "../language-server/bruinLanguageServer";
-import { ImprovedBruinAssetLanguageServer } from "../language-server/assetLanguageServer";
+import { activateBruinLSP, deactivateBruinLSP } from "../language-server/bruinLSPClient";
 
 let analyticsClient: any = null;
 
@@ -120,6 +119,7 @@ async function updatePathSeparator(config: WorkspaceConfiguration): Promise<void
 export async function activate(context: ExtensionContext) {
   const startTime = Date.now();
   console.time("Bruin Activation Total");
+  console.log("=== BRUIN EXTENSION ACTIVATION STARTED ===");
   console.log("Bruin extension is now active!");
 
   // Initialize TableDetailsPanel
@@ -235,14 +235,15 @@ export async function activate(context: ExtensionContext) {
   const favoritesProvider = new FavoritesProvider();
   vscode.window.registerTreeDataProvider("bruinFavorites", favoritesProvider);
 
-  // Initialize Bruin Language Server
-  const bruinLanguageServer = new BruinLanguageServer();
-  bruinLanguageServer.registerProviders(context);
-  registerFileWatcher(bruinLanguageServer, context);
 
-  // Initialize Improved Bruin Asset Language Server
-  const improvedBruinAssetLanguageServer = new ImprovedBruinAssetLanguageServer();
-  improvedBruinAssetLanguageServer.registerProviders(context);
+  // Initialize Bruin LSP (Language Server Protocol)
+  console.log('=== BRUIN EXTENSION: INITIALIZING BRUIN LSP ===');
+  try {
+    activateBruinLSP(context);
+    console.log('=== BRUIN LSP INITIALIZATION COMPLETE ===');
+  } catch (error) {
+    console.error('=== BRUIN LSP INITIALIZATION FAILED ===', error);
+  }
 
   const defaultFoldingState = bruinConfig.get("bruin.FoldingState", "folded");
   let toggled = defaultFoldingState === "folded";
@@ -562,6 +563,40 @@ export async function activate(context: ExtensionContext) {
         await activityBarConnectionsProvider.toggleTableFavorite(item.itemData, item);
       }
     }),
+    commands.registerCommand("bruin.testCompletion", async () => {
+      try {
+        trackEvent("Command Executed", { command: "testCompletion" });
+        const editor = window.activeTextEditor;
+        if (!editor) {
+          vscode.window.showWarningMessage("No active editor found");
+          return;
+        }
+        
+        // Manually trigger completion
+        await vscode.commands.executeCommand('editor.action.triggerSuggest');
+        vscode.window.showInformationMessage("Completion triggered manually");
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error testing completion: ${errorMessage}`);
+      }
+    }),
+    commands.registerCommand("bruin.triggerCompletions", async () => {
+      try {
+        trackEvent("Command Executed", { command: "triggerCompletions" });
+        const editor = window.activeTextEditor;
+        if (!editor) {
+          vscode.window.showWarningMessage("No active editor found");
+          return;
+        }
+        
+        // Manually trigger completion
+        await vscode.commands.executeCommand('editor.action.triggerSuggest');
+        console.log('Bruin: Manually triggered completions');
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error triggering completions: ${errorMessage}`);
+      }
+    }),
   ];
 
   context.subscriptions.push(...commandDisposables);
@@ -575,4 +610,9 @@ export async function activate(context: ExtensionContext) {
   console.timeEnd("Bruin Activation Total");
 
   TableDetailsPanel.initialize(context.subscriptions);
+}
+
+export function deactivate(): Thenable<void> | undefined {
+  console.log('Bruin Extension: Deactivating...');
+  return deactivateBruinLSP();
 }
