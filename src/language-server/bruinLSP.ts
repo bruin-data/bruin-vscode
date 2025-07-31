@@ -19,7 +19,7 @@ const BRUIN_SCHEMA = {
     topLevelKeys: [
         { key: 'type', insertText: 'type: ', description: 'Asset type (bq.sql, sf.sql, python, etc.)' },
         { key: 'description', insertText: 'description: ', description: 'Human-readable description of the asset' },
-        { key: 'materialization', insertText: 'materialization:\n  type: ', description: 'How the asset should be materialized' },
+        { key: 'materialization', insertText: 'materialization:\n  ', description: 'How the asset should be materialized' },
         { key: 'depends', insertText: 'depends:\n  - ', description: 'List of assets this asset depends on' },
         { key: 'columns', insertText: 'columns:\n  - name: ', description: 'Column definitions and data quality checks' }
     ],
@@ -99,7 +99,7 @@ connection.onCompletion((_textDocumentPosition: TextDocumentPositionParams): Com
         return [];
     }
 
-    // Check if we're after "type:" and should show asset types
+    // Check if we're after "type:" and should show asset types (top-level)
     if (isAfterColon(document, _textDocumentPosition.position, 'type')) {
         return BRUIN_SCHEMA.assetTypes.map(type => ({
             label: type,
