@@ -29,6 +29,7 @@ import { ActivityBarConnectionsProvider } from "../providers/ActivityBarConnecti
 import { FavoritesProvider } from "../providers/FavoritesProvider";
 import { TableDetailsPanel } from "../panels/TableDetailsPanel";
 import { activateBruinLSP, deactivateBruinLSP } from "../language-server/bruinLSPClient";
+import { BruinLanguageServer, registerFileWatcher } from "../language-server/bruinLanguageServer";
 
 let analyticsClient: any = null;
 
@@ -241,6 +242,16 @@ export async function activate(context: ExtensionContext) {
     activateBruinLSP(context);
   } catch (error) {
     console.error('=== BRUIN LSP INITIALIZATION FAILED ===', error);
+  }
+
+  // Initialize the old BruinLanguageServer for dependency "go to file" functionality
+  try {
+    const bruinLanguageServer = new BruinLanguageServer();
+    bruinLanguageServer.registerProviders(context);
+    registerFileWatcher(bruinLanguageServer, context);
+    console.log('=== BRUIN LANGUAGE SERVER INITIALIZED ===');
+  } catch (error) {
+    console.error('=== BRUIN LANGUAGE SERVER INITIALIZATION FAILED ===', error);
   }
 
   const defaultFoldingState = bruinConfig.get("bruin.FoldingState", "folded");
