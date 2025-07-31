@@ -18,8 +18,8 @@ const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 const BRUIN_SCHEMA = {
     topLevelKeys: [
         { key: 'type', insertText: 'type: ', description: 'Asset type' },
-        { key: 'description', insertText: 'description: ', description: 'Human-readable description' },
-        { key: 'materialization', insertText: 'materialization:\n  type: ', description: 'Materialization config' },
+        { key: 'description', insertText: 'description: ', description: 'Human-readable description' }, 
+        { key: 'materialization', insertText: 'materialization:\n   ', description: 'Materialization config' },
         { key: 'depends', insertText: 'depends:\n  - ', description: 'Dependencies' },
         { key: 'columns', insertText: 'columns:\n  - name: ', description: 'Column definitions' }
     ],
@@ -39,7 +39,7 @@ connection.onInitialize(() => ({
     capabilities: {
         textDocumentSync: TextDocumentSyncKind.Incremental,
         completionProvider: {
-            triggerCharacters: [' ', ':', '\n', '-']
+            triggerCharacters: [' ', ':', '\n', '-', '  ']
         }
     }
 }));
@@ -151,9 +151,11 @@ connection.onCompletion((_textDocumentPosition: TextDocumentPositionParams): Com
     // Nested materialization keys
     if (yamlPath[0] === 'materialization') {
         const currentKey = yamlPath[yamlPath.length - 1];
+        const isAtValuePos = isValuePosition(document, _textDocumentPosition.position);
     
-        // Suggest value for "type"
-        if (currentKey === 'type' && isAfterColon(document, _textDocumentPosition.position, 'type')) {
+        // Check if we're positioned after "type:" in materialization block
+        if (isAfterColon(document, _textDocumentPosition.position, 'type') || 
+            (currentKey === 'type' && isAtValuePos)) {
             return BRUIN_SCHEMA.materializationTypes.map(t => ({
                 label: t,
                 kind: CompletionItemKind.Value,
@@ -161,8 +163,9 @@ connection.onCompletion((_textDocumentPosition: TextDocumentPositionParams): Com
             }));
         }
     
-        // Suggest value for "strategy"
-        if (currentKey === 'strategy' && isValuePosition(document, _textDocumentPosition.position)) {
+        // Check if we're positioned after "strategy:" in materialization block
+        if (isAfterColon(document, _textDocumentPosition.position, 'strategy') ||
+            (currentKey === 'strategy' && isAtValuePos)) {
             return BRUIN_SCHEMA.tableStrategies.map(s => ({
                 label: s,
                 kind: CompletionItemKind.Value,
@@ -170,8 +173,8 @@ connection.onCompletion((_textDocumentPosition: TextDocumentPositionParams): Com
             }));
         }
     
-        // Otherwise suggest nested materialization keys
-        if (yamlPath.length === 1 || (yamlPath.length === 2 && !isValuePosition(document, _textDocumentPosition.position))) {
+        // Otherwise suggest nested materialization keys (when not at a value position)
+        if (yamlPath.length === 1 || (yamlPath.length === 2 && !isAtValuePos)) {
             return BRUIN_SCHEMA.materializationKeys.map(k => ({
                 label: k + ':',
                 kind: CompletionItemKind.Property,
