@@ -19,7 +19,7 @@ const BRUIN_SCHEMA = {
     topLevelKeys: [
         { key: 'type', insertText: 'type: ', description: 'Asset type' },
         { key: 'description', insertText: 'description: ', description: 'Human-readable description' }, 
-        { key: 'materialization', insertText: 'materialization:\n   ', description: 'Materialization config' },
+        { key: 'materialization', insertText: 'materialization:\n  ', description: 'Materialization config' },
         { key: 'depends', insertText: 'depends:\n  - ', description: 'Dependencies' },
         { key: 'columns', insertText: 'columns:\n  - name: ', description: 'Column definitions' }
     ],
@@ -159,6 +159,7 @@ connection.onCompletion((_textDocumentPosition: TextDocumentPositionParams): Com
             return BRUIN_SCHEMA.materializationTypes.map(t => ({
                 label: t,
                 kind: CompletionItemKind.Value,
+                insertText: t,
                 detail: `Materialization type: ${t}`
             }));
         }
@@ -169,16 +170,26 @@ connection.onCompletion((_textDocumentPosition: TextDocumentPositionParams): Com
             return BRUIN_SCHEMA.tableStrategies.map(s => ({
                 label: s,
                 kind: CompletionItemKind.Value,
+                insertText: s,
                 detail: `Strategy: ${s}`
             }));
         }
     
         // Otherwise suggest nested materialization keys (when not at a value position)
         if (yamlPath.length === 1 || (yamlPath.length === 2 && !isAtValuePos)) {
+            // Check if we're right after "materialization:" (need newline + indentation)
+            // or already on an indented line (just need the key)
+            const currentLine = document.getText({
+                start: { line: _textDocumentPosition.position.line, character: 0 },
+                end: _textDocumentPosition.position
+            });
+            
+            const isAfterMaterializationColon = currentLine.trim() === 'materialization:';
+            
             return BRUIN_SCHEMA.materializationKeys.map(k => ({
                 label: k + ':',
                 kind: CompletionItemKind.Property,
-                insertText: k + ': ',
+                insertText: isAfterMaterializationColon ? `\n  ${k}: ` : `${k}: `,
                 detail: `Materialization config key`
             }));
         }
