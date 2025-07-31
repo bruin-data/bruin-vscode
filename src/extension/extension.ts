@@ -237,10 +237,8 @@ export async function activate(context: ExtensionContext) {
 
 
   // Initialize Bruin LSP (Language Server Protocol)
-  console.log('=== BRUIN EXTENSION: INITIALIZING BRUIN LSP ===');
   try {
     activateBruinLSP(context);
-    console.log('=== BRUIN LSP INITIALIZATION COMPLETE ===');
   } catch (error) {
     console.error('=== BRUIN LSP INITIALIZATION FAILED ===', error);
   }

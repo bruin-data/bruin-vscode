@@ -25,15 +25,15 @@ const BRUIN_SCHEMA = {
     ],
     assetTypes: [
         'bq.sql', 'sf.sql', 'pg.sql', 'rs.sql', 'ms.sql', 'synapse.sql', 'python', 'ingestr'
-    ],
-    materializationTypes: ['null', 'table', 'view'],
-    materializationStrategies: ['create+replace', 'delete+insert', 'append', 'merge', 'time_interval', 'ddl']
+    ]
 };
 
 connection.onInitialize(() => ({
     capabilities: {
         textDocumentSync: TextDocumentSyncKind.Incremental,
-        completionProvider: {}
+        completionProvider: {
+            triggerCharacters: [' ', ':', '\n', '-']
+        }
     }
 }));
 
@@ -94,6 +94,7 @@ function isAfterColon(document: TextDocument, position: Position, key: string): 
 // This handler provides the initial list of the completion items.
 connection.onCompletion((_textDocumentPosition: TextDocumentPositionParams): CompletionItem[] => {
     const document = documents.get(_textDocumentPosition.textDocument.uri);
+    
     if (!document || !isInBruinBlock(document, _textDocumentPosition.position)) {
         return [];
     }
@@ -109,6 +110,7 @@ connection.onCompletion((_textDocumentPosition: TextDocumentPositionParams): Com
 
     // Get current word and provide filtered completions
     const currentWord = getCurrentWord(document, _textDocumentPosition.position);
+    
     const matchingKeys = BRUIN_SCHEMA.topLevelKeys.filter(keyInfo => 
         !currentWord || keyInfo.key.toLowerCase().startsWith(currentWord.toLowerCase())
     );
