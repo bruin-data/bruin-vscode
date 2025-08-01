@@ -30,6 +30,7 @@ import { FavoritesProvider } from "../providers/FavoritesProvider";
 import { TableDetailsPanel } from "../panels/TableDetailsPanel";
 import { activateBruinLSP, deactivateBruinLSP } from "../language-server/bruinLSPClient";
 import { BruinLanguageServer, registerFileWatcher } from "../language-server/bruinLanguageServer";
+import { BruinCompletionsWithCommands } from "../language-server/bruinCompletionsWithCommands";
 
 let analyticsClient: any = null;
 
@@ -236,12 +237,36 @@ export async function activate(context: ExtensionContext) {
   const favoritesProvider = new FavoritesProvider();
   vscode.window.registerTreeDataProvider("bruinFavorites", favoritesProvider);
 
-
+  try {
+    const bruinCompletions = BruinCompletionsWithCommands.getInstance();
+    bruinCompletions.registerProviders(context);
+    console.log('=== BRUIN COMPLETIONS WITH COMMANDS INITIALIZED ===');
+  } catch (error) {
+    console.error('=== BRUIN COMPLETIONS WITH COMMANDS INITIALIZATION FAILED ===', error);
+  }
+  try {
+    const bruinLanguageServer = new BruinLanguageServer();
+    bruinLanguageServer.registerProviders(context);
+    registerFileWatcher(bruinLanguageServer, context);
+    console.log('=== BRUIN LANGUAGE SERVER INITIALIZED ===');
+  } catch (error) {
+    console.error('=== BRUIN LANGUAGE SERVER INITIALIZATION FAILED ===', error);
+  }
+/* 
   // Initialize Bruin LSP (Language Server Protocol)
   try {
     activateBruinLSP(context);
   } catch (error) {
     console.error('=== BRUIN LSP INITIALIZATION FAILED ===', error);
+  }
+
+//Initialize BruinCompletionsWithCommands for asset file completions using Bruin CLI
+  try {
+    const bruinCompletions = BruinCompletionsWithCommands.getInstance();
+    bruinCompletions.registerProviders(context);
+    console.log('=== BRUIN COMPLETIONS WITH COMMANDS INITIALIZED ===');
+  } catch (error) {
+    console.error('=== BRUIN COMPLETIONS WITH COMMANDS INITIALIZATION FAILED ===', error);
   }
 
   // Initialize the old BruinLanguageServer for dependency "go to file" functionality
@@ -253,7 +278,7 @@ export async function activate(context: ExtensionContext) {
   } catch (error) {
     console.error('=== BRUIN LANGUAGE SERVER INITIALIZATION FAILED ===', error);
   }
-
+ */
   const defaultFoldingState = bruinConfig.get("bruin.FoldingState", "folded");
   let toggled = defaultFoldingState === "folded";
 
@@ -621,7 +646,7 @@ export async function activate(context: ExtensionContext) {
   TableDetailsPanel.initialize(context.subscriptions);
 }
 
-export function deactivate(): Thenable<void> | undefined {
+/* export function deactivate(): Thenable<void> | undefined {
   console.log('Bruin Extension: Deactivating...');
   return deactivateBruinLSP();
-}
+} */
