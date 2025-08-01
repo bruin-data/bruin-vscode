@@ -666,8 +666,26 @@ window.addEventListener("message", (event) => {
 
     if (tabToUpdate) {
       if (message.payload.status === "loading") {
-        // Update loading state for this specific tab only
-        tabToUpdate.isLoading = message.payload.message;
+        // Update loading state and clear results if starting new query
+        const tabIndex = tabs.value.findIndex(t => t.id === tabId);
+        if (tabIndex !== -1) {
+          let newTab = { ...tabToUpdate, isLoading: message.payload.message };
+          
+          // Clear existing results when starting new query execution
+          if (message.payload.message === true) {
+            newTab = {
+              ...newTab,
+              parsedOutput: undefined,
+              error: null,  
+              filteredRows: [],
+              totalRowCount: 0,
+              filteredRowCount: 0
+            };
+          }
+          
+          // Replace the tab in the array to trigger reactivity
+          tabs.value.splice(tabIndex, 1, newTab);
+        }
 
         // Force UI update immediately
         triggerRef(tabs);
@@ -679,24 +697,48 @@ window.addEventListener("message", (event) => {
               ? JSON.parse(message.payload.message)
               : message.payload.message;
 
-          tabToUpdate.parsedOutput = outputData;
-          tabToUpdate.totalRowCount = outputData.rows?.length || 0;
-          tabToUpdate.filteredRows = outputData.rows || [];
-          tabToUpdate.error = null;
-          tabToUpdate.isLoading = false; // Always ensure loading is set to false
-
-          if (outputData.connectionName) {
-            tabToUpdate.connectionName = outputData.connectionName;
+          // Create a new tab object to trigger reactivity properly
+          const tabIndex = tabs.value.findIndex(t => t.id === tabId);
+          if (tabIndex !== -1) {
+            const newTab = {
+              ...tabToUpdate,
+              parsedOutput: outputData,
+              totalRowCount: outputData.rows?.length || 0,
+              filteredRows: outputData.rows || [],
+              error: null,
+              isLoading: false,
+              connectionName: outputData.connectionName || tabToUpdate.connectionName
+            };
+            
+            // Replace the tab in the array to trigger reactivity
+            tabs.value.splice(tabIndex, 1, newTab);
           }
         } catch (e) {
           console.error("Error processing tab output:", e);
-          tabToUpdate.error = "Error processing query results: " + (e as Error).message;
-          tabToUpdate.isLoading = false; // Always ensure loading is set to false
+          
+          // Handle processing error with new tab object
+          const tabIndex = tabs.value.findIndex(t => t.id === tabId);
+          if (tabIndex !== -1) {
+            const newTab = {
+              ...tabToUpdate,
+              error: "Error processing query results: " + (e as Error).message,
+              isLoading: false
+            };
+            tabs.value.splice(tabIndex, 1, newTab);
+          }
         }
       } else if (message.payload.status === "error") {
-        // Process error for this specific tab
-        tabToUpdate.error = message.payload.message;
-        tabToUpdate.isLoading = false; // Always ensure loading is set to false
+        // Process error for this specific tab with new tab object
+        const tabIndex = tabs.value.findIndex(t => t.id === tabId);
+        if (tabIndex !== -1) {
+          const newTab = {
+            ...tabToUpdate,
+            error: message.payload.message,
+            isLoading: false
+          };
+          
+          tabs.value.splice(tabIndex, 1, newTab);
+        }
       }
 
       // Force a UI update for this tab
@@ -705,6 +747,7 @@ window.addEventListener("message", (event) => {
   }
   if (message.command === "query-output-clear" && message.payload?.status === "success") {
     const tabId = message.payload.message?.tabId;
+    
     // Find the specific tab to clear if tabId is provided
     if (tabId) {
       const tabToClear = tabs.value.find((tab) => tab.id === tabId);
@@ -965,19 +1008,37 @@ const runQuery = () => {
   if (limit.value > 1000 || limit.value < 1) {
     limit.value = 1000;
   }
-  // Set the loading state for the current tab only
+  
+  // Clear existing results for the current tab first
   if (currentTab.value) {
-    currentTab.value.isLoading = true;
-    currentTab.value.error = null;
+    const tabIndex = tabs.value.findIndex(t => t.id === activeTab.value);
+    if (tabIndex !== -1) {
+      const clearedTab = {
+        ...currentTab.value,
+        parsedOutput: undefined,
+        error: null,
+        filteredRows: [],
+        totalRowCount: 0,
+        filteredRowCount: 0,
+        isLoading: true
+      };
+      
+      tabs.value.splice(tabIndex, 1, clearedTab);
+    }
 
     triggerRef(tabs);
     const selectedEnvironment = currentEnvironment.value;
+    
+    // Send empty query - backend will:
+    // 1. Check for current selection in editor
+    // 2. If selection exists, run selected text  
+    // 3. If no selection, run entire file as asset
     vscode.postMessage({
       command: "bruin.getQueryOutput",
       payload: {
         environment: selectedEnvironment,
         limit: limit.value.toString(),
-        query: "",
+        query: "", // Empty - let backend decide based on selection
         tabId: activeTab.value,
       },
     });

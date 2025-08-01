@@ -99,7 +99,6 @@ export class BruinQueryOutput extends BruinCommand {
         );
         return;
       }
-      console.log("SQL query output:", result);
       this.postMessageToPanels("success", result, tabId);
     } catch (error: any) {
       // Remove process from tracking on error

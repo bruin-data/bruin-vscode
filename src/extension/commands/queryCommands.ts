@@ -48,7 +48,6 @@ export const getQueryOutput = async (environment: string, limit: string, lastRen
       const fileContent = await workspace.fs.readFile(lastRenderedDocumentUri);
       fileContentString = Buffer.from(fileContent).toString('utf-8');
     } catch (error) {
-      console.log("Could not read file content:", error);
       fileContentString = "";
     }
     
@@ -75,9 +74,6 @@ export const getQueryOutput = async (environment: string, limit: string, lastRen
         const connectionMatch = fileContentString.match(/--\s*connection:\s*([^\n\r]+)/i);
         if (connectionMatch) {
           detectedConnectionName = connectionMatch[1].trim();
-          console.log("✅ Found connection in file:", detectedConnectionName);
-        } else {
-          console.log("❌ No connection pattern found in file content");
         }
       }
     } catch (error) {
@@ -93,7 +89,6 @@ export const getQueryOutput = async (environment: string, limit: string, lastRen
     getBruinExecutablePath(),
     workspaceFolder.uri.fsPath
   );
-   console.log("Receiving dates", startDate, endDate);
   
   const queryToPass = isAsset && !selectedQuery ? "" : selectedQuery;
   
