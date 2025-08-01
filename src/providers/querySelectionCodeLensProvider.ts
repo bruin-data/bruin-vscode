@@ -84,7 +84,7 @@ export class QuerySelectionCodeLensProvider implements vscode.CodeLensProvider {
     const previewCodeLens = new vscode.CodeLens(codeLensRange, {
       title: "Preview selected query",
       command: "bruin.previewSelectedQuery",
-      arguments: [selectedText]
+      arguments: [] 
     });
 
     codeLenses.push(previewCodeLens);
