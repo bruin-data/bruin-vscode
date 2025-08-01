@@ -203,6 +203,7 @@ export interface TabData extends Tab {
   environment: string;
   connectionName: string;
   showQuery: boolean;
+  selectedQuery?: string;
 }
 
 export interface EditingState {

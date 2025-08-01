@@ -5,18 +5,27 @@ export class QuerySelectionCodeLensProvider implements vscode.CodeLensProvider {
   public readonly onDidChangeCodeLenses: vscode.Event<void> = this._onDidChangeCodeLenses.event;
 
   private disposables: vscode.Disposable[] = [];
+  private debounceTimer: NodeJS.Timeout | undefined;
 
   constructor() {
-    // Listen for selection changes to trigger CodeLens updates
+    // Listen for selection changes to trigger CodeLens updates with debouncing
     this.disposables.push(
       vscode.window.onDidChangeTextEditorSelection(() => {
-        this._onDidChangeCodeLenses.fire();
+        if (this.debounceTimer) {
+          clearTimeout(this.debounceTimer);
+        }
+        this.debounceTimer = setTimeout(() => {
+          this._onDidChangeCodeLenses.fire();
+        }, 100);
       })
     );
 
     // Listen for active editor changes
     this.disposables.push(
       vscode.window.onDidChangeActiveTextEditor(() => {
+        if (this.debounceTimer) {
+          clearTimeout(this.debounceTimer);
+        }
         this._onDidChangeCodeLenses.fire();
       })
     );
@@ -75,7 +84,7 @@ export class QuerySelectionCodeLensProvider implements vscode.CodeLensProvider {
     const previewCodeLens = new vscode.CodeLens(codeLensRange, {
       title: "Preview selected query",
       command: "bruin.previewSelectedQuery",
-      arguments: [selectedText]
+      arguments: [] 
     });
 
     codeLenses.push(previewCodeLens);
@@ -84,6 +93,9 @@ export class QuerySelectionCodeLensProvider implements vscode.CodeLensProvider {
   }
 
   public dispose() {
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer);
+    }
     this.disposables.forEach(d => d.dispose());
   }
 } 

@@ -30,8 +30,8 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
   // Getter and setter for lastExecutedQuery (for backward compatibility)
   public static setLastExecutedQuery(query: string): void {
     this.lastExecutedQuery = query;
-    // Also store in the default tab
-    this.setTabQuery("tab-1", query);
+    // Also store in the active tab
+    this.setTabQuery(this.activeTab, query);
   }
 
   public static getLastExecutedQuery(): string {
@@ -50,19 +50,25 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
   }
 
   public static getTabQuery(tabId: string): string {
-    return this.tabQueries.get(tabId) || this.lastExecutedQuery || "";
+    return this.tabQueries.get(tabId) || "";
   }
 
   // Methods to manage per-tab asset paths
   public static setTabAssetPath(tabId: string, assetPath: string): void {
     this.tabAssetPaths.set(tabId, assetPath);
-    if (tabId === "tab-1") {
+    if (tabId === this.activeTab) {
       this.lastAssetPath = assetPath;
     }
   }
 
   public static getTabAssetPath(tabId: string): string {
     return this.tabAssetPaths.get(tabId) || this.lastAssetPath || "";
+  }
+
+  // Method to clear tab state when running a new selected query
+  public static clearTabState(tabId: string): void {
+    this.tabQueries.delete(tabId);
+    this.tabAssetPaths.delete(tabId);
   }
   private async loadAndSendQueryOutput(
     environment: string,
@@ -73,9 +79,6 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
   ) {
     startDate = startDate || QueryPreviewPanel.currentDates.start;
     endDate = endDate || QueryPreviewPanel.currentDates.end;
-    console.log(
-      `QueryPreviewPanel: Loading query with dates - start: ${startDate}, end: ${endDate}`
-    );
 
     if (!this._lastRenderedDocumentUri) {
       return;
@@ -83,7 +86,6 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
 
     try {
       if (!this._lastRenderedDocumentUri.fsPath) {
-        console.warn("No valid query was returned");
         return;
       }
 
@@ -142,7 +144,6 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
 
   private init = async () => {
     if (!QueryPreviewPanel._view) {
-      console.log("View is not initialized yet");
       return;
     }
     await this.resolveWebviewView(QueryPreviewPanel._view, this.context!, this.token!);
@@ -287,6 +288,9 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
           const startDate = message.payload.startDate || "";
           const endDate = message.payload.endDate || "";
           let extractedQuery = message.payload.query || "";
+          
+          // Clear stored query for this tab - Run button should get fresh selection/file content
+          QueryPreviewPanel.clearTabState(tabId);
 
           // Check if the file is an asset
           let isAsset = false;
@@ -321,10 +325,6 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
           }
 
           this.loadAndSendQueryOutput(this.environment, this.limit, tabId, startDate, endDate);
-          console.log(
-            "Received limit, tabId, and query from webview in the Query Preview panel",
-            message.payload
-          );
           break;
         case "bruin.clearQueryOutput":
           const tabId2 = message.payload?.tabId || null;
@@ -364,7 +364,6 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
     data: string | { status: string; message: string | any; tabId?: string; [key: string]: any }
   ) {
     if (this._view) {
-      console.log("Posting message to webview in the Query Preview panel", name, data);
 
       // Store dates when receiving date updates
       if (name === "update-query-dates" && typeof data === "object" && data.message) {
@@ -373,7 +372,6 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
           start: startDate || "",
           end: endDate || "",
         };
-        console.log(`QueryPreviewPanel: Received dates - start: ${startDate}, end: ${endDate}`);
       }
 
       // Ensure the data is serializable
@@ -392,17 +390,14 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
       // Use the proper VSCode command to focus the webview view
       await vscode.commands.executeCommand(`${this.viewId}.focus`);
     } catch (error) {
-      console.log("Panel not yet created, revealing panel container first");
       try {
         await vscode.commands.executeCommand('workbench.panel.QueryPreview.focus');
-        console.log("Panel container focused successfully");
       } catch (fallbackError) {
         try {
           await new Promise(resolve => setTimeout(resolve, 100));
           await vscode.commands.executeCommand(`${this.viewId}.focus`);
-          console.log("Direct view focus successful");
         } catch (finalError) {
-          console.warn("All focus methods failed:", finalError);
+          console.error("All focus methods failed:", finalError);
         }
       }
     }
