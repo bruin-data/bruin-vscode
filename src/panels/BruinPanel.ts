@@ -85,7 +85,7 @@ export class BruinPanel {
 
     this._disposables.push(
       workspace.onDidChangeTextDocument(async (editor) => {
-        console.log("onDidChangeTextDocument", editor);
+
         if (editor && editor.document.uri.fsPath.endsWith(".bruin.yml")) {
           getEnvListCommand(this._lastRenderedDocumentUri);
           getConnections(this._lastRenderedDocumentUri);
@@ -101,7 +101,7 @@ export class BruinPanel {
 
       // Watch for external changes to .bruin.yml files (e.g., from bruin init)
       workspace.createFileSystemWatcher("**/.bruin.yml").onDidChange(async (uri) => {
-        console.log("External .bruin.yml file changed:", uri.fsPath);
+
         getEnvListCommand(this._lastRenderedDocumentUri);
         getConnections(this._lastRenderedDocumentUri);
         
@@ -110,11 +110,11 @@ export class BruinPanel {
       }),
 
       window.onDidChangeActiveTextEditor(async (editor) => {
-        console.log("onDidChangeActiveTextEditor", editor);
+
         if (editor && editor.document.uri) {
           this._lastRenderedDocumentUri = editor.document.uri;
 
-          console.log("Document URI active text editor", this._lastRenderedDocumentUri);
+  
           
           // Send current file path to webview
           this._panel.webview.postMessage({
@@ -130,7 +130,7 @@ export class BruinPanel {
         e.files.forEach((file) => {
           if (this._lastRenderedDocumentUri?.fsPath === file.oldUri.fsPath) {
             this._lastRenderedDocumentUri = file.newUri;
-            console.log(`File renamed from ${file.oldUri.fsPath} to ${file.newUri.fsPath}`);
+    
           }
         });
       })
@@ -389,7 +389,7 @@ export class BruinPanel {
 
             // Get default exclude tag
             const defaultExcludeTag = getDefaultExcludeTag();
-            console.log("Using default exclude tag for validateAll:", defaultExcludeTag);
+    
             await validatorAll.validate(workspaceFolder.uri.fsPath, {}, defaultExcludeTag);
             break;
           case "bruin.checkTelemtryPreference":
@@ -419,7 +419,7 @@ export class BruinPanel {
               // Get default exclude tag
               const excludeTag = getDefaultExcludeTag();
               // Pass the exclude tag to validate method
-              console.log("Using default exclude tag for validateCurrentPipeline:", excludeTag);
+      
               await pipelineValidator.validate(currentPipelinePath, {}, excludeTag);
             } catch (error) {
               console.error("Error validating pipeline:", currentPipelinePath, error);

@@ -120,8 +120,7 @@ async function updatePathSeparator(config: WorkspaceConfiguration): Promise<void
 export async function activate(context: ExtensionContext) {
   const startTime = Date.now();
   console.time("Bruin Activation Total");
-  console.log("=== BRUIN EXTENSION ACTIVATION STARTED ===");
-  console.log("Bruin extension is now active!");
+  
 
   // Initialize TableDetailsPanel
   TableDetailsPanel.initialize(context.subscriptions);
@@ -239,7 +238,7 @@ export async function activate(context: ExtensionContext) {
   try {
     const bruinCompletions = BruinCompletionsWithCommands.getInstance();
     bruinCompletions.registerProviders(context);
-    console.log('=== BRUIN COMPLETIONS WITH COMMANDS INITIALIZED ===');
+    
   } catch (error) {
     console.error('=== BRUIN COMPLETIONS WITH COMMANDS INITIALIZATION FAILED ===', error);
   }
@@ -247,7 +246,7 @@ export async function activate(context: ExtensionContext) {
     const bruinLanguageServer = new BruinLanguageServer();
     bruinLanguageServer.registerProviders(context);
     registerFileWatcher(bruinLanguageServer, context);
-    console.log('=== BRUIN LANGUAGE SERVER INITIALIZED ===');
+    
   } catch (error) {
     console.error('=== BRUIN LANGUAGE SERVER INITIALIZATION FAILED ===', error);
   }
@@ -553,7 +552,7 @@ export async function activate(context: ExtensionContext) {
         trackEvent("Command Executed", { command: "convertFileToAsset" });
         if (BruinPanel.currentPanel) {
           //await BruinPanel.currentPanel.convertCurrentDocument();
-          console.log("Bruin panel is active.");
+  
         } else {
           console.error("Bruin panel is not active.");
         }
@@ -600,7 +599,7 @@ export async function activate(context: ExtensionContext) {
         
         // Manually trigger completion
         await vscode.commands.executeCommand('editor.action.triggerSuggest');
-        console.log('Bruin: Manually triggered completions');
+
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         vscode.window.showErrorMessage(`Error triggering completions: ${errorMessage}`);

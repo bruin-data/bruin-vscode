@@ -8,8 +8,6 @@ export class ColumnCompletions {
         const text = document.getText();
         const currentLine = position.line;
         
-        console.log('🔍 Checking columns section - current line:', currentLine);
-        
         // Find the columns: line
         const lines = text.split('\n');
         let columnsLineIndex = -1;
@@ -21,10 +19,7 @@ export class ColumnCompletions {
             }
         }
         
-        console.log('🔍 Columns line index:', columnsLineIndex);
-        
         if (columnsLineIndex === -1) {
-            console.log('❌ No columns: section found');
             return false;
         }
         
@@ -37,17 +32,11 @@ export class ColumnCompletions {
             }
         }
         
-        console.log('🔍 Next section line index:', nextSectionLineIndex);
-        console.log('🔍 Current line in range:', currentLine > columnsLineIndex && currentLine < nextSectionLineIndex);
-        
         // Check if we're between the columns: line and the next section
         const inColumnsSection = currentLine > columnsLineIndex && currentLine < nextSectionLineIndex;
         
         // Also check if we're on the same line as columns: but after the colon
         const onColumnsLine = currentLine === columnsLineIndex && position.character > lines[columnsLineIndex].indexOf(':');
-        
-        console.log('🔍 On columns line after colon:', onColumnsLine);
-        console.log('🔍 Final result:', inColumnsSection || onColumnsLine);
         
         return inColumnsSection || onColumnsLine;
     }
