@@ -82,11 +82,15 @@ export class MaterializationCompletions {
 
         // Strategy values
         const strategyValues = [
+            { name: 'create+replace', description: 'Create new table and replace existing data' },
             { name: 'delete+insert', description: 'Delete existing data and insert new data' },
             { name: 'merge', description: 'Merge new data with existing data' },
-            { name: 'replace', description: 'Replace entire table with new data' },
             { name: 'append', description: 'Append new data to existing table' },
-            { name: 'scd2', description: 'Slowly changing dimension type 2' }
+            { name: 'ddl', description: 'Materialize as a DDL statement' },
+            { name: 'scd2_by_time', description: 'Slowly changing dimension type 2 by time' },
+            { name: 'scd2_by_column', description: 'Slowly changing dimension type 2 by column' },
+            { name: 'none', description: 'Do not materialize' },
+            { name: 'time_interval', description: 'Materialize with time intervals' }
         ];
 
         strategyValues.forEach(strategy => {
