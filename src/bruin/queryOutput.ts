@@ -41,7 +41,7 @@ export class BruinQueryOutput extends BruinCommand {
   ): Promise<void> {
     // Construct base flags dynamically
     this.isLoading = true;
-    this.postMessageToPanels("loading", this.isLoading);
+    this.postMessageToPanels("loading", this.isLoading, tabId);
     const constructedFlags = ["-o", "json"];
 
     if (connectionName) {
@@ -94,7 +94,8 @@ export class BruinQueryOutput extends BruinCommand {
       if (result.includes("flag provided but not defined")) {
         this.postMessageToPanels(
           "error",
-          "This feature requires the latest Bruin CLI version. Please update your CLI."
+          "This feature requires the latest Bruin CLI version. Please update your CLI.",
+          tabId
         );
         return;
       }
