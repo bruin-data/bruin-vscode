@@ -28,7 +28,6 @@ import { QuerySelectionCodeLensProvider } from "../providers/querySelectionCodeL
 import { ActivityBarConnectionsProvider } from "../providers/ActivityBarConnectionsProvider";
 import { FavoritesProvider } from "../providers/FavoritesProvider";
 import { TableDetailsPanel } from "../panels/TableDetailsPanel";
-
 import { BruinLanguageServer, registerFileWatcher } from "../language-server/bruinLanguageServer";
 import { BruinCompletionsWithCommands } from "../language-server/bruinCompletionsWithCommands";
 
@@ -252,24 +251,9 @@ export async function activate(context: ExtensionContext) {
   } catch (error) {
     console.error('=== BRUIN LANGUAGE SERVER INITIALIZATION FAILED ===', error);
   }
-// Initialize BruinCompletionsWithCommands for asset file completions using Bruin CLI
-  try {
-    const bruinCompletions = BruinCompletionsWithCommands.getInstance();
-    bruinCompletions.registerProviders(context);
-    console.log('=== BRUIN COMPLETIONS WITH COMMANDS INITIALIZED ===');
-  } catch (error) {
-    console.error('=== BRUIN COMPLETIONS WITH COMMANDS INITIALIZATION FAILED ===', error);
-  }
 
-  // Initialize the old BruinLanguageServer for dependency "go to file" functionality
-  try {
-    const bruinLanguageServer = new BruinLanguageServer();
-    bruinLanguageServer.registerProviders(context);
-    registerFileWatcher(bruinLanguageServer, context);
-    console.log('=== BRUIN LANGUAGE SERVER INITIALIZED ===');
-  } catch (error) {
-    console.error('=== BRUIN LANGUAGE SERVER INITIALIZATION FAILED ===', error);
-  }
+
+
   const defaultFoldingState = bruinConfig.get("bruin.FoldingState", "folded");
   let toggled = defaultFoldingState === "folded";
 
