@@ -470,9 +470,14 @@ export async function activate(context: ExtensionContext) {
           }
         }
 
-        // Just run the selected text as a query
-        QueryPreviewPanel.setLastExecutedQuery(selectedText);
         const activeTabId = QueryPreviewPanel.getActiveTabId();
+        
+        // Clear previous state for this tab to avoid conflicts
+        QueryPreviewPanel.clearTabState(activeTabId);
+        
+        // Set the new query for this tab
+        QueryPreviewPanel.setLastExecutedQuery(selectedText);
+        QueryPreviewPanel.setTabQuery(activeTabId, selectedText);
 
         QueryPreviewPanel.postMessage("query-output-message", {
           status: "loading",

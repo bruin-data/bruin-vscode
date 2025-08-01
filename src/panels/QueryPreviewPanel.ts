@@ -30,8 +30,8 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
   // Getter and setter for lastExecutedQuery (for backward compatibility)
   public static setLastExecutedQuery(query: string): void {
     this.lastExecutedQuery = query;
-    // Also store in the default tab
-    this.setTabQuery("tab-1", query);
+    // Also store in the active tab
+    this.setTabQuery(this.activeTab, query);
   }
 
   public static getLastExecutedQuery(): string {
@@ -56,13 +56,19 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
   // Methods to manage per-tab asset paths
   public static setTabAssetPath(tabId: string, assetPath: string): void {
     this.tabAssetPaths.set(tabId, assetPath);
-    if (tabId === "tab-1") {
+    if (tabId === this.activeTab) {
       this.lastAssetPath = assetPath;
     }
   }
 
   public static getTabAssetPath(tabId: string): string {
     return this.tabAssetPaths.get(tabId) || this.lastAssetPath || "";
+  }
+
+  // Method to clear tab state when running a new selected query
+  public static clearTabState(tabId: string): void {
+    this.tabQueries.delete(tabId);
+    this.tabAssetPaths.delete(tabId);
   }
   private async loadAndSendQueryOutput(
     environment: string,
