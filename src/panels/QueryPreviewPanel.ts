@@ -50,7 +50,7 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
   }
 
   public static getTabQuery(tabId: string): string {
-    return this.tabQueries.get(tabId) || this.lastExecutedQuery || "";
+    return this.tabQueries.get(tabId) || "";
   }
 
   // Methods to manage per-tab asset paths

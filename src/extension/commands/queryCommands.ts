@@ -35,6 +35,7 @@ export const getQueryOutput = async (environment: string, limit: string, lastRen
   
   if (isAsset && !selectedQuery) {
     // Don't set a query - let the asset path be used instead
+    selectedQuery = "";
   } else if (!selectedQuery) {
     // For non-asset files, fall back to selection or file content detection
     // Get the selected text (if any)

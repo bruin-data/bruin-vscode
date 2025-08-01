@@ -1029,16 +1029,12 @@ const runQuery = () => {
     triggerRef(tabs);
     const selectedEnvironment = currentEnvironment.value;
     
-    // Send empty query - backend will:
-    // 1. Check for current selection in editor
-    // 2. If selection exists, run selected text  
-    // 3. If no selection, run entire file as asset
     vscode.postMessage({
       command: "bruin.getQueryOutput",
       payload: {
         environment: selectedEnvironment,
         limit: limit.value.toString(),
-        query: "", // Empty - let backend decide based on selection
+        query: "",
         tabId: activeTab.value,
       },
     });
