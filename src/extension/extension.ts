@@ -28,7 +28,7 @@ import { QuerySelectionCodeLensProvider } from "../providers/querySelectionCodeL
 import { ActivityBarConnectionsProvider } from "../providers/ActivityBarConnectionsProvider";
 import { FavoritesProvider } from "../providers/FavoritesProvider";
 import { TableDetailsPanel } from "../panels/TableDetailsPanel";
-import { activateBruinLSP, deactivateBruinLSP } from "../language-server/bruinLSPClient";
+
 import { BruinLanguageServer, registerFileWatcher } from "../language-server/bruinLanguageServer";
 import { BruinCompletionsWithCommands } from "../language-server/bruinCompletionsWithCommands";
 
@@ -252,15 +252,7 @@ export async function activate(context: ExtensionContext) {
   } catch (error) {
     console.error('=== BRUIN LANGUAGE SERVER INITIALIZATION FAILED ===', error);
   }
-/* 
-  // Initialize Bruin LSP (Language Server Protocol)
-  try {
-    activateBruinLSP(context);
-  } catch (error) {
-    console.error('=== BRUIN LSP INITIALIZATION FAILED ===', error);
-  }
-
-//Initialize BruinCompletionsWithCommands for asset file completions using Bruin CLI
+// Initialize BruinCompletionsWithCommands for asset file completions using Bruin CLI
   try {
     const bruinCompletions = BruinCompletionsWithCommands.getInstance();
     bruinCompletions.registerProviders(context);
@@ -278,7 +270,6 @@ export async function activate(context: ExtensionContext) {
   } catch (error) {
     console.error('=== BRUIN LANGUAGE SERVER INITIALIZATION FAILED ===', error);
   }
- */
   const defaultFoldingState = bruinConfig.get("bruin.FoldingState", "folded");
   let toggled = defaultFoldingState === "folded";
 
@@ -646,7 +637,4 @@ export async function activate(context: ExtensionContext) {
   TableDetailsPanel.initialize(context.subscriptions);
 }
 
-/* export function deactivate(): Thenable<void> | undefined {
-  console.log('Bruin Extension: Deactivating...');
-  return deactivateBruinLSP();
-} */
+
