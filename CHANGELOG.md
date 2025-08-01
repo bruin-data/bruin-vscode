@@ -1,4 +1,7 @@
 # Changelog
+## [0.61.3] - [2025-08-01]
+- Fixed the query preview issues by clearing tab state and fixing stale results.
+
 ## [0.61.2] - [2025-07-30]
 - Fixed the validate all command to use the right workspace directory.
 
