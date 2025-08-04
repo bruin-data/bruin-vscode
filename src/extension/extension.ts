@@ -29,6 +29,7 @@ import { ActivityBarConnectionsProvider } from "../providers/ActivityBarConnecti
 import { FavoritesProvider } from "../providers/FavoritesProvider";
 import { TableDetailsPanel } from "../panels/TableDetailsPanel";
 import { BruinLanguageServer, registerFileWatcher } from "../language-server/bruinLanguageServer";
+import { BruinCompletionsWithCommands } from "../language-server/bruinCompletionsWithCommands";
 
 let analyticsClient: any = null;
 
@@ -119,7 +120,7 @@ async function updatePathSeparator(config: WorkspaceConfiguration): Promise<void
 export async function activate(context: ExtensionContext) {
   const startTime = Date.now();
   console.time("Bruin Activation Total");
-  console.log("Bruin extension is now active!");
+  
 
   // Initialize TableDetailsPanel
   TableDetailsPanel.initialize(context.subscriptions);
@@ -234,10 +235,23 @@ export async function activate(context: ExtensionContext) {
   const favoritesProvider = new FavoritesProvider();
   vscode.window.registerTreeDataProvider("bruinFavorites", favoritesProvider);
 
-  // Initialize Bruin Language Server
-  const bruinLanguageServer = new BruinLanguageServer();
-  bruinLanguageServer.registerProviders(context);
-  registerFileWatcher(bruinLanguageServer, context);
+  try {
+    const bruinCompletions = BruinCompletionsWithCommands.getInstance();
+    bruinCompletions.registerProviders(context);
+    
+  } catch (error) {
+    console.error('=== BRUIN COMPLETIONS WITH COMMANDS INITIALIZATION FAILED ===', error);
+  }
+  try {
+    const bruinLanguageServer = new BruinLanguageServer();
+    bruinLanguageServer.registerProviders(context);
+    registerFileWatcher(bruinLanguageServer, context);
+    
+  } catch (error) {
+    console.error('=== BRUIN LANGUAGE SERVER INITIALIZATION FAILED ===', error);
+  }
+
+
 
   const defaultFoldingState = bruinConfig.get("bruin.FoldingState", "folded");
   let toggled = defaultFoldingState === "folded";
@@ -543,7 +557,7 @@ export async function activate(context: ExtensionContext) {
         trackEvent("Command Executed", { command: "convertFileToAsset" });
         if (BruinPanel.currentPanel) {
           //await BruinPanel.currentPanel.convertCurrentDocument();
-          console.log("Bruin panel is active.");
+  
         } else {
           console.error("Bruin panel is not active.");
         }
@@ -562,6 +576,40 @@ export async function activate(context: ExtensionContext) {
         await activityBarConnectionsProvider.toggleTableFavorite(item.itemData, item);
       }
     }),
+    commands.registerCommand("bruin.testCompletion", async () => {
+      try {
+        trackEvent("Command Executed", { command: "testCompletion" });
+        const editor = window.activeTextEditor;
+        if (!editor) {
+          vscode.window.showWarningMessage("No active editor found");
+          return;
+        }
+        
+        // Manually trigger completion
+        await vscode.commands.executeCommand('editor.action.triggerSuggest');
+        vscode.window.showInformationMessage("Completion triggered manually");
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error testing completion: ${errorMessage}`);
+      }
+    }),
+    commands.registerCommand("bruin.triggerCompletions", async () => {
+      try {
+        trackEvent("Command Executed", { command: "triggerCompletions" });
+        const editor = window.activeTextEditor;
+        if (!editor) {
+          vscode.window.showWarningMessage("No active editor found");
+          return;
+        }
+        
+        // Manually trigger completion
+        await vscode.commands.executeCommand('editor.action.triggerSuggest');
+
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error triggering completions: ${errorMessage}`);
+      }
+    }),
   ];
 
   context.subscriptions.push(...commandDisposables);
@@ -576,3 +624,5 @@ export async function activate(context: ExtensionContext) {
 
   TableDetailsPanel.initialize(context.subscriptions);
 }
+
+
