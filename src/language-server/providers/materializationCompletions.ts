@@ -15,6 +15,18 @@ export class MaterializationCompletions {
         const lineText = document.lineAt(position.line).text;
         const linePrefix = lineText.substring(0, position.character);
 
+        // Check if we're after type: in materialization
+        const isAfterType = linePrefix.match(/type:\s*$/);
+        if (isAfterType) {
+            return this.getMaterializationTypeCompletions();
+        }
+
+        // Check if we're after strategy: and determine context
+        const isAfterStrategy = linePrefix.match(/strategy:\s*$/);
+        if (isAfterStrategy) {
+            return this.getTableStrategyCompletions();
+        }
+
         // Check if we're after partition_by:, cluster_by:, or incremental_key:
         const isAfterPartitionBy = linePrefix.match(/partition_by:\s*$/);
         const isAfterClusterBy = linePrefix.match(/cluster_by:\s*$/);
@@ -48,56 +60,34 @@ export class MaterializationCompletions {
             return completions;
         }
 
-        // Default materialization property and value completions
+        // Check if we should suggest incremental_key based on strategy
+        const shouldSuggestIncrementalKey = this.shouldSuggestIncrementalKey(document);
+
+        // Default materialization property completions
         const materializationProperties = [
-            { name: 'type', description: 'Materialization type (table, view, time_interval)' },
-            { name: 'strategy', description: 'Materialization strategy' },
-            { name: 'partition_by', description: 'Partitioning key - choose a column' },
-            { name: 'cluster_by', description: 'Clustering keys - choose columns' },
-            { name: 'incremental_key', description: 'Incremental key for delete+insert strategy' }
+            { name: 'type', description: 'Materialization type (table, view, none)' }
         ];
+
+        // Add strategy only if type is table
+        if (this.hasTableType(document)) {
+            materializationProperties.push({ name: 'strategy', description: 'Materialization strategy for table type' });
+            materializationProperties.push({ name: 'partition_by', description: 'Partitioning key - choose a column' });
+            materializationProperties.push({ name: 'cluster_by', description: 'Clustering keys - choose columns' });
+        }
+
+        // Add incremental_key if strategy requires it
+        if (shouldSuggestIncrementalKey) {
+            materializationProperties.push({
+                name: 'incremental_key',
+                description: 'Incremental key for delete+insert or merge strategy'
+            });
+        }
 
         materializationProperties.forEach(prop => {
             const completion = new vscode.CompletionItem(prop.name, vscode.CompletionItemKind.Property);
             completion.detail = prop.description;
             completion.documentation = new vscode.MarkdownString(`**${prop.name}**\n\n${prop.description}`);
             completion.insertText = `${prop.name}: `;
-            completions.push(completion);
-        });
-
-        // Materialization type values
-        const materializationTypes = [
-            { name: 'table', description: 'Materialize as a table' },
-            { name: 'view', description: 'Materialize as a view' },
-            { name: 'time_interval', description: 'Materialize with time intervals' }
-        ];
-
-        materializationTypes.forEach(type => {
-            const completion = new vscode.CompletionItem(type.name, vscode.CompletionItemKind.Value);
-            completion.detail = type.description;
-            completion.documentation = new vscode.MarkdownString(`**${type.name}**\n\n${type.description}`);
-            completion.insertText = type.name;
-            completions.push(completion);
-        });
-
-        // Strategy values
-        const strategyValues = [
-            { name: 'create+replace', description: 'Create new table and replace existing data' },
-            { name: 'delete+insert', description: 'Delete existing data and insert new data' },
-            { name: 'merge', description: 'Merge new data with existing data' },
-            { name: 'append', description: 'Append new data to existing table' },
-            { name: 'ddl', description: 'Materialize as a DDL statement' },
-            { name: 'scd2_by_time', description: 'Slowly changing dimension type 2 by time' },
-            { name: 'scd2_by_column', description: 'Slowly changing dimension type 2 by column' },
-            { name: 'none', description: 'Do not materialize' },
-            { name: 'time_interval', description: 'Materialize with time intervals' }
-        ];
-
-        strategyValues.forEach(strategy => {
-            const completion = new vscode.CompletionItem(strategy.name, vscode.CompletionItemKind.Value);
-            completion.detail = strategy.description;
-            completion.documentation = new vscode.MarkdownString(`**${strategy.name}**\n\n${strategy.description}`);
-            completion.insertText = strategy.name;
             completions.push(completion);
         });
 
@@ -234,5 +224,143 @@ export class MaterializationCompletions {
         }
 
         return completions;
+    }
+
+    /**
+     * Get materialization type completions
+     */
+    private getMaterializationTypeCompletions(): vscode.CompletionItem[] {
+        const completions: vscode.CompletionItem[] = [];
+        
+        const typeValues = [
+            { 
+                name: 'table', 
+                description: 'Materialize as a table - requires strategy',
+                insertText: new vscode.SnippetString('table\n  strategy: ${1|create+replace,delete+insert,merge,append|}')
+            },
+            { 
+                name: 'view', 
+                description: 'Materialize as a view - logical table only',
+                insertText: 'view'
+            },
+            { 
+                name: 'none', 
+                description: 'Do not materialize - no physical table created',
+                insertText: 'none'
+            }
+        ];
+
+        typeValues.forEach(type => {
+            const completion = new vscode.CompletionItem(type.name, vscode.CompletionItemKind.Value);
+            completion.detail = type.description;
+            completion.documentation = new vscode.MarkdownString(`**${type.name}**\n\n${type.description}`);
+            completion.insertText = type.insertText;
+            completions.push(completion);
+        });
+
+        return completions;
+    }
+
+    /**
+     * Get table strategy-specific completions
+     */
+    private getTableStrategyCompletions(): vscode.CompletionItem[] {
+        const completions: vscode.CompletionItem[] = [];
+        
+        const tableStrategies = [
+            { 
+                name: 'create+replace', 
+                description: 'Drop and recreate table with new data',
+                requiresIncrementalKey: false
+            },
+            { 
+                name: 'delete+insert', 
+                description: 'Delete existing data and insert new data (requires incremental_key)',
+                requiresIncrementalKey: true
+            },
+            { 
+                name: 'merge', 
+                description: 'Merge new data with existing data (requires incremental_key)',
+                requiresIncrementalKey: true
+            },
+            { 
+                name: 'append', 
+                description: 'Append new data to existing table',
+                requiresIncrementalKey: false
+            }
+        ];
+
+        tableStrategies.forEach(strategy => {
+            const completion = new vscode.CompletionItem(strategy.name, vscode.CompletionItemKind.Value);
+            completion.detail = strategy.description;
+            completion.documentation = new vscode.MarkdownString(
+                `**${strategy.name}**\n\n${strategy.description}` +
+                (strategy.requiresIncrementalKey ? '\n\n⚠️ This strategy requires an `incremental_key`' : '')
+            );
+            completion.insertText = strategy.name;
+            completions.push(completion);
+        });
+
+        return completions;
+    }
+
+    /**
+     * Check if materialization type is set to table
+     */
+    private hasTableType(document: vscode.TextDocument): boolean {
+        const text = document.getText();
+        const lines = text.split('\n');
+        
+        // Look for type: table in the materialization section
+        let inMaterializationSection = false;
+        
+        for (const line of lines) {
+            if (line.match(/^materialization:\s*$/)) {
+                inMaterializationSection = true;
+                continue;
+            }
+            
+            // Exit materialization section if we hit another top-level property
+            if (inMaterializationSection && line.match(/^\w+:\s*$/)) {
+                break;
+            }
+            
+            // Check for type: table
+            if (inMaterializationSection && line.match(/^\s*type:\s*table\s*$/)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Check if incremental_key should be suggested based on the current strategy
+     */
+    private shouldSuggestIncrementalKey(document: vscode.TextDocument): boolean {
+        const text = document.getText();
+        const lines = text.split('\n');
+        
+        // Look for strategy: delete+insert or merge in the materialization section
+        let inMaterializationSection = false;
+        
+        for (const line of lines) {
+            if (line.match(/^materialization:\s*$/)) {
+                inMaterializationSection = true;
+                continue;
+            }
+            
+            // Exit materialization section if we hit another top-level property
+            if (inMaterializationSection && line.match(/^\w+:\s*$/)) {
+                break;
+            }
+            
+            // Check for strategy that requires incremental key
+            if (inMaterializationSection && line.match(/^\s*strategy:\s*(delete\+insert|merge)\s*$/)) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 } 

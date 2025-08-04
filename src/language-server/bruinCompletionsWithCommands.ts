@@ -213,37 +213,46 @@ class BruinAssetCompletionProvider implements vscode.CompletionItemProvider {
         const isTopLevel = linePrefix.match(/^\s{0,2}$/) && !linePrefix.includes(':');
         
         if (isTopLevel) {
+            // Only show top-level completions at root level
             completions.push(...this.languageServer.getTopLevelCompletions());
-        } else {
-            // Check if we're in a depends section
-            const { start, end } = getDependsSectionOffsets(document);
-            
-            if (start !== -1 && end !== -1) {
-                const currentOffset = document.offsetAt(position);
-                
-                if (currentOffset >= start && currentOffset <= end) {
-                    const assetCompletions = await this.languageServer.getAssetCompletions(document.fileName);
-                    completions.push(...assetCompletions);
-                }
-            }
-            
-            // Check if we're in a columns section
-            if (this.languageServer.isInColumnsSection(document, position)) {
-                const columnCompletions = this.languageServer.getColumnCompletions(document, position);
-                completions.push(...columnCompletions);
-            }
-            
-            // Check if we're in materialization section
-            if (this.languageServer.isInMaterializationSection(document, position)) {
-                const materializationCompletions = await this.languageServer.getMaterializationCompletions(document, position, document.fileName);
-                completions.push(...materializationCompletions);
-            }
-            
-            if (linePrefix.includes('type:')) {
-                completions.push(...this.languageServer.getAssetTypeCompletions());
-            }
+            return completions;
         }
 
+        // Priority order: Check specific contexts first to avoid mixed suggestions
+        
+        // 1. Check if we're in materialization section first (highest priority)
+        if (this.languageServer.isInMaterializationSection(document, position)) {
+            const materializationCompletions = await this.languageServer.getMaterializationCompletions(document, position, document.fileName);
+            completions.push(...materializationCompletions);
+            return completions; // Return only materialization completions
+        }
+        
+        // 2. Check if we're in columns section
+        if (this.languageServer.isInColumnsSection(document, position)) {
+            const columnCompletions = this.languageServer.getColumnCompletions(document, position);
+            completions.push(...columnCompletions);
+            return completions; // Return only column completions
+        }
+        
+        // 3. Check if we're in depends section
+        const { start, end } = getDependsSectionOffsets(document);
+        if (start !== -1 && end !== -1) {
+            const currentOffset = document.offsetAt(position);
+            
+            if (currentOffset >= start && currentOffset <= end) {
+                const assetCompletions = await this.languageServer.getAssetCompletions(document.fileName);
+                completions.push(...assetCompletions);
+                return completions; // Return only dependency completions
+            }
+        }
+        
+        // 4. Check for type: completions
+        if (linePrefix.includes('type:') && linePrefix.match(/type:\s*$/)) {
+            completions.push(...this.languageServer.getAssetTypeCompletions());
+            return completions; // Return only type completions
+        }
+
+        // If no specific context matched, return empty to avoid clutter
         return completions;
     }
 } 
