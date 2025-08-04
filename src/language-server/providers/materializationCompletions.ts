@@ -296,13 +296,33 @@ export class MaterializationCompletions {
             },
             { 
                 name: 'merge', 
-                description: 'Merge new data with existing data (requires incremental_key)',
+                description: 'Merge new data with existing data',
                 requiresIncrementalKey: true
             },
             { 
                 name: 'append', 
                 description: 'Append new data to existing table',
                 requiresIncrementalKey: false
+            },
+            { 
+                name: 'time_interval', 
+                description: 'Time-based incremental materialization (requires incremental_key)',
+                requiresIncrementalKey: true
+            },
+            { 
+                name: 'DDL', 
+                description: 'DDL only',
+                requiresIncrementalKey: false
+            },
+            { 
+                name: 'scd2_by_column', 
+                description: 'SCD2 by column',
+                requiresIncrementalKey: true
+            },
+            { 
+                name: 'scd2_by_time', 
+                description: 'SCD2 by time (requires incremental_key)',
+                requiresIncrementalKey: true
             }
         ];
 
@@ -372,7 +392,7 @@ export class MaterializationCompletions {
             }
             
             // Check for strategy that requires incremental key
-            if (inMaterializationSection && line.match(/^\s*strategy:\s*(delete\+insert|merge)\s*$/)) {
+            if (inMaterializationSection && line.match(/^\s*strategy:\s*(delete\+insert|time_interval|scd2_by_time)\s*$/)) {
                 return true;
             }
         }
