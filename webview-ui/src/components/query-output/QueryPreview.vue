@@ -692,10 +692,32 @@ window.addEventListener("message", (event) => {
       } else if (message.payload.status === "success") {
         try {
           // Process successful response for this specific tab
-          const outputData =
+          const rawOutputData =
             typeof message.payload.message === "string"
               ? JSON.parse(message.payload.message)
               : message.payload.message;
+
+          // Ensure the output data has the correct structure
+          const outputData = {
+            columns: rawOutputData.columns || [],
+            rows: rawOutputData.rows || [],
+            connectionName: rawOutputData.connectionName || rawOutputData.meta?.connectionName || null,
+            query: rawOutputData.query || null
+          };
+
+          // Validate that columns and rows are properly aligned
+          if (outputData.columns.length > 0 && outputData.rows.length > 0) {
+            const expectedColumnCount = outputData.columns.length;
+            const firstRowLength = outputData.rows[0]?.length || 0;
+            
+            console.log(`Query result validation: ${expectedColumnCount} columns, first row has ${firstRowLength} values`);
+            console.log('Columns:', outputData.columns.map(c => c.name));
+            console.log('First row sample:', outputData.rows[0]);
+            
+            if (expectedColumnCount !== firstRowLength) {
+              console.warn(`Column/row mismatch: ${expectedColumnCount} columns but ${firstRowLength} values in first row`);
+            }
+          }
 
           // Create a new tab object to trigger reactivity properly
           const tabIndex = tabs.value.findIndex(t => t.id === tabId);
