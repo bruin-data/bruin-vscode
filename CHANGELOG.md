@@ -1,4 +1,10 @@
 # Changelog
+## [0.62.1] - [2025-08-04]
+- Fixed the query preview issues including the query extraction logic.
+
+## [0.62.0] - [2025-08-04]
+- Added completion and validation for materialization and asset properties.
+
 ## [0.61.3] - [2025-08-01]
 - Fixed the query preview issues by clearing tab state and fixing stale results.
 
