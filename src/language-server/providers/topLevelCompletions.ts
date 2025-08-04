@@ -10,28 +10,26 @@ export class TopLevelCompletions {
         const basicProperties = [
             { name: 'name', description: 'The name of the asset' },
             { name: 'type', description: 'The type of the asset' },
-            { name: 'uri', description: 'The URI of the asset' },
             { name: 'description', description: 'A brief description of the asset' },
-            { name: 'run', description: 'The file to run for this asset' },
             { name: 'depends', description: 'Dependencies for this asset' },
-            { name: 'parameters', description: 'Parameters for this asset' },
-            { name: 'connection', description: 'The connection used by this asset' },
-            { name: 'owner', description: 'The owner of this asset' },
-            { name: 'tags', description: 'Tags for this asset' },
             { name: 'materialization', description: 'Materialization details for this asset' },
-            { name: 'columns', description: 'Columns for this asset' },
-            { name: 'custom_checks', description: 'Custom checks for this asset' },
-            { name: 'secrets', description: 'Secrets for this asset' },
-            { name: 'image', description: 'The image used for this asset' },
-            { name: 'instance', description: 'The instance type for this asset' },
-            { name: 'interval_modifiers', description: 'Interval modifiers for this asset' }
+            { name: 'columns', description: 'Columns for this asset' }
         ];
 
         basicProperties.forEach(prop => {
             const completion = new vscode.CompletionItem(prop.name, vscode.CompletionItemKind.Property);
             completion.detail = prop.description;
             completion.documentation = new vscode.MarkdownString(`**${prop.name}**\n\n${prop.description}`);
-            completion.insertText = `${prop.name}: `;
+            
+            // Special handling for properties that need structured input
+            if (prop.name === 'materialization') {
+                completion.insertText = new vscode.SnippetString(`${prop.name}:\n  type: \${1|table,view,none|}`);
+            } else if (prop.name === 'depends') {
+                completion.insertText = new vscode.SnippetString(`${prop.name}:\n  - `);
+            } else {
+                completion.insertText = `${prop.name}: `;
+            }
+            
             completions.push(completion);
         });
 
