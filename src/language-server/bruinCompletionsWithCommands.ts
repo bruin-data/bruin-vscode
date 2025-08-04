@@ -209,15 +209,6 @@ class BruinAssetCompletionProvider implements vscode.CompletionItemProvider {
         const lineText = document.lineAt(position.line).text;
         const linePrefix = lineText.substring(0, position.character);
         
-        // Check if we're at the top level (only show asset properties when we're defining new keys)
-        const isTopLevel = linePrefix.match(/^\s{0,2}$/) && !linePrefix.includes(':');
-        
-        if (isTopLevel) {
-            // Only show top-level completions at root level
-            completions.push(...this.languageServer.getTopLevelCompletions());
-            return completions;
-        }
-
         // Priority order: Check specific contexts first to avoid mixed suggestions
         
         // 1. Check if we're in materialization section first (highest priority)
@@ -250,6 +241,15 @@ class BruinAssetCompletionProvider implements vscode.CompletionItemProvider {
         if (linePrefix.includes('type:') && linePrefix.match(/type:\s*$/)) {
             completions.push(...this.languageServer.getAssetTypeCompletions());
             return completions; // Return only type completions
+        }
+
+        // 5. Check if we're at the top level (only show asset properties when we're defining new keys)
+        const isTopLevel = linePrefix.match(/^\s{0,2}$/) && !linePrefix.includes(':');
+        
+        if (isTopLevel) {
+            // Only show top-level completions at root level
+            completions.push(...this.languageServer.getTopLevelCompletions());
+            return completions;
         }
 
         // If no specific context matched, return empty to avoid clutter
