@@ -111,9 +111,15 @@ export class MaterializationCompletions {
     public isInMaterializationSection(document: vscode.TextDocument, position: vscode.Position): boolean {
         const text = document.getText();
         const currentLine = position.line;
+        const lines = text.split('\n');
+        const currentLineText = lines[currentLine];
+        
+        // If we're on a top-level property line (no indentation), we're NOT in materialization
+        if (currentLineText.match(/^\w+:\s*$/)) {
+            return false;
+        }
         
         // Find the materialization: line
-        const lines = text.split('\n');
         let materializationLineIndex = -1;
         
         for (let i = 0; i < lines.length; i++) {
@@ -142,7 +148,10 @@ export class MaterializationCompletions {
         // Also check if we're on the same line as materialization: but after the colon
         const onMaterializationLine = currentLine === materializationLineIndex && position.character > lines[materializationLineIndex].indexOf(':');
         
-        return inMaterializationSection || onMaterializationLine;
+        // Additional check: if we're indented (part of materialization content)
+        const isIndentedContent = currentLineText.match(/^\s+/) && !currentLineText.match(/^\w+:\s*$/);
+        
+        return (inMaterializationSection && isIndentedContent) || onMaterializationLine;
     }
 
     /**
