@@ -1,57 +1,329 @@
 import * as vscode from 'vscode';
-import { BruinLineageInternalParse } from '../bruin/bruinFlowLineage';
 import { getDependsSectionOffsets } from '../utilities/helperUtils';
-import { getCurrentPipelinePath } from '../bruin/bruinUtils';
+import { BruinInternalParse } from '../bruin/bruinInternalParse';
 import { getBruinExecutablePath } from '../providers/BruinExecutableService';
-import * as path from 'path';
+import { MaterializationCompletions, ColumnCompletions, TopLevelCompletions, AssetCompletions, MaterializationValidator } from './providers';
 
 export class BruinLanguageServer {
-    private pipelineParser: BruinLineageInternalParse;
-    private pipelineCache: Map<string, any> = new Map();
+    private assetCache: Map<string, any> = new Map();
+    private static instance: BruinLanguageServer;
+    private materializationCompletions: MaterializationCompletions;
+    private columnCompletions: ColumnCompletions;
+    private topLevelCompletions: TopLevelCompletions;
+    private assetCompletions: AssetCompletions;
+    private materializationValidator: MaterializationValidator;
 
     constructor() {
-        this.pipelineParser = new BruinLineageInternalParse(getBruinExecutablePath(), "");
+        // Subscribe to panel messages to capture parse results
+        this.setupPanelMessageListener();
+        
+        // Initialize completion providers
+        this.materializationCompletions = new MaterializationCompletions(this.getAssetData.bind(this));
+        this.columnCompletions = new ColumnCompletions();
+        this.topLevelCompletions = new TopLevelCompletions();
+        this.assetCompletions = new AssetCompletions(this.getAssetData.bind(this));
+        this.materializationValidator = new MaterializationValidator();
+    }
+
+    public static getInstance(): BruinLanguageServer {
+        if (!BruinLanguageServer.instance) {
+            BruinLanguageServer.instance = new BruinLanguageServer();
+        }
+        return BruinLanguageServer.instance;
     }
 
     /**
-     * Register the language server providers with VSCode
+     * Setup listener to capture parse results from BruinPanel
+     */
+    private setupPanelMessageListener(): void {
+        try {
+            const BruinPanelModule = require('../panels/BruinPanel');
+            
+            const originalPostMessage = BruinPanelModule.BruinPanel.postMessage;
+            
+            BruinPanelModule.BruinPanel.postMessage = (
+                name: string,
+                data: string | { status: string; message: string | any },
+                panelType?: string
+            ) => {
+                // Capture parse-message results for completions
+                if (name === 'parse-message' && typeof data === 'object' && data.status === 'success') {
+                    try {
+                        const parsed = typeof data.message === 'string' ? JSON.parse(data.message) : data.message;
+                        if (parsed && parsed.asset) {
+                            const filePath = parsed.asset.executable_file?.path || parsed.asset.definition_file?.path;
+                            if (filePath) {
+                                this.assetCache.set(filePath, parsed);
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error caching parse result:', error);
+                    }
+                }
+                
+                // Call the original method to maintain normal behavior
+                return originalPostMessage(name, data, panelType);
+            };
+            
+        } catch (error) {
+            console.error('Error setting up panel message listener:', error);
+        }
+    }
+
+    /**
+     * Get asset data from cache (populated by panel messages)
+     */
+    private async getAssetDataInternal(filePath: string): Promise<any> {
+        try {
+            // Check if we have cached data from panel messages
+            if (this.assetCache.has(filePath)) {
+                return this.assetCache.get(filePath);
+            }
+            
+            // If no cached data, return null and let the panel parsing handle it
+            return null;
+        } catch (error) {
+            console.error('Error getting asset data:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Register completion providers for Bruin asset files
      */
     public registerProviders(context: vscode.ExtensionContext): void {
+        const triggerCharacters = [
+            ':', ' ', '\n', '-', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'
+        ];
+
+        // Register document link provider to make dependencies clickable
         const linkProvider = vscode.languages.registerDocumentLinkProvider(
-            { scheme: 'file' }, 
+            [
+                { language: 'yaml' },
+                { language: 'sql' },
+                { language: 'python' }
+            ],
             new BruinDocumentLinkProvider(this)
         );
 
-        const completionProvider = vscode.languages.registerCompletionItemProvider(
-            { scheme: 'file' }, 
-            new BruinCompletionProvider(this),
-            '-', ' ' 
+        // Register for YAML files (standalone asset files)
+        const yamlCompletionProvider = vscode.languages.registerCompletionItemProvider(
+            { language: 'yaml' },
+            new BruinAssetCompletionProvider(this),
+            ...triggerCharacters
         );
 
-        context.subscriptions.push(linkProvider, completionProvider);
+        // Register for SQL files (asset metadata in comments)
+        const sqlCompletionProvider = vscode.languages.registerCompletionItemProvider(
+            { language: 'sql' },
+            new BruinAssetCompletionProvider(this),
+            ...triggerCharacters
+        );
+
+        // Register for Python files (asset metadata in docstrings)
+        const pythonCompletionProvider = vscode.languages.registerCompletionItemProvider(
+            { language: 'python' },
+            new BruinAssetCompletionProvider(this),
+            ...triggerCharacters
+        );
+
+        // Register diagnostic provider for validation
+        const diagnosticsCollection = vscode.languages.createDiagnosticCollection('bruin-materialization');
+        const diagnosticProvider = new BruinDiagnosticProvider(this, diagnosticsCollection);
+        
+        // Set up document change listener for real-time validation
+        const documentChangeListener = vscode.workspace.onDidChangeTextDocument((event) => {
+            if (event.document.languageId === 'yaml' || 
+                event.document.languageId === 'sql' || 
+                event.document.languageId === 'python') {
+                diagnosticProvider.updateDiagnostics(event.document);
+            }
+        });
+
+        // Set up document open listener
+        const documentOpenListener = vscode.workspace.onDidOpenTextDocument((document) => {
+            if (document.languageId === 'yaml' || 
+                document.languageId === 'sql' || 
+                document.languageId === 'python') {
+                diagnosticProvider.updateDiagnostics(document);
+            }
+        });
+
+        context.subscriptions.push(
+            linkProvider,
+            yamlCompletionProvider, 
+            sqlCompletionProvider,
+            pythonCompletionProvider,
+            diagnosticsCollection,
+            documentChangeListener,
+            documentOpenListener
+        );
     }
 
     /**
-     * Get pipeline data for a given file path, with caching
+     * Get asset data for a given file path, with caching
      */
-    public async getPipelineData(filePath: string): Promise<any> {
+    public async getAssetData(filePath: string): Promise<any> {
         try {
-            const pipelinePath = await getCurrentPipelinePath(filePath) as string;
-            
-            // Check cache first
-            if (this.pipelineCache.has(pipelinePath)) {
-                return this.pipelineCache.get(pipelinePath);
+            if (this.assetCache.has(filePath)) {
+                return this.assetCache.get(filePath);
             }
 
-            const pipelineResult = await this.pipelineParser.parsePipelineConfig(pipelinePath);
-            const pipelineData = pipelineResult.raw;
+            const assetData = await this.getAssetDataInternal(filePath);
             
-            // Cache the result
-            this.pipelineCache.set(pipelinePath, pipelineData);
+            if (assetData) {
+                this.assetCache.set(filePath, assetData);
+            }
             
-            return pipelineData;
+            return assetData;
         } catch (error) {
-            console.error('Error getting pipeline data:', error);
+            console.error('Error getting cached asset data:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Clear asset cache when files change
+     */
+    public clearCache(filePath?: string): void {
+        if (filePath) {
+            const entries = Array.from(this.assetCache.entries());
+            entries.forEach(([assetPath, _]) => {
+                if (filePath.startsWith(assetPath)) {
+                    this.assetCache.delete(assetPath);
+                }
+            });
+        } else {
+            this.assetCache.clear();
+        }
+    }
+
+    /**
+     * Get materialization completions
+     */
+    public async getMaterializationCompletions(document: vscode.TextDocument, position: vscode.Position, currentFilePath: string): Promise<vscode.CompletionItem[]> {
+        return this.materializationCompletions.getMaterializationCompletions(document, position, currentFilePath);
+    }
+
+    /**
+     * Check if we're in materialization section
+     */
+    public isInMaterializationSection(document: vscode.TextDocument, position: vscode.Position): boolean {
+        return this.materializationCompletions.isInMaterializationSection(document, position);
+    }
+
+    /**
+     * Get column completions
+     */
+    public getColumnCompletions(document: vscode.TextDocument, position: vscode.Position): vscode.CompletionItem[] {
+        return this.columnCompletions.getColumnSchemaCompletions(document, position);
+    }
+
+    /**
+     * Check if we're in columns section
+     */
+    public isInColumnsSection(document: vscode.TextDocument, position: vscode.Position): boolean {
+        return this.columnCompletions.isInColumnsSection(document, position);
+    }
+
+    /**
+     * Get top-level completions
+     */
+    public getTopLevelCompletions(): vscode.CompletionItem[] {
+        return this.topLevelCompletions.getTopLevelCompletions();
+    }
+
+    /**
+     * Get asset type completions
+     */
+    public getAssetTypeCompletions(): vscode.CompletionItem[] {
+        return this.topLevelCompletions.getAssetTypeCompletions();
+    }
+
+    /**
+     * Get asset completions
+     */
+    public async getAssetCompletions(currentFilePath: string): Promise<vscode.CompletionItem[]> {
+        return this.assetCompletions.getAssetCompletionsFromAsset(currentFilePath);
+    }
+
+    /**
+     * Validate materialization in document
+     */
+    public validateMaterialization(document: vscode.TextDocument): vscode.Diagnostic[] {
+        return this.materializationValidator.validateMaterialization(document);
+    }
+
+    /**
+     * Get dependency completions using pipeline data
+     */
+    public async getDependencyCompletions(document: vscode.TextDocument, position: vscode.Position): Promise<vscode.CompletionItem[]> {
+        const lineText = document.lineAt(position.line).text;
+        const trimmedLine = lineText.trim();
+        
+        // Only show completions for dependency lines (starting with - or containing -)
+        if (!trimmedLine.startsWith('-') && !lineText.includes('-')) {
+            return [];
+        }
+
+        try {
+            const pipelineData = await this.getPipelineData(document.fileName);
+            if (!pipelineData || !pipelineData.assets) {
+                return [];
+            }
+
+            const currentAsset = pipelineData.assets.find((asset: any) => 
+                asset.definition_file && asset.definition_file.path === document.fileName
+            );
+            const currentAssetName = currentAsset?.name || currentAsset?.id;
+
+            const completions: vscode.CompletionItem[] = [];
+
+            for (const asset of pipelineData.assets) {
+                const assetName = asset.name || asset.id;
+                
+                if (!assetName || assetName === currentAssetName) {
+                    continue;
+                }
+
+                const completion = new vscode.CompletionItem(assetName, vscode.CompletionItemKind.Reference);
+                completion.detail = `Asset: ${asset.type || 'unknown'}`;
+                completion.documentation = new vscode.MarkdownString(
+                    `**Asset:** \`${assetName}\`\n\n` +
+                    `**Type:** ${asset.type || 'unknown'}\n\n` +
+                    `**File:** \`${vscode.workspace.asRelativePath(asset.definition_file?.path || '')}\``
+                );
+
+                completion.sortText = `${assetName.length.toString().padStart(3, '0')}_${assetName}`;
+                completion.insertText = assetName;
+                completion.filterText = assetName;
+
+                completions.push(completion);
+            }
+
+            return completions;
+        } catch (error) {
+            console.error('Error providing dependency completions:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Get pipeline data for dependency completions
+     */
+    private async getPipelineData(filePath: string): Promise<any> {
+        try {
+            const BruinLineageInternalParse = require('../bruin/bruinFlowLineage').BruinLineageInternalParse;
+            const getCurrentPipelinePath = require('../bruin/bruinUtils').getCurrentPipelinePath;
+            const getBruinExecutablePath = require('../providers/BruinExecutableService').getBruinExecutablePath;
+            
+            const pipelinePath = await getCurrentPipelinePath(filePath) as string;
+            const pipelineParser = new BruinLineageInternalParse(getBruinExecutablePath(), "");
+            const pipelineResult = await pipelineParser.parsePipelineConfig(pipelinePath);
+            
+            return pipelineResult.raw;
+        } catch (error) {
+            console.error('Error getting pipeline data for dependencies:', error);
             return null;
         }
     }
@@ -80,25 +352,22 @@ export class BruinLanguageServer {
             return null;
         }
     }
-
-
-    /**
-     * Clear pipeline cache when files change
-     */
-    public clearCache(filePath?: string): void {
-        if (filePath) {
-            const entries = Array.from(this.pipelineCache.entries());
-            entries.forEach(([pipelinePath, _]) => {
-                if (filePath.startsWith(path.dirname(pipelinePath))) {
-                    this.pipelineCache.delete(pipelinePath);
-                }
-            });
-        } else {
-            this.pipelineCache.clear();
-        }
-    }
 }
 
+/**
+ * Diagnostic provider for Bruin materialization validation
+ */
+class BruinDiagnosticProvider {
+    constructor(
+        private languageServer: BruinLanguageServer,
+        private diagnosticsCollection: vscode.DiagnosticCollection
+    ) {}
+
+    public updateDiagnostics(document: vscode.TextDocument): void {
+        const diagnostics = this.languageServer.validateMaterialization(document);
+        this.diagnosticsCollection.set(document.uri, diagnostics);
+    }
+}
 
 /**
  * Document link provider to make dependencies clickable
@@ -153,9 +422,9 @@ class BruinDocumentLinkProvider implements vscode.DocumentLinkProvider {
 }
 
 /**
- * Completion provider for asset dependencies autocomplete
+ * Completion provider for Bruin asset files using Bruin commands
  */
-class BruinCompletionProvider implements vscode.CompletionItemProvider {
+class BruinAssetCompletionProvider implements vscode.CompletionItemProvider {
     constructor(private languageServer: BruinLanguageServer) {}
 
     async provideCompletionItems(
@@ -164,95 +433,54 @@ class BruinCompletionProvider implements vscode.CompletionItemProvider {
         token: vscode.CancellationToken,
         context: vscode.CompletionContext
     ): Promise<vscode.CompletionItem[]> {
-        const { start, end } = getDependsSectionOffsets(document);
-        if (start === -1 || end === -1) {
-            return [];
-        }
-
-        const currentOffset = document.offsetAt(position);
-        if (currentOffset < start || currentOffset > end) {
-            return [];
-        }
-
+        const completions: vscode.CompletionItem[] = [];
         const lineText = document.lineAt(position.line).text;
-        const trimmedLine = lineText.trim();
+        const linePrefix = lineText.substring(0, position.character);
         
-        if (!trimmedLine.startsWith('-') && !lineText.includes('-')) {
-            return [];
+        // Priority order: Check specific contexts first to avoid mixed suggestions
+        
+        // 1. Check if we're in materialization section first (highest priority)
+        if (this.languageServer.isInMaterializationSection(document, position)) {
+            const materializationCompletions = await this.languageServer.getMaterializationCompletions(document, position, document.fileName);
+            completions.push(...materializationCompletions);
+            return completions; // Return only materialization completions
+        }
+        
+        // 2. Check if we're in columns section
+        if (this.languageServer.isInColumnsSection(document, position)) {
+            const columnCompletions = this.languageServer.getColumnCompletions(document, position);
+            completions.push(...columnCompletions);
+            return completions; // Return only column completions
+        }
+        
+        // 3. Check if we're in depends section - use proper dependency completions
+        const { start, end } = getDependsSectionOffsets(document);
+        if (start !== -1 && end !== -1) {
+            const currentOffset = document.offsetAt(position);
+            
+            if (currentOffset >= start && currentOffset <= end) {
+                const dependencyCompletions = await this.languageServer.getDependencyCompletions(document, position);
+                completions.push(...dependencyCompletions);
+                return completions; // Return only dependency completions
+            }
+        }
+        
+        // 4. Check for type: completions
+        if (linePrefix.includes('type:') && linePrefix.match(/type:\s*$/)) {
+            completions.push(...this.languageServer.getAssetTypeCompletions());
+            return completions; // Return only type completions
         }
 
-        try {
-            const pipelineData = await this.languageServer.getPipelineData(document.fileName);
-            if (!pipelineData || !pipelineData.assets) {
-                return [];
-            }
-
-            const currentAsset = pipelineData.assets.find((asset: any) => 
-                asset.definition_file && asset.definition_file.path === document.fileName
-            );
-            const currentAssetName = currentAsset?.name || currentAsset?.id;
-
-            const completions: vscode.CompletionItem[] = [];
-
-            for (const asset of pipelineData.assets) {
-                const assetName = asset.name || asset.id;
-                
-                if (!assetName || assetName === currentAssetName) {
-                    continue;
-                }
-
-                const completion = new vscode.CompletionItem(assetName, vscode.CompletionItemKind.Reference);
-                completion.detail = `Asset: ${asset.type || 'unknown'}`;
-                completion.documentation = new vscode.MarkdownString(
-                    `**Asset:** \`${assetName}\`\n\n` +
-                    `**Type:** ${asset.type || 'unknown'}\n\n` +
-                    `**File:** \`${vscode.workspace.asRelativePath(asset.definition_file?.path || '')}\``
-                );
-
-                completion.sortText = `${assetName.length.toString().padStart(3, '0')}_${assetName}`;
-
-                completion.insertText = assetName;
-                completion.filterText = assetName;
-
-                completions.push(completion);
-            }
-
+        // 5. Check if we're at the top level (only show asset properties when we're defining new keys)
+        const isTopLevel = linePrefix.match(/^\s{0,2}$/) && !linePrefix.includes(':');
+        
+        if (isTopLevel) {
+            // Only show top-level completions at root level
+            completions.push(...this.languageServer.getTopLevelCompletions());
             return completions;
-        } catch (error) {
-            console.error('Error providing completions:', error);
-            return [];
         }
+
+        // If no specific context matched, return empty to avoid clutter
+        return completions;
     }
-}
-
-/**
- * File system watcher to clear cache when pipeline files change
- */
-export function registerFileWatcher(languageServer: BruinLanguageServer, context: vscode.ExtensionContext): void {
-    const pipelineWatcher = vscode.workspace.createFileSystemWatcher('**/pipeline.{yml,yaml}');
-    
-    pipelineWatcher.onDidChange((uri) => {
-        languageServer.clearCache(uri.fsPath);
-    });
-
-    pipelineWatcher.onDidCreate((uri) => {
-        languageServer.clearCache(uri.fsPath);
-    });
-
-    pipelineWatcher.onDidDelete((uri) => {
-        languageServer.clearCache(uri.fsPath);
-    });
-
-    // Watch for any changes in assets folders
-    const assetsWatcher = vscode.workspace.createFileSystemWatcher('**/assets/**');
-    
-    const handleAssetChange = (uri: vscode.Uri) => {
-        languageServer.clearCache(uri.fsPath);
-    };
-
-    assetsWatcher.onDidChange(handleAssetChange);
-    assetsWatcher.onDidCreate(handleAssetChange);
-    assetsWatcher.onDidDelete(handleAssetChange);
-
-    context.subscriptions.push(pipelineWatcher, assetsWatcher);
-}
+} 

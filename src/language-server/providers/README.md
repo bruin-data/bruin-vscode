@@ -32,7 +32,7 @@ Handles asset-related completions using internal parse:
 
 ## Usage
 
-The main `BruinCompletionsWithCommands` class orchestrates these providers:
+The main `BruinLanguageServer` class orchestrates these providers:
 
 ```typescript
 // Initialize providers
