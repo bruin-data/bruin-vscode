@@ -295,7 +295,15 @@ export class BruinLanguageServer {
                 );
 
                 completion.sortText = `${assetName.length.toString().padStart(3, '0')}_${assetName}`;
-                completion.insertText = assetName;
+                
+                // If we're already on a line with -, just insert the asset name
+                if (trimmedLine.startsWith('-')) {
+                    completion.insertText = assetName;
+                } else {
+                    // If we're adding a new dependency item, add proper formatting
+                    completion.insertText = `- ${assetName}`;
+                }
+                
                 completion.filterText = assetName;
 
                 completions.push(completion);
@@ -304,6 +312,54 @@ export class BruinLanguageServer {
             return completions;
         } catch (error) {
             console.error('Error providing dependency completions:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Get dependency structure completions (right after "depends:")
+     */
+    public async getDependencyStructureCompletions(document: vscode.TextDocument, position: vscode.Position): Promise<vscode.CompletionItem[]> {
+        try {
+            const pipelineData = await this.getPipelineData(document.fileName);
+            if (!pipelineData || !pipelineData.assets) {
+                return [];
+            }
+
+            const currentAsset = pipelineData.assets.find((asset: any) => 
+                asset.definition_file && asset.definition_file.path === document.fileName
+            );
+            const currentAssetName = currentAsset?.name || currentAsset?.id;
+
+            const completions: vscode.CompletionItem[] = [];
+
+            for (const asset of pipelineData.assets) {
+                const assetName = asset.name || asset.id;
+                
+                if (!assetName || assetName === currentAssetName) {
+                    continue;
+                }
+
+                const completion = new vscode.CompletionItem(assetName, vscode.CompletionItemKind.Reference);
+                completion.detail = `Asset: ${asset.type || 'unknown'}`;
+                completion.documentation = new vscode.MarkdownString(
+                    `**Asset:** \`${assetName}\`\n\n` +
+                    `**Type:** ${asset.type || 'unknown'}\n\n` +
+                    `**File:** \`${vscode.workspace.asRelativePath(asset.definition_file?.path || '')}\``
+                );
+
+                completion.sortText = `${assetName.length.toString().padStart(3, '0')}_${assetName}`;
+                
+                // Create new line with proper indentation, - prefix, and asset name
+                completion.insertText = new vscode.SnippetString(`\n  - ${assetName}`);
+                completion.filterText = assetName;
+
+                completions.push(completion);
+            }
+
+            return completions;
+        } catch (error) {
+            console.error('Error providing dependency structure completions:', error);
             return [];
         }
     }
@@ -463,6 +519,13 @@ class BruinAssetCompletionProvider implements vscode.CompletionItemProvider {
                 completions.push(...dependencyCompletions);
                 return completions; // Return only dependency completions
             }
+        }
+
+        // Check if we're right after "depends:" and should show dependency structure
+        if (linePrefix.match(/depends:\s*$/)) {
+            const dependencyCompletions = await this.languageServer.getDependencyStructureCompletions(document, position);
+            completions.push(...dependencyCompletions);
+            return completions;
         }
         
         // 4. Check for type: completions

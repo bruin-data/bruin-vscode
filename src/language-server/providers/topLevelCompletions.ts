@@ -21,9 +21,11 @@ export class TopLevelCompletions {
             completion.detail = prop.description;
             completion.documentation = new vscode.MarkdownString(`**${prop.name}**\n\n${prop.description}`);
             
-            // Special handling for materialization to add new line with indentation
+            // Special handling for properties that need structured input
             if (prop.name === 'materialization') {
                 completion.insertText = new vscode.SnippetString(`${prop.name}:\n  type: \${1|table,view,none|}`);
+            } else if (prop.name === 'depends') {
+                completion.insertText = new vscode.SnippetString(`${prop.name}:\n  - `);
             } else {
                 completion.insertText = `${prop.name}: `;
             }
