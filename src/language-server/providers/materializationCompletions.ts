@@ -27,6 +27,11 @@ export class MaterializationCompletions {
             return this.getTableStrategyCompletions();
         }
 
+        const isAfterTimeGranularity = linePrefix.match(/time_granularity:\s*$/);
+        if (isAfterTimeGranularity) {
+            return this.getTimeGranularityCompletions();
+        }
+
         // Check if we're after partition_by:, cluster_by:, or incremental_key:
         const isAfterPartitionBy = linePrefix.match(/partition_by:\s*$/);
         const isAfterClusterBy = linePrefix.match(/cluster_by:\s*$/);
@@ -62,7 +67,7 @@ export class MaterializationCompletions {
 
         // Check if we should suggest incremental_key based on strategy
         const shouldSuggestIncrementalKey = this.shouldSuggestIncrementalKey(document);
-
+        const shouldSuggestTimeGranularity = this.shouldSuggestTimeGranularity(document);
         // Default materialization property completions
         const materializationProperties = [
             { name: 'type', description: 'Materialization type (table, view, none)' }
@@ -80,6 +85,12 @@ export class MaterializationCompletions {
             materializationProperties.push({
                 name: 'incremental_key',
                 description: 'Incremental key for delete+insert or merge strategy'
+            });
+        }
+        if (shouldSuggestTimeGranularity) {
+            materializationProperties.push({
+                name: 'time_granularity',
+                description: 'Time granularity for time_interval strategy',
             });
         }
 
@@ -310,7 +321,7 @@ export class MaterializationCompletions {
                 requiresIncrementalKey: true
             },
             { 
-                name: 'DDL', 
+                name: 'ddl', 
                 description: 'DDL only',
                 requiresIncrementalKey: false
             },
@@ -340,6 +351,18 @@ export class MaterializationCompletions {
         return completions;
     }
 
+    private getTimeGranularityCompletions(): vscode.CompletionItem[] {
+        const completions: vscode.CompletionItem[] = [];
+        const timeGranularityValues = ['date', 'timestamp'];
+        timeGranularityValues.forEach(value => {
+            const completion = new vscode.CompletionItem(value, vscode.CompletionItemKind.Value);
+            completion.detail = `time_granularity: ${value}`;
+            completion.documentation = new vscode.MarkdownString(`**${value}**\n\nTime granularity for time_interval strategy`);
+            completion.insertText = value;
+            completions.push(completion);
+        });
+        return completions;
+    }
     /**
      * Check if materialization type is set to table
      */
@@ -398,5 +421,33 @@ export class MaterializationCompletions {
         }
         
         return false;
+    }
+
+    private shouldSuggestTimeGranularity(document: vscode.TextDocument): boolean {
+        const text = document.getText();
+        const lines = text.split('\n');
+        
+        // Look for time_interval strategy in the materialization section
+        let inMaterializationSection = false;
+        // if materailzation is ddl only, then we should suggest time granularity
+        for (const line of lines) {
+            if (line.match(/^materialization:\s*$/)) {
+                inMaterializationSection = true;
+                continue;
+            }
+            
+            // Exit materialization section if we hit another top-level property
+            if (inMaterializationSection && line.match(/^\w+:\s*$/)) {
+                break;
+            }
+            
+            // Check for strategy that requires incremental key
+            if (inMaterializationSection && line.match(/^\s*strategy:\s*(time_interval)\s*$/)) {
+                return true;
+            }
+        }
+        
+        return false;
+        
     }
 } 
