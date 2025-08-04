@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { getDependsSectionOffsets } from '../utilities/helperUtils';
 import { BruinInternalParse } from '../bruin/bruinInternalParse';
 import { getBruinExecutablePath } from '../providers/BruinExecutableService';
-import { MaterializationCompletions, ColumnCompletions, TopLevelCompletions, AssetCompletions } from './providers';
+import { MaterializationCompletions, ColumnCompletions, TopLevelCompletions, AssetCompletions, MaterializationValidator } from './providers';
 
 export class BruinCompletionsWithCommands {
     private assetCache: Map<string, any> = new Map();
@@ -11,6 +11,7 @@ export class BruinCompletionsWithCommands {
     private columnCompletions: ColumnCompletions;
     private topLevelCompletions: TopLevelCompletions;
     private assetCompletions: AssetCompletions;
+    private materializationValidator: MaterializationValidator;
 
     constructor() {
         // Subscribe to panel messages to capture parse results
@@ -21,6 +22,7 @@ export class BruinCompletionsWithCommands {
         this.columnCompletions = new ColumnCompletions();
         this.topLevelCompletions = new TopLevelCompletions();
         this.assetCompletions = new AssetCompletions(this.getAssetData.bind(this));
+        this.materializationValidator = new MaterializationValidator();
     }
 
     public static getInstance(): BruinCompletionsWithCommands {
@@ -102,7 +104,35 @@ export class BruinCompletionsWithCommands {
             ':', ' ', '\n', '-'
         );
 
-        context.subscriptions.push(assetCompletionProvider, pythonCompletionProvider);
+        // Register diagnostic provider for validation
+        const diagnosticsCollection = vscode.languages.createDiagnosticCollection('bruin-materialization');
+        const diagnosticProvider = new BruinDiagnosticProvider(this, diagnosticsCollection);
+        
+        // Set up document change listener for real-time validation
+        const documentChangeListener = vscode.workspace.onDidChangeTextDocument((event) => {
+            if (event.document.languageId === 'yaml' || 
+                event.document.languageId === 'sql' || 
+                event.document.languageId === 'python') {
+                diagnosticProvider.updateDiagnostics(event.document);
+            }
+        });
+
+        // Set up document open listener
+        const documentOpenListener = vscode.workspace.onDidOpenTextDocument((document) => {
+            if (document.languageId === 'yaml' || 
+                document.languageId === 'sql' || 
+                document.languageId === 'python') {
+                diagnosticProvider.updateDiagnostics(document);
+            }
+        });
+
+        context.subscriptions.push(
+            assetCompletionProvider, 
+            pythonCompletionProvider,
+            diagnosticsCollection,
+            documentChangeListener,
+            documentOpenListener
+        );
     }
 
     /**
@@ -190,6 +220,28 @@ export class BruinCompletionsWithCommands {
      */
     public async getAssetCompletions(currentFilePath: string): Promise<vscode.CompletionItem[]> {
         return this.assetCompletions.getAssetCompletionsFromAsset(currentFilePath);
+    }
+
+    /**
+     * Validate materialization in document
+     */
+    public validateMaterialization(document: vscode.TextDocument): vscode.Diagnostic[] {
+        return this.materializationValidator.validateMaterialization(document);
+    }
+}
+
+/**
+ * Diagnostic provider for Bruin materialization validation
+ */
+class BruinDiagnosticProvider {
+    constructor(
+        private languageServer: BruinCompletionsWithCommands,
+        private diagnosticsCollection: vscode.DiagnosticCollection
+    ) {}
+
+    public updateDiagnostics(document: vscode.TextDocument): void {
+        const diagnostics = this.languageServer.validateMaterialization(document);
+        this.diagnosticsCollection.set(document.uri, diagnostics);
     }
 }
 
