@@ -32,18 +32,20 @@ export const getQueryOutput = async (environment: string, limit: string, lastRen
   
   // Check if we already have a stored query for this tab (from CodeLens)
   let selectedQuery = QueryPreviewPanel.getTabQuery(currentTabId);
+  console.log("Stored query from tab:", selectedQuery ? "exists" : "none");
   
-  if (isAsset && !selectedQuery) {
-    // Don't set a query - let the asset path be used instead
-    selectedQuery = "";
-  } else if (!selectedQuery) {
-    // For non-asset files, fall back to selection or file content detection
+  // If no stored query, check for text selection
+  if (!selectedQuery) {
     // Get the selected text (if any)
     const selection = editor.selection;
     selectedQuery = selection && !selection.isEmpty 
       ? editor.document.getText(new vscode.Range(selection.start, selection.end))
       : "";
+    console.log("Text selection:", selectedQuery ? `"${selectedQuery.substring(0, 50)}..."` : "none");
+  }
 
+  // If still no query and it's not an asset file, use the entire file content
+  if (!selectedQuery && !isAsset) {
     let fileContentString = "";
     try {
       const fileContent = await workspace.fs.readFile(lastRenderedDocumentUri);
@@ -52,15 +54,12 @@ export const getQueryOutput = async (environment: string, limit: string, lastRen
       fileContentString = "";
     }
     
-    // If no query is selected, use the entire file content as the query
-    if (!selectedQuery) {
-      // Remove connection comment lines from the query content
-      selectedQuery = fileContentString
-        .split('\n')
-        .filter((line: string) => !line.trim().match(/^--\s*connection:\s*/i))
-        .join('\n')
-        .trim();
-    }
+    // Remove connection comment lines from the query content
+    selectedQuery = fileContentString
+      .split('\n')
+      .filter((line: string) => !line.trim().match(/^--\s*connection:\s*/i))
+      .join('\n')
+      .trim();
   }
   
   // Detect connection name from file content if not provided
@@ -91,7 +90,9 @@ export const getQueryOutput = async (environment: string, limit: string, lastRen
     workspaceFolder.uri.fsPath
   );
   
-  const queryToPass = isAsset && !selectedQuery ? "" : selectedQuery;
+  // For asset files: if we have a selected query, use the -q flag; otherwise use the asset path
+  // For non-asset files: always use the query content
+  const queryToPass = selectedQuery;
   
   await output.getOutput(environment, lastRenderedDocumentUri.fsPath, limit, tabId, detectedConnectionName, startDate, endDate, { query: queryToPass });
 };

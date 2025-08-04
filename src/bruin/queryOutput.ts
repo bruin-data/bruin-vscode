@@ -44,22 +44,24 @@ export class BruinQueryOutput extends BruinCommand {
     this.postMessageToPanels("loading", this.isLoading, tabId);
     const constructedFlags = ["-o", "json"];
 
-    if (connectionName) {
+    if (connectionName && query) {
+      console.log("Using direct query mode: --connection + --query");
       constructedFlags.push("--connection", connectionName);
+      constructedFlags.push("--query", query);
+    } else if (query) {
+      console.log("Using auto-detect mode: --asset + --query");
+      constructedFlags.push("--asset", asset);
+      constructedFlags.push("--query", query);
+    } else {
+      console.log("Using asset mode: --asset" + (environment ? " + --environment" : ""));
+      constructedFlags.push("--asset", asset);
     }
-    if (query) {
-      // If we have a direct query, use the query flag
-      constructedFlags.push("-q", query);
-    }
+
     if (environment) {
-      constructedFlags.push("-env", environment);
+      constructedFlags.push("--environment", environment);
     }
     if (limit) {
-      constructedFlags.push("-limit", limit);
-    }
-    // we always need to push the other flags including the asset fla
-    if(!connectionName) {
-      constructedFlags.push("-asset", asset);
+      constructedFlags.push("--limit", limit);
     }
 
     if (startDate) {  
@@ -75,6 +77,7 @@ export class BruinQueryOutput extends BruinCommand {
     
     // Use provided flags or fallback to constructed flags
     const finalFlags = flags.length > 0 ? flags : constructedFlags;
+    console.log("Final CLI command: bruin query", finalFlags.join(" "));
 
     try {
       const { promise, process } = this.runCancellable(finalFlags, { ignoresErrors });
