@@ -117,16 +117,6 @@ export class MaterializationValidator {
             }
         }
         
-        // Validate type is present
-        if (!hasType) {
-            const range = new vscode.Range(start, 0, start, lines[start].length);
-            const diagnostic = new vscode.Diagnostic(
-                range,
-                'Materialization section requires a "type" field',
-                vscode.DiagnosticSeverity.Error
-            );
-            diagnostics.push(diagnostic);
-        }
         
         // Validate strategy requirements
         if (strategy) {
