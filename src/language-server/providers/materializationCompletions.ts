@@ -143,32 +143,48 @@ export class MaterializationCompletions {
         const currentLine = position.line;
         const currentLineText = lines[currentLine];
         
-        // If we're on a line that starts with proper indentation but no -, we might be in cluster_by array
-        const isIndentedLine = currentLineText.match(/^\s{2,}/);
+        // We're only in cluster_by array if we're at a deeper indentation level (4+ spaces)
+        // and there's no other materialization property on the current line
+        const isDeepIndentedLine = currentLineText.match(/^\s{4,}/);
         const hasArrayItem = currentLineText.includes('-');
+        const hasOtherProperty = currentLineText.match(/^\s{2}\w+:\s*$/);
         
-        if (!isIndentedLine || hasArrayItem) {
+        // If we're at the same level as other materialization properties (2 spaces), we're not in cluster_by array
+        if (hasOtherProperty || !isDeepIndentedLine) {
             return false;
+        }
+        
+        // If we already have an array item marker, we're in the array
+        if (hasArrayItem) {
+            return false; // This case is handled by the array item check above
         }
         
         // Look backwards to find cluster_by: and check if we're in its scope
         let foundClusterBy = false;
+        let foundOtherProperty = false;
+        
         for (let i = currentLine - 1; i >= 0; i--) {
             const line = lines[i];
             
             // Found cluster_by: - check if we're in its array
-            if (line.match(/^\s*cluster_by:\s*$/)) {
+            if (line.match(/^\s{2}cluster_by:\s*$/)) {
                 foundClusterBy = true;
                 break;
             }
             
-            // If we hit another top-level property, we're not in cluster_by anymore
-            if (line.match(/^\s*\w+:\s*$/) && !line.match(/^\s*cluster_by:\s*$/)) {
-                return false;
+            // If we hit another materialization property at the same level, we're not in cluster_by anymore
+            if (line.match(/^\s{2}\w+:\s*$/) && !line.match(/^\s{2}cluster_by:\s*$/)) {
+                foundOtherProperty = true;
+                break;
+            }
+            
+            // If we hit a top-level property, stop looking
+            if (line.match(/^\w+:\s*$/)) {
+                break;
             }
         }
         
-        return foundClusterBy;
+        return foundClusterBy && !foundOtherProperty;
     }
 
     /**
