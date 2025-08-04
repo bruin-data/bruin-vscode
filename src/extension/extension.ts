@@ -28,8 +28,7 @@ import { QuerySelectionCodeLensProvider } from "../providers/querySelectionCodeL
 import { ActivityBarConnectionsProvider } from "../providers/ActivityBarConnectionsProvider";
 import { FavoritesProvider } from "../providers/FavoritesProvider";
 import { TableDetailsPanel } from "../panels/TableDetailsPanel";
-import { BruinLanguageServer, registerFileWatcher } from "../language-server/bruinLanguageServer";
-import { BruinCompletionsWithCommands } from "../language-server/bruinCompletionsWithCommands";
+import { BruinLanguageServer } from "../language-server/bruinLanguageServer";
 
 let analyticsClient: any = null;
 
@@ -236,16 +235,8 @@ export async function activate(context: ExtensionContext) {
   vscode.window.registerTreeDataProvider("bruinFavorites", favoritesProvider);
 
   try {
-    const bruinCompletions = BruinCompletionsWithCommands.getInstance();
-    bruinCompletions.registerProviders(context);
-    
-  } catch (error) {
-    console.error('=== BRUIN COMPLETIONS WITH COMMANDS INITIALIZATION FAILED ===', error);
-  }
-  try {
-    const bruinLanguageServer = new BruinLanguageServer();
+    const bruinLanguageServer = BruinLanguageServer.getInstance();
     bruinLanguageServer.registerProviders(context);
-    registerFileWatcher(bruinLanguageServer, context);
     
   } catch (error) {
     console.error('=== BRUIN LANGUAGE SERVER INITIALIZATION FAILED ===', error);
