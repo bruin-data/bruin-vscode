@@ -71,11 +71,22 @@ export class QuerySelectionCodeLensProvider implements vscode.CodeLensProvider {
 
     // Helper to check if a position is inside any Bruin block
     const isInsideBruinBlock = (pos: vscode.Position) => {
-      return bruinBlocks.some(block => block.contains(pos));
+      return bruinBlocks.some((block) => block.contains(pos));
     };
 
-    // Only show CodeLens if selection start is outside any Bruin block
-    if (isInsideBruinBlock(selection.start)) {
+    // Check if selection is inside a Bruin block
+    const isInBruinBlock = isInsideBruinBlock(selection.start);
+
+    // If selection is inside a Bruin block, check if it's a custom-checks query
+    if (isInBruinBlock) {
+      const customCheckCodeLens = this.getCustomCheckSelectionCodeLens(
+        document,
+        selection,
+        bruinBlocks
+      );
+      if (customCheckCodeLens) {
+        codeLenses.push(customCheckCodeLens);
+      }
       return codeLenses;
     }
 
@@ -84,7 +95,7 @@ export class QuerySelectionCodeLensProvider implements vscode.CodeLensProvider {
     const previewCodeLens = new vscode.CodeLens(codeLensRange, {
       title: "Preview selected query",
       command: "bruin.previewSelectedQuery",
-      arguments: [] 
+      arguments: [],
     });
 
     codeLenses.push(previewCodeLens);
@@ -92,10 +103,66 @@ export class QuerySelectionCodeLensProvider implements vscode.CodeLensProvider {
     return codeLenses;
   }
 
+  private getCustomCheckSelectionCodeLens(
+    document: vscode.TextDocument,
+    selection: vscode.Selection,
+    bruinBlocks: vscode.Range[]
+  ): vscode.CodeLens | null {
+    const containingBlock = bruinBlocks.find((block) => block.contains(selection.start));
+    if (!containingBlock) {
+      return null;
+    }
+
+    const blockText = document.getText(containingBlock);
+
+    // Check if we're in a custom_checks section
+    if (!blockText.includes("custom_checks:")) {
+      return null;
+    }
+
+    // Get the selected text
+    const selectedText = document.getText(selection).trim();
+    if (!selectedText) {
+      return null;
+    }
+
+    // find all "query:" occurrences and their content
+    const blockStartOffset = document.offsetAt(containingBlock.start);
+    const selectionStartOffset = document.offsetAt(selection.start);
+
+    const queryRegex = /query:\s*\|-\s*\n([\s\S]*?)(?=\n\s*-\s+\w+:|$)/g;
+    let queryMatch;
+
+    while ((queryMatch = queryRegex.exec(blockText)) !== null) {
+      const queryStartInBlock = queryMatch.index;
+      const queryEndInBlock = queryMatch.index + queryMatch[0].length;
+
+      console.log(
+        `Query block detected between in-block offsets ${queryStartInBlock} → ${queryEndInBlock}`
+      );
+
+      const queryStartInDocument = blockStartOffset + queryStartInBlock;
+      const queryEndInDocument = blockStartOffset + queryEndInBlock;
+
+      if (
+        selectionStartOffset >= queryStartInDocument &&
+        selectionStartOffset < queryEndInDocument
+      ) {
+        return new vscode.CodeLens(new vscode.Range(selection.start, selection.start), {
+          title: "Preview selected query",
+          command: "bruin.previewSelectedQuery",
+          arguments: [],
+        });
+      }
+    }
+
+    return null;
+  }
+
   public dispose() {
     if (this.debounceTimer) {
       clearTimeout(this.debounceTimer);
     }
-    this.disposables.forEach(d => d.dispose());
+    this.disposables.forEach((d) => d.dispose());
   }
-} 
+}

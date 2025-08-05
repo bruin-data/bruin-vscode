@@ -1,4 +1,7 @@
 # Changelog
+## [0.62.2] - [2025-08-05]
+- Implemented preview functionality for queries within custom checks.
+
 ## [0.62.1] - [2025-08-04]
 - Fixed the query preview issues including the query extraction logic.
 
