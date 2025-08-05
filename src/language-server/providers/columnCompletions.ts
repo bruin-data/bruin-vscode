@@ -241,16 +241,40 @@ export class ColumnCompletions {
     private getCheckTypeCompletions(): vscode.CompletionItem[] {
         const completions: vscode.CompletionItem[] = [];
         const checkTypes = [
-            'unique', 'not_null', 'positive', 'negative', 'accepted_values', 
-             'pattern'
+            'unique', 'not_null', 'positive', 'negative'
         ];
         
+        // Add regular check types
         checkTypes.forEach(check => {
             const completion = new vscode.CompletionItem(check, vscode.CompletionItemKind.Value);
             completion.detail = `Column check: ${check}`;
             completion.documentation = new vscode.MarkdownString(`**${check}** validation check`);
             completions.push(completion);
         });
+
+        // Add special handling for accepted_values with value array structure
+        const acceptedValuesCompletion = new vscode.CompletionItem('accepted_values', vscode.CompletionItemKind.Snippet);
+        acceptedValuesCompletion.detail = 'Column check: accepted_values with value array';
+        acceptedValuesCompletion.insertText = new vscode.SnippetString(
+            `accepted_values\n  value:\n    - "\${1:value1}"\n    - "\${2:value2}"`
+        );
+        acceptedValuesCompletion.documentation = new vscode.MarkdownString(
+            `**accepted_values** validation check\n\n` +
+            `Validates that column values are within a specified list of accepted values`
+        );
+        completions.push(acceptedValuesCompletion);
+
+        // Add special handling for pattern with value string
+        const patternCompletion = new vscode.CompletionItem('pattern', vscode.CompletionItemKind.Snippet);
+        patternCompletion.detail = 'Column check: pattern with regex value';
+        patternCompletion.insertText = new vscode.SnippetString(
+            `pattern\n  value: '\${1:}'`
+        );
+        patternCompletion.documentation = new vscode.MarkdownString(
+            `**pattern** validation check\n\n` +
+            `Validates that column values match a specified regular expression pattern`
+        );
+        completions.push(patternCompletion);
 
         return completions;
     }
