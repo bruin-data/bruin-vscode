@@ -26,6 +26,8 @@ export class TopLevelCompletions {
                 completion.insertText = new vscode.SnippetString(`${prop.name}:\n  type: \${1|table,view,none|}`);
             } else if (prop.name === 'depends') {
                 completion.insertText = new vscode.SnippetString(`${prop.name}:\n  - `);
+            } else if (prop.name === 'columns') {
+                completion.insertText = new vscode.SnippetString(`${prop.name}:\n  - name: `);
             } else {
                 completion.insertText = `${prop.name}: `;
             }

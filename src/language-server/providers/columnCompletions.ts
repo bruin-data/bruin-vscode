@@ -50,54 +50,130 @@ export class ColumnCompletions {
         const linePrefix = lineText.substring(0, position.character);
 
         // Check if we're at the start of a new column (after columns: or after another column)
-        if (linePrefix.match(/^\s*$/) || linePrefix.match(/^\s*-\s*$/)) {
-            // Full column template
-            const fullColumnCompletion = new vscode.CompletionItem('- name: (full column)', vscode.CompletionItemKind.Snippet);
-            fullColumnCompletion.detail = 'Complete column definition with all properties';
-            fullColumnCompletion.insertText = new vscode.SnippetString(
-                `- name: \${1:col_name}\n` +
-                `  type: \${2:string}\n` +
-                `  description: \${3:"Column description"}\n` +
-                `  primary_key: \${4:false}\n` +
-                `  update_on_merge: \${5:false}\n` +
-                `  checks:\n` +
-                `    - name: \${6:not_null}`
-            );
-            fullColumnCompletion.documentation = new vscode.MarkdownString(
-                `**Complete Column Definition**\n\n` +
-                `Creates a full column schema with all common properties`
-            );
-            completions.push(fullColumnCompletion);
-
-            // Simple column template
-            const simpleColumnCompletion = new vscode.CompletionItem('- name: (simple)', vscode.CompletionItemKind.Snippet);
-            simpleColumnCompletion.detail = 'Simple column definition';
-            simpleColumnCompletion.insertText = new vscode.SnippetString(
-                `- name: \${1:col_name}\n` +
-                `  type: \${2:string}\n` +
-                `  description: \${3:"Column description"}`
-            );
-            simpleColumnCompletion.documentation = new vscode.MarkdownString(
-                `**Simple Column Definition**\n\n` +
-                `Creates a basic column with name, type, and description`
-            );
-            completions.push(simpleColumnCompletion);
-            
-            return completions;
+        if (linePrefix.match(/^\s*$/)) {
+            return this.getColumnPropertyCompletions();
+        }
+        
+        // Special case: if they typed "- " they probably want to start with name
+        if (linePrefix.match(/^\s*-\s*$/)) {
+            const nameCompletion = new vscode.CompletionItem('name', vscode.CompletionItemKind.Property);
+            nameCompletion.detail = 'Column name';
+            nameCompletion.insertText = new vscode.SnippetString('name: ${1:column_name}');
+            nameCompletion.documentation = new vscode.MarkdownString('**name**\n\nColumn name');
+            return [nameCompletion];
         }
 
-        // Column property completions
+        // Detect current context and provide appropriate completions
+        const context = this.detectColumnContext(document, position, linePrefix);
+        
+        switch (context.type) {
+            case 'column_property':
+                return this.getColumnPropertyCompletions();
+            case 'type_value':
+                return this.getDataTypeCompletions();
+            case 'boolean_value':
+                return this.getBooleanCompletions();
+            case 'checks_property':
+                return this.getChecksCompletions();
+            case 'check_name':
+                return this.getCheckTypeCompletions();
+            case 'name_value':
+                return []; // No suggestions for name values
+            case 'description_value':
+                return []; // No suggestions for description values
+            default:
+                return [];
+        }
+    }
+
+
+    /**
+     * Detect the current context within a column definition
+     */
+    private detectColumnContext(document: vscode.TextDocument, position: vscode.Position, linePrefix: string): 
+        { type: string, field?: string } {
+        
+        // Check if we're completing a field value (after colon and optional space)
+        const fieldValueMatch = linePrefix.match(/^\s*(name|type|description|nullable|update_on_merge|owner):\s*(.*)$/);
+        if (fieldValueMatch) {
+            const fieldName = fieldValueMatch[1];
+            const fieldValue = fieldValueMatch[2];
+            
+            // If there's already a value, don't provide completions
+            if (fieldValue.trim() !== '') {
+                return { type: 'no_completion' };
+            }
+            
+            switch (fieldName) {
+                case 'type':
+                    return { type: 'type_value' };
+                case 'nullable':
+                case 'update_on_merge':
+                    return { type: 'boolean_value' };
+                case 'name':
+                    return { type: 'name_value' };
+                case 'description':
+                    return { type: 'description_value' };
+                default:
+                    return { type: 'no_completion' };
+            }
+        }
+
+        // Check if we're in a checks context
+        if (this.isInChecksContext(document, position)) {
+            // Check if we're completing a check name (after "name:")
+            if (linePrefix.match(/^\s*-?\s*name:\s*$/)) {
+                return { type: 'check_name' };
+            }
+            return { type: 'checks_property' };
+        }
+
+        // Check if we're at column property level (same indentation as name)
+        const columnPropertyMatch = linePrefix.match(/^\s{2,4}$/); // 2-4 spaces indentation
+        if (columnPropertyMatch && this.isAtColumnPropertyLevel(document, position)) {
+            return { type: 'column_property' };
+        }
+
+        return { type: 'no_completion' };
+    }
+
+    /**
+     * Check if we're at the column property level (same indentation as name, type, etc.)
+     */
+    private isAtColumnPropertyLevel(document: vscode.TextDocument, position: vscode.Position): boolean {
+        const text = document.getText();
+        const lines = text.split('\n');
+        const currentLine = position.line;
+        
+        // Look backwards to find the nearest column definition
+        for (let i = currentLine - 1; i >= 0; i--) {
+            const line = lines[i];
+            // If we hit a column item (- name:), we're in a column definition
+            if (line.match(/^\s*-\s+name:/)) {
+                return true;
+            }
+            // If we hit another top-level property or columns:, we're not in a column
+            if (line.match(/^(columns:|depends:|materialization:|type:|name:|description:)/)) {
+                return false;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Get column property completions
+     */
+    private getColumnPropertyCompletions(): vscode.CompletionItem[] {
+        const completions: vscode.CompletionItem[] = [];
+        
         const columnProperties = [
             { name: 'name', snippet: 'name: ${1:column_name}', description: 'Column name' },
             { name: 'type', snippet: 'type: ${1:string}', description: 'Column data type' },
             { name: 'description', snippet: 'description: ${1:"Column description"}', description: 'Column description' },
-            { name: 'primary_key', snippet: 'primary_key: ${1:true}', description: 'Whether this column is a primary key' },
-            { name: 'update_on_merge', snippet: 'update_on_merge: ${1:true}', description: 'Update this column on merge operations' },
-            { 
-                name: 'checks', 
-                snippet: 'checks:\n  - name: ${1:not_null}', 
-                description: 'Column validation checks' 
-            }
+            { name: 'nullable', snippet: 'nullable: ${1:true}', description: 'Whether this column can be null' },
+            { name: 'update_on_merge', snippet: 'update_on_merge: ${1:false}', description: 'Update this column on merge operations' },
+            { name: 'owner', snippet: 'owner: ${1:"owner_name"}', description: 'Owner of this column' },
+            { name: 'checks', snippet: 'checks:\n    - name: ${1:not_null}', description: 'Column validation checks' }
         ];
 
         columnProperties.forEach(prop => {
@@ -108,8 +184,16 @@ export class ColumnCompletions {
             completions.push(completion);
         });
 
-        // Data type completions
+        return completions;
+    }
+
+    /**
+     * Get data type completions
+     */
+    private getDataTypeCompletions(): vscode.CompletionItem[] {
+        const completions: vscode.CompletionItem[] = [];
         const dataTypes = ['string', 'integer', 'float', 'boolean', 'timestamp', 'date', 'json', 'array'];
+        
         dataTypes.forEach(type => {
             const completion = new vscode.CompletionItem(type, vscode.CompletionItemKind.Value);
             completion.detail = `Data type: ${type}`;
@@ -117,20 +201,56 @@ export class ColumnCompletions {
             completions.push(completion);
         });
 
-        // Check completions (if we're in a checks context)
-        if (linePrefix.includes('name:') && this.isInChecksContext(document, position)) {
-            const checkTypes = [
-                'unique', 'not_null', 'positive', 'negative', 'accepted_values', 
-                'min_length', 'max_length', 'regex', 'range'
-            ];
-            
-            checkTypes.forEach(check => {
-                const completion = new vscode.CompletionItem(check, vscode.CompletionItemKind.Value);
-                completion.detail = `Column check: ${check}`;
-                completion.documentation = new vscode.MarkdownString(`**${check}** validation check`);
-                completions.push(completion);
-            });
-        }
+        return completions;
+    }
+
+    /**
+     * Get boolean value completions
+     */
+    private getBooleanCompletions(): vscode.CompletionItem[] {
+        const completions: vscode.CompletionItem[] = [];
+        
+        ['true', 'false'].forEach(value => {
+            const completion = new vscode.CompletionItem(value, vscode.CompletionItemKind.Value);
+            completion.detail = `Boolean value: ${value}`;
+            completion.documentation = new vscode.MarkdownString(`**${value}** boolean value`);
+            completions.push(completion);
+        });
+
+        return completions;
+    }
+
+    /**
+     * Get checks property completions
+     */
+    private getChecksCompletions(): vscode.CompletionItem[] {
+        const completions: vscode.CompletionItem[] = [];
+        
+        const checkCompletion = new vscode.CompletionItem('- name:', vscode.CompletionItemKind.Snippet);
+        checkCompletion.detail = 'Add a new check';
+        checkCompletion.insertText = new vscode.SnippetString('- name: ${1:not_null}');
+        checkCompletion.documentation = new vscode.MarkdownString('**Check Item**\n\nAdd a new validation check');
+        completions.push(checkCompletion);
+
+        return completions;
+    }
+
+    /**
+     * Get check type completions
+     */
+    private getCheckTypeCompletions(): vscode.CompletionItem[] {
+        const completions: vscode.CompletionItem[] = [];
+        const checkTypes = [
+            'unique', 'not_null', 'positive', 'negative', 'accepted_values', 
+             'pattern'
+        ];
+        
+        checkTypes.forEach(check => {
+            const completion = new vscode.CompletionItem(check, vscode.CompletionItemKind.Value);
+            completion.detail = `Column check: ${check}`;
+            completion.documentation = new vscode.MarkdownString(`**${check}** validation check`);
+            completions.push(completion);
+        });
 
         return completions;
     }
