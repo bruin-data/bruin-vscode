@@ -1,4 +1,7 @@
 # Changelog
+## [0.62.5] - [2025-08-06]
+- Added a setting to toggle the inline “Preview Selected Query” CodeLens on or off.
+
 ## [0.62.4] - [2025-08-06]
 - Added custom checks completions and improved the indentation issues.
 

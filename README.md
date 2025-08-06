@@ -55,6 +55,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.62.5**: Added a setting to toggle the inline “Preview Selected Query” CodeLens on or off.
 - **0.62.4**: Added custom checks completions and improved the indentation issues.
 - **0.62.3**: Improved the column property completions and fixed materialization validation.
 - **0.62.2**: Implemented preview functionality for queries within custom checks.
