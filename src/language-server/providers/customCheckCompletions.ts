@@ -10,7 +10,6 @@ export class CustomCheckCompletions {
         const lines = text.split('\n');
         const currentLineText = lines[currentLine];
         
-        // If we're on a top-level property line (no indentation), we're NOT in custom_checks
         if (currentLineText.match(/^\w+:\s*$/)) {
             return false;
         }
@@ -39,7 +38,6 @@ export class CustomCheckCompletions {
         const inCustomChecksSection = currentLine > customChecksLineIndex && currentLine < nextSectionLineIndex;
         const onCustomChecksLine = currentLine === customChecksLineIndex && position.character > lines[customChecksLineIndex].indexOf(':');
         
-        // Additional check: if we're indented (part of custom_checks content)
         const isIndentedContent = currentLineText.match(/^\s+/) && !currentLineText.match(/^\w+:\s*$/);
         
         return (inCustomChecksSection && isIndentedContent) || onCustomChecksLine;
@@ -54,7 +52,6 @@ export class CustomCheckCompletions {
         const linePrefix = lineText.substring(0, position.character);
 
         if (linePrefix.match(/^\s*$/)) {
-            // Always show both new custom check and property completions
             return this.getAllCustomCheckCompletions(document, position);
         }
         
@@ -122,38 +119,6 @@ export class CustomCheckCompletions {
     }
 
     /**
-     * Check if we're at the top level of custom_checks (directly under custom_checks:)
-     */
-    private isAtCustomChecksTopLevel(document: vscode.TextDocument, position: vscode.Position): boolean {
-        const text = document.getText();
-        const lines = text.split('\n');
-        const currentLine = position.line;
-        const currentLineText = lines[currentLine];
-        
-        // Check if current line has minimal indentation (0-2 spaces)
-        if (!currentLineText.match(/^\s{0,2}$/)) {
-            return false;
-        }
-        
-        // Look backwards to see if we're directly under custom_checks:
-        for (let i = currentLine - 1; i >= 0; i--) {
-            const line = lines[i];
-            
-            // If we hit custom_checks: directly, we're at top level
-            if (line.match(/^custom_checks:\s*$/)) {
-                return true;
-            }
-            
-            // If we hit a custom check item or other content, we're not at top level
-            if (line.match(/^\s*-\s+/) || line.match(/^\s*\w+:/) || line.trim() !== '') {
-                return false;
-            }
-        }
-        
-        return false;
-    }
-
-    /**
      * Check if we're at the custom check property level (inside a custom check item)
      */
     private isAtCustomCheckPropertyLevel(document: vscode.TextDocument, position: vscode.Position): boolean {
@@ -161,11 +126,9 @@ export class CustomCheckCompletions {
         const lines = text.split('\n');
         const currentLine = position.line;
         
-        // Look backwards for the nearest custom check item (- name:)
         for (let i = currentLine - 1; i >= 0; i--) {
             const line = lines[i];
             
-            // If we find a custom check item, we're inside it
             if (line.match(/^\s*-\s+name:/)) {
                 return true;
             }
@@ -226,15 +189,6 @@ export class CustomCheckCompletions {
 
 
     /**
-     * Get current line indentation level
-     */
-    private getCurrentIndentation(document: vscode.TextDocument, position: vscode.Position): number {
-        const lineText = document.lineAt(position.line).text;
-        const match = lineText.match(/^(\s*)/);
-        return match ? match[1].length : 0;
-    }
-
-    /**
      * Get custom check property completions
      */
     private getCustomCheckPropertyCompletions(): vscode.CompletionItem[] {
@@ -254,22 +208,6 @@ export class CustomCheckCompletions {
             completion.detail = prop.description;
             completion.insertText = new vscode.SnippetString(prop.snippet);
             completion.documentation = new vscode.MarkdownString(`**${prop.name}**\n\n${prop.description}`);
-            completions.push(completion);
-        });
-
-        return completions;
-    }
-
-    /**
-     * Get boolean value completions
-     */
-    private getBooleanCompletions(): vscode.CompletionItem[] {
-        const completions: vscode.CompletionItem[] = [];
-        
-        ['true', 'false'].forEach(value => {
-            const completion = new vscode.CompletionItem(value, vscode.CompletionItemKind.Value);
-            completion.detail = `Boolean value: ${value}`;
-            completion.documentation = new vscode.MarkdownString(`**${value}** boolean value`);
             completions.push(completion);
         });
 
