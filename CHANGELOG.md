@@ -1,4 +1,7 @@
 # Changelog
+## [0.62.6] - [2025-08-06]
+- Prevent the terminal from closing after CLI installation and update.
+
 ## [0.62.5] - [2025-08-06]
 - Added a setting to toggle the inline “Preview Selected Query” CodeLens on or off.
 
