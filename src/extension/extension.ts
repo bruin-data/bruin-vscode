@@ -16,6 +16,7 @@ import {
   subscribeToConfigurationChanges,
   toggleFoldingsCommand,
   getQueryTimeout,
+  isPreviewSelectedQueryEnabled,
 } from "./configuration";
 import { renderCommand } from "./commands/renderCommand";
 import { AssetLineagePanel } from "../panels/LineagePanel";
@@ -205,28 +206,50 @@ export async function activate(context: ExtensionContext) {
   );
   context.subscriptions.push(scheduleCodeLensProvider);
 
-  // Register the query selection CodeLens provider for SQL files
-  const querySelectionCodeLensProvider = languages.registerCodeLensProvider(
-    { language: "sql" },
-    new QuerySelectionCodeLensProvider()
-  );
-  context.subscriptions.push(querySelectionCodeLensProvider);
+  let querySelectionProviders: vscode.Disposable[] = [];
 
-  // Register for BigQuery SQL
-  const querySelectionCodeLensProviderBigQuery = languages.registerCodeLensProvider(
-    { language: "sql-bigquery" },
-    new QuerySelectionCodeLensProvider()
-  );
-  context.subscriptions.push(querySelectionCodeLensProviderBigQuery);
+  // Function to register query selection CodeLens providers
+  function registerQuerySelectionProviders() {
+    if (!isPreviewSelectedQueryEnabled()) {
+      return;
+    }
 
-  // Register for Snowflake SQL
-  const querySelectionCodeLensProviderSnowflake = languages.registerCodeLensProvider(
-    { language: "snowflake-sql" },
-    new QuerySelectionCodeLensProvider()
-  );
-  context.subscriptions.push(querySelectionCodeLensProviderSnowflake);
+    // Register the query selection CodeLens provider for SQL files
+    const sqlProvider = languages.registerCodeLensProvider(
+      { language: "sql" },
+      new QuerySelectionCodeLensProvider()
+    );
+    querySelectionProviders.push(sqlProvider);
+    context.subscriptions.push(sqlProvider);
 
-  subscribeToConfigurationChanges();
+    // Register for BigQuery SQL
+    const bigQueryProvider = languages.registerCodeLensProvider(
+      { language: "sql-bigquery" },
+      new QuerySelectionCodeLensProvider()
+    );
+    querySelectionProviders.push(bigQueryProvider);
+    context.subscriptions.push(bigQueryProvider);
+
+    // Register for Snowflake SQL
+    const snowflakeProvider = languages.registerCodeLensProvider(
+      { language: "snowflake-sql" },
+      new QuerySelectionCodeLensProvider()
+    );
+    querySelectionProviders.push(snowflakeProvider);
+    context.subscriptions.push(snowflakeProvider);
+  }
+
+  function unregisterQuerySelectionProviders() {
+    querySelectionProviders.forEach(provider => provider.dispose());
+    querySelectionProviders = [];
+  }
+
+  registerQuerySelectionProviders();
+
+  subscribeToConfigurationChanges(() => {
+    unregisterQuerySelectionProviders();
+    registerQuerySelectionProviders();
+  });
 
   const activityBarConnectionsProvider = new ActivityBarConnectionsProvider(context.extensionPath);
   vscode.window.registerTreeDataProvider("bruinConnections", activityBarConnectionsProvider);

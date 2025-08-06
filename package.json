@@ -2,7 +2,7 @@
   "name": "bruin",
   "displayName": "Bruin",
   "description": "Manage your Bruin data assets from within VS Code.",
-  "version": "0.62.4",
+  "version": "0.62.5",
   "engines": {
     "vscode": "^1.87.0"
   },
@@ -211,6 +211,11 @@
           },
           "default": [],
           "description": "List of favorite tables with their schema and connection names."
+        },
+        "bruin.query.previewSelectedQuery.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show 'Preview selected query' CodeLens when text is selected in SQL files"
         },
         "bruin.query.timeout": {
           "type": "number",

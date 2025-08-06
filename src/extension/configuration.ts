@@ -29,6 +29,11 @@ export function getQueryTimeout(): number {
   return config.get<number>("timeout", 1000); // Default to 1000 seconds
 }
 
+export function isPreviewSelectedQueryEnabled(): boolean {
+  const config = vscode.workspace.getConfiguration("bruin.query");
+  return config.get<boolean>("previewSelectedQuery.enabled", true); // Default to enabled
+}
+
 let documentInitState = new Map();
 
 export async function toggleFoldingsCommand(toggled: boolean): Promise<void> {
@@ -129,10 +134,13 @@ function resetDocumentStates(): void {
  * default folding state is changed.
  @returns void
 */
-export function subscribeToConfigurationChanges() {
+export function subscribeToConfigurationChanges(onPreviewSelectionSettingChange?: () => void) {
   vscode.workspace.onDidChangeConfiguration((e) => {
     if (e.affectsConfiguration("bruin.FoldingState")) {
       resetDocumentStates();
+    }
+    if (e.affectsConfiguration("bruin.query.previewSelectedQuery.enabled") && onPreviewSelectionSettingChange) {
+      onPreviewSelectionSettingChange();
     }
   });
 }

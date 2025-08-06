@@ -622,6 +622,11 @@ window.addEventListener("message", (event) => {
       expandedCells.value = new Set(state.expandedCells || []);
       showSearchInput.value = state.showSearchInput || false;
     }
+  } else if (message.command === "init") {
+    // When webview becomes visible again (e.g., switching back from terminal)
+    // Re-request the saved state to restore the UI
+    vscode.postMessage({ command: "bruin.requestState" });
+    vscode.postMessage({ command: "bruin.requestTimeout" });
   } else if (message.command === "bruin.timeoutResponse") {
     if (message.payload && typeof message.payload.timeout === "number") {
       queryTimeout.value = message.payload.timeout;
