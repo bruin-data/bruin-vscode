@@ -36,7 +36,7 @@ export class BruinInstallCLI {
       reveal: vscode.TaskRevealKind.Always,
       panel: vscode.TaskPanelKind.Shared,
       showReuseMessage: true,
-      close: true,
+      close: false,
     };
   
     return new Promise<void>((resolve, reject) => {
