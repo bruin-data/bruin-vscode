@@ -7,8 +7,14 @@ export class CustomCheckCompletions {
     public isInCustomChecksSection(document: vscode.TextDocument, position: vscode.Position): boolean {
         const text = document.getText();
         const currentLine = position.line;
-        
         const lines = text.split('\n');
+        const currentLineText = lines[currentLine];
+        
+        // If we're on a top-level property line (no indentation), we're NOT in custom_checks
+        if (currentLineText.match(/^\w+:\s*$/)) {
+            return false;
+        }
+        
         let customChecksLineIndex = -1;
         
         for (let i = 0; i < lines.length; i++) {
@@ -33,7 +39,10 @@ export class CustomCheckCompletions {
         const inCustomChecksSection = currentLine > customChecksLineIndex && currentLine < nextSectionLineIndex;
         const onCustomChecksLine = currentLine === customChecksLineIndex && position.character > lines[customChecksLineIndex].indexOf(':');
         
-        return inCustomChecksSection || onCustomChecksLine;
+        // Additional check: if we're indented (part of custom_checks content)
+        const isIndentedContent = currentLineText.match(/^\s+/) && !currentLineText.match(/^\w+:\s*$/);
+        
+        return (inCustomChecksSection && isIndentedContent) || onCustomChecksLine;
     }
 
     /**
