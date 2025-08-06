@@ -7,9 +7,15 @@ export class ColumnCompletions {
     public isInColumnsSection(document: vscode.TextDocument, position: vscode.Position): boolean {
         const text = document.getText();
         const currentLine = position.line;
+        const lines = text.split('\n');
+        const currentLineText = lines[currentLine];
+        
+        // If we're on a top-level property line (no indentation), we're NOT in columns
+        if (currentLineText.match(/^\w+:\s*$/)) {
+            return false;
+        }
         
         // Find the columns: line
-        const lines = text.split('\n');
         let columnsLineIndex = -1;
         
         for (let i = 0; i < lines.length; i++) {
@@ -38,7 +44,10 @@ export class ColumnCompletions {
         // Also check if we're on the same line as columns: but after the colon
         const onColumnsLine = currentLine === columnsLineIndex && position.character > lines[columnsLineIndex].indexOf(':');
         
-        return inColumnsSection || onColumnsLine;
+        // Additional check: if we're indented (part of columns content)
+        const isIndentedContent = currentLineText.match(/^\s+/) && !currentLineText.match(/^\w+:\s*$/);
+        
+        return (inColumnsSection && isIndentedContent) || onColumnsLine;
     }
 
     /**
