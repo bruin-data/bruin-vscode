@@ -10,10 +10,12 @@ export class TopLevelCompletions {
         const basicProperties = [
             { name: 'name', description: 'The name of the asset' },
             { name: 'type', description: 'The type of the asset' },
+            { name: 'owner', description: 'The owner of the asset' },
             { name: 'description', description: 'A brief description of the asset' },
             { name: 'depends', description: 'Dependencies for this asset' },
             { name: 'materialization', description: 'Materialization details for this asset' },
-            { name: 'columns', description: 'Columns for this asset' }
+            { name: 'columns', description: 'Columns for this asset' },
+            { name: 'custom_checks', description: 'Custom checks for this asset' }
         ];
 
         basicProperties.forEach(prop => {

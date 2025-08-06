@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { getDependsSectionOffsets } from '../utilities/helperUtils';
 import { BruinInternalParse } from '../bruin/bruinInternalParse';
 import { getBruinExecutablePath } from '../providers/BruinExecutableService';
-import { MaterializationCompletions, ColumnCompletions, TopLevelCompletions, AssetCompletions, MaterializationValidator } from './providers';
+import { MaterializationCompletions, ColumnCompletions, TopLevelCompletions, AssetCompletions, MaterializationValidator, CustomCheckCompletions } from './providers';
 
 export class BruinLanguageServer {
     private assetCache: Map<string, any> = new Map();
@@ -12,6 +12,7 @@ export class BruinLanguageServer {
     private topLevelCompletions: TopLevelCompletions;
     private assetCompletions: AssetCompletions;
     private materializationValidator: MaterializationValidator;
+    private customCheckCompletions: CustomCheckCompletions;
 
     constructor() {
         // Subscribe to panel messages to capture parse results
@@ -23,6 +24,7 @@ export class BruinLanguageServer {
         this.topLevelCompletions = new TopLevelCompletions();
         this.assetCompletions = new AssetCompletions(this.getAssetData.bind(this));
         this.materializationValidator = new MaterializationValidator();
+        this.customCheckCompletions = new CustomCheckCompletions();
     }
 
     public static getInstance(): BruinLanguageServer {
@@ -224,6 +226,20 @@ export class BruinLanguageServer {
      */
     public isInColumnsSection(document: vscode.TextDocument, position: vscode.Position): boolean {
         return this.columnCompletions.isInColumnsSection(document, position);
+    }
+
+    /**
+     * Get custom check completions
+     */
+    public getCustomCheckCompletions(document: vscode.TextDocument, position: vscode.Position): vscode.CompletionItem[] {
+        return this.customCheckCompletions.getCustomCheckCompletions(document, position);
+    }
+
+    /**
+     * Check if we're in custom checks section
+     */
+    public isInCustomChecksSection(document: vscode.TextDocument, position: vscode.Position): boolean {
+        return this.customCheckCompletions.isInCustomChecksSection(document, position);
     }
 
     /**
@@ -507,6 +523,13 @@ class BruinAssetCompletionProvider implements vscode.CompletionItemProvider {
             const columnCompletions = this.languageServer.getColumnCompletions(document, position);
             completions.push(...columnCompletions);
             return completions; // Return only column completions
+        }
+        
+        // 2.5. Check if we're in custom checks section
+        if (this.languageServer.isInCustomChecksSection(document, position)) {
+            const customCheckCompletions = this.languageServer.getCustomCheckCompletions(document, position);
+            completions.push(...customCheckCompletions);
+            return completions; // Return only custom check completions
         }
         
         // 3. Check if we're in depends section - use proper dependency completions
