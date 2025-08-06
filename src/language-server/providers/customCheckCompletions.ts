@@ -54,7 +54,13 @@ export class CustomCheckCompletions {
         const linePrefix = lineText.substring(0, position.character);
 
         if (linePrefix.match(/^\s*$/)) {
-            return this.getCustomCheckPropertyCompletions();
+            // Check if we're at the top level of custom_checks (should show new check option)
+            const isAtTopLevel = this.isAtCustomChecksTopLevel(document, position);
+            if (isAtTopLevel) {
+                return this.getNewCustomCheckCompletions();
+            } else {
+                return this.getCustomCheckPropertyCompletions();
+            }
         }
         
         if (linePrefix.match(/^\s*-\s*$/)) {
@@ -121,6 +127,38 @@ export class CustomCheckCompletions {
     }
 
     /**
+     * Check if we're at the top level of custom_checks (directly under custom_checks:)
+     */
+    private isAtCustomChecksTopLevel(document: vscode.TextDocument, position: vscode.Position): boolean {
+        const text = document.getText();
+        const lines = text.split('\n');
+        const currentLine = position.line;
+        const currentLineText = lines[currentLine];
+        
+        // Check if current line has minimal indentation (0-2 spaces)
+        if (!currentLineText.match(/^\s{0,2}$/)) {
+            return false;
+        }
+        
+        // Look backwards to see if we're directly under custom_checks:
+        for (let i = currentLine - 1; i >= 0; i--) {
+            const line = lines[i];
+            
+            // If we hit custom_checks: directly, we're at top level
+            if (line.match(/^custom_checks:\s*$/)) {
+                return true;
+            }
+            
+            // If we hit a custom check item or other content, we're not at top level
+            if (line.match(/^\s*-\s+/) || line.match(/^\s*\w+:/) || line.trim() !== '') {
+                return false;
+            }
+        }
+        
+        return false;
+    }
+
+    /**
      * Check if we're at the custom check property level (inside a custom check item)
      */
     private isAtCustomCheckPropertyLevel(document: vscode.TextDocument, position: vscode.Position): boolean {
@@ -147,13 +185,13 @@ export class CustomCheckCompletions {
     }
 
     /**
-     * Get custom check item completions (for new custom check)
+     * Get new custom check completions (when at top level of custom_checks)
      */
-    private getCustomCheckItemCompletions(): vscode.CompletionItem[] {
+    private getNewCustomCheckCompletions(): vscode.CompletionItem[] {
         const completions: vscode.CompletionItem[] = [];
         
         // Add a complete custom check structure
-        const checkCompletion = new vscode.CompletionItem('- name:', vscode.CompletionItemKind.Snippet);
+        const checkCompletion = new vscode.CompletionItem('New custom check', vscode.CompletionItemKind.Snippet);
         checkCompletion.detail = 'Add a new custom check';
         checkCompletion.insertText = new vscode.SnippetString(
             '- name: ${1:check_name}\n' +
@@ -163,7 +201,7 @@ export class CustomCheckCompletions {
             '  query: |\n' +
             '    ${5:SELECT\n      *\n    FROM\n      table}'
         );
-        checkCompletion.documentation = new vscode.MarkdownString('**Custom Check**\n\nAdd a new custom check with name, description, and query');
+        checkCompletion.documentation = new vscode.MarkdownString('**New Custom Check**\n\nAdd a new custom check with all properties');
         completions.push(checkCompletion);
 
         return completions;
@@ -175,8 +213,8 @@ export class CustomCheckCompletions {
     private getCustomCheckPropertyCompletions(): vscode.CompletionItem[] {
         const completions: vscode.CompletionItem[] = [];
         
+        // Add individual property completions (for when inside a custom check)
         const customCheckProperties = [
-            { name: '- name:', snippet: '- name: ${1:check_name}\n  description: ${2:Check description}\n  value: ${3:0}\n  count: ${4:0}\n  query: |\n    ${5:SELECT\n      *\n    FROM\n      table}', description: 'Add a new custom check' },
             { name: 'name', snippet: 'name: ${1:check_name}', description: 'Custom check name' },
             { name: 'description', snippet: 'description: ${1:Check description}', description: 'Description of the custom check' },
             { name: 'value', snippet: 'value: ${1:0}', description: 'Expected value for the check' },
@@ -185,8 +223,7 @@ export class CustomCheckCompletions {
         ];
 
         customCheckProperties.forEach(prop => {
-            const itemKind = prop.name === '- name:' ? vscode.CompletionItemKind.Snippet : vscode.CompletionItemKind.Property;
-            const completion = new vscode.CompletionItem(prop.name, itemKind);
+            const completion = new vscode.CompletionItem(prop.name, vscode.CompletionItemKind.Property);
             completion.detail = prop.description;
             completion.insertText = new vscode.SnippetString(prop.snippet);
             completion.documentation = new vscode.MarkdownString(`**${prop.name}**\n\n${prop.description}`);
