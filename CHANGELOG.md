@@ -1,4 +1,7 @@
 # Changelog
+## [0.62.3] - [2025-08-06]
+- Improved the column property completions and fixed materialization validation.
+
 ## [0.62.2] - [2025-08-05]
 - Implemented preview functionality for queries within custom checks.
 

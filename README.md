@@ -55,6 +55,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.62.3**: Improved the column property completions and fixed materialization validation.
 - **0.62.2**: Implemented preview functionality for queries within custom checks.
 - **0.62.1**: Fixed the query preview issues including the query extraction logic.
 - **0.62.0**: Added completion and validation for materialization and asset properties.
