@@ -3,6 +3,7 @@ import { getDependsSectionOffsets } from '../utilities/helperUtils';
 import { BruinInternalParse } from '../bruin/bruinInternalParse';
 import { getBruinExecutablePath } from '../providers/BruinExecutableService';
 import { MaterializationCompletions, ColumnCompletions, TopLevelCompletions, AssetCompletions, MaterializationValidator, CustomCheckCompletions } from './providers';
+import { BruinBlockDetector } from './utils/bruinBlockDetector';
 
 export class BruinLanguageServer {
     private assetCache: Map<string, any> = new Map();
@@ -505,6 +506,11 @@ class BruinAssetCompletionProvider implements vscode.CompletionItemProvider {
         token: vscode.CancellationToken,
         context: vscode.CompletionContext
     ): Promise<vscode.CompletionItem[]> {
+        // First check if we're inside a Bruin block (for SQL and Python files)
+        if (!BruinBlockDetector.isInBruinBlock(document, position)) {
+            return [];
+        }
+
         const completions: vscode.CompletionItem[] = [];
         const lineText = document.lineAt(position.line).text;
         const linePrefix = lineText.substring(0, position.character);
