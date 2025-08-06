@@ -94,7 +94,7 @@ export class ColumnCompletions {
         { type: string, field?: string } {
         
         // Check if we're completing a field value (after colon and optional space)
-        const fieldValueMatch = linePrefix.match(/^\s*(name|type|description|nullable|update_on_merge|owner):\s*(.*)$/);
+        const fieldValueMatch = linePrefix.match(/^\s*(name|type|description|nullable|primary_key|update_on_merge|owner):\s*(.*)$/);
         if (fieldValueMatch) {
             const fieldName = fieldValueMatch[1];
             const fieldValue = fieldValueMatch[2];
@@ -108,6 +108,7 @@ export class ColumnCompletions {
                 case 'type':
                     return { type: 'type_value' };
                 case 'nullable':
+                case 'primary_key':
                 case 'update_on_merge':
                     return { type: 'boolean_value' };
                 case 'name':
@@ -172,6 +173,7 @@ export class ColumnCompletions {
             { name: 'description', snippet: 'description: ${1:"Column description"}', description: 'Column description' },
             { name: 'nullable', snippet: 'nullable: ${1:true}', description: 'Whether this column can be null' },
             { name: 'update_on_merge', snippet: 'update_on_merge: ${1:false}', description: 'Update this column on merge operations' },
+            { name: 'primary_key', snippet: 'primary_key: ${1:true}', description: 'Whether this column is a primary key' },
             { name: 'owner', snippet: 'owner: ${1:"owner_name"}', description: 'Owner of this column' },
             { name: 'checks', snippet: 'checks:\n    - name: ${1:not_null}', description: 'Column validation checks' }
         ];
