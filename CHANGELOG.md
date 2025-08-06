@@ -1,4 +1,7 @@
 # Changelog
+## [0.62.4] - [2025-08-06]
+- Added custom checks completions and improved the indentation issues.
+
 ## [0.62.3] - [2025-08-06]
 - Improved the column property completions and fixed materialization validation.
 
