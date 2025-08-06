@@ -54,13 +54,8 @@ export class CustomCheckCompletions {
         const linePrefix = lineText.substring(0, position.character);
 
         if (linePrefix.match(/^\s*$/)) {
-            // Check if we're at the top level of custom_checks (should show new check option)
-            const isAtTopLevel = this.isAtCustomChecksTopLevel(document, position);
-            if (isAtTopLevel) {
-                return this.getNewCustomCheckCompletions();
-            } else {
-                return this.getCustomCheckPropertyCompletions();
-            }
+            // Always show both new custom check and property completions
+            return this.getAllCustomCheckCompletions(document, position);
         }
         
         if (linePrefix.match(/^\s*-\s*$/)) {
@@ -185,26 +180,58 @@ export class CustomCheckCompletions {
     }
 
     /**
-     * Get new custom check completions (when at top level of custom_checks)
+     * Get all custom check completions (combines new check + properties)
      */
-    private getNewCustomCheckCompletions(): vscode.CompletionItem[] {
+    private getAllCustomCheckCompletions(document: vscode.TextDocument, position: vscode.Position): vscode.CompletionItem[] {
         const completions: vscode.CompletionItem[] = [];
         
-        // Add a complete custom check structure
+        // Always add new custom check option (with smart positioning)
+        const newCheckCompletion = this.createNewCustomCheckCompletion(document, position);
+        completions.push(newCheckCompletion);
+        
+        // Add individual property completions if we're inside a custom check
+        if (this.isAtCustomCheckPropertyLevel(document, position)) {
+            const propertyCompletions = this.getCustomCheckPropertyCompletions();
+            completions.push(...propertyCompletions);
+        }
+        
+        return completions;
+    }
+
+    /**
+     * Create new custom check completion with smart positioning
+     */
+    private createNewCustomCheckCompletion(document: vscode.TextDocument, position: vscode.Position): vscode.CompletionItem {
         const checkCompletion = new vscode.CompletionItem('New custom check', vscode.CompletionItemKind.Snippet);
         checkCompletion.detail = 'Add a new custom check';
-        checkCompletion.insertText = new vscode.SnippetString(
-            '- name: ${1:check_name}\n' +
-            '  description: ${2:Check description}\n' +
-            '  value: ${3:0}\n' +
-            '  count: ${4:0}\n' +
-            '  query: |\n' +
-            '    ${5:SELECT\n      *\n    FROM\n      table}'
-        );
-        checkCompletion.documentation = new vscode.MarkdownString('**New Custom Check**\n\nAdd a new custom check with all properties');
-        completions.push(checkCompletion);
+        
+        // Create snippet with absolute indentation (ignore current cursor position)
+        // Start with newline and explicit 2-space indentation for custom_checks items
+        const snippet = '\n  - name: ${1:check_name}\n' +
+                       '    description: ${2:Check description}\n' +
+                       '    value: ${3:0}\n' +
+                       '    count: ${4:0}\n' +
+                       '    query: |\n' +
+                       '        ${5:SELECT\n          *\n        FROM\n          table}$0';
+        
+        const snippetString = new vscode.SnippetString(snippet);
+        checkCompletion.insertText = snippetString;
+        checkCompletion.documentation = new vscode.MarkdownString('**New Custom Check**\n\nAdd a new custom check with proper indentation');
+        
+        // Try to prevent auto-indentation
+        checkCompletion.keepWhitespace = true;
+        
+        return checkCompletion;
+    }
 
-        return completions;
+
+    /**
+     * Get current line indentation level
+     */
+    private getCurrentIndentation(document: vscode.TextDocument, position: vscode.Position): number {
+        const lineText = document.lineAt(position.line).text;
+        const match = lineText.match(/^(\s*)/);
+        return match ? match[1].length : 0;
     }
 
     /**
