@@ -121,7 +121,7 @@ export class MaterializationValidator {
         // Validate strategy requirements
         if (strategy) {
             const strategiesRequiringIncrementalKey = [
-                'delete+insert', 'merge', 'time_interval', 'scd2_by_time', 'scd2_by_column'
+                'delete+insert', 'time_interval', 'scd2_by_time'
             ];
             
             if (strategiesRequiringIncrementalKey.includes(strategy) && !hasIncrementalKey) {
