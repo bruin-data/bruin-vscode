@@ -464,6 +464,47 @@
         "mac": "cmd+shift+r",
         "when": "editorTextFocus && editorHasSelection && resourceExtname == .sql"
       }
+    ],
+    "walkthroughs": [
+      {
+        "id": "bruin-getting-started",
+        "title": "Getting Started with Bruin",
+        "description": "Learn the essential features and keyboard shortcuts to be productive with Bruin",
+        "steps": [
+          {
+            "id": "keyboard-shortcuts",
+            "title": "Essential Keyboard Shortcuts",
+            "description": "Master the most important keyboard shortcuts for autocomplete and productivity",
+            "media": {
+              "markdown": "walkthroughs/keyboard-shortcuts.md"
+            }
+          },
+          {
+            "id": "autocomplete-features",
+            "title": "Autocomplete & IntelliSense", 
+            "description": "Discover how autocomplete works in Bruin YAML files and SQL assets",
+            "media": {
+              "markdown": "walkthroughs/autocomplete-features.md"
+            }
+          },
+          {
+            "id": "file-types",
+            "title": "Supported File Types",
+            "description": "Learn which file types have Bruin support and what features are available",
+            "media": {
+              "markdown": "walkthroughs/file-types.md"
+            }
+          },
+          {
+            "id": "query-preview",
+            "title": "Query Preview Features",
+            "description": "Use the powerful query preview and lineage features to analyze your data pipeline",
+            "media": {
+              "markdown": "walkthroughs/query-preview.md"
+            }
+          }
+        ]
+      }
     ]
   },
   "scripts": {
