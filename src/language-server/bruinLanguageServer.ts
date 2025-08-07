@@ -96,7 +96,7 @@ export class BruinLanguageServer {
      */
     public registerProviders(context: vscode.ExtensionContext): void {
         const triggerCharacters = [
-            ':', '-'
+            ':', '-', ' '
         ];
 
         // Register document link provider to make dependencies clickable
@@ -313,9 +313,13 @@ export class BruinLanguageServer {
 
                 completion.sortText = `${assetName.length.toString().padStart(3, '0')}_${assetName}`;
                 
-                // If we're already on a line with -, just insert the asset name
-                if (trimmedLine.startsWith('-')) {
+                // Check if we're after "- " (with space) or just "-"
+                if (trimmedLine.startsWith('- ')) {
+                    // We're after "- ", just insert the asset name
                     completion.insertText = assetName;
+                } else if (trimmedLine.startsWith('-')) {
+                    // We're right after "-", add space and asset name
+                    completion.insertText = ` ${assetName}`;
                 } else {
                     // If we're adding a new dependency item, add proper formatting
                     completion.insertText = `- ${assetName}`;
@@ -518,6 +522,14 @@ class BruinAssetCompletionProvider implements vscode.CompletionItemProvider {
         const lineText = document.lineAt(position.line).text;
         const linePrefix = lineText.substring(0, position.character);
         
+        // If space was triggered, only proceed if it's after : or -
+        if (context.triggerCharacter === ' ') {
+            const charBeforeSpace = position.character >= 2 ? lineText[position.character - 2] : '';
+            if (charBeforeSpace !== ':' && charBeforeSpace !== '-') {
+                return [];
+            }
+        }
+        
         // Priority order: Check specific contexts first to avoid mixed suggestions
         
         // 1. Check if we're in materialization section first (highest priority)
@@ -553,17 +565,24 @@ class BruinAssetCompletionProvider implements vscode.CompletionItemProvider {
             }
         }
 
-        // Check if we're right after "depends:" and should show dependency structure
+        // Check if we're right after "depends:" or "depends: " and should show dependency structure
         if (linePrefix.match(/depends:\s*$/)) {
             const dependencyCompletions = await this.languageServer.getDependencyStructureCompletions(document, position);
             completions.push(...dependencyCompletions);
             return completions;
         }
         
-        // 4. Check for type: completions
+        // 4. Check for type: completions (including after space)
         if (linePrefix.includes('type:') && linePrefix.match(/type:\s*$/)) {
             completions.push(...this.languageServer.getAssetTypeCompletions());
             return completions; // Return only type completions
+        }
+        
+        // Check if we're after "- " for dependency completions
+        if (linePrefix.match(/^\s*-\s+$/)) {
+            const dependencyCompletions = await this.languageServer.getDependencyCompletions(document, position);
+            completions.push(...dependencyCompletions);
+            return completions;
         }
 
         // 5. Check if we're at the top level (only show asset properties when we're defining new keys)
