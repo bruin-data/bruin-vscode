@@ -106,7 +106,7 @@
                 leave-from-class="transform opacity-100 scale-100"
                 leave-to-class="transform opacity-0 scale-95"
               >
-                <MenuItems class="absolute right-0 left-auto z-10 w-40 xs:w-48 origin-top-right max-w-[calc(100vw-2rem)]">
+                <MenuItems class="absolute left-0 xs:right-0 xs:left-auto z-10 w-40 xs:w-48 origin-top-left xs:origin-top-right max-w-[calc(100vw-2rem)]">
                   <div class="p-1 bg-editorWidget-bg rounded-sm border border-commandCenter-border">
                     <MenuItem key="validate-current">
                       <vscode-button
