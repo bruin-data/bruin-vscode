@@ -33,6 +33,7 @@
               v-if="templates.length > 0"
               @change="handleTemplateSelect"
               class="w-full"
+              ref="templateDropdownRef"
             >
               <vscode-option value="">Select a template...</vscode-option>
               <vscode-option 
@@ -143,6 +144,7 @@ const selectedTemplate = ref("");
 const templatesLoading = ref(false);
 const projectCreationSuccess = ref(false);
 const successMessage = ref("");
+const templateDropdownRef = ref(null);
 
 const connectionFormKey = computed(() => {
   return connectionToEdit.value?.id ? `edit-${connectionToEdit.value.id}` : "new-connection";
@@ -530,6 +532,14 @@ const handleProjectInit = (payload: any) => {
     console.log("Project initialized successfully:", payload.message);
     projectCreationSuccess.value = true;
     successMessage.value = payload.message || "Project created successfully";
+    // Reset the dropdown selection
+    selectedTemplate.value = "";
+    // Reset the dropdown DOM element
+    nextTick(() => {
+      if (templateDropdownRef.value) {
+        templateDropdownRef.value.value = "";
+      }
+    });
     // Hide success message after 8 seconds
     setTimeout(() => {
       projectCreationSuccess.value = false;
