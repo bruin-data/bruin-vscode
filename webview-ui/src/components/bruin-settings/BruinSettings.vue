@@ -22,6 +22,11 @@
     <div v-if="isBruinInstalled" class="bg-editorWidget-bg shadow sm:rounded-lg p-4">
       <div class="flex flex-col space-y-3">
         <h3 class="text-base font-medium text-editor-fg">Project Templates</h3>
+        <div class="max-w-xl text-sm text-editor-fg">
+          <p>
+            Create new Bruin projects from pre-built templates. Choose a template that matches your use case and get started quickly with best practices.
+          </p>
+        </div>
         <div class="flex items-center space-x-3">
           <div class="relative w-64">
             <vscode-dropdown 
