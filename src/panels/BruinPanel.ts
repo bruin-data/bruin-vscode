@@ -887,7 +887,15 @@ export class BruinPanel {
               const selectedFolder = folderUri[0].fsPath;
               const templateName = message.payload.templateName;
               
-              // Run bruin init command in terminal
+              // Close existing Bruin terminal to ensure we create a new one with correct working directory
+              const existingTerminal = vscode.window.terminals.find(t => t.name === "Bruin Terminal");
+              if (existingTerminal) {
+                existingTerminal.dispose();
+                // Wait a bit for the terminal to be properly disposed
+                await new Promise(resolve => setTimeout(resolve, 300));
+              }
+              
+              // Run bruin init command in terminal with the selected folder as working directory
               const terminal = await createIntegratedTerminal(selectedFolder);
               terminal.sendText(`bruin init ${templateName}`);
               terminal.show();
