@@ -272,20 +272,7 @@ export const createIntegratedTerminal = async (
   workingDir: string | undefined
 ): Promise<vscode.Terminal> => {
   const terminalName = "Bruin Terminal";
-  let terminal = vscode.window.terminals.find((t) => t.name === terminalName && t.exitStatus === undefined);
-
-  // Check if existing terminal has different working directory
-  if (terminal && workingDir) {
-    const currentCwd = (terminal.creationOptions as vscode.TerminalOptions).cwd;
-    if (currentCwd && currentCwd !== workingDir) {
-      // Different working directory, dispose and create new terminal
-      terminal.dispose();
-      terminal = undefined;
-      // Wait for disposal to complete
-      await new Promise(resolve => setTimeout(resolve, 200));
-    }
-  }
-
+  let terminal = vscode.window.terminals.find((t) => t.name === terminalName);
   if (!terminal) {
     let shellPath: string | undefined;
     let shellArgs: string[] | undefined;

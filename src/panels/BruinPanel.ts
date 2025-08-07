@@ -902,7 +902,7 @@ export class BruinPanel {
               
               BruinPanel.postMessage("project-init-message", {
                 status: "success",
-                message: `Running 'bruin init ${templateName}' in terminal at ${selectedFolder}`
+                message: `Project '${templateName}' is being created in ${selectedFolder}. Check the terminal for progress.`
               });
               
             } catch (error) {

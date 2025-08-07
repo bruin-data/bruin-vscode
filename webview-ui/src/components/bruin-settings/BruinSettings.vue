@@ -61,6 +61,11 @@
         <div v-if="selectedTemplate" class="text-xs text-editor-fg opacity-75">
           Selected: <span class="font-medium">{{ selectedTemplate }}</span>
         </div>
+        <div v-if="projectCreationSuccess" class="mt-3 p-3 bg-green-100 dark:bg-green-900 border border-green-200 dark:border-green-700 rounded-md">
+          <div class="text-sm text-green-800 dark:text-green-200 whitespace-pre-line">
+            {{ successMessage }}
+          </div>
+        </div>
       </div>
     </div>
 
@@ -136,6 +141,8 @@ const environmentToDelete = ref(null);
 const templates = ref([]);
 const selectedTemplate = ref("");
 const templatesLoading = ref(false);
+const projectCreationSuccess = ref(false);
+const successMessage = ref("");
 
 const connectionFormKey = computed(() => {
   return connectionToEdit.value?.id ? `edit-${connectionToEdit.value.id}` : "new-connection";
@@ -521,6 +528,13 @@ const handleCreateProject = async () => {
 const handleProjectInit = (payload: any) => {
   if (payload.status === "success") {
     console.log("Project initialized successfully:", payload.message);
+    projectCreationSuccess.value = true;
+    successMessage.value = payload.message || "Project created successfully";
+    // Hide success message after 8 seconds
+    setTimeout(() => {
+      projectCreationSuccess.value = false;
+      successMessage.value = "";
+    }, 8000);
   } else if (payload.status === "cancelled") {
     console.log("Project creation cancelled:", payload.message);
   } else {
