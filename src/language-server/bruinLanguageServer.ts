@@ -574,7 +574,15 @@ class BruinAssetCompletionProvider implements vscode.CompletionItemProvider {
         
         // 4. Check for type: completions (including after space)
         if (linePrefix.includes('type:') && linePrefix.match(/type:\s*$/)) {
-            completions.push(...this.languageServer.getAssetTypeCompletions());
+            const typeCompletions = this.languageServer.getAssetTypeCompletions();
+            // Add spacing if trigger is right after ':'
+            const needsSpace = linePrefix.endsWith(':');
+            if (needsSpace) {
+                typeCompletions.forEach(completion => {
+                    completion.insertText = ` ${completion.insertText}`;
+                });
+            }
+            completions.push(...typeCompletions);
             return completions; // Return only type completions
         }
         
