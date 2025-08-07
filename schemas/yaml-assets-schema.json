@@ -60,7 +60,8 @@
             "sisense",
             "domo",
             "quicksight",
-            "oracle.source"
+            "oracle.source",
+            "oracle.sql"
           ],
           "description": "The type of the asset"
         },
