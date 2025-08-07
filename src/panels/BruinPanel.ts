@@ -40,6 +40,7 @@ import {
 import path = require("path");
 import { isBruinAsset } from "../utilities/helperUtils";
 import { BruinInternalParse } from "../bruin/bruinInternalParse";
+import { BruinInternalListTemplates } from "../bruin/bruinInternalListTemplates";
 
 import { getDefaultCheckboxSettings, getDefaultExcludeTag } from "../extension/configuration";
 import { exec } from "child_process";
@@ -838,6 +839,28 @@ export class BruinPanel {
               BruinPanel.postMessage("environment-updated-message", {
                 status: "error",
                 message: userMessage
+              });
+            }
+            break;
+          case "bruin.getTemplatesList":
+            try {
+              console.log("Getting templates list");
+              const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || "";
+              const templatesCommand = new BruinInternalListTemplates(
+                getBruinExecutablePath(),
+                workspaceFolder
+              );
+              const templatesResponse = await templatesCommand.listTemplates();
+              
+              BruinPanel.postMessage("templates-list-message", {
+                status: "success",
+                message: templatesResponse
+              });
+            } catch (error) {
+              console.error("Error getting templates list:", error);
+              BruinPanel.postMessage("templates-list-message", {
+                status: "error",
+                message: `Failed to get templates list: ${error}`
               });
             }
             break;
