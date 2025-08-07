@@ -133,7 +133,7 @@
           <!-- Run Button Group -->
           <div class="inline-flex">
             <vscode-button @click="runAssetOnly" :disabled="isNotAsset || isError">
-              <div class="flex items-center">
+              <div class="flex items-center justify-center">
                 <PlayIcon class="h-4 w-4 mr-1" aria-hidden="true" />
                 <span>Run</span>
               </div>
