@@ -15,6 +15,7 @@ import {
 
 } from "../bruin";
 import { BruinFill } from "../bruin/bruinFill";
+import { BruinInit } from "../bruin/bruinInit";
 import * as vscode from "vscode";
 import { renderCommandWithFlags } from "../extension/commands/renderCommand";
 import {
@@ -895,14 +896,14 @@ export class BruinPanel {
                 await new Promise(resolve => setTimeout(resolve, 300));
               }
               
-              // Run bruin init command in terminal with the selected folder as working directory
-              const terminal = await createIntegratedTerminal(selectedFolder);
-              terminal.sendText(`bruin init ${templateName}`);
-              terminal.show();
+              // Use BruinInit class to initialize project
+              const bruinInit = new BruinInit(getBruinExecutablePath(), selectedFolder);
+              const result = await bruinInit.initProject(templateName);
+            
               
               BruinPanel.postMessage("project-init-message", {
                 status: "success",
-                message: `Project '${templateName}' is being created in ${selectedFolder}. Check the terminal for progress.`
+                message: `Project '${templateName}' created successfully in ${selectedFolder}`
               });
               
             } catch (error) {
