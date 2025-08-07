@@ -55,38 +55,40 @@
               @click="handleBruinValidateCurrentAsset"
               :disabled="isNotAsset || isError"
             >
-              <template v-if="validateButtonStatus === 'validated'">
-                <CheckCircleIcon class="h-4 w-4 mr-1 text-editor-button-fg" aria-hidden="true" />
-              </template>
-              <template v-else-if="validateButtonStatus === 'failed'">
-                <XCircleIcon class="h-4 w-4 mr-1 text-editorError-foreground" aria-hidden="true" />
-              </template>
-              <template v-else-if="validateButtonStatus === 'loading'">
-                <svg
-                  class="animate-spin mr-1 h-4 w-4 text-editor-bg"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    class="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    stroke-width="4"
-                  ></circle>
-                  <path
-                    class="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-              </template>
-              <template v-else>
-                <SparklesIcon class="h-4 w-4 mr-1"></SparklesIcon>
-              </template>
-              Validate
+          <div class="flex items-center justify-center">
+                <template v-if="validateButtonStatus === 'validated'">
+                  <CheckCircleIcon class="h-4 w-4 mr-1 text-editor-button-fg" aria-hidden="true" />
+                </template>
+                <template v-else-if="validateButtonStatus === 'failed'">
+                  <XCircleIcon class="h-4 w-4 mr-1 text-editorError-foreground" aria-hidden="true" />
+                </template>
+                <template v-else-if="validateButtonStatus === 'loading'">
+                  <svg
+                    class="animate-spin mr-1 h-4 w-4 text-editor-bg"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      class="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      stroke-width="4"
+                    ></circle>
+                    <path
+                      class="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                </template>
+                <template v-else>
+                  <SparklesIcon class="h-4 w-4 mr-1"></SparklesIcon>
+                </template>
+                <span>Validate</span>
+              </div>
             </vscode-button>
             <Menu as="div" class="relative -ml-px block">
               <MenuButton
@@ -104,7 +106,7 @@
                 leave-from-class="transform opacity-100 scale-100"
                 leave-to-class="transform opacity-0 scale-95"
               >
-                <MenuItems class="absolute right-0 left-auto z-10 w-40 xs:w-48 origin-top-right max-w-[calc(100vw-2rem)]">
+                <MenuItems class="absolute left-0 xs:right-0 xs:left-auto z-10 w-40 xs:w-48 origin-top-left xs:origin-top-right max-w-[calc(100vw-2rem)]">
                   <div class="p-1 bg-editorWidget-bg rounded-sm border border-commandCenter-border">
                     <MenuItem key="validate-current">
                       <vscode-button
@@ -131,7 +133,7 @@
           <!-- Run Button Group -->
           <div class="inline-flex">
             <vscode-button @click="runAssetOnly" :disabled="isNotAsset || isError">
-              <div class="flex items-center">
+              <div class="flex items-center justify-center">
                 <PlayIcon class="h-4 w-4 mr-1" aria-hidden="true" />
                 <span>Run</span>
               </div>
