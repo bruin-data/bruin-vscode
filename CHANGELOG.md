@@ -1,4 +1,7 @@
 # Changelog
+## [0.62.8] - [2025-08-07]
+- Add walkthroughs to the extension and improved the autocomplete and intelliSense.
+
 ## [0.62.7] - [2025-08-07]
 - Added support for Oracle Source asset type, domains and meta properties in the asset schema.
 
