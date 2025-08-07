@@ -1,4 +1,7 @@
 # Changelog
+## [0.62.7] - [2025-08-07]
+- Added support for Oracle Source asset type, domains and meta properties in the asset schema.
+
 ## [0.62.6] - [2025-08-06]
 - Prevent the terminal from closing after CLI installation and update.
 

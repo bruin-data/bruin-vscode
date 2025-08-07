@@ -59,7 +59,9 @@
             "qlikview",
             "sisense",
             "domo",
-            "quicksight"
+            "quicksight",
+            "oracle.source",
+            "oracle.sql"
           ],
           "description": "The type of the asset"
         },
@@ -70,6 +72,14 @@
         "depends": {
           "$ref": "#/$defs/depends",
           "description": "Dependencies for this asset"
+        },
+        "meta":{
+          "$ref": "#/$defs/meta",
+          "description": "Meta information for this asset"
+        },
+        "domains": {
+          "$ref": "#/$defs/domains",
+          "description": "Domains for this asset"
         },
         "parameters": {
           "type": "object",
@@ -263,6 +273,34 @@
             "description": "A URI dependency"
           }
         ]
+      }
+    },
+    "domains": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Domains for this asset"
+    },
+    "meta": {
+      "type": "object",
+      "properties": {
+        "business_owner": {
+          "type": "string",
+          "description": "The business owner of the asset"
+        },
+        "data_steward": {
+          "type": "string",
+          "description": "The data steward of the asset"
+        },
+        "refresh_frequency": {
+          "type": "string",
+          "description": "The refresh frequency of the asset"
+        },
+        "retention_policy": {
+          "type": "string",
+          "description": "The retention policy of the asset"
+        }
       }
     },
     "materialization": {
