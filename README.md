@@ -63,7 +63,8 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
-- **0.62.7**: Added support for Oracle Source asset type, domains and meta properties in the asset schema.
+- **0.62.8**: Add walkthroughs to the extension and improved the autocomplete and intelliSense.
+- **0.62.7**: Added support for Oracle Source asset type, domains and meta properties in the aset schema.
 - **0.62.6**: Prevent the terminal from closing after CLI installation and update.
 - **0.62.5**: Added a setting to toggle the inline “Preview Selected Query” CodeLens on or off.
 - **0.62.4**: Added custom checks completions and improved the indentation issues.
