@@ -45,6 +45,14 @@ Bruin is a unified analytics platform that enables data professionals to work en
 - Autocomplete support for `.bruin.yml`, `pipeline.yml`, and `*.asset.yml` files with predefined options and schema validations.
 - Snippets for creating Bruin root configuration, pipelines, and assets.
 
+#### Keyboard Shortcuts for Autocomplete
+- **Manual Trigger**: 
+  - **Windows/Linux**: `Ctrl+Space`
+  - **Mac**: `Option+Esc` (⌥+Esc)
+- **Auto Trigger**: Completions appear automatically when typing `:` or `-` followed by a space
+
+💡 **Tip**: If manual completion doesn't work with the default shortcuts, check your VS Code keyboard shortcuts by going to `File > Preferences > Keyboard Shortcuts` (or `Code > Preferences > Keyboard Shortcuts` on Mac) and search for "trigger suggest".
+
 ## Installation
 
 1. Open Visual Studio Code.
