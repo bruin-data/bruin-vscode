@@ -24,27 +24,37 @@
         <h3 class="text-lg font-medium text-editor-fg">Project Templates</h3>
         <div class="flex flex-col space-y-2">
           <span class="text-sm text-editor-fg">Available templates for new projects:</span>
-          <div class="relative w-64">
-            <vscode-dropdown 
-              v-if="templates.length > 0"
-              @change="handleTemplateSelect"
-              class="w-full"
-            >
-              <vscode-option value="">Select a template...</vscode-option>
-              <vscode-option 
-                v-for="template in templates" 
-                :key="template" 
-                :value="template"
+          <div class="flex items-center space-x-3">
+            <div class="relative w-64">
+              <vscode-dropdown 
+                v-if="templates.length > 0"
+                @change="handleTemplateSelect"
+                class="w-full"
               >
-                {{ template }}
-              </vscode-option>
-            </vscode-dropdown>
-            <div v-else-if="templatesLoading" class="text-sm text-editor-fg opacity-70">
-              Loading templates...
+                <vscode-option value="">Select a template...</vscode-option>
+                <vscode-option 
+                  v-for="template in templates" 
+                  :key="template" 
+                  :value="template"
+                >
+                  {{ template }}
+                </vscode-option>
+              </vscode-dropdown>
+              <div v-else-if="templatesLoading" class="text-sm text-editor-fg opacity-70">
+                Loading templates...
+              </div>
+              <div v-else class="text-sm text-editor-fg opacity-70">
+                No templates available
+              </div>
             </div>
-            <div v-else class="text-sm text-editor-fg opacity-70">
-              No templates available
-            </div>
+            <vscode-button 
+              v-if="selectedTemplate"
+              appearance="primary"
+              @click="handleCreateProject"
+              :disabled="!selectedTemplate"
+            >
+              Create
+            </vscode-button>
           </div>
           <div v-if="selectedTemplate" class="text-sm text-editor-fg">
             Selected: <span class="font-medium">{{ selectedTemplate }}</span>
@@ -170,6 +180,9 @@ const handleMessage = (event: any) => {
       break;
     case "templates-list-message":
       handleTemplatesList(message.payload);
+      break;
+    case "project-init-message":
+      handleProjectInit(message.payload);
       break;
   }
 };
@@ -484,6 +497,36 @@ const handleTemplateSelect = (event: any) => {
   const template = (event.target as HTMLSelectElement).value;
   selectedTemplate.value = template;
   console.log("Selected template:", template);
+};
+
+const handleCreateProject = async () => {
+  if (!selectedTemplate.value) {
+    console.error("No template selected");
+    return;
+  }
+  
+  try {
+    await vscode.postMessage({
+      command: "bruin.initProject",
+      payload: {
+        templateName: selectedTemplate.value
+      }
+    });
+  } catch (error) {
+    console.error("Error creating project:", error);
+  }
+};
+
+const handleProjectInit = (payload: any) => {
+  if (payload.status === "success") {
+    console.log("Project initialized successfully:", payload.message);
+    // Reset selected template after successful creation
+    selectedTemplate.value = "";
+  } else if (payload.status === "cancelled") {
+    console.log("Project creation cancelled:", payload.message);
+  } else {
+    console.error("Failed to initialize project:", payload.message);
+  }
 };
 
 // Watch for isBruinInstalled changes to load templates

@@ -864,6 +864,47 @@ export class BruinPanel {
               });
             }
             break;
+          case "bruin.initProject":
+            try {
+              console.log("Initializing project with template:", message.payload.templateName);
+              
+              // Ask user to select folder for new project
+              const folderUri = await vscode.window.showOpenDialog({
+                canSelectFiles: false,
+                canSelectFolders: true,
+                canSelectMany: false,
+                openLabel: "Select folder for new project"
+              });
+              
+              if (!folderUri || folderUri.length === 0) {
+                BruinPanel.postMessage("project-init-message", {
+                  status: "cancelled",
+                  message: "Project creation cancelled"
+                });
+                return;
+              }
+              
+              const selectedFolder = folderUri[0].fsPath;
+              const templateName = message.payload.templateName;
+              
+              // Run bruin init command in terminal
+              const terminal = await createIntegratedTerminal(selectedFolder);
+              terminal.sendText(`bruin init ${templateName}`);
+              terminal.show();
+              
+              BruinPanel.postMessage("project-init-message", {
+                status: "success",
+                message: `Running 'bruin init ${templateName}' in terminal at ${selectedFolder}`
+              });
+              
+            } catch (error) {
+              console.error("Error initializing project:", error);
+              BruinPanel.postMessage("project-init-message", {
+                status: "error",
+                message: `Failed to initialize project: ${error}`
+              });
+            }
+            break;
         }
       },
       undefined,
