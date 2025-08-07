@@ -96,7 +96,7 @@ export class BruinLanguageServer {
      */
     public registerProviders(context: vscode.ExtensionContext): void {
         const triggerCharacters = [
-            ':', ' ', '\n', '-', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'
+            ':', '-'
         ];
 
         // Register document link provider to make dependencies clickable
@@ -506,6 +506,9 @@ class BruinAssetCompletionProvider implements vscode.CompletionItemProvider {
         token: vscode.CancellationToken,
         context: vscode.CompletionContext
     ): Promise<vscode.CompletionItem[]> {
+        // Log completion trigger context for debugging
+        console.log(`[Bruin Completion] triggerKind: ${context.triggerKind}, triggerCharacter: "${context.triggerCharacter}"`);
+        
         // First check if we're inside a Bruin block (for SQL and Python files)
         if (!BruinBlockDetector.isInBruinBlock(document, position)) {
             return [];
