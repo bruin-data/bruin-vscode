@@ -1,5 +1,5 @@
 # Changelog
-## [0.68.0] - [2025-08-08]
+## [0.63.0] - [2025-08-08]
 - Introduced the capability to generate a new project based on a template directly within the extension. 
 
 ## [0.62.8] - [2025-08-07]
