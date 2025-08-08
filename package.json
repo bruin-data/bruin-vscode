@@ -514,7 +514,7 @@
     "build:webview": "cd webview-ui && npm run build-only && node scripts/copy-codicons.js",
     "vscode:prepublish": "npm run compile",
     "selenium:setup-tests": "extest setup-tests",
-    "selenium:run-tests": "node webview-ui/scripts/copy-test-assets.js && extest setup-and-run './out/ui-test/*.test.js' --code_version max --code_settings settings.json",
+    "selenium:run-tests": "node webview-ui/scripts/copy-test-assets.js && extest setup-and-run './out/ui-test/*.test.js' --code_version 1.100.0 --code_settings settings.json --config .vscode-test.config.js",
     "test": "vscode-test",
     "test:webview": "cd webview-ui && npm run test",
     "compile": "tsc -p ./",
