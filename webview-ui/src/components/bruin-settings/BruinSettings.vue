@@ -19,6 +19,58 @@
       />
     </div>
 
+    <div v-if="isBruinInstalled" class="bg-editorWidget-bg shadow sm:rounded-lg p-4">
+      <div class="flex flex-col space-y-3">
+        <h3 class="text-base font-medium text-editor-fg">Project Templates</h3>
+        <div class="max-w-xl text-sm text-editor-fg">
+          <p>
+            Create new Bruin projects from pre-built templates. Choose a template that matches your use case and get started quickly with best practices.
+          </p>
+        </div>
+        <div class="flex items-center justify-between">
+          <div class="relative w-64">
+            <vscode-dropdown 
+              v-if="templates.length > 0"
+              @change="handleTemplateSelect"
+              class="w-full"
+              ref="templateDropdownRef"
+            >
+              <vscode-option value="">Select a template...</vscode-option>
+              <vscode-option 
+                v-for="template in templates" 
+                :key="template" 
+                :value="template"
+              >
+                {{ template }}
+              </vscode-option>
+            </vscode-dropdown>
+            <div v-else-if="templatesLoading" class="text-sm text-editor-fg opacity-70">
+              Loading templates...
+            </div>
+            <div v-else class="text-sm text-editor-fg opacity-70">
+              No templates available
+            </div>
+          </div>
+          <vscode-button 
+            appearance="primary"
+            @click="handleCreateProject"
+            :disabled="!selectedTemplate"
+          >
+            Create
+          </vscode-button>
+        </div>
+        <div v-if="selectedTemplate" class="text-xs text-editor-fg opacity-75">
+          Selected: <span class="font-medium">{{ selectedTemplate }}</span>
+        </div>
+        <div v-if="projectCreationSuccess" class="mt-3 p-3 bg-green-100 dark:bg-green-900 border border-green-200 dark:border-green-700 rounded-md">
+          <div class="text-sm text-green-800 dark:text-green-200 whitespace-pre-line">
+            {{ successMessage }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+
     
 
     <div v-if="showForm" class="mt-6 bg-editorWidget-bg shadow sm:rounded-lg p-6" ref="formRef">
@@ -53,7 +105,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, nextTick, watch } from "vue";
 import BruinCLI from "@/components/bruin-settings/BruinCLI.vue";
 import ConnectionsList from "@/components/connections/ConnectionList.vue";
@@ -86,6 +138,14 @@ const formRef = ref(null);
 const showEnvironmentDeleteAlert = ref(false);
 const environmentToDelete = ref(null);
 
+// Templates state
+const templates = ref([]);
+const selectedTemplate = ref("");
+const templatesLoading = ref(false);
+const projectCreationSuccess = ref(false);
+const successMessage = ref("");
+const templateDropdownRef = ref(null);
+
 const connectionFormKey = computed(() => {
   return connectionToEdit.value?.id ? `edit-${connectionToEdit.value.id}` : "new-connection";
 });
@@ -94,9 +154,14 @@ onMounted(() => {
   window.addEventListener("message", handleMessage);
   vscode.postMessage({ command: "bruin.getConnectionsList" });
   vscode.postMessage({ command: "bruin.getConnectionsSchema" });
+  
+  // Load templates if Bruin is installed
+  if (props.isBruinInstalled) {
+    loadTemplates();
+  }
 });
 
-const handleMessage = (event) => {
+const handleMessage = (event: any) => {
   const message = event.data;
   switch (message.command) {
     case "connections-list-message":
@@ -123,15 +188,21 @@ const handleMessage = (event) => {
     case "environment-deleted-message":
       handleEnvironmentDeleted(message.payload);
       break;
+    case "templates-list-message":
+      handleTemplatesList(message.payload);
+      break;
+    case "project-init-message":
+      handleProjectInit(message.payload);
+      break;
   }
 };
 
-const getConnectionsListFromSchema = (payload) => {
+const getConnectionsListFromSchema = (payload: any) => {
   console.log("Received connections schema payload:", payload);
   connectionsStore.updateConnectionsSchema(payload.message);
 };
 
-const handleConnectionsList = (payload) => {
+const handleConnectionsList = (payload: any) => {
   console.log("Received connections list payload:", payload); // Log payload for debugging
   if (payload.status === "success") {
     // Pass the raw message directly to the store - it will handle both formats
@@ -142,7 +213,7 @@ const handleConnectionsList = (payload) => {
   }
 };
 
-const handleConnectionDeleted = async (payload) => {
+const handleConnectionDeleted = async (payload: any) => {
   if (payload.status === "success") {
     connectionsStore.removeConnection(connectionToDelete.value.id);
     showDeleteAlert.value = false;
@@ -152,7 +223,7 @@ const handleConnectionDeleted = async (payload) => {
   }
 };
 
-const handleConnectionCreated = (payload) => {
+const handleConnectionCreated = (payload: any) => {
   if (payload.status === "success") {
     try {
       console.log("Payload received (created):", payload);
@@ -175,7 +246,7 @@ const handleConnectionCreated = (payload) => {
   }
 };
 
-const handleConnectionEdited = (payload) => {
+const handleConnectionEdited = (payload: any) => {
   if (payload.status === "success") {
     console.log("Payload received (edited):", payload);
     if (payload.connection && payload.connection.id) {
@@ -196,7 +267,7 @@ const handleConnectionEdited = (payload) => {
   }
 };
 
-const showConnectionForm = (connectionOrEnvironment = null, duplicate = false) => {
+const showConnectionForm = (connectionOrEnvironment: any = null, duplicate = false) => {
   // Reset form state before showing new data
   closeConnectionForm();
   nextTick(() => {
@@ -253,11 +324,11 @@ const showConnectionForm = (connectionOrEnvironment = null, duplicate = false) =
   }, 100);
 };
 
-const handleDuplicateConnection = (connection) => {
+const handleDuplicateConnection = (connection: any) => {
   showConnectionForm(connection, true);
 };
 
-const handleConnectionSubmit = async (connectionData) => {
+const handleConnectionSubmit = async (connectionData: any) => {
   clearFormError();
   try {
     const sanitizedConnectionData = JSON.parse(JSON.stringify(connectionData));
@@ -293,7 +364,7 @@ const clearFormError = () => {
   formError.value = null;
 };
 
-const confirmDeleteConnection = (connection) => {
+const confirmDeleteConnection = (connection: any) => {
   connectionToDelete.value = connection;
   showDeleteAlert.value = true;
 };
@@ -320,7 +391,7 @@ const cancelDeleteConnection = () => {
 };
 
 // Environment handlers
-const handleAddEnvironment = async (environmentName) => {
+const handleAddEnvironment = async (environmentName: string) => {
   try {
     await vscode.postMessage({
       command: "bruin.createEnvironment",
@@ -333,7 +404,7 @@ const handleAddEnvironment = async (environmentName) => {
   }
 };
 
-const handleEditEnvironment = async (environmentData) => {
+const handleEditEnvironment = async (environmentData: any) => {
   try {
     await vscode.postMessage({
       command: "bruin.updateEnvironment",
@@ -347,7 +418,7 @@ const handleEditEnvironment = async (environmentData) => {
   }
 };
 
-const handleDeleteEnvironment = (environmentName) => {
+const handleDeleteEnvironment = (environmentName: string) => {
   environmentToDelete.value = environmentName;
   showEnvironmentDeleteAlert.value = true;
 };
@@ -376,7 +447,7 @@ const cancelDeleteEnvironment = () => {
   environmentToDelete.value = null;
 };
 
-const handleEnvironmentCreated = (payload) => {
+const handleEnvironmentCreated = (payload: any) => {
   if (payload.status === "success") {
     console.log("Environment created successfully:", payload.message);
   } else {
@@ -384,7 +455,7 @@ const handleEnvironmentCreated = (payload) => {
   }
 };
 
-const handleEnvironmentUpdated = (payload) => {
+const handleEnvironmentUpdated = (payload: any) => {
   if (payload.status === "success") {
     console.log("Environment updated successfully:", payload.message);
   } else {
@@ -392,7 +463,7 @@ const handleEnvironmentUpdated = (payload) => {
   }
 };
 
-const handleEnvironmentDeleted = (payload) => {
+const handleEnvironmentDeleted = (payload: any) => {
   if (payload.status === "success") {
     console.log("Environment deleted successfully:", payload.message);
     showEnvironmentDeleteAlert.value = false;
@@ -401,4 +472,90 @@ const handleEnvironmentDeleted = (payload) => {
     console.error("Failed to delete environment:", payload.message);
   }
 };
+
+// Templates handlers
+const loadTemplates = async () => {
+  templatesLoading.value = true;
+  try {
+    await vscode.postMessage({ command: "bruin.getTemplatesList" });
+  } catch (error) {
+    console.error("Error loading templates:", error);
+    templatesLoading.value = false;
+  }
+};
+
+const handleTemplatesList = (payload: any) => {
+  templatesLoading.value = false;
+  if (payload.status === "success") {
+    try {
+      const templateData = typeof payload.message === 'string' 
+        ? JSON.parse(payload.message) 
+        : payload.message;
+      templates.value = templateData.templates || [];
+      console.log("Templates loaded:", templates.value);
+    } catch (error) {
+      console.error("Error parsing templates:", error);
+      templates.value = [];
+    }
+  } else {
+    console.error("Failed to load templates:", payload.message);
+    templates.value = [];
+  }
+};
+
+const handleTemplateSelect = (event: any) => {
+  const template = (event.target as HTMLSelectElement).value;
+  selectedTemplate.value = template;
+  console.log("Selected template:", template);
+};
+
+const handleCreateProject = async () => {
+  if (!selectedTemplate.value) {
+    console.error("No template selected");
+    return;
+  }
+  
+  try {
+    await vscode.postMessage({
+      command: "bruin.initProject",
+      payload: {
+        templateName: selectedTemplate.value
+      }
+    });
+  } catch (error) {
+    console.error("Error creating project:", error);
+  }
+};
+
+const handleProjectInit = (payload: any) => {
+  if (payload.status === "success") {
+    console.log("Project initialized successfully:", payload.message);
+    projectCreationSuccess.value = true;
+    successMessage.value = payload.message || "Project created successfully";
+    // Reset the dropdown selection
+    selectedTemplate.value = "";
+    // Reset the dropdown DOM element
+    nextTick(() => {
+      if (templateDropdownRef.value) {
+        templateDropdownRef.value.value = "";
+      }
+    });
+    // Hide success message after 8 seconds
+    setTimeout(() => {
+      projectCreationSuccess.value = false;
+      successMessage.value = "";
+    }, 8000);
+  } else if (payload.status === "cancelled") {
+    console.log("Project creation cancelled:", payload.message);
+  } else {
+    console.error("Failed to initialize project:", payload.message);
+  }
+};
+
+// Watch for isBruinInstalled changes to load templates
+watch(() => props.isBruinInstalled, (newValue) => {
+  if (newValue && templates.value.length === 0) {
+    loadTemplates();
+  }
+});
 </script>

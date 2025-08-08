@@ -273,7 +273,6 @@ export const createIntegratedTerminal = async (
 ): Promise<vscode.Terminal> => {
   const terminalName = "Bruin Terminal";
   let terminal = vscode.window.terminals.find((t) => t.name === terminalName);
-
   if (!terminal) {
     let shellPath: string | undefined;
     let shellArgs: string[] | undefined;

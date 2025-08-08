@@ -15,6 +15,7 @@ import {
 
 } from "../bruin";
 import { BruinFill } from "../bruin/bruinFill";
+import { BruinInit } from "../bruin/bruinInit";
 import * as vscode from "vscode";
 import { renderCommandWithFlags } from "../extension/commands/renderCommand";
 import {
@@ -40,6 +41,7 @@ import {
 import path = require("path");
 import { isBruinAsset } from "../utilities/helperUtils";
 import { BruinInternalParse } from "../bruin/bruinInternalParse";
+import { BruinInternalListTemplates } from "../bruin/bruinInternalListTemplates";
 
 import { getDefaultCheckboxSettings, getDefaultExcludeTag } from "../extension/configuration";
 import { exec } from "child_process";
@@ -838,6 +840,77 @@ export class BruinPanel {
               BruinPanel.postMessage("environment-updated-message", {
                 status: "error",
                 message: userMessage
+              });
+            }
+            break;
+          case "bruin.getTemplatesList":
+            try {
+              console.log("Getting templates list");
+              const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || "";
+              const templatesCommand = new BruinInternalListTemplates(
+                getBruinExecutablePath(),
+                workspaceFolder
+              );
+              const templatesResponse = await templatesCommand.listTemplates();
+              
+              BruinPanel.postMessage("templates-list-message", {
+                status: "success",
+                message: templatesResponse
+              });
+            } catch (error) {
+              console.error("Error getting templates list:", error);
+              BruinPanel.postMessage("templates-list-message", {
+                status: "error",
+                message: `Failed to get templates list: ${error}`
+              });
+            }
+            break;
+          case "bruin.initProject":
+            try {
+              console.log("Initializing project with template:", message.payload.templateName);
+              
+              // Ask user to select folder for new project
+              const folderUri = await vscode.window.showOpenDialog({
+                canSelectFiles: false,
+                canSelectFolders: true,
+                canSelectMany: false,
+                openLabel: "Select folder for new project"
+              });
+              
+              if (!folderUri || folderUri.length === 0) {
+                BruinPanel.postMessage("project-init-message", {
+                  status: "cancelled",
+                  message: "Project creation cancelled"
+                });
+                return;
+              }
+              
+              const selectedFolder = folderUri[0].fsPath;
+              const templateName = message.payload.templateName;
+              
+              // Close existing Bruin terminal to ensure we create a new one with correct working directory
+              const existingTerminal = vscode.window.terminals.find(t => t.name === "Bruin Terminal");
+              if (existingTerminal) {
+                existingTerminal.dispose();
+                // Wait a bit for the terminal to be properly disposed
+                await new Promise(resolve => setTimeout(resolve, 300));
+              }
+              
+              // Use BruinInit class to initialize project
+              const bruinInit = new BruinInit(getBruinExecutablePath(), selectedFolder);
+              const result = await bruinInit.initProject(templateName);
+            
+              
+              BruinPanel.postMessage("project-init-message", {
+                status: "success",
+                message: `Project '${templateName}' created successfully in ${selectedFolder}`
+              });
+              
+            } catch (error) {
+              console.error("Error initializing project:", error);
+              BruinPanel.postMessage("project-init-message", {
+                status: "error",
+                message: `Failed to initialize project: ${error}`
               });
             }
             break;
