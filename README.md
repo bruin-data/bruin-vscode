@@ -63,6 +63,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.68.0**: Introduced the capability to generate a new project based on a template directly within the extension. 
 - **0.62.8**: Add walkthroughs to the extension and improved the autocomplete and intelliSense.
 - **0.62.7**: Added support for Oracle Source asset type, domains and meta properties in the aset schema.
 - **0.62.6**: Prevent the terminal from closing after CLI installation and update.
@@ -82,16 +83,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 - **0.59.2**: Display CodeLens only when selection starts outside Bruin block.
 - **0.59.1**: Add highlighing to the column level lineage view.
 - **0.59.0**: Added column level lineage view.
-- **0.58.8**: Added GCS as a destination option in the Ingestr Asset UI and schema.
-- **0.58.7**: Fixed the query preview for the first query in multiple queries file.
-- **0.58.6**: Fixed the query preview code lens. 
-- **0.58.5**: Recovered the partition by and cluster ui and fixed the columns actions being hidden.
-- **0.58.4**: Enhanced the environment management UI with delete and update actions.
-- **0.58.3**: Improved detect asset logic.
-- **0.58.2**: Improved the Activity Bar and Side Panel rendering.
-- **0.58.1**: Changed "Fill from DB" to run in the background instead of the terminal.
-- **0.58.0**: Add environment management UI allowing users to create new environments.
-- **0.57.0**: Added Ingest Asset UI with dropdowns for selecting source and destination connections.
+
 
 For a full changelog, see Bruin Extension [Changelog](https://marketplace.visualstudio.com/items/bruin.bruin/changelog).
 
