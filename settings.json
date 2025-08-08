@@ -4,5 +4,9 @@
     "git.autoRepositoryDetection": false,
     "terminal.integrated.sendKeybindingsToShell": true,
     "workbench.remoteIndicator.showExtensionRecommendations": false,
-    "extensions.ignoreRecommendations": true
+    "extensions.ignoreRecommendations": true,
+    "workbench.welcomePage.walkthroughs.openOnInstall": false,
+    "workbench.startupEditor": "none",
+    "telemetry.enableTelemetry": false,
+    "update.mode": "none"
   }
