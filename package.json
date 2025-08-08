@@ -481,7 +481,7 @@
           },
           {
             "id": "autocomplete-features",
-            "title": "Autocomplete & IntelliSense", 
+            "title": "Autocomplete & IntelliSense",
             "description": "Discover how autocomplete works in Bruin YAML files and SQL assets",
             "media": {
               "markdown": "walkthroughs/autocomplete-features.md"
@@ -514,7 +514,7 @@
     "build:webview": "cd webview-ui && npm run build-only && node scripts/copy-codicons.js",
     "vscode:prepublish": "npm run compile",
     "selenium:setup-tests": "extest setup-tests",
-    "selenium:run-tests": "node webview-ui/scripts/copy-test-assets.js && extest setup-and-run './out/ui-test/*.test.js' --code_version 1.100.0 --code_settings settings.json --config .vscode-test.config.js",
+    "selenium:run-tests": "node webview-ui/scripts/copy-test-assets.js && extest setup-and-run './out/ui-test/*.test.js' --code_version 1.103.0 --code_settings settings.json",
     "test": "vscode-test",
     "test:webview": "cd webview-ui && npm run test",
     "compile": "tsc -p ./",
@@ -542,7 +542,7 @@
     "prettier": "^3.2.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.3",
-    "vscode-extension-tester": "^8.14.0",
+    "vscode-extension-tester": "^8.17.0",
     "vscode-test": "^1.6.1"
   },
   "overrides": {
