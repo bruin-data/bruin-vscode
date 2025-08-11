@@ -1,6 +1,8 @@
 import * as vscode from "vscode";
 import { getNonce } from "../utilities/getNonce";
 import { getUri } from "../utilities/getUri";
+import { TableDiffDataProvider } from "../providers/TableDiffDataProvider";
+import { BruinTableDiff } from "../bruin/bruinTableDiff";
 
 export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Disposable {
   public static readonly viewId = "bruin.tableDiffView";
@@ -14,7 +16,8 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
 
   constructor(
     private readonly _extensionUri: vscode.Uri,
-    context: vscode.ExtensionContext
+    context: vscode.ExtensionContext,
+    private readonly dataProvider?: TableDiffDataProvider
   ) {
     this._extensionContext = context;
     this.disposables.push(
@@ -48,6 +51,8 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
     _token: vscode.CancellationToken
   ) {
     try {
+      console.log('TableDiffPanel: resolveWebviewView called');
+      
       TableDiffPanel._view = webviewView;
       this.context = context;
       this.token = _token;
@@ -61,6 +66,7 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
         localResourceRoots: [this._extensionUri],
       };
 
+      console.log('TableDiffPanel: Setting up message listener');
       this._setWebviewMessageListener(TableDiffPanel._view!.webview);
 
       // Reload data when webview becomes visible
@@ -74,6 +80,16 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
       });
 
       webviewView.webview.html = this._getWebviewContent(webviewView.webview);
+      
+      // Send initial init message
+      setTimeout(() => {
+        if (TableDiffPanel._view && TableDiffPanel._view.visible) {
+          TableDiffPanel._view.webview.postMessage({
+            command: "init",
+            panelType: "Table Diff",
+          });
+        }
+      }, 100);
     } catch (error) {
       console.error("Error loading Table Diff data:", error);
     }
@@ -151,10 +167,13 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
 
   private _setWebviewMessageListener(webview: vscode.Webview) {
     webview.onDidReceiveMessage(async (message) => {
+      console.log('TableDiffPanel: Received message:', message);
+      
       switch (message.command) {
         case "bruin.compareTables":
           // Handle table comparison request
-          console.log("Table comparison requested:", message.payload);
+          console.log('TableDiffPanel: Handling bruin.compareTables');
+          await this.handleCompareTables(message.payload);
           break;
         case "bruin.clearDiff":
           // Handle clearing diff results
@@ -163,6 +182,23 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
             message: "Diff cleared",
           });
           break;
+        case "bruin.getConnections":
+          // Handle request for connections list
+          console.log('TableDiffPanel: Handling bruin.getConnections');
+          await this.handleGetConnections();
+          break;
+        case "bruin.getSchemas":
+          // Handle request for schemas list
+          console.log('TableDiffPanel: Handling bruin.getSchemas');
+          await this.handleGetSchemas(message.payload);
+          break;
+        case "bruin.getTables":
+          // Handle request for tables list
+          console.log('TableDiffPanel: Handling bruin.getTables');
+          await this.handleGetTables(message.payload);
+          break;
+        default:
+          console.log('TableDiffPanel: Unknown command:', message.command);
       }
     });
   }
@@ -206,5 +242,162 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
       this._lastRenderedDocumentUri = event.document.uri;
       await this.init();
     }
+  }
+
+  private async handleGetConnections() {
+    try {
+      console.log('TableDiffPanel: handleGetConnections called');
+      
+      if (!this.dataProvider) {
+        throw new Error("Data provider not available");
+      }
+      
+      console.log('TableDiffPanel: calling dataProvider.getConnectionsList()');
+      const connections = await this.dataProvider.getConnectionsList();
+      console.log('TableDiffPanel: connections retrieved:', connections);
+      
+      const response = {
+        status: "success",
+        message: "Connections loaded successfully",
+        connections: connections.map(conn => ({
+          name: conn.name,
+          type: conn.type,
+          environment: conn.environment
+        }))
+      };
+      
+      console.log('TableDiffPanel: sending connections-data response:', response);
+      TableDiffPanel.postMessage("connections-data", response);
+    } catch (error) {
+      console.error('TableDiffPanel: Error in handleGetConnections:', error);
+      TableDiffPanel.postMessage("connections-data", {
+        status: "error",
+        message: `Failed to load connections: ${error}`
+      });
+    }
+  }
+
+  private async handleGetSchemas(payload: { connectionName: string, environment?: string }) {
+    try {
+      console.log('TableDiffPanel: handleGetSchemas called with payload:', payload);
+      
+      if (!this.dataProvider) {
+        throw new Error("Data provider not available");
+      }
+      
+      const schemas = await this.dataProvider.getSchemasList(payload.connectionName, payload.environment);
+      console.log('TableDiffPanel: schemas retrieved:', schemas);
+      
+      TableDiffPanel.postMessage("schemas-data", {
+        status: "success",
+        message: "Schemas loaded successfully",
+        connectionName: payload.connectionName,
+        schemas: schemas
+      });
+    } catch (error) {
+      console.error('TableDiffPanel: Error in handleGetSchemas:', error);
+      TableDiffPanel.postMessage("schemas-data", {
+        status: "error",
+        message: `Failed to load schemas: ${error}`,
+        connectionName: payload.connectionName
+      });
+    }
+  }
+
+  private async handleGetTables(payload: { connectionName: string, schemaName: string, environment?: string }) {
+    try {
+      console.log('TableDiffPanel: handleGetTables called with payload:', payload);
+      
+      if (!this.dataProvider) {
+        throw new Error("Data provider not available");
+      }
+      
+      const tables = await this.dataProvider.getTablesList(payload.connectionName, payload.schemaName, payload.environment);
+      console.log('TableDiffPanel: tables retrieved:', tables);
+      
+      TableDiffPanel.postMessage("tables-data", {
+        status: "success",
+        message: "Tables loaded successfully",
+        connectionName: payload.connectionName,
+        schemaName: payload.schemaName,
+        tables: tables
+      });
+    } catch (error) {
+      console.error('TableDiffPanel: Error in handleGetTables:', error);
+      TableDiffPanel.postMessage("tables-data", {
+        status: "error",
+        message: `Failed to load tables: ${error}`,
+        connectionName: payload.connectionName,
+        schemaName: payload.schemaName
+      });
+    }
+  }
+
+  private async handleCompareTables(payload: {
+    source: { connection: string, schema: string, table: string },
+    target: { connection: string, schema: string, table: string }
+  }) {
+    try {
+      console.log('TableDiffPanel: handleCompareTables called with payload:', payload);
+      
+      // Send loading state to UI
+      TableDiffPanel.postMessage("table-diff-result", {
+        status: "loading",
+        message: "Comparing tables..."
+      });
+
+      const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+      if (!workspaceFolder) {
+        throw new Error("Workspace folder not found");
+      }
+
+      // Create BruinTableDiff instance
+      const tableDiff = new BruinTableDiff("bruin", workspaceFolder);
+
+      // Format table references as schema.table
+      const sourceTable = `${payload.source.schema}.${payload.source.table}`;
+      const targetTable = `${payload.target.schema}.${payload.target.table}`;
+
+      // Use source connection for now (could be enhanced to support cross-connection diffs)
+      const connectionName = payload.source.connection;
+
+      // Get environment from source connection
+      const sourceConnection = await this.getConnectionEnvironment(payload.source.connection);
+
+      console.log(`TableDiffPanel: Executing table diff: ${sourceTable} vs ${targetTable} on connection ${connectionName}`);
+
+      // Execute the table diff command
+      const result = await tableDiff.compareTables(
+        connectionName,
+        sourceTable,
+        targetTable,
+        sourceConnection?.environment
+      );
+
+      console.log('TableDiffPanel: Table diff completed successfully');
+
+      // Send results to UI
+      TableDiffPanel.postMessage("table-diff-result", {
+        status: "success",
+        message: "Table comparison completed",
+        result: result
+      });
+
+    } catch (error) {
+      console.error('TableDiffPanel: Error in handleCompareTables:', error);
+      TableDiffPanel.postMessage("table-diff-result", {
+        status: "error",
+        message: `Table comparison failed: ${error}`
+      });
+    }
+  }
+
+  private async getConnectionEnvironment(connectionName: string) {
+    if (!this.dataProvider) {
+      return null;
+    }
+    
+    const connections = await this.dataProvider.getConnectionsList();
+    return connections.find(conn => conn.name === connectionName);
   }
 }

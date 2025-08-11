@@ -23,6 +23,7 @@ import { AssetLineagePanel } from "../panels/LineagePanel";
 import { installOrUpdateCli } from "./commands/updateBruinCLI";
 import { QueryPreviewPanel } from "../panels/QueryPreviewPanel";
 import { TableDiffPanel } from "../panels/TableDiffPanel";
+import { TableDiffDataProvider } from "../providers/TableDiffDataProvider";
 import { BruinPanel } from "../panels/BruinPanel";
 import { QueryCodeLensProvider } from "../providers/queryCodeLensProvider";
 import { ScheduleCodeLensProvider } from "../providers/scheduleCodeLensProvider";
@@ -169,12 +170,10 @@ export async function activate(context: ExtensionContext) {
 
   const assetLineagePanel = new AssetLineagePanel(context.extensionUri);
   const queryPreviewWebviewProvider = new QueryPreviewPanel(context.extensionUri, context);
-  const tableDiffWebviewProvider = new TableDiffPanel(context.extensionUri, context);
 
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(AssetLineagePanel.viewId, assetLineagePanel),
-    window.registerWebviewViewProvider(QueryPreviewPanel.viewId, queryPreviewWebviewProvider),
-    window.registerWebviewViewProvider(TableDiffPanel.viewId, tableDiffWebviewProvider)
+    window.registerWebviewViewProvider(QueryPreviewPanel.viewId, queryPreviewWebviewProvider)
   );
 
   // Add configuration change listener for query timeout
@@ -256,6 +255,16 @@ export async function activate(context: ExtensionContext) {
 
   const activityBarConnectionsProvider = new ActivityBarConnectionsProvider(context.extensionPath);
   vscode.window.registerTreeDataProvider("bruinConnections", activityBarConnectionsProvider);
+
+  // Create TableDiffPanel with its own data provider
+  console.log('Extension: Creating TableDiffDataProvider and TableDiffPanel');
+  const tableDiffDataProvider = new TableDiffDataProvider(context.extensionPath);
+  const tableDiffWebviewProvider = new TableDiffPanel(context.extensionUri, context, tableDiffDataProvider);
+  
+  console.log('Extension: Registering TableDiffPanel webview provider with viewId:', TableDiffPanel.viewId);
+  context.subscriptions.push(
+    window.registerWebviewViewProvider(TableDiffPanel.viewId, tableDiffWebviewProvider)
+  );
 
   const favoritesProvider = new FavoritesProvider();
   vscode.window.registerTreeDataProvider("bruinFavorites", favoritesProvider);

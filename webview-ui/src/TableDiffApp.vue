@@ -12,7 +12,7 @@
           <vscode-dropdown 
             id="source-connection" 
             v-model="sourceConnection"
-            @change="updateCompareButtonState"
+            @change="handleSourceConnectionChange"
           >
             <vscode-option value="">Select connection...</vscode-option>
             <vscode-option 
@@ -27,7 +27,7 @@
           <vscode-dropdown 
             id="source-schema" 
             v-model="sourceSchema"
-            @change="updateCompareButtonState"
+            @change="handleSourceSchemaChange"
           >
             <vscode-option value="">Select schema...</vscode-option>
             <vscode-option 
@@ -42,7 +42,7 @@
           <vscode-dropdown 
             id="source-table" 
             v-model="sourceTable"
-            @change="updateCompareButtonState"
+            @change="handleSourceTableChange"
           >
             <vscode-option value="">Select table...</vscode-option>
             <vscode-option 
@@ -60,7 +60,7 @@
           <vscode-dropdown 
             id="target-connection" 
             v-model="targetConnection"
-            @change="updateCompareButtonState"
+            @change="handleTargetConnectionChange"
           >
             <vscode-option value="">Select connection...</vscode-option>
             <vscode-option 
@@ -75,7 +75,7 @@
           <vscode-dropdown 
             id="target-schema" 
             v-model="targetSchema"
-            @change="updateCompareButtonState"
+            @change="handleTargetSchemaChange"
           >
             <vscode-option value="">Select schema...</vscode-option>
             <vscode-option 
@@ -90,7 +90,7 @@
           <vscode-dropdown 
             id="target-table" 
             v-model="targetTable"
-            @change="updateCompareButtonState"
+            @change="handleTargetTableChange"
           >
             <vscode-option value="">Select table...</vscode-option>
             <vscode-option 
@@ -107,7 +107,6 @@
       <div class="diff-options">
         <vscode-button 
           id="compare-btn" 
-          :disabled="!canCompare"
           @click="handleCompare"
         >
           Compare Tables
@@ -145,7 +144,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 
 // VS Code API
 declare global {
@@ -200,11 +199,73 @@ const updateCompareButtonState = () => {
   // This is handled by the computed property now
 }
 
+const handleSourceConnectionChange = (event: any) => {
+  const newValue = event.target?.value || event.target?.currentValue
+  if (newValue) {
+    sourceConnection.value = newValue
+  }
+}
+
+const handleTargetConnectionChange = (event: any) => {
+  const newValue = event.target?.value || event.target?.currentValue
+  if (newValue) {
+    targetConnection.value = newValue
+  }
+}
+
+const handleSourceSchemaChange = (event: any) => {
+  const newValue = event.target?.value || event.target?.currentValue
+  if (newValue) {
+    sourceSchema.value = newValue
+  }
+}
+
+const handleTargetSchemaChange = (event: any) => {
+  const newValue = event.target?.value || event.target?.currentValue
+  if (newValue) {
+    targetSchema.value = newValue
+  }
+}
+
+const handleSourceTableChange = (event: any) => {
+  console.log('Vue: handleSourceTableChange triggered:', event)
+  const newValue = event.target?.value || event.target?.currentValue
+  if (newValue) {
+    console.log('Vue: Manually setting sourceTable to:', newValue)
+    sourceTable.value = newValue
+  }
+}
+
+const handleTargetTableChange = (event: any) => {
+  console.log('Vue: handleTargetTableChange triggered:', event)
+  const newValue = event.target?.value || event.target?.currentValue
+  if (newValue) {
+    console.log('Vue: Manually setting targetTable to:', newValue)
+    targetTable.value = newValue
+  }
+}
+
 const handleCompare = () => {
+  console.log('Vue: handleCompare clicked')
+  console.log('Vue: canCompare:', canCompare.value)
+  console.log('Vue: vscode available:', !!vscode)
+  console.log('Vue: source values:', {
+    connection: sourceConnection.value,
+    schema: sourceSchema.value, 
+    table: sourceTable.value
+  })
+  console.log('Vue: target values:', {
+    connection: targetConnection.value,
+    schema: targetSchema.value,
+    table: targetTable.value
+  })
+  
   if (!canCompare.value || !vscode) {
+    console.log('Vue: Cannot compare - missing requirements')
     return
   }
 
+  console.log('Vue: Sending compare message')
   setLoading(true)
   error.value = ''
   
@@ -246,10 +307,21 @@ const clearResults = () => {
   isLoading.value = false
 }
 
-const handleDiffResult = (result: any) => {
+const handleDiffResult = (payload: any) => {
+  if (payload.status === 'loading') {
+    setLoading(true)
+    return
+  }
+  
   setLoading(false)
-  results.value = result
-  error.value = ''
+  
+  if (payload.status === 'success') {
+    results.value = payload.result
+    error.value = ''
+  } else {
+    results.value = null
+    error.value = payload.message || 'Failed to compare tables'
+  }
 }
 
 const handleError = (errorData: any) => {
@@ -260,7 +332,74 @@ const handleError = (errorData: any) => {
 
 const handleInit = () => {
   console.log('Table Diff panel initialized')
-  // Request available connections/schemas/tables if needed
+  // Request available connections
+  requestConnections()
+}
+
+const requestConnections = () => {
+  if (vscode) {
+    vscode.postMessage({
+      command: 'bruin.getConnections'
+    })
+  }
+}
+
+const requestSchemas = (connectionName: string, environment?: string) => {
+  if (vscode && connectionName) {
+    vscode.postMessage({
+      command: 'bruin.getSchemas',
+      payload: { connectionName, environment }
+    })
+  }
+}
+
+const requestTables = (connectionName: string, schemaName: string, environment?: string) => {
+  if (vscode && connectionName && schemaName) {
+    vscode.postMessage({
+      command: 'bruin.getTables',
+      payload: { connectionName, schemaName, environment }
+    })
+  }
+}
+
+const handleConnectionsData = (payload: any) => {
+  if (payload.status === 'success') {
+    connections.value = payload.connections
+  } else {
+    console.error('Failed to load connections:', payload.message)
+  }
+}
+
+const handleSchemasData = (payload: any) => {
+  if (payload.status === 'success') {
+    const isSource = payload.connectionName === sourceConnection.value
+    const isTarget = payload.connectionName === targetConnection.value
+    
+    if (isSource) {
+      sourceSchemas.value = payload.schemas
+    }
+    if (isTarget) {
+      targetSchemas.value = payload.schemas
+    }
+  } else {
+    console.error('Failed to load schemas:', payload.message)
+  }
+}
+
+const handleTablesData = (payload: any) => {
+  if (payload.status === 'success') {
+    const isSource = payload.connectionName === sourceConnection.value && payload.schemaName === sourceSchema.value
+    const isTarget = payload.connectionName === targetConnection.value && payload.schemaName === targetSchema.value
+    
+    if (isSource) {
+      sourceTables.value = payload.tables
+    }
+    if (isTarget) {
+      targetTables.value = payload.tables
+    }
+  } else {
+    console.error('Failed to load tables:', payload.message)
+  }
 }
 
 // Message listener
@@ -281,9 +420,66 @@ const setupMessageListener = () => {
       case 'table-diff-error':
         handleError(message.payload)
         break
+      case 'connections-data':
+        handleConnectionsData(message.payload)
+        break
+      case 'schemas-data':
+        handleSchemasData(message.payload)
+        break
+      case 'tables-data':
+        handleTablesData(message.payload)
+        break
+      case 'table-diff-result':
+        handleDiffResult(message.payload)
+        break
     }
   })
 }
+
+// Watchers for dropdown changes
+watch(sourceConnection, (newConnection) => {
+  if (newConnection) {
+    sourceSchema.value = ''
+    sourceTable.value = ''
+    sourceSchemas.value = []
+    sourceTables.value = []
+    
+    const connection = connections.value.find(c => c.name === newConnection)
+    requestSchemas(newConnection, connection?.environment)
+  }
+})
+
+watch(sourceSchema, (newSchema) => {
+  if (newSchema && sourceConnection.value) {
+    sourceTable.value = ''
+    sourceTables.value = []
+    
+    const connection = connections.value.find(c => c.name === sourceConnection.value)
+    requestTables(sourceConnection.value, newSchema, connection?.environment)
+  }
+})
+
+watch(targetConnection, (newConnection) => {
+  if (newConnection) {
+    targetSchema.value = ''
+    targetTable.value = ''
+    targetSchemas.value = []
+    targetTables.value = []
+    
+    const connection = connections.value.find(c => c.name === newConnection)
+    requestSchemas(newConnection, connection?.environment)
+  }
+})
+
+watch(targetSchema, (newSchema) => {
+  if (newSchema && targetConnection.value) {
+    targetTable.value = ''
+    targetTables.value = []
+    
+    const connection = connections.value.find(c => c.name === targetConnection.value)
+    requestTables(targetConnection.value, newSchema, connection?.environment)
+  }
+})
 
 // Lifecycle
 onMounted(() => {
