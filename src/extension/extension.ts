@@ -22,6 +22,7 @@ import { renderCommand } from "./commands/renderCommand";
 import { AssetLineagePanel } from "../panels/LineagePanel";
 import { installOrUpdateCli } from "./commands/updateBruinCLI";
 import { QueryPreviewPanel } from "../panels/QueryPreviewPanel";
+import { TableDiffPanel } from "../panels/TableDiffPanel";
 import { BruinPanel } from "../panels/BruinPanel";
 import { QueryCodeLensProvider } from "../providers/queryCodeLensProvider";
 import { ScheduleCodeLensProvider } from "../providers/scheduleCodeLensProvider";
@@ -168,10 +169,12 @@ export async function activate(context: ExtensionContext) {
 
   const assetLineagePanel = new AssetLineagePanel(context.extensionUri);
   const queryPreviewWebviewProvider = new QueryPreviewPanel(context.extensionUri, context);
+  const tableDiffWebviewProvider = new TableDiffPanel(context.extensionUri, context);
 
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(AssetLineagePanel.viewId, assetLineagePanel),
-    window.registerWebviewViewProvider(QueryPreviewPanel.viewId, queryPreviewWebviewProvider)
+    window.registerWebviewViewProvider(QueryPreviewPanel.viewId, queryPreviewWebviewProvider),
+    window.registerWebviewViewProvider(TableDiffPanel.viewId, tableDiffWebviewProvider)
   );
 
   // Add configuration change listener for query timeout
