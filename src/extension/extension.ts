@@ -269,8 +269,8 @@ export async function activate(context: ExtensionContext) {
   const favoritesProvider = new FavoritesProvider();
   vscode.window.registerTreeDataProvider("bruinFavorites", favoritesProvider);
 
-  // Register TableDiffProvider
-  const tableDiffProvider = TableDiffProvider.getInstance();
+  // Register TableDiffProvider with context for persistence
+  const tableDiffProvider = TableDiffProvider.getInstance(context);
   vscode.window.registerTreeDataProvider("bruinTableDiff", tableDiffProvider);
 
   try {
@@ -647,7 +647,7 @@ export async function activate(context: ExtensionContext) {
           const table = item.itemData;
           const tableDiffService = TableDiffService.getInstance();
           
-          tableDiffService.selectTable({
+          await tableDiffService.selectTable({
             name: table.name,
             schema: table.schema,
             connectionName: table.connectionName,
@@ -667,7 +667,7 @@ export async function activate(context: ExtensionContext) {
           const tableDiffService = TableDiffService.getInstance();
           
           // This is now just for legacy support - the new flow uses selectTableForDiff
-          tableDiffService.selectTable({
+          await tableDiffService.selectTable({
             name: table.name,
             schema: table.schema,
             connectionName: table.connectionName,
@@ -684,7 +684,7 @@ export async function activate(context: ExtensionContext) {
         trackEvent("Command Executed", { command: "removeFromDiff" });
         if (item && item.itemData && item.itemData.id) {
           const tableDiffService = TableDiffService.getInstance();
-          tableDiffService.removeTable(item.itemData.id);
+          await tableDiffService.removeTable(item.itemData.id);
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
@@ -705,10 +705,20 @@ export async function activate(context: ExtensionContext) {
       try {
         trackEvent("Command Executed", { command: "clearDiffSelection" });
         const tableDiffService = TableDiffService.getInstance();
-        tableDiffService.clearAll();
+        await tableDiffService.clearAll();
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         vscode.window.showErrorMessage(`Error clearing diff selection: ${errorMessage}`);
+      }
+    }),
+    commands.registerCommand("bruin.swapDiffTables", async () => {
+      try {
+        trackEvent("Command Executed", { command: "swapDiffTables" });
+        const tableDiffProvider = TableDiffProvider.getInstance();
+        await tableDiffProvider.swapTables();
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error swapping tables: ${errorMessage}`);
       }
     }),
   ];

@@ -378,6 +378,21 @@
           "command": "bruin.clearDiffSelection",
           "when": "view == bruinTableDiff",
           "group": "navigation"
+        },
+        {
+          "command": "bruin.selectTableForDiff",
+          "when": "view == bruinFavorites && (viewItem == 'favorite_table' || viewItem == 'favorite_table_starred')",
+          "group": "diff@1"
+        },
+        {
+          "command": "bruin.swapDiffTables",
+          "when": "view == bruinTableDiff && (viewItem == 'diff_source_table' || viewItem == 'diff_target_table')",
+          "group": "diff@1"
+        },
+        {
+          "command": "bruin.executeDiff",
+          "when": "view == bruinTableDiff && viewItem == 'compare_button'",
+          "group": "inline@1"
         }
       ]
     },
@@ -526,6 +541,13 @@
         "category": "Bruin",
         "icon": "$(clear-all)",
         "description": "Clear all tables from diff selection."
+      },
+      {
+        "command": "bruin.swapDiffTables",
+        "title": "Swap Source & Target",
+        "category": "Bruin",
+        "icon": "$(arrow-swap)",
+        "description": "Swap source and target tables for comparison."
       }
     ],
     "keybindings": [

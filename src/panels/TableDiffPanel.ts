@@ -51,6 +51,8 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
   ) {
     try {
       console.log('TableDiffPanel: resolveWebviewView called');
+      console.log('TableDiffPanel: webviewView:', !!webviewView);
+      console.log('TableDiffPanel: webviewView.webview:', !!webviewView.webview);
       
       TableDiffPanel._view = webviewView;
       this.context = context;
@@ -65,10 +67,30 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
         localResourceRoots: [this._extensionUri],
       };
 
+      console.log('TableDiffPanel: Setting webview HTML');
       webviewView.webview.html = this._getWebviewContent(webviewView.webview);
+      console.log('TableDiffPanel: Webview HTML set');
+      
+      // Set up message listener for webview actions
+      webviewView.webview.onDidReceiveMessage(
+        message => {
+          switch (message.command) {
+            case 'executeTableDiff':
+              vscode.commands.executeCommand('bruin.executeDiff');
+              break;
+            case 'clearTableDiff':
+              vscode.commands.executeCommand('bruin.clearDiffSelection');
+              break;
+          }
+        },
+        undefined,
+        this.disposables
+      );
       
       // Show current results if any
+      console.log('TableDiffPanel: Calling updateResults');
       this.updateResults();
+      console.log('TableDiffPanel: resolveWebviewView completed successfully');
     } catch (error) {
       console.error("Error loading Table Diff panel:", error);
     }
@@ -175,6 +197,31 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
           .instruction li {
             margin-bottom: 4px;
           }
+          .actions {
+            margin-top: 12px;
+            display: flex;
+            gap: 8px;
+          }
+          .compare-again-btn, .new-comparison-btn {
+            background: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: none;
+            border-radius: 4px;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 12px;
+            font-family: var(--vscode-font-family);
+          }
+          .compare-again-btn:hover, .new-comparison-btn:hover {
+            background: var(--vscode-button-hoverBackground);
+          }
+          .new-comparison-btn {
+            background: var(--vscode-button-secondaryBackground);
+            color: var(--vscode-button-secondaryForeground);
+          }
+          .new-comparison-btn:hover {
+            background: var(--vscode-button-secondaryHoverBackground);
+          }
         </style>
       </head>
       <body>
@@ -205,22 +252,59 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
         <script nonce="${nonce}">
           const vscode = acquireVsCodeApi();
           
+          let currentSource = '';
+          let currentTarget = '';
+          
+          function compareAgain() {
+            console.log('TableDiffPanel webview: Compare again clicked');
+            vscode.postMessage({
+              command: 'executeTableDiff'
+            });
+          }
+          
+          function newComparison() {
+            console.log('TableDiffPanel webview: New comparison clicked');
+            vscode.postMessage({
+              command: 'clearTableDiff'
+            });
+            updateContent('', '', '');
+          }
+          
           function updateContent(source, target, results) {
+            console.log('TableDiffPanel webview: updateContent called with:', {
+              source,
+              target,
+              results: results?.substring(0, 200) + '...'
+            });
+            
             const content = document.getElementById('content');
+            console.log('TableDiffPanel webview: Content element found:', !!content);
+            
+            // Store current source and target for "Compare Again" functionality
+            currentSource = source;
+            currentTarget = target;
+            
             if (results && results.trim()) {
+              console.log('TableDiffPanel webview: Updating with results');
               content.innerHTML = \`
                 <div class="results-container">
                   <div class="comparison-info">
-                    <h3>Table Comparison</h3>
+                    <h3>✅ Table Comparison Complete</h3>
                     <div class="tables">
                       Source: \${source}<br>
                       Target: \${target}
+                    </div>
+                    <div class="actions">
+                      <button class="compare-again-btn" onclick="compareAgain()">🔄 Compare Again</button>
+                      <button class="new-comparison-btn" onclick="newComparison()">🆕 New Comparison</button>
                     </div>
                   </div>
                   <div class="results-content">\${results}</div>
                 </div>
               \`;
+              console.log('TableDiffPanel webview: Results content set');
             } else {
+              console.log('TableDiffPanel webview: No results, showing default content');
               content.innerHTML = \`
                 <div class="no-results">
                   <div class="icon">📊</div>
@@ -239,19 +323,29 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
                   </ol>
                 </div>
               \`;
+              console.log('TableDiffPanel webview: Default content set');
             }
           }
           
           // Listen for messages from the extension
           window.addEventListener('message', event => {
+            console.log('TableDiffPanel webview: Message received:', event.data);
             const message = event.data;
             switch (message.command) {
               case 'showResults':
+                console.log('TableDiffPanel webview: Processing showResults command');
+                console.log('TableDiffPanel webview: Source:', message.source);
+                console.log('TableDiffPanel webview: Target:', message.target);
+                console.log('TableDiffPanel webview: Results length:', message.results?.length);
                 updateContent(message.source, message.target, message.results);
+                console.log('TableDiffPanel webview: Content updated');
                 break;
               case 'clearResults':
+                console.log('TableDiffPanel webview: Processing clearResults command');
                 updateContent('', '', '');
                 break;
+              default:
+                console.log('TableDiffPanel webview: Unknown command:', message.command);
             }
           });
         </script>
@@ -264,13 +358,25 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
    * Display diff results in the panel
    */
   public static showResults(source: string, target: string, results: string): void {
+    console.log('TableDiffPanel: showResults called with:', {
+      source,
+      target,
+      results: results?.substring(0, 200) + '...' // Log first 200 chars
+    });
+    
     if (this._view) {
+      console.log('TableDiffPanel: _view exists, posting message to webview');
+      
       this._view.webview.postMessage({
         command: 'showResults',
         source: source,
         target: target,
         results: results
       });
+      
+      console.log('TableDiffPanel: Message posted to webview');
+    } else {
+      console.log('TableDiffPanel: _view is undefined, cannot show results');
     }
   }
 
@@ -289,8 +395,19 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
    * Update the display with current results
    */
   private updateResults(): void {
+    console.log('TableDiffPanel: updateResults called');
+    console.log('TableDiffPanel: Current results:', {
+      hasResults: !!this.currentResults,
+      hasSource: !!this.currentSource,
+      hasTarget: !!this.currentTarget,
+      resultsLength: this.currentResults?.length
+    });
+    
     if (this.currentResults && this.currentSource && this.currentTarget) {
+      console.log('TableDiffPanel: Calling showResults from updateResults');
       TableDiffPanel.showResults(this.currentSource, this.currentTarget, this.currentResults);
+    } else {
+      console.log('TableDiffPanel: No current results to show');
     }
   }
 

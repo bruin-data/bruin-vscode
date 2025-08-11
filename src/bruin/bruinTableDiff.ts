@@ -31,26 +31,61 @@ export class BruinTableDiff extends BruinCommand {
     environment?: string,
     options: BruinCommandOptions = {}
   ): Promise<string> {
+    const args = [
+      "--connection", connectionName,
+      sourceTable,
+      targetTable
+    ];
+
+    console.log(`BruinTableDiff: Executing data-diff with args:`, args);
+    
     try {
-      const args = [
-        "--connection", connectionName,
-        sourceTable,
-        targetTable
-      ];
-
-      if (environment) {
-        args.unshift("--environment", environment);
-      }
-
-      console.log(`BruinTableDiff: Executing table-diff with args:`, args);
-      
       const result = await this.run(args, options);
-      
       console.log(`BruinTableDiff: Command completed successfully`);
+      console.log(`BruinTableDiff: Result:`, result);
       return result;
     } catch (error) {
-      console.error(`BruinTableDiff: Error executing table-diff:`, error);
+      console.error(`BruinTableDiff: Command failed:`, error);
+      
+      // For data-diff commands, the "error" might actually be valid diff results
+      const errorString = String(error);
+      console.log(`BruinTableDiff: Checking if error contains valid diff results...`);
+      console.log(`BruinTableDiff: Error string length:`, errorString.length);
+      console.log(`BruinTableDiff: Error preview:`, errorString.substring(0, 500));
+      
+      if (this.isValidDiffOutput(errorString)) {
+        console.log(`BruinTableDiff: Error contains valid diff results, returning as success`);
+        return errorString;
+      }
+      
       throw error;
     }
+  }
+
+  /**
+   * Check if the output looks like valid diff results
+   */
+  private isValidDiffOutput(output: string): boolean {
+    console.log(`BruinTableDiff: isValidDiffOutput checking output...`);
+    
+    // Check for table formatting characters and diff-specific content
+    const hasTableFormatting = output.includes('│') && output.includes('├');
+    const hasDiffContent = output.includes('DIFF') || 
+                          output.includes('Row Count') || 
+                          output.includes('Column Count') ||
+                          output.includes('Schema differences') ||
+                          output.includes('COLUMN') ||
+                          output.includes('PROP');
+    
+    console.log(`BruinTableDiff: hasTableFormatting:`, hasTableFormatting);
+    console.log(`BruinTableDiff: hasDiffContent:`, hasDiffContent);
+    console.log(`BruinTableDiff: includes DIFF:`, output.includes('DIFF'));
+    console.log(`BruinTableDiff: includes Row Count:`, output.includes('Row Count'));
+    console.log(`BruinTableDiff: includes Column Count:`, output.includes('Column Count'));
+    
+    const isValid = hasTableFormatting && hasDiffContent;
+    console.log(`BruinTableDiff: isValid:`, isValid);
+    
+    return isValid;
   }
 }
