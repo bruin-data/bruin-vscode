@@ -84,6 +84,12 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
       vscode.Uri.joinPath(this._extensionUri, "webview-ui", "build", "assets", "codicon.css")
     );
 
+    const stylesUri = getUri(webview, this._extensionUri, [
+      "webview-ui",
+      "build",
+      "assets",
+      "tableDiff.css",
+    ]);
     const stylesUriCustomElt = getUri(webview, this._extensionUri, [
       "webview-ui",
       "build",
@@ -119,6 +125,7 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
             style-src ${webview.cspSource} 'unsafe-inline';
             font-src ${webview.cspSource};
          ">      
+        <link rel="stylesheet" href="${stylesUri}">
         <link rel="stylesheet" href="${stylesUriCustomElt}">
         <link rel="stylesheet" href="${stylesUriIndex}">
         <link rel="stylesheet" href="${codiconsUri}">
