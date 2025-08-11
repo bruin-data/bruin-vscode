@@ -104,6 +104,10 @@
           "name": "Favorites"
         },
         {
+          "id": "bruinTableDiff",
+          "name": "Table Diff"
+        },
+        {
           "id": "bruinConnections",
           "name": "Databases"
         }
@@ -354,6 +358,26 @@
           "command": "bruin.removeTableFromFavorites",
           "when": "view == bruinConnections && viewItem == 'table_favorite'",
           "group": "inline@1"
+        },
+        {
+          "command": "bruin.selectTableForDiff",
+          "when": "view == bruinConnections && (viewItem == 'table' || viewItem == 'table_favorite' || viewItem == 'table_unfavorite')",
+          "group": "diff@1"
+        },
+        {
+          "command": "bruin.removeFromDiff",
+          "when": "view == bruinTableDiff && (viewItem == 'diff_table' || viewItem == 'diff_source_table' || viewItem == 'diff_target_table')",
+          "group": "inline@1"
+        },
+        {
+          "command": "bruin.executeDiff",
+          "when": "view == bruinTableDiff && (viewItem == 'diff_source_table' || viewItem == 'diff_target_table')",
+          "group": "diff@1"
+        },
+        {
+          "command": "bruin.clearDiffSelection",
+          "when": "view == bruinTableDiff",
+          "group": "navigation"
         }
       ]
     },
@@ -467,6 +491,41 @@
         "category": "Bruin",
         "icon": "$(play)",
         "description": "Preview the selected SQL query in the Query Preview panel."
+      },
+      {
+        "command": "bruin.selectTableForDiff",
+        "title": "Select for Table Diff",
+        "category": "Bruin",
+        "icon": "$(diff)",
+        "description": "Select this table for comparison in table diff."
+      },
+      {
+        "command": "bruin.compareWithSelectedTable",
+        "title": "Compare with Selected Table",
+        "category": "Bruin", 
+        "icon": "$(diff)",
+        "description": "Compare this table with the previously selected table."
+      },
+      {
+        "command": "bruin.removeFromDiff",
+        "title": "Remove from Diff",
+        "category": "Bruin",
+        "icon": "$(close)",
+        "description": "Remove this table from diff selection."
+      },
+      {
+        "command": "bruin.executeDiff",
+        "title": "Execute Table Diff",
+        "category": "Bruin",
+        "icon": "$(play)",
+        "description": "Execute comparison between selected tables."
+      },
+      {
+        "command": "bruin.clearDiffSelection",
+        "title": "Clear Diff Selection",
+        "category": "Bruin",
+        "icon": "$(clear-all)",
+        "description": "Clear all tables from diff selection."
       }
     ],
     "keybindings": [

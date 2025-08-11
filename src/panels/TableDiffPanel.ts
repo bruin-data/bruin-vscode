@@ -1,8 +1,5 @@
 import * as vscode from "vscode";
 import { getNonce } from "../utilities/getNonce";
-import { getUri } from "../utilities/getUri";
-import { TableDiffDataProvider } from "../providers/TableDiffDataProvider";
-import { BruinTableDiff } from "../bruin/bruinTableDiff";
 
 export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Disposable {
   public static readonly viewId = "bruin.tableDiffView";
@@ -13,11 +10,13 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
   private token: vscode.CancellationToken | undefined;
   private _extensionContext: vscode.ExtensionContext | undefined;
   private disposables: vscode.Disposable[] = [];
+  private currentResults: string = "";
+  private currentSource: string = "";
+  private currentTarget: string = "";
 
   constructor(
     private readonly _extensionUri: vscode.Uri,
-    context: vscode.ExtensionContext,
-    private readonly dataProvider?: TableDiffDataProvider
+    context: vscode.ExtensionContext
   ) {
     this._extensionContext = context;
     this.disposables.push(
@@ -66,65 +65,16 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
         localResourceRoots: [this._extensionUri],
       };
 
-      console.log('TableDiffPanel: Setting up message listener');
-      this._setWebviewMessageListener(TableDiffPanel._view!.webview);
-
-      // Reload data when webview becomes visible
-      webviewView.onDidChangeVisibility(() => {
-        if (TableDiffPanel._view!.visible) {
-          TableDiffPanel._view!.webview.postMessage({
-            command: "init",
-            panelType: "Table Diff",
-          });
-        }
-      });
-
       webviewView.webview.html = this._getWebviewContent(webviewView.webview);
       
-      // Send initial init message
-      setTimeout(() => {
-        if (TableDiffPanel._view && TableDiffPanel._view.visible) {
-          TableDiffPanel._view.webview.postMessage({
-            command: "init",
-            panelType: "Table Diff",
-          });
-        }
-      }, 100);
+      // Show current results if any
+      this.updateResults();
     } catch (error) {
-      console.error("Error loading Table Diff data:", error);
+      console.error("Error loading Table Diff panel:", error);
     }
   }
 
   private _getWebviewContent(webview: vscode.Webview) {
-    const codiconsUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, "webview-ui", "build", "assets", "codicon.css")
-    );
-
-    const stylesUri = getUri(webview, this._extensionUri, [
-      "webview-ui",
-      "build",
-      "assets",
-      "tableDiff.css",
-    ]);
-    const stylesUriCustomElt = getUri(webview, this._extensionUri, [
-      "webview-ui",
-      "build",
-      "assets",
-      "custom-elements.css",
-    ]);
-    const stylesUriIndex = getUri(webview, this._extensionUri, [
-      "webview-ui",
-      "build",
-      "assets",
-      "index.css",
-    ]);
-    const scriptUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, "webview-ui", "build", "assets", "tableDiff.js")
-    );
-    const scriptUriCustomElt = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, "webview-ui", "build", "assets", "custom-elements.js")
-    );
-
     const nonce = getNonce();
 
     return /*html*/ `
@@ -136,104 +86,220 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
         <meta http-equiv="Content-Security-Policy" content="
             default-src 'none';
             img-src ${webview.cspSource} https:;
-            script-src 'nonce-${nonce}' ${webview.cspSource} https://cdn.rudderlabs.com/ https://cdn.rudderstack.com/ https://api.rudderstack.com;
-            connect-src https://api.rudderstack.com https://getbruinbumlky.dataplane.rudderstack.com;
+            script-src 'nonce-${nonce}';
             style-src ${webview.cspSource} 'unsafe-inline';
             font-src ${webview.cspSource};
          ">      
-        <link rel="stylesheet" href="${stylesUri}">
-        <link rel="stylesheet" href="${stylesUriCustomElt}">
-        <link rel="stylesheet" href="${stylesUriIndex}">
-        <link rel="stylesheet" href="${codiconsUri}">
-        <title>Bruin Table Diff</title>
+        <title>Table Diff Results</title>
+        <style>
+          body {
+            padding: 16px;
+            font-family: var(--vscode-font-family);
+            font-size: var(--vscode-font-size);
+            color: var(--vscode-foreground);
+            background-color: var(--vscode-editor-background);
+          }
+          .header {
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--vscode-panel-border);
+          }
+          .header h2 {
+            margin: 0 0 8px 0;
+            font-size: 18px;
+            font-weight: 600;
+          }
+          .header p {
+            margin: 0;
+            color: var(--vscode-descriptionForeground);
+            font-size: 14px;
+          }
+          .no-results {
+            text-align: center;
+            padding: 40px;
+            color: var(--vscode-descriptionForeground);
+          }
+          .no-results .icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+          }
+          .results-container {
+            background: var(--vscode-editor-background);
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 4px;
+            padding: 16px;
+          }
+          .comparison-info {
+            background: var(--vscode-inputValidation-infoBackground);
+            border: 1px solid var(--vscode-inputValidation-infoBorder);
+            border-radius: 4px;
+            padding: 12px;
+            margin-bottom: 16px;
+          }
+          .comparison-info h3 {
+            margin: 0 0 8px 0;
+            color: var(--vscode-inputValidation-infoForeground);
+            font-size: 14px;
+          }
+          .comparison-info .tables {
+            font-family: var(--vscode-editor-font-family);
+            font-size: 12px;
+            color: var(--vscode-inputValidation-infoForeground);
+          }
+          .results-content {
+            background: var(--vscode-textCodeBlock-background);
+            border-radius: 4px;
+            padding: 16px;
+            font-family: var(--vscode-editor-font-family);
+            font-size: 12px;
+            white-space: pre-wrap;
+            overflow-x: auto;
+          }
+          .instruction {
+            background: var(--vscode-editorWidget-background);
+            border: 1px solid var(--vscode-editorWidget-border);
+            border-radius: 4px;
+            padding: 16px;
+            margin-bottom: 16px;
+          }
+          .instruction h3 {
+            margin: 0 0 8px 0;
+            font-size: 14px;
+          }
+          .instruction ol {
+            margin: 8px 0 0 16px;
+            padding: 0;
+            font-size: 13px;
+          }
+          .instruction li {
+            margin-bottom: 4px;
+          }
+        </style>
       </head>
-  
       <body>
-        <div id="app"></div>
-        <script type="module" nonce="${nonce}" src="${scriptUri}">
-          window.onerror = function(message, source, lineno, colno, error) {
-            console.error('Webview error:', message, 'at line:', lineno, 'source:', source, 'error:', error);
-          };
-        </script>
-        <script type="module" nonce="${nonce}" src="${scriptUriCustomElt}">
-          window.onerror = function(message, source, lineno, colno, error) {
-            console.error('Webview error:', message, 'at line:', lineno, 'source:', source, 'error:', error);
-          };
+        <div class="header">
+          <h2>Table Diff Results</h2>
+          <p>View comparison results from selected tables</p>
+        </div>
+        
+        <div id="content">
+          <div class="no-results">
+            <div class="icon">📊</div>
+            <h3>No comparison results yet</h3>
+            <p>Select tables in the Table Diff section and execute a comparison to see results here.</p>
+          </div>
+          
+          <div class="instruction">
+            <h3>How to use Table Diff:</h3>
+            <ol>
+              <li>Right-click on a table in the Databases view</li>
+              <li>Select "Select for Table Diff"</li>
+              <li>Repeat for a second table (max 2 tables)</li>
+              <li>In the Table Diff section, right-click and select "Execute Table Diff"</li>
+              <li>Results will appear here</li>
+            </ol>
+          </div>
+        </div>
+
+        <script nonce="${nonce}">
+          const vscode = acquireVsCodeApi();
+          
+          function updateContent(source, target, results) {
+            const content = document.getElementById('content');
+            if (results && results.trim()) {
+              content.innerHTML = \`
+                <div class="results-container">
+                  <div class="comparison-info">
+                    <h3>Table Comparison</h3>
+                    <div class="tables">
+                      Source: \${source}<br>
+                      Target: \${target}
+                    </div>
+                  </div>
+                  <div class="results-content">\${results}</div>
+                </div>
+              \`;
+            } else {
+              content.innerHTML = \`
+                <div class="no-results">
+                  <div class="icon">📊</div>
+                  <h3>No comparison results yet</h3>
+                  <p>Select tables in the Table Diff section and execute a comparison to see results here.</p>
+                </div>
+                
+                <div class="instruction">
+                  <h3>How to use Table Diff:</h3>
+                  <ol>
+                    <li>Right-click on a table in the Databases view</li>
+                    <li>Select "Select for Table Diff"</li>
+                    <li>Repeat for a second table (max 2 tables)</li>
+                    <li>In the Table Diff section, right-click and select "Execute Table Diff"</li>
+                    <li>Results will appear here</li>
+                  </ol>
+                </div>
+              \`;
+            }
+          }
+          
+          // Listen for messages from the extension
+          window.addEventListener('message', event => {
+            const message = event.data;
+            switch (message.command) {
+              case 'showResults':
+                updateContent(message.source, message.target, message.results);
+                break;
+              case 'clearResults':
+                updateContent('', '', '');
+                break;
+            }
+          });
         </script>
       </body>
       </html>
     `;
   }
 
-  private _setWebviewMessageListener(webview: vscode.Webview) {
-    webview.onDidReceiveMessage(async (message) => {
-      console.log('TableDiffPanel: Received message:', message);
-      
-      switch (message.command) {
-        case "bruin.compareTables":
-          // Handle table comparison request
-          console.log('TableDiffPanel: Handling bruin.compareTables');
-          await this.handleCompareTables(message.payload);
-          break;
-        case "bruin.clearDiff":
-          // Handle clearing diff results
-          TableDiffPanel.postMessage("table-diff-clear", {
-            status: "success",
-            message: "Diff cleared",
-          });
-          break;
-        case "bruin.getConnections":
-          // Handle request for connections list
-          console.log('TableDiffPanel: Handling bruin.getConnections');
-          await this.handleGetConnections();
-          break;
-        case "bruin.getSchemas":
-          // Handle request for schemas list
-          console.log('TableDiffPanel: Handling bruin.getSchemas');
-          await this.handleGetSchemas(message.payload);
-          break;
-        case "bruin.getTables":
-          // Handle request for tables list
-          console.log('TableDiffPanel: Handling bruin.getTables');
-          await this.handleGetTables(message.payload);
-          break;
-        default:
-          console.log('TableDiffPanel: Unknown command:', message.command);
-      }
-    });
-  }
-
-  public static postMessage(
-    name: string,
-    data: string | { status: string; message: string | any; [key: string]: any }
-  ) {
+  /**
+   * Display diff results in the panel
+   */
+  public static showResults(source: string, target: string, results: string): void {
     if (this._view) {
-      // Ensure the data is serializable
-      const serializedData = JSON.parse(JSON.stringify(data));
-
       this._view.webview.postMessage({
-        command: name,
-        payload: serializedData,
+        command: 'showResults',
+        source: source,
+        target: target,
+        results: results
       });
     }
   }
 
-  // Safe method to focus the TableDiff panel without recreating it
+  /**
+   * Clear the results display
+   */
+  public static clearResults(): void {
+    if (this._view) {
+      this._view.webview.postMessage({
+        command: 'clearResults'
+      });
+    }
+  }
+
+  /**
+   * Update the display with current results
+   */
+  private updateResults(): void {
+    if (this.currentResults && this.currentSource && this.currentTarget) {
+      TableDiffPanel.showResults(this.currentSource, this.currentTarget, this.currentResults);
+    }
+  }
+
+  // Safe method to focus the TableDiff panel
   public static async focusSafely(): Promise<void> {
     try {
-      // Use the proper VSCode command to focus the webview view
       await vscode.commands.executeCommand(`${this.viewId}.focus`);
     } catch (error) {
-      try {
-        await vscode.commands.executeCommand('workbench.panel.tableDiff.focus');
-      } catch (fallbackError) {
-        try {
-          await new Promise(resolve => setTimeout(resolve, 100));
-          await vscode.commands.executeCommand(`${this.viewId}.focus`);
-        } catch (finalError) {
-          console.error("All focus methods failed:", finalError);
-        }
-      }
+      console.error("Error focusing table diff panel:", error);
     }
   }
 
@@ -242,162 +308,5 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
       this._lastRenderedDocumentUri = event.document.uri;
       await this.init();
     }
-  }
-
-  private async handleGetConnections() {
-    try {
-      console.log('TableDiffPanel: handleGetConnections called');
-      
-      if (!this.dataProvider) {
-        throw new Error("Data provider not available");
-      }
-      
-      console.log('TableDiffPanel: calling dataProvider.getConnectionsList()');
-      const connections = await this.dataProvider.getConnectionsList();
-      console.log('TableDiffPanel: connections retrieved:', connections);
-      
-      const response = {
-        status: "success",
-        message: "Connections loaded successfully",
-        connections: connections.map(conn => ({
-          name: conn.name,
-          type: conn.type,
-          environment: conn.environment
-        }))
-      };
-      
-      console.log('TableDiffPanel: sending connections-data response:', response);
-      TableDiffPanel.postMessage("connections-data", response);
-    } catch (error) {
-      console.error('TableDiffPanel: Error in handleGetConnections:', error);
-      TableDiffPanel.postMessage("connections-data", {
-        status: "error",
-        message: `Failed to load connections: ${error}`
-      });
-    }
-  }
-
-  private async handleGetSchemas(payload: { connectionName: string, environment?: string }) {
-    try {
-      console.log('TableDiffPanel: handleGetSchemas called with payload:', payload);
-      
-      if (!this.dataProvider) {
-        throw new Error("Data provider not available");
-      }
-      
-      const schemas = await this.dataProvider.getSchemasList(payload.connectionName, payload.environment);
-      console.log('TableDiffPanel: schemas retrieved:', schemas);
-      
-      TableDiffPanel.postMessage("schemas-data", {
-        status: "success",
-        message: "Schemas loaded successfully",
-        connectionName: payload.connectionName,
-        schemas: schemas
-      });
-    } catch (error) {
-      console.error('TableDiffPanel: Error in handleGetSchemas:', error);
-      TableDiffPanel.postMessage("schemas-data", {
-        status: "error",
-        message: `Failed to load schemas: ${error}`,
-        connectionName: payload.connectionName
-      });
-    }
-  }
-
-  private async handleGetTables(payload: { connectionName: string, schemaName: string, environment?: string }) {
-    try {
-      console.log('TableDiffPanel: handleGetTables called with payload:', payload);
-      
-      if (!this.dataProvider) {
-        throw new Error("Data provider not available");
-      }
-      
-      const tables = await this.dataProvider.getTablesList(payload.connectionName, payload.schemaName, payload.environment);
-      console.log('TableDiffPanel: tables retrieved:', tables);
-      
-      TableDiffPanel.postMessage("tables-data", {
-        status: "success",
-        message: "Tables loaded successfully",
-        connectionName: payload.connectionName,
-        schemaName: payload.schemaName,
-        tables: tables
-      });
-    } catch (error) {
-      console.error('TableDiffPanel: Error in handleGetTables:', error);
-      TableDiffPanel.postMessage("tables-data", {
-        status: "error",
-        message: `Failed to load tables: ${error}`,
-        connectionName: payload.connectionName,
-        schemaName: payload.schemaName
-      });
-    }
-  }
-
-  private async handleCompareTables(payload: {
-    source: { connection: string, schema: string, table: string },
-    target: { connection: string, schema: string, table: string }
-  }) {
-    try {
-      console.log('TableDiffPanel: handleCompareTables called with payload:', payload);
-      
-      // Send loading state to UI
-      TableDiffPanel.postMessage("table-diff-result", {
-        status: "loading",
-        message: "Comparing tables..."
-      });
-
-      const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-      if (!workspaceFolder) {
-        throw new Error("Workspace folder not found");
-      }
-
-      // Create BruinTableDiff instance
-      const tableDiff = new BruinTableDiff("bruin", workspaceFolder);
-
-      // Format table references as schema.table
-      const sourceTable = `${payload.source.schema}.${payload.source.table}`;
-      const targetTable = `${payload.target.schema}.${payload.target.table}`;
-
-      // Use source connection for now (could be enhanced to support cross-connection diffs)
-      const connectionName = payload.source.connection;
-
-      // Get environment from source connection
-      const sourceConnection = await this.getConnectionEnvironment(payload.source.connection);
-
-      console.log(`TableDiffPanel: Executing table diff: ${sourceTable} vs ${targetTable} on connection ${connectionName}`);
-
-      // Execute the table diff command
-      const result = await tableDiff.compareTables(
-        connectionName,
-        sourceTable,
-        targetTable,
-        sourceConnection?.environment
-      );
-
-      console.log('TableDiffPanel: Table diff completed successfully');
-
-      // Send results to UI
-      TableDiffPanel.postMessage("table-diff-result", {
-        status: "success",
-        message: "Table comparison completed",
-        result: result
-      });
-
-    } catch (error) {
-      console.error('TableDiffPanel: Error in handleCompareTables:', error);
-      TableDiffPanel.postMessage("table-diff-result", {
-        status: "error",
-        message: `Table comparison failed: ${error}`
-      });
-    }
-  }
-
-  private async getConnectionEnvironment(connectionName: string) {
-    if (!this.dataProvider) {
-      return null;
-    }
-    
-    const connections = await this.dataProvider.getConnectionsList();
-    return connections.find(conn => conn.name === connectionName);
   }
 }
