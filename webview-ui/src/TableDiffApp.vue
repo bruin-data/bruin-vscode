@@ -1,150 +1,171 @@
 <template>
   <div class="flex flex-col w-full h-full">
-    <div
-      class="flex items-center justify-between border-b border-t border-panel-border bg-sideBarSectionHeader-bg"
-    >
-      <div class="flex items-center w-full justify-between h-8">
-        <div class="flex items-center gap-2 ml-2">
-          <span class="codicon codicon-diff text-blue-500"></span>
-          <span class="text-sm font-medium text-editor-fg">Table Diff</span>
-        </div>
-        <div class="flex items-center gap-2 mr-2">
-          <vscode-button
-            :disabled="!canExecuteComparison"
-            @click="executeComparison"
-            appearance="primary"
-          >
-            <span v-if="!isLoading" class="codicon codicon-play mr-1"></span>
-            <span v-if="isLoading" class="spinner mr-1"></span>
-            {{ isLoading ? "Comparing..." : "Compare" }}
-          </vscode-button>
-          <vscode-button
-            title="Clear Results"
-            appearance="icon"
-            @click="clearResults"
-          >
-            <span class="codicon codicon-clear-all text-editor-fg"></span>
-          </vscode-button>
-        </div>
-      </div>
-    </div>
-
     <div class="flex-1 overflow-auto">
-      <!-- Connection Selection -->
+      <!-- Connection and Action Buttons -->
       <div class="p-2 border-b border-panel-border">
-        <label class="block text-xs text-editor-fg mb-1">Connection</label>
-        <vscode-dropdown 
-          v-model="selectedConnection" 
-          @change="onConnectionChange"
-          class="w-48 max-w-full"
-          :disabled="isLoading"
-        >
-          <vscode-option value="">Select Connection...</vscode-option>
-          <vscode-option
-            v-for="conn in connections"
-            :key="conn.name"
-            :value="conn.name"
-          >
-            {{ conn.name }}{{ conn.environment && conn.environment !== 'default' ? ` (${conn.environment})` : '' }}
-          </vscode-option>
-        </vscode-dropdown>
+        <div class="flex items-end justify-between gap-3">
+          <div class="flex-1">
+            <label class="block text-xs text-editor-fg mb-1">Connection</label>
+            <vscode-dropdown 
+              v-model="selectedConnection" 
+              @change="onConnectionChange"
+              class="w-48 max-w-full"
+              :disabled="isLoading"
+            >
+              <vscode-option value="">Select Connection...</vscode-option>
+              <vscode-option
+                v-for="conn in connections"
+                :key="conn.name"
+                :value="conn.name"
+              >
+                {{ conn.name }}{{ conn.environment && conn.environment !== 'default' ? ` (${conn.environment})` : '' }}
+              </vscode-option>
+            </vscode-dropdown>
+          </div>
+          <div class="flex items-center gap-2">
+            <vscode-button
+              :disabled="!canExecuteComparison"
+              @click="executeComparison"
+              appearance="primary"
+            >
+              <span v-if="!isLoading" class="codicon codicon-play mr-1"></span>
+              <span v-if="isLoading" class="mr-1">
+                <svg
+                  class="animate-spin h-4 w-4 text-current"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    class="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="4"
+                  ></circle>
+                  <path
+                    class="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+              </span>
+              Compare
+            </vscode-button>
+            <vscode-button
+              title="Clear Results"
+              appearance="icon"
+              @click="clearResults"
+            >
+              <span class="codicon codicon-clear-all text-editor-fg"></span>
+            </vscode-button>
+          </div>
+        </div>
       </div>
 
 
-      <!-- Source and Target Selection -->
-      <div class="p-3 border-b border-panel-border">
-        <div class="grid grid-cols-2 gap-4">
-          <!-- Source Column -->
+      <!-- Collapsible Source and Target Selection -->
+      <div class="border-b border-panel-border">
+        <div class="flex items-center justify-between p-2 cursor-pointer" @click="toggleInputsCollapse">
+          <div class="flex items-center gap-2">
+            <span class="codicon codicon-settings text-editor-fg"></span>
+            <span class="text-xs font-medium text-editor-fg">Table Selection</span>
+          </div>
+          <span :class="['codicon', isInputsCollapsed ? 'codicon-chevron-right' : 'codicon-chevron-down', 'text-editor-fg']"></span>
+        </div>
+        <div v-if="!isInputsCollapsed" class="p-3 space-y-3">
+          <!-- Source Section -->
           <div class="space-y-2">
-            <div class="flex items-center mb-2">
+            <div class="flex items-center">
               <span class="codicon codicon-source-control text-green-500 mr-1"></span>
-              <span class="text-xs font-medium text-editor-fg">Source</span>
-            </div>
-            
-            <div>
-              <label class="block text-xs text-editor-fg opacity-75 mb-1">Schema</label>
-              <vscode-dropdown 
-                v-model="sourceSchema" 
-                @change="onSourceSchemaChange"
-                class="w-full"
-              >
-                <vscode-option value="">
-                  {{ isLoadingSchemas ? 'Loading...' : 'Schema...' }}
-                </vscode-option>
-                <vscode-option
-                  v-for="schema in schemas"
-                  :key="schema.name"
-                  :value="schema.name"
-                >
-                  {{ schema.name }}
-                </vscode-option>
-              </vscode-dropdown>
-            </div>
-            
-            <div>
-              <label class="block text-xs text-editor-fg opacity-75 mb-1">Table</label>
-              <vscode-dropdown 
-                v-model="sourceTable" 
-                class="w-full"
-              >
-                <vscode-option value="">
-                  {{ isLoadingSourceTables ? 'Loading...' : 'Table...' }}
-                </vscode-option>
-                <vscode-option
-                  v-for="table in sourceTables"
-                  :key="table.name"
-                  :value="table.name"
-                >
-                  {{ table.name }}
-                </vscode-option>
-              </vscode-dropdown>
+              <span class="text-xs font-medium text-editor-fg mr-3 w-12">Source</span>
+              <div class="flex items-center gap-3 flex-1">
+                <div class="flex-1">
+                  <vscode-dropdown 
+                    v-model="sourceSchema" 
+                    @change="onSourceSchemaChange"
+                    class="w-full"
+                  >
+                    <vscode-option value="">
+                      {{ isLoadingSchemas ? 'Loading...' : 'Select Schema...' }}
+                    </vscode-option>
+                    <vscode-option
+                      v-for="schema in schemas"
+                      :key="schema.name"
+                      :value="schema.name"
+                    >
+                      {{ schema.name }}
+                    </vscode-option>
+                  </vscode-dropdown>
+                </div>
+                <span class="text-editor-fg opacity-50">.</span>
+                <div class="flex-1">
+                  <vscode-dropdown 
+                    v-model="sourceTable" 
+                    @change="onSourceTableChange"
+                    class="w-full"
+                  >
+                    <vscode-option value="">
+                      {{ isLoadingSourceTables ? 'Loading...' : 'Select Table...' }}
+                    </vscode-option>
+                    <vscode-option
+                      v-for="table in sourceTables"
+                      :key="table.name"
+                      :value="table.name"
+                    >
+                      {{ table.name }}
+                    </vscode-option>
+                  </vscode-dropdown>
+                </div>
+              </div>
             </div>
           </div>
 
-          <!-- Target Column -->
+          <!-- Target Section -->
           <div class="space-y-2">
-            <div class="flex items-center mb-2">
+            <div class="flex items-center">
               <span class="codicon codicon-target text-orange-500 mr-1"></span>
-              <span class="text-xs font-medium text-editor-fg">Target</span>
-            </div>
-            
-            <div>
-              <label class="block text-xs text-editor-fg opacity-75 mb-1">Schema</label>
-              <vscode-dropdown 
-                v-model="targetSchema" 
-                @change="onTargetSchemaChange"
-                class="w-full"
-              >
-                <vscode-option value="">
-                  {{ isLoadingSchemas ? 'Loading...' : 'Schema...' }}
-                </vscode-option>
-                <vscode-option
-                  v-for="schema in schemas"
-                  :key="schema.name"
-                  :value="schema.name"
-                >
-                  {{ schema.name }}
-                </vscode-option>
-              </vscode-dropdown>
-            </div>
-            
-            <div>
-              <label class="block text-xs text-editor-fg opacity-75 mb-1">Table</label>
-              <vscode-dropdown 
-                v-model="targetTable" 
-                class="w-full"
-              >
-                <vscode-option value="">
-                  {{ isLoadingTargetTables ? 'Loading...' : 'Table...' }}
-                </vscode-option>
-                <vscode-option
-                  v-for="table in targetTables"
-                  :key="table.name"
-                  :value="table.name"
-                >
-                  {{ table.name }}
-                </vscode-option>
-              </vscode-dropdown>
+              <span class="text-xs font-medium text-editor-fg mr-3 w-12">Target</span>
+              <div class="flex items-center gap-3 flex-1">
+                <div class="flex-1">
+                  <vscode-dropdown 
+                    v-model="targetSchema" 
+                    @change="onTargetSchemaChange"
+                    class="w-full"
+                  >
+                    <vscode-option value="">
+                      {{ isLoadingSchemas ? 'Loading...' : 'Select Schema...' }}
+                    </vscode-option>
+                    <vscode-option
+                      v-for="schema in schemas"
+                      :key="schema.name"
+                      :value="schema.name"
+                    >
+                      {{ schema.name }}
+                    </vscode-option>
+                  </vscode-dropdown>
+                </div>
+                <span class="text-editor-fg opacity-50">.</span>
+                <div class="flex-1">
+                  <vscode-dropdown 
+                    v-model="targetTable" 
+                    @change="onTargetTableChange"
+                    class="w-full"
+                  >
+                    <vscode-option value="">
+                      {{ isLoadingTargetTables ? 'Loading...' : 'Select Table...' }}
+                    </vscode-option>
+                    <vscode-option
+                      v-for="table in targetTables"
+                      :key="table.name"
+                      :value="table.name"
+                    >
+                      {{ table.name }}
+                    </vscode-option>
+                  </vscode-dropdown>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -252,6 +273,7 @@ const isLoadingTargetTables = ref(false);
 const results = ref('');
 const error = ref('');
 const comparisonInfo = ref<ComparisonInfo>({ source: '', target: '' });
+const isInputsCollapsed = ref(false);
 
 // Computed
 const hasResults = computed(() => results.value.length > 0);
@@ -341,7 +363,19 @@ const onTargetSchemaChange = (event: Event) => {
   
 };
 
+const onSourceTableChange = (event: Event) => {
+  const target = event.target as HTMLSelectElement;
+  sourceTable.value = target.value;
+};
 
+const onTargetTableChange = (event: Event) => {
+  const target = event.target as HTMLSelectElement;
+  targetTable.value = target.value;
+};
+
+const toggleInputsCollapse = () => {
+  isInputsCollapsed.value = !isInputsCollapsed.value;
+};
 
 const executeComparison = () => {
   if (!canExecuteComparison.value) return;
@@ -419,6 +453,8 @@ const handleMessage = (event: MessageEvent) => {
       } else {
         error.value = '';
         results.value = message.results || '';
+        // Auto-collapse inputs when results are shown
+        isInputsCollapsed.value = true;
       }
       comparisonInfo.value = {
         source: message.source || '',
