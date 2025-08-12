@@ -1,106 +1,97 @@
 <template>
   <div class="flex flex-col w-full h-full">
-    <!-- Header -->
-    <div class="flex items-center justify-between border-b border-t border-panel-border bg-sideBarSectionHeader-bg p-4">
-      <div class="flex items-center gap-2">
-        <h2 class="text-lg font-semibold text-editor-fg">Table Diff</h2>
-      </div>
-      <div class="flex items-center gap-2">
-        <vscode-button 
-          v-if="!isLoading"
-          title="Compare Tables" 
-          appearance="primary" 
-          @click="executeComparison"
-          :disabled="!canExecuteComparison"
-        >
-          <span class="codicon codicon-play mr-2"></span>
-          Compare Tables
-        </vscode-button>
-        <vscode-button
-          v-if="isLoading"
-          title="Comparing..."
-          appearance="secondary"
-          disabled
-        >
-          <span class="spinner mr-2"></span>
-          Comparing...
-        </vscode-button>
-        <vscode-button 
-          v-if="hasResults"
-          title="New Comparison" 
-          appearance="secondary" 
-          @click="newComparison"
-        >
-          <span class="codicon codicon-add mr-2"></span>
-          New
-        </vscode-button>
+    <div
+      class="flex items-center justify-between border-b border-t border-panel-border bg-sideBarSectionHeader-bg"
+    >
+      <div class="flex items-center w-full justify-between h-8">
+        <div class="flex items-center gap-2 ml-2">
+          <span class="codicon codicon-diff text-blue-500"></span>
+          <span class="text-sm font-medium text-editor-fg">Table Diff</span>
+        </div>
+        <div class="flex items-center gap-2 mr-2">
+          <vscode-button
+            :disabled="!canExecuteComparison"
+            @click="executeComparison"
+            appearance="primary"
+          >
+            <span v-if="!isLoading" class="codicon codicon-play mr-1"></span>
+            <span v-if="isLoading" class="spinner mr-1"></span>
+            {{ isLoading ? "Comparing..." : "Compare" }}
+          </vscode-button>
+          <vscode-button
+            title="Clear Results"
+            appearance="icon"
+            @click="clearResults"
+          >
+            <span class="codicon codicon-clear-all text-editor-fg"></span>
+          </vscode-button>
+        </div>
       </div>
     </div>
 
-    <!-- Main Content -->
-    <div class="flex-1 p-4 space-y-6">
+    <div class="flex-1 overflow-auto">
       <!-- Connection Selection -->
-      <div class="form-section">
-        <h3 class="text-md font-medium text-editor-fg mb-4">Connection</h3>
-        <div class="form-group">
-          <label class="text-sm text-editor-fg mb-2">Select Connection</label>
-          <vscode-dropdown 
-            v-model="selectedConnection" 
-            @change="onConnectionChange"
-            class="w-full"
+      <div class="p-2 border-b border-panel-border">
+        <label class="block text-xs text-editor-fg mb-1">Connection</label>
+        <vscode-dropdown 
+          v-model="selectedConnection" 
+          class="w-48 max-w-full"
+          :disabled="isLoading"
+        >
+          <vscode-option value="">Select Connection...</vscode-option>
+          <vscode-option
+            v-for="conn in connections"
+            :key="conn.name"
+            :value="conn.name"
           >
-            <vscode-option value="">Select connection...</vscode-option>
-            <vscode-option 
-              v-for="conn in connections" 
-              :key="conn.name" 
-              :value="conn.name"
-            >
-              {{ conn.name }}
-            </vscode-option>
-          </vscode-dropdown>
-        </div>
+            {{ conn.name }}{{ conn.environment && conn.environment !== 'default' ? ` (${conn.environment})` : '' }}
+          </vscode-option>
+        </vscode-dropdown>
       </div>
 
-      <!-- Schema and Table Selection -->
-      <div class="form-section">
-        <h3 class="text-md font-medium text-editor-fg mb-4">Compare Tables</h3>
-        
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <!-- Source -->
-          <div class="space-y-4">
-            <h4 class="text-sm font-medium text-editor-fg border-b border-editor-border pb-2">Source</h4>
+      <!-- Source and Target Selection -->
+      <div class="p-3 border-b border-panel-border">
+        <div class="grid grid-cols-2 gap-4">
+          <!-- Source Column -->
+          <div class="space-y-2">
+            <div class="flex items-center mb-2">
+              <span class="codicon codicon-source-control text-green-500 mr-1"></span>
+              <span class="text-xs font-medium text-editor-fg">Source</span>
+            </div>
             
-            <div class="form-group">
-              <label class="text-sm text-editor-fg mb-2">Schema</label>
+            <div>
+              <label class="block text-xs text-editor-fg opacity-75 mb-1">Schema</label>
               <vscode-dropdown 
                 v-model="sourceSchema" 
                 @change="onSourceSchemaChange"
-                :disabled="!selectedConnection"
                 class="w-full"
               >
-                <vscode-option value="">Select schema...</vscode-option>
-                <vscode-option 
-                  v-for="schema in schemas" 
-                  :key="schema.name" 
+                <vscode-option value="">
+                  {{ isLoadingSchemas ? 'Loading...' : 'Schema...' }}
+                </vscode-option>
+                <vscode-option
+                  v-for="schema in schemas"
+                  :key="schema.name"
                   :value="schema.name"
                 >
                   {{ schema.name }}
                 </vscode-option>
               </vscode-dropdown>
             </div>
-
-            <div class="form-group">
-              <label class="text-sm text-editor-fg mb-2">Table</label>
+            
+            <div>
+              <label class="block text-xs text-editor-fg opacity-75 mb-1">Table</label>
               <vscode-dropdown 
                 v-model="sourceTable" 
                 @change="validateForm"
-                :disabled="!sourceSchema"
                 class="w-full"
               >
-                <vscode-option value="">Select table...</vscode-option>
-                <vscode-option 
-                  v-for="table in sourceTables" 
-                  :key="table.name" 
+                <vscode-option value="">
+                  {{ isLoadingSourceTables ? 'Loading...' : 'Table...' }}
+                </vscode-option>
+                <vscode-option
+                  v-for="table in sourceTables"
+                  :key="table.name"
                   :value="table.name"
                 >
                   {{ table.name }}
@@ -109,41 +100,46 @@
             </div>
           </div>
 
-          <!-- Target -->
-          <div class="space-y-4">
-            <h4 class="text-sm font-medium text-editor-fg border-b border-editor-border pb-2">Target</h4>
+          <!-- Target Column -->
+          <div class="space-y-2">
+            <div class="flex items-center mb-2">
+              <span class="codicon codicon-target text-orange-500 mr-1"></span>
+              <span class="text-xs font-medium text-editor-fg">Target</span>
+            </div>
             
-            <div class="form-group">
-              <label class="text-sm text-editor-fg mb-2">Schema</label>
+            <div>
+              <label class="block text-xs text-editor-fg opacity-75 mb-1">Schema</label>
               <vscode-dropdown 
                 v-model="targetSchema" 
                 @change="onTargetSchemaChange"
-                :disabled="!selectedConnection"
                 class="w-full"
               >
-                <vscode-option value="">Select schema...</vscode-option>
-                <vscode-option 
-                  v-for="schema in schemas" 
-                  :key="schema.name" 
+                <vscode-option value="">
+                  {{ isLoadingSchemas ? 'Loading...' : 'Schema...' }}
+                </vscode-option>
+                <vscode-option
+                  v-for="schema in schemas"
+                  :key="schema.name"
                   :value="schema.name"
                 >
                   {{ schema.name }}
                 </vscode-option>
               </vscode-dropdown>
             </div>
-
-            <div class="form-group">
-              <label class="text-sm text-editor-fg mb-2">Table</label>
+            
+            <div>
+              <label class="block text-xs text-editor-fg opacity-75 mb-1">Table</label>
               <vscode-dropdown 
                 v-model="targetTable" 
                 @change="validateForm"
-                :disabled="!targetSchema"
                 class="w-full"
               >
-                <vscode-option value="">Select table...</vscode-option>
-                <vscode-option 
-                  v-for="table in targetTables" 
-                  :key="table.name" 
+                <vscode-option value="">
+                  {{ isLoadingTargetTables ? 'Loading...' : 'Table...' }}
+                </vscode-option>
+                <vscode-option
+                  v-for="table in targetTables"
+                  :key="table.name"
                   :value="table.name"
                 >
                   {{ table.name }}
@@ -155,36 +151,66 @@
       </div>
 
       <!-- Results -->
-      <div v-if="hasResults" class="results-container">
-        <div class="comparison-info">
-          <h3 class="text-md font-medium text-editor-fg mb-2">✅ Table Comparison Complete</h3>
-          <div class="text-sm text-editor-fg opacity-70 mb-4">
-            <div>Source: {{ comparisonInfo.source }}</div>
-            <div>Target: {{ comparisonInfo.target }}</div>
+      <div v-if="hasResults || error" class="flex-1">
+        <div v-if="error" class="p-4 border-b border-panel-border">
+          <div class="flex items-center mb-2">
+            <span class="codicon codicon-error text-red-500 mr-2"></span>
+            <h3 class="text-sm font-medium text-editor-fg">Error</h3>
+          </div>
+          <div class="text-sm text-red-400 bg-editorWidget-bg p-3 rounded border border-commandCenter-border">
+            {{ error }}
           </div>
         </div>
         
-        <div class="results-content">
-          <pre class="text-xs font-mono text-editor-fg whitespace-pre-wrap">{{ results }}</pre>
+        <div v-if="hasResults" class="p-4">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center">
+              <span class="codicon codicon-diff text-blue-500 mr-2"></span>
+              <h3 class="text-sm font-medium text-editor-fg">Comparison Results</h3>
+            </div>
+            <div class="flex items-center gap-2">
+              <vscode-badge class="text-xs">
+                {{ sourceSchema }}.{{ sourceTable }} → {{ targetSchema }}.{{ targetTable }}
+              </vscode-badge>
+              <vscode-button
+                title="Copy Results"
+                appearance="icon"
+                @click="copyResults"
+              >
+                <span class="codicon codicon-copy text-editor-fg"></span>
+              </vscode-button>
+            </div>
+          </div>
+          
+          <div class="bg-editorWidget-bg border border-commandCenter-border rounded overflow-hidden">
+            <div class="max-h-96 overflow-auto">
+              <pre class="text-xs font-mono p-4 text-editor-fg whitespace-pre-wrap">{{ results }}</pre>
+            </div>
+          </div>
         </div>
       </div>
-
+      
       <!-- Empty State -->
-      <div v-if="!hasResults && !isLoading" class="empty-state text-center py-12">
-        <div class="text-editor-fg opacity-50 mb-4">
-          <span class="codicon codicon-database text-6xl"></span>
+      <div v-if="!hasResults && !error && !isLoading" class="flex items-center justify-center h-32 text-center">
+        <div class="text-editor-fg opacity-60">
+          <span class="codicon codicon-diff text-4xl block mb-2 opacity-40"></span>
+          <p class="text-sm">Select connection, schemas, and tables to compare</p>
         </div>
-        <h3 class="text-lg font-medium text-editor-fg mb-2">No Comparison Results</h3>
-        <p class="text-sm text-editor-fg opacity-70">
-          Select source and target tables, then click "Compare Tables" to analyze differences.
-        </p>
+      </div>
+      
+      <!-- Loading State -->
+      <div v-if="isLoading" class="flex items-center justify-center h-32">
+        <div class="text-center">
+          <div class="spinner mb-2"></div>
+          <p class="text-sm text-editor-fg opacity-75">Comparing tables...</p>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { vscode } from '@/utilities/vscode';
 
 // Types
@@ -220,7 +246,11 @@ const sourceTable = ref('');
 const targetTable = ref('');
 
 const isLoading = ref(false);
+const isLoadingSchemas = ref(false);
+const isLoadingSourceTables = ref(false);
+const isLoadingTargetTables = ref(false);
 const results = ref('');
+const error = ref('');
 const comparisonInfo = ref<ComparisonInfo>({ source: '', target: '' });
 
 // Computed
@@ -234,55 +264,42 @@ const canExecuteComparison = computed(() =>
 );
 
 // Methods
-const onConnectionChange = () => {
-  // Clear dependent selections
-  sourceSchema.value = '';
-  targetSchema.value = '';
-  sourceTable.value = '';
-  targetTable.value = '';
-  
-  if (selectedConnection.value) {
-    // Load schemas for both source and target
-    vscode.postMessage({ 
-      command: 'getSchemas', 
-      connectionName: selectedConnection.value,
-      type: 'source'
-    });
-    vscode.postMessage({ 
-      command: 'getSchemas', 
-      connectionName: selectedConnection.value,
-      type: 'target'
-    });
-  }
-  
-  validateForm();
-};
 
 const onSourceSchemaChange = () => {
+  console.log('Source schema changed to:', sourceSchema.value);
   sourceTable.value = '';
+  sourceTables.value = [];
   
   if (sourceSchema.value && selectedConnection.value) {
-    vscode.postMessage({ 
+    isLoadingSourceTables.value = true;
+    const message = { 
       command: 'getTables', 
       connectionName: selectedConnection.value,
       schemaName: sourceSchema.value,
       type: 'source'
-    });
+    };
+    console.log('Sending getTables message for source:', message);
+    vscode.postMessage(message);
   }
   
   validateForm();
 };
 
 const onTargetSchemaChange = () => {
+  console.log('Target schema changed to:', targetSchema.value);
   targetTable.value = '';
+  targetTables.value = [];
   
   if (targetSchema.value && selectedConnection.value) {
-    vscode.postMessage({ 
+    isLoadingTargetTables.value = true;
+    const message = { 
       command: 'getTables', 
       connectionName: selectedConnection.value,
       schemaName: targetSchema.value,
       type: 'target'
-    });
+    };
+    console.log('Sending getTables message for target:', message);
+    vscode.postMessage(message);
   }
   
   validateForm();
@@ -297,6 +314,7 @@ const executeComparison = () => {
   
   isLoading.value = true;
   results.value = '';
+  error.value = '';
   
   vscode.postMessage({
     command: 'executeTableDiff',
@@ -309,6 +327,12 @@ const executeComparison = () => {
   });
 };
 
+const clearResults = () => {
+  results.value = '';
+  error.value = '';
+  comparisonInfo.value = { source: '', target: '' };
+};
+
 const newComparison = () => {
   // Reset all selections
   selectedConnection.value = '';
@@ -318,8 +342,7 @@ const newComparison = () => {
   targetTable.value = '';
   
   // Clear results
-  results.value = '';
-  comparisonInfo.value = { source: '', target: '' };
+  clearResults();
   
   // Clear dependent data
   schemas.value = [];
@@ -327,32 +350,53 @@ const newComparison = () => {
   targetTables.value = [];
 };
 
+const copyResults = () => {
+  if (results.value) {
+    navigator.clipboard.writeText(results.value);
+  }
+};
+
 // Message handling
 const handleMessage = (event: MessageEvent) => {
   const message = event.data;
+  console.log('TableDiffApp received message:', message);
   
   switch (message.command) {
     case 'updateConnections':
+      console.log('Received connections:', message.connections);
       connections.value = message.connections || [];
+      console.log('Updated connections state:', connections.value);
       break;
       
     case 'updateSchemas':
-      if (message.type === 'source' || message.type === 'target') {
-        schemas.value = message.schemas || [];
-      }
+      // Update schemas for both source and target dropdowns
+      console.log('Received schemas:', message.schemas);
+      schemas.value = message.schemas || [];
+      isLoadingSchemas.value = false;
+      console.log('Updated schemas state:', schemas.value);
       break;
       
     case 'updateTables':
+      console.log('Received tables:', message.tables, 'type:', message.type);
       if (message.type === 'source') {
         sourceTables.value = message.tables || [];
+        isLoadingSourceTables.value = false;
       } else if (message.type === 'target') {
         targetTables.value = message.tables || [];
+        isLoadingTargetTables.value = false;
       }
+      console.log('Updated tables state - source:', sourceTables.value, 'target:', targetTables.value);
       break;
       
     case 'showResults':
       isLoading.value = false;
-      results.value = message.results || '';
+      if (message.error) {
+        error.value = message.error;
+        results.value = '';
+      } else {
+        error.value = '';
+        results.value = message.results || '';
+      }
       comparisonInfo.value = {
         source: message.source || '',
         target: message.target || ''
@@ -360,14 +404,49 @@ const handleMessage = (event: MessageEvent) => {
       break;
       
     case 'clearResults':
-      results.value = '';
-      comparisonInfo.value = { source: '', target: '' };
+      clearResults();
       break;
   }
 };
 
+// Watchers
+watch(selectedConnection, (newValue, oldValue) => {
+  console.log('Connection changed from', oldValue, 'to:', newValue);
+  
+  if (newValue !== oldValue) {
+    // Clear dependent selections
+    sourceSchema.value = '';
+    targetSchema.value = '';
+    sourceTable.value = '';
+    targetTable.value = '';
+    
+    // Clear dependent data
+    schemas.value = [];
+    sourceTables.value = [];
+    targetTables.value = [];
+    
+    if (newValue) {
+      console.log('Requesting schemas for connection:', newValue);
+      isLoadingSchemas.value = true;
+      // Load schemas for the selected connection
+      const message = { 
+        command: 'getSchemas', 
+        connectionName: newValue,
+        type: 'both'
+      };
+      console.log('Sending message to backend:', message);
+      vscode.postMessage(message);
+    } else {
+      isLoadingSchemas.value = false;
+    }
+    
+    validateForm();
+  }
+});
+
 // Lifecycle
 onMounted(() => {
+  console.log('TableDiffApp mounted, requesting connections...');
   // Request connections on load
   vscode.postMessage({ command: 'getConnections' });
   
@@ -376,164 +455,3 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
-.form-section {
-  border: 1px solid var(--vscode-editor-border);
-  border-radius: 0.375rem;
-  padding: 1.5rem;
-  background-color: var(--vscode-editor-background);
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-}
-
-.form-group label {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--vscode-editor-foreground);
-  margin-bottom: 0.5rem;
-}
-
-.results-container {
-  border: 1px solid var(--vscode-editor-border);
-  border-radius: 0.375rem;
-  background-color: var(--vscode-editor-background);
-}
-
-.comparison-info {
-  background-color: var(--vscode-inputValidation-infoBackground);
-  border: 1px solid var(--vscode-inputValidation-infoBorder);
-  border-radius: 0.375rem;
-  padding: 1rem;
-  margin-bottom: 1rem;
-}
-
-.comparison-info h3 {
-  font-size: 1rem;
-  font-weight: 500;
-  color: var(--vscode-inputValidation-infoForeground);
-  margin-bottom: 0.5rem;
-}
-
-.results-content {
-  background-color: var(--vscode-textCodeBlock-background);
-  border-radius: 0.375rem;
-  padding: 1rem;
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
-  font-size: 0.75rem;
-  overflow: auto;
-  max-height: 24rem;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 3rem 0;
-}
-
-.spinner {
-  display: inline-block;
-  width: 1rem;
-  height: 1rem;
-  border: 2px solid transparent;
-  border-top: 2px solid var(--vscode-progressBar-foreground);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-</style>
-
-<style>
-/* VS Code Theme Colors */
-:root {
-  --editor-bg: var(--vscode-editor-background);
-  --editor-fg: var(--vscode-editor-foreground);
-  --panel-border: var(--vscode-panel-border);
-  --editor-border: var(--vscode-editor-border);
-  --sideBarSectionHeader-bg: var(--vscode-sideBarSectionHeader-background);
-  --inputValidation-infoBackground: var(--vscode-inputValidation-infoBackground);
-  --inputValidation-infoBorder: var(--vscode-inputValidation-infoBorder);
-  --inputValidation-infoForeground: var(--vscode-inputValidation-infoForeground);
-  --textCodeBlock-background: var(--vscode-textCodeBlock-background);
-  --progressBar-background: var(--vscode-progressBar-background);
-  --progressBar-foreground: var(--vscode-progressBar-foreground);
-}
-
-/* Utility classes */
-.bg-editor-background { background-color: var(--editor-bg); }
-.bg-sideBarSectionHeader-bg { background-color: var(--sideBarSectionHeader-bg); }
-.bg-inputValidation-infoBackground { background-color: var(--inputValidation-infoBackground); }
-.bg-textCodeBlock-background { background-color: var(--textCodeBlock-background); }
-
-.text-editor-fg { color: var(--editor-fg); }
-.text-inputValidation-infoForeground { color: var(--inputValidation-infoForeground); }
-
-.border-editor-border { border-color: var(--editor-border); }
-.border-panel-border { border-color: var(--panel-border); }
-.border-inputValidation-infoBorder { border-color: var(--inputValidation-infoBorder); }
-
-.border-b { border-bottom-width: 1px; }
-.border-t { border-top-width: 1px; }
-
-.rounded-md { border-radius: 0.375rem; }
-.rounded-lg { border-radius: 0.5rem; }
-
-.p-4 { padding: 1rem; }
-.p-6 { padding: 1.5rem; }
-.py-12 { padding-top: 3rem; padding-bottom: 3rem; }
-.pb-2 { padding-bottom: 0.5rem; }
-.mb-2 { margin-bottom: 0.5rem; }
-.mb-4 { margin-bottom: 1rem; }
-.mr-2 { margin-right: 0.5rem; }
-
-.space-y-4 > * + * { margin-top: 1rem; }
-.space-y-6 > * + * { margin-top: 1.5rem; }
-
-.grid { display: grid; }
-.grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
-.gap-6 { gap: 1.5rem; }
-
-.flex { display: flex; }
-.flex-col { flex-direction: column; }
-.flex-1 { flex: 1 1 0%; }
-.items-center { align-items: center; }
-.justify-between { justify-content: space-between; }
-.justify-center { justify-content: center; }
-
-.w-full { width: 100%; }
-.h-full { height: 100%; }
-.text-center { text-align: center; }
-
-.text-xs { font-size: 0.75rem; line-height: 1rem; }
-.text-sm { font-size: 0.875rem; line-height: 1.25rem; }
-.text-lg { font-size: 1.125rem; line-height: 1.75rem; }
-.text-md { font-size: 1rem; line-height: 1.5rem; }
-.text-6xl { font-size: 3.75rem; line-height: 1; }
-
-.font-medium { font-weight: 500; }
-.font-semibold { font-weight: 600; }
-.font-mono { font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace; }
-
-.opacity-50 { opacity: 0.5; }
-.opacity-70 { opacity: 0.7; }
-
-.whitespace-pre-wrap { white-space: pre-wrap; }
-.overflow-auto { overflow: auto; }
-.max-h-96 { max-height: 24rem; }
-
-.animate-spin {
-  animation: spin 1s linear infinite;
-}
-
-/* Responsive */
-@media (min-width: 1024px) {
-  .lg\\:grid-cols-2 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-</style>

@@ -125,10 +125,16 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
       const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
       if (!workspaceFolder) return;
 
+      // Find the connection to get its environment
+      const bruinConnections = new BruinConnections("bruin", workspaceFolder);
+      const connections = await bruinConnections.getConnectionsForActivityBar();
+      const connection = connections.find(conn => conn.name === connectionName);
+      const environment = connection?.environment;
+
       const bruinDBTCommand = new BruinDBTCommand("bruin", workspaceFolder);
-      const rawSchemas = await bruinDBTCommand.getFetchDatabases(connectionName);
+      const rawSchemas = await bruinDBTCommand.getFetchDatabases(connectionName, environment);
       
-      console.log(`Raw schemas data for ${connectionName}:`, rawSchemas);
+      console.log(`Raw schemas data for ${connectionName} (env: ${environment}):`, rawSchemas);
 
       // Parse the schemas similar to ActivityBarConnectionsProvider
       let schemasArray;
@@ -164,6 +170,12 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
       });
     } catch (error) {
       console.error('Error sending schemas:', error);
+      TableDiffPanel._view.webview.postMessage({
+        command: 'updateSchemas',
+        schemas: [],
+        type,
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   }
 
@@ -174,10 +186,16 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
       const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
       if (!workspaceFolder) return;
 
+      // Find the connection to get its environment
+      const bruinConnections = new BruinConnections("bruin", workspaceFolder);
+      const connections = await bruinConnections.getConnectionsForActivityBar();
+      const connection = connections.find(conn => conn.name === connectionName);
+      const environment = connection?.environment;
+
       const bruinDBTCommand = new BruinDBTCommand("bruin", workspaceFolder);
-      const rawTables = await bruinDBTCommand.getFetchTables(connectionName, schemaName);
+      const rawTables = await bruinDBTCommand.getFetchTables(connectionName, schemaName, environment);
       
-      console.log(`Raw tables data for ${connectionName}.${schemaName}:`, rawTables);
+      console.log(`Raw tables data for ${connectionName}.${schemaName} (env: ${environment}):`, rawTables);
 
       // Parse the tables similar to ActivityBarConnectionsProvider
       const tablesArray = Array.isArray(rawTables) ? rawTables : rawTables?.tables;
@@ -204,6 +222,12 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
       });
     } catch (error) {
       console.error('Error sending tables:', error);
+      TableDiffPanel._view.webview.postMessage({
+        command: 'updateTables',
+        tables: [],
+        type,
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   }
 
@@ -230,6 +254,12 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
           throw new Error("Workspace folder not found");
         }
 
+        // Find the connection to get its environment
+        const bruinConnections = new BruinConnections("bruin", workspaceFolder);
+        const connections = await bruinConnections.getConnectionsForActivityBar();
+        const connection = connections.find(conn => conn.name === sourceConnection);
+        const environment = connection?.environment;
+
         const tableDiff = new BruinTableDiff("bruin", workspaceFolder);
         const sourceTableRef = `${sourceSchema}.${sourceTable}`;
         const targetTableRef = `${targetSchema}.${targetTable}`;
@@ -237,7 +267,8 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
         const result = await tableDiff.compareTables(
           sourceConnection,
           sourceTableRef,
-          targetTableRef        
+          targetTableRef,
+          environment
         );
 
         const sourceInfo = `${sourceConnection}.${sourceSchema}.${sourceTable}`;
@@ -248,7 +279,20 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
 
     } catch (error) {
       console.error('Error executing table diff:', error);
-      vscode.window.showErrorMessage(`Table comparison failed: ${error}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      
+      // Send error to webview
+      if (TableDiffPanel._view) {
+        TableDiffPanel._view.webview.postMessage({
+          command: 'showResults',
+          error: errorMessage,
+          source: '',
+          target: '',
+          results: ''
+        });
+      }
+      
+      vscode.window.showErrorMessage(`Table comparison failed: ${errorMessage}`);
     }
   }
 
