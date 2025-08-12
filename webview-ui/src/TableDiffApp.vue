@@ -35,6 +35,7 @@
         <label class="block text-xs text-editor-fg mb-1">Connection</label>
         <vscode-dropdown 
           v-model="selectedConnection" 
+          @change="onConnectionChange"
           class="w-48 max-w-full"
           :disabled="isLoading"
         >
@@ -48,6 +49,7 @@
           </vscode-option>
         </vscode-dropdown>
       </div>
+
 
       <!-- Source and Target Selection -->
       <div class="p-3 border-b border-panel-border">
@@ -83,7 +85,6 @@
               <label class="block text-xs text-editor-fg opacity-75 mb-1">Table</label>
               <vscode-dropdown 
                 v-model="sourceTable" 
-                @change="validateForm"
                 class="w-full"
               >
                 <vscode-option value="">
@@ -131,7 +132,6 @@
               <label class="block text-xs text-editor-fg opacity-75 mb-1">Table</label>
               <vscode-dropdown 
                 v-model="targetTable" 
-                @change="validateForm"
                 class="w-full"
               >
                 <vscode-option value="">
@@ -265,49 +265,83 @@ const canExecuteComparison = computed(() =>
 
 // Methods
 
-const onSourceSchemaChange = () => {
-  console.log('Source schema changed to:', sourceSchema.value);
+const onConnectionChange = (event: Event) => {
+  const target = event.target as HTMLSelectElement;
+  const newValue = target.value;
+  
+  // Manually update the value since v-model might not be working
+  selectedConnection.value = newValue;
+  
+  // Clear dependent selections
+  sourceSchema.value = '';
+  targetSchema.value = '';
+  sourceTable.value = '';
+  targetTable.value = '';
+  
+  // Clear dependent data
+  schemas.value = [];
+  sourceTables.value = [];
+  targetTables.value = [];
+  
+  if (newValue) {
+    isLoadingSchemas.value = true;
+    const message = { 
+      command: 'getSchemas', 
+      connectionName: newValue,
+      type: 'both'
+    };
+    vscode.postMessage(message);
+  } else {
+    isLoadingSchemas.value = false;
+  }
+};
+
+const onSourceSchemaChange = (event: Event) => {
+  const target = event.target as HTMLSelectElement;
+  const newValue = target.value;
+  
+  sourceSchema.value = newValue;
+  
   sourceTable.value = '';
   sourceTables.value = [];
   
-  if (sourceSchema.value && selectedConnection.value) {
+  if (newValue && selectedConnection.value) {
     isLoadingSourceTables.value = true;
     const message = { 
       command: 'getTables', 
       connectionName: selectedConnection.value,
-      schemaName: sourceSchema.value,
+      schemaName: newValue,
       type: 'source'
     };
-    console.log('Sending getTables message for source:', message);
     vscode.postMessage(message);
   }
   
-  validateForm();
 };
 
-const onTargetSchemaChange = () => {
-  console.log('Target schema changed to:', targetSchema.value);
+const onTargetSchemaChange = (event: Event) => {
+  const target = event.target as HTMLSelectElement;
+  const newValue = target.value;
+  
+  // Manually update the value
+  targetSchema.value = newValue;
+  
   targetTable.value = '';
   targetTables.value = [];
   
-  if (targetSchema.value && selectedConnection.value) {
+  if (newValue && selectedConnection.value) {
     isLoadingTargetTables.value = true;
     const message = { 
       command: 'getTables', 
       connectionName: selectedConnection.value,
-      schemaName: targetSchema.value,
+      schemaName: newValue,
       type: 'target'
     };
-    console.log('Sending getTables message for target:', message);
     vscode.postMessage(message);
   }
   
-  validateForm();
 };
 
-const validateForm = () => {
-  // Form validation is handled by the computed property canExecuteComparison
-};
+
 
 const executeComparison = () => {
   if (!canExecuteComparison.value) return;
@@ -334,17 +368,14 @@ const clearResults = () => {
 };
 
 const newComparison = () => {
-  // Reset all selections
   selectedConnection.value = '';
   sourceSchema.value = '';
   targetSchema.value = '';
   sourceTable.value = '';
   targetTable.value = '';
   
-  // Clear results
   clearResults();
   
-  // Clear dependent data
   schemas.value = [];
   sourceTables.value = [];
   targetTables.value = [];
@@ -359,25 +390,18 @@ const copyResults = () => {
 // Message handling
 const handleMessage = (event: MessageEvent) => {
   const message = event.data;
-  console.log('TableDiffApp received message:', message);
   
   switch (message.command) {
     case 'updateConnections':
-      console.log('Received connections:', message.connections);
       connections.value = message.connections || [];
-      console.log('Updated connections state:', connections.value);
       break;
       
     case 'updateSchemas':
-      // Update schemas for both source and target dropdowns
-      console.log('Received schemas:', message.schemas);
       schemas.value = message.schemas || [];
       isLoadingSchemas.value = false;
-      console.log('Updated schemas state:', schemas.value);
       break;
       
     case 'updateTables':
-      console.log('Received tables:', message.tables, 'type:', message.type);
       if (message.type === 'source') {
         sourceTables.value = message.tables || [];
         isLoadingSourceTables.value = false;
@@ -385,7 +409,6 @@ const handleMessage = (event: MessageEvent) => {
         targetTables.value = message.tables || [];
         isLoadingTargetTables.value = false;
       }
-      console.log('Updated tables state - source:', sourceTables.value, 'target:', targetTables.value);
       break;
       
     case 'showResults':
@@ -409,48 +432,8 @@ const handleMessage = (event: MessageEvent) => {
   }
 };
 
-// Watchers
-watch(selectedConnection, (newValue, oldValue) => {
-  console.log('Connection changed from', oldValue, 'to:', newValue);
-  
-  if (newValue !== oldValue) {
-    // Clear dependent selections
-    sourceSchema.value = '';
-    targetSchema.value = '';
-    sourceTable.value = '';
-    targetTable.value = '';
-    
-    // Clear dependent data
-    schemas.value = [];
-    sourceTables.value = [];
-    targetTables.value = [];
-    
-    if (newValue) {
-      console.log('Requesting schemas for connection:', newValue);
-      isLoadingSchemas.value = true;
-      // Load schemas for the selected connection
-      const message = { 
-        command: 'getSchemas', 
-        connectionName: newValue,
-        type: 'both'
-      };
-      console.log('Sending message to backend:', message);
-      vscode.postMessage(message);
-    } else {
-      isLoadingSchemas.value = false;
-    }
-    
-    validateForm();
-  }
-});
-
-// Lifecycle
 onMounted(() => {
-  console.log('TableDiffApp mounted, requesting connections...');
-  // Request connections on load
   vscode.postMessage({ command: 'getConnections' });
-  
-  // Set up message listener
   window.addEventListener('message', handleMessage);
 });
 </script>

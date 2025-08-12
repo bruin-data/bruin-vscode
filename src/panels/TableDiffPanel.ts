@@ -104,15 +104,11 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
 
       const bruinConnections = new BruinConnections("bruin", workspaceFolder);
       const connections = await bruinConnections.getConnectionsForActivityBar();
-      
-      console.log('Raw connections data:', connections);
 
       TableDiffPanel._view.webview.postMessage({
         command: 'updateConnections',
         connections
       });
-      
-      console.log('Connections sent to webview:', connections);
     } catch (error) {
       console.error('Error sending connections:', error);
     }
@@ -130,11 +126,9 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
       const connections = await bruinConnections.getConnectionsForActivityBar();
       const connection = connections.find(conn => conn.name === connectionName);
       const environment = connection?.environment;
-
+      console.log(`Fetching schemas for ${connectionName} (env: ${environment})`);
       const bruinDBTCommand = new BruinDBTCommand("bruin", workspaceFolder);
       const rawSchemas = await bruinDBTCommand.getFetchDatabases(connectionName, environment);
-      
-      console.log(`Raw schemas data for ${connectionName} (env: ${environment}):`, rawSchemas);
 
       // Parse the schemas similar to ActivityBarConnectionsProvider
       let schemasArray;
@@ -160,8 +154,6 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
           return { name: item.name || item.database_name || "Unknown Database" };
         });
       }
-
-      console.log(`Parsed schemas for ${connectionName}:`, schemas);
 
       TableDiffPanel._view.webview.postMessage({
         command: 'updateSchemas',
@@ -194,8 +186,6 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
 
       const bruinDBTCommand = new BruinDBTCommand("bruin", workspaceFolder);
       const rawTables = await bruinDBTCommand.getFetchTables(connectionName, schemaName, environment);
-      
-      console.log(`Raw tables data for ${connectionName}.${schemaName} (env: ${environment}):`, rawTables);
 
       // Parse the tables similar to ActivityBarConnectionsProvider
       const tablesArray = Array.isArray(rawTables) ? rawTables : rawTables?.tables;
@@ -212,8 +202,6 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
           return { name: item.name || "Unknown Table" };
         });
       }
-
-      console.log(`Parsed tables for ${connectionName}.${schemaName}:`, tables);
 
       TableDiffPanel._view.webview.postMessage({
         command: 'updateTables',
