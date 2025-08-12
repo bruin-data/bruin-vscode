@@ -472,13 +472,16 @@
         "when": "editorTextFocus && editorHasSelection && resourceExtname == .sql"
       }
     ],
+    "welcomePage": {
+      "walkthrough": "bruin.bruin-getting-started"
+    },
     "walkthroughs": [
       {
         "id": "bruin-getting-started",
         "title": "Getting Started with Bruin",
         "description": "Learn the essential features and keyboard shortcuts to be productive with Bruin",
         "primary": true,
-        "when": "workspaceFolderCount == 0 || workspaceFolderCount > 0",
+        "featured": true,
         "steps": [
           {
             "id": "keyboard-shortcuts",

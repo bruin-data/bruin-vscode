@@ -650,9 +650,19 @@ export async function activate(context: ExtensionContext) {
   // Show walkthrough on first activation
   if (isFirstActivation) {
     await context.globalState.update('bruin.hasActivated', true);
+    
+    // Show walkthrough when extension is first installed
+    // Use a longer delay to ensure VS Code is fully loaded
     setTimeout(() => {
-      vscode.commands.executeCommand('workbench.action.openWalkthrough', 'bruin.bruin-getting-started');
-    }, 1000);
+      vscode.commands.executeCommand('workbench.action.openWalkthrough', 'bruin.bruin-getting-started', true);
+    }, 3000);
+    
+    // Also show immediately if welcome tab is active
+    if (vscode.window.tabGroups.activeTabGroup.activeTab?.label === 'Welcome') {
+      setTimeout(() => {
+        vscode.commands.executeCommand('workbench.action.openWalkthrough', 'bruin.bruin-getting-started', true);
+      }, 500);
+    }
   }
 
   TableDetailsPanel.initialize(context.subscriptions);
