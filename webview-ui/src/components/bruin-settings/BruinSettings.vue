@@ -127,24 +127,24 @@ const error = computed(() => connectionsStore.error);
 const environmentsList = computed(() => props.environments || []);
 
 const showForm = ref(false);
-const connectionToEdit = ref(null);
+const connectionToEdit = ref<Record<string, any> | undefined>(undefined);
 const isEditing = ref(false);
 const showDeleteAlert = ref(false);
-const connectionToDelete = ref(null);
-const formError = ref(null);
-const formRef = ref(null);
+const connectionToDelete = ref<Record<string, any> | null>(null);
+const formError = ref<{ field: string; message: string } | undefined>(undefined);
+const formRef = ref<HTMLElement | null>(null);
 
 // Environment states
 const showEnvironmentDeleteAlert = ref(false);
-const environmentToDelete = ref(null);
+const environmentToDelete = ref<string | null>(null);
 
 // Templates state
-const templates = ref([]);
+const templates = ref<string[]>([]);
 const selectedTemplate = ref("");
 const templatesLoading = ref(false);
 const projectCreationSuccess = ref(false);
 const successMessage = ref("");
-const templateDropdownRef = ref(null);
+const templateDropdownRef = ref<HTMLElement | null>(null);
 
 const connectionFormKey = computed(() => {
   return connectionToEdit.value?.id ? `edit-${connectionToEdit.value.id}` : "new-connection";
@@ -215,7 +215,7 @@ const handleConnectionsList = (payload: any) => {
 
 const handleConnectionDeleted = async (payload: any) => {
   if (payload.status === "success") {
-    connectionsStore.removeConnection(connectionToDelete.value.id);
+    connectionsStore.removeConnection(connectionToDelete.value?.id);
     showDeleteAlert.value = false;
     connectionToDelete.value = null;
   } else {
@@ -237,12 +237,12 @@ const handleConnectionCreated = (payload: any) => {
       } else {
         throw new Error("Invalid payload structure for created connection");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error adding connection:", error);
       formError.value = { field: "connection_name", message: error.message };
     }
   } else {
-    formError.value = { field: "connection_name", message: errorMessage };
+    formError.value = { field: "connection_name", message: "Failed to add connection" };
   }
 };
 
@@ -310,6 +310,7 @@ const showConnectionForm = (connectionOrEnvironment: any = null, duplicate = fal
         type: "",
         environment: environment,
         credentials: {},
+        
       };
       isEditing.value = false;
     }
@@ -347,7 +348,7 @@ const handleConnectionSubmit = async (connectionData: any) => {
         payload: sanitizedConnectionData,
       });
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error submitting connection:", error);
     formError.value = { field: "connection_name", message: error.message };
   }
@@ -355,13 +356,13 @@ const handleConnectionSubmit = async (connectionData: any) => {
 
 const closeConnectionForm = () => {
   showForm.value = false;
-  connectionToEdit.value = null;
+  connectionToEdit.value = undefined;
   isEditing.value = false;
   clearFormError();
 };
 
 const clearFormError = () => {
-  formError.value = null;
+  formError.value = undefined;
 };
 
 const confirmDeleteConnection = (connection: any) => {
@@ -374,9 +375,9 @@ const deleteConnection = async () => {
     await vscode.postMessage({
       command: "bruin.deleteConnection",
       payload: {
-        name: connectionToDelete.value.name,
-        environment: connectionToDelete.value.environment,
-        id: connectionToDelete.value.id,
+        name: connectionToDelete.value?.name,
+        environment: connectionToDelete.value?.environment,
+        id: connectionToDelete.value?.id,
       },
     });
     showDeleteAlert.value = false;
@@ -537,7 +538,7 @@ const handleProjectInit = (payload: any) => {
     // Reset the dropdown DOM element
     nextTick(() => {
       if (templateDropdownRef.value) {
-        templateDropdownRef.value.value = "";
+        (templateDropdownRef.value as any).value = "";
       }
     });
     // Hide success message after 8 seconds
