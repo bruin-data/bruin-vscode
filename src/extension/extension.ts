@@ -121,7 +121,9 @@ export async function activate(context: ExtensionContext) {
   const startTime = Date.now();
   console.time("Bruin Activation Total");
   
-
+  // Check if this is first time activation
+  const isFirstActivation = !context.globalState.get('bruin.hasActivated', false);
+  
   // Initialize TableDetailsPanel
   TableDetailsPanel.initialize(context.subscriptions);
 
@@ -624,6 +626,15 @@ export async function activate(context: ExtensionContext) {
         vscode.window.showErrorMessage(`Error triggering completions: ${errorMessage}`);
       }
     }),
+    commands.registerCommand("bruin.showWalkthrough", async () => {
+      try {
+        trackEvent("Command Executed", { command: "showWalkthrough" });
+        await vscode.commands.executeCommand('workbench.action.openWalkthrough', 'bruin.bruin-getting-started');
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error showing walkthrough: ${errorMessage}`);
+      }
+    }),
   ];
 
   context.subscriptions.push(...commandDisposables);
@@ -635,6 +646,14 @@ export async function activate(context: ExtensionContext) {
   const activationTime = Date.now() - startTime;
   console.debug(`Bruin activated successfully in ${activationTime}ms`);
   console.timeEnd("Bruin Activation Total");
+
+  // Show walkthrough on first activation
+  if (isFirstActivation) {
+    await context.globalState.update('bruin.hasActivated', true);
+    setTimeout(() => {
+      vscode.commands.executeCommand('workbench.action.openWalkthrough', 'bruin.bruin-getting-started');
+    }, 1000);
+  }
 
   TableDetailsPanel.initialize(context.subscriptions);
 }
