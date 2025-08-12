@@ -81,12 +81,38 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
             case 'clearTableDiff':
               this.clearResults();
               break;
+            case 'saveState':
+              await this.persistState(message.payload);
+              break;
+            case 'requestState':
+              const state = await this.restoreState();
+              webviewView.webview.postMessage({
+                command: 'restoreState',
+                payload: state
+              });
+              break;
           }
         },
         undefined,
         this.disposables
       );
       
+      // Handle webview visibility changes
+      webviewView.onDidChangeVisibility(() => {
+        if (webviewView.visible) {
+          // When webview becomes visible, request the frontend to restore state
+          webviewView.webview.postMessage({
+            command: 'init',
+            panelType: 'Table Diff'
+          });
+        } else {
+          // When webview becomes hidden, notify frontend to save state
+          webviewView.webview.postMessage({
+            command: 'panelHidden'
+          });
+        }
+      });
+
       // Load initial connections
       setTimeout(() => this.sendConnections(), 100);
       
@@ -388,6 +414,31 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
       this._view.webview.postMessage({
         command: 'clearResults'
       });
+    }
+  }
+
+  private async persistState(state: any) {
+    if (!this._extensionContext) {
+      throw new Error("Extension context not found");
+    }
+    try {
+      const sanitizedState = JSON.parse(JSON.stringify(state));
+      await this._extensionContext.globalState.update("tableDiffState", sanitizedState);
+    } catch (error) {
+      console.error("Error persisting table diff state:", error);
+    }
+  }
+
+  private async restoreState(): Promise<any> {
+    if (!this._extensionContext) {
+      throw new Error("Extension context not found");
+    }
+    try {
+      const state: any = this._extensionContext.globalState.get("tableDiffState") || null;
+      return state;
+    } catch (error) {
+      console.error("Error restoring table diff state:", error);
+      return null;
     }
   }
 }

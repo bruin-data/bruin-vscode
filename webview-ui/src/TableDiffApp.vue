@@ -254,6 +254,15 @@ interface ComparisonInfo {
   target: string;
 }
 
+interface SavedState {
+  selectedConnection?: string;
+  sourceSchema?: string;
+  targetSchema?: string;
+  sourceTable?: string;
+  targetTable?: string;
+  isInputsCollapsed?: boolean;
+}
+
 // State
 const connections = ref<Connection[]>([]);
 const schemas = ref<Schema[]>([]);
@@ -288,6 +297,8 @@ const canExecuteComparison = computed(() =>
 // Methods
 
 const onConnectionChange = (event: Event) => {
+  if (isRestoringState) return;
+  
   const target = event.target as HTMLSelectElement;
   const newValue = target.value;
   
@@ -316,9 +327,13 @@ const onConnectionChange = (event: Event) => {
   } else {
     isLoadingSchemas.value = false;
   }
+  
+  saveState();
 };
 
 const onSourceSchemaChange = (event: Event) => {
+  if (isRestoringState) return;
+  
   const target = event.target as HTMLSelectElement;
   const newValue = target.value;
   
@@ -338,9 +353,12 @@ const onSourceSchemaChange = (event: Event) => {
     vscode.postMessage(message);
   }
   
+  saveState();
 };
 
 const onTargetSchemaChange = (event: Event) => {
+  if (isRestoringState) return;
+  
   const target = event.target as HTMLSelectElement;
   const newValue = target.value;
   
@@ -361,20 +379,220 @@ const onTargetSchemaChange = (event: Event) => {
     vscode.postMessage(message);
   }
   
+  saveState();
 };
 
 const onSourceTableChange = (event: Event) => {
+  if (isRestoringState) return;
+  
   const target = event.target as HTMLSelectElement;
   sourceTable.value = target.value;
+  saveState();
 };
 
 const onTargetTableChange = (event: Event) => {
+  if (isRestoringState) return;
+  
   const target = event.target as HTMLSelectElement;
   targetTable.value = target.value;
+  saveState();
 };
 
 const toggleInputsCollapse = () => {
   isInputsCollapsed.value = !isInputsCollapsed.value;
+  saveState();
+};
+
+const saveState = () => {
+  const state = {
+    selectedConnection: selectedConnection.value || '',
+    sourceSchema: sourceSchema.value || '',
+    targetSchema: targetSchema.value || '',
+    sourceTable: sourceTable.value || '',
+    targetTable: targetTable.value || '',
+    isInputsCollapsed: isInputsCollapsed.value || false,
+    results: results.value || '',
+    error: error.value || '',
+    comparisonInfo: {
+      source: comparisonInfo.value?.source || '',
+      target: comparisonInfo.value?.target || ''
+    }
+  };
+  
+  try {
+    // Ensure the state is serializable by JSON parsing/stringifying
+    const serializedState = JSON.parse(JSON.stringify(state));
+    vscode.postMessage({
+      command: 'saveState',
+      payload: serializedState
+    });
+  } catch (error) {
+    console.error('Error serializing state:', error);
+  }
+};
+
+// Store the pending state to restore after data loads
+let pendingStateRestore: any = null;
+let isRestoringState = false;
+
+const restoreFromState = (savedState: any) => {
+  if (!savedState) return;
+  
+  // Store the state to restore after connections load
+  pendingStateRestore = savedState;
+  
+  // Restore non-dropdown state immediately
+  isInputsCollapsed.value = savedState.isInputsCollapsed || false;
+  results.value = savedState.results || '';
+  error.value = savedState.error || '';
+  comparisonInfo.value = savedState.comparisonInfo || { source: '', target: '' };
+  
+  // If we have connections loaded, restore immediately
+  if (connections.value.length > 0) {
+    restoreDropdownSelections(savedState);
+  }
+};
+
+const syncDropdownsWithState = () => {
+  const dropdowns = document.querySelectorAll('vscode-dropdown');
+  dropdowns.forEach((dropdown: any, index) => {
+    const options = dropdown.querySelectorAll('vscode-option');
+    
+    // Connection dropdown (first one)
+    if (index === 0 && selectedConnection.value) {
+      dropdown.value = selectedConnection.value;
+      for (let i = 0; i < options.length; i++) {
+        if (options[i].value === selectedConnection.value) {
+          dropdown.selectedIndex = i;
+          break;
+        }
+      }
+    }
+    // Source schema dropdown
+    else if (index === 1 && sourceSchema.value) {
+      dropdown.value = sourceSchema.value;
+      for (let i = 0; i < options.length; i++) {
+        if (options[i].value === sourceSchema.value) {
+          dropdown.selectedIndex = i;
+          break;
+        }
+      }
+    }
+    // Source table dropdown  
+    else if (index === 2 && sourceTable.value) {
+      dropdown.value = sourceTable.value;
+      for (let i = 0; i < options.length; i++) {
+        if (options[i].value === sourceTable.value) {
+          dropdown.selectedIndex = i;
+          break;
+        }
+      }
+    }
+    // Target schema dropdown
+    else if (index === 3 && targetSchema.value) {
+      dropdown.value = targetSchema.value;
+      for (let i = 0; i < options.length; i++) {
+        if (options[i].value === targetSchema.value) {
+          dropdown.selectedIndex = i;
+          break;
+        }
+      }
+    }
+    // Target table dropdown
+    else if (index === 4 && targetTable.value) {
+      dropdown.value = targetTable.value;
+      for (let i = 0; i < options.length; i++) {
+        if (options[i].value === targetTable.value) {
+          dropdown.selectedIndex = i;
+          break;
+        }
+      }
+    }
+  });
+};
+
+// Auto-save state periodically and when panel becomes hidden
+let autoSaveInterval: NodeJS.Timeout | null = null;
+
+const startAutoSave = () => {
+  // Save state every 5 seconds
+  autoSaveInterval = setInterval(() => {
+    saveState();
+  }, 5000);
+};
+
+const stopAutoSave = () => {
+  if (autoSaveInterval) {
+    clearInterval(autoSaveInterval);
+    autoSaveInterval = null;
+  }
+};
+
+const restoreDropdownSelections = (savedState: any) => {
+  console.log('Restoring dropdown selections:', savedState);
+  
+  // Only restore if we have the required data
+  if (connections.value.length > 0 && schemas.value.length > 0) {
+    selectedConnection.value = savedState.selectedConnection || '';
+    sourceSchema.value = savedState.sourceSchema || '';
+    targetSchema.value = savedState.targetSchema || '';
+    
+    // If we have schemas, request tables for the saved schemas
+    if (savedState.sourceSchema) {
+      isLoadingSourceTables.value = true;
+      vscode.postMessage({ 
+        command: 'getTables', 
+        connectionName: savedState.selectedConnection,
+        schemaName: savedState.sourceSchema,
+        type: 'source'
+      });
+    }
+    
+    if (savedState.targetSchema) {
+      isLoadingTargetTables.value = true;
+      vscode.postMessage({ 
+        command: 'getTables', 
+        connectionName: savedState.selectedConnection,
+        schemaName: savedState.targetSchema,
+        type: 'target'
+      });
+    }
+    
+    // Restore table selections after tables are loaded
+    setTimeout(() => {
+      sourceTable.value = savedState.sourceTable || '';
+      targetTable.value = savedState.targetTable || '';
+    }, 200);
+  }
+};
+
+// Enhanced state restoration that handles data loading order
+const attemptStateRestoration = () => {
+  if (!pendingStateRestore) return;
+  
+  // Try to restore immediately if we have all required data
+  if (connections.value.length > 0 && schemas.value.length > 0) {
+    restoreDropdownSelections(pendingStateRestore);
+    pendingStateRestore = null;
+    return;
+  }
+  
+  // If we don't have connections yet, wait for them
+  if (connections.value.length === 0) {
+    console.log('Waiting for connections to load before restoring state...');
+    return;
+  }
+  
+  // If we have connections but no schemas, request schemas first
+  if (schemas.value.length === 0 && pendingStateRestore.selectedConnection) {
+    console.log('Requesting schemas for state restoration...');
+    isLoadingSchemas.value = true;
+    vscode.postMessage({ 
+      command: 'getSchemas', 
+      connectionName: pendingStateRestore.selectedConnection,
+      type: 'both'
+    });
+  }
 };
 
 const executeComparison = () => {
@@ -428,20 +646,94 @@ const handleMessage = (event: MessageEvent) => {
   switch (message.command) {
     case 'updateConnections':
       connections.value = message.connections || [];
+      // Restore connection selection immediately when connections are loaded
+      if (pendingStateRestore && connections.value.length > 0) {
+        isRestoringState = true;
+        
+        setTimeout(() => {
+          selectedConnection.value = pendingStateRestore.selectedConnection || '';
+          
+          // If we have a saved connection, request schemas
+          if (pendingStateRestore.selectedConnection) {
+            setTimeout(() => {
+              isLoadingSchemas.value = true;
+              vscode.postMessage({ 
+                command: 'getSchemas', 
+                connectionName: pendingStateRestore.selectedConnection,
+                type: 'both'
+              });
+            }, 100);
+          }
+        }, 100);
+      }
       break;
       
     case 'updateSchemas':
       schemas.value = message.schemas || [];
       isLoadingSchemas.value = false;
+      // Restore schema selections when schemas are loaded
+      if (pendingStateRestore && schemas.value.length > 0) {
+        setTimeout(() => {
+          sourceSchema.value = pendingStateRestore.sourceSchema || '';
+          targetSchema.value = pendingStateRestore.targetSchema || '';
+        }, 100);
+        
+        // Request tables for saved schemas
+        if (pendingStateRestore.sourceSchema && pendingStateRestore.selectedConnection) {
+          setTimeout(() => {
+            isLoadingSourceTables.value = true;
+            vscode.postMessage({ 
+              command: 'getTables', 
+              connectionName: pendingStateRestore.selectedConnection,
+              schemaName: pendingStateRestore.sourceSchema,
+              type: 'source'
+            });
+          }, 100);
+        }
+        
+        if (pendingStateRestore.targetSchema && pendingStateRestore.selectedConnection) {
+          setTimeout(() => {
+            isLoadingTargetTables.value = true;
+            vscode.postMessage({ 
+              command: 'getTables', 
+              connectionName: pendingStateRestore.selectedConnection,
+              schemaName: pendingStateRestore.targetSchema,
+              type: 'target'
+            });
+          }, 100);
+        }
+      }
       break;
       
     case 'updateTables':
       if (message.type === 'source') {
         sourceTables.value = message.tables || [];
         isLoadingSourceTables.value = false;
+        // Restore source table selection if we have pending state
+        if (pendingStateRestore && sourceTables.value.length > 0 && pendingStateRestore.sourceTable) {
+          setTimeout(() => {
+            sourceTable.value = pendingStateRestore.sourceTable;
+          }, 50);
+        }
       } else if (message.type === 'target') {
         targetTables.value = message.tables || [];
         isLoadingTargetTables.value = false;
+        // Restore target table selection if we have pending state
+        if (pendingStateRestore && targetTables.value.length > 0 && pendingStateRestore.targetTable) {
+          setTimeout(() => {
+            targetTable.value = pendingStateRestore.targetTable;
+            
+            // Clear pending state once all selections are restored
+            if (sourceTable.value && targetTable.value) {
+              // Force sync all dropdowns with their reactive values
+              setTimeout(() => {
+                syncDropdownsWithState();
+                pendingStateRestore = null;
+                isRestoringState = false;
+              }, 300);
+            }
+          }, 50);
+        }
       }
       break;
       
@@ -465,12 +757,39 @@ const handleMessage = (event: MessageEvent) => {
     case 'clearResults':
       clearResults();
       break;
+      
+    case 'restoreState':
+      if (message.payload) {
+        restoreFromState(message.payload);
+      }
+      break;
+      
+    case 'init':
+      // When panel becomes visible again, request state restoration
+      vscode.postMessage({ command: 'requestState' });
+      startAutoSave(); // Start auto-saving when panel is visible
+      break;
+      
+    case 'panelHidden':
+      // When panel becomes hidden, save state and stop auto-save
+      saveState();
+      stopAutoSave();
+      break;
   }
 };
 
 onMounted(() => {
   vscode.postMessage({ command: 'getConnections' });
+  vscode.postMessage({ command: 'requestState' });
   window.addEventListener('message', handleMessage);
+  
+  // Save state when component is about to be unmounted
+  window.addEventListener('beforeunload', () => {
+    saveState();
+  });
+  
+  // Start auto-saving
+  startAutoSave();
 });
 </script>
 
