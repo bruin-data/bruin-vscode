@@ -18,6 +18,7 @@
   },
   "publisher": "bruin",
   "activationEvents": [
+    "*",
     "workspaceContains:.bruin.yml",
     "workspaceContains:pipeline.yml"
   ],
@@ -455,6 +456,12 @@
         "category": "Bruin",
         "icon": "$(play)",
         "description": "Preview the selected SQL query in the Query Preview panel."
+      },
+      {
+        "command": "bruin.showWalkthrough",
+        "title": "Show Getting Started Walkthrough",
+        "category": "Bruin",
+        "description": "Show the Bruin getting started walkthrough."
       }
     ],
     "keybindings": [
@@ -465,11 +472,16 @@
         "when": "editorTextFocus && editorHasSelection && resourceExtname == .sql"
       }
     ],
+    "welcomePage": {
+      "walkthrough": "bruin.bruin-getting-started"
+    },
     "walkthroughs": [
       {
         "id": "bruin-getting-started",
         "title": "Getting Started with Bruin",
         "description": "Learn the essential features and keyboard shortcuts to be productive with Bruin",
+        "primary": true,
+        "featured": true,
         "steps": [
           {
             "id": "keyboard-shortcuts",

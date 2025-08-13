@@ -224,12 +224,12 @@ export class BruinPanel {
    * @param extensionUri The URI of the directory containing the extension.
    */
   public static render(extensionUri: Uri) {
-    const column = window.activeTextEditor ? ViewColumn.Beside : undefined;
+    const column = window.activeTextEditor ? ViewColumn.Beside : ViewColumn.One;
 
     if (this.currentPanel) {
       this.currentPanel._panel.reveal(column, true);
     } else {
-      const panel = window.createWebviewPanel(this.viewId, "Bruin", column || ViewColumn.Active, {
+      const panel = window.createWebviewPanel(this.viewId, "Bruin", column, {
         enableScripts: true,
         retainContextWhenHidden: true,
         localResourceRoots: [
@@ -371,6 +371,7 @@ export class BruinPanel {
         ? this._lastRenderedDocumentUri.fsPath
         : null,
       checkboxState: this._checkboxState,
+      settingsOnlyMode: !window.activeTextEditor,
     });
 
     webview.onDidReceiveMessage(
