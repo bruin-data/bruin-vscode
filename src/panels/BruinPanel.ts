@@ -371,6 +371,7 @@ export class BruinPanel {
         ? this._lastRenderedDocumentUri.fsPath
         : null,
       checkboxState: this._checkboxState,
+      settingsOnlyMode: !window.activeTextEditor,
     });
 
     webview.onDidReceiveMessage(
