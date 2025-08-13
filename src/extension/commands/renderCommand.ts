@@ -9,20 +9,24 @@ export const renderCommand = async (extensionUri: vscode.Uri) => {
   BruinPanel.render(extensionUri);
 
   const activeEditor = vscode.window.activeTextEditor;
+  
+  // Always render the panel
+  BruinPanel.render(extensionUri);
+  
   if (activeEditor) {
+    // Normal file rendering when there's an active editor
     const bruinSqlRenderer = new BruinRender(
       getBruinExecutablePath(),
       vscode.workspace.workspaceFolders?.[0].uri.fsPath!!
     );
 
     const filePath = activeEditor.document.fileName;
-
     await bruinSqlRenderer.render(filePath);
   } else {
-    // When no active editor, show a message in the panel that no file is open
-    BruinPanel.postMessage("render-message", {
-      status: "no-file",
-      message: "Create a Bruin asset file or a bruin pipeline from a template"
+    // Settings-only mode when no active editor
+    BruinPanel.postMessage("settings-only-mode", {
+      status: "success",
+      message: "Showing settings only"
     });
   }
 };
