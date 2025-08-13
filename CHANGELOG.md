@@ -1,4 +1,7 @@
 # Changelog
+## [0.63.1] - [2025-08-13]
+- Improved first-time activation, enabling template-based project creation without an active editor.
+
 ## [0.63.0] - [2025-08-08]
 - Introduced the capability to generate a new project based on a template directly within the extension. 
 
