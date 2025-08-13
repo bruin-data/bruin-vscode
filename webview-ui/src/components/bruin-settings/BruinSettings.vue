@@ -104,7 +104,7 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { ref, computed, onMounted, nextTick, watch } from "vue";
 import BruinCLI from "@/components/bruin-settings/BruinCLI.vue";
 import ConnectionsList from "@/components/connections/ConnectionList.vue";
@@ -168,7 +168,7 @@ onMounted(() => {
   }
 });
 
-const handleMessage = (event: any) => {
+const handleMessage = (event) => {
   const message = event.data;
   switch (message.command) {
     case "connections-list-message":
@@ -204,12 +204,12 @@ const handleMessage = (event: any) => {
   }
 };
 
-const getConnectionsListFromSchema = (payload: any) => {
+  const getConnectionsListFromSchema = (payload) => {
   console.log("Received connections schema payload:", payload);
   connectionsStore.updateConnectionsSchema(payload.message);
 };
 
-const handleConnectionsList = (payload: any) => {
+const handleConnectionsList = (payload) => {
   console.log("Received connections list payload:", payload); // Log payload for debugging
   if (payload.status === "success") {
     // Pass the raw message directly to the store - it will handle both formats
@@ -220,7 +220,7 @@ const handleConnectionsList = (payload: any) => {
   }
 };
 
-const handleConnectionDeleted = async (payload: any) => {
+const handleConnectionDeleted = async (payload) => {
   if (payload.status === "success") {
     connectionsStore.removeConnection(connectionToDelete.value?.id);
     showDeleteAlert.value = false;
@@ -230,7 +230,7 @@ const handleConnectionDeleted = async (payload: any) => {
   }
 };
 
-const handleConnectionCreated = (payload: any) => {
+const handleConnectionCreated = (payload) => {
   if (payload.status === "success") {
     try {
       console.log("Payload received (created):", payload);
@@ -253,7 +253,7 @@ const handleConnectionCreated = (payload: any) => {
   }
 };
 
-const handleConnectionEdited = (payload: any) => {
+const handleConnectionEdited = (payload) => {
   if (payload.status === "success") {
     console.log("Payload received (edited):", payload);
     if (payload.connection && payload.connection.id) {
@@ -274,7 +274,7 @@ const handleConnectionEdited = (payload: any) => {
   }
 };
 
-const showConnectionForm = (connectionOrEnvironment: any = null, duplicate = false) => {
+const showConnectionForm = (connectionOrEnvironment = null, duplicate = false) => {
   // Reset form state before showing new data
   closeConnectionForm();
   nextTick(() => {
@@ -332,11 +332,11 @@ const showConnectionForm = (connectionOrEnvironment: any = null, duplicate = fal
   }, 100);
 };
 
-const handleDuplicateConnection = (connection: any) => {
+const handleDuplicateConnection = (connection) => {
   showConnectionForm(connection, true);
 };
 
-const handleConnectionSubmit = async (connectionData: any) => {
+const handleConnectionSubmit = async (connectionData) => {
   clearFormError();
   try {
     const sanitizedConnectionData = JSON.parse(JSON.stringify(connectionData));
@@ -372,7 +372,7 @@ const clearFormError = () => {
   formError.value = undefined;
 };
 
-const confirmDeleteConnection = (connection: any) => {
+const confirmDeleteConnection = (connection) => {
   connectionToDelete.value = connection;
   showDeleteAlert.value = true;
 };
@@ -399,7 +399,7 @@ const cancelDeleteConnection = () => {
 };
 
 // Environment handlers
-const handleAddEnvironment = async (environmentName: string) => {
+const handleAddEnvironment = async (environmentName) => {
   try {
     await vscode.postMessage({
       command: "bruin.createEnvironment",
@@ -412,7 +412,7 @@ const handleAddEnvironment = async (environmentName: string) => {
   }
 };
 
-const handleEditEnvironment = async (environmentData: any) => {
+const handleEditEnvironment = async (environmentData) => {
   try {
     await vscode.postMessage({
       command: "bruin.updateEnvironment",
@@ -426,7 +426,7 @@ const handleEditEnvironment = async (environmentData: any) => {
   }
 };
 
-const handleDeleteEnvironment = (environmentName: string) => {
+const handleDeleteEnvironment = (environmentName) => {
   environmentToDelete.value = environmentName;
   showEnvironmentDeleteAlert.value = true;
 };
@@ -455,7 +455,7 @@ const cancelDeleteEnvironment = () => {
   environmentToDelete.value = null;
 };
 
-const handleEnvironmentCreated = (payload: any) => {
+const handleEnvironmentCreated = (payload) => {
   if (payload.status === "success") {
     console.log("Environment created successfully:", payload.message);
   } else {
@@ -463,7 +463,7 @@ const handleEnvironmentCreated = (payload: any) => {
   }
 };
 
-const handleEnvironmentUpdated = (payload: any) => {
+const handleEnvironmentUpdated = (payload) => {
   if (payload.status === "success") {
     console.log("Environment updated successfully:", payload.message);
   } else {
@@ -471,7 +471,7 @@ const handleEnvironmentUpdated = (payload: any) => {
   }
 };
 
-const handleEnvironmentDeleted = (payload: any) => {
+const handleEnvironmentDeleted = (payload) => {
   if (payload.status === "success") {
     console.log("Environment deleted successfully:", payload.message);
     showEnvironmentDeleteAlert.value = false;
@@ -492,7 +492,7 @@ const loadTemplates = async () => {
   }
 };
 
-const handleTemplatesList = (payload: any) => {
+const handleTemplatesList = (payload) => {
   templatesLoading.value = false;
   if (payload.status === "success") {
     try {
@@ -511,8 +511,8 @@ const handleTemplatesList = (payload: any) => {
   }
 };
 
-const handleTemplateSelect = (event: any) => {
-  const template = (event.target as HTMLSelectElement).value;
+const handleTemplateSelect = (event) => {
+  const template = (event.target).value;
   selectedTemplate.value = template;
   console.log("Selected template:", template);
 };
@@ -535,7 +535,7 @@ const handleCreateProject = async () => {
   }
 };
 
-const handleProjectInit = (payload: any) => {
+const handleProjectInit = (payload) => {
   if (payload.status === "success") {
     console.log("Project initialized successfully:", payload.message);
     projectCreationSuccess.value = true;

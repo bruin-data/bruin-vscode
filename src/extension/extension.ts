@@ -121,6 +121,10 @@ export async function activate(context: ExtensionContext) {
   const startTime = Date.now();
   console.time("Bruin Activation Total");
   
+  // Check if this is first time activation
+  const isFirstActivation = !context.globalState.get('bruin.hasActivated', false);
+  
+
   // Focus the active editor first to prevent undefined fsPath errors
   const activeEditor = window.activeTextEditor;
   if (activeEditor) {
@@ -619,6 +623,15 @@ export async function activate(context: ExtensionContext) {
         vscode.window.showErrorMessage(`Error triggering completions: ${errorMessage}`);
       }
     }),
+    commands.registerCommand("bruin.showWalkthrough", async () => {
+      try {
+        trackEvent("Command Executed", { command: "showWalkthrough" });
+        await vscode.commands.executeCommand('workbench.action.openWalkthrough', 'bruin.bruin-getting-started');
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error showing walkthrough: ${errorMessage}`);
+      }
+    }),
   ];
 
   context.subscriptions.push(...commandDisposables);
@@ -630,6 +643,24 @@ export async function activate(context: ExtensionContext) {
   const activationTime = Date.now() - startTime;
   console.debug(`Bruin activated successfully in ${activationTime}ms`);
   console.timeEnd("Bruin Activation Total");
+
+  // Show walkthrough on first activation
+  if (isFirstActivation) {
+    await context.globalState.update('bruin.hasActivated', true);
+    
+    // Show walkthrough when extension is first installed
+    // Use a longer delay to ensure VS Code is fully loaded
+    setTimeout(() => {
+      vscode.commands.executeCommand('workbench.action.openWalkthrough', 'bruin.bruin-getting-started', true);
+    }, 3000);
+    
+    // Also show immediately if welcome tab is active
+    if (vscode.window.tabGroups.activeTabGroup.activeTab?.label === 'Welcome') {
+      setTimeout(() => {
+        vscode.commands.executeCommand('workbench.action.openWalkthrough', 'bruin.bruin-getting-started', true);
+      }, 500);
+    }
+  }
 
 }
 
