@@ -1,30 +1,17 @@
 <template>
   <div class="flex flex-col w-full h-full">
     <div class="flex-1 overflow-auto">
-      <!-- Connection and Action Buttons -->
-      <div class="p-2 border-b border-panel-border">
-        <div class="flex items-end justify-between gap-3">
-          <div class="flex-1">
-            <label class="block text-xs text-editor-fg mb-1">Connection</label>
-            <vscode-dropdown 
-              v-model="selectedConnection" 
-              @change="onConnectionChange"
-              class="w-48 max-w-full"
-              :disabled="isLoading"
-            >
-              <vscode-option value="">Select Connection...</vscode-option>
-              <vscode-option
-                v-for="conn in connections"
-                :key="conn.name"
-                :value="conn.name"
-              >
-                {{ conn.name }}{{ conn.environment && conn.environment !== 'default' ? ` (${conn.environment})` : '' }}
-              </vscode-option>
-            </vscode-dropdown>
+      <!-- Header with Action Buttons -->
+      <div class="p-3 border-b border-panel-border">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="codicon codicon-diff text-blue-500"></span>
+            <h3 class="text-sm font-medium text-editor-fg">Table Comparison</h3>
           </div>
+          
           <div class="flex items-center gap-2">
             <vscode-button
-              :disabled="!canExecuteComparison"
+              :disabled="!canExecuteComparison || isLoading"
               @click="executeComparison"
               appearance="primary"
             >
@@ -65,105 +52,176 @@
       </div>
 
 
-      <!-- Collapsible Source and Target Selection -->
+      <!-- Configuration Section -->
       <div class="border-b border-panel-border">
-        <div class="flex items-center justify-between p-2 cursor-pointer" @click="toggleInputsCollapse">
+        <div class="flex items-center justify-between p-3 cursor-pointer" @click="toggleInputsCollapse">
           <div class="flex items-center gap-2">
             <span class="codicon codicon-settings text-editor-fg"></span>
-            <span class="text-xs font-medium text-editor-fg">Table Selection</span>
+            <span class="text-sm font-medium text-editor-fg">Configuration</span>
           </div>
           <span :class="['codicon', isInputsCollapsed ? 'codicon-chevron-right' : 'codicon-chevron-down', 'text-editor-fg']"></span>
         </div>
-        <div v-if="!isInputsCollapsed" class="p-3 space-y-3">
-          <!-- Source Section -->
-          <div class="space-y-2">
-            <div class="flex items-center">
-              <span class="codicon codicon-source-control text-green-500 mr-1"></span>
-              <span class="text-xs font-medium text-editor-fg mr-3 w-12">Source</span>
-              <div class="flex items-center gap-3 flex-1">
-                <div class="flex-1">
-                  <vscode-dropdown 
-                    v-model="sourceSchema" 
-                    @change="onSourceSchemaChange"
-                    class="w-full"
-                  >
-                    <vscode-option value="">
-                      {{ isLoadingSchemas ? 'Loading...' : 'Select Schema...' }}
-                    </vscode-option>
-                    <vscode-option
-                      v-for="schema in schemas"
-                      :key="schema.name"
-                      :value="schema.name"
-                    >
-                      {{ schema.name }}
-                    </vscode-option>
-                  </vscode-dropdown>
+        
+        <div v-if="!isInputsCollapsed" class="p-4 space-y-6">
+          <!-- Connection Mode -->
+          <div class="space-y-3">
+            <label class="block text-sm font-medium text-editor-fg mb-2">Connection Mode</label>
+            <vscode-radio-group @change="onConnectionModeRadioChange">
+              <vscode-radio 
+                value="single" 
+                :checked="connectionMode === 'single'"
+              >
+                Single Connection
+              </vscode-radio>
+              <vscode-radio 
+                value="explicit" 
+                :checked="connectionMode === 'explicit'"
+              >
+                Per-Table Connection
+              </vscode-radio>
+            </vscode-radio-group>
+          </div>
+
+          <!-- Single Connection Mode -->
+          <div v-if="connectionMode === 'single'" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-editor-fg mb-2">Default Connection</label>
+              <vscode-dropdown 
+                v-model="defaultConnection" 
+                @change="onDefaultConnectionChange"
+                class="w-full"
+                :disabled="isLoading"
+              >
+                <vscode-option value="">Select Connection...</vscode-option>
+                <vscode-option
+                  v-for="conn in connections"
+                  :key="conn.name"
+                  :value="conn.name"
+                >
+                  {{ conn.name }}{{ conn.environment && conn.environment !== 'default' ? ` (${conn.environment})` : '' }}
+                </vscode-option>
+              </vscode-dropdown>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-editor-fg mb-2">
+                  <span class="codicon codicon-source-control text-green-500 mr-1"></span>
+                  Source Table
+                </label>
+                <vscode-text-field
+                  v-model="sourceTableInput"
+                  @input="onSourceTableInput"
+                  placeholder="e.g., public.users or users"
+                  class="w-full"
+                  :disabled="isLoading"
+                >
+                </vscode-text-field>
+                <div class="text-xs text-editor-fg opacity-60 mt-1">
+                  Enter schema.table or just table name
                 </div>
-                <span class="text-editor-fg opacity-50">.</span>
-                <div class="flex-1">
-                  <vscode-dropdown 
-                    v-model="sourceTable" 
-                    @change="onSourceTableChange"
-                    class="w-full"
-                  >
-                    <vscode-option value="">
-                      {{ isLoadingSourceTables ? 'Loading...' : 'Select Table...' }}
-                    </vscode-option>
-                    <vscode-option
-                      v-for="table in sourceTables"
-                      :key="table.name"
-                      :value="table.name"
-                    >
-                      {{ table.name }}
-                    </vscode-option>
-                  </vscode-dropdown>
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium text-editor-fg mb-2">
+                  <span class="codicon codicon-target text-orange-500 mr-1"></span>
+                  Target Table
+                </label>
+                <vscode-text-field
+                  v-model="targetTableInput"
+                  @input="onTargetTableInput"
+                  placeholder="e.g., public.users or users"
+                  class="w-full"
+                  :disabled="isLoading"
+                >
+                </vscode-text-field>
+                <div class="text-xs text-editor-fg opacity-60 mt-1">
+                  Enter schema.table or just table name
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Target Section -->
-          <div class="space-y-2">
-            <div class="flex items-center">
-              <span class="codicon codicon-target text-orange-500 mr-1"></span>
-              <span class="text-xs font-medium text-editor-fg mr-3 w-12">Target</span>
-              <div class="flex items-center gap-3 flex-1">
-                <div class="flex-1">
+          <!-- Explicit Connection Mode -->
+          <div v-if="connectionMode === 'explicit'" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <!-- Source Configuration -->
+              <div class="space-y-3">
+                <h4 class="text-sm font-medium text-editor-fg flex items-center gap-2">
+                  <span class="codicon codicon-source-control text-green-500"></span>
+                  Source
+                </h4>
+                <div>
+                  <label class="block text-xs text-editor-fg mb-1">Connection</label>
                   <vscode-dropdown 
-                    v-model="targetSchema" 
-                    @change="onTargetSchemaChange"
+                    v-model="sourceConnection" 
+                    @change="onSourceConnectionChange"
                     class="w-full"
+                    :disabled="isLoading"
                   >
-                    <vscode-option value="">
-                      {{ isLoadingSchemas ? 'Loading...' : 'Select Schema...' }}
-                    </vscode-option>
+                    <vscode-option value="">Select Connection...</vscode-option>
                     <vscode-option
-                      v-for="schema in schemas"
-                      :key="schema.name"
-                      :value="schema.name"
+                      v-for="conn in connections"
+                      :key="conn.name"
+                      :value="conn.name"
                     >
-                      {{ schema.name }}
+                      {{ conn.name }}{{ conn.environment && conn.environment !== 'default' ? ` (${conn.environment})` : '' }}
                     </vscode-option>
                   </vscode-dropdown>
                 </div>
-                <span class="text-editor-fg opacity-50">.</span>
-                <div class="flex-1">
-                  <vscode-dropdown 
-                    v-model="targetTable" 
-                    @change="onTargetTableChange"
+                <div>
+                  <label class="block text-xs text-editor-fg mb-1">Table</label>
+                  <vscode-text-field
+                    v-model="sourceTableInput"
+                    @input="onSourceTableInput"
+                    placeholder="e.g., public.users or users"
                     class="w-full"
+                    :disabled="isLoading"
                   >
-                    <vscode-option value="">
-                      {{ isLoadingTargetTables ? 'Loading...' : 'Select Table...' }}
-                    </vscode-option>
+                  </vscode-text-field>
+                  <div class="text-xs text-editor-fg opacity-60 mt-1">
+                    Enter schema.table or just table name
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Target Configuration -->
+              <div class="space-y-3">
+                <h4 class="text-sm font-medium text-editor-fg flex items-center gap-2">
+                  <span class="codicon codicon-target text-orange-500"></span>
+                  Target
+                </h4>
+                <div>
+                  <label class="block text-xs text-editor-fg mb-1">Connection</label>
+                  <vscode-dropdown 
+                    v-model="targetConnection" 
+                    @change="onTargetConnectionChange"
+                    class="w-full"
+                    :disabled="isLoading"
+                  >
+                    <vscode-option value="">Select Connection...</vscode-option>
                     <vscode-option
-                      v-for="table in targetTables"
-                      :key="table.name"
-                      :value="table.name"
+                      v-for="conn in connections"
+                      :key="conn.name"
+                      :value="conn.name"
                     >
-                      {{ table.name }}
+                      {{ conn.name }}{{ conn.environment && conn.environment !== 'default' ? ` (${conn.environment})` : '' }}
                     </vscode-option>
                   </vscode-dropdown>
+                </div>
+                <div>
+                  <label class="block text-xs text-editor-fg mb-1">Table</label>
+                  <vscode-text-field
+                    v-model="targetTableInput"
+                    @input="onTargetTableInput"
+                    placeholder="e.g., public.users or users"
+                    class="w-full"
+                    :disabled="isLoading"
+                  >
+                  </vscode-text-field>
+                  <div class="text-xs text-editor-fg opacity-60 mt-1">
+                    Enter schema.table or just table name
+                  </div>
                 </div>
               </div>
             </div>
@@ -191,7 +249,7 @@
             </div>
             <div class="flex items-center gap-2">
               <vscode-badge class="text-xs">
-                {{ sourceSchema }}.{{ sourceTable }} → {{ targetSchema }}.{{ targetTable }}
+                {{ comparisonInfo.source }} → {{ comparisonInfo.target }}
               </vscode-badge>
               <vscode-button
                 title="Copy Results"
@@ -215,7 +273,7 @@
       <div v-if="!hasResults && !error && !isLoading" class="flex items-center justify-center h-32 text-center">
         <div class="text-editor-fg opacity-60">
           <span class="codicon codicon-diff text-4xl block mb-2 opacity-40"></span>
-          <p class="text-sm">Select connection, schemas, and tables to compare</p>
+          <p class="text-sm">Configure connections and table names to compare</p>
         </div>
       </div>
       
@@ -255,25 +313,25 @@ interface ComparisonInfo {
 }
 
 interface SavedState {
-  selectedConnection?: string;
-  sourceSchema?: string;
-  targetSchema?: string;
-  sourceTable?: string;
-  targetTable?: string;
+  connectionMode?: 'single' | 'explicit';
+  defaultConnection?: string;
+  sourceConnection?: string;
+  targetConnection?: string;
+  sourceTableInput?: string;
+  targetTableInput?: string;
   isInputsCollapsed?: boolean;
 }
 
 // State
 const connections = ref<Connection[]>([]);
-const schemas = ref<Schema[]>([]);
-const sourceTables = ref<Table[]>([]);
-const targetTables = ref<Table[]>([]);
 
-const selectedConnection = ref('');
-const sourceSchema = ref('');
-const targetSchema = ref('');
-const sourceTable = ref('');
-const targetTable = ref('');
+// New connection mode variables
+const connectionMode = ref<'single' | 'explicit'>('single');
+const defaultConnection = ref('');
+const sourceConnection = ref('');
+const targetConnection = ref('');
+const sourceTableInput = ref('');
+const targetTableInput = ref('');
 
 const isLoading = ref(false);
 const isLoadingSchemas = ref(false);
@@ -286,115 +344,71 @@ const isInputsCollapsed = ref(false);
 
 // Computed
 const hasResults = computed(() => results.value.length > 0);
-const canExecuteComparison = computed(() => 
-  selectedConnection.value && 
-  sourceSchema.value && 
-  targetSchema.value && 
-  sourceTable.value && 
-  targetTable.value
-);
+const canExecuteComparison = computed(() => {
+  const hasSourceTable = sourceTableInput.value.trim().length > 0;
+  const hasTargetTable = targetTableInput.value.trim().length > 0;
+  
+  if (connectionMode.value === 'single') {
+    return defaultConnection.value && hasSourceTable && hasTargetTable;
+  } else {
+    return sourceConnection.value && targetConnection.value && hasSourceTable && hasTargetTable;
+  }
+});
 
 // Methods
-
-const onConnectionChange = (event: Event) => {
+const onConnectionModeRadioChange = (event: Event) => {
   if (isRestoringState) return;
   
-  const target = event.target as HTMLSelectElement;
-  const newValue = target.value;
+  const target = event.target as any;
+  connectionMode.value = target.value as 'single' | 'explicit';
   
-  // Manually update the value since v-model might not be working
-  selectedConnection.value = newValue;
-  
-  // Clear dependent selections
-  sourceSchema.value = '';
-  targetSchema.value = '';
-  sourceTable.value = '';
-  targetTable.value = '';
-  
-  // Clear dependent data
-  schemas.value = [];
-  sourceTables.value = [];
-  targetTables.value = [];
-  
-  if (newValue) {
-    isLoadingSchemas.value = true;
-    const message = { 
-      command: 'getSchemas', 
-      connectionName: newValue,
-      type: 'both'
-    };
-    vscode.postMessage(message);
-  } else {
-    isLoadingSchemas.value = false;
-  }
+  // Clear all selections when mode changes
+  defaultConnection.value = '';
+  sourceConnection.value = '';
+  targetConnection.value = '';
+  sourceTableInput.value = '';
+  targetTableInput.value = '';
   
   saveState();
 };
 
-const onSourceSchemaChange = (event: Event) => {
+const onDefaultConnectionChange = (event: Event) => {
   if (isRestoringState) return;
   
   const target = event.target as HTMLSelectElement;
-  const newValue = target.value;
-  
-  sourceSchema.value = newValue;
-  
-  sourceTable.value = '';
-  sourceTables.value = [];
-  
-  if (newValue && selectedConnection.value) {
-    isLoadingSourceTables.value = true;
-    const message = { 
-      command: 'getTables', 
-      connectionName: selectedConnection.value,
-      schemaName: newValue,
-      type: 'source'
-    };
-    vscode.postMessage(message);
-  }
-  
+  defaultConnection.value = target.value;
   saveState();
 };
 
-const onTargetSchemaChange = (event: Event) => {
+const onSourceConnectionChange = (event: Event) => {
   if (isRestoringState) return;
   
   const target = event.target as HTMLSelectElement;
-  const newValue = target.value;
-  
-  // Manually update the value
-  targetSchema.value = newValue;
-  
-  targetTable.value = '';
-  targetTables.value = [];
-  
-  if (newValue && selectedConnection.value) {
-    isLoadingTargetTables.value = true;
-    const message = { 
-      command: 'getTables', 
-      connectionName: selectedConnection.value,
-      schemaName: newValue,
-      type: 'target'
-    };
-    vscode.postMessage(message);
-  }
-  
+  sourceConnection.value = target.value;
   saveState();
 };
 
-const onSourceTableChange = (event: Event) => {
+const onTargetConnectionChange = (event: Event) => {
   if (isRestoringState) return;
   
   const target = event.target as HTMLSelectElement;
-  sourceTable.value = target.value;
+  targetConnection.value = target.value;
   saveState();
 };
 
-const onTargetTableChange = (event: Event) => {
+const onSourceTableInput = (event: Event) => {
   if (isRestoringState) return;
   
-  const target = event.target as HTMLSelectElement;
-  targetTable.value = target.value;
+  const target = event.target as HTMLInputElement;
+  sourceTableInput.value = target.value;
+  saveState();
+};
+
+const onTargetTableInput = (event: Event) => {
+  if (isRestoringState) return;
+  
+  const target = event.target as HTMLInputElement;
+  targetTableInput.value = target.value;
   saveState();
 };
 
@@ -447,66 +461,59 @@ const restoreFromState = (savedState: any) => {
   error.value = savedState.error || '';
   comparisonInfo.value = savedState.comparisonInfo || { source: '', target: '' };
   
-  // If we have connections loaded, restore immediately
+  // If we have connections loaded, sync dropdowns
   if (connections.value.length > 0) {
-    restoreDropdownSelections(savedState);
+    setTimeout(() => {
+      syncDropdownsWithState();
+      pendingStateRestore = null;
+    }, 100);
   }
 };
 
 const syncDropdownsWithState = () => {
   const dropdowns = document.querySelectorAll('vscode-dropdown');
-  dropdowns.forEach((dropdown: any, index) => {
+  dropdowns.forEach((dropdown: any) => {
+    const modelValue = dropdown.getAttribute('v-model');
     const options = dropdown.querySelectorAll('vscode-option');
     
-    // Connection dropdown (first one)
-    if (index === 0 && selectedConnection.value) {
-      dropdown.value = selectedConnection.value;
+    let targetValue = '';
+    if (modelValue === 'defaultConnection') {
+      targetValue = defaultConnection.value;
+    } else if (modelValue === 'sourceConnection') {
+      targetValue = sourceConnection.value;
+    } else if (modelValue === 'targetConnection') {
+      targetValue = targetConnection.value;
+    }
+    
+    if (targetValue) {
+      dropdown.value = targetValue;
       for (let i = 0; i < options.length; i++) {
-        if (options[i].value === selectedConnection.value) {
+        if (options[i].value === targetValue) {
           dropdown.selectedIndex = i;
           break;
         }
       }
     }
-    // Source schema dropdown
-    else if (index === 1 && sourceSchema.value) {
-      dropdown.value = sourceSchema.value;
-      for (let i = 0; i < options.length; i++) {
-        if (options[i].value === sourceSchema.value) {
-          dropdown.selectedIndex = i;
-          break;
-        }
-      }
+  });
+  
+  // Sync text inputs
+  const textFields = document.querySelectorAll('vscode-text-field');
+  textFields.forEach((field: any) => {
+    const modelValue = field.getAttribute('v-model');
+    if (modelValue === 'sourceTableInput') {
+      field.value = sourceTableInput.value;
+    } else if (modelValue === 'targetTableInput') {
+      field.value = targetTableInput.value;
     }
-    // Source table dropdown  
-    else if (index === 2 && sourceTable.value) {
-      dropdown.value = sourceTable.value;
-      for (let i = 0; i < options.length; i++) {
-        if (options[i].value === sourceTable.value) {
-          dropdown.selectedIndex = i;
-          break;
-        }
-      }
-    }
-    // Target schema dropdown
-    else if (index === 3 && targetSchema.value) {
-      dropdown.value = targetSchema.value;
-      for (let i = 0; i < options.length; i++) {
-        if (options[i].value === targetSchema.value) {
-          dropdown.selectedIndex = i;
-          break;
-        }
-      }
-    }
-    // Target table dropdown
-    else if (index === 4 && targetTable.value) {
-      dropdown.value = targetTable.value;
-      for (let i = 0; i < options.length; i++) {
-        if (options[i].value === targetTable.value) {
-          dropdown.selectedIndex = i;
-          break;
-        }
-      }
+  });
+  
+  // Sync radio buttons
+  const radioButtons = document.querySelectorAll('vscode-radio');
+  radioButtons.forEach((radio: any) => {
+    if (radio.value === connectionMode.value) {
+      radio.checked = true;
+    } else {
+      radio.checked = false;
     }
   });
 };
@@ -528,72 +535,6 @@ const stopAutoSave = () => {
   }
 };
 
-const restoreDropdownSelections = (savedState: any) => {
-  console.log('Restoring dropdown selections:', savedState);
-  
-  // Only restore if we have the required data
-  if (connections.value.length > 0 && schemas.value.length > 0) {
-    selectedConnection.value = savedState.selectedConnection || '';
-    sourceSchema.value = savedState.sourceSchema || '';
-    targetSchema.value = savedState.targetSchema || '';
-    
-    // If we have schemas, request tables for the saved schemas
-    if (savedState.sourceSchema) {
-      isLoadingSourceTables.value = true;
-      vscode.postMessage({ 
-        command: 'getTables', 
-        connectionName: savedState.selectedConnection,
-        schemaName: savedState.sourceSchema,
-        type: 'source'
-      });
-    }
-    
-    if (savedState.targetSchema) {
-      isLoadingTargetTables.value = true;
-      vscode.postMessage({ 
-        command: 'getTables', 
-        connectionName: savedState.selectedConnection,
-        schemaName: savedState.targetSchema,
-        type: 'target'
-      });
-    }
-    
-    // Restore table selections after tables are loaded
-    setTimeout(() => {
-      sourceTable.value = savedState.sourceTable || '';
-      targetTable.value = savedState.targetTable || '';
-    }, 200);
-  }
-};
-
-// Enhanced state restoration that handles data loading order
-const attemptStateRestoration = () => {
-  if (!pendingStateRestore) return;
-  
-  // Try to restore immediately if we have all required data
-  if (connections.value.length > 0 && schemas.value.length > 0) {
-    restoreDropdownSelections(pendingStateRestore);
-    pendingStateRestore = null;
-    return;
-  }
-  
-  // If we don't have connections yet, wait for them
-  if (connections.value.length === 0) {
-    console.log('Waiting for connections to load before restoring state...');
-    return;
-  }
-  
-  // If we have connections but no schemas, request schemas first
-  if (schemas.value.length === 0 && pendingStateRestore.selectedConnection) {
-    console.log('Requesting schemas for state restoration...');
-    isLoadingSchemas.value = true;
-    vscode.postMessage({ 
-      command: 'getSchemas', 
-      connectionName: pendingStateRestore.selectedConnection,
-      type: 'both'
-    });
-  }
-};
 
 const executeComparison = () => {
   if (!canExecuteComparison.value) return;
@@ -604,12 +545,12 @@ const executeComparison = () => {
   
   vscode.postMessage({
     command: 'executeTableDiff',
-    sourceConnection: selectedConnection.value,
-    sourceSchema: sourceSchema.value,
-    sourceTable: sourceTable.value,
-    targetConnection: selectedConnection.value,
-    targetSchema: targetSchema.value,
-    targetTable: targetTable.value
+    connectionMode: connectionMode.value,
+    defaultConnection: defaultConnection.value,
+    sourceConnection: sourceConnection.value,
+    targetConnection: targetConnection.value,
+    sourceTable: sourceTableInput.value.trim(),
+    targetTable: targetTableInput.value.trim()
   });
 };
 
@@ -620,17 +561,14 @@ const clearResults = () => {
 };
 
 const newComparison = () => {
-  selectedConnection.value = '';
-  sourceSchema.value = '';
-  targetSchema.value = '';
-  sourceTable.value = '';
-  targetTable.value = '';
+  connectionMode.value = 'single';
+  defaultConnection.value = '';
+  sourceConnection.value = '';
+  targetConnection.value = '';
+  sourceTableInput.value = '';
+  targetTableInput.value = '';
   
   clearResults();
-  
-  schemas.value = [];
-  sourceTables.value = [];
-  targetTables.value = [];
 };
 
 const copyResults = () => {
@@ -646,94 +584,13 @@ const handleMessage = (event: MessageEvent) => {
   switch (message.command) {
     case 'updateConnections':
       connections.value = message.connections || [];
-      // Restore connection selection immediately when connections are loaded
+      // Restore state when connections are loaded
       if (pendingStateRestore && connections.value.length > 0) {
-        isRestoringState = true;
-        
         setTimeout(() => {
-          selectedConnection.value = pendingStateRestore.selectedConnection || '';
-          
-          // If we have a saved connection, request schemas
-          if (pendingStateRestore.selectedConnection) {
-            setTimeout(() => {
-              isLoadingSchemas.value = true;
-              vscode.postMessage({ 
-                command: 'getSchemas', 
-                connectionName: pendingStateRestore.selectedConnection,
-                type: 'both'
-              });
-            }, 100);
-          }
+          syncDropdownsWithState();
+          pendingStateRestore = null;
+          isRestoringState = false;
         }, 100);
-      }
-      break;
-      
-    case 'updateSchemas':
-      schemas.value = message.schemas || [];
-      isLoadingSchemas.value = false;
-      // Restore schema selections when schemas are loaded
-      if (pendingStateRestore && schemas.value.length > 0) {
-        setTimeout(() => {
-          sourceSchema.value = pendingStateRestore.sourceSchema || '';
-          targetSchema.value = pendingStateRestore.targetSchema || '';
-        }, 100);
-        
-        // Request tables for saved schemas
-        if (pendingStateRestore.sourceSchema && pendingStateRestore.selectedConnection) {
-          setTimeout(() => {
-            isLoadingSourceTables.value = true;
-            vscode.postMessage({ 
-              command: 'getTables', 
-              connectionName: pendingStateRestore.selectedConnection,
-              schemaName: pendingStateRestore.sourceSchema,
-              type: 'source'
-            });
-          }, 100);
-        }
-        
-        if (pendingStateRestore.targetSchema && pendingStateRestore.selectedConnection) {
-          setTimeout(() => {
-            isLoadingTargetTables.value = true;
-            vscode.postMessage({ 
-              command: 'getTables', 
-              connectionName: pendingStateRestore.selectedConnection,
-              schemaName: pendingStateRestore.targetSchema,
-              type: 'target'
-            });
-          }, 100);
-        }
-      }
-      break;
-      
-    case 'updateTables':
-      if (message.type === 'source') {
-        sourceTables.value = message.tables || [];
-        isLoadingSourceTables.value = false;
-        // Restore source table selection if we have pending state
-        if (pendingStateRestore && sourceTables.value.length > 0 && pendingStateRestore.sourceTable) {
-          setTimeout(() => {
-            sourceTable.value = pendingStateRestore.sourceTable;
-          }, 50);
-        }
-      } else if (message.type === 'target') {
-        targetTables.value = message.tables || [];
-        isLoadingTargetTables.value = false;
-        // Restore target table selection if we have pending state
-        if (pendingStateRestore && targetTables.value.length > 0 && pendingStateRestore.targetTable) {
-          setTimeout(() => {
-            targetTable.value = pendingStateRestore.targetTable;
-            
-            // Clear pending state once all selections are restored
-            if (sourceTable.value && targetTable.value) {
-              // Force sync all dropdowns with their reactive values
-              setTimeout(() => {
-                syncDropdownsWithState();
-                pendingStateRestore = null;
-                isRestoringState = false;
-              }, 300);
-            }
-          }, 50);
-        }
       }
       break;
       

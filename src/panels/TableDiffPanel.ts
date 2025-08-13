@@ -70,11 +70,11 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
               break;
             case 'executeTableDiff':
               await this.executeDiff(
+                message.connectionMode,
+                message.defaultConnection,
                 message.sourceConnection, 
-                message.sourceSchema, 
                 message.sourceTable, 
                 message.targetConnection, 
-                message.targetSchema, 
                 message.targetTable
               );
               break;
@@ -246,11 +246,11 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
   }
 
   private async executeDiff(
+    connectionMode: 'single' | 'explicit',
+    defaultConnection: string,
     sourceConnection: string,
-    sourceSchema: string,
     sourceTable: string,
     targetConnection: string,
-    targetSchema: string,
     targetTable: string
   ) {
     try {
@@ -260,7 +260,7 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
         cancellable: false
       }, async (progress) => {
         progress.report({ 
-          message: `Comparing ${sourceSchema}.${sourceTable} with ${targetSchema}.${targetTable}` 
+          message: `Comparing ${sourceTable} with ${targetTable}` 
         });
 
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
@@ -268,25 +268,39 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
           throw new Error("Workspace folder not found");
         }
 
-        // Find the connection to get its environment
-        const bruinConnections = new BruinConnections("bruin", workspaceFolder);
-        const connections = await bruinConnections.getConnectionsForActivityBar();
-        const connection = connections.find(conn => conn.name === sourceConnection);
-        const environment = connection?.environment;
-
         const tableDiff = new BruinTableDiff("bruin", workspaceFolder);
-        const sourceTableRef = `${sourceSchema}.${sourceTable}`;
-        const targetTableRef = `${targetSchema}.${targetTable}`;
+        let result: string;
+        let sourceInfo: string;
+        let targetInfo: string;
 
-        const result = await tableDiff.compareTables(
-          sourceConnection,
-          sourceTableRef,
-          targetTableRef,
-          environment
-        );
+        if (connectionMode === 'single') {
+          // Single connection mode: use --connection flag
+          const bruinConnections = new BruinConnections("bruin", workspaceFolder);
+          const connections = await bruinConnections.getConnectionsForActivityBar();
+          const connection = connections.find(conn => conn.name === defaultConnection);
+          const environment = connection?.environment;
 
-        const sourceInfo = `${sourceConnection}.${sourceSchema}.${sourceTable}`;
-        const targetInfo = `${targetConnection}.${targetSchema}.${targetTable}`;
+          result = await tableDiff.compareTables(
+            defaultConnection,
+            sourceTable,
+            targetTable,
+            environment
+          );
+
+          sourceInfo = `${defaultConnection}:${sourceTable}`;
+          targetInfo = `${defaultConnection}:${targetTable}`;
+        } else {
+          // Explicit connection mode: use connection_name:table_name format
+          result = await tableDiff.compareTablesExplicit(
+            sourceConnection,
+            sourceTable,
+            targetConnection,
+            targetTable
+          );
+
+          sourceInfo = `${sourceConnection}:${sourceTable}`;
+          targetInfo = `${targetConnection}:${targetTable}`;
+        }
         
         this.showResults(sourceInfo, targetInfo, result);
       });

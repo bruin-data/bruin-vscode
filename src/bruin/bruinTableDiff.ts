@@ -63,6 +63,54 @@ export class BruinTableDiff extends BruinCommand {
   }
 
   /**
+   * Execute table diff between two tables using explicit connection names.
+   * Uses connection_name:table_name format instead of --connection flag.
+   *
+   * @param {string} sourceConnection - The source connection name.
+   * @param {string} sourceTable - The source table in format 'schema.table' or 'table'.
+   * @param {string} targetConnection - The target connection name.
+   * @param {string} targetTable - The target table in format 'schema.table' or 'table'.
+   * @param {BruinCommandOptions} [options={}] - Optional parameters for execution.
+   * @returns {Promise<string>} A promise that resolves with the diff results.
+   */
+  public async compareTablesExplicit(
+    sourceConnection: string,
+    sourceTable: string,
+    targetConnection: string,
+    targetTable: string,
+    options: BruinCommandOptions = {}
+  ): Promise<string> {
+    const args = [
+      `${sourceConnection}:${sourceTable}`,
+      `${targetConnection}:${targetTable}`
+    ];
+
+    console.log(`BruinTableDiff: Executing data-diff with explicit connections:`, args);
+    
+    try {
+      const result = await this.run(args, options);
+      console.log(`BruinTableDiff: Command completed successfully`);
+      console.log(`BruinTableDiff: Result:`, result);
+      return result;
+    } catch (error) {
+      console.error(`BruinTableDiff: Command failed:`, error);
+      
+      // For data-diff commands, the "error" might actually be valid diff results
+      const errorString = String(error);
+      console.log(`BruinTableDiff: Checking if error contains valid diff results...`);
+      console.log(`BruinTableDiff: Error string length:`, errorString.length);
+      console.log(`BruinTableDiff: Error preview:`, errorString.substring(0, 500));
+      
+      if (this.isValidDiffOutput(errorString)) {
+        console.log(`BruinTableDiff: Error contains valid diff results, returning as success`);
+        return errorString;
+      }
+      
+      throw error;
+    }
+  }
+
+  /**
    * Check if the output looks like valid diff results
    */
   private isValidDiffOutput(output: string): boolean {

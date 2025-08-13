@@ -130,19 +130,19 @@ const error = computed(() => connectionsStore.error);
 const environmentsList = computed(() => props.environments || []);
 
 const showForm = ref(false);
-const connectionToEdit = ref<Record<string, any> | undefined>(undefined);
+const connectionToEdit = ref(null);
 const isEditing = ref(false);
 const showDeleteAlert = ref(false);
-const connectionToDelete = ref<Record<string, any> | null>(null);
-const formError = ref<{ field: string; message: string } | undefined>(undefined);
-const formRef = ref<HTMLElement | null>(null);
+const connectionToDelete = ref(null);
+const formError = ref(null);
+const formRef = ref(null);
 
 // Environment states
 const showEnvironmentDeleteAlert = ref(false);
 const environmentToDelete = ref<string | null>(null);
 
 // Templates state
-const templates = ref<string[]>([]);
+const templates = ref([]);
 const selectedTemplate = ref("");
 const templatesLoading = ref(false);
 const projectCreationSuccess = ref(false);
@@ -244,7 +244,7 @@ const handleConnectionCreated = (payload) => {
       } else {
         throw new Error("Invalid payload structure for created connection");
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error adding connection:", error);
       formError.value = { field: "connection_name", message: error.message };
     }
@@ -355,7 +355,7 @@ const handleConnectionSubmit = async (connectionData) => {
         payload: sanitizedConnectionData,
       });
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error submitting connection:", error);
     formError.value = { field: "connection_name", message: error.message };
   }
@@ -545,7 +545,7 @@ const handleProjectInit = (payload) => {
     // Reset the dropdown DOM element
     nextTick(() => {
       if (templateDropdownRef.value) {
-        (templateDropdownRef.value as any).value = "";
+        (templateDropdownRef.value).value = "";
       }
     });
     // Hide success message after 8 seconds
