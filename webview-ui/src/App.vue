@@ -166,7 +166,8 @@ const handleMessage = (event: MessageEvent) => {
   try {
     switch (message.command) {
       case "init":
-        lastRenderedDocument.value = message.lastRenderedDocument; 
+        lastRenderedDocument.value = message.lastRenderedDocument;
+        settingsOnlyMode.value = message.settingsOnlyMode || false;
         break;
       case "environments-list-message":
         environments.value = updateValue(message, "success");
@@ -294,6 +295,10 @@ const handleMessage = (event: MessageEvent) => {
         break;
       case "file-changed":
         lastRenderedDocument.value = message.filePath;
+        settingsOnlyMode.value = false; // Reset when file changes
+        break;
+      case "settings-only-mode":
+        settingsOnlyMode.value = true;
         break;
     }
   } catch (error) {
@@ -311,6 +316,7 @@ const showConvertMessage = ref(false);
 const nonAssetFileType = ref("");
 const nonAssetFilePath = ref("");
 const activeTab = ref(0); // Tracks the currently active tab
+const settingsOnlyMode = ref(false); // Tracks if we're in settings-only mode
 
 // Computed property to parse the list of environments
 const environmentsList = computed(() => {
@@ -530,6 +536,7 @@ const tabs = ref([
       isBruinInstalled: computed(() => isBruinInstalled.value),
       environments: computed(() => environmentsList.value),
       versionStatus: computed(() => versionStatus.value),
+      settingsOnlyMode: computed(() => settingsOnlyMode.value),
     },
   },
 ]);
@@ -540,6 +547,12 @@ const visibleTabs = computed(() => {
   if (isBruinInstalled.value === null || isBruinInstalled.value === false) {
     console.log("CLI status unknown or not installed, showing no tabs.");
     return [];
+  }
+  
+  // If in settings-only mode, show only Settings tab
+  if (settingsOnlyMode.value) {
+    console.log("Settings-only mode, showing only Settings tab.");
+    return tabs.value.filter((tab) => tab.label === "Settings");
   }
   
   if (isBruinYml.value) {

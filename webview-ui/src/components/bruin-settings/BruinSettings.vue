@@ -4,9 +4,8 @@
       <BruinCLI :versionStatus="versionStatus" />
     </div>
 
-    <div class="bg-editorWidget-bg shadow sm:rounded-lg">
+    <div v-if="isBruinInstalled && !settingsOnlyMode" class="bg-editorWidget-bg shadow sm:rounded-lg">
       <ConnectionsList
-        v-if="isBruinInstalled"
         :connections="connections"
         @new-connection="showConnectionForm"
         @edit-connection="showConnectionForm"
@@ -73,7 +72,7 @@
 
     
 
-    <div v-if="showForm" class="mt-6 bg-editorWidget-bg shadow sm:rounded-lg p-6" ref="formRef">
+    <div v-if="showForm && !settingsOnlyMode" class="mt-6 bg-editorWidget-bg shadow sm:rounded-lg p-6" ref="formRef">
       <ConnectionForm
         :key="connectionFormKey"
         :connection="connectionToEdit"
@@ -86,7 +85,7 @@
     </div>
 
     <DeleteAlert
-      v-if="showDeleteAlert"
+      v-if="showDeleteAlert && !settingsOnlyMode"
       title="Delete Connection"
       :message="`Are you sure you want to delete the connection ${connectionToDelete?.name}? This action cannot be undone.`"
       confirm-text="Delete"
@@ -95,7 +94,7 @@
     />
 
     <DeleteAlert
-      v-if="showEnvironmentDeleteAlert"
+      v-if="showEnvironmentDeleteAlert && !settingsOnlyMode"
       title="Delete Environment"
       :message="`Are you sure you want to delete environment '${environmentToDelete}'? This action cannot be undone.`"
       confirm-text="Delete"
@@ -119,6 +118,10 @@ const props = defineProps({
   isBruinInstalled: Boolean,
   environments: Array,
   versionStatus: Object,
+  settingsOnlyMode: {
+    type: Boolean,
+    default: false
+  },
 });
 
 const connectionsStore = useConnectionsStore();
@@ -152,8 +155,12 @@ const connectionFormKey = computed(() => {
 
 onMounted(() => {
   window.addEventListener("message", handleMessage);
-  vscode.postMessage({ command: "bruin.getConnectionsList" });
-  vscode.postMessage({ command: "bruin.getConnectionsSchema" });
+  
+  // Only load connections data if not in settings-only mode
+  if (!props.settingsOnlyMode) {
+    vscode.postMessage({ command: "bruin.getConnectionsList" });
+    vscode.postMessage({ command: "bruin.getConnectionsSchema" });
+  }
   
   // Load templates if Bruin is installed
   if (props.isBruinInstalled) {
