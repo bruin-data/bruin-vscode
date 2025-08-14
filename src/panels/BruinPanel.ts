@@ -150,7 +150,10 @@ export class BruinPanel {
    * Initialize webview content asynchronously
    */
   private async _initializeWebview(extensionUri: Uri): Promise<void> {
-    this._lastRenderedDocumentUri = window.activeTextEditor?.document.uri;
+    // Try multiple ways to get the active document in dev environments
+    this._lastRenderedDocumentUri = window.activeTextEditor?.document.uri || 
+                                    (window.visibleTextEditors?.[0]?.document?.uri) ||
+                                    undefined;
     
     // Get actual CLI status before setting up webview
     const initialCliStatus = await this._getInitialCliStatus();
@@ -167,7 +170,7 @@ export class BruinPanel {
       gitAvailable: false,
     });
     
-    // Load data if CLI is installed
+    // Load data if CLI is installed and we have a document
     if (initialCliStatus && this._lastRenderedDocumentUri) {
       parseAssetCommand(this._lastRenderedDocumentUri);
       getEnvListCommand(this._lastRenderedDocumentUri);
@@ -175,6 +178,27 @@ export class BruinPanel {
     
     // Do full check to confirm
     this.checkAndUpdateBruinCliStatus();
+    
+    // In dev environments, sometimes the active editor is not detected immediately
+    // Try again after a short delay
+    setTimeout(() => {
+      if (!this._lastRenderedDocumentUri && window.activeTextEditor) {
+        console.log("Dev environment fallback: Found active editor after delay");
+        this._lastRenderedDocumentUri = window.activeTextEditor.document.uri;
+        
+        // Send file-changed message to update the UI
+        this._panel.webview.postMessage({
+          command: "file-changed",
+          filePath: this._lastRenderedDocumentUri.fsPath,
+        });
+        
+        // Load data if needed
+        if (initialCliStatus) {
+          parseAssetCommand(this._lastRenderedDocumentUri);
+          getEnvListCommand(this._lastRenderedDocumentUri);
+        }
+      }
+    }, 100);
   }
 
   /**
@@ -363,6 +387,9 @@ export class BruinPanel {
    * @param context A reference to the extension context
    */
   private _setWebviewMessageListener(webview: Webview) {
+    // In dev environments, be more conservative about settings-only mode
+    const hasDocument = this._lastRenderedDocumentUri || window.activeTextEditor || window.visibleTextEditors?.length > 0;
+    
     this._panel.webview.postMessage({
       command: "init",
       panelType: "bruin",
@@ -370,7 +397,7 @@ export class BruinPanel {
         ? this._lastRenderedDocumentUri.fsPath
         : null,
       checkboxState: this._checkboxState,
-      settingsOnlyMode: !this._lastRenderedDocumentUri,
+      settingsOnlyMode: !hasDocument,
     });
 
     webview.onDidReceiveMessage(
