@@ -103,7 +103,7 @@ export class BruinPanel {
 
       // Watch for external changes to .bruin.yml files (e.g., from bruin init)
       workspace.createFileSystemWatcher("**/.bruin.yml").onDidChange(async (uri) => {
-
+        console.log("External .bruin.yml file changed:", uri.fsPath);
         getEnvListCommand(this._lastRenderedDocumentUri);
         getConnections(this._lastRenderedDocumentUri);
         
@@ -150,32 +150,31 @@ export class BruinPanel {
    * Initialize webview content asynchronously
    */
   private async _initializeWebview(extensionUri: Uri): Promise<void> {
-    // Set up webview first with default status (fast)
-    this._panel.webview.html = this._getWebviewContent(this._panel.webview, extensionUri, false);
     this._lastRenderedDocumentUri = window.activeTextEditor?.document.uri;
+    
+    // Get actual CLI status before setting up webview
+    const initialCliStatus = await this._getInitialCliStatus();
+    
+    // Set up webview with the actual CLI status
+    this._panel.webview.html = this._getWebviewContent(this._panel.webview, extensionUri, initialCliStatus);
     this._setWebviewMessageListener(this._panel.webview);
     
-    // Then check CLI status and update
-    setTimeout(async () => {
-      const initialCliStatus = await this._getInitialCliStatus();
-      
-      // Send the actual CLI status
-      this._panel.webview.postMessage({
-        command: "bruinCliInstallationStatus",
-        installed: initialCliStatus,
-        isWindows: process.platform === "win32",
-        gitAvailable: false,
-      });
-      
-      // Load data if CLI is installed
-      if (initialCliStatus && this._lastRenderedDocumentUri) {
-        parseAssetCommand(this._lastRenderedDocumentUri);
-        getEnvListCommand(this._lastRenderedDocumentUri);
-      }
-      
-      // Do full check to confirm
-      this.checkAndUpdateBruinCliStatus();
-    }, 50);
+    // Send the CLI status immediately after webview is ready
+    this._panel.webview.postMessage({
+      command: "bruinCliInstallationStatus",
+      installed: initialCliStatus,
+      isWindows: process.platform === "win32",
+      gitAvailable: false,
+    });
+    
+    // Load data if CLI is installed
+    if (initialCliStatus && this._lastRenderedDocumentUri) {
+      parseAssetCommand(this._lastRenderedDocumentUri);
+      getEnvListCommand(this._lastRenderedDocumentUri);
+    }
+    
+    // Do full check to confirm
+    this.checkAndUpdateBruinCliStatus();
   }
 
   /**

@@ -136,24 +136,36 @@ export class BruinInstallCLI {
     let installed = false;
     let gitAvailable = false;
     let bruinExecutable = getBruinExecutablePath();
+    
+    console.log(`BruinInstallCLI: Checking CLI installation with executable path: ${bruinExecutable}`);
+    
     try {
       // Check if Bruin CLI is installed by running the --version command
-      await execAsync(`${bruinExecutable} --version`);
+      const { stdout } = await execAsync(`"${bruinExecutable}" --version`);
+      console.log(`BruinInstallCLI: --version command successful, output: ${stdout.trim()}`);
       installed = true;
     } catch (error) {
-      // If the --version command fails, check if the executable file exists
-      console.log("Bruin CLI --version command failed:", error);
+      console.log(`BruinInstallCLI: --version command failed with error:`, error);
+      
       // If the --version command fails, check if the executable file exists
       try {
         if (this.platform !== "win32") {
           // Use 'which' command to find the full path of the executable on Unix-based systems
-          const { stdout } = await execAsync(`which ${bruinExecutable}`);
-          bruinExecutable = stdout.trim();
+          try {
+            const { stdout } = await execAsync(`which "${bruinExecutable}"`);
+            const whichPath = stdout.trim();
+            console.log(`BruinInstallCLI: 'which' found bruin at: ${whichPath}`);
+            bruinExecutable = whichPath;
+          } catch (whichError) {
+            console.log(`BruinInstallCLI: 'which' command failed:`, whichError);
+          }
         }
+        
         await fsAccessAsync(bruinExecutable, fs.constants.X_OK);
+        console.log(`BruinInstallCLI: Executable file exists and is executable: ${bruinExecutable}`);
         installed = true;
-      } catch (error) {
-        console.log("Error checking Bruin CLI executable permissions:", error);
+      } catch (accessError) {
+        console.log(`BruinInstallCLI: File access check failed for ${bruinExecutable}:`, accessError);
         installed = false;
       }
     }
@@ -161,15 +173,19 @@ export class BruinInstallCLI {
     if (this.platform === "win32") {
       try {
         // Check if Git is available on Windows
-        await execAsync("git --version");
+        const { stdout } = await execAsync("git --version");
+        console.log(`BruinInstallCLI: Git is available on Windows, version: ${stdout.trim()}`);
         gitAvailable = true;
-      } catch {
+      } catch (gitError) {
+        console.log(`BruinInstallCLI: Git is not available on Windows:`, gitError);
         gitAvailable = false;
       }
     } else {
       // On non-Windows platforms, assume Git is available if Bruin CLI is installed
       gitAvailable = true;
     }
+
+    console.log(`BruinInstallCLI: Final installation check result - installed: ${installed}, isWindows: ${this.platform === "win32"}, gitAvailable: ${gitAvailable}`);
 
     return {
       installed,
