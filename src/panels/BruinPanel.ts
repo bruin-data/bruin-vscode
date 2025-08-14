@@ -387,8 +387,17 @@ export class BruinPanel {
    * @param context A reference to the extension context
    */
   private _setWebviewMessageListener(webview: Webview) {
-    // In dev environments, be more conservative about settings-only mode
-    const hasDocument = this._lastRenderedDocumentUri || window.activeTextEditor || window.visibleTextEditors?.length > 0;
+    // In dev environments, default to normal mode unless we're absolutely sure there's no document
+    // Only show settings-only mode if explicitly no workspace is open
+    const hasWorkspace = vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0;
+    
+    console.log("BruinPanel: Editor detection debug", {
+      lastRenderedDocument: this._lastRenderedDocumentUri?.fsPath,
+      activeEditor: window.activeTextEditor?.document.uri.fsPath,
+      visibleEditorsCount: window.visibleTextEditors?.length,
+      hasWorkspace,
+      settingsOnlyMode: !hasWorkspace
+    });
     
     this._panel.webview.postMessage({
       command: "init",
@@ -397,7 +406,7 @@ export class BruinPanel {
         ? this._lastRenderedDocumentUri.fsPath
         : null,
       checkboxState: this._checkboxState,
-      settingsOnlyMode: !hasDocument,
+      settingsOnlyMode: !hasWorkspace, // Only settings-only if no workspace at all
     });
 
     webview.onDidReceiveMessage(
