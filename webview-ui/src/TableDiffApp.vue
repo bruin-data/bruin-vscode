@@ -1,65 +1,19 @@
 <template>
   <div class="flex flex-col w-full h-full">
     <div class="flex-1 overflow-auto">
-      <!-- Configuration Inputs (Single or Explicit Mode) -->
+      <!-- Configuration Inputs -->
       <div
         class="flex items-center gap-4 p-3 bg-editorWidget-bg border border-panel-border rounded-lg"
       >
-        <!-- Mode Selector -->
+        <!-- Connection 1 and Table 1 -->
         <div class="flex items-center gap-2">
-          <vscode-radio-group @change="onConnectionModeRadioChange" class="flex gap-2">
-            <vscode-radio value="single" :checked="connectionMode === 'single'"
-              >Default</vscode-radio
-            >
-            <vscode-radio value="explicit" :checked="connectionMode === 'explicit'"
-              >Explicit</vscode-radio
-            >
-          </vscode-radio-group>
-        </div>
-
-        <!-- Single Mode -->
-        <template v-if="connectionMode === 'single'">
-          <vscode-dropdown
-            v-model="defaultConnection"
-            @change="onDefaultConnectionChange"
-            class="w-44"
-            :disabled="isLoading"
-          >
-            <vscode-option value="">Default Connection...</vscode-option>
-            <vscode-option v-for="conn in connections" :key="conn.name" :value="conn.name">
-              {{ conn.name
-              }}{{
-                conn.environment && conn.environment !== "default" ? ` (${conn.environment})` : ""
-              }}
-            </vscode-option>
-          </vscode-dropdown>
-
-          <vscode-text-field
-            placeholder="Table 1 (schema.table)"
-            v-model="sourceTableInput"
-            @input="onSourceTableInput"
-            class="w-44"
-            :disabled="isLoading"
-          ></vscode-text-field>
-
-          <vscode-text-field
-            placeholder="Table 2 (schema.table)"
-            v-model="targetTableInput"
-            @input="onTargetTableInput"
-            class="w-44"
-            :disabled="isLoading"
-          ></vscode-text-field>
-        </template>
-
-        <!-- Explicit Mode -->
-        <template v-else>
           <vscode-dropdown
             v-model="sourceConnection"
             @change="onSourceConnectionChange"
             class="w-44"
             :disabled="isLoading"
           >
-            <vscode-option value="">Table 1 Connection...</vscode-option>
+            <vscode-option value="">Connection 1...</vscode-option>
             <vscode-option v-for="conn in connections" :key="conn.name" :value="conn.name">
               {{ conn.name
               }}{{
@@ -75,14 +29,22 @@
             class="w-44"
             :disabled="isLoading"
           ></vscode-text-field>
+        </div>
 
+        <!-- Visual Separator -->
+        <div class="text-editor-fg opacity-40 mx-2">
+          <span class="codicon codicon-arrow-right"></span>
+        </div>
+
+        <!-- Connection 2 and Table 2 -->
+        <div class="flex items-center gap-2">
           <vscode-dropdown
             v-model="targetConnection"
             @change="onTargetConnectionChange"
             class="w-44"
             :disabled="isLoading"
           >
-            <vscode-option value="">Table 2 Connection...</vscode-option>
+            <vscode-option value="">Connection 2...</vscode-option>
             <vscode-option v-for="conn in connections" :key="conn.name" :value="conn.name">
               {{ conn.name
               }}{{
@@ -98,7 +60,7 @@
             class="w-44"
             :disabled="isLoading"
           ></vscode-text-field>
-        </template>
+        </div>
 
         <!-- Action Buttons -->
         <div class="flex items-center gap-2 ml-auto">
@@ -207,8 +169,6 @@ interface ComparisonInfo {
 }
 
 interface SavedState {
-  connectionMode?: "single" | "explicit";
-  defaultConnection?: string;
   sourceConnection?: string;
   targetConnection?: string;
   sourceTableInput?: string;
@@ -219,9 +179,7 @@ interface SavedState {
 // State
 const connections = ref<Connection[]>([]);
 
-// New connection mode variables
-const connectionMode = ref<"single" | "explicit">("single");
-const defaultConnection = ref("");
+// Connection variables - always use explicit mode
 const sourceConnection = ref("");
 const targetConnection = ref("");
 const sourceTableInput = ref("");
@@ -241,38 +199,10 @@ const hasResults = computed(() => results.value.length > 0);
 const canExecuteComparison = computed(() => {
   const hasSourceTable = sourceTableInput.value.trim().length > 0;
   const hasTargetTable = targetTableInput.value.trim().length > 0;
-
-  if (connectionMode.value === "single") {
-    return defaultConnection.value && hasSourceTable && hasTargetTable;
-  } else {
-    return sourceConnection.value && targetConnection.value && hasSourceTable && hasTargetTable;
-  }
+  return sourceConnection.value && targetConnection.value && hasSourceTable && hasTargetTable;
 });
 
 // Methods
-const onConnectionModeRadioChange = (event: Event) => {
-  if (isRestoringState) return;
-
-  const target = event.target as any;
-  connectionMode.value = target.value as "single" | "explicit";
-
-  // Clear all selections when mode changes
-  defaultConnection.value = "";
-  sourceConnection.value = "";
-  targetConnection.value = "";
-  sourceTableInput.value = "";
-  targetTableInput.value = "";
-
-  saveState();
-};
-
-const onDefaultConnectionChange = (event: Event) => {
-  if (isRestoringState) return;
-
-  const target = event.target as HTMLSelectElement;
-  defaultConnection.value = target.value;
-  saveState();
-};
 
 const onSourceConnectionChange = (event: Event) => {
   if (isRestoringState) return;
@@ -313,8 +243,6 @@ const toggleInputsCollapse = () => {
 
 const saveState = () => {
   const state = {
-    connectionMode: connectionMode.value,
-    defaultConnection: defaultConnection.value,
     sourceConnection: sourceConnection.value,
     targetConnection: targetConnection.value,
     sourceTableInput: sourceTableInput.value,
@@ -357,12 +285,6 @@ const restoreFromState = (savedState: any) => {
   comparisonInfo.value = savedState.comparisonInfo || { source: "", target: "" };
 
   // Restore form values
-  if (savedState.connectionMode) {
-    connectionMode.value = savedState.connectionMode;
-  }
-  if (savedState.defaultConnection) {
-    defaultConnection.value = savedState.defaultConnection;
-  }
   if (savedState.sourceConnection) {
     sourceConnection.value = savedState.sourceConnection;
   }
@@ -392,9 +314,7 @@ const syncDropdownsWithState = () => {
     const options = dropdown.querySelectorAll("vscode-option");
 
     let targetValue = "";
-    if (modelValue === "defaultConnection") {
-      targetValue = defaultConnection.value;
-    } else if (modelValue === "sourceConnection") {
+    if (modelValue === "sourceConnection") {
       targetValue = sourceConnection.value;
     } else if (modelValue === "targetConnection") {
       targetValue = targetConnection.value;
@@ -422,15 +342,6 @@ const syncDropdownsWithState = () => {
     }
   });
 
-  // Sync radio buttons
-  const radioButtons = document.querySelectorAll("vscode-radio");
-  radioButtons.forEach((radio: any) => {
-    if (radio.value === connectionMode.value) {
-      radio.checked = true;
-    } else {
-      radio.checked = false;
-    }
-  });
 };
 
 // Auto-save state periodically and when panel becomes hidden
@@ -459,8 +370,7 @@ const executeComparison = () => {
 
   vscode.postMessage({
     command: "executeTableDiff",
-    connectionMode: connectionMode.value,
-    defaultConnection: defaultConnection.value,
+    connectionMode: "explicit",
     sourceConnection: sourceConnection.value,
     targetConnection: targetConnection.value,
     sourceTable: sourceTableInput.value.trim(),
@@ -475,8 +385,6 @@ const clearResults = () => {
 };
 
 const newComparison = () => {
-  connectionMode.value = "single";
-  defaultConnection.value = "";
   sourceConnection.value = "";
   targetConnection.value = "";
   sourceTableInput.value = "";
