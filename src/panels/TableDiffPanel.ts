@@ -125,15 +125,63 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
     }
   }
 
+  private async getWorkspaceSetup() {
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    if (!workspaceFolder) {
+      throw new Error("Workspace folder not found");
+    }
+
+    const bruinConnections = new BruinConnections("bruin", workspaceFolder);
+    const bruinDBTCommand = new BruinDBTCommand("bruin", workspaceFolder);
+    const connections = await bruinConnections.getConnectionsForActivityBar();
+
+    return { workspaceFolder, bruinConnections, bruinDBTCommand, connections };
+  }
+
+  private getConnectionEnvironment(connections: any[], connectionName: string): string | undefined {
+    const connection = connections.find(conn => conn.name === connectionName);
+    return connection?.environment;
+  }
+
+  private parseSchemas(rawSchemas: any): string[] {
+    let schemasArray;
+    if (Array.isArray(rawSchemas)) {
+      schemasArray = rawSchemas;
+    } else if (rawSchemas?.databases !== undefined) {
+      schemasArray = rawSchemas.databases;
+    } else {
+      schemasArray = [];
+    }
+
+    return Array.isArray(schemasArray) ? schemasArray.map((item: any) => {
+      if (typeof item === "string") {
+        return item;
+      }
+      return item.name || item.database_name || "Unknown Database";
+    }) : [];
+  }
+
+  private parseTables(rawTables: any): Array<{ name: string }> {
+    const tablesArray = Array.isArray(rawTables) ? rawTables : rawTables?.tables;
+    
+    if (!Array.isArray(tablesArray)) {
+      console.error("Invalid tables format:", rawTables);
+      return [];
+    }
+
+    return tablesArray.map((item: any) => {
+      if (typeof item === "string") {
+        return { name: item };
+      }
+      return { name: item.name || "Unknown Table" };
+    });
+  }
+
   private async sendConnections() {
     if (!TableDiffPanel._view) return;
 
     try {
-      const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-      if (!workspaceFolder) return;
-
-      const bruinConnections = new BruinConnections("bruin", workspaceFolder);
-      const connections = await bruinConnections.getConnectionsForActivityBar();
+      const { connections } = await this.getWorkspaceSetup();
 
       TableDiffPanel._view.webview.postMessage({
         command: 'updateConnections',
@@ -148,42 +196,14 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
     if (!TableDiffPanel._view) return;
 
     try {
-      const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-      if (!workspaceFolder) return;
-
-      // Find the connection to get its environment
-      const bruinConnections = new BruinConnections("bruin", workspaceFolder);
-      const connections = await bruinConnections.getConnectionsForActivityBar();
-      const connection = connections.find(conn => conn.name === connectionName);
-      const environment = connection?.environment;
+      const { bruinDBTCommand, connections } = await this.getWorkspaceSetup();
+      const environment = this.getConnectionEnvironment(connections, connectionName);
+      
       console.log(`Fetching schemas for ${connectionName} (env: ${environment})`);
-      const bruinDBTCommand = new BruinDBTCommand("bruin", workspaceFolder);
       const rawSchemas = await bruinDBTCommand.getFetchDatabases(connectionName, environment);
-
-      // Parse the schemas similar to ActivityBarConnectionsProvider
-      let schemasArray;
-      if (Array.isArray(rawSchemas)) {
-        schemasArray = rawSchemas;
-      } else if (rawSchemas?.databases !== undefined) {
-        schemasArray = rawSchemas.databases;
-      } else {
-        schemasArray = null;
-      }
-
-      let schemas: Array<{ name: string }> = [];
-      if (schemasArray === null) {
-        schemas = [];
-      } else if (!Array.isArray(schemasArray)) {
-        console.error("Invalid schemas format:", rawSchemas);
-        schemas = [];
-      } else {
-        schemas = schemasArray.map((item: any) => {
-          if (typeof item === "string") {
-            return { name: item };
-          }
-          return { name: item.name || item.database_name || "Unknown Database" };
-        });
-      }
+      const schemaNames = this.parseSchemas(rawSchemas);
+      
+      const schemas = schemaNames.map(name => ({ name }));
 
       TableDiffPanel._view.webview.postMessage({
         command: 'updateSchemas',
@@ -205,33 +225,11 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
     if (!TableDiffPanel._view) return;
 
     try {
-      const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-      if (!workspaceFolder) return;
-
-      // Find the connection to get its environment
-      const bruinConnections = new BruinConnections("bruin", workspaceFolder);
-      const connections = await bruinConnections.getConnectionsForActivityBar();
-      const connection = connections.find(conn => conn.name === connectionName);
-      const environment = connection?.environment;
-
-      const bruinDBTCommand = new BruinDBTCommand("bruin", workspaceFolder);
-      const rawTables = await bruinDBTCommand.getFetchTables(connectionName, schemaName, environment);
-
-      // Parse the tables similar to ActivityBarConnectionsProvider
-      const tablesArray = Array.isArray(rawTables) ? rawTables : rawTables?.tables;
+      const { bruinDBTCommand, connections } = await this.getWorkspaceSetup();
+      const environment = this.getConnectionEnvironment(connections, connectionName);
       
-      let tables: Array<{ name: string }> = [];
-      if (!Array.isArray(tablesArray)) {
-        console.error("Invalid tables format:", rawTables);
-        tables = [];
-      } else {
-        tables = tablesArray.map((item: any) => {
-          if (typeof item === "string") {
-            return { name: item };
-          }
-          return { name: item.name || "Unknown Table" };
-        });
-      }
+      const rawTables = await bruinDBTCommand.getFetchTables(connectionName, schemaName, environment);
+      const tables = this.parseTables(rawTables);
 
       TableDiffPanel._view.webview.postMessage({
         command: 'updateTables',
@@ -255,36 +253,12 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
     console.log(`sendSchemasAndTables called with connectionName: ${connectionName}, type: ${type}`);
 
     try {
-      const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-      if (!workspaceFolder) return;
-
-      // Find the connection to get its environment
-      const bruinConnections = new BruinConnections("bruin", workspaceFolder);
-      const connections = await bruinConnections.getConnectionsForActivityBar();
-      const connection = connections.find(conn => conn.name === connectionName);
-      const environment = connection?.environment;
-
-      const bruinDBTCommand = new BruinDBTCommand("bruin", workspaceFolder);
+      const { bruinDBTCommand, connections } = await this.getWorkspaceSetup();
+      const environment = this.getConnectionEnvironment(connections, connectionName);
       
       // Get only schemas first - this is much faster
       const rawSchemas = await bruinDBTCommand.getFetchDatabases(connectionName, environment);
-      
-      // Parse schemas
-      let schemasArray;
-      if (Array.isArray(rawSchemas)) {
-        schemasArray = rawSchemas;
-      } else if (rawSchemas?.databases !== undefined) {
-        schemasArray = rawSchemas.databases;
-      } else {
-        schemasArray = [];
-      }
-
-      const schemas = Array.isArray(schemasArray) ? schemasArray.map((item: any) => {
-        if (typeof item === "string") {
-          return item;
-        }
-        return item.name || item.database_name || "Unknown Database";
-      }) : [];
+      const schemas = this.parseSchemas(rawSchemas);
 
       // Instead of fetching all tables, just send schema names as suggestions
       // Users can type "schema.table" format
@@ -328,11 +302,7 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
           message: `Comparing ${sourceTable} with ${targetTable}` 
         });
 
-        const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-        if (!workspaceFolder) {
-          throw new Error("Workspace folder not found");
-        }
-
+        const { workspaceFolder, connections } = await this.getWorkspaceSetup();
         const tableDiff = new BruinTableDiff("bruin", workspaceFolder);
         let result: string;
         let sourceInfo: string;
@@ -340,10 +310,7 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
 
         if (connectionMode === 'single') {
           // Single connection mode: use --connection flag
-          const bruinConnections = new BruinConnections("bruin", workspaceFolder);
-          const connections = await bruinConnections.getConnectionsForActivityBar();
-          const connection = connections.find(conn => conn.name === defaultConnection);
-          const environment = connection?.environment;
+          const environment = this.getConnectionEnvironment(connections, defaultConnection);
 
           result = await tableDiff.compareTables(
             defaultConnection,

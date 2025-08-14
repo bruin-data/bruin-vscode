@@ -22,6 +22,7 @@
               placeholder="Table 1 (schema.table)"
               v-model="sourceTableInput"
               @input="onSourceTableInput"
+              @keydown="onSourceKeyDown"
               @blur="hideSourceSuggestions"
               class="w-full"
               :disabled="isLoading"
@@ -33,11 +34,14 @@
               class="absolute top-full left-0 right-0 z-10 bg-editorWidget-bg border border-commandCenter-border rounded-b shadow-lg max-h-40 overflow-auto"
             >
               <div
-                v-for="suggestion in sourceTableSuggestions"
+                v-for="(suggestion, index) in sourceTableSuggestions"
                 :key="suggestion"
                 @click="selectSourceSuggestion(suggestion)"
                 @mousedown.prevent=""
-                class="px-3 py-2 cursor-pointer hover:bg-list-activeSelectionBackground text-sm font-mono text-editor-fg"
+                :class="[
+                  'px-3 py-2 cursor-pointer text-sm font-mono text-editor-fg',
+                  selectedSourceIndex === index ? 'bg-list-activeSelectionBackground' : 'hover:bg-list-activeSelectionBackground'
+                ]"
               >
                 {{ suggestion }}
               </div>
@@ -66,6 +70,7 @@
             <vscode-text-field
               v-model="targetTableInput"
               @input="onTargetTableInput"
+              @keydown="onTargetKeyDown"
               @blur="hideTargetSuggestions"
               placeholder="Table 2 (schema.table)"
               class="w-full"
@@ -78,11 +83,14 @@
               class="absolute top-full left-0 right-0 z-10 bg-editorWidget-bg border border-commandCenter-border rounded-b shadow-lg max-h-40 overflow-auto"
             >
               <div
-                v-for="suggestion in targetTableSuggestions"
+                v-for="(suggestion, index) in targetTableSuggestions"
                 :key="suggestion"
                 @click="selectTargetSuggestion(suggestion)"
                 @mousedown.prevent=""
-                class="px-3 py-2 cursor-pointer hover:bg-list-activeSelectionBackground text-sm font-mono text-editor-fg"
+                :class="[
+                  'px-3 py-2 cursor-pointer text-sm font-mono text-editor-fg',
+                  selectedTargetIndex === index ? 'bg-list-activeSelectionBackground' : 'hover:bg-list-activeSelectionBackground'
+                ]"
               >
                 {{ suggestion }}
               </div>
@@ -197,6 +205,8 @@ const sourceTableSuggestions = ref<string[]>([]);
 const targetTableSuggestions = ref<string[]>([]);
 const showSourceSuggestions = ref(false);
 const showTargetSuggestions = ref(false);
+const selectedSourceIndex = ref(-1);
+const selectedTargetIndex = ref(-1);
 
 // Computed
 const hasResults = computed(() => results.value.length > 0);
@@ -272,6 +282,7 @@ const onSourceTableInput = (event: Event) => {
                       table.toLowerCase().includes(target.value.toLowerCase()))
       .slice(0, 10);
     showSourceSuggestions.value = sourceTableSuggestions.value.length > 0;
+    selectedSourceIndex.value = -1;
   } else if (target.value.length > 0) {
     // Filter schema suggestions
     sourceTableSuggestions.value = sourceTables.value.filter(table =>
@@ -280,9 +291,36 @@ const onSourceTableInput = (event: Event) => {
     showSourceSuggestions.value = sourceTableSuggestions.value.length > 0;
   } else {
     showSourceSuggestions.value = false;
+    selectedSourceIndex.value = -1;
   }
   
   console.log('Source suggestions:', sourceTableSuggestions.value);
+};
+
+// Keyboard navigation for source table
+const onSourceKeyDown = (event: KeyboardEvent) => {
+  if (!showSourceSuggestions.value || sourceTableSuggestions.value.length === 0) return;
+  
+  switch (event.key) {
+    case 'ArrowDown':
+      event.preventDefault();
+      selectedSourceIndex.value = Math.min(selectedSourceIndex.value + 1, sourceTableSuggestions.value.length - 1);
+      break;
+    case 'ArrowUp':
+      event.preventDefault();
+      selectedSourceIndex.value = Math.max(selectedSourceIndex.value - 1, 0);
+      break;
+    case 'Enter':
+      event.preventDefault();
+      if (selectedSourceIndex.value >= 0) {
+        selectSourceSuggestion(sourceTableSuggestions.value[selectedSourceIndex.value]);
+      }
+      break;
+    case 'Escape':
+      showSourceSuggestions.value = false;
+      selectedSourceIndex.value = -1;
+      break;
+  }
 };
 
 const onTargetTableInput = (event: Event) => {
@@ -318,8 +356,36 @@ const onTargetTableInput = (event: Event) => {
       table.toLowerCase().includes(target.value.toLowerCase())
     ).slice(0, 10);
     showTargetSuggestions.value = targetTableSuggestions.value.length > 0;
+    selectedTargetIndex.value = -1;
   } else {
     showTargetSuggestions.value = false;
+    selectedTargetIndex.value = -1;
+  }
+};
+
+// Keyboard navigation for target table
+const onTargetKeyDown = (event: KeyboardEvent) => {
+  if (!showTargetSuggestions.value || targetTableSuggestions.value.length === 0) return;
+  
+  switch (event.key) {
+    case 'ArrowDown':
+      event.preventDefault();
+      selectedTargetIndex.value = Math.min(selectedTargetIndex.value + 1, targetTableSuggestions.value.length - 1);
+      break;
+    case 'ArrowUp':
+      event.preventDefault();
+      selectedTargetIndex.value = Math.max(selectedTargetIndex.value - 1, 0);
+      break;
+    case 'Enter':
+      event.preventDefault();
+      if (selectedTargetIndex.value >= 0) {
+        selectTargetSuggestion(targetTableSuggestions.value[selectedTargetIndex.value]);
+      }
+      break;
+    case 'Escape':
+      showTargetSuggestions.value = false;
+      selectedTargetIndex.value = -1;
+      break;
   }
 };
 
@@ -365,16 +431,27 @@ const fetchSchemasAndTables = async (connectionName: string, type: 'source' | 't
 // Fetch tables for a specific schema
 const fetchTablesForSchema = async (connectionName: string, schemaName: string, type: 'source' | 'target') => {
   try {
+    console.log(`Requesting tables for schema ${schemaName} on connection ${connectionName} (${type})`);
+    
     const response = await new Promise((resolve) => {
       const messageHandler = (event: MessageEvent) => {
         const message = event.data;
+        console.log('Received message in fetchTablesForSchema:', message);
         if (message.command === 'updateTables' && message.type === type) {
+          console.log('Matched updateTables message:', message);
           window.removeEventListener('message', messageHandler);
           resolve(message);
         }
       };
       
       window.addEventListener('message', messageHandler);
+      
+      console.log('Sending getTables message:', { 
+        command: 'getTables',
+        connectionName,
+        schemaName,
+        type
+      });
       
       vscode.postMessage({
         command: 'getTables',
@@ -392,17 +469,22 @@ const fetchTablesForSchema = async (connectionName: string, schemaName: string, 
     });
     
     const tables = (response as any).tables || [];
+    console.log('Received tables for schema', schemaName, ':', tables);
+    
     const schemaTables = tables.map((table: any) => `${schemaName}.${table.name}`);
+    console.log('Formatted schema tables:', schemaTables);
     
     // Add these tables to the existing cache
     if (type === 'source') {
       // Remove existing tables for this schema and add new ones
       sourceTables.value = sourceTables.value.filter(t => !t.startsWith(schemaName + '.'));
       sourceTables.value.push(...schemaTables);
+      console.log('Updated sourceTables:', sourceTables.value);
     } else {
       // Remove existing tables for this schema and add new ones
       targetTables.value = targetTables.value.filter(t => !t.startsWith(schemaName + '.'));
       targetTables.value.push(...schemaTables);
+      console.log('Updated targetTables:', targetTables.value);
     }
     
     console.log('Added tables for schema', schemaName, ':', schemaTables);
