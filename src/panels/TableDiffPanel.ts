@@ -91,6 +91,10 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
                 payload: state
               });
               break;
+            case 'getSchemasAndTables':
+              console.log('Received getSchemasAndTables message:', message);
+              await this.sendSchemasAndTables(message.connectionName, message.type);
+              break;
           }
         },
         undefined,
@@ -238,6 +242,67 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
       console.error('Error sending tables:', error);
       TableDiffPanel._view.webview.postMessage({
         command: 'updateTables',
+        tables: [],
+        type,
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  }
+
+  private async sendSchemasAndTables(connectionName: string, type: string) {
+    if (!TableDiffPanel._view) return;
+    
+    console.log(`sendSchemasAndTables called with connectionName: ${connectionName}, type: ${type}`);
+
+    try {
+      const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+      if (!workspaceFolder) return;
+
+      // Find the connection to get its environment
+      const bruinConnections = new BruinConnections("bruin", workspaceFolder);
+      const connections = await bruinConnections.getConnectionsForActivityBar();
+      const connection = connections.find(conn => conn.name === connectionName);
+      const environment = connection?.environment;
+
+      const bruinDBTCommand = new BruinDBTCommand("bruin", workspaceFolder);
+      
+      // Get only schemas first - this is much faster
+      const rawSchemas = await bruinDBTCommand.getFetchDatabases(connectionName, environment);
+      
+      // Parse schemas
+      let schemasArray;
+      if (Array.isArray(rawSchemas)) {
+        schemasArray = rawSchemas;
+      } else if (rawSchemas?.databases !== undefined) {
+        schemasArray = rawSchemas.databases;
+      } else {
+        schemasArray = [];
+      }
+
+      const schemas = Array.isArray(schemasArray) ? schemasArray.map((item: any) => {
+        if (typeof item === "string") {
+          return item;
+        }
+        return item.name || item.database_name || "Unknown Database";
+      }) : [];
+
+      // Instead of fetching all tables, just send schema names as suggestions
+      // Users can type "schema.table" format
+      const schemaNames = schemas.map(schema => `${schema}.`);
+
+      console.log(`Sending ${schemaNames.length} schema names for ${connectionName}:`, schemaNames);
+      
+      TableDiffPanel._view.webview.postMessage({
+        command: 'updateSchemasAndTables',
+        connectionName,
+        tables: schemaNames,
+        type
+      });
+    } catch (error) {
+      console.error('Error sending schemas and tables:', error);
+      TableDiffPanel._view.webview.postMessage({
+        command: 'updateSchemasAndTables',
+        connectionName,
         tables: [],
         type,
         error: error instanceof Error ? error.message : String(error)

@@ -2,64 +2,92 @@
   <div class="flex flex-col w-full h-full">
     <div class="flex-1 overflow-auto">
       <!-- Configuration Inputs -->
-      <div
-        class="flex items-center gap-4 p-3 bg-editorWidget-bg border border-panel-border rounded-lg"
-      >
+      <div class="flex flex-row items-center gap-4 p-3 bg-editorWidget-bg border border-panel-border rounded-lg">
         <!-- Connection 1 and Table 1 -->
-        <div class="flex items-center gap-2">
+        <div class="flex flex-row items-center gap-2">
           <vscode-dropdown
             v-model="sourceConnection"
             @change="onSourceConnectionChange"
-            class="w-44"
+            class="w-52"
             :disabled="isLoading"
           >
             <vscode-option value="">Connection 1...</vscode-option>
             <vscode-option v-for="conn in connections" :key="conn.name" :value="conn.name">
-              {{ conn.name
-              }}{{
-                conn.environment && conn.environment !== "default" ? ` (${conn.environment})` : ""
-              }}
+              {{ conn.name }}{{ conn.environment && conn.environment !== "default" ? ` (${conn.environment})` : "" }}
             </vscode-option>
           </vscode-dropdown>
 
-          <vscode-text-field
-            placeholder="Table 1 (schema.table)"
-            v-model="sourceTableInput"
-            @input="onSourceTableInput"
-            class="w-44"
-            :disabled="isLoading"
-          ></vscode-text-field>
+          <div class="relative w-52">
+            <vscode-text-field
+              placeholder="Table 1 (schema.table)"
+              v-model="sourceTableInput"
+              @input="onSourceTableInput"
+              @blur="hideSourceSuggestions"
+              class="w-full"
+              :disabled="isLoading"
+            ></vscode-text-field>
+            
+            <!-- Autocomplete suggestions for source table -->
+            <div
+              v-if="showSourceSuggestions"
+              class="absolute top-full left-0 right-0 z-10 bg-editorWidget-bg border border-commandCenter-border rounded-b shadow-lg max-h-40 overflow-auto"
+            >
+              <div
+                v-for="suggestion in sourceTableSuggestions"
+                :key="suggestion"
+                @click="selectSourceSuggestion(suggestion)"
+                @mousedown.prevent=""
+                class="px-3 py-2 cursor-pointer hover:bg-list-activeSelectionBackground text-sm font-mono text-editor-fg"
+              >
+                {{ suggestion }}
+              </div>
+            </div>
+          </div>
         </div>
 
-        <!-- Visual Separator -->
-        <div class="text-editor-fg opacity-40 mx-2">
-          <span class="codicon codicon-arrow-right"></span>
-        </div>
+        <!-- Spacer between connection groups -->
+        <div class="w-8"></div>
 
         <!-- Connection 2 and Table 2 -->
-        <div class="flex items-center gap-2">
+        <div class="flex flex-row items-center gap-2">
           <vscode-dropdown
             v-model="targetConnection"
             @change="onTargetConnectionChange"
-            class="w-44"
+            class="w-52"
             :disabled="isLoading"
           >
             <vscode-option value="">Connection 2...</vscode-option>
             <vscode-option v-for="conn in connections" :key="conn.name" :value="conn.name">
-              {{ conn.name
-              }}{{
-                conn.environment && conn.environment !== "default" ? ` (${conn.environment})` : ""
-              }}
+              {{ conn.name }}{{ conn.environment && conn.environment !== "default" ? ` (${conn.environment})` : "" }}
             </vscode-option>
           </vscode-dropdown>
 
-          <vscode-text-field
-            v-model="targetTableInput"
-            @input="onTargetTableInput"
-            placeholder="Table 2 (schema.table)"
-            class="w-44"
-            :disabled="isLoading"
-          ></vscode-text-field>
+          <div class="relative w-52">
+            <vscode-text-field
+              v-model="targetTableInput"
+              @input="onTargetTableInput"
+              @blur="hideTargetSuggestions"
+              placeholder="Table 2 (schema.table)"
+              class="w-full"
+              :disabled="isLoading"
+            ></vscode-text-field>
+            
+            <!-- Autocomplete suggestions for target table -->
+            <div
+              v-if="showTargetSuggestions"
+              class="absolute top-full left-0 right-0 z-10 bg-editorWidget-bg border border-commandCenter-border rounded-b shadow-lg max-h-40 overflow-auto"
+            >
+              <div
+                v-for="suggestion in targetTableSuggestions"
+                :key="suggestion"
+                @click="selectTargetSuggestion(suggestion)"
+                @mousedown.prevent=""
+                class="px-3 py-2 cursor-pointer hover:bg-list-activeSelectionBackground text-sm font-mono text-editor-fg"
+              >
+                {{ suggestion }}
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Action Buttons -->
@@ -87,9 +115,7 @@
             <span class="codicon codicon-error text-red-500 mr-2"></span>
             <h3 class="text-sm font-medium text-editor-fg">Error</h3>
           </div>
-          <div
-            class="text-sm text-red-400 bg-editorWidget-bg p-3 rounded border border-commandCenter-border"
-          >
+          <div class="text-sm text-red-400 bg-editorWidget-bg p-3 rounded border border-commandCenter-border">
             {{ error }}
           </div>
         </div>
@@ -110,23 +136,16 @@
             </div>
           </div>
 
-          <div
-            class="bg-editorWidget-bg border border-commandCenter-border rounded overflow-hidden"
-          >
+          <div class="bg-editorWidget-bg border border-commandCenter-border rounded overflow-hidden">
             <div class="max-h-96 overflow-auto">
-              <pre class="text-xs font-mono p-4 text-editor-fg whitespace-pre-wrap">{{
-                results
-              }}</pre>
+              <pre class="text-xs font-mono p-4 text-editor-fg whitespace-pre-wrap">{{ results }}</pre>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Empty State -->
-      <div
-        v-if="!hasResults && !error && !isLoading"
-        class="flex items-center justify-center h-32 text-center"
-      >
+      <div v-if="!hasResults && !error && !isLoading" class="flex items-center justify-center h-32 text-center">
         <div class="text-editor-fg opacity-60">
           <span class="codicon codicon-diff text-4xl block mb-2 opacity-40"></span>
           <p class="text-sm">Configure connections and table names to compare</p>
@@ -145,7 +164,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { vscode } from "@/utilities/vscode";
 
 // Types
@@ -155,44 +174,29 @@ interface Connection {
   environment: string;
 }
 
-interface Schema {
-  name: string;
-}
-
-interface Table {
-  name: string;
-}
-
 interface ComparisonInfo {
   source: string;
   target: string;
 }
 
-interface SavedState {
-  sourceConnection?: string;
-  targetConnection?: string;
-  sourceTableInput?: string;
-  targetTableInput?: string;
-  isInputsCollapsed?: boolean;
-}
-
 // State
 const connections = ref<Connection[]>([]);
-
-// Connection variables - always use explicit mode
 const sourceConnection = ref("");
 const targetConnection = ref("");
 const sourceTableInput = ref("");
 const targetTableInput = ref("");
-
 const isLoading = ref(false);
-const isLoadingSchemas = ref(false);
-const isLoadingSourceTables = ref(false);
-const isLoadingTargetTables = ref(false);
 const results = ref("");
 const error = ref("");
 const comparisonInfo = ref<ComparisonInfo>({ source: "", target: "" });
-const isInputsCollapsed = ref(false);
+
+// Autocomplete state
+const sourceTables = ref<string[]>([]);
+const targetTables = ref<string[]>([]);
+const sourceTableSuggestions = ref<string[]>([]);
+const targetTableSuggestions = ref<string[]>([]);
+const showSourceSuggestions = ref(false);
+const showTargetSuggestions = ref(false);
 
 // Computed
 const hasResults = computed(() => results.value.length > 0);
@@ -203,162 +207,254 @@ const canExecuteComparison = computed(() => {
 });
 
 // Methods
-
 const onSourceConnectionChange = (event: Event) => {
-  if (isRestoringState) return;
-
   const target = event.target as HTMLSelectElement;
   sourceConnection.value = target.value;
-  saveState();
+  
+  console.log('Source connection changed to:', sourceConnection.value);
+  
+  // Clear existing tables and fetch new ones immediately
+  sourceTables.value = [];
+  sourceTableSuggestions.value = [];
+  showSourceSuggestions.value = false;
+  
+  // Fetch schemas and tables immediately when connection changes
+  if (sourceConnection.value) {
+    console.log('Fetching schemas and tables for source connection');
+    fetchSchemasAndTables(sourceConnection.value, 'source');
+  }
 };
 
 const onTargetConnectionChange = (event: Event) => {
-  if (isRestoringState) return;
-
   const target = event.target as HTMLSelectElement;
   targetConnection.value = target.value;
-  saveState();
+  
+  // Clear existing tables and fetch new ones immediately
+  targetTables.value = [];
+  targetTableSuggestions.value = [];
+  showTargetSuggestions.value = false;
+  
+  // Fetch schemas and tables immediately when connection changes
+  if (targetConnection.value) {
+    console.log('Fetching schemas and tables for target connection');
+    fetchSchemasAndTables(targetConnection.value, 'target');
+  }
 };
 
-const onSourceTableInput = (event: Event) => {
-  if (isRestoringState) return;
 
+const onSourceTableInput = (event: Event) => {
   const target = event.target as HTMLInputElement;
   sourceTableInput.value = target.value;
-  saveState();
+  
+  console.log('Source table input:', target.value);
+  console.log('Available source tables:', sourceTables.value);
+  
+  // Check if user is typing a schema name followed by a dot
+  const schemaMatch = target.value.match(/^([^.]+)\.(.*)$/);
+  
+  if (schemaMatch) {
+    // User typed "schema.something" - fetch tables for this schema if not already cached
+    const [, schemaName, tablePrefix] = schemaMatch;
+    console.log('Schema detected:', schemaName, 'Table prefix:', tablePrefix);
+    
+    // Check if we have tables for this schema cached
+    const schemaTables = sourceTables.value.filter(table => table.startsWith(schemaName + '.'));
+    
+    if (schemaTables.length === 0 && sourceConnection.value) {
+      // Fetch tables for this specific schema
+      console.log('Fetching tables for schema:', schemaName);
+      fetchTablesForSchema(sourceConnection.value, schemaName, 'source');
+    }
+    
+    // Filter table suggestions for this schema
+    sourceTableSuggestions.value = sourceTables.value
+      .filter(table => table.toLowerCase().startsWith((schemaName + '.').toLowerCase()) && 
+                      table.toLowerCase().includes(target.value.toLowerCase()))
+      .slice(0, 10);
+    showSourceSuggestions.value = sourceTableSuggestions.value.length > 0;
+  } else if (target.value.length > 0) {
+    // Filter schema suggestions
+    sourceTableSuggestions.value = sourceTables.value.filter(table =>
+      table.toLowerCase().includes(target.value.toLowerCase())
+    ).slice(0, 10);
+    showSourceSuggestions.value = sourceTableSuggestions.value.length > 0;
+  } else {
+    showSourceSuggestions.value = false;
+  }
+  
+  console.log('Source suggestions:', sourceTableSuggestions.value);
 };
 
 const onTargetTableInput = (event: Event) => {
-  if (isRestoringState) return;
-
   const target = event.target as HTMLInputElement;
   targetTableInput.value = target.value;
-  saveState();
+  
+  // Check if user is typing a schema name followed by a dot
+  const schemaMatch = target.value.match(/^([^.]+)\.(.*)$/);
+  
+  if (schemaMatch) {
+    // User typed "schema.something" - fetch tables for this schema if not already cached
+    const [, schemaName, tablePrefix] = schemaMatch;
+    console.log('Target schema detected:', schemaName, 'Table prefix:', tablePrefix);
+    
+    // Check if we have tables for this schema cached
+    const schemaTables = targetTables.value.filter(table => table.startsWith(schemaName + '.'));
+    
+    if (schemaTables.length === 0 && targetConnection.value) {
+      // Fetch tables for this specific schema
+      console.log('Fetching tables for target schema:', schemaName);
+      fetchTablesForSchema(targetConnection.value, schemaName, 'target');
+    }
+    
+    // Filter table suggestions for this schema
+    targetTableSuggestions.value = targetTables.value
+      .filter(table => table.toLowerCase().startsWith((schemaName + '.').toLowerCase()) && 
+                      table.toLowerCase().includes(target.value.toLowerCase()))
+      .slice(0, 10);
+    showTargetSuggestions.value = targetTableSuggestions.value.length > 0;
+  } else if (target.value.length > 0) {
+    // Filter schema suggestions
+    targetTableSuggestions.value = targetTables.value.filter(table =>
+      table.toLowerCase().includes(target.value.toLowerCase())
+    ).slice(0, 10);
+    showTargetSuggestions.value = targetTableSuggestions.value.length > 0;
+  } else {
+    showTargetSuggestions.value = false;
+  }
 };
 
-const toggleInputsCollapse = () => {
-  isInputsCollapsed.value = !isInputsCollapsed.value;
-  saveState();
-};
-
-const saveState = () => {
-  const state = {
-    sourceConnection: sourceConnection.value,
-    targetConnection: targetConnection.value,
-    sourceTableInput: sourceTableInput.value,
-    targetTableInput: targetTableInput.value,
-    isInputsCollapsed: isInputsCollapsed.value || false,
-    results: results.value || "",
-    error: error.value || "",
-    comparisonInfo: {
-      source: comparisonInfo.value?.source || "",
-      target: comparisonInfo.value?.target || "",
-    },
-  };
-
+// Fetch schemas and tables for autocomplete
+const fetchSchemasAndTables = async (connectionName: string, type: 'source' | 'target') => {
   try {
-    // Ensure the state is serializable by JSON parsing/stringifying
-    const serializedState = JSON.parse(JSON.stringify(state));
-    vscode.postMessage({
-      command: "saveState",
-      payload: serializedState,
-    });
-  } catch (error) {
-    console.error("Error serializing state:", error);
-  }
-};
-
-// Store the pending state to restore after data loads
-let pendingStateRestore: any = null;
-let isRestoringState = false;
-
-const restoreFromState = (savedState: any) => {
-  if (!savedState) return;
-
-  // Store the state to restore after connections load
-  pendingStateRestore = savedState;
-
-  // Restore non-dropdown state immediately
-  isInputsCollapsed.value = savedState.isInputsCollapsed || false;
-  results.value = savedState.results || "";
-  error.value = savedState.error || "";
-  comparisonInfo.value = savedState.comparisonInfo || { source: "", target: "" };
-
-  // Restore form values
-  if (savedState.sourceConnection) {
-    sourceConnection.value = savedState.sourceConnection;
-  }
-  if (savedState.targetConnection) {
-    targetConnection.value = savedState.targetConnection;
-  }
-  if (savedState.sourceTableInput) {
-    sourceTableInput.value = savedState.sourceTableInput;
-  }
-  if (savedState.targetTableInput) {
-    targetTableInput.value = savedState.targetTableInput;
-  }
-
-  // If we have connections loaded, sync dropdowns
-  if (connections.value.length > 0) {
-    setTimeout(() => {
-      syncDropdownsWithState();
-      pendingStateRestore = null;
-    }, 100);
-  }
-};
-
-const syncDropdownsWithState = () => {
-  const dropdowns = document.querySelectorAll("vscode-dropdown");
-  dropdowns.forEach((dropdown: any) => {
-    const modelValue = dropdown.getAttribute("v-model");
-    const options = dropdown.querySelectorAll("vscode-option");
-
-    let targetValue = "";
-    if (modelValue === "sourceConnection") {
-      targetValue = sourceConnection.value;
-    } else if (modelValue === "targetConnection") {
-      targetValue = targetConnection.value;
-    }
-
-    if (targetValue) {
-      dropdown.value = targetValue;
-      for (let i = 0; i < options.length; i++) {
-        if (options[i].value === targetValue) {
-          dropdown.selectedIndex = i;
-          break;
+    const response = await new Promise((resolve) => {
+      const messageHandler = (event: MessageEvent) => {
+        const message = event.data;
+        if (message.command === 'updateSchemasAndTables' && message.connectionName === connectionName) {
+          window.removeEventListener('message', messageHandler);
+          resolve(message);
         }
-      }
+      };
+      
+      window.addEventListener('message', messageHandler);
+      
+      vscode.postMessage({
+        command: 'getSchemasAndTables',
+        connectionName,
+        type
+      });
+      
+      // Timeout after 3 seconds
+      setTimeout(() => {
+        window.removeEventListener('message', messageHandler);
+        console.log('Timeout fetching schemas and tables for', connectionName);
+        resolve({ tables: [] });
+      }, 3000);
+    });
+    
+    const tables = (response as any).tables || [];
+    if (type === 'source') {
+      sourceTables.value = tables;
+    } else {
+      targetTables.value = tables;
     }
-  });
-
-  // Sync text inputs
-  const textFields = document.querySelectorAll("vscode-text-field");
-  textFields.forEach((field: any) => {
-    const modelValue = field.getAttribute("v-model");
-    if (modelValue === "sourceTableInput") {
-      field.value = sourceTableInput.value;
-    } else if (modelValue === "targetTableInput") {
-      field.value = targetTableInput.value;
-    }
-  });
-
-};
-
-// Auto-save state periodically and when panel becomes hidden
-let autoSaveInterval: NodeJS.Timeout | null = null;
-
-const startAutoSave = () => {
-  // Save state every 5 seconds
-  autoSaveInterval = setInterval(() => {
-    saveState();
-  }, 5000);
-};
-
-const stopAutoSave = () => {
-  if (autoSaveInterval) {
-    clearInterval(autoSaveInterval);
-    autoSaveInterval = null;
+  } catch (error) {
+    console.error('Error fetching schemas and tables:', error);
   }
+};
+
+// Fetch tables for a specific schema
+const fetchTablesForSchema = async (connectionName: string, schemaName: string, type: 'source' | 'target') => {
+  try {
+    const response = await new Promise((resolve) => {
+      const messageHandler = (event: MessageEvent) => {
+        const message = event.data;
+        if (message.command === 'updateTables' && message.type === type) {
+          window.removeEventListener('message', messageHandler);
+          resolve(message);
+        }
+      };
+      
+      window.addEventListener('message', messageHandler);
+      
+      vscode.postMessage({
+        command: 'getTables',
+        connectionName,
+        schemaName,
+        type
+      });
+      
+      // Timeout after 3 seconds
+      setTimeout(() => {
+        window.removeEventListener('message', messageHandler);
+        console.log('Timeout fetching tables for schema', schemaName);
+        resolve({ tables: [] });
+      }, 3000);
+    });
+    
+    const tables = (response as any).tables || [];
+    const schemaTables = tables.map((table: any) => `${schemaName}.${table.name}`);
+    
+    // Add these tables to the existing cache
+    if (type === 'source') {
+      // Remove existing tables for this schema and add new ones
+      sourceTables.value = sourceTables.value.filter(t => !t.startsWith(schemaName + '.'));
+      sourceTables.value.push(...schemaTables);
+    } else {
+      // Remove existing tables for this schema and add new ones
+      targetTables.value = targetTables.value.filter(t => !t.startsWith(schemaName + '.'));
+      targetTables.value.push(...schemaTables);
+    }
+    
+    console.log('Added tables for schema', schemaName, ':', schemaTables);
+  } catch (error) {
+    console.error('Error fetching tables for schema:', error);
+  }
+};
+
+// Handle suggestion selection
+const selectSourceSuggestion = (suggestion: string) => {
+  sourceTableInput.value = suggestion;
+  showSourceSuggestions.value = false;
+  
+  // Update the text field value directly
+  const textFields = document.querySelectorAll('vscode-text-field');
+  const sourceTextField = textFields[0] as any; // First text field is source
+  if (sourceTextField) {
+    sourceTextField.value = suggestion;
+    sourceTextField.setAttribute('current-value', suggestion);
+    // Trigger input event to update Vue binding
+    sourceTextField.dispatchEvent(new CustomEvent('input', { 
+      detail: { value: suggestion },
+      bubbles: true 
+    }));
+  }
+};
+
+const selectTargetSuggestion = (suggestion: string) => {
+  targetTableInput.value = suggestion;
+  showTargetSuggestions.value = false;
+  
+  // Update the text field value directly
+  const textFields = document.querySelectorAll('vscode-text-field');
+  const targetTextField = textFields[1] as any; // Second text field is target
+  if (targetTextField) {
+    targetTextField.value = suggestion;
+    targetTextField.setAttribute('current-value', suggestion);
+    // Trigger input event to update Vue binding
+    targetTextField.dispatchEvent(new CustomEvent('input', { 
+      detail: { value: suggestion },
+      bubbles: true 
+    }));
+  }
+};
+
+// Hide suggestions when clicking outside
+const hideSourceSuggestions = () => {
+  setTimeout(() => showSourceSuggestions.value = false, 150);
+};
+
+const hideTargetSuggestions = () => {
+  setTimeout(() => showTargetSuggestions.value = false, 150);
 };
 
 const executeComparison = () => {
@@ -384,15 +480,6 @@ const clearResults = () => {
   comparisonInfo.value = { source: "", target: "" };
 };
 
-const newComparison = () => {
-  sourceConnection.value = "";
-  targetConnection.value = "";
-  sourceTableInput.value = "";
-  targetTableInput.value = "";
-
-  clearResults();
-};
-
 const copyResults = () => {
   if (results.value) {
     navigator.clipboard.writeText(results.value);
@@ -402,18 +489,12 @@ const copyResults = () => {
 // Message handling
 const handleMessage = (event: MessageEvent) => {
   const message = event.data;
+  
+  console.log('Received message:', message);
 
   switch (message.command) {
     case "updateConnections":
       connections.value = message.connections || [];
-      // Restore state when connections are loaded
-      if (pendingStateRestore && connections.value.length > 0) {
-        setTimeout(() => {
-          syncDropdownsWithState();
-          pendingStateRestore = null;
-          isRestoringState = false;
-        }, 100);
-      }
       break;
 
     case "showResults":
@@ -424,8 +505,6 @@ const handleMessage = (event: MessageEvent) => {
       } else {
         error.value = "";
         results.value = message.results || "";
-        // Auto-collapse inputs when results are shown
-        isInputsCollapsed.value = true;
       }
       comparisonInfo.value = {
         source: message.source || "",
@@ -436,39 +515,24 @@ const handleMessage = (event: MessageEvent) => {
     case "clearResults":
       clearResults();
       break;
-
-    case "restoreState":
-      if (message.payload) {
-        restoreFromState(message.payload);
+      
+    case "updateSchemasAndTables":
+      console.log('Received updateSchemasAndTables:', message);
+      const tables = message.tables || [];
+      if (message.type === 'source') {
+        sourceTables.value = tables;
+        console.log('Updated source tables:', sourceTables.value);
+      } else if (message.type === 'target') {
+        targetTables.value = tables;
+        console.log('Updated target tables:', targetTables.value);
       }
-      break;
-
-    case "init":
-      // When panel becomes visible again, request state restoration
-      vscode.postMessage({ command: "requestState" });
-      startAutoSave(); // Start auto-saving when panel is visible
-      break;
-
-    case "panelHidden":
-      // When panel becomes hidden, save state and stop auto-save
-      saveState();
-      stopAutoSave();
       break;
   }
 };
 
 onMounted(() => {
   vscode.postMessage({ command: "getConnections" });
-  vscode.postMessage({ command: "requestState" });
   window.addEventListener("message", handleMessage);
-
-  // Save state when component is about to be unmounted
-  window.addEventListener("beforeunload", () => {
-    saveState();
-  });
-
-  // Start auto-saving
-  startAutoSave();
 });
 </script>
 
