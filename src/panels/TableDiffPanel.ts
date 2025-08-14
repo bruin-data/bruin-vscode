@@ -66,6 +66,7 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
               await this.sendSchemas(message.connectionName, message.type);
               break;
             case 'getTables':
+              console.log('Received getTables message:', message);
               await this.sendTables(message.connectionName, message.schemaName, message.type);
               break;
             case 'executeTableDiff':
@@ -225,12 +226,19 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
     if (!TableDiffPanel._view) return;
 
     try {
+      console.log(`sendTables called: connection=${connectionName}, schema=${schemaName}, type=${type}`);
+      
       const { bruinDBTCommand, connections } = await this.getWorkspaceSetup();
       const environment = this.getConnectionEnvironment(connections, connectionName);
       
+      console.log(`Fetching tables for ${connectionName}.${schemaName} (env: ${environment})`);
       const rawTables = await bruinDBTCommand.getFetchTables(connectionName, schemaName, environment);
+      console.log('Raw tables response:', rawTables);
+      
       const tables = this.parseTables(rawTables);
+      console.log('Parsed tables:', tables);
 
+      console.log(`Sending updateTables message with ${tables.length} tables:`, tables);
       TableDiffPanel._view.webview.postMessage({
         command: 'updateTables',
         tables,

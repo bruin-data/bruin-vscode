@@ -256,23 +256,19 @@ const onSourceTableInput = (event: Event) => {
   const target = event.target as HTMLInputElement;
   sourceTableInput.value = target.value;
   
-  console.log('Source table input:', target.value);
-  console.log('Available source tables:', sourceTables.value);
   
   // Check if user is typing a schema name followed by a dot
   const schemaMatch = target.value.match(/^([^.]+)\.(.*)$/);
   
   if (schemaMatch) {
-    // User typed "schema.something" - fetch tables for this schema if not already cached
-    const [, schemaName, tablePrefix] = schemaMatch;
-    console.log('Schema detected:', schemaName, 'Table prefix:', tablePrefix);
+    const [, schemaName] = schemaMatch;
     
-    // Check if we have tables for this schema cached
-    const schemaTables = sourceTables.value.filter(table => table.startsWith(schemaName + '.'));
+    // Check if we have actual tables for this schema cached
+    const schemaTables = sourceTables.value.filter(table => 
+      table.startsWith(schemaName + '.') && table !== schemaName + '.'
+    );
     
     if (schemaTables.length === 0 && sourceConnection.value) {
-      // Fetch tables for this specific schema
-      console.log('Fetching tables for schema:', schemaName);
       fetchTablesForSchema(sourceConnection.value, schemaName, 'source');
     }
     
@@ -331,16 +327,14 @@ const onTargetTableInput = (event: Event) => {
   const schemaMatch = target.value.match(/^([^.]+)\.(.*)$/);
   
   if (schemaMatch) {
-    // User typed "schema.something" - fetch tables for this schema if not already cached
-    const [, schemaName, tablePrefix] = schemaMatch;
-    console.log('Target schema detected:', schemaName, 'Table prefix:', tablePrefix);
+    const [, schemaName] = schemaMatch;
     
-    // Check if we have tables for this schema cached
-    const schemaTables = targetTables.value.filter(table => table.startsWith(schemaName + '.'));
+    // Check if we have actual tables for this schema cached
+    const schemaTables = targetTables.value.filter(table => 
+      table.startsWith(schemaName + '.') && table !== schemaName + '.'
+    );
     
     if (schemaTables.length === 0 && targetConnection.value) {
-      // Fetch tables for this specific schema
-      console.log('Fetching tables for target schema:', schemaName);
       fetchTablesForSchema(targetConnection.value, schemaName, 'target');
     }
     
@@ -431,27 +425,16 @@ const fetchSchemasAndTables = async (connectionName: string, type: 'source' | 't
 // Fetch tables for a specific schema
 const fetchTablesForSchema = async (connectionName: string, schemaName: string, type: 'source' | 'target') => {
   try {
-    console.log(`Requesting tables for schema ${schemaName} on connection ${connectionName} (${type})`);
-    
     const response = await new Promise((resolve) => {
       const messageHandler = (event: MessageEvent) => {
         const message = event.data;
-        console.log('Received message in fetchTablesForSchema:', message);
         if (message.command === 'updateTables' && message.type === type) {
-          console.log('Matched updateTables message:', message);
           window.removeEventListener('message', messageHandler);
           resolve(message);
         }
       };
       
       window.addEventListener('message', messageHandler);
-      
-      console.log('Sending getTables message:', { 
-        command: 'getTables',
-        connectionName,
-        schemaName,
-        type
-      });
       
       vscode.postMessage({
         command: 'getTables',
@@ -460,34 +443,23 @@ const fetchTablesForSchema = async (connectionName: string, schemaName: string, 
         type
       });
       
-      // Timeout after 3 seconds
       setTimeout(() => {
         window.removeEventListener('message', messageHandler);
-        console.log('Timeout fetching tables for schema', schemaName);
         resolve({ tables: [] });
       }, 3000);
     });
     
     const tables = (response as any).tables || [];
-    console.log('Received tables for schema', schemaName, ':', tables);
-    
     const schemaTables = tables.map((table: any) => `${schemaName}.${table.name}`);
-    console.log('Formatted schema tables:', schemaTables);
     
     // Add these tables to the existing cache
     if (type === 'source') {
-      // Remove existing tables for this schema and add new ones
       sourceTables.value = sourceTables.value.filter(t => !t.startsWith(schemaName + '.'));
       sourceTables.value.push(...schemaTables);
-      console.log('Updated sourceTables:', sourceTables.value);
     } else {
-      // Remove existing tables for this schema and add new ones
       targetTables.value = targetTables.value.filter(t => !t.startsWith(schemaName + '.'));
       targetTables.value.push(...schemaTables);
-      console.log('Updated targetTables:', targetTables.value);
     }
-    
-    console.log('Added tables for schema', schemaName, ':', schemaTables);
   } catch (error) {
     console.error('Error fetching tables for schema:', error);
   }
