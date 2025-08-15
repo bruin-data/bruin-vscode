@@ -1,4 +1,7 @@
 # Changelog
+## [0.63.4] - [2025-08-15]
+- Fixed extension activation issue on slow systems.
+
 ## [0.63.3] - [2025-08-15]
 - Fixed ingestr asset parameters saving issue.
 
