@@ -22,13 +22,13 @@ import { renderCommand } from "./commands/renderCommand";
 import { AssetLineagePanel } from "../panels/LineagePanel";
 import { installOrUpdateCli } from "./commands/updateBruinCLI";
 import { QueryPreviewPanel } from "../panels/QueryPreviewPanel";
+import { TableDiffPanel } from "../panels/TableDiffPanel";
 import { BruinPanel } from "../panels/BruinPanel";
 import { QueryCodeLensProvider } from "../providers/queryCodeLensProvider";
 import { ScheduleCodeLensProvider } from "../providers/scheduleCodeLensProvider";
 import { QuerySelectionCodeLensProvider } from "../providers/querySelectionCodeLensProvider";
 import { ActivityBarConnectionsProvider } from "../providers/ActivityBarConnectionsProvider";
 import { FavoritesProvider } from "../providers/FavoritesProvider";
-import { TableDetailsPanel } from "../panels/TableDetailsPanel";
 import { BruinLanguageServer } from "../language-server/bruinLanguageServer";
 import { BruinInstallCLI } from "../bruin/bruinInstallCli";
 
@@ -125,8 +125,6 @@ export async function activate(context: ExtensionContext) {
   // Check if this is first time activation
   const isFirstActivation = !context.globalState.get('bruin.hasActivated', false);
   
-  // Initialize TableDetailsPanel
-  TableDetailsPanel.initialize(context.subscriptions);
 
   // Focus the active editor first to prevent undefined fsPath errors
   const activeEditor = window.activeTextEditor;
@@ -257,8 +255,18 @@ export async function activate(context: ExtensionContext) {
   const activityBarConnectionsProvider = new ActivityBarConnectionsProvider(context.extensionPath);
   vscode.window.registerTreeDataProvider("bruinConnections", activityBarConnectionsProvider);
 
+  // Create TableDiffPanel for results display
+  console.log('Extension: Creating TableDiffPanel');
+  const tableDiffWebviewProvider = new TableDiffPanel(context.extensionUri, context);
+  
+  console.log('Extension: Registering TableDiffPanel webview provider with viewId:', TableDiffPanel.viewId);
+  context.subscriptions.push(
+    window.registerWebviewViewProvider(TableDiffPanel.viewId, tableDiffWebviewProvider)
+  );
+
   const favoritesProvider = new FavoritesProvider();
   vscode.window.registerTreeDataProvider("bruinFavorites", favoritesProvider);
+
 
   try {
     const bruinLanguageServer = BruinLanguageServer.getInstance();
@@ -327,18 +335,7 @@ export async function activate(context: ExtensionContext) {
         vscode.window.showErrorMessage(`Error showing connection details: ${errorMessage}`);
       }
     }),
-    commands.registerCommand(
-      "bruin.showTableDetails",
-      (tableName: string, schemaName?: string, connectionName?: string, environmentName?: string) => {
-        try {
-          trackEvent("Command Executed", { command: "showTableDetails" });
-          TableDetailsPanel.render(context.extensionUri, tableName, schemaName, connectionName, environmentName);
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : String(error);
-          vscode.window.showErrorMessage(`Error showing table details: ${errorMessage}`);
-        }
-      }
-    ),
+   
     commands.registerCommand("bruin.addSchemaToFavorites", async (item: any) => {
       try {
         trackEvent("Command Executed", { command: "addSchemaToFavorites" });
@@ -666,7 +663,6 @@ export async function activate(context: ExtensionContext) {
     }
   }
 
-  TableDetailsPanel.initialize(context.subscriptions);
 }
 
 

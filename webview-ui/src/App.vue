@@ -697,6 +697,12 @@ vscode-panels::part(tablist) {
   padding-left: 0 !important;
 }
 
+vscode-text-field {
+  border: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+}
+
 @media (max-width: 480px) {
   .pipeline-name,
   .slash,

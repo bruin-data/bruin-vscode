@@ -139,7 +139,7 @@ const formRef = ref(null);
 
 // Environment states
 const showEnvironmentDeleteAlert = ref(false);
-const environmentToDelete = ref(null);
+const environmentToDelete = ref<string | null>(null);
 
 // Templates state
 const templates = ref([]);
@@ -147,7 +147,7 @@ const selectedTemplate = ref("");
 const templatesLoading = ref(false);
 const projectCreationSuccess = ref(false);
 const successMessage = ref("");
-const templateDropdownRef = ref(null);
+const templateDropdownRef = ref<HTMLElement | null>(null);
 
 const connectionFormKey = computed(() => {
   return connectionToEdit.value?.id ? `edit-${connectionToEdit.value.id}` : "new-connection";
@@ -222,7 +222,7 @@ const handleConnectionsList = (payload) => {
 
 const handleConnectionDeleted = async (payload) => {
   if (payload.status === "success") {
-    connectionsStore.removeConnection(connectionToDelete.value.id);
+    connectionsStore.removeConnection(connectionToDelete.value?.id);
     showDeleteAlert.value = false;
     connectionToDelete.value = null;
   } else {
@@ -249,7 +249,7 @@ const handleConnectionCreated = (payload) => {
       formError.value = { field: "connection_name", message: error.message };
     }
   } else {
-    formError.value = { field: "connection_name", message: errorMessage };
+    formError.value = { field: "connection_name", message: "Failed to add connection" };
   }
 };
 
@@ -317,6 +317,7 @@ const showConnectionForm = (connectionOrEnvironment = null, duplicate = false) =
         type: "",
         environment: environment,
         credentials: {},
+        
       };
       isEditing.value = false;
     }
@@ -362,13 +363,13 @@ const handleConnectionSubmit = async (connectionData) => {
 
 const closeConnectionForm = () => {
   showForm.value = false;
-  connectionToEdit.value = null;
+  connectionToEdit.value = undefined;
   isEditing.value = false;
   clearFormError();
 };
 
 const clearFormError = () => {
-  formError.value = null;
+  formError.value = undefined;
 };
 
 const confirmDeleteConnection = (connection) => {
@@ -381,9 +382,9 @@ const deleteConnection = async () => {
     await vscode.postMessage({
       command: "bruin.deleteConnection",
       payload: {
-        name: connectionToDelete.value.name,
-        environment: connectionToDelete.value.environment,
-        id: connectionToDelete.value.id,
+        name: connectionToDelete.value?.name,
+        environment: connectionToDelete.value?.environment,
+        id: connectionToDelete.value?.id,
       },
     });
     showDeleteAlert.value = false;
@@ -544,7 +545,7 @@ const handleProjectInit = (payload) => {
     // Reset the dropdown DOM element
     nextTick(() => {
       if (templateDropdownRef.value) {
-        templateDropdownRef.value.value = "";
+        (templateDropdownRef.value).value = "";
       }
     });
     // Hide success message after 8 seconds

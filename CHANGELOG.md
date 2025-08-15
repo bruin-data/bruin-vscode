@@ -1,4 +1,7 @@
 # Changelog
+## [0.64.0] - [2025-08-15]
+- Added data diff panel to the extension.
+
 ## [0.63.4] - [2025-08-15]
 - Fixed extension activation issue on slow systems.
 
