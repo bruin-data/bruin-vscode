@@ -1,8 +1,6 @@
 <template>
-  <div v-if="isBruinInstalled === null && showLoadingState" class="flex flex-col items-center justify-center h-64 text-center">
-    <div class="spinner mb-4"></div>
-    <h3 class="text-lg font-medium text-editor-fg mb-2">Checking CLI Installation</h3>
-    <p class="text-sm text-editor-fg opacity-75">This should only take a moment...</p>
+  <div v-if="isBruinInstalled === null">
+    <!-- CLI check in progress - show minimal content -->
   </div>
   
   <div v-else-if="isBruinInstalled === false" class="flex items-center space-x-2 w-full justify-between pt-2">
@@ -165,9 +163,7 @@ const data = ref(
     },
   })
 );
-const isBruinInstalled = ref<boolean | null>(null);
-const isInitializing = ref(false);
-const showLoadingState = ref(false);
+const isBruinInstalled = ref<boolean | null>(null); // Start as unknown until CLI check completes
 const lastRenderedDocument = ref(""); 
 const pipelineAssetsData = ref([]);
 const handleMessage = (event: MessageEvent) => {
@@ -176,10 +172,6 @@ const handleMessage = (event: MessageEvent) => {
   
   try {
     switch (message.command) {
-      case "init":
-        lastRenderedDocument.value = message.lastRenderedDocument;
-        settingsOnlyMode.value = message.settingsOnlyMode || false;
-        break;
       case "environments-list-message":
         environments.value = updateValue(message, "success");
         connectionsStore.setDefaultEnvironment(selectedEnvironment.value);
@@ -241,6 +233,24 @@ const handleMessage = (event: MessageEvent) => {
           isNotAsset.value = false;
           showConvertMessage.value = false;
           
+          // If we receive asset parsing data, CLI must be installed
+          if (isBruinInstalled.value === null) {
+            console.log("🚀 [App.vue] CLI assumed installed - received asset data");
+            isBruinInstalled.value = true;
+          }
+          
+          // Check if we have incomplete data and need to refocus
+          const hasAssetData = parsed && parsed.asset;
+          const hasColumns = parsed.asset?.columns && parsed.asset.columns.length > 0;
+          const hasEnvironments = environmentsList.value && environmentsList.value.length > 0;
+          
+          if (hasAssetData && !hasColumns && !hasEnvironments) {
+            console.log("⚠️ [App.vue] Incomplete data detected, requesting refocus");
+            setTimeout(() => {
+              vscode.postMessage({ command: "bruin.refocusActiveEditor" });
+            }, 1000);
+          }
+          
           if (parsed && parsed.type === "pipelineConfig") {
             data.value = parsed;
             lastRenderedDocument.value = parsed.filePath;
@@ -271,10 +281,8 @@ const handleMessage = (event: MessageEvent) => {
         pipelineAssetsData.value = updateValue(message, "success");
         break;
       case "bruinCliInstallationStatus":
+        console.log("🔧 [App.vue] CLI status received:", message.installed);
         isBruinInstalled.value = message.installed;
-        if (message.installed !== null) {
-          showLoadingState.value = false;
-        }
         break;
 
       case "bruinCliVersionStatus":
@@ -282,10 +290,6 @@ const handleMessage = (event: MessageEvent) => {
         break;
       case "file-changed":
         lastRenderedDocument.value = message.filePath;
-        settingsOnlyMode.value = false;
-        break;
-      case "settings-only-mode":
-        settingsOnlyMode.value = true;
         break;
     }
   } catch (error) {
@@ -303,7 +307,6 @@ const showConvertMessage = ref(false);
 const nonAssetFileType = ref("");
 const nonAssetFilePath = ref("");
 const activeTab = ref(0); // Tracks the currently active tab
-const settingsOnlyMode = ref(false); // Tracks if we're in settings-only mode
 
 // Computed property to parse the list of environments
 const environmentsList = computed(() => {
@@ -521,52 +524,46 @@ const tabs = ref([
       isBruinInstalled: computed(() => isBruinInstalled.value),
       environments: computed(() => environmentsList.value),
       versionStatus: computed(() => versionStatus.value),
-      settingsOnlyMode: computed(() => settingsOnlyMode.value),
     },
   },
 ]);
 
 // Computed property to determine which tabs to show based on the document type
 const visibleTabs = computed(() => {
-  // If CLI installation status is unknown or CLI is not installed, show no tabs
+  console.log("🔄 [App.vue] visibleTabs check:", {
+    isBruinInstalled: isBruinInstalled.value,
+    isBruinYml: isBruinYml.value,
+    totalTabs: tabs.value.length
+  });
+  
+  // If CLI check in progress or CLI not installed, show no tabs
   if (isBruinInstalled.value === null || isBruinInstalled.value === false) {
-    console.log("CLI status unknown or not installed, showing no tabs.");
+    console.log("❌ [App.vue] No tabs shown - CLI status:", isBruinInstalled.value);
     return [];
   }
   
-  // If in settings-only mode, show only Settings tab
-  if (settingsOnlyMode.value) {
-    console.log("Settings-only mode, showing only Settings tab.");
-    return tabs.value.filter((tab) => tab.label === "Settings");
-  }
-  
   if (isBruinYml.value) {
-    // Only show the "Settings" tab
-    console.log("Showing only Settings tab for Bruin YAML file.");
+    // Only show the "Settings" tab for .bruin.yml files
+    console.log("⚙️ [App.vue] Settings only - bruin.yml file");
     return tabs.value.filter((tab) => tab.label === "Settings");
   }
   // Show all tabs
-  console.log("Showing all tabs.");
+  console.log("✅ [App.vue] Showing all tabs");
   return tabs.value;
 });
 
 onMounted(async () => {
   window.addEventListener("message", handleMessage);
   
-  setTimeout(() => {
-    if (isBruinInstalled.value === null) {
-      showLoadingState.value = true;
-    }
-  }, 500);
-  
   vscode.postMessage({ command: "getLastRenderedDocument" });
   
+  // Auto-refocus if we still have black panel after 3 seconds
   setTimeout(() => {
-    if (isBruinInstalled.value === null) {
-      isBruinInstalled.value = false;
-      showLoadingState.value = false;
+    if (isBruinInstalled.value === null && !data.value) {
+      console.log("🔄 [App.vue] Auto-refocusing due to persistent black panel");
+      vscode.postMessage({ command: "bruin.refocusActiveEditor" });
     }
-  }, 10000);
+  }, 3000);
   
   // Track page view
   /* try {
@@ -683,7 +680,7 @@ const badgeClass = computed(() => {
 });
 
 const isTabActive = (index) => {
-  // If CLI installation status is unknown or CLI is not installed, no tabs should be active
+  // If CLI check in progress or CLI not installed, no tabs should be active
   if (isBruinInstalled.value === null || isBruinInstalled.value === false) {
     return false;
   }
@@ -696,21 +693,6 @@ onBeforeUnmount(() => {
 </script>
 
 <style>
-/* Loading spinner */
-.spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid var(--vscode-progressBar-background);
-  border-top: 3px solid var(--vscode-progressBar-foreground);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
 vscode-panels::part(tablist) {
   padding-left: 0 !important;
 }

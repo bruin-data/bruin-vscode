@@ -155,7 +155,16 @@ export class BruinPanel {
   private async _checkCliStatus(): Promise<void> {
     try {
       const bruinInstaller = new BruinInstallCLI();
-      const { installed, isWindows, gitAvailable } = await bruinInstaller.checkBruinCliInstallation();
+      
+      // Add timeout to prevent hanging on slow systems
+      const timeoutPromise = new Promise<{ installed: boolean; isWindows: boolean; gitAvailable: boolean }>((_, reject) => {
+        setTimeout(() => reject(new Error("CLI check timeout")), 3000); // 3 second timeout
+      });
+      
+      const { installed, isWindows, gitAvailable } = await Promise.race([
+        bruinInstaller.checkBruinCliInstallation(),
+        timeoutPromise
+      ]);
       
       this._panel.webview.postMessage({
         command: "bruinCliInstallationStatus",
@@ -169,7 +178,6 @@ export class BruinPanel {
         getEnvListCommand(this._lastRenderedDocumentUri);
       }
     } catch (error) {
-      console.error("Error checking CLI status:", error);
       this._panel.webview.postMessage({
         command: "bruinCliInstallationStatus",
         installed: false,
@@ -618,6 +626,12 @@ export class BruinPanel {
               status: "success",
               message: this._lastRenderedDocumentUri?.fsPath,
             });
+            
+            // Also trigger asset detection and parsing like onDidChangeActiveTextEditor does
+            if (this._lastRenderedDocumentUri) {
+              await this._handleAssetDetection(this._lastRenderedDocumentUri);
+              renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri?.fsPath);
+            }
             break;
 
           case "bruin.editConnection":
@@ -898,6 +912,14 @@ export class BruinPanel {
                 status: "error",
                 message: `Failed to initialize project: ${error}`
               });
+            }
+            break;
+          case "bruin.refocusActiveEditor":
+            console.log("🔄 [BruinPanel] Refocusing active editor for incomplete data");
+            if (window.activeTextEditor && this._lastRenderedDocumentUri) {
+              // Re-trigger parsing for current document
+              parseAssetCommand(this._lastRenderedDocumentUri);
+              getEnvListCommand(this._lastRenderedDocumentUri);
             }
             break;
         }

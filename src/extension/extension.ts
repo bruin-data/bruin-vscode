@@ -30,6 +30,7 @@ import { ActivityBarConnectionsProvider } from "../providers/ActivityBarConnecti
 import { FavoritesProvider } from "../providers/FavoritesProvider";
 import { TableDetailsPanel } from "../panels/TableDetailsPanel";
 import { BruinLanguageServer } from "../language-server/bruinLanguageServer";
+import { BruinInstallCLI } from "../bruin/bruinInstallCli";
 
 let analyticsClient: any = null;
 
