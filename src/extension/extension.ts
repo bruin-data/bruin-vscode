@@ -30,6 +30,7 @@ import { QuerySelectionCodeLensProvider } from "../providers/querySelectionCodeL
 import { ActivityBarConnectionsProvider } from "../providers/ActivityBarConnectionsProvider";
 import { FavoritesProvider } from "../providers/FavoritesProvider";
 import { BruinLanguageServer } from "../language-server/bruinLanguageServer";
+import { BruinInstallCLI } from "../bruin/bruinInstallCli";
 
 let analyticsClient: any = null;
 
