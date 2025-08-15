@@ -1,11 +1,21 @@
 <template>
-  <div v-if="isBruinInstalled === false" class="flex items-center space-x-2 w-full justify-between pt-2">
+  <!-- Loading State - Only show when CLI status is explicitly unknown -->
+  <div v-if="isBruinInstalled === null && showLoadingState" class="flex flex-col items-center justify-center h-64 text-center">
+    <div class="spinner mb-4"></div>
+    <h3 class="text-lg font-medium text-editor-fg mb-2">Checking CLI Installation</h3>
+    <p class="text-sm text-editor-fg opacity-75">This should only take a moment...</p>
+  </div>
+  
+  <!-- CLI Not Installed -->
+  <div v-else-if="isBruinInstalled === false" class="flex items-center space-x-2 w-full justify-between pt-2">
     <BruinSettings
       :isBruinInstalled="isBruinInstalled"
       :environments="environmentsList"
       class="flex w-full"
     />
   </div>
+  
+  <!-- CLI Installed - Full UI -->
   <div v-else-if="isBruinInstalled === true" class="flex flex-col pt-1">
     <div v-if="isNotAsset && showConvertMessage" class="w-full">
       <NonAssetMessage
@@ -158,11 +168,15 @@ const data = ref(
     },
   })
 );
-const isBruinInstalled = ref(null); // null = unknown, true = installed, false = not installed
+const isBruinInstalled = ref<boolean | null>(null); // null = unknown, true = installed, false = not installed
+const isInitializing = ref(false); // Track initialization state - start as false
+const showLoadingState = ref(false); // Control loading indicator visibility
 const lastRenderedDocument = ref(""); 
 const pipelineAssetsData = ref([]);
 const handleMessage = (event: MessageEvent) => {
   const message = event.data;
+  console.log("Message received:", message.command, message);
+  
   try {
     switch (message.command) {
       case "init":
@@ -287,6 +301,11 @@ const handleMessage = (event: MessageEvent) => {
       case "bruinCliInstallationStatus":
         isBruinInstalled.value = message.installed; // Update installation status
         console.log("Bruin installation status updated:", isBruinInstalled.value);
+        
+        // Hide loading state once we have a definitive status
+        if (message.installed !== null) {
+          showLoadingState.value = false;
+        }
         break;
 
       case "bruinCliVersionStatus":
@@ -570,11 +589,27 @@ onMounted(async () => {
   console.log("onMounted");
   console.log("Adding message listener");
   window.addEventListener("message", handleMessage);
-  loadAssetData();
-  loadEnvironmentsList();
+  
+  // Show loading only if CLI status is unknown after 1 second
+  setTimeout(() => {
+    if (isBruinInstalled.value === null) {
+      console.log("Showing loading state - CLI status still unknown");
+      showLoadingState.value = true;
+    }
+  }, 1000);
+  
+  // Request last rendered document immediately
   vscode.postMessage({ command: "getLastRenderedDocument" });
-  vscode.postMessage({ command: "bruin.checkBruinCLIVersion" });
-  vscode.postMessage({ command: "bruin.checkBruinCLIInstallation" });
+  
+  // Fallback timeout: if no CLI status received within 10 seconds, assume CLI is not installed
+  setTimeout(() => {
+    if (isBruinInstalled.value === null) {
+      console.log("Fallback timeout: No CLI status received, assuming CLI not installed");
+      isBruinInstalled.value = false;
+      showLoadingState.value = false;
+    }
+  }, 10000);
+  
   // Track page view
   /* try {
     rudderStack.trackPageView("Asset Details Page", {
@@ -623,6 +658,7 @@ watch(isBruinInstalled, (newStatus) => {
     // CLI is now installed, load the necessary data
     loadAssetData();
     loadEnvironmentsList();
+    vscode.postMessage({ command: "bruin.checkBruinCLIVersion" });
   }
 });
 
@@ -702,6 +738,21 @@ onBeforeUnmount(() => {
 </script>
 
 <style>
+/* Loading spinner */
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--vscode-progressBar-background);
+  border-top: 3px solid var(--vscode-progressBar-foreground);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 vscode-panels::part(tablist) {
   padding-left: 0 !important;
 }
