@@ -148,7 +148,7 @@
 
           <div class="bg-editorWidget-bg border border-commandCenter-border rounded overflow-hidden">
             <div class="max-h-96 overflow-auto">
-              <pre class="text-xs font-mono p-4 text-editor-fg whitespace-pre-wrap">{{ results }}</pre>
+              <pre class="text-xs font-mono p-4 text-editor-fg whitespace-pre overflow-x-auto">{{ results }}</pre>
             </div>
           </div>
         </div>
@@ -216,6 +216,7 @@ const canExecuteComparison = computed(() => {
   const hasTargetTable = targetTableInput.value.trim().length > 0;
   return sourceConnection.value && targetConnection.value && hasSourceTable && hasTargetTable;
 });
+
 
 // Methods
 const onSourceConnectionChange = (event: Event) => {
