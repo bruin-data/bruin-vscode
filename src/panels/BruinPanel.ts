@@ -142,153 +142,50 @@ export class BruinPanel {
       this._lastRenderedDocumentUri = window.activeTextEditor.document.uri;
     }
     
-    // Set up webview content asynchronously
     this._initializeWebview(extensionUri);
   }
 
-  // Cache CLI status to avoid repeated checks
-  private static _cliStatusCache: { installed: boolean; timestamp: number } | null = null;
-  private static readonly CLI_CACHE_DURATION = 30000; // 30 seconds
-  
-  /**
-   * Initialize webview content immediately
-   */
   private async _initializeWebview(extensionUri: Uri): Promise<void> {
-    // Set up webview immediately
     this._panel.webview.html = this._getWebviewContent(this._panel.webview, extensionUri, false);
     this._lastRenderedDocumentUri = window.activeTextEditor?.document.uri;
     this._setWebviewMessageListener(this._panel.webview);
     
-    // Check cached CLI status first
-    const cachedStatus = this._getCachedCliStatus();
-    if (cachedStatus !== null) {
-      console.log("BruinPanel: Using cached CLI status:", cachedStatus);
-      this._sendCliStatus(cachedStatus);
-      
-      // Load data immediately if CLI is installed
-      if (cachedStatus && this._lastRenderedDocumentUri) {
-        parseAssetCommand(this._lastRenderedDocumentUri);
-        getEnvListCommand(this._lastRenderedDocumentUri);
-      }
-      
-      // Still do a background refresh to keep cache updated
-      this._performBackgroundCliCheck();
-    } else {
-      // No cache, perform immediate check
-      this._performCliCheck();
-    }
+    this._checkCliStatus();
   }
-  
-  /**
-   * Get cached CLI status if available and not expired
-   */
-  private _getCachedCliStatus(): boolean | null {
-    const cache = BruinPanel._cliStatusCache;
-    if (!cache) return null;
-    
-    const now = Date.now();
-    if (now - cache.timestamp > BruinPanel.CLI_CACHE_DURATION) {
-      // Cache expired
-      BruinPanel._cliStatusCache = null;
-      return null;
-    }
-    
-    return cache.installed;
-  }
-  
-  /**
-   * Update CLI status cache
-   */
-  private _updateCliStatusCache(installed: boolean): void {
-    BruinPanel._cliStatusCache = {
-      installed,
-      timestamp: Date.now()
-    };
-  }
-  
-  /**
-   * Send CLI status to webview
-   */
-  private _sendCliStatus(installed: boolean): void {
-    this._panel.webview.postMessage({
-      command: "bruinCliInstallationStatus",
-      installed,
-      isWindows: process.platform === "win32",
-      gitAvailable: false,
-    });
-  }
-  
-  /**
-   * Perform CLI check immediately without delays
-   */
-  private async _performCliCheck(): Promise<void> {
-    try {
-      const initialCliStatus = await this._getInitialCliStatus();
-      
-      // Update cache
-      this._updateCliStatusCache(initialCliStatus);
-      
-      // Send status immediately
-      console.log("BruinPanel: Sending CLI status:", initialCliStatus);
-      this._sendCliStatus(initialCliStatus);
-      
-      // Load data if CLI is installed
-      if (initialCliStatus && this._lastRenderedDocumentUri) {
-        parseAssetCommand(this._lastRenderedDocumentUri);
-        getEnvListCommand(this._lastRenderedDocumentUri);
-      }
-    } catch (error) {
-      console.error("Error during CLI initialization:", error);
-      // Cache negative result to avoid repeated failures
-      this._updateCliStatusCache(false);
-      this._sendCliStatus(false);
-    }
-  }
-  
-  /**
-   * Perform background CLI check to refresh cache
-   */
-  private async _performBackgroundCliCheck(): Promise<void> {
-    try {
-      const cliStatus = await this._getInitialCliStatus();
-      
-      // Update cache with fresh data
-      this._updateCliStatusCache(cliStatus);
-      
-      // Only send update if status changed
-      const cachedStatus = this._getCachedCliStatus();
-      if (cachedStatus !== cliStatus) {
-        console.log("BruinPanel: CLI status changed, updating UI:", cliStatus);
-        this._sendCliStatus(cliStatus);
-      }
-    } catch (error) {
-      console.error("Background CLI check failed:", error);
-    }
-  }
-
-  /**
-   * Get initial CLI status - use existing check function
-   */
-  private async _getInitialCliStatus(): Promise<boolean> {
+  private async _checkCliStatus(): Promise<void> {
     try {
       const bruinInstaller = new BruinInstallCLI();
-      const { installed } = await bruinInstaller.checkBruinCliInstallation();
-      return installed;
-    } catch {
-      return false;
+      const { installed, isWindows, gitAvailable } = await bruinInstaller.checkBruinCliInstallation();
+      
+      this._panel.webview.postMessage({
+        command: "bruinCliInstallationStatus",
+        installed,
+        isWindows,
+        gitAvailable,
+      });
+      
+      if (installed && this._lastRenderedDocumentUri) {
+        parseAssetCommand(this._lastRenderedDocumentUri);
+        getEnvListCommand(this._lastRenderedDocumentUri);
+      }
+    } catch (error) {
+      console.error("Error checking CLI status:", error);
+      this._panel.webview.postMessage({
+        command: "bruinCliInstallationStatus",
+        installed: false,
+        isWindows: process.platform === "win32",
+        gitAvailable: false,
+      });
     }
   }
 
 
   public static restore(panel: WebviewPanel, extensionUri: Uri): BruinPanel {
     const bruinPanel = new BruinPanel(panel, extensionUri);
-
     bruinPanel._panel.webview.postMessage({
       command: 'setDefaultCheckboxStates',
       payload: bruinPanel._checkboxState
-  });
-  
-  // Initial CLI status already sent in constructor
+    });
     return bruinPanel;
   }
 
