@@ -142,65 +142,58 @@ export class BruinPanel {
       this._lastRenderedDocumentUri = window.activeTextEditor.document.uri;
     }
     
-    // Set up webview content asynchronously
     this._initializeWebview(extensionUri);
   }
 
-  /**
-   * Initialize webview content asynchronously
-   */
   private async _initializeWebview(extensionUri: Uri): Promise<void> {
-    // Set up webview first with default status (fast)
     this._panel.webview.html = this._getWebviewContent(this._panel.webview, extensionUri, false);
     this._lastRenderedDocumentUri = window.activeTextEditor?.document.uri;
     this._setWebviewMessageListener(this._panel.webview);
     
-    // Then check CLI status and update
-    setTimeout(async () => {
-      const initialCliStatus = await this._getInitialCliStatus();
+    this._checkCliStatus();
+  }
+  private async _checkCliStatus(): Promise<void> {
+    try {
+      const bruinInstaller = new BruinInstallCLI();
       
-      // Send the actual CLI status
-      this._panel.webview.postMessage({
-        command: "bruinCliInstallationStatus",
-        installed: initialCliStatus,
-        isWindows: process.platform === "win32",
-        gitAvailable: false,
+      // Add timeout to prevent hanging on slow systems
+      const timeoutPromise = new Promise<{ installed: boolean; isWindows: boolean; gitAvailable: boolean }>((_, reject) => {
+        setTimeout(() => reject(new Error("CLI check timeout")), 3000); // 3 second timeout
       });
       
-      // Load data if CLI is installed
-      if (initialCliStatus && this._lastRenderedDocumentUri) {
+      const { installed, isWindows, gitAvailable } = await Promise.race([
+        bruinInstaller.checkBruinCliInstallation(),
+        timeoutPromise
+      ]);
+      
+      this._panel.webview.postMessage({
+        command: "bruinCliInstallationStatus",
+        installed,
+        isWindows,
+        gitAvailable,
+      });
+      
+      if (installed && this._lastRenderedDocumentUri) {
         parseAssetCommand(this._lastRenderedDocumentUri);
         getEnvListCommand(this._lastRenderedDocumentUri);
       }
-      
-      // Do full check to confirm
-      this.checkAndUpdateBruinCliStatus();
-    }, 50);
-  }
-
-  /**
-   * Get initial CLI status - use existing check function
-   */
-  private async _getInitialCliStatus(): Promise<boolean> {
-    try {
-      const bruinInstaller = new BruinInstallCLI();
-      const { installed } = await bruinInstaller.checkBruinCliInstallation();
-      return installed;
-    } catch {
-      return false;
+    } catch (error) {
+      this._panel.webview.postMessage({
+        command: "bruinCliInstallationStatus",
+        installed: false,
+        isWindows: process.platform === "win32",
+        gitAvailable: false,
+      });
     }
   }
 
 
   public static restore(panel: WebviewPanel, extensionUri: Uri): BruinPanel {
     const bruinPanel = new BruinPanel(panel, extensionUri);
-
     bruinPanel._panel.webview.postMessage({
       command: 'setDefaultCheckboxStates',
       payload: bruinPanel._checkboxState
-  });
-  
-  // Initial CLI status already sent in constructor
+    });
     return bruinPanel;
   }
 
@@ -633,6 +626,12 @@ export class BruinPanel {
               status: "success",
               message: this._lastRenderedDocumentUri?.fsPath,
             });
+            
+            // Also trigger asset detection and parsing like onDidChangeActiveTextEditor does
+            if (this._lastRenderedDocumentUri) {
+              await this._handleAssetDetection(this._lastRenderedDocumentUri);
+              renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri?.fsPath);
+            }
             break;
 
           case "bruin.editConnection":
@@ -913,6 +912,14 @@ export class BruinPanel {
                 status: "error",
                 message: `Failed to initialize project: ${error}`
               });
+            }
+            break;
+          case "bruin.refocusActiveEditor":
+            console.log("🔄 [BruinPanel] Refocusing active editor for incomplete data");
+            if (window.activeTextEditor && this._lastRenderedDocumentUri) {
+              // Re-trigger parsing for current document
+              parseAssetCommand(this._lastRenderedDocumentUri);
+              getEnvListCommand(this._lastRenderedDocumentUri);
             }
             break;
         }

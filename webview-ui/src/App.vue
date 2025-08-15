@@ -1,11 +1,16 @@
 <template>
-  <div v-if="isBruinInstalled === false" class="flex items-center space-x-2 w-full justify-between pt-2">
+  <div v-if="isBruinInstalled === null">
+    <!-- CLI check in progress - show minimal content -->
+  </div>
+  
+  <div v-else-if="isBruinInstalled === false" class="flex items-center space-x-2 w-full justify-between pt-2">
     <BruinSettings
       :isBruinInstalled="isBruinInstalled"
       :environments="environmentsList"
       class="flex w-full"
     />
   </div>
+  
   <div v-else-if="isBruinInstalled === true" class="flex flex-col pt-1">
     <div v-if="isNotAsset && showConvertMessage" class="w-full">
       <NonAssetMessage
@@ -158,40 +163,29 @@ const data = ref(
     },
   })
 );
-const isBruinInstalled = ref(null); // null = unknown, true = installed, false = not installed
+const isBruinInstalled = ref<boolean | null>(null); // Start as unknown until CLI check completes
 const lastRenderedDocument = ref(""); 
 const pipelineAssetsData = ref([]);
 const handleMessage = (event: MessageEvent) => {
   const message = event.data;
+  console.log("Message received:", message.command, message);
+  
   try {
     switch (message.command) {
-      case "init":
-        lastRenderedDocument.value = message.lastRenderedDocument;
-        settingsOnlyMode.value = message.settingsOnlyMode || false;
-        break;
       case "environments-list-message":
         environments.value = updateValue(message, "success");
         connectionsStore.setDefaultEnvironment(selectedEnvironment.value);
         break;
       case "clear-convert-message": {
-        console.log("In App.vue : clear-convert-message message received", message);
-        
-        // Only clear if this message is for the current file or no specific file mentioned
         const currentFile = lastRenderedDocument.value;
         const messageFile = message.filePath;
         
         if (messageFile && currentFile && messageFile !== currentFile) {
-          console.log("In App.vue : Ignoring clear-convert-message for different file", {
-            current: currentFile,
-            message: messageFile
-          });
           break;
         }
         
-        console.log("In App.vue : Clearing convert message state");
         isNotAsset.value = false;
         showConvertMessage.value = false;
-        // Clear all conversion-related state to prevent stale UI
         nonAssetFileType.value = "";
         nonAssetFilePath.value = "";
         rudderStack.trackEvent("Asset Converted and Clear Convert Message", {
@@ -200,18 +194,10 @@ const handleMessage = (event: MessageEvent) => {
         break;
       }
       case "non-asset-file": {
-        console.log("In App.vue : non-asset-file message received", message);
-        console.log("In App.vue : non-asset-file showConvertMessage", message.showConvertMessage);
-        
-        // Only update state if this message is for the current file
         const currentFilePath = lastRenderedDocument.value;
         const messageFilePath = message.filePath;
         
         if (messageFilePath && currentFilePath && messageFilePath !== currentFilePath) {
-          console.log("In App.vue : Ignoring non-asset-file message for different file", {
-            current: currentFilePath,
-            message: messageFilePath
-          });
           break;
         }
         
@@ -219,8 +205,8 @@ const handleMessage = (event: MessageEvent) => {
         rudderStack.trackEvent("Non Asset File", {
           assetName: message.assetName,
         });
+        
         if (message.showConvertMessage) {
-          console.log("In App.vue : non-asset-file showConvertMessage true");
           rudderStack.trackEvent("Non Asset File Show Convert Message", {
             assetName: message.assetName,
             filePath: message.filePath,
@@ -229,9 +215,7 @@ const handleMessage = (event: MessageEvent) => {
           nonAssetFileType.value = message.fileType || "";
           nonAssetFilePath.value = message.filePath || "";
         } else {
-          console.log("In App.vue : non-asset-file showConvertMessage false");
           showConvertMessage.value = false;
-          // Clear stale convert state when hiding message
           nonAssetFileType.value = "";
           nonAssetFilePath.value = "";
           rudderStack.trackEvent("Non Asset File Show Convert Message False", {
@@ -245,26 +229,41 @@ const handleMessage = (event: MessageEvent) => {
         parseError.value = updateValue(message, "error");
         const parsed = updateValue(message, "success");
         if (!parseError.value && parsed) {
-          // Clear any previous parse errors when valid data is received
           parseError.value = null;
           isNotAsset.value = false;
           showConvertMessage.value = false;
-          // Handle pipelineConfig (from pipeline.yml)
+          
+          // If we receive asset parsing data, CLI must be installed
+          if (isBruinInstalled.value === null) {
+            console.log("🚀 [App.vue] CLI assumed installed - received asset data");
+            isBruinInstalled.value = true;
+          }
+          
+          // Check if we have incomplete data and need to refocus
+          const hasAssetData = parsed && parsed.asset;
+          const hasColumns = parsed.asset?.columns && parsed.asset.columns.length > 0;
+          const hasEnvironments = environmentsList.value && environmentsList.value.length > 0;
+          
+          if (hasAssetData && !hasColumns && !hasEnvironments) {
+            console.log("⚠️ [App.vue] Incomplete data detected, requesting refocus");
+            setTimeout(() => {
+              vscode.postMessage({ command: "bruin.refocusActiveEditor" });
+            }, 1000);
+          }
+          
           if (parsed && parsed.type === "pipelineConfig") {
             data.value = parsed;
             lastRenderedDocument.value = parsed.filePath;
             break;
           }
-          // Handle bruinConfig (from .bruin.yml)
+          
           if (parsed && parsed.type === "bruinConfig") {
-            // Only settings tab should be open
-            console.log("Bruin config parsed:", parsed);
             isBruinYml.value = true;
             activeTab.value = 3;
             lastRenderedDocument.value = parsed.filePath;
             break;
           }
-          // For all other asset types, update file path if available
+          
           if (parsed && parsed.filePath) {
             lastRenderedDocument.value = parsed.filePath;
           } else if (parsed && parsed.asset && parsed.asset.executable_file && parsed.asset.executable_file.path) {
@@ -273,32 +272,24 @@ const handleMessage = (event: MessageEvent) => {
           data.value = parsed;
         }
 
-        // Track asset parsing status
         rudderStack.trackEvent("Asset Parsing Status", {
           parseError: parseError.value ? `Error ${parseError.value}` : "No Error Found",
         });
-        console.warn("Parsing message received END:", new Date().toISOString());
         break;
       }
       case "pipeline-assets":
         pipelineAssetsData.value = updateValue(message, "success");
-        console.log("Received pipeline assets data:", pipelineAssetsData.value);
         break;
       case "bruinCliInstallationStatus":
-        isBruinInstalled.value = message.installed; // Update installation status
-        console.log("Bruin installation status updated:", isBruinInstalled.value);
+        console.log("🔧 [App.vue] CLI status received:", message.installed);
+        isBruinInstalled.value = message.installed;
         break;
 
       case "bruinCliVersionStatus":
         versionStatus.value = message.versionStatus;
-        console.log("Bruin update status updated in App.vue:", versionStatus.value);
         break;
       case "file-changed":
         lastRenderedDocument.value = message.filePath;
-        settingsOnlyMode.value = false; // Reset when file changes
-        break;
-      case "settings-only-mode":
-        settingsOnlyMode.value = true;
         break;
     }
   } catch (error) {
@@ -316,7 +307,6 @@ const showConvertMessage = ref(false);
 const nonAssetFileType = ref("");
 const nonAssetFilePath = ref("");
 const activeTab = ref(0); // Tracks the currently active tab
-const settingsOnlyMode = ref(false); // Tracks if we're in settings-only mode
 
 // Computed property to parse the list of environments
 const environmentsList = computed(() => {
@@ -435,7 +425,6 @@ const materializationProps = computed(() => {
   return details?.materialization;
 });
 
-// Computed property for asset columns
 const columnsProps = computed(() => {
   if (!data.value) return [];
   const details = parseAssetDetails(data.value);
@@ -472,7 +461,6 @@ const pipelineAssets = computed(() => {
   return assets;
 });
 
-// Computed property for asset columns
 const customChecksProps = computed(() => {
   if (!data.value) {
     console.log("No data found for custom checks");
@@ -536,45 +524,47 @@ const tabs = ref([
       isBruinInstalled: computed(() => isBruinInstalled.value),
       environments: computed(() => environmentsList.value),
       versionStatus: computed(() => versionStatus.value),
-      settingsOnlyMode: computed(() => settingsOnlyMode.value),
     },
   },
 ]);
 
 // Computed property to determine which tabs to show based on the document type
 const visibleTabs = computed(() => {
-  // If CLI installation status is unknown or CLI is not installed, show no tabs
+  console.log("🔄 [App.vue] visibleTabs check:", {
+    isBruinInstalled: isBruinInstalled.value,
+    isBruinYml: isBruinYml.value,
+    totalTabs: tabs.value.length
+  });
+  
+  // If CLI check in progress or CLI not installed, show no tabs
   if (isBruinInstalled.value === null || isBruinInstalled.value === false) {
-    console.log("CLI status unknown or not installed, showing no tabs.");
+    console.log("❌ [App.vue] No tabs shown - CLI status:", isBruinInstalled.value);
     return [];
   }
   
-  // If in settings-only mode, show only Settings tab
-  if (settingsOnlyMode.value) {
-    console.log("Settings-only mode, showing only Settings tab.");
-    return tabs.value.filter((tab) => tab.label === "Settings");
-  }
-  
   if (isBruinYml.value) {
-    // Only show the "Settings" tab
-    console.log("Showing only Settings tab for Bruin YAML file.");
+    // Only show the "Settings" tab for .bruin.yml files
+    console.log("⚙️ [App.vue] Settings only - bruin.yml file");
     return tabs.value.filter((tab) => tab.label === "Settings");
   }
   // Show all tabs
-  console.log("Showing all tabs.");
+  console.log("✅ [App.vue] Showing all tabs");
   return tabs.value;
 });
 
-// Lifecycle hook to load data when the component is mounted
 onMounted(async () => {
-  console.log("onMounted");
-  console.log("Adding message listener");
   window.addEventListener("message", handleMessage);
-  loadAssetData();
-  loadEnvironmentsList();
+  
   vscode.postMessage({ command: "getLastRenderedDocument" });
-  vscode.postMessage({ command: "bruin.checkBruinCLIVersion" });
-  vscode.postMessage({ command: "bruin.checkBruinCLIInstallation" });
+  
+  // Auto-refocus if we still have black panel after 3 seconds
+  setTimeout(() => {
+    if (isBruinInstalled.value === null && !data.value) {
+      console.log("🔄 [App.vue] Auto-refocusing due to persistent black panel");
+      vscode.postMessage({ command: "bruin.refocusActiveEditor" });
+    }
+  }, 3000);
+  
   // Track page view
   /* try {
     rudderStack.trackPageView("Asset Details Page", {
@@ -623,6 +613,7 @@ watch(isBruinInstalled, (newStatus) => {
     // CLI is now installed, load the necessary data
     loadAssetData();
     loadEnvironmentsList();
+    vscode.postMessage({ command: "bruin.checkBruinCLIVersion" });
   }
 });
 
@@ -689,7 +680,7 @@ const badgeClass = computed(() => {
 });
 
 const isTabActive = (index) => {
-  // If CLI installation status is unknown or CLI is not installed, no tabs should be active
+  // If CLI check in progress or CLI not installed, no tabs should be active
   if (isBruinInstalled.value === null || isBruinInstalled.value === false) {
     return false;
   }
