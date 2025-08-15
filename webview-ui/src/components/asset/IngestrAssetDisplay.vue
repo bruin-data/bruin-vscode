@@ -276,15 +276,15 @@ const cancelEdit = (field: string) => {
 };
 
 const saveParameters = () => {
-  const filteredParameters: Partial<IngestrParameters> = {};
+  const updatedParameters = { ...props.parameters };
   
   Object.entries(localParameters.value).forEach(([key, value]) => {
     if (value !== null && value !== undefined && value !== '') {
-      filteredParameters[key as keyof IngestrParameters] = value;
+      updatedParameters[key] = value;
     }
   });
   
-  emit('save', filteredParameters as IngestrParameters);
+  emit('save', updatedParameters as IngestrParameters);
 };
 
 onMounted(() => {
