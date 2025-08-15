@@ -1,8 +1,5 @@
 # Changelog
 ## [0.63.3] - [2025-08-15]
-- Added table diff view for ingestr assets.
-
-## [0.63.2] - [2025-08-15]
 - Fixed ingestr asset parameters saving issue.
 
 ## [0.63.1] - [2025-08-13]
