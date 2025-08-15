@@ -1,14 +1,12 @@
 <template>
-  <div class="flex flex-col w-full h-full">
+  <div class="flex flex-col w-full h-full pt-1">
     <div class="flex-1 overflow-auto">
-      <!-- Configuration Inputs -->
       <div class="flex flex-row items-center gap-4 p-3 bg-editorWidget-bg border border-panel-border rounded-lg">
-        <!-- Connection 1 and Table 1 -->
-        <div class="flex flex-row items-center gap-2">
+        <div class="flex flex-row items-center gap-2 flex-1">
           <vscode-dropdown
             v-model="sourceConnection"
             @change="onSourceConnectionChange"
-            class="w-52"
+            class="flex-1"
             :disabled="isLoading"
           >
             <vscode-option value="">Connection 1...</vscode-option>
@@ -17,7 +15,7 @@
             </vscode-option>
           </vscode-dropdown>
 
-          <div class="relative w-52">
+          <div class="relative flex-1">
             <vscode-text-field
               placeholder="Table 1 (schema.table)"
               v-model="sourceTableInput"
@@ -26,12 +24,11 @@
               @blur="hideSourceSuggestions"
               class="w-full"
               :disabled="isLoading"
-            ></vscode-text-field>
+            > <span></span> </vscode-text-field>
             
-            <!-- Autocomplete suggestions for source table -->
             <div
               v-if="showSourceSuggestions"
-              class="absolute top-full left-0 right-0 z-10 bg-editorWidget-bg border border-commandCenter-border rounded-b shadow-lg max-h-40 overflow-auto"
+              class="absolute top-full left-0 right-0 z-10 bg-editorWidget-bg border border-commandCenter-border rounded-b max-h-40 overflow-auto"
             >
               <div
                 v-for="(suggestion, index) in sourceTableSuggestions"
@@ -39,7 +36,7 @@
                 @click="selectSourceSuggestion(suggestion)"
                 @mousedown.prevent=""
                 :class="[
-                  'px-3 py-2 cursor-pointer text-sm font-mono text-editor-fg',
+                  'p-1 cursor-pointer text-3xs font-mono text-editor-fg',
                   selectedSourceIndex === index ? 'bg-list-activeSelectionBackground' : 'hover:bg-list-activeSelectionBackground'
                 ]"
               >
@@ -49,15 +46,13 @@
           </div>
         </div>
 
-        <!-- Spacer between connection groups -->
         <div class="w-8"></div>
 
-        <!-- Connection 2 and Table 2 -->
-        <div class="flex flex-row items-center gap-2">
+        <div class="flex flex-row items-center gap-2 flex-1">
           <vscode-dropdown
             v-model="targetConnection"
             @change="onTargetConnectionChange"
-            class="w-52"
+            class="flex-1"
             :disabled="isLoading"
           >
             <vscode-option value="">Connection 2...</vscode-option>
@@ -66,7 +61,7 @@
             </vscode-option>
           </vscode-dropdown>
 
-          <div class="relative w-52">
+          <div class="relative flex-1">
             <vscode-text-field
               v-model="targetTableInput"
               @input="onTargetTableInput"
@@ -75,12 +70,11 @@
               placeholder="Table 2 (schema.table)"
               class="w-full"
               :disabled="isLoading"
-            ></vscode-text-field>
+            > <span></span> </vscode-text-field>
             
-            <!-- Autocomplete suggestions for target table -->
             <div
               v-if="showTargetSuggestions"
-              class="absolute top-full left-0 right-0 z-10 bg-editorWidget-bg border border-commandCenter-border rounded-b shadow-lg max-h-40 overflow-auto"
+              class="absolute top-full left-0 right-0 z-10 bg-editorWidget-bg border border-commandCenter-border rounded-b max-h-40 overflow-auto"
             >
               <div
                 v-for="(suggestion, index) in targetTableSuggestions"
@@ -88,7 +82,7 @@
                 @click="selectTargetSuggestion(suggestion)"
                 @mousedown.prevent=""
                 :class="[
-                  'px-3 py-2 cursor-pointer text-sm font-mono text-editor-fg',
+                  'p-1 cursor-pointer text-3xs font-mono text-editor-fg',
                   selectedTargetIndex === index ? 'bg-list-activeSelectionBackground' : 'hover:bg-list-activeSelectionBackground'
                 ]"
               >
@@ -98,25 +92,30 @@
           </div>
         </div>
 
-        <!-- Action Buttons -->
-        <div class="flex items-center gap-2 ml-auto">
-          <vscode-button
-            :disabled="!canExecuteComparison || isLoading"
-            @click="executeComparison"
-            appearance="primary"
-          >
-            <span v-if="!isLoading" class="codicon codicon-play mr-1"></span>
-            <span v-if="isLoading" class="animate-spin codicon codicon-loading mr-1"></span>
-            Compare
-          </vscode-button>
-
-          <vscode-button title="Clear Results" appearance="icon" @click="clearResults">
-            <span class="codicon codicon-clear-all"></span>
-          </vscode-button>
-        </div>
+                 <div class="flex items-center gap-3 ml-auto">
+           <div class="flex items-center gap-2">
+             <vscode-checkbox
+               v-model="schemaOnlyComparison"
+               @change="onSchemaOnlyChange"
+               :disabled="isLoading"
+             ></vscode-checkbox>
+             <label class="text-xs text-editor-fg cursor-pointer" @click="toggleSchemaOnly">
+               Schema only
+             </label>
+           </div>
+           
+           <vscode-button
+             :disabled="!canExecuteComparison || isLoading"
+             @click="executeComparison"
+             appearance="primary"
+           >
+             <span v-if="!isLoading" class="codicon codicon-play mr-1"></span>
+             <span v-if="isLoading" class="animate-spin codicon codicon-loading mr-1"></span>
+             Compare
+           </vscode-button>
+         </div>
       </div>
 
-      <!-- Results -->
       <div v-if="hasResults || error" class="flex-1">
         <div v-if="error" class="p-4 border-b border-panel-border">
           <div class="flex items-center mb-2">
@@ -128,18 +127,21 @@
           </div>
         </div>
 
-        <div v-if="hasResults" class="p-4">
+        <div v-if="hasResults" class="p-1 mt-2">
           <div class="flex items-center justify-between mb-3">
-            <div class="flex items-center">
+            <div class="flex items-center gap-3">
               <span class="codicon codicon-diff text-blue-500 mr-2"></span>
               <h3 class="text-sm font-medium text-editor-fg">Comparison Results</h3>
-            </div>
-            <div class="flex items-center gap-2">
-              <vscode-badge class="text-xs">
+              <vscode-badge class="text-3xs opacity-70">
                 {{ comparisonInfo.source }} → {{ comparisonInfo.target }}
               </vscode-badge>
+            </div>
+            <div class="flex items-center gap-2">
               <vscode-button title="Copy Results" appearance="icon" @click="copyResults">
                 <span class="codicon codicon-copy text-editor-fg"></span>
+              </vscode-button>
+              <vscode-button title="Clear Results" appearance="icon" @click="clearResults">
+                <span class="codicon codicon-clear-all text-editor-fg"></span>
               </vscode-button>
             </div>
           </div>
@@ -152,15 +154,13 @@
         </div>
       </div>
 
-      <!-- Empty State -->
-      <div v-if="!hasResults && !error && !isLoading" class="flex items-center justify-center h-32 text-center">
+      <div v-if="!hasResults && !error && !isLoading" class="flex items-center justify-center h-screen text-center">
         <div class="text-editor-fg opacity-60">
           <span class="codicon codicon-diff text-4xl block mb-2 opacity-40"></span>
           <p class="text-sm">Configure connections and table names to compare</p>
         </div>
       </div>
 
-      <!-- Loading State -->
       <div v-if="isLoading" class="flex items-center justify-center h-32">
         <div class="text-center">
           <div class="spinner mb-2"></div>
@@ -197,6 +197,7 @@ const isLoading = ref(false);
 const results = ref("");
 const error = ref("");
 const comparisonInfo = ref<ComparisonInfo>({ source: "", target: "" });
+const schemaOnlyComparison = ref(false);
 
 // Autocomplete state
 const sourceTables = ref<string[]>([]);
@@ -520,11 +521,11 @@ const executeComparison = () => {
 
   vscode.postMessage({
     command: "executeTableDiff",
-    connectionMode: "explicit",
     sourceConnection: sourceConnection.value,
     targetConnection: targetConnection.value,
     sourceTable: sourceTableInput.value.trim(),
     targetTable: targetTableInput.value.trim(),
+    schemaOnly: schemaOnlyComparison.value,
   });
 };
 
@@ -532,12 +533,24 @@ const clearResults = () => {
   results.value = "";
   error.value = "";
   comparisonInfo.value = { source: "", target: "" };
+  schemaOnlyComparison.value = false;
 };
 
 const copyResults = () => {
   if (results.value) {
     navigator.clipboard.writeText(results.value);
   }
+};
+
+const onSchemaOnlyChange = (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  schemaOnlyComparison.value = target.checked;
+  console.log('Schema only comparison:', schemaOnlyComparison.value);
+};
+
+const toggleSchemaOnly = () => {
+  schemaOnlyComparison.value = !schemaOnlyComparison.value;
+  console.log('Schema only comparison toggled to:', schemaOnlyComparison.value);
 };
 
 // Message handling
@@ -589,11 +602,3 @@ onMounted(() => {
   window.addEventListener("message", handleMessage);
 });
 </script>
-
-<style>
-vscode-text-field {
-  font-size: 12px;
-  border: none !important;
-  background: rebeccapurple !important;
-}
-</style>
