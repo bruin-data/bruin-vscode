@@ -1,4 +1,7 @@
 # Changelog
+## [0.64.1] - [2025-08-18]
+- Add secrets UI to the details tab.
+
 ## [0.64.0] - [2025-08-15]
 - Added data diff panel to the extension.
 
