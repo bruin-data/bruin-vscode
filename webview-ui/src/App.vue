@@ -5,6 +5,7 @@
     <BruinSettings
       :isBruinInstalled="isBruinInstalled"
       :environments="environmentsList"
+      :settings-only-mode="settingsOnlyMode"
       class="flex w-full"
     />
   </div>
@@ -18,7 +19,7 @@
       />
     </div>
 
-    <div v-else-if="!isNotAsset && !showConvertMessage" class="">
+    <div v-else-if="!isNotAsset && !showConvertMessage && !settingsOnlyMode" class="">
       <div class="flex items-center space-x-2 w-full justify-between min-h-6">
         <div class="flex items-baseline w-3/4 min-w-0 font-md text-editor-fg text-lg font-mono">
           <div class="flex-grow min-w-0 overflow-hidden">
@@ -170,6 +171,10 @@ const handleMessage = (event: MessageEvent) => {
   
   try {
     switch (message.command) {
+      case "init": {
+        settingsOnlyMode.value = !!message.settingsOnlyMode;
+        break;
+      }
         case "bruinCliInstallationStatus": {
           // Always respect backend signal; show install UI when not installed
           isBruinInstalled.value = !!message.installed;
@@ -312,6 +317,7 @@ const handleMessage = (event: MessageEvent) => {
 };
 
 const isBruinYml = ref(false);
+const settingsOnlyMode = ref(false);
 const isNotAsset = ref(false);
 const showConvertMessage = ref(false);
 const nonAssetFileType = ref("");
@@ -535,6 +541,7 @@ const tabs = ref([
       isBruinInstalled: computed(() => isBruinInstalled.value),
       environments: computed(() => environmentsList.value),
       versionStatus: computed(() => versionStatus.value),
+      settingsOnlyMode: computed(() => settingsOnlyMode.value),
     },
   },
 ]);
@@ -553,6 +560,11 @@ const visibleTabs = computed(() => {
     return [];
   }
   
+  // If panel is in settings-only mode (e.g. welcome/installation context), only show Settings tab
+  if (settingsOnlyMode.value) {
+    return tabs.value.filter((tab) => tab.label === "Settings");
+  }
+
   if (isBruinYml.value) {
     // Only show the "Settings" tab for .bruin.yml files
     console.log("⚙️ [App.vue] Settings only - bruin.yml file");
