@@ -67,7 +67,8 @@ export class BruinPanel {
   private _flags: string = "";
   private _assetDetectionDebounceTimer: NodeJS.Timeout | undefined;
   private _cliInstalled: boolean | null = null;
-  private _lastHadActiveEditor: boolean = false;
+  private _initialSettingsOnlyMode: boolean = false;
+  private _hasRecreatedFromSettingsOnly: boolean = false;
 
   /**
    * The BruinPanel class private constructor (called only from the render method).
@@ -116,19 +117,18 @@ export class BruinPanel {
       }),
 
       window.onDidChangeActiveTextEditor(async (editor) => {
-        const hadActive = this._lastHadActiveEditor;
-        const hasActiveNow = !!editor;
-        this._lastHadActiveEditor = hasActiveNow;
-
-        // If we transition from no active editor (welcome/settings-only) to an active editor,
-        // recreate the panel beside to ensure correct layout and fresh state
-        if (hasActiveNow && !hadActive) {
+        // One-time recreation only if the panel was originally created in settings-only (no active editor)
+        // and we are seeing the first active editor. Ignore subsequent focus toggles.
+        if (this._initialSettingsOnlyMode && !this._hasRecreatedFromSettingsOnly && editor && editor.document?.uri) {
           const extUri = this._extensionUri;
-          try {
-            this.dispose();
-          } finally {
-            BruinPanel.render(extUri);
-          }
+          this._hasRecreatedFromSettingsOnly = true;
+          setTimeout(() => {
+            try {
+              this.dispose();
+            } finally {
+              BruinPanel.render(extUri);
+            }
+          }, 0);
           return;
         }
 
@@ -155,6 +155,8 @@ export class BruinPanel {
       })
     );
 
+    // Capture initial mode to know if we started from Welcome/settings-only
+    this._initialSettingsOnlyMode = !window.activeTextEditor;
     if (window.activeTextEditor) {
       this._lastRenderedDocumentUri = window.activeTextEditor.document.uri;
     }

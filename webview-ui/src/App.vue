@@ -360,6 +360,15 @@ const parsedData = computed(() => {
   }
 });
 
+// Content readiness: avoid showing empty tabs until something is parsed
+const hasParsedContent = computed(() => {
+  const pd = parsedData.value as any;
+  if (!pd) return false;
+  if (pd.type === "pipelineConfig" || pd.type === "bruinConfig") return true;
+  if (pd.asset) return true;
+  return false;
+});
+
 const isPipelineConfig = computed(() => parsedData.value?.type === "pipelineConfig");
 const isBruinConfig = computed(() => parsedData.value?.type === "bruinConfig");
 const isConfigFile = computed(() => isBruinConfig.value || isPipelineConfig.value);
@@ -572,6 +581,11 @@ const visibleTabs = computed(() => {
   if (isBruinInstalled.value === null || isBruinInstalled.value === false) {
     console.log("❌ [App.vue] No tabs shown - CLI status:", isBruinInstalled.value);
     return [];
+  }
+
+  // If CLI installed but we don't have parsed content yet, keep only Settings visible to avoid blank panes
+  if (!hasParsedContent.value) {
+    return tabs.value.filter((tab) => tab.label === "Settings");
   }
 
   if (isBruinYml.value) {
