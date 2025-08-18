@@ -507,6 +507,7 @@ const tabs = ref([
       dependencies: transformedDependencies.value,
       pipelineAssets: pipelineAssets.value,
       currentFilePath: lastRenderedDocument.value,
+      secrets: assetDetailsProps.value?.secrets,
     })),
   },
   {
