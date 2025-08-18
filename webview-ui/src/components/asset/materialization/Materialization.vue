@@ -245,6 +245,71 @@
               </div>
             </div>
           </div>
+
+                    <div class="flex items-center gap-3">
+            <label class="field-label min-w-[60px]">Secrets</label>
+            <div class="flex flex-wrap items-center space-x-2 flex-1">
+              <vscode-tag
+                v-for="(secret, index) in (localSecrets || [])"
+                :key="index"
+                class="text-xs inline-flex items-center justify-center gap-1 cursor-pointer py-1"
+                @click="editSecret(index)"
+              >
+                <div class="text-xs flex items-center gap-2">
+                  <span>{{ secret.secret_key }}{{ secret.injected_key ? ': ' + secret.injected_key : '' }}</span>
+                  <span 
+                    class="codicon codicon-close text-3xs flex items-center"
+                    @click.stop="removeSecret(index)"
+                  ></span>
+                </div>
+              </vscode-tag>
+
+              <div v-if="isAddingSecret || editingSecretIndex !== -1" class="flex items-center gap-1">
+                <input
+                  v-model="newSecretKey"
+                  @keyup.enter="confirmAddSecret"
+                  @keyup.escape="cancelAddSecret"
+                  ref="secretKeyInput"
+                  placeholder="connection_name"
+                  class="text-2xs bg-input-background focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg min-w-[80px] h-6 px-1"
+                />
+                <span class="text-xs text-editor-fg opacity-50">:</span>
+                <input
+                  v-model="newSecretInjectAs"
+                  @keyup.enter="confirmAddSecret"
+                  @keyup.escape="cancelAddSecret"
+                  placeholder="optional"
+                  class="text-2xs bg-input-background focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg min-w-[50px] h-6 px-1"
+                />
+                <vscode-button
+                  appearance="icon"
+                  @click="confirmAddSecret"
+                  title="Save secret"
+                  class="text-xs flex items-center justify-center h-6"
+                >
+                  <span class="codicon codicon-check"></span>
+                </vscode-button>
+                <vscode-button
+                  appearance="icon"
+                  @click="cancelAddSecret"
+                  title="Cancel"
+                  class="text-xs flex items-center justify-center h-6"
+                >
+                  <span class="codicon codicon-close"></span>
+                </vscode-button>
+              </div>
+               
+              <vscode-button
+                appearance="icon"
+                @click="startAddingSecret"
+                v-if="!isAddingSecret && editingSecretIndex === -1"
+                class="text-xs flex items-center justify-center h-full"
+                title="Add secret"
+              >
+                <span class="codicon codicon-add"></span>
+              </vscode-button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -552,9 +617,7 @@
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount, onUnmounted } from "vue";
 import { vscode } from "@/utilities/vscode";
-// Removed Heroicons import - using codicons instead
 
-// Collapsible sections state
 const expandedSections = ref({
   basicInfo: true,
   dependencies: true,
@@ -618,6 +681,10 @@ const props = defineProps({
     type: String,
     default: "",
   },
+  secrets: {
+    type: Array,
+    default: () => [],
+  },
 });
 
 const owner = ref(props.owner || "");
@@ -634,9 +701,67 @@ const partitionContainer = ref(null);
 const clusterContainer = ref(null);
 const partitionInput = ref("");
 const partitionDropdownStyle = ref({});
-const clusterDropdownStyle = ref({});
+const localSecrets = ref([]);
+const isAddingSecret = ref(false);
+const editingSecretIndex = ref(-1);
+const newSecretKey = ref("");
+const newSecretInjectAs = ref("");
+const secretKeyInput = ref(null);
 
-// Owner editing functions
+onMounted(() => {
+  if (props.secrets?.length) {
+    localSecrets.value = [...props.secrets];
+  }
+  
+  if (props.dependencies && Array.isArray(props.dependencies)) {
+    dependencies.value = [...props.dependencies];
+  }
+  
+  if (props.pipelineAssets && Array.isArray(props.pipelineAssets)) {
+    pipelineAssets.value = [...props.pipelineAssets];
+  }
+  
+  if (props.owner) {
+    owner.value = props.owner;
+  }
+  if (props.tags && Array.isArray(props.tags)) {
+    tags.value = [...props.tags];
+  }
+  
+  if (props.intervalModifiers) {
+    intervalModifiers.value = {
+      start: props.intervalModifiers.start || null,
+      end: props.intervalModifiers.end || null
+    };
+  }
+  
+  if (props.materialization) {
+    localMaterialization.value = initializeLocalMaterialization(props.materialization);
+    partitionInput.value = localMaterialization.value.partition_by || "";
+    clusterInputValue.value = localMaterialization.value.cluster_by.join(", ");
+  }
+  
+  watch(() => props.secrets, (newSecrets) => {
+    if (newSecrets && Array.isArray(newSecrets)) {
+      localSecrets.value = [...newSecrets];
+    }
+  }, { deep: true });
+  
+  watch(() => props.intervalModifiers, (newVal) => {
+    intervalModifiers.value = {
+      start: newVal?.start || null,
+      end: newVal?.end || null
+    };
+    populateIntervalFormFields();
+  }, { deep: true });
+  
+  watch(() => props.materialization, (newVal) => {
+    localMaterialization.value = initializeLocalMaterialization(newVal);
+    partitionInput.value = localMaterialization.value.partition_by || "";
+    clusterInputValue.value = localMaterialization.value.cluster_by.join(", ");
+  }, { deep: true });
+});
+
 const startEditingOwner = () => {
   isEditingOwner.value = true;
   editingOwner.value = owner.value;
@@ -668,7 +793,6 @@ const handleOwnerInputMouseLeave = () => {
   }
 };
 
-// Tag management functions
 const startAddingTag = () => {
   isAddingTag.value = true;
   nextTick(() => {
@@ -705,8 +829,9 @@ const sendTagUpdate = () => {
   });
 };
 
-// Dependencies related reactive variables
-const dependencies = ref([...props.dependencies] || []);
+const dependencies = ref([]);
+
+
 
 const isPipelineDepsOpen = ref(false);
 const pipelineSearchQuery = ref("");
@@ -714,10 +839,11 @@ const externalDepInput = ref("");
 const newDependencyMode = ref("full");
 const pipelineDepsContainer = ref(null);
 const externalDepsContainer = ref(null);
-const pipelineAssets = ref(props.pipelineAssets || []);
+const pipelineAssets = ref([]);
+
+
 const dropdownStyle = ref({});
 
-// Computed property to check if current file is SQL
 const isCurrentFileSql = computed(() => {
   if (!props.currentFilePath) {
     return false;
@@ -741,10 +867,12 @@ const debouncedSave = () => {
   }
   saveTimeout = setTimeout(() => {
     saveMaterialization();
-  }, 300); // 300ms delay
+  }, 300);
 };
 
-const intervalModifiers = ref(JSON.parse(JSON.stringify(props.intervalModifiers)));
+const intervalModifiers = ref({});
+
+
 
 const intervalUnits = ["months", "days", "hours", "minutes", "seconds"];
 
@@ -854,24 +982,26 @@ const handleIntervalChange = (intervalType) => {
   });
 };
 
-watch(
-  () => props.intervalModifiers,
-  (newVal) => {
-    const clonedNewVal = JSON.parse(JSON.stringify(newVal || {}));
+onMounted(() => {
+  watch(
+    () => props.intervalModifiers,
+    (newVal) => {
+      const clonedNewVal = JSON.parse(JSON.stringify(newVal || {}));
 
-    intervalModifiers.value = {
-      start:
-        typeof clonedNewVal.start === "number"
-          ? clonedNewVal.start
-          : { ...(clonedNewVal.start || {}) },
-      end:
-        typeof clonedNewVal.end === "number" ? clonedNewVal.end : { ...(clonedNewVal.end || {}) },
-    };
+      intervalModifiers.value = {
+        start:
+          typeof clonedNewVal.start === "number"
+            ? clonedNewVal.start
+            : { ...(clonedNewVal.start || {}) },
+        end:
+          typeof clonedNewVal.end === "number" ? clonedNewVal.end : { ...(clonedNewVal.end || {}) },
+      };
 
-    populateIntervalFormFields();
-  },
-  { immediate: true, deep: true }
-);
+      populateIntervalFormFields();
+    },
+    { deep: true }
+  );
+});
 
 const defaultMaterialization = {
   type: "null",
@@ -903,17 +1033,18 @@ const initializeLocalMaterialization = (materializationProp) => {
   return base;
 };
 
-watch(
-  () => props.materialization,
-  (newVal) => {
-    localMaterialization.value = initializeLocalMaterialization(newVal);
-    partitionInput.value = localMaterialization.value.partition_by || "";
-    clusterInputValue.value = localMaterialization.value.cluster_by.join(", ");
-  },
-  { immediate: true, deep: true }
-);
+onMounted(() => {
+  watch(
+    () => props.materialization,
+    (newVal) => {
+      localMaterialization.value = initializeLocalMaterialization(newVal);
+      partitionInput.value = localMaterialization.value.partition_by || "";
+      clusterInputValue.value = localMaterialization.value.cluster_by.join(", ");
+    },
+    { deep: true }
+  );
+});
 
-// Watch for strategy changes to save immediately
 watch(
   () => localMaterialization.value.strategy,
   () => {
@@ -923,7 +1054,6 @@ watch(
   }
 );
 
-// Watch for incremental key changes to save immediately
 watch(
   () => localMaterialization.value.incremental_key,
   () => {
@@ -933,7 +1063,6 @@ watch(
   }
 );
 
-// Watch for time granularity changes to save immediately
 watch(
   () => localMaterialization.value.time_granularity,
   () => {
@@ -943,7 +1072,6 @@ watch(
   }
 );
 
-// Watch for partition_by changes to save immediately
 watch(
   () => localMaterialization.value.partition_by,
   () => {
@@ -953,7 +1081,6 @@ watch(
   }
 );
 
-// Watch for cluster_by changes to save immediately
 watch(
   () => localMaterialization.value.cluster_by,
   () => {
@@ -964,7 +1091,6 @@ watch(
   { deep: true }
 );
 
-// Watch for materialization type changes to save immediately
 watch(
   () => localMaterialization.value.type,
   () => {
@@ -972,40 +1098,21 @@ watch(
   }
 );
 
-// Watch for partition_by changes to update the input field
 watch(
   () => localMaterialization.value.partition_by,
   (newPartitionBy) => {
     partitionInput.value = newPartitionBy || "";
-  },
-  { immediate: true }
+  }
 );
 
-// Watch for cluster_by changes to update the input field
 watch(
   () => localMaterialization.value.cluster_by,
   (newClusterBy) => {
     clusterInputValue.value = newClusterBy.join(", ");
   },
-  { immediate: true }
+  { deep: true }
 );
 
-const sendMaterializationUpdate = () => {
-  vscode.postMessage({
-    command: "bruin.setAssetDetails",
-    payload: {
-      materialization: JSON.parse(JSON.stringify(localMaterialization.value)),
-    },
-    source: "Materialization_autoSave",
-  });
-};
-
-const showStrategyOptions = computed(() => {
-  return (
-    localMaterialization.value.type === "table" &&
-    ["delete+insert", "merge", "time_interval"].includes(localMaterialization.value.strategy)
-  );
-});
 
 const setType = (type) => {
   if (type === "null") {
@@ -1035,9 +1142,7 @@ const handleClickOutside = (event) => {
     isClusterDropdownOpen.value = false;
   }
 
-  // Handle pipeline dependencies dropdown
   if (pipelineDepsContainer.value && !pipelineDepsContainer.value.contains(event.target)) {
-    // Also check if the click was on the fixed dropdown
     const dropdownElement = document.querySelector(".fixed.z-\\[9999\\]");
     if (!dropdownElement || !dropdownElement.contains(event.target)) {
       isPipelineDepsOpen.value = false;
@@ -1062,38 +1167,53 @@ onUnmounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener("click", handleClickOutside);
 
-  // Clear any pending save timeout
   if (saveTimeout) {
     clearTimeout(saveTimeout);
   }
 });
 
 const saveMaterialization = () => {
-  let payload = {
-    interval_modifiers: JSON.parse(JSON.stringify(intervalModifiers.value)),
-  };
-
-  if (localMaterialization.value.type !== "null") {
-    payload.materialization = JSON.parse(
-      JSON.stringify({
-        type: localMaterialization.value.type,
-        strategy: localMaterialization.value.strategy,
-        partition_by: localMaterialization.value.partition_by,
-        cluster_by: Array.isArray(localMaterialization.value.cluster_by)
-          ? [...localMaterialization.value.cluster_by]
-          : [],
-        incremental_key: localMaterialization.value.incremental_key,
-        time_granularity: localMaterialization.value.time_granularity,
-      })
-    );
+  const payload = {};
+  
+  if (intervalModifiers.value) {
+    payload.interval_modifiers = {
+      start: intervalModifiers.value.start || null,
+      end: intervalModifiers.value.end || null
+    };
   }
-  // If type is "null", don't include materialization in payload at all
 
-  vscode.postMessage({
-    command: "bruin.setAssetDetails",
-    payload: payload,
-    source: "Materialization_autoSave",
-  });
+  if (localMaterialization.value?.type && localMaterialization.value.type !== "null") {
+    payload.materialization = {
+      type: localMaterialization.value.type,
+      strategy: localMaterialization.value.strategy || null,
+      partition_by: localMaterialization.value.partition_by || null,
+      cluster_by: Array.isArray(localMaterialization.value.cluster_by) 
+        ? [...localMaterialization.value.cluster_by] 
+        : [],
+      incremental_key: localMaterialization.value.incremental_key || null,
+      time_granularity: localMaterialization.value.time_granularity || null
+    };
+  }
+  
+  if (localSecrets.value?.length > 0) {
+    payload.secrets = localSecrets.value
+      .filter(secret => secret?.secret_key?.trim())
+      .map(secret => ({
+        secret_key: secret.secret_key,
+        ...(secret.injected_key && { injected_key: secret.injected_key })
+      }));
+  }
+
+  try {
+    vscode.postMessage({
+      command: "bruin.setAssetDetails",
+      payload: payload,
+      source: "Materialization_autoSave",
+    });
+  } catch (error) {
+    console.error('Failed to send message:', error);
+    console.error('Payload that failed:', payload);
+  }
 };
 
 function getStrategyDescription(strategy) {
@@ -1108,7 +1228,6 @@ function getStrategyDescription(strategy) {
   }[strategy];
 }
 
-// Dependencies computed properties
 const filteredPipelineAssets = computed(() => {
   const query = pipelineSearchQuery.value.toLowerCase();
   if (!query) {
@@ -1118,7 +1237,6 @@ const filteredPipelineAssets = computed(() => {
   return pipelineAssets.value.filter((asset) => asset.name.toLowerCase().includes(query));
 });
 
-// Dependencies functions
 const addPipelineDependency = (asset) => {
   if (!dependencies.value.some((dep) => dep.name === asset.name)) {
     dependencies.value.push({
@@ -1179,12 +1297,10 @@ const toggleDependencyMode = (index) => {
   sendDependenciesUpdate();
 };
 
-// Fill dependencies from DB status
 const fillDependenciesStatus = ref(null);
 const fillDependenciesMessage = ref(null);
 
 const fillFromDB = () => {
-  // Clear any existing error messages
   fillDependenciesStatus.value = "loading";
   fillDependenciesMessage.value = null;
   vscode.postMessage({
@@ -1193,7 +1309,6 @@ const fillFromDB = () => {
   });
 };
 
-// Message handler for fill dependencies operations
 const handleMessage = (event) => {
   const envelope = event.data;
   
@@ -1212,13 +1327,11 @@ const handleMessage = (event) => {
       } else if (envelope.payload.status === "error") {
         fillDependenciesStatus.value = "error";
         fillDependenciesMessage.value = envelope.payload.message;
-        // Don't auto-reset error messages
       }
       break;
   }
 };
 
-// Watch for dependencies prop changes
 watch(
   () => props.dependencies,
   (newDeps) => {
@@ -1233,7 +1346,6 @@ watch(
   { immediate: true, deep: true }
 );
 
-// Watch for owner and tags prop changes
 watch(
   () => props.owner,
   (newOwner) => {
@@ -1250,7 +1362,6 @@ watch(
   { immediate: true, deep: true }
 );
 
-// Watch for pipelineAssets prop changes
 watch(
   () => props.pipelineAssets,
   (newPipelineAssets) => {
@@ -1260,16 +1371,11 @@ watch(
   { immediate: true, deep: true }
 );
 
-// Clear search query when dropdown closes
 watch(isPipelineDepsOpen, (isOpen) => {
   if (!isOpen) {
     pipelineSearchQuery.value = "";
   }
 });
-
-const togglePipelineDeps = () => {
-  isPipelineDepsOpen.value = !isPipelineDepsOpen.value;
-};
 
 const handlePipelineInput = () => {
   updateDropdownPosition();
@@ -1277,8 +1383,7 @@ const handlePipelineInput = () => {
 };
 
 const handlePipelineInputBlur = () => {
-  // Let the click handler manage closing the dropdown
-  // This prevents issues with clicking inside the dropdown
+
 };
 
 const handlePipelineEnter = () => {
@@ -1295,10 +1400,6 @@ const updateDropdownPosition = () => {
   }
 };
 
-// Partition By dropdown logic
-const partitionColumns = computed(() => {
-  return props.columns.filter(col => col.type === 'string' || col.type === 'timestamp' || col.type === 'date');
-});
 
 const filteredPartitionColumns = computed(() => {
   const query = partitionInput.value.toLowerCase();
@@ -1328,7 +1429,6 @@ const handlePartitionInput = () => {
   localMaterialization.value.partition_by = partitionInput.value;
   isPartitionDropdownOpen.value = true;
   
-  // Save changes immediately
   debouncedSave();
 };
 
@@ -1341,47 +1441,6 @@ const handlePartitionInputBlur = () => {
 const handlePartitionEnter = () => {
   isPartitionDropdownOpen.value = false;
 };
-
-const updatePartitionDropdownPosition = () => {
-  if (partitionContainer.value) {
-    const rect = partitionContainer.value.getBoundingClientRect();
-    const containerHeight = rect.height;
-    const dropdownHeight = 240; // Approximate max height of dropdown
-    
-    // Check if there's enough space below
-    const spaceBelow = window.innerHeight - rect.bottom;
-    const spaceAbove = rect.top;
-    
-    if (spaceBelow >= dropdownHeight || spaceBelow > spaceAbove) {
-      // Position below
-      partitionDropdownStyle.value = {
-        top: `${containerHeight + 4}px`,
-        left: '0px',
-        right: '0px',
-      };
-    } else {
-      // Position above
-      partitionDropdownStyle.value = {
-        bottom: `${containerHeight + 4}px`,
-        left: '0px',
-        right: '0px',
-      };
-    }
-  }
-};
-
-// Cluster By dropdown logic
-const clusterColumns = computed(() => {
-  return props.columns;
-});
-
-const filteredClusterColumns = computed(() => {
-  const query = clusterInputValue.value.toLowerCase();
-  if (!query) {
-    return clusterColumns.value;
-  }
-  return clusterColumns.value.filter(col => col.name.toLowerCase().includes(query));
-});
 
 const isColumnSelected = (columnName) => {
   return localMaterialization.value.cluster_by?.includes(columnName);
@@ -1399,18 +1458,82 @@ const toggleClusterColumn = (columnName) => {
     localMaterialization.value.cluster_by.push(columnName);
   }
   
-  // Save changes immediately
   debouncedSave();
 };
 
 const removeLastClusterColumn = () => {
   if (localMaterialization.value.cluster_by.length > 0) {
     localMaterialization.value.cluster_by.pop();
-    
-    // Save changes immediately
     debouncedSave();
   }
 };
+
+const startAddingSecret = () => {
+  isAddingSecret.value = true;
+  editingSecretIndex.value = -1;
+  newSecretKey.value = "";
+  newSecretInjectAs.value = "";
+  nextTick(() => {
+    secretKeyInput.value?.focus();
+  });
+};
+
+const editSecret = (index) => {
+  const secret = localSecrets.value[index];
+  isAddingSecret.value = false;
+  editingSecretIndex.value = index;
+  newSecretKey.value = secret.secret_key;
+  newSecretInjectAs.value = secret.injected_key || "";
+  nextTick(() => {
+    secretKeyInput.value?.focus();
+  });
+};
+
+const confirmAddSecret = () => {
+  if (newSecretKey.value.trim()) {
+    if (!localSecrets.value) {
+      localSecrets.value = [];
+    }
+    
+    const secretData = {
+      secret_key: newSecretKey.value.trim()
+    };
+    
+    if (newSecretInjectAs.value.trim()) {
+      secretData.injected_key = newSecretInjectAs.value.trim();
+    }
+    
+    if (editingSecretIndex.value !== -1) {
+      localSecrets.value[editingSecretIndex.value] = secretData;
+    } else {
+      localSecrets.value.push(secretData);
+    }
+    
+    debouncedSave();
+  }
+  
+  newSecretKey.value = "";
+  newSecretInjectAs.value = "";
+  isAddingSecret.value = false;
+  editingSecretIndex.value = -1;
+};
+
+const cancelAddSecret = () => {
+  newSecretKey.value = "";
+  newSecretInjectAs.value = "";
+  isAddingSecret.value = false;
+  editingSecretIndex.value = -1;
+};
+
+const removeSecret = (index) => {
+  if (localSecrets.value && Array.isArray(localSecrets.value)) {
+    localSecrets.value.splice(index, 1);
+    debouncedSave();
+  }
+};
+
+
+
 </script>
 
 <style scoped>
