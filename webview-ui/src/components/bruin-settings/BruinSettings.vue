@@ -139,7 +139,7 @@ const formRef = ref(null);
 
 // Environment states
 const showEnvironmentDeleteAlert = ref(false);
-const environmentToDelete = ref<string | null>(null);
+const environmentToDelete = ref(null);
 
 // Templates state
 const templates = ref([]);

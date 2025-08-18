@@ -111,6 +111,7 @@ export const parseAssetDetails = (data: string) => {
     columns: asset.columns ? transformColumnData(asset.columns) : [],
     custom_checks: asset.custom_checks || [],
     parameters: asset.parameters || undefined,
+    secrets: asset.secrets || undefined,
   };
 };
 

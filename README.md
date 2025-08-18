@@ -63,6 +63,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.64.1**: Add secrets UI to the details tab.
 - **0.64.0**: Added data diff panel to the extension.
 - **0.63.4**: Fixed extension activation issue on slow systems.
 - **0.63.3**: Fixed ingestr asset parameters saving issue.
@@ -77,17 +78,6 @@ Bruin is a unified analytics platform that enables data professionals to work en
 - **0.62.2**: Implemented preview functionality for queries within custom checks.
 - **0.62.1**: Fixed the query preview issues including the query extraction logic.
 - **0.62.0**: Added completion and validation for materialization and asset properties.
-- **0.61.3**: Fixed the query preview issues by clearing tab state and fixing stale results.
-- **0.61.2**: Fixed the validate all command to use the right workspace directory.
-- **0.61.1**: Add count field to custom checks.
-- **0.61.0**: Added language server support for asset dependencies go to definition and completion.
-- **0.60.1**: Added support for nullable and owner properties in the asset columns and improved the UI responsiveness.
-- **0.60.0**: Added support for query timeout and cancellation and improved environemnt management UI.
-- **0.59.3**: Updated query extraction logic for non-asset files and added pagination to the query preview.
-- **0.59.2**: Display CodeLens only when selection starts outside Bruin block.
-- **0.59.1**: Add highlighing to the column level lineage view.
-- **0.59.0**: Added column level lineage view.
-
 
 For a full changelog, see Bruin Extension [Changelog](https://marketplace.visualstudio.com/items/bruin.bruin/changelog).
 

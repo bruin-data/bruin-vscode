@@ -539,8 +539,7 @@
         }
       },
       "required": [
-        "key",
-        "inject_as"
+        "key"      
       ]
     },
     "snowflake": {
