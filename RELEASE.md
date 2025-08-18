@@ -1,11 +1,16 @@
 # Release Process
-
 This document outlines the automated release process for the Bruin VS Code extension.
 
 ## Quick Release
-
 The release process is now fully automated. Simply run one command based on the type of changes:
 
+## Requirements
+- Must be on `main` branch
+- No uncommitted changes
+- Git repository must have at least one existing tag
+
+## Changelog and README
+The CHANGELOG.md and README.md should be updated manually when significant changes are made. The release process doesn't automatically update the changelog and README to give maintainers full control over release notes.
 ### Bug fixes (patch release):
 ```bash
 npm run tag:patch
@@ -47,18 +52,7 @@ git tag v1.2.3
 git push origin v1.2.3
 ```
 
-## Requirements
-
-- Must be on `main` branch
-- No uncommitted changes
-- Git repository must have at least one existing tag
-
-## Changelog and README
-
-The CHANGELOG.md and README.md should be updated manually when significant changes are made. The release process doesn't automatically update the changelog and README to give maintainers full control over release notes.
-
 ## Version Format
-
 Use semantic versioning: `v0.54.3` (major.minor.patch)
 
 ## Troubleshooting
@@ -68,7 +62,6 @@ Use semantic versioning: `v0.54.3` (major.minor.patch)
 - **GitHub Actions failing**: Check that `VSCE_PAT` and `OVSX_PAT` secrets are configured
 
 ## GitHub Actions Secrets
-
 The following secrets must be configured in the GitHub repository:
 
 - `VSCE_PAT`: Personal Access Token for VS Code Marketplace
