@@ -1,4 +1,7 @@
 # Changelog
+## [0.64.2] - [2025-08-18]
+- Fixed shwoing settings tab when no active editor and improved the UI.
+
 ## [0.64.1] - [2025-08-18]
 - Add secrets UI to the details tab.
 

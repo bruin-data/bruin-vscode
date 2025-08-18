@@ -61,10 +61,14 @@ export class BruinPanel {
   public static currentPanel: BruinPanel | undefined;
   public static readonly viewId = "bruin.panel";
   private readonly _panel: WebviewPanel;
+  private readonly _extensionUri: Uri;
   private _disposables: Disposable[] = [];
   private _lastRenderedDocumentUri: Uri | undefined;
   private _flags: string = "";
   private _assetDetectionDebounceTimer: NodeJS.Timeout | undefined;
+  private _cliInstalled: boolean | null = null;
+  private _initialSettingsOnlyMode: boolean = false;
+  private _hasRecreatedFromSettingsOnly: boolean = false;
 
   /**
    * The BruinPanel class private constructor (called only from the render method).
@@ -74,6 +78,7 @@ export class BruinPanel {
    */
   private constructor(panel: WebviewPanel, extensionUri: Uri) {
     this._panel = panel;
+    this._extensionUri = extensionUri;
     const defaultSettings = getDefaultCheckboxSettings();
     this._checkboxState = {
       "Full-Refresh": false, // This remains explicitly false
@@ -96,8 +101,6 @@ export class BruinPanel {
 
           this._lastRenderedDocumentUri = editor.document.uri;
           await this._handleAssetDetection(this._lastRenderedDocumentUri);
-
-          renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri?.fsPath);
         }
       }),
 
@@ -112,12 +115,24 @@ export class BruinPanel {
       }),
 
       window.onDidChangeActiveTextEditor(async (editor) => {
+        // One-time recreation only if the panel was originally created in settings-only (no active editor)
+        // and we are seeing the first active editor. Ignore subsequent focus toggles.
+        if (this._initialSettingsOnlyMode && !this._hasRecreatedFromSettingsOnly && editor && editor.document?.uri) {
+          const extUri = this._extensionUri;
+          this._hasRecreatedFromSettingsOnly = true;
+          setTimeout(() => {
+            try {
+              this.dispose();
+            } finally {
+              BruinPanel.render(extUri);
+            }
+          }, 0);
+          return;
+        }
 
         if (editor && editor.document.uri) {
           this._lastRenderedDocumentUri = editor.document.uri;
 
-  
-          
           // Send current file path to webview
           this._panel.webview.postMessage({
             command: "file-changed",
@@ -125,7 +140,6 @@ export class BruinPanel {
           });
           
           await this._handleAssetDetection(this._lastRenderedDocumentUri);
-          renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri?.fsPath);
         }
       }),
       vscode.workspace.onDidRenameFiles((e) => {
@@ -138,6 +152,8 @@ export class BruinPanel {
       })
     );
 
+    // Capture initial mode to know if we started from Welcome/settings-only
+    this._initialSettingsOnlyMode = !window.activeTextEditor;
     if (window.activeTextEditor) {
       this._lastRenderedDocumentUri = window.activeTextEditor.document.uri;
     }
@@ -146,7 +162,7 @@ export class BruinPanel {
   }
 
   private async _initializeWebview(extensionUri: Uri): Promise<void> {
-    this._panel.webview.html = this._getWebviewContent(this._panel.webview, extensionUri, false);
+    this._panel.webview.html = this._getWebviewContent(this._panel.webview, extensionUri, null);
     this._lastRenderedDocumentUri = window.activeTextEditor?.document.uri;
     this._setWebviewMessageListener(this._panel.webview);
     
@@ -155,29 +171,28 @@ export class BruinPanel {
   private async _checkCliStatus(): Promise<void> {
     try {
       const bruinInstaller = new BruinInstallCLI();
-      
-      // Add timeout to prevent hanging on slow systems
-      const timeoutPromise = new Promise<{ installed: boolean; isWindows: boolean; gitAvailable: boolean }>((_, reject) => {
-        setTimeout(() => reject(new Error("CLI check timeout")), 3000); // 3 second timeout
+      const detectionTimeoutMs = 2000;
+      const timeoutPromise = new Promise<{ installed: boolean; isWindows: boolean; gitAvailable: boolean }>((resolve) => {
+        setTimeout(() => resolve({ installed: false, isWindows: process.platform === 'win32', gitAvailable: false }), detectionTimeoutMs);
       });
-      
       const { installed, isWindows, gitAvailable } = await Promise.race([
         bruinInstaller.checkBruinCliInstallation(),
-        timeoutPromise
+        timeoutPromise,
       ]);
-      
+      this._cliInstalled = installed;
       this._panel.webview.postMessage({
         command: "bruinCliInstallationStatus",
         installed,
         isWindows,
         gitAvailable,
       });
-      
       if (installed && this._lastRenderedDocumentUri) {
+        // Only parse if CLI is present; otherwise do not send parse messages that can mask install UI
         parseAssetCommand(this._lastRenderedDocumentUri);
         getEnvListCommand(this._lastRenderedDocumentUri);
       }
     } catch (error) {
+      this._cliInstalled = false;
       this._panel.webview.postMessage({
         command: "bruinCliInstallationStatus",
         installed: false,
@@ -217,7 +232,7 @@ export class BruinPanel {
    * @param extensionUri The URI of the directory containing the extension.
    */
   public static render(extensionUri: Uri) {
-    const column = window.activeTextEditor ? ViewColumn.Beside : ViewColumn.One;
+    const column = ViewColumn.Beside;
 
     if (this.currentPanel) {
       this.currentPanel._panel.reveal(column, true);
@@ -290,7 +305,7 @@ export class BruinPanel {
     ".bruin.yaml",
   ];
 
-  private _getWebviewContent(webview: Webview, extensionUri: Uri, initialCliStatus: boolean = false): string {
+  private _getWebviewContent(webview: Webview, extensionUri: Uri, initialCliStatus: boolean | null = null): string {
     const stylesUri = getUri(webview, extensionUri, ["webview-ui", "build", "assets", "index.css"]);
     const scriptUri = getUri(webview, extensionUri, ["webview-ui", "build", "assets", "index.js"]);
     const codiconsUri = webview.asWebviewUri(
@@ -328,8 +343,8 @@ export class BruinPanel {
           <link rel="stylesheet" href="${codiconsUri}">
           <title>Bruin Panel</title>
           <script nonce="${nonce}">
-            // Set initial CLI status before Vue app loads
-            window.initialBruinCliStatus = ${initialCliStatus};
+            // Set initial CLI status before Vue app loads (null = unknown)
+            window.initialBruinCliStatus = ${initialCliStatus === null ? 'null' : initialCliStatus};
           </script>
         </head>
         <body>
@@ -622,6 +637,8 @@ export class BruinPanel {
             }
             break;
           case "getLastRenderedDocument":
+            // Ensure UI receives a fresh CLI installation status after it's ready
+            await this.checkAndUpdateBruinCliStatus();
             BruinPanel.postMessage("lastRenderedDocument", {
               status: "success",
               message: this._lastRenderedDocumentUri?.fsPath,
@@ -630,7 +647,6 @@ export class BruinPanel {
             // Also trigger asset detection and parsing like onDidChangeActiveTextEditor does
             if (this._lastRenderedDocumentUri) {
               await this._handleAssetDetection(this._lastRenderedDocumentUri);
-              renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri?.fsPath);
             }
             break;
 
@@ -1034,7 +1050,9 @@ export class BruinPanel {
           isConfig: true,
           filePath: filePath
         });
-        parseAssetCommand(fileUri);
+        if (this._cliInstalled) {
+          parseAssetCommand(fileUri);
+        }
         return;
       }
 
@@ -1047,7 +1065,9 @@ export class BruinPanel {
           filePath: filePath
         });
         console.log("_performAssetDetection: Sending clear message to the UI for asset:", filePath);
-        parseAssetCommand(fileUri);
+        if (this._cliInstalled) {
+          parseAssetCommand(fileUri);
+        }
         return;
       }
 

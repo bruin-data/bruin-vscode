@@ -63,6 +63,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.64.2**: Fixed shwoing settings tab when no active editor and improved the UI.
 - **0.64.1**: Add secrets UI to the details tab.
 - **0.64.0**: Added data diff panel to the extension.
 - **0.63.4**: Fixed extension activation issue on slow systems.

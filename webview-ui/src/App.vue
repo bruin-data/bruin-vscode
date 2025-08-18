@@ -1,12 +1,11 @@
 <template>
-  <div v-if="isBruinInstalled === null">
-    <!-- CLI check in progress - show minimal content -->
-  </div>
+  <div v-if="isBruinInstalled === null" class="flex items-center justify-center h-full"></div>
   
   <div v-else-if="isBruinInstalled === false" class="flex items-center space-x-2 w-full justify-between pt-2">
     <BruinSettings
       :isBruinInstalled="isBruinInstalled"
       :environments="environmentsList"
+      :settings-only-mode="settingsOnlyMode"
       class="flex w-full"
     />
   </div>
@@ -20,7 +19,7 @@
       />
     </div>
 
-    <div v-else-if="!isNotAsset && !showConvertMessage" class="">
+    <div v-else-if="!isNotAsset && !showConvertMessage && !settingsOnlyMode && isRelevantFile" class="">
       <div class="flex items-center space-x-2 w-full justify-between min-h-6">
         <div class="flex items-baseline w-3/4 min-w-0 font-md text-editor-fg text-lg font-mono">
           <div class="flex-grow min-w-0 overflow-hidden">
@@ -112,15 +111,14 @@
         :id="`view-${index}`"
         class="px-0"
       >
-        <keep-alive>
-          <component
-            v-if="isTabActive(index)"
-            :is="tab.component"
-            v-bind="tab.props"
-            class="flex w-full h-full"
-            @update:description="updateDescription"
-          />
-        </keep-alive>
+        <component
+          v-if="isTabActive(index)"
+          :is="tab.component"
+          :key="`${index}-${lastRenderedDocument}`"
+          v-bind="tab.props"
+          class="flex w-full h-full"
+          @update:description="updateDescription"
+        />
       </vscode-panel-view>
     </vscode-panels>
   </div>
@@ -172,6 +170,15 @@ const handleMessage = (event: MessageEvent) => {
   
   try {
     switch (message.command) {
+      case "init": {
+        settingsOnlyMode.value = !!message.settingsOnlyMode;
+        break;
+      }
+        case "bruinCliInstallationStatus": {
+          // Always respect backend signal; show install UI when not installed
+          isBruinInstalled.value = !!message.installed;
+          break;
+        }
       case "environments-list-message":
         environments.value = updateValue(message, "success");
         connectionsStore.setDefaultEnvironment(selectedEnvironment.value);
@@ -201,7 +208,8 @@ const handleMessage = (event: MessageEvent) => {
           break;
         }
         
-        isNotAsset.value = true;
+        // If not a relevant file and no convert prompt, just keep last view
+        isNotAsset.value = !!message.showConvertMessage;
         rudderStack.trackEvent("Non Asset File", {
           assetName: message.assetName,
         });
@@ -215,6 +223,7 @@ const handleMessage = (event: MessageEvent) => {
           nonAssetFileType.value = message.fileType || "";
           nonAssetFilePath.value = message.filePath || "";
         } else {
+          // Do NOT change current view; avoid clearing content
           showConvertMessage.value = false;
           nonAssetFileType.value = "";
           nonAssetFilePath.value = "";
@@ -228,16 +237,25 @@ const handleMessage = (event: MessageEvent) => {
       case "parse-message": {
         parseError.value = updateValue(message, "error");
         const parsed = updateValue(message, "success");
+        // Ignore stale parse results that don't correspond to the currently tracked file
+        try {
+          const parsedFilePath = (parsed && (parsed.filePath || (parsed.asset?.executable_file?.path ?? null))) || null;
+          const currentFilePath = lastRenderedDocument.value;
+          if (parsedFilePath && currentFilePath && parsedFilePath !== currentFilePath) {
+            break;
+          }
+        } catch (_) {
+          // Safely ignore guard errors
+        }
         if (!parseError.value && parsed) {
           parseError.value = null;
           isNotAsset.value = false;
           showConvertMessage.value = false;
           
-          // If we receive asset parsing data, CLI must be installed
-          if (isBruinInstalled.value === null) {
-            console.log("🚀 [App.vue] CLI assumed installed - received asset data");
-            isBruinInstalled.value = true;
-          }
+          // If we receive asset parsing data successfully, assume CLI is installed
+          isBruinInstalled.value = true;
+          // Update bruin config mode based on current parsed type
+          isBruinYml.value = parsed?.type === "bruinConfig";
           
           // Check if we have incomplete data and need to refocus
           const hasAssetData = parsed && parsed.asset;
@@ -254,11 +272,11 @@ const handleMessage = (event: MessageEvent) => {
           if (parsed && parsed.type === "pipelineConfig") {
             data.value = parsed;
             lastRenderedDocument.value = parsed.filePath;
+            isBruinYml.value = false;
             break;
           }
           
           if (parsed && parsed.type === "bruinConfig") {
-            isBruinYml.value = true;
             activeTab.value = 3;
             lastRenderedDocument.value = parsed.filePath;
             break;
@@ -290,6 +308,12 @@ const handleMessage = (event: MessageEvent) => {
         break;
       case "file-changed":
         lastRenderedDocument.value = message.filePath;
+        // Leave current content/tabs as-is for non-relevant files; simply exit settings-only
+        settingsOnlyMode.value = false;
+        // Ask backend for status and details; relevant files will update via parse-message
+        vscode.postMessage({ command: "checkBruinCliInstallation" });
+        vscode.postMessage({ command: "bruin.getAssetDetails" });
+        vscode.postMessage({ command: "bruin.getEnvironmentsList" });
         break;
     }
   } catch (error) {
@@ -302,6 +326,7 @@ const handleMessage = (event: MessageEvent) => {
 };
 
 const isBruinYml = ref(false);
+const settingsOnlyMode = ref(false);
 const isNotAsset = ref(false);
 const showConvertMessage = ref(false);
 const nonAssetFileType = ref("");
@@ -334,6 +359,18 @@ const parsedData = computed(() => {
     return null;
   }
 });
+
+// Content readiness: avoid showing empty tabs until something is parsed
+const hasParsedContent = computed(() => {
+  const pd = parsedData.value as any;
+  if (!pd) return false;
+  if (pd.type === "pipelineConfig" || pd.type === "bruinConfig") return true;
+  if (pd.asset) return true;
+  return false;
+});
+
+// Relevant file = config or has asset data
+const isRelevantFile = computed(() => hasParsedContent.value);
 
 const isPipelineConfig = computed(() => parsedData.value?.type === "pipelineConfig");
 const isBruinConfig = computed(() => parsedData.value?.type === "bruinConfig");
@@ -525,6 +562,7 @@ const tabs = ref([
       isBruinInstalled: computed(() => isBruinInstalled.value),
       environments: computed(() => environmentsList.value),
       versionStatus: computed(() => versionStatus.value),
+      settingsOnlyMode: computed(() => settingsOnlyMode.value),
     },
   },
 ]);
@@ -537,12 +575,27 @@ const visibleTabs = computed(() => {
     totalTabs: tabs.value.length
   });
   
+  // If panel is in settings-only mode (e.g. welcome/installation context), always show Settings tab (even if CLI not installed)
+  if (settingsOnlyMode.value) {
+    return tabs.value.filter((tab) => tab.label === "Settings");
+  }
+  
   // If CLI check in progress or CLI not installed, show no tabs
   if (isBruinInstalled.value === null || isBruinInstalled.value === false) {
     console.log("❌ [App.vue] No tabs shown - CLI status:", isBruinInstalled.value);
     return [];
   }
-  
+
+  // If CLI installed but we don't have parsed content yet, keep only Settings visible to avoid blank panes
+  if (!hasParsedContent.value) {
+    // Keep only the Settings tab visible; ensure active tab points to it
+    const onlySettings = tabs.value.filter((tab) => tab.label === "Settings");
+    if (activeTab.value >= onlySettings.length) {
+      activeTab.value = 0;
+    }
+    return onlySettings;
+  }
+
   if (isBruinYml.value) {
     // Only show the "Settings" tab for .bruin.yml files
     console.log("⚙️ [App.vue] Settings only - bruin.yml file");
@@ -554,9 +607,22 @@ const visibleTabs = computed(() => {
 });
 
 onMounted(async () => {
+  // Bootstrap CLI status; if unknown (null), keep neutral blank state to avoid flicker
+  try {
+    const initialStatus = (window as any).initialBruinCliStatus;
+    if (typeof initialStatus === "boolean") {
+      isBruinInstalled.value = initialStatus;
+    } else {
+      isBruinInstalled.value = null; // wait for backend result bounded by timeout
+    }
+  } catch (_) {
+    isBruinInstalled.value = null;
+  }
   window.addEventListener("message", handleMessage);
   
   vscode.postMessage({ command: "getLastRenderedDocument" });
+  // Proactively request CLI status to avoid missing early emission
+  vscode.postMessage({ command: "checkBruinCliInstallation" });
   
   // Auto-refocus if we still have black panel after 3 seconds
   setTimeout(() => {
@@ -565,6 +631,14 @@ onMounted(async () => {
       vscode.postMessage({ command: "bruin.refocusActiveEditor" });
     }
   }, 3000);
+  
+  // If status is still unknown after a short, bounded time, default to install UI
+  setTimeout(() => {
+    if (isBruinInstalled.value === null) {
+      console.log("⏱️ [App.vue] CLI status still unknown after timeout; showing install UI");
+      isBruinInstalled.value = false;
+    }
+  }, 2500);
   
   // Track page view
   /* try {
@@ -681,12 +755,21 @@ const badgeClass = computed(() => {
 });
 
 const isTabActive = (index) => {
-  // If CLI check in progress or CLI not installed, no tabs should be active
   if (isBruinInstalled.value === null || isBruinInstalled.value === false) {
     return false;
   }
-  return tabs.value[index].props && activeTab.value === index;
+  return activeTab.value === index;
 };
+
+watch(visibleTabs, (newTabs) => {
+  if (!Array.isArray(newTabs) || newTabs.length === 0) {
+    activeTab.value = 0;
+    return;
+  }
+  if (activeTab.value >= newTabs.length) {
+    activeTab.value = 0;
+  }
+});
 
 onBeforeUnmount(() => {
   window.removeEventListener("message", handleMessage);

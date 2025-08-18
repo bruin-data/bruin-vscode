@@ -256,7 +256,12 @@
                 @click="editSecret(index)"
               >
                 <div class="text-xs flex items-center gap-2">
-                  <span>{{ secret.secret_key }}{{ secret.injected_key ? ': ' + secret.injected_key : '' }}</span>
+                  <span>
+                    {{ secret.secret_key }}
+                    <template v-if="secret.injected_key && secret.injected_key !== secret.secret_key">
+                      : {{ secret.injected_key }}
+                    </template>
+                  </span>
                   <span 
                     class="codicon codicon-close text-3xs flex items-center"
                     @click.stop="removeSecret(index)"
@@ -1194,15 +1199,6 @@ const saveMaterialization = () => {
       time_granularity: localMaterialization.value.time_granularity || null
     };
   }
-  
-  if (localSecrets.value?.length > 0) {
-    payload.secrets = localSecrets.value
-      .filter(secret => secret?.secret_key?.trim())
-      .map(secret => ({
-        secret_key: secret.secret_key,
-        ...(secret.injected_key && { injected_key: secret.injected_key })
-      }));
-  }
 
   try {
     vscode.postMessage({
@@ -1215,6 +1211,25 @@ const saveMaterialization = () => {
     console.error('Payload that failed:', payload);
   }
 };
+
+const sendSecretsUpdate = () => {
+  const sanitized = (localSecrets.value || [])
+    .filter(secret => secret?.secret_key?.trim())
+    .map(secret => ({
+      secret_key: secret.secret_key,
+      ...(secret.injected_key && secret.injected_key.trim() && secret.injected_key !== secret.secret_key
+        ? { injected_key: secret.injected_key }
+        : {})
+    }));
+
+  vscode.postMessage({
+    command: "bruin.setAssetDetails",
+    payload: { secrets: sanitized },
+    source: "Materialization_saveSecrets",
+  });
+};
+
+// (No single-secret send; we always send current list)
 
 function getStrategyDescription(strategy) {
   return {
@@ -1494,22 +1509,19 @@ const confirmAddSecret = () => {
     if (!localSecrets.value) {
       localSecrets.value = [];
     }
-    
     const secretData = {
       secret_key: newSecretKey.value.trim()
     };
-    
     if (newSecretInjectAs.value.trim()) {
       secretData.injected_key = newSecretInjectAs.value.trim();
     }
-    
     if (editingSecretIndex.value !== -1) {
       localSecrets.value[editingSecretIndex.value] = secretData;
     } else {
       localSecrets.value.push(secretData);
     }
-    
-    debouncedSave();
+    // Send full list to preserve existing secrets
+    sendSecretsUpdate();
   }
   
   newSecretKey.value = "";
@@ -1528,7 +1540,7 @@ const cancelAddSecret = () => {
 const removeSecret = (index) => {
   if (localSecrets.value && Array.isArray(localSecrets.value)) {
     localSecrets.value.splice(index, 1);
-    debouncedSave();
+    sendSecretsUpdate();
   }
 };
 
