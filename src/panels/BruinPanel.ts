@@ -101,8 +101,6 @@ export class BruinPanel {
 
           this._lastRenderedDocumentUri = editor.document.uri;
           await this._handleAssetDetection(this._lastRenderedDocumentUri);
-
-          renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri?.fsPath);
         }
       }),
 
@@ -142,7 +140,6 @@ export class BruinPanel {
           });
           
           await this._handleAssetDetection(this._lastRenderedDocumentUri);
-          renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri?.fsPath);
         }
       }),
       vscode.workspace.onDidRenameFiles((e) => {
@@ -650,7 +647,6 @@ export class BruinPanel {
             // Also trigger asset detection and parsing like onDidChangeActiveTextEditor does
             if (this._lastRenderedDocumentUri) {
               await this._handleAssetDetection(this._lastRenderedDocumentUri);
-              renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri?.fsPath);
             }
             break;
 

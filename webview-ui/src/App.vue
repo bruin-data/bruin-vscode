@@ -19,7 +19,7 @@
       />
     </div>
 
-    <div v-else-if="!isNotAsset && !showConvertMessage && !settingsOnlyMode" class="">
+    <div v-else-if="!isNotAsset && !showConvertMessage && !settingsOnlyMode && isRelevantFile" class="">
       <div class="flex items-center space-x-2 w-full justify-between min-h-6">
         <div class="flex items-baseline w-3/4 min-w-0 font-md text-editor-fg text-lg font-mono">
           <div class="flex-grow min-w-0 overflow-hidden">
@@ -111,15 +111,14 @@
         :id="`view-${index}`"
         class="px-0"
       >
-        <keep-alive>
-          <component
-            v-if="isTabActive(index)"
-            :is="tab.component"
-            v-bind="tab.props"
-            class="flex w-full h-full"
-            @update:description="updateDescription"
-          />
-        </keep-alive>
+        <component
+          v-if="isTabActive(index)"
+          :is="tab.component"
+          :key="`${index}-${lastRenderedDocument}`"
+          v-bind="tab.props"
+          class="flex w-full h-full"
+          @update:description="updateDescription"
+        />
       </vscode-panel-view>
     </vscode-panels>
   </div>
@@ -209,7 +208,8 @@ const handleMessage = (event: MessageEvent) => {
           break;
         }
         
-        isNotAsset.value = true;
+        // If not a relevant file and no convert prompt, just keep last view
+        isNotAsset.value = !!message.showConvertMessage;
         rudderStack.trackEvent("Non Asset File", {
           assetName: message.assetName,
         });
@@ -223,6 +223,7 @@ const handleMessage = (event: MessageEvent) => {
           nonAssetFileType.value = message.fileType || "";
           nonAssetFilePath.value = message.filePath || "";
         } else {
+          // Do NOT change current view; avoid clearing content
           showConvertMessage.value = false;
           nonAssetFileType.value = "";
           nonAssetFilePath.value = "";
@@ -307,10 +308,9 @@ const handleMessage = (event: MessageEvent) => {
         break;
       case "file-changed":
         lastRenderedDocument.value = message.filePath;
+        // Leave current content/tabs as-is for non-relevant files; simply exit settings-only
         settingsOnlyMode.value = false;
-        isBruinYml.value = false;
-        activeTab.value = 0;
-        // Refresh CLI status and load data for the newly active file (unconditionally request; backend guards on CLI)
+        // Ask backend for status and details; relevant files will update via parse-message
         vscode.postMessage({ command: "checkBruinCliInstallation" });
         vscode.postMessage({ command: "bruin.getAssetDetails" });
         vscode.postMessage({ command: "bruin.getEnvironmentsList" });
@@ -368,6 +368,9 @@ const hasParsedContent = computed(() => {
   if (pd.asset) return true;
   return false;
 });
+
+// Relevant file = config or has asset data
+const isRelevantFile = computed(() => hasParsedContent.value);
 
 const isPipelineConfig = computed(() => parsedData.value?.type === "pipelineConfig");
 const isBruinConfig = computed(() => parsedData.value?.type === "bruinConfig");
@@ -585,7 +588,12 @@ const visibleTabs = computed(() => {
 
   // If CLI installed but we don't have parsed content yet, keep only Settings visible to avoid blank panes
   if (!hasParsedContent.value) {
-    return tabs.value.filter((tab) => tab.label === "Settings");
+    // Keep only the Settings tab visible; ensure active tab points to it
+    const onlySettings = tabs.value.filter((tab) => tab.label === "Settings");
+    if (activeTab.value >= onlySettings.length) {
+      activeTab.value = 0;
+    }
+    return onlySettings;
   }
 
   if (isBruinYml.value) {
