@@ -61,11 +61,13 @@ export class BruinPanel {
   public static currentPanel: BruinPanel | undefined;
   public static readonly viewId = "bruin.panel";
   private readonly _panel: WebviewPanel;
+  private readonly _extensionUri: Uri;
   private _disposables: Disposable[] = [];
   private _lastRenderedDocumentUri: Uri | undefined;
   private _flags: string = "";
   private _assetDetectionDebounceTimer: NodeJS.Timeout | undefined;
   private _cliInstalled: boolean | null = null;
+  private _lastHadActiveEditor: boolean = false;
 
   /**
    * The BruinPanel class private constructor (called only from the render method).
@@ -75,6 +77,7 @@ export class BruinPanel {
    */
   private constructor(panel: WebviewPanel, extensionUri: Uri) {
     this._panel = panel;
+    this._extensionUri = extensionUri;
     const defaultSettings = getDefaultCheckboxSettings();
     this._checkboxState = {
       "Full-Refresh": false, // This remains explicitly false
@@ -113,12 +116,25 @@ export class BruinPanel {
       }),
 
       window.onDidChangeActiveTextEditor(async (editor) => {
+        const hadActive = this._lastHadActiveEditor;
+        const hasActiveNow = !!editor;
+        this._lastHadActiveEditor = hasActiveNow;
+
+        // If we transition from no active editor (welcome/settings-only) to an active editor,
+        // recreate the panel beside to ensure correct layout and fresh state
+        if (hasActiveNow && !hadActive) {
+          const extUri = this._extensionUri;
+          try {
+            this.dispose();
+          } finally {
+            BruinPanel.render(extUri);
+          }
+          return;
+        }
 
         if (editor && editor.document.uri) {
           this._lastRenderedDocumentUri = editor.document.uri;
 
-  
-          
           // Send current file path to webview
           this._panel.webview.postMessage({
             command: "file-changed",
@@ -217,7 +233,7 @@ export class BruinPanel {
    * @param extensionUri The URI of the directory containing the extension.
    */
   public static render(extensionUri: Uri) {
-    const column = window.activeTextEditor ? ViewColumn.Beside : ViewColumn.One;
+    const column = ViewColumn.Beside;
 
     if (this.currentPanel) {
       this.currentPanel._panel.reveal(column, true);

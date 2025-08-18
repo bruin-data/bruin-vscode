@@ -253,6 +253,8 @@ const handleMessage = (event: MessageEvent) => {
           
           // If we receive asset parsing data successfully, assume CLI is installed
           isBruinInstalled.value = true;
+          // Update bruin config mode based on current parsed type
+          isBruinYml.value = parsed?.type === "bruinConfig";
           
           // Check if we have incomplete data and need to refocus
           const hasAssetData = parsed && parsed.asset;
@@ -269,11 +271,11 @@ const handleMessage = (event: MessageEvent) => {
           if (parsed && parsed.type === "pipelineConfig") {
             data.value = parsed;
             lastRenderedDocument.value = parsed.filePath;
+            isBruinYml.value = false;
             break;
           }
           
           if (parsed && parsed.type === "bruinConfig") {
-            isBruinYml.value = true;
             activeTab.value = 3;
             lastRenderedDocument.value = parsed.filePath;
             break;
@@ -305,6 +307,13 @@ const handleMessage = (event: MessageEvent) => {
         break;
       case "file-changed":
         lastRenderedDocument.value = message.filePath;
+        settingsOnlyMode.value = false;
+        isBruinYml.value = false;
+        activeTab.value = 0;
+        // Refresh CLI status and load data for the newly active file (unconditionally request; backend guards on CLI)
+        vscode.postMessage({ command: "checkBruinCliInstallation" });
+        vscode.postMessage({ command: "bruin.getAssetDetails" });
+        vscode.postMessage({ command: "bruin.getEnvironmentsList" });
         break;
     }
   } catch (error) {
@@ -554,15 +563,15 @@ const visibleTabs = computed(() => {
     totalTabs: tabs.value.length
   });
   
+  // If panel is in settings-only mode (e.g. welcome/installation context), always show Settings tab (even if CLI not installed)
+  if (settingsOnlyMode.value) {
+    return tabs.value.filter((tab) => tab.label === "Settings");
+  }
+  
   // If CLI check in progress or CLI not installed, show no tabs
   if (isBruinInstalled.value === null || isBruinInstalled.value === false) {
     console.log("❌ [App.vue] No tabs shown - CLI status:", isBruinInstalled.value);
     return [];
-  }
-  
-  // If panel is in settings-only mode (e.g. welcome/installation context), only show Settings tab
-  if (settingsOnlyMode.value) {
-    return tabs.value.filter((tab) => tab.label === "Settings");
   }
 
   if (isBruinYml.value) {
@@ -724,12 +733,21 @@ const badgeClass = computed(() => {
 });
 
 const isTabActive = (index) => {
-  // If CLI check in progress or CLI not installed, no tabs should be active
   if (isBruinInstalled.value === null || isBruinInstalled.value === false) {
     return false;
   }
-  return tabs.value[index].props && activeTab.value === index;
+  return activeTab.value === index;
 };
+
+watch(visibleTabs, (newTabs) => {
+  if (!Array.isArray(newTabs) || newTabs.length === 0) {
+    activeTab.value = 0;
+    return;
+  }
+  if (activeTab.value >= newTabs.length) {
+    activeTab.value = 0;
+  }
+});
 
 onBeforeUnmount(() => {
   window.removeEventListener("message", handleMessage);
