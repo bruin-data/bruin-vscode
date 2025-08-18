@@ -29,6 +29,9 @@
             "properties": {
                 "connections": {
                     "$ref": "#/definitions/connections"
+                },
+                "schema_prefix": {
+                    "type": "string"
                 }
             },
             "required": [
@@ -36,6 +39,7 @@
             ],
             "additionalProperties": false
         },
+
         "connections": {
             "type": "object",
             "properties": {
