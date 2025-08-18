@@ -1,7 +1,5 @@
 <template>
-  <div v-if="isBruinInstalled === null">
-    <!-- CLI check in progress - show minimal content -->
-  </div>
+  <div v-if="isBruinInstalled === null" class="flex items-center justify-center h-full"></div>
   
   <div v-else-if="isBruinInstalled === false" class="flex items-center space-x-2 w-full justify-between pt-2">
     <BruinSettings
@@ -172,6 +170,11 @@ const handleMessage = (event: MessageEvent) => {
   
   try {
     switch (message.command) {
+        case "bruinCliInstallationStatus": {
+          // Always respect backend signal; show install UI when not installed
+          isBruinInstalled.value = !!message.installed;
+          break;
+        }
       case "environments-list-message":
         environments.value = updateValue(message, "success");
         connectionsStore.setDefaultEnvironment(selectedEnvironment.value);
@@ -228,16 +231,23 @@ const handleMessage = (event: MessageEvent) => {
       case "parse-message": {
         parseError.value = updateValue(message, "error");
         const parsed = updateValue(message, "success");
+        // Ignore stale parse results that don't correspond to the currently tracked file
+        try {
+          const parsedFilePath = (parsed && (parsed.filePath || (parsed.asset?.executable_file?.path ?? null))) || null;
+          const currentFilePath = lastRenderedDocument.value;
+          if (parsedFilePath && currentFilePath && parsedFilePath !== currentFilePath) {
+            break;
+          }
+        } catch (_) {
+          // Safely ignore guard errors
+        }
         if (!parseError.value && parsed) {
           parseError.value = null;
           isNotAsset.value = false;
           showConvertMessage.value = false;
           
-          // If we receive asset parsing data, CLI must be installed
-          if (isBruinInstalled.value === null) {
-            console.log("🚀 [App.vue] CLI assumed installed - received asset data");
-            isBruinInstalled.value = true;
-          }
+          // If we receive asset parsing data successfully, assume CLI is installed
+          isBruinInstalled.value = true;
           
           // Check if we have incomplete data and need to refocus
           const hasAssetData = parsed && parsed.asset;
@@ -554,9 +564,22 @@ const visibleTabs = computed(() => {
 });
 
 onMounted(async () => {
+  // Bootstrap CLI status; if unknown (null), keep neutral blank state to avoid flicker
+  try {
+    const initialStatus = (window as any).initialBruinCliStatus;
+    if (typeof initialStatus === "boolean") {
+      isBruinInstalled.value = initialStatus;
+    } else {
+      isBruinInstalled.value = null; // wait for backend result bounded by timeout
+    }
+  } catch (_) {
+    isBruinInstalled.value = null;
+  }
   window.addEventListener("message", handleMessage);
   
   vscode.postMessage({ command: "getLastRenderedDocument" });
+  // Proactively request CLI status to avoid missing early emission
+  vscode.postMessage({ command: "checkBruinCliInstallation" });
   
   // Auto-refocus if we still have black panel after 3 seconds
   setTimeout(() => {
@@ -565,6 +588,14 @@ onMounted(async () => {
       vscode.postMessage({ command: "bruin.refocusActiveEditor" });
     }
   }, 3000);
+  
+  // If status is still unknown after a short, bounded time, default to install UI
+  setTimeout(() => {
+    if (isBruinInstalled.value === null) {
+      console.log("⏱️ [App.vue] CLI status still unknown after timeout; showing install UI");
+      isBruinInstalled.value = false;
+    }
+  }, 2500);
   
   // Track page view
   /* try {

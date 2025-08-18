@@ -65,6 +65,7 @@ export class BruinPanel {
   private _lastRenderedDocumentUri: Uri | undefined;
   private _flags: string = "";
   private _assetDetectionDebounceTimer: NodeJS.Timeout | undefined;
+  private _cliInstalled: boolean | null = null;
 
   /**
    * The BruinPanel class private constructor (called only from the render method).
@@ -146,7 +147,7 @@ export class BruinPanel {
   }
 
   private async _initializeWebview(extensionUri: Uri): Promise<void> {
-    this._panel.webview.html = this._getWebviewContent(this._panel.webview, extensionUri, false);
+    this._panel.webview.html = this._getWebviewContent(this._panel.webview, extensionUri, null);
     this._lastRenderedDocumentUri = window.activeTextEditor?.document.uri;
     this._setWebviewMessageListener(this._panel.webview);
     
@@ -155,29 +156,28 @@ export class BruinPanel {
   private async _checkCliStatus(): Promise<void> {
     try {
       const bruinInstaller = new BruinInstallCLI();
-      
-      // Add timeout to prevent hanging on slow systems
-      const timeoutPromise = new Promise<{ installed: boolean; isWindows: boolean; gitAvailable: boolean }>((_, reject) => {
-        setTimeout(() => reject(new Error("CLI check timeout")), 3000); // 3 second timeout
+      const detectionTimeoutMs = 2000;
+      const timeoutPromise = new Promise<{ installed: boolean; isWindows: boolean; gitAvailable: boolean }>((resolve) => {
+        setTimeout(() => resolve({ installed: false, isWindows: process.platform === 'win32', gitAvailable: false }), detectionTimeoutMs);
       });
-      
       const { installed, isWindows, gitAvailable } = await Promise.race([
         bruinInstaller.checkBruinCliInstallation(),
-        timeoutPromise
+        timeoutPromise,
       ]);
-      
+      this._cliInstalled = installed;
       this._panel.webview.postMessage({
         command: "bruinCliInstallationStatus",
         installed,
         isWindows,
         gitAvailable,
       });
-      
       if (installed && this._lastRenderedDocumentUri) {
+        // Only parse if CLI is present; otherwise do not send parse messages that can mask install UI
         parseAssetCommand(this._lastRenderedDocumentUri);
         getEnvListCommand(this._lastRenderedDocumentUri);
       }
     } catch (error) {
+      this._cliInstalled = false;
       this._panel.webview.postMessage({
         command: "bruinCliInstallationStatus",
         installed: false,
@@ -290,7 +290,7 @@ export class BruinPanel {
     ".bruin.yaml",
   ];
 
-  private _getWebviewContent(webview: Webview, extensionUri: Uri, initialCliStatus: boolean = false): string {
+  private _getWebviewContent(webview: Webview, extensionUri: Uri, initialCliStatus: boolean | null = null): string {
     const stylesUri = getUri(webview, extensionUri, ["webview-ui", "build", "assets", "index.css"]);
     const scriptUri = getUri(webview, extensionUri, ["webview-ui", "build", "assets", "index.js"]);
     const codiconsUri = webview.asWebviewUri(
@@ -328,8 +328,8 @@ export class BruinPanel {
           <link rel="stylesheet" href="${codiconsUri}">
           <title>Bruin Panel</title>
           <script nonce="${nonce}">
-            // Set initial CLI status before Vue app loads
-            window.initialBruinCliStatus = ${initialCliStatus};
+            // Set initial CLI status before Vue app loads (null = unknown)
+            window.initialBruinCliStatus = ${initialCliStatus === null ? 'null' : initialCliStatus};
           </script>
         </head>
         <body>
@@ -622,6 +622,8 @@ export class BruinPanel {
             }
             break;
           case "getLastRenderedDocument":
+            // Ensure UI receives a fresh CLI installation status after it's ready
+            await this.checkAndUpdateBruinCliStatus();
             BruinPanel.postMessage("lastRenderedDocument", {
               status: "success",
               message: this._lastRenderedDocumentUri?.fsPath,
@@ -1034,7 +1036,9 @@ export class BruinPanel {
           isConfig: true,
           filePath: filePath
         });
-        parseAssetCommand(fileUri);
+        if (this._cliInstalled) {
+          parseAssetCommand(fileUri);
+        }
         return;
       }
 
@@ -1047,7 +1051,9 @@ export class BruinPanel {
           filePath: filePath
         });
         console.log("_performAssetDetection: Sending clear message to the UI for asset:", filePath);
-        parseAssetCommand(fileUri);
+        if (this._cliInstalled) {
+          parseAssetCommand(fileUri);
+        }
         return;
       }
 
