@@ -63,6 +63,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.64.3**: Added cancel button to the table diff panel and improved the UI.
 - **0.64.2**: Fixed shwoing settings tab when no active editor and improved the UI.
 - **0.64.1**: Add secrets UI to the details tab.
 - **0.64.0**: Added data diff panel to the extension.
@@ -70,15 +71,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 - **0.63.3**: Fixed ingestr asset parameters saving issue.
 - **0.63.1**: Improved first-time activation, enabling template-based project creation without an active editor.
 - **0.63.0**: Introduced the capability to generate a new project based on a template directly within the extension. 
-- **0.62.8**: Add walkthroughs to the extension and improved the autocomplete and intelliSense.
-- **0.62.7**: Added support for Oracle Source asset type, domains and meta properties in the aset schema.
-- **0.62.6**: Prevent the terminal from closing after CLI installation and update.
-- **0.62.5**: Added a setting to toggle the inline “Preview Selected Query” CodeLens on or off.
-- **0.62.4**: Added custom checks completions and improved the indentation issues.
-- **0.62.3**: Improved the column property completions and fixed materialization validation.
-- **0.62.2**: Implemented preview functionality for queries within custom checks.
-- **0.62.1**: Fixed the query preview issues including the query extraction logic.
-- **0.62.0**: Added completion and validation for materialization and asset properties.
+
 
 For a full changelog, see Bruin Extension [Changelog](https://marketplace.visualstudio.com/items/bruin.bruin/changelog).
 
