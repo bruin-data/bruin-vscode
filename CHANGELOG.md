@@ -1,4 +1,7 @@
 # Changelog
+## [0.64.3] - [2025-08-19]
+- Added cancel button to the table diff panel and improved the UI.
+
 ## [0.64.2] - [2025-08-18]
 - Fixed shwoing settings tab when no active editor and improved the UI.
 

@@ -104,15 +104,24 @@
              </label>
            </div>
            
-           <vscode-button
-             :disabled="!canExecuteComparison || isLoading"
-             @click="executeComparison"
-             appearance="primary"
-           >
-             <span v-if="!isLoading" class="codicon codicon-play mr-1"></span>
-             <span v-if="isLoading" class="animate-spin codicon codicon-loading mr-1"></span>
-             Compare
-           </vscode-button>
+          <vscode-button
+            v-if="!isLoading"
+            :disabled="!canExecuteComparison"
+            @click="executeComparison"
+            appearance="primary"
+          >
+            <span class="codicon codicon-play mr-1"></span>
+            Compare
+          </vscode-button>
+          <vscode-button
+            v-else
+            title="Cancel"
+            appearance="secondary"
+            @click="cancelComparison"
+          >
+            <span class="codicon codicon-stop-circle text-red-500 mr-1"></span>
+            Cancel
+          </vscode-button>
          </div>
       </div>
 
@@ -129,10 +138,10 @@
 
         <div v-if="hasResults" class="p-1 mt-2">
           <div class="flex items-center justify-between mb-3">
-            <div class="flex items-center gap-3">
-              <span class="codicon codicon-diff text-blue-500 mr-2"></span>
+            <div class="flex items-center gap-2">
+              <span class="codicon codicon-diff text-blue-500"></span>
               <h3 class="text-sm font-medium text-editor-fg">Comparison Results</h3>
-              <vscode-badge class="text-3xs opacity-70">
+              <vscode-badge class="text-3xs opacity-30 bg-transparent text-editor-fg">
                 {{ comparisonInfo.source }} → {{ comparisonInfo.target }}
               </vscode-badge>
             </div>
@@ -147,7 +156,7 @@
           </div>
 
           <div class="bg-editorWidget-bg border border-commandCenter-border rounded overflow-hidden">
-            <div class="max-h-96 overflow-auto">
+            <div class="h-full overflow-auto">
               <pre class="text-xs font-mono p-4 text-editor-fg whitespace-pre overflow-x-auto">{{ results }}</pre>
             </div>
           </div>
@@ -530,6 +539,12 @@ const executeComparison = () => {
   });
 };
 
+const cancelComparison = () => {
+  vscode.postMessage({
+    command: "cancelTableDiff",
+  });
+};
+
 const clearResults = () => {
   results.value = "";
   error.value = "";
@@ -567,6 +582,11 @@ const handleMessage = (event: MessageEvent) => {
 
     case "showResults":
       isLoading.value = false;
+      if (message.status === 'cancelled') {
+        // Reset to initial state: clear results and error, keep inputs
+        clearResults();
+        break;
+      }
       if (message.error) {
         error.value = message.error;
         results.value = "";
@@ -603,3 +623,9 @@ onMounted(() => {
   window.addEventListener("message", handleMessage);
 });
 </script>
+<style scoped>
+vscode-badge::part(control) {
+  background-color: transparent !important;
+  color: var(--vscode-editor-fg) !important;
+}
+</style>
