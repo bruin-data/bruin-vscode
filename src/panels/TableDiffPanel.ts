@@ -78,6 +78,13 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
                 message.schemaOnly
               );
               break;
+            case 'cancelTableDiff':
+              BruinTableDiff.cancelDiff();
+              webviewView.webview.postMessage({
+                command: 'showResults',
+                status: 'cancelled'
+              });
+              break;
             case 'clearTableDiff':
               this.clearResults();
               break;
@@ -296,10 +303,20 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
       await vscode.window.withProgress({
         location: vscode.ProgressLocation.Notification,
         title: "Comparing Tables",
-        cancellable: false
-      }, async (progress) => {
+        cancellable: true
+      }, async (progress, token) => {
         progress.report({ 
           message: `Comparing ${sourceTable} with ${targetTable}` 
+        });
+
+        const cancelListener = token.onCancellationRequested(() => {
+          BruinTableDiff.cancelDiff();
+          if (TableDiffPanel._view) {
+            TableDiffPanel._view.webview.postMessage({
+              command: 'showResults',
+              status: 'cancelled'
+            });
+          }
         });
 
         const { workspaceFolder, connections } = await this.getWorkspaceSetup();
@@ -318,24 +335,35 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
         const targetInfo = `${targetConnection}:${targetTable}`;
         
         this.showResults(sourceInfo, targetInfo, result);
+
+        cancelListener.dispose();
       });
 
     } catch (error) {
       console.error('Error executing table diff:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
-      
-      // Send error to webview
+
+      // Distinguish cancellation vs genuine error
       if (TableDiffPanel._view) {
-        TableDiffPanel._view.webview.postMessage({
-          command: 'showResults',
-          error: errorMessage,
-          source: '',
-          target: '',
-          results: ''
-        });
+        if (errorMessage.includes('Command was cancelled') || errorMessage.includes('context canceled')) {
+          TableDiffPanel._view.webview.postMessage({
+            command: 'showResults',
+            status: 'cancelled'
+          });
+        } else {
+          TableDiffPanel._view.webview.postMessage({
+            command: 'showResults',
+            error: errorMessage,
+            source: '',
+            target: '',
+            results: ''
+          });
+        }
       }
       
-      vscode.window.showErrorMessage(`Table comparison failed: ${errorMessage}`);
+      if (!errorMessage.includes('Command was cancelled')) {
+        vscode.window.showErrorMessage(`Table comparison failed: ${errorMessage}`);
+      }
     }
   }
 

@@ -1,10 +1,13 @@
 import { BruinCommandOptions } from "../types";
 import { BruinCommand } from "./bruinCommand";
+import * as child_process from "child_process";
 
 /**
  * Extends the BruinCommand class to implement the bruin data-diff command.
  */
 export class BruinTableDiff extends BruinCommand {
+  private static runningProcess: child_process.ChildProcess | null = null;
+
   /**
    * Specifies the Bruin command string.
    *
@@ -43,12 +46,30 @@ export class BruinTableDiff extends BruinCommand {
     console.log(`BruinTableDiff: Executing data-diff with explicit connections:`, args);
     
     try {
-      const result = await this.run(args, options);
+      const { promise, process } = this.runCancellable(args, options);
+      BruinTableDiff.runningProcess = process;
+
+      const result = await promise;
       console.log(`BruinTableDiff: Command completed successfully`);
       return result;
     } catch (error) {
       console.error(`BruinTableDiff: Command failed:`, error);
       throw error;
+    } finally {
+      BruinTableDiff.runningProcess = null;
+    }
+  }
+
+  /** Cancel the currently running diff operation, if any. */
+  public static cancelDiff(): void {
+    const proc = BruinTableDiff.runningProcess;
+    if (proc) {
+      try {
+        proc.kill("SIGINT");
+      } catch (e) {
+        console.warn("Failed to send SIGINT to running diff process", e);
+      }
+      BruinTableDiff.runningProcess = null;
     }
   }
 

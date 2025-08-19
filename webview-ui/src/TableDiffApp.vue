@@ -104,15 +104,24 @@
              </label>
            </div>
            
-           <vscode-button
-             :disabled="!canExecuteComparison || isLoading"
-             @click="executeComparison"
-             appearance="primary"
-           >
-             <span v-if="!isLoading" class="codicon codicon-play mr-1"></span>
-             <span v-if="isLoading" class="animate-spin codicon codicon-loading mr-1"></span>
-             Compare
-           </vscode-button>
+          <vscode-button
+            v-if="!isLoading"
+            :disabled="!canExecuteComparison"
+            @click="executeComparison"
+            appearance="primary"
+          >
+            <span class="codicon codicon-play mr-1"></span>
+            Compare
+          </vscode-button>
+          <vscode-button
+            v-else
+            title="Cancel"
+            appearance="secondary"
+            @click="cancelComparison"
+          >
+            <span class="codicon codicon-stop-circle text-red-500 mr-1"></span>
+            Cancel
+          </vscode-button>
          </div>
       </div>
 
@@ -530,6 +539,12 @@ const executeComparison = () => {
   });
 };
 
+const cancelComparison = () => {
+  vscode.postMessage({
+    command: "cancelTableDiff",
+  });
+};
+
 const clearResults = () => {
   results.value = "";
   error.value = "";
@@ -567,6 +582,11 @@ const handleMessage = (event: MessageEvent) => {
 
     case "showResults":
       isLoading.value = false;
+      if (message.status === 'cancelled') {
+        // Reset to initial state: clear results and error, keep inputs
+        clearResults();
+        break;
+      }
       if (message.error) {
         error.value = message.error;
         results.value = "";
