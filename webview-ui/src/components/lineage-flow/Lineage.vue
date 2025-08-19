@@ -62,50 +62,147 @@
         class="custom-controls"
       />
     </VueFlow>
-    
-    <!-- Pipeline View - Using the separate PipelineLineage component -->
-    <PipelineLineage
+
+    <!-- Pipeline View -->
+    <VueFlow
       v-if="showPipelineView"
-      :assetDataset="props.assetDataset"
-      :pipelineData="props.pipelineData"
-      :isLoading="isLoading"
-      :LineageError="props.LineageError"
-      @showAssetView="handleAssetView"
-      @showColumnView="handleColumnLevelLineage"
-    />
+      :nodes="pipelineElements.nodes"
+      :edges="pipelineElements.edges"
+      @nodesInitialized="onPipelineNodesInitialized"
+      :min-zoom="0.1"
+      class="basic-flow"
+      :draggable="true"
+      :node-draggable="true"
+    >
+      <Background />
+      <FilterTab
+        :filterType="pipelineFilterType"
+        :expandAllUpstreams="pipelineExpandAllUpstreams"
+        :expandAllDownstreams="pipelineExpandAllDownstreams"
+        :showPipelineView="true"
+        :showColumnView="false"
+        @update:filterType="() => {}"
+        @update:expandAllUpstreams="() => {}"
+        @update:expandAllDownstreams="() => {}"
+        @pipeline-view="handlePipelineView"
+        @column-view="handleColumnLevelLineage"
+        @asset-view="handleAssetViewWithFilter"
+        @reset="handleReset"
+      />
     
-    <!-- Column Level View - Using the separate ColumnLevelLineage component -->
-    <ColumnLevelLineage
+      <template #node-custom="nodeProps">
+        <CustomNode
+          :expanded-nodes="pipelineExpandedNodes"
+          @toggle-node-expand="togglePipelineNodeExpand"
+          :data="nodeProps.data"
+          :label="nodeProps.data.label"
+          :selected-node-id="pipelineSelectedNodeId"
+          @node-click="onPipelineNodeClick"
+          :show-expand-buttons="false"
+        />
+      </template>
+      <MiniMap pannable zoomable />
+      <Controls
+        :position="PanelPosition.BottomLeft"
+        showZoom
+        showFitView
+        showInteractive
+        class="custom-controls"
+      />
+    </VueFlow>
+
+    <!-- Column Level View -->
+    <VueFlow
       v-if="showColumnView"
-      :assetDataset="props.assetDataset"
-      :pipelineData="props.pipelineData"
-      :isLoading="isLoading"
-      :LineageError="props.LineageError"
-      @showPipelineView="handlePipelineView"
-      @showAssetView="handleAssetView"
-    />
+      :nodes="columnElements.nodes"
+      :edges="columnElements.edges"
+      @nodesInitialized="onColumnNodesInitialized"
+      :min-zoom="0.1"
+      class="basic-flow"
+      :draggable="true"
+      :node-draggable="true"
+    >
+      <Background />
+      <FilterTab
+        :filterType="columnFilterType"
+        :expandAllUpstreams="columnExpandAllUpstreams"
+        :expandAllDownstreams="columnExpandAllDownstreams"
+        :showPipelineView="false"
+        :showColumnView="true"
+        @update:filterType="() => {}"
+        @update:expandAllUpstreams="() => {}"
+        @update:expandAllDownstreams="() => {}"
+        @pipeline-view="handlePipelineView"
+        @column-view="handleColumnLevelLineage"
+        @asset-view="handleAssetViewWithFilter"
+        @reset="handleReset"
+      />
+    
+      <template #node-customWithColumn="nodeProps">
+        <CustomNodeWithColumn
+          :expanded-nodes="columnExpandedNodes"
+          @toggle-node-expand="toggleColumnNodeExpand"
+          :data="nodeProps.data"
+          :selected-node-id="columnSelectedNodeId"
+          @node-click="onColumnNodeClick"
+          :show-expand-buttons="false"
+          @column-hover="handleColumnHover"
+          @column-leave="handleColumnLeave"
+        />
+      </template>
+      
+      <template #node-custom="nodeProps">
+        <CustomNode
+          :expanded-nodes="columnExpandedNodes"
+          @toggle-node-expand="toggleColumnNodeExpand"
+          :data="nodeProps.data"
+          :selected-node-id="columnSelectedNodeId"
+          @node-click="onColumnNodeClick"
+          :show-expand-buttons="false"
+          :label="nodeProps.data?.asset?.name || nodeProps.data?.label || ''"
+        />
+      </template>
+      <MiniMap pannable zoomable />
+      <Controls
+        :position="PanelPosition.BottomLeft"
+        showZoom
+        showFitView
+        showInteractive
+        class="custom-controls"
+      />
+    </VueFlow>
   </div>
 </template>
 
 <script setup lang="ts">
-import { PanelPosition, VueFlow, useVueFlow } from "@vue-flow/core";
+import {
+  PanelPosition,
+  VueFlow,
+  useVueFlow,
+  type NodeDragEvent,
+  type XYPosition,
+  type NodeMouseEvent,
+  type Edge,
+  type GraphNode
+} from "@vue-flow/core";
 import { Background } from "@vue-flow/background";
 import { Controls } from "@vue-flow/controls";
+import { MiniMap } from "@vue-flow/minimap";
 import "@vue-flow/controls/dist/style.css";
-import type { NodeDragEvent, XYPosition, NodeMouseEvent, Edge } from "@vue-flow/core";
-import { computed, onMounted, defineProps, watch, ref, nextTick, onUnmounted, shallowRef } from "vue";
+import { computed, onMounted, defineProps, watch, ref, nextTick } from "vue";
 import ELK from "elkjs/lib/elk.bundled.js";
 import CustomNode from "@/components/lineage-flow/custom-nodes/CustomNodes.vue";
-import PipelineLineage from "@/components/lineage-flow/pipeline-lineage/PipelineLineage.vue";
-import ColumnLevelLineage from "@/components/lineage-flow/column-level/ColumnLevelLineage.vue";
+import CustomNodeWithColumn from "@/components/lineage-flow/custom-nodes/CustomNodesWithColumn.vue";
 import FilterTab from "@/components/lineage-flow/filterTab/filterTab.vue";
 import {
   generateGraphFromJSON,
   generateGraphForDownstream,
   generateGraphForUpstream,
+  generateColumnGraph
 } from "@/utilities/graphGenerator";
+import { buildPipelineLineage, applyLayout as applyPipelineLayout } from "@/components/lineage-flow/pipeline-lineage/pipelineLineageBuilder";
+import { buildColumnLineage } from "@/components/lineage-flow/column-level/useColumnLevel";
 import type { AssetDataset } from "@/types";
-import { getAssetDataset } from "./useAssetLineage";
 
 const props = defineProps<{
   assetDataset?: AssetDataset | null;
@@ -114,72 +211,55 @@ const props = defineProps<{
   LineageError: string | null;
 }>();
 
-// Core Vue Flow state
+// Shared UI state
+const error = ref<string | null>(props.LineageError);
+const showPipelineView = ref(false);
+const showColumnView = ref(false);
+
+// ===== Asset View State =====
 const flowRef = ref(null);
 const { nodes, edges, addNodes, addEdges, setNodes, setEdges, fitView, onNodeMouseEnter, onNodeMouseLeave, getNodes, getEdges } = useVueFlow();
 const elements = computed(() => [...nodes.value, ...edges.value]);
-
-// UI state
 const selectedNodeId = ref<string | null>(null);
-const showPipelineView = ref(false);
-const showColumnView = ref(false);
-const isLoading = ref(true);
+const isLoadingLocal = ref(true);
 const isLayouting = ref(false);
-const error = ref<string | null>(props.LineageError);
-
-// Filter state
 const filterType = ref<"direct" | "all">("direct");
 const expandAllDownstreams = ref(false);
 const expandAllUpstreams = ref(false);
 const expandedNodes = ref<{ [key: string]: boolean }>({});
-
-// Layout
 const elk = new ELK();
 
-// Computed properties for performance
-
-// Memoized base graph generation
 const baseGraphData = computed(() => {
   if (!props.assetDataset) return { nodes: [], edges: [] };
   return generateGraphFromJSON(props.assetDataset);
 });
 
-// Memoized downstream assets
 const allDownstreamAssets = computed(() => {
   if (!props.assetDataset?.downstream || !expandAllDownstreams.value) return [];
-  
   return props.assetDataset.downstream.reduce((acc: any[], downstream: any) => {
     return acc.concat(fetchAllDownstreams(downstream.name));
   }, []);
 });
 
-// Memoized upstream assets  
 const allUpstreamAssets = computed(() => {
   if (!props.assetDataset?.upstreams || !expandAllUpstreams.value) return [];
-  
   return props.assetDataset.upstreams.reduce((acc: any[], upstream: any) => {
     return acc.concat(fetchAllUpstreams(upstream.name));
   }, []);
 });
 
-// Computed graph data based on current filter
 const currentGraphData = computed(() => {
   if (filterType.value === "direct") {
     return baseGraphData.value;
   }
-  
   if (filterType.value === "all") {
     let allNodes: any[] = [...baseGraphData.value.nodes];
     let allEdges: any[] = [...baseGraphData.value.edges];
-    
-    // Add downstream nodes/edges
     allDownstreamAssets.value.forEach((asset) => {
       const result = generateGraphForDownstream(asset.name, props.pipelineData);
       allNodes = [...allNodes, ...result.nodes];
       allEdges = [...allEdges, ...result.edges];
     });
-    
-    // Add upstream nodes/edges
     allUpstreamAssets.value.forEach((asset) => {
       const result = generateGraphForUpstream(
         asset.name,
@@ -189,125 +269,40 @@ const currentGraphData = computed(() => {
       allNodes = [...allNodes, ...result.nodes];
       allEdges = [...allEdges, ...result.edges];
     });
-    
-    // Remove duplicates efficiently
     const nodeMap = new Map(allNodes.map(node => [node.id, node]));
     const edgeMap = new Map(allEdges.map(edge => [edge.id, edge]));
-    
     return {
       nodes: Array.from(nodeMap.values()),
       edges: Array.from(edgeMap.values())
     };
   }
-  
   return { nodes: [], edges: [] };
 });
 
-/**
- * Recursive dependency traversal functions
- */
 const fetchAllDownstreams = (assetName: string, downstreamAssets: any[] = []): any[] => {
   const currentAsset = props.pipelineData.assets.find((asset: any) => asset.name === assetName);
   if (!currentAsset) return downstreamAssets;
-
-  const asset = getAssetDataset(props.pipelineData, currentAsset.id);
-  downstreamAssets.push(asset);
-
-  asset?.downstream?.forEach((downstreamAsset) => {
-    fetchAllDownstreams(downstreamAsset.name, downstreamAssets);
+  downstreamAssets.push(currentAsset);
+  currentAsset?.downstream?.forEach((d: any) => {
+    fetchAllDownstreams(d.name, downstreamAssets);
   });
-
   return downstreamAssets;
 };
 
 const fetchAllUpstreams = (assetName: string, upstreamAssets: any[] = []): any[] => {
   const currentAsset = props.pipelineData.assets.find((asset: any) => asset.name === assetName);
   if (!currentAsset) return upstreamAssets;
-
-  const asset = getAssetDataset(props.pipelineData, currentAsset.id);
-  upstreamAssets.push(asset);
-
-  asset?.upstreams?.forEach((upstreamAsset) => {
-    fetchAllUpstreams(upstreamAsset.name, upstreamAssets);
+  upstreamAssets.push(currentAsset);
+  currentAsset?.upstreams?.forEach((u: any) => {
+    fetchAllUpstreams(u.name, upstreamAssets);
   });
-
   return upstreamAssets;
 };
 
-/**
- * Utility functions for hover functionality
- */
-const getUpstreamNodesAndEdges = (nodeId: string, allEdges: Edge[]) => {
-  const upstreamNodes = new Set<string>([nodeId]);
-  const upstreamEdges = new Set<Edge>();
-  const queue = [nodeId];
-  const visited = new Set<string>([nodeId]);
-
-  while (queue.length > 0) {
-    const currentNodeId = queue.shift()!;
-    const incomingEdges = allEdges.filter((edge) => edge.target === currentNodeId);
-
-    for (const edge of incomingEdges) {
-      if (!visited.has(edge.source)) {
-        visited.add(edge.source);
-        upstreamNodes.add(edge.source);
-        queue.push(edge.source);
-      }
-      upstreamEdges.add(edge);
-    }
-  }
-
-  return { upstreamNodes, upstreamEdges };
-};
-
-const getDownstreamNodesAndEdges = (nodeId: string, allEdges: Edge[]) => {
-  const downstreamNodes = new Set<string>([nodeId]);
-  const downstreamEdges = new Set<Edge>();
-  const queue = [nodeId];
-  const visited = new Set<string>([nodeId]);
-
-  while (queue.length > 0) {
-    const currentNodeId = queue.shift()!;
-    const outgoingEdges = allEdges.filter((edge) => edge.source === currentNodeId);
-
-    for (const edge of outgoingEdges) {
-      if (!visited.has(edge.target)) {
-        visited.add(edge.target);
-        downstreamNodes.add(edge.target);
-        queue.push(edge.target);
-      }
-      downstreamEdges.add(edge);
-    }
-  }
-
-  return { downstreamNodes, downstreamEdges };
-};
-
-/**
- * Node interaction handlers
- */
-const onNodeClick = (nodeId: string) => {
-  selectedNodeId.value = selectedNodeId.value === nodeId ? null : nodeId;
-};
-
-const onNodesDragged = (draggedNodes: NodeDragEvent[]) => {
-  setNodes(
-    nodes.value.map((node) => {
-      const draggedNode = draggedNodes.find((n) => n.node.id === node.id);
-      return draggedNode ? { ...node, position: draggedNode.node.position as XYPosition } : node;
-    })
-  );
-};
-
-/**
- * Single layout function that handles both initial and update cases
- */
 const applyLayout = async (inputNodes?: any[], inputEdges?: any[]) => {
   const nodesToLayout = inputNodes || nodes.value;
   const edgesToLayout = inputEdges || edges.value;
-  
   if (nodesToLayout.length === 0) return { nodes: [], edges: [] };
-  
   const elkGraph = {
     id: "root",
     layoutOptions: {
@@ -324,25 +319,23 @@ const applyLayout = async (inputNodes?: any[], inputEdges?: any[]) => {
       "elk.layered.crossingMinimization.semiInteractive": "true",
       "elk.layered.unnecessaryBendpoints": "true",
     },
-    children: nodesToLayout.map((node) => ({
+    children: nodesToLayout.map((node: any) => ({
       id: node.id,
       width: 150,
       height: 70,
       labels: [{ text: node.data.label }],
     })),
-    edges: edgesToLayout.map((edge) => ({
+    edges: edgesToLayout.map((edge: any) => ({
       id: edge.id,
       sources: [edge.source],
       targets: [edge.target],
     })),
   };
-
   try {
-    const layout = await elk.layout(elkGraph);
-    
+    const layout = await elk.layout(elkGraph as any);
     if (layout.children && layout.children.length) {
-      const layoutedNodes = nodesToLayout.map((node) => {
-        const layoutNode = layout.children?.find((child: any) => child.id === node.id);
+      const layoutedNodes = nodesToLayout.map((node: any) => {
+        const layoutNode = (layout.children as any)?.find((child: any) => child.id === node.id);
         return layoutNode
           ? {
               ...node,
@@ -354,79 +347,78 @@ const applyLayout = async (inputNodes?: any[], inputEdges?: any[]) => {
             }
           : node;
       });
-      
       return { nodes: layoutedNodes, edges: edgesToLayout };
     }
   } catch (error) {
     console.error("Failed to apply ELK layout:", error);
   }
-  
   return { nodes: nodesToLayout, edges: edgesToLayout };
 };
 
-/**
- * Hover event handlers
- */
-onNodeMouseEnter((event: NodeMouseEvent) => {
-  const hoveredNode = event.node;
-  const allNodes = getNodes.value;
-  const allEdges = getEdges.value;
-
-  const { upstreamNodes, upstreamEdges } = getUpstreamNodesAndEdges(hoveredNode.id, allEdges);
-  const { downstreamNodes, downstreamEdges } = getDownstreamNodesAndEdges(hoveredNode.id, allEdges);
-
-  const highlightNodes = new Set([...upstreamNodes, ...downstreamNodes]);
-  const highlightEdges = new Set([...upstreamEdges, ...downstreamEdges]);
-
-  allNodes.forEach((node) => {
-    if (!highlightNodes.has(node.id)) {
-      node.class = `${node.class || ''} faded`.trim();
+const getUpstreamNodesAndEdges = (nodeId: string, allEdges: Edge[]) => {
+  const upstreamNodes = new Set<string>([nodeId]);
+  const upstreamEdges = new Set<Edge>();
+  const queue = [nodeId];
+  const visited = new Set<string>([nodeId]);
+  while (queue.length > 0) {
+    const currentNodeId = queue.shift()!;
+    const incomingEdges = allEdges.filter((edge) => edge.target === currentNodeId);
+    for (const edge of incomingEdges) {
+      if (!visited.has(edge.source)) {
+        visited.add(edge.source);
+        upstreamNodes.add(edge.source);
+        queue.push(edge.source);
+      }
+      upstreamEdges.add(edge);
     }
-  });
+  }
+  return { upstreamNodes, upstreamEdges };
+};
 
-  allEdges.forEach((edge) => {
-    if (!highlightEdges.has(edge)) {
-      edge.class = `${edge.class || ''} faded`.trim();
+const getDownstreamNodesAndEdges = (nodeId: string, allEdges: Edge[]) => {
+  const downstreamNodes = new Set<string>([nodeId]);
+  const downstreamEdges = new Set<Edge>();
+  const queue = [nodeId];
+  const visited = new Set<string>([nodeId]);
+  while (queue.length > 0) {
+    const currentNodeId = queue.shift()!;
+    const outgoingEdges = allEdges.filter((edge) => edge.source === currentNodeId);
+    for (const edge of outgoingEdges) {
+      if (!visited.has(edge.target)) {
+        visited.add(edge.target);
+        downstreamNodes.add(edge.target);
+        queue.push(edge.target);
+      }
+      downstreamEdges.add(edge);
     }
-  });
-});
+  }
+  return { downstreamNodes, downstreamEdges };
+};
 
-onNodeMouseLeave(() => {
-  getNodes.value.forEach((node) => {
-    if (node.class && typeof node.class === 'string') {
-      node.class = node.class.replace(/faded/g, '').trim();
-    }
-  });
-  getEdges.value.forEach((edge) => {
-    if (edge.class && typeof edge.class === 'string') {
-      edge.class = edge.class.replace(/faded/g, '').trim();
-    }
-  });
-});
+const onNodeClick = (nodeId: string) => {
+  selectedNodeId.value = selectedNodeId.value === nodeId ? null : nodeId;
+};
 
-/**
- * Simplified graph update function using computed properties
- */
+const onNodesDragged = (draggedNodes: NodeDragEvent[]) => {
+  setNodes(
+    nodes.value.map((node) => {
+      const draggedNode = draggedNodes.find((n) => n.node.id === node.id);
+      return draggedNode ? { ...node, position: draggedNode.node.position as XYPosition } : node;
+    })
+  );
+};
+
 const updateGraph = async () => {
   if (!showPipelineView.value && !showColumnView.value) {
     isLayouting.value = true;
-    
     try {
       const graphData = currentGraphData.value;
-      
-      // Pre-calculate layout positions to prevent flickering
       if (graphData.nodes.length > 0) {
         const layoutedGraphData = await applyLayout(graphData.nodes, graphData.edges);
-        
-        // Set nodes and edges with pre-calculated positions
         setNodes(layoutedGraphData.nodes);
         setEdges(layoutedGraphData.edges);
-        
-        // Wait for DOM update, then show the graph
         await nextTick();
         isLayouting.value = false;
-        
-        // Apply fit view immediately after layouting is done
         await nextTick();
         fitView({ padding: 0.2, duration: 300 });
       } else {
@@ -441,130 +433,91 @@ const updateGraph = async () => {
   }
 };
 
-/**
- * Initialization and data processing
- */
 const processProperties = async () => {
   if (!props.assetDataset || !props.pipelineData) {
-    isLoading.value = error.value === null;
+    isLoadingLocal.value = error.value === null;
     return;
   }
-
-  isLoading.value = true;
+  isLoadingLocal.value = true;
   isLayouting.value = false;
   error.value = null;
-
   try {
     await updateGraph();
-    isLoading.value = false;
+    isLoadingLocal.value = false;
   } catch (err) {
     console.error("Error processing properties:", err);
     error.value = "Failed to generate lineage graph. Please try again.";
-    isLoading.value = false;
+    isLoadingLocal.value = false;
     isLayouting.value = false;
   }
 };
 
-/**
- * Expand/collapse node functions
- */
 const toggleNodeExpand = (nodeId: string) => {
   expandedNodes.value[nodeId] = !expandedNodes.value[nodeId];
 };
 
 const onAddUpstream = async (nodeId: string) => {
   isLayouting.value = true;
-  
   const { nodes: newNodes, edges: newEdges } = generateGraphForUpstream(
     nodeId,
     props.pipelineData,
     props.assetDataset?.id ?? ""
   );
-  
-  // Filter out nodes that already exist
   const existingNodeIds = new Set(nodes.value.map(n => n.id));
   const filteredNodes = newNodes.filter(node => !existingNodeIds.has(node.id));
   const filteredEdges = newEdges.filter(edge => {
     const existingEdgeIds = new Set(edges.value.map(e => e.id));
     return !existingEdgeIds.has(edge.id);
   });
-  
-  // Add only new nodes/edges to current state
   if (filteredNodes.length > 0) {
     addNodes(filteredNodes);
   }
   if (filteredEdges.length > 0) {
     addEdges(filteredEdges);
   }
-  
-  // Mark this node's upstream as expanded
   expandedNodes.value[`${nodeId}_upstream`] = true;
-  
-  // Apply layout to all nodes and edges
   const layoutedData = await applyLayout();
   setNodes(layoutedData.nodes);
   setEdges(layoutedData.edges);
-  
   await nextTick();
   isLayouting.value = false;
-  
-  // Smart viewport adjustment to show new upstream nodes
   await nextTick();
   fitView({ padding: 0.2, duration: 300 });
 };
 
 const onAddDownstream = async (nodeId: string) => {
   isLayouting.value = true;
-  
   const { nodes: newNodes, edges: newEdges } = generateGraphForDownstream(
     nodeId,
     props.pipelineData
   );
-  
-  // Filter out nodes that already exist
   const existingNodeIds = new Set(nodes.value.map(n => n.id));
   const filteredNodes = newNodes.filter(node => !existingNodeIds.has(node.id));
   const filteredEdges = newEdges.filter(edge => {
     const existingEdgeIds = new Set(edges.value.map(e => e.id));
     return !existingEdgeIds.has(edge.id);
   });
-  
-  // Add only new nodes/edges to current state
   if (filteredNodes.length > 0) {
     addNodes(filteredNodes);
   }
   if (filteredEdges.length > 0) {
     addEdges(filteredEdges);
   }
-  
-  // Mark this node's downstream as expanded
   expandedNodes.value[`${nodeId}_downstream`] = true;
-  
-  // Apply layout to all nodes and edges
   const layoutedData = await applyLayout();
   setNodes(layoutedData.nodes);
   setEdges(layoutedData.edges);
-  
   await nextTick();
   isLayouting.value = false;
-  
-  // Smart viewport adjustment to show new downstream nodes
   await nextTick();
   fitView({ padding: 0.2, duration: 300 });
 };
 
-/**
- * Filter handlers
- */
 const resetFilterState = () => {
   filterType.value = "direct";
   expandAllUpstreams.value = false;
   expandAllDownstreams.value = false;
 };
-
-/**
- * UI action handlers
- */
 
 const handleReset = async () => {
   resetFilterState();
@@ -574,9 +527,6 @@ const handleReset = async () => {
   await updateGraph();
 };
 
-/**
- * View switching
- */
 const handleAssetView = (emittedData: {
   assetId?: string;
   assetDataset?: AssetDataset | null;
@@ -586,40 +536,33 @@ const handleAssetView = (emittedData: {
 }) => {
   showPipelineView.value = false;
   showColumnView.value = false;
-  
-  // Apply filter state if provided
   if (emittedData.filterState) {
     filterType.value = emittedData.filterState.filterType;
     expandAllUpstreams.value = emittedData.filterState.expandAllUpstreams;
     expandAllDownstreams.value = emittedData.filterState.expandAllDownstreams;
-    
-    // Clear expanded nodes if switching to direct view
     if (emittedData.filterState.filterType === 'direct') {
       expandedNodes.value = {};
     }
   }
-  
   nextTick(() => processProperties());
 };
 
-const handlePipelineView = async (data?: any) => {
+const handlePipelineView = async () => {
   showPipelineView.value = true;
   showColumnView.value = false;
+  await buildPipelineElements();
 };
 
-const handleColumnLevelLineage = async (data?: any) => {
+const handleColumnLevelLineage = async () => {
   showColumnView.value = true;
   showPipelineView.value = false;
+  await buildColumnElements();
 };
 
-/**
- * Lifecycle hooks
- */
 onMounted(() => {
   processProperties();
 });
 
-// Watch for filter changes to automatically update graph
 watch(
   () => [filterType.value, expandAllUpstreams.value, expandAllDownstreams.value],
   () => {
@@ -630,7 +573,6 @@ watch(
   { immediate: false }
 );
 
-// Watch for props changes
 watch(
   () => [props.assetDataset, props.pipelineData],
   ([newAssetDataset, newPipelineData]) => {
@@ -640,6 +582,143 @@ watch(
   },
   { immediate: false }
 );
+
+onNodeMouseEnter((event: NodeMouseEvent) => {
+  if (showPipelineView.value || showColumnView.value) return;
+  const hoveredNode = event.node;
+  const allNodes = getNodes.value;
+  const allEdges = getEdges.value;
+  const { upstreamNodes, upstreamEdges } = getUpstreamNodesAndEdges(hoveredNode.id, allEdges);
+  const { downstreamNodes, downstreamEdges } = getDownstreamNodesAndEdges(hoveredNode.id, allEdges);
+  const highlightNodes = new Set([...upstreamNodes, ...downstreamNodes]);
+  const highlightEdges = new Set([...upstreamEdges, ...downstreamEdges]);
+  allNodes.forEach((node) => {
+    if (!highlightNodes.has(node.id)) {
+      node.class = `${node.class || ''} faded`.trim();
+    }
+  });
+  allEdges.forEach((edge) => {
+    if (!highlightEdges.has(edge)) {
+      edge.class = `${edge.class || ''} faded`.trim();
+    }
+  });
+});
+
+onNodeMouseLeave(() => {
+  if (showPipelineView.value || showColumnView.value) return;
+  getNodes.value.forEach((node) => {
+    if (node.class && typeof node.class === 'string') {
+      node.class = node.class.replace(/faded/g, '').trim();
+    }
+  });
+  getEdges.value.forEach((edge) => {
+    if (edge.class && typeof edge.class === 'string') {
+      edge.class = edge.class.replace(/faded/g, '').trim();
+    }
+  });
+});
+
+// ===== Pipeline View State and Logic =====
+const pipelineSelectedNodeId = ref<string | null>(null);
+const pipelineExpandedNodes = ref<{ [key: string]: boolean }>({});
+const pipelineFilterType = ref<"direct" | "all">("all");
+const pipelineExpandAllUpstreams = ref(true);
+const pipelineExpandAllDownstreams = ref(true);
+const pipelineElements = ref<any>({ nodes: [], edges: [] });
+
+const togglePipelineNodeExpand = (nodeId: string) => {
+  pipelineExpandedNodes.value[nodeId] = !pipelineExpandedNodes.value[nodeId];
+};
+
+const onPipelineNodeClick = (nodeId: string) => {
+  pipelineSelectedNodeId.value = pipelineSelectedNodeId.value === nodeId ? null : nodeId;
+};
+
+const buildPipelineElements = async () => {
+  if (!props.pipelineData) {
+    pipelineElements.value = { nodes: [], edges: [] };
+    return;
+  }
+  const lineageData = buildPipelineLineage(props.pipelineData);
+  const { nodes: initialNodes, edges: initialEdges } = (await import("@/components/lineage-flow/pipeline-lineage/pipelineLineageBuilder")).generateGraph(
+    lineageData,
+    props.assetDataset?.name || ""
+  );
+  const { nodes: layoutNodes, edges: layoutEdges } = await applyPipelineLayout(initialNodes, initialEdges);
+  pipelineElements.value = { nodes: layoutNodes, edges: layoutEdges };
+};
+
+const onPipelineNodesInitialized = () => {
+  // fit view can be handled by VueFlow defaults or ignored here
+};
+
+const handleAssetViewWithFilter = (filterState?: { filterType: "direct" | "all"; expandAllUpstreams: boolean; expandAllDownstreams: boolean }) => {
+  handleAssetView({
+    assetId: props.assetDataset?.id,
+    assetDataset: props.assetDataset,
+    pipelineData: props.pipelineData,
+    LineageError: props.LineageError,
+    filterState
+  });
+};
+
+// ===== Column View State and Logic =====
+const columnSelectedNodeId = ref<string | null>(null);
+const columnExpandedNodes = ref<{ [key: string]: boolean }>({});
+const columnFilterType = ref<"direct" | "all">("all");
+const columnExpandAllUpstreams = ref(true);
+const columnExpandAllDownstreams = ref(true);
+const columnElements = ref<{ nodes: any[]; edges: any[] }>({ nodes: [], edges: [] });
+const hoveredColumn = ref<{ assetName: string; columnName: string } | null>(null);
+
+const toggleColumnNodeExpand = (nodeId: string) => {
+  columnExpandedNodes.value[nodeId] = !columnExpandedNodes.value[nodeId];
+};
+
+const onColumnNodeClick = (nodeId: string) => {
+  columnSelectedNodeId.value = columnSelectedNodeId.value === nodeId ? null : nodeId;
+};
+
+const buildColumnElements = async () => {
+  const newPipelineData = props.pipelineData;
+  if (!newPipelineData) {
+    columnElements.value = { nodes: [], edges: [] };
+    return;
+  }
+  const hasColumnData = newPipelineData.column_lineage || 
+    (newPipelineData.assets && newPipelineData.assets.some((asset: any) => 
+      asset.columns?.length > 0 && asset.columns.some((col: any) => 
+        col.upstreams && Array.isArray(col.upstreams) && col.upstreams.length > 0
+      )
+    ));
+  if (!hasColumnData) {
+    console.warn("No column lineage data available. The data may have been parsed without the -c flag.");
+    columnElements.value = { nodes: [], edges: [] };
+    error.value = "No column lineage data found. To view column-level lineage, ensure the pipeline data includes column information by using the 'parse pipeline -c' command or refresh the lineage data.";
+    return;
+  }
+  error.value = null;
+  const lineageData = buildColumnLineage(newPipelineData);
+  const { nodes: initialNodes, edges: initialEdges } = generateColumnGraph(
+    lineageData,
+    props.assetDataset?.name || ""
+  );
+  const { nodes: layoutNodes, edges: layoutEdges } = await applyPipelineLayout(initialNodes, initialEdges);
+  columnElements.value = { nodes: layoutNodes, edges: layoutEdges };
+};
+
+const onColumnNodesInitialized = () => {
+  // No-op for now; fit view can be applied via controls
+};
+
+const handleColumnHover = (assetName: string, columnName: string): void => {
+  hoveredColumn.value = { assetName, columnName };
+  // Edge highlight could be added if needed by manipulating columnElements
+};
+
+const handleColumnLeave = (): void => {
+  hoveredColumn.value = null;
+};
 </script>
 
 <style>
