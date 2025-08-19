@@ -63,7 +63,7 @@
       />
     </VueFlow>
 
-    <!-- Pipeline View -->
+    <!-- Pipeline View (no special filter controls; use Asset behavior) -->
     <VueFlow
       v-if="showPipelineView"
       :nodes="pipelineElements.nodes"
@@ -75,21 +75,23 @@
       :node-draggable="true"
     >
       <Background />
+
+      <!-- Use the same FilterTab behavior/label as Asset view -->
       <FilterTab
-        :filterType="pipelineFilterType"
-        :expandAllUpstreams="pipelineExpandAllUpstreams"
-        :expandAllDownstreams="pipelineExpandAllDownstreams"
-        :showPipelineView="true"
-        :showColumnView="false"
-        @update:filterType="() => {}"
-        @update:expandAllUpstreams="() => {}"
-        @update:expandAllDownstreams="() => {}"
+        :filter-type="filterType"
+        :expand-all-upstreams="expandAllUpstreams"
+        :expand-all-downstreams="expandAllDownstreams"
+        :show-pipeline-view="true"
+        :show-column-view="false"
+        @update:filter-type="(value) => { filterType = value; if (value === 'direct') expandedNodes = {}; }"
+        @update:expand-all-upstreams="expandAllUpstreams = $event"
+        @update:expand-all-downstreams="expandAllDownstreams = $event"
         @pipeline-view="handlePipelineView"
         @column-view="handleColumnLevelLineage"
-        @asset-view="handleAssetViewWithFilter"
+        @asset-view="(filterState) => { if (filterState) handleAssetView({ assetId: props.assetDataset?.id, assetDataset: props.assetDataset, pipelineData: props.pipelineData, LineageError: props.LineageError, filterState }); }"
         @reset="handleReset"
       />
-    
+
       <template #node-custom="nodeProps">
         <CustomNode
           :expanded-nodes="pipelineExpandedNodes"

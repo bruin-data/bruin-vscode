@@ -118,7 +118,7 @@ const expandPanel = ref(false);
 
 // Computed
 const filterLabel = computed(() => {
-  if (props.showPipelineView) return "Pipeline View";
+  // Show the same label behavior as Asset view even in Pipeline view
   if (props.showColumnView) return "Column Level Lineage";
   if (props.filterType === "direct") return "Direct Dependencies";
   if (props.expandAllUpstreams && props.expandAllDownstreams) return "All Dependencies";
