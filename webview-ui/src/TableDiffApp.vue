@@ -141,7 +141,7 @@
             <div class="flex items-center gap-2">
               <span class="codicon codicon-diff text-blue-500"></span>
               <h3 class="text-sm font-medium text-editor-fg">Comparison Results</h3>
-              <vscode-badge class="text-3xs opacity-70 bg-transparent">
+              <vscode-badge class="text-3xs opacity-30 bg-transparent text-editor-fg">
                 {{ comparisonInfo.source }} → {{ comparisonInfo.target }}
               </vscode-badge>
             </div>
@@ -626,5 +626,6 @@ onMounted(() => {
 <style scoped>
 vscode-badge::part(control) {
   background-color: transparent !important;
+  color: var(--vscode-editor-fg) !important;
 }
 </style>
