@@ -129,10 +129,10 @@
 
         <div v-if="hasResults" class="p-1 mt-2">
           <div class="flex items-center justify-between mb-3">
-            <div class="flex items-center gap-3">
-              <span class="codicon codicon-diff text-blue-500 mr-2"></span>
+            <div class="flex items-center gap-2">
+              <span class="codicon codicon-diff text-blue-500"></span>
               <h3 class="text-sm font-medium text-editor-fg">Comparison Results</h3>
-              <vscode-badge class="text-3xs opacity-70">
+              <vscode-badge class="text-3xs opacity-70 bg-transparent">
                 {{ comparisonInfo.source }} → {{ comparisonInfo.target }}
               </vscode-badge>
             </div>
@@ -147,7 +147,7 @@
           </div>
 
           <div class="bg-editorWidget-bg border border-commandCenter-border rounded overflow-hidden">
-            <div class="max-h-96 overflow-auto">
+            <div class="h-full overflow-auto">
               <pre class="text-xs font-mono p-4 text-editor-fg whitespace-pre overflow-x-auto">{{ results }}</pre>
             </div>
           </div>
@@ -603,3 +603,8 @@ onMounted(() => {
   window.addEventListener("message", handleMessage);
 });
 </script>
+<style>
+vscode-badge::part(control) {
+  background-color: transparent !important;
+}
+</style>
