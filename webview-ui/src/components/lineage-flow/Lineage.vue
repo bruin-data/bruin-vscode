@@ -105,7 +105,7 @@
           :show-expand-buttons="false"
         />
       </template>
-      <MiniMap pannable zoomable />
+      <MiniMap pannable zoomable class="minimap-bottom-right" />
       <Controls
         :position="PanelPosition.BottomLeft"
         showZoom
@@ -166,7 +166,7 @@
           :label="nodeProps.data?.asset?.name || nodeProps.data?.label || ''"
         />
       </template>
-      <MiniMap pannable zoomable />
+      <MiniMap pannable zoomable class="minimap-bottom-right" />
       <Controls
         :position="PanelPosition.BottomLeft"
         showZoom
@@ -820,6 +820,16 @@ const handleColumnLeave = (): void => {
 
 .custom-controls .vue-flow__controls-button:hover {
   background-color: #444 !important;
+}
+
+.minimap-bottom-right {
+  position: absolute !important;
+  right: 0.75rem !important;
+  bottom: 0.75rem !important;
+  left: auto !important;
+  top: auto !important;
+  z-index: 10; /* above canvas */
+  pointer-events: auto;
 }
 
 .error-message {

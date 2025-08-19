@@ -1,5 +1,5 @@
 <template>
-  <Panel position="top-right">
+  <Panel position="top-right" class="filter-panel">
     <div
       v-if="!expandPanel"
       @click="expandPanel = !expandPanel"
@@ -198,6 +198,11 @@ const handleColumnLevelLineage = () => {
 </script>
 
 <style scoped>
+/* Ensure filter panel stays above minimap on small viewports */
+.filter-panel {
+  position: absolute !important;
+  z-index: 50 !important;
+}
 /* Radio group styling */
 .radio-group {
   @apply px-1;
