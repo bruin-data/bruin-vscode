@@ -603,7 +603,7 @@ onMounted(() => {
   window.addEventListener("message", handleMessage);
 });
 </script>
-<style>
+<style scoped>
 vscode-badge::part(control) {
   background-color: transparent !important;
 }
