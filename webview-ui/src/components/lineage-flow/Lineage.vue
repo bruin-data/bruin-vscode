@@ -230,6 +230,34 @@ const expandAllDownstreams = ref(false);
 const expandAllUpstreams = ref(false);
 const expandedNodes = ref<{ [key: string]: boolean }>({});
 const elk = new ELK();
+// Track asset graph version to avoid reusing cached layout after interactive changes
+const assetGraphVersion = ref(0);
+
+// Debounce helper
+function debounce<T extends (...args: any[]) => void>(fn: T, wait = 180) {
+  let timerId: number | undefined;
+  return (...args: Parameters<T>) => {
+    if (timerId !== undefined) {
+      clearTimeout(timerId);
+    }
+    timerId = window.setTimeout(() => fn(...args), wait);
+  };
+}
+
+// Memoization for layouted graphs (asset view)
+type LayoutedGraph = { nodes: any[]; edges: any[] };
+const layoutCache = ref<Map<string, LayoutedGraph>>(new Map());
+const clearLayoutCache = () => layoutCache.value.clear();
+const computeCacheKey = (): string => {
+  const assetId = props.assetDataset?.id ?? "";
+  return JSON.stringify({
+    assetId,
+    filterType: filterType.value,
+    expandAllUpstreams: expandAllUpstreams.value,
+    expandAllDownstreams: expandAllDownstreams.value,
+    version: assetGraphVersion.value,
+  });
+};
 
 const baseGraphData = computed(() => {
   if (!props.assetDataset) return { nodes: [], edges: [] };
@@ -410,13 +438,18 @@ const onNodesDragged = (draggedNodes: NodeDragEvent[]) => {
   );
 };
 
-const updateGraph = async () => {
+const _updateGraph = async () => {
   if (!showPipelineView.value && !showColumnView.value) {
     isLayouting.value = true;
     try {
       const graphData = currentGraphData.value;
       if (graphData.nodes.length > 0) {
-        const layoutedGraphData = await applyLayout(graphData.nodes, graphData.edges);
+        const key = computeCacheKey();
+        let layoutedGraphData = layoutCache.value.get(key);
+        if (!layoutedGraphData) {
+          layoutedGraphData = await applyLayout(graphData.nodes, graphData.edges);
+          layoutCache.value.set(key, layoutedGraphData);
+        }
         setNodes(layoutedGraphData.nodes);
         setEdges(layoutedGraphData.edges);
         await nextTick();
@@ -434,6 +467,8 @@ const updateGraph = async () => {
     }
   }
 };
+
+const updateGraph = debounce(_updateGraph, 180);
 
 const processProperties = async () => {
   if (!props.assetDataset || !props.pipelineData) {
@@ -485,6 +520,8 @@ const onAddUpstream = async (nodeId: string) => {
   isLayouting.value = false;
   await nextTick();
   fitView({ padding: 0.2, duration: 300 });
+  // Bump version so the next full recompute reflows with correct left/right ordering
+  assetGraphVersion.value++;
 };
 
 const onAddDownstream = async (nodeId: string) => {
@@ -513,6 +550,8 @@ const onAddDownstream = async (nodeId: string) => {
   isLayouting.value = false;
   await nextTick();
   fitView({ padding: 0.2, duration: 300 });
+  // Bump version so the next full recompute reflows with correct left/right ordering
+  assetGraphVersion.value++;
 };
 
 const resetFilterState = () => {
