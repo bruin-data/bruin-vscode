@@ -17,6 +17,7 @@
       :draggable="true"
       :node-draggable="true"
       @nodesDragged="onNodesDragged"
+      @nodesInitialized="onAssetNodesInitialized"
       ref="flowRef"
     >
       <Background />
@@ -40,6 +41,7 @@
       
       <!-- Filter Panel -->
       <FilterTab
+        :key="assetFilterTabKey"
         :filter-type="filterType"
         :expand-all-upstreams="expandAllUpstreams"
         :expand-all-downstreams="expandAllDownstreams"
@@ -232,6 +234,10 @@ const expandedNodes = ref<{ [key: string]: boolean }>({});
 const elk = new ELK();
 // Track asset graph version to avoid reusing cached layout after interactive changes
 const assetGraphVersion = ref(0);
+// Use instant fit on first render after switching back to asset view
+const nextFitInstant = ref(false);
+// Key to reset asset FilterTab (collapse panel) when switching back
+const assetFilterTabKey = ref(0);
 
 // Debounce helper
 function debounce<T extends (...args: any[]) => void>(fn: T, wait = 180) {
@@ -438,6 +444,19 @@ const onNodesDragged = (draggedNodes: NodeDragEvent[]) => {
   );
 };
 
+// Fit view helper to mirror control behavior
+const fitViewSmooth = async () => {
+  await nextTick();
+  const duration = nextFitInstant.value ? 0 : 300;
+  nextFitInstant.value = false;
+  try {
+    fitView({ padding: 0.2, duration });
+  } catch (e) {
+    await nextTick();
+    fitView({ padding: 0.2, duration });
+  }
+};
+
 const _updateGraph = async () => {
   if (!showPipelineView.value && !showColumnView.value) {
     isLayouting.value = true;
@@ -454,8 +473,7 @@ const _updateGraph = async () => {
         setEdges(layoutedGraphData.edges);
         await nextTick();
         isLayouting.value = false;
-        await nextTick();
-        fitView({ padding: 0.2, duration: 300 });
+        await fitViewSmooth();
       } else {
         setNodes([]);
         setEdges([]);
@@ -518,8 +536,7 @@ const onAddUpstream = async (nodeId: string) => {
   setEdges(layoutedData.edges);
   await nextTick();
   isLayouting.value = false;
-  await nextTick();
-  fitView({ padding: 0.2, duration: 300 });
+  await fitViewSmooth();
   // Bump version so the next full recompute reflows with correct left/right ordering
   assetGraphVersion.value++;
 };
@@ -548,9 +565,7 @@ const onAddDownstream = async (nodeId: string) => {
   setEdges(layoutedData.edges);
   await nextTick();
   isLayouting.value = false;
-  await nextTick();
-  fitView({ padding: 0.2, duration: 300 });
-  // Bump version so the next full recompute reflows with correct left/right ordering
+  await fitViewSmooth();
   assetGraphVersion.value++;
 };
 
@@ -568,7 +583,7 @@ const handleReset = async () => {
   await updateGraph();
 };
 
-const handleAssetView = (emittedData: {
+const handleAssetView = async (emittedData: {
   assetId?: string;
   assetDataset?: AssetDataset | null;
   pipelineData: any;
@@ -585,7 +600,11 @@ const handleAssetView = (emittedData: {
       expandedNodes.value = {};
     }
   }
-  nextTick(() => processProperties());
+  // Make the first fit instantaneous to avoid visible movement
+  nextFitInstant.value = true;
+  // Force FilterTab remount in asset view to close the panel
+  assetFilterTabKey.value++;
+  await _updateGraph();
 };
 
 const handlePipelineView = async () => {
@@ -689,8 +708,8 @@ const buildPipelineElements = async () => {
   pipelineElements.value = { nodes: layoutNodes, edges: layoutEdges };
 };
 
-const onPipelineNodesInitialized = () => {
-  // fit view can be handled by VueFlow defaults or ignored here
+const onPipelineNodesInitialized = async () => {
+  await fitViewSmooth();
 };
 
 const handleAssetViewWithFilter = (filterState?: { filterType: "direct" | "all"; expandAllUpstreams: boolean; expandAllDownstreams: boolean }) => {
@@ -748,8 +767,12 @@ const buildColumnElements = async () => {
   columnElements.value = { nodes: layoutNodes, edges: layoutEdges };
 };
 
-const onColumnNodesInitialized = () => {
-  // No-op for now; fit view can be applied via controls
+const onColumnNodesInitialized = async () => {
+  await fitViewSmooth();
+};
+
+const onAssetNodesInitialized = async () => {
+  await fitViewSmooth();
 };
 
 const handleColumnHover = (assetName: string, columnName: string): void => {
