@@ -115,7 +115,9 @@ import { vscode } from "@/utilities/vscode";
 import { v4 as uuidv4 } from "uuid";
 
 const props = defineProps({
-  isBruinInstalled: Boolean,
+  isBruinInstalled: {
+    type: Boolean | null,
+  },
   environments: Array,
   versionStatus: Object,
   settingsOnlyMode: {

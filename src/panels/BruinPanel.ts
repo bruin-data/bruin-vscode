@@ -187,8 +187,14 @@ export class BruinPanel {
         gitAvailable,
       });
       if (installed && this._lastRenderedDocumentUri) {
-        // Only parse if CLI is present; otherwise do not send parse messages that can mask install UI
-        parseAssetCommand(this._lastRenderedDocumentUri);
+        const cliFilePath = this._lastRenderedDocumentUri.fsPath;
+        const isActualAsset = await this._isAssetFile(cliFilePath);
+        
+        if (isActualAsset) {
+          parseAssetCommand(this._lastRenderedDocumentUri);
+        } else {
+          await this._handleAssetDetection(this._lastRenderedDocumentUri);
+        }
         getEnvListCommand(this._lastRenderedDocumentUri);
       }
     } catch (error) {
@@ -503,9 +509,12 @@ export class BruinPanel {
             if (!this._lastRenderedDocumentUri) {
               return;
             }
-            console.warn("Getting asset details message in the panel", new Date().toISOString());
-            parseAssetCommand(this._lastRenderedDocumentUri);
-            console.warn("Finish asset details message in the panel", new Date().toISOString());
+            const assetFilePath = this._lastRenderedDocumentUri.fsPath;
+            const isActualAsset = await this._isAssetFile(assetFilePath);
+            
+            if (isActualAsset) {
+              parseAssetCommand(this._lastRenderedDocumentUri);
+            }
             break;
 
           case "bruin.setAssetDetails":
@@ -644,7 +653,6 @@ export class BruinPanel {
               message: this._lastRenderedDocumentUri?.fsPath,
             });
             
-            // Also trigger asset detection and parsing like onDidChangeActiveTextEditor does
             if (this._lastRenderedDocumentUri) {
               await this._handleAssetDetection(this._lastRenderedDocumentUri);
             }
@@ -931,10 +939,8 @@ export class BruinPanel {
             }
             break;
           case "bruin.refocusActiveEditor":
-            console.log("🔄 [BruinPanel] Refocusing active editor for incomplete data");
             if (window.activeTextEditor && this._lastRenderedDocumentUri) {
-              // Re-trigger parsing for current document
-              parseAssetCommand(this._lastRenderedDocumentUri);
+              await this._handleAssetDetection(this._lastRenderedDocumentUri);
               getEnvListCommand(this._lastRenderedDocumentUri);
             }
             break;
@@ -1076,8 +1082,7 @@ export class BruinPanel {
       const fileExt = this._getFileExtension(filePath);
       const isSupportedFileType = ["yml", "yaml", "py", "sql"].includes(fileExt);
 
-      if (inAssetsFolder && isSupportedFileType) {
-        console.log("_performAssetDetection: Showing convert message for", filePath);
+      if (inAssetsFolder && isSupportedFileType && this._cliInstalled) {
         this._panel.webview.postMessage({
           command: "non-asset-file",
           showConvertMessage: true,
@@ -1085,17 +1090,14 @@ export class BruinPanel {
           filePath: filePath,
         });
       } else {
-        console.log(
-          "_performAssetDetection: File doesn't qualify for conversion",
-          filePath,
-          "inAssetsFolder:", inAssetsFolder,
-          "isSupportedFileType:", isSupportedFileType
-        );
         this._panel.webview.postMessage({
           command: "non-asset-file",
           showConvertMessage: false,
           filePath: filePath,
         });
+        if (this._cliInstalled) {
+          parseAssetCommand(fileUri);
+        }
       }
     } catch (error) {
       console.error("_performAssetDetection: Error in asset detection flow:", error);
