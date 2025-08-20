@@ -63,6 +63,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.64.4**: Fixed the checkbox and dates state persisting issue.
 - **0.64.3**: Added cancel button to the table diff panel and improved the UI.
 - **0.64.2**: Fixed shwoing settings tab when no active editor and improved the UI.
 - **0.64.1**: Add secrets UI to the details tab.
