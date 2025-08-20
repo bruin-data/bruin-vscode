@@ -15,11 +15,31 @@ import {
 } from "../utilities/getPipelineLineage";
 import * as pipelineData from "../utilities/pipeline.json";
 import FilterTab from "@/components/lineage-flow/filterTab/filterTab.vue";
-import { mount } from "@vue/test-utils";
 import "./mocks/vueFlow"; // Import the mocks
 import { buildPipelineLineage, generateGraph } from "@/components/lineage-flow/pipeline-lineage/pipelineLineageBuilder";
 import { buildColumnLineage, getAssetDatasetWithColumns } from "@/components/lineage-flow/column-level/useColumnLevel";
 import { generateColumnGraph, createColumnLevelEdges } from "@/utilities/graphGenerator";
+import { mount } from "@vue/test-utils";
+
+// Mock VSCode API wrapper to control persistent webview state
+vi.mock("@/utilities/vscode", () => {
+  const storage: Record<string, any> = {};
+  return {
+    vscode: {
+      postMessage: vi.fn(),
+      getState: vi.fn(() => storage),
+      setState: vi.fn((newState: any) => {
+        Object.keys(storage).forEach((k) => delete storage[k]);
+        Object.assign(storage, newState || {});
+        return storage;
+      }),
+      // helper for tests
+      __storage: storage,
+    },
+  };
+});
+
+import AssetGeneral from "@/components/asset/AssetGeneral.vue";
 
 vi.mock("markdown-it");
 
@@ -361,6 +381,80 @@ suite("testing webview", () => {
         `Invalid schedule: ${schedule}. Please provide a valid cron expression or use 'hourly', 'daily', 'weekly', or 'monthly'.`
       );
     }
+  });
+});
+
+suite("AssetGeneral persistence", () => {
+  test("persists and restores checkbox state and dates across remounts", async () => {
+    const { vscode } = await import("@/utilities/vscode");
+
+    // Mount component with minimal required props
+    const wrapper = mount(AssetGeneral, {
+      props: {
+        schedule: "daily",
+        environments: ["dev"],
+        selectedEnvironment: "dev",
+        hasIntervalModifiers: false,
+        assetType: "sql",
+        parameters: {},
+        columns: [],
+      },
+      global: {
+        stubs: {
+          'vscode-button': { template: '<button><slot /></button>' },
+          'vscode-checkbox': { template: '<input type="checkbox" />' },
+        },
+      },
+    });
+
+    // Flip some checkboxes by mutating reactive state directly
+    const vm: any = wrapper.vm as any;
+    vm.checkboxItems = [
+      { name: 'Full-Refresh', checked: true },
+      { name: 'Interval-modifiers', checked: true },
+      { name: 'Exclusive-End-Date', checked: false },
+      { name: 'Push-Metadata', checked: true },
+    ];
+
+    // Set specific dates
+    vm.startDate = '2024-07-01T00:00:00.000Z';
+    vm.endDate = '2024-07-02T00:00:00.000Z';
+
+    await wrapper.vm.$nextTick();
+
+    // Ensure state persisted to vscode.setState
+    expect((vscode as any).__storage.checkboxState["Full-Refresh"]).toBe(true);
+    expect((vscode as any).__storage.checkboxState["Push-Metadata"]).toBe(true);
+    expect((vscode as any).__storage.startDate).toBe('2024-07-01T00:00:00.000Z');
+    expect((vscode as any).__storage.endDate).toBe('2024-07-02T00:00:00.000Z');
+
+    // Remount to simulate navigating to another asset and back
+    wrapper.unmount();
+
+    const wrapper2 = mount(AssetGeneral, {
+      props: {
+        schedule: "daily",
+        environments: ["dev"],
+        selectedEnvironment: "dev",
+        hasIntervalModifiers: false,
+        assetType: "sql",
+        parameters: {},
+        columns: [],
+      },
+      global: {
+        stubs: {
+          'vscode-button': { template: '<button><slot /></button>' },
+          'vscode-checkbox': { template: '<input type="checkbox" />' },
+        },
+      },
+    });
+
+    const vm2: any = wrapper2.vm as any;
+    // Check restoration
+    expect(vm2.checkboxItems.find((i: any) => i.name === 'Full-Refresh').checked).toBe(true);
+    expect(vm2.checkboxItems.find((i: any) => i.name === 'Push-Metadata').checked).toBe(true);
+    expect(vm2.startDate).toBe('2024-07-01T00:00:00.000Z');
+    expect(vm2.endDate).toBe('2024-07-02T00:00:00.000Z');
   });
 });
 
