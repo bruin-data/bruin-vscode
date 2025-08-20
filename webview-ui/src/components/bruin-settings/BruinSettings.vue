@@ -105,7 +105,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick, watch } from "vue";
+import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from "vue";
 import BruinCLI from "@/components/bruin-settings/BruinCLI.vue";
 import ConnectionsList from "@/components/connections/ConnectionList.vue";
 import ConnectionForm from "@/components/connections/ConnectionsForm.vue";
@@ -153,7 +153,7 @@ const connectionFormKey = computed(() => {
   return connectionToEdit.value?.id ? `edit-${connectionToEdit.value.id}` : "new-connection";
 });
 
-onMounted(() => {
+ onMounted(() => {
   window.addEventListener("message", handleMessage);
   
   // Only load connections data if not in settings-only mode
@@ -166,6 +166,10 @@ onMounted(() => {
   if (props.isBruinInstalled) {
     loadTemplates();
   }
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("message", handleMessage);
 });
 
 const handleMessage = (event) => {

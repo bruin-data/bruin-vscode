@@ -343,7 +343,13 @@ const handleMessage = (event: MessageEvent) => {
         } catch (_) {}
         // Ask backend for status and details; relevant files will update via parse-message
         vscode.postMessage({ command: "checkBruinCliInstallation" });
-        vscode.postMessage({ command: "bruin.getAssetDetails" });
+        // Only request asset details for non-config files to reduce redundant traffic
+        try {
+          const isConfig = typeof message.filePath === 'string' && (message.filePath.endsWith('.bruin.yml') || message.filePath.endsWith('.bruin.yaml'));
+          if (!isConfig) {
+            vscode.postMessage({ command: "bruin.getAssetDetails" });
+          }
+        } catch (_) {}
         vscode.postMessage({ command: "bruin.getEnvironmentsList" });
         break;
     }
