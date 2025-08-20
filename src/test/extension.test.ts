@@ -2236,9 +2236,15 @@ suite("BruinPanel Tests", () => {
       ).firstCall.args[0];
       const message = { command: "bruin.getAssetDetails" };
 
+      // Ensure the panel treats the current file as an asset so it proceeds to parse
+      const isAssetStub = sinon
+        .stub((BruinPanel.prototype as unknown) as { _isAssetFile: (p: string) => Promise<boolean> }, "_isAssetFile")
+        .resolves(true as any);
+
       await messageHandler(message);
 
       assert.ok(parseAssetCommandStub.calledOnce, "Parse asset command should be called once");
+      isAssetStub.restore();
       parseAssetCommandStub.restore();
     });
 
