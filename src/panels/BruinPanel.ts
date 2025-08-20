@@ -149,6 +149,26 @@ export class BruinPanel {
     
           }
         });
+      }),
+
+      vscode.workspace.onDidCreateFiles(async (e) => {
+        for (const file of e.files) {
+          const filePath = file.fsPath;
+          const fileExt = this._getFileExtension(filePath);
+          const isSupportedFileType = ["py", "sql", "yml", "yaml"].includes(fileExt);
+          const inAssetsFolder = await this._isInAssetsFolder(filePath);
+          
+          if (inAssetsFolder && isSupportedFileType) {
+            if (window.activeTextEditor && window.activeTextEditor.document.uri.fsPath === filePath) {
+              this._lastRenderedDocumentUri = file;
+              this._panel.webview.postMessage({
+                command: "file-changed",
+                filePath: filePath,
+              });
+              await this._handleAssetDetection(file);
+            }
+          }
+        }
       })
     );
 
