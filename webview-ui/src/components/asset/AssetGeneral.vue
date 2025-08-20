@@ -467,14 +467,22 @@ onMounted(() => {
   if (props.selectedEnvironment) {
     selectedEnv.value = props.selectedEnvironment;
   }
-  if ((vscode.getState() as { checkboxState?: { [key: string]: boolean } })?.checkboxState) {
+  const persistedState = vscode.getState() as {
+    checkboxState?: { [key: string]: boolean };
+    startDate?: string;
+    endDate?: string;
+  };
+  if (persistedState?.checkboxState) {
     checkboxItems.value = checkboxItems.value.map((item) => ({
       ...item,
-      checked:
-        (vscode.getState() as { checkboxState: { [key: string]: boolean } }).checkboxState[
-          item.name
-        ] || item.checked,
+      checked: persistedState.checkboxState![item.name] ?? item.checked,
     }));
+  }
+  if (persistedState?.startDate) {
+    startDate.value = persistedState.startDate;
+  }
+  if (persistedState?.endDate) {
+    endDate.value = persistedState.endDate;
   }
 
   sendInitialMessage();
@@ -509,6 +517,16 @@ watch(
       command: "checkboxChange",
       payload: payload,
     });
+
+    try {
+      const prevState = (vscode.getState() as Record<string, any>) || {};
+      vscode.setState({
+        ...prevState,
+        checkboxState,
+        startDate: startDate.value,
+        endDate: endDate.value,
+      });
+    } catch (_) {}
   },
   { deep: true }
 );
@@ -791,6 +809,15 @@ function receiveMessage(event: { data: any }) {
           ...item,
           checked: envelope.payload[item.name] !== undefined ? envelope.payload[item.name] : item.checked,
         }));
+
+        // Sync persisted state with values coming from the extension side
+        try {
+          const prevState = (vscode.getState() as Record<string, any>) || {};
+          vscode.setState({
+            ...prevState,
+            checkboxState: envelope.payload,
+          });
+        } catch (_) {}
       }
       break;
   }

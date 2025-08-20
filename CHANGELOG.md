@@ -1,4 +1,7 @@
 # Changelog
+## [0.64.4] - [2025-08-20]
+- Fixed the checkbox and dates state persisting issue.
+
 ## [0.64.3] - [2025-08-19]
 - Added cancel button to the table diff panel and improved the UI.
 
