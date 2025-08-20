@@ -172,6 +172,18 @@ const handleMessage = (event: MessageEvent) => {
     switch (message.command) {
       case "init": {
         settingsOnlyMode.value = !!message.settingsOnlyMode;
+        try {
+          if (message.lastRenderedDocument) {
+            lastRenderedDocument.value = message.lastRenderedDocument;
+            const isConfig = typeof message.lastRenderedDocument === 'string' && (message.lastRenderedDocument.endsWith('.bruin.yml') || message.lastRenderedDocument.endsWith('.bruin.yaml'));
+            if (isConfig) {
+              const settingsIndex = tabs.value.findIndex((t) => t.label === "Settings");
+              if (settingsIndex >= 0) {
+                activeTab.value = settingsIndex;
+              }
+            }
+          }
+        } catch (_) {}
         break;
       }
         case "bruinCliInstallationStatus": {
@@ -254,8 +266,17 @@ const handleMessage = (event: MessageEvent) => {
           
           // If we receive asset parsing data successfully, assume CLI is installed
           isBruinInstalled.value = true;
-          // Update bruin config mode based on current parsed type
-          isBruinYml.value = parsed?.type === "bruinConfig";
+          // Determine config mode based on current file extension, not parser type
+          try {
+            const currentPath =
+              lastRenderedDocument.value ||
+              (parsed && (parsed.filePath || (parsed.asset?.executable_file?.path ?? ""))) ||
+              "";
+            const isConfigFile =
+              typeof currentPath === "string" &&
+              (currentPath.endsWith(".bruin.yml") || currentPath.endsWith(".bruin.yaml"));
+            isBruinYml.value = !!isConfigFile;
+          } catch (_) {}
           
           // Check if we have incomplete data and need to refocus
           const hasAssetData = parsed && parsed.asset;
@@ -298,10 +319,7 @@ const handleMessage = (event: MessageEvent) => {
       case "pipeline-assets":
         pipelineAssetsData.value = updateValue(message, "success");
         break;
-      case "bruinCliInstallationStatus":
-        console.log("🔧 [App.vue] CLI status received:", message.installed);
-        isBruinInstalled.value = message.installed;
-        break;
+      // bruinCliInstallationStatus handled earlier to avoid duplicate case warning
 
       case "bruinCliVersionStatus":
         versionStatus.value = message.versionStatus;
@@ -310,6 +328,19 @@ const handleMessage = (event: MessageEvent) => {
         lastRenderedDocument.value = message.filePath;
         // Leave current content/tabs as-is for non-relevant files; simply exit settings-only
         settingsOnlyMode.value = false;
+        // If current file is a .bruin.yml config, force Settings-only view (with Connections)
+        try {
+          const filePath: string = message.filePath || "";
+          const isBruinConfigFile = filePath.endsWith(".bruin.yml") || filePath.endsWith(".bruin.yaml");
+          isBruinYml.value = isBruinConfigFile;
+          if (isBruinConfigFile) {
+            // Ensure Settings tab is focused
+            const settingsIndex = tabs.value.findIndex((t) => t.label === "Settings");
+            if (settingsIndex >= 0) {
+              activeTab.value = settingsIndex;
+            }
+          }
+        } catch (_) {}
         // Ask backend for status and details; relevant files will update via parse-message
         vscode.postMessage({ command: "checkBruinCliInstallation" });
         vscode.postMessage({ command: "bruin.getAssetDetails" });
