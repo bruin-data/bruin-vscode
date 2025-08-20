@@ -1,6 +1,6 @@
 <template>
   <div class="flex w-full">
-    <AssetLineageFlow
+    <Lineage
       :assetDataset="assetDataset"
       :pipelineData="pipelineData"
       :LineageError="lineageError"
@@ -10,7 +10,7 @@
 </template>
 
 <script setup lang="ts">
-import AssetLineageFlow from "@/components/lineage-flow/asset-lineage/AssetLineage.vue";
+import Lineage from "@/components/lineage-flow/Lineage.vue";
 import { ref, onUnmounted, computed, watch } from "vue";
 import { updateValue } from "./utilities/helper";
 import { getAssetDataset } from "@/components/lineage-flow/asset-lineage/useAssetLineage";
