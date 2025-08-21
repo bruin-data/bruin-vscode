@@ -63,6 +63,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.64.7**: Fixed the SQL preview rendering issue.
 - **0.64.6**: Updated the environment list command to create bruin.yml if it does not already exist.
 - **0.64.5**: Improved the .bruin.yml file handling to only show settings tab and fixed the convert message flickering issue.
 - **0.64.4**: Fixed the checkbox and dates state persisting issue.

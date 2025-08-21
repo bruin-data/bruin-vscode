@@ -1,4 +1,7 @@
 # Changelog
+## [0.64.7] - [2025-08-21]
+- Fixed the SQL preview rendering issue.
+
 ## [0.64.6] - [2025-08-21]
 - Updated the environment list command to create bruin.yml if it does not already exist.
 
