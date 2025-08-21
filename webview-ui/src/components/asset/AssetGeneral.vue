@@ -82,7 +82,7 @@
                     <button
                       type="button"
                       class="inline-flex items-center justify-center h-3.5 px-1 rounded-sm text-3xs opacity-70 hover:opacity-100"
-                      :class="includeTags.includes(tag) ? 'bg-editorWidget-bg' : ''"
+                      :class="includeTags.includes(tag) ? 'bg-button-bg text-button-fg' : ''"
                       title="Include"
                       @click="toggleTag(tag, 'include')"
                     >
@@ -91,7 +91,7 @@
                     <button
                       type="button"
                       class="inline-flex items-center justify-center h-3.5 px-1 rounded-sm text-3xs opacity-70 hover:opacity-100"
-                      :class="excludeTags.includes(tag) ? 'bg-editorWidget-bg' : ''"
+                      :class="excludeTags.includes(tag) ? 'bg-button-bg text-button-fg' : ''"
                       title="Exclude"
                       @click="toggleTag(tag, 'exclude')"
                     >

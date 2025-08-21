@@ -120,6 +120,9 @@ module.exports = {
         "notification-fg": "var(--vscode-notification-foreground)",
         "notificationsInfoIcon-fg": "var(--vscode-notificationsInfoIcon-foreground)",
         "notificationsWarningIcon-fg": "var(--vscode-notificationsWarningIcon-foreground)",
+        "button-bg": "var(--vscode-button-background)",
+        "button-hover-bg": "var(--vscode-button-hoverBackground)",
+        "button-fg": "var(--vscode-button-foreground)",
 
         "primary": {
           DEFAULT: "hsl(var(--primary))",
