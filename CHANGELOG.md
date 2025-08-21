@@ -1,4 +1,7 @@
 # Changelog
+## [0.65.0] - [2025-08-22]
+- Introduced a tags management interface that allows users to toggle the inclusion or exclusion of assets for execution in run commands.
+
 ## [0.64.7] - [2025-08-21]
 - Fixed the SQL preview rendering issue.
 
