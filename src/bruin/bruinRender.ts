@@ -73,11 +73,25 @@ export class BruinRender extends BruinCommand {
 
     await this.run([...flags, filePath], { ignoresErrors })
       .then((sqlRendered) => {
-        setTimeout(() => {
-          BruinPanel?.postMessage("render-message", {
-            status: "success",
-            message: JSON.parse(sqlRendered).query,
-          });
+        setTimeout(async () => {
+          try {
+            const parsed = JSON.parse(sqlRendered);
+            BruinPanel?.postMessage("render-message", {
+              status: "success",
+              message: parsed.query,
+            });
+          } catch (parseErr) {
+            console.error("Invalid JSON from bruin render output", parseErr);
+            // Fallback: try without -o json to surface raw output
+            try {
+              await this.runWithoutJsonFlag(filePath, ignoresErrors);
+            } catch (fallbackErr) {
+              BruinPanel?.postMessage("render-message", {
+                status: "error",
+                message: this.parseError(fallbackErr),
+              });
+            }
+          }
         }, 0);
       })
       .catch((error) => {
