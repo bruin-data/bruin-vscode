@@ -42,39 +42,31 @@
         <!-- Conditional rendering of CheckboxGroup -->
         <div v-if="showCheckboxGroup">
           <CheckboxGroup :checkboxItems="checkboxItems" label="Options" />
-          <!-- Tag Filter Controls (compact with dropdown) -->
-          <div class="mt-2 flex items-center gap-2" ref="tagFilterContainer">
-            <label class="text-xs text-editor-fg opacity-80">Tag filters</label>
-            <div class="flex items-center gap-2">
-              <span class="text-2xs opacity-70">Include</span>
-              <span class="text-2xs bg-badge-bg px-1 rounded">{{ includeTags.length }}</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <span class="text-2xs opacity-70">Exclude</span>
-              <span class="text-2xs bg-badge-bg px-1 rounded">{{ excludeTags.length }}</span>
-            </div>
+          <!-- Tag Filter Controls (subtle) -->
+          <div class="mt-2 flex items-center gap-1" ref="tagFilterContainer">
+            <label class="text-xs text-editor-fg ">Tags</label>
             <vscode-button
               appearance="icon"
-              class="h-5 w-5 p-0"
+              class="h-3.5 w-auto p-0 opacity-70 hover:opacity-100 inline-flex items-center"
               id="tag-filter-button"
               title="Edit tag filters"
               @click="toggleTagFilterOpen"
             >
-              <span class="codicon codicon-filter text-[10px]"></span>
+              <span :class="['codicon', hasActiveTagFilters ? 'codicon-filter-filled' : 'codicon-filter', 'text-[9px]']"></span>
             </vscode-button>
 
             <!-- Dropdown -->
             <div
               v-if="isTagFilterOpen"
-              class="fixed z-[9999] w-[320px] max-w-[90vw] bg-input-background border border-commandCenter-border shadow-lg rounded overflow-hidden tag-filter-dropdown"
+              class="fixed z-[9999] w-[220px] max-w-[90vw] bg-input-background border border-commandCenter-border shadow-md rounded overflow-hidden tag-filter-dropdown"
               :style="tagDropdownStyle"
-              @mousedown.prevent
+              @mousedown.stop
             >
               <div class="sticky top-0 bg-input-background border-b border-commandCenter-border px-2 py-1">
                 <input
                   v-model="tagFilterSearch"
                   placeholder="Search tags..."
-                  class="w-full bg-input-background text-input-foreground text-xs border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6 px-2 rounded"
+                  class="w-full bg-input-background text-input-foreground text-[11px] border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6 px-2 rounded"
                   @click.stop
                   @mousedown.stop
                 />
@@ -83,33 +75,35 @@
                 <div
                   v-for="tag in filteredTags"
                   :key="tag"
-                  class="flex items-center justify-between px-2 py-1 text-xs hover:bg-list-hoverBackground hover:text-list-activeSelectionForeground"
+                  class="flex items-center justify-between px-2 py-1 text-[11px] hover:bg-list-hoverBackground/60"
                 >
-                  <span class="font-mono truncate pr-2">{{ tag }}</span>
-                  <div class="flex items-center gap-1">
-                    <vscode-button
-                      appearance="secondary"
-                      class="text-[10px] h-5 px-1"
-                      :class="includeTags.includes(tag) ? 'bg-editor-button-hover-bg' : ''"
+                  <span class="font-mono truncate pr-2 opacity-80">{{ tag }}</span>
+                  <div class="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      class="inline-flex items-center justify-center h-3.5 px-1 rounded-sm text-3xs opacity-70 hover:opacity-100"
+                      :class="includeTags.includes(tag) ? 'bg-editorWidget-bg' : ''"
+                      title="Include"
                       @click="toggleTag(tag, 'include')"
                     >
-                      Include
-                    </vscode-button>
-                    <vscode-button
-                      appearance="secondary"
-                      class="text-[10px] h-5 px-1"
-                      :class="excludeTags.includes(tag) ? 'bg-editor-button-hover-bg' : ''"
+                      Inc
+                    </button>
+                    <button
+                      type="button"
+                      class="inline-flex items-center justify-center h-3.5 px-1 rounded-sm text-3xs opacity-70 hover:opacity-100"
+                      :class="excludeTags.includes(tag) ? 'bg-editorWidget-bg' : ''"
+                      title="Exclude"
                       @click="toggleTag(tag, 'exclude')"
                     >
-                      Exclude
-                    </vscode-button>
+                      Exc
+                    </button>
                   </div>
                 </div>
                 <div v-if="filteredTags.length === 0" class="px-2 py-2 text-2xs opacity-60">No tags found</div>
               </div>
               <div class="flex justify-end gap-2 p-1 border-t border-commandCenter-border">
-                <vscode-button class="text-[10px] h-5 px-2" appearance="secondary" @click="clearAllTagFilters">Clear</vscode-button>
-                <vscode-button class="text-[10px] h-5 px-2" @click="closeTagFilter">Done</vscode-button>
+                <vscode-button class="text-[10px] h-4 px-2 opacity-80 hover:opacity-100" appearance="secondary" @click="clearAllTagFilters">Clear</vscode-button>
+                <vscode-button class="text-[10px] h-4 px-2 opacity-80 hover:opacity-100" @click="closeTagFilter">Done</vscode-button>
               </div>
             </div>
           </div>
@@ -483,6 +477,8 @@ const isTagFilterOpen = ref(false);
 const tagFilterContainer = ref<HTMLElement | null>(null);
 const tagDropdownStyle = ref<Record<string, string>>({});
 const tagFilterSearch = ref("");
+const hasActiveTagFilters = computed(() => includeTags.value.length > 0 || excludeTags.value.length > 0);
+  const activeTagCount = computed(() => includeTags.value.length + excludeTags.value.length);
 const filteredTags = computed(() => {
   const q = tagFilterSearch.value.toLowerCase().trim();
   const all = availableTags.value || [];
@@ -510,6 +506,23 @@ function updateTagDropdownPosition() {
 function closeTagFilter() {
   isTagFilterOpen.value = false;
 }
+
+// Close the tag panel when clicking outside
+function onWindowClick(e: MouseEvent) {
+  if (!isTagFilterOpen.value) return;
+  const container = tagFilterContainer.value;
+  if (container && !container.contains(e.target as Node)) {
+    isTagFilterOpen.value = false;
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('click', onWindowClick, true);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('click', onWindowClick, true);
+});
 
 function clearAllTagFilters() {
   includeTags.value = [];
