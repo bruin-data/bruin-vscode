@@ -772,6 +772,15 @@ function stripIncludeTagFlags(flags: string) {
   }
 }
 
+// Single-asset runs also cannot use --exclude-tag; strip them for plain Run
+function stripExcludeTagFlags(flags: string) {
+  try {
+    return flags.replace(/\s--exclude-tag\s+[^\s]+/g, "");
+  } catch (_) {
+    return flags;
+  }
+}
+
 /**
  * Functions to handle run and validate actions
  */
@@ -780,7 +789,9 @@ function runAssetOnly() {
   
   if (fullRefreshChecked) {
     showFullRefreshConfirmation(() => {
-      const payload = buildCommandPayload(stripIncludeTagFlags(getCheckboxChangePayload()));
+      const payload = buildCommandPayload(
+        stripExcludeTagFlags(stripIncludeTagFlags(getCheckboxChangePayload()))
+      );
       vscode.postMessage({
         command: "bruin.runSql",
         payload,
@@ -789,7 +800,9 @@ function runAssetOnly() {
     return;
   }
   
-  const payload = buildCommandPayload(stripIncludeTagFlags(getCheckboxChangePayload()));
+  const payload = buildCommandPayload(
+    stripExcludeTagFlags(stripIncludeTagFlags(getCheckboxChangePayload()))
+  );
 
   vscode.postMessage({
     command: "bruin.runSql",
