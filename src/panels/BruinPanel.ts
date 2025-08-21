@@ -39,7 +39,7 @@ import {
   getBruinExecutablePath
 } from "../providers/BruinExecutableService";
 import path = require("path");
-import { isBruinAsset } from "../utilities/helperUtils";
+import { isBruinAsset, isFileExtensionSQL } from "../utilities/helperUtils";
 import { BruinInternalParse } from "../bruin/bruinInternalParse";
 import { BruinInternalListTemplates } from "../bruin/bruinInternalListTemplates";
 
@@ -66,6 +66,7 @@ export class BruinPanel {
   private _lastRenderedDocumentUri: Uri | undefined;
   private _flags: string = "";
   private _assetDetectionDebounceTimer: NodeJS.Timeout | undefined;
+  private _renderDebounceTimer: NodeJS.Timeout | undefined;
   private _cliInstalled: boolean | null = null;
   private _initialSettingsOnlyMode: boolean = false;
   private _hasRecreatedFromSettingsOnly: boolean = false;
@@ -101,6 +102,8 @@ export class BruinPanel {
 
           this._lastRenderedDocumentUri = editor.document.uri;
           await this._handleAssetDetection(this._lastRenderedDocumentUri);
+          // Keep SQL preview up to date while typing without recreating the panel
+          this._scheduleSqlPreviewRender(this._lastRenderedDocumentUri);
         }
       }),
 
@@ -293,6 +296,12 @@ export class BruinPanel {
     if (this._assetDetectionDebounceTimer) {
       clearTimeout(this._assetDetectionDebounceTimer);
       this._assetDetectionDebounceTimer = undefined;
+    }
+
+    // Clear any pending SQL render timer
+    if (this._renderDebounceTimer) {
+      clearTimeout(this._renderDebounceTimer);
+      this._renderDebounceTimer = undefined;
     }
 
     // Dispose of the current webview panel
@@ -1128,6 +1137,25 @@ export class BruinPanel {
         filePath: filePath
       });
     }
+  }
+
+  private _scheduleSqlPreviewRender(fileUri: Uri | undefined): void {
+    if (!fileUri) return;
+    const filePath = fileUri.fsPath;
+    if (!isFileExtensionSQL(filePath)) return; // Only render SQL assets here
+
+    // debounce to avoid flooding render calls while typing
+    if (this._renderDebounceTimer) {
+      clearTimeout(this._renderDebounceTimer);
+    }
+    this._renderDebounceTimer = setTimeout(async () => {
+      try {
+        // Use existing flags state to keep preview consistent
+        await renderCommandWithFlags(this._flags, filePath);
+      } catch (err) {
+        console.error("Debounced SQL render failed:", err);
+      }
+    }, 200);
   }
 
   private async _isAssetFile(filePath: string): Promise<boolean> {
