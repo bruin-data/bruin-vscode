@@ -58,15 +58,15 @@
             <!-- Dropdown -->
             <div
               v-if="isTagFilterOpen"
-              class="fixed z-[9999] w-[220px] max-w-[90vw] bg-input-background border border-commandCenter-border shadow-md rounded overflow-hidden tag-filter-dropdown"
+              class="fixed z-[9999] w-[220px] max-w-[90vw] bg-dropdown-bg border border-commandCenter-border shadow-md rounded overflow-hidden tag-filter-dropdown"
               :style="tagDropdownStyle"
               @mousedown.stop
             >
-              <div class="sticky top-0 bg-input-background border-b border-commandCenter-border px-2 py-1">
+              <div class="sticky top-0 bg-dropdown-bg border-b border-commandCenter-border px-2 py-1">
                 <input
                   v-model="tagFilterSearch"
                   placeholder="Search tags..."
-                  class="w-full bg-input-background text-input-foreground text-[11px] border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6 px-2 rounded"
+                  class="w-full bg-dropdown-bg text-inputValidation-infoBorder text-[11px] border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6 px-2 rounded"
                   @click.stop
                   @mousedown.stop
                 />
