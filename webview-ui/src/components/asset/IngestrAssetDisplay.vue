@@ -169,7 +169,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onMounted, defineProps, defineEmits } from 'vue';
+import { ref, computed, watch, nextTick, onMounted, defineProps, defineEmits, onBeforeUnmount } from 'vue';
 import type { IngestrParameters } from '@/types';
 import { vscode } from '@/utilities/vscode';
 
@@ -288,8 +288,12 @@ const saveParameters = () => {
 };
 
 onMounted(() => {
-  vscode.postMessage({ command: "bruin.getConnectionsList" });
+  // Do not request connections here to avoid duplicate requests; parent will request
   window.addEventListener("message", handleMessage);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("message", handleMessage);
 });
 
 const handleMessage = (event: MessageEvent) => {
@@ -300,7 +304,6 @@ const handleMessage = (event: MessageEvent) => {
 };
 
 const handleConnectionsList = (payload: any) => {
-  console.log("Received connections list in IngestrAssetDisplay:", payload);
   if (payload.message && Array.isArray(payload.message)) {
     availableConnections.value = payload.message.map((conn: any) => ({
       name: conn.name,

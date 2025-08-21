@@ -1,4 +1,7 @@
 # Changelog
+## [0.64.5] - [2025-08-20]
+- Improved the .bruin.yml file handling to only show settings tab and fixed the convert message flickering issue.
+
 ## [0.64.4] - [2025-08-20]
 - Fixed the checkbox and dates state persisting issue.
 

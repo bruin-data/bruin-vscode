@@ -7,7 +7,9 @@
     "lib": ["ES6", "DOM"],
     "sourceMap": true,
     "rootDir": "src",
-    "strict": true
+    "strict": true,
+    "skipLibCheck": true
   },
-  "exclude": ["node_modules", ".vscode-test", "webview-ui"]
+  "exclude": ["node_modules", ".vscode-test", "webview-ui"],
+  "include": ["src/**/*.ts"]
 }

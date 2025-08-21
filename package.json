@@ -2,7 +2,7 @@
   "name": "bruin",
   "displayName": "Bruin",
   "description": "Manage your Bruin data assets from within VS Code.",
-  "version": "0.64.4",
+  "version": "0.64.5",
   "engines": {
     "vscode": "^1.87.0"
   },
@@ -539,7 +539,7 @@
     "vscode:prepublish": "npm run compile",
     "selenium:setup-tests": "extest setup-tests",
     "selenium:run-tests": "node webview-ui/scripts/copy-test-assets.js && extest setup-and-run './out/ui-test/*.test.js' --code_version 1.103.0 --code_settings settings.json",
-    "test": "vscode-test",
+    "test": "node ./out/test/runTest.js",
     "test:webview": "cd webview-ui && npm run test",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
