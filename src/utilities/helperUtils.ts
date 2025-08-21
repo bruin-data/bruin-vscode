@@ -185,12 +185,60 @@ export function isChangeInDependsSection(
  * @param {string[]} excludeFlags - Flags to be excluded from the result.
  * @returns {string[]} - An array of concatenated flags.
  */
-export function prepareFlags(flags: string, excludeFlags: string[] = []): string[] {
+export function prepareFlags(
+  flags: string,
+  excludeFlags: string[] = [],
+  excludeFlagsWithValues: string[] = []
+): string[] {
   const baseFlags = ["-o", "json"];
-  const filteredFlags = flags
-    .split(" ")
-    .filter((flag) => flag !== "" && !excludeFlags.includes(flag));
-  return baseFlags.concat(filteredFlags);
+  const tokens = flags.split(" ").filter((t) => t !== "");
+
+  const result: string[] = [];
+  for (let i = 0; i < tokens.length; i++) {
+    const token = tokens[i];
+    // Skip simple excludes
+    if (excludeFlags.includes(token)) {
+      continue;
+    }
+    // Skip flag-with-value pairs (and consume the following value token if present)
+    if (excludeFlagsWithValues.includes(token)) {
+      // consume next token if it's not another flag
+      if (i + 1 < tokens.length && !tokens[i + 1].startsWith("-")) {
+        i += 1; // skip value
+      }
+      continue;
+    }
+    result.push(token);
+  }
+
+  return baseFlags.concat(result);
+}
+
+// Build a safe set of flags for the render command: only allow known, value-carrying flags
+export function buildRenderFlags(flags: string): string[] {
+  const baseFlags = ["-o", "json"];
+  const tokens = (flags || "").split(" ").filter((t) => t !== "");
+  const allowedValueFlags = new Set(["--start-date", "--end-date"]);
+  const allowedBooleanFlags = new Set<string>(["--apply-interval-modifiers"]);
+
+  const result: string[] = [];
+  for (let i = 0; i < tokens.length; i++) {
+    const token = tokens[i];
+    if (allowedValueFlags.has(token)) {
+      // must have a value next
+      if (i + 1 < tokens.length) {
+        result.push(token, tokens[i + 1]);
+        i += 1;
+      }
+      continue;
+    }
+    if (allowedBooleanFlags.has(token)) {
+      result.push(token);
+    }
+    // everything else (including tag-related tokens or stray values) is dropped
+  }
+
+  return baseFlags.concat(result);
 }
 
 type ConnectionType =

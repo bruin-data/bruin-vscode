@@ -20,7 +20,8 @@ export const concatCommandFlags = (
   startDate: string,
   endDate: string,
   endDateExclusive: string,
-  checkboxItems: CheckboxItems[]
+  checkboxItems: CheckboxItems[],
+  tagFilters?: { include?: string[]; exclude?: string[] } | null
 ): string => {
   const startDateFlag = ` --start-date ${startDate.endsWith("Z") ? startDate : startDate + "Z"}`;
   const endDateFlag = isExclusiveChecked(checkboxItems) ? ` --end-date ${endDateExclusive}` : ` --end-date ${endDate}`;
@@ -31,7 +32,22 @@ export const concatCommandFlags = (
   const intervalModifiersFlags = checkboxItems
     .filter((item) => item.checked && item.name === "Interval-modifiers")
     .map((item) => ` --apply-${item.name.toLowerCase()}`);
-  return [startDateFlag, endDateFlag, ...checkboxesFlags, ...intervalModifiersFlags].join("");
+  const tagFlags: string[] = [];
+  if (tagFilters) {
+    const includeList = Array.isArray(tagFilters.include) ? tagFilters.include : [];
+    const excludeList = Array.isArray(tagFilters.exclude) ? tagFilters.exclude : [];
+    for (const tag of includeList) {
+      if (tag && String(tag).trim()) {
+        tagFlags.push(` --tag ${String(tag).trim()}`);
+      }
+    }
+    for (const tag of excludeList) {
+      if (tag && String(tag).trim()) {
+        tagFlags.push(` --exclude-tag ${String(tag).trim()}`);
+      }
+    }
+  }
+  return [startDateFlag, endDateFlag, ...checkboxesFlags, ...intervalModifiersFlags, ...tagFlags].join("");
 };
 
 export const handleError = (validationError: any | null, renderSQLAssetError: any | null) => {

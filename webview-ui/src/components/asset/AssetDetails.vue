@@ -85,6 +85,7 @@
         :assetType="props.type"
         :parameters="parameters"
         :columns="props.columns || []"
+        :tags="props.tags || []"
       />
     </div>
   </div>
@@ -111,6 +112,7 @@ const props = defineProps<{
   hasIntervalModifiers: boolean;
   parameters?: any;
   columns?: any[];
+  tags?: string[];
 }>();
 
 const descriptionRef = ref<HTMLElement | null>(null);

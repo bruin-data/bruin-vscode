@@ -42,6 +42,71 @@
         <!-- Conditional rendering of CheckboxGroup -->
         <div v-if="showCheckboxGroup">
           <CheckboxGroup :checkboxItems="checkboxItems" label="Options" />
+          <!-- Tag Filter Controls (subtle) -->
+          <div class="mt-2 flex items-center gap-1" ref="tagFilterContainer">
+            <label class="text-xs text-editor-fg ">Tags</label>
+            <vscode-button
+              appearance="icon"
+              class="h-3.5 w-auto p-0 opacity-70 hover:opacity-100 inline-flex items-center"
+              id="tag-filter-button"
+              title="Edit tag filters"
+              @click="toggleTagFilterOpen"
+            >
+              <span :class="['codicon', hasActiveTagFilters ? 'codicon-filter-filled' : 'codicon-filter', 'text-[9px]']"></span>
+            </vscode-button>
+
+            <!-- Dropdown -->
+            <div
+              v-if="isTagFilterOpen"
+              class="fixed z-[9999] w-[220px] max-w-[90vw] bg-dropdown-bg border border-commandCenter-border shadow-md rounded overflow-hidden tag-filter-dropdown"
+              :style="tagDropdownStyle"
+              @mousedown.stop
+            >
+              <div class="sticky top-0 bg-dropdown-bg border-b border-commandCenter-border px-2 py-1">
+                <input
+                  v-model="tagFilterSearch"
+                  placeholder="Search tags..."
+                  class="w-full bg-dropdown-bg text-inputValidation-infoBorder text-[11px] border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6 px-2 rounded"
+                  @click.stop
+                  @mousedown.stop
+                />
+              </div>
+              <div class="max-h-48 overflow-y-auto">
+                <div
+                  v-for="tag in filteredTags"
+                  :key="tag"
+                  class="flex items-center justify-between px-2 py-1 text-[11px] hover:bg-list-hoverBackground/60"
+                >
+                  <span class="font-mono truncate pr-2 opacity-80">{{ tag }}</span>
+                  <div class="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      class="inline-flex items-center justify-center h-3.5 px-1 rounded-sm text-3xs opacity-70 hover:opacity-100"
+                      :class="includeTags.includes(tag) ? 'bg-button-bg text-button-fg' : ''"
+                      title="Include"
+                      @click="toggleTag(tag, 'include')"
+                    >
+                      Inc
+                    </button>
+                    <button
+                      type="button"
+                      class="inline-flex items-center justify-center h-3.5 px-1 rounded-sm text-3xs opacity-70 hover:opacity-100"
+                      :class="excludeTags.includes(tag) ? 'bg-button-bg text-button-fg' : ''"
+                      title="Exclude"
+                      @click="toggleTag(tag, 'exclude')"
+                    >
+                      Exc
+                    </button>
+                  </div>
+                </div>
+                <div v-if="filteredTags.length === 0" class="px-2 py-2 text-2xs opacity-60">No tags found</div>
+              </div>
+              <div class="flex justify-end gap-2 p-1 border-t border-commandCenter-border">
+                <vscode-button class="text-[10px] h-4 px-2 opacity-80 hover:opacity-100" appearance="secondary" @click="clearAllTagFilters">Clear</vscode-button>
+                <vscode-button class="text-[10px] h-4 px-2 opacity-80 hover:opacity-100" @click="closeTagFilter">Done</vscode-button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -266,6 +331,7 @@ const props = defineProps<{
   assetType?: string;
   parameters: any;
   columns: any[];
+  tags?: string[];
 }>();
 
 /**
@@ -403,6 +469,66 @@ const checkboxItems = ref([
   { name: "Push-Metadata", checked: false },
 ]);
 
+// Tag filter state
+const includeTags = ref<string[]>([]);
+const excludeTags = ref<string[]>([]);
+const availableTags = computed(() => (Array.isArray(props.tags) ? props.tags : []));
+const isTagFilterOpen = ref(false);
+const tagFilterContainer = ref<HTMLElement | null>(null);
+const tagDropdownStyle = ref<Record<string, string>>({});
+const tagFilterSearch = ref("");
+const hasActiveTagFilters = computed(() => includeTags.value.length > 0 || excludeTags.value.length > 0);
+  const activeTagCount = computed(() => includeTags.value.length + excludeTags.value.length);
+const filteredTags = computed(() => {
+  const q = tagFilterSearch.value.toLowerCase().trim();
+  const all = availableTags.value || [];
+  if (!q) return all;
+  return all.filter((t: string) => t.toLowerCase().includes(q));
+});
+
+function toggleTagFilterOpen() {
+  isTagFilterOpen.value = !isTagFilterOpen.value;
+  updateTagDropdownPosition();
+}
+
+function updateTagDropdownPosition() {
+  try {
+    const el = document.getElementById("tag-filter-button");
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    tagDropdownStyle.value = {
+      top: `${rect.bottom + 4}px`,
+      left: `${rect.left}px`,
+    };
+  } catch (_) {}
+}
+
+function closeTagFilter() {
+  isTagFilterOpen.value = false;
+}
+
+// Close the tag panel when clicking outside
+function onWindowClick(e: MouseEvent) {
+  if (!isTagFilterOpen.value) return;
+  const container = tagFilterContainer.value;
+  if (container && !container.contains(e.target as Node)) {
+    isTagFilterOpen.value = false;
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('click', onWindowClick, true);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('click', onWindowClick, true);
+});
+
+function clearAllTagFilters() {
+  includeTags.value = [];
+  excludeTags.value = [];
+}
+
 // State to control visibility of CheckboxGroup
 const showCheckboxGroup = ref(false);
 
@@ -450,7 +576,11 @@ function getCheckboxChangePayload() {
     startDate.value,
     endDate.value,
     endDateExclusive.value,
-    checkboxItems.value
+    checkboxItems.value,
+    {
+      include: includeTags.value,
+      exclude: excludeTags.value,
+    }
   );
 }
 
@@ -471,6 +601,8 @@ onMounted(() => {
     checkboxState?: { [key: string]: boolean };
     startDate?: string;
     endDate?: string;
+    includeTags?: string[];
+    excludeTags?: string[];
   };
   if (persistedState?.checkboxState) {
     checkboxItems.value = checkboxItems.value.map((item) => ({
@@ -484,6 +616,14 @@ onMounted(() => {
   if (persistedState?.endDate) {
     endDate.value = persistedState.endDate;
   }
+  try {
+    if (Array.isArray(persistedState?.includeTags)) {
+      includeTags.value = [...(persistedState.includeTags || [])];
+    }
+    if (Array.isArray(persistedState?.excludeTags)) {
+      excludeTags.value = [...(persistedState.excludeTags || [])];
+    }
+  } catch (_) {}
 
   sendInitialMessage();
   window.addEventListener("message", receiveMessage);
@@ -501,7 +641,7 @@ watch(
 );
 
 watch(
-  [checkboxItems, startDate, endDate, endDateExclusive],
+  [checkboxItems, startDate, endDate, endDateExclusive, includeTags, excludeTags],
   () => {
     const checkboxState = checkboxItems.value.reduce((acc, item) => {
       acc[item.name] = item.checked;
@@ -511,6 +651,10 @@ watch(
     const payload = {
       flags: getCheckboxChangePayload(),
       checkboxState,
+      tagFilters: {
+        include: [...includeTags.value],
+        exclude: [...excludeTags.value],
+      },
     };
 
     vscode.postMessage({
@@ -525,6 +669,8 @@ watch(
         checkboxState,
         startDate: startDate.value,
         endDate: endDate.value,
+        includeTags: includeTags.value,
+        excludeTags: excludeTags.value,
       });
     } catch (_) {}
   },
@@ -562,12 +708,31 @@ function sendInitialMessage() {
   const initialPayload = {
     flags: getCheckboxChangePayload(),
     checkboxState,
+    tagFilters: {
+      include: [...includeTags.value],
+      exclude: [...excludeTags.value],
+    },
   };
 
   vscode.postMessage({
     command: "checkboxChange",
     payload: initialPayload,
   });
+}
+
+function toggleTag(tag: string, list: 'include' | 'exclude') {
+  const source = list === 'include' ? includeTags.value : excludeTags.value;
+  const other = list === 'include' ? excludeTags.value : includeTags.value;
+  const idx = source.indexOf(tag);
+  if (idx >= 0) {
+    source.splice(idx, 1);
+  } else {
+    const otherIdx = other.indexOf(tag);
+    if (otherIdx >= 0) {
+      other.splice(otherIdx, 1);
+    }
+    source.push(tag);
+  }
 }
 
 /**
@@ -611,6 +776,24 @@ function buildCommandPayload(
   return payload;
 }
 
+// Single-asset runs cannot use --tag; strip them but keep --exclude-tag
+function stripIncludeTagFlags(flags: string) {
+  try {
+    return flags.replace(/\s--tag\s+[^\s]+/g, "");
+  } catch (_) {
+    return flags;
+  }
+}
+
+// Single-asset runs also cannot use --exclude-tag; strip them for plain Run
+function stripExcludeTagFlags(flags: string) {
+  try {
+    return flags.replace(/\s--exclude-tag\s+[^\s]+/g, "");
+  } catch (_) {
+    return flags;
+  }
+}
+
 /**
  * Functions to handle run and validate actions
  */
@@ -619,7 +802,9 @@ function runAssetOnly() {
   
   if (fullRefreshChecked) {
     showFullRefreshConfirmation(() => {
-      const payload = buildCommandPayload(getCheckboxChangePayload());
+      const payload = buildCommandPayload(
+        stripExcludeTagFlags(stripIncludeTagFlags(getCheckboxChangePayload()))
+      );
       vscode.postMessage({
         command: "bruin.runSql",
         payload,
@@ -628,7 +813,9 @@ function runAssetOnly() {
     return;
   }
   
-  const payload = buildCommandPayload(getCheckboxChangePayload());
+  const payload = buildCommandPayload(
+    stripExcludeTagFlags(stripIncludeTagFlags(getCheckboxChangePayload()))
+  );
 
   vscode.postMessage({
     command: "bruin.runSql",
@@ -641,7 +828,7 @@ function runAssetWithDownstream() {
   
   if (fullRefreshChecked) {
     showFullRefreshConfirmation(() => {
-      const payload = buildCommandPayload(getCheckboxChangePayload(), { downstream: true });
+      const payload = buildCommandPayload(stripIncludeTagFlags(getCheckboxChangePayload()), { downstream: true });
       vscode.postMessage({
         command: "bruin.runSql",
         payload,
@@ -650,7 +837,7 @@ function runAssetWithDownstream() {
     return;
   }
   
-  const payload = buildCommandPayload(getCheckboxChangePayload(), { downstream: true });
+  const payload = buildCommandPayload(stripIncludeTagFlags(getCheckboxChangePayload()), { downstream: true });
 
   vscode.postMessage({
     command: "bruin.runSql",
@@ -805,10 +992,13 @@ function receiveMessage(event: { data: any }) {
       break;
     case "setDefaultCheckboxStates":
       if (envelope.payload) {
-        checkboxItems.value = checkboxItems.value.map((item) => ({
-          ...item,
-          checked: envelope.payload[item.name] !== undefined ? envelope.payload[item.name] : item.checked,
-        }));
+        try {
+          const payloadObj = envelope.payload as Record<string, boolean>;
+          checkboxItems.value = checkboxItems.value.map((item) => ({
+            ...item,
+            checked: payloadObj[item.name] !== undefined ? payloadObj[item.name] : item.checked,
+          }));
+        } catch (_) {}
 
         // Sync persisted state with values coming from the extension side
         try {

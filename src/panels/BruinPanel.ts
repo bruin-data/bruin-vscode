@@ -484,11 +484,13 @@ export class BruinPanel {
             }
 
             break;
-          case "checkboxChange":
-            this._checkboxState = message.payload.checkboxState;
-            this._flags = message.payload.flags;
-            await renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri?.fsPath);
-            break;
+            case "checkboxChange":
+              this._checkboxState = message.payload.checkboxState;
+              this._flags = message.payload.flags;
+              if (this._lastRenderedDocumentUri?.fsPath && isFileExtensionSQL(this._lastRenderedDocumentUri.fsPath)) {
+                await renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri.fsPath);
+              }
+              break;
 
           case "bruin.validate":
             if (!this._lastRenderedDocumentUri) {
