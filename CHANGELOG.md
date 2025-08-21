@@ -1,4 +1,7 @@
 # Changelog
+## [0.64.6] - [2025-08-21]
+- Updated the environment list command to create bruin.yml if it does not already exist.
+
 ## [0.64.5] - [2025-08-20]
 - Improved the .bruin.yml file handling to only show settings tab and fixed the convert message flickering issue.
 
