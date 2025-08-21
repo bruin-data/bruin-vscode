@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { BruinPanel } from "../../panels/BruinPanel";
 import { BruinRender } from "../../bruin";
-import { prepareFlags } from "../../utilities/helperUtils";
+import { buildRenderFlags } from "../../utilities/helperUtils";
 import { getBruinExecutablePath } from "../../providers/BruinExecutableService";
 
 export const renderCommand = async (extensionUri: vscode.Uri) => {
@@ -51,7 +51,7 @@ export const renderCommandWithFlags = async (flags: string, lastRenderedDocument
     );
 
     await bruinSqlRenderer.render(filePath, {
-      flags: prepareFlags(flags, ['--downstream', '--push-metadata']),
+      flags: buildRenderFlags(flags),
     });
   }
 };
