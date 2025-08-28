@@ -19,6 +19,7 @@ import {
   extractNonNullConnections,
   prepareFlags,
   cronToHumanReadable,
+  buildRenderFlags,
 } from "../utilities/helperUtils";
 import * as configuration from "../extension/configuration";
 import * as bruinUtils from "../bruin/bruinUtils";
@@ -6767,6 +6768,20 @@ schedule: yearly
         assert.strictEqual(result[4].command?.title, "Every January 1st at midnight");
       });
     });
+  });
+
+  suite("buildRenderFlags Tests", () => {
+    test("should include --full-refresh flag when present", () => {
+      const flags = "--start-date 2024-01-01 --end-date 2024-01-02 --full-refresh";
+      const result = buildRenderFlags(flags);
+      
+      assert.ok(result.includes("--full-refresh"), "Should include --full-refresh flag");
+      assert.ok(result.includes("--start-date"), "Should include --start-date flag");
+      assert.ok(result.includes("--end-date"), "Should include --end-date flag");
+      assert.strictEqual(result[0], "-o", "Should start with base flag -o");
+      assert.strictEqual(result[1], "json", "Should include json flag");
+    });
+
   });
   
 
