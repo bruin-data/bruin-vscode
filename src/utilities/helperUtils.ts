@@ -219,7 +219,7 @@ export function buildRenderFlags(flags: string): string[] {
   const baseFlags = ["-o", "json"];
   const tokens = (flags || "").split(" ").filter((t) => t !== "");
   const allowedValueFlags = new Set(["--start-date", "--end-date"]);
-  const allowedBooleanFlags = new Set<string>(["--apply-interval-modifiers"]);
+  const allowedBooleanFlags = new Set<string>(["--apply-interval-modifiers", "--full-refresh"]);
 
   const result: string[] = [];
   for (let i = 0; i < tokens.length; i++) {
