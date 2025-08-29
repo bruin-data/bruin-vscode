@@ -134,12 +134,24 @@ export class BruinPanel {
         }
 
         if (editor && editor.document.uri) {
+          const newFilePath = editor.document.uri.fsPath;
+          const previousFilePath = this._lastRenderedDocumentUri?.fsPath;
+          
           this._lastRenderedDocumentUri = editor.document.uri;
+
+          // Skip refresh if returning to the same .bruin.yml file to preserve UI state
+          const isBruinConfigFile = newFilePath.endsWith(".bruin.yml") || newFilePath.endsWith(".bruin.yaml");
+          const isSameBruinFile = isBruinConfigFile && newFilePath === previousFilePath;
+          
+          if (isSameBruinFile) {
+            // Don't refresh if returning to the same .bruin.yml file
+            return;
+          }
 
           // Send current file path to webview
           this._panel.webview.postMessage({
             command: "file-changed",
-            filePath: this._lastRenderedDocumentUri.fsPath,
+            filePath: newFilePath,
           });
           
           await this._handleAssetDetection(this._lastRenderedDocumentUri);
