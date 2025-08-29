@@ -28,27 +28,7 @@ import {
     public static async render(extensionUri: Uri, tableName: string, schemaName?: string, connectionName?: string, environmentName?: string) {
       try {
         const cleanTableName = tableName.replace(/\.sql$/, "");
-        const connectionIdentifier = connectionName || 'default';
-        const environmentIdentifier = environmentName || 'default';
         
-        // Check if there's already an open document for this table
-        const openDocuments = workspace.textDocuments;
-        const existingDoc = openDocuments.find(doc => {
-          const fileName = path.basename(doc.fileName);
-          return fileName.startsWith(`bruin-${cleanTableName}-${connectionIdentifier}-${environmentIdentifier}-`) && fileName.endsWith('.sql');
-        });
-        
-        if (existingDoc) {
-          // If document already exists, just switch to it
-          await window.showTextDocument(existingDoc, {
-            viewColumn: ViewColumn.One,
-            preview: false,
-          });
-          
-          // Safely focus QueryPreview panel without recreating it
-          await QueryPreviewPanel.focusSafely();
-          return;
-        }
         
         // Create logs directory in workspace for temporary SQL files
         const workspaceFolder = workspace.workspaceFolders?.[0];
@@ -63,7 +43,7 @@ import {
           fs.mkdirSync(tempDir, { recursive: true });
         }
         
-        const tempFileName = `bruin-${cleanTableName}-${connectionIdentifier}-${environmentIdentifier}-${Date.now()}.sql`;
+        const tempFileName = `tmp_${Date.now()}.sql`;
         const tempFilePath = path.join(tempDir, tempFileName);
         
         // Track temp file for cleanup

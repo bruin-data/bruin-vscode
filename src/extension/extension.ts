@@ -650,6 +650,9 @@ export async function activate(context: ExtensionContext) {
 
   context.subscriptions.push(...commandDisposables);
 
+  // Initialize TableDetailsPanel for temp file cleanup
+  TableDetailsPanel.initialize(context.subscriptions);
+
   console.time("setup-promises");
   await Promise.all([pathSeparatorPromise, ...setupPromises]);
   console.timeEnd("setup-promises");
