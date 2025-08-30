@@ -6244,6 +6244,77 @@ suite(" Query export Tests", () => {
         require("../bruin/bruinDBTCommand").BruinDBTCommand = originalBruinDBTCommand;
       });
 
+      test("showTableDetails should create temp SQL file when table is selected", async () => {
+        const { TableDetailsPanel } = require("../panels/TableDetailsPanel");
+        
+        // Mock vscode workspace and window
+        const mockWorkspace = {
+          workspaceFolders: [{ uri: { fsPath: '/mock/workspace' } }],
+          openTextDocument: sinon.stub().resolves({ uri: { fsPath: '/mock/temp.sql' } })
+        };
+        
+        const mockWindow = {
+          showTextDocument: sinon.stub().resolves(),
+          showErrorMessage: sinon.stub()
+        };
+
+        // Mock fs operations
+        const mockFs = {
+          existsSync: sinon.stub().returns(false),
+          mkdirSync: sinon.stub(),
+          writeFileSync: sinon.stub()
+        };
+
+        // Mock QueryPreviewPanel
+        const mockQueryPreviewPanel = {
+          focusSafely: sinon.stub().resolves()
+        };
+
+        // Mock path.join to return predictable paths
+        const mockPath = {
+          join: sinon.stub().callsFake((...args) => args.join('/'))
+        };
+
+        // Create proxyquire mocks
+        const TableDetailsPanelProxied = proxyquire("../panels/TableDetailsPanel", {
+          'vscode': { workspace: mockWorkspace, window: mockWindow, Uri: { file: (p: string) => ({ fsPath: p }) }, ViewColumn: { One: 1 }, Range: class {}, Position: class {} },
+          'fs': mockFs,
+          'path': mockPath,
+          './QueryPreviewPanel': { QueryPreviewPanel: mockQueryPreviewPanel }
+        });
+
+        // Test table details rendering
+        await TableDetailsPanelProxied.TableDetailsPanel.render(
+          { fsPath: '/extension' },
+          'users',
+          'public', 
+          'prod-db',
+          'production'
+        );
+
+        // Verify temp directory creation
+        assert.ok(mockFs.mkdirSync.calledOnce, "Should create logs directory");
+        assert.ok(mockFs.mkdirSync.calledWith('/mock/workspace/logs', { recursive: true }), "Should create logs directory with correct path");
+
+        // Verify temp SQL file creation
+        assert.ok(mockFs.writeFileSync.calledOnce, "Should create temp SQL file");
+        
+        const writeCall = mockFs.writeFileSync.getCall(0);
+        assert.ok(writeCall.args[0].includes('/mock/workspace/logs/tmp_'), "Should write to temp file in logs directory");
+        
+        const fileContent = writeCall.args[1];
+        assert.ok(fileContent.includes('-- environment: production'), "Should include environment comment");
+        assert.ok(fileContent.includes('-- connection: prod-db'), "Should include connection comment");
+        assert.ok(fileContent.includes('SELECT * FROM public.users;'), "Should include SELECT query with schema and table");
+
+        // Verify file opening
+        assert.ok(mockWorkspace.openTextDocument.calledOnce, "Should open text document");
+        assert.ok(mockWindow.showTextDocument.calledOnce, "Should show text document");
+        
+        // Verify QueryPreview panel focus
+        assert.ok(mockQueryPreviewPanel.focusSafely.calledOnce, "Should focus QueryPreview panel");
+      });
+
       test("schema favorite toggle should work correctly", async () => {
         const { ActivityBarConnectionsProvider } = require("../providers/ActivityBarConnectionsProvider");
         

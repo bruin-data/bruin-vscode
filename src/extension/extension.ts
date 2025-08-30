@@ -31,6 +31,7 @@ import { ActivityBarConnectionsProvider } from "../providers/ActivityBarConnecti
 import { FavoritesProvider } from "../providers/FavoritesProvider";
 import { BruinLanguageServer } from "../language-server/bruinLanguageServer";
 import { BruinInstallCLI } from "../bruin/bruinInstallCli";
+import { TableDetailsPanel } from "../panels/TableDetailsPanel";
 
 let analyticsClient: any = null;
 
@@ -633,9 +634,24 @@ export async function activate(context: ExtensionContext) {
         vscode.window.showErrorMessage(`Error showing walkthrough: ${errorMessage}`);
       }
     }),
+    commands.registerCommand(
+      "bruin.showTableDetails",
+      (tableName: string, schemaName?: string, connectionName?: string, environmentName?: string) => {
+        try {
+          trackEvent("Command Executed", { command: "showTableDetails" });
+          TableDetailsPanel.render(context.extensionUri, tableName, schemaName, connectionName, environmentName);
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          vscode.window.showErrorMessage(`Error showing table details: ${errorMessage}`);
+        }
+      }
+    ),
   ];
 
   context.subscriptions.push(...commandDisposables);
+
+  // Initialize TableDetailsPanel for temp file cleanup
+  TableDetailsPanel.initialize(context.subscriptions);
 
   console.time("setup-promises");
   await Promise.all([pathSeparatorPromise, ...setupPromises]);
