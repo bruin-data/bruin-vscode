@@ -6244,6 +6244,65 @@ suite(" Query export Tests", () => {
         require("../bruin/bruinDBTCommand").BruinDBTCommand = originalBruinDBTCommand;
       });
 
+      test("showTableDetails command should be highly recommended", async () => {
+        const { ActivityBarConnectionsProvider } = require("../providers/ActivityBarConnectionsProvider");
+        
+        const mockDbSummary = [
+          {
+            name: 'public',
+            tables: [
+              {
+                name: 'users',
+                type: 'table'
+              }
+            ]
+          }
+        ];
+
+        const BruinConnectionsStub = sinon.stub().returns({
+          getConnectionsForActivityBar: sinon.stub().resolves([
+            { name: 'prod-db', type: 'postgres', environment: 'production' }
+          ])
+        });
+
+        const BruinDBTCommandStub = sinon.stub().returns({
+          getFetchDatabases: sinon.stub().resolves(mockDbSummary),
+          getFetchTables: sinon.stub().resolves({ tables: mockDbSummary[0].tables })
+        });
+
+        const originalBruinConnections = require("../bruin/bruinConnections").BruinConnections;
+        const originalBruinDBTCommand = require("../bruin/bruinDBTCommand").BruinDBTCommand;
+
+        require("../bruin/bruinConnections").BruinConnections = BruinConnectionsStub;
+        require("../bruin/bruinDBTCommand").BruinDBTCommand = BruinDBTCommandStub;
+
+        const provider = new ActivityBarConnectionsProvider();
+        const connectionItems = await provider.getChildren();
+        const connectionItem = connectionItems[0];
+        const schemaItems = await provider.getChildren(connectionItem);
+        const schemaItem = schemaItems[0];
+        const tableItems = await provider.getChildren(schemaItem);
+        const tableItem = tableItems[0];
+
+        // Verify showTableDetails command is highly recommended
+        assert.ok(tableItem.command, "Table should have showTableDetails command");
+        assert.strictEqual(tableItem.command.command, 'bruin.showTableDetails', "Command should be showTableDetails");
+        assert.strictEqual(tableItem.command.title, 'Show Table Details', "Command title should be correct");
+        
+        // Verify command arguments are properly formatted
+        const args = tableItem.command.arguments;
+        assert.ok(args, "Command should have arguments");
+        assert.strictEqual(args.length, 4, "Should have 4 arguments: table, schema, connection, environment");
+        assert.strictEqual(args[0], 'users', "First argument should be table name");
+        assert.strictEqual(args[1], 'public', "Second argument should be schema name");
+        assert.strictEqual(args[2], 'prod-db', "Third argument should be connection name");
+        assert.strictEqual(args[3], 'production', "Fourth argument should be environment");
+
+        // Restore original implementations
+        require("../bruin/bruinConnections").BruinConnections = originalBruinConnections;
+        require("../bruin/bruinDBTCommand").BruinDBTCommand = originalBruinDBTCommand;
+      });
+
       test("schema favorite toggle should work correctly", async () => {
         const { ActivityBarConnectionsProvider } = require("../providers/ActivityBarConnectionsProvider");
         
