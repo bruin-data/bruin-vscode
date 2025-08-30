@@ -6244,63 +6244,75 @@ suite(" Query export Tests", () => {
         require("../bruin/bruinDBTCommand").BruinDBTCommand = originalBruinDBTCommand;
       });
 
-      test("showTableDetails command should be highly recommended", async () => {
-        const { ActivityBarConnectionsProvider } = require("../providers/ActivityBarConnectionsProvider");
+      test("showTableDetails should create temp SQL file when table is selected", async () => {
+        const { TableDetailsPanel } = require("../panels/TableDetailsPanel");
         
-        const mockDbSummary = [
-          {
-            name: 'public',
-            tables: [
-              {
-                name: 'users',
-                type: 'table'
-              }
-            ]
-          }
-        ];
+        // Mock vscode workspace and window
+        const mockWorkspace = {
+          workspaceFolders: [{ uri: { fsPath: '/mock/workspace' } }],
+          openTextDocument: sinon.stub().resolves({ uri: { fsPath: '/mock/temp.sql' } })
+        };
+        
+        const mockWindow = {
+          showTextDocument: sinon.stub().resolves(),
+          showErrorMessage: sinon.stub()
+        };
 
-        const BruinConnectionsStub = sinon.stub().returns({
-          getConnectionsForActivityBar: sinon.stub().resolves([
-            { name: 'prod-db', type: 'postgres', environment: 'production' }
-          ])
+        // Mock fs operations
+        const mockFs = {
+          existsSync: sinon.stub().returns(false),
+          mkdirSync: sinon.stub(),
+          writeFileSync: sinon.stub()
+        };
+
+        // Mock QueryPreviewPanel
+        const mockQueryPreviewPanel = {
+          focusSafely: sinon.stub().resolves()
+        };
+
+        // Mock path.join to return predictable paths
+        const mockPath = {
+          join: sinon.stub().callsFake((...args) => args.join('/'))
+        };
+
+        // Create proxyquire mocks
+        const TableDetailsPanelProxied = proxyquire("../panels/TableDetailsPanel", {
+          'vscode': { workspace: mockWorkspace, window: mockWindow, Uri: { file: (p: string) => ({ fsPath: p }) }, ViewColumn: { One: 1 }, Range: class {}, Position: class {} },
+          'fs': mockFs,
+          'path': mockPath,
+          './QueryPreviewPanel': { QueryPreviewPanel: mockQueryPreviewPanel }
         });
 
-        const BruinDBTCommandStub = sinon.stub().returns({
-          getFetchDatabases: sinon.stub().resolves(mockDbSummary),
-          getFetchTables: sinon.stub().resolves({ tables: mockDbSummary[0].tables })
-        });
+        // Test table details rendering
+        await TableDetailsPanelProxied.TableDetailsPanel.render(
+          { fsPath: '/extension' },
+          'users',
+          'public', 
+          'prod-db',
+          'production'
+        );
 
-        const originalBruinConnections = require("../bruin/bruinConnections").BruinConnections;
-        const originalBruinDBTCommand = require("../bruin/bruinDBTCommand").BruinDBTCommand;
+        // Verify temp directory creation
+        assert.ok(mockFs.mkdirSync.calledOnce, "Should create logs directory");
+        assert.ok(mockFs.mkdirSync.calledWith('/mock/workspace/logs', { recursive: true }), "Should create logs directory with correct path");
 
-        require("../bruin/bruinConnections").BruinConnections = BruinConnectionsStub;
-        require("../bruin/bruinDBTCommand").BruinDBTCommand = BruinDBTCommandStub;
-
-        const provider = new ActivityBarConnectionsProvider();
-        const connectionItems = await provider.getChildren();
-        const connectionItem = connectionItems[0];
-        const schemaItems = await provider.getChildren(connectionItem);
-        const schemaItem = schemaItems[0];
-        const tableItems = await provider.getChildren(schemaItem);
-        const tableItem = tableItems[0];
-
-        // Verify showTableDetails command is highly recommended
-        assert.ok(tableItem.command, "Table should have showTableDetails command");
-        assert.strictEqual(tableItem.command.command, 'bruin.showTableDetails', "Command should be showTableDetails");
-        assert.strictEqual(tableItem.command.title, 'Show Table Details', "Command title should be correct");
+        // Verify temp SQL file creation
+        assert.ok(mockFs.writeFileSync.calledOnce, "Should create temp SQL file");
         
-        // Verify command arguments are properly formatted
-        const args = tableItem.command.arguments;
-        assert.ok(args, "Command should have arguments");
-        assert.strictEqual(args.length, 4, "Should have 4 arguments: table, schema, connection, environment");
-        assert.strictEqual(args[0], 'users', "First argument should be table name");
-        assert.strictEqual(args[1], 'public', "Second argument should be schema name");
-        assert.strictEqual(args[2], 'prod-db', "Third argument should be connection name");
-        assert.strictEqual(args[3], 'production', "Fourth argument should be environment");
+        const writeCall = mockFs.writeFileSync.getCall(0);
+        assert.ok(writeCall.args[0].includes('/mock/workspace/logs/tmp_'), "Should write to temp file in logs directory");
+        
+        const fileContent = writeCall.args[1];
+        assert.ok(fileContent.includes('-- environment: production'), "Should include environment comment");
+        assert.ok(fileContent.includes('-- connection: prod-db'), "Should include connection comment");
+        assert.ok(fileContent.includes('SELECT * FROM public.users;'), "Should include SELECT query with schema and table");
 
-        // Restore original implementations
-        require("../bruin/bruinConnections").BruinConnections = originalBruinConnections;
-        require("../bruin/bruinDBTCommand").BruinDBTCommand = originalBruinDBTCommand;
+        // Verify file opening
+        assert.ok(mockWorkspace.openTextDocument.calledOnce, "Should open text document");
+        assert.ok(mockWindow.showTextDocument.calledOnce, "Should show text document");
+        
+        // Verify QueryPreview panel focus
+        assert.ok(mockQueryPreviewPanel.focusSafely.calledOnce, "Should focus QueryPreview panel");
       });
 
       test("schema favorite toggle should work correctly", async () => {
