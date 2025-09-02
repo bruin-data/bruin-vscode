@@ -1,4 +1,10 @@
 # Changelog
+## [0.65.2] - [2025-09-02]
+- Fix table details panel and .bruin.yaml panel bug.
+
+## [0.65.1] - [2025-08-28]
+- Add full refresh to render panel.
+
 ## [0.65.0] - [2025-08-22]
 - Introduced a tags management interface that allows users to toggle the inclusion or exclusion of assets for execution in run commands.
 
