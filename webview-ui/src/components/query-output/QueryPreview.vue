@@ -293,8 +293,8 @@
                       'text-descriptionForeground': msg.type === 'info'
                     }"
                   >
-                    <span class="flex-shrink-0 opacity-50 w-14">
-                      {{ new Date(msg.timestamp).toLocaleTimeString() }}
+                    <span class="flex-shrink-0 opacity-50 w-16 font-mono">
+                      {{ formatTimestamp(msg.timestamp) }}
                     </span>
                     <span 
                       class="flex-shrink-0 w-6 text-center rounded px-1"
@@ -542,6 +542,14 @@ const tabCounter = ref(2); // Start from 2 since we already have "Tab 1"
 const formatQuery = (query: string) => {
   const lines = query.split("\n");
   return lines.map((line, index) => (index === 0 ? line.trimStart() : line)).join("\n");
+};
+
+const formatTimestamp = (timestamp: string) => {
+  const date = new Date(timestamp);
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  const seconds = date.getSeconds().toString().padStart(2, '0');
+  return `${hours}:${minutes}:${seconds}`;
 };
 // Get current active tab
 const currentTab = computed(() => {
