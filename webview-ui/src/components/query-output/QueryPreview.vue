@@ -213,7 +213,7 @@
                 <button
                   v-if="currentTab?.parsedOutput?.query"
                   @click="activeQueryPanelTab = 'query'"
-                  class="px-3 py-2 text-xs font-medium transition-colors border-b-2"
+                  class="px-3 py-1 text-xs font-medium transition-colors border-b-2 flex items-center"
                   :class="[
                     activeQueryPanelTab === 'query' 
                       ? 'text-editor-fg border-button-background bg-input-background' 
@@ -228,7 +228,7 @@
                 <button
                   v-if="currentTab?.consoleMessages?.length > 0"
                   @click="activeQueryPanelTab = 'console'"
-                  class="px-3 py-2 text-xs font-medium transition-colors border-b-2"
+                  class="px-3 py-1 text-xs font-medium transition-colors border-b-2 flex items-center"
                   :class="[
                     activeQueryPanelTab === 'console' 
                       ? 'text-editor-fg border-button-background bg-input-background' 
@@ -239,7 +239,7 @@
                   Console
                   <span 
                     v-if="currentTab?.consoleMessages?.length > 0" 
-                    class="ml-1 px-1 py-0.5 text-2xs bg-button-background text-button-foreground rounded"
+                    class="ml-1 px-1 text-3xs bg-button-background text-button-foreground rounded min-w-[12px] h-[16px] leading-none flex items-center justify-center"
                   >
                     {{ currentTab.consoleMessages.length }}
                   </span>
