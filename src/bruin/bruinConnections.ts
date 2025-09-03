@@ -49,7 +49,17 @@ export class BruinConnections extends BruinCommand {
             //   console.error("CLI error message:", cliError); // Debug message
             this.postMessageToPanels("error", cliError);
           } else {
-            this.postMessageToPanels("error", error);
+            // Try to parse JSON error and extract the error message
+            let errorMessage = error;
+            try {
+              const parsedError = JSON.parse(error);
+              if (parsedError.error) {
+                errorMessage = parsedError.error;
+              }
+            } catch {
+              // If not JSON, use the original error
+            }
+            this.postMessageToPanels("error", errorMessage);
           }
         }
       )
