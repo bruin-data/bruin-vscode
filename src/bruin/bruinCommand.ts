@@ -124,8 +124,8 @@ export abstract class BruinCommand {
         stdout += output;
         
         // Capture stdout messages
-        const lines = output.trim().split('\n').filter(line => line.length > 0);
-        lines.forEach(line => {
+        const lines = output.trim().split('\n').filter((line: string) => line.length > 0);
+        lines.forEach((line: string) => {
           consoleMessages.push({
             type: 'stdout',
             message: line,
@@ -139,8 +139,8 @@ export abstract class BruinCommand {
         stderr += output;
         
         // Capture stderr messages
-        const lines = output.trim().split('\n').filter(line => line.length > 0);
-        lines.forEach(line => {
+        const lines = output.trim().split('\n').filter((line: string) => line.length > 0);
+        lines.forEach((line: string) => {
           consoleMessages.push({
             type: 'stderr',
             message: line,
