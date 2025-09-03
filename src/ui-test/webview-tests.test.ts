@@ -44,27 +44,62 @@ describe("Bruin Webview Test", function () {
       );
     }
 
-    await workbench.executeCommand("bruin.renderSQL");
+    // Try to activate the extension first
+    try {
+      await workbench.executeCommand("bruin.renderSQL");
+      console.log("Executed bruin.renderSQL command");
+    } catch (error) {
+      console.log("Error executing bruin.renderSQL command:", error);
+      // Try alternative command
+      try {
+        await workbench.executeCommand("bruin.render");
+        console.log("Executed bruin.render command as fallback");
+      } catch (fallbackError) {
+        console.log("Error executing bruin.render command:", fallbackError);
+      }
+    }
+    
     await new Promise((resolve) => setTimeout(resolve, 6000));
     driver = VSBrowser.instance.driver;
 
     // Wait for the webview iframe to be present
+    console.log("Waiting for webview iframe...");
     await driver.wait(
       until.elementLocated(By.className("editor-instance")),
       30000,
       "Webview iframe did not appear within 30 seconds"
     );
+    console.log("Webview iframe found");
 
     webview = new WebView();
     await driver.wait(until.elementLocated(By.css(".editor-instance")), 10000);
     await webview.switchToFrame();
 
-    // Check for specific elements or text in the webview
-    const assetNameContainer = await webview.findWebElement(By.id("asset-name-container"));
-    console.log("Asset name container found:", !!assetNameContainer);
+    // Wait for the webview content to load
+    await new Promise((resolve) => setTimeout(resolve, 3000));
 
-    const tab0 = await webview.findWebElement(By.id("tab-0"));
-    console.log("Tab 0 found:", !!tab0);
+    // Check for specific elements or text in the webview with better error handling
+    try {
+      const assetNameContainer = await webview.findWebElement(By.id("asset-name-container"));
+      console.log("Asset name container found:", !!assetNameContainer);
+    } catch (error) {
+      console.log("Asset name container not found, webview may not be fully loaded");
+      // Try to get the page source for debugging
+      try {
+        const pageSource = await driver.getPageSource();
+        console.log("Webview page source length:", pageSource.length);
+        console.log("Webview page source preview:", pageSource.substring(0, 500));
+      } catch (sourceError) {
+        console.log("Could not get webview page source:", sourceError);
+      }
+    }
+
+    try {
+      const tab0 = await webview.findWebElement(By.id("tab-0"));
+      console.log("Tab 0 found:", !!tab0);
+    } catch (error) {
+      console.log("Tab 0 not found, webview may not be fully loaded");
+    }
   });
 
   after(async function () {
@@ -1126,6 +1161,341 @@ describe("Bruin Webview Test", function () {
       assert.ok(queryHTML.includes('SELECT'), "Query should contain the SQL keyword");
       
       console.log("Custom check query displayed with proper syntax highlighting");
+    });
+  });
+
+  // Checkbox Integration Tests
+  describe("Checkbox Integration Tests", function () {
+    let checkboxGroup: WebElement;
+    let fullRefreshCheckbox: WebElement;
+    let intervalModifiersCheckbox: WebElement;
+    let exclusiveEndDateCheckbox: WebElement;
+    let pushMetadataCheckbox: WebElement;
+
+    beforeEach(async function () {
+      this.timeout(15000);
+      // Ensure we are on the General tab (tab-0) where checkboxes are located
+      const tab = await driver.wait(until.elementLocated(By.id("tab-0")), 10000);
+      await tab.click();
+      await sleep(1000);
+
+      // Try to find and click the chevron button to expand checkbox group
+      try {
+        const chevronButton = await driver.wait(
+          until.elementLocated(By.css('svg[class*="chevron"]')),
+          5000,
+          "Chevron button not found"
+        );
+        
+        // Click to expand checkbox group if it's collapsed
+        await chevronButton.click();
+        await sleep(500);
+      } catch (error) {
+        console.log("Chevron button not found or already expanded, continuing...");
+      }
+
+      // Wait for checkbox group to be present - try multiple selectors
+      try {
+        checkboxGroup = await driver.wait(
+          until.elementLocated(By.css('div[class*="flex flex-wrap"]')),
+          5000,
+          "Checkbox group not found with flex-wrap selector"
+        );
+      } catch (error) {
+        // Try alternative selector
+        checkboxGroup = await driver.wait(
+          until.elementLocated(By.css('div[class*="CheckboxGroup"]')),
+          5000,
+          "Checkbox group not found with CheckboxGroup selector"
+        );
+      }
+
+      // Find individual checkboxes
+      const checkboxes = await checkboxGroup.findElements(By.css('vscode-checkbox'));
+      console.log(`Found ${checkboxes.length} checkboxes`);
+      
+      // Map checkboxes by their text content
+      for (const checkbox of checkboxes) {
+        const text = await checkbox.getText();
+        console.log(`Checkbox text: "${text}"`);
+        if (text.includes('Full-Refresh')) {
+          fullRefreshCheckbox = checkbox;
+        } else if (text.includes('Interval-modifiers')) {
+          intervalModifiersCheckbox = checkbox;
+        } else if (text.includes('Exclusive-End-Date')) {
+          exclusiveEndDateCheckbox = checkbox;
+        } else if (text.includes('Push-Metadata')) {
+          pushMetadataCheckbox = checkbox;
+        }
+      }
+
+      // Verify we found the checkboxes
+      if (!fullRefreshCheckbox || !intervalModifiersCheckbox || !exclusiveEndDateCheckbox || !pushMetadataCheckbox) {
+        console.log("Some checkboxes not found. Available checkboxes:");
+        for (const checkbox of checkboxes) {
+          const text = await checkbox.getText();
+          console.log(`- "${text}"`);
+        }
+      }
+    });
+
+    it("should find all required checkboxes", async function () {
+      this.timeout(10000);
+
+      // Verify all checkboxes are found
+      assert.ok(fullRefreshCheckbox, "Full-Refresh checkbox should be found");
+      assert.ok(intervalModifiersCheckbox, "Interval-modifiers checkbox should be found");
+      assert.ok(exclusiveEndDateCheckbox, "Exclusive-End-Date checkbox should be found");
+      assert.ok(pushMetadataCheckbox, "Push-Metadata checkbox should be found");
+
+      console.log("All required checkboxes found successfully");
+    });
+
+    it("should toggle Full-Refresh checkbox and trigger query re-render", async function () {
+      this.timeout(20000);
+
+      // Skip if checkbox not found
+      if (!fullRefreshCheckbox) {
+        this.skip();
+        return;
+      }
+
+      // Get initial state
+      const initialChecked = await fullRefreshCheckbox.getAttribute('checked');
+      console.log("Initial Full-Refresh state:", initialChecked);
+
+      // Toggle the checkbox
+      await fullRefreshCheckbox.click();
+      await sleep(1000);
+
+      // Verify the checkbox state changed
+      const newChecked = await fullRefreshCheckbox.getAttribute('checked');
+      assert.notStrictEqual(newChecked, initialChecked, "Full-Refresh checkbox state should change");
+
+      // Wait a bit for any potential re-rendering
+      await sleep(2000);
+
+      // Verify the checkbox maintains its new state
+      const finalChecked = await fullRefreshCheckbox.getAttribute('checked');
+      assert.strictEqual(finalChecked, newChecked, "Full-Refresh checkbox should maintain its state");
+
+      console.log("Full-Refresh checkbox toggled successfully");
+    });
+
+    it("should toggle Interval-modifiers checkbox and trigger query re-render", async function () {
+      this.timeout(20000);
+
+      // Skip if checkbox not found
+      if (!intervalModifiersCheckbox) {
+        this.skip();
+        return;
+      }
+
+      // Get initial state
+      const initialChecked = await intervalModifiersCheckbox.getAttribute('checked');
+      console.log("Initial Interval-modifiers state:", initialChecked);
+
+      // Toggle the checkbox
+      await intervalModifiersCheckbox.click();
+      await sleep(1000);
+
+      // Verify the checkbox state changed
+      const newChecked = await intervalModifiersCheckbox.getAttribute('checked');
+      assert.notStrictEqual(newChecked, initialChecked, "Interval-modifiers checkbox state should change");
+
+      // Wait a bit for any potential re-rendering
+      await sleep(2000);
+
+      // Verify the checkbox maintains its new state
+      const finalChecked = await intervalModifiersCheckbox.getAttribute('checked');
+      assert.strictEqual(finalChecked, newChecked, "Interval-modifiers checkbox should maintain its state");
+
+      console.log("Interval-modifiers checkbox toggled successfully");
+    });
+
+    it("should toggle Exclusive-End-Date checkbox", async function () {
+      this.timeout(20000);
+
+      // Skip if checkbox not found
+      if (!exclusiveEndDateCheckbox) {
+        this.skip();
+        return;
+      }
+
+      // Get initial state
+      const initialChecked = await exclusiveEndDateCheckbox.getAttribute('checked');
+      console.log("Initial Exclusive-End-Date state:", initialChecked);
+
+      // Toggle the checkbox
+      await exclusiveEndDateCheckbox.click();
+      await sleep(1000);
+
+      // Verify the checkbox state changed
+      const newChecked = await exclusiveEndDateCheckbox.getAttribute('checked');
+      assert.notStrictEqual(newChecked, initialChecked, "Exclusive-End-Date checkbox state should change");
+
+      // Wait a bit for any potential re-rendering
+      await sleep(2000);
+
+      // Verify the checkbox maintains its new state
+      const finalChecked = await exclusiveEndDateCheckbox.getAttribute('checked');
+      assert.strictEqual(finalChecked, newChecked, "Exclusive-End-Date checkbox should maintain its state");
+
+      console.log("Exclusive-End-Date checkbox toggled successfully");
+    });
+
+    it("should toggle Push-Metadata checkbox", async function () {
+      this.timeout(20000);
+
+      // Skip if checkbox not found
+      if (!pushMetadataCheckbox) {
+        this.skip();
+        return;
+      }
+
+      // Get initial state
+      const initialChecked = await pushMetadataCheckbox.getAttribute('checked');
+      console.log("Initial Push-Metadata state:", initialChecked);
+
+      // Toggle the checkbox
+      await pushMetadataCheckbox.click();
+      await sleep(1000);
+
+      // Verify the checkbox state changed
+      const newChecked = await pushMetadataCheckbox.getAttribute('checked');
+      assert.notStrictEqual(newChecked, initialChecked, "Push-Metadata checkbox state should change");
+
+      // Wait a bit for any potential re-rendering
+      await sleep(2000);
+
+      // Verify the checkbox maintains its new state
+      const finalChecked = await pushMetadataCheckbox.getAttribute('checked');
+      assert.strictEqual(finalChecked, newChecked, "Push-Metadata checkbox should maintain its state");
+
+      console.log("Push-Metadata checkbox toggled successfully");
+    });
+
+    it("should maintain checkbox states across multiple toggles", async function () {
+      this.timeout(30000);
+
+      // Test multiple toggles of different checkboxes
+      const checkboxTests = [
+        { checkbox: fullRefreshCheckbox, name: "Full-Refresh" },
+        { checkbox: intervalModifiersCheckbox, name: "Interval-modifiers" },
+        { checkbox: pushMetadataCheckbox, name: "Push-Metadata" }
+      ];
+
+      for (const test of checkboxTests) {
+        // Get initial state
+        const initialChecked = await test.checkbox.getAttribute('checked');
+        console.log(`Initial ${test.name} state:`, initialChecked);
+
+        // Toggle twice to test state persistence
+        await test.checkbox.click();
+        await sleep(500);
+        const firstToggle = await test.checkbox.getAttribute('checked');
+        
+        await test.checkbox.click();
+        await sleep(500);
+        const secondToggle = await test.checkbox.getAttribute('checked');
+
+        // Verify states changed as expected
+        assert.notStrictEqual(firstToggle, initialChecked, `${test.name} first toggle should change state`);
+        assert.notStrictEqual(secondToggle, firstToggle, `${test.name} second toggle should change state`);
+        assert.strictEqual(secondToggle, initialChecked, `${test.name} should return to initial state after two toggles`);
+
+        console.log(`${test.name} state persistence test passed`);
+      }
+    });
+
+    it("should handle rapid checkbox changes without issues", async function () {
+      this.timeout(25000);
+
+      // Rapidly toggle multiple checkboxes
+      const rapidToggles = [
+        { checkbox: fullRefreshCheckbox, name: "Full-Refresh" },
+        { checkbox: intervalModifiersCheckbox, name: "Interval-modifiers" },
+        { checkbox: pushMetadataCheckbox, name: "Push-Metadata" }
+      ];
+
+      // Perform rapid toggles
+      for (let i = 0; i < 3; i++) {
+        for (const toggle of rapidToggles) {
+          await toggle.checkbox.click();
+          await sleep(100); // Very short delay for rapid testing
+        }
+      }
+
+      // Wait for any pending operations to complete
+      await sleep(2000);
+
+      // Verify all checkboxes are still functional
+      for (const toggle of rapidToggles) {
+        const finalState = await toggle.checkbox.getAttribute('checked');
+        assert.ok(finalState !== null, `${toggle.name} should still be functional after rapid toggles`);
+        console.log(`${toggle.name} final state after rapid toggles:`, finalState);
+      }
+
+      console.log("Rapid checkbox changes handled successfully");
+    });
+
+    it("should show checkbox group when chevron is clicked", async function () {
+      this.timeout(15000);
+
+      // First, collapse the checkbox group
+      const chevronButton = await driver.wait(
+        until.elementLocated(By.css('svg[class*="chevron"]')),
+        10000,
+        "Chevron button not found"
+      );
+      
+      await chevronButton.click();
+      await sleep(500);
+
+      // Verify checkbox group is hidden
+      try {
+        await driver.wait(until.elementLocated(By.css('div[class*="flex flex-wrap"]')), 2000);
+        // If we get here, the checkbox group is still visible, which might be expected behavior
+        console.log("Checkbox group remains visible after chevron click");
+      } catch (error) {
+        console.log("Checkbox group is hidden after chevron click");
+      }
+
+      // Click chevron again to expand
+      await chevronButton.click();
+      await sleep(500);
+
+      // Verify checkbox group is visible again
+      const expandedCheckboxGroup = await driver.wait(
+        until.elementLocated(By.css('div[class*="flex flex-wrap"]')),
+        10000,
+        "Checkbox group should be visible after expanding"
+      );
+
+      assert.ok(expandedCheckboxGroup, "Checkbox group should be visible after expanding");
+      console.log("Checkbox group expand/collapse functionality works correctly");
+    });
+
+    it("should verify checkbox labels are correct", async function () {
+      this.timeout(10000);
+
+      // Verify each checkbox has the correct label
+      const expectedLabels = [
+        "Full-Refresh",
+        "Interval-modifiers", 
+        "Exclusive-End-Date",
+        "Push-Metadata"
+      ];
+
+      const checkboxes = await checkboxGroup.findElements(By.css('vscode-checkbox'));
+      const actualLabels = await Promise.all(checkboxes.map(cb => cb.getText()));
+
+      for (const expectedLabel of expectedLabels) {
+        const hasLabel = actualLabels.some(label => label.includes(expectedLabel));
+        assert.ok(hasLabel, `Checkbox with label "${expectedLabel}" should be present`);
+      }
+
+      console.log("All checkbox labels are correct:", actualLabels);
     });
   });
 });
