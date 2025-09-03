@@ -79,8 +79,11 @@ export class BruinQueryOutput extends BruinCommand {
     const finalFlags = flags.length > 0 ? flags : constructedFlags;
     console.log("Final CLI command: bruin query", finalFlags.join(" "));
 
+    let consoleMessages: Array<{type: 'stdout' | 'stderr' | 'info', message: string, timestamp: string}> = [];
+    
     try {
-      const { promise, process, consoleMessages } = this.runCancellable(finalFlags, { ignoresErrors });
+      const { promise, process, consoleMessages: cmdConsoleMessages } = this.runCancellable(finalFlags, { ignoresErrors });
+      consoleMessages = cmdConsoleMessages; // Store console messages for use in catch block
       
       // Store the process for potential cancellation
       if (tabId) {
@@ -113,18 +116,16 @@ export class BruinQueryOutput extends BruinCommand {
       console.error("Error occurred while running query:", error);
       const errorMessage = error.message || error.toString();
       
-      // Empty console messages for error cases since we can't easily access them here
-      const emptyConsoleMessages: Array<{type: 'stdout' | 'stderr' | 'info', message: string, timestamp: string}> = [];
-      
+      // Use the console messages we captured before the error occurred
       if (errorMessage.includes("Command was cancelled") || 
           errorMessage.includes("context canceled") ||
           errorMessage.includes("query execution failed: failed to initiate query read: context canceled")) {
-        this.postMessageToPanels("cancelled", "Query cancelled by user.", tabId, emptyConsoleMessages);
+        this.postMessageToPanels("cancelled", "Query cancelled by user.", tabId, consoleMessages);
       } else if (errorMessage.includes("timeout") || errorMessage.includes("timed out")) {
         const timeoutSeconds = getQueryTimeout();
-        this.postMessageToPanels("error", `Query timed out after ${timeoutSeconds} seconds. You can adjust the timeout in VS Code settings (bruin.query.timeout).`, tabId, emptyConsoleMessages);
+        this.postMessageToPanels("error", `Query timed out after ${timeoutSeconds} seconds. You can adjust the timeout in VS Code settings (bruin.query.timeout).`, tabId, consoleMessages);
       } else {
-        this.postMessageToPanels("error", errorMessage, tabId, emptyConsoleMessages);
+        this.postMessageToPanels("error", errorMessage, tabId, consoleMessages);
       }
     }
     finally {

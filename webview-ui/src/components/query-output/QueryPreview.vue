@@ -525,7 +525,12 @@ const toggleQueryVisibility = () => {
   nextTick(() => {
     if (currentTab.value?.showQuery) {
       // Reset to query tab when opening if query exists, otherwise console tab
-      activeQueryPanelTab.value = currentTab.value?.parsedOutput?.query ? 'query' : 'console';
+      // If there's an error, prioritize console tab to show debug info
+      if (currentTab.value?.error && currentTab.value?.consoleMessages?.length > 0) {
+        activeQueryPanelTab.value = 'console';
+      } else {
+        activeQueryPanelTab.value = currentTab.value?.parsedOutput?.query ? 'query' : 'console';
+      }
       const panel = document.querySelector(".query-content");
       panel?.scrollTo(0, 0);
     }
