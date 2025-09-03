@@ -115,7 +115,7 @@
             <span class="codicon codicon-search text-editor-fg"></span>
           </vscode-button>
           <vscode-button
-            title="Show Query"
+            title="Show Query & Console"
             appearance="icon"
             @click="toggleQueryVisibility"
             :class="{ 'is-active': currentTab?.showQuery }"
@@ -201,39 +201,121 @@
               {{ currentTab.error }}
             </div>
           </div>
-          <!-- Display the executed query -->
+          <!-- Display the executed query and console messages -->
           <div
-            v-if="currentTab?.showQuery && currentTab?.parsedOutput?.query"
+            v-if="currentTab?.showQuery && (currentTab?.parsedOutput?.query || currentTab?.consoleMessages?.length > 0)"
             class="query-panel bg-editorWidget-background border-b border-panel-border"
           >
-            <div class="flex items-center justify-end gap-1">
-              <vscode-button
-                v-if="!copied"
-                appearance="icon"
-                title="Copy Query"
-                @click="copyQuery(currentTab.parsedOutput.query)"
-                class="text-xs hover:bg-panel-border"
-              >
-                <span class="codicon codicon-copy text-xs"></span>
-              </vscode-button>
-              <span
-                v-else
-                class="text-xs text-editor-fg opacity-70 hover:opacity-100 transition-opacity duration-200"
-                >Copied!</span
-              >
-              <vscode-button
-                appearance="icon"
-                title="Close"
-                @click="toggleQueryVisibility"
-                class="text-xs hover:bg-panel-border"
-              >
-                <span class="codicon codicon-close text-xs"></span>
-              </vscode-button>
+            <!-- Panel header with tabs and controls -->
+            <div class="flex items-center justify-between border-b border-panel-border">
+              <div class="flex items-center">
+                <!-- Query tab -->
+                <button
+                  v-if="currentTab?.parsedOutput?.query"
+                  @click="activeQueryPanelTab = 'query'"
+                  class="px-3 py-2 text-xs font-medium transition-colors border-b-2"
+                  :class="[
+                    activeQueryPanelTab === 'query' 
+                      ? 'text-editor-fg border-button-background bg-input-background' 
+                      : 'text-editor-fg opacity-70 border-transparent hover:opacity-100 hover:bg-editorWidget-background'
+                  ]"
+                >
+                  <span class="codicon codicon-code mr-1"></span>
+                  Query
+                </button>
+                
+                <!-- Console tab -->
+                <button
+                  v-if="currentTab?.consoleMessages?.length > 0"
+                  @click="activeQueryPanelTab = 'console'"
+                  class="px-3 py-2 text-xs font-medium transition-colors border-b-2"
+                  :class="[
+                    activeQueryPanelTab === 'console' 
+                      ? 'text-editor-fg border-button-background bg-input-background' 
+                      : 'text-editor-fg opacity-70 border-transparent hover:opacity-100 hover:bg-editorWidget-background'
+                  ]"
+                >
+                  <span class="codicon codicon-terminal mr-1"></span>
+                  Console
+                  <span 
+                    v-if="currentTab?.consoleMessages?.length > 0" 
+                    class="ml-1 px-1 py-0.5 text-2xs bg-button-background text-button-foreground rounded"
+                  >
+                    {{ currentTab.consoleMessages.length }}
+                  </span>
+                </button>
+              </div>
+              
+              <!-- Controls -->
+              <div class="flex items-center gap-1">
+                <vscode-button
+                  v-if="!copied && activeQueryPanelTab === 'query' && currentTab?.parsedOutput?.query"
+                  appearance="icon"
+                  title="Copy Query"
+                  @click="copyQuery(currentTab.parsedOutput.query)"
+                  class="text-xs hover:bg-panel-border"
+                >
+                  <span class="codicon codicon-copy text-xs"></span>
+                </vscode-button>
+                <span
+                  v-else-if="copied && activeQueryPanelTab === 'query'"
+                  class="text-xs text-editor-fg opacity-70 hover:opacity-100 transition-opacity duration-200"
+                  >Copied!</span
+                >
+                <vscode-button
+                  appearance="icon"
+                  title="Close"
+                  @click="toggleQueryVisibility"
+                  class="text-xs hover:bg-panel-border"
+                >
+                  <span class="codicon codicon-close text-xs"></span>
+                </vscode-button>
+              </div>
             </div>
-            <pre
-              class="query-content px-3 pb-1 font-mono text-3xs leading-tight overflow-auto max-h-[150px]"
-              >{{ formatQuery(currentTab.parsedOutput.query) }}</pre
-            >
+            
+            <!-- Panel content -->
+            <div class="max-h-[200px] overflow-auto">
+              <!-- Query content -->
+              <div v-if="activeQueryPanelTab === 'query' && currentTab?.parsedOutput?.query">
+                <pre class="query-content px-3 py-2 font-mono text-3xs leading-tight">{{ formatQuery(currentTab.parsedOutput.query) }}</pre>
+              </div>
+              
+              <!-- Console content -->
+              <div v-else-if="activeQueryPanelTab === 'console' && currentTab?.consoleMessages?.length > 0" class="p-3">
+                <div class="space-y-1">
+                  <div 
+                    v-for="(msg, index) in currentTab.consoleMessages" 
+                    :key="index"
+                    class="flex items-start gap-2 text-3xs font-mono leading-tight"
+                    :class="{
+                      'text-editor-fg': msg.type === 'stdout',
+                      'text-errorForeground': msg.type === 'stderr', 
+                      'text-descriptionForeground': msg.type === 'info'
+                    }"
+                  >
+                    <span class="flex-shrink-0 opacity-50 w-14">
+                      {{ new Date(msg.timestamp).toLocaleTimeString() }}
+                    </span>
+                    <span 
+                      class="flex-shrink-0 w-6 text-center rounded px-1"
+                      :class="{
+                        'bg-button-background text-button-foreground': msg.type === 'stdout',
+                        'bg-errorBackground text-errorForeground': msg.type === 'stderr',
+                        'bg-input-background text-descriptionForeground': msg.type === 'info'
+                      }"
+                    >
+                      {{ msg.type === 'stdout' ? 'OUT' : msg.type === 'stderr' ? 'ERR' : 'INF' }}
+                    </span>
+                    <span class="flex-1 whitespace-pre-wrap break-words">{{ msg.message }}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Empty state -->
+              <div v-else class="p-3 text-center text-descriptionForeground text-xs">
+                No {{ activeQueryPanelTab === 'query' ? 'query' : 'console messages' }} available
+              </div>
+            </div>
           </div>
           <div
             v-if="!currentTab?.parsedOutput && !currentTab?.error && !currentTab?.isLoading"
@@ -399,6 +481,8 @@ const copied = ref(false);
 const queryTimeout = ref(60); // Default timeout in seconds
 // State for expanded cells
 const expandedCells = ref(new Set<string>());
+// State for query panel tabs
+const activeQueryPanelTab = ref<'query' | 'console'>('query');
 
 const defaultTab = {
   id: "tab-1",
@@ -415,6 +499,7 @@ const defaultTab = {
   environment: "",
   connectionName: props.connectionName,
   showQuery: false,
+  consoleMessages: [],
 };
 const tabs = shallowRef<TabData[]>([defaultTab]);
 const copyQuery = (query: string) => {
@@ -439,6 +524,8 @@ const toggleQueryVisibility = () => {
   triggerRef(tabs);
   nextTick(() => {
     if (currentTab.value?.showQuery) {
+      // Reset to query tab when opening if query exists, otherwise console tab
+      activeQueryPanelTab.value = currentTab.value?.parsedOutput?.query ? 'query' : 'console';
       const panel = document.querySelector(".query-content");
       panel?.scrollTo(0, 0);
     }
@@ -494,6 +581,7 @@ const addTab = () => {
     environment: currentEnvironment.value,
     connectionName: currentConnectionName.value,
     showQuery: false,
+    consoleMessages: [],
   });
 
   tabCounter.value++;
@@ -546,6 +634,7 @@ const saveState = () => {
     showQuery: tab.showQuery,
     connectionName: tab.connectionName,
     tabCounter: tabCounter.value,
+    consoleMessages: tab.consoleMessages || [],
   }));
 
   const state = {
@@ -614,6 +703,7 @@ window.addEventListener("message", (event) => {
         isLoading: false,
         isEditing: false,
         filteredRows: t.parsedOutput?.rows || [],
+        consoleMessages: t.consoleMessages || [],
       }));
 
       currentConnectionName.value =
@@ -684,7 +774,8 @@ window.addEventListener("message", (event) => {
               error: null,  
               filteredRows: [],
               totalRowCount: 0,
-              filteredRowCount: 0
+              filteredRowCount: 0,
+              consoleMessages: []
             };
           }
           
@@ -724,6 +815,9 @@ window.addEventListener("message", (event) => {
             }
           }
 
+          // Get console messages from the payload
+          const consoleMessages = message.payload.consoleMessages || [];
+
           // Create a new tab object to trigger reactivity properly
           const tabIndex = tabs.value.findIndex(t => t.id === tabId);
           if (tabIndex !== -1) {
@@ -734,7 +828,8 @@ window.addEventListener("message", (event) => {
               filteredRows: outputData.rows || [],
               error: null,
               isLoading: false,
-              connectionName: outputData.connectionName || tabToUpdate.connectionName
+              connectionName: outputData.connectionName || tabToUpdate.connectionName,
+              consoleMessages: consoleMessages
             };
             
             // Replace the tab in the array to trigger reactivity
@@ -744,24 +839,28 @@ window.addEventListener("message", (event) => {
           console.error("Error processing tab output:", e);
           
           // Handle processing error with new tab object
+          const consoleMessages = message.payload.consoleMessages || [];
           const tabIndex = tabs.value.findIndex(t => t.id === tabId);
           if (tabIndex !== -1) {
             const newTab = {
               ...tabToUpdate,
               error: "Error processing query results: " + (e as Error).message,
-              isLoading: false
+              isLoading: false,
+              consoleMessages: consoleMessages
             };
             tabs.value.splice(tabIndex, 1, newTab);
           }
         }
       } else if (message.payload.status === "error") {
         // Process error for this specific tab with new tab object
+        const consoleMessages = message.payload.consoleMessages || [];
         const tabIndex = tabs.value.findIndex(t => t.id === tabId);
         if (tabIndex !== -1) {
           const newTab = {
             ...tabToUpdate,
             error: message.payload.message,
-            isLoading: false
+            isLoading: false,
+            consoleMessages: consoleMessages
           };
           
           tabs.value.splice(tabIndex, 1, newTab);
@@ -784,6 +883,7 @@ window.addEventListener("message", (event) => {
         tabToClear.filteredRows = [];
         tabToClear.totalRowCount = 0;
         tabToClear.filteredRowCount = 0;
+        tabToClear.consoleMessages = [];
       }
     } else {
       // If no tabId specified, clear the current tab
@@ -793,6 +893,7 @@ window.addEventListener("message", (event) => {
         currentTab.value.filteredRows = [];
         currentTab.value.totalRowCount = 0;
         currentTab.value.filteredRowCount = 0;
+        currentTab.value.consoleMessages = [];
       }
     }
     // Force a UI update
@@ -831,6 +932,7 @@ const closeTab = (tabId: string) => {
         environment: currentEnvironment.value,
         connectionName: props.connectionName,
         showQuery: false,
+        consoleMessages: [],
       };
       tabs.value.push(newDefaultTab);
       activeTab.value = "tab-1";
@@ -889,6 +991,7 @@ const clearTabResults = () => {
         filteredRows: [],
         totalRowCount: 0,
         filteredRowCount: 0,
+        consoleMessages: [],
       };
       tabs.value.splice(index, 1, newTab);
     }
@@ -1047,7 +1150,8 @@ const runQuery = () => {
         filteredRows: [],
         totalRowCount: 0,
         filteredRowCount: 0,
-        isLoading: true
+        isLoading: true,
+        consoleMessages: []
       };
       
       tabs.value.splice(tabIndex, 1, clearedTab);
