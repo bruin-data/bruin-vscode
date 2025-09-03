@@ -2837,6 +2837,7 @@ suite("BruinQueryOutput", () => {
       status: "error",
       message: "This feature requires the latest Bruin CLI version. Please update your CLI.",
       tabId: undefined,
+      consoleMessages: []
     });
   });
   
@@ -2859,6 +2860,7 @@ suite("BruinQueryOutput", () => {
       status: "error",
       message: "Mock error",
       tabId: undefined,
+      consoleMessages: []
     });
   });  
 });
