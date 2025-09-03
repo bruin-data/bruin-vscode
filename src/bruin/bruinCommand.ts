@@ -103,9 +103,17 @@ export abstract class BruinCommand {
     console.log(`[${new Date().toISOString()}] Starting command: ${commandString}`);
     
     const consoleMessages: Array<{type: 'stdout' | 'stderr' | 'info', message: string, timestamp: string}> = [];
+    const MAX_CONSOLE_MESSAGES = 1000;
+    
+    const addConsoleMessage = (message: {type: 'stdout' | 'stderr' | 'info', message: string, timestamp: string}) => {
+      consoleMessages.push(message);
+      if (consoleMessages.length > MAX_CONSOLE_MESSAGES) {
+        consoleMessages.shift(); // Remove oldest message
+      }
+    };
     
     // Add initial command start message
-    consoleMessages.push({
+    addConsoleMessage({
       type: 'info',
       message: `Starting command: ${commandString}`,
       timestamp: new Date().toISOString()
@@ -124,12 +132,13 @@ export abstract class BruinCommand {
         stdout += output;
         
         // Capture stdout messages
+        const timestamp = new Date().toISOString();
         const lines = output.trim().split('\n').filter((line: string) => line.length > 0);
         lines.forEach((line: string) => {
-          consoleMessages.push({
+          addConsoleMessage({
             type: 'stdout',
             message: line,
-            timestamp: new Date().toISOString()
+            timestamp
           });
         });
       });
@@ -139,12 +148,13 @@ export abstract class BruinCommand {
         stderr += output;
         
         // Capture stderr messages
+        const timestamp = new Date().toISOString();
         const lines = output.trim().split('\n').filter((line: string) => line.length > 0);
         lines.forEach((line: string) => {
-          consoleMessages.push({
+          addConsoleMessage({
             type: 'stderr',
             message: line,
-            timestamp: new Date().toISOString()
+            timestamp
           });
         });
       });
@@ -156,14 +166,14 @@ export abstract class BruinCommand {
         console.log(`[${new Date().toISOString()}] Command completed in ${duration}ms ${commandString}`);
         
         // Add completion message
-        consoleMessages.push({
+        addConsoleMessage({
           type: 'info',
           message: `Command completed in ${duration}ms with exit code ${code}`,
           timestamp: new Date().toISOString()
         });
 
         if (signal === "SIGINT" || signal === "SIGTERM") {
-          consoleMessages.push({
+          addConsoleMessage({
             type: 'info',
             message: `Command was cancelled (signal: ${signal})`,
             timestamp: new Date().toISOString()
@@ -173,7 +183,7 @@ export abstract class BruinCommand {
           resolve(removeAnsiColors(stdout));
         } else {
           console.error(`[${new Date().toISOString()}] Command failed after ${duration}ms:`, stderr || stdout);
-          consoleMessages.push({
+          addConsoleMessage({
             type: 'stderr',
             message: `Command failed with exit code ${code}`,
             timestamp: new Date().toISOString()
@@ -190,7 +200,7 @@ export abstract class BruinCommand {
         const endTime = Date.now();
         const duration = endTime - startTime;
         console.error(`[${new Date().toISOString()}] Command failed after ${duration}ms:`, error.message);
-        consoleMessages.push({
+        addConsoleMessage({
           type: 'stderr',
           message: `Process error: ${error.message}`,
           timestamp: new Date().toISOString()

@@ -460,6 +460,15 @@ import { vscode } from "@/utilities/vscode";
 import QuerySearch from "../ui/query-preview/QuerySearch.vue";
 import type { EditingState, TabData } from "@/types";
 
+// Helper function to limit console messages size
+const MAX_CONSOLE_MESSAGES = 1000;
+const limitConsoleMessages = (messages: any[]) => {
+  if (messages.length > MAX_CONSOLE_MESSAGES) {
+    return messages.slice(-MAX_CONSOLE_MESSAGES); // Keep the most recent messages
+  }
+  return messages;
+};
+
 const props = defineProps<{
   output: any;
   error: any;
@@ -544,12 +553,32 @@ const formatQuery = (query: string) => {
   return lines.map((line, index) => (index === 0 ? line.trimStart() : line)).join("\n");
 };
 
+// Cache for formatted timestamps to avoid repeated Date object creation
+const timestampCache = new Map<string, string>();
+
 const formatTimestamp = (timestamp: string) => {
+  // Check cache first
+  if (timestampCache.has(timestamp)) {
+    return timestampCache.get(timestamp)!;
+  }
+  
+  // Format timestamp and cache result
   const date = new Date(timestamp);
   const hours = date.getHours().toString().padStart(2, '0');
   const minutes = date.getMinutes().toString().padStart(2, '0');
   const seconds = date.getSeconds().toString().padStart(2, '0');
-  return `${hours}:${minutes}:${seconds}`;
+  const formatted = `${hours}:${minutes}:${seconds}`;
+  
+  // Cache the result and limit cache size
+  timestampCache.set(timestamp, formatted);
+  if (timestampCache.size > 1000) {
+    const firstKey = timestampCache.keys().next().value;
+    if (firstKey !== undefined) {
+      timestampCache.delete(firstKey);
+    }
+  }
+  
+  return formatted;
 };
 // Get current active tab
 const currentTab = computed(() => {
@@ -647,7 +676,7 @@ const saveState = () => {
     showQuery: tab.showQuery,
     connectionName: tab.connectionName,
     tabCounter: tabCounter.value,
-    consoleMessages: tab.consoleMessages || [],
+    consoleMessages: limitConsoleMessages(tab.consoleMessages || []),
   }));
 
   const state = {
@@ -716,7 +745,7 @@ window.addEventListener("message", (event) => {
         isLoading: false,
         isEditing: false,
         filteredRows: t.parsedOutput?.rows || [],
-        consoleMessages: t.consoleMessages || [],
+        consoleMessages: limitConsoleMessages(t.consoleMessages || []),
       }));
 
       currentConnectionName.value =
@@ -829,7 +858,7 @@ window.addEventListener("message", (event) => {
           }
 
           // Get console messages from the payload
-          const consoleMessages = message.payload.consoleMessages || [];
+          const consoleMessages = limitConsoleMessages(message.payload.consoleMessages || []);
 
           // Create a new tab object to trigger reactivity properly
           const tabIndex = tabs.value.findIndex(t => t.id === tabId);
@@ -852,7 +881,7 @@ window.addEventListener("message", (event) => {
           console.error("Error processing tab output:", e);
           
           // Handle processing error with new tab object
-          const consoleMessages = message.payload.consoleMessages || [];
+          const consoleMessages = limitConsoleMessages(message.payload.consoleMessages || []);
           const tabIndex = tabs.value.findIndex(t => t.id === tabId);
           if (tabIndex !== -1) {
             const newTab = {
@@ -866,7 +895,7 @@ window.addEventListener("message", (event) => {
         }
       } else if (message.payload.status === "error") {
         // Process error for this specific tab with new tab object
-        const consoleMessages = message.payload.consoleMessages || [];
+        const consoleMessages = limitConsoleMessages(message.payload.consoleMessages || []);
         const tabIndex = tabs.value.findIndex(t => t.id === tabId);
         if (tabIndex !== -1) {
           const newTab = {
