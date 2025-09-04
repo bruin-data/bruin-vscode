@@ -21,13 +21,13 @@
     <div v-if="isBruinInstalled" id="project-templates-section" class="bg-editorWidget-bg shadow sm:rounded-lg p-4">
       <div class="flex flex-col space-y-3">
         <h3 id="project-templates-title" class="text-base font-medium text-editor-fg">Project Templates</h3>
-        <div class="max-w-xl text-sm text-editor-fg">
+        <div class="text-sm text-editor-fg">
           <p>
             Create new Bruin projects from pre-built templates. Choose a template that matches your use case and get started quickly with best practices.
           </p>
         </div>
         <div id="project-templates-container" class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div class="relative w-full sm:w-64">
+          <div class="relative w-full sm:w-64 flex-shrink-0" style="min-width: 200px;">
             <vscode-dropdown 
               v-if="templates.length > 0"
               @change="handleTemplateSelect"
@@ -51,7 +51,7 @@
               No templates available
             </div>
           </div>
-          <div id="project-controls" class="flex items-center space-x-3">
+          <div id="project-controls" class="flex items-center space-x-3 flex-shrink-0">
             <vscode-checkbox
               id="create-in-place-checkbox"
               v-model="createInPlace"
@@ -595,3 +595,22 @@ watch(() => props.isBruinInstalled, (newValue) => {
   }
 });
 </script>
+
+<style scoped>
+#project-templates-container {
+  min-width: 0;
+}
+
+@media (min-width: 640px) {
+  #project-templates-container {
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+  }
+  
+  #project-templates-container > div:first-child {
+    width: 16rem !important;
+    flex-shrink: 0 !important;
+  }
+}
+ </style>
