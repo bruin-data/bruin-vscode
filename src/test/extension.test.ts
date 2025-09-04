@@ -66,6 +66,7 @@ import { QueryPreviewPanel } from "../panels/QueryPreviewPanel";
 import { getQueryOutput } from "../extension/commands/queryCommands";
 import { BruinExportQueryOutput } from "../bruin/exportQueryOutput";
 import { BruinDBTCommand } from "../bruin/bruinDBTCommand";
+import { BruinInit } from "../bruin/bruinInit";
 
 suite("Extension Initialization", () => {
   test("should set default path separator based on platform", async () => {
@@ -6857,6 +6858,90 @@ schedule: yearly
       assert.strictEqual(result[1], "json", "Should include json flag");
     });
 
+  });
+
+  suite("BruinInit Tests", () => {
+    let bruinInit: BruinInit;
+    let runStub: sinon.SinonStub;
+
+    setup(() => {
+      bruinInit = new BruinInit("/usr/local/bin/bruin", "/test/workspace");
+      runStub = sinon.stub(bruinInit, "run" as any);
+    });
+
+    teardown(() => {
+      runStub.restore();
+    });
+
+    test("should initialize project without in-place flag by default", async () => {
+      const templateName = "simple-pipeline";
+      runStub.resolves("Project initialized successfully");
+
+      await bruinInit.initProject(templateName);
+
+      assert.strictEqual(runStub.calledOnce, true);
+      assert.deepStrictEqual(runStub.firstCall.args[0], [templateName]);
+    });
+
+    test("should initialize project with in-place flag when enabled", async () => {
+      const templateName = "simple-pipeline";
+      runStub.resolves("Project initialized successfully");
+
+      await bruinInit.initProject(templateName, undefined, true);
+
+      assert.strictEqual(runStub.calledOnce, true);
+      assert.deepStrictEqual(runStub.firstCall.args[0], [templateName, "--in-place"]);
+    });
+
+    test("should initialize project with project path and in-place flag", async () => {
+      const templateName = "simple-pipeline";
+      const projectPath = "/custom/path";
+      runStub.resolves("Project initialized successfully");
+
+      await bruinInit.initProject(templateName, projectPath, true);
+
+      assert.strictEqual(runStub.calledOnce, true);
+      assert.deepStrictEqual(runStub.firstCall.args[0], [templateName, "--in-place", projectPath]);
+    });
+
+    test("should initialize project with project path but without in-place flag", async () => {
+      const templateName = "simple-pipeline";
+      const projectPath = "/custom/path";
+      runStub.resolves("Project initialized successfully");
+
+      await bruinInit.initProject(templateName, projectPath, false);
+
+      assert.strictEqual(runStub.calledOnce, true);
+      assert.deepStrictEqual(runStub.firstCall.args[0], [templateName, projectPath]);
+    });
+
+    test("should handle initialization errors properly", async () => {
+      const templateName = "simple-pipeline";
+      const errorMessage = "Template not found";
+      runStub.rejects(new Error(errorMessage));
+
+      try {
+        await bruinInit.initProject(templateName, undefined, true);
+        assert.fail("Expected error to be thrown");
+      } catch (error) {
+        assert.strictEqual(error instanceof Error, true);
+        assert.strictEqual((error as Error).message, errorMessage);
+      }
+
+      assert.strictEqual(runStub.calledOnce, true);
+      assert.deepStrictEqual(runStub.firstCall.args[0], [templateName, "--in-place"]);
+    });
+
+    test("should return result from successful initialization", async () => {
+      const templateName = "simple-pipeline";
+      const expectedResult = "Project 'simple-pipeline' created successfully";
+      runStub.resolves(expectedResult);
+
+      const result = await bruinInit.initProject(templateName, undefined, true);
+
+      assert.strictEqual(result, expectedResult);
+      assert.strictEqual(runStub.calledOnce, true);
+    });
   });
   
 
