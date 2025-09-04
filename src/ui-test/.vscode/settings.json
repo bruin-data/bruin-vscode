@@ -1,0 +1,9 @@
+{
+  "workbench.welcomePage.walkthroughs.openOnInstall": false,
+  "workbench.startupEditor": "none",
+  "workbench.tips.enabled": false,
+  "extensions.ignoreRecommendations": true,
+  "update.enableWindowsBackgroundUpdates": false,
+  "telemetry.enableTelemetry": false,
+  "gettingStarted.categories.setupProject.when": "false"
+}
