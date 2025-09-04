@@ -934,7 +934,7 @@ export class BruinPanel {
             break;
           case "bruin.initProject":
             try {
-              console.log("Initializing project with template:", message.payload.templateName);
+              console.log("Initializing project with template:", message.payload.templateName, "inPlace:", message.payload.inPlace);
               
               // Ask user to select folder for new project
               const folderUri = await vscode.window.showOpenDialog({
@@ -954,6 +954,7 @@ export class BruinPanel {
               
               const selectedFolder = folderUri[0].fsPath;
               const templateName = message.payload.templateName;
+              const inPlace = message.payload.inPlace || false;
               
               // Close existing Bruin terminal to ensure we create a new one with correct working directory
               const existingTerminal = vscode.window.terminals.find(t => t.name === "Bruin Terminal");
@@ -965,12 +966,15 @@ export class BruinPanel {
               
               // Use BruinInit class to initialize project
               const bruinInit = new BruinInit(getBruinExecutablePath(), selectedFolder);
-              const result = await bruinInit.initProject(templateName);
+              const result = await bruinInit.initProject(templateName, undefined, inPlace);
             
+              const successMessage = inPlace 
+                ? `Project '${templateName}' created directly in ${selectedFolder}`
+                : `Project '${templateName}' created successfully in ${selectedFolder}`;
               
               BruinPanel.postMessage("project-init-message", {
                 status: "success",
-                message: `Project '${templateName}' created successfully in ${selectedFolder}`
+                message: successMessage
               });
               
             } catch (error) {

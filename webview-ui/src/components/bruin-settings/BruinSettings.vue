@@ -50,13 +50,25 @@
               No templates available
             </div>
           </div>
-          <vscode-button 
-            appearance="primary"
-            @click="handleCreateProject"
-            :disabled="!selectedTemplate"
-          >
-            Create
-          </vscode-button>
+          <div class="flex items-center space-x-3">
+            <vscode-checkbox
+              v-model="createInPlace"
+              :checked="createInPlace"
+              @change="handleInPlaceToggle"
+            >
+              Create in-place
+            </vscode-checkbox>
+            <vscode-button 
+              appearance="primary"
+              @click="handleCreateProject"
+              :disabled="!selectedTemplate"
+            >
+              Create
+            </vscode-button>
+          </div>
+        </div>
+        <div v-if="createInPlace" class="text-xs text-editor-fg opacity-75 mt-2">
+          Template will be created directly in the selected folder
         </div>
         <div v-if="selectedTemplate" class="text-xs text-editor-fg opacity-75">
           Selected: <span class="font-medium">{{ selectedTemplate }}</span>
@@ -150,6 +162,7 @@ const templatesLoading = ref(false);
 const projectCreationSuccess = ref(false);
 const successMessage = ref("");
 const templateDropdownRef = ref<HTMLElement | null>(null);
+const createInPlace = ref(true); // Default to true (in-place creation)
 
 const connectionFormKey = computed(() => {
   return connectionToEdit.value?.id ? `edit-${connectionToEdit.value.id}` : "new-connection";
@@ -533,12 +546,18 @@ const handleCreateProject = async () => {
     await vscode.postMessage({
       command: "bruin.initProject",
       payload: {
-        templateName: selectedTemplate.value
+        templateName: selectedTemplate.value,
+        inPlace: createInPlace.value
       }
     });
   } catch (error) {
     console.error("Error creating project:", error);
   }
+};
+
+const handleInPlaceToggle = (event) => {
+  createInPlace.value = event.target.checked;
+  console.log("In-place creation toggle:", createInPlace.value);
 };
 
 const handleProjectInit = (payload) => {
