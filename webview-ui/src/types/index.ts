@@ -204,6 +204,7 @@ export interface TabData extends Tab {
   connectionName: string;
   showQuery: boolean;
   selectedQuery?: string;
+  consoleMessages: Array<{type: 'stdout' | 'stderr' | 'info', message: string, timestamp: string}>;
 }
 
 export interface EditingState {

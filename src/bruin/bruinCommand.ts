@@ -87,7 +87,7 @@ export abstract class BruinCommand {
 
   /**
    * Executes the command with cancellation support.
-   * Returns both the promise and the child process for cancellation.
+   * Returns both the promise, process, and console messages for cancellation.
    */
   protected runCancellable(
     query: string[],
@@ -96,11 +96,28 @@ export abstract class BruinCommand {
     }: { 
       ignoresErrors?: boolean; 
     } = {}
-  ): { promise: Promise<string>; process: child_process.ChildProcess } {
+  ): { promise: Promise<string>; process: child_process.ChildProcess; consoleMessages: Array<{type: 'stdout' | 'stderr' | 'info', message: string, timestamp: string}> } {
     const startTime = Date.now();
     const commandString = `${this.bruinExecutable} ${this.execArgs(query).join(' ')}`;
     
     console.log(`[${new Date().toISOString()}] Starting command: ${commandString}`);
+    
+    const consoleMessages: Array<{type: 'stdout' | 'stderr' | 'info', message: string, timestamp: string}> = [];
+    const MAX_CONSOLE_MESSAGES = 1000;
+    
+    const addConsoleMessage = (message: {type: 'stdout' | 'stderr' | 'info', message: string, timestamp: string}) => {
+      consoleMessages.push(message);
+      if (consoleMessages.length > MAX_CONSOLE_MESSAGES) {
+        consoleMessages.shift(); // Remove oldest message
+      }
+    };
+    
+    // Add initial command start message
+    addConsoleMessage({
+      type: 'info',
+      message: `Starting command: ${commandString}`,
+      timestamp: new Date().toISOString()
+    });
     
     const proc = child_process.spawn(this.bruinExecutable, this.execArgs(query), {
       cwd: this.workingDirectory,
@@ -111,11 +128,35 @@ export abstract class BruinCommand {
       let stderr = "";
 
       proc.stdout?.on("data", (data) => {
-        stdout += data.toString();
+        const output = data.toString();
+        stdout += output;
+        
+        // Capture stdout messages
+        const timestamp = new Date().toISOString();
+        const lines = output.trim().split('\n').filter((line: string) => line.length > 0);
+        lines.forEach((line: string) => {
+          addConsoleMessage({
+            type: 'stdout',
+            message: line,
+            timestamp
+          });
+        });
       });
 
       proc.stderr?.on("data", (data) => {
-        stderr += data.toString();
+        const output = data.toString();
+        stderr += output;
+        
+        // Capture stderr messages
+        const timestamp = new Date().toISOString();
+        const lines = output.trim().split('\n').filter((line: string) => line.length > 0);
+        lines.forEach((line: string) => {
+          addConsoleMessage({
+            type: 'stderr',
+            message: line,
+            timestamp
+          });
+        });
       });
 
       proc.on("close", (code, signal) => {
@@ -123,13 +164,30 @@ export abstract class BruinCommand {
         const duration = endTime - startTime;
         
         console.log(`[${new Date().toISOString()}] Command completed in ${duration}ms ${commandString}`);
+        
+        // Add completion message
+        addConsoleMessage({
+          type: 'info',
+          message: `Command completed in ${duration}ms with exit code ${code}`,
+          timestamp: new Date().toISOString()
+        });
 
         if (signal === "SIGINT" || signal === "SIGTERM") {
+          addConsoleMessage({
+            type: 'info',
+            message: `Command was cancelled (signal: ${signal})`,
+            timestamp: new Date().toISOString()
+          });
           reject(new Error("Command was cancelled"));
         } else if (code === 0) {
           resolve(removeAnsiColors(stdout));
         } else {
           console.error(`[${new Date().toISOString()}] Command failed after ${duration}ms:`, stderr || stdout);
+          addConsoleMessage({
+            type: 'stderr',
+            message: `Command failed with exit code ${code}`,
+            timestamp: new Date().toISOString()
+          });
           if (ignoresErrors) {
             resolve("");
           } else {
@@ -142,10 +200,15 @@ export abstract class BruinCommand {
         const endTime = Date.now();
         const duration = endTime - startTime;
         console.error(`[${new Date().toISOString()}] Command failed after ${duration}ms:`, error.message);
+        addConsoleMessage({
+          type: 'stderr',
+          message: `Process error: ${error.message}`,
+          timestamp: new Date().toISOString()
+        });
         reject(error);
       });
     });
 
-    return { promise, process: proc };
+    return { promise, process: proc, consoleMessages };
   }
 }

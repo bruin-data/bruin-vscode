@@ -79,8 +79,11 @@ export class BruinQueryOutput extends BruinCommand {
     const finalFlags = flags.length > 0 ? flags : constructedFlags;
     console.log("Final CLI command: bruin query", finalFlags.join(" "));
 
+    let consoleMessages: Array<{type: 'stdout' | 'stderr' | 'info', message: string, timestamp: string}> = [];
+    
     try {
-      const { promise, process } = this.runCancellable(finalFlags, { ignoresErrors });
+      const { promise, process, consoleMessages: cmdConsoleMessages } = this.runCancellable(finalFlags, { ignoresErrors });
+      consoleMessages = cmdConsoleMessages; // Store console messages for use in catch block
       
       // Store the process for potential cancellation
       if (tabId) {
@@ -98,11 +101,12 @@ export class BruinQueryOutput extends BruinCommand {
         this.postMessageToPanels(
           "error",
           "This feature requires the latest Bruin CLI version. Please update your CLI.",
-          tabId
+          tabId,
+          consoleMessages
         );
         return;
       }
-      this.postMessageToPanels("success", result, tabId);
+      this.postMessageToPanels("success", result, tabId, consoleMessages);
     } catch (error: any) {
       // Remove process from tracking on error
       if (tabId) {
@@ -112,20 +116,21 @@ export class BruinQueryOutput extends BruinCommand {
       console.error("Error occurred while running query:", error);
       const errorMessage = error.message || error.toString();
       
+      // Use the console messages we captured before the error occurred
       if (errorMessage.includes("Command was cancelled") || 
           errorMessage.includes("context canceled") ||
           errorMessage.includes("query execution failed: failed to initiate query read: context canceled")) {
-        this.postMessageToPanels("cancelled", "Query cancelled by user.", tabId);
+        this.postMessageToPanels("cancelled", "Query cancelled by user.", tabId, consoleMessages);
       } else if (errorMessage.includes("timeout") || errorMessage.includes("timed out")) {
         const timeoutSeconds = getQueryTimeout();
-        this.postMessageToPanels("error", `Query timed out after ${timeoutSeconds} seconds. You can adjust the timeout in VS Code settings (bruin.query.timeout).`, tabId);
+        this.postMessageToPanels("error", `Query timed out after ${timeoutSeconds} seconds. You can adjust the timeout in VS Code settings (bruin.query.timeout).`, tabId, consoleMessages);
       } else {
-        this.postMessageToPanels("error", errorMessage, tabId);
+        this.postMessageToPanels("error", errorMessage, tabId, consoleMessages);
       }
     }
     finally {
       this.isLoading = false;
-      this.postMessageToPanels("loading", this.isLoading, tabId);
+      this.postMessageToPanels("loading", this.isLoading, tabId, []);
     }
   }
 
@@ -143,8 +148,10 @@ export class BruinQueryOutput extends BruinCommand {
    *
    * @param {string} status - Status of the message ('success' or 'error').
    * @param {string | any} message - The message content to send to the panel.
+   * @param {string} [tabId] - Optional tab ID for tab-specific messages.
+   * @param {Array} [consoleMessages] - Optional console messages from command execution.
    */
-  private postMessageToPanels(status: string, message: string | any, tabId?: string) {
-    QueryPreviewPanel.postMessage("query-output-message", { status, message, tabId });
+  private postMessageToPanels(status: string, message: string | any, tabId?: string, consoleMessages?: Array<{type: 'stdout' | 'stderr' | 'info', message: string, timestamp: string}>) {
+    QueryPreviewPanel.postMessage("query-output-message", { status, message, tabId, consoleMessages });
   }
 }
