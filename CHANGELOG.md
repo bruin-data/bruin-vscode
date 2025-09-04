@@ -1,9 +1,12 @@
 # Changelog
+## [0.66.0] - [2025-09-04]
+- Added console logging for executed query commands to aid in error detection.
+
 ## [0.65.2] - [2025-09-02]
-- Fix table details panel and .bruin.yaml panel bug.
+- Fixed table details panel and .bruin.yaml panel bugs.
 
 ## [0.65.1] - [2025-08-28]
-- Add full refresh to render panel.
+- Fixed an issue where the render panel's query was not updating when the "full refresh" checkbox was checked.
 
 ## [0.65.0] - [2025-08-22]
 - Introduced a tags management interface that allows users to toggle the inclusion or exclusion of assets for execution in run commands.

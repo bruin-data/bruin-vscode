@@ -63,6 +63,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.66.0**: Added console logging for executed query commands to aid in error detection.
 - **0.65.2**: Fixed table details panel bug and bruin.yaml bug.
 - **0.65.1**: Add full refresh to render panel.
 - **0.65.0**: Introduced a tags management interface that allows users to toggle the inclusion or exclusion of assets for execution in run commands.
