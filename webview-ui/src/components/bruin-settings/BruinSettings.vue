@@ -26,8 +26,8 @@
             Create new Bruin projects from pre-built templates. Choose a template that matches your use case and get started quickly with best practices.
           </p>
         </div>
-        <div class="flex items-center justify-between">
-          <div class="relative w-64">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div class="relative w-full sm:w-64">
             <vscode-dropdown 
               v-if="templates.length > 0"
               @change="handleTemplateSelect"
