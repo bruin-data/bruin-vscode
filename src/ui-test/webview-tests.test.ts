@@ -2815,7 +2815,40 @@ describe("Bruin Webview Test", function () {
       this.timeout(30000);
 
       try {
-        // Wait for the page to stabilize
+        // First, switch to the Settings tab where the Project Templates section is located
+        console.log("Switching to Settings tab...");
+        try {
+          const settingsTab = await driver.wait(
+            until.elementLocated(By.id("tab-4")), // Settings tab is tab-4
+            10000,
+            "Settings tab not found"
+          );
+          await settingsTab.click();
+          await sleep(3000); // Wait longer for tab content to load
+          console.log("✓ Switched to Settings tab");
+          
+          // Debug: Check what's actually in the Settings tab
+          const pageSource = await driver.getPageSource();
+          console.log(`Settings tab page source length: ${pageSource.length}`);
+          
+          // Check if Bruin CLI is detected as installed
+          if (pageSource.includes("Bruin CLI")) {
+            console.log("✓ Bruin CLI is detected in Settings tab");
+          } else {
+            console.log("⚠️  Bruin CLI not detected - Project Templates section may not render");
+          }
+          
+          // Check if Project Templates section is present
+          if (pageSource.includes("project-templates-section")) {
+            console.log("✓ Project Templates section found in page source");
+          } else {
+            console.log("⚠️  Project Templates section not found in page source");
+          }
+        } catch (error) {
+          console.log("Could not find Settings tab, trying alternative selectors...");
+        }
+        
+        // Wait for the page to stabilize after tab switch
         await sleep(2000);
         
         // Look for the Project Templates section using ID
@@ -2836,22 +2869,34 @@ describe("Bruin Webview Test", function () {
         // Look for the in-place checkbox using ID
         let inPlaceCheckbox: WebElement | null = null;
         try {
-          // First try to find the checkbox by ID
-          const checkboxContainer = await driver.findElement(By.id("create-in-place-checkbox"));
-          inPlaceCheckbox = await checkboxContainer.findElement(By.css("input[type='checkbox']"));
+          // First try to find the vscode-checkbox element directly by ID
+          inPlaceCheckbox = await driver.findElement(By.id("create-in-place-checkbox"));
           console.log("✓ Found in-place checkbox using ID");
         } catch (error) {
           console.log("Could not find checkbox by ID, trying fallback methods");
           
-          // Fallback: try to find any checkbox in the project controls section
+          // Fallback: try to find any vscode-checkbox in the project controls section
           try {
             const projectControls = await driver.findElement(By.id("project-controls"));
-            inPlaceCheckbox = await projectControls.findElement(By.css("input[type='checkbox']"));
+            inPlaceCheckbox = await projectControls.findElement(By.css("vscode-checkbox"));
             console.log("✓ Found checkbox in project controls section");
           } catch (fallbackError) {
-            console.log("Could not locate in-place checkbox:", fallbackError);
-            this.skip();
-            return;
+            // Try finding by text content
+            try {
+              const allCheckboxes = await driver.findElements(By.css("vscode-checkbox"));
+              for (const checkbox of allCheckboxes) {
+                const text = await checkbox.getText();
+                if (text.includes('Create in-place')) {
+                  inPlaceCheckbox = checkbox;
+                  console.log(`✓ Found in-place checkbox by text: "${text}"`);
+                  break;
+                }
+              }
+            } catch (textError) {
+              console.log("Could not locate in-place checkbox:", fallbackError);
+              this.skip();
+              return;
+            }
           }
         }
 
@@ -2862,7 +2907,26 @@ describe("Bruin Webview Test", function () {
         }
 
         // Test checkbox initial state (should be checked by default)
-        const isInitiallyChecked = await inPlaceCheckbox.isSelected();
+        // Try different methods to get the checkbox state
+        let isInitiallyChecked = false;
+        try {
+          isInitiallyChecked = await inPlaceCheckbox.isSelected();
+        } catch (error) {
+          // Try alternative method for vscode-checkbox
+          try {
+            const checkedAttr = await inPlaceCheckbox.getAttribute('checked');
+            isInitiallyChecked = checkedAttr === 'true' || checkedAttr === '';
+          } catch (attrError) {
+            // Try aria-checked attribute
+            try {
+              const ariaChecked = await inPlaceCheckbox.getAttribute('aria-checked');
+              isInitiallyChecked = ariaChecked === 'true';
+            } catch (ariaError) {
+              console.log("Could not determine checkbox state, assuming unchecked");
+            }
+          }
+        }
+        
         console.log(`In-place checkbox initial state: ${isInitiallyChecked ? 'checked' : 'unchecked'}`);
         assert.strictEqual(isInitiallyChecked, true, "In-place checkbox should be checked by default");
 
@@ -2894,11 +2958,27 @@ describe("Bruin Webview Test", function () {
       this.timeout(20000);
 
       try {
+        // First, switch to the Settings tab where the Project Templates section is located
+        console.log("Switching to Settings tab for explanatory text test...");
+        try {
+          const settingsTab = await driver.wait(
+            until.elementLocated(By.id("tab-4")), // Settings tab is tab-4
+            10000,
+            "Settings tab not found"
+          );
+          await settingsTab.click();
+          await sleep(2000); // Wait for tab content to load
+          console.log("✓ Switched to Settings tab");
+        } catch (error) {
+          console.log("Settings tab not found for explanatory text test");
+          this.skip();
+          return;
+        }
+        
         // Find the checkbox using ID
         let inPlaceCheckbox: WebElement | null = null;
         try {
-          const checkboxContainer = await driver.findElement(By.id("create-in-place-checkbox"));
-          inPlaceCheckbox = await checkboxContainer.findElement(By.css("input[type='checkbox']"));
+          inPlaceCheckbox = await driver.findElement(By.id("create-in-place-checkbox"));
         } catch (error) {
           console.log("In-place checkbox not found for explanatory text test");
           this.skip();
@@ -2956,6 +3036,23 @@ describe("Bruin Webview Test", function () {
       this.timeout(15000);
 
       try {
+        // First, switch to the Settings tab where the Project Templates section is located
+        console.log("Switching to Settings tab for responsive design test...");
+        try {
+          const settingsTab = await driver.wait(
+            until.elementLocated(By.id("tab-4")), // Settings tab is tab-4
+            10000,
+            "Settings tab not found"
+          );
+          await settingsTab.click();
+          await sleep(2000); // Wait for tab content to load
+          console.log("✓ Switched to Settings tab");
+        } catch (error) {
+          console.log("Settings tab not found for responsive design test");
+          this.skip();
+          return;
+        }
+        
         // Test responsive behavior by checking container layout
         // Look for the project templates container using ID
         let templatesContainer: WebElement | null = null;
@@ -2975,9 +3072,9 @@ describe("Bruin Webview Test", function () {
         console.log("✓ Container has responsive CSS classes");
 
         // Check if elements are accessible and properly laid out
-        const containerSize = await templatesContainer.getSize();
-        assert.ok(containerSize.height > 0, "Templates container should have height");
-        assert.ok(containerSize.width > 0, "Templates container should have width");
+        const containerRect = await templatesContainer.getRect();
+        assert.ok(containerRect.height > 0, "Templates container should have height");
+        assert.ok(containerRect.width > 0, "Templates container should have width");
 
         // Look for the checkbox and verify it's accessible
         try {
@@ -2985,11 +3082,10 @@ describe("Bruin Webview Test", function () {
           const isCheckboxDisplayed = await checkboxContainer.isDisplayed();
           assert.ok(isCheckboxDisplayed, "Checkbox should be visible");
           
-          const checkboxLocation = await checkboxContainer.getLocation();
-          const checkboxSize = await checkboxContainer.getSize();
+          const checkboxLocation = await checkboxContainer.getRect();
           
           assert.ok(checkboxLocation.x >= 0, "Checkbox should be positioned correctly");
-          assert.ok(checkboxSize.width > 0 && checkboxSize.height > 0, "Checkbox should have proper dimensions");
+          assert.ok(checkboxLocation.width > 0 && checkboxLocation.height > 0, "Checkbox should have proper dimensions");
           
           console.log(`✓ Checkbox layout verified at ${checkboxLocation.x}, ${checkboxLocation.y}`);
         } catch (error) {
