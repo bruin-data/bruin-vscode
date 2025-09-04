@@ -26,7 +26,7 @@
                 >
                   <ArrowPathRoundedSquareIcon class="h-3 w-3" aria-hidden="true" />
                 </button>
-                <div class="relative">
+                <div class="relative" id="checkbox-group-chevron">
                   <ChevronUpIcon
                     v-if="showCheckboxGroup"
                     class="h-4 w-4"
