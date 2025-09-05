@@ -2,7 +2,7 @@
   <div class="h-full w-full flex justify-center">
     <div class="flex flex-col gap-6 h-full w-full max-w-4xl pr-1">
       <!-- Basic Information Section -->
-      <div class="collapsible-section">
+      <div id="basic-info-section" class="collapsible-section">
         <div class="section-header" @click="toggleSection('basicInfo')">
           <div class="flex items-center justify-between w-full">
             <h2 class="text-sm font-medium text-editor-fg">Basic Information</h2>
@@ -87,7 +87,7 @@
       </div>
 
       <!-- Advanced Section -->
-      <div class="collapsible-section">
+      <div id="advanced-section" class="collapsible-section">
         <div class="section-header" @click="toggleSection('advanced')">
           <div class="flex items-center justify-between w-full">
             <h2 class="text-sm font-medium text-editor-fg">Advanced Settings</h2>
@@ -107,6 +107,7 @@
                 <label class="block text-xs font-medium text-editor-fg mb-1">Start</label>
                 <div class="flex gap-2">
                   <input
+                    id="start-interval-input"
                     :value="startIntervalValue"
                     @input="
                       startIntervalValue = $event.target.value;
@@ -117,6 +118,7 @@
                     placeholder="e.g., -2"
                   />
                   <select
+                    id="start-interval-unit"
                     :value="startIntervalUnit"
                     @change="
                       startIntervalUnit = $event.target.value;
@@ -169,6 +171,7 @@
               <label class="block text-xs font-medium text-editor-fg mb-1">Partitioning</label>
               <div class="relative w-full" ref="partitionContainer">
                 <input
+                  id="partition-input"
                   v-model="partitionInput"
                   placeholder="Column or expression..."
                   class="w-full border-0 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg pr-6 h-6"
@@ -213,6 +216,7 @@
               <label class="block text-xs font-medium text-editor-fg mb-1">Clustering</label>
               <div class="relative w-full" ref="clusterContainer">
                 <input
+                  id="cluster-input"
                   ref="clusterInput"
                   v-model="clusterInputValue"
                   readonly
@@ -248,7 +252,7 @@
 
                     <div class="flex items-center gap-3">
             <label class="field-label min-w-[60px]">Secrets</label>
-            <div class="flex flex-wrap items-center space-x-2 flex-1">
+            <div id="secrets-container" class="flex flex-wrap items-center space-x-2 flex-1">
               <vscode-tag
                 v-for="(secret, index) in (localSecrets || [])"
                 :key="index"
@@ -271,6 +275,7 @@
 
               <div v-if="isAddingSecret || editingSecretIndex !== -1" class="flex items-center gap-1">
                 <input
+                  id="secret-key-input"
                   v-model="newSecretKey"
                   @keyup.enter="confirmAddSecret"
                   @keyup.escape="cancelAddSecret"
@@ -305,6 +310,7 @@
               </div>
                
               <vscode-button
+                id="add-secret-button"
                 appearance="icon"
                 @click="startAddingSecret"
                 v-if="!isAddingSecret && editingSecretIndex === -1"
@@ -319,7 +325,7 @@
       </div>
 
       <!-- Dependencies Section -->
-      <div class="collapsible-section overflow-visible">
+      <div id="dependencies-section" class="collapsible-section overflow-visible">
         <div class="section-header" @click="toggleSection('dependencies')">
           <div class="flex items-center justify-between w-full">
             <div class="flex items-center gap-2">
@@ -466,6 +472,7 @@
               <!-- External Dependency Input -->
               <div class="relative flex-1 max-w-[200px]" ref="externalDepsContainer">
                 <input
+                  id="external-dependency-input"
                   v-model="externalDepInput"
                   placeholder="Add external dependency..."
                   class="w-full border-0 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
@@ -475,6 +482,7 @@
 
               <!-- Fill from DB Button -->
               <vscode-button
+                id="fill-from-query-button"
                 v-if="isCurrentFileSql"
                 appearance="secondary"
                 @click="fillFromDB"
@@ -509,7 +517,7 @@
       </div>
 
       <!-- Materialization Section -->
-      <div class="collapsible-section">
+      <div id="materialization-section" class="collapsible-section">
         <div class="section-header" @click="toggleSection('materialization')">
           <div class="flex items-center justify-between w-full">
             <div class="flex items-center gap-2">
@@ -537,6 +545,7 @@
             <label class="field-label">Type</label>
             <div class="flex space-x-6">
               <vscode-radio-group
+                id="materialization-type-group"
                 :value="localMaterialization.type"
                 @change="(e) => setType(e.target.value)"
               >
@@ -552,6 +561,7 @@
             <label class="field-label">Strategy</label>
             <div class="relative">
               <select
+                id="materialization-strategy-select"
                 v-model="localMaterialization.strategy"
                 class="w-full max-w-[250px] bg-input-background text-input-foreground text-xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
               >
@@ -575,6 +585,7 @@
             <div v-if="localMaterialization.strategy === 'delete+insert'" class="field-group">
               <label class="field-label">Incremental Key</label>
               <input
+                id="incremental-key-input"
                 class="w-full max-w-[250px] border-0 bg-input-background text-xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
                 v-model="localMaterialization.incremental_key"
                 placeholder="column_name"
