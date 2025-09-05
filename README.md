@@ -63,6 +63,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.67.0**: Added a "Create in-place" checkbox to the project creation UI, allowing projects to be created directly in the selected folder.
 - **0.66.0**: Added console logging for executed query commands to aid in error detection.
 - **0.65.2**: Fixed table details panel bug and bruin.yaml bug.
 - **0.65.1**: Add full refresh to render panel.

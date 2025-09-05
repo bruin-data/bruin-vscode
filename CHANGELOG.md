@@ -1,4 +1,7 @@
 # Changelog
+## [0.67.0] - [2025-09-05]
+- Added a "Create in-place" checkbox to the project creation UI, allowing projects to be created directly in the selected folder.
+
 ## [0.66.0] - [2025-09-04]
 - Added console logging for executed query commands to aid in error detection.
 
