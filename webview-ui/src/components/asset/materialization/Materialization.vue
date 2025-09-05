@@ -139,6 +139,7 @@
                 <label class="block text-xs font-medium text-editor-fg mb-1">End</label>
                 <div class="flex gap-2">
                   <input
+                    id="end-interval-input"
                     :value="endIntervalValue"
                     @input="
                       endIntervalValue = $event.target.value;
@@ -149,6 +150,7 @@
                     placeholder="e.g., 1"
                   />
                   <select
+                    id="end-interval-unit"
                     :value="endIntervalUnit"
                     @change="
                       endIntervalUnit = $event.target.value;
@@ -293,6 +295,7 @@
                   class="text-2xs bg-input-background focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg min-w-[50px] h-6 px-1"
                 />
                 <vscode-button
+                  id="save-secret-button"
                   appearance="icon"
                   @click="confirmAddSecret"
                   title="Save secret"
@@ -365,7 +368,7 @@
           <!-- Current Dependencies Display -->
           <div class="field-group">
             <label class="field-label">Current Dependencies</label>
-            <div class="flex flex-wrap space-x-1 min-h-[40px] bg-editorWidget-bg p-2 rounded">
+            <div id="current-dependencies-container" class="flex flex-wrap space-x-1 min-h-[40px] bg-editorWidget-bg p-2 rounded">
               <vscode-tag
                 v-for="(dep, index) in dependencies"
                 :key="index"
@@ -409,6 +412,7 @@
               <!-- Pipeline Dependencies Dropdown -->
               <div class="relative flex-1 max-w-[200px] z-50" ref="pipelineDepsContainer">
                 <input
+                  id="pipeline-dependency-input"
                   v-model="pipelineSearchQuery"
                   placeholder="Add from pipeline..."
                   class="w-full border-0 bg-input-background text-2xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6 pr-6 cursor-pointer"
@@ -553,9 +557,9 @@
                 :value="localMaterialization.type"
                 @change="(e) => setType(e.target.value)"
               >
-                <vscode-radio name="materialization-type" value="null">None</vscode-radio>
-                <vscode-radio name="materialization-type" value="table">Table</vscode-radio>
-                <vscode-radio name="materialization-type" value="view">View</vscode-radio>
+                <vscode-radio id="materialization-type-null" name="materialization-type" value="null">None</vscode-radio>
+                <vscode-radio id="materialization-type-table" name="materialization-type" value="table">Table</vscode-radio>
+                <vscode-radio id="materialization-type-view" name="materialization-type" value="view">View</vscode-radio>
               </vscode-radio-group>
             </div>
           </div>
@@ -617,6 +621,7 @@
                 <div class="field-group">
                   <label class="field-label">Time Granularity</label>
                   <select
+                    id="time-granularity-select"
                     v-model="localMaterialization.time_granularity"
                     class="w-full max-w-[250px] bg-input-background text-xs focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
                   >
@@ -1033,6 +1038,9 @@ const defaultMaterialization = {
 };
 
 const localMaterialization = ref({ ...defaultMaterialization });
+const showStrategyOptions = computed(() => {
+  return localMaterialization.value.type === "table" && localMaterialization.value.strategy;
+});
 
 const initializeLocalMaterialization = (materializationProp) => {
   if (materializationProp === null) {
