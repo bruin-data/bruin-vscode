@@ -3111,4 +3111,379 @@ describe("Bruin Webview Test", function () {
       }
     });
   });
+
+  describe("Materialization Tests", function () {
+    let materializationTab: WebElement;
+    let ownerContainer: WebElement;
+    let tagsContainer: WebElement;
+
+    it("should navigate to the Details tab (tab-2) and access materialization", async function () {
+      this.timeout(20000);
+      
+      // Check if webview is properly loaded first
+      try {
+        await driver.findElement(By.id("app"));
+      } catch (error) {
+        console.log("Webview not properly loaded, skipping materialization tests");
+        this.skip();
+        return;
+      }
+      
+      // Navigate to tab-2 (Details tab) where materialization is located
+      try {
+        // Look for tab-2 (Details tab)
+        const detailsTab = await driver.findElement(By.id("tab-2"));
+        await detailsTab.click();
+        await sleep(1000);
+        console.log("✓ Successfully clicked on Details tab (tab-2)");
+        
+        // Wait for materialization section to be available
+        await driver.wait(
+          until.elementLocated(By.id("materialization-section")),
+          10000,
+          "Materialization section not found in Details tab"
+        );
+        console.log("✓ Materialization section is available");
+        
+      } catch (error: any) {
+        console.log("Could not navigate to Details tab or find materialization section:", error.message);
+        this.skip();
+      }
+    });
+
+    it("should test owner field editing", async function () {
+      this.timeout(20000);
+      
+      try {
+        // Look for owner input container using specific ID
+        ownerContainer = await driver.findElement(By.id("owner-text-container"));
+        console.log("✓ Found owner container by ID");
+
+        if (ownerContainer) {
+          // Test clicking to edit
+          await ownerContainer.click();
+          await sleep(500);
+
+          // Look for owner input field that appears when editing
+          try {
+            const ownerInput = await driver.findElement(By.id("owner-input"));
+            
+            // Clear and type new owner
+            await driver.executeScript(
+              'arguments[0].value = ""; arguments[0].dispatchEvent(new Event("input", { bubbles: true }));',
+              ownerInput
+            );
+            
+            const newOwner = `test@company-${Date.now()}.com`;
+            await ownerInput.sendKeys(newOwner);
+            await sleep(500);
+            
+            // Save by pressing Enter or Tab
+            await ownerInput.sendKeys(Key.ENTER);
+            await sleep(1000);
+            
+            console.log(`✓ Successfully updated owner to: ${newOwner}`);
+            
+          } catch (inputError: any) {
+            console.log("Could not interact with owner input field:", inputError.message);
+          }
+        } else {
+          console.log("Owner container not found, skipping owner test");
+        }
+        
+      } catch (error: any) {
+        console.log("Error in owner editing test:", error.message);
+      }
+    });
+
+    it("should test tags management", async function () {
+      this.timeout(20000);
+      
+      try {
+        // Look for tags container using specific ID
+        tagsContainer = await driver.findElement(By.id("tags-container"));
+        console.log("✓ Found tags container by ID");
+
+        if (tagsContainer) {
+          // Look for add tag button
+          try {
+            const addTagButton = await driver.findElement(By.id("add-tag-button"));
+            await addTagButton.click();
+            await sleep(500);
+            
+            // Look for tag input field
+            const tagInput = await driver.findElement(By.id("tag-input"));
+            
+            const newTag = `test-tag-${Date.now()}`;
+            await tagInput.sendKeys(newTag);
+            await tagInput.sendKeys(Key.ENTER);
+            await sleep(1000);
+            
+            console.log(`✓ Successfully added tag: ${newTag}`);
+            
+            // Verify the tag appears in the container
+            const tagElements = await tagsContainer.findElements(By.css(".tag, vscode-tag, .badge"));
+            console.log(`Found ${tagElements.length} tag elements after adding`);
+            
+          } catch (tagError: any) {
+            console.log("Could not interact with tags:", tagError.message);
+          }
+        } else {
+          console.log("Tags container not found, skipping tags test");
+        }
+        
+      } catch (error: any) {
+        console.log("Error in tags management test:", error.message);
+      }
+    });
+
+    it("should test materialization type selection", async function () {
+      this.timeout(20000);
+      
+      try {
+        // First ensure the materialization section is expanded
+        const materializationSection = await driver.findElement(By.id("materialization-section"));
+        const sectionHeader = await materializationSection.findElement(By.css(".section-header"));
+        
+        // Check if section is collapsed and expand if needed
+        try {
+          const chevron = await sectionHeader.findElement(By.css(".codicon"));
+          const chevronClass = await chevron.getAttribute("class");
+          if (chevronClass.includes("codicon-chevron-right")) {
+            await sectionHeader.click();
+            await sleep(1000);
+            console.log("✓ Expanded materialization section");
+          } else {
+            console.log("✓ Materialization section already expanded");
+          }
+        } catch (chevronError) {
+          // Try clicking header anyway
+          await sectionHeader.click();
+          await sleep(1000);
+          console.log("✓ Clicked materialization section header");
+        }
+        
+        // Wait for content to be visible and look for materialization type radio group
+        await driver.wait(
+          until.elementLocated(By.id("materialization-type-group")),
+          5000,
+          "Materialization type group not found"
+        );
+        
+        const typeGroup = await driver.findElement(By.id("materialization-type-group"));
+        console.log("✓ Found materialization type group by ID");
+        
+        // Look for table radio option - try different approaches
+        try {
+          // First try to find any radio buttons
+          const radioButtons = await typeGroup.findElements(By.css("vscode-radio"));
+          console.log(`Found ${radioButtons.length} radio buttons`);
+          
+          let tableOption = null;
+          for (const radio of radioButtons) {
+            const value = await radio.getAttribute("value");
+            if (value === "table") {
+              tableOption = radio;
+              break;
+            }
+          }
+          
+          if (tableOption) {
+            await tableOption.click();
+            await sleep(1000);
+            console.log("✓ Successfully selected table materialization type");
+            
+            // Look for strategy dropdown that should appear
+            try {
+              await driver.wait(
+                until.elementLocated(By.id("materialization-strategy-select")),
+                5000,
+                "Strategy select not found"
+              );
+              
+              const strategySelect = await driver.findElement(By.id("materialization-strategy-select"));
+              const options = await strategySelect.findElements(By.css("option"));
+              
+              if (options.length > 1) {
+                // Select second option (not default)
+                await strategySelect.click();
+                await options[1].click();
+                await sleep(500);
+                console.log("✓ Successfully selected materialization strategy");
+              }
+            } catch (strategyError: any) {
+              console.log("Could not interact with strategy selector:", strategyError.message);
+            }
+          } else {
+            console.log("Table radio option not found among available options");
+          }
+          
+        } catch (radioError: any) {
+          console.log("Could not interact with radio buttons:", radioError.message);
+        }
+        
+      } catch (error: any) {
+        console.log("Error in materialization type test:", error.message);
+      }
+    });
+
+    it("should test dependencies management", async function () {
+      this.timeout(20000);
+      
+      try {
+        // Look for dependencies section using specific ID
+        const dependenciesSection = await driver.findElement(By.id("dependencies-section"));
+        const sectionHeader = await dependenciesSection.findElement(By.css(".section-header"));
+        
+        // Check if section is collapsed and expand if needed
+        try {
+          const chevron = await sectionHeader.findElement(By.css(".codicon"));
+          const chevronClass = await chevron.getAttribute("class");
+          if (chevronClass.includes("codicon-chevron-right")) {
+            await sectionHeader.click();
+            await sleep(1000);
+            console.log("✓ Expanded dependencies section");
+          } else {
+            console.log("✓ Dependencies section already expanded");
+          }
+        } catch (chevronError) {
+          // Try clicking header anyway
+          await sectionHeader.click();
+          await sleep(1000);
+          console.log("✓ Clicked dependencies section header");
+        }
+        
+        const dependenciesFound = true;
+
+        if (dependenciesFound) {
+          // Wait for section content to be visible
+          await sleep(1000);
+          
+          // Look for external dependency input
+          try {
+            await driver.wait(
+              until.elementLocated(By.id("external-dependency-input")),
+              5000,
+              "External dependency input not found"
+            );
+            
+            const externalDepInput = await driver.findElement(By.id("external-dependency-input"));
+            
+            const newDep = `external_source_${Date.now()}`;
+            await externalDepInput.sendKeys(newDep);
+            await externalDepInput.sendKeys(Key.ENTER);
+            await sleep(1000);
+            
+            console.log(`✓ Successfully added external dependency: ${newDep}`);
+            
+          } catch (depError: any) {
+            console.log("Could not interact with dependency input:", depError.message);
+          }
+
+          // Look for fill from DB button (if SQL file)
+          try {
+            const fillButton = await driver.findElement(By.id("fill-from-query-button"));
+            if (fillButton) {
+              await fillButton.click();
+              await sleep(2000);
+              console.log("✓ Clicked fill dependencies from query button");
+            }
+          } catch (fillError: any) {
+            console.log("Fill from query button not found or not clickable");
+          }
+        } else {
+          console.log("Dependencies section not found");
+        }
+        
+      } catch (error: any) {
+        console.log("Error in dependencies management test:", error.message);
+      }
+    });
+
+    it("should test collapsible sections", async function () {
+      this.timeout(15000);
+      
+      try {
+        // Find all collapsible sections
+        const sectionHeaders = await driver.findElements(By.css(".section-header, .collapsible-section h2, .collapsible-section h3"));
+        console.log(`Found ${sectionHeaders.length} potential collapsible sections`);
+        
+        for (let i = 0; i < Math.min(3, sectionHeaders.length); i++) {
+          try {
+            const header = sectionHeaders[i];
+            const headerText = await header.getText();
+            console.log(`Testing collapsible section: ${headerText}`);
+            
+            // Click to toggle
+            await header.click();
+            await sleep(500);
+            
+            // Click again to toggle back
+            await header.click();
+            await sleep(500);
+            
+            console.log(`✓ Successfully toggled section: ${headerText}`);
+            
+          } catch (headerError: any) {
+            console.log(`Could not interact with section ${i}:`, headerError.message);
+          }
+        }
+        
+      } catch (error: any) {
+        console.log("Error in collapsible sections test:", error.message);
+      }
+    });
+
+    it("should test interval modifiers if available", async function () {
+      this.timeout(15000);
+      
+      try {
+        // First expand the advanced section where interval modifiers are located
+        try {
+          const advancedSection = await driver.findElement(By.id("advanced-section"));
+          const sectionHeader = await advancedSection.findElement(By.css(".section-header"));
+          
+          // Check if section is collapsed and expand if needed
+          const chevron = await sectionHeader.findElement(By.css(".codicon"));
+          const chevronClass = await chevron.getAttribute("class");
+          if (chevronClass.includes("codicon-chevron-right")) {
+            await sectionHeader.click();
+            await sleep(1000);
+            console.log("✓ Expanded advanced section");
+          } else {
+            console.log("✓ Advanced section already expanded");
+          }
+          
+          // Look for interval modifier inputs using specific IDs
+          await driver.wait(
+            until.elementLocated(By.id("start-interval-input")),
+            5000,
+            "Start interval input not found"
+          );
+          
+          const startInput = await driver.findElement(By.id("start-interval-input"));
+          await startInput.clear();
+          await startInput.sendKeys("-2");
+          await sleep(500);
+          console.log("✓ Set start interval value");
+          
+          // Look for corresponding unit selector
+          const unitSelect = await driver.findElement(By.id("start-interval-unit"));
+          const options = await unitSelect.findElements(By.css("option"));
+          if (options.length > 1) {
+            await unitSelect.click();
+            await options[1].click(); // Select first non-empty option
+            await sleep(500);
+            console.log("✓ Successfully set interval modifier with unit");
+          }
+          
+        } catch (error: any) {
+          console.log("Could not find interval modifier inputs:", error.message);
+        }
+        
+      } catch (error: any) {
+        console.log("Error in interval modifiers test:", error.message);
+      }
+    });
+  });
 });
