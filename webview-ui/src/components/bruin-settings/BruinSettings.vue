@@ -18,21 +18,22 @@
       />
     </div>
 
-    <div v-if="isBruinInstalled" class="bg-editorWidget-bg shadow sm:rounded-lg p-4">
+    <div v-if="isBruinInstalled" id="project-templates-section" class="bg-editorWidget-bg shadow sm:rounded-lg p-4">
       <div class="flex flex-col space-y-3">
-        <h3 class="text-base font-medium text-editor-fg">Project Templates</h3>
-        <div class="max-w-xl text-sm text-editor-fg">
+        <h3 id="project-templates-title" class="text-base font-medium text-editor-fg">Project Templates</h3>
+        <div class="text-sm text-editor-fg">
           <p>
             Create new Bruin projects from pre-built templates. Choose a template that matches your use case and get started quickly with best practices.
           </p>
         </div>
-        <div class="flex items-center justify-between">
-          <div class="relative w-64">
+        <div id="project-templates-container" class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div class="relative w-full sm:w-64 flex-shrink-0" style="min-width: 200px;">
             <vscode-dropdown 
               v-if="templates.length > 0"
               @change="handleTemplateSelect"
               class="w-full"
               ref="templateDropdownRef"
+              id="template-dropdown"
             >
               <vscode-option value="">Select a template...</vscode-option>
               <vscode-option 
@@ -50,13 +51,27 @@
               No templates available
             </div>
           </div>
-          <vscode-button 
-            appearance="primary"
-            @click="handleCreateProject"
-            :disabled="!selectedTemplate"
-          >
-            Create
-          </vscode-button>
+          <div id="project-controls" class="flex items-center space-x-3 flex-shrink-0">
+            <vscode-checkbox
+              id="create-in-place-checkbox"
+              v-model="createInPlace"
+              :checked="createInPlace"
+              @change="handleInPlaceToggle"
+            >
+              Create in-place
+            </vscode-checkbox>
+            <vscode-button 
+              id="create-project-button"
+              appearance="primary"
+              @click="handleCreateProject"
+              :disabled="!selectedTemplate"
+            >
+              Create
+            </vscode-button>
+          </div>
+        </div>
+        <div v-if="createInPlace" id="in-place-help-text" class="text-xs text-editor-fg opacity-75 mt-2">
+          Template will be created directly in the selected folder
         </div>
         <div v-if="selectedTemplate" class="text-xs text-editor-fg opacity-75">
           Selected: <span class="font-medium">{{ selectedTemplate }}</span>
@@ -150,6 +165,7 @@ const templatesLoading = ref(false);
 const projectCreationSuccess = ref(false);
 const successMessage = ref("");
 const templateDropdownRef = ref<HTMLElement | null>(null);
+const createInPlace = ref(true); // Default to true (in-place creation)
 
 const connectionFormKey = computed(() => {
   return connectionToEdit.value?.id ? `edit-${connectionToEdit.value.id}` : "new-connection";
@@ -533,12 +549,18 @@ const handleCreateProject = async () => {
     await vscode.postMessage({
       command: "bruin.initProject",
       payload: {
-        templateName: selectedTemplate.value
+        templateName: selectedTemplate.value,
+        inPlace: createInPlace.value
       }
     });
   } catch (error) {
     console.error("Error creating project:", error);
   }
+};
+
+const handleInPlaceToggle = (event) => {
+  createInPlace.value = event.target.checked;
+  console.log("In-place creation toggle:", createInPlace.value);
 };
 
 const handleProjectInit = (payload) => {
@@ -573,3 +595,22 @@ watch(() => props.isBruinInstalled, (newValue) => {
   }
 });
 </script>
+
+<style scoped>
+#project-templates-container {
+  min-width: 0;
+}
+
+@media (min-width: 640px) {
+  #project-templates-container {
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+  }
+  
+  #project-templates-container > div:first-child {
+    width: 16rem !important;
+    flex-shrink: 0 !important;
+  }
+}
+ </style>
