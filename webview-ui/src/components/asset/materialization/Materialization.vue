@@ -3,7 +3,7 @@
     <div class="flex flex-col gap-6 h-full w-full max-w-4xl pr-1">
       <!-- Basic Information Section -->
       <div id="basic-info-section" class="collapsible-section">
-        <div class="section-header" @click="toggleSection('basicInfo')">
+        <div id="basic-info-section-header" class="section-header" @click="toggleSection('basicInfo')">
           <div class="flex items-center justify-between w-full">
             <h2 class="text-sm font-medium text-editor-fg">Basic Information</h2>
             <span
@@ -88,10 +88,11 @@
 
       <!-- Advanced Section -->
       <div id="advanced-section" class="collapsible-section">
-        <div class="section-header" @click="toggleSection('advanced')">
+        <div id="advanced-section-header" class="section-header" @click="toggleSection('advanced')">
           <div class="flex items-center justify-between w-full">
             <h2 class="text-sm font-medium text-editor-fg">Advanced Settings</h2>
             <span
+              id="advanced-section-chevron"
               class="codicon transition-transform duration-200"
               :class="expandedSections.advanced ? 'codicon-chevron-down' : 'codicon-chevron-right'"
             ></span>
@@ -326,7 +327,7 @@
 
       <!-- Dependencies Section -->
       <div id="dependencies-section" class="collapsible-section overflow-visible">
-        <div class="section-header" @click="toggleSection('dependencies')">
+        <div id="dependencies-section-header" class="section-header" @click="toggleSection('dependencies')">
           <div class="flex items-center justify-between w-full">
             <div class="flex items-center gap-2">
               <h2 class="text-sm font-medium text-editor-fg">Dependencies</h2>
@@ -350,6 +351,7 @@
                 </div>
               </div>
               <span
+                id="dependencies-section-chevron"
                 class="codicon transition-transform duration-200"
                 :class="
                   expandedSections.dependencies ? 'codicon-chevron-down' : 'codicon-chevron-right'
@@ -384,6 +386,7 @@
                     {{ dep.mode || 'full' }}
                   </span>
                   <span
+                    id="dependency-close-icon"
                     @click="removeDependency(index)"
                     class="codicon codicon-close text-3xs cursor-pointer flex items-center"
                   ></span>
@@ -518,7 +521,7 @@
 
       <!-- Materialization Section -->
       <div id="materialization-section" class="collapsible-section">
-        <div class="section-header" @click="toggleSection('materialization')">
+        <div id="materialization-section-header" class="section-header" @click="toggleSection('materialization')">
           <div class="flex items-center justify-between w-full">
             <div class="flex items-center gap-2">
               <h2 class="text-sm font-medium text-editor-fg">Materialization</h2>
@@ -531,6 +534,7 @@
               </span>
             </div>
             <span
+              id="materialization-section-chevron"
               class="codicon transition-transform duration-200"
               :class="
                 expandedSections.materialization ? 'codicon-chevron-down' : 'codicon-chevron-right'
