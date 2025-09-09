@@ -3834,7 +3834,7 @@ describe("Bruin Webview Test", function () {
     });
   });
 
-  describe.only("Columns tests", function () {
+  describe("Columns tests", function () {
     let columnsTableContainer: WebElement;
 
     beforeEach(async function () {
