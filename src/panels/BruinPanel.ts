@@ -39,7 +39,7 @@ import {
   getBruinExecutablePath
 } from "../providers/BruinExecutableService";
 import path = require("path");
-import { isBruinAsset, isFileExtensionSQL } from "../utilities/helperUtils";
+import { isBruinAsset } from "../utilities/helperUtils";
 import { BruinInternalParse } from "../bruin/bruinInternalParse";
 import { BruinInternalListTemplates } from "../bruin/bruinInternalListTemplates";
 
@@ -499,7 +499,7 @@ export class BruinPanel {
             case "checkboxChange":
               this._checkboxState = message.payload.checkboxState;
               this._flags = message.payload.flags;
-              if (this._lastRenderedDocumentUri?.fsPath && isFileExtensionSQL(this._lastRenderedDocumentUri.fsPath)) {
+              if (this._lastRenderedDocumentUri?.fsPath) {
                 await renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri.fsPath);
               }
               break;
@@ -1160,7 +1160,6 @@ export class BruinPanel {
   private _scheduleSqlPreviewRender(fileUri: Uri | undefined): void {
     if (!fileUri) return;
     const filePath = fileUri.fsPath;
-    if (!isFileExtensionSQL(filePath)) return; // Only render SQL assets here
 
     // debounce to avoid flooding render calls while typing
     if (this._renderDebounceTimer) {
