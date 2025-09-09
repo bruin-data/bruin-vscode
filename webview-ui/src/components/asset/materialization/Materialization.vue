@@ -602,7 +602,7 @@
 
             <div v-if="localMaterialization.strategy === 'merge'" class="field-group">
               <div class="p-1 bg-editorWidget-bg rounded">
-                <p class="info-text">
+                <p id="merge-primary-key-info" class="info-text">
                   Configure primary keys in column definitions using <code>primary_key: true</code>
                 </p>
               </div>

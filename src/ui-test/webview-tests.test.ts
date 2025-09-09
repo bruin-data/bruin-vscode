@@ -3817,7 +3817,7 @@ describe("Bruin Webview Test", function () {
         
         // Verify primary key configuration info is visible
         const primaryKeyInfo = await driver.wait(
-          until.elementLocated(By.css('.info-text, .field-group p, [class*="info"]')),
+          until.elementLocated(By.id('merge-primary-key-info')),
           5000,
           "Primary key configuration info should appear for merge strategy"
         );
