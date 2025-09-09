@@ -162,6 +162,7 @@
             <td class="px-2 py-1" style="width: 80px;">
               <div v-if="editingIndex === index" class="flex flex-col gap-1">
                 <input
+                  :id="`column-owner-input-${index}`"
                   v-model="editingColumn.owner"
                   class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs"
                   placeholder="Enter owner"

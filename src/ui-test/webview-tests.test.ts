@@ -4170,5 +4170,126 @@ describe("Bruin Webview Test", function () {
         throw error;
       }
     });
+
+    it("should toggle nullable status by clicking indicator", async function () {
+      this.timeout(15000);
+      
+      try {
+        // Ensure we have at least one column
+        let columnRows = await columnsTableContainer.findElements(By.css('[id^="column-row-"]'));
+        
+        if (columnRows.length === 0) {
+          // Add a column first
+          const addColumnButton = await driver.findElement(By.id("add-column-button"));
+          await addColumnButton.click();
+          await sleep(1500);
+          
+          // Save the default column
+          const saveButton = await driver.findElement(By.id("save-column-button-0"));
+          await saveButton.click();
+          await sleep(1500);
+        }
+        
+        const columnIndex = 0;
+        console.log(`Testing nullable toggle for column ${columnIndex}`);
+
+        // Find the nullable indicator in the second column (index 1)
+        const columnRow = await driver.findElement(By.id(`column-row-${columnIndex}`));
+        const cells = await columnRow.findElements(By.css('td'));
+        const nullableCell = cells[1]; // Second cell is the nullable indicator
+        
+        // Get the nullable indicator span
+        const nullableIndicator = await nullableCell.findElement(By.css('span'));
+        
+        // Get initial nullable state
+        const initialText = await nullableIndicator.getText();
+        console.log(`Initial nullable indicator: ${initialText}`);
+        
+        // Click the nullable indicator to toggle
+        await nullableIndicator.click();
+        await sleep(1000); // Wait for state change
+        console.log("✓ Clicked nullable indicator");
+        
+        // Verify state changed
+        const newText = await nullableIndicator.getText();
+        console.log(`New nullable indicator: ${newText}`);
+        
+        // The text should have changed from ✓ to ✗ or vice versa
+        assert.notStrictEqual(initialText, newText, "Nullable state should have changed");
+        assert.ok(['✓', '✗'].includes(newText), "Nullable indicator should show ✓ or ✗");
+        console.log("✓ Nullable status toggled successfully");
+        
+      } catch (error) {
+        console.log("Error toggling nullable status:", error);
+        throw error;
+      }
+    });
+
+    it("should edit column owner field", async function () {
+      this.timeout(20000);
+      
+      try {
+        // Ensure we have at least one column to edit
+        let columnRows = await columnsTableContainer.findElements(By.css('[id^="column-row-"]'));
+        
+        if (columnRows.length === 0) {
+          // Add a column first
+          const addColumnButton = await driver.findElement(By.id("add-column-button"));
+          await addColumnButton.click();
+          await sleep(1500);
+          
+          // Save the default column
+          const saveButton = await driver.findElement(By.id("save-column-button-0"));
+          await saveButton.click();
+          await sleep(1500);
+          
+          columnRows = await columnsTableContainer.findElements(By.css('[id^="column-row-"]'));
+        }
+        
+        const columnToEdit = 0;
+        console.log(`Testing owner editing for column ${columnToEdit}`);
+
+        // Click edit button to enter edit mode
+        const editButton = await driver.findElement(By.id(`edit-column-button-${columnToEdit}`));
+        await editButton.click();
+        await sleep(1000);
+        console.log("✓ Entered edit mode");
+
+        // Find the owner input field
+        const ownerInput = await driver.wait(
+          until.elementLocated(By.id(`column-owner-input-${columnToEdit}`)),
+          5000,
+          "Column owner input not found - edit mode not activated"
+        );
+        console.log("✓ Found owner input field");
+
+        // Clear and set owner value
+        const testOwner = `data-team-${Date.now()}@company.com`;
+        await ownerInput.clear();
+        await ownerInput.sendKeys(testOwner);
+        await sleep(500);
+        console.log(`✓ Set owner to: ${testOwner}`);
+
+        // Save changes
+        const saveButton = await driver.findElement(By.id(`save-column-button-${columnToEdit}`));
+        await saveButton.click();
+        await sleep(1500);
+        console.log("✓ Saved changes");
+
+        // Verify owner was saved by checking the owner cell content
+        const row = await driver.findElement(By.id(`column-row-${columnToEdit}`));
+        const cells = await row.findElements(By.css('td'));
+        const ownerCell = cells[5]; // Owner is the 6th column (index 5)
+        const ownerSpan = await ownerCell.findElement(By.css('span'));
+        const savedOwner = await ownerSpan.getText();
+        
+        assert.ok(savedOwner.includes(testOwner), `Owner should be set to "${testOwner}"`);
+        console.log(`✓ Owner successfully saved: ${savedOwner}`);
+        
+      } catch (error) {
+        console.log("Error editing column owner:", error);
+        throw error;
+      }
+    });
   });
 });
