@@ -546,6 +546,7 @@
     "format": "prettier --write src/**/*.ts",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
+    "coverage:integration": "node realistic-coverage.js",
     "tag:patch": "./scripts/tag-helper.sh patch",
     "tag:minor": "./scripts/tag-helper.sh minor",
     "tag:major": "./scripts/tag-helper.sh major"
