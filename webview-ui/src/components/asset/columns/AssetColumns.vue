@@ -32,7 +32,7 @@
         </template>
         Fill from DB
       </vscode-button>
-      <vscode-button @click="handleAddColumn" class="py-1 focus:outline-none disabled:cursor-not-allowed flex-shrink-0 whitespace-nowrap" :disabled="isConfigFile"> Add column </vscode-button>
+      <vscode-button id="add-column-button" @click="handleAddColumn" class="py-1 focus:outline-none disabled:cursor-not-allowed flex-shrink-0 whitespace-nowrap" :disabled="isConfigFile"> Add column </vscode-button>
     </div>
     
     <!-- Error message for fill operation -->
@@ -44,7 +44,7 @@
     />
 
     <!-- Column Table -->
-    <div class="flex-1 min-h-72 overflow-x-auto text-xs mt-5">
+    <div id="columns-table-container" class="flex-1 min-h-72 overflow-x-auto text-xs mt-5">
       <table class="w-full min-w-fit text-xs">
         <thead class="sticky top-0 bg-editorWidget-bg z-10">
           <tr class="font-semibold text-xs opacity-65 border-b-2 border-editor-fg">
@@ -66,10 +66,12 @@
           <tr
             v-for="(column, index) in localColumns"
             :key="index"
+            :id="`column-row-${index}`"
             class="border-b border-commandCenter-border"
           >
             <td class="px-2 py-1" style="width: 2rem;">
               <vscode-checkbox
+                :id="`primary-key-checkbox-${index}`"
                 :checked="column.primary_key"
                 @change="togglePrimaryKey($event, index)"
                 title="Set as primary key"
@@ -93,6 +95,7 @@
             <td class="px-2 py-1 font-medium font-mono text-xs" style="width: 100px;">
               <div v-if="editingIndex === index" class="flex flex-col gap-1">
                 <input
+                  :id="`column-name-input-${index}`"
                   v-model="editingColumn.name"
                   class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs"
                   :class="{ 'font-bold': editingColumn.primary_key }"
@@ -123,6 +126,7 @@
               <div v-if="editingIndex === index" class="flex flex-col gap-1">
                 <div class="flex items-center">
                   <input
+                    :id="`column-type-input-${index}`"
                     v-model="editingColumn.type"
                     class="w-full p-1 bg-editorWidget-bg text-editor-fg font-mono text-xs"
                   />
@@ -139,6 +143,7 @@
             <td class="px-2 py-1 text-xs" style="width: 120px;">
               <textarea
                 v-if="editingIndex === index"
+                :id="`column-description-input-${index}`"
                 v-model="editingColumn.description"
                 class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs"
                 rows="2"
@@ -286,6 +291,7 @@
               <div class="flex justify-center items-center space-x-1">
                 <vscode-button
                   v-if="editingIndex === index"
+                  :id="`save-column-button-${index}`"
                   appearance="icon"
                   @click="saveChanges(index)"
                   aria-label="Save"
@@ -295,6 +301,7 @@
                 </vscode-button>
                 <vscode-button
                   v-else
+                  :id="`edit-column-button-${index}`"
                   appearance="icon"
                   @click="startEditing(index)"
                   aria-label="Edit"
@@ -303,6 +310,7 @@
                   <PencilIcon class="h-3 w-3" />
                 </vscode-button>
                 <vscode-button
+                  :id="`delete-column-button-${index}`"
                   appearance="icon"
                   @click="showDeleteAlert = index"
                   aria-label="Delete"
@@ -324,7 +332,7 @@
           </tr>
         </tbody>
       </table>
-      <div v-if="!localColumns.length" class="px-4">
+      <div v-if="!localColumns.length" id="columns-empty-state" class="px-4">
         <p class="flex text-md italic justify-start items-center opacity-70 p-2">
           No columns to display.
         </p>

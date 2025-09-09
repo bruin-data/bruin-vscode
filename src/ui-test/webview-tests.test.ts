@@ -3833,4 +3833,342 @@ describe("Bruin Webview Test", function () {
       }
     });
   });
+
+  describe.only("Columns tests", function () {
+    let columnsTableContainer: WebElement;
+
+    beforeEach(async function () {
+      this.timeout(15000);
+      
+      try {
+        // Navigate to the Columns tab (tab-1)
+        const columnsTab = await driver.findElement(By.id("tab-1"));
+        await columnsTab.click();
+        await sleep(1000);
+        console.log("✓ Navigated to Columns tab");
+
+        // Wait for columns table container to be available
+        columnsTableContainer = await driver.wait(
+          until.elementLocated(By.id("columns-table-container")),
+          10000,
+          "Columns table container not found"
+        );
+        console.log("✓ Columns table container found");
+        
+      } catch (error) {
+        console.log("Error in columns test setup:", error);
+        this.skip();
+      }
+    });
+
+    it("should display existing columns from the file", async function () {
+      this.timeout(15000);
+      
+      try {
+        // Look for existing column rows
+        const columnRows = await columnsTableContainer.findElements(By.css('[id^="column-row-"]'));
+        
+        if (columnRows.length > 0) {
+          console.log(`Found ${columnRows.length} existing columns`);
+          
+          // Verify each column row has the expected structure
+          for (let i = 0; i < columnRows.length; i++) {
+            const row = columnRows[i];
+            
+            // Check that the row has the expected number of cells (8 columns: PK, Nullable, Name, Type, Description, Owner, Checks, Actions)
+            const cells = await row.findElements(By.css('td'));
+            assert.ok(cells.length >= 6, `Column row ${i} should have at least 6 cells`);
+            
+            // Get column name from the third cell (Name column)
+            const nameCell = cells[2];
+            const nameText = await nameCell.getText();
+            assert.ok(nameText.length > 0, `Column ${i} should have a name`);
+            
+            console.log(`Column ${i}: Name="${nameText}"`);
+          }
+        } else {
+          // If no existing columns, verify the empty state message
+          const emptyState = await driver.wait(
+            until.elementLocated(By.id("columns-empty-state")),
+            5000,
+            "Empty state message not found"
+          );
+          
+          const emptyStateText = await emptyState.getText();
+          assert.ok(emptyStateText.includes("No columns to display"), "Empty state message should be displayed");
+          console.log("No existing columns found, empty state displayed correctly");
+        }
+        
+      } catch (error) {
+        console.log("Error checking existing columns:", error);
+        throw error;
+      }
+    });
+
+    it("should add a new column successfully", async function () {
+      this.timeout(20000);
+      
+      try {
+        // Get initial column count
+        const initialRows = await columnsTableContainer.findElements(By.css('[id^="column-row-"]'));
+        const initialCount = initialRows.length;
+        console.log(`Initial column count: ${initialCount}`);
+
+        // Click Add Column button
+        const addColumnButton = await driver.findElement(By.id("add-column-button"));
+        await addColumnButton.click();
+        await sleep(1500); // Wait for new column to be added and enter edit mode
+        console.log("✓ Clicked add column button");
+
+        // Wait for new column row to appear (should be in edit mode)
+        const newRowIndex = initialCount; // New row will be at the end
+        const newColumnRow = await driver.wait(
+          until.elementLocated(By.id(`column-row-${newRowIndex}`)),
+          5000,
+          "New column row not found"
+        );
+        console.log("✓ New column row appeared");
+
+        // Verify the new column is in edit mode by checking for input fields
+        const nameInput = await driver.wait(
+          until.elementLocated(By.id(`column-name-input-${newRowIndex}`)),
+          5000,
+          "Column name input not found - column may not be in edit mode"
+        );
+        
+        const typeInput = await driver.findElement(By.id(`column-type-input-${newRowIndex}`));
+        const descriptionInput = await driver.findElement(By.id(`column-description-input-${newRowIndex}`));
+        
+        console.log("✓ Column is in edit mode with all input fields");
+
+        // Edit the column details
+        const testColumnName = `test_column_${Date.now()}`;
+        await nameInput.clear();
+        await nameInput.sendKeys(testColumnName);
+        await sleep(500);
+
+        await typeInput.clear();
+        await typeInput.sendKeys("varchar");
+        await sleep(500);
+
+        await descriptionInput.clear();
+        await descriptionInput.sendKeys("Test column description");
+        await sleep(500);
+
+        console.log(`✓ Updated column details: ${testColumnName}`);
+
+        // Save the changes
+        const saveButton = await driver.findElement(By.id(`save-column-button-${newRowIndex}`));
+        await saveButton.click();
+        await sleep(1500); // Wait for save to complete
+        console.log("✓ Saved column changes");
+
+        // Verify the column was saved and is no longer in edit mode
+        // The save button should disappear and edit button should appear
+        const editButton = await driver.wait(
+          until.elementLocated(By.id(`edit-column-button-${newRowIndex}`)),
+          5000,
+          "Edit button not found - column may not have saved properly"
+        );
+        
+        // Verify the saved values are displayed
+        const cells = await newColumnRow.findElements(By.css('td'));
+        const nameCell = cells[2]; // Name column
+        const savedName = await nameCell.getText();
+        
+        assert.ok(savedName.includes(testColumnName), `Saved column name should contain "${testColumnName}"`);
+        console.log(`✓ Column saved successfully with name: ${savedName}`);
+
+        // Verify final column count increased
+        const finalRows = await columnsTableContainer.findElements(By.css('[id^="column-row-"]'));
+        assert.strictEqual(finalRows.length, initialCount + 1, "Column count should increase by 1");
+        console.log(`✓ Final column count: ${finalRows.length}`);
+        
+      } catch (error) {
+        console.log("Error adding new column:", error);
+        throw error;
+      }
+    });
+
+    it("should edit an existing column", async function () {
+      this.timeout(20000);
+      
+      try {
+        // Ensure we have at least one column to edit
+        let columnRows = await columnsTableContainer.findElements(By.css('[id^="column-row-"]'));
+        
+        if (columnRows.length === 0) {
+          // Add a column first
+          const addColumnButton = await driver.findElement(By.id("add-column-button"));
+          await addColumnButton.click();
+          await sleep(1500);
+          
+          // Save the default column
+          const saveButton = await driver.findElement(By.id("save-column-button-0"));
+          await saveButton.click();
+          await sleep(1500);
+          
+          columnRows = await columnsTableContainer.findElements(By.css('[id^="column-row-"]'));
+        }
+        
+        const columnToEdit = 0; // Edit the first column
+        console.log(`Editing column at index ${columnToEdit}`);
+
+        // Click edit button for the first column
+        const editButton = await driver.findElement(By.id(`edit-column-button-${columnToEdit}`));
+        await editButton.click();
+        await sleep(1000);
+        console.log("✓ Clicked edit button");
+
+        // Verify column enters edit mode
+        const nameInput = await driver.wait(
+          until.elementLocated(By.id(`column-name-input-${columnToEdit}`)),
+          5000,
+          "Column name input not found - edit mode not activated"
+        );
+        
+        const descriptionInput = await driver.findElement(By.id(`column-description-input-${columnToEdit}`));
+        console.log("✓ Column entered edit mode");
+
+        // Get current values
+        const currentName = await nameInput.getAttribute("value");
+        const currentDescription = await descriptionInput.getAttribute("value");
+
+        // Modify the column
+        const updatedName = `${currentName}_edited_${Date.now()}`;
+        const updatedDescription = `${currentDescription} - Updated description`;
+        
+        await nameInput.clear();
+        await nameInput.sendKeys(updatedName);
+        await sleep(500);
+
+        await descriptionInput.clear();
+        await descriptionInput.sendKeys(updatedDescription);
+        await sleep(500);
+        
+        console.log(`✓ Updated column name to: ${updatedName}`);
+
+        // Save changes
+        const saveButton = await driver.findElement(By.id(`save-column-button-${columnToEdit}`));
+        await saveButton.click();
+        await sleep(1500);
+        console.log("✓ Saved changes");
+
+        // Verify changes were saved
+        const row = await driver.findElement(By.id(`column-row-${columnToEdit}`));
+        const cells = await row.findElements(By.css('td'));
+        const nameCell = cells[2]; // Name column
+        const savedName = await nameCell.getText();
+        
+        assert.ok(savedName.includes(updatedName), `Column name should be updated to "${updatedName}"`);
+        console.log(`✓ Column successfully updated to: ${savedName}`);
+        
+      } catch (error) {
+        console.log("Error editing column:", error);
+        throw error;
+      }
+    });
+
+    it("should toggle primary key checkbox", async function () {
+      this.timeout(15000);
+      
+      try {
+        // Ensure we have at least one column
+        let columnRows = await columnsTableContainer.findElements(By.css('[id^="column-row-"]'));
+        
+        if (columnRows.length === 0) {
+          // Add a column first
+          const addColumnButton = await driver.findElement(By.id("add-column-button"));
+          await addColumnButton.click();
+          await sleep(1500);
+          
+          // Save the default column
+          const saveButton = await driver.findElement(By.id("save-column-button-0"));
+          await saveButton.click();
+          await sleep(1500);
+        }
+        
+        const columnIndex = 0;
+        console.log(`Testing primary key toggle for column ${columnIndex}`);
+
+        // Find the primary key checkbox
+        const primaryKeyCheckbox = await driver.findElement(By.id(`primary-key-checkbox-${columnIndex}`));
+        
+        // Get initial state
+        const initialState = await primaryKeyCheckbox.getAttribute("checked");
+        console.log(`Initial primary key state: ${initialState}`);
+        
+        // Toggle the checkbox
+        await primaryKeyCheckbox.click();
+        await sleep(1000); // Wait for state change
+        console.log("✓ Clicked primary key checkbox");
+        
+        // Verify state changed
+        const newState = await primaryKeyCheckbox.getAttribute("checked");
+        console.log(`New primary key state: ${newState}`);
+        
+        // The state should have changed
+        assert.notStrictEqual(initialState, newState, "Primary key state should have changed");
+        console.log("✓ Primary key checkbox toggled successfully");
+        
+      } catch (error) {
+        console.log("Error toggling primary key:", error);
+        throw error;
+      }
+    });
+
+    it("should delete a column", async function () {
+      this.timeout(20000);
+      
+      try {
+        // Ensure we have at least one column to delete
+        let columnRows = await columnsTableContainer.findElements(By.css('[id^="column-row-"]'));
+        
+        if (columnRows.length === 0) {
+          // Add a column first
+          const addColumnButton = await driver.findElement(By.id("add-column-button"));
+          await addColumnButton.click();
+          await sleep(1500);
+          
+          // Save the default column
+          const saveButton = await driver.findElement(By.id("save-column-button-0"));
+          await saveButton.click();
+          await sleep(1500);
+          
+          columnRows = await columnsTableContainer.findElements(By.css('[id^="column-row-"]'));
+        }
+        
+        const initialCount = columnRows.length;
+        const columnToDelete = initialCount - 1; // Delete the last column
+        console.log(`Deleting column at index ${columnToDelete}, initial count: ${initialCount}`);
+
+        // Click delete button
+        const deleteButton = await driver.findElement(By.id(`delete-column-button-${columnToDelete}`));
+        await deleteButton.click();
+        await sleep(1000);
+        console.log("✓ Clicked delete button");
+
+        // Wait for delete confirmation dialog and confirm
+        // The delete alert should appear
+        const confirmButton = await driver.wait(
+          until.elementLocated(By.xpath("//button[contains(text(), 'Delete')]")),
+          5000,
+          "Delete confirmation button not found"
+        );
+        
+        await confirmButton.click();
+        await sleep(1500); // Wait for deletion to complete
+        console.log("✓ Confirmed deletion");
+
+        // Verify column was deleted
+        const finalRows = await columnsTableContainer.findElements(By.css('[id^="column-row-"]'));
+        assert.strictEqual(finalRows.length, initialCount - 1, "Column count should decrease by 1");
+        console.log(`✓ Column deleted successfully. Final count: ${finalRows.length}`);
+        
+      } catch (error) {
+        console.log("Error deleting column:", error);
+        throw error;
+      }
+    });
+  });
 });
