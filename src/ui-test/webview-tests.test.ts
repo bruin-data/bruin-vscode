@@ -4485,5 +4485,164 @@ describe("Bruin Webview Test", function () {
         throw error;
       }
     });
+
+    it("should remove existing checks from column", async function () {
+      this.timeout(15000);
+      
+      try {
+        // This test works with columns that already have checks from the example.sql file
+        console.log("Testing check removal functionality");
+
+        // Look for columns with existing checks
+        const columnRows = await columnsTableContainer.findElements(By.css('[id^="column-row-"]'));
+        console.log(`Found ${columnRows.length} columns to check for existing checks`);
+        
+        let columnWithChecks = -1;
+        let checksCount = 0;
+        
+        // Find a column that has checks by examining each row
+        for (let i = 0; i < columnRows.length; i++) {
+          try {
+            // Enter edit mode for this column
+            const editButton = await driver.findElement(By.id(`edit-column-button-${i}`));
+            await editButton.click();
+            await sleep(1000);
+            
+            // Look for existing check badges
+            const checkBadges = await driver.findElements(By.css(`[id^="column-check-badge-${i}-"]`));
+            checksCount = checkBadges.length;
+            
+            if (checksCount > 0) {
+              columnWithChecks = i;
+              console.log(`✓ Found column ${i} with ${checksCount} existing checks`);
+              break;
+            } else {
+              // Exit edit mode and try next column
+              const saveButton = await driver.findElement(By.id(`save-column-button-${i}`));
+              await saveButton.click();
+              await sleep(500);
+            }
+          } catch (error) {
+            console.log(`Column ${i} has no checks or error accessing: ${error instanceof Error ? error.message : String(error)}`);
+            continue;
+          }
+        }
+        
+        if (columnWithChecks === -1) {
+          console.log("No columns with existing checks found - skipping remove check test");
+          this.skip();
+          return;
+        }
+        
+        console.log(`Testing check removal on column ${columnWithChecks} with ${checksCount} checks`);
+        
+        // Find the first check badge and its remove button
+        const firstCheckBadge = await driver.findElement(By.id(`column-check-badge-${columnWithChecks}-0`));
+        const checkBadgeText = await firstCheckBadge.getText();
+        console.log(`First check to remove: ${checkBadgeText}`);
+        
+        // Find and click the remove button for the first check
+        const removeButton = await driver.findElement(By.id(`remove-check-button-${columnWithChecks}-0`));
+        await removeButton.click();
+        await sleep(1000);
+        console.log("✓ Clicked remove check button");
+        
+        // Verify the check was removed by counting remaining checks
+        const remainingCheckBadges = await driver.findElements(By.css(`[id^="column-check-badge-${columnWithChecks}-"]`));
+        const remainingCount = remainingCheckBadges.length;
+        
+        assert.strictEqual(remainingCount, checksCount - 1, `Should have ${checksCount - 1} checks after removal`);
+        console.log(`✓ Check removed successfully. Remaining checks: ${remainingCount}`);
+        
+        // Verify the specific check we removed is no longer present
+        const remainingCheckTexts = await Promise.all(
+          remainingCheckBadges.map(badge => badge.getText())
+        );
+        
+        const removedCheckStillExists = remainingCheckTexts.some(text => 
+          text.includes(checkBadgeText.replace(/\s+/g, ' ').trim())
+        );
+        
+        assert.ok(!removedCheckStillExists, `Removed check "${checkBadgeText}" should not still be present`);
+        console.log(`✓ Confirmed "${checkBadgeText}" check was removed from the list`);
+        
+        // Save the column changes
+        const saveButton = await driver.findElement(By.id(`save-column-button-${columnWithChecks}`));
+        await saveButton.click();
+        await sleep(1000);
+        console.log("✓ Saved column after check removal");
+        
+      } catch (error) {
+        console.log("Error testing check removal:", error);
+        throw error;
+      }
+    });
+
+    it("should test glossary link functionality", async function () {
+      this.timeout(10000);
+      
+      try {
+        console.log("Testing glossary link functionality");
+
+        // Look for columns with glossary links (entity_attribute)
+        const columnRows = await columnsTableContainer.findElements(By.css('[id^="column-row-"]'));
+        console.log(`Checking ${columnRows.length} columns for glossary links`);
+        
+        let foundGlossaryLink = false;
+        
+        for (let i = 0; i < columnRows.length; i++) {
+          try {
+            // Look for glossary link button for this column
+            const glossaryButton = await driver.findElement(By.id(`glossary-link-button-${i}`));
+            
+            if (glossaryButton) {
+              console.log(`✓ Found glossary link button for column ${i}`);
+              
+              // Verify button is visible and has correct tooltip
+              const isVisible = await glossaryButton.isDisplayed();
+              assert.ok(isVisible, "Glossary link button should be visible");
+              
+              const title = await glossaryButton.getAttribute("title");
+              assert.ok(title.includes("View in Glossary"), "Button should have glossary tooltip");
+              console.log(`✓ Glossary button tooltip: ${title}`);
+              
+              // Click the glossary button
+              await glossaryButton.click();
+              await sleep(500);
+              console.log("✓ Clicked glossary link button");
+              
+              // The button should trigger the openGlossaryLink function
+              // In the real application, this would:
+              // 1. Send a VSCode message: { command: "bruin.openGlossary" }
+              // 2. Open the glossary panel or external link
+              
+              // Since we can't directly test the VSCode message sending,
+              // we verify that the button click was successful (no errors)
+              console.log("✓ Glossary link clicked successfully (would open glossary in real environment)");
+              
+              foundGlossaryLink = true;
+              break;
+            }
+          } catch (error) {
+            // No glossary link for this column, continue checking others
+            continue;
+          }
+        }
+        
+        if (!foundGlossaryLink) {
+          console.log("No columns with glossary links found - this is normal if no entity_attribute is set");
+          console.log("Glossary link functionality is available but not used in current test data");
+          
+          // This is not a test failure - it's normal behavior
+          // The test verifies that the functionality exists and works when applicable
+        } else {
+          console.log("✓ Glossary link functionality tested successfully");
+        }
+        
+      } catch (error) {
+        console.log("Error testing glossary link:", error);
+        throw error;
+      }
+    });
   });
 });

@@ -111,6 +111,7 @@
                   {{ column.name }}
                 </span>
                 <vscode-button
+                  :id="`glossary-link-button-${index}`"
                   v-if="column.entity_attribute"
                   appearance="icon"
                   @click="openGlossaryLink(column.entity_attribute)"
@@ -188,14 +189,16 @@
                 <template v-if="editingIndex === index">
                   <div class="flex flex-wrap gap-1">
                     <vscode-badge
-                      v-for="check in getActiveChecks(editingColumn)"
+                      v-for="(check, checkIndex) in getActiveChecks(editingColumn)"
                       :key="check.id"
+                      :id="`column-check-badge-${index}-${checkIndex}`"
                       :title="getCheckTooltip(check, editingColumn)"
                       class="inline-flex items-center"
                     >
                       <span class="flex items-center truncate">
                         {{ check.name }}
                         <vscode-button
+                          :id="`remove-check-button-${index}-${checkIndex}`"
                           appearance="icon"
                           @click="removeCheck(check.name)"
                           aria-label="Remove check"
