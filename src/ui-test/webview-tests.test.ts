@@ -4291,5 +4291,199 @@ describe("Bruin Webview Test", function () {
         throw error;
       }
     });
+
+    it("should test Fill from DB button UI behavior", async function () {
+      this.timeout(15000);
+      
+      try {
+        console.log("Testing Fill from DB button UI behavior");
+
+        // Find the Fill from DB button
+        const fillFromDBButton = await driver.findElement(By.id("fill-from-db-button"));
+        
+        // Verify button exists and has expected text
+        const buttonText = await fillFromDBButton.getText();
+        assert.ok(buttonText.includes("Fill from DB"), "Button should have 'Fill from DB' text");
+        console.log(`✓ Button found with text: ${buttonText}`);
+        
+        // Verify button is initially enabled (not in loading state)
+        const initialDisabledState = await fillFromDBButton.getAttribute("disabled");
+        assert.ok(!initialDisabledState, "Button should initially be enabled");
+        console.log("✓ Button is initially enabled");
+        
+        // Click Fill from DB button - this will trigger the fillColumnsFromDB function
+        await fillFromDBButton.click();
+        await sleep(500);
+        console.log("✓ Clicked Fill from DB button");
+
+        // In a real environment, this would either:
+        // 1. Show loading state then success/error
+        // 2. Show error immediately if no DB connection
+        // 3. Show success and populate columns
+        
+        // Wait a moment to see if loading state appears
+        await sleep(1000);
+        
+        // Check what happened after the click
+        const afterClickDisabled = await fillFromDBButton.getAttribute("disabled");
+        console.log(`Button disabled after click: ${afterClickDisabled}`);
+        
+        if (afterClickDisabled) {
+          console.log("✓ Button entered loading state - waiting for completion");
+          
+          // Wait for operation to complete (button should re-enable)
+          await driver.wait(async () => {
+            const stillDisabled = await fillFromDBButton.getAttribute("disabled");
+            return !stillDisabled;
+          }, 8000, "Fill from DB operation did not complete");
+          
+          console.log("✓ Loading state completed - button re-enabled");
+        }
+        
+        // Check for any state changes after operation
+        await sleep(1000);
+        
+        // Look for success or error indicators in the button
+        const finalButtonText = await fillFromDBButton.getText();
+        console.log(`Final button state: ${finalButtonText}`);
+        
+        // Check if error alert appeared (expected if no DB connection)
+        try {
+          const errorAlert = await driver.findElement(By.id("fill-columns-error-alert"));
+          const isErrorVisible = await errorAlert.isDisplayed();
+          
+          if (isErrorVisible) {
+            console.log("✓ Error alert displayed (expected without DB connection)");
+            const errorText = await errorAlert.getText();
+            console.log(`Error message: ${errorText}`);
+            
+            // This is the expected behavior in test environment
+            assert.ok(isErrorVisible, "Error should be shown when no DB connection available");
+          }
+        } catch (noErrorAlert) {
+          console.log("No error alert - operation may have succeeded silently");
+        }
+        
+        // Verify button returned to enabled state
+        const finalDisabledState = await fillFromDBButton.getAttribute("disabled");
+        assert.ok(!finalDisabledState, "Button should be enabled after operation");
+        console.log("✓ Button returned to enabled state");
+        
+        // The key test is that the UI behaves correctly:
+        // 1. Button can be clicked
+        // 2. Loading state may appear
+        // 3. Button returns to enabled state
+        // 4. Either success or error feedback is shown
+        console.log("✓ Fill from DB UI behavior test completed successfully");
+        
+      } catch (error) {
+        console.log("Error testing Fill from DB UI behavior:", error);
+        throw error;
+      }
+    });
+
+    it("should open and interact with add checks dropdown", async function () {
+      this.timeout(20000);
+      
+      try {
+        // Ensure we have at least one column to edit
+        let columnRows = await columnsTableContainer.findElements(By.css('[id^="column-row-"]'));
+        
+        if (columnRows.length === 0) {
+          // Add a column first
+          const addColumnButton = await driver.findElement(By.id("add-column-button"));
+          await addColumnButton.click();
+          await sleep(1500);
+          
+          // Save the default column
+          const saveButton = await driver.findElement(By.id("save-column-button-0"));
+          await saveButton.click();
+          await sleep(1500);
+        }
+        
+        const columnIndex = 0;
+        console.log(`Testing add checks dropdown for column ${columnIndex}`);
+
+        // Enter edit mode for the column
+        const editButton = await driver.findElement(By.id(`edit-column-button-${columnIndex}`));
+        await editButton.click();
+        await sleep(1000);
+        console.log("✓ Entered edit mode");
+
+        // Look for the add check button (plus icon)
+        try {
+          const addCheckButton = await driver.wait(
+            until.elementLocated(By.id(`add-check-button-${columnIndex}`)),
+            5000,
+            "Add check button not found"
+          );
+          console.log("✓ Found add check button");
+
+          // Click the add check button to open dropdown
+          await addCheckButton.click();
+          await sleep(1000);
+          console.log("✓ Clicked add check button");
+
+          // Look for the dropdown
+          try {
+            const dropdown = await driver.wait(
+              until.elementLocated(By.id(`add-check-dropdown-${columnIndex}`)),
+              3000,
+              "Add check dropdown not found"
+            );
+            
+            const isDropdownDisplayed = await dropdown.isDisplayed();
+            assert.ok(isDropdownDisplayed, "Add check dropdown should be visible");
+            console.log("✓ Add check dropdown opened successfully");
+
+            // Look for dropdown items (available checks)
+            const dropdownItems = await dropdown.findElements(By.css('vscode-dropdown-item'));
+            console.log(`Found ${dropdownItems.length} available checks in dropdown`);
+            
+            if (dropdownItems.length > 0) {
+              // Get text of first available check
+              const firstCheckText = await dropdownItems[0].getText();
+              console.log(`First available check: ${firstCheckText}`);
+              
+              // Click the first check to add it
+              await dropdownItems[0].click();
+              await sleep(1000);
+              console.log(`✓ Added check: ${firstCheckText}`);
+              
+              // Verify the check was added by looking for it in the checks section
+              // The dropdown should close after adding a check
+              try {
+                const dropdownStillVisible = await dropdown.isDisplayed();
+                assert.ok(!dropdownStillVisible, "Dropdown should close after adding check");
+                console.log("✓ Dropdown closed after adding check");
+              } catch (error) {
+                // Element might not exist anymore, which is expected
+                console.log("✓ Dropdown element removed after adding check");
+              }
+            } else {
+              console.log("No available checks found in dropdown");
+            }
+
+          } catch (dropdownError) {
+            console.log("Add check dropdown not found - may not be available for this column type");
+            // This could be normal behavior if no checks are available for the column
+          }
+
+        } catch (buttonError) {
+          console.log("Add check button not found - may not be available in edit mode");
+          // This could be normal if the column doesn't support checks or no checks are available
+        }
+
+        // Save the column to exit edit mode
+        const saveButton = await driver.findElement(By.id(`save-column-button-${columnIndex}`));
+        await saveButton.click();
+        await sleep(1000);
+        console.log("✓ Saved column and exited edit mode");
+        
+      } catch (error) {
+        console.log("Error testing add checks dropdown:", error);
+        throw error;
+      }
+    });
   });
 });

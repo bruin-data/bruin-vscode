@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col py-4 sm:py-1 h-full w-full relative">
     <div class="flex justify-end mb-4 space-x-2">
-      <vscode-button @click="fillColumnsFromDB" :disabled="fillColumnsStatus === 'loading'" class="py-1 focus:outline-none disabled:cursor-not-allowed flex-shrink-0 whitespace-nowrap">
+      <vscode-button id="fill-from-db-button" @click="fillColumnsFromDB" :disabled="fillColumnsStatus === 'loading'" class="py-1 focus:outline-none disabled:cursor-not-allowed flex-shrink-0 whitespace-nowrap">
         <template v-if="fillColumnsStatus === 'loading'">
           <svg
             class="animate-spin mr-1 h-4 w-4 text-editor-bg"
@@ -37,6 +37,7 @@
     
     <!-- Error message for fill operation -->
     <SimpleErrorAlert 
+      id="fill-columns-error-alert"
       v-if="fillColumnsMessage && fillColumnsStatus === 'error'" 
       :errorMessage="fillColumnsMessage" 
       errorPhase="Fill Columns" 
@@ -207,6 +208,7 @@
                   </div>
                   <div v-if="availableChecks(editingColumn).length > 0" class="relative">
                     <vscode-dropdown
+                      :id="`add-check-dropdown-${index}`"
                       v-if="showAddCheckDropdown === index"
                       :data-dropdown-index="index"
                       class="w-28 z-50"
@@ -222,6 +224,7 @@
                       </vscode-dropdown-item>
                     </vscode-dropdown>
                     <vscode-button
+                      :id="`add-check-button-${index}`"
                       v-if="showAddCheckDropdown !== index"
                       appearance="icon"
                       @click="toggleAddCheckDropdown(index)"
