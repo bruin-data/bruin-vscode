@@ -44,6 +44,7 @@
                 <XIcon class="h-4 w-4" aria-hidden="true" />
               </vscode-button>
               <vscode-button 
+                id="description-save-button"
                 title="save" 
                 appearance="icon" 
                 @click.stop="saveDescriptionEdit"
