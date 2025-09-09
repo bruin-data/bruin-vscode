@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col py-4 sm:py-1 h-full w-full relative">
     <div class="flex justify-end mb-4 space-x-2">
-      <vscode-button @click="fillColumnsFromDB" :disabled="fillColumnsStatus === 'loading'" class="py-1 focus:outline-none disabled:cursor-not-allowed flex-shrink-0 whitespace-nowrap">
+      <vscode-button id="fill-from-db-button" @click="fillColumnsFromDB" :disabled="fillColumnsStatus === 'loading'" class="py-1 focus:outline-none disabled:cursor-not-allowed flex-shrink-0 whitespace-nowrap">
         <template v-if="fillColumnsStatus === 'loading'">
           <svg
             class="animate-spin mr-1 h-4 w-4 text-editor-bg"
@@ -32,11 +32,12 @@
         </template>
         Fill from DB
       </vscode-button>
-      <vscode-button @click="handleAddColumn" class="py-1 focus:outline-none disabled:cursor-not-allowed flex-shrink-0 whitespace-nowrap" :disabled="isConfigFile"> Add column </vscode-button>
+      <vscode-button id="add-column-button" @click="handleAddColumn" class="py-1 focus:outline-none disabled:cursor-not-allowed flex-shrink-0 whitespace-nowrap" :disabled="isConfigFile"> Add column </vscode-button>
     </div>
     
     <!-- Error message for fill operation -->
     <SimpleErrorAlert 
+      id="fill-columns-error-alert"
       v-if="fillColumnsMessage && fillColumnsStatus === 'error'" 
       :errorMessage="fillColumnsMessage" 
       errorPhase="Fill Columns" 
@@ -44,7 +45,7 @@
     />
 
     <!-- Column Table -->
-    <div class="flex-1 min-h-72 overflow-x-auto text-xs mt-5">
+    <div id="columns-table-container" class="flex-1 min-h-72 overflow-x-auto text-xs mt-5">
       <table class="w-full min-w-fit text-xs">
         <thead class="sticky top-0 bg-editorWidget-bg z-10">
           <tr class="font-semibold text-xs opacity-65 border-b-2 border-editor-fg">
@@ -66,10 +67,12 @@
           <tr
             v-for="(column, index) in localColumns"
             :key="index"
+            :id="`column-row-${index}`"
             class="border-b border-commandCenter-border"
           >
             <td class="px-2 py-1" style="width: 2rem;">
               <vscode-checkbox
+                :id="`primary-key-checkbox-${index}`"
                 :checked="column.primary_key"
                 @change="togglePrimaryKey($event, index)"
                 title="Set as primary key"
@@ -93,6 +96,7 @@
             <td class="px-2 py-1 font-medium font-mono text-xs" style="width: 100px;">
               <div v-if="editingIndex === index" class="flex flex-col gap-1">
                 <input
+                  :id="`column-name-input-${index}`"
                   v-model="editingColumn.name"
                   class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs"
                   :class="{ 'font-bold': editingColumn.primary_key }"
@@ -107,6 +111,7 @@
                   {{ column.name }}
                 </span>
                 <vscode-button
+                  :id="`glossary-link-button-${index}`"
                   v-if="column.entity_attribute"
                   appearance="icon"
                   @click="openGlossaryLink(column.entity_attribute)"
@@ -123,6 +128,7 @@
               <div v-if="editingIndex === index" class="flex flex-col gap-1">
                 <div class="flex items-center">
                   <input
+                    :id="`column-type-input-${index}`"
                     v-model="editingColumn.type"
                     class="w-full p-1 bg-editorWidget-bg text-editor-fg font-mono text-xs"
                   />
@@ -139,6 +145,7 @@
             <td class="px-2 py-1 text-xs" style="width: 120px;">
               <textarea
                 v-if="editingIndex === index"
+                :id="`column-description-input-${index}`"
                 v-model="editingColumn.description"
                 class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs"
                 rows="2"
@@ -157,6 +164,7 @@
             <td class="px-2 py-1" style="width: 80px;">
               <div v-if="editingIndex === index" class="flex flex-col gap-1">
                 <input
+                  :id="`column-owner-input-${index}`"
                   v-model="editingColumn.owner"
                   class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs"
                   placeholder="Enter owner"
@@ -181,14 +189,16 @@
                 <template v-if="editingIndex === index">
                   <div class="flex flex-wrap gap-1">
                     <vscode-badge
-                      v-for="check in getActiveChecks(editingColumn)"
+                      v-for="(check, checkIndex) in getActiveChecks(editingColumn)"
                       :key="check.id"
+                      :id="`column-check-badge-${index}-${checkIndex}`"
                       :title="getCheckTooltip(check, editingColumn)"
                       class="inline-flex items-center"
                     >
                       <span class="flex items-center truncate">
                         {{ check.name }}
                         <vscode-button
+                          :id="`remove-check-button-${index}-${checkIndex}`"
                           appearance="icon"
                           @click="removeCheck(check.name)"
                           aria-label="Remove check"
@@ -201,6 +211,7 @@
                   </div>
                   <div v-if="availableChecks(editingColumn).length > 0" class="relative">
                     <vscode-dropdown
+                      :id="`add-check-dropdown-${index}`"
                       v-if="showAddCheckDropdown === index"
                       :data-dropdown-index="index"
                       class="w-28 z-50"
@@ -216,6 +227,7 @@
                       </vscode-dropdown-item>
                     </vscode-dropdown>
                     <vscode-button
+                      :id="`add-check-button-${index}`"
                       v-if="showAddCheckDropdown !== index"
                       appearance="icon"
                       @click="toggleAddCheckDropdown(index)"
@@ -227,6 +239,7 @@
                     <div v-if="showPatternInput && editingIndex === index" class="mt-1 px-1">
                       <div class="flex items-center space-x-1">
                         <input
+                          :id="`pattern-input-${index}`"
                           v-model="newPatternValue"
                           @input="updatePatternValue"
                           @keyup.enter="confirmPatternInput"
@@ -240,6 +253,7 @@
                   <div v-if="showAcceptedValuesInput && editingIndex === index" class="mt-1 px-1">
                     <div class="flex flex-col justify-start space-y-1">
                       <input
+                        :id="`accepted-values-input-${index}`"
                         v-model="newAcceptedValuesInput"
                         @keyup.enter="addAcceptedValue"
                         placeholder="Enter value & Press Enter"
@@ -286,6 +300,7 @@
               <div class="flex justify-center items-center space-x-1">
                 <vscode-button
                   v-if="editingIndex === index"
+                  :id="`save-column-button-${index}`"
                   appearance="icon"
                   @click="saveChanges(index)"
                   aria-label="Save"
@@ -295,6 +310,7 @@
                 </vscode-button>
                 <vscode-button
                   v-else
+                  :id="`edit-column-button-${index}`"
                   appearance="icon"
                   @click="startEditing(index)"
                   aria-label="Edit"
@@ -303,6 +319,7 @@
                   <PencilIcon class="h-3 w-3" />
                 </vscode-button>
                 <vscode-button
+                  :id="`delete-column-button-${index}`"
                   appearance="icon"
                   @click="showDeleteAlert = index"
                   aria-label="Delete"
@@ -324,7 +341,7 @@
           </tr>
         </tbody>
       </table>
-      <div v-if="!localColumns.length" class="px-4">
+      <div v-if="!localColumns.length" id="columns-empty-state" class="px-4">
         <p class="flex text-md italic justify-start items-center opacity-70 p-2">
           No columns to display.
         </p>

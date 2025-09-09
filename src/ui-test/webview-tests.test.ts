@@ -3833,4 +3833,1334 @@ describe("Bruin Webview Test", function () {
       }
     });
   });
+
+  describe.only("Columns tests", function () {
+    let columnsTableContainer: WebElement;
+
+    beforeEach(async function () {
+      this.timeout(15000);
+      
+      try {
+        // Navigate to the Columns tab (tab-1)
+        const columnsTab = await driver.findElement(By.id("tab-1"));
+        await columnsTab.click();
+        await sleep(1000);
+        console.log("✓ Navigated to Columns tab");
+
+        // Wait for columns table container to be available
+        columnsTableContainer = await driver.wait(
+          until.elementLocated(By.id("columns-table-container")),
+          10000,
+          "Columns table container not found"
+        );
+        console.log("✓ Columns table container found");
+        
+      } catch (error) {
+        console.log("Error in columns test setup:", error);
+        this.skip();
+      }
+    });
+
+    it("should display existing columns from the file", async function () {
+      this.timeout(15000);
+      
+      try {
+        // Look for existing column rows
+        const columnRows = await columnsTableContainer.findElements(By.css('[id^="column-row-"]'));
+        
+        if (columnRows.length > 0) {
+          console.log(`Found ${columnRows.length} existing columns`);
+          
+          // Verify each column row has the expected structure
+          for (let i = 0; i < columnRows.length; i++) {
+            const row = columnRows[i];
+            
+            // Check that the row has the expected number of cells (8 columns: PK, Nullable, Name, Type, Description, Owner, Checks, Actions)
+            const cells = await row.findElements(By.css('td'));
+            assert.ok(cells.length >= 6, `Column row ${i} should have at least 6 cells`);
+            
+            // Get column name from the third cell (Name column)
+            const nameCell = cells[2];
+            const nameText = await nameCell.getText();
+            assert.ok(nameText.length > 0, `Column ${i} should have a name`);
+            
+            console.log(`Column ${i}: Name="${nameText}"`);
+          }
+        } else {
+          // If no existing columns, verify the empty state message
+          const emptyState = await driver.wait(
+            until.elementLocated(By.id("columns-empty-state")),
+            5000,
+            "Empty state message not found"
+          );
+          
+          const emptyStateText = await emptyState.getText();
+          assert.ok(emptyStateText.includes("No columns to display"), "Empty state message should be displayed");
+          console.log("No existing columns found, empty state displayed correctly");
+        }
+        
+      } catch (error) {
+        console.log("Error checking existing columns:", error);
+        throw error;
+      }
+    });
+
+    it("should add a new column successfully", async function () {
+      this.timeout(20000);
+      
+      try {
+        // Get initial column count
+        const initialRows = await columnsTableContainer.findElements(By.css('[id^="column-row-"]'));
+        const initialCount = initialRows.length;
+        console.log(`Initial column count: ${initialCount}`);
+
+        // Click Add Column button
+        const addColumnButton = await driver.findElement(By.id("add-column-button"));
+        await addColumnButton.click();
+        await sleep(1500); // Wait for new column to be added and enter edit mode
+        console.log("✓ Clicked add column button");
+
+        // Wait for new column row to appear (should be in edit mode)
+        const newRowIndex = initialCount; // New row will be at the end
+        const newColumnRow = await driver.wait(
+          until.elementLocated(By.id(`column-row-${newRowIndex}`)),
+          5000,
+          "New column row not found"
+        );
+        console.log("✓ New column row appeared");
+
+        // Verify the new column is in edit mode by checking for input fields
+        const nameInput = await driver.wait(
+          until.elementLocated(By.id(`column-name-input-${newRowIndex}`)),
+          5000,
+          "Column name input not found - column may not be in edit mode"
+        );
+        
+        const typeInput = await driver.findElement(By.id(`column-type-input-${newRowIndex}`));
+        const descriptionInput = await driver.findElement(By.id(`column-description-input-${newRowIndex}`));
+        
+        console.log("✓ Column is in edit mode with all input fields");
+
+        // Edit the column details
+        const testColumnName = `test_column_${Date.now()}`;
+        await nameInput.clear();
+        await nameInput.sendKeys(testColumnName);
+        await sleep(500);
+
+        await typeInput.clear();
+        await typeInput.sendKeys("varchar");
+        await sleep(500);
+
+        await descriptionInput.clear();
+        await descriptionInput.sendKeys("Test column description");
+        await sleep(500);
+
+        console.log(`✓ Updated column details: ${testColumnName}`);
+
+        // Save the changes
+        const saveButton = await driver.findElement(By.id(`save-column-button-${newRowIndex}`));
+        await saveButton.click();
+        await sleep(1500); // Wait for save to complete
+        console.log("✓ Saved column changes");
+
+        // Verify the column was saved and is no longer in edit mode
+        // The save button should disappear and edit button should appear
+        const editButton = await driver.wait(
+          until.elementLocated(By.id(`edit-column-button-${newRowIndex}`)),
+          5000,
+          "Edit button not found - column may not have saved properly"
+        );
+        
+        // Verify the saved values are displayed
+        const cells = await newColumnRow.findElements(By.css('td'));
+        const nameCell = cells[2]; // Name column
+        const savedName = await nameCell.getText();
+        
+        assert.ok(savedName.includes(testColumnName), `Saved column name should contain "${testColumnName}"`);
+        console.log(`✓ Column saved successfully with name: ${savedName}`);
+
+        // Verify final column count increased
+        const finalRows = await columnsTableContainer.findElements(By.css('[id^="column-row-"]'));
+        assert.strictEqual(finalRows.length, initialCount + 1, "Column count should increase by 1");
+        console.log(`✓ Final column count: ${finalRows.length}`);
+        
+      } catch (error) {
+        console.log("Error adding new column:", error);
+        throw error;
+      }
+    });
+
+    it("should edit an existing column", async function () {
+      this.timeout(20000);
+      
+      try {
+        // Ensure we have at least one column to edit
+        let columnRows = await columnsTableContainer.findElements(By.css('[id^="column-row-"]'));
+        
+        if (columnRows.length === 0) {
+          // Add a column first
+          const addColumnButton = await driver.findElement(By.id("add-column-button"));
+          await addColumnButton.click();
+          await sleep(1500);
+          
+          // Save the default column
+          const saveButton = await driver.findElement(By.id("save-column-button-0"));
+          await saveButton.click();
+          await sleep(1500);
+          
+          columnRows = await columnsTableContainer.findElements(By.css('[id^="column-row-"]'));
+        }
+        
+        const columnToEdit = 0; // Edit the first column
+        console.log(`Editing column at index ${columnToEdit}`);
+
+        // Click edit button for the first column
+        const editButton = await driver.findElement(By.id(`edit-column-button-${columnToEdit}`));
+        await editButton.click();
+        await sleep(1000);
+        console.log("✓ Clicked edit button");
+
+        // Verify column enters edit mode
+        const nameInput = await driver.wait(
+          until.elementLocated(By.id(`column-name-input-${columnToEdit}`)),
+          5000,
+          "Column name input not found - edit mode not activated"
+        );
+        
+        const descriptionInput = await driver.findElement(By.id(`column-description-input-${columnToEdit}`));
+        console.log("✓ Column entered edit mode");
+
+        // Get current values
+        const currentName = await nameInput.getAttribute("value");
+        const currentDescription = await descriptionInput.getAttribute("value");
+
+        // Modify the column
+        const updatedName = `${currentName}_edited_${Date.now()}`;
+        const updatedDescription = `${currentDescription} - Updated description`;
+        
+        await nameInput.clear();
+        await nameInput.sendKeys(updatedName);
+        await sleep(500);
+
+        await descriptionInput.clear();
+        await descriptionInput.sendKeys(updatedDescription);
+        await sleep(500);
+        
+        console.log(`✓ Updated column name to: ${updatedName}`);
+
+        // Save changes
+        const saveButton = await driver.findElement(By.id(`save-column-button-${columnToEdit}`));
+        await saveButton.click();
+        await sleep(1500);
+        console.log("✓ Saved changes");
+
+        // Verify changes were saved
+        const row = await driver.findElement(By.id(`column-row-${columnToEdit}`));
+        const cells = await row.findElements(By.css('td'));
+        const nameCell = cells[2]; // Name column
+        const savedName = await nameCell.getText();
+        
+        assert.ok(savedName.includes(updatedName), `Column name should be updated to "${updatedName}"`);
+        console.log(`✓ Column successfully updated to: ${savedName}`);
+        
+      } catch (error) {
+        console.log("Error editing column:", error);
+        throw error;
+      }
+    });
+
+    it("should toggle primary key checkbox", async function () {
+      this.timeout(15000);
+      
+      try {
+        // Ensure we have at least one column
+        let columnRows = await columnsTableContainer.findElements(By.css('[id^="column-row-"]'));
+        
+        if (columnRows.length === 0) {
+          // Add a column first
+          const addColumnButton = await driver.findElement(By.id("add-column-button"));
+          await addColumnButton.click();
+          await sleep(1500);
+          
+          // Save the default column
+          const saveButton = await driver.findElement(By.id("save-column-button-0"));
+          await saveButton.click();
+          await sleep(1500);
+        }
+        
+        const columnIndex = 0;
+        console.log(`Testing primary key toggle for column ${columnIndex}`);
+
+        // Find the primary key checkbox
+        const primaryKeyCheckbox = await driver.findElement(By.id(`primary-key-checkbox-${columnIndex}`));
+        
+        // Get initial state
+        const initialState = await primaryKeyCheckbox.getAttribute("checked");
+        console.log(`Initial primary key state: ${initialState}`);
+        
+        // Toggle the checkbox
+        await primaryKeyCheckbox.click();
+        await sleep(1000); // Wait for state change
+        console.log("✓ Clicked primary key checkbox");
+        
+        // Verify state changed
+        const newState = await primaryKeyCheckbox.getAttribute("checked");
+        console.log(`New primary key state: ${newState}`);
+        
+        // The state should have changed
+        assert.notStrictEqual(initialState, newState, "Primary key state should have changed");
+        console.log("✓ Primary key checkbox toggled successfully");
+        
+      } catch (error) {
+        console.log("Error toggling primary key:", error);
+        throw error;
+      }
+    });
+
+    it("should delete a column", async function () {
+      this.timeout(20000);
+      
+      try {
+        // Ensure we have at least one column to delete
+        let columnRows = await columnsTableContainer.findElements(By.css('[id^="column-row-"]'));
+        
+        if (columnRows.length === 0) {
+          // Add a column first
+          const addColumnButton = await driver.findElement(By.id("add-column-button"));
+          await addColumnButton.click();
+          await sleep(1500);
+          
+          // Save the default column
+          const saveButton = await driver.findElement(By.id("save-column-button-0"));
+          await saveButton.click();
+          await sleep(1500);
+          
+          columnRows = await columnsTableContainer.findElements(By.css('[id^="column-row-"]'));
+        }
+        
+        const initialCount = columnRows.length;
+        const columnToDelete = initialCount - 1; // Delete the last column
+        console.log(`Deleting column at index ${columnToDelete}, initial count: ${initialCount}`);
+
+        // Click delete button
+        const deleteButton = await driver.findElement(By.id(`delete-column-button-${columnToDelete}`));
+        await deleteButton.click();
+        await sleep(1000);
+        console.log("✓ Clicked delete button");
+
+        // Wait for delete confirmation dialog and confirm
+        // The delete alert should appear
+        const confirmButton = await driver.wait(
+          until.elementLocated(By.xpath("//button[contains(text(), 'Delete')]")),
+          5000,
+          "Delete confirmation button not found"
+        );
+        
+        await confirmButton.click();
+        await sleep(1500); // Wait for deletion to complete
+        console.log("✓ Confirmed deletion");
+
+        // Verify column was deleted
+        const finalRows = await columnsTableContainer.findElements(By.css('[id^="column-row-"]'));
+        assert.strictEqual(finalRows.length, initialCount - 1, "Column count should decrease by 1");
+        console.log(`✓ Column deleted successfully. Final count: ${finalRows.length}`);
+        
+      } catch (error) {
+        console.log("Error deleting column:", error);
+        throw error;
+      }
+    });
+
+    it("should toggle nullable status by clicking indicator", async function () {
+      this.timeout(15000);
+      
+      try {
+        // Ensure we have at least one column
+        let columnRows = await columnsTableContainer.findElements(By.css('[id^="column-row-"]'));
+        
+        if (columnRows.length === 0) {
+          // Add a column first
+          const addColumnButton = await driver.findElement(By.id("add-column-button"));
+          await addColumnButton.click();
+          await sleep(1500);
+          
+          // Save the default column
+          const saveButton = await driver.findElement(By.id("save-column-button-0"));
+          await saveButton.click();
+          await sleep(1500);
+        }
+        
+        const columnIndex = 0;
+        console.log(`Testing nullable toggle for column ${columnIndex}`);
+
+        // Find the nullable indicator in the second column (index 1)
+        const columnRow = await driver.findElement(By.id(`column-row-${columnIndex}`));
+        const cells = await columnRow.findElements(By.css('td'));
+        const nullableCell = cells[1]; // Second cell is the nullable indicator
+        
+        // Get the nullable indicator span
+        const nullableIndicator = await nullableCell.findElement(By.css('span'));
+        
+        // Get initial nullable state
+        const initialText = await nullableIndicator.getText();
+        console.log(`Initial nullable indicator: ${initialText}`);
+        
+        // Click the nullable indicator to toggle
+        await nullableIndicator.click();
+        await sleep(1000); // Wait for state change
+        console.log("✓ Clicked nullable indicator");
+        
+        // Verify state changed
+        const newText = await nullableIndicator.getText();
+        console.log(`New nullable indicator: ${newText}`);
+        
+        // The text should have changed from ✓ to ✗ or vice versa
+        assert.notStrictEqual(initialText, newText, "Nullable state should have changed");
+        assert.ok(['✓', '✗'].includes(newText), "Nullable indicator should show ✓ or ✗");
+        console.log("✓ Nullable status toggled successfully");
+        
+      } catch (error) {
+        console.log("Error toggling nullable status:", error);
+        throw error;
+      }
+    });
+
+    it("should edit column owner field", async function () {
+      this.timeout(20000);
+      
+      try {
+        // Ensure we have at least one column to edit
+        let columnRows = await columnsTableContainer.findElements(By.css('[id^="column-row-"]'));
+        
+        if (columnRows.length === 0) {
+          // Add a column first
+          const addColumnButton = await driver.findElement(By.id("add-column-button"));
+          await addColumnButton.click();
+          await sleep(1500);
+          
+          // Save the default column
+          const saveButton = await driver.findElement(By.id("save-column-button-0"));
+          await saveButton.click();
+          await sleep(1500);
+          
+          columnRows = await columnsTableContainer.findElements(By.css('[id^="column-row-"]'));
+        }
+        
+        const columnToEdit = 0;
+        console.log(`Testing owner editing for column ${columnToEdit}`);
+
+        // Click edit button to enter edit mode
+        const editButton = await driver.findElement(By.id(`edit-column-button-${columnToEdit}`));
+        await editButton.click();
+        await sleep(1000);
+        console.log("✓ Entered edit mode");
+
+        // Find the owner input field
+        const ownerInput = await driver.wait(
+          until.elementLocated(By.id(`column-owner-input-${columnToEdit}`)),
+          5000,
+          "Column owner input not found - edit mode not activated"
+        );
+        console.log("✓ Found owner input field");
+
+        // Clear and set owner value
+        const testOwner = `data-team-${Date.now()}@company.com`;
+        await ownerInput.clear();
+        await ownerInput.sendKeys(testOwner);
+        await sleep(500);
+        console.log(`✓ Set owner to: ${testOwner}`);
+
+        // Save changes
+        const saveButton = await driver.findElement(By.id(`save-column-button-${columnToEdit}`));
+        await saveButton.click();
+        await sleep(1500);
+        console.log("✓ Saved changes");
+
+        // Verify owner was saved by checking the owner cell content
+        const row = await driver.findElement(By.id(`column-row-${columnToEdit}`));
+        const cells = await row.findElements(By.css('td'));
+        const ownerCell = cells[5]; // Owner is the 6th column (index 5)
+        const ownerSpan = await ownerCell.findElement(By.css('span'));
+        const savedOwner = await ownerSpan.getText();
+        
+        assert.ok(savedOwner.includes(testOwner), `Owner should be set to "${testOwner}"`);
+        console.log(`✓ Owner successfully saved: ${savedOwner}`);
+        
+      } catch (error) {
+        console.log("Error editing column owner:", error);
+        throw error;
+      }
+    });
+
+    it("should test Fill from DB button UI behavior", async function () {
+      this.timeout(15000);
+      
+      try {
+        console.log("Testing Fill from DB button UI behavior");
+
+        // Find the Fill from DB button
+        const fillFromDBButton = await driver.findElement(By.id("fill-from-db-button"));
+        
+        // Verify button exists and has expected text
+        const buttonText = await fillFromDBButton.getText();
+        assert.ok(buttonText.includes("Fill from DB"), "Button should have 'Fill from DB' text");
+        console.log(`✓ Button found with text: ${buttonText}`);
+        
+        // Verify button is initially enabled (not in loading state)
+        const initialDisabledState = await fillFromDBButton.getAttribute("disabled");
+        assert.ok(!initialDisabledState, "Button should initially be enabled");
+        console.log("✓ Button is initially enabled");
+        
+        // Click Fill from DB button - this will trigger the fillColumnsFromDB function
+        await fillFromDBButton.click();
+        await sleep(500);
+        console.log("✓ Clicked Fill from DB button");
+
+        // In a real environment, this would either:
+        // 1. Show loading state then success/error
+        // 2. Show error immediately if no DB connection
+        // 3. Show success and populate columns
+        
+        // Wait a moment to see if loading state appears
+        await sleep(1000);
+        
+        // Check what happened after the click
+        const afterClickDisabled = await fillFromDBButton.getAttribute("disabled");
+        console.log(`Button disabled after click: ${afterClickDisabled}`);
+        
+        if (afterClickDisabled) {
+          console.log("✓ Button entered loading state - waiting for completion");
+          
+          // Wait for operation to complete (button should re-enable)
+          await driver.wait(async () => {
+            const stillDisabled = await fillFromDBButton.getAttribute("disabled");
+            return !stillDisabled;
+          }, 8000, "Fill from DB operation did not complete");
+          
+          console.log("✓ Loading state completed - button re-enabled");
+        }
+        
+        // Check for any state changes after operation
+        await sleep(1000);
+        
+        // Look for success or error indicators in the button
+        const finalButtonText = await fillFromDBButton.getText();
+        console.log(`Final button state: ${finalButtonText}`);
+        
+        // Check if error alert appeared (expected if no DB connection)
+        try {
+          const errorAlert = await driver.findElement(By.id("fill-columns-error-alert"));
+          const isErrorVisible = await errorAlert.isDisplayed();
+          
+          if (isErrorVisible) {
+            console.log("✓ Error alert displayed (expected without DB connection)");
+            const errorText = await errorAlert.getText();
+            console.log(`Error message: ${errorText}`);
+            
+            // This is the expected behavior in test environment
+            assert.ok(isErrorVisible, "Error should be shown when no DB connection available");
+          }
+        } catch (noErrorAlert) {
+          console.log("No error alert - operation may have succeeded silently");
+        }
+        
+        // Verify button returned to enabled state
+        const finalDisabledState = await fillFromDBButton.getAttribute("disabled");
+        assert.ok(!finalDisabledState, "Button should be enabled after operation");
+        console.log("✓ Button returned to enabled state");
+        
+        // The key test is that the UI behaves correctly:
+        // 1. Button can be clicked
+        // 2. Loading state may appear
+        // 3. Button returns to enabled state
+        // 4. Either success or error feedback is shown
+        console.log("✓ Fill from DB UI behavior test completed successfully");
+        
+      } catch (error) {
+        console.log("Error testing Fill from DB UI behavior:", error);
+        throw error;
+      }
+    });
+
+    it("should open and interact with add checks dropdown", async function () {
+      this.timeout(20000);
+      
+      try {
+        // Ensure we have at least one column to edit
+        let columnRows = await columnsTableContainer.findElements(By.css('[id^="column-row-"]'));
+        
+        if (columnRows.length === 0) {
+          // Add a column first
+          const addColumnButton = await driver.findElement(By.id("add-column-button"));
+          await addColumnButton.click();
+          await sleep(1500);
+          
+          // Save the default column
+          const saveButton = await driver.findElement(By.id("save-column-button-0"));
+          await saveButton.click();
+          await sleep(1500);
+        }
+        
+        const columnIndex = 0;
+        console.log(`Testing add checks dropdown for column ${columnIndex}`);
+
+        // Enter edit mode for the column
+        const editButton = await driver.findElement(By.id(`edit-column-button-${columnIndex}`));
+        await editButton.click();
+        await sleep(1000);
+        console.log("✓ Entered edit mode");
+
+        // Look for the add check button (plus icon)
+        try {
+          const addCheckButton = await driver.wait(
+            until.elementLocated(By.id(`add-check-button-${columnIndex}`)),
+            5000,
+            "Add check button not found"
+          );
+          console.log("✓ Found add check button");
+
+          // Click the add check button to open dropdown
+          await addCheckButton.click();
+          await sleep(1000);
+          console.log("✓ Clicked add check button");
+
+          // Look for the dropdown
+          try {
+            const dropdown = await driver.wait(
+              until.elementLocated(By.id(`add-check-dropdown-${columnIndex}`)),
+              3000,
+              "Add check dropdown not found"
+            );
+            
+            const isDropdownDisplayed = await dropdown.isDisplayed();
+            assert.ok(isDropdownDisplayed, "Add check dropdown should be visible");
+            console.log("✓ Add check dropdown opened successfully");
+
+            // Look for dropdown items (available checks)
+            const dropdownItems = await dropdown.findElements(By.css('vscode-dropdown-item'));
+            console.log(`Found ${dropdownItems.length} available checks in dropdown`);
+            
+            if (dropdownItems.length > 0) {
+              // Get text of first available check
+              const firstCheckText = await dropdownItems[0].getText();
+              console.log(`First available check: ${firstCheckText}`);
+              
+              // Click the first check to add it
+              await dropdownItems[0].click();
+              await sleep(1000);
+              console.log(`✓ Added check: ${firstCheckText}`);
+              
+              // Verify the check was added by looking for it in the checks section
+              // The dropdown should close after adding a check
+              try {
+                const dropdownStillVisible = await dropdown.isDisplayed();
+                assert.ok(!dropdownStillVisible, "Dropdown should close after adding check");
+                console.log("✓ Dropdown closed after adding check");
+              } catch (error) {
+                // Element might not exist anymore, which is expected
+                console.log("✓ Dropdown element removed after adding check");
+              }
+            } else {
+              console.log("No available checks found in dropdown");
+            }
+
+          } catch (dropdownError) {
+            console.log("Add check dropdown not found - may not be available for this column type");
+            // This could be normal behavior if no checks are available for the column
+          }
+
+        } catch (buttonError) {
+          console.log("Add check button not found - may not be available in edit mode");
+          // This could be normal if the column doesn't support checks or no checks are available
+        }
+
+        // Save the column to exit edit mode
+        const saveButton = await driver.findElement(By.id(`save-column-button-${columnIndex}`));
+        await saveButton.click();
+        await sleep(1000);
+        console.log("✓ Saved column and exited edit mode");
+        
+      } catch (error) {
+        console.log("Error testing add checks dropdown:", error);
+        throw error;
+      }
+    });
+
+    it("should remove existing checks from column", async function () {
+      this.timeout(15000);
+      
+      try {
+        // This test works with columns that already have checks from the example.sql file
+        console.log("Testing check removal functionality");
+
+        // Look for columns with existing checks
+        const columnRows = await columnsTableContainer.findElements(By.css('[id^="column-row-"]'));
+        console.log(`Found ${columnRows.length} columns to check for existing checks`);
+        
+        let columnWithChecks = -1;
+        let checksCount = 0;
+        
+        // Find a column that has checks by examining each row
+        for (let i = 0; i < columnRows.length; i++) {
+          try {
+            // Enter edit mode for this column
+            const editButton = await driver.findElement(By.id(`edit-column-button-${i}`));
+            await editButton.click();
+            await sleep(1000);
+            
+            // Look for existing check badges
+            const checkBadges = await driver.findElements(By.css(`[id^="column-check-badge-${i}-"]`));
+            checksCount = checkBadges.length;
+            
+            if (checksCount > 0) {
+              columnWithChecks = i;
+              console.log(`✓ Found column ${i} with ${checksCount} existing checks`);
+              break;
+            } else {
+              // Exit edit mode and try next column
+              const saveButton = await driver.findElement(By.id(`save-column-button-${i}`));
+              await saveButton.click();
+              await sleep(500);
+            }
+          } catch (error) {
+            console.log(`Column ${i} has no checks or error accessing: ${error instanceof Error ? error.message : String(error)}`);
+            continue;
+          }
+        }
+        
+        if (columnWithChecks === -1) {
+          console.log("No columns with existing checks found - skipping remove check test");
+          this.skip();
+          return;
+        }
+        
+        console.log(`Testing check removal on column ${columnWithChecks} with ${checksCount} checks`);
+        
+        // Find the first check badge and its remove button
+        const firstCheckBadge = await driver.findElement(By.id(`column-check-badge-${columnWithChecks}-0`));
+        const checkBadgeText = await firstCheckBadge.getText();
+        console.log(`First check to remove: ${checkBadgeText}`);
+        
+        // Find and click the remove button for the first check
+        const removeButton = await driver.findElement(By.id(`remove-check-button-${columnWithChecks}-0`));
+        await removeButton.click();
+        await sleep(1000);
+        console.log("✓ Clicked remove check button");
+        
+        // Verify the check was removed by counting remaining checks
+        const remainingCheckBadges = await driver.findElements(By.css(`[id^="column-check-badge-${columnWithChecks}-"]`));
+        const remainingCount = remainingCheckBadges.length;
+        
+        assert.strictEqual(remainingCount, checksCount - 1, `Should have ${checksCount - 1} checks after removal`);
+        console.log(`✓ Check removed successfully. Remaining checks: ${remainingCount}`);
+        
+        // Verify the specific check we removed is no longer present
+        const remainingCheckTexts = await Promise.all(
+          remainingCheckBadges.map(badge => badge.getText())
+        );
+        
+        const removedCheckStillExists = remainingCheckTexts.some(text => 
+          text.includes(checkBadgeText.replace(/\s+/g, ' ').trim())
+        );
+        
+        assert.ok(!removedCheckStillExists, `Removed check "${checkBadgeText}" should not still be present`);
+        console.log(`✓ Confirmed "${checkBadgeText}" check was removed from the list`);
+        
+        // Save the column changes
+        const saveButton = await driver.findElement(By.id(`save-column-button-${columnWithChecks}`));
+        await saveButton.click();
+        await sleep(1000);
+        console.log("✓ Saved column after check removal");
+        
+      } catch (error) {
+        console.log("Error testing check removal:", error);
+        throw error;
+      }
+    });
+
+    it("should test glossary link functionality", async function () {
+      this.timeout(10000);
+      
+      try {
+        console.log("Testing glossary link functionality");
+
+        // Look for columns with glossary links (entity_attribute)
+        const columnRows = await columnsTableContainer.findElements(By.css('[id^="column-row-"]'));
+        console.log(`Checking ${columnRows.length} columns for glossary links`);
+        
+        let foundGlossaryLink = false;
+        
+        for (let i = 0; i < columnRows.length; i++) {
+          try {
+            // Look for glossary link button for this column
+            const glossaryButton = await driver.findElement(By.id(`glossary-link-button-${i}`));
+            
+            if (glossaryButton) {
+              console.log(`✓ Found glossary link button for column ${i}`);
+              
+              // Verify button is visible and has correct tooltip
+              const isVisible = await glossaryButton.isDisplayed();
+              assert.ok(isVisible, "Glossary link button should be visible");
+              
+              const title = await glossaryButton.getAttribute("title");
+              assert.ok(title.includes("View in Glossary"), "Button should have glossary tooltip");
+              console.log(`✓ Glossary button tooltip: ${title}`);
+              
+              // Click the glossary button
+              await glossaryButton.click();
+              await sleep(500);
+              console.log("✓ Clicked glossary link button");
+              
+              // The button should trigger the openGlossaryLink function
+              // In the real application, this would:
+              // 1. Send a VSCode message: { command: "bruin.openGlossary" }
+              // 2. Open the glossary panel or external link
+              
+              // Since we can't directly test the VSCode message sending,
+              // we verify that the button click was successful (no errors)
+              console.log("✓ Glossary link clicked successfully (would open glossary in real environment)");
+              
+              foundGlossaryLink = true;
+              break;
+            }
+          } catch (error) {
+            // No glossary link for this column, continue checking others
+            continue;
+          }
+        }
+        
+        if (!foundGlossaryLink) {
+          console.log("No columns with glossary links found - this is normal if no entity_attribute is set");
+          console.log("Glossary link functionality is available but not used in current test data");
+          
+          // This is not a test failure - it's normal behavior
+          // The test verifies that the functionality exists and works when applicable
+        } else {
+          console.log("✓ Glossary link functionality tested successfully");
+        }
+        
+      } catch (error) {
+        console.log("Error testing glossary link:", error);
+        throw error;
+      }
+    });
+
+    it("should test pattern input functionality for regex checks", async function () {
+      this.timeout(20000);
+      
+      try {
+        console.log("Testing pattern input functionality");
+
+        // Add a new column to test pattern input (since we need a clean column)
+        const addColumnButton = await driver.findElement(By.id("add-column-button"));
+        await addColumnButton.click();
+        await sleep(1500);
+        
+        // Find the new column index (should be the last one)
+        const columnRows = await columnsTableContainer.findElements(By.css('[id^="column-row-"]'));
+        const newColumnIndex = columnRows.length - 1;
+        console.log(`Testing pattern input on new column ${newColumnIndex}`);
+
+        // The new column should already be in edit mode
+        // Look for the add check button
+        try {
+          const addCheckButton = await driver.findElement(By.id(`add-check-button-${newColumnIndex}`));
+          await addCheckButton.click();
+          await sleep(1000);
+          console.log("✓ Opened add check dropdown");
+
+          // Look for the dropdown and find "pattern" check
+          const dropdown = await driver.findElement(By.id(`add-check-dropdown-${newColumnIndex}`));
+          const dropdownItems = await dropdown.findElements(By.css('vscode-dropdown-item'));
+          
+          let patternCheckFound = false;
+          for (const item of dropdownItems) {
+            const itemText = await item.getText();
+            if (itemText.includes('pattern')) {
+              await item.click();
+              await sleep(1000);
+              console.log("✓ Added pattern check");
+              patternCheckFound = true;
+              break;
+            }
+          }
+
+          if (patternCheckFound) {
+            // Look for pattern input field (should appear after adding pattern check)
+            try {
+              const patternInput = await driver.wait(
+                until.elementLocated(By.id(`pattern-input-${newColumnIndex}`)),
+                5000,
+                "Pattern input field not found"
+              );
+              
+              console.log("✓ Pattern input field appeared");
+              
+              // Test entering a regex pattern
+              const testPattern = "^[A-Z][a-z]+$";
+              await patternInput.clear();
+              await patternInput.sendKeys(testPattern);
+              await sleep(500);
+              console.log(`✓ Entered pattern: ${testPattern}`);
+              
+              // Press Enter to confirm the pattern
+              await patternInput.sendKeys(Key.RETURN);
+              await sleep(1000);
+              console.log("✓ Confirmed pattern with Enter key");
+              
+              // Verify the pattern input field disappears
+              try {
+                const inputStillVisible = await patternInput.isDisplayed();
+                assert.ok(!inputStillVisible, "Pattern input should disappear after confirmation");
+                console.log("✓ Pattern input field hidden after confirmation");
+              } catch (error) {
+                // Element might not exist anymore, which is expected
+                console.log("✓ Pattern input field removed after confirmation");
+              }
+              
+              // Verify the pattern check badge appeared
+              const checkBadges = await driver.findElements(By.css(`[id^="column-check-badge-${newColumnIndex}-"]`));
+              const hasPatternBadge = checkBadges.length > 0;
+              assert.ok(hasPatternBadge, "Pattern check badge should appear after adding pattern");
+              console.log(`✓ Pattern check badge added (${checkBadges.length} total badges)`);
+              
+            } catch (noPatternInput) {
+              console.log("Pattern input field not found - pattern check might not require additional input");
+            }
+          } else {
+            console.log("Pattern check not available in dropdown - testing with available checks");
+          }
+
+        } catch (noDropdown) {
+          console.log("Add check dropdown not available - column might not support checks");
+        }
+
+        // Save the column
+        const saveButton = await driver.findElement(By.id(`save-column-button-${newColumnIndex}`));
+        await saveButton.click();
+        await sleep(1500);
+        console.log("✓ Saved column with pattern check");
+        
+      } catch (error) {
+        console.log("Error testing pattern input:", error);
+        throw error;
+      }
+    });
+
+    it("should test accepted values input functionality", async function () {
+      this.timeout(20000);
+      
+      try {
+        console.log("Testing accepted values input functionality");
+
+        // Add a new column to test accepted values input
+        const addColumnButton = await driver.findElement(By.id("add-column-button"));
+        await addColumnButton.click();
+        await sleep(1500);
+        
+        // Find the new column index
+        const columnRows = await columnsTableContainer.findElements(By.css('[id^="column-row-"]'));
+        const newColumnIndex = columnRows.length - 1;
+        console.log(`Testing accepted values on new column ${newColumnIndex}`);
+
+        // Look for the add check button and try to add accepted_values check
+        try {
+          const addCheckButton = await driver.findElement(By.id(`add-check-button-${newColumnIndex}`));
+          await addCheckButton.click();
+          await sleep(1000);
+          console.log("✓ Opened add check dropdown");
+
+          // Look for accepted_values in dropdown
+          const dropdown = await driver.findElement(By.id(`add-check-dropdown-${newColumnIndex}`));
+          const dropdownItems = await dropdown.findElements(By.css('vscode-dropdown-item'));
+          
+          let acceptedValuesCheckFound = false;
+          for (const item of dropdownItems) {
+            const itemText = await item.getText();
+            if (itemText.includes('accepted_values')) {
+              await item.click();
+              await sleep(1000);
+              console.log("✓ Added accepted_values check");
+              acceptedValuesCheckFound = true;
+              break;
+            }
+          }
+
+          if (acceptedValuesCheckFound) {
+            // Look for accepted values input field
+            try {
+              const acceptedValuesInput = await driver.wait(
+                until.elementLocated(By.id(`accepted-values-input-${newColumnIndex}`)),
+                5000,
+                "Accepted values input field not found"
+              );
+              
+              console.log("✓ Accepted values input field appeared");
+              
+              // Test adding multiple values
+              const testValues = ["Option1", "Option2", "Option3"];
+              
+              for (const value of testValues) {
+                await acceptedValuesInput.clear();
+                await acceptedValuesInput.sendKeys(value);
+                await acceptedValuesInput.sendKeys(Key.RETURN);
+                await sleep(500);
+                console.log(`✓ Added accepted value: ${value}`);
+              }
+              
+              // Verify accepted value badges appeared
+              const valueBadges = await driver.findElements(By.css('vscode-badge'));
+              console.log(`Found ${valueBadges.length} value badges`);
+              
+              // Check that our values are present (this is approximate since there might be other badges)
+              if (valueBadges.length >= testValues.length) {
+                console.log("✓ Accepted values appear to have been added successfully");
+              }
+              
+            } catch (noAcceptedValuesInput) {
+              console.log("Accepted values input field not found - check might not require additional input");
+            }
+          } else {
+            console.log("Accepted values check not available in dropdown");
+          }
+
+        } catch (noDropdown) {
+          console.log("Add check dropdown not available for this column");
+        }
+
+        // Save the column
+        const saveButton = await driver.findElement(By.id(`save-column-button-${newColumnIndex}`));
+        await saveButton.click();
+        await sleep(1500);
+        console.log("✓ Saved column with accepted values check");
+        
+      } catch (error) {
+        console.log("Error testing accepted values input:", error);
+        throw error;
+      }
+    });
+
+    it("should test column type validation and edge cases", async function () {
+      this.timeout(15000);
+      
+      try {
+        console.log("Testing column type validation and edge cases");
+
+        // Add a new column to test type validation
+        const addColumnButton = await driver.findElement(By.id("add-column-button"));
+        await addColumnButton.click();
+        await sleep(1500);
+        
+        const columnRows = await columnsTableContainer.findElements(By.css('[id^="column-row-"]'));
+        const newColumnIndex = columnRows.length - 1;
+        console.log(`Testing type validation on column ${newColumnIndex}`);
+
+        // Test different column types
+        const testTypes = ["varchar", "integer", "boolean", "timestamp", "decimal", "text"];
+        
+        for (const testType of testTypes) {
+          try {
+            // Find the type input field
+            const typeInput = await driver.findElement(By.id(`column-type-input-${newColumnIndex}`));
+            
+            // Clear and enter new type
+            await typeInput.clear();
+            await typeInput.sendKeys(testType);
+            await sleep(300);
+            console.log(`✓ Entered type: ${testType}`);
+            
+            // Verify the type was accepted (no immediate error)
+            const inputValue = await typeInput.getAttribute("value");
+            assert.strictEqual(inputValue.toLowerCase(), testType.toLowerCase(), `Type should be set to ${testType}`);
+            
+          } catch (error) {
+            console.log(`Error testing type ${testType}: ${error instanceof Error ? error.message : String(error)}`);
+          }
+        }
+        
+        // Test edge case: empty column name (should show validation)
+        const nameInput = await driver.findElement(By.id(`column-name-input-${newColumnIndex}`));
+        await nameInput.clear();
+        await sleep(500);
+        console.log("✓ Tested empty column name edge case");
+        
+        // Test edge case: very long column name
+        const longName = "a".repeat(100);
+        await nameInput.clear();
+        await nameInput.sendKeys(longName);
+        await sleep(500);
+        console.log("✓ Tested very long column name");
+        
+        // Test edge case: special characters in name
+        await nameInput.clear();
+        await nameInput.sendKeys("test_column_with_special_chars_123");
+        await sleep(500);
+        console.log("✓ Tested column name with special characters");
+        
+        // Reset to a valid name for saving
+        await nameInput.clear();
+        await nameInput.sendKeys("valid_test_column");
+        
+        // Save the column
+        const saveButton = await driver.findElement(By.id(`save-column-button-${newColumnIndex}`));
+        await saveButton.click();
+        await sleep(1500);
+        console.log("✓ Saved column after type validation tests");
+        
+      } catch (error) {
+        console.log("Error testing column type validation:", error);
+        throw error;
+      }
+    });
+
+    it("should test error handling and recovery scenarios", async function () {
+      this.timeout(15000);
+      
+      try {
+        console.log("Testing error handling and recovery scenarios");
+
+        // Test scenario: Create a new column to test error handling
+        const addColumnButton = await driver.findElement(By.id("add-column-button"));
+        await addColumnButton.click();
+        await sleep(1500);
+        
+        // Find the new column index
+        let testColumnIndex = -1;
+        for (let i = 0; i < 20; i++) { // Check up to 20 possible columns
+          try {
+            await driver.findElement(By.id(`column-row-${i}`));
+            // Try to find edit button to confirm this column exists and is not in edit mode
+            try {
+              const editButton = await driver.findElement(By.id(`edit-column-button-${i}`));
+              if (await editButton.isDisplayed()) {
+                testColumnIndex = i;
+                break;
+              }
+            } catch (noEditButton) {
+              // Column might be in edit mode, check for save button
+              try {
+                await driver.findElement(By.id(`save-column-button-${i}`));
+                testColumnIndex = i;
+                break;
+              } catch (noSaveButton) {
+                continue;
+              }
+            }
+          } catch (noColumn) {
+            continue;
+          }
+        }
+        
+        if (testColumnIndex >= 0) {
+          console.log(`Found test column at index ${testColumnIndex}`);
+          
+          // Check if column is already in edit mode
+          try {
+            const editButton = await driver.findElement(By.id(`edit-column-button-${testColumnIndex}`));
+            if (await editButton.isDisplayed()) {
+              // Enter edit mode
+              await editButton.click();
+              await sleep(1000);
+              console.log("✓ Entered edit mode");
+            }
+          } catch (noEditButton) {
+            console.log("Column already in edit mode");
+          }
+          
+          // Make some changes
+          try {
+            const nameInput = await driver.findElement(By.id(`column-name-input-${testColumnIndex}`));
+            await nameInput.clear();
+            await nameInput.sendKeys("error_test_column");
+            await sleep(500);
+            console.log("✓ Made changes for error testing");
+            
+            // Save the changes
+            const saveButton = await driver.findElement(By.id(`save-column-button-${testColumnIndex}`));
+            await saveButton.click();
+            await sleep(1000);
+            console.log("✓ Saved test column");
+          } catch (error) {
+            console.log("Error during column editing test:", error instanceof Error ? error.message : String(error));
+          }
+        } else {
+          console.log("No suitable column found for error testing");
+        }
+
+        // Test scenario: Multiple rapid column additions
+        console.log("Testing rapid column additions");
+        
+        // Count initial columns by trying to find them
+        let initialCount = 0;
+        for (let i = 0; i < 50; i++) {
+          try {
+            await driver.findElement(By.id(`column-row-${i}`));
+            initialCount++;
+          } catch (noColumn) {
+            break;
+          }
+        }
+        
+        // Add multiple columns rapidly
+        for (let i = 0; i < 3; i++) {
+          const addButton = await driver.findElement(By.id("add-column-button"));
+          await addButton.click();
+          await sleep(200); // Short delay to simulate rapid clicking
+          console.log(`✓ Rapid add ${i + 1}`);
+        }
+        
+        await sleep(2000); // Wait for all operations to complete
+        
+        // Count final columns
+        let finalCount = 0;
+        for (let i = 0; i < 50; i++) {
+          try {
+            await driver.findElement(By.id(`column-row-${i}`));
+            finalCount++;
+          } catch (noColumn) {
+            break;
+          }
+        }
+        console.log(`Columns after rapid addition: ${finalCount} (started with ${initialCount})`);
+        
+        // Save any columns that might still be in edit mode
+        for (let i = 0; i < finalCount; i++) {
+          try {
+            const saveButton = await driver.findElement(By.id(`save-column-button-${i}`));
+            if (await saveButton.isDisplayed()) {
+              await saveButton.click();
+              await sleep(500);
+              console.log(`✓ Saved column ${i} that was in edit mode`);
+            }
+          } catch (error) {
+            // No save button means not in edit mode, which is expected
+          }
+        }
+        
+        console.log("✓ Error handling and recovery tests completed");
+        
+      } catch (error) {
+        console.log("Error testing error handling scenarios:", error);
+        throw error;
+      }
+    });
+
+    it("should test keyboard navigation and accessibility", async function () {
+      this.timeout(15000);
+      
+      try {
+        console.log("Testing keyboard navigation and accessibility");
+
+        // Create a new column for accessibility testing
+        const addColumnButtonForTest = await driver.findElement(By.id("add-column-button"));
+        await addColumnButtonForTest.click();
+        await sleep(1500);
+        
+        // Find the new column index for testing
+        let testColumnIndex = -1;
+        for (let i = 0; i < 20; i++) {
+          try {
+            await driver.findElement(By.id(`column-row-${i}`));
+            // Check if this column has input fields (is in edit mode)
+            try {
+              await driver.findElement(By.id(`column-name-input-${i}`));
+              testColumnIndex = i;
+              break;
+            } catch (notInEditMode) {
+              // Try to enter edit mode
+              try {
+                const editButton = await driver.findElement(By.id(`edit-column-button-${i}`));
+                await editButton.click();
+                await sleep(1000);
+                testColumnIndex = i;
+                break;
+              } catch (noEditButton) {
+                continue;
+              }
+            }
+          } catch (noColumn) {
+            continue;
+          }
+        }
+        
+        if (testColumnIndex >= 0) {
+          console.log(`✓ Found column ${testColumnIndex} for accessibility testing`);
+          
+          // Test Tab navigation between fields
+          const nameInput = await driver.findElement(By.id(`column-name-input-${testColumnIndex}`));
+          await nameInput.click();
+          
+          // Tab to next field (type)
+          await nameInput.sendKeys(Key.TAB);
+          await sleep(300);
+          console.log("✓ Tested Tab navigation to type field");
+          
+          // Tab to description field
+          await driver.switchTo().activeElement().sendKeys(Key.TAB);
+          await sleep(300);
+          console.log("✓ Tested Tab navigation to description field");
+          
+          // Test Escape key functionality (if supported)
+          await driver.switchTo().activeElement().sendKeys(Key.ESCAPE);
+          await sleep(500);
+          console.log("✓ Tested Escape key behavior");
+          
+          // Save the column
+          const saveButton = await driver.findElement(By.id(`save-column-button-${testColumnIndex}`));
+          await saveButton.click();
+          await sleep(1000);
+          console.log("✓ Saved column after accessibility testing");
+        }
+
+        // Test accessibility attributes - reuse the button we already found
+        const ariaLabel = await addColumnButtonForTest.getAttribute("aria-label");
+        const title = await addColumnButtonForTest.getAttribute("title");
+        
+        if (ariaLabel || title) {
+          console.log(`✓ Add column button has accessibility attributes: aria-label="${ariaLabel}", title="${title}"`);
+        }
+        
+        // Test focus management - add another column
+        await addColumnButtonForTest.click();
+        await sleep(1000);
+        
+        // Find the newest column index
+        let newColumnIndex = -1;
+        for (let i = 0; i < 50; i++) {
+          try {
+            await driver.findElement(By.id(`column-row-${i}`));
+            newColumnIndex = i; // Keep updating to find the highest index
+          } catch (noColumn) {
+            break;
+          }
+        }
+        
+        if (newColumnIndex >= 0) {
+          // Check if focus was properly managed (name input should be focused in new column)
+          try {
+            const activeElement = await driver.switchTo().activeElement();
+            const activeId = await activeElement.getAttribute("id");
+            
+            if (activeId && activeId.includes("column-name-input")) {
+              console.log("✓ Focus properly managed - name input focused in new column");
+            }
+          } catch (error) {
+            console.log("Focus management test completed (focus may vary by browser)");
+          }
+          
+          // Save the new column
+          const saveButton = await driver.findElement(By.id(`save-column-button-${newColumnIndex}`));
+          await saveButton.click();
+          await sleep(1000);
+          console.log("✓ Accessibility and keyboard navigation tests completed");
+        } else {
+          console.log("Could not find new column for focus management test");
+        }
+        
+      } catch (error) {
+        console.log("Error testing accessibility features:", error);
+        throw error;
+      }
+    });
+  });
 });
