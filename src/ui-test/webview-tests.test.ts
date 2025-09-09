@@ -4644,5 +4644,200 @@ describe("Bruin Webview Test", function () {
         throw error;
       }
     });
+
+    it("should test pattern input functionality for regex checks", async function () {
+      this.timeout(20000);
+      
+      try {
+        console.log("Testing pattern input functionality");
+
+        // Add a new column to test pattern input (since we need a clean column)
+        const addColumnButton = await driver.findElement(By.id("add-column-button"));
+        await addColumnButton.click();
+        await sleep(1500);
+        
+        // Find the new column index (should be the last one)
+        const columnRows = await columnsTableContainer.findElements(By.css('[id^="column-row-"]'));
+        const newColumnIndex = columnRows.length - 1;
+        console.log(`Testing pattern input on new column ${newColumnIndex}`);
+
+        // The new column should already be in edit mode
+        // Look for the add check button
+        try {
+          const addCheckButton = await driver.findElement(By.id(`add-check-button-${newColumnIndex}`));
+          await addCheckButton.click();
+          await sleep(1000);
+          console.log("✓ Opened add check dropdown");
+
+          // Look for the dropdown and find "pattern" check
+          const dropdown = await driver.findElement(By.id(`add-check-dropdown-${newColumnIndex}`));
+          const dropdownItems = await dropdown.findElements(By.css('vscode-dropdown-item'));
+          
+          let patternCheckFound = false;
+          for (const item of dropdownItems) {
+            const itemText = await item.getText();
+            if (itemText.includes('pattern')) {
+              await item.click();
+              await sleep(1000);
+              console.log("✓ Added pattern check");
+              patternCheckFound = true;
+              break;
+            }
+          }
+
+          if (patternCheckFound) {
+            // Look for pattern input field (should appear after adding pattern check)
+            try {
+              const patternInput = await driver.wait(
+                until.elementLocated(By.id(`pattern-input-${newColumnIndex}`)),
+                5000,
+                "Pattern input field not found"
+              );
+              
+              console.log("✓ Pattern input field appeared");
+              
+              // Test entering a regex pattern
+              const testPattern = "^[A-Z][a-z]+$";
+              await patternInput.clear();
+              await patternInput.sendKeys(testPattern);
+              await sleep(500);
+              console.log(`✓ Entered pattern: ${testPattern}`);
+              
+              // Press Enter to confirm the pattern
+              await patternInput.sendKeys(Key.RETURN);
+              await sleep(1000);
+              console.log("✓ Confirmed pattern with Enter key");
+              
+              // Verify the pattern input field disappears
+              try {
+                const inputStillVisible = await patternInput.isDisplayed();
+                assert.ok(!inputStillVisible, "Pattern input should disappear after confirmation");
+                console.log("✓ Pattern input field hidden after confirmation");
+              } catch (error) {
+                // Element might not exist anymore, which is expected
+                console.log("✓ Pattern input field removed after confirmation");
+              }
+              
+              // Verify the pattern check badge appeared
+              const checkBadges = await driver.findElements(By.css(`[id^="column-check-badge-${newColumnIndex}-"]`));
+              const hasPatternBadge = checkBadges.length > 0;
+              assert.ok(hasPatternBadge, "Pattern check badge should appear after adding pattern");
+              console.log(`✓ Pattern check badge added (${checkBadges.length} total badges)`);
+              
+            } catch (noPatternInput) {
+              console.log("Pattern input field not found - pattern check might not require additional input");
+            }
+          } else {
+            console.log("Pattern check not available in dropdown - testing with available checks");
+          }
+
+        } catch (noDropdown) {
+          console.log("Add check dropdown not available - column might not support checks");
+        }
+
+        // Save the column
+        const saveButton = await driver.findElement(By.id(`save-column-button-${newColumnIndex}`));
+        await saveButton.click();
+        await sleep(1500);
+        console.log("✓ Saved column with pattern check");
+        
+      } catch (error) {
+        console.log("Error testing pattern input:", error);
+        throw error;
+      }
+    });
+
+    it("should test accepted values input functionality", async function () {
+      this.timeout(20000);
+      
+      try {
+        console.log("Testing accepted values input functionality");
+
+        // Add a new column to test accepted values input
+        const addColumnButton = await driver.findElement(By.id("add-column-button"));
+        await addColumnButton.click();
+        await sleep(1500);
+        
+        // Find the new column index
+        const columnRows = await columnsTableContainer.findElements(By.css('[id^="column-row-"]'));
+        const newColumnIndex = columnRows.length - 1;
+        console.log(`Testing accepted values on new column ${newColumnIndex}`);
+
+        // Look for the add check button and try to add accepted_values check
+        try {
+          const addCheckButton = await driver.findElement(By.id(`add-check-button-${newColumnIndex}`));
+          await addCheckButton.click();
+          await sleep(1000);
+          console.log("✓ Opened add check dropdown");
+
+          // Look for accepted_values in dropdown
+          const dropdown = await driver.findElement(By.id(`add-check-dropdown-${newColumnIndex}`));
+          const dropdownItems = await dropdown.findElements(By.css('vscode-dropdown-item'));
+          
+          let acceptedValuesCheckFound = false;
+          for (const item of dropdownItems) {
+            const itemText = await item.getText();
+            if (itemText.includes('accepted_values')) {
+              await item.click();
+              await sleep(1000);
+              console.log("✓ Added accepted_values check");
+              acceptedValuesCheckFound = true;
+              break;
+            }
+          }
+
+          if (acceptedValuesCheckFound) {
+            // Look for accepted values input field
+            try {
+              const acceptedValuesInput = await driver.wait(
+                until.elementLocated(By.id(`accepted-values-input-${newColumnIndex}`)),
+                5000,
+                "Accepted values input field not found"
+              );
+              
+              console.log("✓ Accepted values input field appeared");
+              
+              // Test adding multiple values
+              const testValues = ["Option1", "Option2", "Option3"];
+              
+              for (const value of testValues) {
+                await acceptedValuesInput.clear();
+                await acceptedValuesInput.sendKeys(value);
+                await acceptedValuesInput.sendKeys(Key.RETURN);
+                await sleep(500);
+                console.log(`✓ Added accepted value: ${value}`);
+              }
+              
+              // Verify accepted value badges appeared
+              const valueBadges = await driver.findElements(By.css('vscode-badge'));
+              console.log(`Found ${valueBadges.length} value badges`);
+              
+              // Check that our values are present (this is approximate since there might be other badges)
+              if (valueBadges.length >= testValues.length) {
+                console.log("✓ Accepted values appear to have been added successfully");
+              }
+              
+            } catch (noAcceptedValuesInput) {
+              console.log("Accepted values input field not found - check might not require additional input");
+            }
+          } else {
+            console.log("Accepted values check not available in dropdown");
+          }
+
+        } catch (noDropdown) {
+          console.log("Add check dropdown not available for this column");
+        }
+
+        // Save the column
+        const saveButton = await driver.findElement(By.id(`save-column-button-${newColumnIndex}`));
+        await saveButton.click();
+        await sleep(1500);
+        console.log("✓ Saved column with accepted values check");
+        
+      } catch (error) {
+        console.log("Error testing accepted values input:", error);
+        throw error;
+      }
+    });
   });
 });

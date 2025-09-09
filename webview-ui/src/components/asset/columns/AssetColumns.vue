@@ -239,6 +239,7 @@
                     <div v-if="showPatternInput && editingIndex === index" class="mt-1 px-1">
                       <div class="flex items-center space-x-1">
                         <input
+                          :id="`pattern-input-${index}`"
                           v-model="newPatternValue"
                           @input="updatePatternValue"
                           @keyup.enter="confirmPatternInput"
@@ -252,6 +253,7 @@
                   <div v-if="showAcceptedValuesInput && editingIndex === index" class="mt-1 px-1">
                     <div class="flex flex-col justify-start space-y-1">
                       <input
+                        :id="`accepted-values-input-${index}`"
                         v-model="newAcceptedValuesInput"
                         @keyup.enter="addAcceptedValue"
                         placeholder="Enter value & Press Enter"
