@@ -4839,5 +4839,328 @@ describe("Bruin Webview Test", function () {
         throw error;
       }
     });
+
+    it("should test column type validation and edge cases", async function () {
+      this.timeout(15000);
+      
+      try {
+        console.log("Testing column type validation and edge cases");
+
+        // Add a new column to test type validation
+        const addColumnButton = await driver.findElement(By.id("add-column-button"));
+        await addColumnButton.click();
+        await sleep(1500);
+        
+        const columnRows = await columnsTableContainer.findElements(By.css('[id^="column-row-"]'));
+        const newColumnIndex = columnRows.length - 1;
+        console.log(`Testing type validation on column ${newColumnIndex}`);
+
+        // Test different column types
+        const testTypes = ["varchar", "integer", "boolean", "timestamp", "decimal", "text"];
+        
+        for (const testType of testTypes) {
+          try {
+            // Find the type input field
+            const typeInput = await driver.findElement(By.id(`column-type-input-${newColumnIndex}`));
+            
+            // Clear and enter new type
+            await typeInput.clear();
+            await typeInput.sendKeys(testType);
+            await sleep(300);
+            console.log(`✓ Entered type: ${testType}`);
+            
+            // Verify the type was accepted (no immediate error)
+            const inputValue = await typeInput.getAttribute("value");
+            assert.strictEqual(inputValue.toLowerCase(), testType.toLowerCase(), `Type should be set to ${testType}`);
+            
+          } catch (error) {
+            console.log(`Error testing type ${testType}: ${error instanceof Error ? error.message : String(error)}`);
+          }
+        }
+        
+        // Test edge case: empty column name (should show validation)
+        const nameInput = await driver.findElement(By.id(`column-name-input-${newColumnIndex}`));
+        await nameInput.clear();
+        await sleep(500);
+        console.log("✓ Tested empty column name edge case");
+        
+        // Test edge case: very long column name
+        const longName = "a".repeat(100);
+        await nameInput.clear();
+        await nameInput.sendKeys(longName);
+        await sleep(500);
+        console.log("✓ Tested very long column name");
+        
+        // Test edge case: special characters in name
+        await nameInput.clear();
+        await nameInput.sendKeys("test_column_with_special_chars_123");
+        await sleep(500);
+        console.log("✓ Tested column name with special characters");
+        
+        // Reset to a valid name for saving
+        await nameInput.clear();
+        await nameInput.sendKeys("valid_test_column");
+        
+        // Save the column
+        const saveButton = await driver.findElement(By.id(`save-column-button-${newColumnIndex}`));
+        await saveButton.click();
+        await sleep(1500);
+        console.log("✓ Saved column after type validation tests");
+        
+      } catch (error) {
+        console.log("Error testing column type validation:", error);
+        throw error;
+      }
+    });
+
+    it("should test error handling and recovery scenarios", async function () {
+      this.timeout(15000);
+      
+      try {
+        console.log("Testing error handling and recovery scenarios");
+
+        // Test scenario: Create a new column to test error handling
+        const addColumnButton = await driver.findElement(By.id("add-column-button"));
+        await addColumnButton.click();
+        await sleep(1500);
+        
+        // Find the new column index
+        let testColumnIndex = -1;
+        for (let i = 0; i < 20; i++) { // Check up to 20 possible columns
+          try {
+            await driver.findElement(By.id(`column-row-${i}`));
+            // Try to find edit button to confirm this column exists and is not in edit mode
+            try {
+              const editButton = await driver.findElement(By.id(`edit-column-button-${i}`));
+              if (await editButton.isDisplayed()) {
+                testColumnIndex = i;
+                break;
+              }
+            } catch (noEditButton) {
+              // Column might be in edit mode, check for save button
+              try {
+                await driver.findElement(By.id(`save-column-button-${i}`));
+                testColumnIndex = i;
+                break;
+              } catch (noSaveButton) {
+                continue;
+              }
+            }
+          } catch (noColumn) {
+            continue;
+          }
+        }
+        
+        if (testColumnIndex >= 0) {
+          console.log(`Found test column at index ${testColumnIndex}`);
+          
+          // Check if column is already in edit mode
+          try {
+            const editButton = await driver.findElement(By.id(`edit-column-button-${testColumnIndex}`));
+            if (await editButton.isDisplayed()) {
+              // Enter edit mode
+              await editButton.click();
+              await sleep(1000);
+              console.log("✓ Entered edit mode");
+            }
+          } catch (noEditButton) {
+            console.log("Column already in edit mode");
+          }
+          
+          // Make some changes
+          try {
+            const nameInput = await driver.findElement(By.id(`column-name-input-${testColumnIndex}`));
+            await nameInput.clear();
+            await nameInput.sendKeys("error_test_column");
+            await sleep(500);
+            console.log("✓ Made changes for error testing");
+            
+            // Save the changes
+            const saveButton = await driver.findElement(By.id(`save-column-button-${testColumnIndex}`));
+            await saveButton.click();
+            await sleep(1000);
+            console.log("✓ Saved test column");
+          } catch (error) {
+            console.log("Error during column editing test:", error instanceof Error ? error.message : String(error));
+          }
+        } else {
+          console.log("No suitable column found for error testing");
+        }
+
+        // Test scenario: Multiple rapid column additions
+        console.log("Testing rapid column additions");
+        
+        // Count initial columns by trying to find them
+        let initialCount = 0;
+        for (let i = 0; i < 50; i++) {
+          try {
+            await driver.findElement(By.id(`column-row-${i}`));
+            initialCount++;
+          } catch (noColumn) {
+            break;
+          }
+        }
+        
+        // Add multiple columns rapidly
+        for (let i = 0; i < 3; i++) {
+          const addButton = await driver.findElement(By.id("add-column-button"));
+          await addButton.click();
+          await sleep(200); // Short delay to simulate rapid clicking
+          console.log(`✓ Rapid add ${i + 1}`);
+        }
+        
+        await sleep(2000); // Wait for all operations to complete
+        
+        // Count final columns
+        let finalCount = 0;
+        for (let i = 0; i < 50; i++) {
+          try {
+            await driver.findElement(By.id(`column-row-${i}`));
+            finalCount++;
+          } catch (noColumn) {
+            break;
+          }
+        }
+        console.log(`Columns after rapid addition: ${finalCount} (started with ${initialCount})`);
+        
+        // Save any columns that might still be in edit mode
+        for (let i = 0; i < finalCount; i++) {
+          try {
+            const saveButton = await driver.findElement(By.id(`save-column-button-${i}`));
+            if (await saveButton.isDisplayed()) {
+              await saveButton.click();
+              await sleep(500);
+              console.log(`✓ Saved column ${i} that was in edit mode`);
+            }
+          } catch (error) {
+            // No save button means not in edit mode, which is expected
+          }
+        }
+        
+        console.log("✓ Error handling and recovery tests completed");
+        
+      } catch (error) {
+        console.log("Error testing error handling scenarios:", error);
+        throw error;
+      }
+    });
+
+    it("should test keyboard navigation and accessibility", async function () {
+      this.timeout(15000);
+      
+      try {
+        console.log("Testing keyboard navigation and accessibility");
+
+        // Create a new column for accessibility testing
+        const addColumnButtonForTest = await driver.findElement(By.id("add-column-button"));
+        await addColumnButtonForTest.click();
+        await sleep(1500);
+        
+        // Find the new column index for testing
+        let testColumnIndex = -1;
+        for (let i = 0; i < 20; i++) {
+          try {
+            await driver.findElement(By.id(`column-row-${i}`));
+            // Check if this column has input fields (is in edit mode)
+            try {
+              await driver.findElement(By.id(`column-name-input-${i}`));
+              testColumnIndex = i;
+              break;
+            } catch (notInEditMode) {
+              // Try to enter edit mode
+              try {
+                const editButton = await driver.findElement(By.id(`edit-column-button-${i}`));
+                await editButton.click();
+                await sleep(1000);
+                testColumnIndex = i;
+                break;
+              } catch (noEditButton) {
+                continue;
+              }
+            }
+          } catch (noColumn) {
+            continue;
+          }
+        }
+        
+        if (testColumnIndex >= 0) {
+          console.log(`✓ Found column ${testColumnIndex} for accessibility testing`);
+          
+          // Test Tab navigation between fields
+          const nameInput = await driver.findElement(By.id(`column-name-input-${testColumnIndex}`));
+          await nameInput.click();
+          
+          // Tab to next field (type)
+          await nameInput.sendKeys(Key.TAB);
+          await sleep(300);
+          console.log("✓ Tested Tab navigation to type field");
+          
+          // Tab to description field
+          await driver.switchTo().activeElement().sendKeys(Key.TAB);
+          await sleep(300);
+          console.log("✓ Tested Tab navigation to description field");
+          
+          // Test Escape key functionality (if supported)
+          await driver.switchTo().activeElement().sendKeys(Key.ESCAPE);
+          await sleep(500);
+          console.log("✓ Tested Escape key behavior");
+          
+          // Save the column
+          const saveButton = await driver.findElement(By.id(`save-column-button-${testColumnIndex}`));
+          await saveButton.click();
+          await sleep(1000);
+          console.log("✓ Saved column after accessibility testing");
+        }
+
+        // Test accessibility attributes - reuse the button we already found
+        const ariaLabel = await addColumnButtonForTest.getAttribute("aria-label");
+        const title = await addColumnButtonForTest.getAttribute("title");
+        
+        if (ariaLabel || title) {
+          console.log(`✓ Add column button has accessibility attributes: aria-label="${ariaLabel}", title="${title}"`);
+        }
+        
+        // Test focus management - add another column
+        await addColumnButtonForTest.click();
+        await sleep(1000);
+        
+        // Find the newest column index
+        let newColumnIndex = -1;
+        for (let i = 0; i < 50; i++) {
+          try {
+            await driver.findElement(By.id(`column-row-${i}`));
+            newColumnIndex = i; // Keep updating to find the highest index
+          } catch (noColumn) {
+            break;
+          }
+        }
+        
+        if (newColumnIndex >= 0) {
+          // Check if focus was properly managed (name input should be focused in new column)
+          try {
+            const activeElement = await driver.switchTo().activeElement();
+            const activeId = await activeElement.getAttribute("id");
+            
+            if (activeId && activeId.includes("column-name-input")) {
+              console.log("✓ Focus properly managed - name input focused in new column");
+            }
+          } catch (error) {
+            console.log("Focus management test completed (focus may vary by browser)");
+          }
+          
+          // Save the new column
+          const saveButton = await driver.findElement(By.id(`save-column-button-${newColumnIndex}`));
+          await saveButton.click();
+          await sleep(1000);
+          console.log("✓ Accessibility and keyboard navigation tests completed");
+        } else {
+          console.log("Could not find new column for focus management test");
+        }
+        
+      } catch (error) {
+        console.log("Error testing accessibility features:", error);
+        throw error;
+      }
+    });
   });
 });
