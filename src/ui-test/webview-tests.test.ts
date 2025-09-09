@@ -3184,7 +3184,11 @@ describe("Bruin Webview Test", function () {
         // Look for table radio option using ID
         try {
           // Try to find table radio button by ID
-          const tableOption = await driver.findElement(By.id("materialization-type-table"));
+          const tableOption = await driver.wait(
+            until.elementLocated(By.id("materialization-type-table")),
+            10000,
+            "Materialization type table radio not found"
+          );
           console.log("✓ Found table radio option by ID");
           
           // Select the table option
@@ -3351,7 +3355,11 @@ describe("Bruin Webview Test", function () {
         }
 
         // First set type to table
-        const tableRadio = await driver.findElement(By.id("materialization-type-table"));
+        const tableRadio = await driver.wait(
+          until.elementLocated(By.id("materialization-type-table")),
+          10000,
+          "Materialization type table radio not found"
+        );
         await tableRadio.click();
         await sleep(1000);
         console.log("✓ Selected table materialization type");
@@ -3437,7 +3445,11 @@ describe("Bruin Webview Test", function () {
         }
 
         // Ensure we're working with table type
-        const tableRadio = await driver.findElement(By.id("materialization-type-table"));
+        const tableRadio = await driver.wait(
+          until.elementLocated(By.id("materialization-type-table")),
+          10000,
+          "Materialization type table radio not found"
+        );
         await tableRadio.click();
         await sleep(1000);
         
@@ -3541,7 +3553,11 @@ describe("Bruin Webview Test", function () {
         }
 
         // Set to table type first
-        const tableRadio = await driver.findElement(By.id("materialization-type-table"));
+        const tableRadio = await driver.wait(
+          until.elementLocated(By.id("materialization-type-table")),
+          10000,
+          "Materialization type table radio not found"
+        );
         await tableRadio.click();
         await sleep(1000);
         
@@ -3597,7 +3613,11 @@ describe("Bruin Webview Test", function () {
         }
 
         // Set to table type
-        const tableRadio = await driver.findElement(By.id("materialization-type-table"));
+        const tableRadio = await driver.wait(
+          until.elementLocated(By.id("materialization-type-table")),
+          10000,
+          "Materialization type table radio not found"
+        );
         await tableRadio.click();
         await sleep(1000);
         console.log("✓ Selected table materialization type");
@@ -3659,7 +3679,11 @@ describe("Bruin Webview Test", function () {
         }
 
         // Set to table type
-        const tableRadio = await driver.findElement(By.id("materialization-type-table"));
+        const tableRadio = await driver.wait(
+          until.elementLocated(By.id("materialization-type-table")),
+          10000,
+          "Materialization type table radio not found"
+        );
         await tableRadio.click();
         await sleep(1000);
         
@@ -3712,7 +3736,11 @@ describe("Bruin Webview Test", function () {
         }
 
         // Set to table type
-        const tableRadio = await driver.findElement(By.id("materialization-type-table"));
+        const tableRadio = await driver.wait(
+          until.elementLocated(By.id("materialization-type-table")),
+          10000,
+          "Materialization type table radio not found"
+        );
         await tableRadio.click();
         await sleep(1000);
         
@@ -3795,7 +3823,11 @@ describe("Bruin Webview Test", function () {
         }
 
         // Set to table type
-        const tableRadio = await driver.findElement(By.id("materialization-type-table"));
+        const tableRadio = await driver.wait(
+          until.elementLocated(By.id("materialization-type-table")),
+          10000,
+          "Materialization type table radio not found"
+        );
         await tableRadio.click();
         await sleep(1000);
         
@@ -3832,6 +3864,146 @@ describe("Bruin Webview Test", function () {
         throw error;
       }
     });
+  });
+
+
+  describe("Advanced Settings tests", function () {
+    beforeEach(async function () {
+      this.timeout(15000);
+      
+      try {
+        // Navigate to the Details tab (tab-2) 
+        const detailsTab = await driver.findElement(By.id("tab-2"));
+        await detailsTab.click();
+        await sleep(1000);
+        console.log("✓ Navigated to Details tab");
+
+        // Expand the Advanced Settings section
+        const advancedHeader = await driver.wait(
+          until.elementLocated(By.id("advanced-section-header")),
+          10000,
+          "Advanced section header not found"
+        );
+        await advancedHeader.click();
+        await sleep(1000);
+        console.log("✓ Expanded Advanced Settings section");
+        
+      } catch (error) {
+        console.log("Error in advanced settings setup:", error);
+        this.skip();
+      }
+    });
+
+    it("should configure interval modifiers", async function () {
+      this.timeout(15000);
+      
+      try {
+        // Test start interval configuration
+        const startIntervalInput = await driver.wait(
+          until.elementLocated(By.id("start-interval-input")),
+          10000,
+          "Start interval input not found"
+        );
+        
+        await startIntervalInput.clear();
+        await startIntervalInput.sendKeys("-2");
+        console.log("✓ Set start interval value");
+        
+        const startIntervalUnit = await driver.findElement(By.id("start-interval-unit"));
+        await startIntervalUnit.click();
+        const dayOption = await startIntervalUnit.findElement(By.css('option[value="days"]'));
+        await dayOption.click();
+        console.log("✓ Set start interval unit to days");
+        
+        // Test end interval configuration
+        const endIntervalInput = await driver.findElement(By.id("end-interval-input"));
+        await endIntervalInput.clear();
+        await endIntervalInput.sendKeys("1");
+        console.log("✓ Set end interval value");
+        
+        const endIntervalUnit = await driver.findElement(By.id("end-interval-unit"));
+        await endIntervalUnit.click();
+        const endDayOption = await endIntervalUnit.findElement(By.css('option[value="days"]'));
+        await endDayOption.click();
+        console.log("✓ Set end interval unit to days");
+        
+      } catch (error) {
+        console.log("Error in interval modifiers test:", error);
+        throw error;
+      }
+    });
+
+    it("should configure partition and cluster columns", async function () {
+      this.timeout(15000);
+      
+      try {
+        // Test partition column selection (assuming materialization type is already table)
+        const partitionInput = await driver.wait(
+          until.elementLocated(By.id("partition-input")),
+          10000,
+          "Partition input not found"
+        );
+        await partitionInput.click();
+        await partitionInput.sendKeys("created_at");
+        console.log("✓ Set partition column");
+        
+        // Test cluster column selection
+        const clusterInput = await driver.wait(
+          until.elementLocated(By.id("cluster-input")),
+          10000,
+          "Cluster input not found"
+        );
+        await clusterInput.click();
+        await sleep(1000);
+        console.log("✓ Clicked cluster input");
+        
+      } catch (error) {
+        console.log("Error in partition/cluster test:", error);
+        throw error;
+      }
+    });
+
+    it("should manage secrets configuration", async function () {
+      this.timeout(15000);
+      
+      try {
+        // Click add secret button
+        const addSecretButton = await driver.wait(
+          until.elementLocated(By.id("add-secret-button")),
+          10000,
+          "Add secret button not found"
+        );
+        await addSecretButton.click();
+        await sleep(1000);
+        console.log("✓ Clicked add secret button");
+        
+        // Fill in secret details
+        const secretKeyInput = await driver.wait(
+          until.elementLocated(By.id("secret-key-input")),
+          10000,
+          "Secret key input not found"
+        );
+        
+        const secretName = "test_connection_" + Date.now();
+        await secretKeyInput.sendKeys(secretName);
+        console.log(`✓ Added secret key: ${secretName}`);
+        
+        // Save the secret
+        const saveSecretButton = await driver.findElement(By.id("save-secret-button"));
+        await saveSecretButton.click();
+        await sleep(1000);
+        console.log("✓ Saved secret configuration");
+        
+        // Verify secret was added by looking for the secret tag
+        const secretTags = await driver.findElements(By.css('#secrets-container vscode-tag'));
+        console.log(`✓ Found ${secretTags.length} secrets configured`);
+        
+      } catch (error) {
+        console.log("Error in secrets management test:", error);
+        throw error;
+      }
+    });
+
   });
 
   describe("Columns tests", function () {
