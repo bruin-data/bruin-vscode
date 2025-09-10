@@ -3869,24 +3869,49 @@ describe("Bruin Webview Test", function () {
 
   describe("Advanced Settings tests", function () {
     beforeEach(async function () {
-      this.timeout(15000);
+      this.timeout(25000);
       
       try {
         // Navigate to the Details tab (tab-2) 
         const detailsTab = await driver.findElement(By.id("tab-2"));
         await detailsTab.click();
-        await sleep(1000);
+        await sleep(1500);
         console.log("✓ Navigated to Details tab");
 
-        // Expand the Advanced Settings section
+        // Ensure Advanced Settings section is expanded and stays open
         const advancedHeader = await driver.wait(
           until.elementLocated(By.id("advanced-section-header")),
           10000,
           "Advanced section header not found"
         );
-        await advancedHeader.click();
-        await sleep(1000);
-        console.log("✓ Expanded Advanced Settings section");
+        
+        // Check if section is already expanded by looking for chevron direction
+        try {
+          const chevron = await advancedHeader.findElement(By.id("advanced-section-chevron"));
+          const chevronClass = await chevron.getAttribute("class");
+          
+          if (chevronClass.includes("codicon-chevron-right")) {
+            // Section is collapsed, expand it
+            await advancedHeader.click();
+            await sleep(3000); // Wait longer for expansion
+            console.log("✓ Expanded Advanced Settings section");
+          } else {
+            console.log("✓ Advanced Settings section already expanded");
+          }
+        } catch (chevronError) {
+          // If chevron not found, try clicking the header anyway
+          await advancedHeader.click();
+          await sleep(3000);
+          console.log("✓ Clicked Advanced Settings header");
+        }
+        
+        // Verify section content is accessible by checking for a key element
+        await driver.wait(
+          until.elementLocated(By.id("start-interval-input")),
+          15000,
+          "Advanced Settings content not accessible - section may not be expanded"
+        );
+        console.log("✓ Advanced Settings section content is accessible");
         
       } catch (error) {
         console.log("Error in advanced settings setup:", error);
@@ -3895,9 +3920,20 @@ describe("Bruin Webview Test", function () {
     });
 
     it("should configure interval modifiers", async function () {
-      this.timeout(15000);
+      this.timeout(25000);
       
       try {
+        // Ensure Advanced Settings section is still expanded
+        const advancedHeader = await driver.findElement(By.id("advanced-section-header"));
+        const chevron = await advancedHeader.findElement(By.id("advanced-section-chevron"));
+        const chevronClass = await chevron.getAttribute("class");
+        
+        if (chevronClass.includes("codicon-chevron-right")) {
+          await advancedHeader.click();
+          await sleep(3000);
+          console.log("✓ Re-expanded Advanced Settings section for interval modifiers test");
+        }
+        
         // Test start interval configuration
         const startIntervalInput = await driver.wait(
           until.elementLocated(By.id("start-interval-input")),
@@ -3933,44 +3969,25 @@ describe("Bruin Webview Test", function () {
       }
     });
 
-    it("should configure partition and cluster columns", async function () {
-      this.timeout(15000);
-      
-      try {
-        // Test partition column selection (assuming materialization type is already table)
-        const partitionInput = await driver.wait(
-          until.elementLocated(By.id("partition-input")),
-          10000,
-          "Partition input not found"
-        );
-        await partitionInput.click();
-        await partitionInput.sendKeys("created_at");
-        console.log("✓ Set partition column");
-        
-        // Test cluster column selection
-        const clusterInput = await driver.wait(
-          until.elementLocated(By.id("cluster-input")),
-          10000,
-          "Cluster input not found"
-        );
-        await clusterInput.click();
-        await sleep(1000);
-        console.log("✓ Clicked cluster input");
-        
-      } catch (error) {
-        console.log("Error in partition/cluster test:", error);
-        throw error;
-      }
-    });
-
     it("should manage secrets configuration", async function () {
-      this.timeout(15000);
+      this.timeout(25000);
       
       try {
-        // Click add secret button
+        // Ensure Advanced Settings section is still expanded before accessing secrets
+        const advancedHeader = await driver.findElement(By.id("advanced-section-header"));
+        const chevron = await advancedHeader.findElement(By.id("advanced-section-chevron"));
+        const chevronClass = await chevron.getAttribute("class");
+        
+        if (chevronClass.includes("codicon-chevron-right")) {
+          await advancedHeader.click();
+          await sleep(3000);
+          console.log("✓ Re-expanded Advanced Settings section for secrets test");
+        }
+        
+        // Click add secret button with longer timeout
         const addSecretButton = await driver.wait(
           until.elementLocated(By.id("add-secret-button")),
-          10000,
+          15000,
           "Add secret button not found"
         );
         await addSecretButton.click();
@@ -4000,6 +4017,47 @@ describe("Bruin Webview Test", function () {
         
       } catch (error) {
         console.log("Error in secrets management test:", error);
+        throw error;
+      }
+    });
+
+    it("should configure partition and cluster columns", async function () {
+      this.timeout(25000);
+      
+      try {
+        // Ensure Advanced Settings section is still expanded before accessing partition inputs
+        const advancedHeader = await driver.findElement(By.id("advanced-section-header"));
+        const chevron = await advancedHeader.findElement(By.id("advanced-section-chevron"));
+        const chevronClass = await chevron.getAttribute("class");
+        
+        if (chevronClass.includes("codicon-chevron-right")) {
+          await advancedHeader.click();
+          await sleep(3000);
+          console.log("✓ Re-expanded Advanced Settings section for partition test");
+        }
+        
+        // Test partition column selection
+        const partitionInput = await driver.wait(
+          until.elementLocated(By.id("partition-input")),
+          15000,
+          "Partition input not found"
+        );
+        await partitionInput.click();
+        await partitionInput.sendKeys("created_at");
+        console.log("✓ Set partition column");
+        
+        // Test cluster column selection
+        const clusterInput = await driver.wait(
+          until.elementLocated(By.id("cluster-input")),
+          10000,
+          "Cluster input not found"
+        );
+        await clusterInput.click();
+        await sleep(1000);
+        console.log("✓ Clicked cluster input");
+        
+      } catch (error) {
+        console.log("Error in partition/cluster test:", error);
         throw error;
       }
     });
