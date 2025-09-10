@@ -7,3 +7,4 @@ node_modules
 .bruin.yml
 bruinPythonAsset.py
 example.txt
+integration-test-coverage-analysis.csv
