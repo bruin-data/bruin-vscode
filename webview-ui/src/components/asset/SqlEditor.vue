@@ -76,7 +76,7 @@ import "vue3-virtual-scroller/dist/vue3-virtual-scroller.css";
 
 const props = defineProps({
   code: String | undefined,
-  language: "sql" | "python",
+  language: "sql" | "python" | "yaml",
   copied: Boolean,
   showIntervalAlert: Boolean,
 });

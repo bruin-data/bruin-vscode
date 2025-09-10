@@ -270,7 +270,7 @@
         <div v-if="props.assetType === 'ingestr' && !isError" class="mt-1">
           <IngestrAssetDisplay :parameters="ingestrParameters" :columns="props.columns" @save="handleIngestrSave" />
         </div>
-        <div v-else-if="language === 'sql'" class="mt-1">
+        <div v-else-if="code && !isError" class="mt-1">
           <SqlEditor :code="code" :copied="false" :language="language" :showIntervalAlert="showIntervalAlert"/>
         </div>
         <div v-else class="overflow-hidden w-full h-20">
@@ -979,8 +979,15 @@ function receiveMessage(event: { data: any }) {
       renderPythonAsset.value = updateValue(envelope, "bruin-asset-alert");
       renderAssetAlert.value = updateValue(envelope, "non-asset-alert");
       isNotAsset.value = !!renderAssetAlert.value;
-      code.value = renderSQLAssetSuccess.value || renderPythonAsset.value;
-      language.value = renderSQLAssetSuccess.value ? "sql" : "python";
+      
+      if (renderSQLAssetSuccess.value) {
+        code.value = renderSQLAssetSuccess.value;
+        language.value = "sql";
+      } else if (!renderPythonAsset.value) {
+        code.value = null;
+        language.value = "";
+      }
+      
       errorPhase.value = renderSQLAssetError.value ? "Rendering" : "Unknown";
       resetStates([validationError, validationSuccess, validateButtonStatus]);
       break;
