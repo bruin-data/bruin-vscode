@@ -1,33 +1,37 @@
 <template>
-  <div class="space-y-4">
+  <div id="ingestr-asset-display" class="space-y-4">
     <!-- Ingestr Configuration -->
-    <div class="border border-commandCenter-border rounded">
-      <div class="p-1 bg-editorWidget-bg border-inherit cursor-pointer hover:bg-input-background transition-colors duration-150 rounded-t" @click="toggleSection('ingestr')">
+    <div id="ingestr-section" class="border border-commandCenter-border rounded">
+      <div id="ingestr-header" class="p-1 bg-editorWidget-bg border-inherit cursor-pointer hover:bg-input-background transition-colors duration-150 rounded-t" @click="toggleSection('ingestr')">
         <div class="flex items-center justify-between w-full">
-          <span class="text-xs font-medium text-editor-fg pl-1">Ingestr</span>
+          <span id="ingestr-title" class="text-xs font-medium text-editor-fg pl-1">Ingestr</span>
           <span
+            id="ingestr-chevron"
             class="codicon transition-transform duration-200"
             :class="expandedSections.ingestr ? 'codicon-chevron-down' : 'codicon-chevron-right'"
           ></span>
         </div>
       </div>
 
-      <div v-if="expandedSections.ingestr" class="p-2 space-y-1 bg-editor-bg border-t border-commandCenter-border rounded-b">
+      <div v-if="expandedSections.ingestr" id="ingestr-content" class="p-2 space-y-1 bg-editor-bg border-t border-commandCenter-border rounded-b">
       
       <!-- Source Connection -->
-      <div class="flex items-center gap-2">
+      <div id="source-connection-row" class="flex items-center gap-2">
         <span 
+          id="source-connection-label"
           class="text-2xs min-w-[140px] cursor-help" 
           :class="!localParameters.source_connection ? 'text-errorForeground' : 'text-editor-fg opacity-70'"
           title="The database connection to extract data from. Must be configured in your .bruin.yml file."
         >Source Connection: <span class="text-errorForeground">*</span></span>
         <div 
+          id="source-connection-field"
           class="flex-1 text-xs text-editor-fg"
           :class="{ 'cursor-pointer hover:bg-input-background px-2 py-1 rounded transition-colors': !editingField.source_connection }"
           @click="startEditing('source_connection')"
         >
           <select 
             v-if="editingField.source_connection"
+            id="source-connection-select"
             v-model="editingValues.source_connection"
             @blur="saveField('source_connection')"
             @change="saveField('source_connection')"
@@ -39,26 +43,29 @@
               {{ connection.name }} ({{ connection.type }})
             </option>
           </select>
-          <span v-else class="block" :class="{ 'italic opacity-70': !localParameters.source_connection, 'text-errorForeground': !localParameters.source_connection }">
+          <span v-else id="source-connection-value" class="block" :class="{ 'italic opacity-70': !localParameters.source_connection, 'text-errorForeground': !localParameters.source_connection }">
             {{ localParameters.source_connection || 'Required: Click to set connection' }}
           </span>
         </div>
       </div>
 
       <!-- Source Table -->
-      <div class="flex items-center gap-2">
+      <div id="source-table-row" class="flex items-center gap-2">
         <span 
+          id="source-table-label"
           class="text-2xs min-w-[140px] cursor-help" 
           :class="!localParameters.source_table ? 'text-errorForeground' : 'text-editor-fg opacity-70'"
           title="The name of the table/view to extract data from in your source database."
         >Source Table: <span class="text-errorForeground">*</span></span>
         <div 
+          id="source-table-field"
           class="flex-1 text-xs text-editor-fg"
           :class="{ 'cursor-pointer hover:bg-input-background px-2 py-1 rounded transition-colors': !editingField.source_table }"
           @click="startEditing('source_table')"
         >
           <input 
             v-if="editingField.source_table"
+            id="source-table-input"
             v-model="editingValues.source_table"
             @blur="saveField('source_table')"
             @keyup.enter="saveField('source_table')"
@@ -67,26 +74,29 @@
             class="bg-input-background text-input-foreground text-xs border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg px-2 py-1 rounded w-full"
             placeholder="Source table name"
           />
-          <span v-else class="block" :class="{ 'italic opacity-70': !localParameters.source_table, 'text-errorForeground': !localParameters.source_table }">
+          <span v-else id="source-table-value" class="block" :class="{ 'italic opacity-70': !localParameters.source_table, 'text-errorForeground': !localParameters.source_table }">
             {{ localParameters.source_table || 'Required: Click to set table' }}
           </span>
         </div>
       </div>
 
       <!-- Destination Platform -->
-      <div class="flex items-center gap-2">
+      <div id="destination-row" class="flex items-center gap-2">
         <span 
+          id="destination-label"
           class="text-2xs min-w-[140px] cursor-help" 
           :class="!localParameters.destination ? 'text-errorForeground' : 'text-editor-fg opacity-70'"
           title="The target platform where data will be loaded (e.g., Snowflake, BigQuery, Postgres)."
         >Destination Platform: <span class="text-errorForeground">*</span></span>
         <div 
+          id="destination-field"
           class="flex-1 text-xs text-editor-fg"
           :class="{ 'cursor-pointer hover:bg-input-background px-2 py-1 rounded transition-colors': !editingField.destination }"
           @click="startEditing('destination')"
         >
           <select 
             v-if="editingField.destination"
+            id="destination-select"
             v-model="editingValues.destination"
             @blur="saveField('destination')"
             @change="saveField('destination')"
@@ -98,7 +108,7 @@
               {{ dest.label }}
             </option>
           </select>
-          <span v-else class="block" :class="{ 'italic opacity-70': !localParameters.destination, 'text-errorForeground': !localParameters.destination }">
+          <span v-else id="destination-value" class="block" :class="{ 'italic opacity-70': !localParameters.destination, 'text-errorForeground': !localParameters.destination }">
             {{ localParameters.destination ? destinationDisplayName(localParameters.destination) : 'Required: Click to set destination' }}
           </span>
         </div>
@@ -106,18 +116,21 @@
 
 
       <!-- Incremental Strategy -->
-      <div class="flex items-center gap-2">
+      <div id="incremental-strategy-row" class="flex items-center gap-2">
         <span 
+          id="incremental-strategy-label"
           class="text-2xs text-editor-fg opacity-70 min-w-[140px] cursor-help" 
           title="How to handle incremental data updates: replace (full refresh), append (add new rows), merge (upsert), or delete+insert."
         >Incremental Strategy:</span>
         <div 
+          id="incremental-strategy-field"
           class="flex-1 text-xs text-editor-fg"
           :class="{ 'cursor-pointer hover:bg-input-background px-2 py-1 rounded transition-colors': !editingField.incremental_strategy }"
           @click="startEditing('incremental_strategy')"
         >
           <select 
             v-if="editingField.incremental_strategy"
+            id="incremental-strategy-select"
             v-model="editingValues.incremental_strategy"
             @blur="saveField('incremental_strategy')"
             @change="saveField('incremental_strategy')"
@@ -128,25 +141,28 @@
               {{ strategy.label }}
             </option>
           </select>
-          <span v-else class="block" :class="{ 'italic opacity-70': !localParameters.incremental_strategy }">
+          <span v-else id="incremental-strategy-value" class="block" :class="{ 'italic opacity-70': !localParameters.incremental_strategy }">
             {{ localParameters.incremental_strategy || 'Click to set strategy' }}
           </span>
         </div>
       </div>
 
       <!-- Incremental Key -->
-      <div class="flex items-center gap-2">
+      <div id="incremental-key-row" class="flex items-center gap-2">
         <span 
+          id="incremental-key-label"
           class="text-2xs text-editor-fg opacity-70 min-w-[140px] cursor-help" 
           title="The column used to identify new/updated records (e.g., timestamp, id). Required for incremental strategies."
         >Incremental Key:</span>
         <div 
+          id="incremental-key-field"
           class="flex-1 text-xs text-editor-fg"
           :class="{ 'cursor-pointer hover:bg-input-background px-2 py-1 rounded transition-colors': !editingField.incremental_key }"
           @click="startEditing('incremental_key')"
         >
           <select 
             v-if="editingField.incremental_key"
+            id="incremental-key-select"
             v-model="editingValues.incremental_key"
             @blur="saveField('incremental_key')"
             @change="saveField('incremental_key')"
@@ -158,7 +174,7 @@
               {{ column }}
             </option>
           </select>
-          <span v-else class="block" :class="{ 'italic opacity-70': !localParameters.incremental_key }">
+          <span v-else id="incremental-key-value" class="block" :class="{ 'italic opacity-70': !localParameters.incremental_key }">
             {{ localParameters.incremental_key || 'Click to set key' }}
           </span>
         </div>
