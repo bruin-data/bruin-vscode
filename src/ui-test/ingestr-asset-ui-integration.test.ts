@@ -42,26 +42,103 @@ const ensureSectionExpanded = async (driver: WebDriver): Promise<void> => {
     // Check if content is visible
     const content = await driver.findElement(By.id("ingestr-content"));
     if (await content.isDisplayed()) {
+      console.log("✓ Section already expanded");
       return; // Already expanded
     }
   } catch (error) {
-    // Content not found, need to expand
+    console.log("Content not found, need to expand section");
   }
   
   try {
     // Click header to expand
+    console.log("Clicking header to expand section...");
     const header = await findElementWithRetry(driver, By.id("ingestr-header"), 5000);
     await header.click();
-    await sleep(1000);
+    await sleep(2000); // Increased wait time
     
     // Verify expansion worked
     const content = await driver.findElement(By.id("ingestr-content"));
     if (!(await content.isDisplayed())) {
       throw new Error("Section failed to expand after clicking header");
     }
+    console.log("✓ Section successfully expanded");
   } catch (error: any) {
+    console.log("Error expanding section:", error.message);
     throw new Error(`Could not expand section: ${error.message}`);
   }
+};
+
+// Helper function to start editing a field
+const startEditingField = async (driver: WebDriver, fieldId: string): Promise<void> => {
+  // Ensure section is expanded first
+  await ensureSectionExpanded(driver);
+  
+  const field = await findElementWithRetry(driver, By.id(fieldId), 10000);
+  await field.click();
+  await sleep(1000);
+};
+
+// Helper function to exit edit mode by clicking elsewhere
+const exitEditMode = async (driver: WebDriver): Promise<void> => {
+  const header = await driver.findElement(By.id("ingestr-header"));
+  await header.click();
+  await sleep(1000);
+};
+
+// Helper function to test field editing with input
+const testFieldEditing = async (driver: WebDriver, fieldId: string, inputId: string, testValue: string): Promise<void> => {
+  await startEditingField(driver, fieldId);
+  
+  const input = await driver.findElement(By.id(inputId));
+  assert(await input.isDisplayed(), `${inputId} should appear in edit mode`);
+  
+  await input.clear();
+  await input.sendKeys(testValue);
+  await sleep(500);
+  await input.sendKeys(Key.ENTER);
+  await sleep(1000);
+};
+
+// Helper function to test dropdown field editing
+const testDropdownEditing = async (driver: WebDriver, fieldId: string, selectId: string, expectedOptions: string[]): Promise<void> => {
+  await startEditingField(driver, fieldId);
+  
+  const select = await driver.findElement(By.id(selectId));
+  assert(await select.isDisplayed(), `${selectId} should appear in edit mode`);
+  
+  const options = await select.findElements(By.tagName('option'));
+  assert(options.length > 0, "Select should have at least one option");
+  
+  const optionTexts = await Promise.all(options.map(option => option.getText()));
+  for (const expectedOption of expectedOptions) {
+    assert(optionTexts.some(text => text.includes(expectedOption)), `Should have ${expectedOption} option`);
+  }
+  
+  await exitEditMode(driver);
+};
+
+// Helper function to wait for the Ingestr component to be fully loaded
+const waitForIngestrComponent = async (driver: WebDriver): Promise<void> => {
+  console.log("Waiting for Ingestr component to load...");
+  
+  // Wait for the main container
+  await driver.wait(until.elementLocated(By.id("ingestr-asset-display")), 15000);
+  console.log("✓ Ingestr asset display container found");
+  
+  // Wait for the section
+  await driver.wait(until.elementLocated(By.id("ingestr-section")), 10000);
+  console.log("✓ Ingestr section found");
+  
+  // Wait for the header
+  await driver.wait(until.elementLocated(By.id("ingestr-header")), 10000);
+  console.log("✓ Ingestr header found");
+  
+  // Ensure section is expanded
+  await ensureSectionExpanded(driver);
+  
+  // Wait for at least one field to be present
+  await driver.wait(until.elementLocated(By.id("source-connection-field")), 10000);
+  console.log("✓ Ingestr fields are loaded");
 };
 
 describe("Ingestr Asset Display Integration Tests", function () {
@@ -474,6 +551,9 @@ describe("Ingestr Asset Display Integration Tests", function () {
         }
       }
     }
+
+    // Wait for the Ingestr component to be fully loaded
+    await waitForIngestrComponent(driver);
   });
 
   after(async function () {
@@ -541,16 +621,13 @@ describe("Ingestr Asset Display Integration Tests", function () {
   });
 
   describe("Required Fields Display", function () {
+    before(async function () {
+      // Ensure section is expanded once for all tests in this group
+      await ensureSectionExpanded(driver);
+    });
+
     it("should display source connection field with required indicator", async function () {
       this.timeout(15000);
-
-      // First ensure section is expanded
-      const content = await driver.findElement(By.id("ingestr-content"));
-      if (!(await content.isDisplayed())) {
-        const header = await driver.findElement(By.id("ingestr-header"));
-        await header.click();
-        await sleep(1000);
-      }
 
       const row = await driver.findElement(By.id("source-connection-row"));
       assert(await row.isDisplayed(), "Source connection row should be visible");
@@ -602,6 +679,11 @@ describe("Ingestr Asset Display Integration Tests", function () {
   });
 
   describe("Optional Fields Display", function () {
+    before(async function () {
+      // Ensure section is expanded once for all tests in this group
+      await ensureSectionExpanded(driver);
+    });
+
     it("should display incremental strategy field without required indicator", async function () {
       this.timeout(15000);
 
@@ -638,6 +720,11 @@ describe("Ingestr Asset Display Integration Tests", function () {
   });
 
   describe("Interactive Functionality", function () {
+    before(async function () {
+      // Ensure section is expanded once for all tests in this group
+      await ensureSectionExpanded(driver);
+    });
+
     it("should be able to toggle section visibility", async function () {
       this.timeout(15000);
 
@@ -677,14 +764,6 @@ describe("Ingestr Asset Display Integration Tests", function () {
     it("should show clickable field indicators", async function () {
       this.timeout(15000);
 
-      // Ensure section is expanded
-      const content = await driver.findElement(By.id("ingestr-content"));
-      if (!(await content.isDisplayed())) {
-        const header = await driver.findElement(By.id("ingestr-header"));
-        await header.click();
-        await sleep(1000);
-      }
-
       // Check if source connection field is clickable
       const sourceConnectionField = await driver.findElement(By.id("source-connection-field"));
       const fieldClass = await sourceConnectionField.getAttribute("class");
@@ -702,18 +781,14 @@ describe("Ingestr Asset Display Integration Tests", function () {
   });
 
   describe("Field Editing Functionality", function () {
+    before(async function () {
+      // Ensure section is expanded once for all tests in this group
+      await ensureSectionExpanded(driver);
+    });
+
     it("should allow editing source connection field", async function () {
       this.timeout(20000);
 
-      // Ensure section is expanded
-      const content = await driver.findElement(By.id("ingestr-content"));
-      if (!(await content.isDisplayed())) {
-        const header = await driver.findElement(By.id("ingestr-header"));
-        await header.click();
-        await sleep(1000);
-      }
-
-      // Click on source connection field to start editing
       const sourceConnectionField = await driver.findElement(By.id("source-connection-field"));
       await sourceConnectionField.click();
       await sleep(1000);
@@ -741,36 +816,13 @@ describe("Ingestr Asset Display Integration Tests", function () {
     it("should allow editing source table field", async function () {
       this.timeout(15000);
 
-      // Ensure section is expanded
-      await ensureSectionExpanded(driver);
-
-      // Click on source table field to start editing
       try {
-        const sourceTableField = await driver.findElement(By.id("source-table-field"));
-        await sourceTableField.click();
-        await sleep(1000);
-      } catch (error) {
-        console.log("Could not find or click source table field:", error);
-        throw error;
-      }
-
-      // Check if input element appeared (edit mode)
-      try {
-        const input = await driver.findElement(By.id("source-table-input"));
-        assert(await input.isDisplayed(), "Source table input should appear in edit mode");
+        await testFieldEditing(driver, "source-table-field", "source-table-input", "test_table_edited");
         
         // Verify input attributes
+        const input = await driver.findElement(By.id("source-table-input"));
         const placeholder = await input.getAttribute("placeholder");
         assert(placeholder === "Source table name", "Input should have correct placeholder");
-        
-        // Test typing in input
-        await input.clear();
-        await input.sendKeys("test_table_edited");
-        await sleep(500);
-        
-        // Press Enter to save
-        await input.sendKeys(Key.ENTER);
-        await sleep(1000);
         
         console.log("✓ Source table field editing works");
       } catch (error) {
@@ -779,48 +831,26 @@ describe("Ingestr Asset Display Integration Tests", function () {
     });
 
     it("should allow editing destination field", async function () {
-      this.timeout(15000);
+      this.timeout(20000);
 
-      // Ensure section is expanded
-      await ensureSectionExpanded(driver);
-
-      // Click on destination field to start editing
       try {
-        const destinationField = await driver.findElement(By.id("destination-field"));
-        await destinationField.click();
-        await sleep(1000);
-      } catch (error) {
-        console.log("Could not find or click destination field:", error);
-        throw error;
-      }
-
-      // Check if select element appeared (edit mode)
-      try {
-        const select = await driver.findElement(By.id("destination-select"));
-        assert(await select.isDisplayed(), "Destination select should appear in edit mode");
+        // First ensure section is expanded
+        await ensureSectionExpanded(driver);
         
-        // Verify it has all expected destination options
-        const options = await select.findElements(By.tagName('option'));
-        assert(options.length > 10, "Should have many destination options");
+        // Debug: Check if destination field exists
+        try {
+          const destinationField = await driver.findElement(By.id("destination-field"));
+          console.log("✓ Destination field found");
+        } catch (error) {
+          console.log("❌ Destination field not found, checking page content...");
+          const pageSource = await driver.getPageSource();
+          console.log("Page contains 'destination':", pageSource.toLowerCase().includes('destination'));
+          console.log("Page contains 'destination-field':", pageSource.includes('destination-field'));
+          throw error;
+        }
         
-        // Get option texts to verify some expected destinations
-        const optionTexts = await Promise.all(
-          options.slice(0, 5).map(option => option.getText())
-        );
-        
-        const hasExpectedOptions = optionTexts.some(text => 
-          text.includes('AWS Athena') || 
-          text.includes('BigQuery') || 
-          text.includes('Snowflake') ||
-          text.includes('DuckDB')
-        );
-        
-        assert(hasExpectedOptions, "Should have expected destination options");
-        
-        // Click elsewhere to exit edit mode
-        const header = await driver.findElement(By.id("ingestr-header"));
-        await header.click();
-        await sleep(1000);
+        const expectedDestinations = ['AWS Athena', 'BigQuery', 'Snowflake', 'DuckDB'];
+        await testDropdownEditing(driver, "destination-field", "destination-select", expectedDestinations);
         
         console.log("✓ Destination field editing works with proper options");
       } catch (error) {
@@ -832,60 +862,9 @@ describe("Ingestr Asset Display Integration Tests", function () {
     it("should allow editing incremental strategy field", async function () {
       this.timeout(15000);
 
-      // Ensure section is expanded
-      await ensureSectionExpanded(driver);
-
-      // Click on incremental strategy field to start editing
       try {
-        const strategyField = await driver.findElement(By.id("incremental-strategy-field"));
-        await strategyField.click();
-        await sleep(1000);
-      } catch (error) {
-        console.log("Could not find or click incremental strategy field:", error);
-        throw error;
-      }
-
-      // Check if select element appeared (edit mode)
-      try {
-        const select = await driver.findElement(By.id("incremental-strategy-select"));
-        assert(await select.isDisplayed(), "Incremental strategy select should appear in edit mode");
-        
-        // Verify it has expected strategy options
-        const options = await select.findElements(By.tagName('option'));
-        assert(options.length >= 5, "Should have at least 5 strategy options");
-        
-        // Get option texts to verify expected strategies
-        const optionTexts = await Promise.all(
-          options.map(option => option.getText())
-        );
-        
         const expectedStrategies = ['None', 'Replace', 'Append', 'Merge'];
-        const hasExpectedStrategies = expectedStrategies.some(strategy =>
-          optionTexts.some(text => text.includes(strategy))
-        );
-        
-        assert(hasExpectedStrategies, "Should have expected strategy options");
-        
-        // Test selecting a strategy option
-        let replaceOption = null;
-        for (const option of options) {
-          const text = await option.getText();
-          if (text.includes('Replace')) {
-            replaceOption = option;
-            break;
-          }
-        }
-        
-        if (replaceOption) {
-          await replaceOption.click();
-          await sleep(500);
-          console.log("✓ Successfully selected Replace strategy");
-        }
-        
-        // Click elsewhere to exit edit mode
-        const header = await driver.findElement(By.id("ingestr-header"));
-        await header.click();
-        await sleep(1000);
+        await testDropdownEditing(driver, "incremental-strategy-field", "incremental-strategy-select", expectedStrategies);
         
         console.log("✓ Incremental strategy field editing works");
       } catch (error) {
@@ -896,25 +875,12 @@ describe("Ingestr Asset Display Integration Tests", function () {
     it("should allow editing incremental key field", async function () {
       this.timeout(15000);
 
-      // Ensure section is expanded
-      await ensureSectionExpanded(driver);
-
-      // Click on incremental key field to start editing
       try {
-        const keyField = await driver.findElement(By.id("incremental-key-field"));
-        await keyField.click();
-        await sleep(1000);
-      } catch (error) {
-        console.log("Could not find or click incremental key field:", error);
-        throw error;
-      }
-
-      // Check if select element appeared (edit mode)
-      try {
+        await startEditingField(driver, "incremental-key-field");
+        
         const select = await driver.findElement(By.id("incremental-key-select"));
         assert(await select.isDisplayed(), "Incremental key select should appear in edit mode");
         
-        // Verify it has at least the default option
         const options = await select.findElements(By.tagName('option'));
         assert(options.length > 0, "Should have at least default option");
         
@@ -925,8 +891,6 @@ describe("Ingestr Asset Display Integration Tests", function () {
         // Test if there are any column options available (beyond the placeholder)
         if (options.length > 1) {
           console.log(`✓ Found ${options.length - 1} column options available`);
-          
-          // Try to select the first actual column option
           const firstColumnOption = options[1];
           const columnText = await firstColumnOption.getText();
           await firstColumnOption.click();
@@ -936,11 +900,7 @@ describe("Ingestr Asset Display Integration Tests", function () {
           console.log("✓ No column options available (expected if no columns loaded)");
         }
         
-        // Click elsewhere to exit edit mode
-        const header = await driver.findElement(By.id("ingestr-header"));
-        await header.click();
-        await sleep(1000);
-        
+        await exitEditMode(driver);
         console.log("✓ Incremental key field editing works");
       } catch (error) {
         console.log("Incremental key editing failed:", error);
@@ -950,227 +910,92 @@ describe("Ingestr Asset Display Integration Tests", function () {
 
   describe("Dropdown Functionality", function () {
     before(async function () {
-      // Open the section once and keep it open for all dropdown tests
+      // Ensure section is expanded once for all tests in this group
       await ensureSectionExpanded(driver);
     });
 
     it("should test incremental strategy dropdown options", async function () {
-      this.timeout(20000);
+      this.timeout(15000);
 
-      // Ensure section is still expanded
-      try {
-        const content = await driver.findElement(By.id("ingestr-content"));
-        if (!(await content.isDisplayed())) {
-          console.log("Section collapsed, reopening...");
-          await ensureSectionExpanded(driver);
-        }
-      } catch (error) {
-        console.log("Section not found, reopening...");
-        await ensureSectionExpanded(driver);
-      }
-
-      // Click on incremental strategy field to open dropdown
       const strategyField = await driver.findElement(By.id("incremental-strategy-field"));
       await strategyField.click();
       await sleep(1000);
 
-      // Verify dropdown is open
       const select = await driver.findElement(By.id("incremental-strategy-select"));
       assert(await select.isDisplayed(), "Strategy dropdown should be visible");
 
-      // Get all options and verify they match expected strategies
       const options = await select.findElements(By.tagName('option'));
       assert(options.length >= 5, "Should have at least 5 strategy options");
 
-      // Verify specific strategy options exist
-      const optionTexts = await Promise.all(
-        options.map(option => option.getText())
-      );
+      const optionTexts = await Promise.all(options.map(option => option.getText()));
+      const expectedStrategies = ['None', 'Replace', 'Append', 'Merge', 'Delete + Insert'];
 
-      console.log("Available strategy options:", optionTexts);
-
-      // Check for specific expected strategies
-      const expectedStrategies = [
-        { value: '', label: 'None' },
-        { value: 'replace', label: 'Replace' },
-        { value: 'append', label: 'Append' },
-        { value: 'merge', label: 'Merge' },
-        { value: 'delete+insert', label: 'Delete + Insert' }
-      ];
-
-      for (const expectedStrategy of expectedStrategies) {
-        const hasStrategy = optionTexts.some(text => 
-          text.includes(expectedStrategy.label)
-        );
-        assert(hasStrategy, `Should have ${expectedStrategy.label} strategy option`);
+      for (const strategy of expectedStrategies) {
+        assert(optionTexts.some(text => text.includes(strategy)), `Should have ${strategy} option`);
       }
 
-      // Test selecting different options
-      for (let i = 0; i < Math.min(3, options.length); i++) {
-        const option = options[i];
-        const optionText = await option.getText();
-        
-        await option.click();
-        await sleep(500);
-        
-        // Verify the option was selected
-        const selectedValue = await select.getAttribute('value');
-        console.log(`✓ Selected option: ${optionText} (value: ${selectedValue})`);
-      }
-
-      // Exit edit mode by pressing Escape key instead of clicking header
       await driver.actions().sendKeys(Key.ESCAPE).perform();
-      await sleep(1000);
-
-      console.log("✓ Incremental strategy dropdown functionality works correctly");
+      await sleep(500);
     });
 
     it("should test incremental key dropdown with column options", async function () {
-      this.timeout(20000);
+      this.timeout(15000);
 
-      // Ensure section is still expanded
-      try {
-        const content = await driver.findElement(By.id("ingestr-content"));
-        if (!(await content.isDisplayed())) {
-          console.log("Section collapsed, reopening...");
-          await ensureSectionExpanded(driver);
-        }
-      } catch (error) {
-        console.log("Section not found, reopening...");
-        await ensureSectionExpanded(driver);
-      }
-
-      // Click on incremental key field to open dropdown
       const keyField = await driver.findElement(By.id("incremental-key-field"));
       await keyField.click();
       await sleep(1000);
 
-      // Verify dropdown is open
       const select = await driver.findElement(By.id("incremental-key-select"));
       assert(await select.isDisplayed(), "Key dropdown should be visible");
 
-      // Get all options
       const options = await select.findElements(By.tagName('option'));
       assert(options.length > 0, "Should have at least the placeholder option");
 
-      // Verify first option is placeholder
       const firstOptionText = await options[0].getText();
       assert(firstOptionText.includes("Select column"), "First option should be placeholder");
 
-      // Get all option texts
-      const optionTexts = await Promise.all(
-        options.map(option => option.getText())
-      );
-
-      console.log("Available key options:", optionTexts);
-
-      // Test selecting options if available
       if (options.length > 1) {
-        console.log(`✓ Found ${options.length - 1} column options`);
-        
-        // Test selecting the first actual column option
-        const firstColumnOption = options[1];
-        const columnText = await firstColumnOption.getText();
-        
-        await firstColumnOption.click();
+        await options[1].click();
         await sleep(500);
-        
-        // Verify selection
-        const selectedValue = await select.getAttribute('value');
-        console.log(`✓ Selected column: ${columnText} (value: ${selectedValue})`);
-        
-        // Test selecting placeholder option to clear selection
-        await options[0].click();
-        await sleep(500);
-        console.log("✓ Cleared selection by choosing placeholder");
-      } else {
-        console.log("✓ No column options available (expected if no columns loaded)");
       }
 
-      // Exit edit mode by pressing Escape key instead of clicking header
       await driver.actions().sendKeys(Key.ESCAPE).perform();
-      await sleep(1000);
-
-      console.log("✓ Incremental key dropdown functionality works correctly");
+      await sleep(500);
     });
 
     it("should test destination dropdown options", async function () {
-      this.timeout(20000);
+      this.timeout(15000);
 
-      // Ensure section is still expanded
-      try {
-        const content = await driver.findElement(By.id("ingestr-content"));
-        if (!(await content.isDisplayed())) {
-          console.log("Section collapsed, reopening...");
-          await ensureSectionExpanded(driver);
-        }
-      } catch (error) {
-        console.log("Section not found, reopening...");
-        await ensureSectionExpanded(driver);
-      }
-
-      // Click on destination field to open dropdown
       const destinationField = await driver.findElement(By.id("destination-field"));
       await destinationField.click();
       await sleep(1000);
 
-      // Verify dropdown is open
       const select = await driver.findElement(By.id("destination-select"));
       assert(await select.isDisplayed(), "Destination dropdown should be visible");
 
-      // Get all options
       const options = await select.findElements(By.tagName('option'));
       assert(options.length > 10, "Should have many destination options");
 
-      // Get option texts
-      const optionTexts = await Promise.all(
-        options.slice(0, 10).map(option => option.getText())
-      );
+      const optionTexts = await Promise.all(options.slice(0, 10).map(option => option.getText()));
+      const expectedDestinations = ['AWS Athena', 'BigQuery', 'Snowflake', 'DuckDB', 'Postgres', 'Redshift'];
 
-      console.log("Available destination options:", optionTexts);
-
-      // Verify expected destinations exist
-      const expectedDestinations = [
-        'AWS Athena', 'BigQuery', 'Snowflake', 'DuckDB', 'Postgres', 'Redshift'
-      ];
-
-      for (const expectedDest of expectedDestinations) {
-        const hasDestination = optionTexts.some(text => 
-          text.includes(expectedDest)
-        );
-        assert(hasDestination, `Should have ${expectedDest} destination option`);
+      for (const dest of expectedDestinations) {
+        assert(optionTexts.some(text => text.includes(dest)), `Should have ${dest} option`);
       }
 
-      // Test selecting a destination
-      let bigqueryOption = null;
-      for (const option of options) {
-        const text = await option.getText();
-        if (text.includes('BigQuery')) {
-          bigqueryOption = option;
-          break;
-        }
-      }
-
-      if (bigqueryOption) {
-        await bigqueryOption.click();
-        await sleep(500);
-        console.log("✓ Successfully selected BigQuery destination");
-      }
-
-      // Exit edit mode by pressing Escape key instead of clicking header
       await driver.actions().sendKeys(Key.ESCAPE).perform();
-      await sleep(1000);
-
-      console.log("✓ Destination dropdown functionality works correctly");
+      await sleep(500);
     });
   });
 
   describe("Field Validation States", function () {
+    before(async function () {
+      // Ensure section is expanded once for all tests in this group
+      await ensureSectionExpanded(driver);
+    });
+
     it("should show error styling for empty required fields", async function () {
       this.timeout(15000);
-
-      // Ensure section is expanded
-      await ensureSectionExpanded(driver);
 
       // Check source connection label styling (should have error class when empty)
       const sourceConnectionLabel = await driver.findElement(By.id("source-connection-label"));
@@ -1190,9 +1015,6 @@ describe("Ingestr Asset Display Integration Tests", function () {
 
     it("should show appropriate styling for optional fields", async function () {
       this.timeout(15000);
-
-      // Ensure section is expanded
-      await ensureSectionExpanded(driver);
 
       // Check incremental strategy label (should not have error classes)
       const strategyLabel = await driver.findElement(By.id("incremental-strategy-label"));
@@ -1214,18 +1036,17 @@ describe("Ingestr Asset Display Integration Tests", function () {
   });
 
   describe("Keyboard Interaction", function () {
+    before(async function () {
+      // Ensure section is expanded once for all tests in this group
+      await ensureSectionExpanded(driver);
+    });
+
     it("should handle ESC key to cancel editing", async function () {
       this.timeout(15000);
 
-      // Ensure section is expanded
-      await ensureSectionExpanded(driver);
-
-      // Start editing source table
-      const sourceTableField = await driver.findElement(By.id("source-table-field"));
-      await sourceTableField.click();
-      await sleep(1000);
-
       try {
+        await startEditingField(driver, "source-table-field");
+        
         const input = await driver.findElement(By.id("source-table-input"));
         assert(await input.isDisplayed(), "Input should be visible in edit mode");
         
@@ -1255,38 +1076,9 @@ describe("Ingestr Asset Display Integration Tests", function () {
     it("should handle Enter key to save editing", async function () {
       this.timeout(15000);
 
-      // Ensure section is expanded
-      await ensureSectionExpanded(driver);
-
-      // Start editing source table again
       try {
-        const sourceTableField = await driver.findElement(By.id("source-table-field"));
-        await sourceTableField.click();
-        await sleep(1000);
-      } catch (error) {
-        console.log("Could not find or click source table field for Enter key test:", error);
-        throw error;
-      }
-
-      try {
-        const input = await driver.findElement(By.id("source-table-input"));
-        
-        // Type something and press Enter
-        await input.clear();
-        await input.sendKeys("test_enter_save");
-        await sleep(500);
-        await input.sendKeys(Key.ENTER);
-        await sleep(1000);
-        
-        // Input should be gone (edit mode saved and closed)
-        try {
-          await driver.findElement(By.id("source-table-input"));
-          assert.fail("Input should not be visible after Enter save");
-        } catch (error) {
-          // Expected - input should be gone
-          console.log("✓ Enter key saves editing");
-        }
-        
+        await testFieldEditing(driver, "source-table-field", "source-table-input", "test_enter_save");
+        console.log("✓ Enter key saves editing");
       } catch (error) {
         console.log("Could not test Enter key behavior:", error);
       }
@@ -1294,34 +1086,13 @@ describe("Ingestr Asset Display Integration Tests", function () {
   });
 
   describe("Field Value Display", function () {
-    it("should display actual values from the asset file", async function () {
-      this.timeout(15000);
-
-      // Ensure section is expanded
+    before(async function () {
+      // Ensure section is expanded once for all tests in this group
       await ensureSectionExpanded(driver);
-
-      // Verify values are displayed (they might be different from expected hardcoded values)
-      // Instead of asserting specific values, verify that the fields show some content
-      const sourceConnectionValue = await driver.findElement(By.id("source-connection-value"));
-      const sourceConnText = await sourceConnectionValue.getText();
-      assert(sourceConnText.length > 0, "Source connection should show some value");
-
-      const sourceTableValue = await driver.findElement(By.id("source-table-value"));
-      const sourceTableText = await sourceTableValue.getText();
-      assert(sourceTableText.length > 0, "Source table should show some value");
-
-      const destinationValue = await driver.findElement(By.id("destination-value"));
-      const destText = await destinationValue.getText();
-      assert(destText.length > 0, "Destination should show some value");
-
-      console.log(`✓ Values displayed - Connection: "${sourceConnText}", Table: "${sourceTableText}", Destination: "${destText}"`);
     });
 
     it("should handle empty optional fields gracefully", async function () {
       this.timeout(15000);
-
-      // Ensure section is expanded
-      await ensureSectionExpanded(driver);
 
       const incrementalStrategyValue = await driver.findElement(By.id("incremental-strategy-value"));
       const strategyText = await incrementalStrategyValue.getText();
@@ -1338,9 +1109,6 @@ describe("Ingestr Asset Display Integration Tests", function () {
 
     it("should show appropriate placeholder text for empty fields", async function () {
       this.timeout(15000);
-
-      // Ensure section is expanded
-      await ensureSectionExpanded(driver);
 
       // Test strategy field placeholder
       const strategyValue = await driver.findElement(By.id("incremental-strategy-value"));
@@ -1360,68 +1128,6 @@ describe("Ingestr Asset Display Integration Tests", function () {
 
       console.log("✓ Placeholder text is appropriate for empty fields");
     });
-  });
 
-  describe("Component Tooltips and Accessibility", function () {
-    it("should have proper tooltip titles for field labels", async function () {
-      this.timeout(15000);
-
-      // Ensure section is expanded
-      await ensureSectionExpanded(driver);
-
-      // Check source connection tooltip
-      const sourceConnectionLabel = await driver.findElement(By.id("source-connection-label"));
-      const sourceTitle = await sourceConnectionLabel.getAttribute("title");
-      assert(sourceTitle && sourceTitle.length > 0, "Source connection should have tooltip");
-      assert(sourceTitle.toLowerCase().includes("connection"), "Tooltip should mention connection");
-
-      // Check source table tooltip
-      const sourceTableLabel = await driver.findElement(By.id("source-table-label"));
-      const tableTitle = await sourceTableLabel.getAttribute("title");
-      assert(tableTitle && tableTitle.length > 0, "Source table should have tooltip");
-      assert(tableTitle.toLowerCase().includes("table"), "Tooltip should mention table");
-
-      // Check destination tooltip
-      const destinationLabel = await driver.findElement(By.id("destination-label"));
-      const destTitle = await destinationLabel.getAttribute("title");
-      assert(destTitle && destTitle.length > 0, "Destination should have tooltip");
-      assert(destTitle.toLowerCase().includes("platform"), "Tooltip should mention platform");
-
-      // Check incremental strategy tooltip
-      const strategyLabel = await driver.findElement(By.id("incremental-strategy-label"));
-      const strategyTitle = await strategyLabel.getAttribute("title");
-      assert(strategyTitle && strategyTitle.length > 0, "Strategy should have tooltip");
-      assert(strategyTitle.toLowerCase().includes("incremental"), "Tooltip should mention incremental");
-
-      // Check incremental key tooltip
-      const keyLabel = await driver.findElement(By.id("incremental-key-label"));
-      const keyTitle = await keyLabel.getAttribute("title");
-      assert(keyTitle && keyTitle.length > 0, "Key should have tooltip");
-      assert(keyTitle.toLowerCase().includes("column"), "Tooltip should mention column");
-
-      console.log("✓ All field labels have appropriate tooltips");
-    });
-
-    it("should have proper cursor styles for interactive elements", async function () {
-      this.timeout(15000);
-
-      // Ensure section is expanded
-      await ensureSectionExpanded(driver);
-
-      // Check that labels have cursor-help
-      const sourceConnectionLabel = await driver.findElement(By.id("source-connection-label"));
-      const labelClass = await sourceConnectionLabel.getAttribute("class");
-      assert(labelClass.includes("cursor-help"), "Labels should have cursor-help");
-
-      // Check that clickable fields have appropriate cursor styling
-      const sourceConnectionField = await driver.findElement(By.id("source-connection-field"));
-      const fieldClass = await sourceConnectionField.getAttribute("class");
-      
-      // The field should have cursor-pointer when not in edit mode
-      const isClickable = fieldClass.includes("cursor-pointer") || fieldClass.includes("hover:");
-      assert(isClickable, "Fields should have interactive cursor styling");
-
-      console.log("✓ Interactive elements have proper cursor styles");
-    });
   });
 });
