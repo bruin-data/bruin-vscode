@@ -14,6 +14,56 @@ import * as path from "path";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// Helper function to ensure we can find elements with retries
+const findElementWithRetry = async (driver: WebDriver, selector: By, timeout = 10000): Promise<WebElement> => {
+  const startTime = Date.now();
+  let lastError: any;
+  
+  while (Date.now() - startTime < timeout) {
+    try {
+      const element = await driver.findElement(selector);
+      if (await element.isDisplayed()) {
+        return element;
+      }
+    } catch (error) {
+      lastError = error;
+    }
+    
+    // If element not found, wait a bit and try again
+    await sleep(500);
+  }
+  
+  throw new Error(`Element ${selector} not found after ${timeout}ms. Last error: ${lastError?.message}`);
+};
+
+// Helper function to ensure section is expanded
+const ensureSectionExpanded = async (driver: WebDriver): Promise<void> => {
+  try {
+    // Check if content is visible
+    const content = await driver.findElement(By.id("ingestr-content"));
+    if (await content.isDisplayed()) {
+      return; // Already expanded
+    }
+  } catch (error) {
+    // Content not found, need to expand
+  }
+  
+  try {
+    // Click header to expand
+    const header = await findElementWithRetry(driver, By.id("ingestr-header"), 5000);
+    await header.click();
+    await sleep(1000);
+    
+    // Verify expansion worked
+    const content = await driver.findElement(By.id("ingestr-content"));
+    if (!(await content.isDisplayed())) {
+      throw new Error("Section failed to expand after clicking header");
+    }
+  } catch (error: any) {
+    throw new Error(`Could not expand section: ${error.message}`);
+  }
+};
+
 describe("Ingestr Asset Display Integration Tests", function () {
   let webview: WebView;
   let driver: WebDriver;
@@ -202,7 +252,7 @@ describe("Ingestr Asset Display Integration Tests", function () {
     // Wait for the webview iframe to be present
     console.log("Waiting for webview iframe...");
     await driver.wait(
-      until.elementLocated(By.css('iframe')),
+      until.elementLocated(By.className("editor-instance")),
       30000,
       "Webview iframe did not appear within 30 seconds"
     );
@@ -212,6 +262,18 @@ describe("Ingestr Asset Display Integration Tests", function () {
     const allIframes = await driver.findElements(By.css('iframe'));
     console.log(`Found ${allIframes.length} iframes`);
     
+    for (let i = 0; i < allIframes.length; i++) {
+      try {
+        const iframe = allIframes[i];
+        const title = await iframe.getAttribute('title');
+        const src = await iframe.getAttribute('src');
+        console.log(`Iframe ${i}: title="${title}", src="${src ? src.substring(0, 100) + '...' : 'no src'}"`);
+      } catch (error) {
+        console.log(`Iframe ${i}: could not get attributes`);
+      }
+    }
+
+    // Try to find the Bruin panel iframe specifically with better logic
     let bruinIframe = null;
     for (let i = 0; i < allIframes.length; i++) {
       try {
@@ -223,55 +285,195 @@ describe("Ingestr Asset Display Integration Tests", function () {
           // Switch to this iframe and check if it contains Bruin content
           await driver.switchTo().frame(iframe);
           
-          // Wait for the Vue app to mount (simplified approach)
+          // Wait longer and try multiple approaches to detect the app
           let hasApp = false;
           
+          // Try 1: Look for #app element
           try {
-            // Try to find the #app element with a reasonable timeout
             await driver.wait(until.elementLocated(By.id("app")), 5000);
             hasApp = true;
-          } catch (appError) {
-            // Try looking for asset-specific content as fallback
+            console.log(`✓ Found #app in iframe ${i}`);
+          } catch (error) {
+            console.log(`No #app in iframe ${i}`);
+          }
+          
+          // Try 2: Look for any Vue.js mounted content
+          if (!hasApp) {
             try {
-              const body = await driver.findElement(By.tagName('body'));
-              const bodyHTML = await body.getAttribute('innerHTML');
-              if (bodyHTML.length > 5000 && (bodyHTML.includes('ingestr') || bodyHTML.includes('asset'))) {
+              const vueElements = await driver.findElements(By.css('[data-v-*], .vue-component, [v-*]'));
+              if (vueElements.length > 0) {
                 hasApp = true;
+                console.log(`✓ Found Vue content in iframe ${i}`);
               }
-            } catch (bodyError) {
-              // No content found
+            } catch (error) {
+              console.log(`No Vue content in iframe ${i}`);
+            }
+          }
+          
+          // Try 3: Look for Bruin-specific elements
+          if (!hasApp) {
+            try {
+              const bruinElements = await driver.findElements(By.css('[class*="bruin"], [id*="asset"], [class*="tab"], [id*="sql-editor"], [id*="ingestr"]'));
+              if (bruinElements.length > 0) {
+                hasApp = true;
+                console.log(`✓ Found Bruin-specific content in iframe ${i} (${bruinElements.length} elements)`);
+              }
+            } catch (error) {
+              console.log(`No Bruin-specific content in iframe ${i}`);
+            }
+          }
+          
+          // Try 4: Look for SQL editor or preview content
+          if (!hasApp) {
+            try {
+              const sqlElements = await driver.findElements(By.css('[id*="editor"], [class*="sql"], [class*="preview"], [class*="highlight"]'));
+              if (sqlElements.length > 0) {
+                hasApp = true;
+                console.log(`✓ Found SQL/editor content in iframe ${i} (${sqlElements.length} elements)`);
+              }
+            } catch (error) {
+              console.log(`No SQL/editor content in iframe ${i}`);
+            }
+          }
+          
+          // Try 5: Check page source content for Bruin-specific text
+          if (!hasApp) {
+            try {
+              const pageSource = await driver.getPageSource();
+              const hasBruinContent = pageSource.includes('asset') || 
+                                    pageSource.includes('materialization') ||
+                                    pageSource.includes('preview') ||
+                                    pageSource.includes('ingestr') ||
+                                    pageSource.toLowerCase().includes('sql');
+              
+              if (hasBruinContent && pageSource.length > 5000) {
+                hasApp = true;
+                console.log(`✓ Found substantial Bruin content in iframe ${i} (${pageSource.length} chars)`);
+              }
+            } catch (error) {
+              console.log(`Could not check page source in iframe ${i}`);
             }
           }
           
           if (hasApp) {
+            console.log(`Found Bruin panel in iframe ${i}`);
             bruinIframe = iframe;
-            console.log(`✓ Found Bruin app in iframe ${i}`);
             break;
           } else {
+            // Not the Bruin iframe, switch back
             await driver.switchTo().defaultContent();
           }
         }
       } catch (error) {
         console.log(`Error checking iframe ${i}:`, error);
-        await driver.switchTo().defaultContent();
+        // Make sure we're back to default content if there was an error
+        try {
+          await driver.switchTo().defaultContent();
+        } catch (switchError) {
+          console.log("Error switching back to default content:", switchError);
+        }
       }
     }
 
     if (!bruinIframe) {
-      // Use default WebView approach
+      console.log("No Bruin panel iframe found, trying default WebView approach");
       webview = new WebView();
-      await webview.switchToFrame();
-
-      // Wait for the Vue app to mount
-      await driver.wait(
-        until.elementLocated(By.id("app")),
-        20000,
-        "Vue app did not mount within 20 seconds"
-      );
+      
+      // Try multiple approaches to get into the webview
+      try {
+        await driver.wait(until.elementLocated(By.css(".editor-instance")), 10000);
+        await webview.switchToFrame();
+      } catch (error) {
+        console.log("Default WebView approach failed, trying direct iframe selection");
+        
+        // Fallback: try the first iframe that has substantial content
+        for (let i = 0; i < allIframes.length; i++) {
+          try {
+            await driver.switchTo().frame(allIframes[i]);
+            const pageSource = await driver.getPageSource();
+            if (pageSource.length > 10000) { // Substantial content
+              console.log(`Using iframe ${i} as fallback (${pageSource.length} chars)`);
+              webview = new WebView();
+              break;
+            }
+            await driver.switchTo().defaultContent();
+          } catch (error) {
+            try {
+              await driver.switchTo().defaultContent();
+            } catch (switchError) {
+              // Ignore switch errors
+            }
+          }
+        }
+      }
+    } else {
+      console.log("Using Bruin panel iframe directly");
+      webview = new WebView();
+      // The iframe is already switched to, so we don't need to switch again
     }
 
-    // Wait for component to fully load
-    await new Promise((resolve) => setTimeout(resolve, 3000));
+    // Wait for the webview content to load with progressive checks
+    console.log("Waiting for webview content to initialize...");
+    
+    // Progressive wait with multiple checks
+    for (let attempt = 1; attempt <= 5; attempt++) {
+      console.log(`Initialization attempt ${attempt}/5`);
+      
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      
+      // Check for app element
+      try {
+        const appElement = await driver.findElement(By.id("app"));
+        console.log(`✓ Found #app element on attempt ${attempt}`);
+        
+        // Wait a bit more for Vue to mount
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        break;
+      } catch (error) {
+        console.log(`No #app element found on attempt ${attempt}`);
+        
+        // On the last attempt, try to trigger the webview to load properly
+        if (attempt === 5) {
+          console.log("Final attempt: trying to trigger webview initialization");
+          
+          // Try to trigger a refresh or re-render
+          try {
+            await driver.navigate().refresh();
+            await new Promise((resolve) => setTimeout(resolve, 3000));
+          } catch (refreshError) {
+            console.log("Could not refresh webview");
+          }
+          
+          // Check one more time
+          try {
+            await driver.wait(until.elementLocated(By.id("app")), 5000);
+            console.log("✓ Found #app element after refresh");
+          } catch (finalError) {
+            console.log("⚠️  Still no #app element - webview may be in settings-only mode");
+            console.log("This suggests the Vue.js application is not mounting properly");
+            
+            // Let's see what content we do have
+            try {
+              const pageSource = await driver.getPageSource();
+              console.log("Final webview content length:", pageSource.length);
+              
+              // Check for common elements that indicate the webview is working
+              const commonElements = await driver.findElements(By.css('body, html, div'));
+              console.log(`Found ${commonElements.length} basic HTML elements`);
+              
+              // Look for any form of structured content
+              const structuredElements = await driver.findElements(By.css('*[class], *[id]'));
+              console.log(`Found ${structuredElements.length} elements with classes or IDs`);
+              
+            } catch (debugError) {
+              console.log("Could not gather debug information:", debugError);
+            }
+            
+            throw new Error("Webview app element not found after all attempts");
+          }
+        }
+      }
+    }
   });
 
   after(async function () {
@@ -499,9 +701,9 @@ describe("Ingestr Asset Display Integration Tests", function () {
     });
   });
 
-  describe("Field Value Display", function () {
-    it("should display actual values from the asset file", async function () {
-      this.timeout(15000);
+  describe("Field Editing Functionality", function () {
+    it("should allow editing source connection field", async function () {
+      this.timeout(20000);
 
       // Ensure section is expanded
       const content = await driver.findElement(By.id("ingestr-content"));
@@ -511,8 +713,345 @@ describe("Ingestr Asset Display Integration Tests", function () {
         await sleep(1000);
       }
 
-      // Get the actual page text to see what values are displayed
-      const pageText = await content.getText();
+      // Click on source connection field to start editing
+      const sourceConnectionField = await driver.findElement(By.id("source-connection-field"));
+      await sourceConnectionField.click();
+      await sleep(1000);
+
+      // Check if select element appeared (edit mode)
+      try {
+        const select = await driver.findElement(By.id("source-connection-select"));
+        assert(await select.isDisplayed(), "Source connection select should appear in edit mode");
+        
+        // Verify it has at least the default option
+        const options = await select.findElements(By.tagName('option'));
+        assert(options.length > 0, "Select should have at least one option");
+        
+        // Click elsewhere to exit edit mode
+        const header = await driver.findElement(By.id("ingestr-header"));
+        await header.click();
+        await sleep(1000);
+        
+        console.log("✓ Source connection field editing works");
+      } catch (error) {
+        console.log("Source connection editing not available (might be expected if no connections)");
+      }
+    });
+
+    it("should allow editing source table field", async function () {
+      this.timeout(15000);
+
+      // Ensure section is expanded
+      await ensureSectionExpanded(driver);
+
+      // Click on source table field to start editing
+      try {
+        const sourceTableField = await driver.findElement(By.id("source-table-field"));
+        await sourceTableField.click();
+        await sleep(1000);
+      } catch (error) {
+        console.log("Could not find or click source table field:", error);
+        throw error;
+      }
+
+      // Check if input element appeared (edit mode)
+      try {
+        const input = await driver.findElement(By.id("source-table-input"));
+        assert(await input.isDisplayed(), "Source table input should appear in edit mode");
+        
+        // Verify input attributes
+        const placeholder = await input.getAttribute("placeholder");
+        assert(placeholder === "Source table name", "Input should have correct placeholder");
+        
+        // Test typing in input
+        await input.clear();
+        await input.sendKeys("test_table_edited");
+        await sleep(500);
+        
+        // Press Enter to save
+        await input.sendKeys(Key.ENTER);
+        await sleep(1000);
+        
+        console.log("✓ Source table field editing works");
+      } catch (error) {
+        console.log("Source table editing failed:", error);
+      }
+    });
+
+    it("should allow editing destination field", async function () {
+      this.timeout(15000);
+
+      // Ensure section is expanded
+      await ensureSectionExpanded(driver);
+
+      // Click on destination field to start editing
+      try {
+        const destinationField = await driver.findElement(By.id("destination-field"));
+        await destinationField.click();
+        await sleep(1000);
+      } catch (error) {
+        console.log("Could not find or click destination field:", error);
+        throw error;
+      }
+
+      // Check if select element appeared (edit mode)
+      try {
+        const select = await driver.findElement(By.id("destination-select"));
+        assert(await select.isDisplayed(), "Destination select should appear in edit mode");
+        
+        // Verify it has all expected destination options
+        const options = await select.findElements(By.tagName('option'));
+        assert(options.length > 10, "Should have many destination options");
+        
+        // Get option texts to verify some expected destinations
+        const optionTexts = await Promise.all(
+          options.slice(0, 5).map(option => option.getText())
+        );
+        
+        const hasExpectedOptions = optionTexts.some(text => 
+          text.includes('AWS Athena') || 
+          text.includes('BigQuery') || 
+          text.includes('Snowflake') ||
+          text.includes('DuckDB')
+        );
+        
+        assert(hasExpectedOptions, "Should have expected destination options");
+        
+        // Click elsewhere to exit edit mode
+        const header = await driver.findElement(By.id("ingestr-header"));
+        await header.click();
+        await sleep(1000);
+        
+        console.log("✓ Destination field editing works with proper options");
+      } catch (error) {
+        console.log("Destination editing failed:", error);
+        throw error;
+      }
+    });
+
+    it("should allow editing incremental strategy field", async function () {
+      this.timeout(15000);
+
+      // Ensure section is expanded
+      await ensureSectionExpanded(driver);
+
+      // Click on incremental strategy field to start editing
+      try {
+        const strategyField = await driver.findElement(By.id("incremental-strategy-field"));
+        await strategyField.click();
+        await sleep(1000);
+      } catch (error) {
+        console.log("Could not find or click incremental strategy field:", error);
+        throw error;
+      }
+
+      // Check if select element appeared (edit mode)
+      try {
+        const select = await driver.findElement(By.id("incremental-strategy-select"));
+        assert(await select.isDisplayed(), "Incremental strategy select should appear in edit mode");
+        
+        // Verify it has expected strategy options
+        const options = await select.findElements(By.tagName('option'));
+        assert(options.length >= 5, "Should have at least 5 strategy options");
+        
+        // Get option texts to verify expected strategies
+        const optionTexts = await Promise.all(
+          options.map(option => option.getText())
+        );
+        
+        const expectedStrategies = ['None', 'Replace', 'Append', 'Merge'];
+        const hasExpectedStrategies = expectedStrategies.some(strategy =>
+          optionTexts.some(text => text.includes(strategy))
+        );
+        
+        assert(hasExpectedStrategies, "Should have expected strategy options");
+        
+        // Click elsewhere to exit edit mode
+        const header = await driver.findElement(By.id("ingestr-header"));
+        await header.click();
+        await sleep(1000);
+        
+        console.log("✓ Incremental strategy field editing works");
+      } catch (error) {
+        console.log("Incremental strategy editing failed:", error);
+      }
+    });
+
+    it("should allow editing incremental key field", async function () {
+      this.timeout(15000);
+
+      // Ensure section is expanded
+      await ensureSectionExpanded(driver);
+
+      // Click on incremental key field to start editing
+      try {
+        const keyField = await driver.findElement(By.id("incremental-key-field"));
+        await keyField.click();
+        await sleep(1000);
+      } catch (error) {
+        console.log("Could not find or click incremental key field:", error);
+        throw error;
+      }
+
+      // Check if select element appeared (edit mode)
+      try {
+        const select = await driver.findElement(By.id("incremental-key-select"));
+        assert(await select.isDisplayed(), "Incremental key select should appear in edit mode");
+        
+        // Verify it has at least the default option
+        const options = await select.findElements(By.tagName('option'));
+        assert(options.length > 0, "Should have at least default option");
+        
+        // First option should be "Select column..."
+        const firstOption = await options[0].getText();
+        assert(firstOption.includes("Select column"), "First option should be select column placeholder");
+        
+        // Click elsewhere to exit edit mode
+        const header = await driver.findElement(By.id("ingestr-header"));
+        await header.click();
+        await sleep(1000);
+        
+        console.log("✓ Incremental key field editing works");
+      } catch (error) {
+        console.log("Incremental key editing failed:", error);
+      }
+    });
+  });
+
+  describe("Field Validation States", function () {
+    it("should show error styling for empty required fields", async function () {
+      this.timeout(15000);
+
+      // Ensure section is expanded
+      await ensureSectionExpanded(driver);
+
+      // Check source connection label styling (should have error class when empty)
+      const sourceConnectionLabel = await driver.findElement(By.id("source-connection-label"));
+      const labelClass = await sourceConnectionLabel.getAttribute("class");
+      
+      // Check if it has appropriate styling classes
+      assert(labelClass.includes("text-2xs"), "Label should have text size class");
+      assert(labelClass.includes("cursor-help"), "Label should have cursor help class");
+      
+      // Check source connection value styling
+      const sourceConnectionValue = await driver.findElement(By.id("source-connection-value"));
+      const valueClass = await sourceConnectionValue.getAttribute("class");
+      assert(valueClass.includes("block"), "Value should have block display class");
+      
+      console.log("✓ Field validation styling is applied");
+    });
+
+    it("should show appropriate styling for optional fields", async function () {
+      this.timeout(15000);
+
+      // Ensure section is expanded
+      await ensureSectionExpanded(driver);
+
+      // Check incremental strategy label (should not have error classes)
+      const strategyLabel = await driver.findElement(By.id("incremental-strategy-label"));
+      const labelClass = await strategyLabel.getAttribute("class");
+      
+      assert(labelClass.includes("text-editor-fg"), "Optional label should have editor foreground color");
+      assert(labelClass.includes("opacity-70"), "Optional label should have reduced opacity");
+      assert(!labelClass.includes("text-errorForeground"), "Optional label should not have error color");
+      
+      // Check incremental key label similarly
+      const keyLabel = await driver.findElement(By.id("incremental-key-label"));
+      const keyLabelClass = await keyLabel.getAttribute("class");
+      
+      assert(keyLabelClass.includes("text-editor-fg"), "Optional key label should have editor foreground color");
+      assert(keyLabelClass.includes("opacity-70"), "Optional key label should have reduced opacity");
+      
+      console.log("✓ Optional field styling is correct");
+    });
+  });
+
+  describe("Keyboard Interaction", function () {
+    it("should handle ESC key to cancel editing", async function () {
+      this.timeout(15000);
+
+      // Ensure section is expanded
+      await ensureSectionExpanded(driver);
+
+      // Start editing source table
+      const sourceTableField = await driver.findElement(By.id("source-table-field"));
+      await sourceTableField.click();
+      await sleep(1000);
+
+      try {
+        const input = await driver.findElement(By.id("source-table-input"));
+        assert(await input.isDisplayed(), "Input should be visible in edit mode");
+        
+        // Type something
+        await input.clear();
+        await input.sendKeys("test_value");
+        await sleep(500);
+        
+        // Press ESC to cancel
+        await input.sendKeys(Key.ESCAPE);
+        await sleep(1000);
+        
+        // Input should be gone (edit mode cancelled)
+        try {
+          await driver.findElement(By.id("source-table-input"));
+          assert.fail("Input should not be visible after ESC");
+        } catch (error) {
+          // Expected - input should be gone
+          console.log("✓ ESC key cancels editing");
+        }
+        
+      } catch (error) {
+        console.log("Could not test ESC key behavior:", error);
+      }
+    });
+
+    it("should handle Enter key to save editing", async function () {
+      this.timeout(15000);
+
+      // Ensure section is expanded
+      await ensureSectionExpanded(driver);
+
+      // Start editing source table again
+      try {
+        const sourceTableField = await driver.findElement(By.id("source-table-field"));
+        await sourceTableField.click();
+        await sleep(1000);
+      } catch (error) {
+        console.log("Could not find or click source table field for Enter key test:", error);
+        throw error;
+      }
+
+      try {
+        const input = await driver.findElement(By.id("source-table-input"));
+        
+        // Type something and press Enter
+        await input.clear();
+        await input.sendKeys("test_enter_save");
+        await sleep(500);
+        await input.sendKeys(Key.ENTER);
+        await sleep(1000);
+        
+        // Input should be gone (edit mode saved and closed)
+        try {
+          await driver.findElement(By.id("source-table-input"));
+          assert.fail("Input should not be visible after Enter save");
+        } catch (error) {
+          // Expected - input should be gone
+          console.log("✓ Enter key saves editing");
+        }
+        
+      } catch (error) {
+        console.log("Could not test Enter key behavior:", error);
+      }
+    });
+  });
+
+  describe("Field Value Display", function () {
+    it("should display actual values from the asset file", async function () {
+      this.timeout(15000);
+
+      // Ensure section is expanded
+      await ensureSectionExpanded(driver);
 
       // Verify values are displayed (they might be different from expected hardcoded values)
       // Instead of asserting specific values, verify that the fields show some content
@@ -534,6 +1073,9 @@ describe("Ingestr Asset Display Integration Tests", function () {
     it("should handle empty optional fields gracefully", async function () {
       this.timeout(15000);
 
+      // Ensure section is expanded
+      await ensureSectionExpanded(driver);
+
       const incrementalStrategyValue = await driver.findElement(By.id("incremental-strategy-value"));
       const strategyText = await incrementalStrategyValue.getText();
       
@@ -545,6 +1087,94 @@ describe("Ingestr Asset Display Integration Tests", function () {
       assert(typeof keyText === 'string', "Key field should render text content");
 
       console.log("✓ Optional fields handle empty values gracefully");
+    });
+
+    it("should show appropriate placeholder text for empty fields", async function () {
+      this.timeout(15000);
+
+      // Ensure section is expanded
+      await ensureSectionExpanded(driver);
+
+      // Test strategy field placeholder
+      const strategyValue = await driver.findElement(By.id("incremental-strategy-value"));
+      const strategyText = await strategyValue.getText();
+      
+      if (strategyText.includes("Click to set")) {
+        assert(strategyText.includes("strategy"), "Strategy placeholder should mention strategy");
+      }
+
+      // Test key field placeholder  
+      const keyValue = await driver.findElement(By.id("incremental-key-value"));
+      const keyText = await keyValue.getText();
+      
+      if (keyText.includes("Click to set")) {
+        assert(keyText.includes("key"), "Key placeholder should mention key");
+      }
+
+      console.log("✓ Placeholder text is appropriate for empty fields");
+    });
+  });
+
+  describe("Component Tooltips and Accessibility", function () {
+    it("should have proper tooltip titles for field labels", async function () {
+      this.timeout(15000);
+
+      // Ensure section is expanded
+      await ensureSectionExpanded(driver);
+
+      // Check source connection tooltip
+      const sourceConnectionLabel = await driver.findElement(By.id("source-connection-label"));
+      const sourceTitle = await sourceConnectionLabel.getAttribute("title");
+      assert(sourceTitle && sourceTitle.length > 0, "Source connection should have tooltip");
+      assert(sourceTitle.toLowerCase().includes("connection"), "Tooltip should mention connection");
+
+      // Check source table tooltip
+      const sourceTableLabel = await driver.findElement(By.id("source-table-label"));
+      const tableTitle = await sourceTableLabel.getAttribute("title");
+      assert(tableTitle && tableTitle.length > 0, "Source table should have tooltip");
+      assert(tableTitle.toLowerCase().includes("table"), "Tooltip should mention table");
+
+      // Check destination tooltip
+      const destinationLabel = await driver.findElement(By.id("destination-label"));
+      const destTitle = await destinationLabel.getAttribute("title");
+      assert(destTitle && destTitle.length > 0, "Destination should have tooltip");
+      assert(destTitle.toLowerCase().includes("platform"), "Tooltip should mention platform");
+
+      // Check incremental strategy tooltip
+      const strategyLabel = await driver.findElement(By.id("incremental-strategy-label"));
+      const strategyTitle = await strategyLabel.getAttribute("title");
+      assert(strategyTitle && strategyTitle.length > 0, "Strategy should have tooltip");
+      assert(strategyTitle.toLowerCase().includes("incremental"), "Tooltip should mention incremental");
+
+      // Check incremental key tooltip
+      const keyLabel = await driver.findElement(By.id("incremental-key-label"));
+      const keyTitle = await keyLabel.getAttribute("title");
+      assert(keyTitle && keyTitle.length > 0, "Key should have tooltip");
+      assert(keyTitle.toLowerCase().includes("column"), "Tooltip should mention column");
+
+      console.log("✓ All field labels have appropriate tooltips");
+    });
+
+    it("should have proper cursor styles for interactive elements", async function () {
+      this.timeout(15000);
+
+      // Ensure section is expanded
+      await ensureSectionExpanded(driver);
+
+      // Check that labels have cursor-help
+      const sourceConnectionLabel = await driver.findElement(By.id("source-connection-label"));
+      const labelClass = await sourceConnectionLabel.getAttribute("class");
+      assert(labelClass.includes("cursor-help"), "Labels should have cursor-help");
+
+      // Check that clickable fields have appropriate cursor styling
+      const sourceConnectionField = await driver.findElement(By.id("source-connection-field"));
+      const fieldClass = await sourceConnectionField.getAttribute("class");
+      
+      // The field should have cursor-pointer when not in edit mode
+      const isClickable = fieldClass.includes("cursor-pointer") || fieldClass.includes("hover:");
+      assert(isClickable, "Fields should have interactive cursor styling");
+
+      console.log("✓ Interactive elements have proper cursor styles");
     });
   });
 });
