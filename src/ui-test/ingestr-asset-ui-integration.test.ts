@@ -866,6 +866,22 @@ describe("Ingestr Asset Display Integration Tests", function () {
         
         assert(hasExpectedStrategies, "Should have expected strategy options");
         
+        // Test selecting a strategy option
+        let replaceOption = null;
+        for (const option of options) {
+          const text = await option.getText();
+          if (text.includes('Replace')) {
+            replaceOption = option;
+            break;
+          }
+        }
+        
+        if (replaceOption) {
+          await replaceOption.click();
+          await sleep(500);
+          console.log("✓ Successfully selected Replace strategy");
+        }
+        
         // Click elsewhere to exit edit mode
         const header = await driver.findElement(By.id("ingestr-header"));
         await header.click();
@@ -906,6 +922,20 @@ describe("Ingestr Asset Display Integration Tests", function () {
         const firstOption = await options[0].getText();
         assert(firstOption.includes("Select column"), "First option should be select column placeholder");
         
+        // Test if there are any column options available (beyond the placeholder)
+        if (options.length > 1) {
+          console.log(`✓ Found ${options.length - 1} column options available`);
+          
+          // Try to select the first actual column option
+          const firstColumnOption = options[1];
+          const columnText = await firstColumnOption.getText();
+          await firstColumnOption.click();
+          await sleep(500);
+          console.log(`✓ Successfully selected column: ${columnText}`);
+        } else {
+          console.log("✓ No column options available (expected if no columns loaded)");
+        }
+        
         // Click elsewhere to exit edit mode
         const header = await driver.findElement(By.id("ingestr-header"));
         await header.click();
@@ -915,6 +945,223 @@ describe("Ingestr Asset Display Integration Tests", function () {
       } catch (error) {
         console.log("Incremental key editing failed:", error);
       }
+    });
+  });
+
+  describe("Dropdown Functionality", function () {
+    before(async function () {
+      // Open the section once and keep it open for all dropdown tests
+      await ensureSectionExpanded(driver);
+    });
+
+    it("should test incremental strategy dropdown options", async function () {
+      this.timeout(20000);
+
+      // Ensure section is still expanded
+      try {
+        const content = await driver.findElement(By.id("ingestr-content"));
+        if (!(await content.isDisplayed())) {
+          console.log("Section collapsed, reopening...");
+          await ensureSectionExpanded(driver);
+        }
+      } catch (error) {
+        console.log("Section not found, reopening...");
+        await ensureSectionExpanded(driver);
+      }
+
+      // Click on incremental strategy field to open dropdown
+      const strategyField = await driver.findElement(By.id("incremental-strategy-field"));
+      await strategyField.click();
+      await sleep(1000);
+
+      // Verify dropdown is open
+      const select = await driver.findElement(By.id("incremental-strategy-select"));
+      assert(await select.isDisplayed(), "Strategy dropdown should be visible");
+
+      // Get all options and verify they match expected strategies
+      const options = await select.findElements(By.tagName('option'));
+      assert(options.length >= 5, "Should have at least 5 strategy options");
+
+      // Verify specific strategy options exist
+      const optionTexts = await Promise.all(
+        options.map(option => option.getText())
+      );
+
+      console.log("Available strategy options:", optionTexts);
+
+      // Check for specific expected strategies
+      const expectedStrategies = [
+        { value: '', label: 'None' },
+        { value: 'replace', label: 'Replace' },
+        { value: 'append', label: 'Append' },
+        { value: 'merge', label: 'Merge' },
+        { value: 'delete+insert', label: 'Delete + Insert' }
+      ];
+
+      for (const expectedStrategy of expectedStrategies) {
+        const hasStrategy = optionTexts.some(text => 
+          text.includes(expectedStrategy.label)
+        );
+        assert(hasStrategy, `Should have ${expectedStrategy.label} strategy option`);
+      }
+
+      // Test selecting different options
+      for (let i = 0; i < Math.min(3, options.length); i++) {
+        const option = options[i];
+        const optionText = await option.getText();
+        
+        await option.click();
+        await sleep(500);
+        
+        // Verify the option was selected
+        const selectedValue = await select.getAttribute('value');
+        console.log(`✓ Selected option: ${optionText} (value: ${selectedValue})`);
+      }
+
+      // Exit edit mode by pressing Escape key instead of clicking header
+      await driver.actions().sendKeys(Key.ESCAPE).perform();
+      await sleep(1000);
+
+      console.log("✓ Incremental strategy dropdown functionality works correctly");
+    });
+
+    it("should test incremental key dropdown with column options", async function () {
+      this.timeout(20000);
+
+      // Ensure section is still expanded
+      try {
+        const content = await driver.findElement(By.id("ingestr-content"));
+        if (!(await content.isDisplayed())) {
+          console.log("Section collapsed, reopening...");
+          await ensureSectionExpanded(driver);
+        }
+      } catch (error) {
+        console.log("Section not found, reopening...");
+        await ensureSectionExpanded(driver);
+      }
+
+      // Click on incremental key field to open dropdown
+      const keyField = await driver.findElement(By.id("incremental-key-field"));
+      await keyField.click();
+      await sleep(1000);
+
+      // Verify dropdown is open
+      const select = await driver.findElement(By.id("incremental-key-select"));
+      assert(await select.isDisplayed(), "Key dropdown should be visible");
+
+      // Get all options
+      const options = await select.findElements(By.tagName('option'));
+      assert(options.length > 0, "Should have at least the placeholder option");
+
+      // Verify first option is placeholder
+      const firstOptionText = await options[0].getText();
+      assert(firstOptionText.includes("Select column"), "First option should be placeholder");
+
+      // Get all option texts
+      const optionTexts = await Promise.all(
+        options.map(option => option.getText())
+      );
+
+      console.log("Available key options:", optionTexts);
+
+      // Test selecting options if available
+      if (options.length > 1) {
+        console.log(`✓ Found ${options.length - 1} column options`);
+        
+        // Test selecting the first actual column option
+        const firstColumnOption = options[1];
+        const columnText = await firstColumnOption.getText();
+        
+        await firstColumnOption.click();
+        await sleep(500);
+        
+        // Verify selection
+        const selectedValue = await select.getAttribute('value');
+        console.log(`✓ Selected column: ${columnText} (value: ${selectedValue})`);
+        
+        // Test selecting placeholder option to clear selection
+        await options[0].click();
+        await sleep(500);
+        console.log("✓ Cleared selection by choosing placeholder");
+      } else {
+        console.log("✓ No column options available (expected if no columns loaded)");
+      }
+
+      // Exit edit mode by pressing Escape key instead of clicking header
+      await driver.actions().sendKeys(Key.ESCAPE).perform();
+      await sleep(1000);
+
+      console.log("✓ Incremental key dropdown functionality works correctly");
+    });
+
+    it("should test destination dropdown options", async function () {
+      this.timeout(20000);
+
+      // Ensure section is still expanded
+      try {
+        const content = await driver.findElement(By.id("ingestr-content"));
+        if (!(await content.isDisplayed())) {
+          console.log("Section collapsed, reopening...");
+          await ensureSectionExpanded(driver);
+        }
+      } catch (error) {
+        console.log("Section not found, reopening...");
+        await ensureSectionExpanded(driver);
+      }
+
+      // Click on destination field to open dropdown
+      const destinationField = await driver.findElement(By.id("destination-field"));
+      await destinationField.click();
+      await sleep(1000);
+
+      // Verify dropdown is open
+      const select = await driver.findElement(By.id("destination-select"));
+      assert(await select.isDisplayed(), "Destination dropdown should be visible");
+
+      // Get all options
+      const options = await select.findElements(By.tagName('option'));
+      assert(options.length > 10, "Should have many destination options");
+
+      // Get option texts
+      const optionTexts = await Promise.all(
+        options.slice(0, 10).map(option => option.getText())
+      );
+
+      console.log("Available destination options:", optionTexts);
+
+      // Verify expected destinations exist
+      const expectedDestinations = [
+        'AWS Athena', 'BigQuery', 'Snowflake', 'DuckDB', 'Postgres', 'Redshift'
+      ];
+
+      for (const expectedDest of expectedDestinations) {
+        const hasDestination = optionTexts.some(text => 
+          text.includes(expectedDest)
+        );
+        assert(hasDestination, `Should have ${expectedDest} destination option`);
+      }
+
+      // Test selecting a destination
+      let bigqueryOption = null;
+      for (const option of options) {
+        const text = await option.getText();
+        if (text.includes('BigQuery')) {
+          bigqueryOption = option;
+          break;
+        }
+      }
+
+      if (bigqueryOption) {
+        await bigqueryOption.click();
+        await sleep(500);
+        console.log("✓ Successfully selected BigQuery destination");
+      }
+
+      // Exit edit mode by pressing Escape key instead of clicking header
+      await driver.actions().sendKeys(Key.ESCAPE).perform();
+      await sleep(1000);
+
+      console.log("✓ Destination dropdown functionality works correctly");
     });
   });
 

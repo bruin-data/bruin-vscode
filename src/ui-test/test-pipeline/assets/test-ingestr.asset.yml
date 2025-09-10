@@ -6,3 +6,14 @@ parameters:
   destination: duckdb
   source_connection: shopify-default
   source_table: orders
+
+columns:
+  - name: id
+    type: integer
+    description: Order unique identifier
+    primary_key: true
+    checks:
+      - name: not_null
+  - name: app_id
+    type: integer
+    description: ID of the app that created the order
