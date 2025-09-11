@@ -1,0 +1,74 @@
+# Test connections configuration for integration tests
+connections:
+  # Google Cloud Platform connections
+  gcp_test_connection:
+    type: google_cloud_platform
+    project_id: "test-project-123"
+    location: "US"
+    credentials_file: "/path/to/service-account.json"
+    
+  gcp_eu_connection:
+    type: google_cloud_platform
+    project_id: "test-project-eu"
+    location: "europe-west1"
+    
+  # BigQuery connections
+  bigquery_test:
+    type: bigquery
+    project_id: "test-analytics-project"
+    location: "US"
+    dataset: "test_dataset"
+    
+  # Snowflake connections
+  snowflake_test:
+    type: snowflake
+    account: "test-account.snowflakecomputing.com"
+    database: "TEST_DB"
+    warehouse: "TEST_WH" 
+    schema: "TEST_SCHEMA"
+    role: "TEST_ROLE"
+    
+  # PostgreSQL connections
+  postgres_local:
+    type: postgres
+    host: "localhost"
+    port: 5432
+    database: "test_database"
+    schema: "public"
+    username: "test_user"
+    
+  postgres_remote:
+    type: postgres
+    host: "test-postgres.example.com"
+    port: 5432
+    database: "production_db"
+    schema: "analytics"
+    
+  # DuckDB connections
+  duckdb_local:
+    type: duckdb
+    path: "/tmp/test_local.duckdb"
+    
+  duckdb_memory:
+    type: duckdb
+    path: ":memory:"
+    
+  # AWS Redshift connections
+  redshift_test:
+    type: redshift
+    host: "test-cluster.redshift.amazonaws.com"
+    port: 5439
+    database: "test_db"
+    schema: "public"
+    
+  # MySQL connections
+  mysql_test:
+    type: mysql
+    host: "localhost"
+    port: 3306
+    database: "test_database"
+    
+  # SQLite connections  
+  sqlite_test:
+    type: sqlite
+    path: "/tmp/test.sqlite3"

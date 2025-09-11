@@ -47,9 +47,10 @@ async function runAllTests() {
       child.on('close', (code) => code === 0 ? resolve() : reject(new Error(`Asset copy failed: ${code}`)));
     });
     
-    // Run tests in sequence
-    await runTest('./out/ui-test/ingestr-asset-ui-integration.test.js', 'Ingestr Integration Tests');
-    await runTest('./out/ui-test/webview-tests.test.js', 'Webview Tests');
+    // Run tests in sequence with proper coordination
+    await runTest('./out/ui-test/webview-tests.test.js', 'Bruin Webview Integration Tests');
+    await runTest('./out/ui-test/ingestr-asset-ui-integration.test.js', 'Ingestr Asset UI Integration Tests');
+    await runTest('./out/ui-test/connections-integration.test.js', 'Connections and Environments Integration Tests');
     
     console.log('\n🎉 All tests completed successfully!');
     
