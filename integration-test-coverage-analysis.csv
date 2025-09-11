@@ -5,7 +5,7 @@ QueryPreviewApp.vue,QueryPreviewApp.vue,Core,Core component functionality,NO,"No
 TableDiffApp.vue,TableDiffApp.vue,Core,Core component functionality,NO,"No test evidence found",0%,MEDIUM,"Analyzed 2025-09-10"
 AssetDetails.vue,components/asset/AssetDetails.vue,Asset Management,Asset detail management and editing,YES,"Tab navigation, description editing",70%,LOW,"Analyzed 2025-09-10"
 AssetGeneral.vue,components/asset/AssetGeneral.vue,Asset Management,General asset properties and metadata,YES,"Owner editing, tags management",80%,LOW,"Analyzed 2025-09-10"
-IngestrAssetDisplay.vue,components/asset/IngestrAssetDisplay.vue,Asset Management,Asset Management component functionality,NO,"No test evidence found",0%,MEDIUM,"Analyzed 2025-09-10"
+IngestrAssetDisplay.vue,components/asset/IngestrAssetDisplay.vue,Asset Management,Ingestr data ingestion configuration and editing,YES,"Component structure, field validation, editing modes, dropdown interactions, event handling, section toggle",85%,LOW,"Integration tests implemented 2025-09-10"
 SqlEditor.vue,components/asset/SqlEditor.vue,Asset Management,SQL code editing,PARTIAL,"Limited through other tests",20%,HIGH,"Analyzed 2025-09-10"
 AssetColumns.vue,components/asset/columns/AssetColumns.vue,Asset Management,Column definition and management,YES,"Column CRUD operations",85%,LOW,"Analyzed 2025-09-10"
 CustomChecks.vue,components/asset/columns/custom-checks/CustomChecks.vue,Asset Management,Custom data quality checks,YES,"Custom checks management",90%,LOW,"Analyzed 2025-09-10"
