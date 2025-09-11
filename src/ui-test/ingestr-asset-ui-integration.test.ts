@@ -11,6 +11,7 @@ import {
 import { Key, until, WebElement } from "selenium-webdriver";
 import "mocha";
 import * as path from "path";
+import { TestCoordinator } from "./test-coordinator";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -150,6 +151,9 @@ describe("Ingestr Asset Display Integration Tests", function () {
 
   before(async function () {
     this.timeout(180000); // Increase timeout for CI
+
+    // Coordinate with other tests to prevent resource conflicts
+    await TestCoordinator.acquireTestSlot("Ingestr Asset Display Integration Tests");
 
     // Initialize Workbench and compute paths
     workbench = new Workbench();
@@ -565,6 +569,9 @@ describe("Ingestr Asset Display Integration Tests", function () {
         console.log("Error switching back to default content:", error);
       }
     }
+    
+    // Release the test slot for coordination
+    await TestCoordinator.releaseTestSlot("Ingestr Asset Display Integration Tests");
   });
 
   describe("Basic Component Structure", function () {

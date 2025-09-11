@@ -11,6 +11,7 @@ import {
 import { Key, until, WebElement } from "selenium-webdriver";
 import "mocha";
 import * as path from "path";
+import { TestCoordinator } from "./test-coordinator";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -23,6 +24,9 @@ describe("Bruin Webview Test", function () {
 
   before(async function () {
     this.timeout(180000); // Increase timeout for CI
+
+    // Coordinate with other tests to prevent resource conflicts
+    await TestCoordinator.acquireTestSlot("Bruin Webview Test");
 
     // Initialize Workbench and compute paths
     workbench = new Workbench();
@@ -626,6 +630,9 @@ describe("Bruin Webview Test", function () {
     if (webview) {
       await webview.switchBack();
     }
+    
+    // Release the test slot for coordination
+    await TestCoordinator.releaseTestSlot("Bruin Webview Test");
   });
   describe("Edit Asset Name Tests", function () {
     let assetNameContainer: WebElement;
