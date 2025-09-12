@@ -796,35 +796,54 @@ describe("Connections and Environments Integration Tests", function () {
       }
     }
 
-    // Open workspace folder for extension activation, but close all files to trigger settings mode
+    // Open the .bruin.yml file to access connections management (like other tests)
     try {
-      console.log(`Opening workspace folder for extension activation: ${testWorkspacePath}`);
-      await VSBrowser.instance.openResources(testWorkspacePath);
+      console.log(`Opening .bruin.yml file for connections management: ${testBruinYmlPath}`);
+      await VSBrowser.instance.openResources(testBruinYmlPath);
       await sleep(3000);
       
-      // Close all editors to trigger settings-only mode
-      console.log("Closing all editors to trigger Bruin settings mode...");
-      await workbench.executeCommand("workbench.action.closeAllEditors");
-      await sleep(2000);
-      
-      // Verify no editors are open
+      // Log the open editor titles for debugging
       const editorView = workbench.getEditorView();
-      const openEditorTitles = await editorView.getOpenEditorTitles();
-      console.log(`Open editors after cleanup: ${openEditorTitles.length}`);
+      let openEditorTitles = await editorView.getOpenEditorTitles();
+      console.log("Open editor titles after opening .bruin.yml:", openEditorTitles);
       
-      console.log("✓ Workspace opened, ready for settings mode");
+      // Close the Walkthrough if it opened
+      const walkthrough = openEditorTitles.find(title => title.includes("Walkthrough"));
+      if (walkthrough) {
+        console.log(`Closing walkthrough: ${walkthrough}`);
+        try {
+          await editorView.closeEditor(walkthrough);
+          await sleep(2000);
+          
+          // Verify walkthrough is closed
+          openEditorTitles = await editorView.getOpenEditorTitles();
+          console.log("Editor titles after closing walkthrough:", openEditorTitles);
+        } catch (error: any) {
+          console.log("Could not close walkthrough:", error.message);
+        }
+      }
+      
+      // Ensure .bruin.yml is the active editor
+      const bruinYmlFile = openEditorTitles.find(title => title.includes(".bruin.yml"));
+      if (bruinYmlFile) {
+        await editorView.openEditor(bruinYmlFile);
+        await sleep(1000);
+        console.log("✓ .bruin.yml file is now active editor");
+      }
+      
+      console.log("✓ .bruin.yml file opened for connections management");
     } catch (error: any) {
-      console.error("Failed to open workspace:", error.message);
+      console.error("Failed to open .bruin.yml file:", error.message);
       throw error;
     }
     
-    // Open the Bruin panel in settings mode (no specific file)
+    // Now open the Bruin panel for .bruin.yml file (connections management)
     try {
-      console.log("Opening Bruin panel in settings mode...");
+      console.log("Opening Bruin panel for .bruin.yml file...");
       
-      // Use the main Bruin panel render command 
+      // Use the render command which should open with connections view
       await workbench.executeCommand("bruin.render");
-      console.log("✓ Successfully opened Bruin panel");
+      console.log("✓ Successfully opened Bruin panel for connections management");
       
     } catch (error: any) {
       console.log(`⚠ Failed to open Bruin panel: ${error.message}`);
