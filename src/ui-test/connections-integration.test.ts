@@ -127,23 +127,27 @@ const clickAddEnvironment = async (driver: WebDriver): Promise<void> => {
     // Wait for UI to be ready
     await sleep(2000);
     
+    // Try ID selector first, then fallback to xpath selectors
     const envButtonSelectors = [
-      "//vscode-button[contains(., 'Environment')]",
-      "//button[contains(., 'Environment')]",
-      "//*[contains(@class, 'codicon-plus')]/parent::*//*[contains(text(), 'Environment')]",
-      "//span[contains(text(), 'Environment')]/ancestor::vscode-button"
+      { type: 'id', value: 'add-environment-button' },
+      { type: 'xpath', value: "//vscode-button[contains(., 'Environment')]" },
+      { type: 'xpath', value: "//button[contains(., 'Environment')]" },
+      { type: 'xpath', value: "//*[contains(@class, 'codicon-plus')]/parent::*//*[contains(text(), 'Environment')]" },
+      { type: 'xpath', value: "//span[contains(text(), 'Environment')]/ancestor::vscode-button" }
     ];
     
     let addEnvButton = null;
     for (const selector of envButtonSelectors) {
       try {
-        addEnvButton = await driver.findElement(By.xpath(selector));
+        addEnvButton = selector.type === 'id' ?
+          await driver.findElement(By.id(selector.value)) :
+          await driver.findElement(By.xpath(selector.value));
         if (await addEnvButton.isDisplayed()) {
-          console.log(`Found environment button with selector: ${selector}`);
+          console.log(`Found environment button with ${selector.type} selector: ${selector.value}`);
           break;
         }
       } catch (error) {
-        console.log(`Environment button not found with selector: ${selector}`);
+        console.log(`Environment button not found with ${selector.type} selector: ${selector.value}`);
       }
     }
     
@@ -176,23 +180,26 @@ const createEnvironment = async (driver: WebDriver, environmentName: string): Pr
   try {
     await clickAddEnvironment(driver);
     
-    // Find the environment name input
+    // Find the environment name input using ID first, then fallback to xpath
     const envInputSelectors = [
-      "//input[@placeholder='Enter environment name']",
-      "//input[contains(@class, 'border-b')]",
-      "//input[contains(@class, 'border-editor-fg')]"
+      { type: 'id', value: 'new-environment-input' },
+      { type: 'xpath', value: "//input[@placeholder='Enter environment name']" },
+      { type: 'xpath', value: "//input[contains(@class, 'border-b')]" },
+      { type: 'xpath', value: "//input[contains(@class, 'border-editor-fg')]" }
     ];
     
     let envInput = null;
     for (const selector of envInputSelectors) {
       try {
-        envInput = await findElementWithRetry(driver, By.xpath(selector), 5000);
+        envInput = selector.type === 'id' ?
+          await findElementWithRetry(driver, By.id(selector.value), 5000) :
+          await findElementWithRetry(driver, By.xpath(selector.value), 5000);
         if (await envInput.isDisplayed()) {
-          console.log(`Found environment input with selector: ${selector}`);
+          console.log(`Found environment input with ${selector.type} selector: ${selector.value}`);
           break;
         }
       } catch (error) {
-        console.log(`Environment input not found with selector: ${selector}`);
+        console.log(`Environment input not found with ${selector.type} selector: ${selector.value}`);
       }
     }
     
@@ -220,15 +227,18 @@ const findEnvironmentInList = async (driver: WebDriver, environmentName: string)
   try {
     await sleep(2000); // Wait for UI update
     
+    // Use ID selector first, then fallback to xpath
     const environmentSelectors = [
+      `environment-name-${environmentName}`,
       `//h3[contains(text(), '${environmentName}')]`,
-      `//*[contains(@class, 'font-mono') and contains(text(), '${environmentName}')]`,
       `//*[contains(text(), '${environmentName}')]`
     ];
     
     for (const selector of environmentSelectors) {
       try {
-        const element = await driver.findElement(By.xpath(selector));
+        const element = selector.startsWith('//') ? 
+          await driver.findElement(By.xpath(selector)) :
+          await driver.findElement(By.id(selector));
         if (await element.isDisplayed()) {
           console.log(`✓ Found environment with selector: ${selector}`);
           return element;
@@ -354,10 +364,12 @@ const clickAddConnection = async (driver: WebDriver, environment: string = "defa
   try {
     await sleep(3000); // Wait for UI to be ready
     
+    // Try ID selector first, then fallback to xpath selectors
     const connectionButtonSelectors = [
-      "//vscode-button[contains(., 'Connection')]",
-      "//button[contains(., 'Connection')]",
-      "//span[contains(text(), 'Connection')]/ancestor::vscode-button"
+      { type: 'id', value: `add-connection-${environment}` },
+      { type: 'xpath', value: "//vscode-button[contains(., 'Connection')]" },
+      { type: 'xpath', value: "//button[contains(., 'Connection')]" },
+      { type: 'xpath', value: "//span[contains(text(), 'Connection')]/ancestor::vscode-button" }
     ];
     
     let addConnectionButton = null;
@@ -367,14 +379,16 @@ const clickAddConnection = async (driver: WebDriver, environment: string = "defa
       
       for (const selector of connectionButtonSelectors) {
         try {
-          const buttons = await driver.findElements(By.xpath(selector));
-          if (buttons.length > 0 && await buttons[0].isDisplayed()) {
-            addConnectionButton = buttons[0];
-            console.log(`Found add connection button with selector: ${selector}`);
+          const button = selector.type === 'id' ?
+            await driver.findElement(By.id(selector.value)) :
+            await driver.findElement(By.xpath(selector.value));
+          if (await button.isDisplayed()) {
+            addConnectionButton = button;
+            console.log(`Found add connection button with ${selector.type} selector: ${selector.value}`);
             break;
           }
         } catch (error) {
-          console.log(`No add connection button found with selector: ${selector}`);
+          console.log(`No add connection button found with ${selector.type} selector: ${selector.value}`);
         }
       }
       
@@ -487,23 +501,27 @@ const fillConnectionForm = async (
 
 const submitConnectionForm = async (driver: WebDriver): Promise<void> => {
   try {
+    // Use ID selector first, then fallback to xpath selectors
     const submitButtonSelectors = [
-      "//vscode-button[contains(., 'Create')]",
-      "//vscode-button[contains(., 'Save Changes')]", 
-      "//button[@type='submit']",
-      "//*[contains(text(), 'Create')]/ancestor::vscode-button"
+      { type: 'id', value: 'submit-connection-form' },
+      { type: 'xpath', value: "//vscode-button[contains(., 'Create')]" },
+      { type: 'xpath', value: "//vscode-button[contains(., 'Save Changes')]" },
+      { type: 'xpath', value: "//button[@type='submit']" },
+      { type: 'xpath', value: "//*[contains(text(), 'Create')]/ancestor::vscode-button" }
     ];
     
     let submitButton = null;
     for (const selector of submitButtonSelectors) {
       try {
-        submitButton = await driver.findElement(By.xpath(selector));
+        submitButton = selector.type === 'id' ?
+          await driver.findElement(By.id(selector.value)) :
+          await driver.findElement(By.xpath(selector.value));
         if (await submitButton.isDisplayed()) {
-          console.log(`Found submit button with selector: ${selector}`);
+          console.log(`Found submit button with ${selector.type} selector: ${selector.value}`);
           break;
         }
       } catch (error) {
-        console.log(`Submit button not found with selector: ${selector}`);
+        console.log(`Submit button not found with ${selector.type} selector: ${selector.value}`);
       }
     }
     
@@ -519,26 +537,30 @@ const submitConnectionForm = async (driver: WebDriver): Promise<void> => {
   }
 };
 
-const findConnectionInList = async (driver: WebDriver, connectionName: string): Promise<WebElement | null> => {
+const findConnectionInList = async (driver: WebDriver, connectionName: string, environment: string = "default"): Promise<WebElement | null> => {
   try {
     await sleep(3000); // Wait for UI update
     
+    // Use ID selector first, then fallback to xpath selectors
     const connectionSelectors = [
-      `//td[contains(text(), "${connectionName}")]`,
-      `//td[contains(@class, 'font-medium') and contains(text(), "${connectionName}")]`,
-      `//td[contains(@class, 'font-mono') and contains(text(), "${connectionName}")]`,
-      `//*[text()="${connectionName}"]`
+      { type: 'id', value: `connection-name-${connectionName}-${environment}` },
+      { type: 'xpath', value: `//td[contains(text(), "${connectionName}")]` },
+      { type: 'xpath', value: `//td[contains(@class, 'font-medium') and contains(text(), "${connectionName}")]` },
+      { type: 'xpath', value: `//td[contains(@class, 'font-mono') and contains(text(), "${connectionName}")]` },
+      { type: 'xpath', value: `//*[text()="${connectionName}"]` }
     ];
     
     for (const selector of connectionSelectors) {
       try {
-        const connectionElement = await driver.findElement(By.xpath(selector));
+        const connectionElement = selector.type === 'id' ?
+          await driver.findElement(By.id(selector.value)) :
+          await driver.findElement(By.xpath(selector.value));
         if (await connectionElement.isDisplayed()) {
-          console.log(`✓ Found connection with selector: ${selector}`);
+          console.log(`✓ Found connection with ${selector.type} selector: ${selector.value}`);
           return connectionElement;
         }
       } catch (error) {
-        console.log(`Connection not found with selector: ${selector}`);
+        console.log(`Connection not found with ${selector.type} selector: ${selector.value}`);
       }
     }
     
@@ -898,7 +920,7 @@ describe("Connections and Environments Integration Tests", function () {
       
       // Verify creation
       await sleep(5000);
-      const connectionElement = await findConnectionInList(driver, testConnectionName);
+      const connectionElement = await findConnectionInList(driver, testConnectionName, "default");
       if (connectionElement) {
         console.log(`✓ Connection created and visible: ${testConnectionName}`);
       } else {
@@ -925,7 +947,7 @@ describe("Connections and Environments Integration Tests", function () {
       
       // Verify creation
       await sleep(5000);
-      const connectionElement = await findConnectionInList(driver, gcpConnectionName);
+      const connectionElement = await findConnectionInList(driver, gcpConnectionName, "default");
       if (connectionElement) {
         console.log(`✓ GCP connection created and visible: ${gcpConnectionName}`);
       } else {
@@ -943,7 +965,7 @@ describe("Connections and Environments Integration Tests", function () {
       
       // Check for our test connections
       for (const conn of testData.connections) {
-        const connectionElement = await findConnectionInList(driver, conn.name);
+        const connectionElement = await findConnectionInList(driver, conn.name, conn.environment);
         console.log(`Connection ${conn.name} visible: ${connectionElement !== null}`);
       }
       

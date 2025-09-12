@@ -11,9 +11,12 @@
             </p>
           </div>
           <div class="flex items-center space-x-2">
-            <vscode-button @click="addNewEnvironment" 
-            class="font-semibold"
-            appearance="secondary">
+            <vscode-button 
+              @click="addNewEnvironment" 
+              class="font-semibold"
+              appearance="secondary"
+              id="add-environment-button"
+            >
               <div class="flex items-center">
                 <span class="codicon codicon-plus"></span> 
                 <span class="ml-1">Environment</span>
@@ -42,6 +45,7 @@
             class="text-sm font-medium text-editor-fg font-mono bg-transparent border-b border-editor-fg focus:outline-none px-1 py-0.5"
             :class="{ 'border-editorError-foreground': newEnvironmentError }"
             ref="newEnvironmentInput"
+            id="new-environment-input"
           />
           <div v-if="newEnvironmentError" class="text-xs text-editorError-foreground px-1">
             {{ newEnvironmentError }}
@@ -131,6 +135,7 @@
               v-else
               @dblclick="startEditingEnvironment(environment)"
               class="text-sm font-medium text-editor-fg font-mono cursor-pointer px-1 py-0.5"
+              :id="`environment-name-${environment}`"
             >
               {{ environment === defaultEnvironment ? `${environment} (default)` : environment }}
             </h3>
@@ -140,6 +145,7 @@
                 @click="startEditingEnvironment(environment)"
                 class="text-descriptionFg hover:text-editor-fg p-1"
                 title="Edit Environment"
+                :id="`edit-environment-${environment}`"
               >
                 <PencilIcon class="h-4 w-4 inline-block" />
               </button>
@@ -148,6 +154,7 @@
                 @click="$emit('delete-environment', environment)"
                 class="text-descriptionFg opacity-70 hover:text-editorError-foreground p-1"
                 title="Delete Environment"
+                :id="`delete-environment-${environment}`"
               >
                 <TrashIcon class="h-4 w-4 inline-block" />
               </button>
@@ -157,7 +164,11 @@
             {{ editEnvironmentError }}
           </div>
         </div>
-        <vscode-button @click="$emit('new-connection', environment)" class="font-semibold">
+        <vscode-button 
+          @click="$emit('new-connection', environment)" 
+          class="font-semibold"
+          :id="`add-connection-${environment}`"
+        >
           <div class="flex items-center">
             <span class="codicon codicon-plus"></span> 
             <span class="ml-1">Connection</span>
@@ -194,22 +205,31 @@
                 v-for="connection in connections"
                 :key="connection.id"
                 class="hover:bg-editor-hoverBackground"
+                :id="`connection-row-${connection.name || 'empty'}-${environment}`"
               >
                 <td
                   class="w-2/5 whitespace-nowrap px-2 py-2 text-sm font-medium text-editor-fg font-mono"
                   :class="{ 'opacity-80 italic': !connection.name || connection.isEmpty }"
+                  :id="`connection-name-${connection.name || 'empty'}-${environment}`"
                 >
                   {{ connection.isEmpty ? "No connections" : (connection.name || "undefined") }}
                 </td>
-                <td class="w-2/5 whitespace-nowrap px-2 py-2 text-sm text-descriptionFg font-mono">
+                <td 
+                  class="w-2/5 whitespace-nowrap px-2 py-2 text-sm text-descriptionFg font-mono"
+                  :id="`connection-type-${connection.name || 'empty'}-${environment}`"
+                >
                   {{ connection.isEmpty ? "-" : connection.type }}
                 </td>
-                <td class="w-1/5 whitespace-nowrap px-2 py-2 text-right text-sm font-medium">
+                <td 
+                  class="w-1/5 whitespace-nowrap px-2 py-2 text-right text-sm font-medium"
+                  :id="`connection-actions-${connection.name || 'empty'}-${environment}`"
+                >
                   <template v-if="!connection.isEmpty">
                     <button
                       @click="$emit('edit-connection', connection)"
                       class="text-descriptionFg hover:text-editor-fg mr-3"
                       title="Edit"
+                      :id="`edit-connection-${connection.name}`"
                     >
                       <PencilIcon class="h-4 w-4 inline-block" />
                     </button>
@@ -217,6 +237,7 @@
                       @click="$emit('delete-connection', { name: connection.name, environment })"
                       class="text-descriptionFg opacity-70 hover:text-editorError-foreground"
                       title="Delete"
+                      :id="`delete-connection-${connection.name}`"
                     >
                       <TrashIcon class="h-4 w-4 inline-block" />
                     </button>
@@ -224,6 +245,7 @@
                       <button
                         @click="toggleMenu(connection.name, $event)"
                         class="text-descriptionFg hover:text-editor-fg"
+                        :id="`menu-connection-${connection.name}`"
                       >
                         <EllipsisVerticalIcon class="h-5 w-5 inline-block" />
                       </button>
@@ -236,6 +258,7 @@
                         <button
                           @click="handleTestConnection(connection)"
                           class="flex items-center w-full text-left px-3 py-2 text-sm text-editor-fg hover:bg-editor-button-hover-bg rounded-t"
+                          :id="`test-connection-${connection.name}`"
                         >
                           <BeakerIcon class="h-4 w-4 mr-2" />
                           <span>Test</span>
