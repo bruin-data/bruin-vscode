@@ -796,70 +796,90 @@ describe("Connections and Environments Integration Tests", function () {
       }
     }
 
-    // Simplified approach - just open the workspace and skip complex editor handling
+    // Open workspace folder for extension activation, but close all files to trigger settings mode
     try {
       console.log(`Opening workspace folder for extension activation: ${testWorkspacePath}`);
       await VSBrowser.instance.openResources(testWorkspacePath);
       await sleep(3000);
       
-      // Wait longer for extension to activate based on workspace detection
-      console.log("Waiting for extension to activate based on workspace...");
-      await sleep(5000);
+      // Close all editors to trigger settings-only mode
+      console.log("Closing all editors to trigger Bruin settings mode...");
+      await workbench.executeCommand("workbench.action.closeAllEditors");
+      await sleep(2000);
       
-      console.log("✓ Workspace opened, extension should be activated");
+      // Verify no editors are open
+      const editorView = workbench.getEditorView();
+      const openEditorTitles = await editorView.getOpenEditorTitles();
+      console.log(`Open editors after cleanup: ${openEditorTitles.length}`);
+      
+      console.log("✓ Workspace opened, ready for settings mode");
     } catch (error: any) {
       console.error("Failed to open workspace:", error.message);
       throw error;
     }
     
-    // Try to activate the extension with better error handling
-    const commands = ["bruin.renderSQL", "bruin.render", "bruin.openAssetPanel"];
-    let extensionActivated = false;
-    
-    for (const command of commands) {
-      try {
-        console.log(`Trying to execute ${command} command...`);
-        await workbench.executeCommand(command);
-        console.log(`✓ Successfully executed ${command} command`);
-        extensionActivated = true;
-        break;
-      } catch (error: any) {
-        console.log(`⚠ Failed to execute ${command} command:`, error.message);
-      }
-    }
-    
-    if (!extensionActivated) {
-      console.log("⚠ Extension may not be fully activated, trying manual activation...");
+    // Open the Bruin panel in settings mode (no specific file)
+    try {
+      console.log("Opening Bruin panel in settings mode...");
       
-      // Try to manually trigger extension activation
+      // Use the main Bruin panel render command 
+      await workbench.executeCommand("bruin.render");
+      console.log("✓ Successfully opened Bruin panel");
+      
+    } catch (error: any) {
+      console.log(`⚠ Failed to open Bruin panel: ${error.message}`);
+      
+      // Try alternative approach - use command palette
       try {
-        console.log("Attempting to trigger extension through file focus...");
-        await VSBrowser.instance.openResources(testBruinYmlPath);
-        await sleep(2000);
-        await workbench.executeCommand("workbench.action.focusActiveEditorGroup");
-        await sleep(2000);
-        
-        // Try commands again after manual trigger
-        for (const command of commands) {
-          try {
-            await workbench.executeCommand(command);
-            console.log(`✓ Extension activated after manual trigger with ${command}`);
-            extensionActivated = true;
-            break;
-          } catch (error: any) {
-            console.log(`Still failed ${command} after manual trigger:`, error.message);
-          }
-        }
-      } catch (manualError: any) {
-        console.log(`Manual activation failed:`, manualError.message);
+        console.log("Trying to open via command palette...");
+        const inputBox = await workbench.openCommandPrompt();
+        await inputBox.setText("Bruin Render");
+        await inputBox.confirm();
+        console.log("✓ Opened Bruin panel via command palette");
+      } catch (paletteError: any) {
+        console.log(`Command palette approach failed: ${paletteError.message}`);
+        // Continue anyway - the webview might still load
       }
     }
     
-    // Wait longer for webview initialization if extension wasn't activated
-    const webviewWait = extensionActivated ? 12000 : 20000; // Increased wait times for coordinated testing
+    // Wait for webview initialization
+    const webviewWait = 15000; // Standard wait time for settings mode
     console.log(`Waiting ${webviewWait}ms for webview initialization...`);
     await sleep(webviewWait);
     driver = VSBrowser.instance.driver;
+    
+    // Dismiss any modal dialogs that might be blocking interactions (like external link confirmations)
+    try {
+      console.log("Checking for blocking modal dialogs...");
+      const modalBlocks = await driver.findElements(By.css('.monaco-dialog-modal-block, .dialog-modal-block'));
+      if (modalBlocks.length > 0) {
+        console.log(`Found ${modalBlocks.length} modal dialog(s), attempting to dismiss...`);
+        
+        // Try to find and click "Allow" or "Yes" or "OK" buttons
+        const allowButtons = await driver.findElements(By.xpath("//button[contains(text(), 'Allow') or contains(text(), 'Yes') or contains(text(), 'OK') or contains(text(), 'Open')]"));
+        for (const button of allowButtons) {
+          try {
+            await button.click();
+            console.log("✓ Dismissed modal dialog by clicking Allow/Yes/OK");
+            break;
+          } catch (error) {
+            // Try next button
+          }
+        }
+        
+        // If allow buttons didn't work, try escape key
+        if (allowButtons.length === 0) {
+          await driver.actions().sendKeys(Key.ESCAPE).perform();
+          console.log("✓ Dismissed modal dialog with Escape key");
+        }
+        
+        await sleep(2000);
+      } else {
+        console.log("No blocking modal dialogs found");
+      }
+    } catch (error) {
+      console.log("Could not check for modal dialogs:", error);
+    }
 
     // Find webview iframe
     await driver.wait(

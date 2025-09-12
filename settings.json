@@ -8,5 +8,8 @@
     "workbench.welcomePage.walkthroughs.openOnInstall": false,
     "workbench.startupEditor": "none",
     "telemetry.enableTelemetry": false,
-    "update.mode": "none"
+    "update.mode": "none",
+    "workbench.externalUriOpeners": {},
+    "security.workspace.trust.enabled": false,
+    "workbench.trust.enabled": false
   }
