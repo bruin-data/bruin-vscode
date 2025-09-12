@@ -338,6 +338,9 @@ describe("Ingestr Asset Display Integration Tests", function () {
     console.log("Waiting for webview to initialize after command execution...");
     await new Promise((resolve) => setTimeout(resolve, 8000));
     driver = VSBrowser.instance.driver;
+    
+    // Dismiss any modal dialogs that might be blocking interactions
+    await TestCoordinator.dismissModalDialogs(driver);
 
     // Wait for the webview iframe to be present
     console.log("Waiting for webview iframe...");

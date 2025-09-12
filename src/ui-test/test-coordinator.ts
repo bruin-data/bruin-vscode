@@ -19,6 +19,46 @@ export class TestCoordinator {
     return timeoutMs * this.getTimeoutMultiplier();
   }
   
+  // Dismiss any blocking modal dialogs (like external link confirmations)
+  static async dismissModalDialogs(driver: any): Promise<void> {
+    try {
+      console.log("[TEST-COORDINATOR] Checking for blocking modal dialogs...");
+      
+      // Import Key from selenium-webdriver
+      const { Key } = require('selenium-webdriver');
+      const { By } = require('selenium-webdriver');
+      
+      const modalBlocks = await driver.findElements(By.css('.monaco-dialog-modal-block, .dialog-modal-block'));
+      if (modalBlocks.length > 0) {
+        console.log(`[TEST-COORDINATOR] Found ${modalBlocks.length} modal dialog(s), attempting to dismiss...`);
+        
+        // Try to find and click "Open" or "Allow" or "Yes" or "OK" buttons
+        const allowButtons = await driver.findElements(By.xpath("//button[contains(text(), 'Open') or contains(text(), 'Allow') or contains(text(), 'Yes') or contains(text(), 'OK')]"));
+        for (const button of allowButtons) {
+          try {
+            await button.click();
+            console.log("[TEST-COORDINATOR] ✓ Dismissed modal dialog by clicking Open/Allow/Yes/OK");
+            await sleep(2000);
+            return;
+          } catch (error) {
+            // Try next button
+          }
+        }
+        
+        // If allow buttons didn't work, try escape key
+        if (allowButtons.length === 0) {
+          await driver.actions().sendKeys(Key.ESCAPE).perform();
+          console.log("[TEST-COORDINATOR] ✓ Dismissed modal dialog with Escape key");
+          await sleep(2000);
+        }
+      } else {
+        console.log("[TEST-COORDINATOR] No blocking modal dialogs found");
+      }
+    } catch (error) {
+      console.log("[TEST-COORDINATOR] Could not check for modal dialogs:", error);
+    }
+  }
+  
   /**
    * Call this at the beginning of each test suite's before() hook
    * Ensures proper sequencing and isolation between tests

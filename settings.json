@@ -11,5 +11,7 @@
     "update.mode": "none",
     "workbench.externalUriOpeners": {},
     "security.workspace.trust.enabled": false,
-    "workbench.trust.enabled": false
+    "workbench.trust.enabled": false,
+    "workbench.trustedDomains.promptInTrustedWorkspace": false,
+    "security.promptForRemoteFileProtocolHandling": false
   }
