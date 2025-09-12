@@ -157,8 +157,17 @@ describe("Ingestr Asset Display Integration Tests", function () {
 
     // Initialize Workbench and compute paths
     workbench = new Workbench();
-    const repoRoot = process.env.REPO_ROOT || path.resolve(__dirname, "../../");
-    testWorkspacePath = path.join(repoRoot, "out", "ui-test", "test-pipeline");
+    
+    // Use the TEST_WORKSPACE_PATH if provided (for CI/coordinated testing), otherwise use default
+    if (process.env.TEST_WORKSPACE_PATH) {
+      testWorkspacePath = process.env.TEST_WORKSPACE_PATH;
+      console.log(`Using provided test workspace: ${testWorkspacePath}`);
+    } else {
+      const repoRoot = process.env.REPO_ROOT || path.resolve(__dirname, "../../");
+      testWorkspacePath = path.join(repoRoot, "out", "ui-test", "test-pipeline");
+      console.log(`Using default test workspace: ${testWorkspacePath}`);
+    }
+    
     testAssetFilePath = path.join(testWorkspacePath, "assets", "test-ingestr.asset.yml");
     
     // Aggressively disable walkthrough and welcome screens
@@ -329,6 +338,9 @@ describe("Ingestr Asset Display Integration Tests", function () {
     console.log("Waiting for webview to initialize after command execution...");
     await new Promise((resolve) => setTimeout(resolve, 8000));
     driver = VSBrowser.instance.driver;
+    
+    // Dismiss any modal dialogs that might be blocking interactions
+    await TestCoordinator.dismissModalDialogs(driver);
 
     // Wait for the webview iframe to be present
     console.log("Waiting for webview iframe...");

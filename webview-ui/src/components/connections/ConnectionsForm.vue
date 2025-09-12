@@ -28,10 +28,16 @@
           appearance="secondary"
           @click="$emit('cancel')"
           class="p-1 text-sm font-semibold"
+          id="cancel-connection-form"
         >
           Cancel
         </vscode-button>
-        <vscode-button type="submit" class="p-1 text-sm font-semibold" @click="submitForm">
+        <vscode-button 
+          type="submit" 
+          class="p-1 text-sm font-semibold" 
+          @click="submitForm"
+          id="submit-connection-form"
+        >
           {{ isEditing ? "Save Changes" : "Create" }}
         </vscode-button>
       </div>
