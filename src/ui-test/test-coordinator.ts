@@ -6,7 +6,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export class TestCoordinator {
   private static testCount = 0;
-  private static readonly TEST_ISOLATION_DELAY = 15000; // 15 seconds between tests for better isolation
+  private static readonly TEST_ISOLATION_DELAY = 20000; // 20 seconds between tests for better isolation
   
   /**
    * Call this at the beginning of each test suite's before() hook
@@ -32,11 +32,12 @@ export class TestCoordinator {
    */
   static async releaseTestSlot(testName: string): Promise<void> {
     console.log(`[TEST-COORDINATOR] Test completed: ${testName}`);
-    // Add a delay to ensure cleanup operations complete and VS Code stabilizes
-    await sleep(3000);
+    // Add a longer delay to ensure cleanup operations complete and VS Code stabilizes
+    await sleep(5000);
     
     // Additional cleanup to ensure VS Code is in a clean state
-    console.log(`[TEST-COORDINATOR] Performing post-test cleanup for: ${testName}`);
+    console.log(`[TEST-COORDINATOR] Performing enhanced post-test cleanup for: ${testName}`);
+    console.log(`[TEST-COORDINATOR] Allowing extra time for resource cleanup...`);
   }
   
   /**
