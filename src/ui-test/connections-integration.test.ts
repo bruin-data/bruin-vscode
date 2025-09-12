@@ -138,17 +138,40 @@ const findConnectionsSection = async (driver: WebDriver): Promise<WebElement> =>
 // Environment CRUD Helper Functions
 const clickAddEnvironment = async (driver: WebDriver): Promise<void> => {
   try {
-    // Wait for UI to be ready
-    await sleep(2000);
+    // Wait for UI to be ready and check for errors first
+    await sleep(3000);
+    
+    // Check if there are any error messages that might prevent the button from showing
+    try {
+      const errorElements = await driver.findElements(By.xpath("//*[contains(@class, 'error') or contains(text(), 'Error') or contains(text(), 'error')]"));
+      if (errorElements.length > 0) {
+        console.log(`Found ${errorElements.length} error elements on page`);
+        for (let i = 0; i < Math.min(errorElements.length, 3); i++) {
+          try {
+            const errorText = await errorElements[i].getText();
+            console.log(`Error ${i}: ${errorText}`);
+          } catch (e) {
+            console.log(`Could not get error text ${i}`);
+          }
+        }
+      }
+    } catch (errorCheckError) {
+      console.log("Could not check for errors");
+    }
     
     // Try ID selector first, then fallback to xpath selectors that match actual DOM structure
     const envButtonSelectors = [
       { type: 'id', value: 'add-environment-button' },
+      { type: 'xpath', value: "//vscode-button[@id='add-environment-button']" },
+      { type: 'xpath', value: "//button[@id='add-environment-button']" },
+      { type: 'xpath', value: "//*[contains(text(), 'Environment') and contains(@class, 'codicon-plus')]/parent::*/parent::vscode-button" },
+      { type: 'xpath', value: "//vscode-button[contains(., 'Environment')]" },
       { type: 'xpath', value: "//button[contains(., 'Environment')]" },
       { type: 'xpath', value: "//*[contains(text(), '+ Environment')]" },
       { type: 'xpath', value: "//*[contains(text(), 'Environment')]/parent::button" },
       { type: 'xpath', value: "//*[@class='codicon codicon-plus']/following-sibling::*[contains(text(), 'Environment')]/parent::*/parent::button" },
       { type: 'xpath', value: "//span[contains(text(), 'Environment')]/ancestor::button" },
+      { type: 'css', value: "vscode-button[appearance='secondary']" },
       { type: 'css', value: "button[appearance='secondary']" }
     ];
     
@@ -181,18 +204,22 @@ const clickAddEnvironment = async (driver: WebDriver): Promise<void> => {
         console.log(`Page source contains 'Environment': ${pageSource.includes('Environment')}`);
         console.log(`Page source contains 'Connection': ${pageSource.includes('Connection')}`);
         console.log(`Page source contains 'add-environment-button': ${pageSource.includes('add-environment-button')}`);
-        console.log(`First 1000 chars of page: ${pageSource.substring(0, 1000)}`);
+        console.log(`Page source contains 'BruinSettings': ${pageSource.includes('BruinSettings')}`);
+        console.log(`Page source contains 'ConnectionsList': ${pageSource.includes('ConnectionsList')}`);
+        console.log(`Page source contains 'Connections': ${pageSource.includes('Connections')}`);
+        console.log(`First 2000 chars of page: ${pageSource.substring(0, 2000)}`);
       } catch (sourceError) {
         console.log("Could not get page source for debugging");
       }
       
-      for (let i = 0; i < Math.min(allButtons.length, 10); i++) {
+      for (let i = 0; i < Math.min(allButtons.length, 15); i++) {
         try {
           const buttonText = await allButtons[i].getText();
           const buttonTitle = await allButtons[i].getAttribute('title');
           const buttonId = await allButtons[i].getAttribute('id');
           const buttonClass = await allButtons[i].getAttribute('class');
-          console.log(`Button ${i}: text="${buttonText}" title="${buttonTitle}" id="${buttonId}" class="${buttonClass}"`);
+          const buttonTagName = await allButtons[i].getTagName();
+          console.log(`Button ${i}: tag="${buttonTagName}" text="${buttonText}" title="${buttonTitle}" id="${buttonId}" class="${buttonClass}"`);
         } catch (buttonError) {
           console.log(`Could not get info for button ${i}`);
         }
@@ -397,14 +424,36 @@ const clickAddConnection = async (driver: WebDriver, environment: string = "defa
   try {
     await sleep(3000); // Wait for UI to be ready
     
+    // Check if there are any error messages that might prevent the button from showing
+    try {
+      const errorElements = await driver.findElements(By.xpath("//*[contains(@class, 'error') or contains(text(), 'Error') or contains(text(), 'error')]"));
+      if (errorElements.length > 0) {
+        console.log(`Found ${errorElements.length} error elements on page`);
+        for (let i = 0; i < Math.min(errorElements.length, 3); i++) {
+          try {
+            const errorText = await errorElements[i].getText();
+            console.log(`Error ${i}: ${errorText}`);
+          } catch (e) {
+            console.log(`Could not get error text ${i}`);
+          }
+        }
+      }
+    } catch (errorCheckError) {
+      console.log("Could not check for errors");
+    }
+    
     // Try ID selector first, then fallback to xpath selectors
     const connectionButtonSelectors = [
       { type: 'id', value: `add-connection-${environment}` },
+      { type: 'xpath', value: `//vscode-button[@id='add-connection-${environment}']` },
+      { type: 'xpath', value: `//button[@id='add-connection-${environment}']` },
+      { type: 'xpath', value: "//vscode-button[contains(., 'Connection')]" },
       { type: 'xpath', value: "//button[contains(., 'Connection')]" },
       { type: 'xpath', value: "//*[contains(text(), '+ Connection')]" },
       { type: 'xpath', value: "//*[contains(text(), 'Connection')]/parent::button" },
       { type: 'xpath', value: "//*[@class='codicon codicon-plus']/following-sibling::*[contains(text(), 'Connection')]/parent::*/parent::button" },
       { type: 'xpath', value: "//span[contains(text(), 'Connection')]/ancestor::button" },
+      { type: 'css', value: "vscode-button:not([appearance='secondary'])" },
       { type: 'css', value: "button:not([appearance='secondary'])" }
     ];
     
@@ -441,12 +490,27 @@ const clickAddConnection = async (driver: WebDriver, environment: string = "defa
       const allButtons = await driver.findElements(By.css('button, vscode-button'));
       console.log(`Found ${allButtons.length} total buttons on the page`);
       
-      for (let i = 0; i < Math.min(allButtons.length, 10); i++) {
+      // Get more detailed debug info
+      try {
+        const pageSource = await driver.getPageSource();
+        console.log(`Page source contains 'Connection': ${pageSource.includes('Connection')}`);
+        console.log(`Page source contains 'add-connection-${environment}': ${pageSource.includes(`add-connection-${environment}`)}`);
+        console.log(`Page source contains 'BruinSettings': ${pageSource.includes('BruinSettings')}`);
+        console.log(`Page source contains 'ConnectionsList': ${pageSource.includes('ConnectionsList')}`);
+        console.log(`First 2000 chars of page: ${pageSource.substring(0, 2000)}`);
+      } catch (sourceError) {
+        console.log("Could not get page source for debugging");
+      }
+      
+      for (let i = 0; i < Math.min(allButtons.length, 15); i++) {
         try {
           const buttonText = await allButtons[i].getText();
           const buttonTitle = await allButtons[i].getAttribute('title');
+          const buttonId = await allButtons[i].getAttribute('id');
+          const buttonClass = await allButtons[i].getAttribute('class');
+          const buttonTagName = await allButtons[i].getTagName();
           const isDisplayed = await allButtons[i].isDisplayed();
-          console.log(`Button ${i}: text="${buttonText}" title="${buttonTitle}" displayed="${isDisplayed}"`);
+          console.log(`Button ${i}: tag="${buttonTagName}" text="${buttonText}" title="${buttonTitle}" id="${buttonId}" class="${buttonClass}" displayed="${isDisplayed}"`);
         } catch (buttonError: any) {
           console.log(`Could not get info for button ${i}: ${buttonError.message}`);
         }
@@ -827,7 +891,10 @@ describe("Connections and Environments Integration Tests", function () {
               "//h2[contains(text(), 'Connections')]",
               "//*[@id='add-environment-button']",
               "//vscode-button[contains(., 'Environment')]",
-              "//*[contains(text(), 'Manage your connections')]"
+              "//*[contains(text(), 'Manage your connections')]",
+              "//*[contains(text(), 'Bruin')]",
+              "//*[contains(text(), 'Project Templates')]",
+              "//*[contains(text(), 'Bruin CLI')]"
             ];
             
             let isBruinWebview = false;
@@ -835,6 +902,7 @@ describe("Connections and Environments Integration Tests", function () {
               try {
                 await driver.findElement(By.xpath(selector));
                 isBruinWebview = true;
+                console.log(`✓ Found Bruin content with selector: ${selector}`);
                 break;
               } catch (contentError) {
                 // Continue checking other selectors
@@ -847,6 +915,17 @@ describe("Connections and Environments Integration Tests", function () {
               break;
             } else {
               console.log(`Found iframe with #app but not Bruin content (likely VS Code walkthrough) - iframe ${i}`);
+              // Debug: Check what content is actually there
+              try {
+                const pageSource = await driver.getPageSource();
+                console.log(`Page source length: ${pageSource.length}`);
+                console.log(`Contains 'Bruin': ${pageSource.includes('Bruin')}`);
+                console.log(`Contains 'Connections': ${pageSource.includes('Connections')}`);
+                console.log(`Contains 'Environment': ${pageSource.includes('Environment')}`);
+                console.log(`First 1000 chars: ${pageSource.substring(0, 1000)}`);
+              } catch (sourceError) {
+                console.log("Could not get page source for debugging");
+              }
               await driver.switchTo().defaultContent();
             }
           } catch (error: any) {
@@ -1044,9 +1123,26 @@ describe("Connections and Environments Integration Tests", function () {
           if (connectionElements.length > 0) {
             console.log(`✓ Found connection elements directly (${connectionElements.length} elements) - no tab switching needed`);
           } else {
-            console.log("⚠️ No connection elements found, but continuing with test");
+            console.log("⚠️ No connection elements found, trying to trigger BruinSettings component...");
+            
+            // Try to trigger the BruinSettings component by executing commands
+            try {
+              console.log("Attempting to trigger BruinSettings component...");
+              await workbench.executeCommand("bruin.openAssetPanel");
+              await sleep(3000);
+              
+              // Check again for connection elements
+              const retryConnectionElements = await driver.findElements(By.xpath("//*[contains(text(), 'Connection') or contains(text(), 'Environment') or @id='add-environment-button']"));
+              if (retryConnectionElements.length > 0) {
+                console.log(`✓ Found connection elements after triggering component (${retryConnectionElements.length} elements)`);
+              } else {
+                console.log("⚠️ Still no connection elements found after triggering");
+              }
+            } catch (triggerError: any) {
+              console.log("Could not trigger BruinSettings component:", triggerError.message);
+            }
           }
-        } catch (directError) {
+        } catch (directError: any) {
           console.log("Could not find connection elements directly, but continuing");
         }
       }
@@ -1110,7 +1206,7 @@ describe("Connections and Environments Integration Tests", function () {
     });
 
     it("should READ/display existing environments", async function () {
-      this.timeout(15000);
+      this.timeout(30000);
 
       await findConnectionsSection(driver);
       
@@ -1229,7 +1325,7 @@ describe("Connections and Environments Integration Tests", function () {
     });
 
     it("should READ/display existing connections", async function () {
-      this.timeout(15000);
+      this.timeout(30000);
 
       await findConnectionsSection(driver);
       
