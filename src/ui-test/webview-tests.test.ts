@@ -30,8 +30,17 @@ describe("Bruin Webview Test", function () {
 
     // Initialize Workbench and compute paths
     workbench = new Workbench();
-    const repoRoot = process.env.REPO_ROOT || path.resolve(__dirname, "../../");
-    testWorkspacePath = path.join(repoRoot, "out", "ui-test", "test-pipeline");
+    
+    // Use the TEST_WORKSPACE_PATH if provided (for CI/coordinated testing), otherwise use default
+    if (process.env.TEST_WORKSPACE_PATH) {
+      testWorkspacePath = process.env.TEST_WORKSPACE_PATH;
+      console.log(`Using provided test workspace: ${testWorkspacePath}`);
+    } else {
+      const repoRoot = process.env.REPO_ROOT || path.resolve(__dirname, "../../");
+      testWorkspacePath = path.join(repoRoot, "out", "ui-test", "test-pipeline");
+      console.log(`Using default test workspace: ${testWorkspacePath}`);
+    }
+    
     testAssetFilePath = path.join(testWorkspacePath, "assets", "example.sql");
     
     // Aggressively disable walkthrough and welcome screens

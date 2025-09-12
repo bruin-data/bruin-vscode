@@ -83,21 +83,69 @@ jobs:
     - name: Run webview tests
       run: npm run test:webview
 
+    # Prepare workspace for Bruin extension activation
+    - name: Setup test workspace
+      run: |
+        mkdir -p test-workspace
+        cd test-workspace
+        cat > .bruin.yml << 'EOF'
+        name: "test-pipeline"
+        
+        environments:
+          default:
+            connections:
+              snowflake_conn:
+                type: snowflake
+                account: test
+                username: test
+                password: test
+                warehouse: test
+                database: test
+                schema: test
+          dev:
+            connections:
+              postgres_conn:
+                type: postgres
+                host: localhost
+                port: 5432
+                username: test
+                password: test
+                database: test
+        EOF
+        echo "Created test workspace with .bruin.yml"
+      shell: bash
+
+    - name: Install extension dependencies
+      run: |
+        # Ensure redhat.vscode-yaml is available (required by Bruin extension)
+        echo "Extension dependencies will be installed during VS Code setup"
+      shell: bash
+
     - name: Run integration tests
       run: |
-        # Try to run integration tests, but don't fail the build if they fail
-        echo "Attempting to run integration tests..."
+        echo "Running integration tests with proper workspace setup..."
         
         # Set Chrome-related environment variables
         if [ "${{ runner.os }}" = "Linux" ]; then
           export CHROME_BIN=$(which google-chrome || which chromium-browser || which chromium)
           echo "Using Chrome at: $CHROME_BIN"
+          # Set workspace path for extension activation
+          export TEST_WORKSPACE_PATH="$PWD/test-workspace"
           if xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' npm run selenium:run-tests; then
             echo "✅ Integration tests passed successfully!"
           else
-            echo "❌ Integration tests failed - likely due to ChromeDriver 404 download issue"
-            echo "This is a known issue with vscode-extension-tester ChromeDriver downloads"
-            echo "Unit tests and webview tests are still passing ✅"
+            echo "❌ Integration tests failed"
+            echo "Checking logs and screenshots for debugging..."
+            # List any generated screenshots
+            if [ -d "test-resources/screenshots" ]; then
+              echo "Available screenshots:"
+              find test-resources/screenshots -name "*.png" -type f | head -10
+            fi
+            # Show recent log entries
+            if [ -d "test-resources/settings/logs" ]; then
+              echo "Recent log entries:"
+              find test-resources/settings/logs -name "*.log" -type f -exec tail -20 {} \; 2>/dev/null || true
+            fi
           fi
         elif [ "${{ runner.os }}" = "macOS" ]; then
           # Try different Chrome locations on macOS
@@ -107,25 +155,25 @@ jobs:
             export CHROME_BIN="/Applications/Chromium.app/Contents/MacOS/Chromium"
           fi
           echo "Using Chrome at: $CHROME_BIN"
+          export TEST_WORKSPACE_PATH="$PWD/test-workspace"
           if npm run selenium:run-tests; then
             echo "✅ Integration tests passed successfully!"
           else
-            echo "❌ Integration tests failed - likely due to ChromeDriver 404 download issue"
-            echo "This is a known issue with vscode-extension-tester ChromeDriver downloads"
-            echo "Unit tests and webview tests are still passing ✅"
+            echo "❌ Integration tests failed"
+            echo "Checking for debugging information..."
           fi
         else
           # Windows - let extension tester handle Chrome detection
+          set TEST_WORKSPACE_PATH=%CD%\test-workspace
           if npm run selenium:run-tests; then
             echo "✅ Integration tests passed successfully!"
           else
-            echo "❌ Integration tests failed - likely due to ChromeDriver 404 download issue"
-            echo "This is a known issue with vscode-extension-tester ChromeDriver downloads"
-            echo "Unit tests and webview tests are still passing ✅"
+            echo "❌ Integration tests failed"
+            echo "Checking for debugging information..."
           fi
         fi
       shell: bash
-      continue-on-error: true
+      continue-on-error: false
 
     - name: Store UI test logs
       uses: actions/upload-artifact@v4

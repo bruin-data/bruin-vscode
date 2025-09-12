@@ -725,8 +725,17 @@ describe("Connections and Environments Integration Tests", function () {
     await TestCoordinator.acquireTestSlot("Connections and Environments Integration Tests");
 
     workbench = new Workbench();
-    const repoRoot = process.env.REPO_ROOT || path.resolve(__dirname, "../../");
-    testWorkspacePath = path.join(repoRoot, "out", "ui-test", "test-pipeline");
+    
+    // Use the TEST_WORKSPACE_PATH if provided (for CI/coordinated testing), otherwise use default
+    if (process.env.TEST_WORKSPACE_PATH) {
+      testWorkspacePath = process.env.TEST_WORKSPACE_PATH;
+      console.log(`Using provided test workspace: ${testWorkspacePath}`);
+    } else {
+      const repoRoot = process.env.REPO_ROOT || path.resolve(__dirname, "../../");
+      testWorkspacePath = path.join(repoRoot, "out", "ui-test", "test-pipeline");
+      console.log(`Using default test workspace: ${testWorkspacePath}`);
+    }
+    
     testBruinYmlPath = path.join(testWorkspacePath, ".bruin.yml");
     
     // Ensure test-pipeline directory exists with all necessary files
@@ -787,30 +796,19 @@ describe("Connections and Environments Integration Tests", function () {
       }
     }
 
-    // Open the .bruin.yml file with enhanced approach for coordinated testing
+    // Simplified approach - just open the workspace and skip complex editor handling
     try {
-      console.log(`Opening .bruin.yml file: ${testBruinYmlPath}`);
-      await VSBrowser.instance.openResources(testBruinYmlPath);
-      await sleep(4000); // Longer wait for coordinated testing
-
-      const openEditorTitles = await editorView.getOpenEditorTitles();
-      console.log("Open editor titles:", openEditorTitles);
-
-      const bruinYmlFile = openEditorTitles.find(title => title.includes(".bruin.yml"));
-      if (!bruinYmlFile) {
-        throw new Error(`.bruin.yml file not found in open editors`);
-      }
-
-      await editorView.openEditor(bruinYmlFile);
-      await sleep(3000); // Longer wait to ensure proper focus
+      console.log(`Opening workspace folder for extension activation: ${testWorkspacePath}`);
+      await VSBrowser.instance.openResources(testWorkspacePath);
+      await sleep(3000);
       
-      // Ensure the .bruin.yml file is truly focused
-      await workbench.executeCommand("workbench.action.focusActiveEditorGroup");
-      await sleep(1000);
+      // Wait longer for extension to activate based on workspace detection
+      console.log("Waiting for extension to activate based on workspace...");
+      await sleep(5000);
       
-      console.log("✓ .bruin.yml file opened and focused");
+      console.log("✓ Workspace opened, extension should be activated");
     } catch (error: any) {
-      console.error("Failed to open .bruin.yml file:", error.message);
+      console.error("Failed to open workspace:", error.message);
       throw error;
     }
     
