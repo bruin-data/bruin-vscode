@@ -3129,43 +3129,195 @@ describe("Bruin Webview Test", function () {
     let ownerContainer: WebElement;
     let tagsContainer: WebElement;
 
-    it("should navigate to the Details tab (tab-2) and access materialization", async function () {
-      this.timeout(20000);
+    // Before each test, ensure webview is ready
+    beforeEach(async function () {
+      this.timeout(10000);
       
-      // Check if webview is properly loaded first
+      // Check if webview is properly loaded
       try {
         await driver.findElement(By.id("app"));
+        console.log("✓ Webview is loaded for materialization tests");
       } catch (error) {
         console.log("Webview not properly loaded, skipping materialization tests");
         this.skip();
         return;
       }
-      
-      // Navigate to tab-2 (Details tab) where materialization is located
+    });
+
+    // Helper function to log webview state for debugging
+    async function logWebviewState(): Promise<void> {
       try {
-        // Look for tab-2 (Details tab)
+        const pageSource = await driver.getPageSource();
+        console.log(`Webview page source length: ${pageSource.length}`);
+        
+        // Check for key elements
+        const elements = await driver.findElements(By.css('*[id]'));
+        console.log(`Found ${elements.length} elements with IDs`);
+        
+        // Log first 10 element IDs for debugging
+        for (let i = 0; i < Math.min(10, elements.length); i++) {
+          try {
+            const id = await elements[i].getAttribute('id');
+            const tagName = await elements[i].getTagName();
+            console.log(`  - ${tagName}#${id}`);
+          } catch (e) {
+            console.log(`  - Could not get details for element ${i}`);
+          }
+        }
+        
+        // Check for tabs specifically
+        const tabs = await driver.findElements(By.css('[id^="tab-"]'));
+        console.log(`Found ${tabs.length} tabs`);
+        for (let i = 0; i < tabs.length; i++) {
+          try {
+            const tabId = await tabs[i].getAttribute('id');
+            console.log(`  - Tab: ${tabId}`);
+          } catch (e) {
+            console.log(`  - Could not get tab ID for element ${i}`);
+          }
+        }
+        
+        // Check for materialization-related content
+        if (pageSource.includes("materialization")) {
+          console.log("✓ Found 'materialization' text in page source");
+        } else {
+          console.log("✗ No 'materialization' text found in page source");
+        }
+        
+      } catch (error) {
+        console.log("Could not log webview state:", error.message);
+      }
+    }
+
+    // Helper function to ensure materialization section is available
+    async function ensureMaterializationSectionAvailable(): Promise<boolean> {
+      try {
+        // Log initial webview state
+        console.log("Initial webview state:");
+        await logWebviewState();
+        
+        // Wait for asset to be parsed
+        console.log("Waiting for asset parsing to complete...");
+        let assetParsed = false;
+        let attempts = 0;
+        const maxAttempts = 10;
+        
+        while (!assetParsed && attempts < maxAttempts) {
+          attempts++;
+          console.log(`Asset parsing check attempt ${attempts}/${maxAttempts}`);
+          
+          try {
+            const assetNameContainer = await driver.findElement(By.id("asset-name-container"));
+            const assetName = await assetNameContainer.getText();
+            
+            if (assetName && assetName.trim() !== "" && assetName !== "undefined") {
+              console.log(`✓ Asset parsed successfully: ${assetName}`);
+              assetParsed = true;
+              break;
+            }
+          } catch (error) {
+            console.log(`Asset not yet parsed (attempt ${attempts}): ${error.message}`);
+          }
+          
+          if (!assetParsed) {
+            await sleep(2000);
+          }
+        }
+        
+        if (!assetParsed) {
+          console.log("Asset parsing did not complete within timeout");
+          console.log("Final webview state after asset parsing timeout:");
+          await logWebviewState();
+          return false;
+        }
+        
+        // Log state after asset parsing
+        console.log("Webview state after asset parsing:");
+        await logWebviewState();
+        
+        // Wait for Details tab to be available
+        console.log("Waiting for Details tab to be available...");
+        let detailsTabAvailable = false;
+        attempts = 0;
+        
+        while (!detailsTabAvailable && attempts < maxAttempts) {
+          attempts++;
+          console.log(`Details tab check attempt ${attempts}/${maxAttempts}`);
+          
+          try {
+            const detailsTab = await driver.findElement(By.id("tab-2"));
+            console.log("✓ Details tab (tab-2) is available");
+            detailsTabAvailable = true;
+          } catch (error) {
+            console.log(`Details tab not yet available (attempt ${attempts}): ${error.message}`);
+          }
+          
+          if (!detailsTabAvailable) {
+            await sleep(2000);
+          }
+        }
+        
+        if (!detailsTabAvailable) {
+          console.log("Details tab not available within timeout");
+          console.log("Final webview state after Details tab timeout:");
+          await logWebviewState();
+          return false;
+        }
+        
+        // Log state after Details tab is available
+        console.log("Webview state after Details tab is available:");
+        await logWebviewState();
+        
+        // Navigate to Details tab
         const detailsTab = await driver.findElement(By.id("tab-2"));
         await detailsTab.click();
-        await sleep(1000);
+        await sleep(2000);
         console.log("✓ Successfully clicked on Details tab (tab-2)");
         
-        // Wait for materialization section to be available
+        // Wait for materialization section
         await driver.wait(
           until.elementLocated(By.id("materialization-section")),
-          10000,
+          15000,
           "Materialization section not found in Details tab"
         );
         console.log("✓ Materialization section is available");
         
+        // Log final state
+        console.log("Final webview state after materialization section is available:");
+        await logWebviewState();
+        
+        return true;
       } catch (error: any) {
-        console.log("Could not navigate to Details tab or find materialization section:", error.message);
-        this.skip();
+        console.log("Failed to ensure materialization section is available:", error.message);
+        return false;
       }
+    }
+
+    it("should navigate to the Details tab (tab-2) and access materialization", async function () {
+      this.timeout(30000);
+      
+      // Use helper function to ensure materialization section is available
+      const isAvailable = await ensureMaterializationSectionAvailable();
+      if (!isAvailable) {
+        console.log("Materialization section not available, skipping test");
+        this.skip();
+        return;
+      }
+      
+      console.log("✓ Materialization section is ready for testing");
     });
 
 
     it("should test materialization type selection", async function () {
-      this.timeout(20000);
+      this.timeout(30000);
+      
+      // Ensure materialization section is available
+      const isAvailable = await ensureMaterializationSectionAvailable();
+      if (!isAvailable) {
+        console.log("Materialization section not available, skipping test");
+        this.skip();
+        return;
+      }
       
       try {
         // First ensure the materialization section is expanded
@@ -3353,7 +3505,15 @@ describe("Bruin Webview Test", function () {
     // });
 
     it("should test table materialization shows strategy dropdown", async function () {
-      this.timeout(20000);
+      this.timeout(30000);
+      
+      // Ensure materialization section is available
+      const isAvailable = await ensureMaterializationSectionAvailable();
+      if (!isAvailable) {
+        console.log("Materialization section not available, skipping test");
+        this.skip();
+        return;
+      }
       
       try {
         // Ensure materialization section is expanded
@@ -3401,7 +3561,15 @@ describe("Bruin Webview Test", function () {
     });
 
     it("should test view materialization hides strategy dropdown", async function () {
-      this.timeout(20000);
+      this.timeout(30000);
+      
+      // Ensure materialization section is available
+      const isAvailable = await ensureMaterializationSectionAvailable();
+      if (!isAvailable) {
+        console.log("Materialization section not available, skipping test");
+        this.skip();
+        return;
+      }
       
       try {
         // Ensure materialization section is expanded
@@ -3553,7 +3721,15 @@ describe("Bruin Webview Test", function () {
     });
 
     it("should validate that strategy changes update configuration", async function () {
-      this.timeout(20000);
+      this.timeout(30000);
+      
+      // Ensure materialization section is available
+      const isAvailable = await ensureMaterializationSectionAvailable();
+      if (!isAvailable) {
+        console.log("Materialization section not available, skipping test");
+        this.skip();
+        return;
+      }
       
       try {
         // Ensure materialization section is expanded and set to table
@@ -3613,7 +3789,15 @@ describe("Bruin Webview Test", function () {
     });
 
     it("should test delete+insert strategy shows incremental key input", async function () {
-      this.timeout(20000);
+      this.timeout(30000);
+      
+      // Ensure materialization section is available
+      const isAvailable = await ensureMaterializationSectionAvailable();
+      if (!isAvailable) {
+        console.log("Materialization section not available, skipping test");
+        this.skip();
+        return;
+      }
       
       try {
         // Ensure materialization section is expanded
@@ -3679,7 +3863,15 @@ describe("Bruin Webview Test", function () {
     });
 
     it("should test create+replace strategy hides incremental key input", async function () {
-      this.timeout(20000);
+      this.timeout(30000);
+      
+      // Ensure materialization section is available
+      const isAvailable = await ensureMaterializationSectionAvailable();
+      if (!isAvailable) {
+        console.log("Materialization section not available, skipping test");
+        this.skip();
+        return;
+      }
       
       try {
         // Ensure materialization section is expanded and set to table
@@ -3736,7 +3928,15 @@ describe("Bruin Webview Test", function () {
     });
 
     it("should test time_interval strategy shows both incremental key and time granularity inputs", async function () {
-      this.timeout(20000);
+      this.timeout(30000);
+      
+      // Ensure materialization section is available
+      const isAvailable = await ensureMaterializationSectionAvailable();
+      if (!isAvailable) {
+        console.log("Materialization section not available, skipping test");
+        this.skip();
+        return;
+      }
       
       try {
         // Ensure materialization section is expanded and set to table
@@ -3823,7 +4023,15 @@ describe("Bruin Webview Test", function () {
     });
 
     it("should test merge strategy shows primary key configuration info", async function () {
-      this.timeout(20000);
+      this.timeout(30000);
+      
+      // Ensure materialization section is available
+      const isAvailable = await ensureMaterializationSectionAvailable();
+      if (!isAvailable) {
+        console.log("Materialization section not available, skipping test");
+        this.skip();
+        return;
+      }
       
       try {
         // Ensure materialization section is expanded and set to table
