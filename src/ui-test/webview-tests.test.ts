@@ -3184,7 +3184,7 @@ describe("Bruin Webview Test", function () {
           console.log("✗ No 'materialization' text found in page source");
         }
         
-      } catch (error) {
+      } catch (error: any) {
         console.log("Could not log webview state:", error.message);
       }
     }
@@ -3215,7 +3215,7 @@ describe("Bruin Webview Test", function () {
               assetParsed = true;
               break;
             }
-          } catch (error) {
+          } catch (error: any) {
             console.log(`Asset not yet parsed (attempt ${attempts}): ${error.message}`);
           }
           
@@ -3248,7 +3248,7 @@ describe("Bruin Webview Test", function () {
             const detailsTab = await driver.findElement(By.id("tab-2"));
             console.log("✓ Details tab (tab-2) is available");
             detailsTabAvailable = true;
-          } catch (error) {
+          } catch (error: any) {
             console.log(`Details tab not yet available (attempt ${attempts}): ${error.message}`);
           }
           

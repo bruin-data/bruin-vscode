@@ -771,6 +771,9 @@ describe("Connections and Environments Integration Tests", function () {
       await workbench.executeCommand("workbench.action.focusActiveEditorGroup");
       await sleep(1000);
       
+      // Use TestCoordinator to dismiss any blocking dialogs early
+      await TestCoordinator.dismissModalDialogs(VSBrowser.instance.driver);
+      
       console.log("✓ VS Code workbench initialized for coordinated testing");
     } catch (error: any) {
       console.log("Warning during VS Code initialization:", error.message);
@@ -807,28 +810,71 @@ describe("Connections and Environments Integration Tests", function () {
       let openEditorTitles = await editorView.getOpenEditorTitles();
       console.log("Open editor titles after opening .bruin.yml:", openEditorTitles);
       
-      // Close the Walkthrough if it opened
+      // Enhanced walkthrough closure - try multiple approaches
       const walkthrough = openEditorTitles.find(title => title.includes("Walkthrough"));
       if (walkthrough) {
         console.log(`Closing walkthrough: ${walkthrough}`);
+        
+        // Method 1: Try to close via editor view
         try {
           await editorView.closeEditor(walkthrough);
-          await sleep(2000);
-          
-          // Verify walkthrough is closed
-          openEditorTitles = await editorView.getOpenEditorTitles();
-          console.log("Editor titles after closing walkthrough:", openEditorTitles);
+          await sleep(1000);
+          console.log("✓ Closed walkthrough via editorView");
         } catch (error: any) {
-          console.log("Could not close walkthrough:", error.message);
+          console.log("Could not close walkthrough via editorView:", error.message);
         }
+        
+        // Method 2: Try VS Code commands to force close walkthrough
+        try {
+          await workbench.executeCommand("workbench.action.closeWalkthrough");
+          await sleep(1000);
+          console.log("✓ Executed closeWalkthrough command");
+        } catch (error) {
+          console.log("closeWalkthrough command not available");
+        }
+        
+        // Method 3: Try closing specific walkthrough tabs while preserving .bruin.yml
+        try {
+          // Get updated editor titles to check if walkthrough is still open
+          const currentTitles = await editorView.getOpenEditorTitles();
+          const stillOpenWalkthrough = currentTitles.find(title => title.includes("Walkthrough"));
+          if (stillOpenWalkthrough) {
+            console.log(`Walkthrough still open: ${stillOpenWalkthrough}, trying closeActiveEditor`);
+            // Try to close the active editor if it's the walkthrough
+            const activeTab = await editorView.getActiveTab();
+            const activeTitle = activeTab ? await activeTab.getTitle() : null;
+            if (activeTitle && activeTitle.includes("Walkthrough")) {
+              await workbench.executeCommand("workbench.action.closeActiveEditor");
+              await sleep(1000);
+              console.log("✓ Closed active walkthrough editor");
+            }
+          }
+        } catch (error) {
+          console.log("Could not close specific walkthrough");
+        }
+        
+        // Verify walkthrough is closed
+        openEditorTitles = await editorView.getOpenEditorTitles();
+        console.log("Editor titles after enhanced walkthrough closure:", openEditorTitles);
       }
       
       // Ensure .bruin.yml is the active editor
-      const bruinYmlFile = openEditorTitles.find(title => title.includes(".bruin.yml"));
+      let bruinYmlFile = openEditorTitles.find(title => title.includes(".bruin.yml"));
+      if (!bruinYmlFile) {
+        // Re-open .bruin.yml if it was accidentally closed
+        console.log("Re-opening .bruin.yml file...");
+        await VSBrowser.instance.openResources(testBruinYmlPath);
+        await sleep(2000);
+        openEditorTitles = await editorView.getOpenEditorTitles();
+        bruinYmlFile = openEditorTitles.find(title => title.includes(".bruin.yml"));
+      }
+      
       if (bruinYmlFile) {
         await editorView.openEditor(bruinYmlFile);
         await sleep(1000);
         console.log("✓ .bruin.yml file is now active editor");
+      } else {
+        throw new Error("Could not ensure .bruin.yml file is active");
       }
       
       console.log("✓ .bruin.yml file opened for connections management");
