@@ -28,29 +28,88 @@ export class TestCoordinator {
       const { Key } = require('selenium-webdriver');
       const { By } = require('selenium-webdriver');
       
-      const modalBlocks = await driver.findElements(By.css('.monaco-dialog-modal-block, .dialog-modal-block'));
+      // Check for multiple types of modal blocks
+      const modalSelectors = [
+        '.monaco-dialog-modal-block', 
+        '.dialog-modal-block',
+        '.dimmed',
+        '.monaco-dialog-modal-block.dimmed'
+      ];
+      
+      let modalBlocks: any[] = [];
+      for (const selector of modalSelectors) {
+        try {
+          const elements = await driver.findElements(By.css(selector));
+          modalBlocks = modalBlocks.concat(elements);
+        } catch (error) {
+          // Continue with other selectors
+        }
+      }
+      
       if (modalBlocks.length > 0) {
         console.log(`[TEST-COORDINATOR] Found ${modalBlocks.length} modal dialog(s), attempting to dismiss...`);
         
-        // Try to find and click "Open" or "Allow" or "Yes" or "OK" buttons
-        const allowButtons = await driver.findElements(By.xpath("//button[contains(text(), 'Open') or contains(text(), 'Allow') or contains(text(), 'Yes') or contains(text(), 'OK')]"));
-        for (const button of allowButtons) {
+        // Multiple rounds of dismissal
+        for (let round = 1; round <= 3; round++) {
+          console.log(`[TEST-COORDINATOR] Dismissal attempt ${round}/3...`);
+          
+          // Method 1: Try to find and click "Open", "Allow", "Yes", "OK", "Continue" buttons
+          const allowButtons = await driver.findElements(By.xpath("//button[contains(text(), 'Open') or contains(text(), 'Allow') or contains(text(), 'Yes') or contains(text(), 'OK') or contains(text(), 'Continue')]"));
+          if (allowButtons.length > 0) {
+            for (const button of allowButtons) {
+              try {
+                await button.click();
+                console.log("[TEST-COORDINATOR] ✓ Dismissed modal dialog by clicking button");
+                await sleep(2000);
+                return;
+              } catch (error) {
+                // Try next button
+              }
+            }
+          }
+          
+          // Method 2: Try clicking on the modal block itself to dismiss
           try {
-            await button.click();
-            console.log("[TEST-COORDINATOR] ✓ Dismissed modal dialog by clicking Open/Allow/Yes/OK");
-            await sleep(2000);
-            return;
+            if (modalBlocks[0]) {
+              await modalBlocks[0].click();
+              console.log("[TEST-COORDINATOR] ✓ Dismissed modal by clicking modal block");
+              await sleep(1000);
+            }
           } catch (error) {
-            // Try next button
+            // Continue to next method
+          }
+          
+          // Method 3: Try escape key multiple times
+          for (let i = 0; i < 3; i++) {
+            try {
+              await driver.actions().sendKeys(Key.ESCAPE).perform();
+              await sleep(500);
+            } catch (error) {
+              // Continue
+            }
+          }
+          console.log("[TEST-COORDINATOR] ✓ Sent multiple Escape keys");
+          
+          // Method 4: Try Enter key to accept dialog
+          try {
+            await driver.actions().sendKeys(Key.ENTER).perform();
+            await sleep(500);
+            console.log("[TEST-COORDINATOR] ✓ Sent Enter key");
+          } catch (error) {
+            // Continue
+          }
+          
+          await sleep(1000);
+          
+          // Check if modals are still present
+          const remainingModals = await driver.findElements(By.css('.monaco-dialog-modal-block, .dialog-modal-block'));
+          if (remainingModals.length === 0) {
+            console.log("[TEST-COORDINATOR] ✓ All modal dialogs dismissed successfully");
+            return;
           }
         }
         
-        // If allow buttons didn't work, try escape key
-        if (allowButtons.length === 0) {
-          await driver.actions().sendKeys(Key.ESCAPE).perform();
-          console.log("[TEST-COORDINATOR] ✓ Dismissed modal dialog with Escape key");
-          await sleep(2000);
-        }
+        console.log("[TEST-COORDINATOR] ⚠️ Some modal dialogs may still be present after 3 attempts");
       } else {
         console.log("[TEST-COORDINATOR] No blocking modal dialogs found");
       }

@@ -138,6 +138,8 @@ const findConnectionsSection = async (driver: WebDriver): Promise<WebElement> =>
 // Environment CRUD Helper Functions
 const clickAddEnvironment = async (driver: WebDriver): Promise<void> => {
   try {
+    // Dismiss any modal dialogs before attempting to click
+    await TestCoordinator.dismissModalDialogs(driver);
     // Wait for UI to be ready and check for errors first
     await sleep(3000);
     
@@ -422,6 +424,8 @@ const deleteEnvironment = async (driver: WebDriver, environmentName: string): Pr
 // Connection CRUD Helper Functions
 const clickAddConnection = async (driver: WebDriver, environment: string = "default"): Promise<void> => {
   try {
+    // Dismiss any modal dialogs before attempting to click
+    await TestCoordinator.dismissModalDialogs(driver);
     await sleep(3000); // Wait for UI to be ready
     
     // Check if there are any error messages that might prevent the button from showing
@@ -833,24 +837,48 @@ describe("Connections and Environments Integration Tests", function () {
           console.log("closeWalkthrough command not available");
         }
         
-        // Method 3: Try closing specific walkthrough tabs while preserving .bruin.yml
+        // Method 3: Aggressive walkthrough closure using multiple VS Code commands
         try {
-          // Get updated editor titles to check if walkthrough is still open
           const currentTitles = await editorView.getOpenEditorTitles();
           const stillOpenWalkthrough = currentTitles.find(title => title.includes("Walkthrough"));
           if (stillOpenWalkthrough) {
-            console.log(`Walkthrough still open: ${stillOpenWalkthrough}, trying closeActiveEditor`);
-            // Try to close the active editor if it's the walkthrough
-            const activeTab = await editorView.getActiveTab();
-            const activeTitle = activeTab ? await activeTab.getTitle() : null;
-            if (activeTitle && activeTitle.includes("Walkthrough")) {
-              await workbench.executeCommand("workbench.action.closeActiveEditor");
-              await sleep(1000);
-              console.log("✓ Closed active walkthrough editor");
+            console.log(`Walkthrough still open: ${stillOpenWalkthrough}, trying aggressive closure`);
+            
+            // Try multiple walkthrough-specific commands
+            const walkthroughCommands = [
+              "workbench.action.closeWalkthrough",
+              "workbench.action.closeActiveEditor", 
+              "workbench.welcome.close",
+              "workbench.action.closeEditorsInGroup",
+              "workbench.action.closeOtherEditors"
+            ];
+            
+            for (const command of walkthroughCommands) {
+              try {
+                await workbench.executeCommand(command);
+                await sleep(500);
+                console.log(`✓ Executed ${command}`);
+              } catch (error) {
+                console.log(`Command ${command} not available`);
+              }
+            }
+            
+            // Force focus back to .bruin.yml
+            try {
+              const bruinTab = await editorView.getOpenEditorTitles().then(titles => 
+                titles.find(title => title.includes(".bruin.yml"))
+              );
+              if (bruinTab) {
+                await editorView.openEditor(bruinTab);
+                await sleep(1000);
+                console.log("✓ Refocused .bruin.yml file");
+              }
+            } catch (error) {
+              console.log("Could not refocus .bruin.yml");
             }
           }
         } catch (error) {
-          console.log("Could not close specific walkthrough");
+          console.log("Could not perform aggressive walkthrough closure");
         }
         
         // Verify walkthrough is closed
@@ -883,6 +911,21 @@ describe("Connections and Environments Integration Tests", function () {
       throw error;
     }
     
+    // Verify .bruin.yml is still active before opening Bruin panel
+    try {
+      const currentTitles = await editorView.getOpenEditorTitles();
+      console.log("Current editor titles before opening Bruin panel:", currentTitles);
+      
+      const bruinYmlActive = currentTitles.find(title => title.includes(".bruin.yml"));
+      if (!bruinYmlActive) {
+        console.log("⚠️ .bruin.yml not found in active editors, re-opening...");
+        await VSBrowser.instance.openResources(testBruinYmlPath);
+        await sleep(2000);
+      }
+    } catch (error) {
+      console.log("Could not verify .bruin.yml active state");
+    }
+
     // Now open the Bruin panel for .bruin.yml file (connections management)
     try {
       console.log("Opening Bruin panel for .bruin.yml file...");
@@ -914,38 +957,8 @@ describe("Connections and Environments Integration Tests", function () {
     await sleep(webviewWait);
     driver = VSBrowser.instance.driver;
     
-    // Dismiss any modal dialogs that might be blocking interactions (like external link confirmations)
-    try {
-      console.log("Checking for blocking modal dialogs...");
-      const modalBlocks = await driver.findElements(By.css('.monaco-dialog-modal-block, .dialog-modal-block'));
-      if (modalBlocks.length > 0) {
-        console.log(`Found ${modalBlocks.length} modal dialog(s), attempting to dismiss...`);
-        
-        // Try to find and click "Allow" or "Yes" or "OK" buttons
-        const allowButtons = await driver.findElements(By.xpath("//button[contains(text(), 'Allow') or contains(text(), 'Yes') or contains(text(), 'OK') or contains(text(), 'Open')]"));
-        for (const button of allowButtons) {
-          try {
-            await button.click();
-            console.log("✓ Dismissed modal dialog by clicking Allow/Yes/OK");
-            break;
-          } catch (error) {
-            // Try next button
-          }
-        }
-        
-        // If allow buttons didn't work, try escape key
-        if (allowButtons.length === 0) {
-          await driver.actions().sendKeys(Key.ESCAPE).perform();
-          console.log("✓ Dismissed modal dialog with Escape key");
-        }
-        
-        await sleep(2000);
-      } else {
-        console.log("No blocking modal dialogs found");
-      }
-    } catch (error) {
-      console.log("Could not check for modal dialogs:", error);
-    }
+    // Use TestCoordinator for comprehensive modal dismissal
+    await TestCoordinator.dismissModalDialogs(driver);
 
     // Find webview iframe
     await driver.wait(
@@ -957,13 +970,26 @@ describe("Connections and Environments Integration Tests", function () {
     const allIframes = await driver.findElements(By.css('iframe'));
     console.log(`Found ${allIframes.length} iframes`);
     
+    // First, log all iframe sources to understand what we're dealing with
+    for (let i = 0; i < allIframes.length; i++) {
+      try {
+        const src = await allIframes[i].getAttribute('src');
+        const title = await allIframes[i].getAttribute('title');
+        const name = await allIframes[i].getAttribute('name');
+        console.log(`Iframe ${i}: src="${src}" title="${title}" name="${name}"`);
+      } catch (error) {
+        console.log(`Could not get attributes for iframe ${i}`);
+      }
+    }
+    
     let bruinIframe = null;
     for (let i = 0; i < allIframes.length; i++) {
       try {
         const iframe = allIframes[i];
         const src = await iframe.getAttribute('src');
         
-        if (src && src.includes('index.html')) {
+        // Be more specific about which iframes to check - exclude walkthrough
+        if (src && src.includes('index.html') && !src.includes('walkthrough')) {
           await driver.switchTo().frame(iframe);
           
           try {
@@ -1026,23 +1052,49 @@ describe("Connections and Environments Integration Tests", function () {
     }
 
     if (!bruinIframe) {
-      console.log("No Bruin iframe found, trying default WebView approach...");
-      webview = new WebView();
-      await driver.wait(until.elementLocated(By.css(".editor-instance")), 10000);
-      await webview.switchToFrame();
+      console.log("No Bruin iframe found, trying default WebView approach with retry logic...");
       
-      // Additional verification that we're in the right frame
-      await sleep(3000);
-      try {
-        const pageSource = await driver.getPageSource();
-        console.log(`Page source length: ${pageSource.length}`);
-        if (pageSource.includes('Connections') || pageSource.includes('Environment')) {
-          console.log("✓ Found Bruin content in default webview frame");
-        } else {
-          console.log("⚠️ Default webview frame may not contain Bruin content");
+      // Retry mechanism - sometimes the webview content loads after initial iframe detection
+      for (let retry = 1; retry <= 3; retry++) {
+        console.log(`WebView detection attempt ${retry}/3...`);
+        
+        webview = new WebView();
+        try {
+          await driver.wait(until.elementLocated(By.css(".editor-instance")), 10000);
+          await webview.switchToFrame();
+          await sleep(2000); // Wait for content to load
+          
+          // Check if this webview has the expected content
+          try {
+            const pageSource = await driver.getPageSource();
+            console.log(`Page source length: ${pageSource.length} (attempt ${retry})`);
+            
+            const hasVueApp = pageSource.includes('id="app"');
+            const hasBruinContent = pageSource.includes('Connections') || pageSource.includes('Environment') || pageSource.includes('Bruin');
+            const hasSettings = pageSource.includes('Settings');
+            
+            console.log(`Attempt ${retry} - Vue app: ${hasVueApp}, Bruin content: ${hasBruinContent}, Settings: ${hasSettings}`);
+            
+            if (hasVueApp || hasBruinContent) {
+              console.log("✓ Found Bruin content in webview frame");
+              break;
+            } else {
+              console.log("⚠️ Webview frame may not contain expected content, retrying...");
+              if (retry < 3) {
+                // Switch back to default content and wait before retrying
+                await driver.switchTo().defaultContent();
+                await sleep(3000);
+              }
+            }
+          } catch (sourceError) {
+            console.log("Could not verify page source");
+          }
+        } catch (error: any) {
+          console.log(`WebView attempt ${retry} failed:`, error.message);
+          if (retry < 3) {
+            await sleep(3000);
+          }
         }
-      } catch (sourceError) {
-        console.log("Could not verify page source");
       }
     } else {
       webview = new WebView();
