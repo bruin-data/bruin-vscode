@@ -861,9 +861,10 @@ describe("Connections and Environments Integration Tests", function () {
       }
     }
     
-    // Wait for webview initialization
-    const webviewWait = 15000; // Standard wait time for settings mode
-    console.log(`Waiting ${webviewWait}ms for webview initialization...`);
+    // Wait for webview initialization (with CI timeout adjustment)
+    const baseWebviewWait = 15000; 
+    const webviewWait = TestCoordinator.adjustTimeout(baseWebviewWait);
+    console.log(`Waiting ${webviewWait}ms for webview initialization (CI multiplier applied)...`);
     await sleep(webviewWait);
     driver = VSBrowser.instance.driver;
     

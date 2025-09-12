@@ -88,31 +88,117 @@ jobs:
       run: |
         mkdir -p test-workspace
         cd test-workspace
+        
+        # Create .bruin.yml for connections management
         cat > .bruin.yml << 'EOF'
-        name: "test-pipeline"
+        default_environment: default
         
         environments:
           default:
             connections:
-              snowflake_conn:
-                type: snowflake
-                account: test
-                username: test
-                password: test
-                warehouse: test
-                database: test
-                schema: test
+              google_cloud_platform:
+                - name: test-gcp-connection
+                  project_id: test-project-123
+                  location: US
+              duckdb:
+                - name: test-duckdb-connection
+                  path: /tmp/test.duckdb
           dev:
             connections:
-              postgres_conn:
-                type: postgres
-                host: localhost
-                port: 5432
-                username: test
-                password: test
-                database: test
+              postgres:
+                - name: test-postgres-connection
+                  host: localhost
+                  port: 5432
+                  username: test_user
+                  password: test_pass
+                  database: test_db
+          test_env:
+            connections: {}
         EOF
-        echo "Created test workspace with .bruin.yml"
+        
+        # Create assets directory and test files
+        mkdir -p assets
+        
+        # Create example.sql for webview tests
+        cat > assets/example.sql << 'EOF'
+        /* @bruin
+
+        name: myschema.example
+        type: bq.sql
+
+        materialization:
+           type: table
+
+        description: |
+          # Example table
+          This asset is an example table with some quality checks to help you get started.
+
+        columns:
+          - name: id
+            type: integer
+            description: "Just a number"
+            primary_key: true
+            checks:
+                - name: not_null
+                - name: positive
+
+          - name: country
+            type: varchar
+            description: "the country"
+            primary_key: true
+            checks:
+                - name: not_null
+
+          - name: name
+            type: varchar
+            update_on_merge: true
+            description: "Just a name"
+            checks:
+                - name: unique
+                - name: not_null
+
+        @bruin */
+
+        SELECT 1 as id, 'Spain' as country , 'Juan' as name
+        union all
+        SELECT 2 as id, 'Germany' as country , 'Markus' as name
+        union all
+        SELECT 3 as id, 'France' as country , 'Antoine' as name
+        union all
+        SELECT 4 as id, 'Poland' as country , 'Franciszek' as name
+        EOF
+        
+        # Create test-ingestr.asset.yml for ingestr tests  
+        cat > assets/test-ingestr.asset.yml << 'EOF'
+        name: "test_ingestr_source"
+        type: "ingestr"
+        
+        source_connection: "source_postgres"
+        source_table: "public.users"
+        
+        destination:
+          connection: "snowflake_conn"
+          table: "raw.ingestr_users"
+        
+        columns:
+          - name: id
+            type: integer
+            primary_key: true
+            checks:
+              - unique
+              - not_null
+          - name: name
+            type: varchar
+            checks:
+              - not_null
+          - name: email
+            type: varchar
+            checks:
+              - unique
+              - not_null
+        EOF
+        
+        echo "Created test workspace with .bruin.yml and asset files"
       shell: bash
 
     - name: Install extension dependencies
@@ -131,6 +217,8 @@ jobs:
           echo "Using Chrome at: $CHROME_BIN"
           # Set workspace path for extension activation
           export TEST_WORKSPACE_PATH="$PWD/test-workspace"
+          # Increase timeout for CI environment (slower than local)
+          export TEST_TIMEOUT_MULTIPLIER="3"
           if xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' npm run selenium:run-tests; then
             echo "✅ Integration tests passed successfully!"
           else
@@ -156,6 +244,7 @@ jobs:
           fi
           echo "Using Chrome at: $CHROME_BIN"
           export TEST_WORKSPACE_PATH="$PWD/test-workspace"
+          export TEST_TIMEOUT_MULTIPLIER="3"
           if npm run selenium:run-tests; then
             echo "✅ Integration tests passed successfully!"
           else
@@ -165,6 +254,7 @@ jobs:
         else
           # Windows - let extension tester handle Chrome detection
           set TEST_WORKSPACE_PATH=%CD%\test-workspace
+          set TEST_TIMEOUT_MULTIPLIER=3
           if npm run selenium:run-tests; then
             echo "✅ Integration tests passed successfully!"
           else

@@ -8,6 +8,17 @@ export class TestCoordinator {
   private static testCount = 0;
   private static readonly TEST_ISOLATION_DELAY = 20000; // 20 seconds between tests for better isolation
   
+  // Get timeout multiplier for CI environments (default 1 for local, 3 for CI)
+  private static getTimeoutMultiplier(): number {
+    const multiplier = process.env.TEST_TIMEOUT_MULTIPLIER;
+    return multiplier ? parseInt(multiplier, 10) : 1;
+  }
+  
+  // Apply timeout multiplier to any duration
+  static adjustTimeout(timeoutMs: number): number {
+    return timeoutMs * this.getTimeoutMultiplier();
+  }
+  
   /**
    * Call this at the beginning of each test suite's before() hook
    * Ensures proper sequencing and isolation between tests
