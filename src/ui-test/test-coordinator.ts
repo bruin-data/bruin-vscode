@@ -19,23 +19,53 @@ export class TestCoordinator {
     return timeoutMs * this.getTimeoutMultiplier();
   }
   
-  // Enhanced safe click method that handles ElementClickInterceptedError
-  static async safeClick(driver: any, element: any, maxRetries: number = 3): Promise<void> {
+  // Enhanced safe click method that handles ElementClickInterceptedError and Vue reactivity
+  static async safeClick(driver: any, element: any, maxRetries: number = 5): Promise<void> {
     for (let i = 0; i < maxRetries; i++) {
       try {
+        // Wait for Vue reactivity to settle before attempting click
+        await sleep(1500);
+        
+        // Scroll element into view and ensure it's interactable
+        try {
+          await driver.executeScript('arguments[0].scrollIntoView({block: "center"});', element);
+          await sleep(500);
+          
+          const isDisplayed = await element.isDisplayed();
+          const isEnabled = await element.isEnabled();
+          
+          if (!isDisplayed || !isEnabled) {
+            console.log(`[TEST-COORDINATOR] Element not interactable (displayed: ${isDisplayed}, enabled: ${isEnabled}), waiting...`);
+            await sleep(2000);
+            continue;
+          }
+        } catch (scrollError: any) {
+          console.log('[TEST-COORDINATOR] Could not scroll or check element state, continuing...', scrollError.message);
+        }
+        
         await element.click();
+        console.log('[TEST-COORDINATOR] Click succeeded');
+        
+        // Wait for Vue to process the click event
+        await sleep(1500);
         return;
       } catch (error: any) {
+        console.log(`[TEST-COORDINATOR] Click attempt ${i + 1}/${maxRetries} failed:`, error.message);
+        
         if (error.name === 'ElementClickInterceptedError' || error.message.includes('intercepted')) {
           console.log(`[TEST-COORDINATOR] Click intercepted, attempting modal dismissal (attempt ${i + 1}/${maxRetries})`);
           await this.dismissModalDialogs(driver);
-          await sleep(1000);
+          await sleep(2000);
           
           if (i === maxRetries - 1) {
             throw new Error(`Click still intercepted after ${maxRetries} attempts and modal dismissals`);
           }
         } else {
-          throw error;
+          // For other errors, wait longer for Vue to settle
+          await sleep(3000);
+          if (i === maxRetries - 1) {
+            throw error;
+          }
         }
       }
     }
@@ -64,10 +94,10 @@ export class TestCoordinator {
     throw new Error(`Element ${desc} not found or not displayed after ${timeoutMs}ms. Last error: ${lastError?.message}`);
   }
 
-  // Wait for webview to be ready with comprehensive checks
-  static async waitForWebviewReady(driver: any, timeoutMs: number = 45000): Promise<boolean> {
+  // Wait for webview to be ready with Vue-specific checks
+  static async waitForWebviewReady(driver: any, timeoutMs: number = 60000): Promise<boolean> {
     const { By } = require('selenium-webdriver');
-    console.log("[TEST-COORDINATOR] Waiting for webview to be ready...");
+    console.log("[TEST-COORDINATOR] Waiting for webview with Vue components to be ready...");
     
     const startTime = Date.now();
     let lastPageLength = 0;
@@ -75,34 +105,43 @@ export class TestCoordinator {
     
     while (Date.now() - startTime < timeoutMs) {
       try {
-        // Check 1: Basic #app element
+        // Check 1: Basic app container
         let appReady = false;
         try {
-          const appElement = await driver.findElement(By.id("app"));
-          appReady = await appElement.isDisplayed();
+          const appSelectors = ['#app', '.vue-app', 'main', '.container'];
+          for (const selector of appSelectors) {
+            try {
+              const element = await driver.findElement(By.css(selector));
+              if (await element.isDisplayed()) {
+                appReady = true;
+                break;
+              }
+            } catch (e) {
+              continue;
+            }
+          }
         } catch (error) {
           // Continue
         }
         
-        // Check 2: Page content analysis
-        let contentReady = false;
+        // Check 2: Vue-specific content analysis
+        let vueReady = false;
         try {
           const pageSource = await driver.getPageSource();
           const currentLength = pageSource.length;
           
-          // Check for specific Bruin webview content indicators
-          const hasBruinContent = pageSource.includes('Connections') || 
-                                pageSource.includes('Environment') ||
+          // Check for Vue components and Bruin-specific content
+          const hasVueComponents = pageSource.includes('vscode-button') ||
+                                 pageSource.includes('vscode-panels') ||
+                                 pageSource.includes('data-v-') ||
+                                 pageSource.includes('v-');
+          
+          const hasBruinContent = pageSource.includes('Connections') ||
+                                pageSource.includes('Settings') ||
                                 pageSource.includes('add-environment-button') ||
-                                pageSource.includes('BruinSettings') ||
-                                pageSource.includes('vscode-button');
+                                pageSource.includes('BruinSettings');
           
-          // Check for Vue framework indicators
-          const hasVueContent = pageSource.includes('Vue') || 
-                              pageSource.includes('v-') || 
-                              pageSource.includes('data-v-');
-          
-          // Check page stability (not still loading)
+          // Check page stability (Vue hydration complete)
           if (currentLength === lastPageLength) {
             stableCount++;
           } else {
@@ -110,53 +149,80 @@ export class TestCoordinator {
             lastPageLength = currentLength;
           }
           
-          contentReady = (hasBruinContent || hasVueContent) && 
-                        currentLength > 5000 && 
-                        stableCount >= 2;
+          vueReady = (hasVueComponents || hasBruinContent) && 
+                    currentLength > 8000 && 
+                    stableCount >= 3; // More stability checks for Vue
           
-          if (contentReady) {
-            console.log("[TEST-COORDINATOR] ✓ Webview content is ready and stable");
+          if (vueReady) {
+            console.log("[TEST-COORDINATOR] ✓ Vue components rendered and stable");
           }
         } catch (error) {
           // Continue
         }
         
-        // Check 3: Interactive elements present
+        // Check 3: Critical interactive elements for connections tests
         let interactiveReady = false;
         try {
+          // Look for Settings tab specifically (required for connections tests)
+          const settingsElements = await driver.findElements(By.xpath("//*[contains(text(), 'Settings')]"));
           const buttons = await driver.findElements(By.css('button, vscode-button'));
-          const inputs = await driver.findElements(By.css('input, vscode-text-field'));
-          interactiveReady = (buttons.length > 0 || inputs.length > 0);
+          
+          if (settingsElements.length > 0) {
+            // Verify at least one Settings element is actually interactive
+            for (const element of settingsElements.slice(0, 2)) { // Check first 2
+              try {
+                const isDisplayed = await element.isDisplayed();
+                const isEnabled = await element.isEnabled();
+                if (isDisplayed && isEnabled) {
+                  interactiveReady = true;
+                  console.log("[TEST-COORDINATOR] ✓ Settings tab is interactive");
+                  break;
+                }
+              } catch (e) {
+                continue;
+              }
+            }
+          }
+          
+          // Fallback: any interactive buttons
+          if (!interactiveReady && buttons.length > 0) {
+            interactiveReady = true;
+          }
         } catch (error) {
           // Continue
         }
         
-        if (appReady && contentReady && interactiveReady) {
-          console.log("[TEST-COORDINATOR] ✓ Webview is fully ready");
+        if (appReady && vueReady && interactiveReady) {
+          console.log("[TEST-COORDINATOR] ✓ Vue webview is fully ready for interactions");
+          // Extra wait to ensure Vue reactivity has fully settled
+          await sleep(3000);
           return true;
         }
         
         // Progress logging
-        if ((Date.now() - startTime) % 10000 < 1000) {
-          console.log(`[TEST-COORDINATOR] Still waiting... app:${appReady} content:${contentReady} interactive:${interactiveReady}`);
+        if ((Date.now() - startTime) % 15000 < 1000) {
+          console.log(`[TEST-COORDINATOR] Vue readiness check... app:${appReady} vue:${vueReady} interactive:${interactiveReady} (${Math.round((Date.now() - startTime) / 1000)}s)`);
         }
         
       } catch (error) {
         // Continue waiting
       }
-      await sleep(1000);
+      await sleep(1500); // Slightly longer sleep for Vue
     }
     
-    console.log("[TEST-COORDINATOR] ⚠️ Webview readiness timeout");
+    console.log("[TEST-COORDINATOR] ⚠️ Vue webview readiness timeout");
     
-    // Final diagnostic
+    // Enhanced diagnostic for Vue
     try {
       const pageSource = await driver.getPageSource();
-      console.log(`[TEST-COORDINATOR] Final diagnostic - page length: ${pageSource.length}`);
-      console.log(`[TEST-COORDINATOR] Contains 'Connections': ${pageSource.includes('Connections')}`);
-      console.log(`[TEST-COORDINATOR] Contains buttons: ${pageSource.includes('button')}`);
+      console.log(`[TEST-COORDINATOR] Vue diagnostic - page length: ${pageSource.length}`);
+      console.log(`[TEST-COORDINATOR] Contains Vue components: ${pageSource.includes('vscode-')}`); 
+      console.log(`[TEST-COORDINATOR] Contains Settings: ${pageSource.includes('Settings')}`);
+      console.log(`[TEST-COORDINATOR] Contains Connections: ${pageSource.includes('Connections')}`);
+      const settingsCount = await driver.findElements(By.xpath("//*[contains(text(), 'Settings')]"));
+      console.log(`[TEST-COORDINATOR] Settings elements found: ${settingsCount.length}`);
     } catch (error) {
-      console.log("[TEST-COORDINATOR] Could not run final diagnostic");
+      console.log("[TEST-COORDINATOR] Could not run Vue diagnostic");
     }
     
     return false;

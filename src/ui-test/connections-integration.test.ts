@@ -42,111 +42,44 @@ const findElementWithRetry = async (driver: WebDriver, selector: By, timeout = 1
   throw new Error(`Element ${selector} not found after ${timeout}ms. Last error: ${lastError?.message}`);
 };
 
-// Helper function to switch to settings tab
+// Helper function to switch to settings tab with enhanced Vue support
 const switchToSettingsTab = async (driver: WebDriver): Promise<void> => {
   try {
-    // Try multiple selectors for the Settings tab
-    const settingsSelectors = [
-      '[data-tab="settings"]',
-      '[aria-label="Settings"]',
-      'button[title="Settings"]',
-      '*[role="tab"][aria-label*="Settings"]',
-      '.tab-settings',
-      '#settings-tab'
-    ];
-    
-    let settingsTab = null;
-    for (const selector of settingsSelectors) {
-      try {
-        settingsTab = await driver.findElement(By.css(selector));
-        if (await settingsTab.isDisplayed()) {
-          console.log(`Found settings tab with selector: ${selector}`);
-          break;
-        }
-      } catch (error) {
-        console.log(`Settings tab not found with selector: ${selector}`);
-      }
+    // First ensure webview is fully ready for tab interactions
+    const webviewReady = await TestCoordinator.waitForWebviewReady(driver);
+    if (!webviewReady) {
+      throw new Error("Webview not ready for Settings tab interaction");
     }
     
-    // Fallback: look for any element containing "Settings" text
-    if (!settingsTab) {
-      try {
-        settingsTab = await driver.findElement(By.xpath("//*[contains(text(), 'Settings')]"));
-        console.log("Found settings tab using xpath text search");
-      } catch (error) {
-        console.log("Settings tab not found with text search");
-      }
-    }
+    // Wait for Settings tab to be available using TestCoordinator
+    const settingsTab = await TestCoordinator.waitForElement(
+      driver,
+      By.xpath("//*[contains(text(), 'Settings')]"),
+      15000,
+      "Settings tab"
+    );
     
-    if (!settingsTab) {
-      // Debug: log available tabs
-      const allTabs = await driver.findElements(By.css('[role="tab"], .tab, button[data-tab], [class*="tab"]'));
-      console.log(`Found ${allTabs.length} potential tab elements`);
-      
-      for (let i = 0; i < Math.min(allTabs.length, 10); i++) {
-        try {
-          const tabText = await allTabs[i].getText();
-          const tabTitle = await allTabs[i].getAttribute('title');
-          const tabAriaLabel = await allTabs[i].getAttribute('aria-label');
-          console.log(`Tab ${i}: text="${tabText}" title="${tabTitle}" aria-label="${tabAriaLabel}"`);
-        } catch (error) {
-          console.log(`Could not get info for tab ${i}`);
-        }
-      }
-      
-      throw new Error("Settings tab not found with any selector");
-    }
-    
-    await settingsTab.click();
-    await sleep(2000);
+    // Use enhanced safeClick for Vue components
+    await TestCoordinator.safeClick(driver, settingsTab);
     console.log("✓ Switched to Settings tab");
   } catch (error) {
     throw new Error(`Failed to switch to Settings tab: ${error}`);
   }
 };
 
-// Helper function to find connections section
+// Helper function to find connections section with enhanced Vue support
 const findConnectionsSection = async (driver: WebDriver): Promise<WebElement> => {
   try {
-    // Ensure webview is ready first
-    const webviewReady = await TestCoordinator.waitForWebviewReady(driver);
-    if (!webviewReady) {
-      throw new Error("Webview not ready for connections section detection");
-    }
-
-    // Try multiple selectors for the Connections section header
-    const connectionsSectionSelectors = [
-      "//h2[contains(text(), 'Connections')]",
-      "//h1[contains(text(), 'Connections')]",
-      "//h3[contains(text(), 'Connections')]",
-      "//h4[contains(text(), 'Connections')]",
-      "//*[contains(text(), 'Connections') and (self::h1 or self::h2 or self::h3 or self::h4 or self::div)]",
-      "//*[contains(text(), 'Manage your connections')]",
-      "//*[contains(text(), 'connections across different environments')]",
-      "//*[contains(text(), 'Connection') and contains(text(), 'Environment')]",
-      // Look for any element containing "Connections"
-      "//*[contains(text(), 'Connections')]",
-      // Look for settings-related headings that might contain connections
-      "//*[contains(@class, 'text-xl') and contains(text(), 'Connections')]",
-      "//*[contains(@class, 'font-semibold') and contains(text(), 'Connections')]",
-      "//*[contains(@class, 'heading') and contains(text(), 'Connections')]",
-      // Look for the whole settings area
-      "//*[contains(text(), 'Environment') or contains(text(), 'Connection')]"
-    ];
+    // Use TestCoordinator's enhanced element waiting
+    const connectionsSection = await TestCoordinator.waitForElement(
+      driver,
+      By.xpath("//*[contains(text(), 'Connections')]"),
+      20000,
+      "Connections section"
+    );
     
-    for (const selector of connectionsSectionSelectors) {
-      try {
-        const connectionsSection = await findElementWithRetry(driver, By.xpath(selector), 5000);
-        if (await connectionsSection.isDisplayed()) {
-          console.log(`✓ Found Connections section with selector: ${selector}`);
-          return connectionsSection;
-        }
-      } catch (error) {
-        console.log(`Connections section not found with selector: ${selector}`);
-      }
-    }
-    
-    throw new Error("Connections section not found with any selector");
+    console.log("✓ Found Connections section");
+    return connectionsSection;
   } catch (error) {
     throw new Error(`Connections section not found: ${error}`);
   }
@@ -265,8 +198,8 @@ const clickAddEnvironment = async (driver: WebDriver): Promise<void> => {
       throw new Error("No add environment button found");
     }
     
-    await addEnvButton.click();
-    await sleep(1000);
+    // Use enhanced safeClick for Vue components
+    await TestCoordinator.safeClick(driver, addEnvButton);
     console.log("✓ Clicked add environment button");
   } catch (error) {
     throw new Error(`Failed to click add environment button: ${error}`);
