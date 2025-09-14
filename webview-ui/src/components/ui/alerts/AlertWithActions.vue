@@ -10,12 +10,14 @@
           appearance="secondary"
           @click="$emit('cancel')"
           class="mr-3 bg-editor-fg px-4 py-1 rounded hover:text-editor-fg hover:bg-inputOption-hoverBackground text-editor-bg"
+          id="cancel-confirmation-button"
         >
           Cancel
         </button>
         <button
           @click="$emit('confirm')"
           class="bg-errorForeground hover:bg-editorError-foreground hover:text-editor-fg px-4 py-1 rounded text-editor-fg"
+          id="confirm-delete-button"
         >
           {{ confirmText }}
         </button>

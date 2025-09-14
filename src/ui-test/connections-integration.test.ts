@@ -55,7 +55,7 @@ const switchToSettingsTab = async (driver: WebDriver): Promise<void> => {
     // Wait for Settings tab to be available using TestCoordinator
     const settingsTab = await TestCoordinator.waitForElement(
       driver,
-      By.id("settings-tab"),
+      By.id("tab-0"), // Settings tab (first tab when opening .bruin.yml)
       15000,
       "Settings tab"
     );
@@ -68,36 +68,14 @@ const switchToSettingsTab = async (driver: WebDriver): Promise<void> => {
   }
 };
 
-// Helper function to find connections section using only ID selectors
+// Helper function to find connections section using ID selector
 const findConnectionsSection = async (driver: WebDriver): Promise<WebElement> => {
-  try {
-    // Use only ID selectors to find the connections section
-    const connectionsSelectors = [
-      By.id("add-environment-button"), // This button should be visible when connections section is loaded
-      By.id("new-environment-input"), // New environment input field
-      By.id("add-connection-default") // Add connection button for default environment
-    ];
-    
-    for (const selector of connectionsSelectors) {
-      try {
-        const element = await TestCoordinator.waitForElement(
-          driver,
-          selector,
-          5000,
-          `Connections section via ${selector}`
-        );
-        console.log(`✓ Found Connections section with ID selector: ${selector}`);
-        return element;
-      } catch (error) {
-        console.log(`Connections section not found with ID selector: ${selector}`);
-        continue;
-      }
-    }
-    
-    throw new Error("Connections section not found with any ID selector");
-  } catch (error) {
-    throw new Error(`Connections section not found: ${error}`);
-  }
+  return await TestCoordinator.waitForElement(
+    driver,
+    By.id("add-environment-button"),
+    20000,
+    "Connections section"
+  );
 };
 
 // Environment CRUD Helper Functions
@@ -251,171 +229,83 @@ const createEnvironment = async (driver: WebDriver, environmentName: string): Pr
 
 const findEnvironmentInList = async (driver: WebDriver, environmentName: string): Promise<WebElement | null> => {
   try {
-    // Wait longer for Vue reactivity to update the UI
-    await sleep(4000);
-    
-    // First try the ID selector which should be most reliable
-    try {
-      const element = await TestCoordinator.waitForElement(
-        driver,
-        By.id(`environment-name-${environmentName}`),
-        8000,
-        `environment ${environmentName}`
-      );
-      console.log(`✓ Found environment with ID: environment-name-${environmentName}`);
-      return element;
-    } catch (idError) {
-      console.log(`Environment not found with ID selector: environment-name-${environmentName}`);
-    }
-    
-    // No fallback selectors needed - ID selector should be sufficient
-    console.log(`Environment not found with ID selector: environment-name-${environmentName}`);
-    
-    return null;
-  } catch (error: any) {
-    console.log(`Error finding environment: ${error.message}`);
+    await sleep(3000); // Wait for Vue reactivity
+    return await TestCoordinator.waitForElement(
+      driver,
+      By.id(`environment-name-${environmentName}`),
+      8000,
+      `environment ${environmentName}`
+    );
+  } catch (error) {
     return null;
   }
 };
 
 const editEnvironment = async (driver: WebDriver, oldName: string, newName: string): Promise<void> => {
-  try {
-    // Find the environment element
-    const envElement = await findEnvironmentInList(driver, oldName);
-    if (!envElement) {
-      throw new Error(`Environment ${oldName} not found`);
-    }
-    
-    // Double-click to start editing using TestCoordinator
-    await TestCoordinator.safeClick(driver, envElement);
-    await sleep(500);
-    await TestCoordinator.safeClick(driver, envElement);
-    
-    // Wait for Vue to render the edit input field
-    await sleep(2000);
-    
-    // Find edit input using only ID selector
-    const editInput = await TestCoordinator.waitForElement(
-      driver, 
-      By.id("environmentInput"), 
-      5000, 
-      "edit input field"
-    );
-    
-    await editInput.clear();
-    await editInput.sendKeys(newName);
-    await editInput.sendKeys(Key.ENTER);
-    await sleep(3000);
-    
-    // Update test data
-    const index = testData.environments.indexOf(oldName);
-    if (index !== -1) {
-      testData.environments[index] = newName;
-    }
-    
-    console.log(`✓ Edited environment: ${oldName} -> ${newName}`);
-  } catch (error) {
-    throw new Error(`Failed to edit environment: ${error}`);
+  const envElement = await findEnvironmentInList(driver, oldName);
+  if (!envElement) {
+    throw new Error(`Environment ${oldName} not found`);
+  }
+  
+  // Double-click to start editing
+  await TestCoordinator.safeClick(driver, envElement);
+  await sleep(500);
+  await TestCoordinator.safeClick(driver, envElement);
+  await sleep(2000);
+  
+  // Find and edit input field
+  const editInput = await TestCoordinator.waitForElement(driver, By.id("environmentInput"), 5000, "edit input field");
+  await editInput.clear();
+  await editInput.sendKeys(newName);
+  await editInput.sendKeys(Key.ENTER);
+  await sleep(3000);
+  
+  // Update test data
+  const index = testData.environments.indexOf(oldName);
+  if (index !== -1) {
+    testData.environments[index] = newName;
   }
 };
 
 const deleteEnvironment = async (driver: WebDriver, environmentName: string): Promise<void> => {
-  try {
-    const envElement = await findEnvironmentInList(driver, environmentName);
-    if (!envElement) {
-      throw new Error(`Environment ${environmentName} not found`);
-    }
-    
-    // Hover over environment to show delete button
-    await driver.actions().move({ origin: envElement }).perform();
-    await sleep(1000);
-    
-    // Look for delete button using ID selector
-    const deleteButton = await TestCoordinator.waitForElement(
-      driver,
-      By.id(`delete-environment-${environmentName}`),
-      5000,
-      "delete environment button"
-    );
-    
-    await TestCoordinator.safeClick(driver, deleteButton);
-    
-    // Handle confirmation dialog using ID selectors
-    const confirmButtonSelectors = [
-      By.id("confirm-delete-button"),
-      By.id("delete-confirm-button")
-    ];
-    
-    for (const selector of confirmButtonSelectors) {
-      try {
-        const confirmButton = await TestCoordinator.waitForElement(driver, selector, 3000, "confirm button");
-        await TestCoordinator.safeClick(driver, confirmButton);
-        await sleep(2000);
-        break;
-      } catch (error) {
-        continue;
-      }
-    }
-    
-    // Remove from test data
-    const index = testData.environments.indexOf(environmentName);
-    if (index !== -1) {
-      testData.environments.splice(index, 1);
-    }
-    
-    console.log(`✓ Deleted environment: ${environmentName}`);
-  } catch (error) {
-    throw new Error(`Failed to delete environment: ${error}`);
+  const envElement = await findEnvironmentInList(driver, environmentName);
+  if (!envElement) {
+    throw new Error(`Environment ${environmentName} not found`);
+  }
+  
+  // Hover and click delete button
+  await driver.actions().move({ origin: envElement }).perform();
+  await sleep(1000);
+  
+  const deleteButton = await TestCoordinator.waitForElement(driver, By.id(`delete-environment-${environmentName}`), 5000, "delete button");
+  await TestCoordinator.safeClick(driver, deleteButton);
+  
+  // Confirm deletion
+  const confirmButton = await TestCoordinator.waitForElement(driver, By.id("confirm-delete-button"), 3000, "confirm button");
+  await TestCoordinator.safeClick(driver, confirmButton);
+  await sleep(2000);
+  
+  // Remove from test data
+  const index = testData.environments.indexOf(environmentName);
+  if (index !== -1) {
+    testData.environments.splice(index, 1);
   }
 };
 
 // Connection CRUD Helper Functions
 const clickAddConnection = async (driver: WebDriver, environment: string = "default"): Promise<void> => {
-  try {
-    // First ensure webview is properly loaded
-    const webviewReady = await TestCoordinator.waitForWebviewReady(driver);
-    if (!webviewReady) {
-      throw new Error("Webview not ready for connection operations");
-    }
-    
-    // Dismiss any modal dialogs before attempting to click
-    await TestCoordinator.dismissModalDialogs(driver);
-    await sleep(5000); // Wait for UI to be ready
-    
-    // Check if there are any error messages that might prevent the button from showing
-    try {
-      const errorElements = await driver.findElements(By.id("error-message"));
-      if (errorElements.length > 0) {
-        console.log(`Found ${errorElements.length} error elements on page`);
-        for (let i = 0; i < Math.min(errorElements.length, 3); i++) {
-          try {
-            const errorText = await errorElements[i].getText();
-            console.log(`Error ${i}: ${errorText}`);
-          } catch (e) {
-            console.log(`Could not get error text ${i}`);
-          }
-        }
-      }
-    } catch (errorCheckError) {
-      console.log("Could not check for errors");
-    }
-    
-    // Use only ID selector for connection button
-    const addConnectionButton = await TestCoordinator.waitForElement(
-      driver,
-      By.id(`add-connection-${environment}`),
-      10000,
-      `add connection button for ${environment}`
-    );
-    
-    // Button should be found by ID selector above
-    
-    await TestCoordinator.safeClick(driver, addConnectionButton);
-    await sleep(2000);
-    console.log(`✓ Clicked add connection button`);
-  } catch (error) {
-    throw new Error(`Failed to click add connection button: ${error}`);
-  }
+  await TestCoordinator.dismissModalDialogs(driver);
+  await sleep(2000);
+  
+  const addConnectionButton = await TestCoordinator.waitForElement(
+    driver,
+    By.id(`add-connection-${environment}`),
+    10000,
+    `add connection button for ${environment}`
+  );
+  
+  await TestCoordinator.safeClick(driver, addConnectionButton);
+  await sleep(2000);
 };
 
 const fillConnectionForm = async (
@@ -427,224 +317,57 @@ const fillConnectionForm = async (
     [key: string]: any;
   }
 ): Promise<void> => {
-  try {
-    // Wait for connection form modal/dialog to appear and be ready
-    console.log("Waiting for connection form to be ready...");
-    await sleep(5000);
-    
-    // Try to wait for specific form elements to appear as an indicator the form is ready
-    let formReady = false;
-    for (let attempt = 1; attempt <= 10; attempt++) {
-      try {
-        // Look for specific form elements by ID first
-        const connectionTypeField = await driver.findElements(By.id("connection_type"));
-        const connectionNameField = await driver.findElements(By.id("connection_name"));
-        
-        if (connectionTypeField.length > 0 && connectionNameField.length > 0) {
-          console.log(`✓ Form elements detected on attempt ${attempt} - connection_type and connection_name found`);
-          formReady = true;
-          break;
-        }
-        
-        // Fallback: look for any form elements by ID
-        const anyFormElement = await driver.findElements(By.id("connection_type"));
-        if (anyFormElement.length > 0) {
-          console.log(`Form elements detected on attempt ${attempt} (${anyFormElement.length} elements)`);
-          formReady = true;
-          break;
-        }
-      } catch (error) {
-        // Continue
-      }
-      
-      console.log(`Form not ready, attempt ${attempt}/10...`);
-      await sleep(2000);
-    }
-    
-    if (!formReady) {
-      // Debug: check what's actually on the page
-      try {
-        const pageSource = await driver.getPageSource();
-        console.log(`Page source length: ${pageSource.length}`);
-        console.log(`Contains 'connection_type': ${pageSource.includes('connection_type')}`);
-        console.log(`Contains 'select': ${pageSource.includes('select')}`);
-        console.log(`Contains 'form': ${pageSource.includes('form')}`);
-      } catch (error) {
-        console.log("Could not get page source for debugging");
-      }
-      throw new Error("Connection form did not appear after waiting");
-    }
-    
-    // Select connection type using ID selector
-    const typeSelect = await TestCoordinator.waitForElement(
-      driver, 
-      By.id("connection_type"), 
-      10000, 
-      "connection type selector"
-    );
-    
-    await TestCoordinator.safeClick(driver, typeSelect);
-    await sleep(1000);
-    
-    // Wait for options to appear and select the connection type
-    const typeOption = await TestCoordinator.waitForElement(
-      driver, 
-      By.id(`connection-type-option-${connectionData.type}`), 
-      5000,
-      `connection type option: ${connectionData.type}`
-    );
-    await TestCoordinator.safeClick(driver, typeOption);
-    console.log(`✓ Selected connection type: ${connectionData.type}`);
-    await sleep(1000);
-    
-    // Fill connection name using ID selector
-    const nameInput = await TestCoordinator.waitForElement(
-      driver, 
-      By.id("connection_name"), 
-      5000, 
-      "connection name input"
-    );
-    await nameInput.clear();
-    await nameInput.sendKeys(connectionData.name);
-    console.log(`✓ Filled connection name: ${connectionData.name}`);
-    
-    // Fill environment if specified using ID selector
-    if (connectionData.environment) {
-      try {
-        const envSelect = await TestCoordinator.waitForElement(
-          driver, 
-          By.id("environment"), 
-          5000, 
-          "environment selector"
-        );
-        await TestCoordinator.safeClick(driver, envSelect);
-        await sleep(500);
-        const envOption = await TestCoordinator.waitForElement(
-          driver, 
-          By.id(`environment-option-${connectionData.environment}`), 
-          3000,
-          `environment option: ${connectionData.environment}`
-        );
-        await TestCoordinator.safeClick(driver, envOption);
-        console.log(`✓ Selected environment: ${connectionData.environment}`);
-      } catch (error: any) {
-        console.log(`Could not set environment: ${error.message}`);
-      }
-    }
-    
-    // Fill connection-specific fields using ID selectors
-    if (connectionData.type === "google_cloud_platform") {
-      if (connectionData.project_id) {
-        const projectInput = await TestCoordinator.waitForElement(
-          driver, 
-          By.id("project_id"), 
-          5000, 
-          "project_id input"
-        );
-        await projectInput.clear();
-        await projectInput.sendKeys(connectionData.project_id);
-        console.log(`✓ Filled project_id: ${connectionData.project_id}`);
-      }
-      
-      if (connectionData.location) {
-        const locationInput = await TestCoordinator.waitForElement(
-          driver, 
-          By.id("location"), 
-          5000, 
-          "location input"
-        );
-        await locationInput.clear();
-        await locationInput.sendKeys(connectionData.location);
-        console.log(`✓ Filled location: ${connectionData.location}`);
-      }
-    } else if (connectionData.type === "duckdb") {
-      if (connectionData.path) {
-        const pathInput = await TestCoordinator.waitForElement(
-          driver, 
-          By.id("path"), 
-          5000, 
-          "path input"
-        );
-        await pathInput.clear();
-        await pathInput.sendKeys(connectionData.path);
-        console.log(`✓ Filled path: ${connectionData.path}`);
-      }
-    }
-    
-    await sleep(1000);
-  } catch (error) {
-    throw new Error(`Failed to fill connection form: ${error}`);
+  await sleep(3000); // Wait for form to appear
+  
+  // Select connection type
+  const typeSelect = await TestCoordinator.waitForElement(driver, By.id("connection_type"), 10000, "connection type selector");
+  await TestCoordinator.safeClick(driver, typeSelect);
+  await sleep(1000);
+  
+  const typeOption = await TestCoordinator.waitForElement(driver, By.id(`connection-type-option-${connectionData.type}`), 5000, `connection type option: ${connectionData.type}`);
+  await TestCoordinator.safeClick(driver, typeOption);
+  await sleep(1000);
+  
+  // Fill connection name
+  const nameInput = await TestCoordinator.waitForElement(driver, By.id("connection_name"), 5000, "connection name input");
+  await nameInput.clear();
+  await nameInput.sendKeys(connectionData.name);
+  
+  // Fill environment if specified
+  if (connectionData.environment) {
+    const envSelect = await TestCoordinator.waitForElement(driver, By.id("environment"), 5000, "environment selector");
+    await TestCoordinator.safeClick(driver, envSelect);
+    await sleep(500);
+    const envOption = await TestCoordinator.waitForElement(driver, By.id(`environment-option-${connectionData.environment}`), 3000, `environment option: ${connectionData.environment}`);
+    await TestCoordinator.safeClick(driver, envOption);
   }
+  
+  // Fill connection-specific fields
+  if (connectionData.type === "duckdb" && connectionData.path) {
+    const pathInput = await TestCoordinator.waitForElement(driver, By.id("path"), 5000, "path input");
+    await pathInput.clear();
+    await pathInput.sendKeys(connectionData.path);
+  }
+  
+  await sleep(1000);
 };
 
 const submitConnectionForm = async (driver: WebDriver): Promise<void> => {
-  try {
-    // Use ID selector first, then fallback to xpath selectors
-    const submitButtonSelectors = [
-      { type: 'id', value: 'submit-connection-form' },
-      { type: 'xpath', value: "//vscode-button[contains(., 'Create')]" },
-      { type: 'xpath', value: "//vscode-button[contains(., 'Save Changes')]" },
-      { type: 'xpath', value: "//button[@type='submit']" },
-      { type: 'xpath', value: "//*[contains(text(), 'Create')]/ancestor::vscode-button" }
-    ];
-    
-    let submitButton = null;
-    for (const selector of submitButtonSelectors) {
-      try {
-        submitButton = selector.type === 'id' ?
-          await driver.findElement(By.id(selector.value)) :
-          await driver.findElement(By.id(selector.value));
-        if (await submitButton.isDisplayed()) {
-          console.log(`Found submit button with ${selector.type} selector: ${selector.value}`);
-          break;
-        }
-      } catch (error) {
-        console.log(`Submit button not found with ${selector.type} selector: ${selector.value}`);
-      }
-    }
-    
-    if (!submitButton) {
-      throw new Error("No submit button found");
-    }
-    
-    await submitButton.click();
-    await sleep(3000); // Wait for form submission
-    console.log("✓ Submitted connection form");
-  } catch (error) {
-    throw new Error(`Failed to submit connection form: ${error}`);
-  }
+  const submitButton = await TestCoordinator.waitForElement(driver, By.id("submit-connection-form"), 5000, "submit button");
+  await TestCoordinator.safeClick(driver, submitButton);
+  await sleep(3000);
 };
 
 const findConnectionInList = async (driver: WebDriver, connectionName: string, environment: string = "default"): Promise<WebElement | null> => {
   try {
     await sleep(3000); // Wait for UI update
-    
-    // Use only ID selector for connection
-    try {
-      const connectionElement = await TestCoordinator.waitForElement(
-        driver,
-        By.id(`connection-name-${connectionName}-${environment}`),
-        5000,
-        `connection ${connectionName} in ${environment}`
-      );
-      console.log(`✓ Found connection with ID selector: connection-name-${connectionName}-${environment}`);
-      return connectionElement;
-    } catch (error) {
-      console.log(`Connection not found with ID selector: connection-name-${connectionName}-${environment}`);
-    }
-    
-    // Debug: Check page source
-    try {
-      const pageSource = await driver.getPageSource();
-      const connectionInPage = pageSource.includes(connectionName);
-      console.log(`Connection "${connectionName}" found in page source: ${connectionInPage}`);
-    } catch (error: any) {
-      console.log(`Could not check page source: ${error.message}`);
-    }
-    
-    return null;
-  } catch (error: any) {
-    console.log(`Error finding connection: ${error.message}`);
+    return await TestCoordinator.waitForElement(
+      driver,
+      By.id(`connection-name-${connectionName}-${environment}`),
+      5000,
+      `connection ${connectionName} in ${environment}`
+    );
+  } catch (error) {
     return null;
   }
 };
@@ -1315,37 +1038,7 @@ describe("Connections and Environments Integration Tests", function () {
     it("should READ/display existing environments", async function () {
       this.timeout(30000);
 
-      // Try to find connections section with retries
-      let connectionsSection = null;
-      let attempts = 0;
-      const maxAttempts = 5;
-      
-      while (!connectionsSection && attempts < maxAttempts) {
-        attempts++;
-        console.log(`Attempt ${attempts}/${maxAttempts} to find connections section...`);
-        
-        try {
-          connectionsSection = await findConnectionsSection(driver);
-          break;
-        } catch (error: any) {
-          console.log(`Attempt ${attempts} failed: ${error.message}`);
-          
-          if (attempts < maxAttempts) {
-            console.log("Waiting 3 seconds before retry...");
-            await sleep(3000);
-            
-            // Try to refresh the webview content
-            try {
-              await workbench.executeCommand("bruin.render");
-              await sleep(2000);
-            } catch (refreshError) {
-              console.log("Could not refresh webview");
-            }
-          }
-        }
-      }
-      
-      assert(connectionsSection, "Connections section should be found after retries");
+      await findConnectionsSection(driver);
       
       // Check for default environment
       const defaultEnv = await findEnvironmentInList(driver, "default");
@@ -1354,8 +1047,6 @@ describe("Connections and Environments Integration Tests", function () {
       // Check for test environment we created
       const testEnv = await findEnvironmentInList(driver, testEnvName);
       console.log(`Test environment visible: ${testEnv !== null}`);
-      
-      console.log(`✓ Environment READ operation completed`);
     });
 
     it("should UPDATE an environment name", async function () {
@@ -1477,45 +1168,13 @@ describe("Connections and Environments Integration Tests", function () {
     it("should READ/display existing connections", async function () {
       this.timeout(30000);
 
-      // Try to find connections section with retries
-      let connectionsSection = null;
-      let attempts = 0;
-      const maxAttempts = 5;
-      
-      while (!connectionsSection && attempts < maxAttempts) {
-        attempts++;
-        console.log(`Attempt ${attempts}/${maxAttempts} to find connections section...`);
-        
-        try {
-          connectionsSection = await findConnectionsSection(driver);
-          break;
-        } catch (error: any) {
-          console.log(`Attempt ${attempts} failed: ${error.message}`);
-          
-          if (attempts < maxAttempts) {
-            console.log("Waiting 3 seconds before retry...");
-            await sleep(3000);
-            
-            // Try to refresh the webview content
-            try {
-              await workbench.executeCommand("bruin.render");
-              await sleep(2000);
-            } catch (refreshError) {
-              console.log("Could not refresh webview");
-            }
-          }
-        }
-      }
-      
-      assert(connectionsSection, "Connections section should be found after retries");
+      await findConnectionsSection(driver);
       
       // Check for our test connections
       for (const conn of testData.connections) {
         const connectionElement = await findConnectionInList(driver, conn.name, conn.environment);
         console.log(`Connection ${conn.name} visible: ${connectionElement !== null}`);
       }
-      
-      console.log(`✓ Connection READ operation completed`);
     });
 
     it("should UPDATE an existing connection", async function () {

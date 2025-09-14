@@ -130,6 +130,7 @@
               class="text-sm font-medium text-editor-fg font-mono bg-transparent border-b border-editor-fg focus:outline-none px-1 py-0.5"
               :class="{ 'border-editorError-foreground': editEnvironmentError }"
               ref="environmentInput"
+              id="environmentInput"
             />
             <h3 
               v-else

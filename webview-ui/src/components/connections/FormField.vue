@@ -150,7 +150,7 @@
             ]"
           >
             <option v-if="!displayValue" value="" disabled>Please Select</option>
-            <option v-for="option in options" :key="option" :value="option">
+            <option v-for="option in options" :key="option" :value="option" :id="`${id}-option-${option}`">
               {{ formatConnectionName(option) }}
             </option>
           </select>
@@ -159,7 +159,7 @@
           </div>
         </div>
       </template>
-      <p v-if="isInvalid" class="mt-2 text-sm text-inputValidation-errorBorder">
+      <p v-if="isInvalid" class="mt-2 text-sm text-inputValidation-errorBorder" :id="`${id}-error`">
         {{ formattedErrorMessage }}
       </p>
     </div>
