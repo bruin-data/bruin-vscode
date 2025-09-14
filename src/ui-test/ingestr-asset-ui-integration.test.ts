@@ -12,6 +12,7 @@ import { Key, until, WebElement } from "selenium-webdriver";
 import "mocha";
 import * as path from "path";
 import { TestCoordinator } from "./test-coordinator";
+import "./click-interceptor-fix"; // Auto-fix ElementClickInterceptedError
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -37,7 +38,7 @@ const findElementWithRetry = async (driver: WebDriver, selector: By, timeout = 1
   throw new Error(`Element ${selector} not found after ${timeout}ms. Last error: ${lastError?.message}`);
 };
 
-// Helper function to ensure section is expanded
+// Helper function to ensure section is expanded using TestCoordinator
 const ensureSectionExpanded = async (driver: WebDriver): Promise<void> => {
   try {
     // Check if content is visible
@@ -51,17 +52,16 @@ const ensureSectionExpanded = async (driver: WebDriver): Promise<void> => {
   }
   
   try {
-    // Click header to expand
+    // Dismiss any modal dialogs first
+    await TestCoordinator.dismissModalDialogs(driver);
+    
+    // Click header to expand using enhanced safeClick
     console.log("Clicking header to expand section...");
-    const header = await findElementWithRetry(driver, By.id("ingestr-header"), 5000);
-    await header.click();
-    await sleep(2000); // Increased wait time
+    const header = await TestCoordinator.waitForElement(driver, By.id("ingestr-header"), 10000, "ingestr header");
+    await TestCoordinator.safeClick(driver, header);
     
     // Verify expansion worked
-    const content = await driver.findElement(By.id("ingestr-content"));
-    if (!(await content.isDisplayed())) {
-      throw new Error("Section failed to expand after clicking header");
-    }
+    const content = await TestCoordinator.waitForElement(driver, By.id("ingestr-content"), 5000, "ingestr content");
     console.log("✓ Section successfully expanded");
   } catch (error: any) {
     console.log("Error expanding section:", error.message);
@@ -69,21 +69,22 @@ const ensureSectionExpanded = async (driver: WebDriver): Promise<void> => {
   }
 };
 
-// Helper function to start editing a field
+// Helper function to start editing a field using TestCoordinator
 const startEditingField = async (driver: WebDriver, fieldId: string): Promise<void> => {
   // Ensure section is expanded first
   await ensureSectionExpanded(driver);
   
-  const field = await findElementWithRetry(driver, By.id(fieldId), 10000);
-  await field.click();
-  await sleep(1000);
+  // Dismiss modal dialogs before field interaction
+  await TestCoordinator.dismissModalDialogs(driver);
+  
+  const field = await TestCoordinator.waitForElement(driver, By.id(fieldId), 10000, `field ${fieldId}`);
+  await TestCoordinator.safeClick(driver, field);
 };
 
-// Helper function to exit edit mode by clicking elsewhere
+// Helper function to exit edit mode by clicking elsewhere using TestCoordinator
 const exitEditMode = async (driver: WebDriver): Promise<void> => {
-  const header = await driver.findElement(By.id("ingestr-header"));
-  await header.click();
-  await sleep(1000);
+  const header = await TestCoordinator.waitForElement(driver, By.id("ingestr-header"), 5000, "ingestr header");
+  await TestCoordinator.safeClick(driver, header);
 };
 
 // Helper function to test field editing with input

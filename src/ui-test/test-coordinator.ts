@@ -8,6 +8,11 @@ export class TestCoordinator {
   private static testCount = 0;
   private static readonly TEST_ISOLATION_DELAY = 20000; // 20 seconds between tests for better isolation
   
+  // Universal click wrapper that all tests should use
+  static async click(driver: any, element: any): Promise<void> {
+    return this.safeClick(driver, element);
+  }
+  
   // Get timeout multiplier for CI environments (default 1 for local, 3 for CI)
   private static getTimeoutMultiplier(): number {
     const multiplier = process.env.TEST_TIMEOUT_MULTIPLIER;
@@ -21,6 +26,9 @@ export class TestCoordinator {
   
   // Enhanced safe click method that handles ElementClickInterceptedError and Vue reactivity
   static async safeClick(driver: any, element: any, maxRetries: number = 5): Promise<void> {
+    // Always dismiss modals first - this is critical for CI environments
+    await this.dismissModalDialogs(driver);
+    
     for (let i = 0; i < maxRetries; i++) {
       try {
         // Wait for Vue reactivity to settle before attempting click
@@ -77,11 +85,24 @@ export class TestCoordinator {
     const startTime = Date.now();
     let lastError: any;
 
+    // Dismiss modals that might interfere with element detection
+    await this.dismissModalDialogs(driver);
+
     while (Date.now() - startTime < timeoutMs) {
       try {
         const element = await driver.findElement(selector);
         if (await element.isDisplayed()) {
-          return element;
+          // Final check that element is actually interactable
+          try {
+            const isEnabled = await element.isEnabled();
+            if (isEnabled) {
+              return element;
+            }
+            console.log(`[TEST-COORDINATOR] Found element ${description || 'element'} but it's disabled, continuing to wait...`);
+          } catch (enabledError) {
+            // Some elements don't support isEnabled(), return anyway
+            return element;
+          }
         }
       } catch (error: any) {
         lastError = error;

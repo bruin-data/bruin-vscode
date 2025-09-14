@@ -12,6 +12,7 @@ import { Key, until, WebElement } from "selenium-webdriver";
 import "mocha";
 import * as path from "path";
 import { TestCoordinator } from "./test-coordinator";
+import "./click-interceptor-fix"; // Auto-fix ElementClickInterceptedError
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -210,37 +211,20 @@ const createEnvironment = async (driver: WebDriver, environmentName: string): Pr
   try {
     await clickAddEnvironment(driver);
     
-    // Find the environment name input using ID first, then fallback to xpath
-    const envInputSelectors = [
-      { type: 'id', value: 'new-environment-input' },
-      { type: 'xpath', value: "//input[@placeholder='Enter environment name']" },
-      { type: 'xpath', value: "//input[contains(@class, 'border-b')]" },
-      { type: 'xpath', value: "//input[contains(@class, 'border-editor-fg')]" }
-    ];
-    
-    let envInput = null;
-    for (const selector of envInputSelectors) {
-      try {
-        envInput = selector.type === 'id' ?
-          await findElementWithRetry(driver, By.id(selector.value), 5000) :
-          await findElementWithRetry(driver, By.xpath(selector.value), 5000);
-        if (await envInput.isDisplayed()) {
-          console.log(`Found environment input with ${selector.type} selector: ${selector.value}`);
-          break;
-        }
-      } catch (error) {
-        console.log(`Environment input not found with ${selector.type} selector: ${selector.value}`);
-      }
-    }
-    
-    if (!envInput) {
-      throw new Error("Environment name input not found");
-    }
+    // Find the environment name input using TestCoordinator
+    const envInput = await TestCoordinator.waitForElement(
+      driver, 
+      By.id('new-environment-input'), 
+      10000, 
+      "environment name input"
+    );
     
     await envInput.clear();
     await envInput.sendKeys(environmentName);
     await envInput.sendKeys(Key.ENTER);
-    await sleep(3000); // Wait for environment to be created
+    
+    // Wait longer for Vue to process the environment creation and UI update
+    await sleep(5000);
     
     // Store in test data
     if (!testData.environments.includes(environmentName)) {
@@ -255,24 +239,40 @@ const createEnvironment = async (driver: WebDriver, environmentName: string): Pr
 
 const findEnvironmentInList = async (driver: WebDriver, environmentName: string): Promise<WebElement | null> => {
   try {
-    await sleep(2000); // Wait for UI update
+    // Wait longer for Vue reactivity to update the UI
+    await sleep(4000);
     
-    // Use ID selector first, then fallback to xpath
-    const environmentSelectors = [
-      `environment-name-${environmentName}`,
+    // First try the ID selector which should be most reliable
+    try {
+      const element = await TestCoordinator.waitForElement(
+        driver,
+        By.id(`environment-name-${environmentName}`),
+        8000,
+        `environment ${environmentName}`
+      );
+      console.log(`✓ Found environment with ID: environment-name-${environmentName}`);
+      return element;
+    } catch (idError) {
+      console.log(`Environment not found with ID selector: environment-name-${environmentName}`);
+    }
+    
+    // Fallback to text-based searches with longer timeout
+    const textSelectors = [
       `//h3[contains(text(), '${environmentName}')]`,
-      `//*[contains(text(), '${environmentName}')]`
+      `//*[contains(text(), '${environmentName}') and not(contains(@class, 'placeholder'))]`,
+      `//*[text()='${environmentName}']`
     ];
     
-    for (const selector of environmentSelectors) {
+    for (const selector of textSelectors) {
       try {
-        const element = selector.startsWith('//') ? 
-          await driver.findElement(By.xpath(selector)) :
-          await driver.findElement(By.id(selector));
-        if (await element.isDisplayed()) {
-          console.log(`✓ Found environment with selector: ${selector}`);
-          return element;
-        }
+        const element = await TestCoordinator.waitForElement(
+          driver,
+          By.xpath(selector),
+          5000,
+          `environment ${environmentName} via ${selector}`
+        );
+        console.log(`✓ Found environment with selector: ${selector}`);
+        return element;
       } catch (error) {
         console.log(`Environment not found with selector: ${selector}`);
       }
@@ -293,11 +293,10 @@ const editEnvironment = async (driver: WebDriver, oldName: string, newName: stri
       throw new Error(`Environment ${oldName} not found`);
     }
     
-    // Double-click to start editing
-    await envElement.click();
+    // Double-click to start editing using TestCoordinator
+    await TestCoordinator.safeClick(driver, envElement);
     await sleep(500);
-    await envElement.click();
-    await sleep(1000);
+    await TestCoordinator.safeClick(driver, envElement);
     
     // Find edit input
     const editInput = await findElementWithRetry(
@@ -357,8 +356,7 @@ const deleteEnvironment = async (driver: WebDriver, environmentName: string): Pr
       throw new Error("Delete button not found");
     }
     
-    await deleteButton.click();
-    await sleep(1000);
+    await TestCoordinator.safeClick(driver, deleteButton);
     
     // Handle confirmation dialog
     const confirmButtonSelectors = [
