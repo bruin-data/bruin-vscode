@@ -523,7 +523,7 @@ const clickAddConnection = async (driver: WebDriver, environment: string = "defa
       throw new Error("No add connection buttons found");
     }
     
-    await addConnectionButton.click();
+    await TestCoordinator.safeClick(driver, addConnectionButton);
     await sleep(2000);
     console.log(`✓ Clicked add connection button`);
   } catch (error) {
@@ -544,9 +544,33 @@ const fillConnectionForm = async (
     // Wait for form to be ready
     await sleep(3000);
     
-    // Select connection type
-    const typeSelect = await findElementWithRetry(driver, By.id("connection_type"), 10000);
-    await typeSelect.click();
+    // Select connection type using enhanced selectors
+    const typeSelectors = [
+      By.id("connection_type"),
+      By.css("select[name='type']"),
+      By.css("vscode-dropdown[name='type']"),
+      By.xpath("//select[contains(@class, 'connection-type')]"),
+      By.xpath("//vscode-dropdown[contains(@class, 'connection-type')]")
+    ];
+    
+    let typeSelect = null;
+    for (const selector of typeSelectors) {
+      try {
+        typeSelect = await driver.findElement(selector);
+        if (await typeSelect.isDisplayed()) {
+          console.log(`Found connection type selector: ${selector}`);
+          break;
+        }
+      } catch (error) {
+        continue;
+      }
+    }
+    
+    if (!typeSelect) {
+      throw new Error("Connection type selector not found with any method");
+    }
+    
+    await TestCoordinator.safeClick(driver, typeSelect);
     await sleep(1000);
     
     const typeOption = await findElementWithRetry(
@@ -554,7 +578,7 @@ const fillConnectionForm = async (
       By.xpath(`//option[@value="${connectionData.type}"]`), 
       5000
     );
-    await typeOption.click();
+    await TestCoordinator.safeClick(driver, typeOption);
     console.log(`✓ Selected connection type: ${connectionData.type}`);
     await sleep(1000);
     

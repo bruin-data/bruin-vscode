@@ -659,27 +659,17 @@ describe("Bruin Webview Test", function () {
     it("should locate the asset name container", async function () {
       this.timeout(15000);
 
-      // Check if webview is properly loaded first
-      try {
-        await driver.findElement(By.id("app"));
-      } catch (error) {
-        console.log("Webview not properly loaded, skipping asset name tests");
-        this.skip();
-        return;
-      }
+      // Wait for webview to be ready
+      const webviewReady = await TestCoordinator.waitForWebviewReady(driver);
+      assert.ok(webviewReady, "Webview should be ready for asset name tests");
 
       // Wait for the asset name container to be present
-      try {
-        assetNameContainer = await driver.wait(
-          until.elementLocated(By.id("asset-name-container")),
-          10000,
-          "Asset name container not found"
-        );
-      } catch (error) {
-        console.log("Asset name container not found, webview may not be in asset view mode");
-        this.skip();
-        return;
-      }
+      assetNameContainer = await TestCoordinator.waitForElement(
+        driver, 
+        By.id("asset-name-container"), 
+        15000,
+        "asset name container"
+      );
 
       assert.ok(assetNameContainer, "Asset name container should be accessible");
 
@@ -793,26 +783,16 @@ describe("Bruin Webview Test", function () {
     it("should access the tab", async function () {
       this.timeout(20000); // Increase timeout
       
-      // Check if webview is properly loaded first
-      try {
-        await driver.findElement(By.id("app"));
-      } catch (error) {
-        console.log("Webview not properly loaded, skipping description tests");
-        this.skip();
-        return;
-      }
+      // Wait for webview to be ready
+      const webviewReady = await TestCoordinator.waitForWebviewReady(driver);
+      assert.ok(webviewReady, "Webview should be ready for description tests");
       
-      // Try to find the tab
-      try {
-        assetDetailsTab = await webview.findWebElement(By.id("tab-0"));
-        await assetDetailsTab.click();
-        await sleep(1000);
-        assert.ok(assetDetailsTab, "Tab should be accessible");
-      } catch (error) {
-        console.log("Tab-0 not found, webview may not have tabs loaded");
-        this.skip();
-        return;
-      }
+      // Wait for and click the tab
+      const assetDetailsTabElement = await TestCoordinator.waitForTab(driver, "tab-0");
+      await TestCoordinator.safeClick(driver, assetDetailsTabElement);
+      await sleep(1000);
+      assetDetailsTab = assetDetailsTabElement;
+      assert.ok(assetDetailsTab, "Tab should be accessible");
     });
 
     it("should edit description successfully", async function () {
@@ -911,25 +891,14 @@ describe("Bruin Webview Test", function () {
     beforeEach(async function () {
       this.timeout(10000);
       
-      // Check if webview is properly loaded first
-      try {
-        await driver.findElement(By.id("app"));
-      } catch (error) {
-        console.log("Webview not properly loaded, skipping tags tests");
-        this.skip();
-        return;
-      }
+      // Wait for webview to be ready
+      const webviewReady = await TestCoordinator.waitForWebviewReady(driver);
+      assert.ok(webviewReady, "Webview should be ready for tags tests");
       
       // Ensure we are on the materialization tab if not already
-      try {
-        const tab = await driver.wait(until.elementLocated(By.id("tab-2")), 10000);
-        await tab.click();
-        await sleep(500);
-      } catch (error) {
-        console.log("Tab-2 not found, skipping tags tests");
-        this.skip();
-        return;
-      }
+      const tab = await TestCoordinator.waitForTab(driver, "tab-2");
+      await TestCoordinator.safeClick(driver, tab);
+      await sleep(500);
 
       try {
         tagsContainer = await driver.wait(
@@ -938,9 +907,7 @@ describe("Bruin Webview Test", function () {
           "Tags container not found"
         );
       } catch (error) {
-        console.log("Tags container not found, skipping tags tests");
-        this.skip();
-        return;
+        throw new Error("Tags container not found after waiting");
       }
       addTagButton = await driver.wait(
         until.elementLocated(By.id("add-tag-button")),
@@ -2351,9 +2318,7 @@ describe("Bruin Webview Test", function () {
           return; // Skip the label-based assertions
         }
         
-        console.log("No checkboxes found with any method, skipping test");
-        this.skip();
-        return;
+        throw new Error("No checkboxes found with any method after waiting");
       }
 
       console.log(`Found ${allCheckboxes.length} checkboxes:`);
@@ -2421,11 +2386,7 @@ describe("Bruin Webview Test", function () {
       const allCheckboxes = await getAllCheckboxes();
       console.log(`Found ${allCheckboxes.length} checkboxes for toggle test`);
       
-      if (allCheckboxes.length === 0) {
-        console.log("No checkboxes found for toggle test, skipping");
-        this.skip();
-        return;
-      }
+      assert.ok(allCheckboxes.length > 0, "Should find checkboxes for toggle test");
       
       const results = [];
       const checkboxesToTest = Math.min(allCheckboxes.length, 4); // Test up to 4 checkboxes
@@ -2484,11 +2445,7 @@ describe("Bruin Webview Test", function () {
       // Get available checkboxes dynamically instead of hardcoding names
       const allCheckboxes = await getAllCheckboxes();
       
-      if (allCheckboxes.length === 0) {
-        console.log("No checkboxes found for multiple toggle test, skipping");
-        this.skip();
-        return;
-      }
+      assert.ok(allCheckboxes.length > 0, "Should find checkboxes for multiple toggle test");
       
       // Use up to 3 checkboxes for this test
       const checkboxesToTest = allCheckboxes.slice(0, Math.min(3, allCheckboxes.length));
@@ -2562,11 +2519,8 @@ describe("Bruin Webview Test", function () {
     it("should show checkbox group when chevron is clicked", async function () {
       this.timeout(15000);
 
-      // Skip if checkbox group not found
-      if (!checkboxGroup) {
-        this.skip();
-        return;
-      }
+      // Ensure checkbox group is found
+      assert.ok(checkboxGroup, "Checkbox group should be found");
 
       try {
         // First, try to find the chevron button
