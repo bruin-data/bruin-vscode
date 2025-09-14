@@ -316,18 +316,16 @@ describe("Ingestr Asset Display Integration Tests", function () {
     await editorView.openEditor(assetFile);
     await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait for focus
     
-    // Try to activate the extension first with multiple attempts
+    // Try to activate the extension first with enhanced retry logic
     let commandExecuted = false;
     const commands = ["bruin.renderSQL", "bruin.render", "bruin.openAssetPanel"];
     
     for (const command of commands) {
-      try {
-        await workbench.executeCommand(command);
+      const executed = await TestCoordinator.executeCommandWithRetry(workbench, command);
+      if (executed) {
         console.log(`Successfully executed ${command} command`);
         commandExecuted = true;
         break;
-      } catch (error: any) {
-        console.log(`Error executing ${command} command:`, error.message);
       }
     }
     
@@ -340,8 +338,11 @@ describe("Ingestr Asset Display Integration Tests", function () {
     await new Promise((resolve) => setTimeout(resolve, 8000));
     driver = VSBrowser.instance.driver;
     
-    // Dismiss any modal dialogs that might be blocking interactions
-    await TestCoordinator.dismissModalDialogs(driver);
+    // Use enhanced webview initialization
+    const webviewInitialized = await TestCoordinator.initializeWebview(driver, workbench);
+    if (!webviewInitialized) {
+      console.log("⚠️ Webview initialization had issues, but continuing with test...");
+    }
 
     // Wait for the webview iframe to be present
     console.log("Waiting for webview iframe...");

@@ -613,9 +613,23 @@ describe("Connections and Environments Integration Tests", function () {
     try {
       console.log("Opening Bruin panel for .bruin.yml file...");
       
-      // Use the render command which should open with connections view
-      await workbench.executeCommand("bruin.render");
-      console.log("✓ Successfully opened Bruin panel for connections management");
+      // Use enhanced command execution with retry logic
+      const commandExecuted = await TestCoordinator.executeCommandWithRetry(workbench, "bruin.render");
+      if (commandExecuted) {
+        console.log("✓ Successfully opened Bruin panel for connections management");
+      } else {
+        console.log("⚠ Failed to execute bruin.render command, trying alternatives...");
+        
+        // Try alternative commands
+        const alternativeCommands = ["bruin.renderSQL", "bruin.openAssetPanel"];
+        for (const command of alternativeCommands) {
+          const altExecuted = await TestCoordinator.executeCommandWithRetry(workbench, command);
+          if (altExecuted) {
+            console.log(`✓ Successfully executed alternative command: ${command}`);
+            break;
+          }
+        }
+      }
       
     } catch (error: any) {
       console.log(`⚠ Failed to open Bruin panel: ${error.message}`);
@@ -640,8 +654,11 @@ describe("Connections and Environments Integration Tests", function () {
     await sleep(webviewWait);
     driver = VSBrowser.instance.driver;
     
-    // Use TestCoordinator for comprehensive modal dismissal
-    await TestCoordinator.dismissModalDialogs(driver);
+    // Use enhanced webview initialization
+    const webviewInitialized = await TestCoordinator.initializeWebview(driver, workbench);
+    if (!webviewInitialized) {
+      console.log("⚠️ Webview initialization had issues, but continuing with test...");
+    }
 
     // Find webview iframe
     await driver.wait(

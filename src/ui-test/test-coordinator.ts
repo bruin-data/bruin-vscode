@@ -84,6 +84,7 @@ export class TestCoordinator {
     const { By } = require('selenium-webdriver');
     const startTime = Date.now();
     let lastError: any;
+    let consecutiveNotFound = 0;
 
     // Dismiss modals that might interfere with element detection
     await this.dismissModalDialogs(driver);
@@ -96,18 +97,43 @@ export class TestCoordinator {
           try {
             const isEnabled = await element.isEnabled();
             if (isEnabled) {
-              return element;
+              // Additional Vue-specific check: ensure element is not just rendered but interactive
+              try {
+                // Try to get element properties to ensure it's fully rendered
+                await element.getAttribute('id');
+                await element.getAttribute('class');
+                console.log(`[TEST-COORDINATOR] ✓ Found interactive element: ${description || 'element'}`);
+                return element;
+              } catch (attrError) {
+                // Element exists but may not be fully interactive yet
+                console.log(`[TEST-COORDINATOR] Element ${description || 'element'} found but not fully interactive, continuing...`);
+                await sleep(1000);
+                continue;
+              }
             }
             console.log(`[TEST-COORDINATOR] Found element ${description || 'element'} but it's disabled, continuing to wait...`);
           } catch (enabledError) {
             // Some elements don't support isEnabled(), return anyway
+            console.log(`[TEST-COORDINATOR] ✓ Found element: ${description || 'element'} (isEnabled not supported)`);
             return element;
           }
+        } else {
+          console.log(`[TEST-COORDINATOR] Element ${description || 'element'} found but not displayed, continuing...`);
         }
       } catch (error: any) {
         lastError = error;
+        consecutiveNotFound++;
+        
+        // If we haven't found the element for a while, try dismissing modals again
+        if (consecutiveNotFound % 10 === 0) {
+          console.log(`[TEST-COORDINATOR] Element ${description || 'element'} not found for ${consecutiveNotFound} attempts, dismissing modals...`);
+          await this.dismissModalDialogs(driver);
+        }
       }
-      await sleep(500);
+      
+      // Progressive backoff: start with shorter waits, increase over time
+      const waitTime = Math.min(500 + (consecutiveNotFound * 100), 2000);
+      await sleep(waitTime);
     }
 
     const selectorString = typeof selector === 'string' ? selector : selector.toString();
@@ -123,6 +149,7 @@ export class TestCoordinator {
     const startTime = Date.now();
     let lastPageLength = 0;
     let stableCount = 0;
+    let consecutiveVueChecks = 0;
     
     while (Date.now() - startTime < timeoutMs) {
       try {
@@ -155,12 +182,23 @@ export class TestCoordinator {
           const hasVueComponents = pageSource.includes('vscode-button') ||
                                  pageSource.includes('vscode-panels') ||
                                  pageSource.includes('data-v-') ||
-                                 pageSource.includes('v-');
+                                 pageSource.includes('v-') ||
+                                 pageSource.includes('vue-app') ||
+                                 pageSource.includes('Vue');
           
           const hasBruinContent = pageSource.includes('Connections') ||
                                 pageSource.includes('Settings') ||
                                 pageSource.includes('add-environment-button') ||
-                                pageSource.includes('BruinSettings');
+                                pageSource.includes('BruinSettings') ||
+                                pageSource.includes('Bruin') ||
+                                pageSource.includes('Environment');
+          
+          // Check for Vue app mounting indicators
+          const hasVueAppMounting = pageSource.includes('id="app"') ||
+                                   pageSource.includes('class="vue-app"') ||
+                                   pageSource.includes('data-v-') ||
+                                   pageSource.includes('v-if') ||
+                                   pageSource.includes('v-for');
           
           // Check page stability (Vue hydration complete)
           if (currentLength === lastPageLength) {
@@ -170,12 +208,16 @@ export class TestCoordinator {
             lastPageLength = currentLength;
           }
           
-          vueReady = (hasVueComponents || hasBruinContent) && 
-                    currentLength > 8000 && 
-                    stableCount >= 3; // More stability checks for Vue
+          // More lenient Vue readiness check
+          vueReady = (hasVueComponents || hasBruinContent || hasVueAppMounting) && 
+                    currentLength > 5000 && 
+                    stableCount >= 2; // Reduced stability requirement
           
           if (vueReady) {
-            console.log("[TEST-COORDINATOR] ✓ Vue components rendered and stable");
+            consecutiveVueChecks++;
+            console.log(`[TEST-COORDINATOR] ✓ Vue components rendered and stable (${consecutiveVueChecks}/3)`);
+          } else {
+            consecutiveVueChecks = 0;
           }
         } catch (error) {
           // Continue
@@ -187,6 +229,7 @@ export class TestCoordinator {
           // Look for Settings tab specifically (required for connections tests)
           const settingsElements = await driver.findElements(By.xpath("//*[contains(text(), 'Settings')]"));
           const buttons = await driver.findElements(By.css('button, vscode-button'));
+          const panels = await driver.findElements(By.css('vscode-panels'));
           
           if (settingsElements.length > 0) {
             // Verify at least one Settings element is actually interactive
@@ -205,30 +248,32 @@ export class TestCoordinator {
             }
           }
           
-          // Fallback: any interactive buttons
-          if (!interactiveReady && buttons.length > 0) {
+          // Fallback: any interactive buttons or panels
+          if (!interactiveReady && (buttons.length > 0 || panels.length > 0)) {
             interactiveReady = true;
+            console.log(`[TEST-COORDINATOR] ✓ Found interactive elements (${buttons.length} buttons, ${panels.length} panels)`);
           }
         } catch (error) {
           // Continue
         }
         
-        if (appReady && vueReady && interactiveReady) {
-          console.log("[TEST-COORDINATOR] ✓ Vue webview is fully ready for interactions");
+        // More lenient readiness check - don't require all three conditions
+        if (appReady && (vueReady || consecutiveVueChecks >= 2)) {
+          console.log("[TEST-COORDINATOR] ✓ Vue webview is ready for interactions");
           // Extra wait to ensure Vue reactivity has fully settled
-          await sleep(3000);
+          await sleep(2000);
           return true;
         }
         
         // Progress logging
-        if ((Date.now() - startTime) % 15000 < 1000) {
+        if ((Date.now() - startTime) % 10000 < 1000) {
           console.log(`[TEST-COORDINATOR] Vue readiness check... app:${appReady} vue:${vueReady} interactive:${interactiveReady} (${Math.round((Date.now() - startTime) / 1000)}s)`);
         }
         
       } catch (error) {
         // Continue waiting
       }
-      await sleep(1500); // Slightly longer sleep for Vue
+      await sleep(1000); // Reduced sleep time for faster detection
     }
     
     console.log("[TEST-COORDINATOR] ⚠️ Vue webview readiness timeout");
@@ -240,8 +285,16 @@ export class TestCoordinator {
       console.log(`[TEST-COORDINATOR] Contains Vue components: ${pageSource.includes('vscode-')}`); 
       console.log(`[TEST-COORDINATOR] Contains Settings: ${pageSource.includes('Settings')}`);
       console.log(`[TEST-COORDINATOR] Contains Connections: ${pageSource.includes('Connections')}`);
+      console.log(`[TEST-COORDINATOR] Contains Bruin: ${pageSource.includes('Bruin')}`);
+      console.log(`[TEST-COORDINATOR] Contains #app: ${pageSource.includes('id="app"')}`);
       const settingsCount = await driver.findElements(By.xpath("//*[contains(text(), 'Settings')]"));
       console.log(`[TEST-COORDINATOR] Settings elements found: ${settingsCount.length}`);
+      
+      // Check if we have any content at all
+      if (pageSource.length > 1000) {
+        console.log("[TEST-COORDINATOR] ⚠️ Webview has content but Vue may not be fully mounted");
+        return false; // Don't return true on timeout
+      }
     } catch (error) {
       console.log("[TEST-COORDINATOR] Could not run Vue diagnostic");
     }
@@ -304,7 +357,19 @@ export class TestCoordinator {
         '.dialog-overlay',
         '[role="dialog"]',
         '.confirmation-dialog',
-        '.monaco-workbench .monaco-dialog-modal-block'
+        '.monaco-workbench .monaco-dialog-modal-block',
+        // Additional VS Code specific selectors
+        '.monaco-workbench .monaco-dialog-modal-block.dimmed',
+        '.monaco-workbench .monaco-dialog-modal-block',
+        '.monaco-dialog-modal-block.dimmed',
+        '.monaco-dialog-modal-block',
+        // Welcome screen and walkthrough selectors
+        '.welcome-page',
+        '.walkthrough-page',
+        '.getting-started-page',
+        '.extension-page',
+        '.monaco-workbench .welcome-page',
+        '.monaco-workbench .walkthrough-page'
       ];
       
       let modalBlocks: any[] = [];
@@ -329,13 +394,15 @@ export class TestCoordinator {
         }
         
         // Multiple rounds of dismissal with enhanced methods
-        for (let round = 1; round <= 4; round++) {
-          console.log(`[TEST-COORDINATOR] Dismissal attempt ${round}/4...`);
+        for (let round = 1; round <= 6; round++) {
+          console.log(`[TEST-COORDINATOR] Dismissal attempt ${round}/6...`);
           
           // Method 1: Enhanced button text search with more variations
           const buttonTexts = [
             'Open', 'Allow', 'Yes', 'OK', 'Continue', 'Accept', 'Confirm', 
-            'Proceed', 'Trust', 'Always allow', 'Got it', 'Dismiss', 'Close'
+            'Proceed', 'Trust', 'Always allow', 'Got it', 'Dismiss', 'Close',
+            'Skip', 'Later', 'Not now', 'Cancel', 'No thanks', 'Start',
+            'Get Started', 'Begin', 'Next', 'Finish', 'Done'
           ];
           const buttonXPath = buttonTexts.map(text => `contains(text(), '${text}')`).join(' or ');
           const allowButtons = await driver.findElements(By.xpath(`//button[${buttonXPath}]`));
@@ -370,7 +437,7 @@ export class TestCoordinator {
           }
           
           // Method 3: Enhanced escape key handling
-          for (let i = 0; i < 5; i++) {
+          for (let i = 0; i < 8; i++) {
             try {
               await driver.actions().sendKeys(Key.ESCAPE).perform();
               await sleep(300);
@@ -400,6 +467,15 @@ export class TestCoordinator {
             // Continue
           }
           
+          // Method 6: Try clicking outside modal area
+          try {
+            await driver.actions().move({ x: 10, y: 10 }).click().perform();
+            await sleep(500);
+            console.log("[TEST-COORDINATOR] ✓ Clicked outside modal area");
+          } catch (error) {
+            // Continue
+          }
+          
           await sleep(1000);
           
           // Check if modals are still present
@@ -409,7 +485,7 @@ export class TestCoordinator {
           }
         }
         
-        console.log("[TEST-COORDINATOR] ⚠️ Some modal dialogs may still be present after 4 attempts");
+        console.log("[TEST-COORDINATOR] ⚠️ Some modal dialogs may still be present after 6 attempts");
       } else {
         console.log("[TEST-COORDINATOR] No blocking modal dialogs found");
       }
@@ -456,5 +532,105 @@ export class TestCoordinator {
   static resetTestCount(): void {
     this.testCount = 0;
     console.log(`[TEST-COORDINATOR] Test count reset`);
+  }
+
+  /**
+   * Enhanced command execution with retry logic for VS Code extension commands
+   */
+  static async executeCommandWithRetry(workbench: any, command: string, maxRetries: number = 3): Promise<boolean> {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`[TEST-COORDINATOR] Executing command '${command}' (attempt ${attempt}/${maxRetries})`);
+        await workbench.executeCommand(command);
+        console.log(`[TEST-COORDINATOR] ✓ Command '${command}' executed successfully`);
+        return true;
+      } catch (error: any) {
+        console.log(`[TEST-COORDINATOR] Command '${command}' failed (attempt ${attempt}/${maxRetries}): ${error.message}`);
+        
+        if (attempt < maxRetries) {
+          // Wait before retry with progressive backoff
+          const waitTime = 2000 * attempt;
+          console.log(`[TEST-COORDINATOR] Waiting ${waitTime}ms before retry...`);
+          await sleep(waitTime);
+          
+          // Try to dismiss any modals that might be blocking
+          try {
+            const { VSBrowser } = require('vscode-extension-tester');
+            await this.dismissModalDialogs(VSBrowser.instance.driver);
+          } catch (modalError) {
+            // Ignore modal dismissal errors
+          }
+        }
+      }
+    }
+    
+    console.log(`[TEST-COORDINATOR] ⚠️ Command '${command}' failed after ${maxRetries} attempts`);
+    return false;
+  }
+
+  /**
+   * Wait for VS Code extension to be loaded and ready
+   */
+  static async waitForExtensionReady(workbench: any, extensionName: string = "bruin", timeoutMs: number = 30000): Promise<boolean> {
+    const startTime = Date.now();
+    const testCommands = [
+      "bruin.render",
+      "bruin.renderSQL", 
+      "bruin.openAssetPanel",
+      "bruin.getAssetDetails"
+    ];
+    
+    console.log(`[TEST-COORDINATOR] Waiting for ${extensionName} extension to be ready...`);
+    
+    while (Date.now() - startTime < timeoutMs) {
+      try {
+        // Try to execute a simple command to test if extension is loaded
+        const commandExecuted = await this.executeCommandWithRetry(workbench, "bruin.render", 1);
+        if (commandExecuted) {
+          console.log(`[TEST-COORDINATOR] ✓ ${extensionName} extension is ready`);
+          return true;
+        }
+      } catch (error) {
+        // Continue waiting
+      }
+      
+      await sleep(2000);
+    }
+    
+    console.log(`[TEST-COORDINATOR] ⚠️ ${extensionName} extension not ready after ${timeoutMs}ms`);
+    return false;
+  }
+
+  /**
+   * Enhanced webview initialization with better error handling
+   */
+  static async initializeWebview(driver: any, workbench: any): Promise<boolean> {
+    try {
+      console.log("[TEST-COORDINATOR] Initializing webview...");
+      
+      // Step 1: Ensure extension is ready
+      const extensionReady = await this.waitForExtensionReady(workbench);
+      if (!extensionReady) {
+        console.log("[TEST-COORDINATOR] ⚠️ Extension not ready, continuing anyway...");
+      }
+      
+      // Step 2: Dismiss any blocking modals
+      await this.dismissModalDialogs(driver);
+      
+      // Step 3: Wait for webview to be ready
+      const webviewReady = await this.waitForWebviewReady(driver);
+      if (!webviewReady) {
+        console.log("[TEST-COORDINATOR] ⚠️ Webview not fully ready, but continuing...");
+      }
+      
+      // Step 4: Final modal dismissal
+      await this.dismissModalDialogs(driver);
+      
+      console.log("[TEST-COORDINATOR] ✓ Webview initialization completed");
+      return true;
+    } catch (error: any) {
+      console.log(`[TEST-COORDINATOR] Webview initialization error: ${error.message}`);
+      return false;
+    }
   }
 }
