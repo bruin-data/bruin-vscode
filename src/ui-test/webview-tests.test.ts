@@ -685,8 +685,18 @@ describe("Bruin Webview Test", function () {
     it("should activate edit mode when clicking the asset name", async function () {
       this.timeout(20000);
 
+      // Ensure we have the asset name container from the previous test
+      if (!assetNameContainer) {
+        assetNameContainer = await TestCoordinator.waitForElement(
+          driver, 
+          By.id("asset-name-container"), 
+          15000,
+          "asset name container for editing"
+        );
+      }
+
       // Click on the asset name container to activate edit mode
-      await assetNameContainer.click();
+      await TestCoordinator.safeClick(driver, assetNameContainer);
       await sleep(1000);
 
       // Wait for the input field to appear

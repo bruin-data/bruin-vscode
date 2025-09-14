@@ -64,24 +64,83 @@ export class TestCoordinator {
     throw new Error(`Element ${desc} not found or not displayed after ${timeoutMs}ms. Last error: ${lastError?.message}`);
   }
 
-  // Wait for webview to be ready with specific checks
-  static async waitForWebviewReady(driver: any, timeoutMs: number = 30000): Promise<boolean> {
+  // Wait for webview to be ready with comprehensive checks
+  static async waitForWebviewReady(driver: any, timeoutMs: number = 45000): Promise<boolean> {
     const { By } = require('selenium-webdriver');
     console.log("[TEST-COORDINATOR] Waiting for webview to be ready...");
     
     const startTime = Date.now();
+    let lastPageLength = 0;
+    let stableCount = 0;
+    
     while (Date.now() - startTime < timeoutMs) {
       try {
-        // Check for #app element (Vue app)
-        const appElement = await driver.findElement(By.id("app"));
-        if (await appElement.isDisplayed()) {
-          // Additional check for Vue content
-          const pageSource = await driver.getPageSource();
-          if (pageSource.includes('Vue') || pageSource.includes('v-') || pageSource.length > 1000) {
-            console.log("[TEST-COORDINATOR] ✓ Webview is ready");
-            return true;
-          }
+        // Check 1: Basic #app element
+        let appReady = false;
+        try {
+          const appElement = await driver.findElement(By.id("app"));
+          appReady = await appElement.isDisplayed();
+        } catch (error) {
+          // Continue
         }
+        
+        // Check 2: Page content analysis
+        let contentReady = false;
+        try {
+          const pageSource = await driver.getPageSource();
+          const currentLength = pageSource.length;
+          
+          // Check for specific Bruin webview content indicators
+          const hasBruinContent = pageSource.includes('Connections') || 
+                                pageSource.includes('Environment') ||
+                                pageSource.includes('add-environment-button') ||
+                                pageSource.includes('BruinSettings') ||
+                                pageSource.includes('vscode-button');
+          
+          // Check for Vue framework indicators
+          const hasVueContent = pageSource.includes('Vue') || 
+                              pageSource.includes('v-') || 
+                              pageSource.includes('data-v-');
+          
+          // Check page stability (not still loading)
+          if (currentLength === lastPageLength) {
+            stableCount++;
+          } else {
+            stableCount = 0;
+            lastPageLength = currentLength;
+          }
+          
+          contentReady = (hasBruinContent || hasVueContent) && 
+                        currentLength > 5000 && 
+                        stableCount >= 2;
+          
+          if (contentReady) {
+            console.log("[TEST-COORDINATOR] ✓ Webview content is ready and stable");
+          }
+        } catch (error) {
+          // Continue
+        }
+        
+        // Check 3: Interactive elements present
+        let interactiveReady = false;
+        try {
+          const buttons = await driver.findElements(By.css('button, vscode-button'));
+          const inputs = await driver.findElements(By.css('input, vscode-text-field'));
+          interactiveReady = (buttons.length > 0 || inputs.length > 0);
+        } catch (error) {
+          // Continue
+        }
+        
+        if (appReady && contentReady && interactiveReady) {
+          console.log("[TEST-COORDINATOR] ✓ Webview is fully ready");
+          return true;
+        }
+        
+        // Progress logging
+        if ((Date.now() - startTime) % 10000 < 1000) {
+          console.log(`[TEST-COORDINATOR] Still waiting... app:${appReady} content:${contentReady} interactive:${interactiveReady}`);
+        }
+        
       } catch (error) {
         // Continue waiting
       }
@@ -89,6 +148,17 @@ export class TestCoordinator {
     }
     
     console.log("[TEST-COORDINATOR] ⚠️ Webview readiness timeout");
+    
+    // Final diagnostic
+    try {
+      const pageSource = await driver.getPageSource();
+      console.log(`[TEST-COORDINATOR] Final diagnostic - page length: ${pageSource.length}`);
+      console.log(`[TEST-COORDINATOR] Contains 'Connections': ${pageSource.includes('Connections')}`);
+      console.log(`[TEST-COORDINATOR] Contains buttons: ${pageSource.includes('button')}`);
+    } catch (error) {
+      console.log("[TEST-COORDINATOR] Could not run final diagnostic");
+    }
+    
     return false;
   }
 

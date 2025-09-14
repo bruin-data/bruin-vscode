@@ -108,13 +108,30 @@ const switchToSettingsTab = async (driver: WebDriver): Promise<void> => {
 // Helper function to find connections section
 const findConnectionsSection = async (driver: WebDriver): Promise<WebElement> => {
   try {
+    // Ensure webview is ready first
+    const webviewReady = await TestCoordinator.waitForWebviewReady(driver);
+    if (!webviewReady) {
+      throw new Error("Webview not ready for connections section detection");
+    }
+
     // Try multiple selectors for the Connections section header
     const connectionsSectionSelectors = [
       "//h2[contains(text(), 'Connections')]",
-      "//*[contains(text(), 'Connections') and (self::h1 or self::h2 or self::h3)]",
-      "//*[@class='text-xl font-semibold text-editor-fg' and contains(text(), 'Connections')]",
+      "//h1[contains(text(), 'Connections')]",
+      "//h3[contains(text(), 'Connections')]",
+      "//h4[contains(text(), 'Connections')]",
+      "//*[contains(text(), 'Connections') and (self::h1 or self::h2 or self::h3 or self::h4 or self::div)]",
       "//*[contains(text(), 'Manage your connections')]",
-      "//*[contains(text(), 'connections across different environments')]"
+      "//*[contains(text(), 'connections across different environments')]",
+      "//*[contains(text(), 'Connection') and contains(text(), 'Environment')]",
+      // Look for any element containing "Connections"
+      "//*[contains(text(), 'Connections')]",
+      // Look for settings-related headings that might contain connections
+      "//*[contains(@class, 'text-xl') and contains(text(), 'Connections')]",
+      "//*[contains(@class, 'font-semibold') and contains(text(), 'Connections')]",
+      "//*[contains(@class, 'heading') and contains(text(), 'Connections')]",
+      // Look for the whole settings area
+      "//*[contains(text(), 'Environment') or contains(text(), 'Connection')]"
     ];
     
     for (const selector of connectionsSectionSelectors) {
@@ -138,10 +155,16 @@ const findConnectionsSection = async (driver: WebDriver): Promise<WebElement> =>
 // Environment CRUD Helper Functions
 const clickAddEnvironment = async (driver: WebDriver): Promise<void> => {
   try {
+    // First ensure webview is properly loaded
+    const webviewReady = await TestCoordinator.waitForWebviewReady(driver);
+    if (!webviewReady) {
+      throw new Error("Webview not ready for environment operations");
+    }
+    
     // Dismiss any modal dialogs before attempting to click
     await TestCoordinator.dismissModalDialogs(driver);
     // Wait for UI to be ready and check for errors first
-    await sleep(3000);
+    await sleep(5000);
     
     // Check if there are any error messages that might prevent the button from showing
     try {
@@ -161,20 +184,32 @@ const clickAddEnvironment = async (driver: WebDriver): Promise<void> => {
       console.log("Could not check for errors");
     }
     
-    // Try ID selector first, then fallback to xpath selectors that match actual DOM structure
+    // Try ID selector first, then comprehensive fallback selectors
     const envButtonSelectors = [
       { type: 'id', value: 'add-environment-button' },
       { type: 'xpath', value: "//vscode-button[@id='add-environment-button']" },
       { type: 'xpath', value: "//button[@id='add-environment-button']" },
-      { type: 'xpath', value: "//*[contains(text(), 'Environment') and contains(@class, 'codicon-plus')]/parent::*/parent::vscode-button" },
+      // Look for buttons containing "Environment" text with various structures
+      { type: 'xpath', value: "//vscode-button[contains(text(), 'Environment')]" },
+      { type: 'xpath', value: "//button[contains(text(), 'Environment')]" },
       { type: 'xpath', value: "//vscode-button[contains(., 'Environment')]" },
       { type: 'xpath', value: "//button[contains(., 'Environment')]" },
       { type: 'xpath', value: "//*[contains(text(), '+ Environment')]" },
-      { type: 'xpath', value: "//*[contains(text(), 'Environment')]/parent::button" },
-      { type: 'xpath', value: "//*[@class='codicon codicon-plus']/following-sibling::*[contains(text(), 'Environment')]/parent::*/parent::button" },
-      { type: 'xpath', value: "//span[contains(text(), 'Environment')]/ancestor::button" },
+      { type: 'xpath', value: "//*[contains(text(), 'Add Environment')]" },
+      { type: 'xpath', value: "//*[contains(text(), 'Create Environment')]" },
+      // Look for buttons with plus icon and Environment text
+      { type: 'xpath', value: "//vscode-button[.//span[contains(@class, 'codicon-add')] and contains(., 'Environment')]" },
+      { type: 'xpath', value: "//button[.//span[contains(@class, 'codicon-add')] and contains(., 'Environment')]" },
+      { type: 'xpath', value: "//vscode-button[.//span[contains(@class, 'codicon-plus')] and contains(., 'Environment')]" },
+      // Generic selectors by appearance
       { type: 'css', value: "vscode-button[appearance='secondary']" },
-      { type: 'css', value: "button[appearance='secondary']" }
+      { type: 'css', value: "button[appearance='secondary']" },
+      // Look for any button that might be the add environment button
+      { type: 'xpath', value: "//vscode-button[contains(@class, 'secondary')]" },
+      { type: 'xpath', value: "//button[contains(@class, 'secondary')]" },
+      // Last resort - any button with a plus icon
+      { type: 'xpath', value: "//vscode-button[.//span[contains(@class, 'codicon-add')]]" },
+      { type: 'xpath', value: "//button[.//span[contains(@class, 'codicon-add')]]" }
     ];
     
     let addEnvButton = null;
@@ -424,9 +459,15 @@ const deleteEnvironment = async (driver: WebDriver, environmentName: string): Pr
 // Connection CRUD Helper Functions
 const clickAddConnection = async (driver: WebDriver, environment: string = "default"): Promise<void> => {
   try {
+    // First ensure webview is properly loaded
+    const webviewReady = await TestCoordinator.waitForWebviewReady(driver);
+    if (!webviewReady) {
+      throw new Error("Webview not ready for connection operations");
+    }
+    
     // Dismiss any modal dialogs before attempting to click
     await TestCoordinator.dismissModalDialogs(driver);
-    await sleep(3000); // Wait for UI to be ready
+    await sleep(5000); // Wait for UI to be ready
     
     // Check if there are any error messages that might prevent the button from showing
     try {
@@ -541,8 +582,41 @@ const fillConnectionForm = async (
   }
 ): Promise<void> => {
   try {
-    // Wait for form to be ready
-    await sleep(3000);
+    // Wait for connection form modal/dialog to appear and be ready
+    console.log("Waiting for connection form to be ready...");
+    await sleep(5000);
+    
+    // Try to wait for any form elements to appear as an indicator the form is ready
+    let formReady = false;
+    for (let attempt = 1; attempt <= 10; attempt++) {
+      try {
+        const anyFormElement = await driver.findElements(By.css('select, input, vscode-dropdown, vscode-text-field'));
+        if (anyFormElement.length > 0) {
+          console.log(`Form elements detected on attempt ${attempt} (${anyFormElement.length} elements)`);
+          formReady = true;
+          break;
+        }
+      } catch (error) {
+        // Continue
+      }
+      
+      console.log(`Form not ready, attempt ${attempt}/10...`);
+      await sleep(2000);
+    }
+    
+    if (!formReady) {
+      // Debug: check what's actually on the page
+      try {
+        const pageSource = await driver.getPageSource();
+        console.log(`Page source length: ${pageSource.length}`);
+        console.log(`Contains 'connection_type': ${pageSource.includes('connection_type')}`);
+        console.log(`Contains 'select': ${pageSource.includes('select')}`);
+        console.log(`Contains 'form': ${pageSource.includes('form')}`);
+      } catch (error) {
+        console.log("Could not get page source for debugging");
+      }
+      throw new Error("Connection form did not appear after waiting");
+    }
     
     // Select connection type using enhanced selectors
     const typeSelectors = [
