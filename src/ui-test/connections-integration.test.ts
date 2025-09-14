@@ -151,8 +151,6 @@ const clickAddEnvironment = async (driver: WebDriver): Promise<void> => {
       try {
         if (selector.type === 'id') {
           addEnvButton = await driver.findElement(By.id(selector.value));
-        } else if (selector.type === 'css') {
-          addEnvButton = await driver.findElement(By.css(selector.value));
         } else {
           addEnvButton = await driver.findElement(By.xpath(selector.value));
         }
@@ -166,7 +164,7 @@ const clickAddEnvironment = async (driver: WebDriver): Promise<void> => {
     }
     
     if (!addEnvButton) {
-      const allButtons = await driver.findElements(By.css('button, vscode-button'));
+      const allButtons = await driver.findElements(By.xpath('//button | //vscode-button'));
       console.log(`Found ${allButtons.length} buttons on the page`);
       
       // Get more detailed debug info
@@ -259,8 +257,7 @@ const findEnvironmentInList = async (driver: WebDriver, environmentName: string)
     // Fallback to text-based searches with longer timeout
     const textSelectors = [
       `//h3[contains(text(), '${environmentName}')]`,
-      `//*[contains(text(), '${environmentName}') and not(contains(@class, 'placeholder'))]`,
-      `//*[text()='${environmentName}']`
+      `//*[contains(text(), '${environmentName}') and not(contains(@class, 'placeholder'))]`
     ];
     
     for (const selector of textSelectors) {
@@ -298,12 +295,33 @@ const editEnvironment = async (driver: WebDriver, oldName: string, newName: stri
     await sleep(500);
     await TestCoordinator.safeClick(driver, envElement);
     
-    // Find edit input
-    const editInput = await findElementWithRetry(
-      driver, 
-      By.xpath("//input[contains(@class, 'border-editor-fg')]"), 
-      5000
-    );
+    // Wait for Vue to render the edit input field
+    await sleep(2000);
+    
+    // Find edit input using ID selector (the input appears when editing environment)
+    const editInputSelectors = [
+      By.id("environmentInput"),
+      By.xpath("//input[contains(@class, 'border-editor-fg')]"),
+      By.xpath("//input[contains(@class, 'border-editor-fg') and contains(@class, 'font-mono')]")
+    ];
+    
+    let editInput = null;
+    for (const selector of editInputSelectors) {
+      try {
+        editInput = await TestCoordinator.waitForElement(driver, selector, 3000, "edit input field");
+        if (editInput && await editInput.isDisplayed()) {
+          console.log(`✓ Found edit input with selector: ${selector}`);
+          break;
+        }
+      } catch (error) {
+        console.log(`Edit input not found with selector: ${selector}`);
+        continue;
+      }
+    }
+    
+    if (!editInput) {
+      throw new Error("Edit input field not found after double-click");
+    }
     
     await editInput.clear();
     await editInput.sendKeys(newName);
@@ -429,8 +447,8 @@ const clickAddConnection = async (driver: WebDriver, environment: string = "defa
       { type: 'xpath', value: "//*[contains(text(), 'Connection')]/parent::button" },
       { type: 'xpath', value: "//*[@class='codicon codicon-plus']/following-sibling::*[contains(text(), 'Connection')]/parent::*/parent::button" },
       { type: 'xpath', value: "//span[contains(text(), 'Connection')]/ancestor::button" },
-      { type: 'css', value: "vscode-button:not([appearance='secondary'])" },
-      { type: 'css', value: "button:not([appearance='secondary'])" }
+      { type: 'xpath', value: "//vscode-button[not(@appearance='secondary')]" },
+      { type: 'xpath', value: "//button[not(@appearance='secondary')]" }
     ];
     
     let addConnectionButton = null;
@@ -443,8 +461,6 @@ const clickAddConnection = async (driver: WebDriver, environment: string = "defa
           let button;
           if (selector.type === 'id') {
             button = await driver.findElement(By.id(selector.value));
-          } else if (selector.type === 'css') {
-            button = await driver.findElement(By.css(selector.value));
           } else {
             button = await driver.findElement(By.xpath(selector.value));
           }
@@ -463,7 +479,7 @@ const clickAddConnection = async (driver: WebDriver, environment: string = "defa
     }
     
     if (!addConnectionButton) {
-      const allButtons = await driver.findElements(By.css('button, vscode-button'));
+      const allButtons = await driver.findElements(By.xpath('//button | //vscode-button'));
       console.log(`Found ${allButtons.length} total buttons on the page`);
       
       // Get more detailed debug info
@@ -517,11 +533,22 @@ const fillConnectionForm = async (
     console.log("Waiting for connection form to be ready...");
     await sleep(5000);
     
-    // Try to wait for any form elements to appear as an indicator the form is ready
+    // Try to wait for specific form elements to appear as an indicator the form is ready
     let formReady = false;
     for (let attempt = 1; attempt <= 10; attempt++) {
       try {
-        const anyFormElement = await driver.findElements(By.css('select, input, vscode-dropdown, vscode-text-field'));
+        // Look for specific form elements by ID first
+        const connectionTypeField = await driver.findElements(By.id("connection_type"));
+        const connectionNameField = await driver.findElements(By.id("connection_name"));
+        
+        if (connectionTypeField.length > 0 && connectionNameField.length > 0) {
+          console.log(`✓ Form elements detected on attempt ${attempt} - connection_type and connection_name found`);
+          formReady = true;
+          break;
+        }
+        
+        // Fallback: look for any form elements
+        const anyFormElement = await driver.findElements(By.xpath('//select | //input | //vscode-dropdown | //vscode-text-field'));
         if (anyFormElement.length > 0) {
           console.log(`Form elements detected on attempt ${attempt} (${anyFormElement.length} elements)`);
           formReady = true;
@@ -549,82 +576,96 @@ const fillConnectionForm = async (
       throw new Error("Connection form did not appear after waiting");
     }
     
-    // Select connection type using enhanced selectors
-    const typeSelectors = [
-      By.id("connection_type"),
-      By.css("select[name='type']"),
-      By.css("vscode-dropdown[name='type']"),
-      By.xpath("//select[contains(@class, 'connection-type')]"),
-      By.xpath("//vscode-dropdown[contains(@class, 'connection-type')]")
-    ];
-    
-    let typeSelect = null;
-    for (const selector of typeSelectors) {
-      try {
-        typeSelect = await driver.findElement(selector);
-        if (await typeSelect.isDisplayed()) {
-          console.log(`Found connection type selector: ${selector}`);
-          break;
-        }
-      } catch (error) {
-        continue;
-      }
-    }
-    
-    if (!typeSelect) {
-      throw new Error("Connection type selector not found with any method");
-    }
+    // Select connection type using ID selector
+    const typeSelect = await TestCoordinator.waitForElement(
+      driver, 
+      By.id("connection_type"), 
+      10000, 
+      "connection type selector"
+    );
     
     await TestCoordinator.safeClick(driver, typeSelect);
     await sleep(1000);
     
-    const typeOption = await findElementWithRetry(
+    // Wait for options to appear and select the connection type
+    const typeOption = await TestCoordinator.waitForElement(
       driver, 
       By.xpath(`//option[@value="${connectionData.type}"]`), 
-      5000
+      5000,
+      `connection type option: ${connectionData.type}`
     );
     await TestCoordinator.safeClick(driver, typeOption);
     console.log(`✓ Selected connection type: ${connectionData.type}`);
     await sleep(1000);
     
-    // Fill connection name
-    const nameInput = await findElementWithRetry(driver, By.id("connection_name"), 5000);
+    // Fill connection name using ID selector
+    const nameInput = await TestCoordinator.waitForElement(
+      driver, 
+      By.id("connection_name"), 
+      5000, 
+      "connection name input"
+    );
     await nameInput.clear();
     await nameInput.sendKeys(connectionData.name);
     console.log(`✓ Filled connection name: ${connectionData.name}`);
     
-    // Fill environment if specified
+    // Fill environment if specified using ID selector
     if (connectionData.environment) {
       try {
-        const envSelect = await findElementWithRetry(driver, By.id("environment"), 5000);
-        await envSelect.click();
+        const envSelect = await TestCoordinator.waitForElement(
+          driver, 
+          By.id("environment"), 
+          5000, 
+          "environment selector"
+        );
+        await TestCoordinator.safeClick(driver, envSelect);
         await sleep(500);
-        const envOption = await driver.findElement(By.xpath(`//option[@value="${connectionData.environment}"]`));
-        await envOption.click();
+        const envOption = await TestCoordinator.waitForElement(
+          driver, 
+          By.xpath(`//option[@value="${connectionData.environment}"]`), 
+          3000,
+          `environment option: ${connectionData.environment}`
+        );
+        await TestCoordinator.safeClick(driver, envOption);
         console.log(`✓ Selected environment: ${connectionData.environment}`);
       } catch (error: any) {
         console.log(`Could not set environment: ${error.message}`);
       }
     }
     
-    // Fill connection-specific fields
+    // Fill connection-specific fields using ID selectors
     if (connectionData.type === "google_cloud_platform") {
       if (connectionData.project_id) {
-        const projectInput = await findElementWithRetry(driver, By.id("project_id"), 5000);
+        const projectInput = await TestCoordinator.waitForElement(
+          driver, 
+          By.id("project_id"), 
+          5000, 
+          "project_id input"
+        );
         await projectInput.clear();
         await projectInput.sendKeys(connectionData.project_id);
         console.log(`✓ Filled project_id: ${connectionData.project_id}`);
       }
       
       if (connectionData.location) {
-        const locationInput = await findElementWithRetry(driver, By.id("location"), 5000);
+        const locationInput = await TestCoordinator.waitForElement(
+          driver, 
+          By.id("location"), 
+          5000, 
+          "location input"
+        );
         await locationInput.clear();
         await locationInput.sendKeys(connectionData.location);
         console.log(`✓ Filled location: ${connectionData.location}`);
       }
     } else if (connectionData.type === "duckdb") {
       if (connectionData.path) {
-        const pathInput = await findElementWithRetry(driver, By.id("path"), 5000);
+        const pathInput = await TestCoordinator.waitForElement(
+          driver, 
+          By.id("path"), 
+          5000, 
+          "path input"
+        );
         await pathInput.clear();
         await pathInput.sendKeys(connectionData.path);
         console.log(`✓ Filled path: ${connectionData.path}`);
@@ -684,8 +725,7 @@ const findConnectionInList = async (driver: WebDriver, connectionName: string, e
       { type: 'id', value: `connection-name-${connectionName}-${environment}` },
       { type: 'xpath', value: `//td[contains(text(), "${connectionName}")]` },
       { type: 'xpath', value: `//td[contains(@class, 'font-medium') and contains(text(), "${connectionName}")]` },
-      { type: 'xpath', value: `//td[contains(@class, 'font-mono') and contains(text(), "${connectionName}")]` },
-      { type: 'xpath', value: `//*[text()="${connectionName}"]` }
+      { type: 'xpath', value: `//td[contains(@class, 'font-mono') and contains(text(), "${connectionName}")]` }
     ];
     
     for (const selector of connectionSelectors) {
@@ -996,7 +1036,7 @@ describe("Connections and Environments Integration Tests", function () {
       "Webview iframe did not appear"
     );
 
-    const allIframes = await driver.findElements(By.css('iframe'));
+    const allIframes = await driver.findElements(By.xpath('//iframe'));
     console.log(`Found ${allIframes.length} iframes`);
     
     // First, log all iframe sources to understand what we're dealing with
@@ -1089,7 +1129,7 @@ describe("Connections and Environments Integration Tests", function () {
         
         webview = new WebView();
         try {
-          await driver.wait(until.elementLocated(By.css(".editor-instance")), 10000);
+          await driver.wait(until.elementLocated(By.className("editor-instance")), 10000);
           await webview.switchToFrame();
           await sleep(2000); // Wait for content to load
           
@@ -1200,7 +1240,7 @@ describe("Connections and Environments Integration Tests", function () {
             await sleep(2000);
             
             // Re-find and switch to iframe
-            const newIframes = await driver.findElements(By.css('iframe'));
+            const newIframes = await driver.findElements(By.xpath('//iframe'));
             console.log(`Found ${newIframes.length} iframes on attempt ${attempt}`);
             
             for (let i = 0; i < newIframes.length; i++) {
@@ -1246,7 +1286,7 @@ describe("Connections and Environments Integration Tests", function () {
           // Final diagnostic attempt
           try {
             await driver.switchTo().defaultContent();
-            const finalIframes = await driver.findElements(By.css('iframe'));
+            const finalIframes = await driver.findElements(By.xpath('//iframe'));
             console.log(`Final diagnostic: Found ${finalIframes.length} iframes`);
             
             const pageSource = await driver.getPageSource();
@@ -1413,7 +1453,20 @@ describe("Connections and Environments Integration Tests", function () {
     it("should DELETE an environment", async function () {
       this.timeout(20000);
 
-      const envToDelete = editedEnvName || testEnvName;
+      // Determine which environment to delete based on what was actually created/updated
+      let envToDelete = testEnvName; // Default to original test environment
+      
+      // Check if the edited environment exists in test data or UI
+      if (editedEnvName) {
+        const editedEnvExists = testData.environments.includes(editedEnvName) || 
+                               await findEnvironmentInList(driver, editedEnvName);
+        if (editedEnvExists) {
+          envToDelete = editedEnvName;
+          console.log(`✓ Will delete edited environment: ${envToDelete}`);
+        } else {
+          console.log(`✓ Edited environment not found, will delete original: ${envToDelete}`);
+        }
+      }
       
       try {
         await deleteEnvironment(driver, envToDelete);
