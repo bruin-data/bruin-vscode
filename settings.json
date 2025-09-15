@@ -1,6 +1,6 @@
 {
     "typescript.updateImportsOnFileMove.enabled": "always",
-    "workbench.editor.enablePreview": true,
+    "workbench.editor.enablePreview": false,
     "git.autoRepositoryDetection": false,
     "terminal.integrated.sendKeybindingsToShell": true,
     "workbench.remoteIndicator.showExtensionRecommendations": false,
@@ -12,5 +12,14 @@
     "telemetry.enableTelemetry": false,
     "update.mode": "none",
     "gettingStarted.hiddenFromMenu": true,
-    "extensions.showRecommendationsOnlyOnDemand": true
+    "extensions.showRecommendationsOnlyOnDemand": true,
+    "workbench.editor.openPositioning": "first",
+    "workbench.editor.closeOnFileDelete": true,
+    "workbench.editor.limit.enabled": false,
+    "workbench.editor.showTabs": true,
+    "workbench.editor.wrapTabs": false,
+    "workbench.welcome.enabled": false,
+    "workbench.welcomePage.hiddenCategories": ["gettingStarted", "walkthroughs"],
+    "extensions.autoCheckUpdates": false,
+    "extensions.autoUpdate": false
   }
