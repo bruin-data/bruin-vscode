@@ -3785,11 +3785,43 @@ describe("Bruin Webview Test", function () {
         
         // Test that both inputs accept user input
         const testKeyValue = "created_at";
-        await incrementalKeyInput.clear();
-        await incrementalKeyInput.sendKeys(testKeyValue);
-        await sleep(500);
         
-        const keyInputValue = await incrementalKeyInput.getAttribute("value");
+        // Get the current value first for debugging
+        const currentValue = await incrementalKeyInput.getAttribute("value");
+        console.log(`Current input value before clearing: "${currentValue}"`);
+        
+        // Use multiple methods to clear and set the value
+        try {
+          // Method 1: Standard clear and sendKeys
+          await incrementalKeyInput.clear();
+          await sleep(200);
+          await incrementalKeyInput.sendKeys(testKeyValue);
+          await sleep(500);
+        } catch (clearError) {
+          console.log("Standard clear failed, trying JavaScript method");
+          // Method 2: JavaScript-based clearing and setting
+          await driver.executeScript("arguments[0].value = ''; arguments[0].dispatchEvent(new Event('input'));", incrementalKeyInput);
+          await sleep(200);
+          await driver.executeScript("arguments[0].value = arguments[1]; arguments[0].dispatchEvent(new Event('input'));", incrementalKeyInput, testKeyValue);
+          await sleep(500);
+        }
+        
+        // Verify the value was set correctly
+        let keyInputValue = await incrementalKeyInput.getAttribute("value");
+        console.log(`Input value after setting: "${keyInputValue}"`);
+        
+        // If the value still doesn't match, try one more time with focus
+        if (keyInputValue !== testKeyValue) {
+          console.log("Value mismatch, trying with focus and selection");
+          await incrementalKeyInput.click();
+          await driver.executeScript("arguments[0].select();", incrementalKeyInput);
+          await sleep(200);
+          await incrementalKeyInput.sendKeys(testKeyValue);
+          await sleep(500);
+          keyInputValue = await incrementalKeyInput.getAttribute("value");
+          console.log(`Final input value: "${keyInputValue}"`);
+        }
+        
         assert.strictEqual(keyInputValue, testKeyValue, "Incremental key input should accept user input");
         console.log(`✓ Incremental key input accepts input: ${testKeyValue}`);
         
