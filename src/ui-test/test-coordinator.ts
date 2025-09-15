@@ -26,12 +26,10 @@ export class TestCoordinator {
     console.log(`[TEST-COORDINATOR] Test ${currentTest} (${testName}) proceeding with setup`);
   }
   
-  /**
-   * Call this in each test suite's after() hook
-   * Signals that the test is done and resources can be cleaned up
-   */
   static async releaseTestSlot(testName: string): Promise<void> {
-    console.log(`[TEST-COORDINATOR] Test completed: ${testName}`);
+    this.testCount--;
+    console.log(`[TEST-COORDINATOR] Test completed: ${testName}. Remaining tests to finish: ${this.testCount}`);
+    
     // Add a small delay to ensure cleanup operations complete
     await sleep(1000);
   }
