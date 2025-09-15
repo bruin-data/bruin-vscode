@@ -734,11 +734,18 @@ describe("Bruin Webview Test", function () {
       await freshAssetNameContainer.click();
       await sleep(1000);
 
-      // Wait for input field to be available
+      // Wait for input field to be available and ensure it's visible
       const nameInput = await driver.wait(
         until.elementLocated(By.id("asset-name-input")),
         10000,
         "Asset name input field not found"
+      );
+      
+      // Wait for the input to be visible and interactable
+      await driver.wait(
+        until.elementIsVisible(nameInput),
+        5000,
+        "Asset name input field not visible"
       );
 
       // Get the original name for comparison
@@ -3802,7 +3809,17 @@ describe("Bruin Webview Test", function () {
         
         // Test that both inputs accept user input
         const testKeyValue = "created_at";
-        await incrementalKeyInput.clear();
+        
+        // Clear the input field using JavaScript to ensure it's completely empty
+        await driver.executeScript(
+          'arguments[0].value = ""; arguments[0].dispatchEvent(new Event("input", { bubbles: true }));',
+          incrementalKeyInput
+        );
+        
+        // Verify the field is cleared
+        const clearedValue = await incrementalKeyInput.getAttribute("value");
+        assert.strictEqual(clearedValue, "", "Input field should be cleared");
+        
         await incrementalKeyInput.sendKeys(testKeyValue);
         await sleep(500);
         
