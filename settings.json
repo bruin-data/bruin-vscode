@@ -6,7 +6,11 @@
     "workbench.remoteIndicator.showExtensionRecommendations": false,
     "extensions.ignoreRecommendations": true,
     "workbench.welcomePage.walkthroughs.openOnInstall": false,
+    "workbench.welcomePage.walkthrough.hiddenFromMenu": true,
+    "workbench.tips.enabled": false,
     "workbench.startupEditor": "none",
     "telemetry.enableTelemetry": false,
-    "update.mode": "none"
+    "update.mode": "none",
+    "gettingStarted.hiddenFromMenu": true,
+    "extensions.showRecommendationsOnlyOnDemand": true
   }
