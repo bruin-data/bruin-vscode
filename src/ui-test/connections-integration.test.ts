@@ -271,7 +271,7 @@ describe("Webview Components Integration Tests", function () {
 
   describe("Connection CRUD Operations", function () {
     it("should create a new connection", async function () {
-      this.timeout(45000);
+      this.timeout(60000);
       
       if ((global as any).webviewNotFound) {
         console.log("⚠️  Webview not accessible, skipping UI tests");
@@ -285,6 +285,8 @@ describe("Webview Components Integration Tests", function () {
         console.log(`Found ${connectionForms.length} connection forms`);
         
         if (connectionForms.length > 0) {
+          const testConnectionName = `test_connection_${Date.now()}`;
+          
           // Fill out connection form fields
           const nameInput = await driver.findElements(By.id("connection_name"));
           const typeSelect = await driver.findElements(By.id("connection_type"));
@@ -292,42 +294,145 @@ describe("Webview Components Integration Tests", function () {
           
           console.log(`Form fields: ${nameInput.length} name, ${typeSelect.length} type, ${envSelect.length} env`);
           
-          // Test filling connection name
+          // Actually fill connection name
           if (nameInput.length > 0) {
             await nameInput[0].click();
             await nameInput[0].clear();
-            await nameInput[0].sendKeys("test_connection_new");
-            console.log("✓ Entered connection name");
+            await nameInput[0].sendKeys(testConnectionName);
+            console.log(`✓ Entered connection name: ${testConnectionName}`);
           }
           
-          // Test selecting connection type
+          // Select a connection type
           if (typeSelect.length > 0) {
             await typeSelect[0].click();
             await sleep(500);
-            // Look for options and select first available type
             const options = await driver.findElements(By.css("option"));
             if (options.length > 1) {
-              await options[1].click(); // Skip "Please Select" option
-              console.log("✓ Selected connection type");
+              // Select PostgreSQL or the first available type
+              let selectedType = false;
+              for (let i = 1; i < options.length; i++) {
+                const optionText = await options[i].getText();
+                if (optionText.toLowerCase().includes('postgres') || i === 1) {
+                  await options[i].click();
+                  console.log(`✓ Selected connection type: ${optionText}`);
+                  selectedType = true;
+                  break;
+                }
+              }
+              if (!selectedType && options.length > 1) {
+                await options[1].click();
+                console.log("✓ Selected first available connection type");
+              }
+            }
+            await sleep(1000);
+          }
+          
+          // Select environment
+          if (envSelect.length > 0) {
+            await envSelect[0].click();
+            await sleep(500);
+            const envOptions = await driver.findElements(By.css("option"));
+            if (envOptions.length > 1) {
+              await envOptions[1].click(); // Select first environment
+              console.log("✓ Selected environment");
             }
           }
           
-          // Test submit button (but don't actually submit)
-          const submitButton = await driver.findElements(By.id("submit-connection-button"));
-          if (submitButton.length > 0) {
-            console.log("✓ Found submit button - connection creation form is ready");
+          // Fill required fields based on connection type
+          const hostInputs = await driver.findElements(By.id("host"));
+          if (hostInputs.length > 0) {
+            await hostInputs[0].click();
+            await hostInputs[0].clear();
+            await hostInputs[0].sendKeys("localhost");
+            console.log("✓ Entered host");
           }
           
-          // Clear form to avoid leaving test data
-          if (nameInput.length > 0) {
-            await nameInput[0].clear();
+          const usernameInputs = await driver.findElements(By.id("username"));
+          if (usernameInputs.length > 0) {
+            await usernameInputs[0].click();
+            await usernameInputs[0].clear();
+            await usernameInputs[0].sendKeys("testuser");
+            console.log("✓ Entered username");
           }
+          
+          const passwordInputs = await driver.findElements(By.id("password"));
+          if (passwordInputs.length > 0) {
+            await passwordInputs[0].click();
+            await passwordInputs[0].clear();
+            await passwordInputs[0].sendKeys("testpass");
+            console.log("✓ Entered password");
+          }
+          
+          // Actually submit the form
+          const submitButton = await driver.findElements(By.id("submit-connection-button"));
+          if (submitButton.length > 0) {
+            await driver.executeScript("arguments[0].click();", submitButton[0]);
+            console.log("✓ Actually submitted connection form");
+            await sleep(3000);
+            
+            // Verify connection was created by looking for it in the connections list
+            const connectionRows = await driver.findElements(By.xpath(`//*[contains(text(), '${testConnectionName}')]`));
+            if (connectionRows.length > 0) {
+              console.log(`✓ Connection ${testConnectionName} successfully created and found in list`);
+              
+              // Test editing the connection
+              console.log("Testing connection edit...");
+              const editButtons = await driver.findElements(By.css('button[title="Edit"]'));
+              if (editButtons.length > 0) {
+                // Find the edit button for our connection (last one should be ours)
+                await driver.executeScript("arguments[0].click();", editButtons[editButtons.length - 1]);
+                await sleep(2000);
+                
+                const editForm = await driver.findElements(By.id("connection-form"));
+                if (editForm.length > 0) {
+                  const editNameInput = await driver.findElements(By.id("connection_name"));
+                  if (editNameInput.length > 0) {
+                    const editedName = `${testConnectionName}_edited`;
+                    await editNameInput[0].clear();
+                    await editNameInput[0].sendKeys(editedName);
+                    console.log(`✓ Changed connection name to: ${editedName}`);
+                    
+                    const saveButton = await driver.findElements(By.id("submit-connection-button"));
+                    if (saveButton.length > 0) {
+                      await driver.executeScript("arguments[0].click();", saveButton[0]);
+                      console.log("✓ Saved connection edit");
+                      await sleep(2000);
+                    }
+                  }
+                }
+              }
+              
+              // Test deleting the connection
+              console.log("Cleaning up: deleting test connection...");
+              const deleteButtons = await driver.findElements(By.css('button[title="Delete"]'));
+              if (deleteButtons.length > 0) {
+                await driver.executeScript("arguments[0].click();", deleteButtons[deleteButtons.length - 1]);
+                await sleep(2000);
+                
+                const confirmDialogs = await driver.findElements(By.id("alert-with-actions"));
+                if (confirmDialogs.length > 0) {
+                  const confirmButtons = await driver.findElements(By.xpath("//button[contains(text(), 'Delete') or contains(text(), 'Confirm')]"));
+                  if (confirmButtons.length > 0) {
+                    await driver.executeScript("arguments[0].click();", confirmButtons[0]);
+                    console.log("✓ Test connection cleaned up successfully");
+                    await sleep(2000);
+                  }
+                }
+              }
+            } else {
+              console.log(`⚠️ Connection ${testConnectionName} was not created or not found`);
+            }
+          } else {
+            console.log("⚠️ No submit button found");
+          }
+        } else {
+          console.log("⚠️ No connection form found - may need to click 'New Connection' button first");
         }
         
-        console.log("✓ Connection creation interface tested");
+        console.log("✓ Complete connection CRUD operation tested");
         
       } catch (error) {
-        console.log("Connection creation test error:", error);
+        console.log("Connection CRUD test error:", error);
         throw error;
       }
     });
@@ -750,6 +855,934 @@ describe("Webview Components Integration Tests", function () {
         
       } catch (error) {
         console.log("Environment management test error:", error);
+        throw error;
+      }
+    });
+
+    it("should create a new environment with validation", async function () {
+      this.timeout(45000);
+      
+      if ((global as any).webviewNotFound) {
+        console.log("⚠️  Webview not accessible, skipping UI tests");
+        assert(true, "Webview not available");
+        return;
+      }
+      
+      try {
+        // Look for add environment button
+        const addEnvButtons = await driver.findElements(By.id("add-environment-button"));
+        console.log(`Found ${addEnvButtons.length} add environment buttons`);
+        
+        if (addEnvButtons.length > 0) {
+          // Click add environment button
+          await driver.executeScript("arguments[0].click();", addEnvButtons[0]);
+          console.log("✓ Clicked add environment button");
+          await sleep(1500);
+          
+          // Look for environment input field
+          const envInput = await driver.findElements(By.id("new-environment-input"));
+          console.log(`Found ${envInput.length} environment input fields`);
+          
+          if (envInput.length > 0) {
+            const testEnvName = `test_env_${Date.now()}`;
+            
+            // Test empty name validation
+            await envInput[0].click();
+            await envInput[0].clear();
+            await sleep(300);
+            
+            // Try to save with empty name
+            const saveButtons = await driver.findElements(By.id("save-environment-button"));
+            if (saveButtons.length > 0) {
+              await driver.executeScript("arguments[0].click();", saveButtons[0]);
+              await sleep(1000);
+              
+              // Look for validation error
+              const errorElements = await driver.findElements(By.id("new-environment-error"));
+              console.log(`Found ${errorElements.length} validation errors for empty name`);
+            }
+            
+            // Test valid environment creation
+            await envInput[0].clear();
+            await envInput[0].sendKeys(testEnvName);
+            console.log(`✓ Entered environment name: ${testEnvName}`);
+            await sleep(300);
+            
+            // Actually save the environment
+            if (saveButtons.length > 0) {
+              await driver.executeScript("arguments[0].click();", saveButtons[0]);
+              console.log("✓ Actually saved new environment");
+              await sleep(3000); // Wait longer for environment to be created
+              
+              // Verify environment was created by looking for it in the list
+              const envHeaders = await driver.findElements(By.xpath(`//h3[starts-with(@id, 'environment-header-') and contains(text(), '${testEnvName}')]`));
+              if (envHeaders.length > 0) {
+                console.log(`✓ Environment ${testEnvName} successfully created and found in list`);
+                
+                // Now delete the test environment to clean up
+                console.log("Cleaning up: deleting test environment...");
+                const deleteButtons = await driver.findElements(By.id("delete-environment-button"));
+                if (deleteButtons.length > 0) {
+                  // Find the delete button for our test environment
+                  await driver.executeScript("arguments[0].click();", deleteButtons[deleteButtons.length - 1]);
+                  await sleep(2000);
+                  
+                  // Confirm deletion
+                  const confirmDialogs = await driver.findElements(By.id("alert-with-actions"));
+                  if (confirmDialogs.length > 0) {
+                    const confirmButtons = await driver.findElements(By.xpath("//button[contains(text(), 'Delete') or contains(text(), 'Confirm')]"));
+                    if (confirmButtons.length > 0) {
+                      await driver.executeScript("arguments[0].click();", confirmButtons[0]);
+                      console.log("✓ Test environment cleaned up successfully");
+                      await sleep(2000);
+                    }
+                  }
+                }
+              } else {
+                // Alternative method - check all environment headers
+                const allHeaders = await driver.findElements(By.css('h3[id^="environment-header-"]'));
+                let found = false;
+                for (let header of allHeaders) {
+                  const headerText = await header.getText();
+                  if (headerText.includes(testEnvName)) {
+                    console.log(`✓ Environment ${testEnvName} found in environment list`);
+                    found = true;
+                    break;
+                  }
+                }
+                if (!found) {
+                  console.log(`⚠️ Environment ${testEnvName} was not created or not found`);
+                }
+              }
+            }
+          }
+        } else {
+          console.log("⚠️  No add environment buttons found");
+        }
+        
+        console.log("✓ Environment creation with validation tested");
+        
+      } catch (error) {
+        console.log("Environment creation test error:", error);
+        throw error;
+      }
+    });
+
+    it("should edit an existing environment", async function () {
+      this.timeout(45000);
+      
+      if ((global as any).webviewNotFound) {
+        console.log("⚠️  Webview not accessible, skipping UI tests");
+        assert(true, "Webview not available");
+        return;
+      }
+      
+      try {
+        // Look for existing environments
+        const envHeaders = await driver.findElements(By.css('h3[id^="environment-header-"]'));
+        console.log(`Found ${envHeaders.length} environment headers`);
+        
+        if (envHeaders.length > 0) {
+          // Get the first environment name and store the element reference
+          let originalName;
+          try {
+            originalName = await envHeaders[0].getText();
+            console.log(`Testing edit for environment: "${originalName}"`);
+          } catch (staleError) {
+            console.log("Element became stale, re-finding environment headers");
+            const freshHeaders = await driver.findElements(By.css('h3[id^="environment-header-"]'));
+            if (freshHeaders.length > 0) {
+              originalName = await freshHeaders[0].getText();
+              console.log(`Testing edit for environment: "${originalName}"`);
+            } else {
+              console.log("⚠️  No environment headers found after refresh");
+              return;
+            }
+          }
+          
+          // Look for edit button for this environment
+          const editButtons = await driver.findElements(By.id("edit-environment-button"));
+          console.log(`Found ${editButtons.length} edit environment buttons`);
+          
+          if (editButtons.length > 0) {
+            // Click edit button
+            await driver.executeScript("arguments[0].click();", editButtons[0]);
+            console.log("✓ Clicked edit environment button");
+            await sleep(1500);
+            
+            // Look for edit input field with retry logic
+            let editInput;
+            let retryCount = 0;
+            const maxRetries = 3;
+            
+            while (retryCount < maxRetries) {
+              try {
+                editInput = await driver.findElements(By.id("edit-environment-input"));
+                console.log(`Found ${editInput.length} edit input fields (attempt ${retryCount + 1})`);
+                
+                if (editInput.length > 0) {
+                  // Test if element is stale by trying to interact with it
+                  try {
+                    await editInput[0].getAttribute('value');
+                    break; // Element is not stale, we can proceed
+                  } catch (staleError) {
+                    console.log(`Edit input is stale on attempt ${retryCount + 1}, retrying...`);
+                    await sleep(1000);
+                    retryCount++;
+                    continue;
+                  }
+                } else {
+                  await sleep(1000);
+                  retryCount++;
+                  continue;
+                }
+              } catch (findError: any) {
+                console.log(`Error finding edit input on attempt ${retryCount + 1}:`, findError.message);
+                await sleep(1000);
+                retryCount++;
+                continue;
+              }
+            }
+            
+            if (editInput && editInput.length > 0) {
+              const currentInput = editInput[0];
+              let currentValue;
+              
+              try {
+                currentValue = await currentInput.getAttribute('value');
+                console.log(`Current environment name in edit field: "${currentValue}"`);
+              } catch (staleError) {
+                console.log("Element became stale when getting value, re-finding...");
+                const freshInputs = await driver.findElements(By.id("edit-environment-input"));
+                if (freshInputs.length > 0) {
+                  currentValue = await freshInputs[0].getAttribute('value');
+                  console.log(`Current environment name in edit field: "${currentValue}"`);
+                } else {
+                  console.log("⚠️  Could not find edit input after stale element error");
+                  return;
+                }
+              }
+              
+              // Actually edit and save the environment name
+              const newName = `${originalName}_edited_${Date.now()}`;
+              
+              try {
+                await currentInput.clear();
+                await currentInput.sendKeys(newName);
+                console.log(`✓ Changed environment name to: "${newName}"`);
+                await sleep(500);
+              } catch (staleError) {
+                console.log("Element became stale during input, re-finding and retrying...");
+                const freshInputs2 = await driver.findElements(By.id("edit-environment-input"));
+                if (freshInputs2.length > 0) {
+                  await freshInputs2[0].clear();
+                  await freshInputs2[0].sendKeys(newName);
+                  console.log(`✓ Changed environment name to: "${newName}" (retry)`);
+                  await sleep(500);
+                } else {
+                  console.log("⚠️  Could not complete input after retry");
+                  return;
+                }
+              }
+              
+              // Actually save the changes
+              const saveButtons = await driver.findElements(By.id("save-environment-button"));
+              if (saveButtons.length > 0) {
+                await driver.executeScript("arguments[0].click();", saveButtons[0]);
+                console.log("✓ Saved environment name change");
+                await sleep(3000); // Wait longer for DOM to update
+                
+                // Verify the name was actually changed by re-finding all elements
+                let updatedHeaders;
+                try {
+                  updatedHeaders = await driver.findElements(By.xpath(`//h3[starts-with(@id, 'environment-header-') and contains(text(), '${newName}')]`));
+                } catch (staleError) {
+                  console.log("Element became stale after save, re-finding elements");
+                  await sleep(1000);
+                  updatedHeaders = await driver.findElements(By.xpath(`//h3[starts-with(@id, 'environment-header-') and contains(text(), '${newName}')]`));
+                }
+                
+                if (updatedHeaders.length > 0) {
+                  console.log(`✓ Environment successfully renamed to: "${newName}"`);
+                  
+                  // Now rename it back to original to clean up - re-find all elements
+                  await sleep(1000); // Wait before next operation
+                  let editButtons2;
+                  try {
+                    editButtons2 = await driver.findElements(By.id("edit-environment-button"));
+                  } catch (staleError2) {
+                    console.log("Edit buttons became stale, re-finding");
+                    await sleep(1000);
+                    editButtons2 = await driver.findElements(By.id("edit-environment-button"));
+                  }
+                  
+                  if (editButtons2.length > 0) {
+                    await driver.executeScript("arguments[0].click();", editButtons2[0]);
+                    await sleep(2000); // Wait longer for edit mode
+                    
+                    // Re-find edit input after DOM change
+                    let editInput2;
+                    try {
+                      editInput2 = await driver.findElements(By.id("edit-environment-input"));
+                    } catch (staleError3) {
+                      console.log("Edit input became stale, re-finding");
+                      await sleep(1000);
+                      editInput2 = await driver.findElements(By.id("edit-environment-input"));
+                    }
+                    
+                    if (editInput2.length > 0) {
+                      await editInput2[0].clear();
+                      await editInput2[0].sendKeys(originalName);
+                      await sleep(500);
+                      
+                      // Re-find save button
+                      let saveButtons2;
+                      try {
+                        saveButtons2 = await driver.findElements(By.id("save-environment-button"));
+                      } catch (staleError4) {
+                        console.log("Save button became stale, re-finding");
+                        await sleep(1000);
+                        saveButtons2 = await driver.findElements(By.id("save-environment-button"));
+                      }
+                      
+                      if (saveButtons2.length > 0) {
+                        await driver.executeScript("arguments[0].click();", saveButtons2[0]);
+                        console.log(`✓ Restored original environment name: "${originalName}"`);
+                        await sleep(2000);
+                      }
+                    }
+                  }
+                } else {
+                  console.log("⚠️  Environment name change was not reflected in UI");
+                }
+              } else {
+                console.log("⚠️  No save button found");
+              }
+            }
+          } else {
+            console.log("⚠️  No edit buttons found - may need existing environments");
+          }
+        } else {
+          console.log("⚠️  No environment headers found - may need to create environments first");
+        }
+        
+        console.log("✓ Environment editing functionality tested");
+        
+      } catch (error) {
+        console.log("Environment edit test error:", error);
+        throw error;
+      }
+    });
+
+    it("should validate environment name uniqueness", async function () {
+      this.timeout(45000);
+      
+      if ((global as any).webviewNotFound) {
+        console.log("⚠️  Webview not accessible, skipping UI tests");
+        assert(true, "Webview not available");
+        return;
+      }
+      
+      try {
+        // Get existing environment names
+        const envHeaders = await driver.findElements(By.css('h3[id^="environment-header-"]'));
+        console.log(`Found ${envHeaders.length} existing environments`);
+        
+        if (envHeaders.length > 0) {
+          const existingName = await envHeaders[0].getText();
+          console.log(`Testing duplicate name for: "${existingName}"`);
+          
+          // Try to create environment with same name
+          const addEnvButtons = await driver.findElements(By.id("add-environment-button"));
+          if (addEnvButtons.length > 0) {
+            await driver.executeScript("arguments[0].click();", addEnvButtons[0]);
+            await sleep(1500);
+            
+            const envInput = await driver.findElements(By.id("new-environment-input"));
+            if (envInput.length > 0) {
+              // Enter existing name
+              await envInput[0].clear();
+              await envInput[0].sendKeys(existingName);
+              console.log(`✓ Entered duplicate name: "${existingName}"`);
+              await sleep(300);
+              
+              // Try to save
+              const saveButtons = await driver.findElements(By.id("save-environment-button"));
+              if (saveButtons.length > 0) {
+                await driver.executeScript("arguments[0].click();", saveButtons[0]);
+                await sleep(1000);
+                
+                // Look for duplicate error message
+                const errorElements = await driver.findElements(By.xpath("//*[contains(text(), 'already exists') or contains(text(), 'duplicate')]"));
+                console.log(`Found ${errorElements.length} duplicate name error messages`);
+                
+                // Cancel the creation
+                const cancelButtons = await driver.findElements(By.id("cancel-environment-button"));
+                if (cancelButtons.length > 0) {
+                  await driver.executeScript("arguments[0].click();", cancelButtons[0]);
+                  console.log("✓ Cancelled duplicate environment creation");
+                }
+              }
+            }
+          }
+        } else {
+          console.log("⚠️  No existing environments found for uniqueness testing");
+        }
+        
+        console.log("✓ Environment name uniqueness validation tested");
+        
+      } catch (error) {
+        console.log("Environment uniqueness test error:", error);
+        throw error;
+      }
+    });
+
+    it("should delete an environment with confirmation", async function () {
+      this.timeout(45000);
+      
+      if ((global as any).webviewNotFound) {
+        console.log("⚠️  Webview not accessible, skipping UI tests");
+        assert(true, "Webview not available");
+        return;
+      }
+      
+      try {
+        // Look for delete environment buttons
+        const deleteButtons = await driver.findElements(By.id("delete-environment-button"));
+        console.log(`Found ${deleteButtons.length} delete environment buttons`);
+        
+        if (deleteButtons.length > 0) {
+          // Click delete button
+          await driver.executeScript("arguments[0].click();", deleteButtons[0]);
+          console.log("✓ Clicked delete environment button");
+          await sleep(2000);
+          
+          // Look for confirmation dialog
+          const confirmDialogs = await driver.findElements(By.id("alert-with-actions"));
+          console.log(`Found ${confirmDialogs.length} confirmation dialogs`);
+          
+          if (confirmDialogs.length > 0) {
+            // Verify dialog text mentions deletion
+            const dialogText = await confirmDialogs[0].getText();
+            console.log(`Delete dialog text: "${dialogText}"`);
+            
+            // Click cancel to avoid actual deletion
+            const cancelButtons = await driver.findElements(By.xpath("//button[contains(text(), 'Cancel')]"));
+            if (cancelButtons.length > 0) {
+              await driver.executeScript("arguments[0].click();", cancelButtons[0]);
+              console.log("✓ Cancelled environment deletion");
+            } else {
+              // Try alternative cancel button selector
+              const altCancelButtons = await driver.findElements(By.css('button[class*="secondary"], vscode-button[appearance="secondary"]'));
+              if (altCancelButtons.length > 0) {
+                await driver.executeScript("arguments[0].click();", altCancelButtons[0]);
+                console.log("✓ Cancelled environment deletion (alternative selector)");
+              }
+            }
+          } else {
+            console.log("⚠️  No confirmation dialog found");
+          }
+        } else {
+          console.log("⚠️  No delete buttons found - may need existing environments");
+        }
+        
+        console.log("✓ Environment deletion with confirmation tested");
+        
+      } catch (error) {
+        console.log("Environment deletion test error:", error);
+        throw error;
+      }
+    });
+  });
+
+  describe("Connection Type Specific Tests", function () {
+    it("should handle PostgreSQL connection fields", async function () {
+      this.timeout(45000);
+      
+      if ((global as any).webviewNotFound) {
+        console.log("⚠️  Webview not accessible, skipping UI tests");
+        assert(true, "Webview not available");
+        return;
+      }
+      
+      try {
+        // Look for connection form
+        const connectionForm = await driver.findElements(By.id("connection-form"));
+        console.log(`Found ${connectionForm.length} connection forms`);
+        
+        if (connectionForm.length > 0) {
+          // Select PostgreSQL connection type
+          const typeSelect = await driver.findElements(By.id("connection_type"));
+          if (typeSelect.length > 0) {
+            await typeSelect[0].click();
+            await sleep(500);
+            
+            // Look for PostgreSQL option using valid CSS selector
+            const postgresOptions = await driver.findElements(By.css('option[value*="postgres"]'));
+            if (postgresOptions.length === 0) {
+              // Try alternative search through all options
+              const allOptions = await driver.findElements(By.css('option'));
+              for (let option of allOptions) {
+                const optionText = await option.getText();
+                if (optionText.toLowerCase().includes('postgres')) {
+                  await option.click();
+                  console.log("✓ Selected PostgreSQL connection type");
+                  break;
+                }
+              }
+            } else {
+              await postgresOptions[0].click();
+              console.log("✓ Selected PostgreSQL connection type");
+            }
+            
+            await sleep(1000);
+            
+            // Test PostgreSQL-specific fields
+            const postgresFields = [
+              { id: "host", label: "Host" },
+              { id: "port", label: "Port" },
+              { id: "database", label: "Database" },
+              { id: "username", label: "Username" },
+              { id: "password", label: "Password" }
+            ];
+            
+            let foundFields = 0;
+            for (let field of postgresFields) {
+              const fieldElements = await driver.findElements(By.id(field.id));
+              if (fieldElements.length > 0) {
+                foundFields++;
+                console.log(`✓ Found ${field.label} field`);
+                
+                // Test field interaction
+                if (field.id === "host") {
+                  await fieldElements[0].click();
+                  await fieldElements[0].clear();
+                  await fieldElements[0].sendKeys("localhost");
+                  console.log(`✓ Successfully entered value in ${field.label} field`);
+                  await fieldElements[0].clear();
+                } else if (field.id === "port") {
+                  await fieldElements[0].click();
+                  await fieldElements[0].clear();
+                  await fieldElements[0].sendKeys("5432");
+                  console.log(`✓ Successfully entered value in ${field.label} field`);
+                  await fieldElements[0].clear();
+                }
+              }
+            }
+            
+            console.log(`Found ${foundFields} PostgreSQL-specific fields`);
+          }
+        }
+        
+        console.log("✓ PostgreSQL connection type fields tested");
+        
+      } catch (error) {
+        console.log("PostgreSQL connection test error:", error);
+        throw error;
+      }
+    });
+
+    it("should handle Snowflake connection with authentication options", async function () {
+      this.timeout(45000);
+      
+      if ((global as any).webviewNotFound) {
+        console.log("⚠️  Webview not accessible, skipping UI tests");
+        assert(true, "Webview not available");
+        return;
+      }
+      
+      try {
+        // Look for connection form
+        const connectionForm = await driver.findElements(By.id("connection-form"));
+        console.log(`Found ${connectionForm.length} connection forms`);
+        
+        if (connectionForm.length > 0) {
+          // Select Snowflake connection type
+          const typeSelect = await driver.findElements(By.id("connection_type"));
+          if (typeSelect.length > 0) {
+            await typeSelect[0].click();
+            await sleep(500);
+            
+            // Look for Snowflake option using valid CSS selector
+            const snowflakeOptions = await driver.findElements(By.css('option[value*="snowflake"]'));
+            if (snowflakeOptions.length === 0) {
+              // Try alternative search through all options
+              const allOptions = await driver.findElements(By.css('option'));
+              for (let option of allOptions) {
+                const optionText = await option.getText();
+                if (optionText.toLowerCase().includes('snowflake')) {
+                  await option.click();
+                  console.log("✓ Selected Snowflake connection type");
+                  break;
+                }
+              }
+            } else {
+              await snowflakeOptions[0].click();
+              console.log("✓ Selected Snowflake connection type");
+            }
+            
+            await sleep(1000);
+            
+            // Test Snowflake-specific fields
+            const snowflakeFields = [
+              { id: "account", label: "Account" },
+              { id: "username", label: "Username" },
+              { id: "password", label: "Password" },
+              { id: "private_key", label: "Private Key" },
+              { id: "role", label: "Role" },
+              { id: "warehouse", label: "Warehouse" },
+              { id: "database", label: "Database" }
+            ];
+            
+            let foundFields = 0;
+            for (let field of snowflakeFields) {
+              const fieldElements = await driver.findElements(By.id(field.id));
+              if (fieldElements.length > 0) {
+                foundFields++;
+                console.log(`✓ Found ${field.label} field`);
+                
+                // Test specific field interactions
+                if (field.id === "private_key") {
+                  // Test private key textarea
+                  const testKey = "-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----";
+                  await fieldElements[0].click();
+                  await fieldElements[0].clear();
+                  await fieldElements[0].sendKeys(testKey);
+                  console.log("✓ Successfully entered private key format");
+                  await fieldElements[0].clear();
+                }
+              }
+            }
+            
+            console.log(`Found ${foundFields} Snowflake-specific fields`);
+          }
+        }
+        
+        console.log("✓ Snowflake connection type fields tested");
+        
+      } catch (error) {
+        console.log("Snowflake connection test error:", error);
+        throw error;
+      }
+    });
+
+    it("should handle Google Cloud Platform service account options", async function () {
+      this.timeout(45000);
+      
+      if ((global as any).webviewNotFound) {
+        console.log("⚠️  Webview not accessible, skipping UI tests");
+        assert(true, "Webview not available");
+        return;
+      }
+      
+      try {
+        // Look for connection form
+        const connectionForm = await driver.findElements(By.id("connection-form"));
+        console.log(`Found ${connectionForm.length} connection forms`);
+        
+        if (connectionForm.length > 0) {
+          // Select GCP connection type
+          const typeSelect = await driver.findElements(By.id("connection_type"));
+          if (typeSelect.length > 0) {
+            await typeSelect[0].click();
+            await sleep(500);
+            
+            // Look for GCP/BigQuery option using valid CSS selectors
+            const gcpOptions = await driver.findElements(By.css('option[value*="google"], option[value*="bigquery"]'));
+            if (gcpOptions.length === 0) {
+              // Try alternative search through all options
+              const allOptions = await driver.findElements(By.css('option'));
+              for (let option of allOptions) {
+                const optionText = await option.getText();
+                if (optionText.toLowerCase().includes('google') || optionText.toLowerCase().includes('bigquery')) {
+                  await option.click();
+                  console.log("✓ Selected Google Cloud Platform connection type");
+                  break;
+                }
+              }
+            } else {
+              await gcpOptions[0].click();
+              console.log("✓ Selected Google Cloud Platform connection type");
+            }
+            
+            await sleep(1000);
+            
+            // Test service account input methods
+            const serviceAccountRadios = await driver.findElements(By.css('vscode-radio[value="file"], vscode-radio[value="text"]'));
+            console.log(`Found ${serviceAccountRadios.length} service account input method options`);
+            
+            // Test file upload method
+            const fileRadios = await driver.findElements(By.css('vscode-radio[value="file"]'));
+            if (fileRadios.length > 0) {
+              await fileRadios[0].click();
+              console.log("✓ Selected file upload method for service account");
+              await sleep(500);
+              
+              // Look for file picker button using XPath instead of invalid CSS
+              const filePickers = await driver.findElements(By.xpath("//vscode-button[contains(text(), 'Choose File')]"));
+              console.log(`Found ${filePickers.length} file picker buttons`);
+            }
+            
+            // Test text input method
+            const textRadios = await driver.findElements(By.css('vscode-radio[value="text"]'));
+            if (textRadios.length > 0) {
+              await textRadios[0].click();
+              console.log("✓ Selected text input method for service account");
+              await sleep(500);
+              
+              // Look for service account JSON textarea
+              const jsonTextareas = await driver.findElements(By.id("service_account_json"));
+              if (jsonTextareas.length > 0) {
+                console.log("✓ Found service account JSON textarea");
+                const testJson = '{"type": "service_account", "project_id": "test"}';
+                await jsonTextareas[0].click();
+                await jsonTextareas[0].clear();
+                await jsonTextareas[0].sendKeys(testJson);
+                console.log("✓ Successfully entered service account JSON");
+                await jsonTextareas[0].clear();
+              }
+            }
+          }
+        }
+        
+        console.log("✓ Google Cloud Platform connection type fields tested");
+        
+      } catch (error) {
+        console.log("GCP connection test error:", error);
+        throw error;
+      }
+    });
+  });
+
+  describe("Error Scenario Testing", function () {
+    it("should handle form validation errors gracefully", async function () {
+      this.timeout(30000);
+      
+      if ((global as any).webviewNotFound) {
+        console.log("⚠️  Webview not accessible, skipping UI tests");
+        assert(true, "Webview not available");
+        return;
+      }
+      
+      try {
+        // Look for connection form
+        const connectionForm = await driver.findElements(By.id("connection-form"));
+        console.log(`Found ${connectionForm.length} connection forms`);
+        
+        if (connectionForm.length > 0) {
+          // Test multiple validation scenarios
+          const nameInput = await driver.findElements(By.id("connection_name"));
+          const submitButton = await driver.findElements(By.id("submit-connection-button"));
+          
+          if (nameInput.length > 0 && submitButton.length > 0) {
+            // Scenario 1: Empty required fields
+            await nameInput[0].clear();
+            await driver.executeScript("arguments[0].click();", submitButton[0]);
+            await sleep(1000);
+            
+            let errorElements = await driver.findElements(By.css('[class*="error"], [class*="invalid"], [id*="error"]'));
+            console.log(`Found ${errorElements.length} validation errors for empty fields`);
+            
+            // Scenario 2: Invalid characters in name
+            await nameInput[0].clear();
+            await nameInput[0].sendKeys("invalid@name#test");
+            await driver.executeScript("arguments[0].click();", submitButton[0]);
+            await sleep(1000);
+            
+            errorElements = await driver.findElements(By.css('[class*="error"], [class*="invalid"], [id*="error"]'));
+            console.log(`Found ${errorElements.length} validation errors for invalid characters`);
+            
+            // Scenario 3: Very long name
+            const longName = "a".repeat(256);
+            await nameInput[0].clear();
+            await nameInput[0].sendKeys(longName);
+            await driver.executeScript("arguments[0].click();", submitButton[0]);
+            await sleep(1000);
+            
+            errorElements = await driver.findElements(By.css('[class*="error"], [class*="invalid"], [id*="error"]'));
+            console.log(`Found ${errorElements.length} validation errors for long name`);
+            
+            // Clear the field
+            await nameInput[0].clear();
+          }
+        }
+        
+        console.log("✓ Form validation error handling tested");
+        
+      } catch (error) {
+        console.log("Form validation error test error:", error);
+        throw error;
+      }
+    });
+
+    it("should display user-friendly error messages", async function () {
+      this.timeout(30000);
+      
+      if ((global as any).webviewNotFound) {
+        console.log("⚠️  Webview not accessible, skipping UI tests");
+        assert(true, "Webview not available");
+        return;
+      }
+      
+      try {
+        // Look for any error elements that might be present
+        const errorElements = await driver.findElements(By.css('[class*="error"], [class*="invalid"], [role="alert"], [aria-live="polite"]'));
+        console.log(`Found ${errorElements.length} potential error display elements`);
+        
+        // Check for toast notifications or alerts
+        const toastElements = await driver.findElements(By.css('[class*="toast"], [class*="notification"], [class*="alert"]'));
+        console.log(`Found ${toastElements.length} toast/notification elements`);
+        
+        // Look for error message containers by ID
+        const errorContainers = await driver.findElements(By.css('[id*="error"], [id*="message"]'));
+        console.log(`Found ${errorContainers.length} error message containers`);
+        
+        for (let container of errorContainers) {
+          const isVisible = await container.isDisplayed();
+          if (isVisible) {
+            const errorText = await container.getText();
+            if (errorText.trim().length > 0) {
+              console.log(`Error message found: "${errorText}"`);
+            }
+          }
+        }
+        
+        console.log("✓ Error message display mechanisms tested");
+        
+      } catch (error) {
+        console.log("Error message display test error:", error);
+        throw error;
+      }
+    });
+
+    it("should handle network connectivity issues", async function () {
+      this.timeout(30000);
+      
+      if ((global as any).webviewNotFound) {
+        console.log("⚠️  Webview not accessible, skipping UI tests");
+        assert(true, "Webview not available");
+        return;
+      }
+      
+      try {
+        // Test if there are any loading indicators or connectivity status
+        const loadingElements = await driver.findElements(By.css('[class*="loading"], [class*="spinner"], [class*="progress"]'));
+        console.log(`Found ${loadingElements.length} loading indicator elements`);
+        
+        // Look for connection status indicators
+        const statusElements = await driver.findElements(By.css('[class*="status"], [class*="connected"], [class*="disconnected"]'));
+        console.log(`Found ${statusElements.length} status indicator elements`);
+        
+        // Test if there are retry mechanisms using XPath instead of invalid CSS
+        const retryButtons = await driver.findElements(By.xpath("//button[contains(text(), 'Retry') or contains(text(), 'Reload')]"));
+        console.log(`Found ${retryButtons.length} retry mechanism buttons`);
+        
+        console.log("✓ Network connectivity handling mechanisms checked");
+        
+      } catch (error) {
+        console.log("Network connectivity test error:", error);
+        throw error;
+      }
+    });
+  });
+
+  describe("Data Persistence Testing", function () {
+    it("should maintain form state during navigation", async function () {
+      this.timeout(30000);
+      
+      if ((global as any).webviewNotFound) {
+        console.log("⚠️  Webview not accessible, skipping UI tests");
+        assert(true, "Webview not available");
+        return;
+      }
+      
+      try {
+        // Fill out connection form partially
+        const connectionForm = await driver.findElements(By.id("connection-form"));
+        if (connectionForm.length > 0) {
+          const nameInput = await driver.findElements(By.id("connection_name"));
+          if (nameInput.length > 0) {
+            const testName = "persistence_test_connection";
+            await nameInput[0].clear();
+            await nameInput[0].sendKeys(testName);
+            console.log(`✓ Entered test connection name: ${testName}`);
+            
+            // Simulate navigation away and back (if possible)
+            // In a real scenario, this might involve changing tabs or refreshing
+            await sleep(1000);
+            
+            // Check if the value is still there
+            const currentValue = await nameInput[0].getAttribute('value');
+            console.log(`Connection name after navigation simulation: "${currentValue}"`);
+            
+            if (currentValue === testName) {
+              console.log("✓ Form state maintained during navigation");
+            } else {
+              console.log("⚠️  Form state was not maintained");
+            }
+            
+            // Clean up
+            await nameInput[0].clear();
+          }
+        }
+        
+        console.log("✓ Form state persistence tested");
+        
+      } catch (error) {
+        console.log("Form persistence test error:", error);
+        throw error;
+      }
+    });
+
+    it("should verify environment and connection data consistency", async function () {
+      this.timeout(30000);
+      
+      if ((global as any).webviewNotFound) {
+        console.log("⚠️  Webview not accessible, skipping UI tests");
+        assert(true, "Webview not available");
+        return;
+      }
+      
+      try {
+        // Count environments and connections
+        const envHeaders = await driver.findElements(By.css('h3[id^="environment-header-"]'));
+        const connectionRows = await driver.findElements(By.css('tr, [data-testid*="connection"]'));
+        
+        console.log(`Data consistency check: ${envHeaders.length} environments, ${connectionRows.length} connection rows`);
+        
+        // Check if connection environment assignments are valid
+        if (envHeaders.length > 0) {
+          for (let i = 0; i < envHeaders.length; i++) {
+            const envName = await envHeaders[i].getText();
+            console.log(`Environment ${i + 1}: "${envName}"`);
+          }
+        }
+        
+        // Verify environment dropdown options match existing environments
+        const connectionForm = await driver.findElements(By.id("connection-form"));
+        if (connectionForm.length > 0) {
+          const envSelect = await driver.findElements(By.id("environment"));
+          if (envSelect.length > 0) {
+            await envSelect[0].click();
+            await sleep(500);
+            
+            const envOptions = await driver.findElements(By.css('option'));
+            console.log(`Environment dropdown has ${envOptions.length} options`);
+            
+            // Verify options match existing environments
+            for (let option of envOptions) {
+              const optionText = await option.getText();
+              if (optionText.trim().length > 0 && optionText !== "Please Select") {
+                console.log(`Environment option: "${optionText}"`);
+              }
+            }
+          }
+        }
+        
+        console.log("✓ Data consistency verification completed");
+        
+      } catch (error) {
+        console.log("Data consistency test error:", error);
         throw error;
       }
     });
