@@ -2,7 +2,7 @@
   <div class="relative bg-editorWidget-bg shadow sm:rounded-lg p-4 max-w-2xl mx-auto">
     <form @submit.prevent="submitForm" class="w-full" novalidate>
       <div class="space-y-6 w-full">
-        <h3 class="text-lg font-medium text-editor-fg">
+        <h3 :id="isEditing ? 'edit-connection-form' : 'new-connection-form'" class="text-lg font-medium text-editor-fg">
           {{ isEditing ? "Edit Connection" : "New Connection" }}
         </h3>
         <div class="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-6">
@@ -31,7 +31,7 @@
         >
           Cancel
         </vscode-button>
-        <vscode-button type="submit" class="p-1 text-sm font-semibold" @click="submitForm">
+        <vscode-button :id="isEditing ? 'save-connection-button' : 'create-connection-button'" type="submit" class="p-1 text-sm font-semibold" @click="submitForm">
           {{ isEditing ? "Save Changes" : "Create" }}
         </vscode-button>
       </div>

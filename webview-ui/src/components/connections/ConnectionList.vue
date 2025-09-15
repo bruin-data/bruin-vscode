@@ -2,7 +2,7 @@
   <div class="max-w-7xl h-full mx-auto p-4">
     <div class="flex-col items-center">
       <div class="flex flex-col items-start space-y-2 mb-2">
-        <h2 class="text-xl font-semibold text-editor-fg">Connections</h2>
+        <h2 id="connections-title" class="text-xl font-semibold text-editor-fg">Connections</h2>
         <div v-if="!error" class="mt-2 flex items-start justify-between w-full">
           <div class="max-w-xl text-sm text-editor-fg">
             <p>
@@ -11,7 +11,7 @@
             </p>
           </div>
           <div class="flex items-center space-x-2">
-            <vscode-button @click="addNewEnvironment" 
+            <vscode-button id="add-environment-button" @click="addNewEnvironment" 
             class="font-semibold"
             appearance="secondary">
               <div class="flex items-center">
@@ -33,6 +33,7 @@
       <div class="flex items-center justify-between mb-2 group">
         <div class="flex flex-col items-start space-y-1">
           <input
+            id="environment-name-input"
             v-model="newEnvironmentName"
             @blur="saveNewEnvironment"
             @keyup.enter="saveNewEnvironment"
@@ -49,6 +50,7 @@
         </div>
         <div class="flex items-center space-x-2">
           <button
+            id="save-environment-button"
             @click="saveNewEnvironment"
             class="text-descriptionFg hover:text-editor-fg p-1"
             title="Save environment"
@@ -118,6 +120,7 @@
           <div class="flex items-center space-x-2">
             <input
               v-if="editingEnvironment === environment"
+              id="environment-edit-input"
               v-model="editingEnvironmentName"
               @blur="saveEnvironmentEdit"
               @keyup.enter="saveEnvironmentEdit"
@@ -129,6 +132,7 @@
             />
             <h3 
               v-else
+              :id="`environment-header-${environment}`"
               @dblclick="startEditingEnvironment(environment)"
               class="text-sm font-medium text-editor-fg font-mono cursor-pointer px-1 py-0.5"
             >
@@ -137,6 +141,7 @@
             <div class="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
               <button
                 v-if="editingEnvironment !== environment"
+                id="edit-environment-button"
                 @click="startEditingEnvironment(environment)"
                 class="text-descriptionFg hover:text-editor-fg p-1"
                 title="Edit Environment"
@@ -145,6 +150,7 @@
               </button>
               <button
                 v-if="editingEnvironment !== environment"
+                id="delete-environment-button"
                 @click="$emit('delete-environment', environment)"
                 class="text-descriptionFg opacity-70 hover:text-editorError-foreground p-1"
                 title="Delete Environment"
@@ -157,7 +163,7 @@
             {{ editEnvironmentError }}
           </div>
         </div>
-        <vscode-button @click="$emit('new-connection', environment)" class="font-semibold">
+        <vscode-button id="add-connection-button" @click="$emit('new-connection', environment)" class="font-semibold">
           <div class="flex items-center">
             <span class="codicon codicon-plus"></span> 
             <span class="ml-1">Connection</span>
@@ -207,6 +213,7 @@
                 <td class="w-1/5 whitespace-nowrap px-2 py-2 text-right text-sm font-medium">
                   <template v-if="!connection.isEmpty">
                     <button
+                      id="edit-connection-button"
                       @click="$emit('edit-connection', connection)"
                       class="text-descriptionFg hover:text-editor-fg mr-3"
                       title="Edit"
@@ -214,6 +221,7 @@
                       <PencilIcon class="h-4 w-4 inline-block" />
                     </button>
                     <button
+                      id="delete-connection-button"
                       @click="$emit('delete-connection', { name: connection.name, environment })"
                       class="text-descriptionFg opacity-70 hover:text-editorError-foreground"
                       title="Delete"
@@ -222,6 +230,7 @@
                     </button>
                     <div class="relative inline-block">
                       <button
+                        id="connection-menu-button"
                         @click="toggleMenu(connection.name, $event)"
                         class="text-descriptionFg hover:text-editor-fg"
                       >
@@ -234,6 +243,7 @@
                         ref="menuRef"
                       >
                         <button
+                          id="test-connection-button"
                           @click="handleTestConnection(connection)"
                           class="flex items-center w-full text-left px-3 py-2 text-sm text-editor-fg hover:bg-editor-button-hover-bg rounded-t"
                         >
@@ -241,6 +251,7 @@
                           <span>Test</span>
                         </button>
                         <button
+                          id="duplicate-connection-button"
                           @click="handleDuplicateConnection(connection)"
                           class="flex items-center w-full text-left px-3 py-2 text-sm text-editor-fg hover:bg-editor-button-hover-bg rounded-b"
                         >

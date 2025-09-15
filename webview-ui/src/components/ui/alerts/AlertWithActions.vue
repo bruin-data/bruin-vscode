@@ -1,6 +1,6 @@
 <template>
   <div class="fixed inset-0 flex items-center justify-center bg-editor-bg bg-opacity-75">
-    <div class="bg-editorWidget-bg rounded-lg p-6">
+    <div :id="title && title.includes('Connection') ? 'delete-connection-dialog' : 'delete-environment-dialog'" class="bg-editorWidget-bg rounded-lg p-6">
       <h3 v-if="title" class="text-lg font-medium text-editor-fg">{{ title }}</h3>
       <p class="mt-2 text-sm text-descriptionFg">
           {{ message }}
@@ -14,6 +14,7 @@
           Cancel
         </button>
         <button
+          :id="title && title.includes('Connection') ? 'confirm-delete-connection-button' : 'confirm-delete-environment-button'"
           @click="$emit('confirm')"
           class="bg-errorForeground hover:bg-editorError-foreground hover:text-editor-fg px-4 py-1 rounded text-editor-fg"
         >

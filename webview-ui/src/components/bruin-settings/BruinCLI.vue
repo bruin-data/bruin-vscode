@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-editorWidget-bg shadow sm:rounded-lg">
+  <div id="bruin-cli-section" class="bg-editorWidget-bg shadow sm:rounded-lg">
     <div class="p-4 sm:p-4">
       <div class="flex items-center justify-between">
         <h3 class="text-lg font-medium text-editor-fg">Bruin CLI Status</h3>

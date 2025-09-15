@@ -3,6 +3,7 @@ import { CheckCircleIcon, XCircleIcon } from '@heroicons/vue/24/outline';
 <template>
   <div
     v-if="status"
+    id="connection-test-status"
     class="fixed bottom-4 right-10 max-w-md p-2 border transition-all duration-300 transform"
     :class="statusClasses"
   >
