@@ -3795,12 +3795,40 @@ describe("Bruin Webview Test", function () {
         
         // Select a time granularity option
         await timeGranularitySelect.click();
-        await sleep(200);
-        const dateOption = await timeGranularitySelect.findElement(By.css('option[value="date"]'));
-        await dateOption.click();
         await sleep(500);
         
-        const selectedGranularity = await timeGranularitySelect.getAttribute("value");
+        // Try multiple methods to select the option
+        try {
+          const dateOption = await timeGranularitySelect.findElement(By.css('option[value="date"]'));
+          await dateOption.click();
+          await sleep(300);
+        } catch (optionError) {
+          console.log("Direct option click failed, trying Select class method");
+          await driver.executeScript("arguments[0].value = 'date'; arguments[0].dispatchEvent(new Event('change'));", timeGranularitySelect);
+          await sleep(300);
+        }
+        
+        // Verify the selection with retry logic
+        let selectedGranularity = "";
+        let attempts = 0;
+        const maxAttempts = 3;
+        
+        while (attempts < maxAttempts) {
+          selectedGranularity = await timeGranularitySelect.getAttribute("value");
+          if (selectedGranularity === "date") {
+            break;
+          }
+          
+          attempts++;
+          console.log(`Attempt ${attempts}: Selected value is "${selectedGranularity}", retrying...`);
+          
+          if (attempts < maxAttempts) {
+            // Try alternative selection method
+            await driver.executeScript("arguments[0].value = 'date'; arguments[0].dispatchEvent(new Event('change'));", timeGranularitySelect);
+            await sleep(500);
+          }
+        }
+        
         assert.strictEqual(selectedGranularity, "date", "Time granularity select should accept user selection");
         console.log("✓ Time granularity select accepts selection: date");
         

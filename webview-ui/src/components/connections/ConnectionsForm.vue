@@ -1,8 +1,8 @@
 <template>
   <div class="relative bg-editorWidget-bg shadow sm:rounded-lg p-4 max-w-2xl mx-auto">
-    <form @submit.prevent="submitForm" class="w-full" novalidate>
+    <form id="connection-form" @submit.prevent="submitForm" class="w-full" novalidate>
       <div class="space-y-6 w-full">
-        <h3 class="text-lg font-medium text-editor-fg">
+        <h3 id="connection-form-title" class="text-lg font-medium text-editor-fg">
           {{ isEditing ? "Edit Connection" : "New Connection" }}
         </h3>
         <div class="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-6">
@@ -25,13 +25,14 @@
       </div>
       <div class="mt-6 flex justify-end space-x-1 w-full">
         <vscode-button
+          id="cancel-connection-button"
           appearance="secondary"
           @click="$emit('cancel')"
           class="p-1 text-sm font-semibold"
         >
           Cancel
         </vscode-button>
-        <vscode-button type="submit" class="p-1 text-sm font-semibold" @click="submitForm">
+        <vscode-button id="submit-connection-button" type="submit" class="p-1 text-sm font-semibold" @click="submitForm">
           {{ isEditing ? "Save Changes" : "Create" }}
         </vscode-button>
       </div>

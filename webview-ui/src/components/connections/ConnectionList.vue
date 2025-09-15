@@ -2,7 +2,7 @@
   <div class="max-w-7xl h-full mx-auto p-4">
     <div class="flex-col items-center">
       <div class="flex flex-col items-start space-y-2 mb-2">
-        <h2 class="text-xl font-semibold text-editor-fg">Connections</h2>
+        <h2 id="connections-heading" class="text-xl font-semibold text-editor-fg">Connections</h2>
         <div v-if="!error" class="mt-2 flex items-start justify-between w-full">
           <div class="max-w-xl text-sm text-editor-fg">
             <p>
@@ -11,7 +11,7 @@
             </p>
           </div>
           <div class="flex items-center space-x-2">
-            <vscode-button @click="addNewEnvironment" 
+            <vscode-button id="add-environment-button" @click="addNewEnvironment" 
             class="font-semibold"
             appearance="secondary">
               <div class="flex items-center">
@@ -33,6 +33,7 @@
       <div class="flex items-center justify-between mb-2 group">
         <div class="flex flex-col items-start space-y-1">
           <input
+            id="new-environment-input"
             v-model="newEnvironmentName"
             @blur="saveNewEnvironment"
             @keyup.enter="saveNewEnvironment"
@@ -43,12 +44,13 @@
             :class="{ 'border-editorError-foreground': newEnvironmentError }"
             ref="newEnvironmentInput"
           />
-          <div v-if="newEnvironmentError" class="text-xs text-editorError-foreground px-1">
+          <div v-if="newEnvironmentError" id="new-environment-error" class="text-xs text-editorError-foreground px-1">
             {{ newEnvironmentError }}
           </div>
         </div>
         <div class="flex items-center space-x-2">
           <button
+            id="save-environment-button"
             @click="saveNewEnvironment"
             class="text-descriptionFg hover:text-editor-fg p-1"
             title="Save environment"
@@ -56,6 +58,7 @@
             <span class="codicon codicon-check text-sm"></span>
           </button>
           <button
+            id="cancel-environment-button"
             @click="cancelNewEnvironment"
             class="text-descriptionFg opacity-70 hover:text-editorError-foreground p-1"
             title="Cancel"
@@ -66,7 +69,7 @@
       </div>
       <div class="relative bg-editorWidget-bg">
         <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-commandCenter-border">
+          <table id="new-environment-connections-table" class="min-w-full divide-y divide-commandCenter-border">
             <thead>
               <tr>
                 <th
@@ -117,6 +120,7 @@
         <div class="flex flex-col items-start space-y-1">
           <div class="flex items-center space-x-2">
             <input
+              id="edit-environment-input"
               v-if="editingEnvironment === environment"
               v-model="editingEnvironmentName"
               @blur="saveEnvironmentEdit"
@@ -129,6 +133,7 @@
             />
             <h3 
               v-else
+              :id="`environment-header-${environment}`"
               @dblclick="startEditingEnvironment(environment)"
               class="text-sm font-medium text-editor-fg font-mono cursor-pointer px-1 py-0.5"
             >
@@ -136,6 +141,7 @@
             </h3>
             <div class="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
               <button
+                id="edit-environment-button"
                 v-if="editingEnvironment !== environment"
                 @click="startEditingEnvironment(environment)"
                 class="text-descriptionFg hover:text-editor-fg p-1"
@@ -144,6 +150,7 @@
                 <PencilIcon class="h-4 w-4 inline-block" />
               </button>
               <button
+                id="delete-environment-button"
                 v-if="editingEnvironment !== environment"
                 @click="$emit('delete-environment', environment)"
                 class="text-descriptionFg opacity-70 hover:text-editorError-foreground p-1"
@@ -153,7 +160,7 @@
               </button>
             </div>
           </div>
-          <div v-if="editingEnvironment === environment && editEnvironmentError" class="text-xs text-editorError-foreground px-1">
+          <div v-if="editingEnvironment === environment && editEnvironmentError" id="edit-environment-error" class="text-xs text-editorError-foreground px-1">
             {{ editEnvironmentError }}
           </div>
         </div>
@@ -166,7 +173,7 @@
       </div>
       <div class="relative bg-editorWidget-bg">
         <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-commandCenter-border">
+          <table id="connections-table" class="min-w-full divide-y divide-commandCenter-border">
             <thead>
               <tr>
                 <th
