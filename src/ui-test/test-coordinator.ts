@@ -1,18 +1,19 @@
-/**
- * Simple test coordination to prevent resource conflicts when running multiple UI tests
- */
+// test-coordinator.ts
+
 import { Workbench } from "vscode-extension-tester";
+import { TimeoutError } from "selenium-webdriver/lib/error";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export class TestCoordinator {
   private static testCount = 0;
-  private static readonly TEST_ISOLATION_DELAY = 5000; // 5 seconds between tests
+  private static readonly TEST_ISOLATION_DELAY = 8000;
+  private static workbench: Workbench | null = null;
   
-  /**
-   * Call this at the beginning of each test suite's before() hook
-   * Ensures proper sequencing and isolation between tests
-   */
+  static setWorkbench(workbench: Workbench) {
+    this.workbench = workbench;
+  }
+  
   static async acquireTestSlot(testName: string): Promise<void> {
     this.testCount++;
     const currentTest = this.testCount;
@@ -27,71 +28,71 @@ export class TestCoordinator {
     console.log(`[TEST-COORDINATOR] Test ${currentTest} (${testName}) proceeding with setup`);
   }
   
-  /**
-   * Aggressively clean all open editors and reset VS Code state
-   */
-  static async performDeepCleanup(): Promise<void> {
-    try {
-      const workbench = new Workbench();
-      
-      console.log("[TEST-COORDINATOR] Starting deep cleanup...");
-      
-      // Close all editors multiple times to handle stubborn tabs
-      for (let i = 0; i < 3; i++) {
-        await workbench.executeCommand("workbench.action.closeAllEditors");
-        await sleep(500);
-      }
-      
-      // Close panels and sidebars
-      const cleanupCommands = [
-        "workbench.action.closePanel",
-        "workbench.action.closeSidebar",
-        "workbench.action.closeAuxiliaryBar",
-        "workbench.action.closeWalkthrough",
-        "workbench.welcome.close",
-        "gettingStarted.hideCategory"
-      ];
-      
-      for (const command of cleanupCommands) {
-        try {
-          await workbench.executeCommand(command);
-          await sleep(200);
-        } catch (error) {
-          // Command might not exist, ignore
-        }
-      }
-      
-      // Final editor check and forced cleanup
-      const editorView = workbench.getEditorView();
-      const remainingTitles = await editorView.getOpenEditorTitles();
-      
-      if (remainingTitles.length > 0) {
-        console.log(`[TEST-COORDINATOR] Force closing ${remainingTitles.length} remaining editors:`, remainingTitles);
-        
-        for (const title of remainingTitles) {
-          try {
-            await editorView.closeEditor(title);
-            await sleep(200);
-          } catch (error) {
-            console.log(`[TEST-COORDINATOR] Could not close ${title}:`, error);
-          }
-        }
-      }
-      
-      console.log("[TEST-COORDINATOR] Deep cleanup completed");
-    } catch (error) {
-      console.log("[TEST-COORDINATOR] Error during deep cleanup:", error);
+  static async deepCleanUp(testName: string): Promise<void> {
+    if (!this.workbench) {
+      console.log(`[CLEANUP] Workbench instance not set. Skipping deep cleanup.`);
+      return;
     }
+    
+    console.log(`[TEST-COORDINATOR] Test ${testName}: Starting deep cleanup...`);
+    
+    // Retry closing editors until none are left
+    const maxRetries = 5;
+    let retryCount = 0;
+    
+    while (retryCount < maxRetries) {
+      try {
+        const editorView = this.workbench.getEditorView();
+        const openEditors = await editorView.getOpenEditorTitles();
+        if (openEditors.length === 0) {
+          console.log("✓ All editors closed successfully.");
+          break; // Exit the loop if all editors are closed
+        }
+
+        console.log(`[CLEANUP] Found ${openEditors.length} open editors. Closing...`);
+        await this.workbench.executeCommand("workbench.action.closeAllEditors");
+        await sleep(2000); // Wait for the command to execute
+        
+      } catch (error) {
+        console.log(`[CLEANUP] Error during editor close attempt:`, error);
+        await sleep(1000); // Wait and retry
+      }
+      retryCount++;
+    }
+
+    if (retryCount >= maxRetries) {
+      console.log("⚠️ Editor cleanup failed after multiple retries. Continuing...");
+    }
+    
+    // Attempt to close any remaining walkthrough or welcome screens
+    const disableCommands = [
+      "workbench.action.closeWalkthrough",
+      "workbench.welcome.close",
+      "gettingStarted.hideCategory",
+      "workbench.action.closePanel",
+      "workbench.action.closeSidebar",
+      "workbench.action.closeAuxiliaryBar"
+    ];
+    for (const command of disableCommands) {
+      try {
+        await this.workbench.executeCommand(command);
+        await sleep(200);
+      } catch (error) {
+        // Ignore errors if the command doesn't exist or fails
+      }
+    }
+    
+    // Add a final wait to ensure the UI is idle
+    await sleep(2000);
+    
+    console.log(`[TEST-COORDINATOR] Test ${testName}: Deep cleanup finished.`);
   }
 
   static async releaseTestSlot(testName: string): Promise<void> {
     this.testCount--;
     console.log(`[TEST-COORDINATOR] Test completed: ${testName}. Remaining tests to finish: ${this.testCount}`);
     
-    // Perform deep cleanup after each test
-    await this.performDeepCleanup();
-    
-    // Add a delay to ensure cleanup operations complete
-    await sleep(2000);
+    // Perform a comprehensive cleanup of the environment
+    await this.deepCleanUp(testName);
   }
 }
