@@ -30,6 +30,7 @@ describe("Bruin Webview Test", function () {
 
     // Initialize Workbench and compute paths
     workbench = new Workbench();
+    TestCoordinator.setWorkbench(workbench);
     const repoRoot = process.env.REPO_ROOT || path.resolve(__dirname, "../../");
     testWorkspacePath = path.join(repoRoot, "out", "ui-test", "test-pipeline");
     testAssetFilePath = path.join(testWorkspacePath, "assets", "example.sql");
@@ -295,15 +296,30 @@ describe("Bruin Webview Test", function () {
       console.log("Could not verify active editor:", error);
     }
 
+    // Dismiss any modal dialogs first  
+    await TestCoordinator.dismissModalDialogs();
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    
     // Try to activate the extension first with multiple attempts
     let commandExecuted = false;
-    try {
-      await workbench.executeCommand("bruin.renderSQL");
-      console.log(`Successfully executed bruin.renderSQL command`);
-      commandExecuted = true;
-    } catch (error: any) {
-      console.log(`Error executing bruin.renderSQL command:`, error.message);
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        console.log(`Extension activation attempt ${attempt}/3...`);
+        await workbench.executeCommand("bruin.renderSQL");
+        console.log(`Successfully executed bruin.renderSQL command`);
+        commandExecuted = true;
+        break;
+      } catch (error: any) {
+        console.log(`Attempt ${attempt} failed:`, error.message);
+        
+        // Try dismissing modals between attempts
+        if (attempt < 3) {
+          await TestCoordinator.dismissModalDialogs();
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+        }
+      }
     }
+    
     if (!commandExecuted) {
       console.log("⚠️  No Bruin commands could be executed - extension may not be loaded");
       

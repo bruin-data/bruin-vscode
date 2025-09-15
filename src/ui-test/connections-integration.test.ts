@@ -28,6 +28,7 @@ describe("Connections Integration Test", function () {
 
     // Initialize Workbench and compute paths
     workbench = new Workbench();
+    TestCoordinator.setWorkbench(workbench);
     const repoRoot = process.env.REPO_ROOT || path.resolve(__dirname, "../../");
     testWorkspacePath = path.join(repoRoot, "out", "ui-test", "test-pipeline");
     testFilePath = path.join(testWorkspacePath, ".bruin.yml");

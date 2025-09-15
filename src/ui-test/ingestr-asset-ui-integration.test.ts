@@ -157,6 +157,7 @@ describe("Ingestr Asset Display Integration Tests", function () {
 
     // Initialize Workbench and compute paths
     workbench = new Workbench();
+    TestCoordinator.setWorkbench(workbench);
     const repoRoot = process.env.REPO_ROOT || path.resolve(__dirname, "../../");
     testWorkspacePath = path.join(repoRoot, "out", "ui-test", "test-pipeline");
     testAssetFilePath = path.join(testWorkspacePath, "assets", "test-ingestr.asset.yml");
