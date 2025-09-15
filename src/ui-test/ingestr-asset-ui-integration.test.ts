@@ -320,25 +320,21 @@ describe("Ingestr Asset Display Integration Tests", function () {
     await editorView.openEditor(assetFile);
     await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait for focus
     
-    // Try to activate the extension first with multiple attempts
+    // Try to activate the extension by executing the bruin.renderSQL command
     let commandExecuted = false;
-    const commands = ["bruin.renderSQL", "bruin.render", "bruin.openAssetPanel"];
+    const command = "bruin.renderSQL";
     
-    for (const command of commands) {
-      try {
-        await workbench.executeCommand(command);
-        console.log(`Successfully executed ${command} command`);
-        commandExecuted = true;
-        break;
-      } catch (error: any) {
-        console.log(`Error executing ${command} command:`, error.message);
-      }
+    try {
+      await workbench.executeCommand(command);
+      console.log(`Successfully executed ${command} command`);
+      commandExecuted = true;
+    } catch (error: any) {
+      console.log(`Error executing ${command} command:`, error.message);
     }
     
     if (!commandExecuted) {
       console.log("⚠️  No Bruin commands could be executed - extension may not be loaded");
     }
-    
     // Wait longer for the webview to initialize  
     console.log("Waiting for webview to initialize after command execution...");
     await new Promise((resolve) => setTimeout(resolve, 8000));

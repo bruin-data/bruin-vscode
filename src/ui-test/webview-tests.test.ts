@@ -297,19 +297,13 @@ describe("Bruin Webview Test", function () {
 
     // Try to activate the extension first with multiple attempts
     let commandExecuted = false;
-    const commands = ["bruin.renderSQL", "bruin.render", "bruin.openAssetPanel"];
-    
-    for (const command of commands) {
-      try {
-        await workbench.executeCommand(command);
-        console.log(`Successfully executed ${command} command`);
-        commandExecuted = true;
-        break;
-      } catch (error: any) {
-        console.log(`Error executing ${command} command:`, error.message);
-      }
+    try {
+      await workbench.executeCommand("bruin.renderSQL");
+      console.log(`Successfully executed bruin.renderSQL command`);
+      commandExecuted = true;
+    } catch (error: any) {
+      console.log(`Error executing bruin.renderSQL command:`, error.message);
     }
-    
     if (!commandExecuted) {
       console.log("⚠️  No Bruin commands could be executed - extension may not be loaded");
       
