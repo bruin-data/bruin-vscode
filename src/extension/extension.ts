@@ -661,21 +661,31 @@ export async function activate(context: ExtensionContext) {
   console.debug(`Bruin activated successfully in ${activationTime}ms`);
   console.timeEnd("Bruin Activation Total");
 
-  // Show walkthrough on first activation
+  // Show walkthrough on first activation (unless in test environment)
   if (isFirstActivation) {
     await context.globalState.update('bruin.hasActivated', true);
     
-    // Show walkthrough when extension is first installed
-    // Use a longer delay to ensure VS Code is fully loaded
-    setTimeout(() => {
-      vscode.commands.executeCommand('workbench.action.openWalkthrough', 'bruin.bruin-getting-started', true);
-    }, 3000);
+    // Check if we're in a test environment by looking for test-specific settings
+    const workbenchConfig = workspace.getConfiguration("workbench");
+    const walkthroughsDisabled = workbenchConfig.get<boolean>("welcomePage.walkthroughs.openOnInstall") === false;
+    const startupEditorNone = workbenchConfig.get<string>("startupEditor") === "none";
+    const isTestEnvironment = walkthroughsDisabled || startupEditorNone || process.env.NODE_ENV === 'test';
     
-    // Also show immediately if welcome tab is active
-    if (vscode.window.tabGroups.activeTabGroup.activeTab?.label === 'Welcome') {
+    if (!isTestEnvironment) {
+      // Show walkthrough when extension is first installed
+      // Use a longer delay to ensure VS Code is fully loaded
       setTimeout(() => {
         vscode.commands.executeCommand('workbench.action.openWalkthrough', 'bruin.bruin-getting-started', true);
-      }, 500);
+      }, 3000);
+      
+      // Also show immediately if welcome tab is active
+      if (vscode.window.tabGroups.activeTabGroup.activeTab?.label === 'Welcome') {
+        setTimeout(() => {
+          vscode.commands.executeCommand('workbench.action.openWalkthrough', 'bruin.bruin-getting-started', true);
+        }, 500);
+      }
+    } else {
+      console.log('Skipping walkthrough in test environment');
     }
   }
 

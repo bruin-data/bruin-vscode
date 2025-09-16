@@ -8,3 +8,5 @@ node_modules
 bruinPythonAsset.py
 example.txt
 integration-test-coverage-analysis.csv
+generate-coverage-analysis.js
+real-coverage-calculator.js

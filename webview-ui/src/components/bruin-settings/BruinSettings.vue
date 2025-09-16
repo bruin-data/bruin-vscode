@@ -7,6 +7,7 @@
     <div v-if="isBruinInstalled && !settingsOnlyMode" class="bg-editorWidget-bg shadow sm:rounded-lg">
       <ConnectionsList
         :connections="connections"
+        :environments="environmentsList"
         @new-connection="showConnectionForm"
         @edit-connection="showConnectionForm"
         @delete-connection="confirmDeleteConnection"
