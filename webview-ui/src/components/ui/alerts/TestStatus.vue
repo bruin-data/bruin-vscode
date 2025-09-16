@@ -1,13 +1,11 @@
-import { CheckCircleIcon, XCircleIcon } from '@heroicons/vue/24/outline';
-
 <template>
   <div
     v-if="status"
-    class="fixed bottom-4 right-10 max-w-md p-2 border transition-all duration-300 transform"
+    class="fixed bottom-4 right-4 max-w-md p-4 border rounded-lg shadow-lg z-50"
     :class="statusClasses"
   >
     <div class="flex items-center space-x-3">
-      <template v-if="status == 'loading'">
+      <template v-if="status === 'loading'">
         <svg
           class="animate-spin h-5 w-5 text-editor-fg"
           xmlns="http://www.w3.org/2000/svg"
@@ -32,7 +30,7 @@ import { CheckCircleIcon, XCircleIcon } from '@heroicons/vue/24/outline';
       </template>
       <CheckCircleIcon v-if="status === 'success'" class="h-6 w-6 text-green-500" />
       <XCircleIcon v-if="status === 'failure'" class="h-6 w-6 text-red-500" />
-      <ExclamationCircleIcon v-if="status === 'unsupported'" class="h-6 w-6 text-editor-fg" />
+      <ExclamationCircleIcon v-if="status === 'unsupported'" class="h-6 w-6 text-yellow-500" />
       <div class="flex-1">
         <p class="text-sm font-medium" :class="textColorClass">
           {{ message }}
@@ -49,6 +47,7 @@ import { CheckCircleIcon, XCircleIcon } from '@heroicons/vue/24/outline';
 <script setup>
 import { computed, watch, onUnmounted } from "vue";
 import { XMarkIcon, CheckCircleIcon, XCircleIcon, ExclamationCircleIcon } from "@heroicons/vue/24/outline";
+
 const props = defineProps({
   status: {
     type: String,
@@ -77,18 +76,19 @@ const props = defineProps({
 
 const emit = defineEmits(["dismiss"]);
 
-// Computed classes based on status
+// Computed classes based on status - using VS Code theme colors
 const statusClasses = computed(() => ({
   "bg-editorWidget-bg border-green-500": props.status === "success",
   "bg-editorWidget-bg border-red-500": props.status === "failure",
-  "bg-editorWidget-bg border-editorWidget-fg": props.status === "loading",
-  "bg-editorWidget-bg border-editorWidget-fg": props.status === "unsupported",
+  "bg-editorWidget-bg border-blue-500": props.status === "loading",
+  "bg-editorWidget-bg border-yellow-500": props.status === "unsupported",
 }));
 
 const textColorClass = computed(() => ({
   "text-green-500": props.status === "success",
   "text-red-500": props.status === "failure",
-  "text-editor-fg": !props.status,
+  "text-blue-500": props.status === "loading",
+  "text-yellow-500": props.status === "unsupported",
 }));
 
 // Computed message based on status
@@ -135,3 +135,17 @@ onUnmounted(() => {
   }
 });
 </script>
+
+<style scoped>
+/* Ensure the notification appears above all other content */
+.fixed {
+  position: fixed !important;
+  z-index: 9999 !important;
+}
+
+/* Ensure solid background using VS Code theme colors */
+.bg-editorWidget-bg {
+  background-color: var(--vscode-editorWidget-background) !important;
+  border-color: var(--vscode-editorWidget-border) !important;
+}
+</style>
