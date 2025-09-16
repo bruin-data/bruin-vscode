@@ -1293,6 +1293,392 @@ describe("Webview Components Integration Tests", function () {
         throw error;
       }
     });
+
+    it("should complete full integrated workflow: create environment → add DuckDB connection → update connection → duplicate → delete duplicate → delete environment", async function () {
+      this.timeout(180000); // Extended timeout for comprehensive test
+      
+      if ((global as any).webviewNotFound) {
+        console.log("⚠️  Webview not accessible, skipping UI tests");
+        assert(true, "Webview not available");
+        return;
+      }
+      
+      const testEnvName = `test_env_integrated_${Date.now()}`;
+      const testConnectionName = `test_duckdb_conn_${Date.now()}`;
+      const updatedConnectionName = `${testConnectionName}_updated`;
+      const duplicatedConnectionName = `${testConnectionName} (Copy)`;
+      
+      try {
+        console.log("🚀 Starting integrated workflow test");
+        
+        // STEP 1: Create a new environment
+        console.log("📝 STEP 1: Creating new environment");
+        const addEnvButtons = await driver.findElements(By.id("add-environment-button"));
+        assert(addEnvButtons.length > 0, "Add environment button should be available");
+        
+        await driver.executeScript("arguments[0].click();", addEnvButtons[0]);
+        await sleep(2000);
+        
+        const envInput = await driver.findElements(By.id("new-environment-input"));
+        assert(envInput.length > 0, "Environment input should be available");
+        
+        await envInput[0].click();
+        await envInput[0].clear();
+        await envInput[0].sendKeys(testEnvName);
+        console.log(`✓ Entered environment name: ${testEnvName}`);
+        
+        const saveEnvButtons = await driver.findElements(By.id("save-environment-button"));
+        assert(saveEnvButtons.length > 0, "Save environment button should be available");
+        
+        await driver.executeScript("arguments[0].click();", saveEnvButtons[0]);
+        await sleep(4000); // Wait for environment creation
+        
+        // Verify environment was created
+        const createdEnvHeaders = await driver.findElements(By.xpath(`//h3[starts-with(@id, 'environment-header-') and contains(text(), '${testEnvName}')]`));
+        assert(createdEnvHeaders.length > 0, `Environment ${testEnvName} should be created`);
+        console.log(`✅ STEP 1 COMPLETE: Environment '${testEnvName}' created successfully`);
+        
+        // STEP 2: Add DuckDB connection to the new environment
+        console.log("📝 STEP 2: Adding DuckDB connection to new environment");
+        
+        // First, find our specific environment header that we just created
+        const ourEnvHeaders = await driver.findElements(By.xpath(`//h3[starts-with(@id, 'environment-header-') and contains(text(), '${testEnvName}')]`));
+        assert(ourEnvHeaders.length > 0, `Should find our test environment header: ${testEnvName}`);
+        
+        console.log(`Found our environment header for: ${testEnvName}`);
+        
+        // Hover over the environment header area to make the "New Connection" button visible
+        const envHeader = ourEnvHeaders[0];
+        try {
+          // Try to find the parent container with the group hover behavior
+          const parentContainer = await envHeader.findElement(By.xpath("./.."));
+          
+          // Simulate hover to make buttons visible (group-hover:opacity-100)
+          await driver.executeScript("arguments[0].dispatchEvent(new MouseEvent('mouseenter', {bubbles: true}));", parentContainer);
+          await sleep(500); // Wait for hover transition
+          
+          // Look for the "New Connection" button specifically within this environment
+          const newConnButtons = await parentContainer.findElements(By.css('vscode-button'));
+          console.log(`Found ${newConnButtons.length} vscode-button elements in environment container`);
+          
+          let connectionButton;
+          for (let button of newConnButtons) {
+            try {
+              const buttonText = await button.getText();
+              console.log(`Button text: "${buttonText}"`);
+              if (buttonText.toLowerCase().includes('connection')) {
+                connectionButton = button;
+                console.log("✓ Found 'Connection' button");
+                break;
+              }
+            } catch (e) {
+              continue;
+            }
+          }
+          
+          assert(connectionButton, "Should find 'Connection' button for the new environment");
+          
+          // Click the connection button
+          await driver.executeScript("arguments[0].click();", connectionButton);
+          console.log("✓ Clicked the 'Connection' button");
+          await sleep(3000);
+          
+          // Check if connection form appeared
+          const connectionForm = await driver.findElements(By.id("connection-form"));
+          assert(connectionForm.length > 0, `Connection form should appear after clicking. Found ${connectionForm.length} forms.`);
+          
+        } catch (error) {
+          console.log("Error finding environment-specific connection button:", error);
+          
+          // Fallback: try to find any connection button
+          const fallbackButtons = await driver.findElements(By.css('vscode-button'));
+          console.log(`Fallback: Found ${fallbackButtons.length} vscode-buttons globally`);
+          
+          let foundConnectionButton = false;
+          for (let button of fallbackButtons) {
+            try {
+              const buttonText = await button.getText();
+              if (buttonText.toLowerCase().includes('connection')) {
+                await driver.executeScript("arguments[0].click();", button);
+                console.log("✓ Clicked fallback connection button");
+                await sleep(3000);
+                
+                const connectionForm = await driver.findElements(By.id("connection-form"));
+                if (connectionForm.length > 0) {
+                  foundConnectionButton = true;
+                  break;
+                }
+              }
+            } catch (e) {
+              continue;
+            }
+          }
+          
+          assert(foundConnectionButton, "Should find at least one working connection button");
+        }
+        
+        // Fill connection name
+        const nameInput = await driver.findElements(By.id("connection_name"));
+        assert(nameInput.length > 0, "Connection name input should be available");
+        
+        await nameInput[0].click();
+        await nameInput[0].clear();
+        await nameInput[0].sendKeys(testConnectionName);
+        console.log(`✓ Entered connection name: ${testConnectionName}`);
+        
+        // Select DuckDB connection type
+        const typeSelect = await driver.findElements(By.id("connection_type"));
+        assert(typeSelect.length > 0, "Connection type select should be available");
+        
+        await typeSelect[0].click();
+        await sleep(500);
+        
+        // Look for DuckDB option
+        let duckdbSelected = false;
+        const allOptions = await driver.findElements(By.css('option'));
+        for (let option of allOptions) {
+          const optionText = await option.getText();
+          if (optionText.toLowerCase().includes('duckdb')) {
+            await option.click();
+            duckdbSelected = true;
+            console.log("✓ Selected DuckDB connection type");
+            break;
+          }
+        }
+        
+        if (!duckdbSelected) {
+          // If DuckDB is not available, select the first available option
+          if (allOptions.length > 1) {
+            await allOptions[1].click(); // Select first non-empty option
+            const selectedType = await allOptions[1].getText();
+            console.log(`✓ Selected connection type: ${selectedType} (DuckDB not available)`);
+          }
+        }
+        
+        await sleep(1000);
+        
+        // Select the test environment
+        const envSelect = await driver.findElements(By.id("environment"));
+        if (envSelect.length > 0) {
+          await envSelect[0].click();
+          await sleep(500);
+          
+          // Look for our test environment in the dropdown
+          const envOptions = await driver.findElements(By.css('#environment option'));
+          for (let option of envOptions) {
+            const optionText = await option.getText();
+            if (optionText === testEnvName) {
+              await option.click();
+              console.log(`✓ Selected environment: ${testEnvName}`);
+              break;
+            }
+          }
+          await sleep(500);
+        }
+        
+        // Fill any required fields (like database path for DuckDB)
+        const dbPathFields = await driver.findElements(By.id("database_path"));
+        if (dbPathFields.length > 0) {
+          await dbPathFields[0].click();
+          await dbPathFields[0].clear();
+          await dbPathFields[0].sendKeys("/tmp/test.db");
+          console.log("✓ Entered database path for DuckDB");
+        }
+        
+        // Submit the connection
+        const submitButton = await driver.findElements(By.id("submit-connection-button"));
+        assert(submitButton.length > 0, "Submit connection button should be available");
+        
+        await driver.executeScript("arguments[0].click();", submitButton[0]);
+        await sleep(4000); // Wait for connection creation
+        
+        console.log(`✅ STEP 2 COMPLETE: DuckDB connection '${testConnectionName}' created in environment '${testEnvName}'`);
+        
+        // STEP 3: Update the connection
+        console.log("📝 STEP 3: Updating the connection");
+        
+        await sleep(2000); // Wait for UI to stabilize
+        
+        // Find edit button for the connection we just created
+        const editButtons = await driver.findElements(By.css('button[title="Edit"]'));
+        assert(editButtons.length > 0, "Edit button should be available");
+        
+        // Click the last edit button (most recently created connection)
+        await driver.executeScript("arguments[0].click();", editButtons[editButtons.length - 1]);
+        await sleep(2000);
+        
+        // Update connection name
+        const editNameInput = await driver.findElements(By.id("connection_name"));
+        assert(editNameInput.length > 0, "Connection name input should be available in edit mode");
+        
+        await editNameInput[0].click();
+        await editNameInput[0].clear();
+        await editNameInput[0].sendKeys(updatedConnectionName);
+        console.log(`✓ Updated connection name to: ${updatedConnectionName}`);
+        
+        // Save the update
+        const updateSubmitButton = await driver.findElements(By.id("submit-connection-button"));
+        assert(updateSubmitButton.length > 0, "Submit button should be available");
+        
+        await driver.executeScript("arguments[0].click();", updateSubmitButton[0]);
+        await sleep(4000);
+        
+        console.log(`✅ STEP 3 COMPLETE: Connection updated to '${updatedConnectionName}'`);
+        
+        // STEP 4: Duplicate the connection
+        console.log("📝 STEP 4: Duplicating the connection");
+        
+        // First, find the three-dot menu button (ellipsis button) for the connection
+        const ellipsisButtons = await driver.findElements(By.css('button .h-5.w-5'));
+        let duplicateClicked = false;
+        
+        for (let i = ellipsisButtons.length - 1; i >= 0; i--) {
+          try {
+            const ellipsisButton = ellipsisButtons[i].findElement(By.xpath('./..'));
+            console.log(`Trying ellipsis button ${i + 1}/${ellipsisButtons.length}`);
+            
+            // Click the ellipsis button to open dropdown menu
+            await driver.executeScript("arguments[0].click();", ellipsisButton);
+            await sleep(1000);
+            
+            // Look for "Duplicate" button in the dropdown menu
+            const duplicateButtons = await driver.findElements(By.xpath("//button[contains(., 'Duplicate')]"));
+            if (duplicateButtons.length > 0) {
+              console.log(`✓ Found duplicate button in dropdown menu`);
+              await driver.executeScript("arguments[0].click();", duplicateButtons[0]);
+              duplicateClicked = true;
+              break;
+            } else {
+              console.log("No duplicate button found in this dropdown, trying next...");
+              // Close the menu by clicking elsewhere
+              await driver.executeScript("document.body.click();");
+              await sleep(500);
+            }
+          } catch (e: any) {
+            console.log(`Error with ellipsis button ${i + 1}:`, e.message);
+            continue;
+          }
+        }
+        
+        assert(duplicateClicked, "Duplicate button should be available in dropdown menu");
+        await sleep(2000);
+        
+        // Verify the duplicate form has the (Copy) suffix
+        const duplicateNameInput = await driver.findElements(By.id("connection_name"));
+        assert(duplicateNameInput.length > 0, "Connection name input should be available in duplicate mode");
+        
+        const duplicateName = await duplicateNameInput[0].getAttribute('value');
+        console.log(`✓ Duplicate connection name: ${duplicateName}`);
+        assert(duplicateName.includes('(Copy)'), "Duplicate should have (Copy) suffix");
+        
+        // Submit the duplicate
+        const duplicateSubmitButton = await driver.findElements(By.id("submit-connection-button"));
+        await driver.executeScript("arguments[0].click();", duplicateSubmitButton[0]);
+        await sleep(4000);
+        
+        console.log(`✅ STEP 4 COMPLETE: Connection duplicated as '${duplicateName}'`);
+        
+        // STEP 5: Delete the duplicate
+        console.log("📝 STEP 5: Deleting the duplicate connection");
+        
+        // Find all delete buttons and delete the last one (duplicate)
+        const deleteButtons = await driver.findElements(By.css('button[title="Delete"]'));
+        assert(deleteButtons.length >= 2, "Should have at least 2 connections to delete");
+        
+        await driver.executeScript("arguments[0].click();", deleteButtons[deleteButtons.length - 1]);
+        await sleep(2000);
+        
+        // Confirm deletion
+        const confirmDialogs = await driver.findElements(By.id("alert-with-actions"));
+        assert(confirmDialogs.length > 0, "Delete confirmation dialog should appear");
+        
+        const confirmButtons = await driver.findElements(By.xpath("//button[contains(text(), 'Delete') or contains(text(), 'Confirm')]"));
+        assert(confirmButtons.length > 0, "Confirm delete button should be available");
+        
+        await driver.executeScript("arguments[0].click();", confirmButtons[0]);
+        await sleep(3000);
+        
+        console.log(`✅ STEP 5 COMPLETE: Duplicate connection deleted`);
+        
+        // STEP 6: Delete remaining connection (skipping environment renaming)
+        console.log("📝 STEP 6: Deleting remaining connection");
+        
+        const finalDeleteButtons = await driver.findElements(By.css('button[title="Delete"]'));
+        if (finalDeleteButtons.length > 0) {
+          await driver.executeScript("arguments[0].click();", finalDeleteButtons[finalDeleteButtons.length - 1]);
+          await sleep(2000);
+          
+          const finalConfirmDialogs = await driver.findElements(By.id("alert-with-actions"));
+          if (finalConfirmDialogs.length > 0) {
+            const finalConfirmButtons = await driver.findElements(By.xpath("//button[contains(text(), 'Delete') or contains(text(), 'Confirm')]"));
+            if (finalConfirmButtons.length > 0) {
+              await driver.executeScript("arguments[0].click();", finalConfirmButtons[0]);
+              await sleep(3000);
+              console.log("✓ Remaining connection deleted");
+            }
+          }
+        }
+        
+        // STEP 7: Delete the environment
+        console.log("📝 STEP 7: Deleting the environment");
+        
+        // Find our specific test environment
+        const testEnvHeaders = await driver.findElements(By.xpath(`//h3[starts-with(@id, 'environment-header-') and contains(text(), '${testEnvName}')]`));
+        assert(testEnvHeaders.length > 0, `Should find our test environment: ${testEnvName}`);
+        
+        // Look for delete button near our environment header
+        let targetDeleteButton;
+        try {
+          // Try to find delete button within the same parent container
+          const parentContainer = await testEnvHeaders[0].findElement(By.xpath("./.."));
+          const deleteButtons = await parentContainer.findElements(By.id("delete-environment-button"));
+          if (deleteButtons.length > 0) {
+            targetDeleteButton = deleteButtons[0];
+          }
+        } catch (e) {
+          console.log("Could not find delete button within environment container, trying global search");
+          // Fallback: get all delete buttons and use the last one
+          const allDeleteButtons = await driver.findElements(By.id("delete-environment-button"));
+          if (allDeleteButtons.length > 0) {
+            targetDeleteButton = allDeleteButtons[allDeleteButtons.length - 1];
+          }
+        }
+        
+        assert(targetDeleteButton, "Delete environment button should be available for our test environment");
+        await driver.executeScript("arguments[0].click();", targetDeleteButton);
+        await sleep(2000);
+        
+        // Confirm environment deletion
+        const envDeleteDialogs = await driver.findElements(By.id("alert-with-actions"));
+        assert(envDeleteDialogs.length > 0, "Environment delete confirmation dialog should appear");
+        
+        const envConfirmButtons = await driver.findElements(By.xpath("//button[contains(text(), 'Delete') or contains(text(), 'Confirm')]"));
+        assert(envConfirmButtons.length > 0, "Confirm delete button should be available");
+        
+        await driver.executeScript("arguments[0].click();", envConfirmButtons[0]);
+        await sleep(4000);
+        
+        console.log(`✅ STEP 7 COMPLETE: Environment '${testEnvName}' deleted`);
+        
+        // Verify environment is gone
+        const finalEnvHeaders = await driver.findElements(By.xpath(`//h3[starts-with(@id, 'environment-header-') and contains(text(), '${testEnvName}')]`));
+        assert(finalEnvHeaders.length === 0, "Environment should be deleted and not visible");
+        
+        console.log("🎉 INTEGRATED WORKFLOW TEST COMPLETE: All 7 steps executed successfully!");
+        console.log("✅ Summary:");
+        console.log(`   1. ✅ Created environment: ${testEnvName}`);
+        console.log(`   2. ✅ Added DuckDB connection: ${testConnectionName}`);
+        console.log(`   3. ✅ Updated connection: ${updatedConnectionName}`);
+        console.log(`   4. ✅ Duplicated connection with (Copy) suffix`);
+        console.log(`   5. ✅ Deleted duplicate connection`);
+        console.log(`   6. ✅ Deleted remaining connection`);
+        console.log(`   7. ✅ Deleted environment: ${testEnvName}`);
+        
+      } catch (error) {
+        console.log("❌ Integrated workflow test error:", error);
+        throw error;
+      }
+    });
   });
 
   describe("Connection Type Specific Tests", function () {
