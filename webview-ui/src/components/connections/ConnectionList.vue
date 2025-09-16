@@ -112,7 +112,7 @@
 
     <div
       v-else
-      v-for="(connections, environment) in groupedConnections"
+      v-for="(connections, environment) in environmentsWithConnections"
       :key="environment"
       class="mt-8"
     >
@@ -294,9 +294,15 @@ import { vscode } from "@/utilities/vscode";
 import TestStatus from "@/components/ui/alerts/TestStatus.vue";
 import { onClickOutside } from "@vueuse/core";
 
+const props = defineProps({
+  connections: Array,
+  environments: Array,
+  error: String
+});
+
 const connectionsStore = useConnectionsStore();
-const connections = computed(() => connectionsStore.connections);
-const error = computed(() => connectionsStore.error);
+const connections = computed(() => props.connections || connectionsStore.connections);
+const error = computed(() => props.error || connectionsStore.error);
 const defaultEnvironment = computed(() => connectionsStore.getDefaultEnvironment());
 const emit = defineEmits([
   "new-connection",
@@ -338,7 +344,22 @@ const groupedConnections = computed(() => {
 });
 
 const existingEnvironments = computed(() => {
+  if (props.environments && props.environments.length > 0) {
+    return props.environments;
+  }
   return Object.keys(groupedConnections.value);
+});
+
+const environmentsWithConnections = computed(() => {
+  const result = {};
+  
+  const environments = props.environments || Object.keys(groupedConnections.value);
+  
+  environments.forEach(environment => {
+    result[environment] = groupedConnections.value[environment] || [];
+  });
+  
+  return result;
 });
 
 const toggleMenu = (connectionName, event) => {
