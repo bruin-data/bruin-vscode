@@ -1,4 +1,7 @@
 # Changelog
+## [0.67.2] - [2025-09-16]
+- Improved connection test ui.
+
 ## [0.67.1] - [2025-09-09]
 - Allow YAML assets to be rendered.
 
