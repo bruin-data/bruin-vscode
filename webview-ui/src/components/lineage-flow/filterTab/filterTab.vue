@@ -2,6 +2,7 @@
   <Panel position="top-right" class="filter-panel">
     <div
       v-if="!expandPanel"
+      id="filter-tab-trigger"
       @click="expandPanel = !expandPanel"
       class="flex items-center p-2 gap-1 bg-transparent border border-notificationCenter-border rounded cursor-pointer hover:bg-editorWidget-bg transition-colors"
     >

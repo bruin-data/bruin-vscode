@@ -1,5 +1,5 @@
 <template>
-  <div class="flex w-full">
+  <div class="flex w-full" data-component="AssetLineageFlow">
     <Lineage
       :assetDataset="assetDataset"
       :pipelineData="pipelineData"
@@ -11,7 +11,7 @@
 
 <script setup lang="ts">
 import Lineage from "@/components/lineage-flow/Lineage.vue";
-import { ref, onUnmounted, computed, watch } from "vue";
+import { ref, onUnmounted, computed, watch, onMounted } from "vue";
 import { updateValue } from "./utilities/helper";
 import { getAssetDataset } from "@/components/lineage-flow/asset-lineage/useAssetLineage";
 
@@ -23,6 +23,7 @@ import { getAssetDataset } from "@/components/lineage-flow/asset-lineage/useAsse
 
 const lineageData = ref(); // Holds the lineage data received from the extension
 const lineageError = ref(); // Holds any errors related to lineage data
+const hasTimedOut = ref(false); // Tracks if initial load has timed out
 
 /**
  * Handles incoming messages from the VSCode extension.
@@ -42,6 +43,14 @@ const handleMessage = (event) => {
 
 window.addEventListener("message", handleMessage);
 
+// Set a timeout to stop infinite loading after 10 seconds
+setTimeout(() => {
+  if (!lineageData.value && !lineageError.value) {
+    hasTimedOut.value = true;
+    lineageError.value = "Timed out loading lineage data. Please try refreshing the panel.";
+  }
+}, 10000);
+
 const pipeline = computed(() => {
   if (!lineageData.value?.pipeline) return null;
   try {
@@ -59,7 +68,22 @@ const assetDataset = computed(() => {
 });
 
 const pipelineData = computed(() => pipeline.value);
-const isLoading = computed(() => !lineageData.value && !lineageError.value);
+const isLoading = computed(() => !lineageData.value && !lineageError.value && !hasTimedOut.value);
+
+onMounted(() => {
+  console.log('🚀 [AssetLineage] Component mounted');
+  console.log('🚀 [AssetLineage] Initial lineageData:', lineageData.value);
+  console.log('🚀 [AssetLineage] Initial lineageError:', lineageError.value);
+  console.log('🚀 [AssetLineage] Initial isLoading:', isLoading.value);
+  
+  // Log state changes
+  watch([lineageData, lineageError, isLoading], ([newData, newError, newLoading]) => {
+    console.log('🔄 [AssetLineage] State changed:');
+    console.log('  - lineageData:', !!newData);
+    console.log('  - lineageError:', newError);
+    console.log('  - isLoading:', newLoading);
+  });
+});
 
 onUnmounted(() => {
   window.removeEventListener("message", handleMessage);

@@ -1,16 +1,16 @@
 <template>
   <div class="flow">
-    <div v-if="isLoading || isLayouting" class="loading-overlay">
+    <div v-if="shouldShowLoading" class="loading-overlay">
       <vscode-progress-ring></vscode-progress-ring>
       <span class="ml-2">{{ isLayouting ? 'Positioning graph...' : 'Loading lineage data...' }}</span>
     </div>
-    <div v-else-if="error" class="error-message">
+    <div v-else-if="shouldShowError" class="error-message">
       <span class="ml-2">{{ error }}</span>
     </div>
     
     <!-- Asset View -->
     <VueFlow
-      v-if="!showPipelineView && !showColumnView"
+      v-if="shouldShowAssetView"
       v-model:elements="elements"
       :fit-view-on-init="false"
       class="basic-flow"
@@ -41,6 +41,7 @@
       
       <!-- Filter Panel -->
       <FilterTab
+        id="asset-filter-tab"
         :key="assetFilterTabKey"
         :filter-type="filterType"
         :expand-all-upstreams="expandAllUpstreams"
@@ -219,6 +220,34 @@ const props = defineProps<{
 const error = ref<string | null>(props.LineageError);
 const showPipelineView = ref(false);
 const showColumnView = ref(false);
+
+// Debug computed properties
+const shouldShowLoading = computed(() => {
+  const result = (props.isLoading || isLoadingLocal.value) || isLayouting.value;
+  console.log('🔍 [Lineage] shouldShowLoading:', result, { 
+    propsIsLoading: props.isLoading,
+    isLoadingLocal: isLoadingLocal.value, 
+    isLayouting: isLayouting.value 
+  });
+  return result;
+});
+
+const shouldShowError = computed(() => {
+  const result = !!error.value;
+  console.log('🔍 [Lineage] shouldShowError:', result, error.value);
+  return result;
+});
+
+const shouldShowAssetView = computed(() => {
+  const result = !showPipelineView.value && !showColumnView.value && !shouldShowLoading.value && !shouldShowError.value;
+  console.log('🔍 [Lineage] shouldShowAssetView:', result, {
+    showPipelineView: showPipelineView.value,
+    showColumnView: showColumnView.value,
+    shouldShowLoading: shouldShowLoading.value,
+    shouldShowError: shouldShowError.value
+  });
+  return result;
+});
 
 // ===== Asset View State =====
 const flowRef = ref(null);
@@ -489,16 +518,23 @@ const _updateGraph = async () => {
 const updateGraph = debounce(_updateGraph, 180);
 
 const processProperties = async () => {
+  console.log('🔄 [Lineage] processProperties called');
+  console.log('🔄 [Lineage] Has assetDataset:', !!props.assetDataset);
+  console.log('🔄 [Lineage] Has pipelineData:', !!props.pipelineData);
+  
   if (!props.assetDataset || !props.pipelineData) {
     isLoadingLocal.value = error.value === null;
+    console.log('🔄 [Lineage] Missing data, isLoadingLocal set to:', isLoadingLocal.value);
     return;
   }
   isLoadingLocal.value = true;
   isLayouting.value = false;
   error.value = null;
+  console.log('🔄 [Lineage] Starting graph update');
   try {
     await updateGraph();
     isLoadingLocal.value = false;
+    console.log('✅ [Lineage] Graph updated successfully');
   } catch (err) {
     console.error("Error processing properties:", err);
     error.value = "Failed to generate lineage graph. Please try again.";
@@ -620,6 +656,13 @@ const handleColumnLevelLineage = async () => {
 };
 
 onMounted(() => {
+  console.log('🚀 [Lineage] Lineage component mounted');
+  console.log('🚀 [Lineage] Props:', { 
+    hasAssetDataset: !!props.assetDataset, 
+    hasPipelineData: !!props.pipelineData, 
+    isLoading: props.isLoading,
+    LineageError: props.LineageError 
+  });
   processProperties();
 });
 

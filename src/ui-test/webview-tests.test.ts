@@ -318,36 +318,30 @@ describe("Bruin Webview Test", function () {
     let webviewFound = false;
     try {
       console.log("Attempting to switch to webview frame using WebView class...");
-      // WebView.switchToFrame() is designed to find the correct iframe and switch to it.
-      // It also waits for the webview content to be ready to some extent.
-      await webview.switchToFrame(20000); // Increased timeout for robustness
+      await webview.switchToFrame(20000);
       console.log("✓ Successfully switched to webview frame using WebView class.");
       webviewFound = true;
     } catch (error) {
       console.log("WebView.switchToFrame() failed, attempting manual iframe search:", error);
-      // Fallback to manual iframe search if WebView.switchToFrame() fails
       for (let i = 0; i < allIframes.length; i++) {
         try {
           const iframe = allIframes[i];
           const src = await iframe.getAttribute('src');
           
-          // Only consider iframes that look like webviews (e.g., contain 'index.html' or 'vscode-webview')
           if (src && (src.includes('index.html') || src.includes('vscode-webview'))) {
             console.log(`Checking iframe ${i} for Bruin content (src: ${src.substring(0, Math.min(src.length, 100))}...)...`);
             
             await driver.switchTo().frame(iframe); 
             
             try {
-              // Wait for the #app element, which is the root of the Vue.js application
-              await driver.wait(until.elementLocated(By.id("app")), 10000); // Increased timeout for finding #app
+              await driver.wait(until.elementLocated(By.id("app")), 10000); 
               console.log(`✓ Found #app element in iframe ${i}. Assuming this is the Bruin webview.`);
               webviewFound = true;
-              break; // Exit loop once webview is found
+              break; 
             } catch (e) {
                 console.log(`No #app element found in iframe ${i}.`);
             }
             
-            // Always switch back to default content before checking the next iframe
             await driver.switchTo().defaultContent();
           }
         } catch (error) {
