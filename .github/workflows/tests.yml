@@ -85,60 +85,40 @@ jobs:
 
     - name: Run basic integration tests
       run: |
-        echo "Running integration tests..."
-        
-        # Set Chrome-related environment variables and unique user data dir
+        echo "Running connections and ingestr tests..."
         if [ "${{ runner.os }}" = "Linux" ]; then
           export CHROME_BIN=$(which google-chrome || which chromium-browser || which chromium)
-          export CHROME_USER_DATA_DIR="/tmp/chrome-user-data-$$"
-          echo "Using Chrome at: $CHROME_BIN"
-          echo "Using user data dir: $CHROME_USER_DATA_DIR"
+          export CHROME_USER_DATA_DIR="/tmp/chrome-user-data-basic-$$"
           xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' npm run selenium:run-tests:connections
           xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' npm run selenium:run-tests:ingestr
         elif [ "${{ runner.os }}" = "macOS" ]; then
-          # Try different Chrome locations on macOS
           if [ -f "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" ]; then
             export CHROME_BIN="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-          elif [ -f "/Applications/Chromium.app/Contents/MacOS/Chromium" ]; then
-            export CHROME_BIN="/Applications/Chromium.app/Contents/MacOS/Chromium"
           fi
-          export CHROME_USER_DATA_DIR="/tmp/chrome-user-data-$$"
-          echo "Using Chrome at: $CHROME_BIN"
-          echo "Using user data dir: $CHROME_USER_DATA_DIR"
+          export CHROME_USER_DATA_DIR="/tmp/chrome-user-data-basic-$$"
           npm run selenium:run-tests:connections
           npm run selenium:run-tests:ingestr
         else
-          # Windows - let extension tester handle Chrome detection
-          export CHROME_USER_DATA_DIR="C:\\temp\\chrome-user-data-$$"
+          export CHROME_USER_DATA_DIR="C:\\temp\\chrome-user-data-basic-$$"
           npm run selenium:run-tests:connections
           npm run selenium:run-tests:ingestr
         fi
       shell: bash
 
-    - name: Run advanced integration tests
+    - name: Run webview integration tests
       run: |
-        echo "Running webview integration tests..."
-        
-        # Set Chrome-related environment variables and unique user data dir
+        echo "Running webview tests..."
         if [ "${{ runner.os }}" = "Linux" ]; then
           export CHROME_BIN=$(which google-chrome || which chromium-browser || which chromium)
           export CHROME_USER_DATA_DIR="/tmp/chrome-user-data-webview-$$"
-          echo "Using Chrome at: $CHROME_BIN"
-          echo "Using user data dir: $CHROME_USER_DATA_DIR"
           xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' npm run selenium:run-tests:webview
         elif [ "${{ runner.os }}" = "macOS" ]; then
-          # Try different Chrome locations on macOS
           if [ -f "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" ]; then
             export CHROME_BIN="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-          elif [ -f "/Applications/Chromium.app/Contents/MacOS/Chromium" ]; then
-            export CHROME_BIN="/Applications/Chromium.app/Contents/MacOS/Chromium"
           fi
           export CHROME_USER_DATA_DIR="/tmp/chrome-user-data-webview-$$"
-          echo "Using Chrome at: $CHROME_BIN"
-          echo "Using user data dir: $CHROME_USER_DATA_DIR"
           npm run selenium:run-tests:webview
         else
-          # Windows - let extension tester handle Chrome detection
           export CHROME_USER_DATA_DIR="C:\\temp\\chrome-user-data-webview-$$"
           npm run selenium:run-tests:webview
         fi
@@ -146,28 +126,40 @@ jobs:
 
     - name: Run lineage integration tests
       run: |
-        echo "Running lineage integration tests..."
-        # Set Chrome-related environment variables and unique user data dir
+        echo "Running lineage tests..."
         if [ "${{ runner.os }}" = "Linux" ]; then
           export CHROME_BIN=$(which google-chrome || which chromium-browser || which chromium)
           export CHROME_USER_DATA_DIR="/tmp/chrome-user-data-lineage-$$"
-          echo "Using Chrome at: $CHROME_BIN"
-          echo "Using user data dir: $CHROME_USER_DATA_DIR"
           xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' npm run selenium:run-tests:lineage
         elif [ "${{ runner.os }}" = "macOS" ]; then
-          # Try different Chrome locations on macOS
           if [ -f "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" ]; then
             export CHROME_BIN="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-          elif [ -f "/Applications/Chromium.app/Contents/MacOS/Chromium" ]; then
-            export CHROME_BIN="/Applications/Chromium.app/Contents/MacOS/Chromium"
           fi
+          export CHROME_USER_DATA_DIR="/tmp/chrome-user-data-lineage-$$"
           npm run selenium:run-tests:lineage
         else
-          # Windows - let extension tester handle Chrome detection
           export CHROME_USER_DATA_DIR="C:\\temp\\chrome-user-data-lineage-$$"
           npm run selenium:run-tests:lineage
         fi
-        echo "Lineage integration tests completed"
+      shell: bash
+
+    - name: Run query preview integration tests
+      run: |
+        echo "Running query preview tests..."
+        if [ "${{ runner.os }}" = "Linux" ]; then
+          export CHROME_BIN=$(which google-chrome || which chromium-browser || which chromium)
+          export CHROME_USER_DATA_DIR="/tmp/chrome-user-data-query-preview-$$"
+          xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' npm run selenium:run-tests:query-preview
+        elif [ "${{ runner.os }}" = "macOS" ]; then
+          if [ -f "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" ]; then
+            export CHROME_BIN="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+          fi
+          export CHROME_USER_DATA_DIR="/tmp/chrome-user-data-query-preview-$$"
+          npm run selenium:run-tests:query-preview
+        else
+          export CHROME_USER_DATA_DIR="C:\\temp\\chrome-user-data-query-preview-$$"
+          npm run selenium:run-tests:query-preview
+        fi
       shell: bash
 
     - name: Store UI test logs
