@@ -1,7 +1,7 @@
 /* @bruin
 
 name: myschema.example
-type: bq.sql
+type: duckdb.sql
 
 materialization:
    type: table
