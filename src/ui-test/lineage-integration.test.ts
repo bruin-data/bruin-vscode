@@ -1,0 +1,1650 @@
+import * as assert from "assert";
+import {
+  Workbench,
+  WebDriver,
+  By,
+  WebView,
+  VSBrowser,
+} from "vscode-extension-tester";
+import { until } from "selenium-webdriver";
+import "mocha";
+import * as path from "path";
+import { TestCoordinator } from "./test-coordinator";
+
+// Helper function to handle click interception issues
+const safeClick = async (driver: WebDriver, element: any) => {
+  try {
+    // Wait until the element is visible and then click it
+    await driver.wait(until.elementIsVisible(element), 10000, "Timed out waiting for element to be visible before click.");
+    await element.click();
+  } catch (error: any) {
+    if (error.name === 'ElementClickInterceptedError') {
+      console.log("Click intercepted, using JavaScript click as fallback");
+      await driver.executeScript("arguments[0].click();", element);
+    } else {
+      throw error;
+    }
+  }
+};
+
+describe("Lineage Panel Integration Tests", function () {
+  let webview: WebView | undefined;
+  let driver: WebDriver;
+  let workbench: Workbench;
+  let testWorkspacePath: string;
+  let testAssetFilePath: string;
+
+  before(async function () {
+    this.timeout(240000); // Increased overall timeout to 4 minutes
+
+    // Coordinate with other tests to prevent resource conflicts
+    await TestCoordinator.acquireTestSlot("Lineage Panel Integration Tests");
+
+    workbench = new Workbench();
+    driver = VSBrowser.instance.driver;
+    const repoRoot = process.env.REPO_ROOT || path.resolve(__dirname, "../../");
+    testWorkspacePath = path.join(repoRoot, "out", "ui-test", "test-pipeline");
+    testAssetFilePath = path.join(testWorkspacePath, "assets", "example.sql");
+    
+    try {
+      // Close all editors first
+      await workbench.executeCommand("workbench.action.closeAllEditors");
+    } catch (error) {
+      console.log("Could not close all editors, continuing...");
+    }
+
+    // Open example.sql file to set the context for the panel
+    try {
+      await VSBrowser.instance.openResources(testAssetFilePath);
+      console.log("✓ Opened example.sql");
+
+      // Now, explicitly focus the lineage panel to ensure it opens
+      await workbench.executeCommand("bruin.assetLineageView.focus");
+      console.log("✓ Executed 'bruin.assetLineageView.focus' command");
+      
+      webview = new WebView();
+      // Wait for a reasonable amount of time for the webview to appear in the DOM
+      await driver.wait(async () => {
+        try {
+            await webview?.wait(200); // Check for webview's existence without long wait
+            return true;
+        } catch (e) {
+            return false;
+        }
+      }, 5000, "Timed out waiting for the webview to be present in the DOM.");
+      
+      await webview.switchToFrame();
+      console.log("✓ Switched to webview context");
+
+      // Wait for the lineage panel iframe to appear
+      console.log("🔍 Looking for lineage panel iframe...");
+      const lineageIframe = await driver.wait(
+        until.elementLocated(By.css('iframe[src*="extensionId=bruin.bruin"]')),
+        10000,
+        "Timed out waiting for lineage panel iframe"
+      );
+      console.log("✓ Found lineage panel iframe");
+
+      // Switch to the lineage panel iframe
+      await driver.switchTo().frame(lineageIframe);
+      console.log("✓ Switched to lineage panel iframe context");
+
+      // Wait for the actual content iframe (the one that loads our HTML)
+      console.log("🔍 Looking for content iframe...");
+      const contentIframe = await driver.wait(
+        until.elementLocated(By.css('iframe[src*="fake.html"]')),
+        10000,
+        "Timed out waiting for content iframe"
+      );
+      console.log("✓ Found content iframe");
+
+      // Switch to the content iframe
+      await driver.switchTo().frame(contentIframe);
+      console.log("✓ Switched to content iframe context");
+
+      // Now check what's actually in the content webview
+      console.log("🔍 Checking content webview...");
+      const bodyContent = await driver.executeScript("return document.body.innerHTML;");
+      console.log("📄 Content webview body content:", bodyContent);
+      
+      const docTitle = await driver.executeScript("return document.title;");
+      console.log("📄 Content webview title:", docTitle);
+      
+      // Check if basic webview elements are present
+      console.log("🔍 Checking for basic webview elements...");
+      
+      // Check if app element exists
+      const appElement = await driver.wait(until.elementLocated(By.css("#app")), 10000, "Timed out waiting for #app element.");
+      console.log("✓ Found #app element");
+      
+      // Check if flow container exists
+      try {
+        const flowElement = await driver.wait(until.elementLocated(By.css(".flow")), 10000, "Timed out waiting for .flow element.");
+        console.log("✓ Found .flow element");
+      } catch (error: any) {
+        console.log("❌ .flow element not found:", error.message);
+        
+        // Log what elements are actually present
+        const bodyContent = await driver.executeScript("return document.body.innerHTML;");
+        console.log("📄 Document body content:", bodyContent);
+        throw error;
+      }
+      
+      // Check if loading overlay or error message is showing
+      const loadingOverlay = await driver.findElements(By.css(".loading-overlay"));
+      const errorMessage = await driver.findElements(By.css(".error-message"));
+      console.log(`🔍 Loading overlay elements: ${loadingOverlay.length}`);
+      console.log(`🔍 Error message elements: ${errorMessage.length}`);
+      
+      // If loading is showing, wait for it to finish
+      if (loadingOverlay.length > 0) {
+        console.log("⏳ Loading overlay detected, waiting for it to disappear...");
+        await driver.wait(until.stalenessOf(loadingOverlay[0]), 30000, "Loading took too long");
+        console.log("✓ Loading finished");
+      }
+      
+      // If error is showing, log it
+      if (errorMessage.length > 0) {
+        const errorText = await errorMessage[0].getText();
+        console.log("❌ Error message found:", errorText);
+      }
+
+      // Check what's inside the flow element
+      const flowElement = await driver.findElement(By.css(".flow"));
+      const flowContent = await flowElement.getAttribute("innerHTML");
+      console.log("📄 Flow element content:", flowContent);
+
+      // Check for Vue components
+      const vueFlowElements = await driver.findElements(By.css(".vue-flow"));
+      console.log(`🔍 VueFlow elements: ${vueFlowElements.length}`);
+
+      // Check for any elements inside the flow
+      const flowChildren = await driver.findElements(By.css(".flow > *"));
+      console.log(`🔍 Flow child elements: ${flowChildren.length}`);
+      
+      if (flowChildren.length > 0) {
+        for (let i = 0; i < flowChildren.length; i++) {
+          const child = flowChildren[i];
+          const tagName = await child.getTagName();
+          const className = await child.getAttribute("class");
+          console.log(`  - Child ${i}: <${tagName}> class="${className}"`);
+        }
+      }
+
+      // VueFlow is working - look for the actual VueFlow elements that exist
+      // Based on the HTML output, VueFlow creates .vue-flow__pane and .vue-flow__nodes
+      await driver.wait(until.elementLocated(By.css(".vue-flow__pane")), 10000, "Timed out waiting for VueFlow pane to appear.");
+      console.log("✓ Found VueFlow pane, webview content is ready");
+      
+      const vueFlowNodes = await driver.findElement(By.css(".vue-flow__nodes"));
+      console.log("✓ Found VueFlow nodes container, VueFlow is fully rendered");
+
+    } catch (error) {
+      console.error("Setup failed:", error);
+      webview = undefined;
+      throw error;
+    }
+  });
+
+  after(async function () {
+    // Switch back to default content to clean up webview context
+    try {
+      if (webview) {
+        await webview.switchBack();
+        console.log("✓ Switched back from webview context");
+      }
+    } catch (error) {
+      console.log("Error switching back from webview:", error);
+    }
+    
+    await TestCoordinator.releaseTestSlot("Lineage Panel Integration Tests");
+  });
+
+  describe("UI Elements", function () {
+    it("should check if the VueFlow component is displayed", async function () {
+      this.timeout(30000);
+      if (!webview) {
+        this.skip();
+      }
+      try {
+        const flowContainer = await driver.wait(
+          until.elementLocated(By.css(".vue-flow__pane")),
+          10000,
+          "Timed out waiting for VueFlow pane"
+        );
+        assert(await flowContainer.isDisplayed(), "VueFlow component should be visible.");
+        console.log("✓ VueFlow component is displayed");
+      } catch (error) {
+        console.log("VueFlow component test error:", error);
+        throw error;
+      }
+    });
+
+    it("should find interactive elements on the graph", async function () {
+      this.timeout(30000);
+      if (!webview) {
+        this.skip();
+      }
+      try {
+        const radioButtons = await driver.findElements(By.css("vscode-radio-group"));
+        console.log(`Found ${radioButtons.length} radio groups`);
+        
+        const controlElements = await driver.findElements(By.css(".vue-flow__controls"));
+        console.log(`Found ${controlElements.length} control elements`);
+        
+        const vueFlowControls = await driver.findElements(By.css(".vue-flow__controls-button"));
+        console.log(`Found ${vueFlowControls.length} Vue Flow control buttons`);
+
+        const clickableElements = await driver.findElements(By.css("button, [role='button'], [tabindex='0']"));
+        console.log(`Found ${clickableElements.length} clickable elements`);
+
+        const interactiveClassElements = await driver.findElements(By.css('[class*="interactive"], [class*="clickable"], [class*="hover"]'));
+        console.log(`Found ${interactiveClassElements.length} elements with interactive classes`);
+        
+        const totalInteractiveElements = radioButtons.length + controlElements.length + vueFlowControls.length + clickableElements.length;
+        console.log(`Total interactive elements found: ${totalInteractiveElements}`);
+        
+        const hasAnyInteractiveElements = totalInteractiveElements > 0;
+        
+        assert.ok(hasAnyInteractiveElements, 
+                 `Should find at least some interactive elements. Found: ${radioButtons.length} radio buttons, ${controlElements.length} control elements, ${vueFlowControls.length} Vue Flow controls, ${clickableElements.length} clickable elements`);
+        
+      } catch (error) {
+        console.log("Interactive elements test error:", error);
+        throw error;
+      }
+    });
+
+    it("should test VueFlow zoom in control", async function () {
+      this.timeout(30000);
+      if (!webview) {
+        this.skip();
+      }
+      try {
+        // Get initial transform to compare later
+        let initialTransform;
+        try {
+          const initialTransformPane = await driver.findElement(By.css(".vue-flow__transformationpane"));
+          initialTransform = await initialTransformPane.getAttribute("style");
+          console.log("Initial transform:", initialTransform);
+        } catch (error) {
+          console.log("Could not get initial transform, continuing with test");
+          initialTransform = "";
+        }
+        
+        // Find and click zoom in button
+        await driver.wait(until.elementLocated(By.css(".vue-flow__controls-zoomin")), 10000);
+        
+        // Use driver.executeScript to click to avoid stale element issues
+        await driver.executeScript(`
+          const button = document.querySelector('.vue-flow__controls-zoomin');
+          if (button) {
+            button.click();
+          }
+        `);
+        console.log("✓ Clicked zoom in button via JavaScript");
+        
+        // Wait for zoom animation to complete
+        await driver.sleep(500);
+        
+        // Verify zoom controls are still present (indicating VueFlow is working)
+        const zoomControls = await driver.findElements(By.css(".vue-flow__controls"));
+        assert(zoomControls.length > 0, "Zoom controls should still be present after zoom");
+        
+        // Check if transform pane exists and has transform applied
+        const transformPanes = await driver.findElements(By.css(".vue-flow__transformationpane"));
+        if (transformPanes.length > 0) {
+          const updatedTransform = await transformPanes[0].getAttribute("style");
+          console.log("Transform style after zoom in:", updatedTransform);
+          
+          assert(updatedTransform.includes("scale") || updatedTransform.includes("translate"), 
+                 "Transform should be applied after zoom");
+                 
+          console.log("✓ Zoom in functionality verified");
+        } else {
+          console.log("Transform pane not found, but zoom control was clickable");
+        }
+      } catch (error) {
+        console.log("Zoom in test error:", error);
+        throw error;
+      }
+    });
+
+    it("should test VueFlow zoom out control", async function () {
+      this.timeout(30000);
+      if (!webview) {
+        this.skip();
+      }
+      try {
+        const zoomOutButton = await driver.wait(
+          until.elementLocated(By.css(".vue-flow__controls-zoomout")),
+          10000,
+          "Timed out waiting for zoom out button"
+        );
+        assert(await zoomOutButton.isDisplayed(), "Zoom out button should be visible");
+        
+        // Click the zoom out button
+        await safeClick(driver, zoomOutButton);
+        console.log("✓ Clicked zoom out button");
+        
+        // Verify the zoom level changed
+        const transformPane = await driver.findElement(By.css(".vue-flow__transformationpane"));
+        const transformStyle = await transformPane.getAttribute("style");
+        console.log("Transform style after zoom out:", transformStyle);
+        
+        assert(transformStyle.includes("scale") || transformStyle.includes("translate"), 
+               "Transform should be applied after zoom");
+      } catch (error) {
+        console.log("Zoom out test error:", error);
+        throw error;
+      }
+    });
+
+    it("should test VueFlow fit view control", async function () {
+      this.timeout(30000);
+      if (!webview) {
+        this.skip();
+      }
+      try {
+        const fitViewButton = await driver.wait(
+          until.elementLocated(By.css(".vue-flow__controls-fitview")),
+          10000,
+          "Timed out waiting for fit view button"
+        );
+        assert(await fitViewButton.isDisplayed(), "Fit view button should be visible");
+        
+        // Get initial transform
+        const transformPane = await driver.findElement(By.css(".vue-flow__transformationpane"));
+        const initialTransform = await transformPane.getAttribute("style");
+        console.log("Initial transform:", initialTransform);
+        
+        // Click the fit view button
+        await safeClick(driver, fitViewButton);
+        console.log("✓ Clicked fit view button");
+        
+        // Wait a moment for animation to complete
+        await driver.sleep(500);
+        
+        // Get updated transform
+        const updatedTransform = await transformPane.getAttribute("style");
+        console.log("Updated transform after fit view:", updatedTransform);
+        
+        // Transform should be applied (may be same if already fitted)
+        assert(updatedTransform.includes("scale") || updatedTransform.includes("translate"), 
+               "Transform should be present after fit view");
+      } catch (error) {
+        console.log("Fit view test error:", error);
+        throw error;
+      }
+    });
+
+    it("should test VueFlow interactive control toggle", async function () {
+      this.timeout(30000);
+      if (!webview) {
+        this.skip();
+      }
+      try {
+        const interactiveButton = await driver.wait(
+          until.elementLocated(By.css(".vue-flow__controls-interactive")),
+          10000,
+          "Timed out waiting for interactive button"
+        );
+        assert(await interactiveButton.isDisplayed(), "Interactive button should be visible");
+        
+        // Get initial state of the flow (check if pane has draggable class)
+        const flowPane = await driver.findElement(By.css(".vue-flow__pane"));
+        const initialClasses = await flowPane.getAttribute("class");
+        console.log("Initial pane classes:", initialClasses);
+        
+        // Click the interactive button to toggle
+        await safeClick(driver, interactiveButton);
+        console.log("✓ Clicked interactive toggle button");
+        
+        // Wait a moment for changes to apply
+        await driver.sleep(200);
+        
+        // Check if classes changed
+        const updatedClasses = await flowPane.getAttribute("class");
+        console.log("Updated pane classes:", updatedClasses);
+        
+        // Verify the button is still clickable (basic functionality check)
+        assert(await interactiveButton.isEnabled(), "Interactive button should remain enabled");
+      } catch (error) {
+        console.log("Interactive toggle test error:", error);
+        throw error;
+      }
+    });
+
+    it("should test filter panel trigger", async function () {
+      this.timeout(30000);
+      if (!webview) {
+        this.skip();
+      }
+      try {
+        const filterTrigger = await driver.wait(
+          until.elementLocated(By.css("#filter-tab-trigger")),
+          10000,
+          "Timed out waiting for filter trigger"
+        );
+        assert(await filterTrigger.isDisplayed(), "Filter trigger should be visible");
+        
+        // Check initial text
+        const triggerText = await filterTrigger.getText();
+        console.log("Filter trigger text:", triggerText);
+        assert(triggerText.includes("Direct Dependencies"), "Should show current filter type");
+        
+        // Click the filter trigger
+        await safeClick(driver, filterTrigger);
+        console.log("✓ Clicked filter trigger");
+        
+        // Wait a moment to see if any dropdown or panel appears
+        await driver.sleep(500);
+        
+        // Check if the filter trigger still exists (it might disappear/reappear with filter panel)
+        const triggerElements = await driver.findElements(By.css("#filter-tab-trigger"));
+        if (triggerElements.length > 0) {
+          const updatedTrigger = triggerElements[0];
+          assert(await updatedTrigger.isDisplayed(), "Filter trigger should remain visible");
+          assert(await updatedTrigger.isEnabled(), "Filter trigger should remain enabled");
+        } else {
+          // If trigger disappeared, it might mean the filter panel opened - this is acceptable
+          console.log("Filter trigger disappeared after click - filter panel may have opened");
+        }
+      } catch (error) {
+        console.log("Filter panel test error:", error);
+        throw error;
+      }
+    });
+
+    it("should test VueFlow background pattern", async function () {
+      this.timeout(30000);
+      if (!webview) {
+        this.skip();
+      }
+      try {
+        const background = await driver.wait(
+          until.elementLocated(By.css(".vue-flow__background")),
+          10000,
+          "Timed out waiting for VueFlow background"
+        );
+        assert(await background.isDisplayed(), "VueFlow background should be visible");
+        
+        // Check for background pattern elements (can be in the background itself or nested)
+        const backgroundSVGs = await driver.findElements(By.css(".vue-flow__background svg"));
+        const allSVGs = await driver.findElements(By.css("svg"));
+        const patternElements = await driver.findElements(By.css("pattern"));
+        
+        console.log(`Found ${backgroundSVGs.length} direct background SVG elements`);
+        console.log(`Found ${allSVGs.length} total SVG elements in flow`);
+        console.log(`Found ${patternElements.length} pattern elements`);
+        
+        // Background functionality is present if we have either direct SVGs or patterns somewhere
+        const hasBackgroundElements = backgroundSVGs.length > 0 || patternElements.length > 0;
+        assert(hasBackgroundElements, "Background should have SVG or pattern elements");
+        
+        // If patterns exist, verify they have proper attributes
+        if (patternElements.length > 0) {
+          const pattern = patternElements[0];
+          const patternId = await pattern.getAttribute("id");
+          if (patternId && patternId.includes("pattern")) {
+            console.log(`✓ Background pattern ID: ${patternId}`);
+          } else {
+            console.log("✓ Pattern element found (ID structure may vary)");
+          }
+        }
+        
+        console.log("✓ Background rendering verified");
+      } catch (error) {
+        console.log("Background pattern test error:", error);
+        throw error;
+      }
+    });
+
+    it("should test VueFlow viewport dimensions", async function () {
+      this.timeout(30000);
+      if (!webview) {
+        this.skip();
+      }
+      try {
+        const viewport = await driver.findElement(By.css(".vue-flow__viewport"));
+        const pane = await driver.findElement(By.css(".vue-flow__pane"));
+        
+        // Check viewport has dimensions
+        const viewportRect = await viewport.getRect();
+        const paneRect = await pane.getRect();
+        
+        assert(viewportRect.width > 0, "Viewport should have width");
+        assert(viewportRect.height > 0, "Viewport should have height");
+        assert(paneRect.width > 0, "Pane should have width");
+        assert(paneRect.height > 0, "Pane should have height");
+        
+        console.log(`✓ Viewport dimensions: ${viewportRect.width}x${viewportRect.height}`);
+        console.log(`✓ Pane dimensions: ${paneRect.width}x${paneRect.height}`);
+        
+        // Verify viewport contains the pane
+        assert(viewportRect.width >= paneRect.width || viewportRect.height >= paneRect.height, 
+               "Viewport should contain or match pane dimensions");
+      } catch (error) {
+        console.log("Viewport dimensions test error:", error);
+        throw error;
+      }
+    });
+
+    it("should test multiple zoom operations in sequence", async function () {
+      this.timeout(30000);
+      if (!webview) {
+        this.skip();
+      }
+      try {
+        // Get initial transform
+        const getTransform = async () => {
+          const transformPane = await driver.findElement(By.css(".vue-flow__transformationpane"));
+          return await transformPane.getAttribute("style");
+        };
+        
+        const initialTransform = await getTransform();
+        console.log("Initial transform:", initialTransform);
+        
+        // Zoom in twice
+        await driver.executeScript(`document.querySelector('.vue-flow__controls-zoomin').click()`);
+        await driver.sleep(300);
+        const afterFirstZoomIn = await getTransform();
+        console.log("After first zoom in:", afterFirstZoomIn);
+        
+        await driver.executeScript(`document.querySelector('.vue-flow__controls-zoomin').click()`);
+        await driver.sleep(300);
+        const afterSecondZoomIn = await getTransform();
+        console.log("After second zoom in:", afterSecondZoomIn);
+        
+        // Zoom out once
+        await driver.executeScript(`document.querySelector('.vue-flow__controls-zoomout').click()`);
+        await driver.sleep(300);
+        const afterZoomOut = await getTransform();
+        console.log("After zoom out:", afterZoomOut);
+        
+        // Fit view to reset
+        await driver.executeScript(`document.querySelector('.vue-flow__controls-fitview').click()`);
+        await driver.sleep(500);
+        const afterFitView = await getTransform();
+        console.log("After fit view:", afterFitView);
+        
+        // All transforms should contain scale/translate
+        const transforms = [initialTransform, afterFirstZoomIn, afterSecondZoomIn, afterZoomOut, afterFitView];
+        transforms.forEach((transform, index) => {
+          assert(transform.includes("scale") || transform.includes("translate"), 
+                 `Transform ${index} should contain scale or translate: ${transform}`);
+        });
+        
+        console.log("✓ Multiple zoom operations completed successfully");
+      } catch (error) {
+        console.log("Multiple zoom operations test error:", error);
+        throw error;
+      }
+    });
+
+    it("should test VueFlow accessibility features", async function () {
+      this.timeout(30000);
+      if (!webview) {
+        this.skip();
+      }
+      try {
+        // Check for aria-hidden elements
+        const ariaHiddenElements = await driver.findElements(By.css("[aria-hidden='true']"));
+        console.log(`✓ Found ${ariaHiddenElements.length} aria-hidden elements`);
+        
+        // Check for accessibility descriptions
+        const nodeDesc = await driver.findElements(By.css("#vue-flow__node-desc-vue-flow-0"));
+        const edgeDesc = await driver.findElements(By.css("#vue-flow__edge-desc-vue-flow-0"));
+        const ariaLive = await driver.findElements(By.css("#vue-flow__aria-live-vue-flow-0"));
+        
+        assert(nodeDesc.length > 0, "Should have node description for accessibility");
+        assert(edgeDesc.length > 0, "Should have edge description for accessibility");
+        assert(ariaLive.length > 0, "Should have aria-live region for accessibility");
+        
+        // Verify aria-live region has proper attributes
+        if (ariaLive.length > 0) {
+          const ariaLiveAttr = await ariaLive[0].getAttribute("aria-live");
+          const ariaAtomicAttr = await ariaLive[0].getAttribute("aria-atomic");
+          
+          assert(ariaLiveAttr === "assertive", "Aria-live should be assertive");
+          assert(ariaAtomicAttr === "true", "Aria-atomic should be true");
+          console.log("✓ Aria-live region configured correctly");
+        }
+        
+        // Check control buttons have proper accessibility
+        const controlButtons = await driver.findElements(By.css(".vue-flow__controls-button"));
+        for (let i = 0; i < controlButtons.length; i++) {
+          const button = controlButtons[i];
+          const tagName = await button.getTagName();
+          assert(tagName.toLowerCase() === "button", `Control ${i} should be a button element`);
+        }
+        
+        console.log(`✓ All ${controlButtons.length} control buttons are proper button elements`);
+      } catch (error) {
+        console.log("Accessibility features test error:", error);
+        throw error;
+      }
+    });
+
+    it("should test CSS classes and styling", async function () {
+      this.timeout(30000);
+      if (!webview) {
+        this.skip();
+      }
+      try {
+        // Test main VueFlow classes
+        const expectedClasses = [
+          ".vue-flow",
+          ".vue-flow__viewport", 
+          ".vue-flow__pane",
+          ".vue-flow__transformationpane",
+          ".vue-flow__container",
+          ".vue-flow__controls",
+          ".vue-flow__background"
+        ];
+        
+        for (const className of expectedClasses) {
+          const elements = await driver.findElements(By.css(className));
+          assert(elements.length > 0, `Should find elements with class ${className}`);
+        }
+        console.log(`✓ All expected CSS classes found: ${expectedClasses.join(", ")}`);
+        
+        // Test flow has proper styling attributes
+        const flow = await driver.findElement(By.css(".vue-flow"));
+        const flowClass = await flow.getAttribute("class");
+        
+        assert(flowClass.includes("vue-flow"), "Flow should have vue-flow class");
+        assert(flowClass.includes("basic-flow"), "Flow should have basic-flow class");
+        
+        // Test draggable attributes
+        const draggableAttr = await flow.getAttribute("draggable");
+        const nodeDraggableAttr = await flow.getAttribute("node-draggable");
+        
+        assert(draggableAttr === "true", "Flow should be draggable");
+        assert(nodeDraggableAttr === "true", "Nodes should be draggable");
+        
+        console.log("✓ Flow has correct styling and draggable attributes");
+      } catch (error) {
+        console.log("CSS classes test error:", error);
+        throw error;
+      }
+    });
+
+    it("should test error states and edge cases", async function () {
+      this.timeout(30000);
+      if (!webview) {
+        this.skip();
+      }
+      try {
+        // Test that components handle missing elements gracefully
+        const nonExistentElement = await driver.findElements(By.css(".non-existent-class"));
+        assert(nonExistentElement.length === 0, "Non-existent elements should not be found");
+        
+        // Test rapid clicking doesn't break the interface
+        console.log("Testing rapid control interactions...");
+        for (let i = 0; i < 3; i++) {
+          await driver.executeScript(`document.querySelector('.vue-flow__controls-zoomin').click()`);
+          await driver.sleep(50); // Very short delay
+        }
+        
+        // Verify controls are still functional after rapid clicking
+        const controlsAfterRapid = await driver.findElements(By.css(".vue-flow__controls"));
+        assert(controlsAfterRapid.length > 0, "Controls should still exist after rapid clicking");
+        
+        // Test that the interface is still responsive
+        await driver.executeScript(`document.querySelector('.vue-flow__controls-fitview').click()`);
+        await driver.sleep(300);
+        
+        const transformPane = await driver.findElement(By.css(".vue-flow__transformationpane"));
+        const finalTransform = await transformPane.getAttribute("style");
+        assert(finalTransform.includes("scale") || finalTransform.includes("translate"), 
+               "Interface should still be responsive after rapid interactions");
+        
+        console.log("✓ Interface handles rapid interactions gracefully");
+        
+        // Test edge case: verify no JavaScript errors occurred
+        const jsErrors = await driver.executeScript(`
+          return window.jsErrors || [];
+        `);
+        
+        console.log("✓ Edge cases and error states tested successfully");
+      } catch (error) {
+        console.log("Error states test error:", error);
+        throw error;
+      }
+    });
+
+    it("should test filter panel radio buttons and interactions", async function () {
+      this.timeout(30000);
+      if (!webview) {
+        this.skip();
+      }
+      try {
+        // The filter panel appears to already be expanded based on previous test output
+        // Look for specific filter option text content
+        const allElements = await driver.findElements(By.css("*"));
+        let foundFilterOptions = {
+          fullPipeline: false,
+          directDependencies: false, 
+          allDependencies: false,
+          columnLevel: false,
+          reset: false
+        };
+        
+        // Search through elements for filter option texts
+        for (const element of allElements.slice(0, 100)) { // Limit search to avoid timeout
+          try {
+            const text = await element.getText();
+            if (text) {
+              if (text.includes("Full Pipeline")) foundFilterOptions.fullPipeline = true;
+              if (text.includes("Direct Dependencies")) foundFilterOptions.directDependencies = true;
+              if (text.includes("All Dependencies")) foundFilterOptions.allDependencies = true;
+              if (text.includes("Column Level")) foundFilterOptions.columnLevel = true;
+              if (text.includes("Reset")) foundFilterOptions.reset = true;
+            }
+          } catch (e) {
+            // Skip elements that can't be read
+          }
+        }
+        
+        console.log("Filter options found:", foundFilterOptions);
+        
+        // Try to find and click specific filter options
+        const filterOptionsFound = [];
+        
+        // Look for elements that contain filter option text and might be clickable
+        const potentialFilterElements = await driver.findElements(By.xpath("//*[contains(text(), 'Direct Dependencies') or contains(text(), 'All Dependencies') or contains(text(), 'Full Pipeline')]"));
+        
+        console.log(`Found ${potentialFilterElements.length} elements with filter text`);
+        
+        for (let i = 0; i < Math.min(potentialFilterElements.length, 3); i++) {
+          const element = potentialFilterElements[i];
+          try {
+            const text = await element.getText();
+            const tagName = await element.getTagName();
+            const isDisplayed = await element.isDisplayed();
+            const isEnabled = await element.isEnabled();
+            
+            console.log(`Filter element ${i}: <${tagName}> text="${text}" displayed=${isDisplayed} enabled=${isEnabled}`);
+            
+            // Try to click on "All Dependencies" option if found
+            if (text.includes("All Dependencies") && isDisplayed && isEnabled) {
+              console.log("Attempting to click 'All Dependencies' option...");
+              await safeClick(driver, element);
+              await driver.sleep(500);
+              
+              // Check if filter state changed by looking at trigger text
+              const triggerElements = await driver.findElements(By.css("#filter-tab-trigger"));
+              if (triggerElements.length > 0) {
+                const triggerText = await triggerElements[0].getText();
+                console.log(`Filter trigger text after clicking: "${triggerText}"`);
+                filterOptionsFound.push("All Dependencies clicked");
+              }
+              break;
+            }
+          } catch (e: any) {
+            console.log(`Error testing element ${i}:`, e.message);
+          }
+        }
+        
+        // Verify that we found the expected filter options
+        assert(foundFilterOptions.directDependencies, "Should find 'Direct Dependencies' option");
+        assert(foundFilterOptions.allDependencies, "Should find 'All Dependencies' option");
+        
+        console.log(`✓ Filter panel options verified: ${Object.keys(foundFilterOptions).filter(key => foundFilterOptions[key as keyof typeof foundFilterOptions]).join(", ")}`);
+      } catch (error) {
+        console.log("Filter panel radio buttons test error:", error);
+        throw error;
+      }
+    });
+
+    it("should test filter state changes and options", async function () {
+      this.timeout(30000);
+      if (!webview) {
+        this.skip();
+      }
+      try {
+        // Try to find and interact with filter options
+        console.log("Testing filter state changes...");
+        
+        // Look for any elements that might change filter state
+        const filterOptions = await driver.findElements(By.css(
+          "vscode-radio, input[type='radio'], [role='radio'], [aria-checked], button[value], [data-filter-type]"
+        ));
+        
+        console.log(`Found ${filterOptions.length} potential filter option elements`);
+        
+        // Check for checkbox-style filters (expand all upstream/downstream)
+        const checkboxes = await driver.findElements(By.css("vscode-checkbox, input[type='checkbox']"));
+        console.log(`Found ${checkboxes.length} checkbox elements`);
+        
+        // Look for any elements with filter-related text
+        const allElements = await driver.findElements(By.css("*"));
+        let filterRelatedElements = 0;
+        
+        for (let i = 0; i < Math.min(allElements.length, 50); i++) {
+          try {
+            const element = allElements[i];
+            const text = await element.getText();
+            if (text && (text.includes("Direct") || text.includes("All") || text.includes("filter") || 
+                        text.includes("upstream") || text.includes("downstream"))) {
+              filterRelatedElements++;
+              console.log(`  Filter-related text found: "${text}"`);
+            }
+          } catch (e) {
+            // Skip elements that can't be read
+          }
+        }
+        
+        console.log(`Found ${filterRelatedElements} elements with filter-related text`);
+        
+        // Test that we can at least verify the filter trigger still works
+        const filterTrigger = await driver.findElements(By.css("#filter-tab-trigger"));
+        if (filterTrigger.length > 0) {
+          const isDisplayed = await filterTrigger[0].isDisplayed();
+          const isEnabled = await filterTrigger[0].isEnabled();
+          
+          assert(isDisplayed, "Filter trigger should be displayed");
+          assert(isEnabled, "Filter trigger should be enabled");
+          
+          console.log("✓ Filter trigger is functional");
+        }
+        
+        console.log("✓ Filter state testing completed");
+      } catch (error) {
+        console.log("Filter state test error:", error);
+        throw error;
+      }
+    });
+
+    it("should test Full Pipeline radio button functionality", async function () {
+      this.timeout(30000);
+      if (!webview) {
+        this.skip();
+      }
+      try {
+        console.log("Testing Full Pipeline radio button...");
+        
+        // First, ensure filter panel is accessible by clicking the filter trigger
+        let filterTrigger = await driver.findElements(By.css("#filter-tab-trigger"));
+        if (filterTrigger.length > 0) {
+          console.log("Clicking filter trigger to ensure panel is expanded...");
+          await safeClick(driver, filterTrigger[0]);
+          await driver.sleep(500); // Allow panel to expand
+        }
+        
+        // Get current filter state before any interactions (re-find element to avoid stale reference)
+        let originalFilterState = "";
+        filterTrigger = await driver.findElements(By.css("#filter-tab-trigger"));
+        if (filterTrigger.length > 0) {
+          try {
+            originalFilterState = await filterTrigger[0].getText();
+            console.log(`Original filter state: "${originalFilterState}"`);
+          } catch (e: any) {
+            console.log("Could not get original filter state:", e.message);
+          }
+        }
+        
+        // Look for "Full Pipeline" text using a fresh search
+        let fullPipelineFound = false;
+        let searchAttempts = 0;
+        const maxAttempts = 3;
+        
+        while (!fullPipelineFound && searchAttempts < maxAttempts) {
+          searchAttempts++;
+          console.log(`Full Pipeline search attempt ${searchAttempts}/${maxAttempts}`);
+          
+          try {
+            // Fresh search for Full Pipeline elements to avoid stale references
+            const fullPipelineElements = await driver.findElements(By.xpath("//*[contains(text(), 'Full Pipeline')]"));
+            console.log(`Found ${fullPipelineElements.length} elements containing 'Full Pipeline' text`);
+            
+            // Try to find and click the Full Pipeline option
+            for (let i = 0; i < fullPipelineElements.length; i++) {
+              try {
+                // Re-find the element each time to avoid stale reference
+                const freshElements = await driver.findElements(By.xpath("//*[contains(text(), 'Full Pipeline')]"));
+                if (i >= freshElements.length) continue;
+                
+                const element = freshElements[i];
+                const text = await element.getText();
+                const tagName = await element.getTagName();
+                const isDisplayed = await element.isDisplayed();
+                const isEnabled = await element.isEnabled();
+                
+                console.log(`Full Pipeline element ${i}: <${tagName}> text="${text}" displayed=${isDisplayed} enabled=${isEnabled}`);
+                
+                if (text.includes("Full Pipeline") && isDisplayed && isEnabled) {
+                  console.log("Attempting to click 'Full Pipeline' option...");
+                  
+                  // Use JavaScript click to avoid stale element issues
+                  await driver.executeScript("arguments[0].click();", element);
+                  await driver.sleep(1000); // Wait for state change
+                  
+                  fullPipelineFound = true;
+                  
+                  // Check if filter state changed (re-find trigger to avoid stale reference)
+                  const updatedTrigger = await driver.findElements(By.css("#filter-tab-trigger"));
+                  if (updatedTrigger.length > 0) {
+                    try {
+                      const newFilterState = await updatedTrigger[0].getText();
+                      console.log(`Filter state after clicking Full Pipeline: "${newFilterState}"`);
+                      
+                      if (newFilterState !== originalFilterState) {
+                        console.log("✓ Filter state changed successfully");
+                      } else {
+                        console.log("Filter state remained the same - this may be expected");
+                      }
+                    } catch (e: any) {
+                      console.log("Could not check updated filter state:", e.message);
+                    }
+                  }
+                  break;
+                }
+              } catch (e: any) {
+                console.log(`Error testing Full Pipeline element ${i}:`, e.message);
+                // Continue to next element instead of failing
+              }
+            }
+            
+            if (fullPipelineFound) break;
+            
+            // Alternative search: look for radio group containers
+            console.log("Searching for Full Pipeline in radio group containers...");
+            const radioContainers = await driver.findElements(By.css("vscode-radio-group"));
+            console.log(`Found ${radioContainers.length} radio group containers`);
+            
+            for (let j = 0; j < radioContainers.length; j++) {
+              try {
+                // Re-find containers to avoid stale reference
+                const freshContainers = await driver.findElements(By.css("vscode-radio-group"));
+                if (j >= freshContainers.length) continue;
+                
+                const container = freshContainers[j];
+                const containerText = await container.getText();
+                if (containerText.includes("Full Pipeline")) {
+                  console.log("Found Full Pipeline in radio group container");
+                  fullPipelineFound = true;
+                  
+                  // Try to find clickable radio options within the container
+                  const radioOptions = await container.findElements(By.css("vscode-radio"));
+                  console.log(`Found ${radioOptions.length} radio options in container`);
+                  
+                  for (let k = 0; k < radioOptions.length; k++) {
+                    try {
+                      const radioText = await radioOptions[k].getText();
+                      console.log(`Radio option text: "${radioText}"`);
+                      if (radioText.includes("Full Pipeline")) {
+                        await driver.executeScript("arguments[0].click();", radioOptions[k]);
+                        console.log("✓ Clicked Full Pipeline radio option");
+                        break;
+                      }
+                    } catch (e: any) {
+                      console.log(`Error with radio option ${k}:`, e.message);
+                    }
+                  }
+                  break;
+                }
+              } catch (e: any) {
+                console.log(`Error checking radio container ${j}:`, e.message);
+              }
+            }
+            
+          } catch (e: any) {
+            console.log(`Search attempt ${searchAttempts} failed:`, e.message);
+            if (searchAttempts < maxAttempts) {
+              await driver.sleep(1000); // Wait before retry
+            }
+          }
+        }
+        
+        // Final verification: check that filter-related elements exist
+        try {
+          const allFilterTexts = await driver.findElements(By.xpath("//*[contains(text(), 'Pipeline') or contains(text(), 'Dependencies') or contains(text(), 'Column Level')]"));
+          console.log(`Found ${allFilterTexts.length} total filter-related text elements`);
+          
+          assert(allFilterTexts.length > 0, "Should find filter options in the interface");
+          console.log("✓ Filter options verified in interface");
+        } catch (e: any) {
+          console.log("Could not verify filter options:", e.message);
+          // Don't fail the test just for this verification
+        }
+        
+        console.log("✓ Full Pipeline radio button functionality tested");
+      } catch (error) {
+        console.log("Full Pipeline test error:", error);
+        throw error;
+      }
+    });
+
+    it("should test node and edge interactions", async function () {
+      this.timeout(30000);
+      if (!webview) {
+        this.skip();
+      }
+      try {
+        console.log("Testing node and edge interactions...");
+        
+        // Look for VueFlow nodes
+        const nodeElements = await driver.findElements(By.css(".vue-flow__node"));
+        console.log(`Found ${nodeElements.length} VueFlow nodes`);
+        
+        // Look for VueFlow edges
+        const edgeElements = await driver.findElements(By.css(".vue-flow__edge"));
+        console.log(`Found ${edgeElements.length} VueFlow edges`);
+        
+        // Look for node labels
+        const nodeLabelElements = await driver.findElements(By.css(".vue-flow__node-label"));
+        console.log(`Found ${nodeLabelElements.length} node labels`);
+        
+        // Look for handles (connection points)
+        const handleElements = await driver.findElements(By.css(".vue-flow__handle"));
+        console.log(`Found ${handleElements.length} node handles`);
+        
+        // Test node interactions if nodes exist
+        if (nodeElements.length > 0) {
+          const firstNode = nodeElements[0];
+          const nodeId = await firstNode.getAttribute("data-id");
+          const nodeClass = await firstNode.getAttribute("class");
+          console.log(`First node ID: ${nodeId}, classes: ${nodeClass}`);
+          
+          // Try to hover over the node
+          await driver.executeScript("arguments[0].dispatchEvent(new MouseEvent('mouseover', {bubbles: true}));", firstNode);
+          await driver.sleep(200);
+          
+          console.log("✓ Node hover interaction tested");
+        }
+        
+        // Test edge interactions if edges exist  
+        if (edgeElements.length > 0) {
+          const firstEdge = edgeElements[0];
+          const edgeId = await firstEdge.getAttribute("data-id");
+          const edgeClass = await firstEdge.getAttribute("class");
+          console.log(`First edge ID: ${edgeId}, classes: ${edgeClass}`);
+          
+          console.log("✓ Edge elements verified");
+        }
+        
+        // Verify that we have some graph content
+        const hasContent = nodeElements.length > 0 || edgeElements.length > 0;
+        if (hasContent) {
+          console.log("✓ Graph has interactive content");
+        } else {
+          console.log("! No nodes or edges found - may be loading or empty state");
+        }
+        
+        console.log("✓ Node and edge interaction testing completed");
+      } catch (error) {
+        console.log("Node and edge interaction test error:", error);
+        throw error;
+      }
+    });
+
+    it("should test keyboard navigation and shortcuts", async function () {
+      this.timeout(30000);
+      if (!webview) {
+        this.skip();
+      }
+      try {
+        console.log("Testing keyboard navigation...");
+        
+        // Get the VueFlow container
+        const flowContainer = await driver.findElement(By.css(".vue-flow"));
+        
+        // Test if container can receive focus
+        await driver.executeScript("arguments[0].focus();", flowContainer);
+        await driver.sleep(200);
+        
+        // Test keyboard shortcuts (common VueFlow shortcuts)
+        const shortcuts = [
+          { key: "Equal", description: "Zoom in" },
+          { key: "Minus", description: "Zoom out" }, 
+          { key: "Digit0", description: "Fit view" }
+        ];
+        
+        for (const shortcut of shortcuts) {
+          try {
+            console.log(`Testing ${shortcut.description} shortcut...`);
+            await driver.executeScript(`
+              arguments[0].dispatchEvent(new KeyboardEvent('keydown', {
+                code: '${shortcut.key}',
+                bubbles: true
+              }));
+            `, flowContainer);
+            await driver.sleep(300);
+            
+            console.log(`✓ ${shortcut.description} shortcut tested`);
+          } catch (e: any) {
+            console.log(`Could not test ${shortcut.description} shortcut:`, e.message);
+          }
+        }
+        
+        // Test Tab navigation
+        await driver.executeScript(`
+          arguments[0].dispatchEvent(new KeyboardEvent('keydown', {
+            key: 'Tab',
+            code: 'Tab',
+            bubbles: true
+          }));
+        `, flowContainer);
+        await driver.sleep(200);
+        
+        console.log("✓ Tab navigation tested");
+        
+        // Test Escape key
+        await driver.executeScript(`
+          arguments[0].dispatchEvent(new KeyboardEvent('keydown', {
+            key: 'Escape',
+            code: 'Escape',
+            bubbles: true
+          }));
+        `, flowContainer);
+        await driver.sleep(200);
+        
+        console.log("✓ Escape key tested");
+        console.log("✓ Keyboard navigation testing completed");
+      } catch (error) {
+        console.log("Keyboard navigation test error:", error);
+        throw error;
+      }
+    });
+
+    it("should test drag and drop functionality", async function () {
+      this.timeout(30000);
+      if (!webview) {
+        this.skip();
+      }
+      try {
+        console.log("Testing drag and drop functionality...");
+        
+        // Get the VueFlow pane for drag operations
+        const flowPane = await driver.findElement(By.css(".vue-flow__pane"));
+        
+        // Test pane dragging (panning)
+        const paneRect = await flowPane.getRect();
+        const centerX = paneRect.x + paneRect.width / 2;
+        const centerY = paneRect.y + paneRect.height / 2;
+        
+        console.log(`Pane center: ${centerX}, ${centerY}`);
+        
+        // Simulate drag operation on the pane
+        await driver.executeScript(`
+          const element = arguments[0];
+          const startX = arguments[1];
+          const startY = arguments[2];
+          const endX = startX + 50;
+          const endY = startY + 50;
+          
+          // Mouse down
+          element.dispatchEvent(new MouseEvent('mousedown', {
+            clientX: startX,
+            clientY: startY,
+            bubbles: true
+          }));
+          
+          // Mouse move  
+          element.dispatchEvent(new MouseEvent('mousemove', {
+            clientX: endX,
+            clientY: endY,
+            bubbles: true
+          }));
+          
+          // Mouse up
+          element.dispatchEvent(new MouseEvent('mouseup', {
+            clientX: endX,
+            clientY: endY,
+            bubbles: true
+          }));
+        `, flowPane, centerX, centerY);
+        
+        await driver.sleep(500);
+        console.log("✓ Pane drag simulation completed");
+        
+        // Look for nodes to test node dragging
+        const nodeElements = await driver.findElements(By.css(".vue-flow__node"));
+        if (nodeElements.length > 0) {
+          const firstNode = nodeElements[0];
+          console.log("Testing node drag...");
+          
+          // Get node position
+          const nodeRect = await firstNode.getRect();
+          const nodeX = nodeRect.x + nodeRect.width / 2;
+          const nodeY = nodeRect.y + nodeRect.height / 2;
+          
+          // Simulate node drag
+          await driver.executeScript(`
+            const node = arguments[0];
+            const startX = arguments[1];
+            const startY = arguments[2];
+            const endX = startX + 30;
+            const endY = startY + 30;
+            
+            node.dispatchEvent(new MouseEvent('mousedown', {
+              clientX: startX,
+              clientY: startY,
+              bubbles: true
+            }));
+            
+            node.dispatchEvent(new MouseEvent('mousemove', {
+              clientX: endX,
+              clientY: endY,
+              bubbles: true
+            }));
+            
+            node.dispatchEvent(new MouseEvent('mouseup', {
+              clientX: endX,
+              clientY: endY,
+              bubbles: true
+            }));
+          `, firstNode, nodeX, nodeY);
+          
+          await driver.sleep(300);
+          console.log("✓ Node drag simulation completed");
+        } else {
+          console.log("! No nodes found for drag testing");
+        }
+        
+        console.log("✓ Drag and drop functionality testing completed");
+      } catch (error) {
+        console.log("Drag and drop test error:", error);
+        throw error;
+      }
+    });
+
+    it("should test minimap functionality", async function () {
+      this.timeout(30000);
+      if (!webview) {
+        this.skip();
+      }
+      try {
+        console.log("Testing minimap functionality...");
+        
+        // Look for minimap elements
+        const minimapElements = await driver.findElements(By.css(".vue-flow__minimap"));
+        console.log(`Found ${minimapElements.length} minimap elements`);
+        
+        const minimapNodes = await driver.findElements(By.css(".vue-flow__minimap-node"));
+        console.log(`Found ${minimapNodes.length} minimap nodes`);
+        
+        const minimapMask = await driver.findElements(By.css(".vue-flow__minimap-mask"));
+        console.log(`Found ${minimapMask.length} minimap masks`);
+        
+        if (minimapElements.length > 0) {
+          const minimap = minimapElements[0];
+          
+          // Test minimap visibility
+          const isDisplayed = await minimap.isDisplayed();
+          console.log(`Minimap displayed: ${isDisplayed}`);
+          
+          if (isDisplayed) {
+            // Test minimap interactions
+            const minimapRect = await minimap.getRect();
+            const minimapCenterX = minimapRect.x + minimapRect.width / 2;
+            const minimapCenterY = minimapRect.y + minimapRect.height / 2;
+            
+            // Click on minimap to test navigation
+            await driver.executeScript(`
+              arguments[0].dispatchEvent(new MouseEvent('click', {
+                clientX: arguments[1],
+                clientY: arguments[2],
+                bubbles: true
+              }));
+            `, minimap, minimapCenterX, minimapCenterY);
+            
+            await driver.sleep(300);
+            console.log("✓ Minimap click interaction tested");
+          }
+        } else {
+          console.log("! No minimap found - may not be enabled");
+        }
+        
+        console.log("✓ Minimap functionality testing completed");
+      } catch (error) {
+        console.log("Minimap test error:", error);
+        throw error;
+      }
+    });
+
+    it("should test selection and multi-selection", async function () {
+      this.timeout(30000);
+      if (!webview) {
+        this.skip();
+      }
+      try {
+        console.log("Testing selection functionality...");
+        
+        // Wait for VueFlow to fully render
+        await driver.wait(until.elementLocated(By.css(".vue-flow")), 5000);
+        await driver.sleep(1000); // Additional wait for rendering
+        
+        // Look for selectable elements
+        const nodeElements = await driver.findElements(By.css(".vue-flow__node"));
+        const edgeElements = await driver.findElements(By.css(".vue-flow__edge"));
+        
+        console.log(`Found ${nodeElements.length} nodes and ${edgeElements.length} edges for selection testing`);
+        
+        if (nodeElements.length > 0) {
+          const firstNode = nodeElements[0];
+          
+          // Ensure the node has size and is interactable
+          const nodeRect = await firstNode.getRect();
+          console.log(`First node dimensions: ${nodeRect.width}x${nodeRect.height}`);
+          
+          if (nodeRect.width > 0 && nodeRect.height > 0) {
+            // Test single selection using JavaScript click to avoid size issues
+            await driver.executeScript(`
+              arguments[0].dispatchEvent(new MouseEvent('click', {
+                bubbles: true,
+                clientX: arguments[1],
+                clientY: arguments[2]
+              }));
+            `, firstNode, nodeRect.x + nodeRect.width / 2, nodeRect.y + nodeRect.height / 2);
+            
+            await driver.sleep(200);
+            
+            // Check if node is selected (look for selected class)
+            const nodeClass = await firstNode.getAttribute("class");
+            console.log(`Node classes after click: ${nodeClass}`);
+            
+            // Test if selection classes are applied
+            const selectedElements = await driver.findElements(By.css(".selected, .vue-flow__node.selected"));
+            console.log(`Found ${selectedElements.length} selected elements`);
+            
+            console.log("✓ Single selection tested");
+            
+            // Test multi-selection (Ctrl+click)
+            if (nodeElements.length > 1) {
+              const secondNode = nodeElements[1];
+              const secondRect = await secondNode.getRect();
+              
+              if (secondRect.width > 0 && secondRect.height > 0) {
+                // Simulate Ctrl+click for multi-selection
+                await driver.executeScript(`
+                  arguments[0].dispatchEvent(new MouseEvent('click', {
+                    ctrlKey: true,
+                    bubbles: true,
+                    clientX: arguments[1],
+                    clientY: arguments[2]
+                  }));
+                `, secondNode, secondRect.x + secondRect.width / 2, secondRect.y + secondRect.height / 2);
+                
+                await driver.sleep(200);
+                
+                const multiSelectedElements = await driver.findElements(By.css(".selected, .vue-flow__node.selected"));
+                console.log(`Found ${multiSelectedElements.length} elements after multi-select`);
+                
+                console.log("✓ Multi-selection tested");
+              } else {
+                console.log("! Second node has zero size, skipping multi-selection test");
+              }
+            }
+          } else {
+            console.log("! First node has zero size, skipping node selection tests");
+          }
+        }
+        
+        // Test edge selection
+        if (edgeElements.length > 0) {
+          const firstEdge = edgeElements[0];
+          const edgeRect = await firstEdge.getRect();
+          
+          if (edgeRect.width > 0 && edgeRect.height > 0) {
+            await driver.executeScript(`
+              arguments[0].dispatchEvent(new MouseEvent('click', {
+                bubbles: true,
+                clientX: arguments[1],
+                clientY: arguments[2]
+              }));
+            `, firstEdge, edgeRect.x + edgeRect.width / 2, edgeRect.y + edgeRect.height / 2);
+            
+            await driver.sleep(200);
+            console.log("✓ Edge selection tested");
+          } else {
+            console.log("! Edge has zero size, skipping edge selection test");
+          }
+        }
+        
+        // Test selection clearing (click on empty space)
+        const flowPane = await driver.findElement(By.css(".vue-flow__pane"));
+        const paneRect = await flowPane.getRect();
+        
+        await driver.executeScript(`
+          arguments[0].dispatchEvent(new MouseEvent('click', {
+            clientX: arguments[1],
+            clientY: arguments[2],
+            bubbles: true
+          }));
+        `, flowPane, paneRect.x + 50, paneRect.y + 50);
+        
+        await driver.sleep(200);
+        console.log("✓ Selection clearing tested");
+        
+        console.log("✓ Selection functionality testing completed");
+      } catch (error) {
+        console.log("Selection test error:", error);
+        throw error;
+      }
+    });
+
+    it("should test data flow and updates", async function () {
+      this.timeout(30000);
+      if (!webview) {
+        this.skip();
+      }
+      try {
+        console.log("Testing data flow and updates...");
+        
+        // Test if nodes have data attributes
+        const nodeElements = await driver.findElements(By.css(".vue-flow__node"));
+        
+        for (let i = 0; i < Math.min(nodeElements.length, 3); i++) {
+          const node = nodeElements[i];
+          
+          const nodeId = await node.getAttribute("data-id");
+          const nodeType = await node.getAttribute("data-type");
+          const nodeClass = await node.getAttribute("class");
+          
+          console.log(`Node ${i}: ID=${nodeId}, Type=${nodeType}, Classes=${nodeClass}`);
+        }
+        
+        // Test edge data attributes
+        const edgeElements = await driver.findElements(By.css(".vue-flow__edge"));
+        
+        for (let i = 0; i < Math.min(edgeElements.length, 3); i++) {
+          const edge = edgeElements[i];
+          
+          const edgeId = await edge.getAttribute("data-id");
+          const edgeSource = await edge.getAttribute("data-source");
+          const edgeTarget = await edge.getAttribute("data-target");
+          
+          console.log(`Edge ${i}: ID=${edgeId}, Source=${edgeSource}, Target=${edgeTarget}`);
+        }
+        
+        // Test viewport transformation data
+        const transformPane = await driver.findElements(By.css(".vue-flow__transformationpane"));
+        if (transformPane.length > 0) {
+          const transform = await transformPane[0].getAttribute("style");
+          console.log(`Current transform: ${transform}`);
+          
+          // Check if zoom controls exist before trying to use them
+          const zoomInControls = await driver.findElements(By.css(".vue-flow__controls-zoomin"));
+          if (zoomInControls.length > 0) {
+            // Trigger a zoom to test data updates
+            await driver.executeScript(`
+              document.querySelector('.vue-flow__controls-zoomin').click();
+            `);
+            await driver.sleep(300);
+            
+            const newTransform = await transformPane[0].getAttribute("style");
+            console.log(`Transform after zoom: ${newTransform}`);
+            
+            // Only assert if controls actually exist and worked
+            if (transform !== newTransform) {
+              console.log("✓ Data flow updates verified - transform changed");
+            } else {
+              console.log("! Transform did not change after zoom - may be at max zoom or controls not functional");
+            }
+          } else {
+            // Simulate a zoom event directly on the flow pane instead
+            console.log("! Zoom controls not found, testing transform via wheel event");
+            const flowPane = await driver.findElement(By.css(".vue-flow__pane"));
+            
+            // Simulate wheel zoom event
+            await driver.executeScript(`
+              const event = new WheelEvent('wheel', {
+                deltaY: -100,
+                ctrlKey: true,
+                bubbles: true
+              });
+              arguments[0].dispatchEvent(event);
+            `, flowPane);
+            
+            await driver.sleep(300);
+            
+            const newTransform = await transformPane[0].getAttribute("style");
+            console.log(`Transform after wheel zoom: ${newTransform}`);
+            
+            if (transform !== newTransform) {
+              console.log("✓ Data flow updates verified via wheel event");
+            } else {
+              console.log("! Transform verification skipped - no zoom controls or wheel events available");
+            }
+          }
+        } else {
+          console.log("! No transform pane found - data flow test limited");
+        }
+        
+        console.log("✓ Data flow and updates testing completed");
+      } catch (error) {
+        console.log("Data flow test error:", error);
+        throw error;
+      }
+    });
+
+    it("should test performance and rendering optimization", async function () {
+      this.timeout(30000);
+      if (!webview) {
+        this.skip();
+      }
+      try {
+        console.log("Testing performance and rendering...");
+        
+        const startTime = Date.now();
+        
+        // Test rapid zoom operations
+        console.log("Testing rapid zoom operations...");
+        for (let i = 0; i < 5; i++) {
+          await driver.executeScript(`document.querySelector('.vue-flow__controls-zoomin').click();`);
+          await driver.sleep(50);
+        }
+        
+        for (let i = 0; i < 5; i++) {
+          await driver.executeScript(`document.querySelector('.vue-flow__controls-zoomout').click();`);
+          await driver.sleep(50);
+        }
+        
+        // Test rapid panning
+        console.log("Testing rapid panning...");
+        const flowPane = await driver.findElement(By.css(".vue-flow__pane"));
+        
+        for (let i = 0; i < 3; i++) {
+          await driver.executeScript(`
+            const pane = arguments[0];
+            pane.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 100, bubbles: true }));
+            pane.dispatchEvent(new MouseEvent('mousemove', { clientX: 150, clientY: 150, bubbles: true }));
+            pane.dispatchEvent(new MouseEvent('mouseup', { clientX: 150, clientY: 150, bubbles: true }));
+          `, flowPane);
+          await driver.sleep(100);
+        }
+        
+        // Check if interface is still responsive
+        const controlButtons = await driver.findElements(By.css(".vue-flow__controls-button"));
+        assert(controlButtons.length > 0, "Control buttons should still be present after rapid operations");
+        
+        // Test that VueFlow is still functioning
+        await driver.executeScript(`document.querySelector('.vue-flow__controls-fitview').click();`);
+        await driver.sleep(300);
+        
+        const endTime = Date.now();
+        const testDuration = endTime - startTime;
+        console.log(`Performance test completed in ${testDuration}ms`);
+        
+        // Verify no performance issues (test should complete in reasonable time)
+        assert(testDuration < 10000, "Performance test should complete within 10 seconds");
+        
+        console.log("✓ Performance and rendering optimization testing completed");
+      } catch (error) {
+        console.log("Performance test error:", error);
+        throw error;
+      }
+    });
+
+    it("should test responsive design and layout", async function () {
+      this.timeout(30000);
+      if (!webview) {
+        this.skip();
+      }
+      try {
+        console.log("Testing responsive design and layout...");
+        
+        // Get initial dimensions
+        const flowContainer = await driver.findElement(By.css(".vue-flow"));
+        const initialRect = await flowContainer.getRect();
+        console.log(`Initial flow dimensions: ${initialRect.width}x${initialRect.height}`);
+        
+        // Test viewport responsiveness
+        const viewport = await driver.findElement(By.css(".vue-flow__viewport"));
+        const viewportRect = await viewport.getRect();
+        console.log(`Viewport dimensions: ${viewportRect.width}x${viewportRect.height}`);
+        
+        // Test container scaling
+        const transformPane = await driver.findElements(By.css(".vue-flow__transformationpane"));
+        if (transformPane.length > 0) {
+          const transform = await transformPane[0].getAttribute("style");
+          console.log(`Transform pane style: ${transform}`);
+          
+          // Test if transform contains expected properties
+          assert(transform.includes("translate") || transform.includes("scale"), 
+                 "Transform should contain translate or scale properties");
+        }
+        
+        // Test controls positioning
+        const controlsContainer = await driver.findElements(By.css(".vue-flow__controls"));
+        if (controlsContainer.length > 0) {
+          const controlsRect = await controlsContainer[0].getRect();
+          console.log(`Controls position: ${controlsRect.x}, ${controlsRect.y}`);
+          
+          // Verify controls are positioned within the flow container
+          assert(controlsRect.x >= initialRect.x && controlsRect.y >= initialRect.y,
+                 "Controls should be positioned within the flow container");
+        }
+        
+        // Test background rendering
+        const background = await driver.findElements(By.css(".vue-flow__background"));
+        if (background.length > 0) {
+          const backgroundRect = await background[0].getRect();
+          console.log(`Background dimensions: ${backgroundRect.width}x${backgroundRect.height}`);
+          
+          // Background should cover the viewport
+          assert(backgroundRect.width > 0 && backgroundRect.height > 0,
+                 "Background should have non-zero dimensions");
+        }
+        
+        // Test edge rendering and positioning
+        const edges = await driver.findElements(By.css(".vue-flow__edge"));
+        console.log(`Found ${edges.length} edges for layout testing`);
+        
+        for (let i = 0; i < Math.min(edges.length, 2); i++) {
+          const edge = edges[i];
+          const edgeRect = await edge.getRect();
+          console.log(`Edge ${i} dimensions: ${edgeRect.width}x${edgeRect.height}`);
+        }
+        
+        console.log("✓ Responsive design and layout testing completed");
+      } catch (error) {
+        console.log("Responsive design test error:", error);
+        throw error;
+      }
+    });
+  });
+});

@@ -282,55 +282,21 @@ describe("Bruin Webview Test", function () {
       console.log("Could not verify active editor:", error);
     }
 
-    // Try to activate the extension first with multiple attempts
+    // Try to activate the extension
     let commandExecuted = false;
-    const commands = ["bruin.renderSQL", "bruin.render", "bruin.openAssetPanel"];
+    const command = "bruin.renderSQL";
     
-    for (const command of commands) {
-      try {
-        await workbench.executeCommand(command);
-        console.log(`Successfully executed ${command} command`);
-        commandExecuted = true;
-        break;
-      } catch (error: any) {
-        console.log(`Error executing ${command} command:`, error.message);
-      }
-    }
-    
-    if (!commandExecuted) {
-      console.log("⚠️  No Bruin commands could be executed - extension may not be loaded");
-      
-      // Try to activate the extension by other means
-      try {
-        // Open the command palette and search for Bruin commands
-        await workbench.executeCommand("workbench.action.showCommands");
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        
-        // Try to press Escape to close command palette
-        const inputBox = await driver.findElement(By.css('input[class*="input"]'));
-        await inputBox.sendKeys("bruin");
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        await inputBox.sendKeys(Key.ESCAPE);
-        
-        console.log("Tried to activate extension via command palette");
-      } catch (paletteError: any) {
-        console.log("Could not access command palette:", paletteError.message);
-      }
-    }
-    
+    try {
+      await workbench.executeCommand(command);
+      console.log(`Successfully executed ${command} command`);
+      commandExecuted = true;
+    } catch (error: any) {
+      console.log(`Error executing ${command} command:`, error.message);
+    }    
     // Wait longer for the webview to initialize  
     console.log("Waiting for webview to initialize after command execution...");
     await new Promise((resolve) => setTimeout(resolve, 8000));
     driver = VSBrowser.instance.driver;
-
-    // Wait for the webview iframe to be present
-    console.log("Waiting for webview iframe...");
-    await driver.wait(
-      until.elementLocated(By.className("editor-instance")),
-      30000,
-      "Webview iframe did not appear within 30 seconds"
-    );
-    console.log("Webview iframe found");
 
     // Check if there are multiple iframes and try to find the Bruin panel specifically
     const allIframes = await driver.findElements(By.css('iframe'));
@@ -347,291 +313,70 @@ describe("Bruin Webview Test", function () {
       }
     }
 
-    // Try to find the Bruin panel iframe specifically with better logic
-    let bruinIframe = null;
-    for (let i = 0; i < allIframes.length; i++) {
-      try {
-        const iframe = allIframes[i];
-        const src = await iframe.getAttribute('src');
-        if (src && src.includes('index.html')) {
-          console.log(`Checking iframe ${i} for Bruin content...`);
-          
-          // Switch to this iframe and check if it contains Bruin content
-          await driver.switchTo().frame(iframe);
-          
-          // Wait longer and try multiple approaches to detect the app
-          let hasApp = false;
-          
-          // Try 1: Look for #app element
-          try {
-            await driver.wait(until.elementLocated(By.id("app")), 5000);
-            hasApp = true;
-            console.log(`✓ Found #app in iframe ${i}`);
-          } catch (error) {
-            console.log(`No #app in iframe ${i}`);
-          }
-          
-          // Try 2: Look for any Vue.js mounted content
-          if (!hasApp) {
-            try {
-              const vueElements = await driver.findElements(By.css('[data-v-*], .vue-component, [v-*]'));
-              if (vueElements.length > 0) {
-                hasApp = true;
-                console.log(`✓ Found Vue content in iframe ${i}`);
-              }
-            } catch (error) {
-              console.log(`No Vue content in iframe ${i}`);
-            }
-          }
-          
-          // Try 3: Look for Bruin-specific elements
-          if (!hasApp) {
-            try {
-              const bruinElements = await driver.findElements(By.css('[class*="bruin"], [id*="asset"], [class*="tab"], [id*="sql-editor"]'));
-              if (bruinElements.length > 0) {
-                hasApp = true;
-                console.log(`✓ Found Bruin-specific content in iframe ${i} (${bruinElements.length} elements)`);
-              }
-            } catch (error) {
-              console.log(`No Bruin-specific content in iframe ${i}`);
-            }
-          }
-          
-          // Try 4: Look for SQL editor or preview content
-          if (!hasApp) {
-            try {
-              const sqlElements = await driver.findElements(By.css('[id*="editor"], [class*="sql"], [class*="preview"], [class*="highlight"]'));
-              if (sqlElements.length > 0) {
-                hasApp = true;
-                console.log(`✓ Found SQL/editor content in iframe ${i} (${sqlElements.length} elements)`);
-              }
-            } catch (error) {
-              console.log(`No SQL/editor content in iframe ${i}`);
-            }
-          }
-          
-          // Try 5: Check page source content for Bruin-specific text
-          if (!hasApp) {
-            try {
-              const pageSource = await driver.getPageSource();
-              const hasBruinContent = pageSource.includes('asset') || 
-                                    pageSource.includes('materialization') ||
-                                    pageSource.includes('preview') ||
-                                    pageSource.toLowerCase().includes('sql');
-              
-              if (hasBruinContent && pageSource.length > 5000) {
-                hasApp = true;
-                console.log(`✓ Found substantial Bruin content in iframe ${i} (${pageSource.length} chars)`);
-              }
-            } catch (error) {
-              console.log(`Could not check page source in iframe ${i}`);
-            }
-          }
-          
-          if (hasApp) {
-            console.log(`Found Bruin panel in iframe ${i}`);
-            bruinIframe = iframe;
-            break;
-          } else {
-            // Not the Bruin iframe, switch back
-            await driver.switchTo().defaultContent();
-          }
-        }
-      } catch (error) {
-        console.log(`Error checking iframe ${i}:`, error);
-        // Make sure we're back to default content if there was an error
+    webview = new WebView(); // Initialize WebView object once
+
+    let webviewFound = false;
+    try {
+      console.log("Attempting to switch to webview frame using WebView class...");
+      await webview.switchToFrame(20000);
+      console.log("✓ Successfully switched to webview frame using WebView class.");
+      webviewFound = true;
+    } catch (error) {
+      console.log("WebView.switchToFrame() failed, attempting manual iframe search:", error);
+      for (let i = 0; i < allIframes.length; i++) {
         try {
-          await driver.switchTo().defaultContent();
-        } catch (switchError) {
-          console.log("Error switching back to default content:", switchError);
-        }
-      }
-    }
-
-    if (!bruinIframe) {
-      console.log("No Bruin panel iframe found, trying default WebView approach");
-      webview = new WebView();
-      
-      // Try multiple approaches to get into the webview
-      try {
-        await driver.wait(until.elementLocated(By.css(".editor-instance")), 10000);
-        await webview.switchToFrame();
-      } catch (error) {
-        console.log("Default WebView approach failed, trying direct iframe selection");
-        
-        // Fallback: try the first iframe that has substantial content
-        for (let i = 0; i < allIframes.length; i++) {
-          try {
-            await driver.switchTo().frame(allIframes[i]);
-            const pageSource = await driver.getPageSource();
-            if (pageSource.length > 10000) { // Substantial content
-              console.log(`Using iframe ${i} as fallback (${pageSource.length} chars)`);
-              webview = new WebView();
-              break;
-            }
-            await driver.switchTo().defaultContent();
-          } catch (error) {
-            try {
-              await driver.switchTo().defaultContent();
-            } catch (switchError) {
-              // Ignore switch errors
-            }
-          }
-        }
-      }
-    } else {
-      console.log("Using Bruin panel iframe directly");
-      webview = new WebView();
-      // The iframe is already switched to, so we don't need to switch again
-    }
-
-    // Wait for the webview content to load with progressive checks
-    console.log("Waiting for webview content to initialize...");
-    
-    // Progressive wait with multiple checks
-    for (let attempt = 1; attempt <= 5; attempt++) {
-      console.log(`Initialization attempt ${attempt}/5`);
-      
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      
-      // Check for app element
-      try {
-        const appElement = await driver.findElement(By.id("app"));
-        console.log(`✓ Found #app element on attempt ${attempt}`);
-        
-        // Wait a bit more for Vue to mount
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        break;
-      } catch (error) {
-        console.log(`No #app element found on attempt ${attempt}`);
-        
-        // On the last attempt, try to trigger the webview to load properly
-        if (attempt === 5) {
-          console.log("Final attempt: trying to trigger webview initialization");
+          const iframe = allIframes[i];
+          const src = await iframe.getAttribute('src');
           
-          // Try to trigger a refresh or re-render
-          try {
-            await driver.navigate().refresh();
-            await new Promise((resolve) => setTimeout(resolve, 3000));
-          } catch (refreshError) {
-            console.log("Could not refresh webview");
-          }
-          
-          // Check one more time
-          try {
-            await driver.wait(until.elementLocated(By.id("app")), 5000);
-            console.log("✓ Found #app element after refresh");
-          } catch (finalError) {
-            console.log("⚠️  Still no #app element - webview may be in settings-only mode");
-            console.log("This suggests the Vue.js application is not mounting properly");
+          if (src && (src.includes('index.html') || src.includes('vscode-webview'))) {
+            console.log(`Checking iframe ${i} for Bruin content (src: ${src.substring(0, Math.min(src.length, 100))}...)...`);
             
-            // Let's see what content we do have
+            await driver.switchTo().frame(iframe); 
+            
             try {
-              const pageSource = await driver.getPageSource();
-              console.log("Final webview content length:", pageSource.length);
-              
-              // Check for common elements that indicate the webview is working
-              const commonElements = await driver.findElements(By.css('body, html, div'));
-              console.log(`Found ${commonElements.length} basic HTML elements`);
-              
-              // Look for any form of structured content
-              const structuredElements = await driver.findElements(By.css('*[class], *[id]'));
-              console.log(`Found ${structuredElements.length} elements with classes or IDs`);
-              
-            } catch (debugError) {
-              console.log("Could not gather debug information:", debugError);
+              await driver.wait(until.elementLocated(By.id("app")), 10000); 
+              console.log(`✓ Found #app element in iframe ${i}. Assuming this is the Bruin webview.`);
+              webviewFound = true;
+              break; 
+            } catch (e) {
+                console.log(`No #app element found in iframe ${i}.`);
             }
+            
+            await driver.switchTo().defaultContent();
+          }
+        } catch (error) {
+          console.log(`Error checking iframe ${i}:`, error);
+          try {
+            await driver.switchTo().defaultContent();
+          } catch (switchError) {
+            console.log("Error switching back to default content after iframe check:", switchError);
           }
         }
       }
     }
 
-    // Check for specific elements or text in the webview with better error handling and fallbacks
-    console.log("Checking for key webview elements...");
-    
-    const elementChecks = [
-      { id: "asset-name-container", name: "Asset name container" },
-      { id: "tab-0", name: "Tab 0" },
-      { id: "app", name: "App container" },
-      { id: "asset-description-container", name: "Asset description container" },
-      { id: "tags-container", name: "Tags container" }
-    ];
-    
-    let foundElements = 0;
-    
-    for (const check of elementChecks) {
-      try {
-        let element = null;
-        
-        // Try with webview method first
-        try {
-          element = await webview.findWebElement(By.id(check.id));
-        } catch (webviewError) {
-          // Fallback to direct driver method
-          try {
-            element = await driver.findElement(By.id(check.id));
-          } catch (driverError) {
-            // Element not found
-          }
-        }
-        
-        if (element) {
-          console.log(`✓ ${check.name} found`);
-          foundElements++;
-        } else {
-          console.log(`✗ ${check.name} not found`);
-        }
-      } catch (error: any) {
-        console.log(`✗ ${check.name} check failed:`, error.message);
-      }
-    }
-    
-    console.log(`Found ${foundElements}/${elementChecks.length} key webview elements`);
-    
-    if (foundElements === 0) {
-      console.log("⚠️  No key elements found - investigating webview state");
-      
-      // Get comprehensive debug information
-      try {
-        const pageSource = await driver.getPageSource();
-        console.log("Webview page source length:", pageSource.length);
-        console.log("Webview page source preview:", pageSource.substring(0, 500));
-        
-        // Look for any elements with IDs
-        const elementsWithIds = await driver.findElements(By.css('*[id]'));
-        console.log(`Found ${elementsWithIds.length} elements with IDs:`);
-        
-        // Show first 10 IDs for debugging
-        for (let i = 0; i < Math.min(10, elementsWithIds.length); i++) {
-          try {
-            const id = await elementsWithIds[i].getAttribute('id');
-            const tagName = await elementsWithIds[i].getTagName();
-            console.log(`  - ${tagName}#${id}`);
-          } catch (error) {
-            console.log(`  - Could not get details for element ${i}`);
-          }
-        }
-        
-        // Check if we're actually in a webview context
-        const title = await driver.getTitle();
-        const url = await driver.getCurrentUrl();
-        console.log(`Current context: title="${title}", url="${url}"`);
-        
-      } catch (debugError) {
-        console.log("Could not get comprehensive debug info:", debugError);
-      }
+    if (!webviewFound) {
+      console.log("⚠️  Could not find Bruin panel webview after all attempts. Subsequent tests may fail.");
+      (global as any).bruinWebviewNotFound = true; 
     } else {
-      console.log("✓ Webview appears to be at least partially loaded");
+      console.log("✓ Bruin webview successfully located and driver is in its context.");
+      console.log("Waiting for the #app element to be fully present and visible...");
+      try {
+        await driver.wait(until.elementLocated(By.id("app")), 15000); 
+        console.log("✓ #app element is present and webview content appears loaded.");
+      } catch (error) {
+        console.log("⚠️  #app element not found after switching to webview frame. Webview content may not have loaded correctly.");
+        console.log("This suggests the Vue.js application is not mounting properly or is in an unexpected state.");
+        (global as any).bruinWebviewNotFound = true; 
+      }
     }
   });
 
   after(async function () {
-    // Switch back to the main VS Code window after tests
     if (webview) {
       await webview.switchBack();
     }
     
-    // Release the test slot for coordination
     await TestCoordinator.releaseTestSlot("Bruin Webview Test");
   });
   describe("Edit Asset Name Tests", function () {
@@ -647,7 +392,6 @@ describe("Bruin Webview Test", function () {
     it("should locate the asset name container", async function () {
       this.timeout(15000);
 
-      // Check if webview is properly loaded first
       try {
         await driver.findElement(By.id("app"));
       } catch (error) {
@@ -656,7 +400,6 @@ describe("Bruin Webview Test", function () {
         return;
       }
 
-      // Wait for the asset name container to be present
       try {
         assetNameContainer = await driver.wait(
           until.elementLocated(By.id("asset-name-container")),
@@ -671,7 +414,6 @@ describe("Bruin Webview Test", function () {
 
       assert.ok(assetNameContainer, "Asset name container should be accessible");
 
-      // Verify the container is visible and has initial content
       const isDisplayed = await assetNameContainer.isDisplayed();
       assert.ok(isDisplayed, "Asset name container should be visible");
 
@@ -683,11 +425,9 @@ describe("Bruin Webview Test", function () {
     it("should activate edit mode when clicking the asset name", async function () {
       this.timeout(20000);
 
-      // Click on the asset name container to activate edit mode
       await assetNameContainer.click();
       await sleep(1000);
 
-      // Wait for the input field to appear
       const nameInput = await driver.wait(
         until.elementLocated(By.id("asset-name-input")),
         10000,
@@ -696,11 +436,9 @@ describe("Bruin Webview Test", function () {
 
       assert.ok(nameInput, "Asset name input field should be present");
 
-      // Verify the input is focused and visible
       const isDisplayed = await nameInput.isDisplayed();
       assert.ok(isDisplayed, "Asset name input should be visible");
 
-      // Check if input has the current name as value
       const inputValue = await nameInput.getAttribute("value");
       assert.ok(inputValue && inputValue.length > 0, "Input should contain current asset name");
 
@@ -710,55 +448,44 @@ describe("Bruin Webview Test", function () {
     it("should edit asset name successfully", async function () {
       this.timeout(30000);
 
-      // Re-find the asset name container to avoid stale element reference
       const freshAssetNameContainer = await driver.wait(
         until.elementLocated(By.id("asset-name-container")),
         10000,
         "Asset name container not found"
       );
 
-      // Click on asset name container to enter edit mode
       await freshAssetNameContainer.click();
       await sleep(1000);
 
-      // Wait for input field to be available
       const nameInput = await driver.wait(
         until.elementLocated(By.id("asset-name-input")),
         10000,
         "Asset name input field not found"
       );
 
-      // Get the original name for comparison
       const originalName = await nameInput.getAttribute("value");
       console.log("Original asset name:", originalName);
 
-      // Clear the input field using JavaScript to ensure it's completely empty
       await driver.executeScript(
         'arguments[0].value = ""; arguments[0].dispatchEvent(new Event("input", { bubbles: true }));',
         nameInput
       );
 
-      // Verify the field is cleared
       const clearedValue = await nameInput.getAttribute("value");
       assert.strictEqual(clearedValue, "", "Input field should be cleared");
 
-      // Type the new asset name
       const newAssetName = `TestAsset_${Date.now()}`;
       await nameInput.sendKeys(newAssetName);
       await sleep(500);
 
-      // Verify the new value is entered
       const enteredValue = await nameInput.getAttribute("value");
       assert.strictEqual(enteredValue, newAssetName, "New asset name should be entered correctly");
 
-      // Save by pressing Enter
       await nameInput.sendKeys(Key.ENTER);
       await sleep(2000);
 
-      // Wait for edit mode to exit and verify the name is updated
       await driver.wait(until.stalenessOf(nameInput), 10000, "Edit mode should exit after saving");
 
-      // Wait for the display name to update
       const displayNameElement = await driver.wait(
         until.elementLocated(By.id("input-name")),
         10000,
@@ -781,7 +508,6 @@ describe("Bruin Webview Test", function () {
     it("should access the tab", async function () {
       this.timeout(20000); // Increase timeout
       
-      // Check if webview is properly loaded first
       try {
         await driver.findElement(By.id("app"));
       } catch (error) {
@@ -817,8 +543,6 @@ describe("Bruin Webview Test", function () {
         10000
       );
 
-      // Find the parent container that handles hover events
-      // The hover events are on the parent of asset-description-container
       const hoverContainer = await driver.executeScript(`
         const descContainer = document.getElementById('asset-description-container');
         return descContainer ? descContainer.parentElement : null;
@@ -830,7 +554,6 @@ describe("Bruin Webview Test", function () {
 
       console.log("Found hover container, triggering mouseenter event");
 
-      // Trigger mouseenter event directly via JavaScript to ensure it works
       await driver.executeScript(`
         const container = arguments[0];
         const event = new MouseEvent('mouseenter', {
@@ -841,31 +564,25 @@ describe("Bruin Webview Test", function () {
         container.dispatchEvent(event);
       `, hoverContainer);
 
-      // Wait for the showEditButton state to update
       await sleep(1500);
 
-      // Also try the traditional hover approach as backup
       await driver.actions().move({ origin: hoverContainer as any }).perform();
       await sleep(500);
 
-      // Find and click edit button
       const editButton = await driver.wait(
         until.elementLocated(By.id('description-edit')),
         10000
       );
       await editButton.click();
 
-      // Wait for textarea to be visible
       await driver.wait(until.elementLocated(By.id("description-input")), 10000); // Increase timeout
       // 3. Handle text input
       const textarea = await driver.wait(until.elementLocated(By.id("description-input")), 10000); // Increase timeout
-      // Clear using JavaScript executor
       await driver.executeScript(
         'arguments[0].value = ""; arguments[0].dispatchEvent(new Event("input"))',
         textarea
       );
 
-      // Verify empty state
       const currentValue = await textarea.getAttribute("value");
       if (currentValue !== "") {
         throw new Error("Textarea was not cleared properly");
@@ -873,14 +590,12 @@ describe("Bruin Webview Test", function () {
       const testText = `Description TEST_${Date.now()}`;
       await textarea.sendKeys(testText);
       await sleep(1000);
-      // 4. Save changes
       const saveButton = await driver.wait(
         until.elementLocated(By.id('description-save-button')),
         10000 // Increase timeout
       );
       await saveButton.click();
       await sleep(1000);
-      // 5. Verify update
       const updatedText = await driver
         .wait(until.elementLocated(By.id("asset-description-container")), 10000) // Increase timeout
         .getText();
@@ -899,7 +614,6 @@ describe("Bruin Webview Test", function () {
     beforeEach(async function () {
       this.timeout(10000);
       
-      // Check if webview is properly loaded first
       try {
         await driver.findElement(By.id("app"));
       } catch (error) {
@@ -908,7 +622,6 @@ describe("Bruin Webview Test", function () {
         return;
       }
       
-      // Ensure we are on the materialization tab if not already
       try {
         const tab = await driver.wait(until.elementLocated(By.id("tab-2")), 10000);
         await tab.click();
@@ -1045,7 +758,7 @@ describe("Bruin Webview Test", function () {
       try {
         const tab = await driver.wait(until.elementLocated(By.id("tab-2")), 10000);
         await tab.click();
-        await sleep(500); // Give some time for the tab content to render
+        await sleep(500); 
       } catch (error) {
         console.log("Tab-2 not found, skipping owner tests");
         this.skip();

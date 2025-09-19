@@ -540,6 +540,7 @@
     "selenium:setup-tests": "extest setup-tests",
     "selenium:run-tests:connections": "node webview-ui/scripts/copy-test-assets.js && extest setup-and-run './out/ui-test/connections-integration.test.js' --code_version 1.103.0 --code_settings settings.json",
     "selenium:run-tests:ingestr": "node webview-ui/scripts/copy-test-assets.js && extest setup-and-run './out/ui-test/ingestr-asset-ui-integration.test.js' --code_version 1.103.0 --code_settings settings.json",
+    "selenium:run-tests:lineage": "node webview-ui/scripts/copy-test-assets.js && extest setup-and-run './out/ui-test/lineage-integration.test.js' --code_version 1.103.0 --code_settings settings.json",
     "selenium:run-tests:webview": "node webview-ui/scripts/copy-test-assets.js && extest setup-and-run './out/ui-test/webview-tests.test.js' --code_version 1.103.0 --code_settings settings.json",
     "selenium:run-tests:all": "npm run selenium:run-tests:connections && npm run selenium:run-tests:ingestr && npm run selenium:run-tests:webview",
     "test": "node ./out/test/runTest.js",

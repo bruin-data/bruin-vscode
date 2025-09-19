@@ -6,6 +6,10 @@ type: bq.sql
 materialization:
    type: table
 
+depends:
+  - shopify_raw.orders
+  - uri: test-ingestr
+
 description: |
   # Example table
   This asset is an example table with some quality checks to help you get started.
