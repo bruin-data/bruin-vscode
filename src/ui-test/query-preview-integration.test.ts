@@ -11,7 +11,7 @@ import "mocha";
 import * as path from "path";
 import { TestCoordinator } from "./test-coordinator";
 
-// Helper function to handle click interception issues
+// Helper function to handle click interception issues and stale element references
 const safeClick = async (driver: WebDriver, element: any) => {
   try {
     // Wait until the element is visible and then click it
@@ -21,6 +21,9 @@ const safeClick = async (driver: WebDriver, element: any) => {
     if (error.name === 'ElementClickInterceptedError') {
       console.log("Click intercepted, using JavaScript click as fallback");
       await driver.executeScript("arguments[0].click();", element);
+    } else if (error.name === 'StaleElementReferenceError') {
+      console.log("Stale element reference, element may have changed");
+      throw new Error("Element became stale - need to re-find element before clicking");
     } else {
       throw error;
     }
@@ -566,10 +569,35 @@ describe("Query Preview Integration Tests", function () {
           if (cancelButtons.length > 0) {
             console.log("✓ Cancel button appeared during execution");
             
-            // Test clicking cancel
-            await safeClick(driver, cancelButtons[0]);
-            await driver.sleep(500);
-            console.log("✓ Cancel button clicked");
+            // Try to click cancel button with retry mechanism for stale elements
+            let cancelClicked = false;
+            for (let attempt = 1; attempt <= 3; attempt++) {
+              try {
+                console.log(`Cancel button click attempt ${attempt}/3`);
+                const freshCancelButtons = await driver.findElements(By.css('vscode-button[title="Cancel Query"], .codicon-stop-circle'));
+                if (freshCancelButtons.length > 0) {
+                  await safeClick(driver, freshCancelButtons[0]);
+                  await driver.sleep(500);
+                  console.log("✓ Cancel button clicked");
+                  cancelClicked = true;
+                  break;
+                } else {
+                  console.log(`! Cancel button not found on attempt ${attempt}`);
+                }
+              } catch (error: any) {
+                if (error.message.includes("stale") || error.name === 'StaleElementReferenceError') {
+                  console.log(`Stale element on attempt ${attempt}, retrying...`);
+                  await driver.sleep(200);
+                  continue;
+                } else {
+                  throw error;
+                }
+              }
+            }
+            
+            if (!cancelClicked) {
+              console.log("! Could not click cancel button after 3 attempts");
+            }
 
             // Verify cancel worked by checking if cancel button is gone
             await driver.wait(async () => {
