@@ -31,14 +31,25 @@ export const generateConnectionConfig = (schema: any) => {
           let cols: number | undefined = undefined;
           let required = connectionDef.required.includes(prop);
 
+          // Make connections more permissive - reduce strict requirements
           // Endpoint URL and Layout are optional for S3 connections
           if (prop === "endpoint_url" || prop === "layout") {
             required = false;
           }
           
+          // Make API version optional for all connection types (especially Tableau)
+          if (prop === "api_version" || prop === "api-version") {
+            required = false;
+          }
+          
+          // Make authentication fields more flexible - allow either password/username OR PAT fields
+          if (prop === "password" || prop === "username" || prop === "pat" || prop === "personal_access_token" || prop === "token") {
+            required = false;
+          }
+          
           if (prop === "players" && type === "chess") {
             inputType = "csv";
-          } else if (prop === "password" || prop === "secret") {
+          } else if (prop === "password" || prop === "secret" || prop === "pat" || prop === "personal_access_token" || prop === "token" || prop === "api_key") {
             inputType = "password";
           } else if (propDef.type === "string") {
             inputType = "text";
