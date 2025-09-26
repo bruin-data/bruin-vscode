@@ -84,7 +84,7 @@
           <div class="flex items-center space-x-2">
             <span class="text-2xs text-editor-fg opacity-65">Running in:</span>
             <vscode-badge :class="badgeClass" class="truncate">
-              {{ currentEnvironment }}
+              {{ displayEnvironment }}
             </vscode-badge>
             <vscode-badge
               v-if="currentTab?.parsedOutput?.connectionName"
@@ -506,6 +506,7 @@ const defaultTab = {
   filteredRowCount: 0,
   isEditing: false,
   environment: "",
+  executedEnvironment: "",
   connectionName: props.connectionName,
   showQuery: false,
   consoleMessages: [],
@@ -621,6 +622,7 @@ const addTab = () => {
     filteredRowCount: 0,
     isEditing: false,
     environment: currentEnvironment.value,
+    executedEnvironment: "",
     connectionName: currentConnectionName.value,
     showQuery: false,
     consoleMessages: [],
@@ -848,10 +850,6 @@ window.addEventListener("message", (event) => {
             const expectedColumnCount = outputData.columns.length;
             const firstRowLength = outputData.rows[0]?.length || 0;
             
-            console.log(`Query result validation: ${expectedColumnCount} columns, first row has ${firstRowLength} values`);
-            console.log('Columns:', outputData.columns.map(c => c.name));
-            console.log('First row sample:', outputData.rows[0]);
-            
             if (expectedColumnCount !== firstRowLength) {
               console.warn(`Column/row mismatch: ${expectedColumnCount} columns but ${firstRowLength} values in first row`);
             }
@@ -972,6 +970,7 @@ const closeTab = (tabId: string) => {
         filteredRowCount: 0,
         isEditing: false,
         environment: currentEnvironment.value,
+        executedEnvironment: "",
         connectionName: props.connectionName,
         showQuery: false,
         consoleMessages: [],
@@ -1202,6 +1201,18 @@ const runQuery = () => {
     triggerRef(tabs);
     const selectedEnvironment = currentEnvironment.value;
     
+    // Update the tab's executedEnvironment to track what was actually sent
+    if (currentTab.value) {
+      const tabIndex = tabs.value.findIndex(t => t.id === activeTab.value);
+      if (tabIndex !== -1) {
+        const updatedTab = {
+          ...tabs.value[tabIndex],
+          executedEnvironment: selectedEnvironment
+        };
+        tabs.value.splice(tabIndex, 1, updatedTab);
+      }
+    }
+    
     vscode.postMessage({
       command: "bruin.getQueryOutput",
       payload: {
@@ -1340,8 +1351,13 @@ watch(
   { immediate: true }
 );
 
+// Environment to display in badge - shows executed environment if available, otherwise current environment
+const displayEnvironment = computed(() => {
+  return currentTab.value?.executedEnvironment || currentEnvironment.value || "default";
+});
+
 const badgeClass = computed(() => {
-  switch (currentEnvironment.value?.toLowerCase()) {
+  switch (displayEnvironment.value?.toLowerCase()) {
     case "production":
     case "prod":
       return "production-badge";

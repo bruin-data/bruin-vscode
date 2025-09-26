@@ -201,6 +201,7 @@ export interface TabData extends Tab {
   isEditing: boolean;
   limit: number;
   environment: string;
+  executedEnvironment: string;
   connectionName: string;
   showQuery: boolean;
   selectedQuery?: string;

@@ -988,7 +988,6 @@ export class BruinPanel {
           case "bruin.refocusActiveEditor":
             if (window.activeTextEditor && this._lastRenderedDocumentUri) {
               await this._handleAssetDetection(this._lastRenderedDocumentUri);
-              getEnvListCommand(this._lastRenderedDocumentUri);
             }
             break;
         }
