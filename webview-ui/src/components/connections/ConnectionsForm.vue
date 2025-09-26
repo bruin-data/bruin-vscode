@@ -5,6 +5,9 @@
         <h3 id="connection-form-title" class="text-lg font-medium text-editor-fg">
           {{ isEditing ? "Edit Connection" : "New Connection" }}
         </h3>
+        <p class="text-sm text-descriptionFg mt-1">
+          Most fields are optional. Provide either username/password OR personal access token/API key for authentication.
+        </p>
         <div class="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-6">
           <FormField
             v-for="field in formFields"
@@ -299,6 +302,28 @@ const validateForm = () => {
       errors.password = errorMsg;
       errors.private_key = errorMsg;
       errors.private_key_path = errorMsg;
+    }
+  }
+  
+  // More permissive validation for authentication fields
+  // Check if connection has any authentication method (password/username OR PAT/token fields)
+  const connectionType = form.value.connection_type;
+  if (connectionType && connectionType !== "snowflake") {
+    const hasPasswordAuth = form.value.password && form.value.username;
+    const hasPATAuth = form.value.pat || form.value.personal_access_token || form.value.token;
+    const hasAPIKey = form.value.api_key;
+    
+    // Only show authentication errors if no authentication method is provided at all
+    // This makes the validation more permissive - you can have either type of auth
+    const hasAnyAuth = hasPasswordAuth || hasPATAuth || hasAPIKey;
+    
+    // For connections that typically need authentication, warn if none provided
+    // But don't block the form submission - let the backend handle it
+    if (!hasAnyAuth && (form.value.password !== undefined || form.value.username !== undefined || 
+                        form.value.pat !== undefined || form.value.personal_access_token !== undefined || 
+                        form.value.token !== undefined || form.value.api_key !== undefined)) {
+      // Only add a soft warning, don't prevent submission
+      console.warn(`No authentication method provided for ${connectionType} connection`);
     }
   }
   
