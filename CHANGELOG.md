@@ -1,4 +1,7 @@
 # Changelog
+## [0.67.3] - [2025-09-26]
+- Fixed the query preview panel environment display issue.
+
 ## [0.67.2] - [2025-09-16]
 - Improved connection test ui.
 

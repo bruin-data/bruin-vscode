@@ -50,18 +50,18 @@ const handleMessage = (event) => {
       } else {
         QueryOutput.value = updateValue(message, "success");
         triggerRef(QueryOutput);
-        console.log("QueryOutput.value inside message handler", QueryOutput.value);
         QueryError.value = updateValue(message, "error");
       }
       break;
     case "init-environment":
-      const payload = updateValue(message, "success").payload;
-      initEnvironment.value = JSON.parse(payload);
-      currentEnvironment.value = initEnvironment.value?.selected_environment;
+      const envData = updateValue(message, "success");
+      if (envData && envData.payload) {
+        initEnvironment.value = JSON.parse(envData.payload);
+        currentEnvironment.value = initEnvironment.value?.selected_environment;
+      }
       break;
     case "set-environment":
       currentEnvironment.value = updateValue(message, "success");
-      console.log("Setting environment", currentEnvironment.value);
       break;
     case "query-export-message":
       if (message.payload.status === "export-loading") {
