@@ -24,7 +24,12 @@ export const patchAssetCommand = async (body: object, lastRenderedDocumentUri: U
     getBruinExecutablePath(),
      ""
   );
-  await patched.patchAsset(body, lastRenderedDocumentUri.fsPath);
+  const success = await patched.patchAsset(body, lastRenderedDocumentUri.fsPath);
+  
+  // After successful patch, re-parse the asset to update the webview
+  if (success) {
+    await parseAssetCommand(lastRenderedDocumentUri);
+  }
 };
 
 
