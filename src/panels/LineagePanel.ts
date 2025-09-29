@@ -80,6 +80,12 @@ export abstract class BaseLineagePanel implements vscode.WebviewViewProvider, vs
           this.loadLineageData();
           this.initPanel(event);
         }
+      }),
+      vscode.workspace.onDidChangeTextDocument((event: vscode.TextDocumentChangeEvent) => {
+        if (event.document.uri.scheme !== "vscodebruin:panel") {
+          this._lastRenderedDocumentUri = event.document.uri;
+          this.loadLineageData();
+        }
       })
     );
 

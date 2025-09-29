@@ -290,8 +290,13 @@ const layoutCache = ref<Map<string, LayoutedGraph>>(new Map());
 const clearLayoutCache = () => layoutCache.value.clear();
 const computeCacheKey = (): string => {
   const assetId = props.assetDataset?.id ?? "";
+  const upstreamIds = props.assetDataset?.upstreams?.map(u => u.name).sort() ?? [];
+  const downstreamIds = props.assetDataset?.downstream?.map(d => d.name).sort() ?? [];
+  
   return JSON.stringify({
     assetId,
+    upstreamIds,
+    downstreamIds,
     filterType: filterType.value,
     expandAllUpstreams: expandAllUpstreams.value,
     expandAllDownstreams: expandAllDownstreams.value,
@@ -687,24 +692,14 @@ watch(
 
 watch(
   () => [props.assetDataset, props.pipelineData],
-  ([newAssetDataset, newPipelineData], [prevAssetDataset, prevPipelineData]) => {
-    // Skip if data hasn't actually changed
-    if (newAssetDataset === prevAssetDataset && newPipelineData === prevPipelineData) {
-      return;
-    }
-    
+  ([newAssetDataset, newPipelineData]) => {
+    // Check if this is a pipeline view and auto-switch
     if (newAssetDataset && (newAssetDataset as any).isPipelineView) {
       showPipelineView.value = true;
       showColumnView.value = false;
       buildPipelineElements();
     } else if (newAssetDataset && newPipelineData && !showPipelineView.value && !showColumnView.value) {
-      // Only process if we actually have new meaningful data
-      const hasValidAsset = newAssetDataset?.id;
-      const hasValidPipeline = newPipelineData?.assets;
-      
-      if (hasValidAsset && hasValidPipeline) {
-        processProperties();
-      }
+      processProperties();
     }
   },
   { immediate: false }
