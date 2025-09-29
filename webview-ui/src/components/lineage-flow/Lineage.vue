@@ -2,7 +2,7 @@
   <div class="flow">
     <div v-if="shouldShowLoading" class="loading-overlay">
       <vscode-progress-ring></vscode-progress-ring>
-      <span class="ml-2">{{ isLayouting ? 'Positioning graph...' : 'Loading lineage data...' }}</span>
+      <span class="ml-2 text-editor-fg">{{ isLayouting ? 'Positioning graph...' : 'Loading lineage data...' }}</span>
     </div>
     <div v-else-if="shouldShowError" class="error-message">
       <span class="ml-2">{{ error }}</span>
