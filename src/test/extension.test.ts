@@ -2005,6 +2005,10 @@ suite("BruinPanel Tests", () => {
     // Stub BruinValidate
     bruinValidateStub = sinon.stub(BruinValidate.prototype, "validate");
     parseAssetCommandStub = sinon.stub(BruinInternalParse.prototype, "parseAsset");
+    // Stub checkIfAsset to prevent real CLI calls during tests
+    sinon.stub(BruinInternalParse.prototype, "checkIfAsset").resolves(true);
+    // Stub the run method on BruinCommand to prevent all CLI calls
+    sinon.stub(BruinCommand.prototype as any, "run").resolves('{"asset": null, "pipeline": {"name": "test-pipeline"}, "repo": {"path": "/test/path"}}');
     patchAssetCommandStub = sinon.stub(BruinInternalPatch.prototype, "patchAsset");
     getConnectionsStub = sinon.stub();
     getEnvListCommandStub = sinon.stub(BruinEnvList.prototype, "getEnvironmentsList");
@@ -2238,15 +2242,9 @@ suite("BruinPanel Tests", () => {
       ).firstCall.args[0];
       const message = { command: "bruin.getAssetDetails" };
 
-      // Ensure the panel treats the current file as an asset so it proceeds to parse
-      const isAssetStub = sinon
-        .stub((BruinPanel.prototype as unknown) as { _isAssetFile: (p: string) => Promise<boolean> }, "_isAssetFile")
-        .resolves(true as any);
-
       await messageHandler(message);
 
       assert.ok(parseAssetCommandStub.calledOnce, "Parse asset command should be called once");
-      isAssetStub.restore();
       parseAssetCommandStub.restore();
     });
 
@@ -6411,6 +6409,9 @@ suite(" Query export Tests", () => {
         let provider;
         try {
           provider = new ActivityBarConnectionsProvider("/test/path");
+          
+          // Clear any existing table favorites for clean test state
+          provider.tableFavorites.clear();
           
           // Wait for provider to initialize
           await new Promise(resolve => setTimeout(resolve, 200));
