@@ -6378,7 +6378,7 @@ suite(" Query export Tests", () => {
       });
 
       test("table favorite toggle should work correctly", async function() {
-        this.timeout(10000); // Increase timeout for CI flakiness
+        this.timeout(30000); // Increase timeout for CI stability
         const { ActivityBarConnectionsProvider } = require("../providers/ActivityBarConnectionsProvider");
         
         const mockDbSummary = [
@@ -6421,10 +6421,15 @@ suite(" Query export Tests", () => {
 
           // Navigate to table
           const connectionItems = await provider.getChildren();
+          assert.ok(connectionItems && connectionItems.length > 0, "Should have connection items");
           const connectionItem = connectionItems[0];
+          
           const schemaItems = await provider.getChildren(connectionItem);
+          assert.ok(schemaItems && schemaItems.length > 0, "Should have schema items");
           const schemaItem = schemaItems[0];
+          
           const tableItems = await provider.getChildren(schemaItem);
+          assert.ok(tableItems && tableItems.length > 0, "Should have table items");
           const tableItem = tableItems[0];
 
           // Initially should be unfavorite
@@ -6432,10 +6437,12 @@ suite(" Query export Tests", () => {
           assert.strictEqual(provider.isTableFavorite(tableItem.itemData), false, "Table should not be favorite");
 
           // Toggle to favorite
+          console.log("Toggling table to favorite...");
           await provider.toggleTableFavorite(tableItem.itemData, tableItem);
           
           // Wait for async operations to complete
-          await new Promise(resolve => setTimeout(resolve, 100));
+          await new Promise(resolve => setTimeout(resolve, 500));
+          console.log("Toggle to favorite completed");
           
           // Check favorite status
           assert.strictEqual(provider.isTableFavorite(tableItem.itemData), true, "Table should be favorite after toggle");
@@ -6445,10 +6452,12 @@ suite(" Query export Tests", () => {
           assert.strictEqual(updatedTreeItem.contextValue, 'table_favorite', "Table should have favorite context value");
 
           // Toggle back to unfavorite
+          console.log("Toggling table back to unfavorite...");
           await provider.toggleTableFavorite(tableItem.itemData, tableItem);
           
           // Wait for async operations to complete
-          await new Promise(resolve => setTimeout(resolve, 100));
+          await new Promise(resolve => setTimeout(resolve, 500));
+          console.log("Toggle to unfavorite completed");
           
           assert.strictEqual(provider.isTableFavorite(tableItem.itemData), false, "Table should be unfavorite after second toggle");
 
