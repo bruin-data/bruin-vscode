@@ -532,7 +532,25 @@ const _updateGraph = async () => {
 
 const updateGraph = debounce(_updateGraph, 180);
 
+let lastProcessedKey: string | null = null;
+
 const processProperties = async () => {
+  // Create a key based on current data to avoid duplicate processing
+  const currentKey = JSON.stringify({
+    assetId: props.assetDataset?.id,
+    upstreamNames: props.assetDataset?.upstreams?.map(u => u.name).sort() ?? [],
+    downstreamNames: props.assetDataset?.downstream?.map(d => d.name).sort() ?? [],
+    pipelineAssets: props.pipelineData?.assets?.length,
+    timestamp: Math.floor(Date.now() / 50) // Group calls within 50ms only
+  });
+  
+  // Skip if we just processed the same data
+  if (currentKey === lastProcessedKey) {
+    console.log('⚡ [Lineage] Skipping duplicate processProperties call');
+    return;
+  }
+  lastProcessedKey = currentKey;
+  
   console.log('🔄 [Lineage] processProperties called');
   console.log('🔄 [Lineage] Has assetDataset:', !!props.assetDataset);
   console.log('🔄 [Lineage] Has pipelineData:', !!props.pipelineData);
