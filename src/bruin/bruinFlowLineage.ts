@@ -56,55 +56,7 @@ export class BruinLineageInternalParse extends BruinCommand {
     panel?: string,
     { flags = ["parse-pipeline"], ignoresErrors = false }: BruinCommandOptions = {}
   ): Promise<void> {
-    try {
-      if(isConfigFile(filePath)) {
-        return;
-      }
-      const result = await this.run([...flags, await getCurrentPipelinePath(filePath) as string], { ignoresErrors });
-      const pipelineData = JSON.parse(result);
-      const asset = pipelineData.assets.find(
-        (asset: any) => asset.definition_file.path === filePath
-      );
-      if(panel === "BruinPanel"){
-        const pipelineAssets = JSON.parse(result).assets;
-        BruinPanel.postMessage("pipeline-assets", {
-          status: "success",
-          message: pipelineAssets,
-        });
-      }
-      if (asset) {
-        updateLineageData({
-          status: "success",
-          message: {
-            id: asset.id,
-            name: asset.name,
-            pipeline: result,
-          },
-        });
-      } else {
-        throw new Error("Asset not found in pipeline data");
-      }
-    } catch (error : any) {
-      const errorMessage =  typeof error === "object" && error.error
-        ? error.error 
-        : String(error);
-  
-      if (errorMessage.includes("No help topic for")) {
-        const formattedError = "Bruin CLI is not installed or is outdated. Please install or update Bruin CLI to use this feature.";
-        vscode.window.showErrorMessage(formattedError);
-        updateLineageData({
-          status: "error",
-          message: formattedError,
-        });
-      } else {
-        updateLineageData({
-          status: "error",
-          message: errorMessage,
-        });
-      }
-  
-      console.error("Parsing command error", error);
-    }
+    return this.parseAssetLineageWithColumns(filePath, panel, { flags, ignoresErrors }, false);
   }
 
   /**
@@ -124,7 +76,9 @@ export class BruinLineageInternalParse extends BruinCommand {
     includeColumns: boolean = true
   ): Promise<void> {
     try {
-      if(isConfigFile(filePath)) {
+      // For pipeline.yml files, show full pipeline lineage instead of individual asset
+      const isPipelineFile = filePath.endsWith("pipeline.yml") || filePath.endsWith("pipeline.yaml");
+      if(isConfigFile(filePath) && !isPipelineFile) {
         return;
       }
       
@@ -133,17 +87,14 @@ export class BruinLineageInternalParse extends BruinCommand {
         ? [...flags, "-c"] 
         : flags;
       
-      const result = await this.run([...enhancedFlags, await getCurrentPipelinePath(filePath) as string], { ignoresErrors });
+      const pipelinePath = isPipelineFile ? filePath : await getCurrentPipelinePath(filePath) as string;
+      const result = await this.run([...enhancedFlags, pipelinePath], { ignoresErrors });
       const pipelineData = JSON.parse(result);
-      const asset = pipelineData.assets.find(
-        (asset: any) => asset.definition_file.path === filePath
-      );
       
       if(panel === "BruinPanel"){
-        const pipelineAssets = JSON.parse(result).assets;
         BruinPanel.postMessage("pipeline-assets", {
           status: "success",
-          message: pipelineAssets,
+          message: pipelineData.assets,
         });
         
         // Send additional column lineage data if available
@@ -155,31 +106,58 @@ export class BruinLineageInternalParse extends BruinCommand {
         }
       }
       
-      if (asset) {
-        const lineageData = {
-          id: asset.id,
-          name: asset.name,
+      // Helper function to check for column data
+      const hasColumnData = includeColumns && Boolean(
+        pipelineData.column_lineage || 
+        pipelineData.assets?.some((a: any) => 
+          a.columns?.length > 0 && 
+          a.columns.some((col: any) => col.upstreams?.length > 0)
+        )
+      );
+
+      if (isPipelineFile) {
+        // For pipeline.yml files, show full pipeline lineage with column data
+        const lineageData: any = {
+          pipelineData: pipelineData,
+          name: pipelineData.name || "Pipeline",
           pipeline: result,
-          // Always include column lineage data if columns are requested
-          ...(includeColumns && {
-            columnLineage: pipelineData.column_lineage || {},
-            // Also include asset-level column information for validation
-            hasColumnData: Boolean(
-              pipelineData.column_lineage || 
-              pipelineData.assets?.some((a: any) => 
-                a.columns?.length > 0 && 
-                a.columns.some((col: any) => col.upstreams?.length > 0)
-              )
-            )
-          })
+          isPipelineView: true,
         };
+        
+        if (includeColumns) {
+          lineageData.columnLineage = pipelineData.column_lineage || {};
+          lineageData.hasColumnData = hasColumnData;
+        }
         
         updateLineageData({
           status: "success",
           message: lineageData,
         });
       } else {
-        throw new Error("Asset not found in pipeline data");
+        // For individual assets, find the specific asset
+        const asset = pipelineData.assets.find(
+          (asset: any) => asset.definition_file.path === filePath
+        );
+        
+        if (asset) {
+          const lineageData: any = {
+            id: asset.id,
+            name: asset.name,
+            pipeline: result,
+          };
+          
+          if (includeColumns) {
+            lineageData.columnLineage = pipelineData.column_lineage || {};
+            lineageData.hasColumnData = hasColumnData;
+          }
+        
+          updateLineageData({
+            status: "success",
+            message: lineageData,
+          });
+        } else {
+          throw new Error("Asset not found in pipeline data");
+        }
       }
     } catch (error : any) {
       const errorMessage =  typeof error === "object" && error.error

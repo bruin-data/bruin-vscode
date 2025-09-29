@@ -223,30 +223,15 @@ const showColumnView = ref(false);
 
 // Debug computed properties
 const shouldShowLoading = computed(() => {
-  const result = (props.isLoading || isLoadingLocal.value) || isLayouting.value;
-  console.log('🔍 [Lineage] shouldShowLoading:', result, { 
-    propsIsLoading: props.isLoading,
-    isLoadingLocal: isLoadingLocal.value, 
-    isLayouting: isLayouting.value 
-  });
-  return result;
+  return (props.isLoading || isLoadingLocal.value) || isLayouting.value;
 });
 
 const shouldShowError = computed(() => {
-  const result = !!error.value;
-  console.log('🔍 [Lineage] shouldShowError:', result, error.value);
-  return result;
+  return !!error.value;
 });
 
 const shouldShowAssetView = computed(() => {
-  const result = !showPipelineView.value && !showColumnView.value && !shouldShowLoading.value && !shouldShowError.value;
-  console.log('🔍 [Lineage] shouldShowAssetView:', result, {
-    showPipelineView: showPipelineView.value,
-    showColumnView: showColumnView.value,
-    shouldShowLoading: shouldShowLoading.value,
-    shouldShowError: shouldShowError.value
-  });
-  return result;
+  return !showPipelineView.value && !showColumnView.value && !shouldShowLoading.value && !shouldShowError.value;
 });
 
 // ===== Asset View State =====
@@ -488,7 +473,9 @@ const fitViewSmooth = async () => {
 
 const _updateGraph = async () => {
   if (!showPipelineView.value && !showColumnView.value) {
+    isLoadingLocal.value = true;
     isLayouting.value = true;
+    
     try {
       const graphData = currentGraphData.value;
       if (graphData.nodes.length > 0) {
@@ -503,14 +490,17 @@ const _updateGraph = async () => {
         await nextTick();
         isLayouting.value = false;
         await fitViewSmooth();
+        isLoadingLocal.value = false;
       } else {
         setNodes([]);
         setEdges([]);
         isLayouting.value = false;
+        isLoadingLocal.value = false;
       }
     } catch (error) {
       console.error("Error updating graph:", error);
       isLayouting.value = false;
+      isLoadingLocal.value = false;
     }
   }
 };
@@ -527,13 +517,12 @@ const processProperties = async () => {
     console.log('🔄 [Lineage] Missing data, isLoadingLocal set to:', isLoadingLocal.value);
     return;
   }
-  isLoadingLocal.value = true;
-  isLayouting.value = false;
+  
+  // Don't set loading states here - let _updateGraph handle it
   error.value = null;
   console.log('🔄 [Lineage] Starting graph update');
   try {
     await updateGraph();
-    isLoadingLocal.value = false;
     console.log('✅ [Lineage] Graph updated successfully');
   } catch (err) {
     console.error("Error processing properties:", err);
@@ -678,9 +667,24 @@ watch(
 
 watch(
   () => [props.assetDataset, props.pipelineData],
-  ([newAssetDataset, newPipelineData]) => {
-    if (newAssetDataset && newPipelineData && !showPipelineView.value && !showColumnView.value) {
-      processProperties();
+  ([newAssetDataset, newPipelineData], [prevAssetDataset, prevPipelineData]) => {
+    // Skip if data hasn't actually changed
+    if (newAssetDataset === prevAssetDataset && newPipelineData === prevPipelineData) {
+      return;
+    }
+    
+    if (newAssetDataset && (newAssetDataset as any).isPipelineView) {
+      showPipelineView.value = true;
+      showColumnView.value = false;
+      buildPipelineElements();
+    } else if (newAssetDataset && newPipelineData && !showPipelineView.value && !showColumnView.value) {
+      // Only process if we actually have new meaningful data
+      const hasValidAsset = newAssetDataset?.id;
+      const hasValidPipeline = newPipelineData?.assets;
+      
+      if (hasValidAsset && hasValidPipeline) {
+        processProperties();
+      }
     }
   },
   { immediate: false }

@@ -991,6 +991,11 @@ export class BruinPanel {
               await this._handleAssetDetection(this._lastRenderedDocumentUri);
             }
             break;
+          case "bruin.showPipelineLineage":
+            if (this._lastRenderedDocumentUri) {
+              await flowLineageCommand(this._lastRenderedDocumentUri);
+            }
+            break;
         }
       },
       undefined,

@@ -64,7 +64,20 @@ const pipeline = computed(() => {
 const lineageErr = computed(() => lineageError.value);
 const assetId = computed(() => lineageData.value?.id ?? null);
 const assetDataset = computed(() => {
-  return getAssetDataset(pipeline.value, assetId.value)
+  // For pipeline view, return the lineage data directly with pipeline info
+  if (lineageData.value?.isPipelineView) {
+    return {
+      id: 'pipeline',
+      name: lineageData.value.name || 'Pipeline',
+      isPipelineView: true,
+      pipelineData: lineageData.value.pipelineData || pipeline.value,
+      // Include any other data that might be needed
+      ...lineageData.value
+    };
+  }
+  
+  // For regular asset view, use the existing logic
+  return getAssetDataset(pipeline.value, assetId.value);
 });
 
 const pipelineData = computed(() => pipeline.value);

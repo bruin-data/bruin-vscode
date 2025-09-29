@@ -103,8 +103,10 @@ export abstract class BaseLineagePanel implements vscode.WebviewViewProvider, vs
       try {
         await flowLineageCommand(this._lastRenderedDocumentUri);
       } catch (error) {
-        console.error("Error loading lineage data:", error);
+        console.error("❌ [LineagePanel] Error loading lineage data:", error);
       }
+    } else {
+      console.log("⚠️ [LineagePanel] No document URI to load lineage for");
     }
   };
 
