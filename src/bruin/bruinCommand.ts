@@ -4,6 +4,9 @@ import { removeAnsiColors } from "../utilities/helperUtils";
 
 /** Common functionality used to execute Bruin commands. */
 export abstract class BruinCommand {
+  /** Flag to disable logging during tests */
+  public static isTestMode = false;
+
   /**
    * Initializes a new Bruin command instance.
    *
@@ -52,7 +55,9 @@ export abstract class BruinCommand {
     const startTime = Date.now();
     const commandString = `${this.bruinExecutable} ${this.execArgs(query).join(' ')}`;
     
-    console.log(`[${new Date().toISOString()}] Starting command: ${commandString}`);
+    if (!BruinCommand.isTestMode) {
+      console.log(`[${new Date().toISOString()}] Starting command: ${commandString}`);
+    }
     
     return new Promise((resolve, reject) => {
       const execOptions = {
@@ -68,10 +73,14 @@ export abstract class BruinCommand {
           const endTime = Date.now();
           const duration = endTime - startTime;
           
-          console.log(`[${new Date().toISOString()}] Command completed in ${duration}ms  ${commandString}`);
+          if (!BruinCommand.isTestMode) {
+            console.log(`[${new Date().toISOString()}] Command completed in ${duration}ms  ${commandString}`);
+          }
 
           if (error) {
-            console.error(`[${new Date().toISOString()}] Command failed after ${duration}ms:`, error.message);
+            if (!BruinCommand.isTestMode) {
+              console.error(`[${new Date().toISOString()}] Command failed after ${duration}ms:`, error.message);
+            }
             if (ignoresErrors) {
               resolve("");
             } else {
@@ -100,7 +109,9 @@ export abstract class BruinCommand {
     const startTime = Date.now();
     const commandString = `${this.bruinExecutable} ${this.execArgs(query).join(' ')}`;
     
-    console.log(`[${new Date().toISOString()}] Starting command: ${commandString}`);
+    if (!BruinCommand.isTestMode) {
+      console.log(`[${new Date().toISOString()}] Starting command: ${commandString}`);
+    }
     
     const consoleMessages: Array<{type: 'stdout' | 'stderr' | 'info', message: string, timestamp: string}> = [];
     const MAX_CONSOLE_MESSAGES = 1000;
@@ -163,7 +174,9 @@ export abstract class BruinCommand {
         const endTime = Date.now();
         const duration = endTime - startTime;
         
-        console.log(`[${new Date().toISOString()}] Command completed in ${duration}ms ${commandString}`);
+        if (!BruinCommand.isTestMode) {
+          console.log(`[${new Date().toISOString()}] Command completed in ${duration}ms ${commandString}`);
+        }
         
         // Add completion message
         addConsoleMessage({
@@ -182,7 +195,9 @@ export abstract class BruinCommand {
         } else if (code === 0) {
           resolve(removeAnsiColors(stdout));
         } else {
-          console.error(`[${new Date().toISOString()}] Command failed after ${duration}ms:`, stderr || stdout);
+          if (!BruinCommand.isTestMode) {
+            console.error(`[${new Date().toISOString()}] Command failed after ${duration}ms:`, stderr || stdout);
+          }
           addConsoleMessage({
             type: 'stderr',
             message: `Command failed with exit code ${code}`,

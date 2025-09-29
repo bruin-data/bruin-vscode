@@ -7,6 +7,10 @@ import * as child_process from "child_process";
 
 const proxyquire = require("proxyquire");
 
+// Enable test mode to suppress command logging
+import { BruinCommand } from "../bruin/bruinCommand";
+BruinCommand.isTestMode = true;
+
 import {
   isFileExtensionSQL,
   isPythonBruinAsset,
@@ -37,7 +41,6 @@ import {
 } from "../bruin/bruinUtils";
 import { BruinInternalPatch } from "../bruin/bruinInternalPatch";
 import { getPathSeparator } from "../extension/configuration";
-import { BruinCommand } from "../bruin/bruinCommand";
 import {
   BruinConnections,
   BruinCreateConnection,

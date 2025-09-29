@@ -178,7 +178,9 @@ export class BruinLineageInternalParse extends BruinCommand {
         });
       }
   
-      console.error("Parsing command error", error);
+      if (!BruinCommand.isTestMode) {
+        console.error("Parsing command error", error);
+      }
     }
   }
 
