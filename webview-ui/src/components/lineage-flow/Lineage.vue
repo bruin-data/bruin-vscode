@@ -2,7 +2,7 @@
   <div class="flow">
     <div v-if="shouldShowLoading" class="loading-overlay">
       <vscode-progress-ring></vscode-progress-ring>
-      <span class="ml-2 text-editor-fg">{{ isLayouting ? 'Positioning graph...' : 'Loading lineage data...' }}</span>
+      <span class="ml-2 text-editor-fg">Loading lineage data...</span>
     </div>
     <div v-else-if="shouldShowError" class="error-message">
       <span class="ml-2">{{ error }}</span>
@@ -220,10 +220,30 @@ const props = defineProps<{
 const error = ref<string | null>(props.LineageError);
 const showPipelineView = ref(false);
 const showColumnView = ref(false);
+const showLoadingIndicator = ref(false);
+let loadingTimer: NodeJS.Timeout | null = null;
 
 // Debug computed properties
 const shouldShowLoading = computed(() => {
-  return (props.isLoading || isLoadingLocal.value) || isLayouting.value;
+  const isActuallyLoading = (props.isLoading || isLoadingLocal.value) || isLayouting.value;
+  
+  // Start timer when loading begins
+  if (isActuallyLoading && !loadingTimer) {
+    loadingTimer = setTimeout(() => {
+      showLoadingIndicator.value = true;
+    }, 300); // Show loading indicator after 300ms
+  }
+  
+  // Clear timer and hide indicator when loading stops
+  if (!isActuallyLoading) {
+    if (loadingTimer) {
+      clearTimeout(loadingTimer);
+      loadingTimer = null;
+    }
+    showLoadingIndicator.value = false;
+  }
+  
+  return isActuallyLoading && showLoadingIndicator.value;
 });
 
 const shouldShowError = computed(() => {
@@ -487,10 +507,10 @@ const _updateGraph = async () => {
         }
         setNodes(layoutedGraphData.nodes);
         setEdges(layoutedGraphData.edges);
-        await nextTick();
         isLayouting.value = false;
-        await fitViewSmooth();
         isLoadingLocal.value = false;
+        await nextTick();
+        await fitViewSmooth();
       } else {
         setNodes([]);
         setEdges([]);
