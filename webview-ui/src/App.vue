@@ -286,6 +286,7 @@ const handleMessage = (event: MessageEvent) => {
           const parsedFilePath = (parsed && (parsed.filePath || (parsed.asset?.executable_file?.path ?? null))) || null;
           const currentFilePath = lastRenderedDocument.value;
           if (parsedFilePath && currentFilePath && parsedFilePath !== currentFilePath) {
+            console.log("⚠️ [App.vue] Ignoring stale parse result:", { parsedFilePath, currentFilePath });
             break;
           }
         } catch (_) {
@@ -321,7 +322,11 @@ const handleMessage = (event: MessageEvent) => {
           if (hasAssetData && !hasColumns && !hasEnvironments) {
             console.log("⚠️ [App.vue] Incomplete data detected, requesting refocus");
             setTimeout(() => {
-              vscode.postMessage({ command: "bruin.refocusActiveEditor" });
+              const currentPath = lastRenderedDocument.value;
+              const expectedPath = parsed && (parsed.filePath || (parsed.asset?.executable_file?.path ?? null));
+              if (currentPath === expectedPath) {
+                vscode.postMessage({ command: "bruin.refocusActiveEditor" });
+              }
             }, 1000);
           }
           

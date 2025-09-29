@@ -499,7 +499,8 @@ export class BruinPanel {
             case "checkboxChange":
               this._checkboxState = message.payload.checkboxState;
               this._flags = message.payload.flags;
-              if (this._lastRenderedDocumentUri?.fsPath) {
+              // Validate current file before rendering with flags
+              if (this._lastRenderedDocumentUri?.fsPath && window.activeTextEditor?.document.uri.fsPath === this._lastRenderedDocumentUri.fsPath) {
                 await renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri.fsPath);
               }
               break;
@@ -1077,10 +1078,17 @@ export class BruinPanel {
       clearTimeout(this._assetDetectionDebounceTimer);
     }
 
-    // Debounce asset detection to prevent race conditions
-    this._assetDetectionDebounceTimer = setTimeout(async () => {
+    const isFileSwitch = this._lastRenderedDocumentUri?.fsPath !== filePath;
+    
+    if (isFileSwitch) {
       await this._performAssetDetection(filePath, fileUri);
-    }, 150);
+    } else {
+      this._assetDetectionDebounceTimer = setTimeout(async () => {
+        if (window.activeTextEditor?.document.uri.fsPath === filePath) {
+          await this._performAssetDetection(filePath, fileUri);
+        }
+      }, 500);
+    }
   }
 
   private async _performAssetDetection(filePath: string, fileUri: Uri): Promise<void> {
