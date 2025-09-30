@@ -17,25 +17,22 @@ export class BruinInternalPatch extends BruinCommand {
    *
    * @param {string} filePath - The path of the asset to be patched.
    * @param {object} body - The body of the patch request.
-   * @returns {Promise<void>} A promise that resolves when the patching process completes or errors are handled.
+   * @returns {Promise<boolean>} A promise that resolves to true on success, false on failure.
    */
   public async patchAsset(
     body: object,
     filePath: string,
     { flags = ["patch-asset", "--body"], ignoresErrors = false }: BruinCommandOptions = {}
-  ): Promise<void> {
-    await this.run([...flags, JSON.stringify(body), filePath])
-      .then(
-        (result) => {
-          this.postMessageToPanels("success", result);
-        },
-        (error) => {
-          this.postMessageToPanels("error", error);
-        }
-      )
-      .catch((err) => {
-        console.debug("patching command error", err);
-      });
+  ): Promise<boolean> {
+    try {
+      const result = await this.run([...flags, JSON.stringify(body), filePath]);
+      this.postMessageToPanels("success", result);
+      return true; // Success
+    } catch (error) {
+      this.postMessageToPanels("error", error);
+      console.debug("patching command error", error);
+      return false; // Failure
+    }
   }
 
   // internal patch with another flag --convert and only asset path 

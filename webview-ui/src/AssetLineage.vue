@@ -25,6 +25,8 @@ const lineageData = ref(); // Holds the lineage data received from the extension
 const lineageError = ref(); // Holds any errors related to lineage data
 const hasTimedOut = ref(false); // Tracks if initial load has timed out
 
+let lastMessageId: string | null = null;
+
 /**
  * Handles incoming messages from the VSCode extension.
  * 
@@ -33,10 +35,30 @@ const hasTimedOut = ref(false); // Tracks if initial load has timed out
 const handleMessage = (event) => {
   const message = event.data;
   if (message.panelType !== "AssetLineage") return;
+  
   switch (message.command) {
     case "flow-lineage-message":
-      lineageData.value = updateValue(message, "success");
-      lineageError.value = updateValue(message, "error");
+      const newData = updateValue(message, "success");
+      const newError = updateValue(message, "error");
+      
+      // Create a detailed hash to detect truly identical messages
+      const messageId = JSON.stringify({ 
+        assetId: newData?.id, 
+        upstreamNames: newData?.upstreams?.map(u => u.name).sort(), 
+        downstreamNames: newData?.downstream?.map(d => d.name).sort(),
+        error: newError,
+        timestamp: Math.floor(Date.now() / 50) // Group within 50ms only
+      });
+      
+      // Skip if this is the exact same message we just processed
+      if (messageId === lastMessageId && messageId !== 'null') {
+        console.log('⚡ [AssetLineage] Skipping duplicate message');
+        return;
+      }
+      lastMessageId = messageId;
+      
+      lineageData.value = newData;
+      lineageError.value = newError;
       break;
   }
 };
@@ -64,7 +86,20 @@ const pipeline = computed(() => {
 const lineageErr = computed(() => lineageError.value);
 const assetId = computed(() => lineageData.value?.id ?? null);
 const assetDataset = computed(() => {
-  return getAssetDataset(pipeline.value, assetId.value)
+  // For pipeline view, return the lineage data directly with pipeline info
+  if (lineageData.value?.isPipelineView) {
+    return {
+      id: 'pipeline',
+      name: lineageData.value.name || 'Pipeline',
+      isPipelineView: true,
+      pipelineData: lineageData.value.pipelineData || pipeline.value,
+      // Include any other data that might be needed
+      ...lineageData.value
+    };
+  }
+  
+  // For regular asset view, use the existing logic
+  return getAssetDataset(pipeline.value, assetId.value);
 });
 
 const pipelineData = computed(() => pipeline.value);

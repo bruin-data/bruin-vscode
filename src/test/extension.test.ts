@@ -7,6 +7,10 @@ import * as child_process from "child_process";
 
 const proxyquire = require("proxyquire");
 
+// Enable test mode to suppress command logging
+import { BruinCommand } from "../bruin/bruinCommand";
+BruinCommand.isTestMode = true;
+
 import {
   isFileExtensionSQL,
   isPythonBruinAsset,
@@ -37,7 +41,6 @@ import {
 } from "../bruin/bruinUtils";
 import { BruinInternalPatch } from "../bruin/bruinInternalPatch";
 import { getPathSeparator } from "../extension/configuration";
-import { BruinCommand } from "../bruin/bruinCommand";
 import {
   BruinConnections,
   BruinCreateConnection,
@@ -2005,6 +2008,10 @@ suite("BruinPanel Tests", () => {
     // Stub BruinValidate
     bruinValidateStub = sinon.stub(BruinValidate.prototype, "validate");
     parseAssetCommandStub = sinon.stub(BruinInternalParse.prototype, "parseAsset");
+    // Stub checkIfAsset to prevent real CLI calls during tests
+    sinon.stub(BruinInternalParse.prototype, "checkIfAsset").resolves(true);
+    // Stub the run method on BruinCommand to prevent all CLI calls
+    sinon.stub(BruinCommand.prototype as any, "run").resolves('{"asset": null, "pipeline": {"name": "test-pipeline"}, "repo": {"path": "/test/path"}}');
     patchAssetCommandStub = sinon.stub(BruinInternalPatch.prototype, "patchAsset");
     getConnectionsStub = sinon.stub();
     getEnvListCommandStub = sinon.stub(BruinEnvList.prototype, "getEnvironmentsList");
@@ -2238,15 +2245,9 @@ suite("BruinPanel Tests", () => {
       ).firstCall.args[0];
       const message = { command: "bruin.getAssetDetails" };
 
-      // Ensure the panel treats the current file as an asset so it proceeds to parse
-      const isAssetStub = sinon
-        .stub((BruinPanel.prototype as unknown) as { _isAssetFile: (p: string) => Promise<boolean> }, "_isAssetFile")
-        .resolves(true as any);
-
       await messageHandler(message);
 
       assert.ok(parseAssetCommandStub.calledOnce, "Parse asset command should be called once");
-      isAssetStub.restore();
       parseAssetCommandStub.restore();
     });
 
@@ -6377,7 +6378,7 @@ suite(" Query export Tests", () => {
       });
 
       test("table favorite toggle should work correctly", async function() {
-        this.timeout(10000); // Increase timeout for CI flakiness
+        this.timeout(30000); // Increase timeout for CI stability
         const { ActivityBarConnectionsProvider } = require("../providers/ActivityBarConnectionsProvider");
         
         const mockDbSummary = [
@@ -6412,15 +6413,23 @@ suite(" Query export Tests", () => {
         try {
           provider = new ActivityBarConnectionsProvider("/test/path");
           
+          // Clear any existing table favorites for clean test state
+          provider.tableFavorites.clear();
+          
           // Wait for provider to initialize
           await new Promise(resolve => setTimeout(resolve, 200));
 
           // Navigate to table
           const connectionItems = await provider.getChildren();
+          assert.ok(connectionItems && connectionItems.length > 0, "Should have connection items");
           const connectionItem = connectionItems[0];
+          
           const schemaItems = await provider.getChildren(connectionItem);
+          assert.ok(schemaItems && schemaItems.length > 0, "Should have schema items");
           const schemaItem = schemaItems[0];
+          
           const tableItems = await provider.getChildren(schemaItem);
+          assert.ok(tableItems && tableItems.length > 0, "Should have table items");
           const tableItem = tableItems[0];
 
           // Initially should be unfavorite
@@ -6428,10 +6437,12 @@ suite(" Query export Tests", () => {
           assert.strictEqual(provider.isTableFavorite(tableItem.itemData), false, "Table should not be favorite");
 
           // Toggle to favorite
+          console.log("Toggling table to favorite...");
           await provider.toggleTableFavorite(tableItem.itemData, tableItem);
           
           // Wait for async operations to complete
-          await new Promise(resolve => setTimeout(resolve, 100));
+          await new Promise(resolve => setTimeout(resolve, 500));
+          console.log("Toggle to favorite completed");
           
           // Check favorite status
           assert.strictEqual(provider.isTableFavorite(tableItem.itemData), true, "Table should be favorite after toggle");
@@ -6441,10 +6452,12 @@ suite(" Query export Tests", () => {
           assert.strictEqual(updatedTreeItem.contextValue, 'table_favorite', "Table should have favorite context value");
 
           // Toggle back to unfavorite
+          console.log("Toggling table back to unfavorite...");
           await provider.toggleTableFavorite(tableItem.itemData, tableItem);
           
           // Wait for async operations to complete
-          await new Promise(resolve => setTimeout(resolve, 100));
+          await new Promise(resolve => setTimeout(resolve, 500));
+          console.log("Toggle to unfavorite completed");
           
           assert.strictEqual(provider.isTableFavorite(tableItem.itemData), false, "Table should be unfavorite after second toggle");
 

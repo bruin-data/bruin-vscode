@@ -2,7 +2,7 @@
   <div class="flow">
     <div v-if="shouldShowLoading" class="loading-overlay">
       <vscode-progress-ring></vscode-progress-ring>
-      <span class="ml-2">{{ isLayouting ? 'Positioning graph...' : 'Loading lineage data...' }}</span>
+      <span class="ml-2 text-editor-fg">Loading lineage data...</span>
     </div>
     <div v-else-if="shouldShowError" class="error-message">
       <span class="ml-2">{{ error }}</span>
@@ -220,33 +220,38 @@ const props = defineProps<{
 const error = ref<string | null>(props.LineageError);
 const showPipelineView = ref(false);
 const showColumnView = ref(false);
+const showLoadingIndicator = ref(false);
+let loadingTimer: NodeJS.Timeout | null = null;
 
 // Debug computed properties
 const shouldShowLoading = computed(() => {
-  const result = (props.isLoading || isLoadingLocal.value) || isLayouting.value;
-  console.log('🔍 [Lineage] shouldShowLoading:', result, { 
-    propsIsLoading: props.isLoading,
-    isLoadingLocal: isLoadingLocal.value, 
-    isLayouting: isLayouting.value 
-  });
-  return result;
+  const isActuallyLoading = (props.isLoading || isLoadingLocal.value) || isLayouting.value;
+  
+  // Start timer when loading begins
+  if (isActuallyLoading && !loadingTimer) {
+    loadingTimer = setTimeout(() => {
+      showLoadingIndicator.value = true;
+    }, 300); // Show loading indicator after 300ms
+  }
+  
+  // Clear timer and hide indicator when loading stops
+  if (!isActuallyLoading) {
+    if (loadingTimer) {
+      clearTimeout(loadingTimer);
+      loadingTimer = null;
+    }
+    showLoadingIndicator.value = false;
+  }
+  
+  return isActuallyLoading && showLoadingIndicator.value;
 });
 
 const shouldShowError = computed(() => {
-  const result = !!error.value;
-  console.log('🔍 [Lineage] shouldShowError:', result, error.value);
-  return result;
+  return !!error.value;
 });
 
 const shouldShowAssetView = computed(() => {
-  const result = !showPipelineView.value && !showColumnView.value && !shouldShowLoading.value && !shouldShowError.value;
-  console.log('🔍 [Lineage] shouldShowAssetView:', result, {
-    showPipelineView: showPipelineView.value,
-    showColumnView: showColumnView.value,
-    shouldShowLoading: shouldShowLoading.value,
-    shouldShowError: shouldShowError.value
-  });
-  return result;
+  return !showPipelineView.value && !showColumnView.value && !shouldShowLoading.value && !shouldShowError.value;
 });
 
 // ===== Asset View State =====
@@ -285,8 +290,13 @@ const layoutCache = ref<Map<string, LayoutedGraph>>(new Map());
 const clearLayoutCache = () => layoutCache.value.clear();
 const computeCacheKey = (): string => {
   const assetId = props.assetDataset?.id ?? "";
+  const upstreamIds = props.assetDataset?.upstreams?.map(u => u.name).sort() ?? [];
+  const downstreamIds = props.assetDataset?.downstream?.map(d => d.name).sort() ?? [];
+  
   return JSON.stringify({
     assetId,
+    upstreamIds,
+    downstreamIds,
     filterType: filterType.value,
     expandAllUpstreams: expandAllUpstreams.value,
     expandAllDownstreams: expandAllDownstreams.value,
@@ -488,7 +498,9 @@ const fitViewSmooth = async () => {
 
 const _updateGraph = async () => {
   if (!showPipelineView.value && !showColumnView.value) {
+    isLoadingLocal.value = true;
     isLayouting.value = true;
+    
     try {
       const graphData = currentGraphData.value;
       if (graphData.nodes.length > 0) {
@@ -500,24 +512,45 @@ const _updateGraph = async () => {
         }
         setNodes(layoutedGraphData.nodes);
         setEdges(layoutedGraphData.edges);
-        await nextTick();
         isLayouting.value = false;
+        isLoadingLocal.value = false;
+        await nextTick();
         await fitViewSmooth();
       } else {
         setNodes([]);
         setEdges([]);
         isLayouting.value = false;
+        isLoadingLocal.value = false;
       }
     } catch (error) {
       console.error("Error updating graph:", error);
       isLayouting.value = false;
+      isLoadingLocal.value = false;
     }
   }
 };
 
 const updateGraph = debounce(_updateGraph, 180);
 
+let lastProcessedKey: string | null = null;
+
 const processProperties = async () => {
+  // Create a key based on current data to avoid duplicate processing
+  const currentKey = JSON.stringify({
+    assetId: props.assetDataset?.id,
+    upstreamNames: props.assetDataset?.upstreams?.map(u => u.name).sort() ?? [],
+    downstreamNames: props.assetDataset?.downstream?.map(d => d.name).sort() ?? [],
+    pipelineAssets: props.pipelineData?.assets?.length,
+    timestamp: Math.floor(Date.now() / 50) // Group calls within 50ms only
+  });
+  
+  // Skip if we just processed the same data
+  if (currentKey === lastProcessedKey) {
+    console.log('⚡ [Lineage] Skipping duplicate processProperties call');
+    return;
+  }
+  lastProcessedKey = currentKey;
+  
   console.log('🔄 [Lineage] processProperties called');
   console.log('🔄 [Lineage] Has assetDataset:', !!props.assetDataset);
   console.log('🔄 [Lineage] Has pipelineData:', !!props.pipelineData);
@@ -527,13 +560,12 @@ const processProperties = async () => {
     console.log('🔄 [Lineage] Missing data, isLoadingLocal set to:', isLoadingLocal.value);
     return;
   }
-  isLoadingLocal.value = true;
-  isLayouting.value = false;
+  
+  // Don't set loading states here - let _updateGraph handle it
   error.value = null;
   console.log('🔄 [Lineage] Starting graph update');
   try {
     await updateGraph();
-    isLoadingLocal.value = false;
     console.log('✅ [Lineage] Graph updated successfully');
   } catch (err) {
     console.error("Error processing properties:", err);
@@ -679,7 +711,12 @@ watch(
 watch(
   () => [props.assetDataset, props.pipelineData],
   ([newAssetDataset, newPipelineData]) => {
-    if (newAssetDataset && newPipelineData && !showPipelineView.value && !showColumnView.value) {
+    // Check if this is a pipeline view and auto-switch
+    if (newAssetDataset && (newAssetDataset as any).isPipelineView) {
+      showPipelineView.value = true;
+      showColumnView.value = false;
+      buildPipelineElements();
+    } else if (newAssetDataset && newPipelineData && !showPipelineView.value && !showColumnView.value) {
       processProperties();
     }
   },

@@ -46,7 +46,13 @@ export default defineConfig({
             plugins: [tailwind(), autoprefixer()],
         },
     },
-    plugins: [vue(), copyCodiconsPlugin(), copyTestAssetsPlugin()],
+    plugins: [vue({
+        template: {
+            compilerOptions: {
+                isCustomElement: tag => tag.startsWith('vscode-')
+            }
+        }
+    }), copyCodiconsPlugin(), copyTestAssetsPlugin()],
     resolve: {
         alias: {
             "@": resolve(__dirname, "./src"),

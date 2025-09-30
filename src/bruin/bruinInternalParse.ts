@@ -50,7 +50,9 @@ export class BruinInternalParse extends BruinCommand {
           }
         )
         .catch((err) => {
-          console.debug("parsing command error", err);
+          if (!BruinCommand.isTestMode) {
+            console.debug("parsing command error", err);
+          }
           console.timeEnd("parseAsset");
         });
     } catch (err) {
