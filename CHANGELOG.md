@@ -1,4 +1,7 @@
 # Changelog
+## [0.67.4] - [2025-09-30]
+- Fixed lineage display for `pipeline.yml` files and resolved issues with the lineage view not refreshing after updates.
+
 ## [0.67.3] - [2025-09-26]
 - Fixed the query preview panel environment display issue.
 

@@ -63,6 +63,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.67.4**: Fixed lineage display for `pipeline.yml` files and resolved issues with the lineage view not refreshing after updates.
 - **0.67.3**: Fixed the query preview panel environment display issue.
 - **0.67.2**: Improved connection test ui.
 - **0.67.1**: Allow YAML assets to be rendered.
@@ -79,11 +80,6 @@ Bruin is a unified analytics platform that enables data professionals to work en
 - **0.64.2**: Fixed shwoing settings tab when no active editor and improved the UI.
 - **0.64.1**: Add secrets UI to the details tab.
 - **0.64.0**: Added data diff panel to the extension.
-- **0.63.4**: Fixed extension activation issue on slow systems.
-- **0.63.3**: Fixed ingestr asset parameters saving issue.
-- **0.63.1**: Improved first-time activation, enabling template-based project creation without an active editor.
-- **0.63.0**: Introduced the capability to generate a new project based on a template directly within the extension. 
-
 
 For a full changelog, see Bruin Extension [Changelog](https://marketplace.visualstudio.com/items/bruin.bruin/changelog).
 
