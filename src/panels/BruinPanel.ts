@@ -42,6 +42,7 @@ import path = require("path");
 import { isBruinAsset } from "../utilities/helperUtils";
 import { BruinInternalParse } from "../bruin/bruinInternalParse";
 import { BruinInternalListTemplates } from "../bruin/bruinInternalListTemplates";
+import { BruinInternalAssetMetadata } from "../bruin/bruinInternalAssetMetadata";
 
 import { getDefaultCheckboxSettings, getDefaultExcludeTag } from "../extension/configuration";
 import { exec } from "child_process";
@@ -994,6 +995,22 @@ export class BruinPanel {
           case "bruin.showPipelineLineage":
             if (this._lastRenderedDocumentUri) {
               await flowLineageCommand(this._lastRenderedDocumentUri);
+            }
+            break;
+          case "bruin.getAssetMetadata":
+            if (!this._lastRenderedDocumentUri) {
+              return;
+            }
+            const metadataAssetPath = this._lastRenderedDocumentUri.fsPath;
+            const isAssetForMetadata = await this._isAssetFile(metadataAssetPath);
+            
+            if (isAssetForMetadata) {
+              const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || "";
+              const assetMetadata = new BruinInternalAssetMetadata(
+                getBruinExecutablePath(),
+                workspaceFolder
+              );
+              await assetMetadata.getAssetMetadata(metadataAssetPath);
             }
             break;
         }
