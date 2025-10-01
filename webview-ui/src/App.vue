@@ -168,6 +168,8 @@ const data = ref(
 const isBruinInstalled = ref<boolean | null>(null); // Start as unknown until CLI check completes
 const lastRenderedDocument = ref(""); 
 const pipelineAssetsData = ref([]);
+const assetMetadata = ref(null);
+const assetMetadataError = ref<string | null>(null);
 const handleMessage = (event: MessageEvent) => {
   const message = event.data;
   console.log("Message received:", message.command, message);
@@ -279,14 +281,14 @@ const handleMessage = (event: MessageEvent) => {
       }
       case "parse-message": {
         parseError.value = updateValue(message, "error");
-        const parsed = updateValue(message, "success");
+        const parsedRaw = updateValue(message, "success");
+        const parsed = typeof parsedRaw === "string" ? JSON.parse(parsedRaw) : parsedRaw;
         // If currently showing convert prompt, allow parse to replace it (brief convert flicker is acceptable)
         // Ignore stale parse results that don't correspond to the currently tracked file
         try {
           const parsedFilePath = (parsed && (parsed.filePath || (parsed.asset?.executable_file?.path ?? null))) || null;
           const currentFilePath = lastRenderedDocument.value;
           if (parsedFilePath && currentFilePath && parsedFilePath !== currentFilePath) {
-            console.log("⚠️ [App.vue] Ignoring stale parse result:", { parsedFilePath, currentFilePath });
             break;
           }
         } catch (_) {
@@ -296,8 +298,10 @@ const handleMessage = (event: MessageEvent) => {
           parseError.value = null;
           isNotAsset.value = false;
           showConvertMessage.value = false;
-          // Clear pending convert message when asset is parsed successfully
           pendingConvertMessage.value = null;
+          // Always clear metadata when parsing new content to show loading state
+          assetMetadata.value = null;
+          assetMetadataError.value = null;
           
           // If we receive asset parsing data successfully, assume CLI is installed
           isBruinInstalled.value = true;
@@ -349,6 +353,11 @@ const handleMessage = (event: MessageEvent) => {
             lastRenderedDocument.value = parsed.asset.executable_file.path;
           }
           data.value = parsed;
+          
+          // Request BigQuery metadata if we have a valid asset
+          if (parsed && parsed.asset) {
+            vscode.postMessage({ command: "bruin.getAssetMetadata" });
+          }
         }
 
         rudderStack.trackEvent("Asset Parsing Status", {
@@ -359,6 +368,30 @@ const handleMessage = (event: MessageEvent) => {
       case "pipeline-assets":
         pipelineAssetsData.value = updateValue(message, "success");
         break;
+      case "asset-metadata-message":
+        const metadataResult = updateValue(message, "success");
+        const metadataError = updateValue(message, "error");
+        
+        if (metadataError) {
+          assetMetadataError.value = typeof metadataError === 'string' ? metadataError : String(metadataError);
+          assetMetadata.value = null;
+        } else if (metadataResult) {
+          try {
+            assetMetadata.value = typeof metadataResult === "string" ? JSON.parse(metadataResult) : metadataResult;
+            assetMetadataError.value = null;
+          } catch (error) {
+            console.error("Error parsing asset metadata:", error);
+            assetMetadata.value = null;
+            assetMetadataError.value = "Failed to parse metadata response";
+          }
+        }
+        break;
+      case "lastRenderedDocument":
+        // If we have asset data when the document loads, request metadata
+        if (parsedData.value && parsedData.value.asset) {
+          vscode.postMessage({ command: "bruin.getAssetMetadata" });
+        }
+        break;
       // bruinCliInstallationStatus handled earlier to avoid duplicate case warning
 
       case "bruinCliVersionStatus":
@@ -366,6 +399,10 @@ const handleMessage = (event: MessageEvent) => {
         break;
       case "file-changed":
         lastRenderedDocument.value = message.filePath;
+        // Clear any existing metadata when file changes to prevent stale data
+        assetMetadata.value = null;
+        assetMetadataError.value = null;
+        console.log("🔍 [App.vue] File changed - cleared existing metadata");
         // Leave current content/tabs as-is for non-relevant files; simply exit settings-only
         settingsOnlyMode.value = false;
         // If current file is a .bruin.yml config, force Settings-only view (with Connections)
@@ -396,6 +433,8 @@ const handleMessage = (event: MessageEvent) => {
           const isConfig = fp.endsWith('.bruin.yml') || fp.endsWith('.bruin.yaml');
           if (!isConfig) {
             vscode.postMessage({ command: "bruin.getAssetDetails" });
+            // Also request metadata in parallel with asset details for faster loading
+            vscode.postMessage({ command: "bruin.getAssetMetadata" });
           }
         } catch (_) {}
         vscode.postMessage({ command: "bruin.getEnvironmentsList" });
@@ -648,6 +687,8 @@ const tabs = ref([
       hasIntervalModifiers: hasIntervalModifiers.value,
       parameters: ingestrParameters.value,
       columns: columns.value,
+      assetMetadata: assetMetadata.value,
+      assetMetadataError: assetMetadataError.value,
     })),
     emits: ["update:assetName", "update:description"],
   },

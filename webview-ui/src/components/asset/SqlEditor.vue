@@ -1,8 +1,50 @@
 <template>
-  <div class="highlight-container rounded overflow-hidden">
+  <div class="highlight-container rounded overflow-visible">
     <div class="header flex items-center justify-between px-1.5 py-0.5 border-commandCenter-border shadow-sm">
       <label class="text-xs font-sans">Preview</label>
       <div class="flex items-center">
+        <!-- BigQuery Cost Estimate (success and error) -->
+        <div v-if="language === 'sql' && (bigqueryCostEstimate || bigqueryError)" class="flex items-center gap-1 mr-2 relative z-50">
+          <!-- Success state -->
+          <template v-if="!bigqueryError && bigqueryCostEstimate">
+            <span class="codicon codicon-database text-xs" style="color: var(--vscode-testing-iconPassed);"></span>
+            <span class="text-xs opacity-85 text-[var(--vscode-foreground)]">{{ bigqueryCostEstimate }}</span>
+          </template>
+          
+          <!-- Error state with hover -->
+          <template v-else-if="bigqueryError">
+            <span 
+              ref="errorIcon"
+              class="codicon codicon-database text-xs cursor-pointer" 
+              style="color: var(--vscode-notificationsErrorIcon-foreground);"
+              @mouseenter="showCostError = true"
+              @mouseleave="handleMouseLeave"
+              @click="toggleErrorSticky"
+            ></span>
+            
+            <!-- Error tooltip -->
+            <div
+              v-if="showCostError"
+              class="fixed bg-[var(--vscode-input-background)] border border-[var(--vscode-commandCenter-border)] rounded px-3 py-2 shadow-lg"
+              :style="tooltipPosition"
+              @mouseenter="showCostError = true"
+              @mouseleave="handleTooltipMouseLeave"
+            >
+              <div class="flex items-start justify-between gap-2">
+                <span class="text-xs text-[var(--vscode-notificationsErrorIcon-foreground)] break-words flex-1 select-text">{{ bigqueryError }}</span>
+                <button 
+                  v-if="isErrorSticky"
+                  @click="closeError"
+                  class="p-1 hover:bg-[var(--vscode-list-hoverBackground)] rounded text-[var(--vscode-foreground)] opacity-70 hover:opacity-100 flex-shrink-0"
+                  title="Close"
+                >
+                  <span class="codicon codicon-close text-xs"></span>
+                </button>
+              </div>
+            </div>
+          </template>
+        </div>
+        
         <div class="relative" v-if="showIntervalAlert">
           <vscode-button
             appearance="icon"
@@ -79,12 +121,23 @@ const props = defineProps({
   language: "sql" | "python" | "yaml",
   copied: Boolean,
   showIntervalAlert: Boolean,
+  bigqueryMetadata: {
+    type: Object,
+    default: null
+  },
+  bigqueryError: {
+    type: String,
+    default: null
+  }
 });
 
 const showIntervalAlert = ref(props.showIntervalAlert);
 const showAlertMassage = ref(false);
 const copied = ref(false);
 const clickOpened = ref(false);
+const showCostError = ref(false);
+const isErrorSticky = ref(false);
+const errorIcon = ref(null);
 
 const vClickOutside = {
   mounted(el, binding) {
@@ -109,7 +162,7 @@ function copyToClipboard() {
 }
 
 const lineHeight = 18;
-const editorPadding = 12; 
+const editorPadding = 12;
 const minEditorHeight = `${lineHeight * 2}px`;
 const maxEditorHeight = "500px";
 
@@ -179,6 +232,96 @@ const onClickOutsideWarning = () => {
   }
 };
 
+const bigqueryCostEstimate = computed(() => {
+  if (!props.bigqueryMetadata || props.bigqueryError) return null;
+  
+  const bytesProcessed = props.bigqueryMetadata.TotalBytesProcessed;
+  if (typeof bytesProcessed !== 'number') return null;
+  
+  // Convert bytes to TB (1 TB = 1024^4 bytes)
+  const tbProcessed = bytesProcessed / (1024 * 1024 * 1024 * 1024);
+  
+  // BigQuery pricing: first 1 TB free per month, then $6.25 per TB
+  const cost = Math.max(0, (tbProcessed - 1) * 6.25);
+  
+  if (cost === 0) {
+    return '$0.00';
+  } else {
+    return `$${cost.toFixed(2)}`;
+  }
+});
+
+const toggleErrorSticky = () => {
+  isErrorSticky.value = !isErrorSticky.value;
+  if (isErrorSticky.value) {
+    showCostError.value = true;
+  }
+};
+
+const handleMouseLeave = () => {
+  if (!isErrorSticky.value) {
+    showCostError.value = false;
+  }
+};
+
+const handleTooltipMouseLeave = () => {
+  if (!isErrorSticky.value) {
+    showCostError.value = false;
+  }
+};
+
+const closeError = () => {
+  showCostError.value = false;
+  isErrorSticky.value = false;
+};
+
+
+const tooltipPosition = computed(() => {
+  if (!errorIcon.value) {
+    return {
+      position: 'fixed',
+      top: '50px',
+      left: '50px',
+      zIndex: 9999,
+      maxWidth: '400px',
+      minWidth: '250px'
+    };
+  }
+
+  try {
+    const rect = errorIcon.value.getBoundingClientRect();
+    const tooltipWidth = 400; // max width of tooltip
+    const viewportWidth = window.innerWidth;
+    
+    // Calculate left position to ensure tooltip stays within viewport
+    // Position tooltip to the right of the icon, but if it would go off-screen, position it to the left
+    let leftOffset = rect.right + 10; // Start to the right of the icon
+    
+    if (leftOffset + tooltipWidth > viewportWidth) {
+      // If tooltip would go off-screen to the right, position it to the left of the icon
+      leftOffset = Math.max(10, rect.left - tooltipWidth - 10);
+    }
+    
+    return {
+      position: 'fixed',
+      top: `${rect.top - 60}px`, // Position above the icon
+      left: `${leftOffset}px`,
+      zIndex: 9999,
+      maxWidth: '400px',
+      minWidth: '250px'
+    };
+  } catch (error) {
+    return {
+      position: 'fixed',
+      top: '50px',
+      left: '50px',
+      zIndex: 9999,
+      maxWidth: '400px',
+      minWidth: '250px'
+    };
+  }
+});
+
 watch(
   () => props.showIntervalAlert,
   (newVal) => {
@@ -224,6 +367,7 @@ watch(
   display: flex;
   align-items: flex-start;
 }
+
 #sql-editor {
   position: relative;
   overflow-y: auto;
@@ -244,6 +388,7 @@ watch(
   width: v-bind(lineNumberWidth + "px");
   flex-shrink: 0;
 }
+
 .line-content {
   line-height: v-bind(lineHeight + "px");
   white-space: pre-wrap;
@@ -253,39 +398,18 @@ watch(
   padding-right: 10px;
   flex-grow: 1;
 }
-.header {
-  color: var(--vscode-disabledForeground);
-  background-color: var(--vscode-input-background);
-}
-.copy-button {
-  color: var(--vscode-icon-foreground);
-}
-.python-content {
-  white-space: pre-wrap;
-  color: var(--vscode-foreground);
-}
-
-.sql-content {
-  background-color: var(--vscode-sideBar-background);
-  border-top: none;
-}
-
-#editor-pre {
-  background-color: var(--vscode-sideBar-background);
-  padding: 8px 0;
-  counter-reset: line;
-  overflow-x: auto;
-}
 
 .highlight-container {
   position: relative;
   font-family: var(--vscode-editor-font-family);
   font-size: var(--vscode-editor-font-size);
 }
+
 .code-content {
   flex-grow: 1;
   overflow: hidden;
 }
+
 .scroller {
   height: 100%;
   width: 100%;

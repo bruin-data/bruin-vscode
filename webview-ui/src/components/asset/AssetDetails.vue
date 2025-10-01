@@ -87,6 +87,8 @@
         :parameters="parameters"
         :columns="props.columns || []"
         :tags="props.tags || []"
+        :assetMetadata="props.assetMetadata"
+        :assetMetadataError="props.assetMetadataError"
       />
     </div>
   </div>
@@ -114,6 +116,8 @@ const props = defineProps<{
   parameters?: any;
   columns?: any[];
   tags?: string[];
+  assetMetadata?: any;
+  assetMetadataError?: string;
 }>();
 
 const descriptionRef = ref<HTMLElement | null>(null);
