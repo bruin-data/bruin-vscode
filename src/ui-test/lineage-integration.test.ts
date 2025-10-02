@@ -720,9 +720,27 @@ describe("Lineage Panel Integration Tests", function () {
         this.skip();
       }
       try {
-        // The filter panel appears to already be expanded based on previous test output
-        // Look for specific filter option text content
-        const allElements = await driver.findElements(By.css("*"));
+        // Check if filter panel is already expanded or needs to be expanded
+        let radioGroup;
+        try {
+          // Try to find the radio group first (panel might already be expanded)
+          radioGroup = await driver.findElement(By.css("vscode-radio-group"));
+          console.log("Filter panel is already expanded");
+        } catch (e) {
+          // Panel is collapsed, need to expand it
+          console.log("Filter panel is collapsed, expanding...");
+          const filterTrigger = await driver.findElement(By.css("#filter-tab-trigger"));
+          await safeClick(driver, filterTrigger);
+          await driver.sleep(1000); // Wait for panel to expand
+          radioGroup = await driver.findElement(By.css("vscode-radio-group"));
+        }
+        
+        assert(await radioGroup.isDisplayed(), "Radio group should be visible");
+        
+        // Find all radio buttons within the group
+        const radioButtons = await radioGroup.findElements(By.css("vscode-radio"));
+        console.log(`Found ${radioButtons.length} radio buttons in filter panel`);
+        
         let foundFilterOptions = {
           fullPipeline: false,
           directDependencies: false, 
@@ -731,46 +749,38 @@ describe("Lineage Panel Integration Tests", function () {
           reset: false
         };
         
-        // Search through elements for filter option texts
-        for (const element of allElements.slice(0, 100)) { // Limit search to avoid timeout
+        // Check each radio button for the expected text
+        for (let i = 0; i < radioButtons.length; i++) {
           try {
-            const text = await element.getText();
-            if (text) {
-              if (text.includes("Full Pipeline")) foundFilterOptions.fullPipeline = true;
-              if (text.includes("Direct Dependencies")) foundFilterOptions.directDependencies = true;
-              if (text.includes("All Dependencies")) foundFilterOptions.allDependencies = true;
-              if (text.includes("Column Level")) foundFilterOptions.columnLevel = true;
-              if (text.includes("Reset")) foundFilterOptions.reset = true;
-            }
-          } catch (e) {
-            // Skip elements that can't be read
+            const radioButton = radioButtons[i];
+            const text = await radioButton.getText();
+            const isDisplayed = await radioButton.isDisplayed();
+            
+            console.log(`Radio button ${i}: text="${text}" displayed=${isDisplayed}`);
+            
+            if (text.includes("Full Pipeline")) foundFilterOptions.fullPipeline = true;
+            if (text.includes("Direct Dependencies")) foundFilterOptions.directDependencies = true;
+            if (text.includes("All Dependencies")) foundFilterOptions.allDependencies = true;
+            if (text.includes("Column Level")) foundFilterOptions.columnLevel = true;
+            if (text.includes("Reset")) foundFilterOptions.reset = true;
+          } catch (e: any) {
+            console.log(`Error reading radio button ${i}:`, e.message);
           }
         }
         
         console.log("Filter options found:", foundFilterOptions);
         
-        // Try to find and click specific filter options
-        const filterOptionsFound = [];
-        
-        // Look for elements that contain filter option text and might be clickable
-        const potentialFilterElements = await driver.findElements(By.xpath("//*[contains(text(), 'Direct Dependencies') or contains(text(), 'All Dependencies') or contains(text(), 'Full Pipeline')]"));
-        
-        console.log(`Found ${potentialFilterElements.length} elements with filter text`);
-        
-        for (let i = 0; i < Math.min(potentialFilterElements.length, 3); i++) {
-          const element = potentialFilterElements[i];
+        // Try to click on "All Dependencies" option if found
+        for (let i = 0; i < radioButtons.length; i++) {
           try {
-            const text = await element.getText();
-            const tagName = await element.getTagName();
-            const isDisplayed = await element.isDisplayed();
-            const isEnabled = await element.isEnabled();
+            const radioButton = radioButtons[i];
+            const text = await radioButton.getText();
+            const isDisplayed = await radioButton.isDisplayed();
+            const isEnabled = await radioButton.isEnabled();
             
-            console.log(`Filter element ${i}: <${tagName}> text="${text}" displayed=${isDisplayed} enabled=${isEnabled}`);
-            
-            // Try to click on "All Dependencies" option if found
             if (text.includes("All Dependencies") && isDisplayed && isEnabled) {
               console.log("Attempting to click 'All Dependencies' option...");
-              await safeClick(driver, element);
+              await safeClick(driver, radioButton);
               await driver.sleep(500);
               
               // Check if filter state changed by looking at trigger text
@@ -778,12 +788,11 @@ describe("Lineage Panel Integration Tests", function () {
               if (triggerElements.length > 0) {
                 const triggerText = await triggerElements[0].getText();
                 console.log(`Filter trigger text after clicking: "${triggerText}"`);
-                filterOptionsFound.push("All Dependencies clicked");
               }
               break;
             }
           } catch (e: any) {
-            console.log(`Error testing element ${i}:`, e.message);
+            console.log(`Error clicking radio button ${i}:`, e.message);
           }
         }
         
