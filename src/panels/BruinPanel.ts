@@ -71,6 +71,9 @@ export class BruinPanel {
   private _cliInstalled: boolean | null = null;
   private _initialSettingsOnlyMode: boolean = false;
   private _hasRecreatedFromSettingsOnly: boolean = false;
+  private _currentStartDate: string = "";
+  private _currentEndDate: string = "";
+  private _currentEnvironment: string = "";
 
   /**
    * The BruinPanel class private constructor (called only from the render method).
@@ -500,6 +503,21 @@ export class BruinPanel {
             case "checkboxChange":
               this._checkboxState = message.payload.checkboxState;
               this._flags = message.payload.flags;
+              console.log("Checkbox change:", this._flags);
+              
+              // Parse dates from flags for metadata calls
+              if (this._flags) {
+                const startDateMatch = this._flags.match(/--start-date\s+(\S+)/);
+                const endDateMatch = this._flags.match(/--end-date\s+(\S+)/);
+                
+                if (startDateMatch) {
+                  this._currentStartDate = startDateMatch[1];
+                }
+                if (endDateMatch) {
+                  this._currentEndDate = endDateMatch[1];
+                }
+              }
+              
               // Render with flags if we have a valid document
               if (this._lastRenderedDocumentUri?.fsPath) {
                 await renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri.fsPath);
@@ -634,6 +652,10 @@ export class BruinPanel {
           case "bruin.setSelectedEnvironment":
             const envData = message.payload;
             console.log("Setting selected environment :", envData);
+            
+            // Store the environment for metadata calls
+            this._currentEnvironment = envData;
+            
             QueryPreviewPanel.postMessage("set-environment", {
               status: "success",
               message: envData,
@@ -1010,7 +1032,20 @@ export class BruinPanel {
                 getBruinExecutablePath(),
                 workspaceFolder
               );
-              await assetMetadata.getAssetMetadata(metadataAssetPath);
+              
+              // Use payload values if provided, otherwise use stored values
+              const { startDate, endDate, environment } = message.payload || {};
+              const finalStartDate = startDate || this._currentStartDate;
+              const finalEndDate = endDate || this._currentEndDate;
+              const finalEnvironment = environment || this._currentEnvironment;
+              
+              await assetMetadata.getAssetMetadata(
+                metadataAssetPath,
+                undefined,
+                finalStartDate,
+                finalEndDate,
+                finalEnvironment
+              );
             }
             break;
         }
@@ -1187,7 +1222,7 @@ export class BruinPanel {
   }
 
   private _scheduleSqlPreviewRender(fileUri: Uri | undefined): void {
-    if (!fileUri) return;
+    if (!fileUri) {return;}
     const filePath = fileUri.fsPath;
 
     // debounce to avoid flooding render calls while typing

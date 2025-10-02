@@ -959,13 +959,24 @@ onBeforeUnmount(() => {
 });
 
 watch(
-  [startDate, endDate],
-  ([newStart, newEnd]) => {
+  [startDate, endDate, selectedEnv],
+  ([newStart, newEnd, newEnv]) => {
     vscode.postMessage({
       command: "bruin.updateQueryDates",
       payload: {
         startDate: newStart,
         endDate: newEnd,
+        environment: newEnv,
+      },
+    });
+    
+    // Also trigger asset metadata fetch with the current values
+    vscode.postMessage({
+      command: "bruin.getAssetMetadata",
+      payload: {
+        startDate: newStart,
+        endDate: newEnd,
+        environment: newEnv,
       },
     });
   },

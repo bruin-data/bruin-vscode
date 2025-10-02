@@ -4,23 +4,22 @@
       <label class="text-xs font-sans">Preview</label>
       <div class="flex items-center">
         <!-- BigQuery Cost Estimate (success and error) -->
-        <div v-if="language === 'sql' && (bigqueryCostEstimate || bigqueryError)" class="flex items-center gap-1 mr-2 relative z-50">
+        <div v-if="language === 'sql' && (bigqueryCostEstimate || bigqueryError)" class="flex items-center gap-1 relative z-50">
           <!-- Success state -->
           <template v-if="!bigqueryError && bigqueryCostEstimate">
-            <span class="codicon codicon-database text-xs" style="color: var(--vscode-testing-iconPassed);"></span>
-            <span class="text-xs opacity-85 text-[var(--vscode-foreground)]">{{ bigqueryCostEstimate }}</span>
+            <span class="text-xs opacity-85 mr-1 text-[var(--vscode-foreground)]">{{ bigqueryCostEstimate }}</span>
           </template>
           
           <!-- Error state with hover -->
           <template v-else-if="bigqueryError">
             <span 
               ref="errorIcon"
-              class="codicon codicon-database text-xs cursor-pointer" 
+              class="text-sm cursor-pointer" 
               style="color: var(--vscode-notificationsErrorIcon-foreground);"
               @mouseenter="showCostError = true"
               @mouseleave="handleMouseLeave"
               @click="toggleErrorSticky"
-            ></span>
+            >$</span>
             
             <!-- Error tooltip -->
             <div

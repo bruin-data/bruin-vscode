@@ -9,10 +9,31 @@ export class BruinInternalAssetMetadata extends BruinCommand {
 
   public async getAssetMetadata(
     assetPath: string,
-    { flags = ["asset-metadata"], ignoresErrors = false }: BruinCommandOptions = {}
+    { flags = ["asset-metadata"], ignoresErrors = false }: BruinCommandOptions = {},
+    startDate?: string,
+    endDate?: string,
+    environment?: string
   ): Promise<void> {
     try {
-      const result = await this.run([...flags, assetPath], { ignoresErrors });
+      const commandArgs = [...flags];
+      
+      if (startDate) {
+        commandArgs.push("-start-date", startDate);
+      }
+      
+      if (endDate) {
+        commandArgs.push("-end-date", endDate);
+      }
+      
+      if (environment) {
+        commandArgs.push("-env", environment);
+      }
+      
+      commandArgs.push(assetPath);
+      
+      console.log("Running asset metadata command:", commandArgs.join(" "));
+      
+      const result = await this.run(commandArgs, { ignoresErrors });
       
       if (!result || result.trim() === "") {
         this.postMessageToPanels("error", "Asset metadata command returned empty result");
