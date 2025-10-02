@@ -1,4 +1,7 @@
 # Changelog
+## [0.68.1] - [2025-10-02]
+- Fixed rendered query issues related to date input and full refresh start date.
+
 ## [0.68.0] - [2025-10-02]
 - Added support for BigQuery cost estimate in the SQL editor.
 
