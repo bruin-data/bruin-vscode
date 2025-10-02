@@ -1,4 +1,7 @@
 # Changelog
+## [0.68.0] - [2025-10-02]
+- Added support for BigQuery cost estimate in the SQL editor.
+
 ## [0.67.4] - [2025-09-30]
 - Fixed lineage display for `pipeline.yml` files and resolved issues with the lineage view not refreshing after updates.
 
