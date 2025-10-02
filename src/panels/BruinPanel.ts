@@ -93,15 +93,15 @@ export class BruinPanel {
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
 
     this._disposables.push(
-      workspace.onDidChangeTextDocument(async (editor) => {
+      workspace.onDidSaveTextDocument(async (editor) => {
 
-        if (editor && editor.document.uri.fsPath.endsWith(".bruin.yml")) {
+        if (editor && editor.uri.fsPath.endsWith(".bruin.yml")) {
           getEnvListCommand(this._lastRenderedDocumentUri);
           getConnections(this._lastRenderedDocumentUri);
         }
-        if (editor && editor.document.uri) {
+        if (editor && editor.uri) {
 
-          this._lastRenderedDocumentUri = editor.document.uri;
+          this._lastRenderedDocumentUri = editor.uri;
           await this._handleAssetDetection(this._lastRenderedDocumentUri);
           // Keep SQL preview up to date while typing without recreating the panel
           this._scheduleSqlPreviewRender(this._lastRenderedDocumentUri);
