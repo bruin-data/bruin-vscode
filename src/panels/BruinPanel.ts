@@ -500,8 +500,8 @@ export class BruinPanel {
             case "checkboxChange":
               this._checkboxState = message.payload.checkboxState;
               this._flags = message.payload.flags;
-              // Validate current file before rendering with flags
-              if (this._lastRenderedDocumentUri?.fsPath && window.activeTextEditor?.document.uri.fsPath === this._lastRenderedDocumentUri.fsPath) {
+              // Render with flags if we have a valid document
+              if (this._lastRenderedDocumentUri?.fsPath) {
                 await renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri.fsPath);
               }
               break;
