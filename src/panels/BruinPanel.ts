@@ -42,6 +42,7 @@ import path = require("path");
 import { isBruinAsset } from "../utilities/helperUtils";
 import { BruinInternalParse } from "../bruin/bruinInternalParse";
 import { BruinInternalListTemplates } from "../bruin/bruinInternalListTemplates";
+import { BruinInternalAssetMetadata } from "../bruin/bruinInternalAssetMetadata";
 
 import { getDefaultCheckboxSettings, getDefaultExcludeTag } from "../extension/configuration";
 import { exec } from "child_process";
@@ -70,6 +71,9 @@ export class BruinPanel {
   private _cliInstalled: boolean | null = null;
   private _initialSettingsOnlyMode: boolean = false;
   private _hasRecreatedFromSettingsOnly: boolean = false;
+  private _currentStartDate: string = "";
+  private _currentEndDate: string = "";
+  private _currentEnvironment: string = "";
 
   /**
    * The BruinPanel class private constructor (called only from the render method).
@@ -92,15 +96,15 @@ export class BruinPanel {
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
 
     this._disposables.push(
-      workspace.onDidChangeTextDocument(async (editor) => {
+      workspace.onDidSaveTextDocument(async (editor) => {
 
-        if (editor && editor.document.uri.fsPath.endsWith(".bruin.yml")) {
+        if (editor && editor.uri.fsPath.endsWith(".bruin.yml")) {
           getEnvListCommand(this._lastRenderedDocumentUri);
           getConnections(this._lastRenderedDocumentUri);
         }
-        if (editor && editor.document.uri) {
+        if (editor && editor.uri) {
 
-          this._lastRenderedDocumentUri = editor.document.uri;
+          this._lastRenderedDocumentUri = editor.uri;
           await this._handleAssetDetection(this._lastRenderedDocumentUri);
           // Keep SQL preview up to date while typing without recreating the panel
           this._scheduleSqlPreviewRender(this._lastRenderedDocumentUri);
@@ -499,6 +503,21 @@ export class BruinPanel {
             case "checkboxChange":
               this._checkboxState = message.payload.checkboxState;
               this._flags = message.payload.flags;
+              console.log("Checkbox change:", this._flags);
+              
+              // Parse dates from flags for metadata calls
+              if (this._flags) {
+                const startDateMatch = this._flags.match(/--start-date\s+(\S+)/);
+                const endDateMatch = this._flags.match(/--end-date\s+(\S+)/);
+                
+                if (startDateMatch) {
+                  this._currentStartDate = startDateMatch[1];
+                }
+                if (endDateMatch) {
+                  this._currentEndDate = endDateMatch[1];
+                }
+              }
+              
               // Validate current file before rendering with flags
               if (this._lastRenderedDocumentUri?.fsPath && window.activeTextEditor?.document.uri.fsPath === this._lastRenderedDocumentUri.fsPath) {
                 await renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri.fsPath);
@@ -633,6 +652,10 @@ export class BruinPanel {
           case "bruin.setSelectedEnvironment":
             const envData = message.payload;
             console.log("Setting selected environment :", envData);
+            
+            // Store the environment for metadata calls
+            this._currentEnvironment = envData;
+            
             QueryPreviewPanel.postMessage("set-environment", {
               status: "success",
               message: envData,
@@ -996,6 +1019,35 @@ export class BruinPanel {
               await flowLineageCommand(this._lastRenderedDocumentUri);
             }
             break;
+          case "bruin.getAssetMetadata":
+            if (!this._lastRenderedDocumentUri) {
+              return;
+            }
+            const metadataAssetPath = this._lastRenderedDocumentUri.fsPath;
+            const isAssetForMetadata = await this._isAssetFile(metadataAssetPath);
+            
+            if (isAssetForMetadata) {
+              const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || "";
+              const assetMetadata = new BruinInternalAssetMetadata(
+                getBruinExecutablePath(),
+                workspaceFolder
+              );
+              
+              // Use payload values if provided, otherwise use stored values
+              const { startDate, endDate, environment } = message.payload || {};
+              const finalStartDate = startDate || this._currentStartDate;
+              const finalEndDate = endDate || this._currentEndDate;
+              const finalEnvironment = environment || this._currentEnvironment;
+              
+              await assetMetadata.getAssetMetadata(
+                metadataAssetPath,
+                undefined,
+                finalStartDate,
+                finalEndDate,
+                finalEnvironment
+              );
+            }
+            break;
         }
       },
       undefined,
@@ -1170,7 +1222,7 @@ export class BruinPanel {
   }
 
   private _scheduleSqlPreviewRender(fileUri: Uri | undefined): void {
-    if (!fileUri) return;
+    if (!fileUri) {return;}
     const filePath = fileUri.fsPath;
 
     // debounce to avoid flooding render calls while typing

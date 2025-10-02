@@ -105,10 +105,10 @@ export const determineValidationStatus = (
   return null; // Default return value
 };
 
-export const parseAssetDetails = (data: string) => {
+export const parseAssetDetails = (data: string | object) => {
   if (!data) return;
 
-  const parsedData = JSON.parse(data);
+  const parsedData = typeof data === "string" ? JSON.parse(data) : data;
   const asset = parsedData.asset || {};
   const pipeline = parsedData.pipeline || {};
 

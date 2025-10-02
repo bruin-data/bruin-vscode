@@ -63,6 +63,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.68.0**: Added support for BigQuery cost estimate in the SQL editor.
 - **0.67.4**: Fixed lineage display for `pipeline.yml` files and resolved issues with the lineage view not refreshing after updates.
 - **0.67.3**: Fixed the query preview panel environment display issue.
 - **0.67.2**: Improved connection test ui.

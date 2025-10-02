@@ -271,7 +271,15 @@
           <IngestrAssetDisplay :parameters="ingestrParameters" :columns="props.columns" @save="handleIngestrSave" />
         </div>
         <div v-else-if="code && !isError" class="mt-1">
-          <SqlEditor :code="code" :copied="false" :language="language" :showIntervalAlert="showIntervalAlert"/>
+          <!-- SqlEditor handles both success and error cost display in its header -->
+          <SqlEditor 
+            :code="code" 
+            :copied="false" 
+            :language="language" 
+            :showIntervalAlert="showIntervalAlert"
+            :bigqueryMetadata="bigqueryMetadata"
+            :bigqueryError="props.assetMetadataError"
+          />
         </div>
         <div v-else class="overflow-hidden w-full h-20">
           <pre class="white-space"></pre>
@@ -332,6 +340,8 @@ const props = defineProps<{
   parameters: any;
   columns: any[];
   tags?: string[];
+  assetMetadata?: any;
+  assetMetadataError?: string;
 }>();
 
 /**
@@ -387,6 +397,11 @@ const showFullRefreshConfirmation = (runAction: () => void) => {
 // Computed property for ingestr parameters
 const ingestrParameters = computed(() => {
   return props.parameters || {};
+});
+
+// Computed property for BigQuery metadata
+const bigqueryMetadata = computed(() => {
+  return props.assetMetadata?.bigquery || null;
 });
 
 /**
@@ -936,13 +951,24 @@ onBeforeUnmount(() => {
 });
 
 watch(
-  [startDate, endDate],
-  ([newStart, newEnd]) => {
+  [startDate, endDate, selectedEnv],
+  ([newStart, newEnd, newEnv]) => {
     vscode.postMessage({
       command: "bruin.updateQueryDates",
       payload: {
         startDate: newStart,
         endDate: newEnd,
+        environment: newEnv,
+      },
+    });
+    
+    // Also trigger asset metadata fetch with the current values
+    vscode.postMessage({
+      command: "bruin.getAssetMetadata",
+      payload: {
+        startDate: newStart,
+        endDate: newEnd,
+        environment: newEnv,
       },
     });
   },
