@@ -23,7 +23,8 @@ export const concatCommandFlags = (
   checkboxItems: CheckboxItems[],
   tagFilters?: { include?: string[]; exclude?: string[] } | null
 ): string => {
-  const startDateFlag = ` --start-date ${startDate.endsWith("Z") ? startDate : startDate + "Z"}`;
+  // Only include start-date flag if startDate is not empty
+  const startDateFlag = startDate ? ` --start-date ${startDate.endsWith("Z") ? startDate : startDate + "Z"}` : "";
   const endDateFlag = isExclusiveChecked(checkboxItems) ? ` --end-date ${endDateExclusive}` : ` --end-date ${endDate}`;
 
   const checkboxesFlags = checkboxItems
@@ -47,7 +48,7 @@ export const concatCommandFlags = (
       }
     }
   }
-  return [startDateFlag, endDateFlag, ...checkboxesFlags, ...intervalModifiersFlags, ...tagFlags].join("");
+  return [startDateFlag, endDateFlag, ...checkboxesFlags, ...intervalModifiersFlags, ...tagFlags].filter(flag => flag).join("");
 };
 
 export const handleError = (validationError: any | null, renderSQLAssetError: any | null) => {

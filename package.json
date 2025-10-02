@@ -2,7 +2,7 @@
   "name": "bruin",
   "displayName": "Bruin",
   "description": "Manage your Bruin data assets from within VS Code.",
-  "version": "0.68.0",
+  "version": "0.68.1",
   "engines": {
     "vscode": "^1.87.0"
   },

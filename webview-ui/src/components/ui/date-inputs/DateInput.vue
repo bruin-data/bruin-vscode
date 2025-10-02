@@ -13,7 +13,8 @@
         @input="handleTextInput"
         @blur="validateInput"
         placeholder="YYYY-MM-DD HH:mm"
-        :class="{ 'border-red-500': error }"
+        :class="{ 'border-red-500': error, 'opacity-50 cursor-not-allowed': disabled }"
+        :disabled="disabled"
       />
       <input
         type="datetime-local"
@@ -21,8 +22,9 @@
         class="absolute right-0 w-4 h-4 opacity-0 cursor-pointer"
         :value="utcModelValue"
         @input="updateFromPicker"
+        :disabled="disabled"
       />
-      <div class="absolute right-1 pointer-events-none" @click.stop="openPicker">
+      <div class="absolute right-1" :class="disabled ? 'pointer-events-none opacity-50' : 'pointer-events-none'" @click.stop="openPicker">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           class="h-4 w-4 text-editor-fg opacity-65"
@@ -54,6 +56,10 @@ const props = defineProps({
   modelValue: {
     type: String,
     required: true,
+  },
+  disabled: {
+    type: Boolean,
+    default: false,
   },
 });
 
@@ -128,7 +134,7 @@ const updateFromPicker = (event: Event) => {
 };
 
 const openPicker = () => {
-  if (dateTimeInput.value) {
+  if (dateTimeInput.value && !props.disabled) {
     dateTimeInput.value.focus();
     dateTimeInput.value.click();
   }

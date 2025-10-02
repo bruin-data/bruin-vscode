@@ -15,7 +15,7 @@
           <!-- Date Controls and Checkbox Group -->
           <div id="controls" class="flex flex-col xs:w-1/2">
             <div class="flex flex-col xs:flex-row gap-1 w-full justify-between xs:justify-end">
-              <DateInput label="Start Date" v-model="startDate" />
+              <DateInput label="Start Date" v-model="startDate" :disabled="isFullRefreshChecked" />
               <DateInput label="End Date" v-model="endDate" />
               <div class="flex items-center gap-1 self-start xs:self-end">
                 <button
@@ -493,6 +493,11 @@ const tagFilterContainer = ref<HTMLElement | null>(null);
 const tagDropdownStyle = ref<Record<string, string>>({});
 const tagFilterSearch = ref("");
 const hasActiveTagFilters = computed(() => includeTags.value.length > 0 || excludeTags.value.length > 0);
+
+// Computed property to track full-refresh checkbox state
+const isFullRefreshChecked = computed(() => {
+  return checkboxItems.value.find(item => item.name === "Full-Refresh")?.checked || false;
+});
   const activeTagCount = computed(() => includeTags.value.length + excludeTags.value.length);
 const filteredTags = computed(() => {
   const q = tagFilterSearch.value.toLowerCase().trim();
@@ -587,8 +592,11 @@ watch(
  * Function to get checkbox change payload
  */
 function getCheckboxChangePayload() {
+  // When full-refresh is checked, don't include start-date
+  const effectiveStartDate = isFullRefreshChecked.value ? "" : startDate.value;
+  
   return concatCommandFlags(
-    startDate.value,
+    effectiveStartDate,
     endDate.value,
     endDateExclusive.value,
     checkboxItems.value,
