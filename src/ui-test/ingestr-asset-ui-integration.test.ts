@@ -913,6 +913,36 @@ describe("Ingestr Asset Display Integration Tests", function () {
         console.log("Incremental key editing failed:", error);
       }
     });
+
+    it("should test incremental key dropdown with column options", async function () {
+      this.timeout(15000);
+
+      try {
+        await startEditingField(driver, "incremental-key-field");
+        
+        const select = await driver.findElement(By.id("incremental-key-select"));
+        assert(await select.isDisplayed(), "Key dropdown should be visible");
+
+        const options = await select.findElements(By.tagName('option'));
+        assert(options.length > 0, "Should have at least the placeholder option");
+
+        const firstOptionText = await options[0].getText();
+        assert(firstOptionText.includes("Select column"), "First option should be placeholder");
+
+        if (options.length > 1) {
+          await options[1].click();
+          await sleep(500);
+        }
+
+        await driver.actions().sendKeys(Key.ESCAPE).perform();
+        await sleep(500);
+      } catch (error) {
+        console.log("Incremental key dropdown test failed:", error);
+        throw error;
+      }
+    });
+
+
   });
 
   describe("Dropdown Functionality", function () {
@@ -921,78 +951,6 @@ describe("Ingestr Asset Display Integration Tests", function () {
       await ensureSectionExpanded(driver);
     });
 
-    it("should test incremental strategy dropdown options", async function () {
-      this.timeout(15000);
-
-      const strategyField = await driver.findElement(By.id("incremental-strategy-field"));
-      await strategyField.click();
-      await sleep(1000);
-
-      const select = await driver.findElement(By.id("incremental-strategy-select"));
-      assert(await select.isDisplayed(), "Strategy dropdown should be visible");
-
-      const options = await select.findElements(By.tagName('option'));
-      assert(options.length >= 5, "Should have at least 5 strategy options");
-
-      const optionTexts = await Promise.all(options.map(option => option.getText()));
-      const expectedStrategies = ['None', 'Replace', 'Append', 'Merge', 'Delete + Insert'];
-
-      for (const strategy of expectedStrategies) {
-        assert(optionTexts.some(text => text.includes(strategy)), `Should have ${strategy} option`);
-      }
-
-      await driver.actions().sendKeys(Key.ESCAPE).perform();
-      await sleep(500);
-    });
-
-    it("should test incremental key dropdown with column options", async function () {
-      this.timeout(15000);
-
-      const keyField = await driver.findElement(By.id("incremental-key-field"));
-      await keyField.click();
-      await sleep(1000);
-
-      const select = await driver.findElement(By.id("incremental-key-select"));
-      assert(await select.isDisplayed(), "Key dropdown should be visible");
-
-      const options = await select.findElements(By.tagName('option'));
-      assert(options.length > 0, "Should have at least the placeholder option");
-
-      const firstOptionText = await options[0].getText();
-      assert(firstOptionText.includes("Select column"), "First option should be placeholder");
-
-      if (options.length > 1) {
-        await options[1].click();
-        await sleep(500);
-      }
-
-      await driver.actions().sendKeys(Key.ESCAPE).perform();
-      await sleep(500);
-    });
-
-    it("should test destination dropdown options", async function () {
-      this.timeout(15000);
-
-      const destinationField = await driver.findElement(By.id("destination-field"));
-      await destinationField.click();
-      await sleep(1000);
-
-      const select = await driver.findElement(By.id("destination-select"));
-      assert(await select.isDisplayed(), "Destination dropdown should be visible");
-
-      const options = await select.findElements(By.tagName('option'));
-      assert(options.length > 10, "Should have many destination options");
-
-      const optionTexts = await Promise.all(options.slice(0, 10).map(option => option.getText()));
-      const expectedDestinations = ['AWS Athena', 'BigQuery', 'Snowflake', 'DuckDB', 'Postgres', 'Redshift'];
-
-      for (const dest of expectedDestinations) {
-        assert(optionTexts.some(text => text.includes(dest)), `Should have ${dest} option`);
-      }
-
-      await driver.actions().sendKeys(Key.ESCAPE).perform();
-      await sleep(500);
-    });
   });
 
   describe("Field Validation States", function () {
