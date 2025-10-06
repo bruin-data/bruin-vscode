@@ -94,7 +94,7 @@ export const getQueryOutput = async (environment: string, limit: string, lastRen
   // For non-asset files: always use the query content
   const queryToPass = selectedQuery;
   
-  await output.getOutput(environment, lastRenderedDocumentUri.fsPath, limit, tabId, detectedConnectionName, startDate, endDate, { query: queryToPass });
+  await output.getOutput(environment, lastRenderedDocumentUri.fsPath, limit, tabId, detectedConnectionName, startDate, endDate, { query: queryToPass, isAsset });
 };
 
 export const exportQueryResults = async (lastRenderedDocumentUri: Uri | undefined, tabId?: string, connectionName?: string) => {

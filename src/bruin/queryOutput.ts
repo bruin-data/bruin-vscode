@@ -37,7 +37,7 @@ export class BruinQueryOutput extends BruinCommand {
     connectionName?: string,
     startDate?: string,
     endDate?: string,
-    { flags = [], ignoresErrors = false, query = "" }: BruinCommandOptions & { query?: string } = {}
+    { flags = [], ignoresErrors = false, query = "", isAsset = true }: BruinCommandOptions & { query?: string; isAsset?: boolean } = {}
   ): Promise<void> {
     // Construct base flags dynamically
     this.isLoading = true;
@@ -48,6 +48,11 @@ export class BruinQueryOutput extends BruinCommand {
       console.log("Using direct query mode: --connection + --query");
       constructedFlags.push("--connection", connectionName);
       constructedFlags.push("--query", query);
+    } else if (query && !isAsset) {
+      // For non-asset files with query content but no connection, we need a connection
+      console.log("Non-asset file detected but no connection specified. Cannot execute query.");
+      this.postMessageToPanels("error", "SQL files in assets folder that are not Bruin assets require a connection to be specified. Add a comment like '-- connection: your-connection-name' at the top of your file.", tabId);
+      return;
     } else if (query) {
       console.log("Using auto-detect mode: --asset + --query");
       constructedFlags.push("--asset", asset);
