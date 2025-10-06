@@ -1,4 +1,7 @@
 # Changelog
+## [0.68.2] - [2025-10-02]
+- Fixed the preview query issue when opening a non-asset file.
+
 ## [0.68.1] - [2025-10-02]
 - Fixed rendered query issues related to date input and full refresh start date.
 
