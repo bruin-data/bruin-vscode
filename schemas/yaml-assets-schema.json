@@ -109,7 +109,8 @@
                 "synapse",
                 "duckdb",
                 "clickhouse",
-                "gcs"
+                "gcs",
+                "mongo_atlas"
               ],
               "description": "The destination system",
               "additionalProperties": true
