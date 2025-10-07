@@ -89,6 +89,7 @@
         :tags="props.tags || []"
         :assetMetadata="props.assetMetadata"
         :assetMetadataError="props.assetMetadataError"
+        :pipeline="props.pipeline"
       />
     </div>
   </div>
