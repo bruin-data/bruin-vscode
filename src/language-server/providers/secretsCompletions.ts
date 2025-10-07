@@ -43,23 +43,33 @@ export class SecretsCompletions {
         
         // Check if we're right after "secrets:" or in a secrets list item
         if (linePrefix.match(/secrets:\s*$/) || linePrefix.match(/^\s*-\s*$/)) {
-            // Provide the secrets structure template
-            const completion = new vscode.CompletionItem('secret item', vscode.CompletionItemKind.Snippet);
-            completion.detail = 'Secret mapping template';
-            completion.documentation = new vscode.MarkdownString(
-                '**Secret Mapping**\n\n' +
-                'Template for defining a secret mapping with key and injection method.'
-            );
+            // Provide key as a separate completion item
+            const keyCompletion = new vscode.CompletionItem('key', vscode.CompletionItemKind.Property);
+            keyCompletion.detail = 'Secret key name';
+            keyCompletion.documentation = new vscode.MarkdownString('**key**\n\nThe name of the secret key (e.g., connection_name)');
             
             if (linePrefix.match(/secrets:\s*$/)) {
                 // We're right after "secrets:", add the full structure
-                completion.insertText = new vscode.SnippetString('\n  - key: ${1:connection_name}\n    inject_as: ${2:creds}');
+                keyCompletion.insertText = new vscode.SnippetString('\n  - key: ${1:connection_name}');
             } else {
-                // We're after "-", just add the secret item structure
-                completion.insertText = new vscode.SnippetString('key: ${1:connection_name}\n  inject_as: ${2:creds}');
+                // We're after "-", just add the key property
+                keyCompletion.insertText = new vscode.SnippetString('key: ${1:connection_name}');
             }
+            completions.push(keyCompletion);
             
-            completions.push(completion);
+            // Provide inject_as as a separate completion item
+            const injectAsCompletion = new vscode.CompletionItem('inject_as', vscode.CompletionItemKind.Property);
+            injectAsCompletion.detail = 'Injection method';
+            injectAsCompletion.documentation = new vscode.MarkdownString('**inject_as**\n\nThe method to inject the secret (e.g., creds)');
+            
+            if (linePrefix.match(/secrets:\s*$/)) {
+                // We're right after "secrets:", add the full structure
+                injectAsCompletion.insertText = new vscode.SnippetString('\n  - inject_as: ${1:creds}');
+            } else {
+                // We're after "-", just add the inject_as property
+                injectAsCompletion.insertText = new vscode.SnippetString('inject_as: ${1:creds}');
+            }
+            completions.push(injectAsCompletion);
         }
         
         // Check if we're in a secret item and need property completions
