@@ -273,27 +273,27 @@
         <table class="w-full text-xs">
           <tbody>
             <tr v-if="pipelineInfo.start_date">
-              <td class="py-0.5 pr-3 text-editor-fg opacity-60 w-24">Start Date</td>
+              <td class="py-0.5 pr-3 text-editor-fg opacity-60 w-32 whitespace-nowrap">Start Date</td>
               <td class="py-0.5 text-editor-fg font-mono">{{ pipelineInfo.start_date }}</td>
             </tr>
             <tr v-if="pipelineInfo.retries !== undefined">
-              <td class="py-0.5 pr-3 text-editor-fg opacity-60 w-24">Retries</td>
+              <td class="py-0.5 pr-3 text-editor-fg opacity-60 w-32 whitespace-nowrap">Retries</td>
               <td class="py-0.5 text-editor-fg font-mono">{{ pipelineInfo.retries }}</td>
             </tr>
             <tr v-if="pipelineInfo.concurrency !== undefined">
-              <td class="py-0.5 pr-3 text-editor-fg opacity-60 w-24">Concurrency</td>
+              <td class="py-0.5 pr-3 text-editor-fg opacity-60 w-32 whitespace-nowrap">Concurrency</td>
               <td class="py-0.5 text-editor-fg font-mono">{{ pipelineInfo.concurrency }}</td>
             </tr>
             <tr v-if="pipelineInfo.catchup !== undefined">
-              <td class="py-0.5 pr-3 text-editor-fg opacity-60 w-24">Catchup</td>
+              <td class="py-0.5 pr-3 text-editor-fg opacity-60 w-32 whitespace-nowrap">Catchup</td>
               <td class="py-0.5 text-editor-fg font-mono">{{ pipelineInfo.catchup ? 'Enabled' : 'Disabled' }}</td>
             </tr>
             <tr v-if="pipelineInfo.assets && pipelineInfo.assets.length > 0">
-              <td class="py-0.5 pr-3 text-editor-fg opacity-60 w-24">Assets</td>
+              <td class="py-0.5 pr-3 text-editor-fg opacity-60 w-32 whitespace-nowrap">Assets</td>
               <td class="py-0.5 text-editor-fg font-mono">{{ pipelineInfo.assets.length }}</td>
             </tr>
             <tr v-if="pipelineInfo.default_connections && Object.keys(pipelineInfo.default_connections).length > 0">
-              <td class="py-0.5 pr-3 text-editor-fg opacity-60 w-24 align-top">Default Connection</td>
+              <td class="py-0.5 pr-3 text-editor-fg opacity-60 w-32 whitespace-nowrap align-top">Default Connection</td>
               <td class="py-0.5">
                 <div class="space-y-0.5">
                   <div v-for="(connection, type) in pipelineInfo.default_connections" :key="type" 
@@ -448,23 +448,11 @@ const bigqueryMetadata = computed(() => {
 
 // Pipeline information computed properties
 const isPipelineData = computed(() => {
-  // Debug what we have
-  console.log('Pipeline data check:', {
-    pipeline: props.pipeline,
-    pipelineKeys: props.pipeline ? Object.keys(props.pipeline) : [],
-    hasPipeline: !!props.pipeline,
-    isObject: typeof props.pipeline === 'object'
-  });
-  
-  // Always show if we have pipeline prop with any meaningful data
   return props.pipeline && typeof props.pipeline === 'object' && Object.keys(props.pipeline).length > 0;
 });
 
 const pipelineInfo = computed(() => {
-  // Access the detailed pipeline data from the raw property first, then fallback
-  const info = props.pipeline?.raw || props.pipeline || {};
-  console.log('Pipeline info:', info);
-  return info;
+  return props.pipeline?.raw || props.pipeline || {};
 });
 
 /**

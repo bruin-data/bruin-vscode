@@ -1,7 +1,8 @@
 <template>
   <div class="flex flex-col items-start justify-between w-full">
     <div v-if="props !== null" class="flex flex-col text-editor-fg bg-editor-bg w-full">
-      <div class="relative">
+      <!-- Hide description section for pipeline files -->
+      <div v-if="!isPipelineFile" class="relative">
         <div
           @mouseenter="showEditButton = true"
           @mouseleave="!isEditingDescription ? (showEditButton = false) : null"
@@ -75,7 +76,7 @@
       <MessageAlert message="This file is either not a Bruin Asset or has no data to display." />
     </div>
 
-    <vscode-divider class="border-t border-editor-border opacity-20 my-4"></vscode-divider>
+    <vscode-divider v-if="!isPipelineFile" class="border-t border-editor-border opacity-20 my-4"></vscode-divider>
 
     <div class="w-full">
       <AssetGeneral
@@ -228,6 +229,15 @@ const scheduleExists = computed(() => {
     props.pipeline.schedule !== "undefined" &&
     props.pipeline.schedule !== null &&
     props.pipeline.schedule !== undefined
+  );
+});
+
+const isPipelineFile = computed(() => {
+  // Check if this is a pipeline file by looking at the pipeline data structure
+  return props.pipeline && (
+    props.pipeline.assets ||
+    props.pipeline.default_connections ||
+    (props.pipeline.raw && (props.pipeline.raw.assets || props.pipeline.raw.default_connections))
   );
 });
 
