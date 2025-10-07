@@ -446,9 +446,19 @@ const bigqueryMetadata = computed(() => {
   return props.assetMetadata?.bigquery || null;
 });
 
-// Pipeline information computed properties
+// Pipeline information computed properties  
 const isPipelineData = computed(() => {
-  return props.pipeline && typeof props.pipeline === 'object' && Object.keys(props.pipeline).length > 0;
+  // Only show for pipeline config files
+  if (!props.pipeline || typeof props.pipeline !== 'object' || Object.keys(props.pipeline).length === 0) {
+    return false;
+  }
+  
+  const isPipelineConfig = props.pipeline.type === 'pipelineConfig' ||
+                          (props.pipeline.raw && typeof props.pipeline.raw === 'object') ||
+                          (props.pipeline.assets && Array.isArray(props.pipeline.assets)) ||
+                          (props.pipeline.default_connections && typeof props.pipeline.default_connections === 'object');
+  
+  return isPipelineConfig;
 });
 
 const pipelineInfo = computed(() => {
