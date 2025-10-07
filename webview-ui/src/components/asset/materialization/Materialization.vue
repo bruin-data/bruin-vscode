@@ -368,7 +368,7 @@
           <!-- Current Dependencies Display -->
           <div class="field-group">
             <label class="field-label">Current Dependencies</label>
-            <div id="current-dependencies-container" class="flex flex-wrap space-x-1 min-h-[40px] bg-editorWidget-bg p-2 rounded">
+            <div id="current-dependencies-container" class="flex flex-wrap space-x-1 min-h-[40px] bg-editorWidget-bg bg-editor-bg p-2 rounded">
               <vscode-tag
                 v-for="(dep, index) in dependencies"
                 :key="index"
@@ -424,18 +424,14 @@
                 />
                 <span
                   class="absolute inset-y-0 right-0 flex items-center pr-2 cursor-pointer"
-                  @click="
-                    updateDropdownPosition();
-                    isPipelineDepsOpen = !isPipelineDepsOpen;
-                  "
+                  @click="isPipelineDepsOpen = !isPipelineDepsOpen"
                 >
                   <span class="codicon codicon-chevron-down text-xs"></span>
                 </span>
 
                 <div
                   v-if="isPipelineDepsOpen"
-                  class="fixed z-[9999] w-[200px] bg-input-background border border-commandCenter-border shadow-lg rounded max-h-60 overflow-hidden"
-                  :style="dropdownStyle"
+                  class="absolute z-[9999] w-full bg-input-background border border-commandCenter-border shadow-lg rounded max-h-60 overflow-hidden mt-1"
                   @mousedown.prevent
                 >
                   <div
@@ -454,16 +450,14 @@
                     <div
                       v-for="asset in filteredPipelineAssets"
                       :key="asset.name"
-                      class="flex items-center justify-between px-3 py-2 hover:bg-list-hoverBackground hover:text-list-activeSelectionForeground cursor-pointer text-xs text-input-foreground"
+                      class="flex items-center px-1 py-2 hover:bg-list-hoverBackground hover:text-list-activeSelectionForeground cursor-pointer text-xs text-input-foreground"
                       @click="addPipelineDependency(asset)"
                     >
-                      <div class="flex items-center gap-2">
-                        <span class="font-mono">{{ asset.name }}</span>
-                      </div>
                       <span
-                        v-if="isDependencyAdded(asset.name)"
-                        class="codicon codicon-check text-xs"
+                        class="codicon text-[7px] flex-shrink-0 mr-2 w-2"
+                        :class="isDependencyAdded(asset.name) ? 'codicon-check' : ''"
                       ></span>
+                      <span class="font-mono truncate" :title="asset.name">{{ asset.name }}</span>
                     </div>
 
                     <div
@@ -867,7 +861,6 @@ const externalDepsContainer = ref(null);
 const pipelineAssets = ref([]);
 
 
-const dropdownStyle = ref({});
 
 const isCurrentFileSql = computed(() => {
   if (!props.currentFilePath) {
@@ -1416,7 +1409,6 @@ watch(isPipelineDepsOpen, (isOpen) => {
 });
 
 const handlePipelineInput = () => {
-  updateDropdownPosition();
   isPipelineDepsOpen.value = true;
 };
 
@@ -1428,15 +1420,6 @@ const handlePipelineEnter = () => {
   isPipelineDepsOpen.value = false;
 };
 
-const updateDropdownPosition = () => {
-  if (pipelineDepsContainer.value) {
-    const rect = pipelineDepsContainer.value.getBoundingClientRect();
-    dropdownStyle.value = {
-      top: `${rect.bottom + 4}px`,
-      left: `${rect.left}px`,
-    };
-  }
-};
 
 
 const filteredPartitionColumns = computed(() => {

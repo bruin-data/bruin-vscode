@@ -268,7 +268,7 @@
       />
 
       <!-- Pipeline Information -->
-      <div v-if="isPipelineData" class="mt-4 bg-editorWidget-bg shadow rounded-lg p-3">
+      <div v-if="isPipelineData" class="mt-4 bg-editorWidget-bg rounded p-2">
         <h4 class="text-xs font-medium text-editor-fg mb-2 opacity-80">Pipeline Configuration</h4>
         <table class="w-full text-xs">
           <tbody>
