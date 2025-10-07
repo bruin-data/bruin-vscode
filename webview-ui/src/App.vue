@@ -767,7 +767,14 @@ const visibleTabs = computed(() => {
     console.log("⚙️ [App.vue] Settings only - bruin.yml file");
     return tabs.value.filter((tab) => tab.label === "Settings");
   }
-  // Show all tabs
+  
+  if (isPipelineConfig.value) {
+    // Only show "General" and "Settings" tabs for pipeline.yml files
+    console.log("📋 [App.vue] General and Settings only - pipeline.yml file");
+    return tabs.value.filter((tab) => tab.label === "General" || tab.label === "Settings");
+  }
+  
+  // Show all tabs for other file types
   console.log("✅ [App.vue] Showing all tabs");
   return tabs.value;
 });
