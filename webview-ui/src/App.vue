@@ -765,6 +765,10 @@ const visibleTabs = computed(() => {
   
   // If panel is in settings-only mode, always show Settings tab
   if (settingsOnlyMode.value) {
+    // Ensure activeTab is set to 0 for the single Settings tab
+    if (activeTab.value !== 0) {
+      activeTab.value = 0;
+    }
     return tabs.value.filter((tab) => tab.label === "Settings");
   }
 
@@ -780,6 +784,10 @@ const visibleTabs = computed(() => {
   if (isBruinYml.value) {
     // Only show the "Settings" tab for .bruin.yml files
     console.log("⚙️ [App.vue] Settings only - bruin.yml file");
+    // Ensure activeTab is set to 0 for the single Settings tab
+    if (activeTab.value !== 0) {
+      activeTab.value = 0;
+    }
     return tabs.value.filter((tab) => tab.label === "Settings");
   }
   
@@ -952,6 +960,7 @@ const isTabActive = (index) => {
   if (appState.value !== 'main') {
     return false;
   }
+  
   return activeTab.value === index;
 };
 
