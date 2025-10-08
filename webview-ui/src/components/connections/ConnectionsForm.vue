@@ -15,11 +15,13 @@
             :required="field.required"
             @fileSelected="handleFileSelected"
             @updateServiceAccountInputMethod="handleServiceAccountInputMethodChange"
+            @updateUseApplicationDefaultCredentials="handleUseApplicationDefaultCredentialsChange"
             :isInvalid="!!validationErrors[field.id]"
             :errorMessage="validationErrors[field.id]"
             :defaultValue="getDefaultValue(field)"
             :serviceAccountInputMethod="field.id === 'service_account_json' ? serviceAccountInputMethod : undefined"
             :serviceAccountFile="field.id === 'service_account_json' ? selectedFile : undefined"
+            :useApplicationDefaultCredentials="field.id === 'use_application_default_credentials' ? applyDefaultCredentials : undefined"
           />
         </div>
       </div>
@@ -93,6 +95,7 @@ const form = ref({
   connection_type: "",
   connection_name: "",
   environment: defaultEnvironment.value, // Set default environment here
+  use_application_default_credentials: false,
 });
 
 // Watch for changes in the default environment
@@ -112,6 +115,8 @@ const determineServiceAccountInputMethod = (connection) => {
     return "file";
   } else if (connection.service_account_json) {
     return "text";
+  } else if (connection.use_application_default_credentials) {
+    return "default";
   }
   return "file"; // default
 };
@@ -128,6 +133,10 @@ const getServiceAccountFile = (connection) => {
     };
   }
   return null;
+};
+
+const applyDefaultCredentials = (connection) => {
+  return connection.use_application_default_credentials;
 };
 
 // Update form fields to include environment
@@ -187,17 +196,21 @@ watch(
       }
       
       if (newConnection.type === "google_cloud_platform") {
-        serviceAccountInputMethod.value = determineServiceAccountInputMethod(newConnection);
+        serviceAccountInputMethod.value = determineServiceAccountInputMethod(newConnection.credentials || newConnection);
         console.log("Service account input method set to:", serviceAccountInputMethod.value);
         
-        if (newConnection.service_account_file) {
-          selectedFile.value = getServiceAccountFile(newConnection);
+        const credentials = newConnection.credentials || newConnection;
+        if (credentials.service_account_file) {
+          selectedFile.value = getServiceAccountFile(credentials);
           console.log("Service account file set to:", selectedFile.value);
           form.value.service_account_json = "";
-        } else if (newConnection.service_account_json) {
+        } else if (credentials.service_account_json) {
           selectedFile.value = null;
           console.log("Service account JSON found, setting text input");
-          form.value.service_account_json = newConnection.service_account_json;
+          form.value.service_account_json = credentials.service_account_json;
+        } else if (credentials.use_application_default_credentials) {
+          form.value.use_application_default_credentials = credentials.use_application_default_credentials;
+          console.log("Apply default credentials set to:", form.value.use_application_default_credentials);
         }
       }
     }
@@ -238,14 +251,24 @@ const handleServiceAccountInputMethodChange = (newMethod) => {
   if (newMethod === "file") {
     // Clear text input when switching to file
     form.value.service_account_json = "";
+    form.value.use_application_default_credentials = false;
     selectedFile.value = null;
-  } else {
+  } else if (newMethod === "text") {
     // Clear file when switching to text
+    form.value.use_application_default_credentials = false;
+    selectedFile.value = null;
+  } else if (newMethod === "default") {
+    // Clear both file and text when switching to default
+    form.value.service_account_json = "";
     selectedFile.value = null;
   }
   
   // Clear validation errors
   validationErrors.value.service_account_json = null;
+};
+
+const handleUseApplicationDefaultCredentialsChange = (value) => {
+  form.value.use_application_default_credentials = value;
 };
 
 const updateField = (fieldId, value) => {
@@ -346,6 +369,11 @@ const submitForm = () => {
       }
     }
   });
+
+  // Special handling for use_application_default_credentials
+  if (form.value.connection_type === "google_cloud_platform" && form.value.use_application_default_credentials) {
+    connectionData.credentials.use_application_default_credentials = form.value.use_application_default_credentials;
+  }
 
   console.log("============connection credentials============");
   console.log(connectionData.credentials);
