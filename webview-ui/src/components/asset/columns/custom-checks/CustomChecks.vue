@@ -100,8 +100,8 @@
     </table>
     
     <!-- Edit Card Overlay -->
-    <div v-if="editingIndex !== null" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-editorWidget-bg border border-commandCenter-border rounded-lg p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto">
+    <div v-if="editingIndex !== null" class="fixed inset-0 bg-editor-bg bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-editorWidget-bg border border-commandCenter-border rounded p-4 w-full max-w-xl max-h-[80vh] overflow-y-auto">
         <div class="flex justify-between items-center mb-4">
           <h3 class="text-lg font-semibold text-editor-fg">
             {{ isNewCheck ? 'Add Custom Check' : 'Edit Custom Check' }}
