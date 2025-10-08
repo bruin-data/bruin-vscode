@@ -1,4 +1,7 @@
 # Changelog
+## [0.69.0] - [2025-10-08]
+- Updated tab visibility logic to show pipeline related information and added autocomplete for secrets.
+
 ## [0.68.2] - [2025-10-02]
 - Fixed the preview query issue when opening a non-asset file.
 
