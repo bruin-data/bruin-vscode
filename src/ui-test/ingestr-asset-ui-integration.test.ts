@@ -75,8 +75,21 @@ const startEditingField = async (driver: WebDriver, fieldId: string): Promise<vo
   await ensureSectionExpanded(driver);
   
   const field = await findElementWithRetry(driver, By.id(fieldId), 10000);
+  
+  // Ensure field is visible and clickable
+  assert(await field.isDisplayed(), `Field ${fieldId} should be visible`);
+  assert(await field.isEnabled(), `Field ${fieldId} should be enabled`);
+  
+  // Scroll into view if needed (Windows compatibility)
+  await driver.executeScript("arguments[0].scrollIntoView(true);", field);
+  await sleep(500);
+  
+  // Click the field
   await field.click();
-  await sleep(1000);
+  console.log(`Clicked ${fieldId}, waiting for edit mode...`);
+  
+  // Increased wait time for Windows compatibility - Vue reactivity needs time
+  await sleep(2000);
 };
 
 // Helper function to exit edit mode by clicking elsewhere
@@ -104,7 +117,22 @@ const testFieldEditing = async (driver: WebDriver, fieldId: string, inputId: str
 const testDropdownEditing = async (driver: WebDriver, fieldId: string, selectId: string, expectedOptions: string[]): Promise<void> => {
   await startEditingField(driver, fieldId);
   
-  const select = await driver.findElement(By.id(selectId));
+  // Use Selenium's explicit wait for better Windows compatibility
+  console.log(`Waiting for ${selectId} to appear...`);
+  const select = await driver.wait(
+    until.elementLocated(By.id(selectId)),
+    15000,
+    `${selectId} did not appear within 15 seconds`
+  );
+  
+  // Wait for it to be visible
+  await driver.wait(
+    until.elementIsVisible(select),
+    5000,
+    `${selectId} is not visible`
+  );
+  
+  console.log(`✓ ${selectId} found and visible`);
   assert(await select.isDisplayed(), `${selectId} should appear in edit mode`);
   
   const options = await select.findElements(By.tagName('option'));
@@ -838,7 +866,7 @@ describe("Ingestr Asset Display Integration Tests", function () {
     });
 
     it("should allow editing destination field", async function () {
-      this.timeout(20000);
+      this.timeout(30000); // Increased timeout for Windows
 
       try {
         // First ensure section is expanded
@@ -856,7 +884,30 @@ describe("Ingestr Asset Display Integration Tests", function () {
           throw error;
         }
         
+        // Additional Windows-specific debugging
+        console.log("Starting destination field editing test...");
         const expectedDestinations = ['AWS Athena', 'BigQuery', 'Snowflake', 'DuckDB'];
+        
+        // Click the field and wait for edit mode
+        await startEditingField(driver, "destination-field");
+        
+        // Debug: Check if we're in edit mode
+        try {
+          const select = await driver.findElement(By.id("destination-select"));
+          console.log("✓ Destination select element found after clicking");
+        } catch (error) {
+          console.log("❌ Destination select not found after clicking, checking page state...");
+          const pageSource = await driver.getPageSource();
+          console.log("Page contains 'destination-select':", pageSource.includes('destination-select'));
+          console.log("Page contains 'editingField':", pageSource.includes('editingField'));
+          
+          // Try to find any select elements
+          const allSelects = await driver.findElements(By.tagName('select'));
+          console.log(`Found ${allSelects.length} select elements on page`);
+          
+          throw error;
+        }
+        
         await testDropdownEditing(driver, "destination-field", "destination-select", expectedDestinations);
         
         console.log("✓ Destination field editing works with proper options");
