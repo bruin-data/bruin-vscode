@@ -84,7 +84,6 @@ jobs:
       run: npm run test:webview
 
     - name: Run basic integration tests
-      continue-on-error: true
       run: |
         echo "Running connections and ingestr tests..."
         echo "Note: This step continues even if tests fail to prevent random CI failures from blocking builds"
@@ -129,7 +128,6 @@ jobs:
       shell: bash
 
     - name: Run lineage integration tests
-      continue-on-error: true
       run: |
         echo "Running lineage tests..."
         echo "Note: This step continues even if tests fail to prevent random CI failures from blocking builds"
@@ -150,7 +148,6 @@ jobs:
       shell: bash
 
     - name: Run query preview integration tests
-      continue-on-error: true
       run: |
         echo "Running query preview tests..."
         echo "Note: This step continues even if tests fail to prevent random CI failures from blocking builds"
