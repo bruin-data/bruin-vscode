@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { getDependsSectionOffsets } from '../utilities/helperUtils';
 import { BruinInternalParse } from '../bruin/bruinInternalParse';
 import { getBruinExecutablePath } from '../providers/BruinExecutableService';
-import { MaterializationCompletions, ColumnCompletions, TopLevelCompletions, AssetCompletions, MaterializationValidator, CustomCheckCompletions } from './providers';
+import { MaterializationCompletions, ColumnCompletions, TopLevelCompletions, AssetCompletions, MaterializationValidator, CustomCheckCompletions, SecretsCompletions } from './providers';
 import { BruinBlockDetector } from './utils/bruinBlockDetector';
 
 export class BruinLanguageServer {
@@ -14,6 +14,7 @@ export class BruinLanguageServer {
     private assetCompletions: AssetCompletions;
     private materializationValidator: MaterializationValidator;
     private customCheckCompletions: CustomCheckCompletions;
+    private secretsCompletions: SecretsCompletions;
 
     constructor() {
         // Subscribe to panel messages to capture parse results
@@ -26,6 +27,7 @@ export class BruinLanguageServer {
         this.assetCompletions = new AssetCompletions(this.getAssetData.bind(this));
         this.materializationValidator = new MaterializationValidator();
         this.customCheckCompletions = new CustomCheckCompletions();
+        this.secretsCompletions = new SecretsCompletions();
     }
 
     public static getInstance(): BruinLanguageServer {
@@ -241,6 +243,20 @@ export class BruinLanguageServer {
      */
     public isInCustomChecksSection(document: vscode.TextDocument, position: vscode.Position): boolean {
         return this.customCheckCompletions.isInCustomChecksSection(document, position);
+    }
+
+    /**
+     * Get secrets completions
+     */
+    public getSecretsCompletions(document: vscode.TextDocument, position: vscode.Position): vscode.CompletionItem[] {
+        return this.secretsCompletions.getSecretsCompletions(document, position);
+    }
+
+    /**
+     * Check if we're in secrets section
+     */
+    public isInSecretsSection(document: vscode.TextDocument, position: vscode.Position): boolean {
+        return this.secretsCompletions.isInSecretsSection(document, position);
     }
 
     /**
@@ -551,6 +567,13 @@ class BruinAssetCompletionProvider implements vscode.CompletionItemProvider {
             const customCheckCompletions = this.languageServer.getCustomCheckCompletions(document, position);
             completions.push(...customCheckCompletions);
             return completions; // Return only custom check completions
+        }
+        
+        // 2.6. Check if we're in secrets section
+        if (this.languageServer.isInSecretsSection(document, position)) {
+            const secretsCompletions = this.languageServer.getSecretsCompletions(document, position);
+            completions.push(...secretsCompletions);
+            return completions; // Return only secrets completions
         }
         
         // 3. Check if we're in depends section - use proper dependency completions

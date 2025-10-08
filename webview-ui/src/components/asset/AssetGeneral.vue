@@ -266,6 +266,47 @@
         :warnings="warningMessages"
         @warningClose="handleWarningClose"
       />
+
+      <!-- Pipeline Information -->
+      <div v-if="isPipelineData" class="mt-4 bg-editorWidget-bg rounded p-2">
+        <h4 class="text-xs font-medium text-editor-fg mb-2 opacity-80">Pipeline Configuration</h4>
+        <table class="w-full text-xs">
+          <tbody>
+            <tr v-if="pipelineInfo.start_date">
+              <td class="py-0.5 pr-3 text-editor-fg opacity-60 w-32 whitespace-nowrap">Start Date</td>
+              <td class="py-0.5 text-editor-fg font-mono">{{ pipelineInfo.start_date }}</td>
+            </tr>
+            <tr v-if="pipelineInfo.retries !== undefined">
+              <td class="py-0.5 pr-3 text-editor-fg opacity-60 w-32 whitespace-nowrap">Retries</td>
+              <td class="py-0.5 text-editor-fg font-mono">{{ pipelineInfo.retries }}</td>
+            </tr>
+            <tr v-if="pipelineInfo.concurrency !== undefined">
+              <td class="py-0.5 pr-3 text-editor-fg opacity-60 w-32 whitespace-nowrap">Concurrency</td>
+              <td class="py-0.5 text-editor-fg font-mono">{{ pipelineInfo.concurrency }}</td>
+            </tr>
+            <tr v-if="pipelineInfo.catchup !== undefined">
+              <td class="py-0.5 pr-3 text-editor-fg opacity-60 w-32 whitespace-nowrap">Catchup</td>
+              <td class="py-0.5 text-editor-fg font-mono">{{ pipelineInfo.catchup ? 'Enabled' : 'Disabled' }}</td>
+            </tr>
+            <tr v-if="pipelineInfo.assets && pipelineInfo.assets.length > 0">
+              <td class="py-0.5 pr-3 text-editor-fg opacity-60 w-32 whitespace-nowrap">Assets</td>
+              <td class="py-0.5 text-editor-fg font-mono">{{ pipelineInfo.assets.length }}</td>
+            </tr>
+            <tr v-if="pipelineInfo.default_connections && Object.keys(pipelineInfo.default_connections).length > 0">
+              <td class="py-0.5 pr-3 text-editor-fg opacity-60 w-32 whitespace-nowrap align-top">Default Connection</td>
+              <td class="py-0.5">
+                <div class="space-y-0.5">
+                  <div v-for="(connection, type) in pipelineInfo.default_connections" :key="type" 
+                       class="text-xs font-mono text-editor-fg opacity-80">
+                    {{ type }}: {{ connection }}
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
       <div class="">
         <div v-if="props.assetType === 'ingestr' && !isError" class="mt-1">
           <IngestrAssetDisplay :parameters="ingestrParameters" :columns="props.columns" @save="handleIngestrSave" />
@@ -342,6 +383,7 @@ const props = defineProps<{
   tags?: string[];
   assetMetadata?: any;
   assetMetadataError?: string;
+  pipeline?: any;
 }>();
 
 /**
@@ -402,6 +444,25 @@ const ingestrParameters = computed(() => {
 // Computed property for BigQuery metadata
 const bigqueryMetadata = computed(() => {
   return props.assetMetadata?.bigquery || null;
+});
+
+// Pipeline information computed properties  
+const isPipelineData = computed(() => {
+  // Only show for pipeline config files
+  if (!props.pipeline || typeof props.pipeline !== 'object' || Object.keys(props.pipeline).length === 0) {
+    return false;
+  }
+  
+  const isPipelineConfig = props.pipeline.type === 'pipelineConfig' ||
+                          (props.pipeline.raw && typeof props.pipeline.raw === 'object') ||
+                          (props.pipeline.assets && Array.isArray(props.pipeline.assets)) ||
+                          (props.pipeline.default_connections && typeof props.pipeline.default_connections === 'object');
+  
+  return isPipelineConfig;
+});
+
+const pipelineInfo = computed(() => {
+  return props.pipeline?.raw || props.pipeline || {};
 });
 
 /**

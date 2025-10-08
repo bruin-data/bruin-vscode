@@ -106,12 +106,26 @@ export const determineValidationStatus = (
   return null; // Default return value
 };
 
+export const parsePipelineData = (data: string | object) => {
+  if (!data) return {};
+
+  const parsedData = typeof data === "string" ? JSON.parse(data) : data;
+  
+  // For pipeline config files, check if the data is directly the pipeline data
+  if (parsedData.type === "pipelineConfig" || parsedData.schedule || parsedData.assets) {
+    return parsedData;
+  }
+  
+  // Otherwise look for nested pipeline data
+  return parsedData.pipeline || {};
+};
+
 export const parseAssetDetails = (data: string | object) => {
   if (!data) return;
 
   const parsedData = typeof data === "string" ? JSON.parse(data) : data;
   const asset = parsedData.asset || {};
-  const pipeline = parsedData.pipeline || {};
+  const pipeline = parsePipelineData(data);
 
   return {
     id: asset.id || "undefined",

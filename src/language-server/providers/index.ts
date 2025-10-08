@@ -3,4 +3,5 @@ export { ColumnCompletions } from './columnCompletions';
 export { TopLevelCompletions } from './topLevelCompletions';
 export { AssetCompletions } from './assetCompletions';
 export { MaterializationValidator } from './materializationValidator';
-export { CustomCheckCompletions } from './customCheckCompletions'; 
+export { CustomCheckCompletions } from './customCheckCompletions';
+export { SecretsCompletions } from './secretsCompletions'; 

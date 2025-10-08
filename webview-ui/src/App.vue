@@ -354,9 +354,14 @@ const handleMessage = (event: MessageEvent) => {
           }
           data.value = parsed;
           
-          // Request BigQuery metadata if we have a valid asset
+          // Request metadata if we have a valid asset and it's not a config file
           if (parsed && parsed.asset) {
-            vscode.postMessage({ command: "bruin.getAssetMetadata" });
+            const fp = parsed.filePath || '';
+            const isConfigFile = fp.endsWith('.bruin.yml') || fp.endsWith('.bruin.yaml') || fp.endsWith('pipeline.yml') || fp.endsWith('pipeline.yaml');
+            if (!isConfigFile && !isPipelineConfig.value) {
+              console.log("🔍 [App.vue] Requesting asset metadata from parse-message", parsed.filePath);
+              vscode.postMessage({ command: "bruin.getAssetMetadata" });
+            }
           }
         }
 
@@ -387,9 +392,14 @@ const handleMessage = (event: MessageEvent) => {
         }
         break;
       case "lastRenderedDocument":
-        // If we have asset data when the document loads, request metadata
+        // If we have asset data when the document loads, request metadata if not a config file
         if (parsedData.value && parsedData.value.asset) {
-          vscode.postMessage({ command: "bruin.getAssetMetadata" });
+          const fp = parsedData.value.filePath || '';
+          const isConfigFile = fp.endsWith('.bruin.yml') || fp.endsWith('.bruin.yaml') || fp.endsWith('pipeline.yml') || fp.endsWith('pipeline.yaml');
+          if (!isConfigFile) {
+            console.log("🔍 [App.vue] Requesting asset metadata from lastRenderedDocument", parsedData.value.filePath);
+            vscode.postMessage({ command: "bruin.getAssetMetadata" });
+          }
         }
         break;
       // bruinCliInstallationStatus handled earlier to avoid duplicate case warning
@@ -431,10 +441,15 @@ const handleMessage = (event: MessageEvent) => {
         try {
           const fp: string = message.filePath || '';
           const isConfig = fp.endsWith('.bruin.yml') || fp.endsWith('.bruin.yaml');
+          const isPipelineFile = fp.endsWith('pipeline.yml') || fp.endsWith('pipeline.yaml');
           if (!isConfig) {
+            console.log("🔍 [App.vue] Requesting asset details", isConfig, isPipelineFile);
             vscode.postMessage({ command: "bruin.getAssetDetails" });
-            // Also request metadata in parallel with asset details for faster loading
-            vscode.postMessage({ command: "bruin.getAssetMetadata" });
+            // Don't request metadata for config files (bruin.yml or pipeline.yml)
+            if (!isConfig && !isPipelineFile) {
+              console.log("🔍 [App.vue] Requesting asset metadata", message.filePath);
+              vscode.postMessage({ command: "bruin.getAssetMetadata" });
+            }
           }
         } catch (_) {}
         vscode.postMessage({ command: "bruin.getEnvironmentsList" });
@@ -750,6 +765,10 @@ const visibleTabs = computed(() => {
   
   // If panel is in settings-only mode, always show Settings tab
   if (settingsOnlyMode.value) {
+    // Ensure activeTab is set to 0 for the single Settings tab
+    if (activeTab.value !== 0) {
+      activeTab.value = 0;
+    }
     return tabs.value.filter((tab) => tab.label === "Settings");
   }
 
@@ -765,9 +784,20 @@ const visibleTabs = computed(() => {
   if (isBruinYml.value) {
     // Only show the "Settings" tab for .bruin.yml files
     console.log("⚙️ [App.vue] Settings only - bruin.yml file");
+    // Ensure activeTab is set to 0 for the single Settings tab
+    if (activeTab.value !== 0) {
+      activeTab.value = 0;
+    }
     return tabs.value.filter((tab) => tab.label === "Settings");
   }
-  // Show all tabs
+  
+  if (isPipelineConfig.value) {
+    // Only show "General" and "Settings" tabs for pipeline.yml files
+    console.log("📋 [App.vue] General and Settings only - pipeline.yml file");
+    return tabs.value.filter((tab) => tab.label === "General" || tab.label === "Settings");
+  }
+  
+  // Show all tabs for other file types
   console.log("✅ [App.vue] Showing all tabs");
   return tabs.value;
 });
@@ -913,6 +943,7 @@ const assetType = computed(() => {
   return assetDetailsProps.value?.type || "";
 });
 
+
 const commonBadgeStyle =
   "inline-flex items-center rounded-md px-1 py-0.5 text-xs font-medium ring-1 ring-inset";
 
@@ -929,6 +960,7 @@ const isTabActive = (index) => {
   if (appState.value !== 'main') {
     return false;
   }
+  
   return activeTab.value === index;
 };
 

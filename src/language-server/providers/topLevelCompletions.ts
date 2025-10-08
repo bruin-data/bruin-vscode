@@ -15,7 +15,8 @@ export class TopLevelCompletions {
             { name: 'depends', description: 'Dependencies for this asset' },
             { name: 'materialization', description: 'Materialization details for this asset' },
             { name: 'columns', description: 'Columns for this asset' },
-            { name: 'custom_checks', description: 'Custom checks for this asset' }
+            { name: 'custom_checks', description: 'Custom checks for this asset' },
+            { name: 'secrets', description: 'Secrets for this asset' }
         ];
 
         basicProperties.forEach(prop => {
@@ -30,6 +31,8 @@ export class TopLevelCompletions {
                 completion.insertText = new vscode.SnippetString(`${prop.name}:\n  - `);
             } else if (prop.name === 'columns') {
                 completion.insertText = new vscode.SnippetString(`${prop.name}:\n  - name: `);
+            } else if (prop.name === 'secrets') {
+                completion.insertText = new vscode.SnippetString(`${prop.name}:\n  - key: \${1:connection_name}\n    inject_as: \${2:creds}`);
             } else {
                 completion.insertText = `${prop.name}: `;
             }

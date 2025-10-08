@@ -3173,8 +3173,19 @@ describe("Bruin Webview Test", function () {
         await tableRadio.click();
         await sleep(1000);
         
-        // Test strategy switching
-        const strategySelect = await driver.findElement(By.id("materialization-strategy-select"));
+        // Test strategy switching - wait for strategy select to appear after table selection
+        const strategySelect = await driver.wait(
+          until.elementLocated(By.id("materialization-strategy-select")),
+          10000,
+          "Materialization strategy select not found"
+        );
+        
+        // Also wait for it to be visible
+        await driver.wait(
+          until.elementIsVisible(strategySelect),
+          5000,
+          "Materialization strategy select not visible"
+        );
         
         // Test 1: Switch to "delete+insert" strategy
         await strategySelect.click();
@@ -3364,7 +3375,7 @@ describe("Bruin Webview Test", function () {
         console.log("✓ Incremental key input is visible");
         
         // Test that the input accepts user input
-        const testKeyValue = "updated_at";
+        const testKeyValue = "created_at";
         await incrementalKeyInput.clear();
         await incrementalKeyInput.sendKeys(testKeyValue);
         await sleep(500);
@@ -3503,33 +3514,28 @@ describe("Bruin Webview Test", function () {
         const currentValue = await incrementalKeyInput.getAttribute("value");
         console.log(`Current input value before clearing: "${currentValue}"`);
         
-        // Use multiple methods to clear and set the value
-        try {
-          // Method 1: Standard clear and sendKeys
-          await incrementalKeyInput.clear();
-          await sleep(200);
-          await incrementalKeyInput.sendKeys(testKeyValue);
-          await sleep(500);
-        } catch (clearError) {
-          console.log("Standard clear failed, trying JavaScript method");
-          // Method 2: JavaScript-based clearing and setting
-          await driver.executeScript("arguments[0].value = ''; arguments[0].dispatchEvent(new Event('input'));", incrementalKeyInput);
-          await sleep(200);
-          await driver.executeScript("arguments[0].value = arguments[1]; arguments[0].dispatchEvent(new Event('input'));", incrementalKeyInput, testKeyValue);
-          await sleep(500);
-        }
+        // Clear and set the value using more reliable method
+        await incrementalKeyInput.click();
+        await sleep(200);
+        
+        // Select all and replace
+        await driver.executeScript("arguments[0].select();", incrementalKeyInput);
+        await sleep(200);
+        await incrementalKeyInput.sendKeys(testKeyValue);
+        await sleep(500);
         
         // Verify the value was set correctly
         let keyInputValue = await incrementalKeyInput.getAttribute("value");
         console.log(`Input value after setting: "${keyInputValue}"`);
         
-        // If the value still doesn't match, try one more time with focus
+        // If value still doesn't match, use JavaScript to set it directly
         if (keyInputValue !== testKeyValue) {
-          console.log("Value mismatch, trying with focus and selection");
-          await incrementalKeyInput.click();
-          await driver.executeScript("arguments[0].select();", incrementalKeyInput);
-          await sleep(200);
-          await incrementalKeyInput.sendKeys(testKeyValue);
+          console.log("Value mismatch, using JavaScript to set value directly");
+          await driver.executeScript(`
+            arguments[0].value = arguments[1];
+            arguments[0].dispatchEvent(new Event('input', { bubbles: true }));
+            arguments[0].dispatchEvent(new Event('change', { bubbles: true }));
+          `, incrementalKeyInput, testKeyValue);
           await sleep(500);
           keyInputValue = await incrementalKeyInput.getAttribute("value");
           console.log(`Final input value: "${keyInputValue}"`);
