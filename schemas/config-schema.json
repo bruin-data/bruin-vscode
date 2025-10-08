@@ -153,37 +153,57 @@
                 },
                 "location": {
                     "type": "string"
+                },
+                "use_application_default_credentials": {
+                    "type": "boolean"
                 }
             },
             "oneOf": [
                 {
                     "type": "object",
                     "required": [
-                        "name",
-                        "project_id",
                         "service_account_json"
                     ],
                     "not": {
-                        "required": [
-                            "service_account_file"
+                        "anyOf": [
+                            {
+                                "required": [
+                                    "service_account_file"
+                                ]
+                            },
+                            {
+                                "required": [
+                                    "use_application_default_credentials"
+                                ]
+                            }
                         ]
                     }
                 },
                 {
                     "type": "object",
                     "required": [
-                        "name",
-                        "project_id",
                         "service_account_file"
                     ],
                     "not": {
-                        "required": [
-                            "service_account_json"
+                        "anyOf": [
+                            {
+                                "required": [
+                                    "service_account_json"
+                                ]
+                            },
+                            {
+                                "required": [
+                                    "use_application_default_credentials"
+                                ]
+                            }
                         ]
                     }
                 },
                 {
                     "type": "object",
+                    "required": [
+                        "use_application_default_credentials"
+                    ],
                     "not": {
                         "anyOf": [
                             {

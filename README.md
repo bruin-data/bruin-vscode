@@ -63,6 +63,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.69.0**: Updated tab visibility logic to show pipeline related information and added autocomplete for secrets.
 - **0.68.2**: Fixed the preview query issue when opening a non-asset file.
 - **0.68.1**: Fixed rendered query issues related to date input and full refresh start date.
 - **0.68.0**: Added support for BigQuery cost estimate in the SQL editor.
