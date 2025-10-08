@@ -2845,10 +2845,32 @@ describe("Bruin Webview Test", function () {
     });
   });
 
-  describe.only("Materialization Tests", function () {
+  describe("Materialization Tests", function () {
     let materializationTab: WebElement;
     let ownerContainer: WebElement;
     let tagsContainer: WebElement;
+
+    // Platform-specific timing adjustments
+    const isWindows = process.platform === 'win32';
+    const getPlatformDelay = (baseDelay: number) => isWindows ? baseDelay * 2 : baseDelay;
+    
+    // Helper function to safely interact with elements that might become stale
+    const safeElementInteraction = async (elementId: string, action: (element: WebElement) => Promise<any>, maxRetries: number = 3) => {
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+          const element = await driver.wait(
+            until.elementLocated(By.id(elementId)),
+            getPlatformDelay(5000),
+            `Element ${elementId} not found`
+          );
+          return await action(element);
+        } catch (staleError) {
+          if (attempt === maxRetries - 1) throw staleError;
+          console.log(`Element ${elementId} became stale on attempt ${attempt + 1}, retrying...`);
+          await sleep(getPlatformDelay(200));
+        }
+      }
+    };
 
     beforeEach(async function () {
       this.timeout(30000);
@@ -2898,15 +2920,16 @@ describe("Bruin Webview Test", function () {
         await sleep(1000);
         console.log("✓ Reset to table materialization type");
 
-        // Reset strategy to default (create+replace)
-        const strategySelect = await driver.findElement(By.id("materialization-strategy-select"));
-        await strategySelect.click();
-        await sleep(200);
-        
-        const createReplaceOption = await strategySelect.findElement(By.css('option[value="create+replace"]'));
-        await createReplaceOption.click();
-        await sleep(1500);
-        console.log("✓ Reset to create+replace strategy");
+        // Reset strategy to default (create+replace) with stale element handling
+        await safeElementInteraction("materialization-strategy-select", async (strategySelect) => {
+          await strategySelect.click();
+          await sleep(200);
+          
+          const createReplaceOption = await strategySelect.findElement(By.css('option[value="create+replace"]'));
+          await createReplaceOption.click();
+          await sleep(1500);
+          console.log("✓ Reset to create+replace strategy");
+        });
 
       } catch (error) {
         console.log("Error in materialization beforeEach:", error);
@@ -3429,11 +3452,15 @@ describe("Bruin Webview Test", function () {
         await deleteInsertOption.click();
         
         // Wait for strategy-specific elements to appear with proper WebDriver wait
+        // Add extra wait time for Windows compatibility
         await driver.wait(
           until.elementLocated(By.id("incremental-key-input")),
-          10000,
+          15000,
           "Incremental key input should appear for delete+insert strategy"
         );
+        
+        // Additional wait for DOM to stabilize on Windows
+        await sleep(getPlatformDelay(1000));
         console.log("✓ Selected delete+insert strategy");
         
         // Verify incremental key input is visible and functional
@@ -3448,62 +3475,109 @@ describe("Bruin Webview Test", function () {
         // Test that the input accepts user input with proper wait conditions
         const testKeyValue = "created_at";
         
-        // Clear the input with retry logic
+        // Helper function to get fresh element reference
+        const getFreshIncrementalKeyInput = async () => {
+          return await driver.wait(
+            until.elementLocated(By.id("incremental-key-input")),
+            5000,
+            "Incremental key input not found"
+          );
+        };
+        
+        // Clear the input with retry logic and stale element handling
         for (let attempt = 0; attempt < 3; attempt++) {
           try {
-            await incrementalKeyInput.clear();
-            await sleep(200); // Small delay after clear
+            let currentInput = incrementalKeyInput;
+            try {
+              await currentInput.clear();
+            } catch (staleError) {
+              console.log("Element became stale, getting fresh reference...");
+              currentInput = await getFreshIncrementalKeyInput();
+              await currentInput.clear();
+            }
+            await sleep(getPlatformDelay(200)); // Small delay after clear
             break;
           } catch (error) {
             if (attempt === 2) throw error;
             console.log(`Clear attempt ${attempt + 1} failed, retrying...`);
-            await sleep(500);
+            await sleep(getPlatformDelay(500));
           }
         }
         
-        // Wait for the input to be interactable
+        // Wait for the input to be interactable with fresh reference
+        let freshInput = await getFreshIncrementalKeyInput();
         await driver.wait(
-          until.elementIsVisible(incrementalKeyInput),
+          until.elementIsVisible(freshInput),
           5000,
           "Incremental key input should be visible"
         );
+        
         // Additionally, check if the input is enabled before sending keys
-        const isEnabled = await incrementalKeyInput.isEnabled();
+        const isEnabled = await freshInput.isEnabled();
         assert.ok(isEnabled, "Incremental key input should be enabled before sending keys");
         
-        // Send keys with retry logic
+        // Send keys with retry logic and stale element handling
         for (let attempt = 0; attempt < 3; attempt++) {
           try {
-            await incrementalKeyInput.sendKeys(testKeyValue);
-            await sleep(300); // Wait for input to process
+            let currentInput = freshInput;
+            try {
+              await currentInput.sendKeys(testKeyValue);
+            } catch (staleError) {
+              console.log("Element became stale during sendKeys, getting fresh reference...");
+              currentInput = await getFreshIncrementalKeyInput();
+              await currentInput.sendKeys(testKeyValue);
+            }
+            await sleep(getPlatformDelay(300)); // Wait for input to process
             
-            // Verify the value was set
-            const currentValue = await incrementalKeyInput.getAttribute("value");
-            if (currentValue === testKeyValue) {
-              break;
-            } else if (attempt < 2) {
-              console.log(`Input value mismatch on attempt ${attempt + 1}, retrying...`);
-              await incrementalKeyInput.clear();
-              await sleep(200);
+            // Verify the value was set with fresh reference
+            try {
+              const currentValue = await currentInput.getAttribute("value");
+              if (currentValue === testKeyValue) {
+                break;
+              } else if (attempt < 2) {
+                console.log(`Input value mismatch on attempt ${attempt + 1}, retrying...`);
+                try {
+                  await currentInput.clear();
+                } catch (staleError) {
+                  currentInput = await getFreshIncrementalKeyInput();
+                  await currentInput.clear();
+                }
+                await sleep(getPlatformDelay(200));
+              }
+            } catch (staleError) {
+              console.log("Element became stale during value check, getting fresh reference...");
+              currentInput = await getFreshIncrementalKeyInput();
+              const currentValue = await currentInput.getAttribute("value");
+              if (currentValue === testKeyValue) {
+                break;
+              }
             }
           } catch (error) {
             if (attempt === 2) throw error;
             console.log(`Send keys attempt ${attempt + 1} failed, retrying...`);
-            await sleep(500);
+            await sleep(getPlatformDelay(500));
           }
         }
         
-        // Final verification with wait
+        // Final verification with wait and fresh element reference
         await driver.wait(
           async () => {
-            const currentValue = await incrementalKeyInput.getAttribute("value");
-            return currentValue === testKeyValue;
+            try {
+              const currentInput = await getFreshIncrementalKeyInput();
+              const currentValue = await currentInput.getAttribute("value");
+              return currentValue === testKeyValue;
+            } catch (error) {
+              console.log("Error during final verification:", error);
+              return false;
+            }
           },
           5000,
           "Input value should be set to test value"
         );
         
-        const inputValue = await incrementalKeyInput.getAttribute("value");
+        // Final assertion with fresh element reference
+        const finalInput = await getFreshIncrementalKeyInput();
+        const inputValue = await finalInput.getAttribute("value");
         assert.strictEqual(inputValue, testKeyValue, "Incremental key input should accept user input");
         console.log(`✓ Incremental key input accepts input: ${testKeyValue}`);
         
