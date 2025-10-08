@@ -56,6 +56,7 @@
           <vscode-radio-group :value="serviceAccountInputMethod" @change="handleInputMethodChange">
             <vscode-radio value="file" :checked="serviceAccountInputMethod === 'file'">Use File Picker</vscode-radio>
             <vscode-radio value="text" :checked="serviceAccountInputMethod === 'text'">Input JSON Directly</vscode-radio>
+            <vscode-radio value="default" :checked="serviceAccountInputMethod === 'default'">Use Application Default Credentials</vscode-radio>
           </vscode-radio-group>
         </div>
 
@@ -194,15 +195,19 @@ const props = defineProps({
   serviceAccountFile: {
     type: Object,
     default: null
+  },
+  useApplicationDefaultCredentials: {
+    type: Boolean,
+    default: false
   }
 });
 
-const emit = defineEmits(["update:modelValue", "clearError", "fileSelected"]);
+const emit = defineEmits(["update:modelValue", "clearError", "fileSelected", "updateUseApplicationDefaultCredentials"]);
 
 const internalValue = ref(props.modelValue ?? props.defaultValue ?? "");
 const showPassword = ref(false);
 const selectedFile = ref(props.serviceAccountFile);
-const service_account = ["service_account_json", "service_account_file"];
+const service_account = ["service_account_json", "service_account_file", "use_application_default_credentials"];
 const inputType = computed(() => {
   return props.type === "password" ? (showPassword.value ? "text" : "password") : props.type;
 });
@@ -367,8 +372,15 @@ const handleInputMethodChange = (event) => {
     internalValue.value = "";
     selectedFile.value = null;
     emit("update:modelValue", "");
-  } else {
+  } else if (newMethod === "text") {
     selectedFile.value = null;
+    emit("update:modelValue", internalValue.value);
+  } else if (newMethod === "default") {
+    // Clear both file and text input for default credentials
+    internalValue.value = "";
+    selectedFile.value = null;
+    emit("update:modelValue", "");
+    emit("updateUseApplicationDefaultCredentials", true);
   }
   emit("clearError");
 };

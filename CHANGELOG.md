@@ -1,4 +1,7 @@
 # Changelog
+## [0.69.1] - [2025-10-08]
+- Add support for `application default credentials` in `gcp` connections.
+
 ## [0.69.0] - [2025-10-08]
 - Updated tab visibility logic to show pipeline related information and added autocomplete for secrets.
 

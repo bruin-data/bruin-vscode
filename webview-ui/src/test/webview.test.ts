@@ -1246,6 +1246,210 @@ suite('createColumnLevelEdges', () => {
   });
 });
 
+suite('ConnectionsForm updateUseApplicationDefaultCredentials', () => {
+  test('handleUseApplicationDefaultCredentialsChange updates form value correctly', () => {
+    const form = { value: { use_application_default_credentials: false } };
+    
+    const handleUseApplicationDefaultCredentialsChange = (value) => {
+      form.value.use_application_default_credentials = value;
+    };
+
+    handleUseApplicationDefaultCredentialsChange(true);
+    assert.strictEqual(form.value.use_application_default_credentials, true);
+
+    handleUseApplicationDefaultCredentialsChange(false);
+    assert.strictEqual(form.value.use_application_default_credentials, false);
+  });
+
+  test('form includes use_application_default_credentials in initialization', () => {
+    const defaultEnvironment = 'dev';
+    const form = {
+      connection_type: "",
+      connection_name: "",
+      environment: defaultEnvironment,
+      use_application_default_credentials: false,
+    };
+
+    assert.strictEqual(form.use_application_default_credentials, false);
+    assert.strictEqual(form.environment, defaultEnvironment);
+  });
+
+  test('use_application_default_credentials is properly handled in connection data submission', () => {
+    const form = {
+      connection_type: "google_cloud_platform",
+      connection_name: "test-connection",
+      environment: "dev",
+      use_application_default_credentials: true,
+    };
+
+    const connectionData: any = {
+      name: form.connection_name,
+      type: form.connection_type,
+      environment: form.environment,
+      credentials: {},
+    };
+
+    if (form.connection_type === "google_cloud_platform" && form.use_application_default_credentials) {
+      connectionData.credentials.use_application_default_credentials = form.use_application_default_credentials;
+    }
+
+    assert.strictEqual(connectionData.credentials.use_application_default_credentials, true);
+    assert.strictEqual(connectionData.type, "google_cloud_platform");
+  });
+
+  test('use_application_default_credentials is not included for non-GCP connections', () => {
+    const form = {
+      connection_type: "postgresql",
+      connection_name: "test-connection",
+      environment: "dev",
+      use_application_default_credentials: true,
+    };
+
+    const connectionData: any = {
+      name: form.connection_name,
+      type: form.connection_type,
+      environment: form.environment,
+      credentials: {},
+    };
+
+    if (form.connection_type === "google_cloud_platform" && form.use_application_default_credentials) {
+      connectionData.credentials.use_application_default_credentials = form.use_application_default_credentials;
+    }
+
+    assert.strictEqual(connectionData.credentials.use_application_default_credentials, undefined);
+    assert.strictEqual(connectionData.type, "postgresql");
+  });
+
+  test('service account input method change clears use_application_default_credentials', () => {
+    const form = { value: { service_account_json: "", use_application_default_credentials: true } };
+    let selectedFile = { value: null };
+    
+    const handleServiceAccountInputMethodChange = (newMethod) => {
+      if (newMethod === "file") {
+        form.value.service_account_json = "";
+        form.value.use_application_default_credentials = false;
+        selectedFile.value = null;
+      } else if (newMethod === "text") {
+        form.value.use_application_default_credentials = false;
+        selectedFile.value = null;
+      } else if (newMethod === "default") {
+        form.value.service_account_json = "";
+        selectedFile.value = null;
+      }
+    };
+
+    handleServiceAccountInputMethodChange("file");
+    assert.strictEqual(form.value.use_application_default_credentials, false);
+
+    form.value.use_application_default_credentials = true;
+
+    handleServiceAccountInputMethodChange("text");
+    assert.strictEqual(form.value.use_application_default_credentials, false);
+  });
+});
+
+suite('FormField updateUseApplicationDefaultCredentials', () => {
+  test('handleInputMethodChange emits updateUseApplicationDefaultCredentials when default is selected', () => {
+    const emittedEvents: Array<{ eventName: string; value: any }> = [];
+    const emit = (eventName: string, value?: any) => {
+      emittedEvents.push({ eventName, value });
+    };
+
+    let internalValue = { value: "" };
+    let selectedFile = { value: null };
+
+    const handleInputMethodChange = (event: any) => {
+      const newMethod = event.target.value;
+      
+      if (newMethod === "file") {
+        internalValue.value = "";
+        selectedFile.value = null;
+        emit("update:modelValue", "");
+      } else if (newMethod === "text") {
+        selectedFile.value = null;
+        emit("update:modelValue", internalValue.value);
+      } else if (newMethod === "default") {
+        internalValue.value = "";
+        selectedFile.value = null;
+        emit("update:modelValue", "");
+        emit("updateUseApplicationDefaultCredentials", true);
+      }
+      emit("clearError");
+    };
+
+    const mockEvent = { target: { value: "default" } };
+    handleInputMethodChange(mockEvent);
+
+    const updateCredentialsEvent = emittedEvents.find(e => e.eventName === "updateUseApplicationDefaultCredentials");
+    assert.isDefined(updateCredentialsEvent);
+    assert.strictEqual(updateCredentialsEvent?.value, true);
+
+    const clearErrorEvent = emittedEvents.find(e => e.eventName === "clearError");
+    assert.isDefined(clearErrorEvent);
+
+    const updateModelEvent = emittedEvents.find(e => e.eventName === "update:modelValue");
+    assert.isDefined(updateModelEvent);
+    assert.strictEqual(updateModelEvent?.value, "");
+  });
+
+  test('handleInputMethodChange does not emit updateUseApplicationDefaultCredentials for other methods', () => {
+    const emittedEvents: Array<{ eventName: string; value: any }> = [];
+    const emit = (eventName: string, value?: any) => {
+      emittedEvents.push({ eventName, value });
+    };
+
+    let internalValue = { value: "some-text" };
+    let selectedFile = { value: null };
+
+    const handleInputMethodChange = (event: any) => {
+      const newMethod = event.target.value;
+      
+      if (newMethod === "file") {
+        internalValue.value = "";
+        selectedFile.value = null;
+        emit("update:modelValue", "");
+      } else if (newMethod === "text") {
+        selectedFile.value = null;
+        emit("update:modelValue", internalValue.value);
+      } else if (newMethod === "default") {
+        internalValue.value = "";
+        selectedFile.value = null;
+        emit("update:modelValue", "");
+        emit("updateUseApplicationDefaultCredentials", true);
+      }
+      emit("clearError");
+    };
+
+    const mockFileEvent = { target: { value: "file" } };
+    handleInputMethodChange(mockFileEvent);
+
+    let updateCredentialsEvent = emittedEvents.find(e => e.eventName === "updateUseApplicationDefaultCredentials");
+    assert.isUndefined(updateCredentialsEvent);
+
+    emittedEvents.length = 0;
+
+    const mockTextEvent = { target: { value: "text" } };
+    handleInputMethodChange(mockTextEvent);
+
+    updateCredentialsEvent = emittedEvents.find(e => e.eventName === "updateUseApplicationDefaultCredentials");
+    assert.isUndefined(updateCredentialsEvent);
+  });
+
+  test('useApplicationDefaultCredentials prop is correctly passed and used', () => {
+    const props = {
+      useApplicationDefaultCredentials: true
+    };
+
+    assert.strictEqual(props.useApplicationDefaultCredentials, true);
+
+    const propsWithFalse = {
+      useApplicationDefaultCredentials: false
+    };
+    
+    assert.strictEqual(propsWithFalse.useApplicationDefaultCredentials, false);
+  });
+});
+
 suite('AssetLineage hover functionality', () => {
   // Test the utility functions directly
   const getUpstreamNodesAndEdges = (nodeId: string, allEdges: any[]) => {

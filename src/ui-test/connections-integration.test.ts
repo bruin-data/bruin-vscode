@@ -2026,6 +2026,145 @@ describe("Webview Components Integration Tests", function () {
     });
   });
 
+  describe("Application Default Credentials Integration", function () {
+    it("should handle GCP Application Default Credentials workflow", async function () {
+      this.timeout(45000);
+      
+      if ((global as any).webviewNotFound) {
+        console.log("⚠️  Webview not accessible, skipping UI tests");
+        assert(true, "Webview not available");
+        return;
+      }
+      
+      try {
+        const newConnectionButtons = await driver.findElements(By.id("new-connection-button"));
+        if (newConnectionButtons.length > 0) {
+          await driver.executeScript("arguments[0].click();", newConnectionButtons[0]);
+          await sleep(2000);
+          
+          const connectionTypeSelect = await driver.findElements(By.id("connection_type"));
+          if (connectionTypeSelect.length > 0) {
+            await connectionTypeSelect[0].click();
+            await sleep(500);
+            
+            const gcpOptions = await driver.findElements(By.xpath("//option[contains(text(), 'google_cloud_platform') or contains(text(), 'Google Cloud')]"));
+            if (gcpOptions.length > 0) {
+              await gcpOptions[0].click();
+              await sleep(2000);
+              
+              const serviceAccountField = await driver.findElements(By.id("service_account_json"));
+              
+              if (serviceAccountField.length > 0) {
+                const radioButtons = await driver.findElements(By.css('vscode-radio[value="default"]'));
+                
+                if (radioButtons.length > 0) {
+                  await driver.executeScript("arguments[0].click();", radioButtons[0]);
+                  await sleep(1000);
+                  
+                  const connectionNameInput = await driver.findElements(By.id("connection_name"));
+                  if (connectionNameInput.length > 0) {
+                    await connectionNameInput[0].clear();
+                    await connectionNameInput[0].sendKeys("test-gcp-default-creds");
+                  }
+                  
+                  const fileRadioButtons = await driver.findElements(By.css('vscode-radio[value="file"]'));
+                  if (fileRadioButtons.length > 0) {
+                    await driver.executeScript("arguments[0].click();", fileRadioButtons[0]);
+                    await sleep(1000);
+                    
+                    await driver.executeScript("arguments[0].click();", radioButtons[0]);
+                    await sleep(1000);
+                  }
+                  
+                  const submitButton = await driver.findElements(By.id("submit-connection-button"));
+                  if (submitButton.length > 0) {
+                    const isEnabled = await submitButton[0].isEnabled();
+                    assert(isEnabled, "Form should be valid with Application Default Credentials");
+                  }
+                  
+                  const cancelButton = await driver.findElements(By.id("cancel-connection-button"));
+                  if (cancelButton.length > 0) {
+                    await driver.executeScript("arguments[0].click();", cancelButton[0]);
+                    await sleep(1000);
+                  }
+                }
+              }
+            }
+          }
+        }
+        
+      } catch (error) {
+        throw error;
+      }
+    });
+
+    it("should validate Application Default Credentials field behavior", async function () {
+      this.timeout(30000);
+      
+      if ((global as any).webviewNotFound) {
+        console.log("⚠️  Webview not accessible, skipping UI tests");
+        assert(true, "Webview not available");
+        return;
+      }
+      
+      try {
+        console.log("Testing Application Default Credentials field validation...");
+        
+        // Navigate to connection form if not already there
+        const connectionForm = await driver.findElements(By.id("connection-form"));
+        let formVisible = connectionForm.length > 0;
+        
+        if (!formVisible) {
+          const newConnectionButtons = await driver.findElements(By.id("new-connection-button"));
+          if (newConnectionButtons.length > 0) {
+            await driver.executeScript("arguments[0].click();", newConnectionButtons[0]);
+            await sleep(2000);
+            
+            // Select GCP connection type
+            const connectionTypeSelect = await driver.findElements(By.id("connection_type"));
+            if (connectionTypeSelect.length > 0) {
+              await connectionTypeSelect[0].click();
+              await sleep(500);
+              
+              const gcpOptions = await driver.findElements(By.xpath("//option[contains(text(), 'google_cloud_platform') or contains(text(), 'Google Cloud')]"));
+              if (gcpOptions.length > 0) {
+                await gcpOptions[0].click();
+                await sleep(2000);
+                formVisible = true;
+              }
+            }
+          }
+        }
+        
+        if (formVisible) {
+          const radioGroup = await driver.findElements(By.css('vscode-radio-group'));
+          const fileOption = await driver.findElements(By.css('vscode-radio[value="file"]'));
+          const textOption = await driver.findElements(By.css('vscode-radio[value="text"]'));
+          const defaultOption = await driver.findElements(By.css('vscode-radio[value="default"]'));
+          
+          assert(radioGroup.length > 0, "Radio button group should be present");
+          assert(fileOption.length > 0, "File authentication option should be available");
+          assert(textOption.length > 0, "Text authentication option should be available");
+          assert(defaultOption.length > 0, "Default authentication option should be available");
+          
+          if (defaultOption.length > 0) {
+            await driver.executeScript("arguments[0].click();", defaultOption[0]);
+            await sleep(1000);
+          }
+          
+          const cancelButton = await driver.findElements(By.id("cancel-connection-button"));
+          if (cancelButton.length > 0) {
+            await driver.executeScript("arguments[0].click();", cancelButton[0]);
+            await sleep(1000);
+          }
+        }
+        
+      } catch (error) {
+        throw error;
+      }
+    });
+  });
+
   describe("UI Component Integration", function () {
     it("should test alert dialogs", async function () {
       this.timeout(30000);
