@@ -137,29 +137,39 @@
             "additionalProperties": true
         },
         "googleCloudPlatformConnection": {
+            "title": "Google Cloud Platform Connection",
+            "description": "Configure Google Cloud Platform connection with exactly one authentication method: service_account_json, service_account_file, or use_application_default_credentials",
             "type": "object",
             "properties": {
                 "name": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Connection name identifier"
                 },
                 "service_account_json": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Service account JSON content as a string (cannot be used with service_account_file or use_application_default_credentials)"
                 },
                 "service_account_file": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Path to service account JSON file (cannot be used with service_account_json or use_application_default_credentials)"
                 },
                 "project_id": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Google Cloud Project ID"
                 },
                 "location": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Google Cloud region/location (optional)"
                 },
                 "use_application_default_credentials": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "description": "Use Google Application Default Credentials (cannot be used with service_account_json or service_account_file)"
                 }
             },
             "oneOf": [
                 {
+                    "title": "Service Account JSON Authentication",
+                    "description": "Use service account JSON string for authentication",
                     "type": "object",
                     "required": [
                         "service_account_json"
@@ -180,6 +190,8 @@
                     }
                 },
                 {
+                    "title": "Service Account File Authentication",
+                    "description": "Use service account file path for authentication",
                     "type": "object",
                     "required": [
                         "service_account_file"
@@ -200,6 +212,8 @@
                     }
                 },
                 {
+                    "title": "Application Default Credentials Authentication",
+                    "description": "Use Google Cloud Application Default Credentials",
                     "type": "object",
                     "required": [
                         "use_application_default_credentials"
@@ -224,7 +238,10 @@
                 "name",
                 "project_id"
             ],
-            "additionalProperties": false
+            "additionalProperties": false,
+            "errorMessage": {
+                "oneOf": "Google Cloud Platform connection must use exactly one authentication method: either 'service_account_json', 'service_account_file', or 'use_application_default_credentials'. You cannot combine multiple authentication methods."
+            }
         },
         "snowflakeConnection": {
             "type": "object",
