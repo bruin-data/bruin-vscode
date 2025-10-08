@@ -1201,13 +1201,25 @@ export class BruinPanel {
           filePath: filePath,
         });
       } else {
-        this._panel.webview.postMessage({
-          command: "non-asset-file",
-          showConvertMessage: false,
-          filePath: filePath,
-        });
-        if (this._cliInstalled) {
-          parseAssetCommand(fileUri);
+        // Check if it's a supported file type for Bruin
+        const isSupportedFileType = ["yml", "yaml", "py", "sql"].includes(fileExt);
+        
+        if (isSupportedFileType) {
+          // File type is supported but not in assets folder - show convert message
+          this._panel.webview.postMessage({
+            command: "non-asset-file",
+            showConvertMessage: false,
+            filePath: filePath,
+          });
+          if (this._cliInstalled) {
+            parseAssetCommand(fileUri);
+          }
+        } else {
+          // File type is not supported by Bruin - show non-relevant message
+          this._panel.webview.postMessage({
+            command: "non-relevant-file",
+            filePath: filePath,
+          });
         }
       }
     } catch (error) {

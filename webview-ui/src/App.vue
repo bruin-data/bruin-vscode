@@ -21,6 +21,13 @@
     />
   </div>
 
+  <!-- Non-relevant file: show when file is not supported -->
+  <div v-else-if="appState === 'non-relevant'" class="w-full">
+    <NonRelevantFileMessage
+      :filePath="nonRelevantFilePath"
+    />
+  </div>
+
   <!-- Main app: show asset details and tabs -->
   <div v-else-if="appState === 'main'" class="flex flex-col pt-1">
     <div v-if="!isNotAsset && !showConvertMessage && !settingsOnlyMode && isRelevantFile" class="">
@@ -142,6 +149,7 @@ import DescriptionItem from "./components/ui/description-item/DescriptionItem.vu
 import { badgeStyles, defaultBadgeStyle } from "./components/ui/badges/CustomBadgesStyle";
 import RudderStackService from "./services/RudderStackService";
 import NonAssetMessage from "./components/ui/alerts/NonAssetMessage.vue";
+import NonRelevantFileMessage from "./components/ui/alerts/NonRelevantFileMessage.vue";
 import Materialization from "./components/asset/materialization/Materialization.vue";
 
 const rudderStack = RudderStackService.getInstance();
@@ -216,10 +224,29 @@ const handleMessage = (event: MessageEvent) => {
         pendingConvertMessage.value = null;
         nonAssetFileType.value = "";
         nonAssetFilePath.value = "";
+        isNonRelevantFile.value = false;
+        nonRelevantFilePath.value = "";
         updateAppState();
         rudderStack.trackEvent("Asset Converted and Clear Convert Message", {
           assetName: message.assetName,
         });
+        break;
+      }
+      case "non-relevant-file": {
+        const currentFilePath = lastRenderedDocument.value;
+        const messageFilePath = message.filePath;
+        
+        if (messageFilePath && currentFilePath && messageFilePath !== currentFilePath) {
+          break;
+        }
+        
+        // Show non-relevant file message
+        isNonRelevantFile.value = true;
+        nonRelevantFilePath.value = message.filePath || "";
+        isNotAsset.value = false;
+        showConvertMessage.value = false;
+        pendingConvertMessage.value = null;
+        updateAppState();
         break;
       }
       case "non-asset-file": {
@@ -299,6 +326,8 @@ const handleMessage = (event: MessageEvent) => {
           isNotAsset.value = false;
           showConvertMessage.value = false;
           pendingConvertMessage.value = null;
+          isNonRelevantFile.value = false;
+          nonRelevantFilePath.value = "";
           // Always clear metadata when parsing new content to show loading state
           assetMetadata.value = null;
           assetMetadataError.value = null;
@@ -415,6 +444,9 @@ const handleMessage = (event: MessageEvent) => {
         console.log("🔍 [App.vue] File changed - cleared existing metadata");
         // Leave current content/tabs as-is for non-relevant files; simply exit settings-only
         settingsOnlyMode.value = false;
+        // Clear non-relevant file state when file changes
+        isNonRelevantFile.value = false;
+        nonRelevantFilePath.value = "";
         // If current file is a .bruin.yml config, force Settings-only view (with Connections)
         try {
           const filePath: string = message.filePath || "";
@@ -471,6 +503,8 @@ const isNotAsset = ref(false);
 const showConvertMessage = ref(false);
 const nonAssetFileType = ref("");
 const nonAssetFilePath = ref("");
+const isNonRelevantFile = ref(false);
+const nonRelevantFilePath = ref("");
 const activeTab = ref(0); // Tracks the currently active tab
 
 // Persist convert message state to prevent it from disappearing on slow CPUs
@@ -488,6 +522,8 @@ const updateAppState = () => {
     desiredState = 'loading';
   } else if (isBruinInstalled.value === false) {
     desiredState = 'install';
+  } else if (isBruinInstalled.value === true && isNonRelevantFile.value) {
+    desiredState = 'non-relevant';
   } else if (isBruinInstalled.value === true && (
     (isNotAsset.value && showConvertMessage.value) || 
     pendingConvertMessage.value
