@@ -63,6 +63,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.69.2**: Resolved issues with custom check parameters and cron expressions, and improved the custom check UI.
 - **0.69.1**: Add support for `application default credentials` in `gcp` connections.
 - **0.69.0**: Updated tab visibility logic to show pipeline related information and added autocomplete for secrets.
 - **0.68.2**: Fixed the preview query issue when opening a non-asset file.
