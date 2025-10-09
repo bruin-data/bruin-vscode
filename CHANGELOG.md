@@ -1,4 +1,7 @@
 # Changelog
+## [0.69.2] - [2025-10-09]
+- Resolved issues with custom check parameters and cron expressions, and improved the custom check UI.
+
 ## [0.69.1] - [2025-10-08]
 - Add support for `application default credentials` in `gcp` connections.
 

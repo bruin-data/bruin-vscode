@@ -172,8 +172,8 @@ export interface CustomChecks {
   description: string;
   id: string;
   name: string;
-  value: number;
-  count?: number;
+  value?: number | null;
+  count?: number | null;
   query: string;
 }
 

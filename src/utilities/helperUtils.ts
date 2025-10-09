@@ -371,7 +371,18 @@ export const cronToHumanReadable = (cronExpression: string): string => {
     if (hour === '*' && minute === '*') {
       description += " every minute";
     } else if (hour === '*') {
-      description += minute === '0' ? " every hour" : ` at ${minute} minutes past every hour`;
+      // Handle minute patterns
+      if (minute === '0') {
+        description += " every hour";
+      } else if (minute.startsWith('*/')) {
+        const interval = minute.substring(2);
+        description += ` every ${interval} minutes`;
+      } else if (minute.includes(',')) {
+        const minutes = minute.split(',').map(m => m.trim());
+        description += ` at ${minutes.join(', ')} minutes past every hour`;
+      } else {
+        description += ` at ${minute} minutes past every hour`;
+      }
     } else {
       const hourNum = parseInt(hour);
       const minuteNum = parseInt(minute);

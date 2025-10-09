@@ -58,7 +58,7 @@
             <!-- Dropdown -->
             <div
               v-if="isTagFilterOpen"
-              class="fixed z-[9999] w-[220px] max-w-[90vw] bg-dropdown-bg border border-commandCenter-border shadow-md rounded overflow-hidden tag-filter-dropdown"
+              class="fixed z-[99999] w-[220px] max-w-[90vw] bg-dropdown-bg border border-commandCenter-border shadow-md rounded overflow-hidden tag-filter-dropdown"
               :style="tagDropdownStyle"
               @mousedown.stop
             >
@@ -171,7 +171,7 @@
                 leave-from-class="transform opacity-100 scale-100"
                 leave-to-class="transform opacity-0 scale-95"
               >
-                <MenuItems class="absolute left-0 xs:right-0 xs:left-auto z-10 w-40 xs:w-48 origin-top-left xs:origin-top-right max-w-[calc(100vw-2rem)]">
+                <MenuItems class="absolute left-0 xs:right-0 xs:left-auto z-[99999] w-40 xs:w-48 origin-top-left xs:origin-top-right max-w-[calc(100vw-2rem)]">
                   <div class="p-1 bg-editorWidget-bg rounded-sm border border-commandCenter-border">
                     <MenuItem key="validate-current">
                       <vscode-button
@@ -219,7 +219,7 @@
                 leave-from-class="transform opacity-100 scale-100"
                 leave-to-class="transform opacity-0 scale-95"
               >
-                <MenuItems class="absolute left-0 xs:right-0 xs:left-auto z-10 w-40 xs:w-48 origin-top-left xs:origin-top-right max-w-[calc(100vw-2rem)]">
+                <MenuItems class="absolute left-0 xs:right-0 xs:left-auto z-[99999] w-40 xs:w-48 origin-top-left xs:origin-top-right max-w-[calc(100vw-2rem)]">
                   <div class="p-1 bg-editorWidget-bg rounded-sm border border-commandCenter-border">
                     <MenuItem key="run-with-downstream" v-slot="{ active }">
                       <vscode-button
@@ -728,16 +728,16 @@ watch(
   [checkboxItems, startDate, endDate, endDateExclusive, includeTags, excludeTags],
   () => {
     const checkboxState = checkboxItems.value.reduce((acc, item) => {
-      acc[item.name] = item.checked;
+      acc[String(item.name)] = Boolean(item.checked);
       return acc;
-    }, {});
+    }, {} as Record<string, boolean>);
 
     const payload = {
       flags: getCheckboxChangePayload(),
       checkboxState,
       tagFilters: {
-        include: [...includeTags.value],
-        exclude: [...excludeTags.value],
+        include: [...includeTags.value].map(tag => String(tag)),
+        exclude: [...excludeTags.value].map(tag => String(tag)),
       },
     };
 
@@ -785,16 +785,16 @@ watch(
  */
 function sendInitialMessage() {
   const checkboxState = checkboxItems.value.reduce((acc, item) => {
-    acc[item.name] = item.checked;
+    acc[String(item.name)] = Boolean(item.checked);
     return acc;
-  }, {});
+  }, {} as Record<string, boolean>);
 
   const initialPayload = {
     flags: getCheckboxChangePayload(),
     checkboxState,
     tagFilters: {
-      include: [...includeTags.value],
-      exclude: [...excludeTags.value],
+      include: [...includeTags.value].map(tag => String(tag)),
+      exclude: [...excludeTags.value].map(tag => String(tag)),
     },
   };
 
@@ -805,17 +805,34 @@ function sendInitialMessage() {
 }
 
 function toggleTag(tag: string, list: 'include' | 'exclude') {
-  const source = list === 'include' ? includeTags.value : excludeTags.value;
-  const other = list === 'include' ? excludeTags.value : includeTags.value;
-  const idx = source.indexOf(tag);
-  if (idx >= 0) {
-    source.splice(idx, 1);
-  } else {
-    const otherIdx = other.indexOf(tag);
-    if (otherIdx >= 0) {
-      other.splice(otherIdx, 1);
+  if (list === 'include') {
+    const idx = includeTags.value.indexOf(tag);
+    if (idx >= 0) {
+      // Remove from include list
+      includeTags.value = includeTags.value.filter((_, i) => i !== idx);
+    } else {
+      // Remove from exclude list if present
+      const excludeIdx = excludeTags.value.indexOf(tag);
+      if (excludeIdx >= 0) {
+        excludeTags.value = excludeTags.value.filter((_, i) => i !== excludeIdx);
+      }
+      // Add to include list
+      includeTags.value = [...includeTags.value, tag];
     }
-    source.push(tag);
+  } else {
+    const idx = excludeTags.value.indexOf(tag);
+    if (idx >= 0) {
+      // Remove from exclude list
+      excludeTags.value = excludeTags.value.filter((_, i) => i !== idx);
+    } else {
+      // Remove from include list if present
+      const includeIdx = includeTags.value.indexOf(tag);
+      if (includeIdx >= 0) {
+        includeTags.value = includeTags.value.filter((_, i) => i !== includeIdx);
+      }
+      // Add to exclude list
+      excludeTags.value = [...excludeTags.value, tag];
+    }
   }
 }
 
@@ -1025,9 +1042,9 @@ watch(
     vscode.postMessage({
       command: "bruin.updateQueryDates",
       payload: {
-        startDate: newStart,
-        endDate: newEnd,
-        environment: newEnv,
+        startDate: String(newStart || ''),
+        endDate: String(newEnd || ''),
+        environment: String(newEnv || ''),
       },
     });
     
@@ -1035,9 +1052,9 @@ watch(
     vscode.postMessage({
       command: "bruin.getAssetMetadata",
       payload: {
-        startDate: newStart,
-        endDate: newEnd,
-        environment: newEnv,
+        startDate: String(newStart || ''),
+        endDate: String(newEnd || ''),
+        environment: String(newEnv || ''),
       },
     });
   },

@@ -9,9 +9,7 @@
       <thead>
         <tr class="border-opacity-test text-xs font-semibold text-left opacity-65 border-b-2">
           <th class="px-2 py-1 w-1/4">Name</th>
-          <th class="px-2 py-1 w-1/6 text-center">Value</th>
-          <th class="px-2 py-1 w-1/6 text-center">Count</th>
-          <th class="px-2 py-1 w-1/4 text-center">Description</th>
+          <th class="px-2 py-1 w-1/6 text-center">Check</th>
           <th class="px-2 py-1 w-1/2">Query</th>
           <th class="px-2 py-1 w-1/4"></th>
         </tr>
@@ -24,124 +22,47 @@
           class="border-b border-commandCenter-border"
         >
           <td class="px-2 py-1 font-medium font-mono text-xs w-1/4">
-            <div v-if="editingIndex === index" class="flex flex-col gap-1">
-              <textarea
-                :id="`custom-check-name-input-${index}`"
-                v-model="(editingCustomCheck as CustomChecks).name"
-                class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs"
-                :class="{ 'border border-red-500': isDuplicateName }"
-                rows="2"
-                ></textarea>
-              <div v-if="isDuplicateName" class="text-xs text-red-500 mt-1">
-                A check with this name already exists.
+            <div class="break-words whitespace-normal">
+              <div class="break-words" :title="check.name">
+                {{ check.name }}
+              </div>
+              <div 
+                v-if="check.description"
+                class="text-xs opacity-60 mt-1 break-words"
+                :title="check.description"
+              >
+                {{ check.description }}
+              </div>
+              <div v-else class="text-xs opacity-60 mt-1 italic">
+                No description provided
               </div>
             </div>
-            <div v-else class="break-words whitespace-normal truncate" :title="check.name">
-              {{ check.name }}
-            </div>
           </td>
-          <!-- Value -->
           <td class="px-2 py-1 font-medium font-mono text-xs w-1/6 text-center">
-            <div v-if="editingIndex === index" class="flex flex-col gap-1">
-              <input
-                :id="`custom-check-value-input-${index}`"
-                v-model="(editingCustomCheck as CustomChecks).value"
-                :disabled="isValueDisabled"
-                class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs"
-                :class="{ 'opacity-50 cursor-not-allowed': isValueDisabled }"
-              />
-            </div>
-            <div
-              v-else-if="check.value !== null && check.value !== undefined"
-              class="truncate"
-              :title="String(check.value)"
-            >
-              {{ check.value }}
-            </div>
-            <div v-else class="italic opacity-70 truncate whitespace-normal">undefined</div>
-          </td>
-          <!-- Count -->
-          <td class="px-2 py-1 font-medium font-mono text-xs w-1/6 text-center">
-            <div v-if="editingIndex === index" class="flex flex-col gap-1">
-              <input
-                :id="`custom-check-count-input-${index}`"
-                v-model="(editingCustomCheck as CustomChecks).count"
-                :disabled="isCountDisabled"
-                class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs"
-                :class="{ 'opacity-50 cursor-not-allowed': isCountDisabled }"
-              />
-            </div>
-            <div
-              v-else-if="check.count !== null && check.count !== undefined"
-              class="truncate"
-              :title="String(check.count)"
-            >
-              {{ check.count }}
-            </div>
-            <div v-else class="italic opacity-70 truncate whitespace-normal">undefined</div>
-          </td>
-          <!-- Description -->
-          <td class="px-2 py-1 text-xs w-1/4 text-center">
-            <div v-if="editingIndex === index" class="flex flex-col gap-1">
-              <textarea
-                :id="`custom-check-description-input-${index}`"
-                v-model="(editingCustomCheck as CustomChecks).description"
-                class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs"
-                rows="2"
-              />
-            </div>
-            <div
-              v-else-if="check.description"
-              class="truncate whitespace-normal"
-              :title="check.description"
-            >
-              {{ check.description }}
-            </div>
-            <div v-else class="italic opacity-70 truncate whitespace-normal">
-              No description provided
+            <div class="flex flex-col gap-1">
+              <div v-if="check.value !== null && check.value !== undefined && check.value !== 0" class="truncate" :title="String(check.value)">
+                val: {{ check.value }}
+              </div>
+              <div v-else-if="check.count !== null && check.count !== undefined && check.count !== 0" class="truncate" :title="String(check.count)">
+                count: {{ check.count }}
+              </div>
+              <div v-else-if="check.value !== null && check.value !== undefined" class="truncate" :title="String(check.value)">
+                val: {{ check.value }}
+              </div>
+              <div v-else-if="check.count !== null && check.count !== undefined" class="truncate" :title="String(check.count)">
+                count: {{ check.count }}
+              </div>
             </div>
           </td>
-          <!-- Query -->
           <td class="px-2 py-1 text-xs w-1/2">
-            <div v-if="editingIndex === index">
-              <textarea
-                :id="`custom-check-query-input-${index}`"
-                v-model="(editingCustomCheck as CustomChecks).query"
-                class="w-full p-1 bg-editorWidget-bg text-editor-fg text-xs"
-                rows="4"
-              ></textarea>
-            </div>
             <div
-              v-else
               v-html="highlightedLines(check.query)"
-              class="break-words whitespace-normal truncate"
+              class="break-words whitespace-pre-wrap font-mono text-xs"
               :title="check.query"
             ></div>
           </td>
           <td class="px-2 py-1 text-xs w-1/4">
-            <div v-if="editingIndex === index" class="flex items-center gap-1">
-              <vscode-button
-                :id="`custom-check-save-button-${index}`"
-                appearance="icon"
-                @click="saveCustomChecks"
-                :disabled="isSaveDisabled"
-                aria-label="Save"
-                class="flex items-center"
-                :class="{ 'opacity-50 cursor-not-allowed': isSaveDisabled }"
-              >
-                <CheckIcon class="h-3 w-3" />
-              </vscode-button>
-              <vscode-button
-                :id="`custom-check-cancel-button-${index}`"
-                appearance="icon"
-                @click="resetEditing"
-                aria-label="Cancel"
-                class="flex items-center"
-              >
-                <XMarkIcon class="h-3 w-3" />
-              </vscode-button>
-            </div>
-            <div v-if="editingIndex !== index" class="flex items-center gap-1">
+            <div class="flex items-center gap-1">
               <vscode-button
                 :id="`custom-check-delete-button-${index}`"
                 appearance="icon"
@@ -180,6 +101,122 @@
         <span> No custom checks to display. </span>
       </div>
     </table>
+    
+    <!-- Edit Card Overlay -->
+    <div v-if="editingIndex !== null" class="fixed inset-0 bg-opacity-20 flex items-center justify-center z-50">
+      <div class="bg-editorWidget-bg border border-commandCenter-border rounded p-4 w-full max-w-xl max-h-[80vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-semibold text-editor-fg">
+            {{ isNewCheck ? 'Add Custom Check' : 'Edit Custom Check' }}
+          </h3>
+          <vscode-button
+            appearance="icon"
+            @click="resetEditing"
+            aria-label="Close"
+            class="flex items-center"
+          >
+            <XMarkIcon class="h-4 w-4" />
+          </vscode-button>
+        </div>
+        
+        <div class="space-y-4">
+          <!-- Name -->
+          <div>
+            <label class="block text-sm font-medium text-editor-fg mb-2">Name</label>
+            <textarea
+              :id="`custom-check-name-input-${editingIndex}`"
+              v-model="(editingCustomCheck as CustomChecks).name"
+              class="w-full p-2 bg-input-background text-input-foreground border border-commandCenter-border rounded text-sm"
+              :class="{ 'border-red-500': isDuplicateName }"
+              rows="2"
+              placeholder="Enter check name"
+            ></textarea>
+            <div v-if="isDuplicateName" class="text-xs text-red-500 mt-1">
+              A check with this name already exists.
+            </div>
+          </div>
+          
+          <!-- Description -->
+          <div>
+            <label class="block text-sm font-medium text-editor-fg mb-2">Description</label>
+            <textarea
+              :id="`custom-check-description-input-${editingIndex}`"
+              v-model="(editingCustomCheck as CustomChecks).description"
+              class="w-full p-2 bg-input-background text-input-foreground border border-commandCenter-border rounded text-sm"
+              rows="3"
+              placeholder="Enter check description"
+            ></textarea>
+          </div>
+          
+          <!-- Check Type (Value/Count) -->
+          <div>
+            <label class="block text-sm font-medium text-editor-fg mb-2">Check Type</label>
+            <div class="flex gap-4 mb-3">
+              <vscode-radio-group 
+                :value="checkType" 
+                @change="(e: any) => handleCheckTypeChange(e.target.value)"
+              >
+                <vscode-radio
+                  :id="`check-type-value`"
+                  value="value"
+                >
+                  Value
+                </vscode-radio>
+                <vscode-radio
+                  :id="`check-type-count`"
+                  value="count"
+                >
+                  Count
+                </vscode-radio>
+              </vscode-radio-group>
+            </div>
+            
+            <!-- Value/Count Input -->
+            <div>
+              <label class="block text-sm font-medium text-editor-fg mb-2">
+                {{ checkType === 'value' ? 'Value' : 'Count' }}
+              </label>
+              <input
+                :id="`custom-check-${checkType}-input-${editingIndex}`"
+                :value="getCurrentValue()"
+                @input="updateCheckValue"
+                type="text"
+                class="w-full p-2 bg-input-background text-input-foreground border border-commandCenter-border rounded text-sm"
+                :placeholder="`Enter ${checkType}`"
+              />
+            </div>
+          </div>
+          
+          <!-- Query -->
+          <div>
+            <label class="block text-sm font-medium text-editor-fg mb-2">Query</label>
+            <textarea
+              :id="`custom-check-query-input-${editingIndex}`"
+              v-model="(editingCustomCheck as CustomChecks).query"
+              class="w-full p-2 bg-input-background text-input-foreground border border-commandCenter-border rounded text-sm font-mono"
+              rows="6"
+              placeholder="Enter SQL query"
+            ></textarea>
+          </div>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="flex justify-end gap-2 mt-6">
+          <vscode-button
+            @click="resetEditing"
+          >
+            Cancel
+          </vscode-button>
+          <vscode-button
+            @click="saveCustomChecks"
+            :disabled="isSaveDisabled"
+            :class="{ 'opacity-50 cursor-not-allowed': isSaveDisabled }"
+          >
+            {{ isNewCheck ? 'Add Check' : 'Save Changes' }}
+          </vscode-button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -205,6 +242,7 @@ const props = defineProps<{
 const localCustomChecks = ref<CustomChecks[]>([]);
 const editingIndex = ref<number | null>(null);
 const editingCustomCheck = ref<CustomChecks | null>(null);
+const checkType = ref<'value' | 'count'>('value');
 
 const showDeleteAlert = ref<number | null>(null);
 const isNewCheck = ref<boolean>(false);
@@ -214,16 +252,6 @@ const hasValue = (field: any) => {
   return field !== null && field !== undefined && field !== '' && field !== 0;
 };
 
-// Computed properties for mutual exclusivity
-const isValueDisabled = computed(() => {
-  if (!editingCustomCheck.value) return false;
-  return hasValue(editingCustomCheck.value.count);
-});
-
-const isCountDisabled = computed(() => {
-  if (!editingCustomCheck.value) return false;
-  return hasValue(editingCustomCheck.value.value);
-});
 
 // Computed property to check for duplicate names
 const isDuplicateName = computed(() => {
@@ -241,34 +269,60 @@ const isSaveDisabled = computed(() => {
   return isDuplicateName.value || !editingCustomCheck.value?.name?.trim();
 });
 
-// Watchers for mutual exclusivity
-watch(() => editingCustomCheck.value?.value, (newValue) => {
-  if (editingCustomCheck.value && hasValue(newValue)) {
-    editingCustomCheck.value.count = 0;
-  }
-});
 
-watch(() => editingCustomCheck.value?.count, (newCount) => {
-  if (editingCustomCheck.value && hasValue(newCount)) {
-    editingCustomCheck.value.value = 0;
+const getCurrentValue = () => {
+  if (!editingCustomCheck.value) return '';
+  
+  if (checkType.value === 'value') {
+    return editingCustomCheck.value.value?.toString() || '';
+  } else {
+    return editingCustomCheck.value.count?.toString() || '';
   }
-});
+};
+
+const updateCheckValue = (event: Event) => {
+  if (!editingCustomCheck.value) return;
+  
+  const target = event.target as HTMLInputElement;
+  const value = target.value.trim() === '' ? null : Number(target.value);
+  
+  if (checkType.value === 'value') {
+    editingCustomCheck.value.value = value;
+    editingCustomCheck.value.count = null;
+  } else {
+    editingCustomCheck.value.count = value;
+    editingCustomCheck.value.value = null;
+  }
+};
+
+const handleCheckTypeChange = (newType: 'value' | 'count') => {
+  checkType.value = newType;
+  
+  if (!editingCustomCheck.value) return;
+  
+  if (newType === 'value') {
+    editingCustomCheck.value.count = null;
+  } else {
+    editingCustomCheck.value.value = null;
+  }
+};
 
 const addCustomCheck = () => {
   try {
     const newCustomCheck = {
       id: uuidv4(),
       name: "New Custom Check",
-      value: 0,
-      count: 0,
       description: "Description for the new custom check",
       query: "",
+      value: null,
+      count: null,
     };
 
     localCustomChecks.value.push(newCustomCheck);
     editingIndex.value = localCustomChecks.value.length - 1;
     editingCustomCheck.value = JSON.parse(JSON.stringify(newCustomCheck)) as CustomChecks;
     isNewCheck.value = true;
+    checkType.value = 'value';
   } catch (error) {
     console.error("Error adding new custom check:", error);
   }
@@ -280,10 +334,21 @@ const startEditing = (index: number) => {
     JSON.stringify(localCustomChecks.value[index])
   ) as CustomChecks;
   isNewCheck.value = false;
+  
+  if (hasValue(editingCustomCheck.value.count)) {
+    checkType.value = 'count';
+    editingCustomCheck.value.value = null;
+  } else if (hasValue(editingCustomCheck.value.value)) {
+    checkType.value = 'value';
+    editingCustomCheck.value.count = null;
+  } else {
+    checkType.value = 'value';
+    editingCustomCheck.value.value = null;
+    editingCustomCheck.value.count = null;
+  }
 };
 
 const resetEditing = () => {
-  // If it's a new check being cancelled, remove it from the array
   if (isNewCheck.value && editingIndex.value !== null) {
     localCustomChecks.value.splice(editingIndex.value, 1);
   }
@@ -306,20 +371,24 @@ const deleteCustomCheck = (index: number) => {
 const saveCustomChecks = () => {
   try {
     if (editingIndex.value !== null && editingCustomCheck.value) {
-      // Prevent saving if validation fails
       if (isSaveDisabled.value) {
         return;
       }
 
-      // Convert value and count to numbers explicitly
-      const updatedCheck = {
+      const updatedCheck: any = {
         ...editingCustomCheck.value,
         name: editingCustomCheck.value.name.trim(),
-        value: Number(editingCustomCheck.value.value) || 0,
-        count: Number(editingCustomCheck.value.count) || 0,
       };
 
-      // Update local checks
+      delete updatedCheck.value;
+      delete updatedCheck.count;
+
+      if (checkType.value === 'value' && editingCustomCheck.value.value !== null && editingCustomCheck.value.value !== undefined && editingCustomCheck.value.value !== 0) {
+        updatedCheck.value = Number(editingCustomCheck.value.value);
+      } else if (checkType.value === 'count' && editingCustomCheck.value.count !== null && editingCustomCheck.value.count !== undefined && editingCustomCheck.value.count !== 0) {
+        updatedCheck.count = Number(editingCustomCheck.value.count);
+      }
+
       localCustomChecks.value[editingIndex.value] = updatedCheck;
     }
 
@@ -327,11 +396,28 @@ const saveCustomChecks = () => {
     editingCustomCheck.value = null;
     isNewCheck.value = false;
 
-    const formattedCustomChecks = localCustomChecks.value.map((check) => ({
-      ...check,
-      value: Number(check.value) || 0,
-      count: Number(check.count) || 0,
-    }));
+    const formattedCustomChecks = localCustomChecks.value.map((check) => {
+      const formattedCheck: any = {
+        id: String(check.id),
+        name: String(check.name),
+        description: String(check.description || ''),
+        query: String(check.query || ''),
+      };
+
+      // Include blocking property if it exists
+      if (check.blocking !== undefined) {
+        formattedCheck.blocking = Boolean(check.blocking);
+      }
+
+      // Include value or count (but not both) - exclude zero values
+      if (check.value !== null && check.value !== undefined && check.value !== 0) {
+        formattedCheck.value = Number(check.value);
+      } else if (check.count !== null && check.count !== undefined && check.count !== 0) {
+        formattedCheck.count = Number(check.count);
+      }
+
+      return formattedCheck;
+    });
 
     vscode.postMessage({
       command: "bruin.setAssetDetails",
