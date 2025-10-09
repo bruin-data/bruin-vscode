@@ -43,11 +43,14 @@
               <div v-if="check.value !== null && check.value !== undefined && check.value !== 0" class="truncate" :title="String(check.value)">
                 val: {{ check.value }}
               </div>
-              <div v-if="check.count !== null && check.count !== undefined && check.count !== 0" class="truncate" :title="String(check.count)">
+              <div v-else-if="check.count !== null && check.count !== undefined && check.count !== 0" class="truncate" :title="String(check.count)">
                 count: {{ check.count }}
               </div>
-              <div v-if="(!check.value || check.value === 0) && (!check.count || check.count === 0)" class="italic opacity-70 truncate whitespace-normal">
-                undefined
+              <div v-else-if="check.value !== null && check.value !== undefined" class="truncate" :title="String(check.value)">
+                val: {{ check.value }}
+              </div>
+              <div v-else-if="check.count !== null && check.count !== undefined" class="truncate" :title="String(check.count)">
+                count: {{ check.count }}
               </div>
             </div>
           </td>
@@ -100,7 +103,7 @@
     </table>
     
     <!-- Edit Card Overlay -->
-    <div v-if="editingIndex !== null" class="fixed inset-0 bg-editor-bg bg-opacity-50 flex items-center justify-center z-50">
+    <div v-if="editingIndex !== null" class="fixed inset-0 bg-opacity-20 flex items-center justify-center z-50">
       <div class="bg-editorWidget-bg border border-commandCenter-border rounded p-4 w-full max-w-xl max-h-[80vh] overflow-y-auto">
         <div class="flex justify-between items-center mb-4">
           <h3 class="text-lg font-semibold text-editor-fg">
@@ -395,19 +398,24 @@ const saveCustomChecks = () => {
 
     const formattedCustomChecks = localCustomChecks.value.map((check) => {
       const formattedCheck: any = {
-        id: check.id,
-        name: check.name,
-        description: check.description,
-        query: check.query,
+        id: String(check.id),
+        name: String(check.name),
+        description: String(check.description || ''),
+        query: String(check.query || ''),
       };
 
-      if (check.value !== null && check.value !== undefined && check.value !== 0) {
-        formattedCheck.value = Number(check.value);
+      // Include blocking property if it exists
+      if (check.blocking !== undefined) {
+        formattedCheck.blocking = Boolean(check.blocking);
       }
 
-      if (check.count !== null && check.count !== undefined && check.count !== 0) {
+      // Include value or count (but not both) - exclude zero values
+      if (check.value !== null && check.value !== undefined && check.value !== 0) {
+        formattedCheck.value = Number(check.value);
+      } else if (check.count !== null && check.count !== undefined && check.count !== 0) {
         formattedCheck.count = Number(check.count);
       }
+
       return formattedCheck;
     });
 
