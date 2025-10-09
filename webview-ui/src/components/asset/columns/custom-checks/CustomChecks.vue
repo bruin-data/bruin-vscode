@@ -154,13 +154,13 @@
                 @change="(e: any) => handleCheckTypeChange(e.target.value)"
               >
                 <vscode-radio
-                  :id="`check-type-value-${editingIndex}`"
+                  :id="`check-type-value`"
                   value="value"
                 >
                   Value
                 </vscode-radio>
                 <vscode-radio
-                  :id="`check-type-count-${editingIndex}`"
+                  :id="`check-type-count`"
                   value="count"
                 >
                   Count
