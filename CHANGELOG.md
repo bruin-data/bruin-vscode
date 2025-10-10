@@ -1,4 +1,7 @@
 # Changelog
+## [0.69.3] - [2025-10-09]
+- Fixed column lineage positionning issue.
+
 ## [0.69.2] - [2025-10-09]
 - Resolved issues with custom check parameters and cron expressions, and improved the custom check UI.
 
