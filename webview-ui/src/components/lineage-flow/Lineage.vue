@@ -811,8 +811,145 @@ const columnExpandAllDownstreams = ref(true);
 const columnElements = ref<{ nodes: any[]; edges: any[] }>({ nodes: [], edges: [] });
 const hoveredColumn = ref<{ assetName: string; columnName: string } | null>(null);
 
-const toggleColumnNodeExpand = (nodeId: string) => {
+const originalColumnNodePositions = ref<{ [key: string]: { x: number; y: number } }>({});
+
+const toggleColumnNodeExpand = (nodeId: string, type?: string) => {
+  const currentNodes = columnElements.value.nodes;
+  const expandedNode = currentNodes.find(node => node.id === nodeId);
+
+  // Prevent focus assets from being collapsed
+  if (expandedNode?.data?.asset?.isFocusAsset) {
+    return;
+  }
+
   columnExpandedNodes.value[nodeId] = !columnExpandedNodes.value[nodeId];
+
+  // Only perform spacing algorithm when columns are toggled
+  if (type === "columns") {
+    recalculateColumnPositions();
+  }
+};
+
+const recalculateColumnPositions = (): void => {
+  const currentNodes = columnElements.value.nodes;
+
+  // Reset all nodes to their original positions
+  const nodesWithOriginalPositions = currentNodes.map(node => {
+    const originalPosition = originalColumnNodePositions.value[node.id];
+    if (originalPosition) {
+      return {
+        ...node,
+        position: { x: originalPosition.x, y: originalPosition.y }
+      };
+    }
+    return node;
+  });
+
+  // Identify focus asset and categorize nodes
+  const focusNode = nodesWithOriginalPositions.find(node => node.data?.asset?.isFocusAsset);
+  if (!focusNode) {
+    applyColumnCumulativeSpacing(nodesWithOriginalPositions);
+    return;
+  }
+
+  const upstreamNodes: GraphNode[] = [];
+  const downstreamNodes: GraphNode[] = [];
+  const focusNodes: GraphNode[] = [];
+
+  nodesWithOriginalPositions.forEach(node => {
+    if (node.data?.asset?.isFocusAsset) {
+      focusNodes.push(node);
+    } else if (node.position.x < focusNode.position.x) {
+      upstreamNodes.push(node);
+    } else {
+      downstreamNodes.push(node);
+    }
+  });
+
+  // Apply spacing independently for upstream and downstream nodes
+  const spacedUpstreamNodes = applyColumnDirectionalSpacing(upstreamNodes, 'upstream');
+  const spacedDownstreamNodes = applyColumnDirectionalSpacing(downstreamNodes, 'downstream');
+
+  // Combine all nodes with their new positions
+  const finalNodes = [
+    ...spacedUpstreamNodes,
+    ...focusNodes, // Focus nodes keep their original positions
+    ...spacedDownstreamNodes
+  ];
+
+  columnElements.value = {
+    nodes: finalNodes,
+    edges: columnElements.value.edges
+  };
+};
+
+const applyColumnDirectionalSpacing = (nodes: GraphNode[], direction: 'upstream' | 'downstream'): GraphNode[] => {
+  if (nodes.length === 0) return [];
+
+  // Sort nodes by Y position to apply spacing from top to bottom
+  const sortedNodes = [...nodes].sort((a, b) => a.position.y - b.position.y);
+
+  let cumulativeOffset = 0;
+  return sortedNodes.map(node => {
+    const isExpanded = columnExpandedNodes.value[node.id];
+    const hasColumns = node.data?.columns?.length > 0;
+    const isFocusAsset = node.data?.asset?.isFocusAsset;
+
+    // Calculate the vertical space this node needs
+    let nodeOffset = 0;
+    if (isExpanded && hasColumns && !isFocusAsset) {
+      const columnCount = node.data.columns.length;
+      nodeOffset = columnCount * 18; // 18px per column
+    }
+
+    // Apply the cumulative offset to this node
+    const newPosition = {
+      x: node.position.x,
+      y: node.position.y + cumulativeOffset
+    };
+
+    // Add this node's offset to the cumulative total
+    cumulativeOffset += nodeOffset;
+
+    return {
+      ...node,
+      position: newPosition
+    };
+  });
+};
+
+const applyColumnCumulativeSpacing = (nodes: GraphNode[]): void => {
+  const sortedNodes = [...nodes].sort((a, b) => a.position.y - b.position.y);
+
+  let cumulativeOffset = 0;
+  const finalNodes = sortedNodes.map(node => {
+    const isExpanded = columnExpandedNodes.value[node.id];
+    const hasColumns = node.data?.columns?.length > 0;
+    const isFocusAsset = node.data?.asset?.isFocusAsset;
+
+    let nodeOffset = 0;
+    if (isExpanded && hasColumns && !isFocusAsset) {
+      const columnCount = node.data.columns.length;
+      nodeOffset = columnCount * 18;
+    }
+
+    const newPosition = {
+      x: node.position.x,
+      y: node.position.y + cumulativeOffset
+    };
+
+    cumulativeOffset += nodeOffset;
+
+    return {
+      ...node,
+      position: newPosition
+    };
+  });
+
+  columnElements.value = {
+    nodes: finalNodes,
+    edges: columnElements.value.edges
+  };
 };
 
 const onColumnNodeClick = (nodeId: string) => {
@@ -844,6 +981,16 @@ const buildColumnElements = async () => {
     props.assetDataset?.name || ""
   );
   const { nodes: layoutNodes, edges: layoutEdges } = await applyPipelineLayout(initialNodes, initialEdges);
+
+  // Save original positions for recalculation
+  originalColumnNodePositions.value = {};
+  layoutNodes.forEach(node => {
+    originalColumnNodePositions.value[node.id] = {
+      x: node.position.x,
+      y: node.position.y
+    };
+  });
+
   columnElements.value = { nodes: layoutNodes, edges: layoutEdges };
 };
 
