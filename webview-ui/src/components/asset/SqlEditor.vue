@@ -77,7 +77,7 @@
           class="copy-button flex items-center bg-none border-none cursor-pointer"
         >
           <span class="codicon codicon-copy text-xs" v-show="!copied" aria-hidden="true" />
-          <span v-if="copied" class="text-sm">Copied!</span>
+          <span v-if="copied" class="codicon codicon-check text-xs"></span>
         </vscode-button>
       </div>
     </div>
