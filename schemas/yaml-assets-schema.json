@@ -391,7 +391,12 @@
         "create+replace",
         "delete+insert",
         "append",
-        "merge"      ],
+        "merge",
+        "ddl",
+        "truncate+insert",
+        "scd2_by_column",
+        "scd2_by_time"
+      ],
       "description": "Materialization strategy"
     },
     "uri": {

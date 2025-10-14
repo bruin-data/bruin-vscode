@@ -77,7 +77,7 @@
           class="copy-button flex items-center bg-none border-none cursor-pointer"
         >
           <span class="codicon codicon-copy text-xs" v-show="!copied" aria-hidden="true" />
-          <span v-if="copied" class="text-sm">Copied!</span>
+          <span v-if="copied" class="codicon codicon-check text-xs"></span>
         </vscode-button>
       </div>
     </div>
@@ -240,8 +240,8 @@ const bigqueryCostEstimate = computed(() => {
   // Convert bytes to TB (1 TB = 1024^4 bytes)
   const tbProcessed = bytesProcessed / (1024 * 1024 * 1024 * 1024);
   
-  // BigQuery pricing: first 1 TB free per month, then $6.25 per TB
-  const cost = Math.max(0, (tbProcessed - 1) * 6.25);
+
+  const cost = tbProcessed * 6.25;
   
   if (cost === 0) {
     return '$0.00';
