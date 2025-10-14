@@ -1,4 +1,7 @@
 # Changelog
+## [0.69.4] - [2025-10-14]
+- Added support for `truncate+insert` strategy in the materialization UI and fix the query cost estimate issue.
+
 ## [0.69.3] - [2025-10-09]
 - Fixed column lineage positionning issue.
 
