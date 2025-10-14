@@ -748,9 +748,14 @@ onMounted(() => {
   }
   
   if (props.intervalModifiers) {
+    const clonedIntervalModifiers = JSON.parse(JSON.stringify(props.intervalModifiers || {}));
     intervalModifiers.value = {
-      start: props.intervalModifiers.start || null,
-      end: props.intervalModifiers.end || null
+      start: typeof clonedIntervalModifiers.start === "number"
+        ? clonedIntervalModifiers.start
+        : { ...(clonedIntervalModifiers.start || {}) },
+      end: typeof clonedIntervalModifiers.end === "number"
+        ? clonedIntervalModifiers.end
+        : { ...(clonedIntervalModifiers.end || {}) }
     };
   }
   
@@ -878,6 +883,7 @@ const isCurrentFileSql = computed(() => {
 });
 
 let saveTimeout = null;
+let lastSavedPayload = null;
 
 const debouncedSave = () => {
   if (saveTimeout) {
@@ -899,6 +905,7 @@ const strategyOptions = [
   { value: "delete+insert", label: "Delete + Insert" },
   { value: "append", label: "Append" },
   { value: "merge", label: "Merge" },
+  { value: "truncate+insert", label: "Truncate + Insert" },
   { value: "time_interval", label: "Time Interval" },
   { value: "ddl", label: "DDL" },
   { value: "scd2_by_time", label: "SCD2 by Time" },
@@ -1197,24 +1204,36 @@ const saveMaterialization = () => {
   const payload = {};
   
   if (intervalModifiers.value) {
+    // Properly serialize interval_modifiers to avoid Proxy issues
+    const serializedIntervalModifiers = JSON.parse(JSON.stringify(intervalModifiers.value));
     payload.interval_modifiers = {
-      start: intervalModifiers.value.start || null,
-      end: intervalModifiers.value.end || null
+      start: serializedIntervalModifiers.start || null,
+      end: serializedIntervalModifiers.end || null
     };
   }
 
   if (localMaterialization.value?.type && localMaterialization.value.type !== "null") {
+    // Properly serialize materialization to avoid Proxy issues
+    const serializedMaterialization = JSON.parse(JSON.stringify(localMaterialization.value));
     payload.materialization = {
-      type: localMaterialization.value.type,
-      strategy: localMaterialization.value.strategy || null,
-      partition_by: localMaterialization.value.partition_by || null,
-      cluster_by: Array.isArray(localMaterialization.value.cluster_by) 
-        ? [...localMaterialization.value.cluster_by] 
+      type: serializedMaterialization.type,
+      strategy: serializedMaterialization.strategy || null,
+      partition_by: serializedMaterialization.partition_by || null,
+      cluster_by: Array.isArray(serializedMaterialization.cluster_by) 
+        ? [...serializedMaterialization.cluster_by] 
         : [],
-      incremental_key: localMaterialization.value.incremental_key || null,
-      time_granularity: localMaterialization.value.time_granularity || null
+      incremental_key: serializedMaterialization.incremental_key || null,
+      time_granularity: serializedMaterialization.time_granularity || null
     };
   }
+
+  // Only send if payload has actually changed to prevent infinite loops
+  const currentPayloadString = JSON.stringify(payload);
+  if (currentPayloadString === lastSavedPayload) {
+    return;
+  }
+  
+  lastSavedPayload = currentPayloadString;
 
   try {
     vscode.postMessage({
@@ -1253,6 +1272,7 @@ function getStrategyDescription(strategy) {
     "delete+insert": "Delete existing data using incremental key and insert new records",
     "append": "Add new rows without modifying existing data",
     "merge": "Update existing rows and insert new ones using primary keys",
+    "truncate+insert": "Truncate the table and insert new data",
     "time_interval": "Process time-based data using incremental key",
     "ddl":
       "Use DDL to create a new table using the information provided in the embedded Bruin section",
@@ -1305,12 +1325,22 @@ const isDependencyAdded = (assetName) => {
   return dependencies.value.some((dep) => dep.name === assetName);
 };
 
+let lastSentDependencies = null;
+
 const sendDependenciesUpdate = () => {
   const upstreams = dependencies.value.map((dep) => ({
     type: dep.isExternal ? "external" : "asset",
     value: dep.name,
     mode: dep.mode || "full",
   }));
+
+  // Only send if dependencies have actually changed to prevent infinite loops
+  const currentDepsString = JSON.stringify(upstreams);
+  if (currentDepsString === lastSentDependencies) {
+    return;
+  }
+  
+  lastSentDependencies = currentDepsString;
 
   vscode.postMessage({
     command: "bruin.setAssetDetails",
@@ -1367,12 +1397,20 @@ watch(
   () => props.dependencies,
   (newDeps) => {
     console.log("Dependencies prop changed:", newDeps);
-    dependencies.value = (newDeps || []).map(dep => ({
+    const transformedDeps = (newDeps || []).map(dep => ({
       name: dep.value || dep.name,
       isExternal: dep.type === 'external' || dep.type !== 'asset',
       type: dep.type,
       mode: dep.mode || 'full',
     }));
+    
+    // Only update if the dependencies have actually changed to prevent infinite loops
+    const currentDeps = dependencies.value || [];
+    const hasChanged = JSON.stringify(transformedDeps) !== JSON.stringify(currentDeps);
+    
+    if (hasChanged) {
+      dependencies.value = transformedDeps;
+    }
   },
   { immediate: true, deep: true }
 );

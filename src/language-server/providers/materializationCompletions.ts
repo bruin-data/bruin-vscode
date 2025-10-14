@@ -272,7 +272,7 @@ export class MaterializationCompletions {
             { 
                 name: 'table', 
                 description: 'Materialize as a table - requires strategy',
-                insertText: new vscode.SnippetString('table\n  strategy: ${1|create+replace,delete+insert,merge,append|}')
+                insertText: new vscode.SnippetString('table\n  strategy: ${1|create+replace,delete+insert,merge,append,truncate+insert,ddl,scd2_by_column,scd2_by_time|}')
             },
             { 
                 name: 'view', 
@@ -328,6 +328,11 @@ export class MaterializationCompletions {
                 name: 'time_interval', 
                 description: 'Time-based incremental materialization (requires incremental_key)',
                 requiresIncrementalKey: true
+            },
+            {
+                name: 'truncate+insert',
+                description: 'Truncate table and insert new data. Clears all existing data and inserts fresh data, maintaining table structure. More efficient than delete+insert for full refreshes.',
+                requiresIncrementalKey: false
             },
             { 
                 name: 'ddl', 
