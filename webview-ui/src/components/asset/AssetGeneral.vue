@@ -107,6 +107,29 @@
               </div>
             </div>
           </div>
+
+          <!-- Variables Section -->
+          <div class="mt-2 flex items-center gap-1">
+            <label class="text-xs text-editor-fg">Variables</label>
+            <vscode-button
+              appearance="icon"
+              class="h-3.5 w-auto p-0 opacity-70 hover:opacity-100 inline-flex items-center"
+              id="variables-button"
+              title="Manage pipeline variables"
+              @click="toggleVariablesOpen"
+            >
+              <span class="codicon codicon-settings-gear text-[9px]"></span>
+            </vscode-button>
+            
+            <!-- Variables count indicator -->
+            <span v-if="pipelineVariables && Object.keys(pipelineVariables).length > 0" 
+                  class="text-2xs text-editor-fg opacity-60">
+              ({{ Object.keys(pipelineVariables).length }})
+            </span>
+            <span v-else class="text-2xs text-editor-fg opacity-40">
+              (none configured)
+            </span>
+          </div>
         </div>
       </div>
 
@@ -337,6 +360,156 @@
     @confirm="confirmFullRefresh"
     @cancel="cancelFullRefresh"
   />
+
+  <!-- Variables Panel -->
+  <div v-if="isVariablesOpen" class="mt-2 bg-editorWidget-bg rounded border border-commandCenter-border p-3">
+    <div class="space-y-3">
+      <!-- Header -->
+      <div class="flex items-center justify-between">
+        <h4 class="text-xs font-medium text-editor-fg">Pipeline Variables</h4>
+        <vscode-button
+          appearance="icon"
+          class="h-5 w-5 p-0 opacity-70 hover:opacity-100"
+          title="Add variable"
+          @click="addVariable"
+        >
+          <span class="codicon codicon-add text-[10px]"></span>
+        </vscode-button>
+      </div>
+
+      <!-- Variables List -->
+      <div v-if="pipelineVariables && Object.keys(pipelineVariables).length > 0" class="space-y-2">
+        <div v-for="(variable, varName) in pipelineVariables" :key="varName" 
+             class="flex items-center justify-between p-2 bg-editor-bg rounded border border-commandCenter-border">
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-xs font-mono text-editor-fg font-medium">{{ varName }}</span>
+              <span class="text-2xs px-1.5 py-0.5 bg-button-bg text-button-fg rounded">{{ variable.type }}</span>
+            </div>
+            <div v-if="variable.description" class="text-2xs text-editor-fg opacity-70 mb-1">
+              {{ variable.description }}
+            </div>
+            <div class="text-2xs text-editor-fg opacity-60">
+              Default: <span class="font-mono">{{ formatVariableValue(variable.default) }}</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-1 ml-2">
+            <vscode-button
+              appearance="icon"
+              class="h-6 w-6 p-0 opacity-70 hover:opacity-100"
+              title="Edit variable"
+              @click="editVariable(String(varName), variable)"
+            >
+              <span class="codicon codicon-edit text-[10px]"></span>
+            </vscode-button>
+            <vscode-button
+              appearance="icon"
+              class="h-6 w-6 p-0 opacity-70 hover:opacity-100"
+              title="Delete variable"
+              @click="deleteVariable(String(varName))"
+            >
+              <span class="codicon codicon-trash text-[10px]"></span>
+            </vscode-button>
+          </div>
+        </div>
+      </div>
+
+      <!-- No variables state -->
+      <div v-else class="text-center py-4">
+        <div class="text-2xs text-editor-fg opacity-60 mb-2">No variables configured</div>
+        <vscode-button
+          appearance="secondary"
+          class="text-2xs h-6 px-3"
+          @click="addVariable"
+        >
+          Add Variable
+        </vscode-button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add/Edit Variable Form -->
+  <div v-if="editingVariable" class="mt-2 bg-editorWidget-bg rounded border border-commandCenter-border p-3">
+    <div class="space-y-3">
+      <div class="flex items-center justify-between">
+        <h4 class="text-xs font-medium text-editor-fg">
+          {{ editingVariable === 'new' ? 'Add Variable' : 'Edit Variable' }}
+        </h4>
+        <vscode-button
+          appearance="icon"
+          class="h-6 w-6 p-0 opacity-70 hover:opacity-100"
+          title="Close"
+          @click="cancelEdit"
+        >
+          <span class="codicon codicon-close text-[10px]"></span>
+        </vscode-button>
+      </div>
+      
+      <div class="space-y-3">
+        <div>
+          <label class="block text-2xs text-editor-fg mb-1">Variable Name</label>
+          <input
+            v-model="newVariableName"
+            type="text"
+            placeholder="e.g., env, users, config"
+            class="w-full bg-editor-bg text-editor-fg text-xs border border-commandCenter-border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg"
+          />
+        </div>
+        
+        <div>
+          <label class="block text-2xs text-editor-fg mb-1">Type</label>
+          <select
+            v-model="newVariableType"
+            class="w-full bg-editor-bg text-editor-fg text-xs border border-commandCenter-border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg"
+          >
+            <option value="string">String</option>
+            <option value="integer">Integer</option>
+            <option value="number">Number</option>
+            <option value="boolean">Boolean</option>
+            <option value="array">Array</option>
+            <option value="object">Object</option>
+          </select>
+        </div>
+        
+        <div>
+          <label class="block text-2xs text-editor-fg mb-1">Default Value</label>
+          <input
+            v-model="newVariableDefault"
+            type="text"
+            :placeholder="getDefaultPlaceholder()"
+            class="w-full bg-editor-bg text-editor-fg text-xs border border-commandCenter-border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg"
+          />
+        </div>
+        
+        <div>
+          <label class="block text-2xs text-editor-fg mb-1">Description (optional)</label>
+          <input
+            v-model="newVariableDescription"
+            type="text"
+            placeholder="What is this variable used for?"
+            class="w-full bg-editor-bg text-editor-fg text-xs border border-commandCenter-border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg"
+          />
+        </div>
+      </div>
+      
+      <div class="flex justify-end gap-2 pt-2 border-t border-commandCenter-border">
+        <vscode-button
+          appearance="secondary"
+          class="text-2xs h-6 px-2"
+          @click="cancelEdit"
+        >
+          Cancel
+        </vscode-button>
+        <vscode-button
+          class="text-2xs h-6 px-2"
+          @click="saveVariable"
+          :disabled="!newVariableName.trim() || !newVariableDefault.trim()"
+        >
+          {{ editingVariable === 'new' ? 'Add' : 'Save' }}
+        </vscode-button>
+      </div>
+    </div>
+  </div>
 </template>
 <script setup lang="ts">
 import { vscode } from "@/utilities/vscode";
@@ -465,6 +638,10 @@ const pipelineInfo = computed(() => {
   return props.pipeline?.raw || props.pipeline || {};
 });
 
+const pipelineVariables = computed(() => {
+  return props.pipeline?.variables || {};
+});
+
 /**
  * Computed properties for error handling and warnings
  */
@@ -554,6 +731,14 @@ const tagFilterContainer = ref<HTMLElement | null>(null);
 const tagDropdownStyle = ref<Record<string, string>>({});
 const tagFilterSearch = ref("");
 const hasActiveTagFilters = computed(() => includeTags.value.length > 0 || excludeTags.value.length > 0);
+
+// Variables management state
+const isVariablesOpen = ref(false);
+const editingVariable = ref<string | null>(null);
+const newVariableName = ref("");
+const newVariableType = ref("string");
+const newVariableDefault = ref("");
+const newVariableDescription = ref("");
 
 // Computed property to track full-refresh checkbox state
 const isFullRefreshChecked = computed(() => {
@@ -1026,6 +1211,134 @@ function handleIngestrSave(parameters) {
     },
     source: "AssetGeneral_ingestrSave",
   });
+}
+
+// Variables management methods
+function toggleVariablesOpen() {
+  isVariablesOpen.value = !isVariablesOpen.value;
+}
+
+
+function addVariable() {
+  editingVariable.value = 'new';
+  newVariableName.value = "";
+  newVariableType.value = "string";
+  newVariableDefault.value = "";
+  newVariableDescription.value = "";
+}
+
+function editVariable(varName: string, variable: any) {
+  editingVariable.value = varName;
+  newVariableName.value = varName;
+  newVariableType.value = variable.type || "string";
+  newVariableDefault.value = formatVariableValue(variable.default);
+  newVariableDescription.value = variable.description || "";
+}
+
+function deleteVariable(varName: string) {
+  const currentVariables = { ...pipelineVariables.value };
+  delete currentVariables[varName];
+  
+  vscode.postMessage({
+    command: "bruin.setPipelineDetails",
+    payload: { variables: currentVariables },
+    source: "variables",
+  });
+}
+
+function saveVariable() {
+  if (!newVariableName.value.trim() || !newVariableDefault.value.trim()) {
+    return;
+  }
+
+  const currentVariables = { ...pipelineVariables.value };
+  const variableName = newVariableName.value.trim();
+  
+  // Parse the default value based on type
+  let parsedDefault: any = newVariableDefault.value.trim();
+  try {
+    if (newVariableType.value === 'boolean') {
+      parsedDefault = newVariableDefault.value.toLowerCase() === 'true';
+    } else if (newVariableType.value === 'integer' || newVariableType.value === 'number') {
+      parsedDefault = newVariableType.value === 'integer' 
+        ? parseInt(newVariableDefault.value) 
+        : parseFloat(newVariableDefault.value);
+    } else if (newVariableType.value === 'array' || newVariableType.value === 'object') {
+      parsedDefault = JSON.parse(newVariableDefault.value);
+    }
+  } catch (error) {
+    console.error('Error parsing default value:', error);
+    return;
+  }
+
+  const variableConfig: any = {
+    type: newVariableType.value,
+    default: parsedDefault
+  };
+
+  if (newVariableDescription.value.trim()) {
+    variableConfig.description = newVariableDescription.value.trim();
+  }
+
+  // Add items schema for arrays
+  if (newVariableType.value === 'array') {
+    variableConfig.items = { type: 'string' }; // Default to string array
+  }
+
+  // Add properties schema for objects
+  if (newVariableType.value === 'object') {
+    variableConfig.properties = {}; // Empty object schema by default
+  }
+
+  currentVariables[variableName] = variableConfig;
+
+  vscode.postMessage({
+    command: "bruin.setPipelineDetails",
+    payload: { variables: currentVariables },
+    source: "variables",
+  });
+
+  cancelEdit();
+}
+
+function cancelEdit() {
+  editingVariable.value = null;
+  newVariableName.value = "";
+  newVariableType.value = "string";
+  newVariableDefault.value = "";
+  newVariableDescription.value = "";
+}
+
+function formatVariableValue(value: any): string {
+  if (value === null || value === undefined) {
+    return 'null';
+  }
+  if (typeof value === 'string') {
+    return `"${value}"`;
+  }
+  if (typeof value === 'object') {
+    return JSON.stringify(value);
+  }
+  return String(value);
+}
+
+function getDefaultPlaceholder(): string {
+  switch (newVariableType.value) {
+    case 'string':
+      return 'e.g., "dev", "production"';
+    case 'integer':
+      return 'e.g., 42, 100';
+    case 'number':
+      return 'e.g., 3.14, 2.5';
+    case 'boolean':
+      return 'e.g., true, false';
+    case 'array':
+      return 'e.g., ["alice", "bob"], [1, 2, 3]';
+    case 'object':
+      return 'e.g., {"name": "value", "key": 123}';
+    default:
+      return 'Enter default value';
+  }
 }
 
 
