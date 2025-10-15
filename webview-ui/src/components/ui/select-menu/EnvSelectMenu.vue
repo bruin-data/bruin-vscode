@@ -5,6 +5,7 @@
       <vscode-dropdown 
         @change="handleSelect"
         class="w-full"
+        :value="selectedEnvironment"
       >
         <vscode-option 
           v-for="option in options" 

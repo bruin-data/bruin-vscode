@@ -57,7 +57,9 @@ const handleMessage = (event) => {
       const envData = updateValue(message, "success");
       if (envData && envData.payload) {
         initEnvironment.value = JSON.parse(envData.payload);
-        currentEnvironment.value = initEnvironment.value?.selected_environment;
+        if (!currentEnvironment.value) {
+          currentEnvironment.value = initEnvironment.value?.selected_environment;
+        }
       }
       break;
     case "set-environment":

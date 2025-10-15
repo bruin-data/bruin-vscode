@@ -107,7 +107,6 @@ jobs:
       shell: bash
 
     - name: Run webview integration tests
-      continue-on-error: true
       run: |
         echo "Running webview tests..."
         echo "Note: This step continues even if tests fail to prevent random CI failures from blocking builds"

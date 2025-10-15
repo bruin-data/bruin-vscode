@@ -368,6 +368,7 @@ import { SparklesIcon, PlayIcon, ArrowPathRoundedSquareIcon } from "@heroicons/v
 import type { FormattedErrorMessage } from "@/types";
 import { Transition } from "vue";
 import RudderStackService from "@/services/RudderStackService";
+import { useConnectionsStore } from "@/store/bruinStore";
 
 /**
  * Define component props
@@ -839,8 +840,10 @@ function toggleTag(tag: string, list: 'include' | 'exclude') {
 /**
  * Function to handle selected environment change
  */
+const connectionsStore = useConnectionsStore();
 function setSelectedEnv(env: string) {
   selectedEnv.value = env;
+  connectionsStore.setDefaultEnvironment(env);
   handleEnvironmentChange(env);
   vscode.postMessage({
     command: "bruin.setSelectedEnvironment",

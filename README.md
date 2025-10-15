@@ -63,6 +63,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.69.5**: Fixed the environment selection issue.
 - **0.69.4**: Added support for `truncate+insert` strategy in the materialization UI and fix the query cost estimate issue.
 - **0.69.3**: Fixed column lineage positionning issue.
 - **0.69.2**: Resolved issues with custom check parameters and cron expressions, and improved the custom check UI.
@@ -71,15 +72,6 @@ Bruin is a unified analytics platform that enables data professionals to work en
 - **0.68.2**: Fixed the preview query issue when opening a non-asset file.
 - **0.68.1**: Fixed rendered query issues related to date input and full refresh start date.
 - **0.68.0**: Added support for BigQuery cost estimate in the SQL editor.
-- **0.67.4**: Fixed lineage display for `pipeline.yml` files and resolved issues with the lineage view not refreshing after updates.
-- **0.67.3**: Fixed the query preview panel environment display issue.
-- **0.67.2**: Improved connection test ui.
-- **0.67.1**: Allow YAML assets to be rendered.
-- **0.67.0**: Added a "Create in-place" checkbox to the project creation UI, allowing projects to be created directly in the selected folder.
-- **0.66.0**: Added console logging for executed query commands to aid in error detection.
-- **0.65.2**: Fixed table details panel bug and bruin.yaml bug.
-- **0.65.1**: Add full refresh to render panel.
-- **0.65.0**: Introduced a tags management interface that allows users to toggle the inclusion or exclusion of assets for execution in run commands.
 
 For a full changelog, see Bruin Extension [Changelog](https://marketplace.visualstudio.com/items/bruin.bruin/changelog).
 

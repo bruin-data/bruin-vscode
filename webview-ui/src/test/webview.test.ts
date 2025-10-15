@@ -39,6 +39,14 @@ vi.mock("@/utilities/vscode", () => {
   };
 });
 
+// Mock Pinia store
+vi.mock("@/store/bruinStore", () => ({
+  useConnectionsStore: vi.fn(() => ({
+    setDefaultEnvironment: vi.fn(),
+    getDefaultEnvironment: vi.fn(() => null),
+  })),
+}));
+
 import AssetGeneral from "@/components/asset/AssetGeneral.vue";
 
 vi.mock("markdown-it");
