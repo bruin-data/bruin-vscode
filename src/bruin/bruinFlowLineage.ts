@@ -27,6 +27,7 @@ export class BruinLineageInternalParse extends BruinCommand {
       name: pipelineData.name || '',
       schedule: pipelineData.schedule || '',
       description: pipelineData.description || '',
+      variables: pipelineData.variables || [],
       raw: pipelineData
     };
   }

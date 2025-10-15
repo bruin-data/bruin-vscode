@@ -16,6 +16,17 @@ export const parseAssetCommand = async (lastRenderedDocumentUri: Uri | undefined
   await parsed.parseAsset(lastRenderedDocumentUri.fsPath);
 };
 
+export const parsePipelineCommand = async (lastRenderedDocumentUri: Uri | undefined) => {
+  if (!lastRenderedDocumentUri) {
+    return;
+  }
+  const bruinExec = getBruinExecutablePath();
+  const parsed = new BruinLineageInternalParse(
+    bruinExec, ""
+  );
+  await parsed.parsePipelineConfig(lastRenderedDocumentUri.fsPath);
+};
+
 export const patchAssetCommand = async (body: object, lastRenderedDocumentUri: Uri | undefined) => {
   if (!lastRenderedDocumentUri) {
     return;
@@ -29,6 +40,22 @@ export const patchAssetCommand = async (body: object, lastRenderedDocumentUri: U
   // After successful patch, re-parse the asset to update the webview
   if (success) {
     await parseAssetCommand(lastRenderedDocumentUri);
+  }
+};
+
+export const patchPipelineCommand = async (body: object, lastRenderedDocumentUri: Uri | undefined) => {
+  if (!lastRenderedDocumentUri) {
+    return;
+  }
+  const patched = new BruinInternalPatch(
+    getBruinExecutablePath(),
+     ""
+  );
+  const success = await patched.patchPipeline(body, lastRenderedDocumentUri.fsPath);
+  
+  // After successful patch, re-parse the pipeline to update the webview
+  if (success) {
+    await parsePipelineCommand(lastRenderedDocumentUri);
   }
 };
 

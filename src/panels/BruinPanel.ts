@@ -21,7 +21,9 @@ import { renderCommandWithFlags } from "../extension/commands/renderCommand";
 import {
   convertFileToAssetCommand,
   parseAssetCommand,
+  parsePipelineCommand,
   patchAssetCommand,
+  patchPipelineCommand,
 } from "../extension/commands/parseAssetCommand";
 import { getEnvListCommand } from "../extension/commands/getEnvListCommand";
 import { BruinInstallCLI } from "../bruin/bruinInstallCli";
@@ -589,6 +591,17 @@ export class BruinPanel {
             }
             console.log("Setting asset data :", assetData, "source:", source);
             patchAssetCommand(assetData, this._lastRenderedDocumentUri);
+            break;
+
+          case "bruin.setPipelineDetails":
+            const pipelineData = message.payload;
+            const pipelineSource = message.source;
+        
+            if (!this._lastRenderedDocumentUri) {
+              return;
+            }
+            console.log("Setting pipeline data :", pipelineData, "source:", pipelineSource);
+            patchPipelineCommand(pipelineData, this._lastRenderedDocumentUri);
             break;
 
           case "bruin.fillAssetDependency":

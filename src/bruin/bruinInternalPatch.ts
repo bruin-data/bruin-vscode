@@ -35,6 +35,30 @@ export class BruinInternalPatch extends BruinCommand {
     }
   }
 
+  /**
+   * Patches the pipeline configuration using the Bruin CLI command.
+   *
+   * @param {object} body - The body of the patch request containing pipeline data.
+   * @param {string} filePath - The path of the pipeline.yml file to be patched.
+   * @param {BruinCommandOptions} options - Optional command options.
+   * @returns {Promise<boolean>} A promise that resolves to true on success, false on failure.
+   */
+  public async patchPipeline(
+    body: object,
+    filePath: string,
+    { flags = ["patch-pipeline", "--body"], ignoresErrors = false }: BruinCommandOptions = {}
+  ): Promise<boolean> {
+    try {
+      const result = await this.run([...flags, JSON.stringify(body), filePath]);
+      this.postMessageToPanels("success", result);
+      return true; // Success
+    } catch (error) {
+      this.postMessageToPanels("error", error);
+      console.debug("patching pipeline command error", error);
+      return false; // Failure
+    }
+  }
+
   // internal patch with another flag --convert and only asset path 
   public async convertFileToAsset(filePath: string) {
     await this.run(["patch-asset", "--convert", filePath]).then(
