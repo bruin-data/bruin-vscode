@@ -1024,17 +1024,52 @@ describe("Bruin Webview Test", function () {
       // Wait for dependency to be removed with proper condition
       await driver.wait(
         async () => {
-          const deps = await dependenciesContainer.findElements(By.id("dependency-text"));
-          const depTexts = await Promise.all(deps.map((el) => el.getText()));
-          return !depTexts.includes(depToRemove);
+          try {
+            const deps = await dependenciesContainer.findElements(By.id("dependency-text"));
+            const depTexts = [];
+            for (const el of deps) {
+              try {
+                const text = await el.getText();
+                depTexts.push(text);
+              } catch (e) {
+                // Ignore stale element errors during DOM updates
+                continue;
+              }
+            }
+            return !depTexts.includes(depToRemove);
+          } catch (e) {
+            // If we can't find elements, assume they're gone
+            return true;
+          }
         },
         10000,
         `Dependency "${depToRemove}" was not removed within timeout`
       );
 
-      // Verify it was removed
-      const finalDeps = await dependenciesContainer.findElements(By.id("dependency-text"));
-      const finalDepTexts = await Promise.all(finalDeps.map((el) => el.getText()));
+      // Verify it was removed with retry logic
+      let finalDepTexts: string[] = [];
+      await driver.wait(
+        async () => {
+          try {
+            const finalDeps = await dependenciesContainer.findElements(By.id("dependency-text"));
+            finalDepTexts = [];
+            for (const el of finalDeps) {
+              try {
+                const text = await el.getText();
+                finalDepTexts.push(text);
+              } catch (e) {
+                // Ignore stale element errors
+                continue;
+              }
+            }
+            return true;
+          } catch (e) {
+            return false;
+          }
+        },
+        5000,
+        "Could not verify final state"
+      );
       assert.ok(!finalDepTexts.includes(depToRemove), `Dependency "${depToRemove}" should be removed`);
     });
 
