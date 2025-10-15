@@ -526,9 +526,14 @@ const updateBruinCli = () => {
 };
 // Computed property to get the selected environment
 const selectedEnvironment = computed(() => {
-  if (!environments.value) return [];
+  if (!environments.value) return "";
+  
+  const storedEnv = connectionsStore.getDefaultEnvironment();
+  if (storedEnv) {
+    return storedEnv;
+  }
+  
   const selected = parseEnvironmentList(environments.value)?.selectedEnvironment || "";
-  console.log("Selected environment:", selected);
   return selected;
 });
 
