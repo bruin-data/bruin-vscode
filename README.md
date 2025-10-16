@@ -63,6 +63,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.69.6**: Updated the full refresh message and improved the schema validation.
 - **0.69.5**: Fixed the environment selection issue.
 - **0.69.4**: Added support for `truncate+insert` strategy in the materialization UI and fix the query cost estimate issue.
 - **0.69.3**: Fixed column lineage positionning issue.

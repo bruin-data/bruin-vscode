@@ -332,7 +332,7 @@
   <!-- Full Refresh Confirmation Dialog -->
   <AlertWithActions
     v-if="showFullRefreshAlert"
-    message="Do you want to run with full refresh? This will drop the table"
+    message="Do you want to run with full refresh? This may drop the table"
     confirm-text="Continue"
     @confirm="confirmFullRefresh"
     @cancel="cancelFullRefresh"

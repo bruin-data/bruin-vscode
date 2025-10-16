@@ -251,7 +251,32 @@
           "description": "Snowflake configuration for this asset"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "enum": [
+                  "sf.sensor.query",
+                  "bq.sensor.table",
+                  "bq.sensor.query",
+                  "duckdb.sensor.query",
+                  "pg.sensor.query",
+                  "rs.sensor.query",
+                  "ms.sensor.query",
+                  "databricks.sensor.query",
+                  "synapse.sensor.query",
+                  "clickhouse.sensor.query"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": ["parameters"]
+          }
+        }
+      ]
     },
     "depends": {
       "type": "array",

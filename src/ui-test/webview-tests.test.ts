@@ -382,6 +382,44 @@ describe("Bruin Webview Test", function () {
   describe("Edit Asset Name Tests", function () {
     let assetNameContainer: WebElement;
 
+    // Platform-specific timing adjustments
+    const isWindows = process.platform === 'win32';
+    const getPlatformDelay = (baseDelay: number) => isWindows ? baseDelay * 2 : baseDelay;
+    
+    // Helper function to safely interact with elements that might become stale
+    const safeElementInteraction = async (elementId: string, action: (element: WebElement) => Promise<any>, maxRetries: number = 3) => {
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+          const element = await driver.wait(
+            until.elementLocated(By.id(elementId)),
+            getPlatformDelay(5000),
+            `Element ${elementId} not found`
+          );
+          return await action(element);
+        } catch (staleError) {
+          if (attempt === maxRetries - 1) throw staleError;
+          console.log(`Element ${elementId} became stale on attempt ${attempt + 1}, retrying...`);
+          await sleep(getPlatformDelay(200));
+        }
+      }
+    };
+
+    // Helper function to handle click interception issues
+    const safeClick = async (element: WebElement) => {
+      try {
+        // Wait until the element is visible and then click it
+        await driver.wait(until.elementIsVisible(element), getPlatformDelay(10000), "Timed out waiting for element to be visible before click.");
+        await element.click();
+      } catch (error: any) {
+        if (error.name === 'ElementClickInterceptedError' || error.name === 'ElementNotInteractableError') {
+          console.log("Click intercepted or element not interactable, using JavaScript click as fallback");
+          await driver.executeScript("arguments[0].click();", element);
+        } else {
+          throw error;
+        }
+      }
+    };
+
     it("should output the page source for debugging", async function () {
       this.timeout(10000);
       driver = VSBrowser.instance.driver;
@@ -390,7 +428,7 @@ describe("Bruin Webview Test", function () {
     });
 
     it("should locate the asset name container", async function () {
-      this.timeout(15000);
+      this.timeout(getPlatformDelay(15000));
 
       try {
         await driver.findElement(By.id("app"));
@@ -403,7 +441,7 @@ describe("Bruin Webview Test", function () {
       try {
         assetNameContainer = await driver.wait(
           until.elementLocated(By.id("asset-name-container")),
-          10000,
+          getPlatformDelay(10000),
           "Asset name container not found"
         );
       } catch (error) {
@@ -414,6 +452,8 @@ describe("Bruin Webview Test", function () {
 
       assert.ok(assetNameContainer, "Asset name container should be accessible");
 
+      // Wait for element to be visible with platform-specific delay
+      await driver.wait(until.elementIsVisible(assetNameContainer), getPlatformDelay(5000), "Asset name container not visible");
       const isDisplayed = await assetNameContainer.isDisplayed();
       assert.ok(isDisplayed, "Asset name container should be visible");
 
@@ -423,19 +463,22 @@ describe("Bruin Webview Test", function () {
     });
 
     it("should activate edit mode when clicking the asset name", async function () {
-      this.timeout(20000);
+      this.timeout(getPlatformDelay(20000));
 
-      await assetNameContainer.click();
-      await sleep(1000);
+      // Use safe click to handle Windows-specific interaction issues
+      await safeClick(assetNameContainer);
+      await sleep(getPlatformDelay(1000));
 
       const nameInput = await driver.wait(
         until.elementLocated(By.id("asset-name-input")),
-        10000,
+        getPlatformDelay(10000),
         "Asset name input field did not appear"
       );
 
       assert.ok(nameInput, "Asset name input field should be present");
 
+      // Wait for input to be visible with platform-specific delay
+      await driver.wait(until.elementIsVisible(nameInput), getPlatformDelay(5000), "Asset name input not visible");
       const isDisplayed = await nameInput.isDisplayed();
       assert.ok(isDisplayed, "Asset name input should be visible");
 
@@ -446,22 +489,27 @@ describe("Bruin Webview Test", function () {
     });
 
     it("should edit asset name successfully", async function () {
-      this.timeout(30000);
+      this.timeout(getPlatformDelay(30000));
 
       const freshAssetNameContainer = await driver.wait(
         until.elementLocated(By.id("asset-name-container")),
-        10000,
+        getPlatformDelay(10000),
         "Asset name container not found"
       );
 
-      await freshAssetNameContainer.click();
-      await sleep(1000);
+      // Use safe click to handle Windows-specific interaction issues
+      await safeClick(freshAssetNameContainer);
+      await sleep(getPlatformDelay(1000));
 
       const nameInput = await driver.wait(
         until.elementLocated(By.id("asset-name-input")),
-        10000,
+        getPlatformDelay(10000),
         "Asset name input field not found"
       );
+
+      // Wait for input to be visible and interactable
+      await driver.wait(until.elementIsVisible(nameInput), getPlatformDelay(5000), "Asset name input not visible");
+      await driver.wait(until.elementIsEnabled(nameInput), getPlatformDelay(5000), "Asset name input not enabled");
 
       const originalName = await nameInput.getAttribute("value");
       console.log("Original asset name:", originalName);
@@ -476,19 +524,19 @@ describe("Bruin Webview Test", function () {
 
       const newAssetName = `TestAsset_${Date.now()}`;
       await nameInput.sendKeys(newAssetName);
-      await sleep(500);
+      await sleep(getPlatformDelay(500));
 
       const enteredValue = await nameInput.getAttribute("value");
       assert.strictEqual(enteredValue, newAssetName, "New asset name should be entered correctly");
 
       await nameInput.sendKeys(Key.ENTER);
-      await sleep(2000);
+      await sleep(getPlatformDelay(2000));
 
-      await driver.wait(until.stalenessOf(nameInput), 10000, "Edit mode should exit after saving");
+      await driver.wait(until.stalenessOf(nameInput), getPlatformDelay(10000), "Edit mode should exit after saving");
 
       const displayNameElement = await driver.wait(
         until.elementLocated(By.id("input-name")),
-        10000,
+        getPlatformDelay(10000),
         "Display name element not found after save"
       );
 
