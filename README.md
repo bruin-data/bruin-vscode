@@ -63,6 +63,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.69.7**: Fixed the query preview panel state persisting issue.
 - **0.69.6**: Updated the full refresh message and improved the schema validation.
 - **0.69.5**: Fixed the environment selection issue.
 - **0.69.4**: Added support for `truncate+insert` strategy in the materialization UI and fix the query cost estimate issue.
@@ -70,9 +71,6 @@ Bruin is a unified analytics platform that enables data professionals to work en
 - **0.69.2**: Resolved issues with custom check parameters and cron expressions, and improved the custom check UI.
 - **0.69.1**: Add support for `application default credentials` in `gcp` connections.
 - **0.69.0**: Updated tab visibility logic to show pipeline related information and added autocomplete for secrets.
-- **0.68.2**: Fixed the preview query issue when opening a non-asset file.
-- **0.68.1**: Fixed rendered query issues related to date input and full refresh start date.
-- **0.68.0**: Added support for BigQuery cost estimate in the SQL editor.
 
 For a full changelog, see Bruin Extension [Changelog](https://marketplace.visualstudio.com/items/bruin.bruin/changelog).
 
