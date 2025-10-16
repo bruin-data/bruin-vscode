@@ -674,8 +674,6 @@ const saveState = () => {
         }
       : null,
     searchInput: tab.searchInput,
-    totalRowCount: tab.totalRowCount,
-    filteredRowCount: tab.filteredRowCount,
     environment: currentEnvironment.value,
     showQuery: tab.showQuery,
     connectionName: tab.connectionName,
@@ -683,8 +681,8 @@ const saveState = () => {
     consoleMessages: limitConsoleMessages(tab.consoleMessages || []),
   }));
 
+
   const state = {
-    limit: limit.value,
     tabs: sanitizedTabs,
     activeTab: activeTab.value,
     expandedCells: Array.from(expandedCells.value),
@@ -706,15 +704,20 @@ const saveState = () => {
   }
 };
 
-// Watch for state changes with debounce
 let saveTimeout: NodeJS.Timeout;
 watchEffect(() => {
-  clearTimeout(saveTimeout);
-  saveTimeout = setTimeout(saveState, 500);
+  const hasLoadingTab = tabs.value.some(tab => tab.isLoading);
+  if (!hasLoadingTab) {
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(saveState, 500);
+  }
 });
 
 const reviveParsedOutput = (parsedOutput: any) => {
   try {
+    if (!parsedOutput || parsedOutput === null) {
+      return undefined;
+    }
     return {
       ...parsedOutput,
       rows: parsedOutput.rows || [],
@@ -740,17 +743,20 @@ window.addEventListener("message", (event) => {
       }
 
       // Revive complex objects
-      tabs.value = (state.tabs || []).map((t) => ({
-        ...t,
-        parsedOutput: t.parsedOutput ? reviveParsedOutput(t.parsedOutput) : undefined,
-        connectionName: reviveParsedOutput(t.parsedOutput)?.connectionName || t.connectionName,
-        showQuery: !!t.showQuery,
-        error: t.error ? new Error(t.error.message) : null,
-        isLoading: false,
-        isEditing: false,
-        filteredRows: t.parsedOutput?.rows || [],
-        consoleMessages: limitConsoleMessages(t.consoleMessages || []),
-      }));
+      tabs.value = (state.tabs || []).map((t) => {
+        const revivedParsedOutput = t.parsedOutput ? reviveParsedOutput(t.parsedOutput) : undefined;
+        return {
+          ...t,
+          parsedOutput: revivedParsedOutput,
+          connectionName: revivedParsedOutput?.connectionName || t.connectionName,
+          showQuery: !!t.showQuery,
+          error: t.error ? new Error(t.error.message) : null,
+          isLoading: false,
+          isEditing: false,
+          filteredRows: revivedParsedOutput?.rows || [],
+          consoleMessages: limitConsoleMessages(t.consoleMessages || []),
+        };
+      });
 
       currentConnectionName.value =
         tabs.value.find((t) => t.id === state.activeTab)?.connectionName || state.connectionName;
@@ -876,6 +882,7 @@ window.addEventListener("message", (event) => {
             
             // Replace the tab in the array to trigger reactivity
             tabs.value.splice(tabIndex, 1, newTab);
+            saveState();
           }
         } catch (e) {
           console.error("Error processing tab output:", e);
@@ -891,6 +898,7 @@ window.addEventListener("message", (event) => {
               consoleMessages: consoleMessages
             };
             tabs.value.splice(tabIndex, 1, newTab);
+            saveState();
           }
         }
       } else if (message.payload.status === "error") {
@@ -905,7 +913,8 @@ window.addEventListener("message", (event) => {
             consoleMessages: consoleMessages
           };
           
-          tabs.value.splice(tabIndex, 1, newTab);
+          tabs.value.splice(tabIndex, 1, newTab);         
+          saveState();
         }
       }
 
