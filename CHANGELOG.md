@@ -1,4 +1,10 @@
 # Changelog
+## [0.69.6] - [2025-10-16]
+- Updated the full refresh message and improved the schema validation.
+
+## [0.69.5] - [2025-10-15]
+- Fixed the environment selection issue.
+
 ## [0.69.4] - [2025-10-14]
 - Added support for `truncate+insert` strategy in the materialization UI and fix the query cost estimate issue.
 

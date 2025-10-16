@@ -355,7 +355,7 @@
   <!-- Full Refresh Confirmation Dialog -->
   <AlertWithActions
     v-if="showFullRefreshAlert"
-    message="Do you want to run with full refresh? This will drop the table"
+    message="Do you want to run with full refresh? This may drop the table"
     confirm-text="Continue"
     @confirm="confirmFullRefresh"
     @cancel="cancelFullRefresh"
@@ -541,6 +541,7 @@ import { SparklesIcon, PlayIcon, ArrowPathRoundedSquareIcon } from "@heroicons/v
 import type { FormattedErrorMessage } from "@/types";
 import { Transition } from "vue";
 import RudderStackService from "@/services/RudderStackService";
+import { useConnectionsStore } from "@/store/bruinStore";
 
 /**
  * Define component props
@@ -1024,8 +1025,10 @@ function toggleTag(tag: string, list: 'include' | 'exclude') {
 /**
  * Function to handle selected environment change
  */
+const connectionsStore = useConnectionsStore();
 function setSelectedEnv(env: string) {
   selectedEnv.value = env;
+  connectionsStore.setDefaultEnvironment(env);
   handleEnvironmentChange(env);
   vscode.postMessage({
     command: "bruin.setSelectedEnvironment",

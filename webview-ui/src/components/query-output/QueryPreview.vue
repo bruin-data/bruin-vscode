@@ -459,6 +459,7 @@ import { TableCellsIcon } from "@heroicons/vue/24/outline";
 import { vscode } from "@/utilities/vscode";
 import QuerySearch from "../ui/query-preview/QuerySearch.vue";
 import type { EditingState, TabData } from "@/types";
+import { useConnectionsStore } from "@/store/bruinStore";
 
 // Helper function to limit console messages size
 const MAX_CONSOLE_MESSAGES = 1000;
@@ -480,6 +481,7 @@ const props = defineProps<{
   exportError: any;
 }>();
 
+const connectionsStore = useConnectionsStore();
 const currentEnvironment = ref<string>(props.environment);
 const modifierKey = ref("⌘"); // Default to Mac symbol
 const currentConnectionName = ref("");
@@ -1351,9 +1353,14 @@ watch(
   { immediate: true }
 );
 
-// Environment to display in badge - shows executed environment if available, otherwise current environment
 const displayEnvironment = computed(() => {
-  return currentTab.value?.executedEnvironment || currentEnvironment.value || "default";
+  try {
+    const storedEnv = connectionsStore?.getDefaultEnvironment?.();
+    return currentTab.value?.executedEnvironment || storedEnv || currentEnvironment.value || "";
+  } catch (error) {
+    console.warn("Error accessing store in QueryPreview:", error);
+    return currentTab.value?.executedEnvironment || currentEnvironment.value || "";
+  }
 });
 
 const badgeClass = computed(() => {
