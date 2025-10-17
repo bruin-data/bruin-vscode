@@ -45,6 +45,7 @@ import { isBruinAsset } from "../utilities/helperUtils";
 import { BruinInternalParse } from "../bruin/bruinInternalParse";
 import { BruinInternalListTemplates } from "../bruin/bruinInternalListTemplates";
 import { BruinInternalAssetMetadata } from "../bruin/bruinInternalAssetMetadata";
+import { BruinLineageInternalParse } from "../bruin/bruinFlowLineage";
 
 import { getDefaultCheckboxSettings, getDefaultExcludeTag } from "../extension/configuration";
 import { exec } from "child_process";
@@ -1059,6 +1060,40 @@ export class BruinPanel {
                 finalEndDate,
                 finalEnvironment
               );
+            }
+            break;
+          case "bruin.parsePipelineForVariables":
+            if (!this._lastRenderedDocumentUri) {
+              return;
+            }
+            const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || "";
+            
+            try {
+              const pipelineParser = new BruinLineageInternalParse(
+                getBruinExecutablePath(),
+                workspaceFolder
+              );
+
+              if (this._lastRenderedDocumentUri) {
+                const pipelineData = await pipelineParser.parsePipelineConfig(this._lastRenderedDocumentUri.fsPath);
+                
+                // Send back the pipeline data including variables
+                BruinPanel.postMessage("pipeline-variables-message", { 
+                  status: "success", 
+                  message: pipelineData 
+                });
+              } else {
+                BruinPanel.postMessage("pipeline-variables-message", { 
+                  status: "error", 
+                  message: "Could not parse pipeline for variables" 
+                });
+              }
+            } catch (error: any) {
+              console.error("Error parsing pipeline for variables:", error);
+              BruinPanel.postMessage("pipeline-variables-message", { 
+                status: "error", 
+                message: `Failed to parse pipeline: ${error.message}` 
+              });
             }
             break;
         }
