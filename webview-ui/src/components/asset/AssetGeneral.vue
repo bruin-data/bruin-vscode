@@ -43,115 +43,134 @@
         <div v-if="showCheckboxGroup">
           <CheckboxGroup :checkboxItems="checkboxItems" label="Options" />
           <!-- Tag Filter Controls (subtle) -->
-          <div class="mt-2 flex items-center gap-1" ref="tagFilterContainer">
-            <label class="text-xs text-editor-fg ">Tags</label>
-            <vscode-button
-              appearance="icon"
-              class="h-3.5 w-auto p-0 opacity-70 hover:opacity-100 inline-flex items-center"
-              id="tag-filter-button"
-              title="Edit tag filters"
-              @click="toggleTagFilterOpen"
-            >
-              <span :class="['codicon', hasActiveTagFilters ? 'codicon-filter-filled' : 'codicon-filter', 'text-[9px]']"></span>
-            </vscode-button>
+          <div class="mt-2 flex items-center gap-2" ref="tagFilterContainer">
+            <div class="flex items-center gap-[1px]">
+              <label class="text-xs text-editor-fg">Tags</label>
+              <vscode-button
+                appearance="icon"
+                class="h-3.5 w-auto p-0 opacity-70 hover:opacity-100 inline-flex items-center"
+                id="tag-filter-button"
+                title="Edit tag filters"
+                @click="toggleTagFilterOpen"
+              >
+                <span
+                  :class="[
+                    'codicon',
+                    hasActiveTagFilters ? 'codicon-filter-filled' : 'codicon-filter',
+                    'text-[9px]',
+                  ]"
+                ></span>
+              </vscode-button>
 
-            <!-- Dropdown -->
-            <div
-              v-if="isTagFilterOpen"
-              class="fixed z-[99999] w-[220px] max-w-[90vw] bg-dropdown-bg border border-commandCenter-border shadow-md rounded overflow-hidden tag-filter-dropdown"
-              :style="tagDropdownStyle"
-              @mousedown.stop
-            >
-              <div class="sticky top-0 bg-dropdown-bg border-b border-commandCenter-border px-2 py-1">
-                <input
-                  v-model="tagFilterSearch"
-                  placeholder="Search tags..."
-                  class="w-full bg-dropdown-bg text-inputValidation-infoBorder text-[11px] border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6 px-2 rounded"
-                  @click.stop
-                  @mousedown.stop
-                />
-              </div>
-              <div class="max-h-48 overflow-y-auto">
+              <!-- Dropdown -->
+              <div
+                v-if="isTagFilterOpen"
+                class="fixed z-[99999] w-[220px] max-w-[90vw] bg-dropdown-bg border border-commandCenter-border shadow-md rounded overflow-hidden tag-filter-dropdown"
+                :style="tagDropdownStyle"
+                @mousedown.stop
+              >
                 <div
-                  v-for="tag in filteredTags"
-                  :key="tag"
-                  class="flex items-center justify-between px-2 py-1 text-[11px] hover:bg-list-hoverBackground/60"
+                  class="sticky top-0 bg-dropdown-bg border-b border-commandCenter-border px-2 py-1"
                 >
-                  <span class="font-mono truncate pr-2 opacity-80">{{ tag }}</span>
-                  <div class="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      class="inline-flex items-center justify-center h-3.5 px-1 rounded-sm text-3xs opacity-70 hover:opacity-100"
-                      :class="includeTags.includes(tag) ? 'bg-button-bg text-button-fg' : ''"
-                      title="Include"
-                      @click="toggleTag(tag, 'include')"
-                    >
-                      Inc
-                    </button>
-                    <button
-                      type="button"
-                      class="inline-flex items-center justify-center h-3.5 px-1 rounded-sm text-3xs opacity-70 hover:opacity-100"
-                      :class="excludeTags.includes(tag) ? 'bg-button-bg text-button-fg' : ''"
-                      title="Exclude"
-                      @click="toggleTag(tag, 'exclude')"
-                    >
-                      Exc
-                    </button>
+                  <input
+                    v-model="tagFilterSearch"
+                    placeholder="Search tags..."
+                    class="w-full bg-dropdown-bg text-inputValidation-infoBorder text-[11px] border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6 px-2 rounded"
+                    @click.stop
+                    @mousedown.stop
+                  />
+                </div>
+                <div class="max-h-48 overflow-y-auto">
+                  <div
+                    v-for="tag in filteredTags"
+                    :key="tag"
+                    class="flex items-center justify-between px-2 py-1 text-[11px] hover:bg-list-hoverBackground/60"
+                  >
+                    <span class="font-mono truncate pr-2 opacity-80">{{ tag }}</span>
+                    <div class="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        class="inline-flex items-center justify-center h-3.5 px-1 rounded-sm text-3xs opacity-70 hover:opacity-100"
+                        :class="includeTags.includes(tag) ? 'bg-button-bg text-button-fg' : ''"
+                        title="Include"
+                        @click="toggleTag(tag, 'include')"
+                      >
+                        Inc
+                      </button>
+                      <button
+                        type="button"
+                        class="inline-flex items-center justify-center h-3.5 px-1 rounded-sm text-3xs opacity-70 hover:opacity-100"
+                        :class="excludeTags.includes(tag) ? 'bg-button-bg text-button-fg' : ''"
+                        title="Exclude"
+                        @click="toggleTag(tag, 'exclude')"
+                      >
+                        Exc
+                      </button>
+                    </div>
+                  </div>
+                  <div v-if="filteredTags.length === 0" class="px-2 py-2 text-2xs opacity-60">
+                    No tags found
                   </div>
                 </div>
-                <div v-if="filteredTags.length === 0" class="px-2 py-2 text-2xs opacity-60">No tags found</div>
-              </div>
-              <div class="flex justify-end gap-2 p-1 border-t border-commandCenter-border">
-                <vscode-button class="text-[10px] h-4 px-2 opacity-80 hover:opacity-100" appearance="secondary" @click="clearAllTagFilters">Clear</vscode-button>
-                <vscode-button class="text-[10px] h-4 px-2 opacity-80 hover:opacity-100" @click="closeTagFilter">Done</vscode-button>
+                <div class="flex justify-end gap-2 p-1 border-t border-commandCenter-border">
+                  <vscode-button
+                    class="text-[10px] h-4 px-2 opacity-80 hover:opacity-100"
+                    appearance="secondary"
+                    @click="clearAllTagFilters"
+                    >Clear</vscode-button
+                  >
+                  <vscode-button
+                    class="text-[10px] h-4 px-2 opacity-80 hover:opacity-100"
+                    @click="closeTagFilter"
+                    >Done</vscode-button
+                  >
+                </div>
               </div>
             </div>
-          </div>
-
-          <!-- Variables Section -->
-          <div class="mt-2 flex items-center gap-1">
-            <label class="text-xs text-editor-fg">Variables</label>
-            <vscode-button
-              appearance="icon"
-              class="h-3.5 w-auto p-0 opacity-70 hover:opacity-100 inline-flex items-center"
-              id="variables-button"
-              title="Manage pipeline variables"
-              @click="toggleVariablesOpen"
-            >
-              <span class="codicon codicon-settings-gear text-[9px]"></span>
-            </vscode-button>
-            
-            <!-- Variables count indicator -->
-            <span v-if="pipelineVariables && Object.keys(pipelineVariables).length > 0" 
-                  class="text-2xs text-editor-fg opacity-60">
-              ({{ Object.keys(pipelineVariables).length }})
-            </span>
-            <span v-else-if="isRequestingVariables" class="text-2xs text-editor-fg opacity-40">
-              (loading...)
-            </span>
-            <span v-else class="text-2xs text-editor-fg opacity-40">
-              (none configured)
-            </span>
+            <!-- Variables Section -->
+            <div class="flex items-center gap-[1px]">
+              <label class="text-xs text-editor-fg">Variables</label>
+              <!-- Variables count indicator -->
+              <span
+                v-if="pipelineVariables && Object.keys(pipelineVariables).length > 0"
+                class="text-3xs text-editor-fg opacity-60"
+              >
+                ({{ Object.keys(pipelineVariables).length }})
+              </span>
+              <vscode-button
+                appearance="icon"
+                class="h-3.5 w-auto p-0 opacity-70 hover:opacity-100 inline-flex items-center"
+                id="variables-button"
+                title="Manage pipeline variables"
+                @click="toggleVariablesOpen"
+              >
+                <span class="codicon codicon-settings-gear text-[9px]"></span>
+              </vscode-button>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- Action Buttons Row -->
       <div class="flex flex-col xs:flex-row gap-2 justify-end items-start xs:items-end">
-
-        <div class="flex flex-col 2xs:flex-row flex-wrap gap-2 justify-start xs:justify-end items-stretch 2xs:items-center w-full xs:w-auto">
+        <div
+          class="flex flex-col 2xs:flex-row flex-wrap gap-2 justify-start xs:justify-end items-stretch 2xs:items-center w-full xs:w-auto"
+        >
           <!-- Validate Button Group -->
           <div class="inline-flex">
             <vscode-button
               @click="handleBruinValidateCurrentAsset"
               :disabled="isNotAsset || isError"
             >
-          <div class="flex items-center justify-center">
+              <div class="flex items-center justify-center">
                 <template v-if="validateButtonStatus === 'validated'">
                   <CheckCircleIcon class="h-4 w-4 mr-1 text-editor-button-fg" aria-hidden="true" />
                 </template>
                 <template v-else-if="validateButtonStatus === 'failed'">
-                  <XCircleIcon class="h-4 w-4 mr-1 text-editorError-foreground" aria-hidden="true" />
+                  <XCircleIcon
+                    class="h-4 w-4 mr-1 text-editorError-foreground"
+                    aria-hidden="true"
+                  />
                 </template>
                 <template v-else-if="validateButtonStatus === 'loading'">
                   <svg
@@ -197,7 +216,9 @@
                 leave-from-class="transform opacity-100 scale-100"
                 leave-to-class="transform opacity-0 scale-95"
               >
-                <MenuItems class="absolute left-0 xs:right-0 xs:left-auto z-[99999] w-40 xs:w-48 origin-top-left xs:origin-top-right max-w-[calc(100vw-2rem)]">
+                <MenuItems
+                  class="absolute left-0 xs:right-0 xs:left-auto z-[99999] w-40 xs:w-48 origin-top-left xs:origin-top-right max-w-[calc(100vw-2rem)]"
+                >
                   <div class="p-1 bg-editorWidget-bg rounded-sm border border-commandCenter-border">
                     <MenuItem key="validate-current">
                       <vscode-button
@@ -245,7 +266,9 @@
                 leave-from-class="transform opacity-100 scale-100"
                 leave-to-class="transform opacity-0 scale-95"
               >
-                <MenuItems class="absolute left-0 xs:right-0 xs:left-auto z-[99999] w-40 xs:w-48 origin-top-left xs:origin-top-right max-w-[calc(100vw-2rem)]">
+                <MenuItems
+                  class="absolute left-0 xs:right-0 xs:left-auto z-[99999] w-40 xs:w-48 origin-top-left xs:origin-top-right max-w-[calc(100vw-2rem)]"
+                >
                   <div class="p-1 bg-editorWidget-bg rounded-sm border border-commandCenter-border">
                     <MenuItem key="run-with-downstream" v-slot="{ active }">
                       <vscode-button
@@ -299,7 +322,9 @@
         <table class="w-full text-xs">
           <tbody>
             <tr v-if="pipelineInfo.start_date">
-              <td class="py-0.5 pr-3 text-editor-fg opacity-60 w-32 whitespace-nowrap">Start Date</td>
+              <td class="py-0.5 pr-3 text-editor-fg opacity-60 w-32 whitespace-nowrap">
+                Start Date
+              </td>
               <td class="py-0.5 text-editor-fg font-mono">{{ pipelineInfo.start_date }}</td>
             </tr>
             <tr v-if="pipelineInfo.retries !== undefined">
@@ -307,23 +332,37 @@
               <td class="py-0.5 text-editor-fg font-mono">{{ pipelineInfo.retries }}</td>
             </tr>
             <tr v-if="pipelineInfo.concurrency !== undefined">
-              <td class="py-0.5 pr-3 text-editor-fg opacity-60 w-32 whitespace-nowrap">Concurrency</td>
+              <td class="py-0.5 pr-3 text-editor-fg opacity-60 w-32 whitespace-nowrap">
+                Concurrency
+              </td>
               <td class="py-0.5 text-editor-fg font-mono">{{ pipelineInfo.concurrency }}</td>
             </tr>
             <tr v-if="pipelineInfo.catchup !== undefined">
               <td class="py-0.5 pr-3 text-editor-fg opacity-60 w-32 whitespace-nowrap">Catchup</td>
-              <td class="py-0.5 text-editor-fg font-mono">{{ pipelineInfo.catchup ? 'Enabled' : 'Disabled' }}</td>
+              <td class="py-0.5 text-editor-fg font-mono">
+                {{ pipelineInfo.catchup ? "Enabled" : "Disabled" }}
+              </td>
             </tr>
             <tr v-if="pipelineInfo.assets && pipelineInfo.assets.length > 0">
               <td class="py-0.5 pr-3 text-editor-fg opacity-60 w-32 whitespace-nowrap">Assets</td>
               <td class="py-0.5 text-editor-fg font-mono">{{ pipelineInfo.assets.length }}</td>
             </tr>
-            <tr v-if="pipelineInfo.default_connections && Object.keys(pipelineInfo.default_connections).length > 0">
-              <td class="py-0.5 pr-3 text-editor-fg opacity-60 w-32 whitespace-nowrap align-top">Default Connection</td>
+            <tr
+              v-if="
+                pipelineInfo.default_connections &&
+                Object.keys(pipelineInfo.default_connections).length > 0
+              "
+            >
+              <td class="py-0.5 pr-3 text-editor-fg opacity-60 w-32 whitespace-nowrap align-top">
+                Default Connection
+              </td>
               <td class="py-0.5">
                 <div class="space-y-0.5">
-                  <div v-for="(connection, type) in pipelineInfo.default_connections" :key="type" 
-                       class="text-xs font-mono text-editor-fg opacity-80">
+                  <div
+                    v-for="(connection, type) in pipelineInfo.default_connections"
+                    :key="type"
+                    class="text-xs font-mono text-editor-fg opacity-80"
+                  >
                     {{ type }}: {{ connection }}
                   </div>
                 </div>
@@ -335,14 +374,18 @@
 
       <div class="">
         <div v-if="props.assetType === 'ingestr' && !isError" class="mt-1">
-          <IngestrAssetDisplay :parameters="ingestrParameters" :columns="props.columns" @save="handleIngestrSave" />
+          <IngestrAssetDisplay
+            :parameters="ingestrParameters"
+            :columns="props.columns"
+            @save="handleIngestrSave"
+          />
         </div>
         <div v-else-if="code && !isError" class="mt-1">
           <!-- SqlEditor handles both success and error cost display in its header -->
-          <SqlEditor 
-            :code="code" 
-            :copied="false" 
-            :language="language" 
+          <SqlEditor
+            :code="code"
+            :copied="false"
+            :language="language"
             :showIntervalAlert="showIntervalAlert"
             :bigqueryMetadata="bigqueryMetadata"
             :bigqueryError="props.assetMetadataError"
@@ -354,7 +397,7 @@
       </div>
     </div>
   </div>
-  
+
   <!-- Full Refresh Confirmation Dialog -->
   <AlertWithActions
     v-if="showFullRefreshAlert"
@@ -365,7 +408,12 @@
   />
 
   <!-- Variables Panel -->
-  <div v-if="isVariablesOpen" class="mt-2 bg-editorWidget-bg rounded border border-commandCenter-border p-3">
+  <div
+    v-if="isVariablesOpen"
+    class="fixed z-[99999] w-[400px] max-w-[90vw] bg-editorWidget-bg border border-commandCenter-border shadow-md rounded overflow-hidden variables-panel"
+    :style="variablesPanelStyle"
+    @mousedown.stop
+  >
     <div class="space-y-3">
       <!-- Header -->
       <div class="flex items-center justify-between">
@@ -382,12 +430,17 @@
 
       <!-- Variables List -->
       <div v-if="pipelineVariables && Object.keys(pipelineVariables).length > 0" class="space-y-2">
-        <div v-for="(variable, varName) in pipelineVariables" :key="varName" 
-             class="flex items-center justify-between p-2 bg-editor-bg rounded border border-commandCenter-border">
+        <div
+          v-for="(variable, varName) in pipelineVariables"
+          :key="varName"
+          class="flex items-center justify-between p-2 bg-editor-bg rounded border border-commandCenter-border"
+        >
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2 mb-1">
               <span class="text-xs font-mono text-editor-fg font-medium">{{ varName }}</span>
-              <span class="text-2xs px-1.5 py-0.5 bg-button-bg text-button-fg rounded">{{ variable.type }}</span>
+              <span class="text-2xs px-1.5 py-0.5 bg-button-bg text-button-fg rounded">{{
+                variable.type
+              }}</span>
             </div>
             <div v-if="variable.description" class="text-2xs text-editor-fg opacity-70 mb-1">
               {{ variable.description }}
@@ -420,11 +473,7 @@
       <!-- No variables state -->
       <div v-else class="text-center py-4">
         <div class="text-2xs text-editor-fg opacity-60 mb-2">No variables configured</div>
-        <vscode-button
-          appearance="secondary"
-          class="text-2xs h-6 px-3"
-          @click="addVariable"
-        >
+        <vscode-button appearance="secondary" class="text-2xs h-6 px-3" @click="addVariable">
           Add Variable
         </vscode-button>
       </div>
@@ -432,11 +481,14 @@
   </div>
 
   <!-- Add/Edit Variable Form -->
-  <div v-if="editingVariable" class="mt-2 bg-editorWidget-bg rounded border border-commandCenter-border p-3">
+  <div
+    v-if="editingVariable"
+    class="mt-2 bg-editorWidget-bg rounded border border-commandCenter-border p-3"
+  >
     <div class="space-y-3">
       <div class="flex items-center justify-between">
         <h4 class="text-xs font-medium text-editor-fg">
-          {{ editingVariable === 'new' ? 'Add Variable' : 'Edit Variable' }}
+          {{ editingVariable === "new" ? "Add Variable" : "Edit Variable" }}
         </h4>
         <vscode-button
           appearance="icon"
@@ -447,7 +499,7 @@
           <span class="codicon codicon-close text-[10px]"></span>
         </vscode-button>
       </div>
-      
+
       <div class="space-y-3">
         <div>
           <label class="block text-2xs text-editor-fg mb-1">Variable Name</label>
@@ -458,7 +510,7 @@
             class="w-full bg-editor-bg text-editor-fg text-xs border border-commandCenter-border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg"
           />
         </div>
-        
+
         <div>
           <label class="block text-2xs text-editor-fg mb-1">Type</label>
           <select
@@ -473,7 +525,7 @@
             <option value="object">Object</option>
           </select>
         </div>
-        
+
         <div>
           <label class="block text-2xs text-editor-fg mb-1">Default Value</label>
           <input
@@ -483,7 +535,7 @@
             class="w-full bg-editor-bg text-editor-fg text-xs border border-commandCenter-border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg"
           />
         </div>
-        
+
         <div>
           <label class="block text-2xs text-editor-fg mb-1">Description (optional)</label>
           <input
@@ -494,13 +546,9 @@
           />
         </div>
       </div>
-      
+
       <div class="flex justify-end gap-2 pt-2 border-t border-commandCenter-border">
-        <vscode-button
-          appearance="secondary"
-          class="text-2xs h-6 px-2"
-          @click="cancelEdit"
-        >
+        <vscode-button appearance="secondary" class="text-2xs h-6 px-2" @click="cancelEdit">
           Cancel
         </vscode-button>
         <vscode-button
@@ -508,7 +556,7 @@
           @click="saveVariable"
           :disabled="!newVariableName.trim() || !newVariableDefault.trim()"
         >
-          {{ editingVariable === 'new' ? 'Add' : 'Save' }}
+          {{ editingVariable === "new" ? "Add" : "Save" }}
         </vscode-button>
       </div>
     </div>
@@ -625,10 +673,14 @@ const bigqueryMetadata = computed(() => {
 });
 
 const isPipelineData = computed(() => {
-  if (!props.pipeline || typeof props.pipeline !== 'object' || Object.keys(props.pipeline).length === 0) {
+  if (
+    !props.pipeline ||
+    typeof props.pipeline !== "object" ||
+    Object.keys(props.pipeline).length === 0
+  ) {
     return false;
   }
-  return props.pipeline.type === 'pipelineConfig';
+  return props.pipeline.type === "pipelineConfig";
 });
 
 const pipelineInfo = computed(() => {
@@ -638,7 +690,7 @@ const pipelineInfo = computed(() => {
 const fetchedVariables = ref({});
 
 const pipelineVariables = computed(() => {
-  const filePath = props.filePath || '';
+  const filePath = props.filePath || "";
   if (filePath && fetchedVariables.value[filePath]) {
     const storeData = fetchedVariables.value[filePath];
     const parsedData = typeof storeData === "string" ? JSON.parse(storeData) : storeData;
@@ -652,15 +704,17 @@ const pipelineVariables = computed(() => {
 
 const needsPipelineVariables = computed(() => {
   if (isPipelineData.value) return false;
-  
+
   const filePath = props.filePath;
   if (!filePath) return false;
-  
-  const hasPropsVariables = props.pipeline?.variables && Object.keys(props.pipeline.variables).length > 0;
-  const hasFetchedVariables = fetchedVariables.value[filePath] && Object.keys(fetchedVariables.value[filePath]).length > 0;
-  
+
+  const hasPropsVariables =
+    props.pipeline?.variables && Object.keys(props.pipeline.variables).length > 0;
+  const hasFetchedVariables =
+    fetchedVariables.value[filePath] && Object.keys(fetchedVariables.value[filePath]).length > 0;
+
   if (hasPropsVariables || hasFetchedVariables) return false;
-  
+
   const hasBasicPipelineData = props.pipeline && (props.pipeline.name || props.pipeline.schedule);
   return hasBasicPipelineData;
 });
@@ -670,11 +724,11 @@ const isRequestingVariables = ref(false);
 const requestPipelineVariables = () => {
   const filePath = props.filePath;
   if (!filePath || isRequestingVariables.value) return;
-  
+
   isRequestingVariables.value = true;
   vscode.postMessage({
     command: "bruin.parsePipelineForVariables",
-    payload: {}
+    payload: {},
   });
 };
 
@@ -766,7 +820,9 @@ const isTagFilterOpen = ref(false);
 const tagFilterContainer = ref<HTMLElement | null>(null);
 const tagDropdownStyle = ref<Record<string, string>>({});
 const tagFilterSearch = ref("");
-const hasActiveTagFilters = computed(() => includeTags.value.length > 0 || excludeTags.value.length > 0);
+const hasActiveTagFilters = computed(
+  () => includeTags.value.length > 0 || excludeTags.value.length > 0
+);
 
 // Variables management state
 const isVariablesOpen = ref(false);
@@ -778,9 +834,9 @@ const newVariableDescription = ref("");
 
 // Computed property to track full-refresh checkbox state
 const isFullRefreshChecked = computed(() => {
-  return checkboxItems.value.find(item => item.name === "Full-Refresh")?.checked || false;
+  return checkboxItems.value.find((item) => item.name === "Full-Refresh")?.checked || false;
 });
-  const activeTagCount = computed(() => includeTags.value.length + excludeTags.value.length);
+const activeTagCount = computed(() => includeTags.value.length + excludeTags.value.length);
 const filteredTags = computed(() => {
   const q = tagFilterSearch.value.toLowerCase().trim();
   const all = availableTags.value || [];
@@ -819,11 +875,11 @@ function onWindowClick(e: MouseEvent) {
 }
 
 onMounted(() => {
-  window.addEventListener('click', onWindowClick, true);
+  window.addEventListener("click", onWindowClick, true);
 });
 
 onBeforeUnmount(() => {
-  window.removeEventListener('click', onWindowClick, true);
+  window.removeEventListener("click", onWindowClick, true);
 });
 
 function clearAllTagFilters() {
@@ -876,7 +932,7 @@ watch(
 function getCheckboxChangePayload() {
   // When full-refresh is checked, don't include start-date
   const effectiveStartDate = isFullRefreshChecked.value ? "" : startDate.value;
-  
+
   return concatCommandFlags(
     effectiveStartDate,
     endDate.value,
@@ -948,17 +1004,20 @@ watch(
 watch(
   [checkboxItems, startDate, endDate, endDateExclusive, includeTags, excludeTags],
   () => {
-    const checkboxState = checkboxItems.value.reduce((acc, item) => {
-      acc[String(item.name)] = Boolean(item.checked);
-      return acc;
-    }, {} as Record<string, boolean>);
+    const checkboxState = checkboxItems.value.reduce(
+      (acc, item) => {
+        acc[String(item.name)] = Boolean(item.checked);
+        return acc;
+      },
+      {} as Record<string, boolean>
+    );
 
     const payload = {
       flags: getCheckboxChangePayload(),
       checkboxState,
       tagFilters: {
-        include: [...includeTags.value].map(tag => String(tag)),
-        exclude: [...excludeTags.value].map(tag => String(tag)),
+        include: [...includeTags.value].map((tag) => String(tag)),
+        exclude: [...excludeTags.value].map((tag) => String(tag)),
       },
     };
 
@@ -995,7 +1054,6 @@ watch(
     () => checkboxItems.value.find((item) => item.name === "Interval-modifiers")?.checked,
   ],
   ([hasIntervalModifiers, isChecked]) => {
-
     showIntervalAlert.value = hasIntervalModifiers && !isChecked && !dismissedIntervalAlert.value;
   },
   { immediate: true }
@@ -1021,7 +1079,7 @@ watch(
       clearTimeout(requestTimeout);
       requestTimeout = null;
     }
-    
+
     if (needsVariables) {
       requestTimeout = setTimeout(() => {
         requestPipelineVariables();
@@ -1032,17 +1090,20 @@ watch(
   { immediate: true }
 );
 function sendInitialMessage() {
-  const checkboxState = checkboxItems.value.reduce((acc, item) => {
-    acc[String(item.name)] = Boolean(item.checked);
-    return acc;
-  }, {} as Record<string, boolean>);
+  const checkboxState = checkboxItems.value.reduce(
+    (acc, item) => {
+      acc[String(item.name)] = Boolean(item.checked);
+      return acc;
+    },
+    {} as Record<string, boolean>
+  );
 
   const initialPayload = {
     flags: getCheckboxChangePayload(),
     checkboxState,
     tagFilters: {
-      include: [...includeTags.value].map(tag => String(tag)),
-      exclude: [...excludeTags.value].map(tag => String(tag)),
+      include: [...includeTags.value].map((tag) => String(tag)),
+      exclude: [...excludeTags.value].map((tag) => String(tag)),
     },
   };
 
@@ -1052,8 +1113,8 @@ function sendInitialMessage() {
   });
 }
 
-function toggleTag(tag: string, list: 'include' | 'exclude') {
-  if (list === 'include') {
+function toggleTag(tag: string, list: "include" | "exclude") {
+  if (list === "include") {
     const idx = includeTags.value.indexOf(tag);
     if (idx >= 0) {
       // Remove from include list
@@ -1149,8 +1210,10 @@ function stripExcludeTagFlags(flags: string) {
  * Functions to handle run and validate actions
  */
 function runAssetOnly() {
-  const fullRefreshChecked = checkboxItems.value.find(item => item.name === "Full-Refresh")?.checked;
-  
+  const fullRefreshChecked = checkboxItems.value.find(
+    (item) => item.name === "Full-Refresh"
+  )?.checked;
+
   if (fullRefreshChecked) {
     showFullRefreshConfirmation(() => {
       const payload = buildCommandPayload(
@@ -1163,7 +1226,7 @@ function runAssetOnly() {
     });
     return;
   }
-  
+
   const payload = buildCommandPayload(
     stripExcludeTagFlags(stripIncludeTagFlags(getCheckboxChangePayload()))
   );
@@ -1175,11 +1238,15 @@ function runAssetOnly() {
 }
 
 function runAssetWithDownstream() {
-  const fullRefreshChecked = checkboxItems.value.find(item => item.name === "Full-Refresh")?.checked;
-  
+  const fullRefreshChecked = checkboxItems.value.find(
+    (item) => item.name === "Full-Refresh"
+  )?.checked;
+
   if (fullRefreshChecked) {
     showFullRefreshConfirmation(() => {
-      const payload = buildCommandPayload(stripIncludeTagFlags(getCheckboxChangePayload()), { downstream: true });
+      const payload = buildCommandPayload(stripIncludeTagFlags(getCheckboxChangePayload()), {
+        downstream: true,
+      });
       vscode.postMessage({
         command: "bruin.runSql",
         payload,
@@ -1187,8 +1254,10 @@ function runAssetWithDownstream() {
     });
     return;
   }
-  
-  const payload = buildCommandPayload(stripIncludeTagFlags(getCheckboxChangePayload()), { downstream: true });
+
+  const payload = buildCommandPayload(stripIncludeTagFlags(getCheckboxChangePayload()), {
+    downstream: true,
+  });
 
   vscode.postMessage({
     command: "bruin.runSql",
@@ -1197,8 +1266,10 @@ function runAssetWithDownstream() {
 }
 
 function runPipelineWithContinue() {
-  const fullRefreshChecked = checkboxItems.value.find(item => item.name === "Full-Refresh")?.checked;
-  
+  const fullRefreshChecked = checkboxItems.value.find(
+    (item) => item.name === "Full-Refresh"
+  )?.checked;
+
   if (fullRefreshChecked) {
     showFullRefreshConfirmation(() => {
       const payload = buildCommandPayload(getCheckboxChangePayload(), { continue: true });
@@ -1209,7 +1280,7 @@ function runPipelineWithContinue() {
     });
     return;
   }
-  
+
   const payload = buildCommandPayload(getCheckboxChangePayload(), { continue: true });
 
   vscode.postMessage({
@@ -1219,8 +1290,10 @@ function runPipelineWithContinue() {
 }
 
 function runCurrentPipeline() {
-  const fullRefreshChecked = checkboxItems.value.find(item => item.name === "Full-Refresh")?.checked;
-  
+  const fullRefreshChecked = checkboxItems.value.find(
+    (item) => item.name === "Full-Refresh"
+  )?.checked;
+
   if (fullRefreshChecked) {
     showFullRefreshConfirmation(() => {
       const payload = buildCommandPayload(getCheckboxChangePayload(), { downstream: false });
@@ -1231,7 +1304,7 @@ function runCurrentPipeline() {
     });
     return;
   }
-  
+
   const payload = buildCommandPayload(getCheckboxChangePayload(), { downstream: false });
 
   vscode.postMessage({
@@ -1283,9 +1356,8 @@ function toggleVariablesOpen() {
   isVariablesOpen.value = !isVariablesOpen.value;
 }
 
-
 function addVariable() {
-  editingVariable.value = 'new';
+  editingVariable.value = "new";
   newVariableName.value = "";
   newVariableType.value = "string";
   newVariableDefault.value = "";
@@ -1303,7 +1375,7 @@ function editVariable(varName: string, variable: any) {
 function deleteVariable(varName: string) {
   const currentVariables = { ...pipelineVariables.value };
   delete currentVariables[varName];
-  
+
   vscode.postMessage({
     command: "bruin.setPipelineDetails",
     payload: { variables: currentVariables },
@@ -1318,27 +1390,28 @@ function saveVariable() {
 
   const currentVariables = { ...pipelineVariables.value };
   const variableName = newVariableName.value.trim();
-  
+
   // Parse the default value based on type
   let parsedDefault: any = newVariableDefault.value.trim();
   try {
-    if (newVariableType.value === 'boolean') {
-      parsedDefault = newVariableDefault.value.toLowerCase() === 'true';
-    } else if (newVariableType.value === 'integer' || newVariableType.value === 'number') {
-      parsedDefault = newVariableType.value === 'integer' 
-        ? parseInt(newVariableDefault.value) 
-        : parseFloat(newVariableDefault.value);
-    } else if (newVariableType.value === 'array' || newVariableType.value === 'object') {
+    if (newVariableType.value === "boolean") {
+      parsedDefault = newVariableDefault.value.toLowerCase() === "true";
+    } else if (newVariableType.value === "integer" || newVariableType.value === "number") {
+      parsedDefault =
+        newVariableType.value === "integer"
+          ? parseInt(newVariableDefault.value)
+          : parseFloat(newVariableDefault.value);
+    } else if (newVariableType.value === "array" || newVariableType.value === "object") {
       parsedDefault = JSON.parse(newVariableDefault.value);
     }
   } catch (error) {
-    console.error('Error parsing default value:', error);
+    console.error("Error parsing default value:", error);
     return;
   }
 
   const variableConfig: any = {
     type: newVariableType.value,
-    default: parsedDefault
+    default: parsedDefault,
   };
 
   if (newVariableDescription.value.trim()) {
@@ -1346,12 +1419,12 @@ function saveVariable() {
   }
 
   // Add items schema for arrays
-  if (newVariableType.value === 'array') {
-    variableConfig.items = { type: 'string' }; // Default to string array
+  if (newVariableType.value === "array") {
+    variableConfig.items = { type: "string" }; // Default to string array
   }
 
   // Add properties schema for objects
-  if (newVariableType.value === 'object') {
+  if (newVariableType.value === "object") {
     variableConfig.properties = {}; // Empty object schema by default
   }
 
@@ -1376,12 +1449,12 @@ function cancelEdit() {
 
 function formatVariableValue(value: any): string {
   if (value === null || value === undefined) {
-    return 'null';
+    return "null";
   }
-  if (typeof value === 'string') {
+  if (typeof value === "string") {
     return `"${value}"`;
   }
-  if (typeof value === 'object') {
+  if (typeof value === "object") {
     return JSON.stringify(value);
   }
   return String(value);
@@ -1389,30 +1462,29 @@ function formatVariableValue(value: any): string {
 
 function getDefaultPlaceholder(): string {
   switch (newVariableType.value) {
-    case 'string':
+    case "string":
       return 'e.g., "dev", "production"';
-    case 'integer':
-      return 'e.g., 42, 100';
-    case 'number':
-      return 'e.g., 3.14, 2.5';
-    case 'boolean':
-      return 'e.g., true, false';
-    case 'array':
+    case "integer":
+      return "e.g., 42, 100";
+    case "number":
+      return "e.g., 3.14, 2.5";
+    case "boolean":
+      return "e.g., true, false";
+    case "array":
       return 'e.g., ["alice", "bob"], [1, 2, 3]';
-    case 'object':
+    case "object":
       return 'e.g., {"name": "value", "key": 123}';
     default:
-      return 'Enter default value';
+      return "Enter default value";
   }
 }
-
 
 /**
  * Event listener for message receiving
  */
 onBeforeUnmount(() => {
   window.removeEventListener("message", receiveMessage);
-  
+
   // Clean up any pending request timeout
   if (requestTimeout) {
     clearTimeout(requestTimeout);
@@ -1426,19 +1498,19 @@ watch(
     vscode.postMessage({
       command: "bruin.updateQueryDates",
       payload: {
-        startDate: String(newStart || ''),
-        endDate: String(newEnd || ''),
-        environment: String(newEnv || ''),
+        startDate: String(newStart || ""),
+        endDate: String(newEnd || ""),
+        environment: String(newEnv || ""),
       },
     });
-    
+
     // Also trigger asset metadata fetch with the current values
     vscode.postMessage({
       command: "bruin.getAssetMetadata",
       payload: {
-        startDate: String(newStart || ''),
-        endDate: String(newEnd || ''),
-        environment: String(newEnv || ''),
+        startDate: String(newStart || ""),
+        endDate: String(newEnd || ""),
+        environment: String(newEnv || ""),
       },
     });
   },
@@ -1475,7 +1547,7 @@ function receiveMessage(event: { data: any }) {
       renderPythonAsset.value = updateValue(envelope, "bruin-asset-alert");
       renderAssetAlert.value = updateValue(envelope, "non-asset-alert");
       isNotAsset.value = !!renderAssetAlert.value;
-      
+
       if (renderSQLAssetSuccess.value) {
         code.value = renderSQLAssetSuccess.value;
         language.value = "sql";
@@ -1483,7 +1555,7 @@ function receiveMessage(event: { data: any }) {
         code.value = null;
         language.value = "";
       }
-      
+
       errorPhase.value = renderSQLAssetError.value ? "Rendering" : "Unknown";
       resetStates([validationError, validationSuccess, validateButtonStatus]);
       break;
@@ -1491,18 +1563,18 @@ function receiveMessage(event: { data: any }) {
     case "pipeline-variables-message":
       isRequestingVariables.value = false;
       const filePath = props.filePath;
-      
+
       if (!filePath) {
         console.log("No file path available for storing pipeline variables");
         return;
       }
-      
+
       if (envelope.payload && envelope.payload.status === "success") {
         console.log("Pipeline variables received successfully for", filePath);
         // Store the fetched pipeline variables locally
         fetchedVariables.value = {
           ...fetchedVariables.value,
-          [filePath]: envelope.payload.message
+          [filePath]: envelope.payload.message,
         };
       } else {
         console.log("Pipeline variables request failed:", envelope.payload);
