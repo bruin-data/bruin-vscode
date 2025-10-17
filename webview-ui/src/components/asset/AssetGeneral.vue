@@ -407,10 +407,16 @@
     @cancel="cancelFullRefresh"
   />
 
+  <div
+    v-if="isVariablesOpen"
+    class="fixed inset-0 z-[99998] bg-editor-bg opacity-50"
+    @click="closeVariablesPanel"
+  ></div>
+
   <!-- Variables Panel -->
   <div
     v-if="isVariablesOpen"
-    class="fixed z-[99999] w-[400px] max-w-[90vw] bg-editorWidget-bg border border-commandCenter-border shadow-md rounded overflow-hidden variables-panel"
+    class="fixed z-[99999] w-1/2 max-w-[90vw] p-1 bg-editorWidget-bg overflow-hidden variables-panel"
     :style="variablesPanelStyle"
     @mousedown.stop
   >
@@ -419,6 +425,7 @@
       <div class="flex items-center justify-between">
         <h4 class="text-xs font-medium text-editor-fg">Pipeline Variables</h4>
         <vscode-button
+          v-if="!editingVariable"
           appearance="icon"
           class="h-5 w-5 p-0 opacity-70 hover:opacity-100"
           title="Add variable"
@@ -426,6 +433,88 @@
         >
           <span class="codicon codicon-add text-[10px]"></span>
         </vscode-button>
+      </div>
+
+      <!-- Add/Edit Variable Form (inline) -->
+      <div
+        v-if="editingVariable"
+        class="bg-editor-bg rounded border border-commandCenter-border p-3"
+      >
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-medium text-editor-fg">
+              {{ editingVariable === "new" ? "Add Variable" : "Edit Variable" }}
+            </h4>
+            <vscode-button
+              appearance="icon"
+              class="h-6 w-6 p-0 opacity-70 hover:opacity-100"
+              title="Close"
+              @click="cancelEdit"
+            >
+              <span class="codicon codicon-close text-[10px]"></span>
+            </vscode-button>
+          </div>
+
+          <div class="space-y-3">
+            <div>
+              <label class="block text-2xs text-editor-fg mb-1">Variable Name</label>
+              <input
+                v-model="newVariableName"
+                type="text"
+                placeholder="e.g., env, users, config"
+                class="w-full bg-editorWidget-bg text-editor-fg text-xs border border-commandCenter-border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg"
+              />
+            </div>
+
+            <div>
+              <label class="block text-2xs text-editor-fg mb-1">Type</label>
+              <select
+                v-model="newVariableType"
+                class="w-full bg-editorWidget-bg text-editor-fg text-xs border border-commandCenter-border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg"
+              >
+                <option value="string">String</option>
+                <option value="integer">Integer</option>
+                <option value="number">Number</option>
+                <option value="boolean">Boolean</option>
+                <option value="array">Array</option>
+                <option value="object">Object</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-2xs text-editor-fg mb-1">Default Value</label>
+              <input
+                v-model="newVariableDefault"
+                type="text"
+                :placeholder="getDefaultPlaceholder()"
+                class="w-full bg-editorWidget-bg text-editor-fg text-xs border border-commandCenter-border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg"
+              />
+            </div>
+
+            <div>
+              <label class="block text-2xs text-editor-fg mb-1">Description (optional)</label>
+              <input
+                v-model="newVariableDescription"
+                type="text"
+                placeholder="What is this variable used for?"
+                class="w-full bg-editorWidget-bg text-editor-fg text-xs border border-commandCenter-border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg"
+              />
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-2 pt-2 border-t border-commandCenter-border">
+            <vscode-button appearance="secondary" class="text-2xs h-6 px-2" @click="cancelEdit">
+              Cancel
+            </vscode-button>
+            <vscode-button
+              class="text-2xs h-6 px-2"
+              @click="saveVariable"
+              :disabled="!newVariableName.trim() || !newVariableDefault.trim()"
+            >
+              {{ editingVariable === "new" ? "Add" : "Save" }}
+            </vscode-button>
+          </div>
+        </div>
       </div>
 
       <!-- Variables List -->
@@ -471,7 +560,7 @@
       </div>
 
       <!-- No variables state -->
-      <div v-else class="text-center py-4">
+      <div v-else-if="!editingVariable" class="text-center py-4">
         <div class="text-2xs text-editor-fg opacity-60 mb-2">No variables configured</div>
         <vscode-button appearance="secondary" class="text-2xs h-6 px-3" @click="addVariable">
           Add Variable
@@ -480,87 +569,6 @@
     </div>
   </div>
 
-  <!-- Add/Edit Variable Form -->
-  <div
-    v-if="editingVariable"
-    class="mt-2 bg-editorWidget-bg rounded border border-commandCenter-border p-3"
-  >
-    <div class="space-y-3">
-      <div class="flex items-center justify-between">
-        <h4 class="text-xs font-medium text-editor-fg">
-          {{ editingVariable === "new" ? "Add Variable" : "Edit Variable" }}
-        </h4>
-        <vscode-button
-          appearance="icon"
-          class="h-6 w-6 p-0 opacity-70 hover:opacity-100"
-          title="Close"
-          @click="cancelEdit"
-        >
-          <span class="codicon codicon-close text-[10px]"></span>
-        </vscode-button>
-      </div>
-
-      <div class="space-y-3">
-        <div>
-          <label class="block text-2xs text-editor-fg mb-1">Variable Name</label>
-          <input
-            v-model="newVariableName"
-            type="text"
-            placeholder="e.g., env, users, config"
-            class="w-full bg-editor-bg text-editor-fg text-xs border border-commandCenter-border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg"
-          />
-        </div>
-
-        <div>
-          <label class="block text-2xs text-editor-fg mb-1">Type</label>
-          <select
-            v-model="newVariableType"
-            class="w-full bg-editor-bg text-editor-fg text-xs border border-commandCenter-border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg"
-          >
-            <option value="string">String</option>
-            <option value="integer">Integer</option>
-            <option value="number">Number</option>
-            <option value="boolean">Boolean</option>
-            <option value="array">Array</option>
-            <option value="object">Object</option>
-          </select>
-        </div>
-
-        <div>
-          <label class="block text-2xs text-editor-fg mb-1">Default Value</label>
-          <input
-            v-model="newVariableDefault"
-            type="text"
-            :placeholder="getDefaultPlaceholder()"
-            class="w-full bg-editor-bg text-editor-fg text-xs border border-commandCenter-border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg"
-          />
-        </div>
-
-        <div>
-          <label class="block text-2xs text-editor-fg mb-1">Description (optional)</label>
-          <input
-            v-model="newVariableDescription"
-            type="text"
-            placeholder="What is this variable used for?"
-            class="w-full bg-editor-bg text-editor-fg text-xs border border-commandCenter-border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg"
-          />
-        </div>
-      </div>
-
-      <div class="flex justify-end gap-2 pt-2 border-t border-commandCenter-border">
-        <vscode-button appearance="secondary" class="text-2xs h-6 px-2" @click="cancelEdit">
-          Cancel
-        </vscode-button>
-        <vscode-button
-          class="text-2xs h-6 px-2"
-          @click="saveVariable"
-          :disabled="!newVariableName.trim() || !newVariableDefault.trim()"
-        >
-          {{ editingVariable === "new" ? "Add" : "Save" }}
-        </vscode-button>
-      </div>
-    </div>
-  </div>
 </template>
 <script setup lang="ts">
 import { vscode } from "@/utilities/vscode";
@@ -831,6 +839,7 @@ const newVariableName = ref("");
 const newVariableType = ref("string");
 const newVariableDefault = ref("");
 const newVariableDescription = ref("");
+const variablesPanelStyle = ref<Record<string, string>>({});
 
 // Computed property to track full-refresh checkbox state
 const isFullRefreshChecked = computed(() => {
@@ -867,10 +876,20 @@ function closeTagFilter() {
 
 // Close the tag panel when clicking outside
 function onWindowClick(e: MouseEvent) {
-  if (!isTagFilterOpen.value) return;
-  const container = tagFilterContainer.value;
-  if (container && !container.contains(e.target as Node)) {
-    isTagFilterOpen.value = false;
+  if (isTagFilterOpen.value) {
+    const container = tagFilterContainer.value;
+    if (container && !container.contains(e.target as Node)) {
+      isTagFilterOpen.value = false;
+    }
+  }
+  
+  if (isVariablesOpen.value) {
+    const variablesButton = document.getElementById("variables-button");
+    const variablesPanel = document.querySelector(".variables-panel");
+    if (variablesButton && !variablesButton.contains(e.target as Node) && 
+        variablesPanel && !variablesPanel.contains(e.target as Node)) {
+      isVariablesOpen.value = false;
+    }
   }
 }
 
@@ -1354,6 +1373,25 @@ function handleIngestrSave(parameters) {
 // Variables management methods
 function toggleVariablesOpen() {
   isVariablesOpen.value = !isVariablesOpen.value;
+  if (isVariablesOpen.value) {
+    updateVariablesPanelPosition();
+  }
+}
+
+function updateVariablesPanelPosition() {
+  try {
+    const el = document.getElementById("variables-button");
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    variablesPanelStyle.value = {
+      top: `${rect.bottom + 4}px`,
+      left: `${rect.left}px`,
+    };
+  } catch (_) {}
+}
+
+function closeVariablesPanel() {
+  isVariablesOpen.value = false;
 }
 
 function addVariable() {
@@ -1436,7 +1474,12 @@ function saveVariable() {
     source: "variables",
   });
 
-  cancelEdit();
+  // Reset form but keep panel open
+  editingVariable.value = null;
+  newVariableName.value = "";
+  newVariableType.value = "string";
+  newVariableDefault.value = "";
+  newVariableDescription.value = "";
 }
 
 function cancelEdit() {
@@ -1445,6 +1488,7 @@ function cancelEdit() {
   newVariableType.value = "string";
   newVariableDefault.value = "";
   newVariableDescription.value = "";
+  // Keep the variables panel open since the form is now inline
 }
 
 function formatVariableValue(value: any): string {
