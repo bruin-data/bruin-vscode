@@ -1,4 +1,7 @@
 # Changelog
+## [0.69.7] - [2025-10-16]
+- Fixed the query preview panel state persisting issue.
+
 ## [0.69.6] - [2025-10-16]
 - Updated the full refresh message and improved the schema validation.
 

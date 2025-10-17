@@ -409,9 +409,8 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
     try {
       const sanitizedState = JSON.parse(JSON.stringify(state));
 
-      // Store query for each tab as part of the state
       if (sanitizedState.tabs && Array.isArray(sanitizedState.tabs)) {
-        sanitizedState.tabs.forEach((tab: { id: string; query: string; assetPath: string }) => {
+        sanitizedState.tabs.forEach((tab: { id: string; query: string; assetPath: string; parsedOutput?: any }) => {
           // Add the current query from our static map to each tab's state
           tab.query = QueryPreviewPanel.getTabQuery(tab.id);
           tab.assetPath = QueryPreviewPanel.getTabAssetPath(tab.id);
