@@ -116,6 +116,11 @@ export const parsePipelineData = (data: string | object) => {
     return parsedData;
   }
   
+  // For merged asset data structure, check asset.pipeline first
+  if (parsedData.asset?.pipeline) {
+    return parsedData.asset.pipeline;
+  }
+  
   // Otherwise look for nested pipeline data
   return parsedData.pipeline || {};
 };

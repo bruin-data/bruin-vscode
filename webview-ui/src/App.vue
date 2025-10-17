@@ -709,6 +709,7 @@ const tabs = ref([
       columns: columns.value,
       assetMetadata: assetMetadata.value,
       assetMetadataError: assetMetadataError.value,
+      filePath: lastRenderedDocument.value,
     })),
     emits: ["update:assetName", "update:description"],
   },

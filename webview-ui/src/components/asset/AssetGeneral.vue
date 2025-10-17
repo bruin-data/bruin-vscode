@@ -126,6 +126,9 @@
                   class="text-2xs text-editor-fg opacity-60">
               ({{ Object.keys(pipelineVariables).length }})
             </span>
+            <span v-else-if="isRequestingVariables" class="text-2xs text-editor-fg opacity-40">
+              (loading...)
+            </span>
             <span v-else class="text-2xs text-editor-fg opacity-40">
               (none configured)
             </span>
@@ -558,6 +561,7 @@ const props = defineProps<{
   assetMetadata?: any;
   assetMetadataError?: string;
   pipeline?: any;
+  filePath?: string;
 }>();
 
 /**
@@ -620,28 +624,59 @@ const bigqueryMetadata = computed(() => {
   return props.assetMetadata?.bigquery || null;
 });
 
-// Pipeline information computed properties  
 const isPipelineData = computed(() => {
-  // Only show for pipeline config files
   if (!props.pipeline || typeof props.pipeline !== 'object' || Object.keys(props.pipeline).length === 0) {
     return false;
   }
-  
-  const isPipelineConfig = props.pipeline.type === 'pipelineConfig' ||
-                          (props.pipeline.raw && typeof props.pipeline.raw === 'object') ||
-                          (props.pipeline.assets && Array.isArray(props.pipeline.assets)) ||
-                          (props.pipeline.default_connections && typeof props.pipeline.default_connections === 'object');
-  
-  return isPipelineConfig;
+  return props.pipeline.type === 'pipelineConfig';
 });
 
 const pipelineInfo = computed(() => {
   return props.pipeline?.raw || props.pipeline || {};
 });
 
+const fetchedVariables = ref({});
+
 const pipelineVariables = computed(() => {
+  const filePath = props.filePath || '';
+  if (filePath && fetchedVariables.value[filePath]) {
+    const storeData = fetchedVariables.value[filePath];
+    const parsedData = typeof storeData === "string" ? JSON.parse(storeData) : storeData;
+    const variables = parsedData?.variables || parsedData?.pipeline?.variables || {};
+    if (Object.keys(variables).length > 0) {
+      return variables;
+    }
+  }
   return props.pipeline?.variables || {};
 });
+
+const needsPipelineVariables = computed(() => {
+  if (isPipelineData.value) return false;
+  
+  const filePath = props.filePath;
+  if (!filePath) return false;
+  
+  const hasPropsVariables = props.pipeline?.variables && Object.keys(props.pipeline.variables).length > 0;
+  const hasFetchedVariables = fetchedVariables.value[filePath] && Object.keys(fetchedVariables.value[filePath]).length > 0;
+  
+  if (hasPropsVariables || hasFetchedVariables) return false;
+  
+  const hasBasicPipelineData = props.pipeline && (props.pipeline.name || props.pipeline.schedule);
+  return hasBasicPipelineData;
+});
+
+const isRequestingVariables = ref(false);
+
+const requestPipelineVariables = () => {
+  const filePath = props.filePath;
+  if (!filePath || isRequestingVariables.value) return;
+  
+  isRequestingVariables.value = true;
+  vscode.postMessage({
+    command: "bruin.parsePipelineForVariables",
+    payload: {}
+  });
+};
 
 /**
  * Computed properties for error handling and warnings
@@ -966,9 +1001,36 @@ watch(
   { immediate: true }
 );
 
-/**
- * Function to send initial message
- */
+watch(
+  () => props.filePath,
+  (newPath, oldPath) => {
+    if (oldPath && requestTimeout) {
+      clearTimeout(requestTimeout);
+      requestTimeout = null;
+    }
+    isRequestingVariables.value = false;
+  }
+);
+
+let requestTimeout: NodeJS.Timeout | null = null;
+
+watch(
+  needsPipelineVariables,
+  (needsVariables) => {
+    if (requestTimeout) {
+      clearTimeout(requestTimeout);
+      requestTimeout = null;
+    }
+    
+    if (needsVariables) {
+      requestTimeout = setTimeout(() => {
+        requestPipelineVariables();
+        requestTimeout = null;
+      }, 100);
+    }
+  },
+  { immediate: true }
+);
 function sendInitialMessage() {
   const checkboxState = checkboxItems.value.reduce((acc, item) => {
     acc[String(item.name)] = Boolean(item.checked);
@@ -1023,7 +1085,7 @@ function toggleTag(tag: string, list: 'include' | 'exclude') {
 }
 
 /**
- * Function to handle selected environment change
+ * Initialize stores
  */
 const connectionsStore = useConnectionsStore();
 function setSelectedEnv(env: string) {
@@ -1350,6 +1412,12 @@ function getDefaultPlaceholder(): string {
  */
 onBeforeUnmount(() => {
   window.removeEventListener("message", receiveMessage);
+  
+  // Clean up any pending request timeout
+  if (requestTimeout) {
+    clearTimeout(requestTimeout);
+    requestTimeout = null;
+  }
 });
 
 watch(
@@ -1418,6 +1486,27 @@ function receiveMessage(event: { data: any }) {
       
       errorPhase.value = renderSQLAssetError.value ? "Rendering" : "Unknown";
       resetStates([validationError, validationSuccess, validateButtonStatus]);
+      break;
+
+    case "pipeline-variables-message":
+      isRequestingVariables.value = false;
+      const filePath = props.filePath;
+      
+      if (!filePath) {
+        console.log("No file path available for storing pipeline variables");
+        return;
+      }
+      
+      if (envelope.payload && envelope.payload.status === "success") {
+        console.log("Pipeline variables received successfully for", filePath);
+        // Store the fetched pipeline variables locally
+        fetchedVariables.value = {
+          ...fetchedVariables.value,
+          [filePath]: envelope.payload.message
+        };
+      } else {
+        console.log("Pipeline variables request failed:", envelope.payload);
+      }
       break;
 
     case "run-success":
