@@ -46,8 +46,8 @@ export const getFileExtension = (fileName: string) => {
     return fileName.toLowerCase();
   }
 
-  const match = fileName.match(/(\.[^.]+(?:\.[^.]+)?$)/);
-  return match ? match[1].toLowerCase() : "";
+  let fileExtension = fileName.split(".").pop() || "";
+  return "." + fileExtension.toLowerCase();
 };
 
 export const isPythonBruinAsset = async (fileName: string): Promise<boolean> =>
