@@ -47,7 +47,7 @@ export const getFileExtension = (fileName: string) => {
   }
 
   let fileExtension = fileName.split(".").pop() || "";
-  return "." + fileExtension.toLowerCase();
+  return fileExtension ? "." + fileExtension.toLowerCase() : "";
 };
 
 export const isPythonBruinAsset = async (fileName: string): Promise<boolean> =>
