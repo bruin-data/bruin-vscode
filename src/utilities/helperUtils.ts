@@ -44,7 +44,7 @@ export const getFileExtension = (filePath: string) => {
   // Normalize path separators to ensure cross-platform compatibility
   const normalizedPath = filePath.replace(/\\/g, '/');
   
-  // Extract the filename using posix path handling for consistency
+  // Extract the filename using posix
   const fileName = path.posix.basename(normalizedPath);
   
   // If file starts with a dot, return everything
