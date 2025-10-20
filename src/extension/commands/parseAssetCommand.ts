@@ -3,6 +3,7 @@ import { getBruinExecutablePath } from "../../providers/BruinExecutableService";
 import { BruinInternalParse } from "../../bruin/bruinInternalParse";
 import { BruinInternalPatch } from "../../bruin/bruinInternalPatch";
 import { BruinLineageInternalParse } from "../../bruin/bruinFlowLineage";
+import { BruinPanel } from "../../panels/BruinPanel";
 import { EnhancedPipelineData, PipelineColumnInfo } from "../../types";
 
 export const parseAssetCommand = async (lastRenderedDocumentUri: Uri | undefined) => {
@@ -47,15 +48,33 @@ export const patchPipelineCommand = async (body: object, lastRenderedDocumentUri
   if (!lastRenderedDocumentUri) {
     return;
   }
+  
   const patched = new BruinInternalPatch(
     getBruinExecutablePath(),
      ""
   );
+  
   const success = await patched.patchPipeline(body, lastRenderedDocumentUri.fsPath);
   
   // After successful patch, re-parse the pipeline to update the webview
   if (success) {
     await parsePipelineCommand(lastRenderedDocumentUri);
+    
+    // Also send the updated variables back to the webview
+    const pipelineParser = new BruinLineageInternalParse(
+      getBruinExecutablePath(),
+      ""
+    );
+    
+    try {
+      const pipelineData = await pipelineParser.parsePipelineConfig(lastRenderedDocumentUri.fsPath);
+      BruinPanel.postMessage("pipeline-variables-message", { 
+        status: "success", 
+        message: pipelineData 
+      });
+    } catch (error) {
+      console.error("Failed to send variables to webview:", error);
+    }
   }
 };
 

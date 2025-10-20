@@ -699,15 +699,32 @@ const fetchedVariables = ref({});
 
 const pipelineVariables = computed(() => {
   const filePath = props.filePath || "";
+  
   if (filePath && fetchedVariables.value[filePath]) {
-    const storeData = fetchedVariables.value[filePath];
-    const parsedData = typeof storeData === "string" ? JSON.parse(storeData) : storeData;
-    const variables = parsedData?.variables || parsedData?.pipeline?.variables || {};
-    if (Object.keys(variables).length > 0) {
-      return variables;
+    try {
+      const storeData = fetchedVariables.value[filePath];
+      const parsedData = typeof storeData === "string" ? JSON.parse(storeData) : storeData;
+      const variables = parsedData?.variables || parsedData?.pipeline?.variables || {};
+      
+      if (Object.keys(variables).length > 0) {
+        // Ensure the variables object is serializable
+        const serializedVars = JSON.parse(JSON.stringify(variables));
+        return serializedVars;
+      }
+    } catch (error) {
+      console.error("Error parsing pipeline variables:", error);
     }
   }
-  return props.pipeline?.variables || {};
+  
+  // Safely return pipeline variables from props
+  try {
+    const pipelineVars = props.pipeline?.variables || {};
+    const serializedVars = JSON.parse(JSON.stringify(pipelineVars));
+    return serializedVars;
+  } catch (error) {
+    console.error("Error serializing pipeline variables from props:", error);
+    return {};
+  }
 });
 
 const needsPipelineVariables = computed(() => {
@@ -1400,25 +1417,55 @@ function addVariable() {
   newVariableType.value = "string";
   newVariableDefault.value = "";
   newVariableDescription.value = "";
+  
 }
 
 function editVariable(varName: string, variable: any) {
   editingVariable.value = varName;
   newVariableName.value = varName;
   newVariableType.value = variable.type || "string";
-  newVariableDefault.value = formatVariableValue(variable.default);
+  
+  // Safely format the default value
+  try {
+    newVariableDefault.value = formatVariableValue(variable.default);
+  } catch (error) {
+    console.error("Error formatting variable value:", error);
+    newVariableDefault.value = String(variable.default || "");
+  }
+  
   newVariableDescription.value = variable.description || "";
 }
 
 function deleteVariable(varName: string) {
-  const currentVariables = { ...pipelineVariables.value };
+  // Create a clean copy of current variables to avoid any non-serializable data
+  const currentVariables = JSON.parse(JSON.stringify(pipelineVariables.value || {}));
+  
   delete currentVariables[varName];
 
-  vscode.postMessage({
-    command: "bruin.setPipelineDetails",
-    payload: { variables: currentVariables },
-    source: "variables",
-  });
+  // Ensure the payload is serializable - following the same pattern as AssetColumns
+  try {
+    const formattedVariables = formatVariablesForPayload(currentVariables);
+    const payload = { variables: formattedVariables };
+    
+    // Test serialization to catch any issues (same pattern as AssetColumns)
+    const payloadStr = JSON.stringify(payload);
+    const safePayload = JSON.parse(payloadStr);
+
+    vscode.postMessage({
+      command: "bruin.setPipelineDetails",
+      payload: safePayload,
+      source: "variables-delete",
+    });
+  } catch (error) {
+    console.error("Error serializing variables data:", error);
+    
+    // Fallback: send a minimal payload
+    vscode.postMessage({
+      command: "bruin.setPipelineDetails",
+      payload: { variables: {} },
+      source: "variables-delete",
+    });
+  }
 }
 
 function saveVariable() {
@@ -1426,7 +1473,8 @@ function saveVariable() {
     return;
   }
 
-  const currentVariables = { ...pipelineVariables.value };
+  // Create a clean copy of current variables to avoid any non-serializable data
+  const currentVariables = JSON.parse(JSON.stringify(pipelineVariables.value || {}));
   const variableName = newVariableName.value.trim();
 
   // Parse the default value based on type
@@ -1466,13 +1514,37 @@ function saveVariable() {
     variableConfig.properties = {}; // Empty object schema by default
   }
 
+  // If we're editing an existing variable and the name changed, remove the old one
+  if (editingVariable.value && editingVariable.value !== variableName) {
+    delete currentVariables[editingVariable.value];
+  }
+
   currentVariables[variableName] = variableConfig;
 
-  vscode.postMessage({
-    command: "bruin.setPipelineDetails",
-    payload: { variables: currentVariables },
-    source: "variables",
-  });
+  // Ensure the payload is serializable - following the same pattern as AssetColumns
+  try {
+    const formattedVariables = formatVariablesForPayload(currentVariables);
+    const payload = { variables: formattedVariables };
+    
+    // Test serialization to catch any issues (same pattern as AssetColumns)
+    const payloadStr = JSON.stringify(payload);
+    const safePayload = JSON.parse(payloadStr);
+
+    vscode.postMessage({
+      command: "bruin.setPipelineDetails",
+      payload: safePayload,
+      source: "variables-save",
+    });
+  } catch (error) {
+    console.error("Error serializing variables data:", error);
+    
+    // Fallback: send a minimal payload
+    vscode.postMessage({
+      command: "bruin.setPipelineDetails",
+      payload: { variables: {} },
+      source: "variables-save",
+    });
+  }
 
   // Reset form but keep panel open
   editingVariable.value = null;
@@ -1521,6 +1593,49 @@ function getDefaultPlaceholder(): string {
     default:
       return "Enter default value";
   }
+}
+
+// Format variables for payload - following the same pattern as AssetColumns formatColumnsForPayload
+function formatVariablesForPayload(variables: any) {
+  const formattedVariables: any = {};
+  
+  Object.keys(variables).forEach(varName => {
+    const variable = variables[varName];
+    
+    // Ensure all values are serializable (same pattern as AssetColumns)
+    const safeVariable: any = {
+      type: String(variable.type || "string"),
+      default: variable.default !== undefined ? variable.default : null,
+    };
+    
+    // Add optional fields if they exist
+    if (variable.description) {
+      safeVariable.description = String(variable.description);
+    }
+    
+    if (variable.items) {
+      safeVariable.items = variable.items;
+    }
+    
+    if (variable.properties) {
+      safeVariable.properties = variable.properties;
+    }
+    
+    // Test serialization to catch any issues (same pattern as AssetColumns)
+    try {
+      JSON.stringify(safeVariable);
+      formattedVariables[varName] = safeVariable;
+    } catch (error) {
+      console.error(`Error serializing variable ${varName}:`, error);
+      // Return a safe fallback
+      formattedVariables[varName] = {
+        type: "string",
+        default: null,
+      };
+    }
+  });
+  
+  return formattedVariables;
 }
 
 /**
@@ -1614,14 +1729,37 @@ function receiveMessage(event: { data: any }) {
       }
 
       if (envelope.payload && envelope.payload.status === "success") {
-        console.log("Pipeline variables received successfully for", filePath);
-        // Store the fetched pipeline variables locally
-        fetchedVariables.value = {
-          ...fetchedVariables.value,
-          [filePath]: envelope.payload.message,
-        };
-      } else {
-        console.log("Pipeline variables request failed:", envelope.payload);
+        // Store the fetched pipeline variables locally, ensuring they're serializable
+        try {
+          const serializableData = JSON.parse(JSON.stringify(envelope.payload.message));
+          fetchedVariables.value = {
+            ...fetchedVariables.value,
+            [filePath]: serializableData,
+          };
+          
+        } catch (error) {
+          console.error("Error serializing fetched variables:", error);
+          // Store as string if serialization fails
+          fetchedVariables.value = {
+            ...fetchedVariables.value,
+            [filePath]: JSON.stringify(envelope.payload.message),
+          };
+        }
+      }
+      break;
+
+    case "patch-message":
+      if (envelope.payload && envelope.payload.status === "success") {
+        console.log("✅ Pipeline patch successful, re-requesting variables");
+        // Re-request variables after successful patch
+        if (props.filePath) {
+          vscode.postMessage({
+            command: "bruin.parsePipelineForVariables",
+            payload: { filePath: props.filePath },
+          });
+        }
+      } else if (envelope.payload && envelope.payload.status === "error") {
+        console.error("❌ Pipeline patch failed:", envelope.payload.message);
       }
       break;
 

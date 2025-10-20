@@ -49,7 +49,8 @@ export class BruinInternalPatch extends BruinCommand {
     { flags = ["patch-pipeline", "--body"], ignoresErrors = false }: BruinCommandOptions = {}
   ): Promise<boolean> {
     try {
-      const result = await this.run([...flags, JSON.stringify(body), filePath]);
+      const commandArgs = [...flags, JSON.stringify(body), filePath];
+      const result = await this.run(commandArgs);
       this.postMessageToPanels("success", result);
       return true; // Success
     } catch (error) {

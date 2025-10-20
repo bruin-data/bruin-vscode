@@ -601,7 +601,7 @@ export class BruinPanel {
             if (!this._lastRenderedDocumentUri) {
               return;
             }
-            console.log("Setting pipeline data :", pipelineData, "source:", pipelineSource);
+            
             patchPipelineCommand(pipelineData, this._lastRenderedDocumentUri);
             break;
 
