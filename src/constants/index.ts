@@ -26,8 +26,8 @@ const BRUIN_FILE_EXTENSIONS: string[] = [
   ".asset.yaml",
   ".task.yml",
   ".task.yaml",
-  ".pipeline.yml",
-  ".pipeline.yaml",
+  "pipeline.yml",
+  "pipeline.yaml",
   ".bruin.yml",
   ".bruin.yaml"
 ];
