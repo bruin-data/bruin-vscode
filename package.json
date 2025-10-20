@@ -44,7 +44,9 @@
       {
         "fileMatch": [
           "*.asset.yml",
-          "*.asset.yaml"
+          "*.asset.yaml",
+          "*.task.yml",
+          "*.task.yaml"
         ],
         "url": "./schemas/yaml-assets-schema.json"
       }

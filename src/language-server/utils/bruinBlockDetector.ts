@@ -17,7 +17,7 @@ export class BruinBlockDetector {
             return this.isInSqlBruinBlock(text, offset);
         } else if (languageId === 'python') {
             return this.isInPythonBruinBlock(text, offset);
-        } else if (fileName.endsWith('.asset.yml')) {
+        } else if (fileName.endsWith('.asset.yml') || fileName.endsWith('.task.yml')) {
             return true;
         }
 
