@@ -8,6 +8,7 @@ import {
   isPythonBruinAsset,
   isYamlBruinAsset,
 } from "../utilities/helperUtils";
+import { BRUIN_FILE_EXTENSIONS } from "../constants";
 import { QueryPreviewPanel } from "../panels/QueryPreviewPanel";
 import { time } from "console";
 
@@ -130,14 +131,7 @@ export class BruinRender extends BruinCommand {
     return await isBruinYaml(filePath);
   }
 
-  private readonly relevantFileExtensions = [
-    "sql",
-    "py",
-    "asset.yml",
-    "asset.yaml",
-    "pipeline.yml",
-    "pipeline.yaml",
-  ];
+  private readonly relevantFileExtensions = BRUIN_FILE_EXTENSIONS;
 
   private async isValidAsset(filePath: string): Promise<boolean> {
     if (

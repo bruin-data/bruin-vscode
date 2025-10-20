@@ -63,6 +63,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.69.9**: Fixed the file extension detection issue and added support for `task.yml` files.
 - **0.69.8**: Fixed `gcp` connection form issues and adjusted SQL editor display: it now shows for validation errors.
 - **0.69.7**: Fixed the query preview panel state persisting issue.
 - **0.69.6**: Updated the full refresh message and improved the schema validation.

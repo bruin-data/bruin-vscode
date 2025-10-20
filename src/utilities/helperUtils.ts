@@ -40,7 +40,13 @@ export const isFileExtensionSQL = (fileName: string): boolean => {
   return false;
 };
 
-export const getFileExtension = (fileName: string) => {
+export const getFileExtension = (filePath: string) => {
+  // Normalize path separators to ensure cross-platform compatibility
+  const normalizedPath = filePath.replace(/\\/g, '/');
+  
+  // Extract the filename using posix
+  const fileName = path.posix.basename(normalizedPath);
+  
   // If file starts with a dot, return everything
   if (fileName.startsWith(".")) {
     return fileName.toLowerCase();
@@ -72,7 +78,7 @@ export function isConfigFile(filePath: string): boolean {
   return configSuffixes.some(suffix => filePath.endsWith(suffix));
 }
 export const isYamlBruinAsset = async (fileName: string): Promise<boolean> =>
-  isBruinAsset(fileName, [".asset.yml", ".asset.yaml"]);
+  isBruinAsset(fileName, [".asset.yml", ".asset.yaml", ".task.yml", ".task.yaml"]);
 
 export const isBruinYaml = async (fileName: string): Promise<boolean> => {
   return getFileExtension(fileName) === ".bruin.yml" ? true : false;
@@ -103,8 +109,7 @@ export const isBruinAsset = async (
     const assetContent = fs.readFileSync(fileName, "utf8");
     const bruinAsset =
       bruinPattern.test(assetContent) ||
-      fileExtension === ".asset.yml" ||
-      fileExtension === ".asset.yaml";
+      [".asset.yml", ".asset.yaml", ".task.yml", ".task.yaml"].includes(fileExtension);
 
     return bruinAsset;
   } catch (err) {

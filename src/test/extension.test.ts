@@ -981,6 +981,55 @@ suite("Render Command Helper functions", () => {
     assert.strictEqual(getFileExtension("example"), "");
   });
 
+  test("getFileExtension should handle compound extensions", () => {
+    // Test Bruin-specific compound extensions
+    assert.strictEqual(getFileExtension("pipeline.asset.yml"), ".asset.yml");
+    assert.strictEqual(getFileExtension("config.bruin.yml"), ".bruin.yml");
+    assert.strictEqual(getFileExtension("workflow.task.yml"), ".task.yml");
+    assert.strictEqual(getFileExtension("schema.asset.yml"), ".asset.yml");
+    assert.strictEqual(getFileExtension("deployment.bruin.yml"), ".bruin.yml");
+    
+    // Test single extensions still work
+    assert.strictEqual(getFileExtension("file.txt"), ".txt");
+    assert.strictEqual(getFileExtension("script.py"), ".py");
+    assert.strictEqual(getFileExtension("data.json"), ".json");
+    
+    // Test edge cases
+    assert.strictEqual(getFileExtension("file"), "");
+    assert.strictEqual(getFileExtension("file."), "");
+    assert.strictEqual(getFileExtension(".hidden"), ".hidden");
+    assert.strictEqual(getFileExtension("file..txt"), ".txt");
+    assert.strictEqual(getFileExtension("file.asset.yml.bak"), ".yml.bak");
+  });
+
+  test("getFileExtension should handle folder paths with dots", () => {
+    // Test Unix/Linux paths with dots in folder names
+    assert.strictEqual(getFileExtension("/Users/john.doe/projects/assets/abc.sql"), ".sql");
+    assert.strictEqual(getFileExtension("/home/john.doe/documents/file.py"), ".py");
+    assert.strictEqual(getFileExtension("./folder.name/subfolder/script.asset.yml"), ".asset.yml");
+    
+    // Test Windows paths with dots in folder names (both backslash and forward slash formats)
+    assert.strictEqual(getFileExtension("C:/Users/john.doe/Desktop/data.json"), ".json");
+    assert.strictEqual(getFileExtension("C:\\Users\\john.doe\\Desktop\\data.json"), ".json");
+    assert.strictEqual(getFileExtension("D:\\Projects\\user.name\\config.bruin.yml"), ".bruin.yml");
+    assert.strictEqual(getFileExtension("C:/Users/user.name/workflow.task.yml"), ".task.yml");
+    
+    // Test compound extensions with folder paths
+    assert.strictEqual(getFileExtension("/path/to/pipeline.asset.yml"), ".asset.yml");
+    assert.strictEqual(getFileExtension("/Users/user.name/config.bruin.yml"), ".bruin.yml");
+    assert.strictEqual(getFileExtension("./folder.name/workflow.task.yml"), ".task.yml");
+    
+    // Test mixed path separators
+    assert.strictEqual(getFileExtension("C:/Users\\user.name\\file.asset.yml"), ".asset.yml");
+    
+    // Test edge cases with paths
+    assert.strictEqual(getFileExtension("/path/to/file"), "");
+    assert.strictEqual(getFileExtension("/path/to/.hidden"), ".hidden");
+    assert.strictEqual(getFileExtension("/path/to/file."), "");
+    assert.strictEqual(getFileExtension("C:\\path\\to\\file"), "");
+    assert.strictEqual(getFileExtension("C:\\path\\to\\.hidden"), ".hidden");
+  });
+
   test("isPythonBruinAsset should return true for Python Bruin assets", async () => {
     const examplePythonAsset = `\"\"\" @bruin \nname: example\n type: python\n depends:\n - raw.example\n\"\"\"\nprint("Hello World")`;
     const examplePythonNoBruinAsset = `print("Hello World")`;
