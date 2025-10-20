@@ -1,4 +1,8 @@
 # Changelog
+
+## [0.69.8] - [2025-10-20]
+- Fixed `gcp` connection form issues and adjusted SQL editor display: it now shows for validation errors.
+
 ## [0.69.7] - [2025-10-16]
 - Fixed the query preview panel state persisting issue.
 

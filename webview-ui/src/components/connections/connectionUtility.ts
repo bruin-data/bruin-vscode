@@ -20,6 +20,7 @@ export const generateConnectionConfig = (schema: any) => {
         .filter((prop) =>
           prop !== "name" &&
           prop !== "service_account_file" &&
+          prop !== "use_application_default_credentials" &&
           // Remove deprecated S3 fields
           prop !== "bucket_name" &&
           prop !== "path_to_file"
