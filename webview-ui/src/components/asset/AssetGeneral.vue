@@ -407,167 +407,15 @@
     @cancel="cancelFullRefresh"
   />
 
-  <div
-    v-if="isVariablesOpen"
-    class="fixed inset-0 z-[99998] bg-editor-bg opacity-50"
-    @click="closeVariablesPanel"
-  ></div>
-
-  <!-- Variables Panel -->
-  <div
-    v-if="isVariablesOpen"
-    class="fixed z-[99999] w-1/2 max-w-[90vw] p-1 bg-editorWidget-bg overflow-hidden variables-panel"
-    :style="variablesPanelStyle"
-    @mousedown.stop
-  >
-    <div class="space-y-3">
-      <!-- Header -->
-      <div class="flex items-center justify-between">
-        <h4 class="text-xs font-medium text-editor-fg">Pipeline Variables</h4>
-        <vscode-button
-          v-if="!editingVariable"
-          appearance="icon"
-          class="h-5 w-5 p-0 opacity-70 hover:opacity-100"
-          title="Add variable"
-          @click="addVariable"
-        >
-          <span class="codicon codicon-add text-[10px]"></span>
-        </vscode-button>
-      </div>
-
-      <!-- Add/Edit Variable Form (inline) -->
-      <div
-        v-if="editingVariable"
-        class="bg-editor-bg rounded border border-commandCenter-border p-3"
-      >
-        <div class="space-y-3">
-          <div class="flex items-center justify-between">
-            <h4 class="text-xs font-medium text-editor-fg">
-              {{ editingVariable === "new" ? "Add Variable" : "Edit Variable" }}
-            </h4>
-            <vscode-button
-              appearance="icon"
-              class="h-6 w-6 p-0 opacity-70 hover:opacity-100"
-              title="Close"
-              @click="cancelEdit"
-            >
-              <span class="codicon codicon-close text-[10px]"></span>
-            </vscode-button>
-          </div>
-
-          <div class="space-y-3">
-            <div>
-              <label class="block text-2xs text-editor-fg mb-1">Variable Name</label>
-              <input
-                v-model="newVariableName"
-                type="text"
-                placeholder="e.g., env, users, config"
-                class="w-full bg-editorWidget-bg text-editor-fg text-xs border border-commandCenter-border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg"
-              />
-            </div>
-
-            <div>
-              <label class="block text-2xs text-editor-fg mb-1">Type</label>
-              <select
-                v-model="newVariableType"
-                class="w-full bg-editorWidget-bg text-editor-fg text-xs border border-commandCenter-border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg"
-              >
-                <option value="string">String</option>
-                <option value="integer">Integer</option>
-                <option value="number">Number</option>
-                <option value="boolean">Boolean</option>
-                <option value="array">Array</option>
-                <option value="object">Object</option>
-              </select>
-            </div>
-
-            <div>
-              <label class="block text-2xs text-editor-fg mb-1">Default Value</label>
-              <input
-                v-model="newVariableDefault"
-                type="text"
-                :placeholder="getDefaultPlaceholder()"
-                class="w-full bg-editorWidget-bg text-editor-fg text-xs border border-commandCenter-border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg"
-              />
-            </div>
-
-            <div>
-              <label class="block text-2xs text-editor-fg mb-1">Description (optional)</label>
-              <input
-                v-model="newVariableDescription"
-                type="text"
-                placeholder="What is this variable used for?"
-                class="w-full bg-editorWidget-bg text-editor-fg text-xs border border-commandCenter-border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg"
-              />
-            </div>
-          </div>
-
-          <div class="flex justify-end gap-2 pt-2 border-t border-commandCenter-border">
-            <vscode-button appearance="secondary" class="text-2xs h-6 px-2" @click="cancelEdit">
-              Cancel
-            </vscode-button>
-            <vscode-button
-              class="text-2xs h-6 px-2"
-              @click="saveVariable"
-              :disabled="!newVariableName.trim() || !newVariableDefault.trim()"
-            >
-              {{ editingVariable === "new" ? "Add" : "Save" }}
-            </vscode-button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Variables List -->
-      <div v-if="pipelineVariables && Object.keys(pipelineVariables).length > 0" class="space-y-2">
-        <div
-          v-for="(variable, varName) in pipelineVariables"
-          :key="varName"
-          class="flex items-center justify-between p-2 bg-editor-bg rounded border border-commandCenter-border"
-        >
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2 mb-1">
-              <span class="text-xs font-mono text-editor-fg font-medium">{{ varName }}</span>
-              <span class="text-2xs px-1.5 py-0.5 bg-button-bg text-button-fg rounded">{{
-                variable.type
-              }}</span>
-            </div>
-            <div v-if="variable.description" class="text-2xs text-editor-fg opacity-70 mb-1">
-              {{ variable.description }}
-            </div>
-            <div class="text-2xs text-editor-fg opacity-60">
-              Default: <span class="font-mono">{{ formatVariableValue(variable.default) }}</span>
-            </div>
-          </div>
-          <div class="flex items-center gap-1 ml-2">
-            <vscode-button
-              appearance="icon"
-              class="h-6 w-6 p-0 opacity-70 hover:opacity-100"
-              title="Edit variable"
-              @click="editVariable(String(varName), variable)"
-            >
-              <span class="codicon codicon-edit text-[10px]"></span>
-            </vscode-button>
-            <vscode-button
-              appearance="icon"
-              class="h-6 w-6 p-0 opacity-70 hover:opacity-100"
-              title="Delete variable"
-              @click="deleteVariable(String(varName))"
-            >
-              <span class="codicon codicon-trash text-[10px]"></span>
-            </vscode-button>
-          </div>
-        </div>
-      </div>
-
-      <!-- No variables state -->
-      <div v-else-if="!editingVariable" class="text-center py-4">
-        <div class="text-2xs text-editor-fg opacity-60 mb-2">No variables configured</div>
-        <vscode-button appearance="secondary" class="text-2xs h-6 px-3" @click="addVariable">
-          Add Variable
-        </vscode-button>
-      </div>
-    </div>
-  </div>
+  <!-- Variables Panel Component -->
+  <VariablesPanel
+    :is-open="isVariablesOpen"
+    :variables="pipelineVariables"
+    trigger-element-id="variables-button"
+    @close="closeVariablesPanel"
+    @save-variable="handleSaveVariable"
+    @delete-variable="deleteVariable"
+  />
 
 </template>
 <script setup lang="ts">
@@ -588,6 +436,7 @@ import SqlEditor from "@/components/asset/SqlEditor.vue";
 import IngestrAssetDisplay from "@/components/asset/IngestrAssetDisplay.vue";
 import CheckboxGroup from "@/components/ui/checkbox-group/CheckboxGroup.vue";
 import EnvSelectMenu from "@/components/ui/select-menu/EnvSelectMenu.vue";
+import VariablesPanel from "@/components/ui/variables-panel/VariablesPanel.vue";
 import { updateValue, resetStates, determineValidationStatus } from "@/utilities/helper";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/vue";
 import {
@@ -851,12 +700,6 @@ const hasActiveTagFilters = computed(
 
 // Variables management state
 const isVariablesOpen = ref(false);
-const editingVariable = ref<string | null>(null);
-const newVariableName = ref("");
-const newVariableType = ref("string");
-const newVariableDefault = ref("");
-const newVariableDescription = ref("");
-const variablesPanelStyle = ref<Record<string, string>>({});
 
 // Computed property to track full-refresh checkbox state
 const isFullRefreshChecked = computed(() => {
@@ -891,7 +734,7 @@ function closeTagFilter() {
   isTagFilterOpen.value = false;
 }
 
-// Close the tag panel when clicking outside
+// Close panels when clicking outside or on window resize
 function onWindowClick(e: MouseEvent) {
   if (isTagFilterOpen.value) {
     const container = tagFilterContainer.value;
@@ -899,23 +742,22 @@ function onWindowClick(e: MouseEvent) {
       isTagFilterOpen.value = false;
     }
   }
-  
-  if (isVariablesOpen.value) {
-    const variablesButton = document.getElementById("variables-button");
-    const variablesPanel = document.querySelector(".variables-panel");
-    if (variablesButton && !variablesButton.contains(e.target as Node) && 
-        variablesPanel && !variablesPanel.contains(e.target as Node)) {
-      isVariablesOpen.value = false;
-    }
+}
+
+function onWindowResize() {
+  if (isTagFilterOpen.value) {
+    updateTagDropdownPosition();
   }
 }
 
 onMounted(() => {
   window.addEventListener("click", onWindowClick, true);
+  window.addEventListener("resize", onWindowResize);
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener("click", onWindowClick, true);
+  window.removeEventListener("resize", onWindowResize);
 });
 
 function clearAllTagFilters() {
@@ -1390,50 +1232,49 @@ function handleIngestrSave(parameters) {
 // Variables management methods
 function toggleVariablesOpen() {
   isVariablesOpen.value = !isVariablesOpen.value;
-  if (isVariablesOpen.value) {
-    updateVariablesPanelPosition();
-  }
-}
-
-function updateVariablesPanelPosition() {
-  try {
-    const el = document.getElementById("variables-button");
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    variablesPanelStyle.value = {
-      top: `${rect.bottom + 4}px`,
-      left: `${rect.left}px`,
-    };
-  } catch (_) {}
 }
 
 function closeVariablesPanel() {
   isVariablesOpen.value = false;
 }
 
-function addVariable() {
-  editingVariable.value = "new";
-  newVariableName.value = "";
-  newVariableType.value = "string";
-  newVariableDefault.value = "";
-  newVariableDescription.value = "";
+function handleSaveVariable(event: { name: string; config: any; oldName?: string }) {
+  const { name, config, oldName } = event;
   
-}
+  // Create a clean copy of current variables to avoid any non-serializable data
+  const currentVariables = JSON.parse(JSON.stringify(pipelineVariables.value || {}));
 
-function editVariable(varName: string, variable: any) {
-  editingVariable.value = varName;
-  newVariableName.value = varName;
-  newVariableType.value = variable.type || "string";
-  
-  // Safely format the default value
-  try {
-    newVariableDefault.value = formatVariableValue(variable.default);
-  } catch (error) {
-    console.error("Error formatting variable value:", error);
-    newVariableDefault.value = String(variable.default || "");
+  // If we're editing an existing variable and the name changed, remove the old one
+  if (oldName && oldName !== name) {
+    delete currentVariables[oldName];
   }
-  
-  newVariableDescription.value = variable.description || "";
+
+  currentVariables[name] = config;
+
+  // Ensure the payload is serializable - following the same pattern as AssetColumns
+  try {
+    const formattedVariables = formatVariablesForPayload(currentVariables);
+    const payload = { variables: formattedVariables };
+    
+    // Test serialization to catch any issues (same pattern as AssetColumns)
+    const payloadStr = JSON.stringify(payload);
+    const safePayload = JSON.parse(payloadStr);
+
+    vscode.postMessage({
+      command: "bruin.setPipelineDetails",
+      payload: safePayload,
+      source: "variables-save",
+    });
+  } catch (error) {
+    console.error("Error serializing variables data:", error);
+    
+    // Fallback: send a minimal payload
+    vscode.postMessage({
+      command: "bruin.setPipelineDetails",
+      payload: { variables: {} },
+      source: "variables-save",
+    });
+  }
 }
 
 function deleteVariable(varName: string) {
@@ -1468,132 +1309,6 @@ function deleteVariable(varName: string) {
   }
 }
 
-function saveVariable() {
-  if (!newVariableName.value.trim() || !newVariableDefault.value.trim()) {
-    return;
-  }
-
-  // Create a clean copy of current variables to avoid any non-serializable data
-  const currentVariables = JSON.parse(JSON.stringify(pipelineVariables.value || {}));
-  const variableName = newVariableName.value.trim();
-
-  // Parse the default value based on type
-  let parsedDefault: any = newVariableDefault.value.trim();
-  try {
-    if (newVariableType.value === "boolean") {
-      parsedDefault = newVariableDefault.value.toLowerCase() === "true";
-    } else if (newVariableType.value === "integer" || newVariableType.value === "number") {
-      parsedDefault =
-        newVariableType.value === "integer"
-          ? parseInt(newVariableDefault.value)
-          : parseFloat(newVariableDefault.value);
-    } else if (newVariableType.value === "array" || newVariableType.value === "object") {
-      parsedDefault = JSON.parse(newVariableDefault.value);
-    }
-  } catch (error) {
-    console.error("Error parsing default value:", error);
-    return;
-  }
-
-  const variableConfig: any = {
-    type: newVariableType.value,
-    default: parsedDefault,
-  };
-
-  if (newVariableDescription.value.trim()) {
-    variableConfig.description = newVariableDescription.value.trim();
-  }
-
-  // Add items schema for arrays
-  if (newVariableType.value === "array") {
-    variableConfig.items = { type: "string" }; // Default to string array
-  }
-
-  // Add properties schema for objects
-  if (newVariableType.value === "object") {
-    variableConfig.properties = {}; // Empty object schema by default
-  }
-
-  // If we're editing an existing variable and the name changed, remove the old one
-  if (editingVariable.value && editingVariable.value !== variableName) {
-    delete currentVariables[editingVariable.value];
-  }
-
-  currentVariables[variableName] = variableConfig;
-
-  // Ensure the payload is serializable - following the same pattern as AssetColumns
-  try {
-    const formattedVariables = formatVariablesForPayload(currentVariables);
-    const payload = { variables: formattedVariables };
-    
-    // Test serialization to catch any issues (same pattern as AssetColumns)
-    const payloadStr = JSON.stringify(payload);
-    const safePayload = JSON.parse(payloadStr);
-
-    vscode.postMessage({
-      command: "bruin.setPipelineDetails",
-      payload: safePayload,
-      source: "variables-save",
-    });
-  } catch (error) {
-    console.error("Error serializing variables data:", error);
-    
-    // Fallback: send a minimal payload
-    vscode.postMessage({
-      command: "bruin.setPipelineDetails",
-      payload: { variables: {} },
-      source: "variables-save",
-    });
-  }
-
-  // Reset form but keep panel open
-  editingVariable.value = null;
-  newVariableName.value = "";
-  newVariableType.value = "string";
-  newVariableDefault.value = "";
-  newVariableDescription.value = "";
-}
-
-function cancelEdit() {
-  editingVariable.value = null;
-  newVariableName.value = "";
-  newVariableType.value = "string";
-  newVariableDefault.value = "";
-  newVariableDescription.value = "";
-  // Keep the variables panel open since the form is now inline
-}
-
-function formatVariableValue(value: any): string {
-  if (value === null || value === undefined) {
-    return "null";
-  }
-  if (typeof value === "string") {
-    return `"${value}"`;
-  }
-  if (typeof value === "object") {
-    return JSON.stringify(value);
-  }
-  return String(value);
-}
-
-function getDefaultPlaceholder(): string {
-  switch (newVariableType.value) {
-    case "string":
-      return 'e.g., "dev", "production"';
-    case "integer":
-      return "e.g., 42, 100";
-    case "number":
-      return "e.g., 3.14, 2.5";
-    case "boolean":
-      return "e.g., true, false";
-    case "array":
-      return 'e.g., ["alice", "bob"], [1, 2, 3]';
-    case "object":
-      return 'e.g., {"name": "value", "key": 123}';
-    default:
-      return "Enter default value";
-  }
-}
 
 // Format variables for payload - following the same pattern as AssetColumns formatColumnsForPayload
 function formatVariablesForPayload(variables: any) {
