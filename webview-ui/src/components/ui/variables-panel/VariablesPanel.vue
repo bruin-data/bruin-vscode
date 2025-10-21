@@ -85,7 +85,6 @@
               <label class="text-2xs text-editor-fg">Properties</label>
               <vscode-button
                 appearance="icon"
-                class="h-4 w-4 p-0 opacity-70 hover:opacity-100"
                 title="Add property"
                 @click="addObjectProperty"
               >
@@ -122,7 +121,6 @@
                 />
                 <vscode-button
                   appearance="icon"
-                  class="h-4 w-4 p-0 opacity-70 hover:opacity-100"
                   title="Remove property"
                   @click="removeObjectProperty(index)"
                 >
@@ -192,7 +190,7 @@
           <div class="flex items-center gap-1 ml-2">
             <vscode-button
               appearance="icon"
-              class="h-6 w-6 p-0 opacity-70 hover:opacity-100"
+              class="h-5 w-5 p-0 opacity-70 hover:opacity-100"
               title="Edit variable"
               @click="editVariable(String(varName), variable)"
             >
@@ -200,7 +198,7 @@
             </vscode-button>
             <vscode-button
               appearance="icon"
-              class="h-6 w-6 p-0 opacity-70 hover:opacity-100"
+              class="h-5 w-5 p-0 opacity-70 hover:opacity-100"
               title="Delete variable"
               @click="$emit('delete-variable', String(varName))"
             >
