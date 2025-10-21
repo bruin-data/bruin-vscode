@@ -9,11 +9,12 @@
   <!-- Variables Panel -->
   <div
     v-if="isOpen"
-    class="fixed z-[999999] w-80 max-w-[calc(100vw-2rem)] max-h-[calc(100vh-2rem)] p-3 bg-editorWidget-bg border border-commandCenter-border overflow-y-auto variables-panel"
+    class="fixed z-[999999] w-80 max-w-[calc(100vw-2rem)] max-h-[calc(100vh-4rem)] bg-editorWidget-bg border border-commandCenter-border variables-panel flex flex-col"
     :style="panelStyle"
     @mousedown.stop
   >
-    <div class="space-y-3">
+    <!-- Header (fixed) -->
+    <div class="p-3 border-b border-commandCenter-border flex-shrink-0">
       <!-- Header -->
       <div class="flex items-center justify-between">
         <h4 class="text-xs font-medium text-editor-fg">Pipeline Variables</h4>
@@ -27,7 +28,10 @@
           <span class="codicon codicon-add text-[10px]"></span>
         </vscode-button>
       </div>
+    </div>
 
+    <!-- Scrollable Content -->
+    <div class="flex-1 overflow-y-auto p-3 space-y-3">
       <!-- Add/Edit Variable Form (inline) -->
       <div
         v-if="editingVariable"
@@ -75,7 +79,61 @@
             </div>
           </div>
 
-          <div>
+          <!-- Object Properties Builder -->
+          <div v-if="newVariableType === 'object'">
+            <div class="flex items-center gap-1 mb-1">
+              <label class="text-2xs text-editor-fg">Properties</label>
+              <vscode-button
+                appearance="icon"
+                class="h-4 w-4 p-0 opacity-70 hover:opacity-100"
+                title="Add property"
+                @click="addObjectProperty"
+              >
+                <span class="codicon codicon-add text-[8px]"></span>
+              </vscode-button>
+            </div>
+            <div class="space-y-1">
+              <div 
+                v-for="(prop, index) in objectProperties" 
+                :key="index"
+                class="flex gap-1 items-center"
+              >
+                <input
+                  v-model="prop.name"
+                  type="text"
+                  placeholder="name"
+                  class="w-16 bg-editorWidget-bg text-editor-fg text-2xs border border-commandCenter-border rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-5"
+                />
+                <select
+                  v-model="prop.type"
+                  class="w-20 bg-editorWidget-bg text-editor-fg text-2xs border border-commandCenter-border rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-5"
+                >
+                  <option value="string">string</option>
+                  <option value="integer">integer</option>
+                  <option value="number">number</option>
+                  <option value="boolean">boolean</option>
+                  <option value="object">object</option>
+                </select>
+                <input
+                  v-model="prop.default"
+                  type="text"
+                  placeholder="default"
+                  class="w-20 bg-editorWidget-bg text-editor-fg text-2xs border border-commandCenter-border rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-5"
+                />
+                <vscode-button
+                  appearance="icon"
+                  class="h-4 w-4 p-0 opacity-70 hover:opacity-100"
+                  title="Remove property"
+                  @click="removeObjectProperty(index)"
+                >
+                  <span class="codicon codicon-remove text-[8px]"></span>
+                </vscode-button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Default Value for non-object types -->
+          <div v-else>
             <label class="block text-2xs text-editor-fg mb-1">Default Value</label>
             <input
               v-model="newVariableDefault"
@@ -102,7 +160,7 @@
             <vscode-button
               class="text-2xs h-6 px-2"
               @click="saveVariable"
-              :disabled="!newVariableName.trim() || !newVariableDefault.trim()"
+              :disabled="!isFormValid"
             >
               {{ editingVariable === "new" ? "Add" : "Save" }}
             </vscode-button>
@@ -196,8 +254,28 @@ const newVariableType = ref("string");
 const newVariableDefault = ref("");
 const newVariableDescription = ref("");
 
+// Object properties state
+const objectProperties = ref<{ name: string; type: string; default: string }[]>([]);
+
 // Panel positioning
 const panelStyle = ref<Record<string, string>>({});
+
+// Form validation
+const isFormValid = computed(() => {
+  if (!newVariableName.value.trim()) {
+    return false;
+  }
+  
+  if (newVariableType.value === "object") {
+    // For objects, need at least one property with name and default
+    return objectProperties.value.some(prop => 
+      prop.name.trim() && prop.default.trim()
+    );
+  } else {
+    // For non-objects, need default value
+    return newVariableDefault.value.trim();
+  }
+});
 
 function updatePanelPosition() {
   try {
@@ -288,6 +366,15 @@ function addVariable() {
   newVariableType.value = "string";
   newVariableDefault.value = "";
   newVariableDescription.value = "";
+  objectProperties.value = [];
+}
+
+function addObjectProperty() {
+  objectProperties.value.push({ name: "", type: "string", default: "" });
+}
+
+function removeObjectProperty(index: number) {
+  objectProperties.value.splice(index, 1);
 }
 
 function editVariable(varName: string, variable: Variable) {
@@ -295,65 +382,130 @@ function editVariable(varName: string, variable: Variable) {
   newVariableName.value = varName;
   newVariableType.value = variable.type || "string";
   
-  try {
-    newVariableDefault.value = formatVariableValue(variable.default);
-  } catch (error) {
-    console.error("Error formatting variable value:", error);
-    newVariableDefault.value = String(variable.default || "");
+  if (variable.type === "object") {
+    // Load object properties and default values
+    objectProperties.value = [];
+    if (variable.properties) {
+      Object.keys(variable.properties).forEach(propName => {
+        const propSchema = variable.properties[propName];
+        const defaultValue = variable.default && variable.default[propName] 
+          ? String(variable.default[propName]) 
+          : "";
+        objectProperties.value.push({
+          name: propName,
+          type: propSchema.type || "string",
+          default: defaultValue
+        });
+      });
+    }
+    newVariableDefault.value = "";
+  } else {
+    try {
+      newVariableDefault.value = formatVariableValue(variable.default);
+    } catch (error) {
+      console.error("Error formatting variable value:", error);
+      newVariableDefault.value = String(variable.default || "");
+    }
+    objectProperties.value = [];
   }
   
   newVariableDescription.value = variable.description || "";
 }
 
 function saveVariable() {
-  if (!newVariableName.value.trim() || !newVariableDefault.value.trim()) {
+  if (!newVariableName.value.trim()) {
     return;
+  }
+  
+  // For non-object types, require default value
+  if (newVariableType.value !== "object" && !newVariableDefault.value.trim()) {
+    return;
+  }
+  
+  // For object types, require at least one property with name and default
+  if (newVariableType.value === "object") {
+    const validProperties = objectProperties.value.filter(prop => 
+      prop.name.trim() && prop.default.trim()
+    );
+    if (validProperties.length === 0) {
+      alert("Please add at least one property with name and default value for object variables.");
+      return;
+    }
   }
 
   const variableName = newVariableName.value.trim();
 
   // Parse the default value based on type
-  let parsedDefault: any = newVariableDefault.value.trim();
+  let parsedDefault: any;
   try {
-    if (newVariableType.value === "boolean") {
-      parsedDefault = newVariableDefault.value.toLowerCase() === "true";
-    } else if (newVariableType.value === "integer" || newVariableType.value === "number") {
-      parsedDefault =
-        newVariableType.value === "integer"
-          ? parseInt(newVariableDefault.value)
-          : parseFloat(newVariableDefault.value);
-    } else if (newVariableType.value === "array") {
-      // Parse array and ensure all items are strings to match documentation format
-      const arrayValue = JSON.parse(newVariableDefault.value);
-      parsedDefault = Array.isArray(arrayValue) ? arrayValue.map(item => String(item)) : arrayValue;
-    } else if (newVariableType.value === "object") {
-      parsedDefault = JSON.parse(newVariableDefault.value);
+    if (newVariableType.value === "object") {
+      // Build default object from properties
+      parsedDefault = {};
+      objectProperties.value.forEach(prop => {
+        if (prop.name.trim() && prop.default.trim()) {
+          let propValue: any = prop.default.trim();
+          // Parse property default based on its type
+          if (prop.type === "boolean") {
+            propValue = prop.default.toLowerCase() === "true";
+          } else if (prop.type === "integer") {
+            propValue = parseInt(prop.default);
+          } else if (prop.type === "number") {
+            propValue = parseFloat(prop.default);
+          } else if (prop.type === "object") {
+            try {
+              propValue = JSON.parse(prop.default);
+            } catch {
+              // Keep as string if JSON parsing fails
+            }
+          }
+          parsedDefault[prop.name.trim()] = propValue;
+        }
+      });
+    } else {
+      parsedDefault = newVariableDefault.value.trim();
+      if (newVariableType.value === "boolean") {
+        parsedDefault = newVariableDefault.value.toLowerCase() === "true";
+      } else if (newVariableType.value === "integer" || newVariableType.value === "number") {
+        parsedDefault =
+          newVariableType.value === "integer"
+            ? parseInt(newVariableDefault.value)
+            : parseFloat(newVariableDefault.value);
+      } else if (newVariableType.value === "array") {
+        // Parse array and ensure all items are strings to match documentation format
+        const arrayValue = JSON.parse(newVariableDefault.value);
+        parsedDefault = Array.isArray(arrayValue) ? arrayValue.map(item => String(item)) : arrayValue;
+      }
+      // For strings, keep as-is (no extra quotes)
     }
-    // For strings, keep as-is (no extra quotes)
   } catch (error) {
     console.error("Error parsing default value:", error);
     return;
   }
 
-  // Create config object with proper property ordering (type first, then default)
+  // Create config object with proper property ordering
   const variableConfig: Variable = {
     type: newVariableType.value,
     default: parsedDefault,
   };
 
-  // Add description after default to maintain proper ordering
-  if (newVariableDescription.value.trim()) {
-    variableConfig.description = newVariableDescription.value.trim();
-  }
-
-  // Add items schema for arrays
+  // Add schema properties
   if (newVariableType.value === "array") {
     variableConfig.items = { type: "string" };
+  } else if (newVariableType.value === "object") {
+    // Build properties schema from object properties
+    variableConfig.properties = {};
+    objectProperties.value.forEach(prop => {
+      if (prop.name.trim()) {
+        variableConfig.properties![prop.name.trim()] = {
+          type: prop.type
+        };
+      }
+    });
   }
 
-  // Add properties schema for objects
-  if (newVariableType.value === "object") {
-    variableConfig.properties = {};
+  // Add description last if provided
+  if (newVariableDescription.value.trim()) {
+    variableConfig.description = newVariableDescription.value.trim();
   }
 
   const saveEvent: { name: string; config: Variable; oldName?: string } = {
@@ -373,6 +525,7 @@ function saveVariable() {
   newVariableType.value = "string";
   newVariableDefault.value = "";
   newVariableDescription.value = "";
+  objectProperties.value = [];
 }
 
 function cancelEdit() {
@@ -381,6 +534,7 @@ function cancelEdit() {
   newVariableType.value = "string";
   newVariableDefault.value = "";
   newVariableDescription.value = "";
+  objectProperties.value = [];
 }
 
 function formatVariableValue(value: any): string {
