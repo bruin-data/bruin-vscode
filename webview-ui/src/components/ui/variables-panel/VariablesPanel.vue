@@ -9,7 +9,7 @@
   <!-- Variables Panel -->
   <div
     v-if="isOpen"
-    class="fixed z-[999999] w-80 max-w-[calc(100vw-2rem)] max-h-[calc(100vh-4rem)] p-3 bg-editorWidget-bg border border-commandCenter-border rounded-md shadow-lg overflow-y-auto variables-panel"
+    class="fixed z-[999999] w-80 max-w-[calc(100vw-2rem)] max-h-[calc(100vh-2rem)] p-3 bg-editorWidget-bg border border-commandCenter-border overflow-y-auto variables-panel"
     :style="panelStyle"
     @mousedown.stop
   >
@@ -128,7 +128,7 @@
               {{ variable.description }}
             </div>
             <div class="text-2xs text-editor-fg opacity-60">
-              Default: <span class="font-mono">{{ formatVariableValue(variable.default) }}</span>
+              Default: <span class="font-mono">{{ formatDisplayValue(variable.default) }}</span>
             </div>
           </div>
           <div class="flex items-center gap-1 ml-2">
@@ -314,19 +314,26 @@ function saveVariable() {
         newVariableType.value === "integer"
           ? parseInt(newVariableDefault.value)
           : parseFloat(newVariableDefault.value);
-    } else if (newVariableType.value === "array" || newVariableType.value === "object") {
+    } else if (newVariableType.value === "array") {
+      // Parse array and ensure all items are strings to match documentation format
+      const arrayValue = JSON.parse(newVariableDefault.value);
+      parsedDefault = Array.isArray(arrayValue) ? arrayValue.map(item => String(item)) : arrayValue;
+    } else if (newVariableType.value === "object") {
       parsedDefault = JSON.parse(newVariableDefault.value);
     }
+    // For strings, keep as-is (no extra quotes)
   } catch (error) {
     console.error("Error parsing default value:", error);
     return;
   }
 
+  // Create config object with proper property ordering (type first, then default)
   const variableConfig: Variable = {
     type: newVariableType.value,
     default: parsedDefault,
   };
 
+  // Add description after default to maintain proper ordering
   if (newVariableDescription.value.trim()) {
     variableConfig.description = newVariableDescription.value.trim();
   }
@@ -370,10 +377,23 @@ function cancelEdit() {
 
 function formatVariableValue(value: any): string {
   if (value === null || value === undefined) {
+    return "";
+  }
+  if (typeof value === "string") {
+    return value; // Don't add quotes for editing
+  }
+  if (typeof value === "object") {
+    return JSON.stringify(value);
+  }
+  return String(value);
+}
+
+function formatDisplayValue(value: any): string {
+  if (value === null || value === undefined) {
     return "null";
   }
   if (typeof value === "string") {
-    return `"${value}"`;
+    return `"${value}"`; // Add quotes for display clarity
   }
   if (typeof value === "object") {
     return JSON.stringify(value);
@@ -384,7 +404,7 @@ function formatVariableValue(value: any): string {
 function getDefaultPlaceholder(): string {
   switch (newVariableType.value) {
     case "string":
-      return 'e.g., "dev", "production"';
+      return 'e.g., dev, production';
     case "integer":
       return "e.g., 42, 100";
     case "number":
@@ -392,7 +412,7 @@ function getDefaultPlaceholder(): string {
     case "boolean":
       return "e.g., true, false";
     case "array":
-      return 'e.g., ["alice", "bob"], [1, 2, 3]';
+      return 'e.g., ["alice", "bob"], ["val1", "val2"]';
     case "object":
       return 'e.g., {"name": "value", "key": 123}';
     default:
