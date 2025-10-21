@@ -1505,8 +1505,9 @@ function receiveMessage(event: { data: any }) {
       break;
 
     case "file-changed":
-      // When pipeline file changes, refresh variables if variables panel is open
-      if (envelope.filePath === props.filePath && props.filePath) {
+      // When pipeline file changes, refresh variables only if variables panel is NOT open
+      // (when panel is open, patch-message handles the refresh to avoid duplicates)
+      if (envelope.filePath === props.filePath && props.filePath && !isVariablesOpen.value) {
         console.log("📝 Pipeline file changed, refreshing variables");
         // Clear cached variables for this file
         if (fetchedVariables.value[props.filePath]) {
