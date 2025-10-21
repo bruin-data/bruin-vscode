@@ -14,7 +14,7 @@
     @mousedown.stop
   >
     <!-- Header (fixed) -->
-    <div class="p-3 border-b border-commandCenter-border flex-shrink-0">
+    <div class="p-2 border-b border-commandCenter-border flex-shrink-0">
       <!-- Header -->
       <div class="flex items-center justify-between">
         <h4 class="text-xs font-medium text-editor-fg">Pipeline Variables</h4>
@@ -31,7 +31,7 @@
     </div>
 
     <!-- Scrollable Content -->
-    <div class="flex-1 overflow-y-auto p-3 space-y-3">
+    <div class="flex-1 overflow-y-auto p-2 space-y-2">
       <!-- Add/Edit Variable Form (inline) -->
       <div
         v-if="editingVariable"
