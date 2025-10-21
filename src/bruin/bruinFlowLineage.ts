@@ -20,16 +20,22 @@ export class BruinLineageInternalParse extends BruinCommand {
     filePath: string,
     { flags = ["parse-pipeline"], ignoresErrors = false }: BruinCommandOptions = {}
   ): Promise<any> {
-    const result = await this.run([...flags, filePath], { ignoresErrors });
-    const pipelineData = JSON.parse(result);
+    const cliResult = await this.run([...flags, filePath], { ignoresErrors });
+    const pipelineData = JSON.parse(cliResult);
     console.log("Pipeline data from parsePipelineConfig", pipelineData);
-    return {
+    const parsedResult: any = {
       name: pipelineData.name || '',
       schedule: pipelineData.schedule || '',
       description: pipelineData.description || '',
-      variables: pipelineData.variables || [],
       raw: pipelineData
     };
+    
+    // Only include variables if they exist in the pipeline data
+    if (pipelineData.variables) {
+      parsedResult.variables = pipelineData.variables;
+    }
+    
+    return parsedResult;
   }
 
 
