@@ -125,6 +125,15 @@ export class BruinPanel {
         vscode.commands.executeCommand('bruin.refreshConnections');
       }),
 
+      // Watch for changes to pipeline.yml and pipeline.yaml files
+      workspace.createFileSystemWatcher("**/pipeline.{yml,yaml}").onDidChange(async (uri) => {
+        // Send file-changed message to webview to refresh variables
+        this._panel.webview.postMessage({
+          command: "file-changed",
+          filePath: uri.fsPath,
+        });
+      }),
+
       window.onDidChangeActiveTextEditor(async (editor) => {
         // One-time recreation only if the panel was originally created in settings-only (no active editor)
         // and we are seeing the first active editor. Ignore subsequent focus toggles.

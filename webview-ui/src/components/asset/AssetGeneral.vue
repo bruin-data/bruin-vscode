@@ -1503,6 +1503,22 @@ function receiveMessage(event: { data: any }) {
         } catch (_) {}
       }
       break;
+
+    case "file-changed":
+      // When pipeline file changes, refresh variables if variables panel is open
+      if (envelope.filePath === props.filePath && props.filePath) {
+        console.log("📝 Pipeline file changed, refreshing variables");
+        // Clear cached variables for this file
+        if (fetchedVariables.value[props.filePath]) {
+          delete fetchedVariables.value[props.filePath];
+        }
+        // Re-request variables to get fresh data
+        vscode.postMessage({
+          command: "bruin.parsePipelineForVariables",
+          payload: { filePath: props.filePath },
+        });
+      }
+      break;
   }
 }
 </script>

@@ -258,14 +258,22 @@ function onWindowClick(e: MouseEvent) {
   }
 }
 
+function onWindowBlur() {
+  if (props.isOpen) {
+    emit("close");
+  }
+}
+
 onMounted(() => {
   window.addEventListener("click", onWindowClick, true);
   window.addEventListener("resize", onWindowResize);
+  window.addEventListener("blur", onWindowBlur);
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener("click", onWindowClick, true);
   window.removeEventListener("resize", onWindowResize);
+  window.removeEventListener("blur", onWindowBlur);
 });
 
 watch(() => props.isOpen, (isOpen) => {
