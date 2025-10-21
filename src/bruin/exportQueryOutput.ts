@@ -1,6 +1,7 @@
 import { QueryPreviewPanel } from "../panels/QueryPreviewPanel";
 import { BruinCommandOptions } from "../types";
 import { isBruinAsset, isBruinYaml } from "../utilities/helperUtils";
+import { BRUIN_FILE_EXTENSIONS } from "../constants";
 import { BruinCommand } from "./bruinCommand";
 
 /**
@@ -25,14 +26,7 @@ export class BruinExportQueryOutput extends BruinCommand {
    * @returns {Promise<void>} A promise that resolves when the execution is complete or an error is caught.
    */
   public isLoading: boolean = false;
-  private readonly relevantFileExtensions = [
-    "sql",
-    "py",
-    "asset.yml",
-    "asset.yaml",
-    "pipeline.yml",
-    "pipeline.yaml",
-  ];
+  private readonly relevantFileExtensions = BRUIN_FILE_EXTENSIONS;
 
   private async isValidAsset(filePath: string): Promise<boolean> {
     if (

@@ -2,7 +2,7 @@
   "name": "bruin",
   "displayName": "Bruin",
   "description": "Manage your Bruin data assets from within VS Code.",
-  "version": "0.69.8",
+  "version": "0.69.9",
   "engines": {
     "vscode": "^1.87.0"
   },
@@ -44,7 +44,9 @@
       {
         "fileMatch": [
           "*.asset.yml",
-          "*.asset.yaml"
+          "*.asset.yaml",
+          "*.task.yml",
+          "*.task.yaml"
         ],
         "url": "./schemas/yaml-assets-schema.json"
       }

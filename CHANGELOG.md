@@ -1,4 +1,6 @@
 # Changelog
+## [0.69.9] - [2025-10-20]
+- Fixed the file extension detection issue and added support for `task.yml` files.
 
 ## [0.69.8] - [2025-10-20]
 - Fixed `gcp` connection form issues and adjusted SQL editor display: it now shows for validation errors.

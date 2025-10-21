@@ -42,6 +42,7 @@ import {
 } from "../providers/BruinExecutableService";
 import path = require("path");
 import { isBruinAsset } from "../utilities/helperUtils";
+import { BRUIN_FILE_EXTENSIONS } from "../constants";
 import { BruinInternalParse } from "../bruin/bruinInternalParse";
 import { BruinInternalListTemplates } from "../bruin/bruinInternalListTemplates";
 import { BruinInternalAssetMetadata } from "../bruin/bruinInternalAssetMetadata";
@@ -346,18 +347,7 @@ export class BruinPanel {
    * @returns A template string literal containing the HTML that should be
    * rendered within the webview panel
    */
-  private readonly relevantFileExtensions = [
-    ".sql",
-    ".py",
-    ".yml",
-    ".yaml",
-    ".asset.yml",
-    ".asset.yaml",
-    "pipeline.yml",
-    "pipeline.yaml",
-    ".bruin.yml",
-    ".bruin.yaml",
-  ];
+  private readonly relevantFileExtensions = BRUIN_FILE_EXTENSIONS;
 
   private _getWebviewContent(webview: Webview, extensionUri: Uri, initialCliStatus: boolean | null = null): string {
     const stylesUri = getUri(webview, extensionUri, ["webview-ui", "build", "assets", "index.css"]);
