@@ -1,4 +1,7 @@
 # Changelog
+## [0.70.0] - [2025-10-21]
+- Added pipeline variables management UI to the extension.
+
 ## [0.69.9] - [2025-10-20]
 - Fixed the file extension detection issue and added support for `task.yml` files.
 

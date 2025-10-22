@@ -43,68 +43,109 @@
         <div v-if="showCheckboxGroup">
           <CheckboxGroup :checkboxItems="checkboxItems" label="Options" />
           <!-- Tag Filter Controls (subtle) -->
-          <div class="mt-2 flex items-center gap-1" ref="tagFilterContainer">
-            <label class="text-xs text-editor-fg ">Tags</label>
-            <vscode-button
-              appearance="icon"
-              class="h-3.5 w-auto p-0 opacity-70 hover:opacity-100 inline-flex items-center"
-              id="tag-filter-button"
-              title="Edit tag filters"
-              @click="toggleTagFilterOpen"
-            >
-              <span :class="['codicon', hasActiveTagFilters ? 'codicon-filter-filled' : 'codicon-filter', 'text-[9px]']"></span>
-            </vscode-button>
+          <div class="mt-2 flex items-center gap-2" ref="tagFilterContainer">
+            <div class="flex items-center gap-[1px]">
+              <label class="text-xs text-editor-fg">Tags</label>
+              <vscode-button
+                appearance="icon"
+                class="h-3.5 w-auto p-0 opacity-70 hover:opacity-100 inline-flex items-center"
+                id="tag-filter-button"
+                title="Edit tag filters"
+                @click="toggleTagFilterOpen"
+              >
+                <span
+                  :class="[
+                    'codicon',
+                    hasActiveTagFilters ? 'codicon-filter-filled' : 'codicon-filter',
+                    'text-[9px]',
+                  ]"
+                ></span>
+              </vscode-button>
 
-            <!-- Dropdown -->
-            <div
-              v-if="isTagFilterOpen"
-              class="fixed z-[99999] w-[220px] max-w-[90vw] bg-dropdown-bg border border-commandCenter-border shadow-md rounded overflow-hidden tag-filter-dropdown"
-              :style="tagDropdownStyle"
-              @mousedown.stop
-            >
-              <div class="sticky top-0 bg-dropdown-bg border-b border-commandCenter-border px-2 py-1">
-                <input
-                  v-model="tagFilterSearch"
-                  placeholder="Search tags..."
-                  class="w-full bg-dropdown-bg text-inputValidation-infoBorder text-[11px] border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6 px-2 rounded"
-                  @click.stop
-                  @mousedown.stop
-                />
-              </div>
-              <div class="max-h-48 overflow-y-auto">
+              <!-- Dropdown -->
+              <div
+                v-if="isTagFilterOpen"
+                class="fixed z-[99999] w-[220px] max-w-[90vw] bg-dropdown-bg border border-commandCenter-border shadow-md rounded overflow-hidden tag-filter-dropdown"
+                :style="tagDropdownStyle"
+                @mousedown.stop
+              >
                 <div
-                  v-for="tag in filteredTags"
-                  :key="tag"
-                  class="flex items-center justify-between px-2 py-1 text-[11px] hover:bg-list-hoverBackground/60"
+                  class="sticky top-0 bg-dropdown-bg border-b border-commandCenter-border px-2 py-1"
                 >
-                  <span class="font-mono truncate pr-2 opacity-80">{{ tag }}</span>
-                  <div class="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      class="inline-flex items-center justify-center h-3.5 px-1 rounded-sm text-3xs opacity-70 hover:opacity-100"
-                      :class="includeTags.includes(tag) ? 'bg-button-bg text-button-fg' : ''"
-                      title="Include"
-                      @click="toggleTag(tag, 'include')"
-                    >
-                      Inc
-                    </button>
-                    <button
-                      type="button"
-                      class="inline-flex items-center justify-center h-3.5 px-1 rounded-sm text-3xs opacity-70 hover:opacity-100"
-                      :class="excludeTags.includes(tag) ? 'bg-button-bg text-button-fg' : ''"
-                      title="Exclude"
-                      @click="toggleTag(tag, 'exclude')"
-                    >
-                      Exc
-                    </button>
+                  <input
+                    v-model="tagFilterSearch"
+                    placeholder="Search tags..."
+                    class="w-full bg-dropdown-bg text-inputValidation-infoBorder text-[11px] border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6 px-2 rounded"
+                    @click.stop
+                    @mousedown.stop
+                  />
+                </div>
+                <div class="max-h-48 overflow-y-auto">
+                  <div
+                    v-for="tag in filteredTags"
+                    :key="tag"
+                    class="flex items-center justify-between px-2 py-1 text-[11px] hover:bg-list-hoverBackground/60"
+                  >
+                    <span class="font-mono truncate pr-2 opacity-80">{{ tag }}</span>
+                    <div class="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        class="inline-flex items-center justify-center h-3.5 px-1 rounded-sm text-3xs opacity-70 hover:opacity-100"
+                        :class="includeTags.includes(tag) ? 'bg-button-bg text-button-fg' : ''"
+                        title="Include"
+                        @click="toggleTag(tag, 'include')"
+                      >
+                        Inc
+                      </button>
+                      <button
+                        type="button"
+                        class="inline-flex items-center justify-center h-3.5 px-1 rounded-sm text-3xs opacity-70 hover:opacity-100"
+                        :class="excludeTags.includes(tag) ? 'bg-button-bg text-button-fg' : ''"
+                        title="Exclude"
+                        @click="toggleTag(tag, 'exclude')"
+                      >
+                        Exc
+                      </button>
+                    </div>
+                  </div>
+                  <div v-if="filteredTags.length === 0" class="px-2 py-2 text-2xs opacity-60">
+                    No tags found
                   </div>
                 </div>
-                <div v-if="filteredTags.length === 0" class="px-2 py-2 text-2xs opacity-60">No tags found</div>
+                <div class="flex justify-end gap-2 p-1 border-t border-commandCenter-border">
+                  <vscode-button
+                    class="text-[10px] h-4 px-2 opacity-80 hover:opacity-100"
+                    appearance="secondary"
+                    @click="clearAllTagFilters"
+                    >Clear</vscode-button
+                  >
+                  <vscode-button
+                    class="text-[10px] h-4 px-2 opacity-80 hover:opacity-100"
+                    @click="closeTagFilter"
+                    >Done</vscode-button
+                  >
+                </div>
               </div>
-              <div class="flex justify-end gap-2 p-1 border-t border-commandCenter-border">
-                <vscode-button class="text-[10px] h-4 px-2 opacity-80 hover:opacity-100" appearance="secondary" @click="clearAllTagFilters">Clear</vscode-button>
-                <vscode-button class="text-[10px] h-4 px-2 opacity-80 hover:opacity-100" @click="closeTagFilter">Done</vscode-button>
-              </div>
+            </div>
+            <!-- Variables Section -->
+            <div class="flex items-center gap-[1px]">
+              <label class="text-xs text-editor-fg">Variables</label>
+              <!-- Variables count indicator -->
+              <span
+                v-if="pipelineVariables && Object.keys(pipelineVariables).length > 0"
+                class="text-3xs text-editor-fg opacity-60"
+              >
+                ({{ Object.keys(pipelineVariables).length }})
+              </span>
+              <vscode-button
+                appearance="icon"
+                class="h-3.5 w-auto p-0 opacity-70 hover:opacity-100 inline-flex items-center"
+                id="variables-button"
+                title="Manage pipeline variables"
+                @click="toggleVariablesOpen"
+              >
+                <span class="codicon codicon-settings-gear text-[9px]"></span>
+              </vscode-button>
             </div>
           </div>
         </div>
@@ -112,20 +153,24 @@
 
       <!-- Action Buttons Row -->
       <div class="flex flex-col xs:flex-row gap-2 justify-end items-start xs:items-end">
-
-        <div class="flex flex-col 2xs:flex-row flex-wrap gap-2 justify-start xs:justify-end items-stretch 2xs:items-center w-full xs:w-auto">
+        <div
+          class="flex flex-col 2xs:flex-row flex-wrap gap-2 justify-start xs:justify-end items-stretch 2xs:items-center w-full xs:w-auto"
+        >
           <!-- Validate Button Group -->
           <div class="inline-flex">
             <vscode-button
               @click="handleBruinValidateCurrentAsset"
               :disabled="isNotAsset || isError"
             >
-          <div class="flex items-center justify-center">
+              <div class="flex items-center justify-center">
                 <template v-if="validateButtonStatus === 'validated'">
                   <CheckCircleIcon class="h-4 w-4 mr-1 text-editor-button-fg" aria-hidden="true" />
                 </template>
                 <template v-else-if="validateButtonStatus === 'failed'">
-                  <XCircleIcon class="h-4 w-4 mr-1 text-editorError-foreground" aria-hidden="true" />
+                  <XCircleIcon
+                    class="h-4 w-4 mr-1 text-editorError-foreground"
+                    aria-hidden="true"
+                  />
                 </template>
                 <template v-else-if="validateButtonStatus === 'loading'">
                   <svg
@@ -171,7 +216,9 @@
                 leave-from-class="transform opacity-100 scale-100"
                 leave-to-class="transform opacity-0 scale-95"
               >
-                <MenuItems class="absolute left-0 xs:right-0 xs:left-auto z-[99999] w-40 xs:w-48 origin-top-left xs:origin-top-right max-w-[calc(100vw-2rem)]">
+                <MenuItems
+                  class="absolute left-0 xs:right-0 xs:left-auto z-[99999] w-40 xs:w-48 origin-top-left xs:origin-top-right max-w-[calc(100vw-2rem)]"
+                >
                   <div class="p-1 bg-editorWidget-bg rounded-sm border border-commandCenter-border">
                     <MenuItem key="validate-current">
                       <vscode-button
@@ -219,7 +266,9 @@
                 leave-from-class="transform opacity-100 scale-100"
                 leave-to-class="transform opacity-0 scale-95"
               >
-                <MenuItems class="absolute left-0 xs:right-0 xs:left-auto z-[99999] w-40 xs:w-48 origin-top-left xs:origin-top-right max-w-[calc(100vw-2rem)]">
+                <MenuItems
+                  class="absolute left-0 xs:right-0 xs:left-auto z-[99999] w-40 xs:w-48 origin-top-left xs:origin-top-right max-w-[calc(100vw-2rem)]"
+                >
                   <div class="p-1 bg-editorWidget-bg rounded-sm border border-commandCenter-border">
                     <MenuItem key="run-with-downstream" v-slot="{ active }">
                       <vscode-button
@@ -273,7 +322,9 @@
         <table class="w-full text-xs">
           <tbody>
             <tr v-if="pipelineInfo.start_date">
-              <td class="py-0.5 pr-3 text-editor-fg opacity-60 w-32 whitespace-nowrap">Start Date</td>
+              <td class="py-0.5 pr-3 text-editor-fg opacity-60 w-32 whitespace-nowrap">
+                Start Date
+              </td>
               <td class="py-0.5 text-editor-fg font-mono">{{ pipelineInfo.start_date }}</td>
             </tr>
             <tr v-if="pipelineInfo.retries !== undefined">
@@ -281,23 +332,37 @@
               <td class="py-0.5 text-editor-fg font-mono">{{ pipelineInfo.retries }}</td>
             </tr>
             <tr v-if="pipelineInfo.concurrency !== undefined">
-              <td class="py-0.5 pr-3 text-editor-fg opacity-60 w-32 whitespace-nowrap">Concurrency</td>
+              <td class="py-0.5 pr-3 text-editor-fg opacity-60 w-32 whitespace-nowrap">
+                Concurrency
+              </td>
               <td class="py-0.5 text-editor-fg font-mono">{{ pipelineInfo.concurrency }}</td>
             </tr>
             <tr v-if="pipelineInfo.catchup !== undefined">
               <td class="py-0.5 pr-3 text-editor-fg opacity-60 w-32 whitespace-nowrap">Catchup</td>
-              <td class="py-0.5 text-editor-fg font-mono">{{ pipelineInfo.catchup ? 'Enabled' : 'Disabled' }}</td>
+              <td class="py-0.5 text-editor-fg font-mono">
+                {{ pipelineInfo.catchup ? "Enabled" : "Disabled" }}
+              </td>
             </tr>
             <tr v-if="pipelineInfo.assets && pipelineInfo.assets.length > 0">
               <td class="py-0.5 pr-3 text-editor-fg opacity-60 w-32 whitespace-nowrap">Assets</td>
               <td class="py-0.5 text-editor-fg font-mono">{{ pipelineInfo.assets.length }}</td>
             </tr>
-            <tr v-if="pipelineInfo.default_connections && Object.keys(pipelineInfo.default_connections).length > 0">
-              <td class="py-0.5 pr-3 text-editor-fg opacity-60 w-32 whitespace-nowrap align-top">Default Connection</td>
+            <tr
+              v-if="
+                pipelineInfo.default_connections &&
+                Object.keys(pipelineInfo.default_connections).length > 0
+              "
+            >
+              <td class="py-0.5 pr-3 text-editor-fg opacity-60 w-32 whitespace-nowrap align-top">
+                Default Connection
+              </td>
               <td class="py-0.5">
                 <div class="space-y-0.5">
-                  <div v-for="(connection, type) in pipelineInfo.default_connections" :key="type" 
-                       class="text-xs font-mono text-editor-fg opacity-80">
+                  <div
+                    v-for="(connection, type) in pipelineInfo.default_connections"
+                    :key="type"
+                    class="text-xs font-mono text-editor-fg opacity-80"
+                  >
                     {{ type }}: {{ connection }}
                   </div>
                 </div>
@@ -309,14 +374,18 @@
 
       <div class="">
         <div v-if="props.assetType === 'ingestr' && !isError" class="mt-1">
-          <IngestrAssetDisplay :parameters="ingestrParameters" :columns="props.columns" @save="handleIngestrSave" />
+          <IngestrAssetDisplay
+            :parameters="ingestrParameters"
+            :columns="props.columns"
+            @save="handleIngestrSave"
+          />
         </div>
         <div v-else-if="code && !renderSQLAssetError" class="mt-1">
           <!-- SqlEditor handles both success and error cost display in its header -->
-          <SqlEditor 
-            :code="code" 
-            :copied="false" 
-            :language="language" 
+          <SqlEditor
+            :code="code"
+            :copied="false"
+            :language="language"
             :showIntervalAlert="showIntervalAlert"
             :bigqueryMetadata="bigqueryMetadata"
             :bigqueryError="props.assetMetadataError"
@@ -328,7 +397,7 @@
       </div>
     </div>
   </div>
-  
+
   <!-- Full Refresh Confirmation Dialog -->
   <AlertWithActions
     v-if="showFullRefreshAlert"
@@ -337,6 +406,17 @@
     @confirm="confirmFullRefresh"
     @cancel="cancelFullRefresh"
   />
+
+  <!-- Variables Panel Component -->
+  <VariablesPanel
+    :is-open="isVariablesOpen"
+    :variables="pipelineVariables"
+    trigger-element-id="variables-button"
+    @close="closeVariablesPanel"
+    @save-variable="handleSaveVariable"
+    @delete-variable="deleteVariable"
+  />
+
 </template>
 <script setup lang="ts">
 import { vscode } from "@/utilities/vscode";
@@ -356,6 +436,7 @@ import SqlEditor from "@/components/asset/SqlEditor.vue";
 import IngestrAssetDisplay from "@/components/asset/IngestrAssetDisplay.vue";
 import CheckboxGroup from "@/components/ui/checkbox-group/CheckboxGroup.vue";
 import EnvSelectMenu from "@/components/ui/select-menu/EnvSelectMenu.vue";
+import VariablesPanel from "@/components/ui/variables-panel/VariablesPanel.vue";
 import { updateValue, resetStates, determineValidationStatus } from "@/utilities/helper";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/vue";
 import {
@@ -385,6 +466,7 @@ const props = defineProps<{
   assetMetadata?: any;
   assetMetadataError?: string;
   pipeline?: any;
+  filePath?: string;
 }>();
 
 /**
@@ -447,24 +529,82 @@ const bigqueryMetadata = computed(() => {
   return props.assetMetadata?.bigquery || null;
 });
 
-// Pipeline information computed properties  
 const isPipelineData = computed(() => {
-  // Only show for pipeline config files
-  if (!props.pipeline || typeof props.pipeline !== 'object' || Object.keys(props.pipeline).length === 0) {
+  if (
+    !props.pipeline ||
+    typeof props.pipeline !== "object" ||
+    Object.keys(props.pipeline).length === 0
+  ) {
     return false;
   }
-  
-  const isPipelineConfig = props.pipeline.type === 'pipelineConfig' ||
-                          (props.pipeline.raw && typeof props.pipeline.raw === 'object') ||
-                          (props.pipeline.assets && Array.isArray(props.pipeline.assets)) ||
-                          (props.pipeline.default_connections && typeof props.pipeline.default_connections === 'object');
-  
-  return isPipelineConfig;
+  return props.pipeline.type === "pipelineConfig";
 });
 
 const pipelineInfo = computed(() => {
   return props.pipeline?.raw || props.pipeline || {};
 });
+
+const fetchedVariables = ref({});
+
+const pipelineVariables = computed(() => {
+  const filePath = props.filePath || "";
+  
+  if (filePath && fetchedVariables.value[filePath]) {
+    try {
+      const storeData = fetchedVariables.value[filePath];
+      const parsedData = typeof storeData === "string" ? JSON.parse(storeData) : storeData;
+      const variables = parsedData?.variables || parsedData?.pipeline?.variables || {};
+      
+      if (Object.keys(variables).length > 0) {
+        // Ensure the variables object is serializable
+        const serializedVars = JSON.parse(JSON.stringify(variables));
+        return serializedVars;
+      }
+    } catch (error) {
+      console.error("Error parsing pipeline variables:", error);
+    }
+  }
+  
+  // Safely return pipeline variables from props
+  try {
+    const pipelineVars = props.pipeline?.variables || {};
+    const serializedVars = JSON.parse(JSON.stringify(pipelineVars));
+    return serializedVars;
+  } catch (error) {
+    console.error("Error serializing pipeline variables from props:", error);
+    return {};
+  }
+});
+
+const needsPipelineVariables = computed(() => {
+  if (isPipelineData.value) return false;
+
+  const filePath = props.filePath;
+  if (!filePath) return false;
+
+  const hasPropsVariables =
+    props.pipeline?.variables && Object.keys(props.pipeline.variables).length > 0;
+  const hasFetchedVariables =
+    fetchedVariables.value[filePath] && Object.keys(fetchedVariables.value[filePath]).length > 0;
+
+  if (hasPropsVariables || hasFetchedVariables) return false;
+
+  const hasBasicPipelineData = props.pipeline && (props.pipeline.name || props.pipeline.schedule);
+  return hasBasicPipelineData;
+});
+
+const isRequestingVariables = ref(false);
+
+const requestPipelineVariables = () => {
+  const filePath = props.filePath;
+  if (!filePath || isRequestingVariables.value) return;
+
+  isRequestingVariables.value = true;
+  vscode.postMessage({
+    command: "bruin.parsePipelineForVariables",
+    payload: {},
+  });
+};
 
 /**
  * Computed properties for error handling and warnings
@@ -554,13 +694,18 @@ const isTagFilterOpen = ref(false);
 const tagFilterContainer = ref<HTMLElement | null>(null);
 const tagDropdownStyle = ref<Record<string, string>>({});
 const tagFilterSearch = ref("");
-const hasActiveTagFilters = computed(() => includeTags.value.length > 0 || excludeTags.value.length > 0);
+const hasActiveTagFilters = computed(
+  () => includeTags.value.length > 0 || excludeTags.value.length > 0
+);
+
+// Variables management state
+const isVariablesOpen = ref(false);
 
 // Computed property to track full-refresh checkbox state
 const isFullRefreshChecked = computed(() => {
-  return checkboxItems.value.find(item => item.name === "Full-Refresh")?.checked || false;
+  return checkboxItems.value.find((item) => item.name === "Full-Refresh")?.checked || false;
 });
-  const activeTagCount = computed(() => includeTags.value.length + excludeTags.value.length);
+const activeTagCount = computed(() => includeTags.value.length + excludeTags.value.length);
 const filteredTags = computed(() => {
   const q = tagFilterSearch.value.toLowerCase().trim();
   const all = availableTags.value || [];
@@ -589,21 +734,30 @@ function closeTagFilter() {
   isTagFilterOpen.value = false;
 }
 
-// Close the tag panel when clicking outside
+// Close panels when clicking outside or on window resize
 function onWindowClick(e: MouseEvent) {
-  if (!isTagFilterOpen.value) return;
-  const container = tagFilterContainer.value;
-  if (container && !container.contains(e.target as Node)) {
-    isTagFilterOpen.value = false;
+  if (isTagFilterOpen.value) {
+    const container = tagFilterContainer.value;
+    if (container && !container.contains(e.target as Node)) {
+      isTagFilterOpen.value = false;
+    }
+  }
+}
+
+function onWindowResize() {
+  if (isTagFilterOpen.value) {
+    updateTagDropdownPosition();
   }
 }
 
 onMounted(() => {
-  window.addEventListener('click', onWindowClick, true);
+  window.addEventListener("click", onWindowClick, true);
+  window.addEventListener("resize", onWindowResize);
 });
 
 onBeforeUnmount(() => {
-  window.removeEventListener('click', onWindowClick, true);
+  window.removeEventListener("click", onWindowClick, true);
+  window.removeEventListener("resize", onWindowResize);
 });
 
 function clearAllTagFilters() {
@@ -656,7 +810,7 @@ watch(
 function getCheckboxChangePayload() {
   // When full-refresh is checked, don't include start-date
   const effectiveStartDate = isFullRefreshChecked.value ? "" : startDate.value;
-  
+
   return concatCommandFlags(
     effectiveStartDate,
     endDate.value,
@@ -728,17 +882,20 @@ watch(
 watch(
   [checkboxItems, startDate, endDate, endDateExclusive, includeTags, excludeTags],
   () => {
-    const checkboxState = checkboxItems.value.reduce((acc, item) => {
-      acc[String(item.name)] = Boolean(item.checked);
-      return acc;
-    }, {} as Record<string, boolean>);
+    const checkboxState = checkboxItems.value.reduce(
+      (acc, item) => {
+        acc[String(item.name)] = Boolean(item.checked);
+        return acc;
+      },
+      {} as Record<string, boolean>
+    );
 
     const payload = {
       flags: getCheckboxChangePayload(),
       checkboxState,
       tagFilters: {
-        include: [...includeTags.value].map(tag => String(tag)),
-        exclude: [...excludeTags.value].map(tag => String(tag)),
+        include: [...includeTags.value].map((tag) => String(tag)),
+        exclude: [...excludeTags.value].map((tag) => String(tag)),
       },
     };
 
@@ -775,27 +932,56 @@ watch(
     () => checkboxItems.value.find((item) => item.name === "Interval-modifiers")?.checked,
   ],
   ([hasIntervalModifiers, isChecked]) => {
-
     showIntervalAlert.value = hasIntervalModifiers && !isChecked && !dismissedIntervalAlert.value;
   },
   { immediate: true }
 );
 
-/**
- * Function to send initial message
- */
+watch(
+  () => props.filePath,
+  (newPath, oldPath) => {
+    if (oldPath && requestTimeout) {
+      clearTimeout(requestTimeout);
+      requestTimeout = null;
+    }
+    isRequestingVariables.value = false;
+  }
+);
+
+let requestTimeout: NodeJS.Timeout | null = null;
+
+watch(
+  needsPipelineVariables,
+  (needsVariables) => {
+    if (requestTimeout) {
+      clearTimeout(requestTimeout);
+      requestTimeout = null;
+    }
+
+    if (needsVariables) {
+      requestTimeout = setTimeout(() => {
+        requestPipelineVariables();
+        requestTimeout = null;
+      }, 100);
+    }
+  },
+  { immediate: true }
+);
 function sendInitialMessage() {
-  const checkboxState = checkboxItems.value.reduce((acc, item) => {
-    acc[String(item.name)] = Boolean(item.checked);
-    return acc;
-  }, {} as Record<string, boolean>);
+  const checkboxState = checkboxItems.value.reduce(
+    (acc, item) => {
+      acc[String(item.name)] = Boolean(item.checked);
+      return acc;
+    },
+    {} as Record<string, boolean>
+  );
 
   const initialPayload = {
     flags: getCheckboxChangePayload(),
     checkboxState,
     tagFilters: {
-      include: [...includeTags.value].map(tag => String(tag)),
-      exclude: [...excludeTags.value].map(tag => String(tag)),
+      include: [...includeTags.value].map((tag) => String(tag)),
+      exclude: [...excludeTags.value].map((tag) => String(tag)),
     },
   };
 
@@ -805,8 +991,8 @@ function sendInitialMessage() {
   });
 }
 
-function toggleTag(tag: string, list: 'include' | 'exclude') {
-  if (list === 'include') {
+function toggleTag(tag: string, list: "include" | "exclude") {
+  if (list === "include") {
     const idx = includeTags.value.indexOf(tag);
     if (idx >= 0) {
       // Remove from include list
@@ -838,7 +1024,7 @@ function toggleTag(tag: string, list: 'include' | 'exclude') {
 }
 
 /**
- * Function to handle selected environment change
+ * Initialize stores
  */
 const connectionsStore = useConnectionsStore();
 function setSelectedEnv(env: string) {
@@ -902,8 +1088,10 @@ function stripExcludeTagFlags(flags: string) {
  * Functions to handle run and validate actions
  */
 function runAssetOnly() {
-  const fullRefreshChecked = checkboxItems.value.find(item => item.name === "Full-Refresh")?.checked;
-  
+  const fullRefreshChecked = checkboxItems.value.find(
+    (item) => item.name === "Full-Refresh"
+  )?.checked;
+
   if (fullRefreshChecked) {
     showFullRefreshConfirmation(() => {
       const payload = buildCommandPayload(
@@ -916,7 +1104,7 @@ function runAssetOnly() {
     });
     return;
   }
-  
+
   const payload = buildCommandPayload(
     stripExcludeTagFlags(stripIncludeTagFlags(getCheckboxChangePayload()))
   );
@@ -928,11 +1116,15 @@ function runAssetOnly() {
 }
 
 function runAssetWithDownstream() {
-  const fullRefreshChecked = checkboxItems.value.find(item => item.name === "Full-Refresh")?.checked;
-  
+  const fullRefreshChecked = checkboxItems.value.find(
+    (item) => item.name === "Full-Refresh"
+  )?.checked;
+
   if (fullRefreshChecked) {
     showFullRefreshConfirmation(() => {
-      const payload = buildCommandPayload(stripIncludeTagFlags(getCheckboxChangePayload()), { downstream: true });
+      const payload = buildCommandPayload(stripIncludeTagFlags(getCheckboxChangePayload()), {
+        downstream: true,
+      });
       vscode.postMessage({
         command: "bruin.runSql",
         payload,
@@ -940,8 +1132,10 @@ function runAssetWithDownstream() {
     });
     return;
   }
-  
-  const payload = buildCommandPayload(stripIncludeTagFlags(getCheckboxChangePayload()), { downstream: true });
+
+  const payload = buildCommandPayload(stripIncludeTagFlags(getCheckboxChangePayload()), {
+    downstream: true,
+  });
 
   vscode.postMessage({
     command: "bruin.runSql",
@@ -950,8 +1144,10 @@ function runAssetWithDownstream() {
 }
 
 function runPipelineWithContinue() {
-  const fullRefreshChecked = checkboxItems.value.find(item => item.name === "Full-Refresh")?.checked;
-  
+  const fullRefreshChecked = checkboxItems.value.find(
+    (item) => item.name === "Full-Refresh"
+  )?.checked;
+
   if (fullRefreshChecked) {
     showFullRefreshConfirmation(() => {
       const payload = buildCommandPayload(getCheckboxChangePayload(), { continue: true });
@@ -962,7 +1158,7 @@ function runPipelineWithContinue() {
     });
     return;
   }
-  
+
   const payload = buildCommandPayload(getCheckboxChangePayload(), { continue: true });
 
   vscode.postMessage({
@@ -972,8 +1168,10 @@ function runPipelineWithContinue() {
 }
 
 function runCurrentPipeline() {
-  const fullRefreshChecked = checkboxItems.value.find(item => item.name === "Full-Refresh")?.checked;
-  
+  const fullRefreshChecked = checkboxItems.value.find(
+    (item) => item.name === "Full-Refresh"
+  )?.checked;
+
   if (fullRefreshChecked) {
     showFullRefreshConfirmation(() => {
       const payload = buildCommandPayload(getCheckboxChangePayload(), { downstream: false });
@@ -984,7 +1182,7 @@ function runCurrentPipeline() {
     });
     return;
   }
-  
+
   const payload = buildCommandPayload(getCheckboxChangePayload(), { downstream: false });
 
   vscode.postMessage({
@@ -1031,12 +1229,141 @@ function handleIngestrSave(parameters) {
   });
 }
 
+// Variables management methods
+function toggleVariablesOpen() {
+  isVariablesOpen.value = !isVariablesOpen.value;
+}
+
+function closeVariablesPanel() {
+  isVariablesOpen.value = false;
+}
+
+function handleSaveVariable(event: { name: string; config: any; oldName?: string }) {
+  const { name, config, oldName } = event;
+  
+  // Create a clean copy of current variables to avoid any non-serializable data
+  const currentVariables = JSON.parse(JSON.stringify(pipelineVariables.value || {}));
+
+  // If we're editing an existing variable and the name changed, remove the old one
+  if (oldName && oldName !== name) {
+    delete currentVariables[oldName];
+  }
+
+  currentVariables[name] = config;
+
+  // Ensure the payload is serializable - following the same pattern as AssetColumns
+  try {
+    const formattedVariables = formatVariablesForPayload(currentVariables);
+    const payload = { variables: formattedVariables };
+    
+    // Test serialization to catch any issues (same pattern as AssetColumns)
+    const payloadStr = JSON.stringify(payload);
+    const safePayload = JSON.parse(payloadStr);
+
+    vscode.postMessage({
+      command: "bruin.setPipelineDetails",
+      payload: safePayload,
+      source: "variables-save",
+    });
+  } catch (error) {
+    console.error("Error serializing variables data:", error);
+    
+    // Fallback: send a minimal payload
+    vscode.postMessage({
+      command: "bruin.setPipelineDetails",
+      payload: { variables: {} },
+      source: "variables-save",
+    });
+  }
+}
+
+function deleteVariable(varName: string) {
+  // Create a clean copy of current variables to avoid any non-serializable data
+  const currentVariables = JSON.parse(JSON.stringify(pipelineVariables.value || {}));
+  
+  delete currentVariables[varName];
+
+  // Ensure the payload is serializable - following the same pattern as AssetColumns
+  try {
+    const formattedVariables = formatVariablesForPayload(currentVariables);
+    const payload = { variables: formattedVariables };
+    
+    // Test serialization to catch any issues (same pattern as AssetColumns)
+    const payloadStr = JSON.stringify(payload);
+    const safePayload = JSON.parse(payloadStr);
+
+    vscode.postMessage({
+      command: "bruin.setPipelineDetails",
+      payload: safePayload,
+      source: "variables-delete",
+    });
+  } catch (error) {
+    console.error("Error serializing variables data:", error);
+    
+    // Fallback: send a minimal payload
+    vscode.postMessage({
+      command: "bruin.setPipelineDetails",
+      payload: { variables: {} },
+      source: "variables-delete",
+    });
+  }
+}
+
+
+// Format variables for payload - following the same pattern as AssetColumns formatColumnsForPayload
+function formatVariablesForPayload(variables: any) {
+  const formattedVariables: any = {};
+  
+  Object.keys(variables).forEach(varName => {
+    const variable = variables[varName];
+    
+    // Ensure all values are serializable (same pattern as AssetColumns)
+    const safeVariable: any = {
+      type: String(variable.type || "string"),
+      default: variable.default !== undefined ? variable.default : null,
+    };
+    
+    // Add optional fields if they exist
+    if (variable.description) {
+      safeVariable.description = String(variable.description);
+    }
+    
+    if (variable.items) {
+      safeVariable.items = variable.items;
+    }
+    
+    if (variable.properties) {
+      safeVariable.properties = variable.properties;
+    }
+    
+    // Test serialization to catch any issues (same pattern as AssetColumns)
+    try {
+      JSON.stringify(safeVariable);
+      formattedVariables[varName] = safeVariable;
+    } catch (error) {
+      console.error(`Error serializing variable ${varName}:`, error);
+      // Return a safe fallback
+      formattedVariables[varName] = {
+        type: "string",
+        default: null,
+      };
+    }
+  });
+  
+  return formattedVariables;
+}
 
 /**
  * Event listener for message receiving
  */
 onBeforeUnmount(() => {
   window.removeEventListener("message", receiveMessage);
+
+  // Clean up any pending request timeout
+  if (requestTimeout) {
+    clearTimeout(requestTimeout);
+    requestTimeout = null;
+  }
 });
 
 watch(
@@ -1045,19 +1372,19 @@ watch(
     vscode.postMessage({
       command: "bruin.updateQueryDates",
       payload: {
-        startDate: String(newStart || ''),
-        endDate: String(newEnd || ''),
-        environment: String(newEnv || ''),
+        startDate: String(newStart || ""),
+        endDate: String(newEnd || ""),
+        environment: String(newEnv || ""),
       },
     });
-    
+
     // Also trigger asset metadata fetch with the current values
     vscode.postMessage({
       command: "bruin.getAssetMetadata",
       payload: {
-        startDate: String(newStart || ''),
-        endDate: String(newEnd || ''),
-        environment: String(newEnv || ''),
+        startDate: String(newStart || ""),
+        endDate: String(newEnd || ""),
+        environment: String(newEnv || ""),
       },
     });
   },
@@ -1094,7 +1421,7 @@ function receiveMessage(event: { data: any }) {
       renderPythonAsset.value = updateValue(envelope, "bruin-asset-alert");
       renderAssetAlert.value = updateValue(envelope, "non-asset-alert");
       isNotAsset.value = !!renderAssetAlert.value;
-      
+
       if (renderSQLAssetSuccess.value) {
         code.value = renderSQLAssetSuccess.value;
         language.value = "sql";
@@ -1102,9 +1429,53 @@ function receiveMessage(event: { data: any }) {
         code.value = null;
         language.value = "";
       }
-      
+
       errorPhase.value = renderSQLAssetError.value ? "Rendering" : "Unknown";
       resetStates([validationError, validationSuccess, validateButtonStatus]);
+      break;
+
+    case "pipeline-variables-message":
+      isRequestingVariables.value = false;
+      const filePath = props.filePath;
+
+      if (!filePath) {
+        console.log("No file path available for storing pipeline variables");
+        return;
+      }
+
+      if (envelope.payload && envelope.payload.status === "success") {
+        // Store the fetched pipeline variables locally, ensuring they're serializable
+        try {
+          const serializableData = JSON.parse(JSON.stringify(envelope.payload.message));
+          fetchedVariables.value = {
+            ...fetchedVariables.value,
+            [filePath]: serializableData,
+          };
+          
+        } catch (error) {
+          console.error("Error serializing fetched variables:", error);
+          // Store as string if serialization fails
+          fetchedVariables.value = {
+            ...fetchedVariables.value,
+            [filePath]: JSON.stringify(envelope.payload.message),
+          };
+        }
+      }
+      break;
+
+    case "patch-message":
+      if (envelope.payload && envelope.payload.status === "success") {
+        console.log("✅ Pipeline patch successful, re-requesting variables");
+        // Re-request variables after successful patch
+        if (props.filePath) {
+          vscode.postMessage({
+            command: "bruin.parsePipelineForVariables",
+            payload: { filePath: props.filePath },
+          });
+        }
+      } else if (envelope.payload && envelope.payload.status === "error") {
+        console.error("❌ Pipeline patch failed:", envelope.payload.message);
+      }
       break;
 
     case "run-success":
@@ -1130,6 +1501,23 @@ function receiveMessage(event: { data: any }) {
             checkboxState: envelope.payload,
           });
         } catch (_) {}
+      }
+      break;
+
+    case "file-changed":
+      // When pipeline file changes, refresh variables only if variables panel is NOT open
+      // (when panel is open, patch-message handles the refresh to avoid duplicates)
+      if (envelope.filePath === props.filePath && props.filePath && !isVariablesOpen.value) {
+        console.log("📝 Pipeline file changed, refreshing variables");
+        // Clear cached variables for this file
+        if (fetchedVariables.value[props.filePath]) {
+          delete fetchedVariables.value[props.filePath];
+        }
+        // Re-request variables to get fresh data
+        vscode.postMessage({
+          command: "bruin.parsePipelineForVariables",
+          payload: { filePath: props.filePath },
+        });
       }
       break;
   }

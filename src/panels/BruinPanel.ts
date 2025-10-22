@@ -21,7 +21,9 @@ import { renderCommandWithFlags } from "../extension/commands/renderCommand";
 import {
   convertFileToAssetCommand,
   parseAssetCommand,
+  parsePipelineCommand,
   patchAssetCommand,
+  patchPipelineCommand,
 } from "../extension/commands/parseAssetCommand";
 import { getEnvListCommand } from "../extension/commands/getEnvListCommand";
 import { BruinInstallCLI } from "../bruin/bruinInstallCli";
@@ -44,6 +46,7 @@ import { BRUIN_FILE_EXTENSIONS } from "../constants";
 import { BruinInternalParse } from "../bruin/bruinInternalParse";
 import { BruinInternalListTemplates } from "../bruin/bruinInternalListTemplates";
 import { BruinInternalAssetMetadata } from "../bruin/bruinInternalAssetMetadata";
+import { BruinLineageInternalParse } from "../bruin/bruinFlowLineage";
 
 import { getDefaultCheckboxSettings, getDefaultExcludeTag } from "../extension/configuration";
 import { exec } from "child_process";
@@ -120,6 +123,15 @@ export class BruinPanel {
         
         // Also refresh the activity bar connections
         vscode.commands.executeCommand('bruin.refreshConnections');
+      }),
+
+      // Watch for changes to pipeline.yml and pipeline.yaml files
+      workspace.createFileSystemWatcher("**/pipeline.{yml,yaml}").onDidChange(async (uri) => {
+        // Send file-changed message to webview to refresh variables
+        this._panel.webview.postMessage({
+          command: "file-changed",
+          filePath: uri.fsPath,
+        });
       }),
 
       window.onDidChangeActiveTextEditor(async (editor) => {
@@ -581,6 +593,17 @@ export class BruinPanel {
             patchAssetCommand(assetData, this._lastRenderedDocumentUri);
             break;
 
+          case "bruin.setPipelineDetails":
+            const pipelineData = message.payload;
+            const pipelineSource = message.source;
+        
+            if (!this._lastRenderedDocumentUri) {
+              return;
+            }
+            
+            patchPipelineCommand(pipelineData, this._lastRenderedDocumentUri);
+            break;
+
           case "bruin.fillAssetDependency":
             if (!this._lastRenderedDocumentUri) {
               console.error("No active document to fill asset dependency.");
@@ -1036,6 +1059,40 @@ export class BruinPanel {
                 finalEndDate,
                 finalEnvironment
               );
+            }
+            break;
+          case "bruin.parsePipelineForVariables":
+            if (!this._lastRenderedDocumentUri) {
+              return;
+            }
+            const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || "";
+            
+            try {
+              const pipelineParser = new BruinLineageInternalParse(
+                getBruinExecutablePath(),
+                workspaceFolder
+              );
+
+              if (this._lastRenderedDocumentUri) {
+                const pipelineData = await pipelineParser.parsePipelineConfig(this._lastRenderedDocumentUri.fsPath);
+                
+                // Send back the pipeline data including variables
+                BruinPanel.postMessage("pipeline-variables-message", { 
+                  status: "success", 
+                  message: pipelineData 
+                });
+              } else {
+                BruinPanel.postMessage("pipeline-variables-message", { 
+                  status: "error", 
+                  message: "Could not parse pipeline for variables" 
+                });
+              }
+            } catch (error: any) {
+              console.error("Error parsing pipeline for variables:", error);
+              BruinPanel.postMessage("pipeline-variables-message", { 
+                status: "error", 
+                message: `Failed to parse pipeline: ${error.message}` 
+              });
             }
             break;
         }

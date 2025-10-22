@@ -70,6 +70,7 @@ import { getQueryOutput } from "../extension/commands/queryCommands";
 import { BruinExportQueryOutput } from "../bruin/exportQueryOutput";
 import { BruinDBTCommand } from "../bruin/bruinDBTCommand";
 import { BruinInit } from "../bruin/bruinInit";
+import { getFullPipelineFilePath } from "../extension/commands/parseAssetCommand";
 
 suite("Extension Initialization", () => {
   test("should set default path separator based on platform", async () => {
@@ -7005,5 +7006,181 @@ schedule: yearly
       assert.strictEqual(runStub.calledOnce, true);
     });
   });
-  
+
+  suite("getFullPipelineFilePath Tests", () => {
+    let tempDir: string;
+    let getCurrentPipelinePathStub: sinon.SinonStub;
+
+    suiteSetup(async () => {
+      // Create a temporary directory for tests
+      tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "bruin-test-"));
+    });
+
+    suiteTeardown(async () => {
+      // Clean up temporary directory
+      await fs.promises.rmdir(tempDir, { recursive: true });
+    });
+
+    setup(() => {
+      getCurrentPipelinePathStub = sinon.stub(bruinUtils, "getCurrentPipelinePath");
+    });
+
+    teardown(() => {
+      getCurrentPipelinePathStub.restore();
+    });
+
+    test("should return the same path when given a pipeline.yml file", async () => {
+      const pipelineFilePath = "/path/to/project/pipeline.yml";
+      const result = await getFullPipelineFilePath(pipelineFilePath);
+      assert.strictEqual(result, pipelineFilePath);
+      sinon.assert.notCalled(getCurrentPipelinePathStub);
+    });
+
+    test("should return the same path when given a pipeline.yaml file", async () => {
+      const pipelineFilePath = "/path/to/project/pipeline.yaml";
+      const result = await getFullPipelineFilePath(pipelineFilePath);
+      assert.strictEqual(result, pipelineFilePath);
+      sinon.assert.notCalled(getCurrentPipelinePathStub);
+    });
+
+    test("should resolve asset file to pipeline.yml when it exists", async () => {
+      // Setup test files
+      const projectDir = path.join(tempDir, "project1");
+      const assetsDir = path.join(projectDir, "assets");
+      const assetFile = path.join(assetsDir, "table.sql");
+      const pipelineFile = path.join(projectDir, "pipeline.yml");
+
+      await fs.promises.mkdir(assetsDir, { recursive: true });
+      await fs.promises.writeFile(assetFile, "SELECT 1");
+      await fs.promises.writeFile(pipelineFile, "name: test");
+
+      getCurrentPipelinePathStub.resolves(projectDir);
+
+      const result = await getFullPipelineFilePath(assetFile);
+      assert.strictEqual(result, pipelineFile);
+      sinon.assert.calledWith(getCurrentPipelinePathStub, assetFile);
+    });
+
+    test("should resolve asset file to pipeline.yaml when it exists", async () => {
+      // Setup test files
+      const projectDir = path.join(tempDir, "project2");
+      const assetsDir = path.join(projectDir, "assets");
+      const assetFile = path.join(assetsDir, "table.sql");
+      const pipelineFile = path.join(projectDir, "pipeline.yaml");
+
+      await fs.promises.mkdir(assetsDir, { recursive: true });
+      await fs.promises.writeFile(assetFile, "SELECT 1");
+      await fs.promises.writeFile(pipelineFile, "name: test");
+
+      getCurrentPipelinePathStub.resolves(projectDir);
+
+      const result = await getFullPipelineFilePath(assetFile);
+      assert.strictEqual(result, pipelineFile);
+    });
+
+    test("should prefer pipeline.yml over pipeline.yaml when both exist", async () => {
+      // Setup test files
+      const projectDir = path.join(tempDir, "project3");
+      const assetsDir = path.join(projectDir, "assets");
+      const assetFile = path.join(assetsDir, "table.sql");
+      const pipelineYmlFile = path.join(projectDir, "pipeline.yml");
+      const pipelineYamlFile = path.join(projectDir, "pipeline.yaml");
+
+      await fs.promises.mkdir(assetsDir, { recursive: true });
+      await fs.promises.writeFile(assetFile, "SELECT 1");
+      await fs.promises.writeFile(pipelineYmlFile, "name: test yml");
+      await fs.promises.writeFile(pipelineYamlFile, "name: test yaml");
+
+      getCurrentPipelinePathStub.resolves(projectDir);
+
+      const result = await getFullPipelineFilePath(assetFile);
+      assert.strictEqual(result, pipelineYmlFile);
+    });
+
+    test("should return undefined when no pipeline file exists", async () => {
+      // Setup test files without pipeline
+      const projectDir = path.join(tempDir, "project4");
+      const assetsDir = path.join(projectDir, "assets");
+      const assetFile = path.join(assetsDir, "table.sql");
+
+      await fs.promises.mkdir(assetsDir, { recursive: true });
+      await fs.promises.writeFile(assetFile, "SELECT 1");
+
+      getCurrentPipelinePathStub.resolves(projectDir);
+
+      const result = await getFullPipelineFilePath(assetFile);
+      assert.strictEqual(result, undefined);
+    });
+
+    test("should return undefined when getCurrentPipelinePath returns undefined", async () => {
+      getCurrentPipelinePathStub.resolves(undefined);
+
+      const result = await getFullPipelineFilePath("/some/asset/file.sql");
+      assert.strictEqual(result, undefined);
+      sinon.assert.calledWith(getCurrentPipelinePathStub, "/some/asset/file.sql");
+    });
+
+    test("should handle nested directory structures", async () => {
+      // Setup nested test files
+      const projectDir = path.join(tempDir, "project5");
+      const nestedDir = path.join(projectDir, "assets", "subdir", "deep");
+      const assetFile = path.join(nestedDir, "table.sql");
+      const pipelineFile = path.join(projectDir, "pipeline.yml");
+
+      await fs.promises.mkdir(nestedDir, { recursive: true });
+      await fs.promises.writeFile(assetFile, "SELECT 1");
+      await fs.promises.writeFile(pipelineFile, "name: test");
+
+      getCurrentPipelinePathStub.resolves(projectDir);
+
+      const result = await getFullPipelineFilePath(assetFile);
+      assert.strictEqual(result, pipelineFile);
+    });
+
+    test("should handle files with pipeline in the name but wrong extension", async () => {
+      const projectDir = path.join(tempDir, "project6");
+      const pipelineFile = path.join(projectDir, "pipeline.yml");
+      const pipelineTextFile = path.join(projectDir, "pipeline.txt");
+
+      await fs.promises.mkdir(projectDir, { recursive: true });
+      await fs.promises.writeFile(pipelineFile, "name: test");
+      await fs.promises.writeFile(pipelineTextFile, "some text");
+
+      getCurrentPipelinePathStub.resolves(projectDir);
+
+      const result = await getFullPipelineFilePath(pipelineTextFile);
+      assert.strictEqual(result, pipelineFile);
+    });
+
+    test("should handle permission errors gracefully", async () => {
+      // Setup test files
+      const projectDir = path.join(tempDir, "project7");
+      const assetFile = path.join(projectDir, "table.sql");
+
+      await fs.promises.mkdir(projectDir, { recursive: true });
+      await fs.promises.writeFile(assetFile, "SELECT 1");
+
+      getCurrentPipelinePathStub.resolves(projectDir);
+
+      const result = await getFullPipelineFilePath(assetFile);
+      assert.strictEqual(result, undefined);
+    });
+
+    test("should handle edge case with empty file paths", async () => {
+      const result = await getFullPipelineFilePath("");
+      assert.strictEqual(result, undefined);
+    });
+
+    test("should handle absolute vs relative paths correctly", async () => {
+      // Test with absolute path
+      const absolutePipelineFile = path.resolve("/tmp/absolute/pipeline.yml");
+      let result = await getFullPipelineFilePath(absolutePipelineFile);
+      assert.strictEqual(result, absolutePipelineFile);
+
+      // Test with relative path (should still work)
+      const relativePipelineFile = "./relative/pipeline.yaml";
+      result = await getFullPipelineFilePath(relativePipelineFile);
+      assert.strictEqual(result, relativePipelineFile);
+    });
+  });
 

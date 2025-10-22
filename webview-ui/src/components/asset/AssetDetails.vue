@@ -91,6 +91,7 @@
         :assetMetadata="props.assetMetadata"
         :assetMetadataError="props.assetMetadataError"
         :pipeline="props.pipeline"
+        :filePath="props.filePath"
       />
     </div>
   </div>
@@ -120,6 +121,7 @@ const props = defineProps<{
   tags?: string[];
   assetMetadata?: any;
   assetMetadataError?: string;
+  filePath: string;
 }>();
 
 const descriptionRef = ref<HTMLElement | null>(null);
