@@ -51,6 +51,7 @@ import { BruinLineageInternalParse } from "../bruin/bruinFlowLineage";
 import { getDefaultCheckboxSettings, getDefaultExcludeTag } from "../extension/configuration";
 import { exec } from "child_process";
 import { flowLineageCommand } from "../extension/commands/FlowLineageCommand";
+import { BruinFormat } from "../bruin/bruinFormat";
 
 /**
  * This class manages the state and behavior of Bruin webview panels.
@@ -1094,6 +1095,14 @@ export class BruinPanel {
                 message: `Failed to parse pipeline: ${error.message}` 
               });
             }
+            break;
+          case "bruin.formatAsset":
+            const workspaceF = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || "";
+            const formatAsset = new BruinFormat(getBruinExecutablePath(), workspaceF);
+            if (!this._lastRenderedDocumentUri) {
+              return;
+            }
+            await formatAsset.formatAsset(this._lastRenderedDocumentUri.fsPath, true, { ignoresErrors: true });
             break;
         }
       },

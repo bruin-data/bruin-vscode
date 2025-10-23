@@ -156,6 +156,9 @@
         <div
           class="flex flex-col 2xs:flex-row flex-wrap gap-2 justify-start xs:justify-end items-stretch 2xs:items-center w-full xs:w-auto"
         >
+          <div class="inline-flex">
+            <vscode-button @click="formatAsset">Format</vscode-button>
+          </div>
           <!-- Validate Button Group -->
           <div class="inline-flex">
             <vscode-button
@@ -416,7 +419,6 @@
     @save-variable="handleSaveVariable"
     @delete-variable="deleteVariable"
   />
-
 </template>
 <script setup lang="ts">
 import { vscode } from "@/utilities/vscode";
@@ -514,6 +516,12 @@ const cancelFullRefresh = () => {
   pendingRunAction.value = null;
 };
 
+const formatAsset = () => {
+  vscode.postMessage({
+    command: "bruin.formatAsset",
+  });
+};
+
 const showFullRefreshConfirmation = (runAction: () => void) => {
   pendingRunAction.value = runAction;
   showFullRefreshAlert.value = true;
@@ -548,13 +556,13 @@ const fetchedVariables = ref({});
 
 const pipelineVariables = computed(() => {
   const filePath = props.filePath || "";
-  
+
   if (filePath && fetchedVariables.value[filePath]) {
     try {
       const storeData = fetchedVariables.value[filePath];
       const parsedData = typeof storeData === "string" ? JSON.parse(storeData) : storeData;
       const variables = parsedData?.variables || parsedData?.pipeline?.variables || {};
-      
+
       if (Object.keys(variables).length > 0) {
         // Ensure the variables object is serializable
         const serializedVars = JSON.parse(JSON.stringify(variables));
@@ -564,7 +572,7 @@ const pipelineVariables = computed(() => {
       console.error("Error parsing pipeline variables:", error);
     }
   }
-  
+
   // Safely return pipeline variables from props
   try {
     const pipelineVars = props.pipeline?.variables || {};
@@ -1240,7 +1248,7 @@ function closeVariablesPanel() {
 
 function handleSaveVariable(event: { name: string; config: any; oldName?: string }) {
   const { name, config, oldName } = event;
-  
+
   // Create a clean copy of current variables to avoid any non-serializable data
   const currentVariables = JSON.parse(JSON.stringify(pipelineVariables.value || {}));
 
@@ -1255,7 +1263,7 @@ function handleSaveVariable(event: { name: string; config: any; oldName?: string
   try {
     const formattedVariables = formatVariablesForPayload(currentVariables);
     const payload = { variables: formattedVariables };
-    
+
     // Test serialization to catch any issues (same pattern as AssetColumns)
     const payloadStr = JSON.stringify(payload);
     const safePayload = JSON.parse(payloadStr);
@@ -1267,7 +1275,7 @@ function handleSaveVariable(event: { name: string; config: any; oldName?: string
     });
   } catch (error) {
     console.error("Error serializing variables data:", error);
-    
+
     // Fallback: send a minimal payload
     vscode.postMessage({
       command: "bruin.setPipelineDetails",
@@ -1280,14 +1288,14 @@ function handleSaveVariable(event: { name: string; config: any; oldName?: string
 function deleteVariable(varName: string) {
   // Create a clean copy of current variables to avoid any non-serializable data
   const currentVariables = JSON.parse(JSON.stringify(pipelineVariables.value || {}));
-  
+
   delete currentVariables[varName];
 
   // Ensure the payload is serializable - following the same pattern as AssetColumns
   try {
     const formattedVariables = formatVariablesForPayload(currentVariables);
     const payload = { variables: formattedVariables };
-    
+
     // Test serialization to catch any issues (same pattern as AssetColumns)
     const payloadStr = JSON.stringify(payload);
     const safePayload = JSON.parse(payloadStr);
@@ -1299,7 +1307,7 @@ function deleteVariable(varName: string) {
     });
   } catch (error) {
     console.error("Error serializing variables data:", error);
-    
+
     // Fallback: send a minimal payload
     vscode.postMessage({
       command: "bruin.setPipelineDetails",
@@ -1309,33 +1317,32 @@ function deleteVariable(varName: string) {
   }
 }
 
-
 // Format variables for payload - following the same pattern as AssetColumns formatColumnsForPayload
 function formatVariablesForPayload(variables: any) {
   const formattedVariables: any = {};
-  
-  Object.keys(variables).forEach(varName => {
+
+  Object.keys(variables).forEach((varName) => {
     const variable = variables[varName];
-    
+
     // Ensure all values are serializable (same pattern as AssetColumns)
     const safeVariable: any = {
       type: String(variable.type || "string"),
       default: variable.default !== undefined ? variable.default : null,
     };
-    
+
     // Add optional fields if they exist
     if (variable.description) {
       safeVariable.description = String(variable.description);
     }
-    
+
     if (variable.items) {
       safeVariable.items = variable.items;
     }
-    
+
     if (variable.properties) {
       safeVariable.properties = variable.properties;
     }
-    
+
     // Test serialization to catch any issues (same pattern as AssetColumns)
     try {
       JSON.stringify(safeVariable);
@@ -1349,7 +1356,7 @@ function formatVariablesForPayload(variables: any) {
       };
     }
   });
-  
+
   return formattedVariables;
 }
 
@@ -1451,7 +1458,6 @@ function receiveMessage(event: { data: any }) {
             ...fetchedVariables.value,
             [filePath]: serializableData,
           };
-          
         } catch (error) {
           console.error("Error serializing fetched variables:", error);
           // Store as string if serialization fails
