@@ -1102,13 +1102,13 @@ export class BruinPanel {
             if (!this._lastRenderedDocumentUri) {
               return;
             }
-            await formatInIntegratedTerminal(this._lastRenderedDocumentUri.fsPath, workspaceF, sqlfluffSingle);
+            await formatInIntegratedTerminal(this._lastRenderedDocumentUri.fsPath, workspaceF, sqlfluffSingle, "bruin");
             break;
           case "bruin.formatAllAssets":
             const sqlfluff = getFormatSqlfluff();
             const workspaceFold = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || "";
             // Format all assets in the workspace (empty string for all assets)
-            await formatInIntegratedTerminal("", workspaceFold, sqlfluff);
+            await formatInIntegratedTerminal("", workspaceFold, sqlfluff, "bruin");
             break;
           case "showInfoMessage":
             vscode.window.showInformationMessage(message.payload);

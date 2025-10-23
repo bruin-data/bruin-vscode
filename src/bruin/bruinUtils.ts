@@ -283,6 +283,7 @@ export const formatInIntegratedTerminal = async (
   sqlfluff: boolean = false,
   bruinExecutablePath?: string
 ): Promise<void> => {
+  const escapedAssetPath = assetPath ? escapeFilePath(assetPath) : "";
   const bruinExecutable = bruinExecutablePath ? "bruin" : getBruinExecutablePath();
   const terminal = await createIntegratedTerminal(workingDir);
   
@@ -297,9 +298,9 @@ export const formatInIntegratedTerminal = async (
   if (sqlfluff) {
     // Use formatBruinCommand for consistency with run command
     const flags = "--sqlfluff";
-    command = formatBruinCommand(executable, "format", flags, assetPath, useUnixFormatting);
+    command = formatBruinCommand(executable, "format", flags, escapedAssetPath, useUnixFormatting);
   } else {
-    command = `${executable} format ${assetPath}`;
+    command = `${executable} format ${escapedAssetPath}`;
   }
   
   terminal.show(true);
