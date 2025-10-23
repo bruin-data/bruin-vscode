@@ -1,4 +1,7 @@
 # Changelog
+## [0.70.1] - [2025-10-23]
+- Enabled the rendering of SQL queries for `.task.yml` files.
+
 ## [0.70.0] - [2025-10-21]
 - Added pipeline variables management UI to the extension.
 
