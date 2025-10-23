@@ -1525,6 +1525,20 @@ function receiveMessage(event: { data: any }) {
         const formatError = updateValue(envelope, "error");
         console.log("formatSuccess", formatSuccess);
         console.log("formatError", formatError);
+        
+        // Show simple toast notifications
+        if (formatSuccess) {
+          vscode.postMessage({
+            command: "showInfoMessage",
+            payload: formatSuccess
+          });
+        }
+        if (formatError) {
+          vscode.postMessage({
+            command: "showErrorMessage", 
+            payload: formatError
+          });
+        }
         break;
   }
 }

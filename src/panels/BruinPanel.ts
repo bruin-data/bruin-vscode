@@ -1110,6 +1110,12 @@ export class BruinPanel {
             // Format all assets in the workspace (no specific file path, sqlfluff: false, allAssets: true)
             await formatAllAssets.formatAsset("", false, true, { ignoresErrors: true });
             break;
+          case "showInfoMessage":
+            vscode.window.showInformationMessage(message.payload);
+            break;
+          case "showErrorMessage":
+            vscode.window.showErrorMessage(message.payload);
+            break;
         }
       },
       undefined,
