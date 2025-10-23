@@ -157,45 +157,14 @@
           class="flex flex-col 2xs:flex-row flex-wrap gap-2 justify-start xs:justify-end items-stretch 2xs:items-center w-full xs:w-auto"
         >
           <!-- Format Button Group -->
-          <div class="inline-flex">
-            <vscode-button @click="formatAsset" class="text-xs h-7">
-              <div class="flex items-center justify-center">
-                <span class="codicon codicon-list-tree text-[9px] mr-1"></span>
-                <span>Format</span>
-              </div>
-            </vscode-button>
-            <Menu as="div" class="relative -ml-px block">
-              <MenuButton
-                class="relative h-7 border border-transparent inline-flex items-center bg-editor-button-bg px-1 text-editor-button-fg hover:bg-editor-button-hover-bg focus:z-10"
-              >
-                <ChevronDownIcon class="h-3 w-3" aria-hidden="true" />
-              </MenuButton>
-              <!-- Dropdown Menu for Format -->
-              <transition
-                enter-active-class="transition ease-out duration-100"
-                enter-from-class="transform opacity-0 scale-95"
-                enter-to-class="transform opacity-100 scale-100"
-                leave-active-class="transition ease-in duration-75"
-                leave-from-class="transform opacity-100 scale-100"
-                leave-to-class="transform opacity-0 scale-95"
-              >
-                <MenuItems
-                  class="absolute left-0 xs:right-0 xs:left-auto z-[99999] w-40 xs:w-48 origin-top-left xs:origin-top-right max-w-[calc(100vw-2rem)]"
-                >
-                  <div class="p-1 bg-editorWidget-bg rounded-sm border border-commandCenter-border">
-                    <MenuItem key="format-all">
-                      <vscode-button
-                        class="block text-editor-fg rounded-sm w-full border-0 text-left text-2xs hover:bg-editor-button-hover-bg hover:text-editor-button-fg bg-editorWidget-bg"
-                        @click="formatAll"
-                      >
-                        Format All
-                      </vscode-button>
-                    </MenuItem>
-                  </div>
-                </MenuItems>
-              </transition>
-            </Menu>
-          </div>
+          <ButtonGroup
+            label="Format"
+            codicon="codicon-list-tree"
+            codicon-class="codicon codicon-list-tree text-[9px] mr-1"
+            :dropdown-items="[{ key: 'format-all', label: 'Format All' }]"
+            @main-click="formatAsset"
+            @dropdown-click="handleFormatDropdown"
+          />
           <!-- Validate Button Group -->
           <div class="inline-flex">
             <vscode-button
@@ -284,62 +253,19 @@
           </div>
 
           <!-- Run Button Group -->
-          <div class="inline-flex">
-            <vscode-button @click="runAssetOnly" :disabled="isNotAsset || isError" class="text-xs h-7">
-              <div class="flex items-center justify-center">
-                <PlayIcon class="h-3 w-3 mr-1" aria-hidden="true" />
-                <span>Run</span>
-              </div>
-            </vscode-button>
-            <Menu as="div" class="relative -ml-px block">
-              <MenuButton
-                :disabled="isNotAsset || isError"
-                class="relative h-7 border border-transparent inline-flex items-center disabled:opacity-50 disabled:cursor-not-allowed bg-editor-button-bg px-1 text-editor-button-fg hover:bg-editor-button-hover-bg focus:z-10"
-              >
-                <ChevronDownIcon class="h-3 w-3" aria-hidden="true" />
-              </MenuButton>
-              <!-- Dropdown Menu for Run -->
-              <transition
-                enter-active-class="transition ease-out duration-100"
-                enter-from-class="transform opacity-0 scale-95"
-                enter-to-class="transform opacity-100 scale-100"
-                leave-active-class="transition ease-in duration-75"
-                leave-from-class="transform opacity-100 scale-100"
-                leave-to-class="transform opacity-0 scale-95"
-              >
-                <MenuItems
-                  class="absolute left-0 xs:right-0 xs:left-auto z-[99999] w-40 xs:w-48 origin-top-left xs:origin-top-right max-w-[calc(100vw-2rem)]"
-                >
-                  <div class="p-1 bg-editorWidget-bg rounded-sm border border-commandCenter-border">
-                    <MenuItem key="run-with-downstream" v-slot="{ active }">
-                      <vscode-button
-                        class="block text-editor-fg border-0 rounded-sm w-full text-left text-2xs hover:bg-editor-button-hover-bg hover:text-editor-button-fg bg-editorWidget-bg"
-                        @click="runAssetWithDownstream"
-                      >
-                        Run with downstream
-                      </vscode-button>
-                    </MenuItem>
-                    <MenuItem key="run-current-pipeline" v-slot="{ active }">
-                      <vscode-button
-                        class="block text-editor-fg border-0 rounded-sm w-full text-left text-2xs hover:bg-editor-button-hover-bg hover:text-editor-button-fg bg-editorWidget-bg"
-                        @click="runCurrentPipeline"
-                      >
-                        Run the whole pipeline
-                      </vscode-button>
-                    </MenuItem>
-                    <MenuItem key="run-with-continue" v-slot="{ active }">
-                      <vscode-button
-                        class="block text-editor-fg border-0 rounded-sm w-full text-left text-2xs hover:bg-editor-button-hover-bg hover:text-editor-button-fg bg-editorWidget-bg"
-                        @click="runPipelineWithContinue"
-                      >
-                        Continue from last failure
-                      </vscode-button>
-                    </MenuItem>
-                  </div>
-                </MenuItems>
-              </transition>
-            </Menu>
-          </div>
+          <ButtonGroup
+            label="Run"
+            :icon="PlayIcon"
+            icon-class="h-3 w-3 mr-1"
+            :disabled="isNotAsset || isError"
+            :dropdown-items="[
+              { key: 'run-with-downstream', label: 'Run with downstream' },
+              { key: 'run-current-pipeline', label: 'Run the whole pipeline' },
+              { key: 'run-with-continue', label: 'Continue from last failure' }
+            ]"
+            @main-click="runAssetOnly"
+            @dropdown-click="handleRunDropdown"
+          />
         </div>
       </div>
 
@@ -477,6 +403,7 @@ import IngestrAssetDisplay from "@/components/asset/IngestrAssetDisplay.vue";
 import CheckboxGroup from "@/components/ui/checkbox-group/CheckboxGroup.vue";
 import EnvSelectMenu from "@/components/ui/select-menu/EnvSelectMenu.vue";
 import VariablesPanel from "@/components/ui/variables-panel/VariablesPanel.vue";
+import ButtonGroup from "@/components/ui/ButtonGroup.vue";
 import { updateValue, resetStates, determineValidationStatus } from "@/utilities/helper";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/vue";
 import {
@@ -564,6 +491,26 @@ const formatAll = () => {
   vscode.postMessage({
     command: "bruin.formatAll",
   });
+};
+
+const handleFormatDropdown = (key: string) => {
+  if (key === 'format-all') {
+    formatAll();
+  }
+};
+
+const handleRunDropdown = (key: string) => {
+  switch (key) {
+    case 'run-with-downstream':
+      runAssetWithDownstream();
+      break;
+    case 'run-current-pipeline':
+      runCurrentPipeline();
+      break;
+    case 'run-with-continue':
+      runPipelineWithContinue();
+      break;
+  }
 };
 
 const showFullRefreshConfirmation = (runAction: () => void) => {
