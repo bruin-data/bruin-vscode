@@ -601,6 +601,12 @@ const hasIntervalModifiers = computed(() => {
   return intervalModifiersValue;
 });
 
+const startDate = computed(() => {
+  if (!data.value) return "";
+  const parsedDetails = parseAssetDetails(data.value);
+  return parsedDetails?.pipeline?.start_date || "";
+});
+
 const isEditingName = ref(false);
 const editingName = ref(assetDetailsProps.value?.name || "");
 const nameInput = ref<HTMLInputElement | null>(null);
@@ -705,6 +711,7 @@ const tabs = ref([
       environments: environmentsList.value,
       selectedEnvironment: selectedEnvironment.value,
       hasIntervalModifiers: hasIntervalModifiers.value,
+      startDate: startDate.value,
       parameters: ingestrParameters.value,
       columns: columns.value,
       assetMetadata: assetMetadata.value,
