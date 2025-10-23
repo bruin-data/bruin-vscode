@@ -17,15 +17,17 @@ export class BruinFormat extends BruinCommand {
     console.time("formatAsset");
     try {
       let params: string[] = [];
+      // Create a copy of flags to avoid mutating the original array
+      const commandFlags = [...flags];
       // For other asset types, run the command but with optimized execution
       if (sqlfluff){
-        flags.push("--sqlfluff");
+        commandFlags.push("--sqlfluff");
       }
       if (allAssets){
-         params = [...flags];
+         params = [...commandFlags];
       }
       else {
-        params = [...flags, filePath];
+        params = [...commandFlags, filePath];
       }
       this.run(params, { ignoresErrors })
         .then(

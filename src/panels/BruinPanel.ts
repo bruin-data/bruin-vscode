@@ -10,6 +10,7 @@ import {
   getCurrentPipelinePath,
   runInIntegratedTerminal,
   runBruinCommandInIntegratedTerminal,
+  formatInIntegratedTerminal,
   escapeFilePath,
 
 
@@ -48,10 +49,9 @@ import { BruinInternalListTemplates } from "../bruin/bruinInternalListTemplates"
 import { BruinInternalAssetMetadata } from "../bruin/bruinInternalAssetMetadata";
 import { BruinLineageInternalParse } from "../bruin/bruinFlowLineage";
 
-import { getDefaultCheckboxSettings, getDefaultExcludeTag } from "../extension/configuration";
+import { getDefaultCheckboxSettings, getDefaultExcludeTag, getFormatSqlfluff } from "../extension/configuration";
 import { exec } from "child_process";
 import { flowLineageCommand } from "../extension/commands/FlowLineageCommand";
-import { BruinFormat } from "../bruin/bruinFormat";
 
 /**
  * This class manages the state and behavior of Bruin webview panels.
@@ -1097,18 +1097,18 @@ export class BruinPanel {
             }
             break;
           case "bruin.formatAsset":
+            const sqlfluffSingle = getFormatSqlfluff();
             const workspaceF = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || "";
-            const formatAsset = new BruinFormat(getBruinExecutablePath(), workspaceF);
             if (!this._lastRenderedDocumentUri) {
               return;
             }
-            await formatAsset.formatAsset(this._lastRenderedDocumentUri.fsPath, false, false, { ignoresErrors: true });
+            await formatInIntegratedTerminal(this._lastRenderedDocumentUri.fsPath, workspaceF, sqlfluffSingle);
             break;
           case "bruin.formatAllAssets":
+            const sqlfluff = getFormatSqlfluff();
             const workspaceFold = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || "";
-            const formatAllAssets = new BruinFormat(getBruinExecutablePath(), workspaceFold);
-            // Format all assets in the workspace (no specific file path, sqlfluff: false, allAssets: true)
-            await formatAllAssets.formatAsset("", false, true, { ignoresErrors: true });
+            // Format all assets in the workspace (empty string for all assets)
+            await formatInIntegratedTerminal("", workspaceFold, sqlfluff);
             break;
           case "showInfoMessage":
             vscode.window.showInformationMessage(message.payload);
