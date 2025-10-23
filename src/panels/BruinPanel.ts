@@ -1102,7 +1102,13 @@ export class BruinPanel {
             if (!this._lastRenderedDocumentUri) {
               return;
             }
-            await formatAsset.formatAsset(this._lastRenderedDocumentUri.fsPath, true, { ignoresErrors: true });
+            await formatAsset.formatAsset(this._lastRenderedDocumentUri.fsPath, false, false, { ignoresErrors: true });
+            break;
+          case "bruin.formatAllAssets":
+            const workspaceFold = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || "";
+            const formatAllAssets = new BruinFormat(getBruinExecutablePath(), workspaceFold);
+            // Format all assets in the workspace (no specific file path, sqlfluff: false, allAssets: true)
+            await formatAllAssets.formatAsset("", false, true, { ignoresErrors: true });
             break;
         }
       },

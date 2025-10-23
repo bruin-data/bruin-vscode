@@ -11,15 +11,23 @@ export class BruinFormat extends BruinCommand {
   public async formatAsset(
     filePath: string,
     sqlfluff: boolean,
+    allAssets: boolean,
     { flags = [] as string[], ignoresErrors = false}: BruinCommandOptions = {}
   ): Promise<void> {
     console.time("formatAsset");
     try {
+      let params: string[] = [];
       // For other asset types, run the command but with optimized execution
       if (sqlfluff){
         flags.push("--sqlfluff");
       }
-      this.run([...flags, filePath], { ignoresErrors })
+      if (allAssets){
+         params = [...flags];
+      }
+      else {
+        params = [...flags, filePath];
+      }
+      this.run(params, { ignoresErrors })
         .then(
           (result) => {
             this.postMessageToPanels("success", result);

@@ -76,4 +76,11 @@ defineEmits<{
   mainClick: [];
   dropdownClick: [key: string];
 }>();
+
 </script>
+
+<style scoped>
+vscode-button::part(control) {
+  @apply border-none px-1.5;
+}
+</style>

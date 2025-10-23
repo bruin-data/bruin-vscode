@@ -403,7 +403,7 @@ import IngestrAssetDisplay from "@/components/asset/IngestrAssetDisplay.vue";
 import CheckboxGroup from "@/components/ui/checkbox-group/CheckboxGroup.vue";
 import EnvSelectMenu from "@/components/ui/select-menu/EnvSelectMenu.vue";
 import VariablesPanel from "@/components/ui/variables-panel/VariablesPanel.vue";
-import ButtonGroup from "@/components/ui/ButtonGroup.vue";
+import ButtonGroup from "@/components/ui/buttons/ButtonGroup.vue";
 import { updateValue, resetStates, determineValidationStatus } from "@/utilities/helper";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/vue";
 import {
@@ -467,12 +467,6 @@ const isPipelineStartDateAvailable = computed(() => {
 const showFullRefreshAlert = ref(false);
 const pendingRunAction = ref<(() => void) | null>(null);
 
-// Method to dismiss the alert
-const dismissIntervalAlert = () => {
-  dismissedIntervalAlert.value = true;
-  showIntervalAlert.value = false;
-};
-
 // Full refresh alert methods
 const confirmFullRefresh = () => {
   showFullRefreshAlert.value = false;
@@ -493,15 +487,15 @@ const formatAsset = () => {
   });
 };
 
-const formatAll = () => {
+const formatAllAssets = () => {
   vscode.postMessage({
-    command: "bruin.formatAll",
+    command: "bruin.formatAllAssets",
   });
 };
 
 const handleFormatDropdown = (key: string) => {
   if (key === 'format-all') {
-    formatAll();
+    formatAllAssets();
   }
 };
 
@@ -648,6 +642,7 @@ const handleWarningClose = () => {
   showWarnings.value = false;
   warningMessages.value.splice(0, warningMessages.value.length);
 };
+
 
 const hasCriticalErrors = computed(() =>
   parsedErrorMessages.value.some(
@@ -1525,6 +1520,12 @@ function receiveMessage(event: { data: any }) {
         });
       }
       break;
+      case "format-message":
+        const formatSuccess = updateValue(envelope, "success");
+        const formatError = updateValue(envelope, "error");
+        console.log("formatSuccess", formatSuccess);
+        console.log("formatError", formatError);
+        break;
   }
 }
 </script>
