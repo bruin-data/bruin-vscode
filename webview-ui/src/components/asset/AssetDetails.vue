@@ -92,6 +92,7 @@
         :assetMetadataError="props.assetMetadataError"
         :pipeline="props.pipeline"
         :filePath="props.filePath"
+        :startDate="props.startDate"
       />
     </div>
   </div>
@@ -111,6 +112,7 @@ const props = defineProps<{
   description: string;
   type: string;
   owner: string;
+  startDate: string;
   id: string;
   pipeline: any;
   environments: string[];

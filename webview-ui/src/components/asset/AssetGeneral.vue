@@ -15,7 +15,7 @@
           <!-- Date Controls and Checkbox Group -->
           <div id="controls" class="flex flex-col xs:w-1/2">
             <div class="flex flex-col xs:flex-row gap-1 w-full justify-between xs:justify-end">
-              <DateInput label="Start Date" v-model="startDate" :disabled="isFullRefreshChecked" />
+              <DateInput label="Start Date" v-model="startDate" :disabled="isFullRefreshChecked && isPipelineStartDateAvailable" />
               <DateInput label="End Date" v-model="endDate" />
               <div class="flex items-center gap-1 self-start xs:self-end">
                 <button
@@ -423,6 +423,7 @@ import { useConnectionsStore } from "@/store/bruinStore";
  */
 const props = defineProps<{
   schedule: string;
+  startDate: string;
   environments: string[];
   selectedEnvironment: string;
   hasIntervalModifiers: boolean;
@@ -456,6 +457,11 @@ const toggled = ref(false);
 const rudderStack = RudderStackService.getInstance();
 const showIntervalAlert = ref(false);
 const dismissedIntervalAlert = ref(false);
+
+const isPipelineStartDateAvailable = computed(() => {
+  const startDate = props.startDate;
+  return startDate !== undefined && startDate !== null && startDate !== "";
+});
 
 // Full refresh alert state
 const showFullRefreshAlert = ref(false);
@@ -704,6 +710,8 @@ const isVariablesOpen = ref(false);
 const isFullRefreshChecked = computed(() => {
   return checkboxItems.value.find((item) => item.name === "Full-Refresh")?.checked || false;
 });
+
+
 const activeTagCount = computed(() => includeTags.value.length + excludeTags.value.length);
 const filteredTags = computed(() => {
   const q = tagFilterSearch.value.toLowerCase().trim();
@@ -808,7 +816,7 @@ watch(
  */
 function getCheckboxChangePayload() {
   // When full-refresh is checked, don't include start-date
-  const effectiveStartDate = isFullRefreshChecked.value ? "" : startDate.value;
+  const effectiveStartDate = isFullRefreshChecked.value && isPipelineStartDateAvailable.value ? "" : startDate.value;
 
   return concatCommandFlags(
     effectiveStartDate,

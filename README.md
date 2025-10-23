@@ -63,6 +63,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.70.2**: Fixed full refresh start date logic to use pipeline start date (if available) or the user-defined start date.
 - **0.70.1**: Enabled the rendering of SQL queries for `.task.yml` files.
 - **0.70.0**: Added pipeline variables management UI to the extension.
 - **0.69.9**: Fixed the file extension detection issue and added support for `task.yml` files.

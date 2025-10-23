@@ -1,4 +1,7 @@
 # Changelog
+## [0.70.2] - [2025-10-23]
+- Fixed full refresh start date logic to use pipeline start date (if available) or the user-defined start date.
+
 ## [0.70.1] - [2025-10-23]
 - Enabled the rendering of SQL queries for `.task.yml` files.
 
