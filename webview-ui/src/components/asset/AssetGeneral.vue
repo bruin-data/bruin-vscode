@@ -156,14 +156,52 @@
         <div
           class="flex flex-col 2xs:flex-row flex-wrap gap-2 justify-start xs:justify-end items-stretch 2xs:items-center w-full xs:w-auto"
         >
+          <!-- Format Button Group -->
           <div class="inline-flex">
-            <vscode-button @click="formatAsset">Format</vscode-button>
+            <vscode-button @click="formatAsset" class="text-xs h-7">
+              <div class="flex items-center justify-center">
+                <span class="codicon codicon-list-tree text-[9px] mr-1"></span>
+                <span>Format</span>
+              </div>
+            </vscode-button>
+            <Menu as="div" class="relative -ml-px block">
+              <MenuButton
+                class="relative h-7 border border-transparent inline-flex items-center bg-editor-button-bg px-1 text-editor-button-fg hover:bg-editor-button-hover-bg focus:z-10"
+              >
+                <ChevronDownIcon class="h-3 w-3" aria-hidden="true" />
+              </MenuButton>
+              <!-- Dropdown Menu for Format -->
+              <transition
+                enter-active-class="transition ease-out duration-100"
+                enter-from-class="transform opacity-0 scale-95"
+                enter-to-class="transform opacity-100 scale-100"
+                leave-active-class="transition ease-in duration-75"
+                leave-from-class="transform opacity-100 scale-100"
+                leave-to-class="transform opacity-0 scale-95"
+              >
+                <MenuItems
+                  class="absolute left-0 xs:right-0 xs:left-auto z-[99999] w-40 xs:w-48 origin-top-left xs:origin-top-right max-w-[calc(100vw-2rem)]"
+                >
+                  <div class="p-1 bg-editorWidget-bg rounded-sm border border-commandCenter-border">
+                    <MenuItem key="format-all">
+                      <vscode-button
+                        class="block text-editor-fg rounded-sm w-full border-0 text-left text-2xs hover:bg-editor-button-hover-bg hover:text-editor-button-fg bg-editorWidget-bg"
+                        @click="formatAll"
+                      >
+                        Format All
+                      </vscode-button>
+                    </MenuItem>
+                  </div>
+                </MenuItems>
+              </transition>
+            </Menu>
           </div>
           <!-- Validate Button Group -->
           <div class="inline-flex">
             <vscode-button
               @click="handleBruinValidateCurrentAsset"
               :disabled="isNotAsset || isError"
+              class="text-xs h-7"
             >
               <div class="flex items-center justify-center">
                 <template v-if="validateButtonStatus === 'validated'">
@@ -206,9 +244,9 @@
             <Menu as="div" class="relative -ml-px block">
               <MenuButton
                 :disabled="isNotAsset || isError"
-                class="relative h-full border border-transparent inline-flex items-center disabled:opacity-50 disabled:cursor-not-allowed bg-editor-button-bg p-1 text-editor-button-fg hover:bg-editor-button-hover-bg focus:z-10"
+                class="relative h-7 border border-transparent inline-flex items-center disabled:opacity-50 disabled:cursor-not-allowed bg-editor-button-bg px-1 text-editor-button-fg hover:bg-editor-button-hover-bg focus:z-10"
               >
-                <ChevronDownIcon class="h-4 w-4" aria-hidden="true" />
+                <ChevronDownIcon class="h-3 w-3" aria-hidden="true" />
               </MenuButton>
               <!-- Dropdown Menu for Validate -->
               <transition
@@ -247,18 +285,18 @@
 
           <!-- Run Button Group -->
           <div class="inline-flex">
-            <vscode-button @click="runAssetOnly" :disabled="isNotAsset || isError">
+            <vscode-button @click="runAssetOnly" :disabled="isNotAsset || isError" class="text-xs h-7">
               <div class="flex items-center justify-center">
-                <PlayIcon class="h-4 w-4 mr-1" aria-hidden="true" />
+                <PlayIcon class="h-3 w-3 mr-1" aria-hidden="true" />
                 <span>Run</span>
               </div>
             </vscode-button>
             <Menu as="div" class="relative -ml-px block">
               <MenuButton
                 :disabled="isNotAsset || isError"
-                class="relative h-full border border-transparent inline-flex items-center disabled:opacity-50 disabled:cursor-not-allowed bg-editor-button-bg p-1 text-editor-button-fg hover:bg-editor-button-hover-bg focus:z-10"
+                class="relative h-7 border border-transparent inline-flex items-center disabled:opacity-50 disabled:cursor-not-allowed bg-editor-button-bg px-1 text-editor-button-fg hover:bg-editor-button-hover-bg focus:z-10"
               >
-                <ChevronDownIcon class="h-4 w-4" aria-hidden="true" />
+                <ChevronDownIcon class="h-3 w-3" aria-hidden="true" />
               </MenuButton>
               <!-- Dropdown Menu for Run -->
               <transition
@@ -519,6 +557,12 @@ const cancelFullRefresh = () => {
 const formatAsset = () => {
   vscode.postMessage({
     command: "bruin.formatAsset",
+  });
+};
+
+const formatAll = () => {
+  vscode.postMessage({
+    command: "bruin.formatAll",
   });
 };
 
@@ -1534,6 +1578,6 @@ vscode-checkbox::part(control) {
   @apply border-none outline-none w-3.5 h-3.5;
 }
 vscode-button::part(control) {
-  @apply border-none;
+  @apply border-none px-1.5;
 }
 </style>
