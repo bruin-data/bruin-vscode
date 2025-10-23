@@ -63,7 +63,9 @@ export class BruinRender extends BruinCommand {
       return;
     }
 
-    if (isBruinAsset || isBruinPipeline || isBruinYaml) {
+    const isTaskYml = filePath.endsWith('.task.yml') || filePath.endsWith('.task.yaml');
+    
+    if ((isBruinAsset || isBruinPipeline || (isBruinYaml && !isTaskYml))) {
       BruinPanel?.postMessage("render-message", {
         status: "bruin-asset-alert",
         message: "-- Python, Yaml, or Pipeline BRUIN asset detected --",
@@ -150,9 +152,11 @@ export class BruinRender extends BruinCommand {
   }
 
   private async detectBruinAsset(filePath: string): Promise<boolean> {
+    const isTaskYml = filePath.endsWith('.task.yml') || filePath.endsWith('.task.yaml');
+    
     if (
       (await isPythonBruinAsset(filePath)) ||
-      (await isYamlBruinAsset(filePath)) ||
+      ((await isYamlBruinAsset(filePath)) && !isTaskYml) ||
       (await isBruinPipeline(filePath))
     ) {
       BruinPanel?.postMessage("render-message", {
