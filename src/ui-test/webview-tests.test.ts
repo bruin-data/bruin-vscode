@@ -1069,7 +1069,7 @@ describe("Bruin Webview Test", function () {
       );
       await closeIconForDep.click();
 
-      // Wait for dependency to be removed with proper condition
+      // Wait for dependency to be removed with proper condition and longer timeout for Windows
       await driver.wait(
         async () => {
           try {
@@ -1090,11 +1090,14 @@ describe("Bruin Webview Test", function () {
             return true;
           }
         },
-        10000,
+        15000, // Increased timeout for Windows compatibility
         `Dependency "${depToRemove}" was not removed within timeout`
       );
 
-      // Verify it was removed with retry logic
+      // Add additional wait for Windows to ensure DOM is fully updated
+      await sleep(2000);
+
+      // Verify it was removed with retry logic and longer timeout
       let finalDepTexts: string[] = [];
       await driver.wait(
         async () => {
@@ -1110,12 +1113,12 @@ describe("Bruin Webview Test", function () {
                 continue;
               }
             }
-            return true;
+            return !finalDepTexts.includes(depToRemove); // Changed to check the condition we want
           } catch (e) {
             return false;
           }
         },
-        5000,
+        10000, // Increased timeout for better reliability
         "Could not verify final state"
       );
       assert.ok(!finalDepTexts.includes(depToRemove), `Dependency "${depToRemove}" should be removed`);

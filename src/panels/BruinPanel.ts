@@ -10,6 +10,7 @@ import {
   getCurrentPipelinePath,
   runInIntegratedTerminal,
   runBruinCommandInIntegratedTerminal,
+  formatInIntegratedTerminal,
   escapeFilePath,
 
 
@@ -48,7 +49,7 @@ import { BruinInternalListTemplates } from "../bruin/bruinInternalListTemplates"
 import { BruinInternalAssetMetadata } from "../bruin/bruinInternalAssetMetadata";
 import { BruinLineageInternalParse } from "../bruin/bruinFlowLineage";
 
-import { getDefaultCheckboxSettings, getDefaultExcludeTag } from "../extension/configuration";
+import { getDefaultCheckboxSettings, getDefaultExcludeTag, getFormatSqlfluff } from "../extension/configuration";
 import { exec } from "child_process";
 import { flowLineageCommand } from "../extension/commands/FlowLineageCommand";
 
@@ -1094,6 +1095,26 @@ export class BruinPanel {
                 message: `Failed to parse pipeline: ${error.message}` 
               });
             }
+            break;
+          case "bruin.formatAsset":
+            const sqlfluffSingle = getFormatSqlfluff();
+            const workspaceF = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || "";
+            if (!this._lastRenderedDocumentUri) {
+              return;
+            }
+            await formatInIntegratedTerminal(this._lastRenderedDocumentUri.fsPath, workspaceF, sqlfluffSingle, "bruin");
+            break;
+          case "bruin.formatAllAssets":
+            const sqlfluff = getFormatSqlfluff();
+            const workspaceFold = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || "";
+            // Format all assets in the workspace (empty string for all assets)
+            await formatInIntegratedTerminal("", workspaceFold, sqlfluff, "bruin");
+            break;
+          case "showInfoMessage":
+            vscode.window.showInformationMessage(message.payload);
+            break;
+          case "showErrorMessage":
+            vscode.window.showErrorMessage(message.payload);
             break;
         }
       },

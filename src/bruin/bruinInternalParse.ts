@@ -1,4 +1,3 @@
-// Here's an optimized version of BruinInternalParse class to make parsing faster
 import { BruinCommandOptions } from "../types";
 import { BruinCommand } from "./bruinCommand";
 import { BruinPanel } from "../panels/BruinPanel";
@@ -92,7 +91,6 @@ export class BruinInternalParse extends BruinCommand {
       });
       
       // If asset is null, it means the file is not an asset
-      // Example: {"asset":null,"pipeline":{"name":"bruin-duckdb","schedule":"daily"},"repo":{"path":"..."}}
       const isAsset = parsed.asset !== null && parsed.asset !== undefined;
       console.log("checkIfAsset: Final result for", filePath, ":", isAsset);
       return isAsset;

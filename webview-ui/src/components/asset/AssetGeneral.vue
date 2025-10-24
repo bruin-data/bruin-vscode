@@ -161,6 +161,7 @@
             <vscode-button
               @click="handleBruinValidateCurrentAsset"
               :disabled="isNotAsset || isError"
+              class="text-xs h-7"
             >
               <div class="flex items-center justify-center">
                 <template v-if="validateButtonStatus === 'validated'">
@@ -203,9 +204,9 @@
             <Menu as="div" class="relative -ml-px block">
               <MenuButton
                 :disabled="isNotAsset || isError"
-                class="relative h-full border border-transparent inline-flex items-center disabled:opacity-50 disabled:cursor-not-allowed bg-editor-button-bg p-1 text-editor-button-fg hover:bg-editor-button-hover-bg focus:z-10"
+                class="relative h-7 border border-transparent inline-flex items-center disabled:opacity-50 disabled:cursor-not-allowed bg-editor-button-bg px-1 text-editor-button-fg hover:bg-editor-button-hover-bg focus:z-10"
               >
-                <ChevronDownIcon class="h-4 w-4" aria-hidden="true" />
+                <ChevronDownIcon class="h-3 w-3" aria-hidden="true" />
               </MenuButton>
               <!-- Dropdown Menu for Validate -->
               <transition
@@ -236,6 +237,23 @@
                         Validate all pipelines
                       </vscode-button>
                     </MenuItem>
+                    <div class="border-t border-commandCenter-border my-1"></div>
+                    <MenuItem key="format-current">
+                      <vscode-button
+                        class="block text-editor-fg rounded-sm w-full border-0 text-left text-2xs hover:bg-editor-button-hover-bg hover:text-editor-button-fg bg-editorWidget-bg"
+                        @click="formatAsset"
+                      >
+                        Format current asset
+                      </vscode-button>
+                    </MenuItem>
+                    <MenuItem key="format-all">
+                      <vscode-button
+                        class="block text-editor-fg rounded-sm w-full border-0 text-left text-2xs hover:bg-editor-button-hover-bg hover:text-editor-button-fg bg-editorWidget-bg"
+                        @click="formatAllAssets"
+                      >
+                        Format all assets
+                      </vscode-button>
+                    </MenuItem>
                   </div>
                 </MenuItems>
               </transition>
@@ -243,62 +261,19 @@
           </div>
 
           <!-- Run Button Group -->
-          <div class="inline-flex">
-            <vscode-button @click="runAssetOnly" :disabled="isNotAsset || isError">
-              <div class="flex items-center justify-center">
-                <PlayIcon class="h-4 w-4 mr-1" aria-hidden="true" />
-                <span>Run</span>
-              </div>
-            </vscode-button>
-            <Menu as="div" class="relative -ml-px block">
-              <MenuButton
-                :disabled="isNotAsset || isError"
-                class="relative h-full border border-transparent inline-flex items-center disabled:opacity-50 disabled:cursor-not-allowed bg-editor-button-bg p-1 text-editor-button-fg hover:bg-editor-button-hover-bg focus:z-10"
-              >
-                <ChevronDownIcon class="h-4 w-4" aria-hidden="true" />
-              </MenuButton>
-              <!-- Dropdown Menu for Run -->
-              <transition
-                enter-active-class="transition ease-out duration-100"
-                enter-from-class="transform opacity-0 scale-95"
-                enter-to-class="transform opacity-100 scale-100"
-                leave-active-class="transition ease-in duration-75"
-                leave-from-class="transform opacity-100 scale-100"
-                leave-to-class="transform opacity-0 scale-95"
-              >
-                <MenuItems
-                  class="absolute left-0 xs:right-0 xs:left-auto z-[99999] w-40 xs:w-48 origin-top-left xs:origin-top-right max-w-[calc(100vw-2rem)]"
-                >
-                  <div class="p-1 bg-editorWidget-bg rounded-sm border border-commandCenter-border">
-                    <MenuItem key="run-with-downstream" v-slot="{ active }">
-                      <vscode-button
-                        class="block text-editor-fg border-0 rounded-sm w-full text-left text-2xs hover:bg-editor-button-hover-bg hover:text-editor-button-fg bg-editorWidget-bg"
-                        @click="runAssetWithDownstream"
-                      >
-                        Run with downstream
-                      </vscode-button>
-                    </MenuItem>
-                    <MenuItem key="run-current-pipeline" v-slot="{ active }">
-                      <vscode-button
-                        class="block text-editor-fg border-0 rounded-sm w-full text-left text-2xs hover:bg-editor-button-hover-bg hover:text-editor-button-fg bg-editorWidget-bg"
-                        @click="runCurrentPipeline"
-                      >
-                        Run the whole pipeline
-                      </vscode-button>
-                    </MenuItem>
-                    <MenuItem key="run-with-continue" v-slot="{ active }">
-                      <vscode-button
-                        class="block text-editor-fg border-0 rounded-sm w-full text-left text-2xs hover:bg-editor-button-hover-bg hover:text-editor-button-fg bg-editorWidget-bg"
-                        @click="runPipelineWithContinue"
-                      >
-                        Continue from last failure
-                      </vscode-button>
-                    </MenuItem>
-                  </div>
-                </MenuItems>
-              </transition>
-            </Menu>
-          </div>
+          <ButtonGroup
+            label="Run"
+            :icon="PlayIcon"
+            icon-class="h-3 w-3 mr-1"
+            :disabled="isNotAsset || isError"
+            :dropdown-items="[
+              { key: 'run-with-downstream', label: 'Run with downstream' },
+              { key: 'run-current-pipeline', label: 'Run the whole pipeline' },
+              { key: 'run-with-continue', label: 'Continue from last failure' }
+            ]"
+            @main-click="runAssetOnly"
+            @dropdown-click="handleRunDropdown"
+          />
         </div>
       </div>
 
@@ -390,6 +365,9 @@
             :bigqueryMetadata="bigqueryMetadata"
             :bigqueryError="props.assetMetadataError"
           />
+          <div class="overflow-hidden w-full h-20">
+            
+          </div>
         </div>
         <div v-else class="overflow-hidden w-full h-20">
           <pre class="white-space"></pre>
@@ -416,7 +394,6 @@
     @save-variable="handleSaveVariable"
     @delete-variable="deleteVariable"
   />
-
 </template>
 <script setup lang="ts">
 import { vscode } from "@/utilities/vscode";
@@ -437,6 +414,7 @@ import IngestrAssetDisplay from "@/components/asset/IngestrAssetDisplay.vue";
 import CheckboxGroup from "@/components/ui/checkbox-group/CheckboxGroup.vue";
 import EnvSelectMenu from "@/components/ui/select-menu/EnvSelectMenu.vue";
 import VariablesPanel from "@/components/ui/variables-panel/VariablesPanel.vue";
+import ButtonGroup from "@/components/ui/buttons/ButtonGroup.vue";
 import { updateValue, resetStates, determineValidationStatus } from "@/utilities/helper";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/vue";
 import {
@@ -500,12 +478,6 @@ const isPipelineStartDateAvailable = computed(() => {
 const showFullRefreshAlert = ref(false);
 const pendingRunAction = ref<(() => void) | null>(null);
 
-// Method to dismiss the alert
-const dismissIntervalAlert = () => {
-  dismissedIntervalAlert.value = true;
-  showIntervalAlert.value = false;
-};
-
 // Full refresh alert methods
 const confirmFullRefresh = () => {
   showFullRefreshAlert.value = false;
@@ -518,6 +490,33 @@ const confirmFullRefresh = () => {
 const cancelFullRefresh = () => {
   showFullRefreshAlert.value = false;
   pendingRunAction.value = null;
+};
+
+const formatAsset = () => {
+  vscode.postMessage({
+    command: "bruin.formatAsset",
+  });
+};
+
+const formatAllAssets = () => {
+  vscode.postMessage({
+    command: "bruin.formatAllAssets",
+  });
+};
+
+
+const handleRunDropdown = (key: string) => {
+  switch (key) {
+    case 'run-with-downstream':
+      runAssetWithDownstream();
+      break;
+    case 'run-current-pipeline':
+      runCurrentPipeline();
+      break;
+    case 'run-with-continue':
+      runPipelineWithContinue();
+      break;
+  }
 };
 
 const showFullRefreshConfirmation = (runAction: () => void) => {
@@ -554,13 +553,13 @@ const fetchedVariables = ref({});
 
 const pipelineVariables = computed(() => {
   const filePath = props.filePath || "";
-  
+
   if (filePath && fetchedVariables.value[filePath]) {
     try {
       const storeData = fetchedVariables.value[filePath];
       const parsedData = typeof storeData === "string" ? JSON.parse(storeData) : storeData;
       const variables = parsedData?.variables || parsedData?.pipeline?.variables || {};
-      
+
       if (Object.keys(variables).length > 0) {
         // Ensure the variables object is serializable
         const serializedVars = JSON.parse(JSON.stringify(variables));
@@ -570,7 +569,7 @@ const pipelineVariables = computed(() => {
       console.error("Error parsing pipeline variables:", error);
     }
   }
-  
+
   // Safely return pipeline variables from props
   try {
     const pipelineVars = props.pipeline?.variables || {};
@@ -649,6 +648,7 @@ const handleWarningClose = () => {
   showWarnings.value = false;
   warningMessages.value.splice(0, warningMessages.value.length);
 };
+
 
 const hasCriticalErrors = computed(() =>
   parsedErrorMessages.value.some(
@@ -1248,7 +1248,7 @@ function closeVariablesPanel() {
 
 function handleSaveVariable(event: { name: string; config: any; oldName?: string }) {
   const { name, config, oldName } = event;
-  
+
   // Create a clean copy of current variables to avoid any non-serializable data
   const currentVariables = JSON.parse(JSON.stringify(pipelineVariables.value || {}));
 
@@ -1263,7 +1263,7 @@ function handleSaveVariable(event: { name: string; config: any; oldName?: string
   try {
     const formattedVariables = formatVariablesForPayload(currentVariables);
     const payload = { variables: formattedVariables };
-    
+
     // Test serialization to catch any issues (same pattern as AssetColumns)
     const payloadStr = JSON.stringify(payload);
     const safePayload = JSON.parse(payloadStr);
@@ -1275,7 +1275,7 @@ function handleSaveVariable(event: { name: string; config: any; oldName?: string
     });
   } catch (error) {
     console.error("Error serializing variables data:", error);
-    
+
     // Fallback: send a minimal payload
     vscode.postMessage({
       command: "bruin.setPipelineDetails",
@@ -1288,14 +1288,14 @@ function handleSaveVariable(event: { name: string; config: any; oldName?: string
 function deleteVariable(varName: string) {
   // Create a clean copy of current variables to avoid any non-serializable data
   const currentVariables = JSON.parse(JSON.stringify(pipelineVariables.value || {}));
-  
+
   delete currentVariables[varName];
 
   // Ensure the payload is serializable - following the same pattern as AssetColumns
   try {
     const formattedVariables = formatVariablesForPayload(currentVariables);
     const payload = { variables: formattedVariables };
-    
+
     // Test serialization to catch any issues (same pattern as AssetColumns)
     const payloadStr = JSON.stringify(payload);
     const safePayload = JSON.parse(payloadStr);
@@ -1307,7 +1307,7 @@ function deleteVariable(varName: string) {
     });
   } catch (error) {
     console.error("Error serializing variables data:", error);
-    
+
     // Fallback: send a minimal payload
     vscode.postMessage({
       command: "bruin.setPipelineDetails",
@@ -1317,33 +1317,32 @@ function deleteVariable(varName: string) {
   }
 }
 
-
 // Format variables for payload - following the same pattern as AssetColumns formatColumnsForPayload
 function formatVariablesForPayload(variables: any) {
   const formattedVariables: any = {};
-  
-  Object.keys(variables).forEach(varName => {
+
+  Object.keys(variables).forEach((varName) => {
     const variable = variables[varName];
-    
+
     // Ensure all values are serializable (same pattern as AssetColumns)
     const safeVariable: any = {
       type: String(variable.type || "string"),
       default: variable.default !== undefined ? variable.default : null,
     };
-    
+
     // Add optional fields if they exist
     if (variable.description) {
       safeVariable.description = String(variable.description);
     }
-    
+
     if (variable.items) {
       safeVariable.items = variable.items;
     }
-    
+
     if (variable.properties) {
       safeVariable.properties = variable.properties;
     }
-    
+
     // Test serialization to catch any issues (same pattern as AssetColumns)
     try {
       JSON.stringify(safeVariable);
@@ -1357,7 +1356,7 @@ function formatVariablesForPayload(variables: any) {
       };
     }
   });
-  
+
   return formattedVariables;
 }
 
@@ -1459,7 +1458,6 @@ function receiveMessage(event: { data: any }) {
             ...fetchedVariables.value,
             [filePath]: serializableData,
           };
-          
         } catch (error) {
           console.error("Error serializing fetched variables:", error);
           // Store as string if serialization fails
@@ -1528,6 +1526,26 @@ function receiveMessage(event: { data: any }) {
         });
       }
       break;
+      case "format-message":
+        const formatSuccess = updateValue(envelope, "success");
+        const formatError = updateValue(envelope, "error");
+        console.log("formatSuccess", formatSuccess);
+        console.log("formatError", formatError);
+        
+        // Show simple toast notifications
+        if (formatSuccess) {
+          vscode.postMessage({
+            command: "showInfoMessage",
+            payload: formatSuccess
+          });
+        }
+        if (formatError) {
+          vscode.postMessage({
+            command: "showErrorMessage", 
+            payload: formatError
+          });
+        }
+        break;
   }
 }
 </script>
@@ -1536,6 +1554,6 @@ vscode-checkbox::part(control) {
   @apply border-none outline-none w-3.5 h-3.5;
 }
 vscode-button::part(control) {
-  @apply border-none;
+  @apply border-none px-1.5;
 }
 </style>

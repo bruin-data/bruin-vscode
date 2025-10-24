@@ -2,7 +2,7 @@
   "name": "bruin",
   "displayName": "Bruin",
   "description": "Manage your Bruin data assets from within VS Code.",
-  "version": "0.70.2",
+  "version": "0.71.0",
   "engines": {
     "vscode": "^1.87.0"
   },
@@ -144,6 +144,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable anonymous usage data collection to help improve the extension."
+        },
+        "bruin.format.sqlfluff": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable SQLFluff formatting for SQL files."
         },
         "bruin.FoldingState": {
           "type": "string",

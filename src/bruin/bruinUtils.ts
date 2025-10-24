@@ -233,6 +233,7 @@ export const runInIntegratedTerminal = async (
   } else {
     command = `${executable} ${BRUIN_RUN_SQL_COMMAND} ${escapedAssetPath}`;
   }
+  
   terminal.show(true);
   terminal.sendText(" ");
   setTimeout(() => {
@@ -263,6 +264,49 @@ export const runBruinCommandInIntegratedTerminal = async (
   
   setTimeout(() => {
     terminal.sendText(finalCommand);
+  }, 500);
+  
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+};
+
+/**
+ * Runs the Bruin format command in the integrated terminal.
+ * @param {string} assetPath - The path of the asset to be formatted (empty string for all assets).
+ * @param {string | undefined} workingDir - The working directory for the terminal.
+ * @param {boolean} sqlfluff - Whether to use SQLFluff formatting.
+ * @param {string} [bruinExecutablePath] - Optional path to the Bruin executable.
+ * @returns {Promise<void>} A promise that resolves when the command is executed.
+ */
+export const formatInIntegratedTerminal = async (
+  assetPath: string,
+  workingDir?: string | undefined,
+  sqlfluff: boolean = false,
+  bruinExecutablePath?: string
+): Promise<void> => {
+  const escapedAssetPath = assetPath ? escapeFilePath(assetPath) : "";
+  const bruinExecutable = bruinExecutablePath ? "bruin" : getBruinExecutablePath();
+  const terminal = await createIntegratedTerminal(workingDir);
+  
+  const useUnixFormatting = shouldUseUnixFormatting(terminal);
+  
+  const executable = ((terminal.creationOptions as vscode.TerminalOptions).shellPath?.includes("bash")) 
+    ? "bruin" 
+    : bruinExecutable;
+  
+  let command = "";
+  
+  if (sqlfluff) {
+    const flags = "--sqlfluff";
+    command = formatBruinCommand(executable, "format", flags, escapedAssetPath, useUnixFormatting);
+  } else {
+    command = `${executable} format ${escapedAssetPath}`;
+  }
+  
+  terminal.show(true);
+  terminal.sendText(" ");
+  
+  setTimeout(() => {
+    terminal.sendText(command);
   }, 500);
   
   await new Promise((resolve) => setTimeout(resolve, 1000));

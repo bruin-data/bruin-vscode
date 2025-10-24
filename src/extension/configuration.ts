@@ -13,6 +13,11 @@ export function getDefaultCheckboxSettings() {
   };
 }
 
+export function getFormatSqlfluff(): boolean {
+  const config = vscode.workspace.getConfiguration("bruin.format");
+  return config.get<boolean>("sqlfluff", false);
+}
+
 export function getDefaultExcludeTag(): string {
   const config = vscode.workspace.getConfiguration("bruin");
   return config.get<string>("validate.defaultExcludeTag", "");
