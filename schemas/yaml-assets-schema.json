@@ -111,6 +111,7 @@
                 "clickhouse",
                 "gcs",
                 "mongo_atlas"
+                "mysql"
               ],
               "description": "The destination system",
               "additionalProperties": true
