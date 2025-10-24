@@ -156,15 +156,6 @@
         <div
           class="flex flex-col 2xs:flex-row flex-wrap gap-2 justify-start xs:justify-end items-stretch 2xs:items-center w-full xs:w-auto"
         >
-          <!-- Format Button Group -->
-          <ButtonGroup
-            label="Format"
-            codicon="codicon-list-tree"
-            codicon-class="codicon codicon-list-tree text-[9px] mr-1"
-            :dropdown-items="[{ key: 'format-all', label: 'Format All' }]"
-            @main-click="formatAsset"
-            @dropdown-click="handleFormatDropdown"
-          />
           <!-- Validate Button Group -->
           <div class="inline-flex">
             <vscode-button
@@ -244,6 +235,23 @@
                         @click="handleBruinValidateAllPipelines"
                       >
                         Validate all pipelines
+                      </vscode-button>
+                    </MenuItem>
+                    <div class="border-t border-commandCenter-border my-1"></div>
+                    <MenuItem key="format-current">
+                      <vscode-button
+                        class="block text-editor-fg rounded-sm w-full border-0 text-left text-2xs hover:bg-editor-button-hover-bg hover:text-editor-button-fg bg-editorWidget-bg"
+                        @click="formatAsset"
+                      >
+                        Format current asset
+                      </vscode-button>
+                    </MenuItem>
+                    <MenuItem key="format-all">
+                      <vscode-button
+                        class="block text-editor-fg rounded-sm w-full border-0 text-left text-2xs hover:bg-editor-button-hover-bg hover:text-editor-button-fg bg-editorWidget-bg"
+                        @click="formatAllAssets"
+                      >
+                        Format all assets
                       </vscode-button>
                     </MenuItem>
                   </div>
@@ -493,11 +501,6 @@ const formatAllAssets = () => {
   });
 };
 
-const handleFormatDropdown = (key: string) => {
-  if (key === 'format-all') {
-    formatAllAssets();
-  }
-};
 
 const handleRunDropdown = (key: string) => {
   switch (key) {
