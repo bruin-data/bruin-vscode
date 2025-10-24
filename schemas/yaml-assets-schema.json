@@ -108,6 +108,7 @@
                 "databricks",
                 "synapse",
                 "duckdb",
+                "motherduck",
                 "clickhouse",
                 "gcs",
                 "mongo_atlas"
