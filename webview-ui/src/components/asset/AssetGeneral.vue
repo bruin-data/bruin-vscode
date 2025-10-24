@@ -365,6 +365,9 @@
             :bigqueryMetadata="bigqueryMetadata"
             :bigqueryError="props.assetMetadataError"
           />
+          <div class="overflow-hidden w-full h-20">
+            
+          </div>
         </div>
         <div v-else class="overflow-hidden w-full h-20">
           <pre class="white-space"></pre>
