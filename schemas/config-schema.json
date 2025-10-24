@@ -416,6 +416,9 @@
                 },
                 "database": {
                     "type": "string"
+                },
+                "driver": {
+                    "type": "string"
                 }
             },
             "required": [
