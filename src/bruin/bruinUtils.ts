@@ -296,7 +296,6 @@ export const formatInIntegratedTerminal = async (
   let command = "";
   
   if (sqlfluff) {
-    // Use formatBruinCommand for consistency with run command
     const flags = "--sqlfluff";
     command = formatBruinCommand(executable, "format", flags, escapedAssetPath, useUnixFormatting);
   } else {

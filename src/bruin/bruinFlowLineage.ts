@@ -5,16 +5,11 @@ import { getCurrentPipelinePath } from "./bruinUtils";
 import * as vscode from "vscode";
 import { isConfigFile } from "../utilities/helperUtils";
 import { BruinPanel } from "../panels/BruinPanel";
-/**
- * Extends the BruinCommand class to implement the bruin run command on Bruin assets.
- */
 
 export class BruinLineageInternalParse extends BruinCommand {
-
   
   /**
    * Parses pipeline.yml and returns pipeline-level metadata (name, schedule, etc).
-   * Does NOT look for assets or post to LineagePanel.
    */
   public async parsePipelineConfig(
     filePath: string,

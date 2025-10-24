@@ -1,4 +1,7 @@
 # Changelog
+## [0.71.0] - [2025-10-24]
+- Added a button for formatting assets in the extension with the option to use SQLFluff formatting.
+
 ## [0.70.2] - [2025-10-23]
 - Fixed full refresh start date logic to use pipeline start date (if available) or the user-defined start date.
 

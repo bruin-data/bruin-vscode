@@ -1,4 +1,3 @@
-// Here's an optimized version of BruinInternalParse class to make parsing faster
 import { BruinCommandOptions } from "../types";
 import { BruinCommand } from "./bruinCommand";
 import { BruinPanel } from "../panels/BruinPanel";
@@ -17,9 +16,7 @@ export class BruinFormat extends BruinCommand {
     console.time("formatAsset");
     try {
       let params: string[] = [];
-      // Create a copy of flags to avoid mutating the original array
       const commandFlags = [...flags];
-      // For other asset types, run the command but with optimized execution
       if (sqlfluff){
         commandFlags.push("--sqlfluff");
       }
