@@ -551,9 +551,9 @@
                 :value="localMaterialization.type"
                 @change="(e) => setType(e.target.value)"
               >
-                <vscode-radio id="materialization-type-null" name="materialization-type" value="null">None</vscode-radio>
-                <vscode-radio id="materialization-type-table" name="materialization-type" value="table">Table</vscode-radio>
-                <vscode-radio id="materialization-type-view" name="materialization-type" value="view">View</vscode-radio>
+                <vscode-radio id="materialization-type-null" name="materialization-type" value="null" :checked="localMaterialization.type === 'null'">None</vscode-radio>
+                <vscode-radio id="materialization-type-table" name="materialization-type" value="table" :checked="localMaterialization.type === 'table'">Table</vscode-radio>
+                <vscode-radio id="materialization-type-view" name="materialization-type" value="view" :checked="localMaterialization.type === 'view'">View</vscode-radio>
               </vscode-radio-group>
             </div>
           </div>
@@ -779,11 +779,6 @@ onMounted(() => {
     populateIntervalFormFields();
   }, { deep: true });
   
-  watch(() => props.materialization, (newVal) => {
-    localMaterialization.value = initializeLocalMaterialization(newVal);
-    partitionInput.value = localMaterialization.value.partition_by || "";
-    clusterInputValue.value = localMaterialization.value.cluster_by.join(", ");
-  }, { deep: true });
 });
 
 const startEditingOwner = () => {
@@ -1062,6 +1057,11 @@ const initializeLocalMaterialization = (materializationProp) => {
 };
 
 onMounted(() => {
+  // Initialize materialization on mount
+  localMaterialization.value = initializeLocalMaterialization(props.materialization);
+  partitionInput.value = localMaterialization.value.partition_by || "";
+  clusterInputValue.value = localMaterialization.value.cluster_by.join(", ");
+  
   watch(
     () => props.materialization,
     (newVal) => {
@@ -1212,19 +1212,28 @@ const saveMaterialization = () => {
     };
   }
 
-  if (localMaterialization.value?.type && localMaterialization.value.type !== "null") {
-    // Properly serialize materialization to avoid Proxy issues
-    const serializedMaterialization = JSON.parse(JSON.stringify(localMaterialization.value));
-    payload.materialization = {
-      type: serializedMaterialization.type,
-      strategy: serializedMaterialization.strategy || null,
-      partition_by: serializedMaterialization.partition_by || null,
-      cluster_by: Array.isArray(serializedMaterialization.cluster_by) 
-        ? [...serializedMaterialization.cluster_by] 
-        : [],
-      incremental_key: serializedMaterialization.incremental_key || null,
-      time_granularity: serializedMaterialization.time_granularity || null
-    };
+  if (localMaterialization.value?.type) {
+    if (localMaterialization.value.type === "null") {
+      payload.materialization = null;
+    } else {
+      // Properly serialize materialization to avoid Proxy issues
+      const serializedMaterialization = JSON.parse(JSON.stringify(localMaterialization.value));
+      payload.materialization = {
+        type: serializedMaterialization.type,
+        partition_by: serializedMaterialization.partition_by || null,
+        cluster_by: Array.isArray(serializedMaterialization.cluster_by) 
+          ? [...serializedMaterialization.cluster_by] 
+          : [],
+        incremental_key: serializedMaterialization.incremental_key || null,
+        time_granularity: serializedMaterialization.time_granularity || null
+      };
+      
+      if (serializedMaterialization.type === "table") {
+        payload.materialization.strategy = serializedMaterialization.strategy || null;
+      } else if (serializedMaterialization.type === "view") {
+        payload.materialization.strategy = "";
+      }
+    }
   }
 
   // Only send if payload has actually changed to prevent infinite loops
