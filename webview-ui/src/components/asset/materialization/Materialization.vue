@@ -1214,7 +1214,10 @@ const saveMaterialization = () => {
 
   if (localMaterialization.value?.type) {
     if (localMaterialization.value.type === "null") {
-      payload.materialization = null;
+      payload.materialization = {
+        type: "",
+        strategy: ""
+      };
     } else {
       // Properly serialize materialization to avoid Proxy issues
       const serializedMaterialization = JSON.parse(JSON.stringify(localMaterialization.value));
