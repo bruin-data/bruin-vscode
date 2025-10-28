@@ -1,4 +1,7 @@
 # Changelog
+## [0.71.1] - [2025-10-28]
+- Fixed a bug where strategy was not removed from assets when switching to view materialization.
+
 ## [0.71.0] - [2025-10-24]
 - Added a button for formatting assets in the extension with the option to use SQLFluff formatting.
 

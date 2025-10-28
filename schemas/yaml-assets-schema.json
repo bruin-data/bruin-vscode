@@ -110,7 +110,7 @@
                 "duckdb",
                 "clickhouse",
                 "gcs",
-                "mongo_atlas"
+                "mongo_atlas",
                 "mysql"
               ],
               "description": "The destination system",
