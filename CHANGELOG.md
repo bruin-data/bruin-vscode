@@ -1,4 +1,7 @@
 # Changelog
+## [0.70.5] - [2025-10-28]
+- Optimized `interval_modifiers` payload (send only on update) and improved 'none' materialization type handling.
+
 ## [0.70.4] - [2025-10-28]
 - Fixed a bug where strategy was not removed from assets when switching to view materialization.
 

@@ -63,21 +63,12 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.70.5**: Optimized `interval_modifiers` payload (send only on update) and improved 'none' materialization type handling.
 - **0.70.4**: Fixed a bug where strategy was not removed from assets when switching to view materialization.
 - **0.70.3**: Added an option to the validate dropdown menu to format assets with SQLFluff formatting.
 - **0.70.2**: Fixed full refresh start date logic to use pipeline start date (if available) or the user-defined start date.
 - **0.70.1**: Enabled the rendering of SQL queries for `.task.yml` files.
 - **0.70.0**: Added pipeline variables management UI to the extension.
-- **0.69.9**: Fixed the file extension detection issue and added support for `task.yml` files.
-- **0.69.8**: Fixed `gcp` connection form issues and adjusted SQL editor display: it now shows for validation errors.
-- **0.69.7**: Fixed the query preview panel state persisting issue.
-- **0.69.6**: Updated the full refresh message and improved the schema validation.
-- **0.69.5**: Fixed the environment selection issue.
-- **0.69.4**: Added support for `truncate+insert` strategy in the materialization UI and fix the query cost estimate issue.
-- **0.69.3**: Fixed column lineage positionning issue.
-- **0.69.2**: Resolved issues with custom check parameters and cron expressions, and improved the custom check UI.
-- **0.69.1**: Add support for `application default credentials` in `gcp` connections.
-- **0.69.0**: Updated tab visibility logic to show pipeline related information and added autocomplete for secrets.
 
 For a full changelog, see Bruin Extension [Changelog](https://marketplace.visualstudio.com/items/bruin.bruin/changelog).
 
