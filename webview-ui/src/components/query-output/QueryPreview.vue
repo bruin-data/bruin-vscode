@@ -1409,7 +1409,17 @@ const formatCellValue = (value) => {
   if (value === null || value === undefined) {
     return { text: "NULL", isNull: true };
   }
-  return { text: value, isNull: false };
+  
+  // Handle arrays and objects by converting to JSON
+  if (typeof value === 'object') {
+    try {
+      return { text: JSON.stringify(value, null, 2), isNull: false };
+    } catch (e) {
+      return { text: String(value), isNull: false };
+    }
+  }
+  
+  return { text: String(value), isNull: false };
 };
 
 const pageSize = 50;
