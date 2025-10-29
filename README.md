@@ -63,6 +63,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.70.6**: Fixed query preview display of columns with object and array types.
 - **0.70.5**: Optimized `interval_modifiers` payload (send only on update) and improved 'none' materialization type handling.
 - **0.70.4**: Fixed a bug where strategy was not removed from assets when switching to view materialization.
 - **0.70.3**: Added an option to the validate dropdown menu to format assets with SQLFluff formatting.
