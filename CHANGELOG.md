@@ -1,4 +1,7 @@
 # Changelog
+## [0.70.6] - [2025-10-29]
+- Fixed query preview display of columns with object and array types.
+
 ## [0.70.5] - [2025-10-28]
 - Optimized `interval_modifiers` payload (send only on update) and improved 'none' materialization type handling.
 
