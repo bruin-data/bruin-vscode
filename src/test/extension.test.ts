@@ -7272,13 +7272,12 @@ schedule: yearly
       Object.defineProperty(process, 'platform', { value: 'linux' });
       
       try {
-        // Mock fs.accessSync to always throw (simulate no executable found)
+        (BruinExecutableService as any).instance = null;
+        
         const mockAccessSync = sinon.stub(fs, 'accessSync').throws(new Error('ENOENT'));
         
-        // Mock os.homedir
         sinon.stub(os, 'homedir').returns('/home/test');
         
-        // Mock PATH to be empty
         const originalPATH = process.env.PATH;
         process.env.PATH = '';
         
@@ -7286,9 +7285,8 @@ schedule: yearly
           const service = BruinExecutableService.getInstance();
           const executablePath = service.getExecutablePath();
           
-          // Should end with bruin (no extension) on Unix
           assert.ok(
-            executablePath.endsWith('bruin') && !executablePath.endsWith('.exe'),
+            executablePath.endsWith('/bruin') && !executablePath.endsWith('.exe'),
             `Unix executable path should end with 'bruin' (no .exe), got: ${executablePath}`
           );
         } finally {
@@ -7297,8 +7295,8 @@ schedule: yearly
           process.env.PATH = originalPATH;
         }
       } finally {
-        // Restore original platform
         Object.defineProperty(process, 'platform', { value: originalPlatform });
+        (BruinExecutableService as any).instance = null;
       }
     });
 
@@ -7306,8 +7304,6 @@ schedule: yearly
       // Mock getBruinExecutablePath to return a test path
       const mockExecutablePath = "/test/path/to/bruin.exe";
       
-      // This test verifies that our fix is working by checking that the providers
-      // use getBruinExecutablePath() instead of hardcoded strings
       
       const mockGetBruinExecutablePath = sinon.stub().returns(mockExecutablePath);
       
@@ -7346,7 +7342,6 @@ schedule: yearly
           const fullPath = path.resolve(__dirname, filePath);
           const fileContent = fs.readFileSync(fullPath, 'utf8');
           
-          // Check that the file imports getBruinExecutablePath
           const hasImport = fileContent.includes('getBruinExecutablePath');
           
           assert.ok(
@@ -7354,7 +7349,6 @@ schedule: yearly
             `${filePath} should import getBruinExecutablePath to avoid hardcoded executable paths`
           );
           
-          // Check that the file uses getBruinExecutablePath() in constructor calls
           const usesInConstructor = fileContent.includes('getBruinExecutablePath()');
           
           assert.ok(
