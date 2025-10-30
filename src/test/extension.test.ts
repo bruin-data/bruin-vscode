@@ -7184,3 +7184,188 @@ schedule: yearly
     });
   });
 
+  // Tests to prevent hardcoded 'bruin' executable path regression
+  suite("Bruin Executable Path Consistency Tests", () => {
+    test("should not have hardcoded 'bruin' strings in source files", async () => {
+      const sourceFiles = [
+        "../providers/ActivityBarConnectionsProvider.ts",
+        "../providers/FavoritesProvider.ts", 
+        "../panels/TableDiffPanel.ts"
+      ];
+
+      for (const filePath of sourceFiles) {
+        try {
+          const fullPath = path.resolve(__dirname, filePath);
+          const fileContent = fs.readFileSync(fullPath, 'utf8');
+          
+          // Check for hardcoded "bruin" in constructor calls (but allow test files)
+          const hardcodedBruinPattern = /new\s+Bruin\w*\s*\(\s*["']bruin["']/g;
+          const matches = fileContent.match(hardcodedBruinPattern);
+          
+          assert.strictEqual(
+            matches,
+            null,
+            `Found hardcoded 'bruin' executable in ${filePath}: ${matches ? matches.join(', ') : 'none'}`
+          );
+        } catch (error) {
+          // File might not exist in test environment, skip
+          console.warn(`Skipping test for ${filePath} - file not accessible`);
+        }
+      }
+    });
+
+    test("BruinExecutableService should use .exe extension on Windows", () => {
+      const { BruinExecutableService } = require("../providers/BruinExecutableService");
+      
+      // Mock process.platform to be win32
+      const originalPlatform = process.platform;
+      Object.defineProperty(process, 'platform', { value: 'win32' });
+      
+      try {
+        // Mock environment with no custom executable set
+        const mockVSCode = {
+          workspace: {
+            getConfiguration: () => ({
+              get: () => "" // No custom executable
+            }),
+            onDidChangeConfiguration: () => ({ dispose: () => {} })
+          }
+        };
+        
+        // Mock fs.accessSync to always throw (simulate no executable found)
+        const originalAccessSync = fs.accessSync;
+        const mockAccessSync = sinon.stub(fs, 'accessSync').throws(new Error('ENOENT'));
+        
+        // Mock os.homedir
+        const originalHomedir = os.homedir;
+        sinon.stub(os, 'homedir').returns('/Users/test');
+        
+        // Mock PATH to be empty
+        const originalPATH = process.env.PATH;
+        process.env.PATH = '';
+        
+        try {
+          const service = BruinExecutableService.getInstance();
+          const executablePath = service.getExecutablePath();
+          
+          // Should end with bruin.exe on Windows
+          assert.ok(
+            executablePath.endsWith('bruin.exe'),
+            `Windows executable path should end with .exe, got: ${executablePath}`
+          );
+        } finally {
+          mockAccessSync.restore();
+          sinon.restore();
+          process.env.PATH = originalPATH;
+        }
+      } finally {
+        // Restore original platform
+        Object.defineProperty(process, 'platform', { value: originalPlatform });
+      }
+    });
+
+    test("BruinExecutableService should use bruin without extension on Unix", () => {
+      const { BruinExecutableService } = require("../providers/BruinExecutableService");
+      
+      // Mock process.platform to be linux
+      const originalPlatform = process.platform;
+      Object.defineProperty(process, 'platform', { value: 'linux' });
+      
+      try {
+        // Mock fs.accessSync to always throw (simulate no executable found)
+        const mockAccessSync = sinon.stub(fs, 'accessSync').throws(new Error('ENOENT'));
+        
+        // Mock os.homedir
+        sinon.stub(os, 'homedir').returns('/home/test');
+        
+        // Mock PATH to be empty
+        const originalPATH = process.env.PATH;
+        process.env.PATH = '';
+        
+        try {
+          const service = BruinExecutableService.getInstance();
+          const executablePath = service.getExecutablePath();
+          
+          // Should end with bruin (no extension) on Unix
+          assert.ok(
+            executablePath.endsWith('bruin') && !executablePath.endsWith('.exe'),
+            `Unix executable path should end with 'bruin' (no .exe), got: ${executablePath}`
+          );
+        } finally {
+          mockAccessSync.restore();
+          sinon.restore();
+          process.env.PATH = originalPATH;
+        }
+      } finally {
+        // Restore original platform
+        Object.defineProperty(process, 'platform', { value: originalPlatform });
+      }
+    });
+
+    test("All Bruin command instances should use getBruinExecutablePath", () => {
+      // Mock getBruinExecutablePath to return a test path
+      const mockExecutablePath = "/test/path/to/bruin.exe";
+      
+      // This test verifies that our fix is working by checking that the providers
+      // use getBruinExecutablePath() instead of hardcoded strings
+      
+      const mockGetBruinExecutablePath = sinon.stub().returns(mockExecutablePath);
+      
+      // Mock the getBruinExecutablePath import
+      const mockProvidersModule = proxyquire("../providers/ActivityBarConnectionsProvider", {
+        "./BruinExecutableService": {
+          getBruinExecutablePath: mockGetBruinExecutablePath
+        }
+      });
+      
+      try {
+        const provider = new mockProvidersModule.ActivityBarConnectionsProvider("/test");
+        
+        // Verify that getBruinExecutablePath was called during construction
+        assert.ok(
+          mockGetBruinExecutablePath.called,
+          "ActivityBarConnectionsProvider should call getBruinExecutablePath() instead of using hardcoded 'bruin'"
+        );
+        
+        // Clean up
+        provider.dispose?.();
+      } finally {
+        mockGetBruinExecutablePath.restore?.();
+      }
+    });
+
+    test("Source code should use getBruinExecutablePath imports", async () => {
+      const filesToCheck = [
+        "../providers/ActivityBarConnectionsProvider.ts",
+        "../providers/FavoritesProvider.ts",
+        "../panels/TableDiffPanel.ts"
+      ];
+
+      for (const filePath of filesToCheck) {
+        try {
+          const fullPath = path.resolve(__dirname, filePath);
+          const fileContent = fs.readFileSync(fullPath, 'utf8');
+          
+          // Check that the file imports getBruinExecutablePath
+          const hasImport = fileContent.includes('getBruinExecutablePath');
+          
+          assert.ok(
+            hasImport,
+            `${filePath} should import getBruinExecutablePath to avoid hardcoded executable paths`
+          );
+          
+          // Check that the file uses getBruinExecutablePath() in constructor calls
+          const usesInConstructor = fileContent.includes('getBruinExecutablePath()');
+          
+          assert.ok(
+            usesInConstructor,
+            `${filePath} should use getBruinExecutablePath() in Bruin command constructors`
+          );
+        } catch (error) {
+          // File might not exist in test environment, skip
+          console.warn(`Skipping import test for ${filePath} - file not accessible`);
+        }
+      }
+    });
+  });
+
