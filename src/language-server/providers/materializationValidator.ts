@@ -10,6 +10,9 @@ export class MaterializationValidator {
         const text = document.getText();
         const lines = text.split('\n');
         
+        // Check if this is a pipeline.yml file
+        const isPipelineFile = document.fileName.includes('pipeline.yml') || document.fileName.endsWith('pipeline.yaml');
+        
         let materializationStart = -1;
         let materializationEnd = lines.length;
         
@@ -28,11 +31,8 @@ export class MaterializationValidator {
             this.validateRequiredFields(document, lines, materializationStart, materializationEnd, diagnostics);
         }
         
-        // Also validate interval_modifiers section
-        this.validateIntervalModifiers(document, lines, diagnostics);
-        
-        // Check for invalid top-level "default:" with interval_modifiers
-        this.validateTopLevelDefault(document, lines, diagnostics);
+        // Validate interval_modifiers placement based on file type
+        this.validateIntervalModifiers(document, lines, diagnostics, isPipelineFile);
         
         return diagnostics;
     }
@@ -109,35 +109,91 @@ export class MaterializationValidator {
     }
 
     /**
-     * Validate interval_modifiers section to prevent invalid "default:" nesting
+     * Validate interval_modifiers placement based on file type
      */
     private validateIntervalModifiers(
         document: vscode.TextDocument,
         lines: string[],
+        diagnostics: vscode.Diagnostic[],
+        isPipelineFile: boolean
+    ): void {
+        let topLevelIntervalModifiers = -1;
+        let intervalModifiersUnderDefault = -1;
+        let defaultStart = -1;
+        
+        // Find top-level interval_modifiers and default section
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            
+            if (line.match(/^interval_modifiers:\s*$/)) {
+                topLevelIntervalModifiers = i;
+            }
+            
+            if (line.match(/^default:\s*$/)) {
+                defaultStart = i;
+            }
+            
+            // Look for interval_modifiers under default
+            if (defaultStart !== -1 && line.match(/^\s+interval_modifiers:\s*$/)) {
+                intervalModifiersUnderDefault = i;
+            }
+        }
+        
+        if (isPipelineFile) {
+            // In pipeline.yml: interval_modifiers should be under default
+            if (topLevelIntervalModifiers !== -1) {
+                const range = new vscode.Range(topLevelIntervalModifiers, 0, topLevelIntervalModifiers, lines[topLevelIntervalModifiers].length);
+                const diagnostic = new vscode.Diagnostic(
+                    range,
+                    'In pipeline.yml, interval_modifiers should be nested under "default:" section.',
+                    vscode.DiagnosticSeverity.Warning
+                );
+                diagnostics.push(diagnostic);
+            }
+        } else {
+            // In asset files: interval_modifiers should NOT be under default
+            if (intervalModifiersUnderDefault !== -1) {
+                const range = new vscode.Range(intervalModifiersUnderDefault, 0, intervalModifiersUnderDefault, lines[intervalModifiersUnderDefault].length);
+                const diagnostic = new vscode.Diagnostic(
+                    range,
+                    'In asset files, interval_modifiers should be at the top level, not nested under "default:".',
+                    vscode.DiagnosticSeverity.Warning
+                );
+                diagnostics.push(diagnostic);
+            }
+        }
+        
+        // Validate content of interval_modifiers regardless of placement
+        const intervalModifiersLine = topLevelIntervalModifiers !== -1 ? topLevelIntervalModifiers : intervalModifiersUnderDefault;
+        if (intervalModifiersLine !== -1) {
+            this.validateIntervalModifiersContent(document, lines, intervalModifiersLine, diagnostics);
+        }
+    }
+
+    /**
+     * Validate the content of interval_modifiers section
+     */
+    private validateIntervalModifiersContent(
+        document: vscode.TextDocument,
+        lines: string[],
+        intervalModifiersStart: number,
         diagnostics: vscode.Diagnostic[]
     ): void {
-        let intervalModifiersStart = -1;
         let intervalModifiersEnd = lines.length;
         
-        // Find interval_modifiers section boundaries
-        for (let i = 0; i < lines.length; i++) {
-            if (lines[i].match(/^\s*interval_modifiers:\s*$/)) {
-                intervalModifiersStart = i;
-            } else if (intervalModifiersStart !== -1 && lines[i].match(/^\w+:\s*$/)) {
+        // Find the end of interval_modifiers section
+        for (let i = intervalModifiersStart + 1; i < lines.length; i++) {
+            if (lines[i].match(/^\w+:\s*$/) || lines[i].match(/^\s*\w+:\s*$/)) {
                 intervalModifiersEnd = i;
                 break;
             }
         }
         
-        if (intervalModifiersStart === -1) {
-            return; // No interval_modifiers section found
-        }
-        
-        // Check for invalid "default:" usage within interval_modifiers
+        // Validate content within interval_modifiers
         for (let i = intervalModifiersStart + 1; i < intervalModifiersEnd; i++) {
             const line = lines[i];
             
-            // Check for "default:" key which is invalid
+            // Check for "default:" key which is invalid in interval_modifiers content
             if (line.match(/^\s+default:\s*$/)) {
                 const range = new vscode.Range(i, 0, i, line.length);
                 const diagnostic = new vscode.Diagnostic(
@@ -158,53 +214,6 @@ export class MaterializationValidator {
                     vscode.DiagnosticSeverity.Error
                 );
                 diagnostics.push(diagnostic);
-            }
-            
-            // Stop if we hit another top-level property
-            if (line.match(/^\w+:\s*$/)) {
-                break;
-            }
-        }
-    }
-
-    /**
-     * Validate against invalid top-level "default:" usage
-     */
-    private validateTopLevelDefault(
-        document: vscode.TextDocument,
-        lines: string[],
-        diagnostics: vscode.Diagnostic[]
-    ): void {
-        let defaultStart = -1;
-        let defaultEnd = lines.length;
-        
-        // Find top-level default section
-        for (let i = 0; i < lines.length; i++) {
-            if (lines[i].match(/^default:\s*$/)) {
-                defaultStart = i;
-            } else if (defaultStart !== -1 && lines[i].match(/^\w+:\s*$/)) {
-                defaultEnd = i;
-                break;
-            }
-        }
-        
-        if (defaultStart === -1) {
-            return; // No default section found
-        }
-        
-        // Check if interval_modifiers is under default section
-        for (let i = defaultStart + 1; i < defaultEnd; i++) {
-            const line = lines[i];
-            
-            if (line.match(/^\s+interval_modifiers:\s*$/)) {
-                const range = new vscode.Range(defaultStart, 0, defaultStart, lines[defaultStart].length);
-                const diagnostic = new vscode.Diagnostic(
-                    range,
-                    'Invalid "default:" section. interval_modifiers should be at the top level, not nested under "default:".',
-                    vscode.DiagnosticSeverity.Error
-                );
-                diagnostics.push(diagnostic);
-                break;
             }
             
             // Stop if we hit another top-level property
