@@ -88,4 +88,54 @@ export class BruinBlockDetector {
         // Check if offset is within any block
         return blocks.some(block => offset >= block.start && offset <= block.end);
     }
+
+    /**
+     * Extract all Bruin blocks from SQL files with their content and positions
+     */
+    public static extractSqlBruinBlocks(text: string): Array<{content: string, startLine: number, endLine: number}> {
+        const blocks: Array<{content: string, startLine: number, endLine: number}> = [];
+        const bruinBlockPattern = /\/\*\s*@bruin\n([\s\S]*?)\n@bruin\s*\*\//g;
+        let match;
+
+        while ((match = bruinBlockPattern.exec(text)) !== null) {
+            const blockContent = match[1];
+            const blockStartOffset = match.index + match[0].indexOf('\n') + 1;
+            const blockEndOffset = match.index + match[0].lastIndexOf('\n');
+            const blockStartLine = text.substring(0, blockStartOffset).split('\n').length - 1;
+            const blockEndLine = text.substring(0, blockEndOffset).split('\n').length - 1;
+
+            blocks.push({
+                content: blockContent,
+                startLine: blockStartLine,
+                endLine: blockEndLine
+            });
+        }
+
+        return blocks;
+    }
+
+    /**
+     * Extract all Bruin blocks from Python files with their content and positions
+     */
+    public static extractPythonBruinBlocks(text: string): Array<{content: string, startLine: number, endLine: number}> {
+        const blocks: Array<{content: string, startLine: number, endLine: number}> = [];
+        const bruinBlockPattern = /"""\s*@bruin\n([\s\S]*?)\n@bruin\s*"""/g;
+        let match;
+
+        while ((match = bruinBlockPattern.exec(text)) !== null) {
+            const blockContent = match[1];
+            const blockStartOffset = match.index + match[0].indexOf('\n') + 1;
+            const blockEndOffset = match.index + match[0].lastIndexOf('\n');
+            const blockStartLine = text.substring(0, blockStartOffset).split('\n').length - 1;
+            const blockEndLine = text.substring(0, blockEndOffset).split('\n').length - 1;
+
+            blocks.push({
+                content: blockContent,
+                startLine: blockStartLine,
+                endLine: blockEndLine
+            });
+        }
+
+        return blocks;
+    }
 }
