@@ -12,6 +12,7 @@ import {
   TableFavorite,
   createTableFavoriteKey,
 } from "../extension/configuration";
+import { getBruinExecutablePath } from "./BruinExecutableService";
 
 // Define interfaces for the connection structure
 interface ConnectionDisplayData {
@@ -131,7 +132,7 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || extensionPath;
 
     // Initialize BruinConnections with proper parameters
-    this.bruinConnections = new BruinConnections("bruin", workspaceFolder);
+    this.bruinConnections = new BruinConnections(getBruinExecutablePath(), workspaceFolder);
     this.loadFavoritesFromSettings();
     this.loadTableFavoritesFromSettings();
   }
