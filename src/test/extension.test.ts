@@ -7285,9 +7285,12 @@ schedule: yearly
           const service = BruinExecutableService.getInstance();
           const executablePath = service.getExecutablePath();
           
+          // Check that the path ends with 'bruin' (not .exe) regardless of path separator
+          const pathSegments = executablePath.split(/[/\\]/);
+          const lastSegment = pathSegments[pathSegments.length - 1];
           assert.ok(
-            executablePath.endsWith('/bruin') && !executablePath.endsWith('.exe'),
-            `Unix executable path should end with 'bruin' (no .exe), got: ${executablePath}`
+            lastSegment === 'bruin',
+            `Unix executable path should end with 'bruin' (no .exe), got: ${executablePath}, last segment: ${lastSegment}`
           );
         } finally {
           mockAccessSync.restore();
