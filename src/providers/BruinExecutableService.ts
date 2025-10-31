@@ -88,12 +88,13 @@ export class BruinExecutableService {
         }
       }
       // If all else fails, provide a meaningful message or default
-      console.log("Could not find 'bruin' in PATH. Using 'bruin' as the default executable.");
+      console.log("Could not find 'bruin' in PATH. Using default executable location.");
       // look for bruin in the PATH
       const homePath = os.homedir();
       const localBinPath = path.join(homePath, ".local", "bin");
-      bruinExecutable = path.join(localBinPath, "bruin");
-      console.log(`Using 'bruin' by joining the path: ${localBinPath}`);
+      const executableName = process.platform === "win32" ? "bruin.exe" : "bruin";
+      bruinExecutable = path.join(localBinPath, executableName);
+      console.log(`Using '${executableName}' by joining the path: ${localBinPath}`);
       this.cachedExecutablePath = bruinExecutable;
       return bruinExecutable;
     }

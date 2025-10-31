@@ -1,9 +1,18 @@
 # Changelog
-## [0.71.1] - [2025-10-28]
+## [0.70.7] - [2025-10-30]
+- Fixed the database connections listing issue on windows.
+
+## [0.70.6] - [2025-10-29]
+- Fixed query preview display of columns with object and array types.
+
+## [0.70.5] - [2025-10-28]
+- Optimized `interval_modifiers` payload (send only on update) and improved 'none' materialization type handling.
+
+## [0.70.4] - [2025-10-28]
 - Fixed a bug where strategy was not removed from assets when switching to view materialization.
 
-## [0.71.0] - [2025-10-24]
-- Added a button for formatting assets in the extension with the option to use SQLFluff formatting.
+## [0.70.3] - [2025-10-24]
+- Added an option to the validate dropdown menu to format assets with SQLFluff formatting.
 
 ## [0.70.2] - [2025-10-23]
 - Fixed full refresh start date logic to use pipeline start date (if available) or the user-defined start date.

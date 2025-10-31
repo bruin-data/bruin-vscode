@@ -12,6 +12,7 @@ import {
   TableFavorite,
   createTableFavoriteKey,
 } from "../extension/configuration";
+import { getBruinExecutablePath } from "./BruinExecutableService";
 
 // Define interfaces for the connection structure
 interface ConnectionDisplayData {
@@ -131,7 +132,7 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || extensionPath;
 
     // Initialize BruinConnections with proper parameters
-    this.bruinConnections = new BruinConnections("bruin", workspaceFolder);
+    this.bruinConnections = new BruinConnections(getBruinExecutablePath(), workspaceFolder);
     this.loadFavoritesFromSettings();
     this.loadTableFavoritesFromSettings();
   }
@@ -613,14 +614,14 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
   private async getDatabaseSummary(connectionName: string, environment?: string): Promise<any> {
     const workspaceFolder =
       vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || this.extensionPath;
-    const command = new BruinDBTCommand("bruin", workspaceFolder);
+    const command = new BruinDBTCommand(getBruinExecutablePath(), workspaceFolder);
     return command.getFetchDatabases(connectionName, environment);
   }
 
   private async getTablesSummary(connectionName: string, database: string, environment?: string): Promise<any> {
     const workspaceFolder =
       vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || this.extensionPath;
-    const command = new BruinDBTCommand("bruin", workspaceFolder);
+    const command = new BruinDBTCommand(getBruinExecutablePath(), workspaceFolder);
     return command.getFetchTables(connectionName, database, environment);
   }
 
@@ -632,7 +633,7 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
   ): Promise<any> {
     const workspaceFolder =
       vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || this.extensionPath;
-    const command = new BruinDBTCommand("bruin", workspaceFolder);
+    const command = new BruinDBTCommand(getBruinExecutablePath(), workspaceFolder);
     return command.getFetchColumns(connectionName, database, table, environment);
   }
 

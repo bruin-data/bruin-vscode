@@ -524,7 +524,7 @@
             <div class="flex items-center gap-2">
               <h2 class="text-sm font-medium text-editor-fg">Materialization</h2>
               <span
-                v-if="localMaterialization.type !== 'null'"
+                v-if="localMaterialization.type !== 'none'"
                 class="inline-flex items-center text-2xs text-editor-fg opacity-70"
               >
                 {{ localMaterialization.type
@@ -551,7 +551,7 @@
                 :value="localMaterialization.type"
                 @change="(e) => setType(e.target.value)"
               >
-                <vscode-radio id="materialization-type-null" name="materialization-type" value="null" :checked="localMaterialization.type === 'null'">None</vscode-radio>
+                <vscode-radio id="materialization-type-null" name="materialization-type" value="null" :checked="localMaterialization.type === 'none'">None</vscode-radio>
                 <vscode-radio id="materialization-type-table" name="materialization-type" value="table" :checked="localMaterialization.type === 'table'">Table</vscode-radio>
                 <vscode-radio id="materialization-type-view" name="materialization-type" value="view" :checked="localMaterialization.type === 'view'">View</vscode-radio>
               </vscode-radio-group>
@@ -1202,19 +1202,13 @@ onBeforeUnmount(() => {
 
 const saveMaterialization = () => {
   const payload = {};
-  
-  if (intervalModifiers.value) {
-    // Properly serialize interval_modifiers to avoid Proxy issues
-    const serializedIntervalModifiers = JSON.parse(JSON.stringify(intervalModifiers.value));
-    payload.interval_modifiers = {
-      start: serializedIntervalModifiers.start || null,
-      end: serializedIntervalModifiers.end || null
-    };
-  }
 
   if (localMaterialization.value?.type) {
     if (localMaterialization.value.type === "null") {
-      payload.materialization = null;
+      payload.materialization = {
+        type: "",
+        strategy: ""
+      };
     } else {
       // Properly serialize materialization to avoid Proxy issues
       const serializedMaterialization = JSON.parse(JSON.stringify(localMaterialization.value));

@@ -4,6 +4,7 @@ import { BruinTableDiff } from "../bruin/bruinTableDiff";
 import { BruinConnections } from "../bruin/bruinConnections";
 import { BruinDBTCommand } from "../bruin/bruinDBTCommand";
 import { getUri } from "../utilities/getUri";
+import { getBruinExecutablePath } from "../providers/BruinExecutableService";
 
 export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Disposable {
   public static readonly viewId = "bruin.tableDiffView";
@@ -138,8 +139,8 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
       throw new Error("Workspace folder not found");
     }
 
-    const bruinConnections = new BruinConnections("bruin", workspaceFolder);
-    const bruinDBTCommand = new BruinDBTCommand("bruin", workspaceFolder);
+    const bruinConnections = new BruinConnections(getBruinExecutablePath(), workspaceFolder);
+    const bruinDBTCommand = new BruinDBTCommand(getBruinExecutablePath(), workspaceFolder);
     const connections = await bruinConnections.getConnectionsForActivityBar();
 
     return { workspaceFolder, bruinConnections, bruinDBTCommand, connections };
@@ -320,7 +321,7 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
         });
 
         const { workspaceFolder, connections } = await this.getWorkspaceSetup();
-        const tableDiff = new BruinTableDiff("bruin", workspaceFolder);
+        const tableDiff = new BruinTableDiff(getBruinExecutablePath(), workspaceFolder);
         
         // Use explicit connection mode: connection_name:table_name format
         const result = await tableDiff.compareTables(
