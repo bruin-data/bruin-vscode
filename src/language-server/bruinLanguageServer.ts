@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { getDependsSectionOffsets } from '../utilities/helperUtils';
 import { BruinInternalParse } from '../bruin/bruinInternalParse';
 import { getBruinExecutablePath } from '../providers/BruinExecutableService';
-import { MaterializationCompletions, ColumnCompletions, TopLevelCompletions, AssetCompletions, MaterializationValidator, CustomCheckCompletions, SecretsCompletions } from './providers';
+import { MaterializationCompletions, ColumnCompletions, TopLevelCompletions, AssetCompletions, MaterializationValidator, QueryValidator, CustomCheckCompletions, SecretsCompletions } from './providers';
 import { BruinBlockDetector } from './utils/bruinBlockDetector';
 
 export class BruinLanguageServer {
@@ -13,6 +13,7 @@ export class BruinLanguageServer {
     private topLevelCompletions: TopLevelCompletions;
     private assetCompletions: AssetCompletions;
     private materializationValidator: MaterializationValidator;
+    private queryValidator: QueryValidator;
     private customCheckCompletions: CustomCheckCompletions;
     private secretsCompletions: SecretsCompletions;
 
@@ -26,6 +27,7 @@ export class BruinLanguageServer {
         this.topLevelCompletions = new TopLevelCompletions();
         this.assetCompletions = new AssetCompletions(this.getAssetData.bind(this));
         this.materializationValidator = new MaterializationValidator();
+        this.queryValidator = new QueryValidator();
         this.customCheckCompletions = new CustomCheckCompletions();
         this.secretsCompletions = new SecretsCompletions();
     }
@@ -284,7 +286,9 @@ export class BruinLanguageServer {
      * Validate materialization in document
      */
     public validateMaterialization(document: vscode.TextDocument): vscode.Diagnostic[] {
-        return this.materializationValidator.validateMaterialization(document);
+        const materializationDiagnostics = this.materializationValidator.validateMaterialization(document);
+        const queryDiagnostics = this.queryValidator.validateQuery(document);
+        return [...materializationDiagnostics, ...queryDiagnostics];
     }
 
     /**

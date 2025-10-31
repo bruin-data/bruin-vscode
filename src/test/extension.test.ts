@@ -7184,6 +7184,175 @@ schedule: yearly
     });
   });
 
+  suite("QueryValidator Tests", () => {
+    const { QueryValidator } = require("../language-server/providers/queryValidator");
+    let validator: any;
+
+    setup(() => {
+      validator = new QueryValidator();
+    });
+
+    /**
+     * Helper function to create a mock VSCode TextDocument
+     */
+    function createMockDocument(content: string, languageId: string): vscode.TextDocument {
+      return {
+        getText: () => content,
+        languageId: languageId,
+        uri: vscode.Uri.file(`/test/file.${languageId === 'yaml' ? 'yml' : languageId}`),
+        fileName: `/test/file.${languageId === 'yaml' ? 'yml' : languageId}`,
+        isUntitled: false,
+        isDirty: false,
+        isClosed: false,
+        eol: vscode.EndOfLine.LF,
+        lineCount: content.split('\n').length,
+        save: async () => true,
+        version: 1,
+        notebook: undefined,
+        encoding: 'utf-8',
+        lineAt: (lineOrPosition: number | vscode.Position) => {
+          const lines = content.split('\n');
+          const lineNumber = typeof lineOrPosition === 'number' ? lineOrPosition : lineOrPosition.line;
+          const lineText = lines[lineNumber] || '';
+          return {
+            lineNumber: lineNumber,
+            text: lineText,
+            range: new vscode.Range(lineNumber, 0, lineNumber, lineText.length),
+            rangeIncludingLineBreak: new vscode.Range(lineNumber, 0, lineNumber + 1, 0),
+            firstNonWhitespaceCharacterIndex: lineText.search(/\S/),
+            isEmptyOrWhitespace: lineText.trim().length === 0
+          };
+        },
+        offsetAt: (position: vscode.Position) => {
+          const lines = content.split('\n');
+          let offset = 0;
+          for (let i = 0; i < position.line && i < lines.length; i++) {
+            offset += lines[i].length + 1;
+          }
+          return offset + position.character;
+        },
+        positionAt: (offset: number) => {
+          const lines = content.split('\n');
+          let currentOffset = 0;
+          for (let i = 0; i < lines.length; i++) {
+            if (currentOffset + lines[i].length >= offset) {
+              return new vscode.Position(i, offset - currentOffset);
+            }
+            currentOffset += lines[i].length + 1;
+          }
+          return new vscode.Position(lines.length - 1, lines[lines.length - 1].length);
+        },
+        getWordRangeAtPosition: () => undefined,
+        validateRange: (range: vscode.Range) => range,
+        validatePosition: (position: vscode.Position) => position
+      } as vscode.TextDocument;
+    }
+
+    test("should not warn for query with pipe operator", () => {
+      const content = `parameters:
+    query: |
+        SELECT * FROM table`;
+
+      const document = createMockDocument(content, 'yaml');
+      const diagnostics = validator.validateQuery(document);
+
+      assert.strictEqual(diagnostics.length, 0);
+    });
+
+    test("should warn for multi-line query without pipe (7+ lines)", () => {
+      const content = `parameters:
+    query: SELECT *
+        FROM table1
+        JOIN table2
+        WHERE x = 1
+        AND y = 2
+        ORDER BY z
+        LIMIT 10`;
+
+      const document = createMockDocument(content, 'yaml');
+      const diagnostics = validator.validateQuery(document);
+
+      assert.strictEqual(diagnostics.length, 1);
+      assert.ok(diagnostics[0].message.includes('query: |'));
+    });
+
+    test("should NOT warn for multi-line query WITH pipe (7+ lines)", () => {
+      const content = `parameters:
+    query: |
+        SELECT *
+        FROM table1
+        JOIN table2
+        WHERE x = 1
+        AND y = 2
+        ORDER BY z
+        LIMIT 10`;
+
+      const document = createMockDocument(content, 'yaml');
+      const diagnostics = validator.validateQuery(document);
+
+      assert.strictEqual(diagnostics.length, 0);
+    });
+
+    test("should not warn for short query (less than 7 lines)", () => {
+      const content = `parameters:
+    query: SELECT *
+        FROM table
+        WHERE x = 1`;
+
+      const document = createMockDocument(content, 'yaml');
+      const diagnostics = validator.validateQuery(document);
+
+      assert.strictEqual(diagnostics.length, 0);
+    });
+
+    test("should NOT warn for short query WITH pipe (less than 7 lines)", () => {
+      const content = `parameters:
+    query: |
+        SELECT *
+        FROM table
+        WHERE x = 1`;
+
+      const document = createMockDocument(content, 'yaml');
+      const diagnostics = validator.validateQuery(document);
+
+      assert.strictEqual(diagnostics.length, 0);
+    });
+
+    test("should validate query in SQL Bruin block WITHOUT pipe", () => {
+      const content = `/* @bruin
+parameters:
+    query: SELECT *
+        FROM t1
+        JOIN t2
+        WHERE x = 1
+        AND y = 2
+        ORDER BY z
+        LIMIT 10
+@bruin */`;
+
+      const document = createMockDocument(content, 'sql');
+      const diagnostics = validator.validateQuery(document);
+
+      assert.strictEqual(diagnostics.length, 1);
+    });
+
+    test("should NOT validate query in SQL Bruin block WITH pipe", () => {
+      const content = `/* @bruin
+parameters:
+    query: |
+        SELECT *
+        FROM t1
+        JOIN t2
+        WHERE x = 1
+        AND y = 2
+        ORDER BY z
+        LIMIT 10
+@bruin */`;
+
+      const document = createMockDocument(content, 'sql');
+      const diagnostics = validator.validateQuery(document);
+
+      assert.strictEqual(diagnostics.length, 0);
   // Tests to prevent hardcoded 'bruin' executable path regression
   suite("Bruin Executable Path Consistency Tests", () => {
     test("should not have hardcoded 'bruin' strings in source files", async () => {
@@ -7365,4 +7534,5 @@ schedule: yearly
       }
     });
   });
-
+});
+});
