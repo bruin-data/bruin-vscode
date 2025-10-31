@@ -1,4 +1,7 @@
 # Changelog
+## [0.70.7] - [2025-10-30]
+- Fixed the database connections listing issue on windows.
+
 ## [0.70.6] - [2025-10-29]
 - Fixed query preview display of columns with object and array types.
 

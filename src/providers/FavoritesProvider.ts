@@ -15,6 +15,7 @@ import { BruinDBTCommand } from "../bruin/bruinDBTCommand";
 import { BruinConnections } from "../bruin/bruinConnections";
 import { Connection } from "../utilities/helperUtils";
 import { bruinWorkspaceDirectory } from "../bruin/bruinUtils";
+import { getBruinExecutablePath } from "./BruinExecutableService";
 
 // Define interfaces for the hierarchical structure
 interface FavoriteConnection {
@@ -114,7 +115,7 @@ export class FavoritesProvider implements vscode.TreeDataProvider<FavoriteItem> 
   constructor() {
     this.extensionPath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || "";
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || this.extensionPath;
-    this.bruinConnections = new BruinConnections("bruin", workspaceFolder);
+    this.bruinConnections = new BruinConnections(getBruinExecutablePath(), workspaceFolder);
     this.loadFavorites();
   }
 
@@ -720,7 +721,7 @@ export class FavoritesProvider implements vscode.TreeDataProvider<FavoriteItem> 
   private async getTablesSummary(connectionName: string, database: string, environment?: string): Promise<any> {
     const workspaceFolder =
       vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || this.extensionPath;
-    const command = new BruinDBTCommand("bruin", workspaceFolder);
+    const command = new BruinDBTCommand(getBruinExecutablePath(), workspaceFolder);
     return command.getFetchTables(connectionName, database, environment);
   }
 
@@ -732,7 +733,7 @@ export class FavoritesProvider implements vscode.TreeDataProvider<FavoriteItem> 
   ): Promise<any> {
     const workspaceFolder =
       vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || this.extensionPath;
-    const command = new BruinDBTCommand("bruin", workspaceFolder);
+    const command = new BruinDBTCommand(getBruinExecutablePath(), workspaceFolder);
     return command.getFetchColumns(connectionName, database, table, environment);
   }
 
