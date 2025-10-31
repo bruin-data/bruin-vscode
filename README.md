@@ -63,6 +63,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.70.8**: Add query validation to prevent formatting issues.
 - **0.70.7**: Fixed the database connections listing issue on windows.
 - **0.70.6**: Fixed query preview display of columns with object and array types.
 - **0.70.5**: Optimized `interval_modifiers` payload (send only on update) and improved 'none' materialization type handling.

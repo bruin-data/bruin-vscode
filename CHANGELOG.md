@@ -1,4 +1,7 @@
 # Changelog
+## [0.70.8] - [2025-10-31]
+- Add query validation to prevent formatting issues.
+
 ## [0.70.7] - [2025-10-30]
 - Fixed the database connections listing issue on windows.
 
