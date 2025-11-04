@@ -51,11 +51,10 @@ import {
         
         let initialContent = `-- environment: ${environmentName || 'default'}\n`;
         initialContent += `-- connection: ${connectionName || 'default'}\n`;
-        if (schemaName) {
-          initialContent += `SELECT * FROM ${this._sanitizeTableName(schemaName)}.${this._sanitizeTableName(cleanTableName)};\n\n`;
-        } else {
-          initialContent += `SELECT * FROM ${this._sanitizeTableName(cleanTableName)};\n\n`;
-        }
+
+        // Always use tableName as-is, it should already be fully qualified (schema.table)
+        // schemaName parameter is kept for backward compatibility but not used
+        initialContent += `SELECT * FROM ${this._sanitizeTableName(cleanTableName)};\n\n`;
   
         fs.writeFileSync(tempFilePath, initialContent);
         
