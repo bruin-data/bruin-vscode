@@ -1,6 +1,6 @@
 # Changelog
 ## [0.70.9] - [2025-11-04]
-- Improved the ingestr asset UI and added support for adding custom incremental key.
+- Enhanced the ingestr asset UI, including support for custom incremental keys, and introduced column resizing in the query preview.
 
 ## [0.70.8] - [2025-10-31]
 - Add query validation to prevent formatting issues.
