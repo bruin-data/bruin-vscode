@@ -283,7 +283,6 @@ const availableColumns = computed(() => {
     return null;
   }).filter(Boolean);
   
-  // Add current custom value to the list if it exists and isn't already in the list
   const currentValue = localParameters.value.incremental_key || '';
   if (currentValue && !columns.includes(currentValue)) {
     return [currentValue, ...columns];
@@ -296,12 +295,8 @@ const startEditing = (field: string) => {
   editingField.value[field] = true;
   editingValues.value[field] = localParameters.value[field] || '';
   
-  // For incremental_key, always start with dropdown mode (not custom input)
-  // User can switch to custom input by selecting "__CUSTOM__" option
   if (field === 'incremental_key') {
     const currentValue = localParameters.value.incremental_key || '';
-    // Only start in custom mode if there's a value AND it's not in the list AND we're not switching
-    // But actually, let's always start with dropdown to allow selection
     isCustomIncrementalKey.value = false;
   }
   
@@ -325,14 +320,12 @@ const handleIncrementalKeyChange = () => {
       }
     });
   } else if (editingValues.value.incremental_key && editingValues.value.incremental_key !== '__CUSTOM__') {
-    // Selected a value from the list, save it
     saveField('incremental_key');
     isCustomIncrementalKey.value = false;
   }
 };
 
 const handleIncrementalKeyBlur = () => {
-  // Only save if a valid value was selected (not the custom option)
   if (editingValues.value.incremental_key && editingValues.value.incremental_key !== '__CUSTOM__') {
     saveField('incremental_key');
     isCustomIncrementalKey.value = false;
@@ -355,7 +348,6 @@ const cancelEdit = (field: string) => {
   editingField.value[field] = false;
   editingValues.value[field] = localParameters.value[field] || '';
   
-  // Reset custom mode flag when canceling incremental_key edit
   if (field === 'incremental_key') {
     isCustomIncrementalKey.value = false;
   }
@@ -374,7 +366,6 @@ const saveParameters = () => {
 };
 
 onMounted(() => {
-  // Do not request connections here to avoid duplicate requests; parent will request
   window.addEventListener("message", handleMessage);
 });
 
