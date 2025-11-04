@@ -160,20 +160,34 @@
           :class="{ 'cursor-pointer hover:bg-input-background px-2 py-1 rounded transition-colors': !editingField.incremental_key }"
           @click="startEditing('incremental_key')"
         >
-          <select 
-            v-if="editingField.incremental_key"
-            id="incremental-key-select"
-            v-model="editingValues.incremental_key"
-            @blur="saveField('incremental_key')"
-            @change="saveField('incremental_key')"
-            :ref="el => { if (el) inputRefs.incremental_key = el as HTMLSelectElement }"
-            class="bg-input-background text-input-foreground text-xs border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg px-2 py-1 rounded w-full"
-          >
-            <option value="">Select column...</option>
-            <option v-for="column in availableColumns" :key="column" :value="column">
-              {{ column }}
-            </option>
-          </select>
+          <div v-if="editingField.incremental_key" class="flex items-center gap-1 w-full">
+            <select 
+              v-if="!isCustomIncrementalKey"
+              id="incremental-key-select"
+              v-model="editingValues.incremental_key"
+              @change="handleIncrementalKeyChange"
+              @blur="handleIncrementalKeyBlur"
+              :ref="el => { if (el) inputRefs.incremental_key = el as HTMLSelectElement }"
+              class="bg-input-background text-input-foreground text-xs border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg px-2 py-1 rounded flex-1"
+            >
+              <option value="">Select column...</option>
+              <option v-for="column in availableColumns" :key="column" :value="column">
+                {{ column }}
+              </option>
+              <option value="__CUSTOM__">Add custom value...</option>
+            </select>
+            <input 
+              v-else
+              id="incremental-key-input"
+              v-model="editingValues.incremental_key"
+              @blur="saveField('incremental_key')"
+              @keyup.enter="saveField('incremental_key')"
+              @keyup.escape="cancelEdit('incremental_key')"
+              :ref="el => { if (el) inputRefs.incremental_key = el as HTMLInputElement }"
+              class="bg-input-background text-input-foreground text-xs border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg px-2 py-1 rounded w-full"
+              placeholder="Enter custom column name"
+            />
+          </div>
           <span v-else id="incremental-key-value" class="block" :class="{ 'italic opacity-70': !localParameters.incremental_key }">
             {{ localParameters.incremental_key || 'Click to set key' }}
           </span>
@@ -221,6 +235,7 @@ const localParameters = ref<IngestrParameters>({
 const editingField = ref<Record<string, boolean>>({});
 const editingValues = ref<Record<string, string>>({});
 const inputRefs = ref<Record<string, HTMLInputElement | HTMLSelectElement>>({});
+const isCustomIncrementalKey = ref(false);
 
 const destinationDisplayName = (dest: string) => {
   const destination = AVAILABLE_DESTINATIONS.find(d => d.value === dest);
@@ -257,7 +272,7 @@ const availableColumns = computed(() => {
     return [];
   }
   
-  return props.columns.map(column => {
+  const columns = props.columns.map(column => {
     if (typeof column === 'string') {
       return column;
     } else if (column && typeof column === 'object' && column.name) {
@@ -267,11 +282,29 @@ const availableColumns = computed(() => {
     }
     return null;
   }).filter(Boolean);
+  
+  // Add current custom value to the list if it exists and isn't already in the list
+  const currentValue = localParameters.value.incremental_key || '';
+  if (currentValue && !columns.includes(currentValue)) {
+    return [currentValue, ...columns];
+  }
+  
+  return columns;
 });
 
 const startEditing = (field: string) => {
   editingField.value[field] = true;
   editingValues.value[field] = localParameters.value[field] || '';
+  
+  // For incremental_key, always start with dropdown mode (not custom input)
+  // User can switch to custom input by selecting "__CUSTOM__" option
+  if (field === 'incremental_key') {
+    const currentValue = localParameters.value.incremental_key || '';
+    // Only start in custom mode if there's a value AND it's not in the list AND we're not switching
+    // But actually, let's always start with dropdown to allow selection
+    isCustomIncrementalKey.value = false;
+  }
+  
   nextTick(() => {
     const input = inputRefs.value[field];
     if (input) {
@@ -280,15 +313,52 @@ const startEditing = (field: string) => {
   });
 };
 
+const handleIncrementalKeyChange = () => {
+  if (editingValues.value.incremental_key === '__CUSTOM__') {
+    // Switch to custom input mode
+    isCustomIncrementalKey.value = true;
+    editingValues.value.incremental_key = '';
+    nextTick(() => {
+      const input = inputRefs.value.incremental_key;
+      if (input && 'focus' in input) {
+        input.focus();
+      }
+    });
+  } else if (editingValues.value.incremental_key && editingValues.value.incremental_key !== '__CUSTOM__') {
+    // Selected a value from the list, save it
+    saveField('incremental_key');
+    isCustomIncrementalKey.value = false;
+  }
+};
+
+const handleIncrementalKeyBlur = () => {
+  // Only save if a valid value was selected (not the custom option)
+  if (editingValues.value.incremental_key && editingValues.value.incremental_key !== '__CUSTOM__') {
+    saveField('incremental_key');
+    isCustomIncrementalKey.value = false;
+  }
+};
+
 const saveField = (field: string) => {
   localParameters.value[field] = editingValues.value[field];
   editingField.value[field] = false;
+  
+  // Reset custom mode flag when saving incremental_key
+  if (field === 'incremental_key') {
+    isCustomIncrementalKey.value = false;
+  }
+  
   saveParameters();
 };
 
 const cancelEdit = (field: string) => {
   editingField.value[field] = false;
   editingValues.value[field] = localParameters.value[field] || '';
+  
+  // Reset custom mode flag when canceling incremental_key edit
+  if (field === 'incremental_key') {
+    isCustomIncrementalKey.value = false;
+  }
 };
 
 const saveParameters = () => {
@@ -345,6 +415,7 @@ watch(
       // Clear any editing states when switching assets
       editingField.value = {};
       editingValues.value = {};
+      isCustomIncrementalKey.value = false;
     }
   },
   { deep: true, immediate: true }
