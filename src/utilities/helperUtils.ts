@@ -219,18 +219,16 @@ export function prepareFlags(
   return baseFlags.concat(result);
 }
 
-// Build a safe set of flags for the render command: only allow known, value-carrying flags
 export function buildRenderFlags(flags: string): string[] {
   const baseFlags = ["-o", "json"];
-  const tokens = (flags || "").split(" ").filter((t) => t !== "");
   const allowedValueFlags = new Set(["--start-date", "--end-date", "--var"]);
   const allowedBooleanFlags = new Set<string>(["--apply-interval-modifiers", "--full-refresh"]);
-
+  const tokens = parseCommandLineArgs(flags || "");
+  
   const result: string[] = [];
   for (let i = 0; i < tokens.length; i++) {
     const token = tokens[i];
     if (allowedValueFlags.has(token)) {
-      // must have a value next
       if (i + 1 < tokens.length) {
         result.push(token, tokens[i + 1]);
         i += 1;
@@ -240,10 +238,47 @@ export function buildRenderFlags(flags: string): string[] {
     if (allowedBooleanFlags.has(token)) {
       result.push(token);
     }
-    // everything else (including tag-related tokens or stray values) is dropped
   }
 
   return baseFlags.concat(result);
+}
+
+function parseCommandLineArgs(str: string): string[] {
+  const args: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  let quoteChar = '';
+  
+  for (let i = 0; i < str.length; i++) {
+    const char = str[i];
+    
+    if (!inQuotes) {
+      if (char === '"' || char === "'") {
+        inQuotes = true;
+        quoteChar = char;
+      } else if (char === ' ') {
+        if (current.trim()) {
+          args.push(current.trim());
+          current = '';
+        }
+      } else {
+        current += char;
+      }
+    } else {
+      if (char === quoteChar) {
+        inQuotes = false;
+        quoteChar = '';
+      } else {
+        current += char;
+      }
+    }
+  }
+  
+  if (current.trim()) {
+    args.push(current.trim());
+  }
+  
+  return args;
 }
 
 type ConnectionType =

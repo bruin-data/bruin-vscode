@@ -27,7 +27,7 @@
         </vscode-button>
       </div>
       <p class="text-2xs text-editor-fg opacity-70 mt-1">
-        Override pipeline defaults (temporary)
+        Override pipeline defaults for testing
       </p>
     </div>
 
@@ -92,6 +92,20 @@
         <div class="text-2xs text-editor-fg opacity-60 mb-2">No pipeline variables found</div>
       </div>
     </div>
+
+    <!-- Footer with Save Button -->
+    <div class="p-2 border-t border-commandCenter-border flex-shrink-0">
+      <div class="flex justify-end gap-2">
+        <vscode-button
+          appearance="secondary"
+          class="text-2xs h-6 px-3"
+          @click="handleSave"
+          :disabled="Object.keys(variableOverrides).length === 0"
+        >
+          Save Overrides
+        </vscode-button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -108,11 +122,15 @@ interface Props {
   isOpen: boolean;
   variables: Record<string, Variable>;
   triggerElementId: string;
+  initialOverrides?: Record<string, any>;
+  initialApplyOverrides?: boolean;
 }
 
 interface Emits {
   (e: "close"): void;
   (e: "render-with-overrides", overrides: Record<string, any>): void;
+  (e: "save-overrides", overrides: Record<string, any>, applyOverrides: boolean): void;
+  (e: "apply-overrides-toggle", applyOverrides: boolean): void;
 }
 
 const props = defineProps<Props>();
@@ -120,6 +138,14 @@ const emit = defineEmits<Emits>();
 
 // Runtime variable overrides
 const variableOverrides = ref<Record<string, any>>({});
+
+// Initialize from props
+watch(() => props.initialOverrides, (val) => {
+  if (val) {
+    variableOverrides.value = { ...val };
+  }
+}, { immediate: true });
+
 
 // Panel positioning
 const panelStyle = ref<Record<string, string>>({});
@@ -276,13 +302,17 @@ function handleOverrideInput(varName: string, variable: Variable, value: string)
   }
 
   variableOverrides.value[varName] = parsedValue;
-  // Automatically trigger render with overrides
   emit("render-with-overrides", { ...variableOverrides.value });
 }
 
 function clearOverride(varName: string): void {
   delete variableOverrides.value[varName];
-  // Automatically trigger render without this override
   emit("render-with-overrides", { ...variableOverrides.value });
+}
+
+
+function handleSave() {
+  emit("save-overrides", { ...variableOverrides.value }, true);
+  emit("close");
 }
 </script>

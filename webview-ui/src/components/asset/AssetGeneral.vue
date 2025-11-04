@@ -127,25 +127,32 @@
                 </div>
               </div>
             </div>
-            <!-- Variables Section (only show for assets, not pipeline files) -->
-            <div v-if="!isPipelineData" class="flex items-center gap-[1px]">
-              <label class="text-xs text-editor-fg">Variables</label>
-              <!-- Variables count indicator -->
-              <span
-                v-if="pipelineVariables && Object.keys(pipelineVariables).length > 0"
-                class="text-3xs text-editor-fg opacity-60"
+            <div v-if="!isPipelineData" class="flex items-center gap-2">
+              <div class="flex items-center gap-[1px]">
+                <label class="text-xs text-editor-fg">Variables</label>
+                <span
+                  v-if="pipelineVariables && Object.keys(pipelineVariables).length > 0"
+                  class="text-3xs text-editor-fg opacity-60"
+                >
+                  ({{ Object.keys(pipelineVariables).length }})
+                </span>
+                <vscode-button
+                  appearance="icon"
+                  class="h-3.5 w-auto p-0 opacity-70 hover:opacity-100 inline-flex items-center"
+                  id="variables-button"
+                  title="Add temporary variable overrides for this run"
+                  @click="toggleVariablesOpen"
+                >
+                  <span class="codicon codicon-settings-gear text-[9px]"></span>
+                </vscode-button>
+              </div>
+              <vscode-checkbox
+                :checked="applyVariableOverrides"
+                @change="handleApplyOverridesToggle($event.target.checked)"
+                class="text-xs opacity-70"
               >
-                ({{ Object.keys(pipelineVariables).length }})
-              </span>
-              <vscode-button
-                appearance="icon"
-                class="h-3.5 w-auto p-0 opacity-70 hover:opacity-100 inline-flex items-center"
-                id="variables-button"
-                title="Add temporary variable overrides for this run"
-                @click="toggleVariablesOpen"
-              >
-                <span class="codicon codicon-settings-gear text-[9px]"></span>
-              </vscode-button>
+                Apply overrides
+              </vscode-checkbox>
             </div>
           </div>
         </div>
@@ -385,15 +392,17 @@
     @cancel="cancelFullRefresh"
   />
 
-  <!-- Asset Variables Panel Component (only show for assets, not pipeline files) -->
   <AssetVariablesPanel
     v-if="!isPipelineData"
     :is-open="isVariablesOpen"
     :variables="pipelineVariables"
     trigger-element-id="variables-button"
+    :initial-overrides="currentVariableOverrides"
+    :initial-apply-overrides="applyVariableOverrides"
     @close="closeVariablesPanel"
-    
     @render-with-overrides="handleRenderWithOverrides"
+    @save-overrides="handleSaveOverrides"
+    @apply-overrides-toggle="handleApplyOverridesToggle"
   />
 </template>
 <script setup lang="ts">
@@ -612,10 +621,6 @@ const requestPipelineVariables = () => {
   });
 };
 
-/**
- * Computed properties for error handling and warnings
- */
-
 const parsedErrorMessages = computed(() => {
   if (!errorMessage.value) return [];
 
@@ -683,9 +688,6 @@ const warningMessages = computed(() =>
   )
 );
 
-/**
- * Checkbox items state
- */
 const checkboxItems = ref([
   { name: "Full-Refresh", checked: false },
   { name: "Interval-modifiers", checked: false },
@@ -705,11 +707,9 @@ const hasActiveTagFilters = computed(
   () => includeTags.value.length > 0 || excludeTags.value.length > 0
 );
 
-// Variables management state
 const isVariablesOpen = ref(false);
 const currentVariableOverrides = ref<Record<string, any>>({});
-
-// Computed property to track full-refresh checkbox state
+const applyVariableOverrides = ref(false);
 const isFullRefreshChecked = computed(() => {
   return checkboxItems.value.find((item) => item.name === "Full-Refresh")?.checked || false;
 });
@@ -775,23 +775,13 @@ function clearAllTagFilters() {
   excludeTags.value = [];
 }
 
-// State to control visibility of CheckboxGroup
 const showCheckboxGroup = ref(false);
 
-// Function to update visibility based on checkbox state
 function updateVisibility() {
   showCheckboxGroup.value = !showCheckboxGroup.value;
-  // This function can be used to perform additional actions if needed
 }
 
-/**
- * Selected environment state
- */
 const selectedEnv = ref<string>("");
-
-/**
- * Date state
- */
 const today = new Date(Date.now());
 const startDate = ref(
   new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate() - 1, 0, 0, 0, 0))
@@ -814,14 +804,10 @@ watch(
   { immediate: true }
 );
 
-/**
- * Function to get checkbox change payload
- */
 function getCheckboxChangePayload() {
-  // When full-refresh is checked, don't include start-date
   const effectiveStartDate = isFullRefreshChecked.value && isPipelineStartDateAvailable.value ? "" : startDate.value;
 
-  return concatCommandFlags(
+  let baseFlags = concatCommandFlags(
     effectiveStartDate,
     endDate.value,
     endDateExclusive.value,
@@ -831,17 +817,29 @@ function getCheckboxChangePayload() {
       exclude: excludeTags.value,
     }
   );
+
+  if (applyVariableOverrides.value && currentVariableOverrides.value && Object.keys(currentVariableOverrides.value).length > 0) {
+    const availableVariables = Object.keys(pipelineVariables.value || {});
+    const validOverrides = Object.entries(currentVariableOverrides.value)
+      .filter(([key]) => availableVariables.includes(key))
+      .map(([key, value]) => {
+        if (value === null || value === undefined) return "";
+        const formattedValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
+        return `--var ${key}='${formattedValue}'`;
+      })
+      .filter(flag => flag !== "");
+    
+    if (validOverrides.length > 0) {
+      const overrideFlags = validOverrides.join(" ");
+      baseFlags = baseFlags ? `${baseFlags} ${overrideFlags}` : overrideFlags;
+    }
+  }
+
+  return baseFlags;
 }
 
-/**
- * Language and code state
- */
 const language = ref("");
 const code = ref(null);
-
-/**
- * Lifecycle hooks
- */
 onMounted(() => {
   if (props.selectedEnvironment) {
     selectedEnv.value = props.selectedEnvironment;
@@ -852,6 +850,8 @@ onMounted(() => {
     endDate?: string;
     includeTags?: string[];
     excludeTags?: string[];
+    variableOverrides?: Record<string, any>;
+    applyVariableOverrides?: boolean;
   };
   if (persistedState?.checkboxState) {
     checkboxItems.value = checkboxItems.value.map((item) => ({
@@ -864,6 +864,12 @@ onMounted(() => {
   }
   if (persistedState?.endDate) {
     endDate.value = persistedState.endDate;
+  }
+  if (persistedState?.variableOverrides) {
+    currentVariableOverrides.value = { ...persistedState.variableOverrides };
+  }
+  if (persistedState?.applyVariableOverrides !== undefined) {
+    applyVariableOverrides.value = persistedState.applyVariableOverrides;
   }
   try {
     if (Array.isArray(persistedState?.includeTags)) {
@@ -879,9 +885,6 @@ onMounted(() => {
   sendInitialMessage();
 });
 
-/**
- * Watchers
- */
 watch(
   () => props.selectedEnvironment,
   (newValue) => {
@@ -890,7 +893,7 @@ watch(
 );
 
 watch(
-  [checkboxItems, startDate, endDate, endDateExclusive, includeTags, excludeTags],
+  [checkboxItems, startDate, endDate, endDateExclusive, includeTags, excludeTags, currentVariableOverrides, applyVariableOverrides],
   () => {
     const checkboxState = checkboxItems.value.reduce(
       (acc, item) => {
@@ -923,8 +926,42 @@ watch(
         endDate: endDate.value,
         includeTags: includeTags.value,
         excludeTags: excludeTags.value,
+        variableOverrides: currentVariableOverrides.value,
+        applyVariableOverrides: applyVariableOverrides.value,
       });
     } catch (_) {}
+  },
+  { deep: true }
+);
+
+watch(
+  () => pipelineVariables.value,
+  (newVariables, oldVariables) => {
+    if (applyVariableOverrides.value && currentVariableOverrides.value && Object.keys(currentVariableOverrides.value).length > 0) {
+      const oldKeys = Object.keys(oldVariables || {}).sort();
+      const newKeys = Object.keys(newVariables || {}).sort();
+      
+      if (JSON.stringify(oldKeys) !== JSON.stringify(newKeys)) {
+        const currentFlags = getCheckboxChangePayload();
+        vscode.postMessage({
+          command: "checkboxChange",
+          payload: {
+            flags: currentFlags,
+            checkboxState: checkboxItems.value.reduce(
+              (acc, item) => {
+                acc[String(item.name)] = Boolean(item.checked);
+                return acc;
+              },
+              {} as Record<string, boolean>
+            ),
+            tagFilters: {
+              include: [...includeTags.value].map((tag) => String(tag)),
+              exclude: [...excludeTags.value].map((tag) => String(tag)),
+            },
+          },
+        });
+      }
+    }
   },
   { deep: true }
 );
@@ -1033,9 +1070,6 @@ function toggleTag(tag: string, list: "include" | "exclude") {
   }
 }
 
-/**
- * Initialize stores
- */
 const connectionsStore = useConnectionsStore();
 function setSelectedEnv(env: string) {
   selectedEnv.value = env;
@@ -1073,27 +1107,10 @@ function buildCommandPayload(
     payload += " --environment " + selectedEnv.value;
   }
 
-  // Add variable overrides if any exist
-  if (currentVariableOverrides.value && Object.keys(currentVariableOverrides.value).length > 0) {
-    const overrideFlags = Object.entries(currentVariableOverrides.value)
-      .map(([key, value]) => {
-        if (value === null || value === undefined) return "";
-        const formattedValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
-        // Quote JSON values and values with special characters to prevent shell interpretation
-        const needsQuoting = typeof value === 'object' || formattedValue.includes('[') || formattedValue.includes(' ') || formattedValue.includes('=');
-        return needsQuoting ? `--var ${key}='${formattedValue}'` : `--var ${key}=${formattedValue}`;
-      })
-      .filter(flag => flag !== "")
-      .join(" ");
-    if (overrideFlags) {
-      payload += " " + overrideFlags;
-    }
-  }
 
   return payload;
 }
 
-// Single-asset runs cannot use --tag; strip them but keep --exclude-tag
 function stripIncludeTagFlags(flags: string) {
   try {
     return flags.replace(/\s--tag\s+[^\s]+/g, "");
@@ -1102,7 +1119,6 @@ function stripIncludeTagFlags(flags: string) {
   }
 }
 
-// Single-asset runs also cannot use --exclude-tag; strip them for plain Run
 function stripExcludeTagFlags(flags: string) {
   try {
     return flags.replace(/\s--exclude-tag\s+[^\s]+/g, "");
@@ -1111,9 +1127,6 @@ function stripExcludeTagFlags(flags: string) {
   }
 }
 
-/**
- * Functions to handle run and validate actions
- */
 function runAssetOnly() {
   const fullRefreshChecked = checkboxItems.value.find(
     (item) => item.name === "Full-Refresh"
@@ -1236,16 +1249,10 @@ function handleBruinValidateAllPipelines() {
   });
 }
 
-/**
- * Function to reset dates on schedule
- */
 function resetDatesOnSchedule() {
   resetStartEndDate(props.schedule, today.getTime(), startDate, endDate);
 }
 
-/**
- * Handle ingestr parameters save using setAssetDetails
- */
 function handleIngestrSave(parameters) {
   vscode.postMessage({
     command: "bruin.setAssetDetails",
@@ -1256,7 +1263,6 @@ function handleIngestrSave(parameters) {
   });
 }
 
-// Variables management methods
 function toggleVariablesOpen() {
   isVariablesOpen.value = !isVariablesOpen.value;
 }
@@ -1266,45 +1272,28 @@ function closeVariablesPanel() {
 }
 
 function handleRenderWithOverrides(overrides: Record<string, any>) {
-  // Store current overrides
   currentVariableOverrides.value = { ...overrides };
+}
+
+function handleSaveOverrides(overrides: Record<string, any>, applyOverrides: boolean) {
+  currentVariableOverrides.value = { ...overrides };
+  applyVariableOverrides.value = applyOverrides;
   
-  // Convert overrides to flags string
-  const overrideFlags = Object.entries(overrides)
-    .map(([key, value]) => {
-      if (value === null || value === undefined) return "";
-      const formattedValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
-      return `--var ${key}=${formattedValue}`;
-    })
-    .filter(flag => flag !== "")
-    .join(" ");
+  const prevState = (vscode.getState() as Record<string, any>) || {};
+  vscode.setState({
+    ...prevState,
+    variableOverrides: { ...overrides },
+    applyVariableOverrides: applyOverrides,
+  });
+}
+
+function handleApplyOverridesToggle(applyOverrides: boolean) {
+  applyVariableOverrides.value = applyOverrides;
   
-  // Get current flags and remove any existing --var flags, then add new ones
-  let currentFlags = getCheckboxChangePayload();
-  
-  // Remove existing --var flags
-  if (currentFlags) {
-    currentFlags = currentFlags.replace(/--var\s+\S+/g, "").trim();
-  }
-  
-  // Append new override flags
-  const enhancedFlags = overrideFlags 
-    ? (currentFlags ? `${currentFlags} ${overrideFlags}` : overrideFlags)
-    : currentFlags;
-  
-  // Send updated flags via checkboxChange message (same as --start-date)
-  vscode.postMessage({
-    command: "checkboxChange",
-    payload: {
-      flags: enhancedFlags || "",
-      checkboxState: checkboxItems.value.reduce(
-        (acc, item) => {
-          acc[String(item.name)] = Boolean(item.checked);
-          return acc;
-        },
-        {} as Record<string, boolean>
-      ),
-    },
+  const prevState = (vscode.getState() as Record<string, any>) || {};
+  vscode.setState({
+    ...prevState,
+    applyVariableOverrides: applyOverrides,
   });
 }
 
@@ -1312,22 +1301,16 @@ function handleRenderWithOverrides(overrides: Record<string, any>) {
 function handleSaveVariable(event: { name: string; config: any; oldName?: string }) {
   const { name, config, oldName } = event;
 
-  // Create a clean copy of current variables to avoid any non-serializable data
   const currentVariables = JSON.parse(JSON.stringify(pipelineVariables.value || {}));
-
-  // If we're editing an existing variable and the name changed, remove the old one
   if (oldName && oldName !== name) {
     delete currentVariables[oldName];
   }
 
   currentVariables[name] = config;
 
-  // Ensure the payload is serializable - following the same pattern as AssetColumns
   try {
     const formattedVariables = formatVariablesForPayload(currentVariables);
     const payload = { variables: formattedVariables };
-
-    // Test serialization to catch any issues (same pattern as AssetColumns)
     const payloadStr = JSON.stringify(payload);
     const safePayload = JSON.parse(payloadStr);
 
@@ -1338,8 +1321,6 @@ function handleSaveVariable(event: { name: string; config: any; oldName?: string
     });
   } catch (error) {
     console.error("Error serializing variables data:", error);
-
-    // Fallback: send a minimal payload
     vscode.postMessage({
       command: "bruin.setPipelineDetails",
       payload: { variables: {} },
@@ -1349,17 +1330,12 @@ function handleSaveVariable(event: { name: string; config: any; oldName?: string
 }
 
 function deleteVariable(varName: string) {
-  // Create a clean copy of current variables to avoid any non-serializable data
   const currentVariables = JSON.parse(JSON.stringify(pipelineVariables.value || {}));
-
   delete currentVariables[varName];
 
-  // Ensure the payload is serializable - following the same pattern as AssetColumns
   try {
     const formattedVariables = formatVariablesForPayload(currentVariables);
     const payload = { variables: formattedVariables };
-
-    // Test serialization to catch any issues (same pattern as AssetColumns)
     const payloadStr = JSON.stringify(payload);
     const safePayload = JSON.parse(payloadStr);
 
@@ -1370,8 +1346,6 @@ function deleteVariable(varName: string) {
     });
   } catch (error) {
     console.error("Error serializing variables data:", error);
-
-    // Fallback: send a minimal payload
     vscode.postMessage({
       command: "bruin.setPipelineDetails",
       payload: { variables: {} },
@@ -1380,39 +1354,31 @@ function deleteVariable(varName: string) {
   }
 }
 
-// Format variables for payload - following the same pattern as AssetColumns formatColumnsForPayload
 function formatVariablesForPayload(variables: any) {
   const formattedVariables: any = {};
 
   Object.keys(variables).forEach((varName) => {
     const variable = variables[varName];
-
-    // Ensure all values are serializable (same pattern as AssetColumns)
     const safeVariable: any = {
       type: String(variable.type || "string"),
       default: variable.default !== undefined ? variable.default : null,
     };
 
-    // Add optional fields if they exist
     if (variable.description) {
       safeVariable.description = String(variable.description);
     }
-
     if (variable.items) {
       safeVariable.items = variable.items;
     }
-
     if (variable.properties) {
       safeVariable.properties = variable.properties;
     }
 
-    // Test serialization to catch any issues (same pattern as AssetColumns)
     try {
       JSON.stringify(safeVariable);
       formattedVariables[varName] = safeVariable;
     } catch (error) {
       console.error(`Error serializing variable ${varName}:`, error);
-      // Return a safe fallback
       formattedVariables[varName] = {
         type: "string",
         default: null,
@@ -1423,13 +1389,8 @@ function formatVariablesForPayload(variables: any) {
   return formattedVariables;
 }
 
-/**
- * Event listener for message receiving
- */
 onBeforeUnmount(() => {
   window.removeEventListener("message", receiveMessage);
-
-  // Clean up any pending request timeout
   if (requestTimeout) {
     clearTimeout(requestTimeout);
     requestTimeout = null;
@@ -1448,7 +1409,6 @@ watch(
       },
     });
 
-    // Also trigger asset metadata fetch with the current values
     vscode.postMessage({
       command: "bruin.getAssetMetadata",
       payload: {
