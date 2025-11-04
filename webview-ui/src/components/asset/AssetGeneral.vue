@@ -127,8 +127,8 @@
                 </div>
               </div>
             </div>
-            <!-- Variables Section -->
-            <div class="flex items-center gap-[1px]">
+            <!-- Variables Section (only show for assets, not pipeline files) -->
+            <div v-if="!isPipelineData" class="flex items-center gap-[1px]">
               <label class="text-xs text-editor-fg">Variables</label>
               <!-- Variables count indicator -->
               <span
@@ -141,7 +141,7 @@
                 appearance="icon"
                 class="h-3.5 w-auto p-0 opacity-70 hover:opacity-100 inline-flex items-center"
                 id="variables-button"
-                title="Manage pipeline variables"
+                title="Add temporary variable overrides for this run"
                 @click="toggleVariablesOpen"
               >
                 <span class="codicon codicon-settings-gear text-[9px]"></span>
@@ -385,14 +385,15 @@
     @cancel="cancelFullRefresh"
   />
 
-  <!-- Variables Panel Component -->
-  <VariablesPanel
+  <!-- Asset Variables Panel Component (only show for assets, not pipeline files) -->
+  <AssetVariablesPanel
+    v-if="!isPipelineData"
     :is-open="isVariablesOpen"
     :variables="pipelineVariables"
     trigger-element-id="variables-button"
     @close="closeVariablesPanel"
-    @save-variable="handleSaveVariable"
-    @delete-variable="deleteVariable"
+    
+    @render-with-overrides="handleRenderWithOverrides"
   />
 </template>
 <script setup lang="ts">
@@ -413,7 +414,7 @@ import SqlEditor from "@/components/asset/SqlEditor.vue";
 import IngestrAssetDisplay from "@/components/asset/IngestrAssetDisplay.vue";
 import CheckboxGroup from "@/components/ui/checkbox-group/CheckboxGroup.vue";
 import EnvSelectMenu from "@/components/ui/select-menu/EnvSelectMenu.vue";
-import VariablesPanel from "@/components/ui/variables-panel/VariablesPanel.vue";
+import AssetVariablesPanel from "@/components/ui/variables-panel/AssetVariablesPanel.vue";
 import ButtonGroup from "@/components/ui/buttons/ButtonGroup.vue";
 import { updateValue, resetStates, determineValidationStatus } from "@/utilities/helper";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/vue";
@@ -706,6 +707,7 @@ const hasActiveTagFilters = computed(
 
 // Variables management state
 const isVariablesOpen = ref(false);
+const currentVariableOverrides = ref<Record<string, any>>({});
 
 // Computed property to track full-refresh checkbox state
 const isFullRefreshChecked = computed(() => {
@@ -1071,6 +1073,23 @@ function buildCommandPayload(
     payload += " --environment " + selectedEnv.value;
   }
 
+  // Add variable overrides if any exist
+  if (currentVariableOverrides.value && Object.keys(currentVariableOverrides.value).length > 0) {
+    const overrideFlags = Object.entries(currentVariableOverrides.value)
+      .map(([key, value]) => {
+        if (value === null || value === undefined) return "";
+        const formattedValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
+        // Quote JSON values and values with special characters to prevent shell interpretation
+        const needsQuoting = typeof value === 'object' || formattedValue.includes('[') || formattedValue.includes(' ') || formattedValue.includes('=');
+        return needsQuoting ? `--var ${key}='${formattedValue}'` : `--var ${key}=${formattedValue}`;
+      })
+      .filter(flag => flag !== "")
+      .join(" ");
+    if (overrideFlags) {
+      payload += " " + overrideFlags;
+    }
+  }
+
   return payload;
 }
 
@@ -1245,6 +1264,50 @@ function toggleVariablesOpen() {
 function closeVariablesPanel() {
   isVariablesOpen.value = false;
 }
+
+function handleRenderWithOverrides(overrides: Record<string, any>) {
+  // Store current overrides
+  currentVariableOverrides.value = { ...overrides };
+  
+  // Convert overrides to flags string
+  const overrideFlags = Object.entries(overrides)
+    .map(([key, value]) => {
+      if (value === null || value === undefined) return "";
+      const formattedValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
+      return `--var ${key}=${formattedValue}`;
+    })
+    .filter(flag => flag !== "")
+    .join(" ");
+  
+  // Get current flags and remove any existing --var flags, then add new ones
+  let currentFlags = getCheckboxChangePayload();
+  
+  // Remove existing --var flags
+  if (currentFlags) {
+    currentFlags = currentFlags.replace(/--var\s+\S+/g, "").trim();
+  }
+  
+  // Append new override flags
+  const enhancedFlags = overrideFlags 
+    ? (currentFlags ? `${currentFlags} ${overrideFlags}` : overrideFlags)
+    : currentFlags;
+  
+  // Send updated flags via checkboxChange message (same as --start-date)
+  vscode.postMessage({
+    command: "checkboxChange",
+    payload: {
+      flags: enhancedFlags || "",
+      checkboxState: checkboxItems.value.reduce(
+        (acc, item) => {
+          acc[String(item.name)] = Boolean(item.checked);
+          return acc;
+        },
+        {} as Record<string, boolean>
+      ),
+    },
+  });
+}
+
 
 function handleSaveVariable(event: { name: string; config: any; oldName?: string }) {
   const { name, config, oldName } = event;

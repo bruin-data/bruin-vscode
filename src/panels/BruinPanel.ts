@@ -554,6 +554,12 @@ export class BruinPanel {
             const fPath = this._lastRenderedDocumentUri?.fsPath;
             runInIntegratedTerminal("", fPath, message.payload, "bruin");
             break;
+          case "bruin.renderSQLWithFlags":
+            if (!this._lastRenderedDocumentUri) {
+              return;
+            }
+            await renderCommandWithFlags(message.payload, this._lastRenderedDocumentUri?.fsPath);
+            break;
           case "bruin.runContinue":
             if (!this._lastRenderedDocumentUri) {
               return;
