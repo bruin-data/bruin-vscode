@@ -1,4 +1,7 @@
 # Changelog
+## [0.71.0] - [2025-11-04]
+- Added variables overrides management UI to the extension.
+
 ## [0.70.8] - [2025-10-31]
 - Add query validation to prevent formatting issues.
 
