@@ -1,11 +1,6 @@
 import { BruinCommand } from "./bruinCommand";
 
 export class BruinDBTCommand extends BruinCommand {
-  constructor(_bruinExecutable: string, workingDirectory: string, options: string[] = []) {
-    // Override to use custom path for testing
-    super("/Users/mustafacihatersan/codebase/bruin/bin/bruin", workingDirectory, options);
-  }
-
   protected bruinCommand(): string {
     return "internal";
   }
