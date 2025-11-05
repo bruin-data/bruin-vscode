@@ -339,24 +339,25 @@
           >
             <table
               class="w-[calc(100vw-100px)] bg-editor-bg font-mono font-normal text-xs border-t-0 border-collapse"
+              style="table-layout: fixed;"
             >
               <thead class="bg-editor-bg border-y-0">
                 <tr>
                   <th
                     class="sticky top-0 p-1 text-left font-semibold text-editor-fg bg-editor-bg border-x border-commandCenter-border before:absolute before:bottom-0 before:left-0 before:w-full before:border-b before:border-commandCenter-border"
+                    style="width: 50px; min-width: 50px; max-width: 50px;"
                   ></th>
                   <th
                     v-for="(column, colIndex) in currentTab.parsedOutput.columns"
-                    :key="column.name"
+                    :key="typeof column === 'string' ? column : column.name"
                     class="sticky top-0 p-1 text-left font-semibold text-editor-fg bg-editor-bg border-x border-commandCenter-border before:absolute before:bottom-0 before:left-0 before:w-full before:border-b before:border-commandCenter-border relative"
                     :style="getColumnWidthStyle(colIndex)"
                   >
-                    <div class="flex items-center">
-                      <span class="truncate">{{ column.name }}</span>
+                    <div class="flex items-center w-full overflow-hidden pr-1">
+                      <span class="truncate flex-1 min-w-0 block">{{ typeof column === 'string' ? column : (column.name || `Column ${colIndex + 1}`) }}</span>
                     </div>
                     <div
-                      v-if="colIndex < currentTab.parsedOutput.columns.length - 1"
-                      class="absolute top-0 right-[-2px] w-[5px] h-full cursor-col-resize hover:bg-button-background transition-colors z-10"
+                      class="absolute top-0 right-[-2px] w-[5px] h-full cursor-col-resize hover:bg-button-background transition-colors z-10 resize-handle"
                       @mousedown="startResize($event, colIndex)"
                       title="Drag to resize column"
                     ></div>
@@ -371,6 +372,7 @@
                 >
                   <td
                     class="p-1 opacity-50 text-editor-fg font-mono border border-commandCenter-border"
+                    style="width: 50px; min-width: 50px; max-width: 50px;"
                   >
                     {{ (currentPage - 1) * pageSize + index + 1 }}
                   </td>
@@ -381,48 +383,58 @@
                     :class="{ 'cursor-pointer': cellHasOverflow(value) }"
                     :style="getColumnWidthStyle(colIndex)"
                   >
-                    <!-- Cell with in-place expansion -->
                     <div class="flex flex-col">
-                      <!-- Content container with conditional height -->
-                      <div
-                        :class="{
-                          'max-h-6 overflow-hidden': !isExpanded(index, colIndex),
-                          'max-h-12 overflow-y-auto': isExpanded(index, colIndex),
-                        }"
-                        class="transition-all duration-75 pr-6"
-                      >
-                        <!-- Cell content with word-wrapping when expanded -->
+                      <div v-if="Array.isArray(value)" class="array-cell">
+                        <div
+                          v-for="(item, itemIndex) in value"
+                          :key="itemIndex"
+                          class="array-item"
+                        >
+                          {{ item === null || item === undefined ? 'NULL' : item }}
+                        </div>
+                        <div v-if="value.length === 0" class="text-descriptionForeground opacity-60 italic uppercase">
+                          Empty Array
+                        </div>
+                      </div>
+                      <template v-else>
                         <div
                           :class="{
-                            'whitespace-nowrap overflow-hidden text-ellipsis': !isExpanded(
-                              index,
-                              colIndex
-                            ),
-                            'whitespace-pre-wrap break-words': isExpanded(index, colIndex),
-                            'uppercase text-descriptionForeground opacity-60 italic': formatCellValue(value).isNull
+                            'max-h-6 overflow-hidden': !isExpanded(index, colIndex),
+                            'max-h-12 overflow-y-auto': isExpanded(index, colIndex),
                           }"
-                          v-html="highlightMatch(formatCellValue(value).text, currentTab.searchInput)"
-                        ></div>
-                      </div>
-                      <!-- (expand/collapse) -->
-                      <div class="absolute right-2 top-0 flex items-center">
-                        <vscode-button
-                          appearance="icon"
-                          v-if="cellHasOverflow(value)"
-                          @click.stop="toggleCellExpansion(index, colIndex)"
-                          class="text-editor-fg opacity-70 hover:opacity-100"
-                          :title="isExpanded(index, colIndex) ? 'Collapse' : 'Expand'"
+                          class="transition-all duration-75 pr-6"
                         >
-                          <span
-                            class="codicon text-xs"
-                            :class="
-                              isExpanded(index, colIndex)
-                                ? 'codicon-chevron-down'
-                                : 'codicon-chevron-right'
-                            "
-                          ></span>
-                        </vscode-button>
-                      </div>
+                          <div
+                            :class="{
+                              'whitespace-nowrap overflow-hidden text-ellipsis': !isExpanded(
+                                index,
+                                colIndex
+                              ),
+                              'whitespace-pre-wrap break-words': isExpanded(index, colIndex),
+                              'uppercase text-descriptionForeground opacity-60 italic': formatCellValue(value).isNull
+                            }"
+                            v-html="highlightMatch(formatCellValue(value).text, currentTab.searchInput)"
+                          ></div>
+                        </div>
+                        <div class="absolute right-2 top-0 flex items-center">
+                          <vscode-button
+                            appearance="icon"
+                            v-if="cellHasOverflow(value)"
+                            @click.stop="toggleCellExpansion(index, colIndex)"
+                            class="text-editor-fg opacity-70 hover:opacity-100"
+                            :title="isExpanded(index, colIndex) ? 'Collapse' : 'Expand'"
+                          >
+                            <span
+                              class="codicon text-xs"
+                              :class="
+                                isExpanded(index, colIndex)
+                                  ? 'codicon-chevron-down'
+                                  : 'codicon-chevron-right'
+                              "
+                            ></span>
+                          </vscode-button>
+                        </div>
+                      </template>
                     </div>
                   </td>
                 </tr>
@@ -1458,7 +1470,10 @@ const formatCellValue = (value) => {
     return { text: "NULL", isNull: true };
   }
   
-  // Handle arrays and objects by converting to JSON
+  if (Array.isArray(value)) {
+    return { text: value, isNull: false };
+  }
+  
   if (typeof value === 'object') {
     try {
       return { text: JSON.stringify(value, null, 2), isNull: false };
@@ -1498,7 +1513,7 @@ const cancelQuery = () => {
 
 // Get column width style for a specific column
 const getColumnWidthStyle = (colIndex: number) => {
-  if (!currentTab.value) return {};
+  if (!currentTab.value) return { minWidth: '100px', maxWidth: '300px' };
   
   const tabId = currentTab.value.id;
   const widths = columnWidths.value.get(tabId);
@@ -1507,9 +1522,10 @@ const getColumnWidthStyle = (colIndex: number) => {
     return {
       width: `${width}px`,
       minWidth: `${width}px`,
+      maxWidth: `${width}px`,
     };
   }
-  return {};
+  return { minWidth: '100px', maxWidth: '300px' };
 };
 
 // Start resizing a column
@@ -1614,7 +1630,12 @@ thead th {
   top: 0;
   z-index: 2;
   background-color: var(--vscode-editor-background) !important;
-  overflow: hidden;
+  overflow: visible;
+}
+
+thead th > div:first-child {
+  overflow: visible;
+  white-space: nowrap;
 }
 
 thead th::after {
@@ -1628,17 +1649,17 @@ thead th::after {
 }
 
 /* Resize handle styles */
-thead th > div:last-child {
+thead th .resize-handle {
   background-color: transparent;
   opacity: 0;
   transition: opacity 0.2s ease;
 }
 
-thead th:hover > div:last-child {
+thead th:hover .resize-handle {
   opacity: 0.5;
 }
 
-thead th > div:last-child:hover {
+thead th .resize-handle:hover {
   opacity: 1;
   background-color: var(--vscode-button-background);
 }
@@ -1668,6 +1689,22 @@ vscode-badge::part(control) {
   100% {
     transform: rotate(360deg);
   }
+}
+
+.array-cell {
+  display: flex;
+  flex-direction: column;
+}
+
+.array-item {
+  display: block;
+  line-height: 1.4;
+}
+
+.array-item:not(:last-child) {
+  border-bottom: 1px solid var(--vscode-panel-border);
+  padding-bottom: 2px;
+  margin-bottom: 2px;
 }
 </style>
 
