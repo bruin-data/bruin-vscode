@@ -346,13 +346,20 @@
                     class="sticky top-0 p-1 text-left font-semibold text-editor-fg bg-editor-bg border-x border-commandCenter-border before:absolute before:bottom-0 before:left-0 before:w-full before:border-b before:border-commandCenter-border"
                   ></th>
                   <th
-                    v-for="column in currentTab.parsedOutput.columns"
+                    v-for="(column, colIndex) in currentTab.parsedOutput.columns"
                     :key="column.name"
-                    class="sticky top-0 p-1 text-left font-semibold text-editor-fg bg-editor-bg border-x border-commandCenter-border before:absolute before:bottom-0 before:left-0 before:w-full before:border-b before:border-commandCenter-border"
+                    class="sticky top-0 p-1 text-left font-semibold text-editor-fg bg-editor-bg border-x border-commandCenter-border before:absolute before:bottom-0 before:left-0 before:w-full before:border-b before:border-commandCenter-border relative"
+                    :style="getColumnWidthStyle(colIndex)"
                   >
                     <div class="flex items-center">
                       <span class="truncate">{{ column.name }}</span>
                     </div>
+                    <div
+                      v-if="colIndex < currentTab.parsedOutput.columns.length - 1"
+                      class="absolute top-0 right-[-2px] w-[5px] h-full cursor-col-resize hover:bg-button-background transition-colors z-10"
+                      @mousedown="startResize($event, colIndex)"
+                      title="Drag to resize column"
+                    ></div>
                   </th>
                 </tr>
               </thead>
@@ -372,6 +379,7 @@
                     :key="colIndex"
                     class="p-1 text-editor-fg font-mono border border-commandCenter-border relative max-w-40"
                     :class="{ 'cursor-pointer': cellHasOverflow(value) }"
+                    :style="getColumnWidthStyle(colIndex)"
                   >
                     <!-- Cell with in-place expansion -->
                     <div class="flex flex-col">
@@ -483,7 +491,7 @@ const props = defineProps<{
 
 const connectionsStore = useConnectionsStore();
 const currentEnvironment = ref<string>(props.environment);
-const modifierKey = ref("⌘"); // Default to Mac symbol
+const modifierKey = ref("?"); // Default to Mac symbol
 const currentConnectionName = ref("");
 const limit = ref(100);
 const showSearchInput = ref(false);
@@ -494,6 +502,15 @@ const queryTimeout = ref(60); // Default timeout in seconds
 const expandedCells = ref(new Set<string>());
 // State for query panel tabs
 const activeQueryPanelTab = ref<'query' | 'console'>('query');
+// State for column widths - keyed by tabId and column index
+const columnWidths = ref<Map<string, Map<number, number>>>(new Map());
+// State for column resizing
+const resizeState = ref<{
+  isResizing: boolean;
+  columnIndex: number;
+  startX: number;
+  startWidth: number;
+} | null>(null);
 
 const defaultTab = {
   id: "tab-1",
@@ -598,6 +615,10 @@ const switchToTab = async (tabId: string) => {
   // Reset cell expansions when switching tabs
   await nextTick();
   expandedCells.value.clear();
+  // Stop any ongoing resize when switching tabs
+  if (resizeState.value) {
+    stopResize();
+  }
   // Set the active tab
   activeTab.value = tabId;
 
@@ -682,6 +703,12 @@ const saveState = () => {
   }));
 
 
+  // Convert columnWidths Map to serializable format
+  const serializedColumnWidths: Record<string, Record<number, number>> = {};
+  columnWidths.value.forEach((widths, tabId) => {
+    serializedColumnWidths[tabId] = Object.fromEntries(widths);
+  });
+
   const state = {
     tabs: sanitizedTabs,
     activeTab: activeTab.value,
@@ -690,6 +717,7 @@ const saveState = () => {
     connectionName: currentConnectionName.value,
     showSearchInput: showSearchInput.value,
     tabCounter: tabCounter.value,
+    columnWidths: serializedColumnWidths,
   };
 
   try {
@@ -763,6 +791,20 @@ window.addEventListener("message", (event) => {
       activeTab.value = state.activeTab || "tab-1";
       expandedCells.value = new Set(state.expandedCells || []);
       showSearchInput.value = state.showSearchInput || false;
+      
+      // Restore column widths
+      if (state.columnWidths) {
+        columnWidths.value.clear();
+        Object.entries(state.columnWidths).forEach(([tabId, widths]) => {
+          const widthMap = new Map<number, number>();
+          if (widths && typeof widths === 'object' && !Array.isArray(widths)) {
+            Object.entries(widths as Record<number, number>).forEach(([k, v]) => {
+              widthMap.set(Number(k), Number(v));
+            });
+          }
+          columnWidths.value.set(tabId, widthMap);
+        });
+      }
     }
   } else if (message.command === "init") {
     // When webview becomes visible again (e.g., switching back from terminal)
@@ -1337,7 +1379,7 @@ onMounted(() => {
   // Detect if running on Windows or macOS
   const isMac = navigator.platform.toUpperCase().startsWith("MAC");
   // Update the modifier key symbol based on platform
-  modifierKey.value = isMac ? "⌘" : "Ctrl";
+  modifierKey.value = isMac ? "?" : "Ctrl";
 
   vscode.postMessage({ command: "bruin.requestState" });
   vscode.postMessage({ command: "bruin.requestTimeout" });
@@ -1346,6 +1388,12 @@ onUnmounted(() => {
   window.removeEventListener("keydown", handleKeyDown);
   window.removeEventListener("message", postMessage);
   clearTimeout(saveTimeout);
+  // Clean up resize listeners
+  if (resizeState.value) {
+    stopResize();
+  }
+  document.removeEventListener('mousemove', handleResize);
+  document.removeEventListener('mouseup', stopResize);
 });
 
 watch(
@@ -1447,6 +1495,80 @@ const cancelQuery = () => {
     payload: { tabId: activeTab.value },
   });
 };
+
+// Get column width style for a specific column
+const getColumnWidthStyle = (colIndex: number) => {
+  if (!currentTab.value) return {};
+  
+  const tabId = currentTab.value.id;
+  const widths = columnWidths.value.get(tabId);
+  if (widths && widths.has(colIndex)) {
+    const width = widths.get(colIndex)!;
+    return {
+      width: `${width}px`,
+      minWidth: `${width}px`,
+    };
+  }
+  return {};
+};
+
+// Start resizing a column
+const startResize = (event: MouseEvent, columnIndex: number) => {
+  event.preventDefault();
+  event.stopPropagation();
+  
+  if (!currentTab.value) return;
+  
+  const tabId = currentTab.value.id;
+  const widths = columnWidths.value.get(tabId) || new Map();
+  
+  // Get the actual current width of the column header element
+  const headerElement = (event.target as HTMLElement).closest('th');
+  const currentWidth = headerElement ? headerElement.offsetWidth : (widths.get(columnIndex) || 0);
+  
+  resizeState.value = {
+    isResizing: true,
+    columnIndex,
+    startX: event.clientX,
+    startWidth: currentWidth || 160, // Use actual width or default
+  };
+  
+  document.addEventListener('mousemove', handleResize);
+  document.addEventListener('mouseup', stopResize);
+  
+  // Prevent text selection during resize
+  document.body.style.userSelect = 'none';
+  document.body.style.cursor = 'col-resize';
+};
+
+// Handle column resizing
+const handleResize = (event: MouseEvent) => {
+  if (!resizeState.value || !currentTab.value) return;
+  
+  const deltaX = event.clientX - resizeState.value.startX;
+  const newWidth = Math.max(50, resizeState.value.startWidth + deltaX); // Minimum width of 50px
+  
+  const tabId = currentTab.value.id;
+  if (!columnWidths.value.has(tabId)) {
+    columnWidths.value.set(tabId, new Map());
+  }
+  
+  const widths = columnWidths.value.get(tabId)!;
+  widths.set(resizeState.value.columnIndex, newWidth);
+};
+
+// Stop resizing
+const stopResize = () => {
+  document.removeEventListener('mousemove', handleResize);
+  document.removeEventListener('mouseup', stopResize);
+  
+  // Restore text selection
+  document.body.style.userSelect = '';
+  document.body.style.cursor = '';
+  
+  resizeState.value = null;
+  saveState();
+};
 </script>
 
 <style scoped>
@@ -1492,6 +1614,7 @@ thead th {
   top: 0;
   z-index: 2;
   background-color: var(--vscode-editor-background) !important;
+  overflow: hidden;
 }
 
 thead th::after {
@@ -1502,6 +1625,22 @@ thead th::after {
   width: 100%;
   border-bottom: 1px solid var(--vscode-commandCenter-border);
   z-index: 1;
+}
+
+/* Resize handle styles */
+thead th > div:last-child {
+  background-color: transparent;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+thead th:hover > div:last-child {
+  opacity: 0.5;
+}
+
+thead th > div:last-child:hover {
+  opacity: 1;
+  background-color: var(--vscode-button-background);
 }
 vscode-badge {
   min-width: 0;

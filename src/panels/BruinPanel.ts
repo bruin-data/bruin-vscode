@@ -658,7 +658,7 @@ export class BruinPanel {
               assetWorkspaceDirFillColumn
             );
             await fillColumns.fillColumns(assetPathFillColumn);
-
+            parseAssetCommand(this._lastRenderedDocumentUri);
             return;
 
           
