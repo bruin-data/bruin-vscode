@@ -335,16 +335,16 @@
           <!-- Results Table -->
           <div
             v-if="currentTab?.parsedOutput && !currentTab?.error"
-            class="overflow-auto h-full w-full"
+            class="overflow-x-auto overflow-y-auto h-full w-full"
           >
             <table
-              class="w-[calc(100vw-100px)] bg-editor-bg font-mono font-normal text-xs border-t-0 border-collapse"
-              style="table-layout: fixed;"
+              class="bg-editor-bg font-mono font-normal text-xs border-t-0 border-collapse"
+              style="table-layout: auto; min-width: 100%;"
             >
               <thead class="bg-editor-bg border-y-0">
                 <tr>
                   <th
-                    class="sticky top-0 p-1 text-left font-semibold text-editor-fg bg-editor-bg border-x border-commandCenter-border before:absolute before:bottom-0 before:left-0 before:w-full before:border-b before:border-commandCenter-border"
+                    class="sticky top-0 left-0 p-1 text-left font-semibold text-editor-fg bg-editor-bg border-x border-commandCenter-border before:absolute before:bottom-0 before:left-0 before:w-full before:border-b before:border-commandCenter-border z-20"
                     style="width: 50px; min-width: 50px; max-width: 50px;"
                   ></th>
                   <th
@@ -371,7 +371,7 @@
                   class="hover:bg-menu-hoverBackground transition-colors duration-150"
                 >
                   <td
-                    class="p-1 opacity-50 text-editor-fg font-mono border border-commandCenter-border"
+                    class="sticky left-0 p-1 opacity-50 text-editor-fg font-mono border border-commandCenter-border text-center bg-editor-bg z-10"
                     style="width: 50px; min-width: 50px; max-width: 50px;"
                   >
                     {{ (currentPage - 1) * pageSize + index + 1 }}
@@ -379,7 +379,7 @@
                   <td
                     v-for="(value, colIndex) in row"
                     :key="colIndex"
-                    class="p-1 text-editor-fg font-mono border border-commandCenter-border relative max-w-40"
+                    class="p-1 text-editor-fg font-mono border border-commandCenter-border relative"
                     :class="{ 'cursor-pointer': cellHasOverflow(value) }"
                     :style="getColumnWidthStyle(colIndex)"
                   >
@@ -400,9 +400,9 @@
                         <div
                           :class="{
                             'max-h-6 overflow-hidden': !isExpanded(index, colIndex),
-                            'max-h-12 overflow-y-auto': isExpanded(index, colIndex),
+                            'max-h-none': isExpanded(index, colIndex),
                           }"
-                          class="transition-all duration-75 pr-6"
+                          class="transition-all duration-75 pr-6 break-words"
                         >
                           <div
                             :class="{
@@ -410,18 +410,17 @@
                                 index,
                                 colIndex
                               ),
-                              'whitespace-pre-wrap break-words': isExpanded(index, colIndex),
+                              'whitespace-pre-wrap': isExpanded(index, colIndex),
                               'uppercase text-descriptionForeground opacity-60 italic': formatCellValue(value).isNull
                             }"
                             v-html="highlightMatch(formatCellValue(value).text, currentTab.searchInput)"
                           ></div>
                         </div>
-                        <div class="absolute right-2 top-0 flex items-center">
+                        <div v-if="cellHasOverflow(value)" class="absolute right-1 top-1 flex items-center z-10">
                           <vscode-button
                             appearance="icon"
-                            v-if="cellHasOverflow(value)"
                             @click.stop="toggleCellExpansion(index, colIndex)"
-                            class="text-editor-fg opacity-70 hover:opacity-100"
+                            class="text-editor-fg opacity-70 hover:opacity-100 bg-editor-bg"
                             :title="isExpanded(index, colIndex) ? 'Collapse' : 'Expand'"
                           >
                             <span
@@ -480,6 +479,7 @@ import { vscode } from "@/utilities/vscode";
 import QuerySearch from "../ui/query-preview/QuerySearch.vue";
 import type { EditingState, TabData } from "@/types";
 import { useConnectionsStore } from "@/store/bruinStore";
+import { flattenStructColumns } from "@/utilities/structUtils";
 
 // Helper function to limit console messages size
 const MAX_CONSOLE_MESSAGES = 1000;
@@ -899,7 +899,6 @@ window.addEventListener("message", (event) => {
               ? JSON.parse(message.payload.message)
               : message.payload.message;
 
-          // Ensure the output data has the correct structure
           const outputData = {
             columns: rawOutputData.columns || [],
             rows: rawOutputData.rows || [],
@@ -907,15 +906,34 @@ window.addEventListener("message", (event) => {
             query: rawOutputData.query || null
           };
 
-          // Validate that columns and rows are properly aligned
-          if (outputData.columns.length > 0 && outputData.rows.length > 0) {
-            const expectedColumnCount = outputData.columns.length;
-            const firstRowLength = outputData.rows[0]?.length || 0;
+          const flattenedData = flattenStructColumns(outputData.columns, outputData.rows, outputData.query);
+
+          if (flattenedData.columns.length > 0 && flattenedData.rows.length > 0) {
+            const expectedColumnCount = flattenedData.columns.length;
+            const firstRowLength = flattenedData.rows[0]?.length || 0;
             
             if (expectedColumnCount !== firstRowLength) {
               console.warn(`Column/row mismatch: ${expectedColumnCount} columns but ${firstRowLength} values in first row`);
             }
           }
+
+          outputData.columns = flattenedData.columns;
+          outputData.rows = flattenedData.rows;
+
+          if (!columnWidths.value.has(tabId)) {
+            columnWidths.value.set(tabId, new Map());
+          }
+          const widths = columnWidths.value.get(tabId)!;
+          
+          flattenedData.columns.forEach((column, colIndex) => {
+            if (!widths.has(colIndex)) {
+              const columnName = typeof column === 'string' ? column : (column.name || `Column ${colIndex + 1}`);
+              const charWidth = 7;
+              const padding = 24;
+              const calculatedWidth = Math.max(100, columnName.length * charWidth + padding);
+              widths.set(colIndex, calculatedWidth);
+            }
+          });
 
           // Get console messages from the payload
           const consoleMessages = limitConsoleMessages(message.payload.consoleMessages || []);
@@ -1513,10 +1531,11 @@ const cancelQuery = () => {
 
 // Get column width style for a specific column
 const getColumnWidthStyle = (colIndex: number) => {
-  if (!currentTab.value) return { minWidth: '100px', maxWidth: '300px' };
+  if (!currentTab.value) return { minWidth: '100px', width: 'auto' };
   
   const tabId = currentTab.value.id;
   const widths = columnWidths.value.get(tabId);
+  
   if (widths && widths.has(colIndex)) {
     const width = widths.get(colIndex)!;
     return {
@@ -1525,7 +1544,27 @@ const getColumnWidthStyle = (colIndex: number) => {
       maxWidth: `${width}px`,
     };
   }
-  return { minWidth: '100px', maxWidth: '300px' };
+  
+  const column = currentTab.value.parsedOutput?.columns?.[colIndex];
+  if (column) {
+    const columnName = typeof column === 'string' ? column : (column.name || `Column ${colIndex + 1}`);
+    const charWidth = 7;
+    const padding = 24;
+    const calculatedWidth = Math.max(100, columnName.length * charWidth + padding);
+    
+    if (!widths) {
+      columnWidths.value.set(tabId, new Map());
+    }
+    columnWidths.value.get(tabId)!.set(colIndex, calculatedWidth);
+    
+    return {
+      width: `${calculatedWidth}px`,
+      minWidth: `${calculatedWidth}px`,
+      maxWidth: `${calculatedWidth}px`,
+    };
+  }
+  
+  return { minWidth: '100px', width: 'auto' };
 };
 
 // Start resizing a column
