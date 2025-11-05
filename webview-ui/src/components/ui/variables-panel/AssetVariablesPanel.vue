@@ -9,7 +9,7 @@
   <!-- Asset Variables Panel -->
   <div
     v-if="isOpen"
-    class="fixed z-[999999] w-80 max-w-[calc(100vw-2rem)] max-h-[calc(100vh-4rem)] bg-editorWidget-bg border border-commandCenter-border variables-panel flex flex-col"
+    class="fixed z-[999999] w-80 max-w-[calc(100vw-2rem)] bg-editorWidget-bg border border-commandCenter-border variables-panel flex flex-col"
     :style="panelStyle"
     @mousedown.stop
   >
@@ -58,14 +58,11 @@
 
           <!-- Override Input -->
           <div class="pt-2 border-t border-commandCenter-border">
-            <label class="block text-2xs text-editor-fg mb-1">
-              Override Value
-            </label>
             <div class="flex gap-1 items-center">
               <input
                 :value="getOverrideValue(varName)"
                 type="text"
-                :placeholder="`Default: ${formatDisplayValue(variable.default)}`"
+                placeholder='Override value'
                 class="flex-1 bg-editorWidget-bg text-editor-fg text-2xs border border-commandCenter-border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6"
                 @input="handleOverrideInput(String(varName), variable, ($event.target as HTMLInputElement).value)"
               />
@@ -157,8 +154,9 @@ function updatePanelPosition() {
     
     const rect = el.getBoundingClientRect();
     const panelWidth = 320;
-    const panelHeight = 400;
     const margin = 8;
+    const availableHeight = window.innerHeight - margin * 2;
+    const maxPanelHeight = Math.min(600, availableHeight);
     
     let top = rect.bottom + margin;
     let left = rect.left;
@@ -170,19 +168,18 @@ function updatePanelPosition() {
       left = margin;
     }
     
-    const maxTop = window.innerHeight - panelHeight - margin;
-    if (top > maxTop) {
-      const topAbove = rect.top - panelHeight - margin;
-      if (topAbove >= margin) {
-        top = topAbove;
-      } else {
-        top = Math.max(margin, maxTop);
-      }
+    const bottomSpace = window.innerHeight - top;
+    const topSpace = rect.top - margin;
+    if (bottomSpace < maxPanelHeight && topSpace > bottomSpace) {
+      top = Math.max(margin, rect.top - maxPanelHeight - margin);
+    } else {
+      top = Math.min(top, window.innerHeight - maxPanelHeight - margin);
     }
     
     panelStyle.value = {
       top: `${top}px`,
       left: `${left}px`,
+      maxHeight: `${maxPanelHeight}px`,
     };
   } catch (_) {}
 }
