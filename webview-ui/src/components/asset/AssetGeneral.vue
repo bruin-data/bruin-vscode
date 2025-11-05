@@ -15,7 +15,11 @@
           <!-- Date Controls and Checkbox Group -->
           <div id="controls" class="flex flex-col xs:w-1/2">
             <div class="flex flex-col xs:flex-row gap-1 w-full justify-between xs:justify-end">
-              <DateInput label="Start Date" v-model="startDate" :disabled="isFullRefreshChecked && isPipelineStartDateAvailable" />
+              <DateInput
+                label="Start Date"
+                v-model="startDate"
+                :disabled="isFullRefreshChecked && isPipelineStartDateAvailable"
+              />
               <DateInput label="End Date" v-model="endDate" />
               <div class="flex items-center gap-1 self-start xs:self-end">
                 <button
@@ -146,13 +150,18 @@
                   <span class="codicon codicon-settings-gear text-[9px]"></span>
                 </vscode-button>
               </div>
-              <vscode-checkbox
-                :checked="applyVariableOverrides"
-                @change="handleApplyOverridesToggle($event.target.checked)"
-                class="text-xs opacity-70"
-              >
-                Apply overrides
-              </vscode-checkbox>
+              <div class="flex items-center gap-0">
+                <vscode-checkbox
+                  :checked="applyVariableOverrides"
+                  @change="handleApplyOverridesToggle($event.target.checked)"
+                  class="text-xs opacity-70 gap-0"
+                >
+                  Variable overrides
+                </vscode-checkbox>
+                <span class="text-3xs text-editor-fg opacity-60 -ml-2">
+                  ({{ variableOverridesCount }})
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -276,7 +285,7 @@
             :dropdown-items="[
               { key: 'run-with-downstream', label: 'Run with downstream' },
               { key: 'run-current-pipeline', label: 'Run the whole pipeline' },
-              { key: 'run-with-continue', label: 'Continue from last failure' }
+              { key: 'run-with-continue', label: 'Continue from last failure' },
             ]"
             @main-click="runAssetOnly"
             @dropdown-click="handleRunDropdown"
@@ -372,9 +381,7 @@
             :bigqueryMetadata="bigqueryMetadata"
             :bigqueryError="props.assetMetadataError"
           />
-          <div class="overflow-hidden w-full h-20">
-            
-          </div>
+          <div class="overflow-hidden w-full h-20"></div>
         </div>
         <div v-else class="overflow-hidden w-full h-20">
           <pre class="white-space"></pre>
@@ -478,7 +485,7 @@ const toggled = ref(false);
 const rudderStack = RudderStackService.getInstance();
 const showIntervalAlert = ref(false);
 const dismissedIntervalAlert = ref(false);
-
+const variableOverridesCount = ref(0);
 const isPipelineStartDateAvailable = computed(() => {
   const startDate = props.startDate;
   return startDate !== undefined && startDate !== null && startDate !== "";
@@ -514,16 +521,15 @@ const formatAllAssets = () => {
   });
 };
 
-
 const handleRunDropdown = (key: string) => {
   switch (key) {
-    case 'run-with-downstream':
+    case "run-with-downstream":
       runAssetWithDownstream();
       break;
-    case 'run-current-pipeline':
+    case "run-current-pipeline":
       runCurrentPipeline();
       break;
-    case 'run-with-continue':
+    case "run-with-continue":
       runPipelineWithContinue();
       break;
   }
@@ -655,7 +661,6 @@ const handleWarningClose = () => {
   warningMessages.value.splice(0, warningMessages.value.length);
 };
 
-
 const hasCriticalErrors = computed(() =>
   parsedErrorMessages.value.some(
     (error) =>
@@ -713,7 +718,6 @@ const applyVariableOverrides = ref(false);
 const isFullRefreshChecked = computed(() => {
   return checkboxItems.value.find((item) => item.name === "Full-Refresh")?.checked || false;
 });
-
 
 const activeTagCount = computed(() => includeTags.value.length + excludeTags.value.length);
 const filteredTags = computed(() => {
@@ -805,7 +809,8 @@ watch(
 );
 
 function getCheckboxChangePayload() {
-  const effectiveStartDate = isFullRefreshChecked.value && isPipelineStartDateAvailable.value ? "" : startDate.value;
+  const effectiveStartDate =
+    isFullRefreshChecked.value && isPipelineStartDateAvailable.value ? "" : startDate.value;
 
   let baseFlags = concatCommandFlags(
     effectiveStartDate,
@@ -818,17 +823,28 @@ function getCheckboxChangePayload() {
     }
   );
 
-  if (applyVariableOverrides.value && currentVariableOverrides.value && Object.keys(currentVariableOverrides.value).length > 0) {
+  if (
+    applyVariableOverrides.value &&
+    currentVariableOverrides.value &&
+    Object.keys(currentVariableOverrides.value).length > 0
+  ) {
     const availableVariables = Object.keys(pipelineVariables.value || {});
     const validOverrides = Object.entries(currentVariableOverrides.value)
       .filter(([key]) => availableVariables.includes(key))
       .map(([key, value]) => {
         if (value === null || value === undefined) return "";
-        const formattedValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
+        let formattedValue;
+        if (typeof value === "object") {
+          formattedValue = JSON.stringify(value);
+        } else if (typeof value === "string") {
+          formattedValue = `"${value}"`;
+        } else {
+          formattedValue = String(value);
+        }
         return `--var ${key}='${formattedValue}'`;
       })
-      .filter(flag => flag !== "");
-    
+      .filter((flag) => flag !== "");
+    variableOverridesCount.value = validOverrides.length;
     if (validOverrides.length > 0) {
       const overrideFlags = validOverrides.join(" ");
       baseFlags = baseFlags ? `${baseFlags} ${overrideFlags}` : overrideFlags;
@@ -893,7 +909,16 @@ watch(
 );
 
 watch(
-  [checkboxItems, startDate, endDate, endDateExclusive, includeTags, excludeTags, currentVariableOverrides, applyVariableOverrides],
+  [
+    checkboxItems,
+    startDate,
+    endDate,
+    endDateExclusive,
+    includeTags,
+    excludeTags,
+    currentVariableOverrides,
+    applyVariableOverrides,
+  ],
   () => {
     const checkboxState = checkboxItems.value.reduce(
       (acc, item) => {
@@ -937,10 +962,14 @@ watch(
 watch(
   () => pipelineVariables.value,
   (newVariables, oldVariables) => {
-    if (applyVariableOverrides.value && currentVariableOverrides.value && Object.keys(currentVariableOverrides.value).length > 0) {
+    if (
+      applyVariableOverrides.value &&
+      currentVariableOverrides.value &&
+      Object.keys(currentVariableOverrides.value).length > 0
+    ) {
       const oldKeys = Object.keys(oldVariables || {}).sort();
       const newKeys = Object.keys(newVariables || {}).sort();
-      
+
       if (JSON.stringify(oldKeys) !== JSON.stringify(newKeys)) {
         const currentFlags = getCheckboxChangePayload();
         vscode.postMessage({
@@ -1106,7 +1135,6 @@ function buildCommandPayload(
   if (selectedEnv.value && selectedEnv.value.trim() !== "") {
     payload += " --environment " + selectedEnv.value;
   }
-
 
   return payload;
 }
@@ -1278,7 +1306,7 @@ function handleRenderWithOverrides(overrides: Record<string, any>) {
 function handleSaveOverrides(overrides: Record<string, any>, applyOverrides: boolean) {
   currentVariableOverrides.value = { ...overrides };
   applyVariableOverrides.value = applyOverrides;
-  
+
   const prevState = (vscode.getState() as Record<string, any>) || {};
   vscode.setState({
     ...prevState,
@@ -1289,14 +1317,13 @@ function handleSaveOverrides(overrides: Record<string, any>, applyOverrides: boo
 
 function handleApplyOverridesToggle(applyOverrides: boolean) {
   applyVariableOverrides.value = applyOverrides;
-  
+
   const prevState = (vscode.getState() as Record<string, any>) || {};
   vscode.setState({
     ...prevState,
     applyVariableOverrides: applyOverrides,
   });
 }
-
 
 function handleSaveVariable(event: { name: string; config: any; oldName?: string }) {
   const { name, config, oldName } = event;
@@ -1549,26 +1576,26 @@ function receiveMessage(event: { data: any }) {
         });
       }
       break;
-      case "format-message":
-        const formatSuccess = updateValue(envelope, "success");
-        const formatError = updateValue(envelope, "error");
-        console.log("formatSuccess", formatSuccess);
-        console.log("formatError", formatError);
-        
-        // Show simple toast notifications
-        if (formatSuccess) {
-          vscode.postMessage({
-            command: "showInfoMessage",
-            payload: formatSuccess
-          });
-        }
-        if (formatError) {
-          vscode.postMessage({
-            command: "showErrorMessage", 
-            payload: formatError
-          });
-        }
-        break;
+    case "format-message":
+      const formatSuccess = updateValue(envelope, "success");
+      const formatError = updateValue(envelope, "error");
+      console.log("formatSuccess", formatSuccess);
+      console.log("formatError", formatError);
+
+      // Show simple toast notifications
+      if (formatSuccess) {
+        vscode.postMessage({
+          command: "showInfoMessage",
+          payload: formatSuccess,
+        });
+      }
+      if (formatError) {
+        vscode.postMessage({
+          command: "showErrorMessage",
+          payload: formatError,
+        });
+      }
+      break;
   }
 }
 </script>
@@ -1576,7 +1603,14 @@ function receiveMessage(event: { data: any }) {
 vscode-checkbox::part(control) {
   @apply border-none outline-none w-3.5 h-3.5;
 }
+
 vscode-button::part(control) {
   @apply border-none px-1.5;
+}
+</style>
+
+<style>
+vscode-checkbox::part(label) {
+  @apply ps-1;
 }
 </style>
