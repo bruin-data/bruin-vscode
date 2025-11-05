@@ -60,6 +60,20 @@
         "configuration": "./syntaxes/bruin-sql-injection.json"
       },
       {
+        "id": "sql-bigquery",
+        "extensions": [
+          ".sql"
+        ],
+        "configuration": "./syntaxes/bruin-sql-injection.json"
+      },
+      {
+        "id": "snowflake-sql",
+        "extensions": [
+          ".sql"
+        ],
+        "configuration": "./syntaxes/bruin-sql-injection.json"
+      },
+      {
         "id": "python",
         "extensions": [
           ".py"

@@ -86,7 +86,8 @@
 
       <!-- No variables state -->
       <div v-else class="text-center py-4">
-        <div class="text-2xs text-editor-fg opacity-60 mb-2">No pipeline variables found</div>
+        <div class="text-3xs text-editor-fg opacity-40 mb-2 italic">No pipeline variables found</div>
+        <div class="text-3xs text-editor-fg opacity-60">Add variables to your <span class="font-mono">pipeline.yml</span> to get started</div>
       </div>
     </div>
 
@@ -96,6 +97,7 @@
         <vscode-button
           appearance="secondary"
           class="text-2xs h-6 px-3"
+
           @click="handleSave"
           :disabled="Object.keys(variableOverrides).length === 0"
         >
