@@ -1,4 +1,7 @@
 # Changelog
+## [0.71.0] - [2025-11-04]
+- Added variables overrides management UI to the extension.
+
 ## [0.70.9] - [2025-11-04]
 - Enhanced the ingestr asset UI, including support for custom incremental keys, and introduced column resizing in the query preview.
 
