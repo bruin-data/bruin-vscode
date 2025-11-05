@@ -6126,7 +6126,7 @@ suite(" Query export Tests", () => {
           }
         ];
 
-        // Mock tables response with correct structure
+        // Mock tables response with schema support (old format without nested schemas)
         const mockTablesResponse = {
           tables: ['users', 'orders', 'products']
         };
@@ -6137,9 +6137,13 @@ suite(" Query export Tests", () => {
           ])
         });
 
+        const getFetchTablesStub = sinon.stub();
+        // When called for 'public' schema, return the tables
+        getFetchTablesStub.withArgs('test-connection', 'public', 'dev').resolves(mockTablesResponse);
+
         const BruinDBTCommandStub = sinon.stub().returns({
           getFetchDatabases: sinon.stub().resolves(mockDbSummary),
-          getFetchTables: sinon.stub().resolves(mockTablesResponse)
+          getFetchTables: getFetchTablesStub
         });
 
         const originalBruinConnections = require("../bruin/bruinConnections").BruinConnections;
@@ -6237,9 +6241,13 @@ suite(" Query export Tests", () => {
           ])
         });
 
+        const getFetchTablesStub = sinon.stub();
+        // When called for 'test_schema' schema, return the tables
+        getFetchTablesStub.withArgs('prod-db', 'test_schema', 'production').resolves(mockTablesResponse);
+
         const BruinDBTCommandStub = sinon.stub().returns({
           getFetchDatabases: sinon.stub().resolves(mockDbSummary),
-          getFetchTables: sinon.stub().resolves(mockTablesResponse)
+          getFetchTables: getFetchTablesStub
         });
 
         const originalBruinConnections = require("../bruin/bruinConnections").BruinConnections;

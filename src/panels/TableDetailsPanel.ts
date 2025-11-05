@@ -52,9 +52,13 @@ import {
         let initialContent = `-- environment: ${environmentName || 'default'}\n`;
         initialContent += `-- connection: ${connectionName || 'default'}\n`;
 
-        // Always use tableName as-is, it should already be fully qualified (schema.table)
-        // schemaName parameter is kept for backward compatibility but not used
-        initialContent += `SELECT * FROM ${this._sanitizeTableName(cleanTableName)};\n\n`;
+        // Construct the table reference
+        // If schemaName is provided, use schema.table format
+        // Otherwise, use tableName as-is (it may already be fully qualified)
+        const tableReference = schemaName
+          ? `${this._sanitizeTableName(schemaName)}.${this._sanitizeTableName(cleanTableName)}`
+          : this._sanitizeTableName(cleanTableName);
+        initialContent += `SELECT * FROM ${tableReference};\n\n`;
   
         fs.writeFileSync(tempFilePath, initialContent);
         
