@@ -593,8 +593,8 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
           tableTreeItem.command = {
             command: "bruin.showTableDetails",
             title: "Show Table Details",
-            // No schema support - just send table name
-            arguments: [table, undefined, schema.connectionName, environment],
+            // Pass schema name for proper SQL generation
+            arguments: [table, schema.name, schema.connectionName, environment],
           };
           return tableTreeItem;
         });
