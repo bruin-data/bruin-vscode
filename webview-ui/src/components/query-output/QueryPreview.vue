@@ -357,7 +357,7 @@
                       <span class="truncate flex-1 min-w-0 block">{{ typeof column === 'string' ? column : (column.name || `Column ${colIndex + 1}`) }}</span>
                     </div>
                     <div
-                      class="absolute top-0 right-[-2px] w-[5px] h-full cursor-col-resize hover:bg-button-background transition-colors z-10 resize-handle"
+                      class="resize-handle"
                       @mousedown="startResize($event, colIndex)"
                       title="Drag to resize column"
                     ></div>
@@ -627,10 +627,6 @@ const switchToTab = async (tabId: string) => {
   // Reset cell expansions when switching tabs
   await nextTick();
   expandedCells.value.clear();
-  // Stop any ongoing resize when switching tabs
-  if (resizeState.value) {
-    stopResize();
-  }
   // Set the active tab
   activeTab.value = tabId;
 
@@ -714,13 +710,6 @@ const saveState = () => {
     consoleMessages: limitConsoleMessages(tab.consoleMessages || []),
   }));
 
-
-  // Convert columnWidths Map to serializable format
-  const serializedColumnWidths: Record<string, Record<number, number>> = {};
-  columnWidths.value.forEach((widths, tabId) => {
-    serializedColumnWidths[tabId] = Object.fromEntries(widths);
-  });
-
   const state = {
     tabs: sanitizedTabs,
     activeTab: activeTab.value,
@@ -729,7 +718,12 @@ const saveState = () => {
     connectionName: currentConnectionName.value,
     showSearchInput: showSearchInput.value,
     tabCounter: tabCounter.value,
-    columnWidths: serializedColumnWidths,
+    columnWidths: Object.fromEntries(
+      Array.from(columnWidths.value.entries()).map(([tabId, widths]) => [
+        tabId,
+        Object.fromEntries(widths)
+      ])
+    ),
   };
 
   try {
@@ -803,20 +797,6 @@ window.addEventListener("message", (event) => {
       activeTab.value = state.activeTab || "tab-1";
       expandedCells.value = new Set(state.expandedCells || []);
       showSearchInput.value = state.showSearchInput || false;
-      
-      // Restore column widths
-      if (state.columnWidths) {
-        columnWidths.value.clear();
-        Object.entries(state.columnWidths).forEach(([tabId, widths]) => {
-          const widthMap = new Map<number, number>();
-          if (widths && typeof widths === 'object' && !Array.isArray(widths)) {
-            Object.entries(widths as Record<number, number>).forEach(([k, v]) => {
-              widthMap.set(Number(k), Number(v));
-            });
-          }
-          columnWidths.value.set(tabId, widthMap);
-        });
-      }
     }
   } else if (message.command === "init") {
     // When webview becomes visible again (e.g., switching back from terminal)
@@ -919,21 +899,6 @@ window.addEventListener("message", (event) => {
 
           outputData.columns = flattenedData.columns;
           outputData.rows = flattenedData.rows;
-
-          if (!columnWidths.value.has(tabId)) {
-            columnWidths.value.set(tabId, new Map());
-          }
-          const widths = columnWidths.value.get(tabId)!;
-          
-          flattenedData.columns.forEach((column, colIndex) => {
-            if (!widths.has(colIndex)) {
-              const columnName = typeof column === 'string' ? column : (column.name || `Column ${colIndex + 1}`);
-              const charWidth = 7;
-              const padding = 24;
-              const calculatedWidth = Math.max(100, columnName.length * charWidth + padding);
-              widths.set(colIndex, calculatedWidth);
-            }
-          });
 
           // Get console messages from the payload
           const consoleMessages = limitConsoleMessages(message.payload.consoleMessages || []);
@@ -1422,8 +1387,6 @@ onUnmounted(() => {
   if (resizeState.value) {
     stopResize();
   }
-  document.removeEventListener('mousemove', handleResize);
-  document.removeEventListener('mouseup', stopResize);
 });
 
 watch(
@@ -1531,7 +1494,7 @@ const cancelQuery = () => {
 
 // Get column width style for a specific column
 const getColumnWidthStyle = (colIndex: number) => {
-  if (!currentTab.value) return { minWidth: '100px', width: 'auto' };
+  if (!currentTab.value) return { minWidth: '120px', maxWidth: '300px' };
   
   const tabId = currentTab.value.id;
   const widths = columnWidths.value.get(tabId);
@@ -1545,26 +1508,7 @@ const getColumnWidthStyle = (colIndex: number) => {
     };
   }
   
-  const column = currentTab.value.parsedOutput?.columns?.[colIndex];
-  if (column) {
-    const columnName = typeof column === 'string' ? column : (column.name || `Column ${colIndex + 1}`);
-    const charWidth = 7;
-    const padding = 24;
-    const calculatedWidth = Math.max(100, columnName.length * charWidth + padding);
-    
-    if (!widths) {
-      columnWidths.value.set(tabId, new Map());
-    }
-    columnWidths.value.get(tabId)!.set(colIndex, calculatedWidth);
-    
-    return {
-      width: `${calculatedWidth}px`,
-      minWidth: `${calculatedWidth}px`,
-      maxWidth: `${calculatedWidth}px`,
-    };
-  }
-  
-  return { minWidth: '100px', width: 'auto' };
+  return { minWidth: '120px', maxWidth: '300px' };
 };
 
 // Start resizing a column
@@ -1577,21 +1521,18 @@ const startResize = (event: MouseEvent, columnIndex: number) => {
   const tabId = currentTab.value.id;
   const widths = columnWidths.value.get(tabId) || new Map();
   
-  // Get the actual current width of the column header element
   const headerElement = (event.target as HTMLElement).closest('th');
-  const currentWidth = headerElement ? headerElement.offsetWidth : (widths.get(columnIndex) || 0);
+  const currentWidth = headerElement ? headerElement.offsetWidth : (widths.get(columnIndex) || 150);
   
   resizeState.value = {
     isResizing: true,
     columnIndex,
     startX: event.clientX,
-    startWidth: currentWidth || 160, // Use actual width or default
+    startWidth: currentWidth,
   };
   
   document.addEventListener('mousemove', handleResize);
   document.addEventListener('mouseup', stopResize);
-  
-  // Prevent text selection during resize
   document.body.style.userSelect = 'none';
   document.body.style.cursor = 'col-resize';
 };
@@ -1601,7 +1542,7 @@ const handleResize = (event: MouseEvent) => {
   if (!resizeState.value || !currentTab.value) return;
   
   const deltaX = event.clientX - resizeState.value.startX;
-  const newWidth = Math.max(50, resizeState.value.startWidth + deltaX); // Minimum width of 50px
+  const newWidth = Math.max(80, resizeState.value.startWidth + deltaX);
   
   const tabId = currentTab.value.id;
   if (!columnWidths.value.has(tabId)) {
@@ -1616,8 +1557,6 @@ const handleResize = (event: MouseEvent) => {
 const stopResize = () => {
   document.removeEventListener('mousemove', handleResize);
   document.removeEventListener('mouseup', stopResize);
-  
-  // Restore text selection
   document.body.style.userSelect = '';
   document.body.style.cursor = '';
   
@@ -1677,6 +1616,28 @@ thead th > div:first-child {
   white-space: nowrap;
 }
 
+thead th .resize-handle {
+  background-color: var(--vscode-button-background);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  position: absolute;
+  right: -2px;
+  top: 0;
+  width: 5px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 10;
+}
+
+thead th:hover .resize-handle {
+  opacity: 0.6;
+}
+
+thead th .resize-handle:hover {
+  opacity: 1;
+  background-color: var(--vscode-button-background);
+}
+
 thead th::after {
   content: "";
   position: absolute;
@@ -1685,26 +1646,6 @@ thead th::after {
   width: 100%;
   border-bottom: 1px solid var(--vscode-commandCenter-border);
   z-index: 1;
-}
-
-/* Resize handle styles */
-thead th .resize-handle {
-  background-color: transparent;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-thead th:hover .resize-handle {
-  opacity: 0.5;
-}
-
-thead th .resize-handle:hover {
-  opacity: 1;
-  background-color: var(--vscode-button-background);
-}
-vscode-badge {
-  min-width: 0;
-  flex-shrink: 1;
 }
 
 vscode-badge::part(control) {
