@@ -63,6 +63,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.71.2**: Enhanced QueryPreview with array handling and improved struct formatting.
 - **0.71.1**: Resolved an issue where some database connections were not displaying correctly in the database summary.
 - **0.71.0**: Added variables overrides management UI to the extension.
 - **0.70.9**: Enhanced the ingestr asset UI, including support for custom incremental keys, and introduced column resizing in the query preview.
