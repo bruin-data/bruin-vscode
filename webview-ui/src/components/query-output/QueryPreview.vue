@@ -1383,7 +1383,7 @@ onMounted(() => {
   // Detect if running on Windows or macOS
   const isMac = navigator.platform.toUpperCase().startsWith("MAC");
   // Update the modifier key symbol based on platform
-  modifierKey.value = isMac ? "?" : "Ctrl";
+  modifierKey.value = isMac ? "⌘" : "Ctrl";
 
   vscode.postMessage({ command: "bruin.requestState" });
   vscode.postMessage({ command: "bruin.requestTimeout" });

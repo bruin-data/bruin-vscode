@@ -29,9 +29,11 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
   private static activeTab: string = "tab-1";
   // Getter and setter for lastExecutedQuery (for backward compatibility)
   public static setLastExecutedQuery(query: string): void {
-    this.lastExecutedQuery = query;
+
+    const safeQuery = String(query);
+    this.lastExecutedQuery = safeQuery;
     // Also store in the active tab
-    this.setTabQuery(this.activeTab, query);
+    this.setTabQuery(this.activeTab, safeQuery);
   }
 
   public static getLastExecutedQuery(): string {
@@ -46,7 +48,14 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
 
   // Methods to manage per-tab queries
   public static setTabQuery(tabId: string, query: string): void {
-    this.tabQueries.set(tabId, query);
+    // Safety check: Convert URI objects to empty string
+    if (typeof query === "object" && query !== null && (query as any).$mid === 1) {
+      query = "";
+    }
+    
+    // Ensure query is always a string
+    const safeQuery = String(query);
+    this.tabQueries.set(tabId, safeQuery);
   }
 
   public static getTabQuery(tabId: string): string {
@@ -296,8 +305,10 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
           let isAsset = false;
           if (this._lastRenderedDocumentUri) {
             // Dynamically import the helper to avoid circular deps
-            const { isBruinSqlAsset } = await import("../utilities/helperUtils");
-            isAsset = await isBruinSqlAsset(this._lastRenderedDocumentUri.fsPath);
+            const { isBruinSqlAsset, isYamlBruinAsset } = await import("../utilities/helperUtils");
+            const isSqlAsset = await isBruinSqlAsset(this._lastRenderedDocumentUri.fsPath);
+            const isYamlAsset = await isYamlBruinAsset(this._lastRenderedDocumentUri.fsPath);
+            isAsset = isSqlAsset || isYamlAsset;
           }
 
           if (!isAsset) {
@@ -434,7 +445,12 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
       if (state && state.tabs && Array.isArray(state.tabs)) {
         state.tabs.forEach((tab: { id: string; query: string; assetPath: string }) => {
           if (tab.id && tab.query) {
-            QueryPreviewPanel.setTabQuery(tab.id, tab.query);
+            // Safety check: Don't restore URI objects as queries
+            if (typeof tab.query === "object" && tab.query !== null && (tab.query as any).$mid === 1) {
+              QueryPreviewPanel.setTabQuery(tab.id, "");
+            } else {
+              QueryPreviewPanel.setTabQuery(tab.id, tab.query);
+            }
           } else {
             QueryPreviewPanel.setTabQuery(tab.id, state.lastExecutedQuery || "");
           }
