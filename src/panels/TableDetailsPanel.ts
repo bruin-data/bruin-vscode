@@ -29,10 +29,8 @@ import {
       try {
         const cleanTableName = tableName.replace(/\.sql$/, "");
 
-        // Debug logging
-        console.log('[TableDetailsPanel] Received params:', { tableName, schemaName, connectionName, environmentName });
 
-        // Create logs directory in workspace for temporary SQL files
+
         const workspaceFolder = workspace.workspaceFolders?.[0];
         if (!workspaceFolder) {
           throw new Error("Workspace folder not found");
