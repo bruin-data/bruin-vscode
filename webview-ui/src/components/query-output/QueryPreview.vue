@@ -491,7 +491,7 @@ const props = defineProps<{
 
 const connectionsStore = useConnectionsStore();
 const currentEnvironment = ref<string>(props.environment);
-const modifierKey = ref("?"); // Default to Mac symbol
+const modifierKey = ref("⌘"); // Default to Mac symbol
 const currentConnectionName = ref("");
 const limit = ref(100);
 const showSearchInput = ref(false);
