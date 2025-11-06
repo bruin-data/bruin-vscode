@@ -1,4 +1,7 @@
 # Changelog
+## [0.71.1] - [2025-11-06]
+- Resolved an issue where some database connections were not displaying correctly in the database summary.
+
 ## [0.71.0] - [2025-11-04]
 - Added variables overrides management UI to the extension.
 

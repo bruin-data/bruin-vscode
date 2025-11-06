@@ -31,7 +31,8 @@ interface EnvironmentData {
 
 interface Schema {
   name: string;
-  tables: string[];
+  tables?: string[]; // Optional: populated when using nested schema format
+  database?: string; // Parent database name (for nested schema format)
   connectionName: string;
   environment?: string;
   isFavorite?: boolean;
@@ -41,8 +42,10 @@ interface Schema {
 interface Table {
   name: string;
   schema: string;
+  database?: string; // Parent database name (for nested schema format)
   connectionName: string;
   environment?: string;
+  hasSchemaSupport?: boolean; // Whether this connection supports schemas
 }
 
 interface Column {
@@ -488,7 +491,8 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
       (element.contextValue === "schema_favorite" ||
         element.contextValue === "schema_unfavorite" ||
         element.contextValue === "schema") &&
-      "tables" in element.itemData
+      "name" in element.itemData &&
+      "connectionName" in element.itemData
     ) {
       const schema = element.itemData as Schema;
       
@@ -498,16 +502,85 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
       }
       
       const environment = schema.environment || 'default';
-      
+
+      // If schema already has tables populated (from nested schema format), use them directly
+      if (schema.tables && Array.isArray(schema.tables) && schema.tables.length > 0) {
+        return schema.tables.map((table: string) => {
+          // For nested schemas, store the full qualified name (schema.table) in the name field
+          const qualifiedTableName = `${schema.name}.${table}`;
+          const tableItem: Table = {
+            name: qualifiedTableName,
+            schema: schema.name,
+            database: schema.database, // Parent database from nested format
+            connectionName: schema.connectionName,
+            environment: environment,
+            hasSchemaSupport: true, // Nested format means schema is supported
+          };
+          const isFavorite = this.isTableFavorite(tableItem);
+          const contextValue = isFavorite ? "table_favorite" : "table_unfavorite";
+          const tableTreeItem = new ConnectionItem(
+            table, // Display only the table name, not the qualified name
+            vscode.TreeItemCollapsibleState.Collapsed,
+            tableItem,
+            contextValue
+          );
+          tableTreeItem.command = {
+            command: "bruin.showTableDetails",
+            title: "Show Table Details",
+            // For nested schemas, tableName is already qualified (schema.table), so don't pass schema separately
+            arguments: [qualifiedTableName, undefined, schema.connectionName, environment],
+          };
+          return tableTreeItem;
+        });
+      }
+
+      // Otherwise, fetch tables from API
       try {
         const tablesResponse = await this.getTablesSummary(schema.connectionName, schema.name, environment);
+
+        // Check if response has schemas object (new format with nested schemas)
+        const hasSchemaSupport = tablesResponse.schemas && typeof tablesResponse.schemas === 'object';
+
+        if (hasSchemaSupport) {
+          // New format: { database: "...", schemas: { "schema1": [...tables], "schema2": [...tables] } }
+          const parentDatabase = tablesResponse.database || schema.name;
+          const schemaEntries = Object.entries(tablesResponse.schemas);
+          return schemaEntries.flatMap(([schemaName, tables]) => {
+            if (!Array.isArray(tables)) {
+              return [];
+            }
+
+            // Create a schema item as parent
+            const schemaItem: Schema = {
+              name: schemaName,
+              tables: tables as string[], // Store tables from the response
+              database: parentDatabase, // Store parent database for nested format
+              connectionName: schema.connectionName,
+              environment: environment,
+            };
+            const schemaTreeItem = new ConnectionItem(
+              schemaName,
+              vscode.TreeItemCollapsibleState.Collapsed,
+              schemaItem,
+              "schema"
+            );
+            schemaTreeItem.iconPath = new vscode.ThemeIcon("server");
+
+            // Tables will be shown when this schema is expanded (handled above)
+            return [schemaTreeItem];
+          });
+        }
+
+        // Old format: { tables: [...] } - flat list of tables (no schema support)
         const tables = tablesResponse.tables || [];
         return tables.map((table: string) => {
           const tableItem: Table = {
-            name: table,
+            name: table, // Just the table name, no schema prefix
             schema: schema.name,
+            database: schema.name, // In old format, schema IS the database
             connectionName: schema.connectionName,
             environment: environment,
+            hasSchemaSupport: false, // No schema support
           };
           const isFavorite = this.isTableFavorite(tableItem);
           const contextValue = isFavorite ? "table_favorite" : "table_unfavorite";
@@ -520,6 +593,7 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
           tableTreeItem.command = {
             command: "bruin.showTableDetails",
             title: "Show Table Details",
+            // Pass schema name for proper SQL generation
             arguments: [table, schema.name, schema.connectionName, environment],
           };
           return tableTreeItem;
@@ -539,7 +613,7 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
     ) {
       const table = element.itemData as Table;
       const cacheKey = `${table.connectionName}.${table.schema}.${table.name}`;
-      
+
       const connection = this.connections.find(conn => conn.name === table.connectionName);
       const environment = connection?.environment;
 
@@ -558,10 +632,14 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
       }
 
       try {
+        // If connection doesn't support schemas, just pass table name without schema prefix
+        const databaseParam = table.database || table.schema;
+        const tableParam = table.hasSchemaSupport === false ? table.name : table.name;
+
         const columnsResponse = await this.getColumnsSummary(
           table.connectionName,
-          table.schema,
-          table.name,
+          databaseParam,
+          tableParam,
           environment
         );
         const columns = this.parseColumnsSummary(columnsResponse, table);
@@ -762,7 +840,7 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
 
   private async getChildrenForTable(table: Table): Promise<ConnectionItem[]> {
     const cacheKey = `${table.connectionName}.${table.schema}.${table.name}`;
-    
+
     // Get environment from the connection
     const connection = this.connections.find(conn => conn.name === table.connectionName);
     const environment = connection?.environment;
@@ -782,10 +860,14 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
     }
 
     try {
+      // If connection doesn't support schemas, just pass table name without schema prefix
+      const databaseParam = table.database || table.schema;
+      const tableParam = table.hasSchemaSupport === false ? table.name : table.name;
+
       const columnsResponse = await this.getColumnsSummary(
         table.connectionName,
-        table.schema,
-        table.name,
+        databaseParam,
+        tableParam,
         environment
       );
       const columns = this.parseColumnsSummary(columnsResponse, table);
