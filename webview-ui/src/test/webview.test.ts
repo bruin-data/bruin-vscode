@@ -410,6 +410,8 @@ suite("AssetGeneral persistence", () => {
         assetType: "sql",
         parameters: {},
         columns: [],
+        startDate: "",
+        endDate: "",
       },
       global: {
         stubs: {
@@ -452,6 +454,8 @@ suite("AssetGeneral persistence", () => {
         assetType: "sql",
         parameters: {},
         columns: [],
+        startDate: "",
+        endDate: "",
       },
       global: {
         stubs: {
