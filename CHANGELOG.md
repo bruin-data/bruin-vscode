@@ -1,4 +1,7 @@
 # Changelog
+## [0.71.2] - [2025-11-06]
+- Enhanced QueryPreview with array handling and improved struct formatting.
+
 ## [0.71.1] - [2025-11-06]
 - Resolved an issue where some database connections were not displaying correctly in the database summary.
 
