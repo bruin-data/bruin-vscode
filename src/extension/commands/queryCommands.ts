@@ -4,7 +4,7 @@ import * as vscode from "vscode";
 import { BruinExportQueryOutput } from "../../bruin/exportQueryOutput";
 import { QueryPreviewPanel } from "../../panels/QueryPreviewPanel";
 import { getBruinExecutablePath } from "../../providers/BruinExecutableService";
-import { isBruinSqlAsset } from "../../utilities/helperUtils";
+import { isBruinSqlAsset, isYamlBruinAsset } from "../../utilities/helperUtils";
 
 export const getQueryOutput = async (environment: string, limit: string, lastRenderedDocumentUri: Uri | undefined, tabId?: string, startDate?: string, endDate?: string, connectionName?: string) => {
   let editor = window.activeTextEditor;
@@ -27,8 +27,10 @@ export const getQueryOutput = async (environment: string, limit: string, lastRen
   
   const currentTabId = tabId || 'tab-1';
   
-  // Check if this is an asset file
-  const isAsset = await isBruinSqlAsset(lastRenderedDocumentUri.fsPath);
+  // Check if this is an asset file (SQL or YAML)
+  const isSqlAsset = await isBruinSqlAsset(lastRenderedDocumentUri.fsPath);
+  const isYamlAsset = await isYamlBruinAsset(lastRenderedDocumentUri.fsPath);
+  const isAsset = isSqlAsset || isYamlAsset;
   
   // Check if we already have a stored query for this tab (from CodeLens)
   let selectedQuery = QueryPreviewPanel.getTabQuery(currentTabId);
@@ -64,8 +66,7 @@ export const getQueryOutput = async (environment: string, limit: string, lastRen
   
   // Detect connection name from file content if not provided
   let detectedConnectionName = connectionName;
-  const isSqlAsset = await isBruinSqlAsset(lastRenderedDocumentUri.fsPath);
-  if(!isSqlAsset && !detectedConnectionName) {
+  if(!isAsset && !detectedConnectionName) {
     try {
       const fileContent = await workspace.fs.readFile(lastRenderedDocumentUri);
       const fileContentString = Buffer.from(fileContent).toString('utf-8');

@@ -13,6 +13,10 @@ import {
   parsePipelineData,
   processAssetDependencies,
 } from "../utilities/getPipelineLineage";
+import {
+  extractStructFieldsFromTypeString,
+  flattenStructColumns,
+} from "../utilities/structUtils";
 import * as pipelineData from "../utilities/pipeline.json";
 import FilterTab from "@/components/lineage-flow/filterTab/filterTab.vue";
 import "./mocks/vueFlow"; // Import the mocks
@@ -406,6 +410,8 @@ suite("AssetGeneral persistence", () => {
         assetType: "sql",
         parameters: {},
         columns: [],
+        startDate: "",
+        endDate: "",
       },
       global: {
         stubs: {
@@ -448,6 +454,8 @@ suite("AssetGeneral persistence", () => {
         assetType: "sql",
         parameters: {},
         columns: [],
+        startDate: "",
+        endDate: "",
       },
       global: {
         stubs: {
@@ -1654,5 +1662,319 @@ suite('AssetLineage hover functionality', () => {
     expect(connectedToB.has('X')).toBe(true);
     expect(connectedToB.has('E')).toBe(false); // Not connected to B
     expect(connectedToB.has('F')).toBe(false); // Not connected to B
+  });
+
+  suite("structUtils", () => {
+    suite("extractStructFieldsFromTypeString", () => {
+      test("should extract fields from STRUCT type string with double quotes", () => {
+        const typeString = 'STRUCT("login" VARCHAR, "id" VARCHAR, "display_name" VARCHAR)';
+        const result = extractStructFieldsFromTypeString(typeString);
+        
+        assert.deepStrictEqual(result, [
+          { name: "login", type: "VARCHAR" },
+          { name: "id", type: "VARCHAR" },
+          { name: "display_name", type: "VARCHAR" },
+        ]);
+      });
+
+      test("should extract fields from STRUCT type string with single quotes", () => {
+        const typeString = "STRUCT('login' VARCHAR, 'id' INTEGER)";
+        const result = extractStructFieldsFromTypeString(typeString);
+        
+        assert.deepStrictEqual(result, [
+          { name: "login", type: "VARCHAR" },
+          { name: "id", type: "INTEGER" },
+        ]);
+      });
+
+      test("should handle empty type string", () => {
+        const result = extractStructFieldsFromTypeString("");
+        assert.deepStrictEqual(result, []);
+      });
+
+      test("should handle non-STRUCT type string", () => {
+        const result = extractStructFieldsFromTypeString("VARCHAR");
+        assert.deepStrictEqual(result, []);
+      });
+
+      test("should handle invalid STRUCT format", () => {
+        const result = extractStructFieldsFromTypeString("STRUCT invalid");
+        assert.deepStrictEqual(result, []);
+      });
+
+      test("should handle STRUCT with whitespace", () => {
+        const typeString = 'STRUCT( "field1" VARCHAR , "field2" INTEGER )';
+        const result = extractStructFieldsFromTypeString(typeString);
+        
+        assert.deepStrictEqual(result, [
+          { name: "field1", type: "VARCHAR" },
+          { name: "field2", type: "INTEGER" },
+        ]);
+      });
+    });
+
+
+    suite("flattenStructColumns", () => {
+      test("should flatten STRUCT column with fields in type string", () => {
+        const columns = [
+          {
+            name: "author",
+            type: 'STRUCT("login" VARCHAR, "id" VARCHAR, "display_name" VARCHAR)'
+          },
+          {
+            name: "regular_column",
+            type: "STRING"
+          }
+        ];
+
+        const rows = [
+          [{"login":"test","id":"123","display_name":"test"}, "regular_value_1"],
+          [{"login":"test2","id":"456","display_name":"test2"}, "regular_value_2"]
+        ];
+
+        const result = flattenStructColumns(columns, rows);
+
+        assert.deepStrictEqual(result.columns, [
+          { name: "author.login", type: "" },
+          { name: "author.id", type: "" },
+          { name: "author.display_name", type: "" },
+          { name: "regular_column", type: "STRING" }
+        ]);
+
+        assert.deepStrictEqual(result.rows, [
+          ["test", "123", "test", "regular_value_1"],
+          ["test2", "456", "test2", "regular_value_2"]
+        ]);
+      });
+
+      test("should flatten STRUCT column with fields array", () => {
+        const columns = [
+          {
+            name: "struct",
+            type: "RECORD",
+            fields: [
+              { name: "a", type: "INTEGER" },
+              { name: "b", type: "INTEGER" },
+              { name: "c", type: "INTEGER" }
+            ]
+          }
+        ];
+
+        const rows = [
+          [[1, 2, 3]],
+          [[4, 5, 6]]
+        ];
+
+        const result = flattenStructColumns(columns, rows);
+
+        assert.deepStrictEqual(result.columns, [
+          { name: "struct.a", type: "" },
+          { name: "struct.b", type: "" },
+          { name: "struct.c", type: "" }
+        ]);
+
+        assert.deepStrictEqual(result.rows, [
+          [1, 2, 3],
+          [4, 5, 6]
+        ]);
+      });
+
+      test("should infer fields from object structure", () => {
+        const columns = [
+          {
+            name: "struct",
+            type: "STRUCT"
+          }
+        ];
+
+        const rows = [
+          [{"field1":"value1","field2":"value2"}]
+        ];
+
+        const result = flattenStructColumns(columns, rows);
+
+        assert.deepStrictEqual(result.columns, [
+          { name: "struct.field1", type: "" },
+          { name: "struct.field2", type: "" }
+        ]);
+
+        assert.deepStrictEqual(result.rows, [
+          ["value1", "value2"]
+        ]);
+      });
+
+
+      test("should handle nested array structure", () => {
+        const columns = [
+          {
+            name: "struct",
+            type: "RECORD"
+          }
+        ];
+
+        const rows = [
+          [[[1, 2, 3]]]
+        ];
+
+        const result = flattenStructColumns(columns, rows);
+
+        // Since the nested array [[[1, 2, 3]]] is not an object, it should not be flattened
+        assert.deepStrictEqual(result.columns, [
+          { name: "struct", type: "RECORD" }
+        ]);
+
+        assert.deepStrictEqual(result.rows, [
+          [[[1, 2, 3]]]
+        ]);
+      });
+
+      test("should keep non-STRUCT columns unchanged", () => {
+        const columns = [
+          {
+            name: "regular_string",
+            type: "STRING"
+          },
+          {
+            name: "regular_int",
+            type: "INTEGER"
+          }
+        ];
+
+        const rows = [
+          ["value1", 123],
+          ["value2", 456]
+        ];
+
+        const result = flattenStructColumns(columns, rows);
+
+        assert.deepStrictEqual(result.columns, columns);
+        assert.deepStrictEqual(result.rows, rows);
+      });
+
+      test("should handle empty columns and rows", () => {
+        const result = flattenStructColumns([], []);
+        assert.deepStrictEqual(result, { columns: [], rows: [] });
+      });
+
+      test("should handle null/undefined values", () => {
+        const columns = [
+          {
+            name: "author",
+            type: 'STRUCT("login" VARCHAR, "id" VARCHAR)'
+          }
+        ];
+
+        const rows = [
+          [{"login":"test","id":null}],
+          [{"login":null,"id":"123"}]
+        ];
+
+        const result = flattenStructColumns(columns, rows);
+
+        assert.deepStrictEqual(result.columns, [
+          { name: "author.login", type: "" },
+          { name: "author.id", type: "" }
+        ]);
+
+        assert.deepStrictEqual(result.rows, [
+          ["test", null],
+          [null, "123"]
+        ]);
+      });
+
+      test("should handle STRUCT with missing fields in row data", () => {
+        const columns = [
+          {
+            name: "author",
+            type: 'STRUCT("login" VARCHAR, "id" VARCHAR, "email" VARCHAR)'
+          }
+        ];
+
+        const rows = [
+          [{"login":"test","id":"123"}]
+        ];
+
+        const result = flattenStructColumns(columns, rows);
+
+        assert.deepStrictEqual(result.columns, [
+          { name: "author.login", type: "" },
+          { name: "author.id", type: "" },
+          { name: "author.email", type: "" }
+        ]);
+
+        assert.deepStrictEqual(result.rows, [
+          ["test", "123", null]
+        ]);
+      });
+
+      test("should handle multiple STRUCT columns", () => {
+        const columns = [
+          {
+            name: "author",
+            type: 'STRUCT("login" VARCHAR, "id" VARCHAR)'
+          },
+          {
+            name: "metadata",
+            type: 'STRUCT("key" VARCHAR, "value" VARCHAR)'
+          },
+          {
+            name: "regular",
+            type: "STRING"
+          }
+        ];
+
+        const rows = [
+          [{"login":"test","id":"123"}, {"key":"k1","value":"v1"}, "regular_value"]
+        ];
+
+        const result = flattenStructColumns(columns, rows);
+
+        assert.deepStrictEqual(result.columns, [
+          { name: "author.login", type: "" },
+          { name: "author.id", type: "" },
+          { name: "metadata.key", type: "" },
+          { name: "metadata.value", type: "" },
+          { name: "regular", type: "STRING" }
+        ]);
+
+        assert.deepStrictEqual(result.rows, [
+          ["test", "123", "k1", "v1", "regular_value"]
+        ]);
+      });
+
+      test("should preserve column order", () => {
+        const columns = [
+          {
+            name: "col1",
+            type: "STRING"
+          },
+          {
+            name: "struct",
+            type: 'STRUCT("a" VARCHAR, "b" VARCHAR)'
+          },
+          {
+            name: "col2",
+            type: "INTEGER"
+          }
+        ];
+
+        const rows = [
+          ["value1", {"a":"a_val","b":"b_val"}, 42]
+        ];
+
+        const result = flattenStructColumns(columns, rows);
+
+        assert.deepStrictEqual(result.columns, [
+          { name: "col1", type: "STRING" },
+          { name: "struct.a", type: "" },
+          { name: "struct.b", type: "" },
+          { name: "col2", type: "INTEGER" }
+        ]);
+
+        assert.deepStrictEqual(result.rows, [
+          ["value1", "a_val", "b_val", 42]
+        ]);
+      });
+    });
   });
 });

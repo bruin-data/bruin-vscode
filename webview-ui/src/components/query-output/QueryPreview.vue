@@ -335,28 +335,29 @@
           <!-- Results Table -->
           <div
             v-if="currentTab?.parsedOutput && !currentTab?.error"
-            class="overflow-auto h-full w-full"
+            class="overflow-x-auto overflow-y-auto h-full w-full"
           >
             <table
-              class="w-[calc(100vw-100px)] bg-editor-bg font-mono font-normal text-xs border-t-0 border-collapse"
+              class="bg-editor-bg font-mono font-normal text-xs border-t-0 border-collapse"
+              style="table-layout: auto; min-width: 100%;"
             >
               <thead class="bg-editor-bg border-y-0">
                 <tr>
                   <th
-                    class="sticky top-0 p-1 text-left font-semibold text-editor-fg bg-editor-bg border-x border-commandCenter-border before:absolute before:bottom-0 before:left-0 before:w-full before:border-b before:border-commandCenter-border"
+                    class="sticky top-0 left-0 p-1 text-left font-semibold text-editor-fg bg-editor-bg border-x border-commandCenter-border before:absolute before:bottom-0 before:left-0 before:w-full before:border-b before:border-commandCenter-border z-20"
+                    style="width: 50px; min-width: 50px; max-width: 50px;"
                   ></th>
                   <th
                     v-for="(column, colIndex) in currentTab.parsedOutput.columns"
-                    :key="column.name"
+                    :key="typeof column === 'string' ? column : column.name"
                     class="sticky top-0 p-1 text-left font-semibold text-editor-fg bg-editor-bg border-x border-commandCenter-border before:absolute before:bottom-0 before:left-0 before:w-full before:border-b before:border-commandCenter-border relative"
                     :style="getColumnWidthStyle(colIndex)"
                   >
-                    <div class="flex items-center">
-                      <span class="truncate">{{ column.name }}</span>
+                    <div class="flex items-center w-full overflow-hidden pr-1">
+                      <span class="truncate flex-1 min-w-0 block">{{ typeof column === 'string' ? column : (column.name || `Column ${colIndex + 1}`) }}</span>
                     </div>
                     <div
-                      v-if="colIndex < currentTab.parsedOutput.columns.length - 1"
-                      class="absolute top-0 right-[-2px] w-[5px] h-full cursor-col-resize hover:bg-button-background transition-colors z-10"
+                      class="resize-handle"
                       @mousedown="startResize($event, colIndex)"
                       title="Drag to resize column"
                     ></div>
@@ -370,59 +371,78 @@
                   class="hover:bg-menu-hoverBackground transition-colors duration-150"
                 >
                   <td
-                    class="p-1 opacity-50 text-editor-fg font-mono border border-commandCenter-border"
+                    class="sticky left-0 p-1 opacity-50 text-editor-fg font-mono border border-commandCenter-border text-center bg-editor-bg z-10"
+                    style="width: 50px; min-width: 50px; max-width: 50px;"
                   >
                     {{ (currentPage - 1) * pageSize + index + 1 }}
                   </td>
                   <td
                     v-for="(value, colIndex) in row"
                     :key="colIndex"
-                    class="p-1 text-editor-fg font-mono border border-commandCenter-border relative max-w-40"
+                    class="p-1 text-editor-fg font-mono border border-commandCenter-border relative"
                     :class="{ 'cursor-pointer': cellHasOverflow(value) }"
                     :style="getColumnWidthStyle(colIndex)"
                   >
-                    <!-- Cell with in-place expansion -->
                     <div class="flex flex-col">
-                      <!-- Content container with conditional height -->
-                      <div
-                        :class="{
-                          'max-h-6 overflow-hidden': !isExpanded(index, colIndex),
-                          'max-h-12 overflow-y-auto': isExpanded(index, colIndex),
-                        }"
-                        class="transition-all duration-75 pr-6"
-                      >
-                        <!-- Cell content with word-wrapping when expanded -->
+                      <div v-if="Array.isArray(value)" class="array-cell">
+                        <div
+                          v-for="(item, itemIndex) in (isExpanded(index, colIndex) ? value : value.slice(0, 10))"
+                          :key="itemIndex"
+                          class="array-item"
+                        >
+                          {{ item === null || item === undefined ? 'NULL' : item }}
+                        </div>
+                        <div v-if="value.length === 0" class="text-descriptionForeground opacity-60 italic uppercase">
+                          Empty Array
+                        </div>
+                        <div v-if="value.length > 10" class="text-descriptionForeground opacity-60 italic text-xs mt-1">
+                          {{ isExpanded(index, colIndex) ? `Showing all ${value.length} items` : `... and ${value.length - 10} more` }}
+                          <button
+                            @click.stop="toggleCellExpansion(index, colIndex)"
+                            class="ml-2 underline hover:no-underline"
+                          >
+                            {{ isExpanded(index, colIndex) ? 'Collapse' : 'Show all' }}
+                          </button>
+                        </div>
+                      </div>
+                      <template v-else>
                         <div
                           :class="{
-                            'whitespace-nowrap overflow-hidden text-ellipsis': !isExpanded(
-                              index,
-                              colIndex
-                            ),
-                            'whitespace-pre-wrap break-words': isExpanded(index, colIndex),
-                            'uppercase text-descriptionForeground opacity-60 italic': formatCellValue(value).isNull
+                            'max-h-6 overflow-hidden': !isExpanded(index, colIndex),
+                            'max-h-none': isExpanded(index, colIndex),
                           }"
-                          v-html="highlightMatch(formatCellValue(value).text, currentTab.searchInput)"
-                        ></div>
-                      </div>
-                      <!-- (expand/collapse) -->
-                      <div class="absolute right-2 top-0 flex items-center">
-                        <vscode-button
-                          appearance="icon"
-                          v-if="cellHasOverflow(value)"
-                          @click.stop="toggleCellExpansion(index, colIndex)"
-                          class="text-editor-fg opacity-70 hover:opacity-100"
-                          :title="isExpanded(index, colIndex) ? 'Collapse' : 'Expand'"
+                          class="transition-all duration-75 pr-6 break-words"
                         >
-                          <span
-                            class="codicon text-xs"
-                            :class="
-                              isExpanded(index, colIndex)
-                                ? 'codicon-chevron-down'
-                                : 'codicon-chevron-right'
-                            "
-                          ></span>
-                        </vscode-button>
-                      </div>
+                          <div
+                            :class="{
+                              'whitespace-nowrap overflow-hidden text-ellipsis': !isExpanded(
+                                index,
+                                colIndex
+                              ),
+                              'whitespace-pre-wrap': isExpanded(index, colIndex),
+                              'uppercase text-descriptionForeground opacity-60 italic': formatCellValue(value).isNull
+                            }"
+                            v-html="highlightMatch(formatCellValue(value).text, currentTab.searchInput)"
+                          ></div>
+                        </div>
+                        <div v-if="cellHasOverflow(value)" class="absolute right-1 top-1 flex items-center z-10">
+                          <vscode-button
+                            appearance="icon"
+                            @click.stop="toggleCellExpansion(index, colIndex)"
+                            class="text-editor-fg opacity-70 hover:opacity-100 bg-editor-bg"
+                            :title="isExpanded(index, colIndex) ? 'Collapse' : 'Expand'"
+                          >
+                            <span
+                              class="codicon text-xs"
+                              :class="
+                                isExpanded(index, colIndex)
+                                  ? 'codicon-chevron-down'
+                                  : 'codicon-chevron-right'
+                              "
+                            ></span>
+                          </vscode-button>
+                        </div>
+                      </template>
                     </div>
                   </td>
                 </tr>
@@ -468,6 +488,7 @@ import { vscode } from "@/utilities/vscode";
 import QuerySearch from "../ui/query-preview/QuerySearch.vue";
 import type { EditingState, TabData } from "@/types";
 import { useConnectionsStore } from "@/store/bruinStore";
+import { flattenStructColumns } from "@/utilities/structUtils";
 
 // Helper function to limit console messages size
 const MAX_CONSOLE_MESSAGES = 1000;
@@ -615,10 +636,6 @@ const switchToTab = async (tabId: string) => {
   // Reset cell expansions when switching tabs
   await nextTick();
   expandedCells.value.clear();
-  // Stop any ongoing resize when switching tabs
-  if (resizeState.value) {
-    stopResize();
-  }
   // Set the active tab
   activeTab.value = tabId;
 
@@ -702,13 +719,6 @@ const saveState = () => {
     consoleMessages: limitConsoleMessages(tab.consoleMessages || []),
   }));
 
-
-  // Convert columnWidths Map to serializable format
-  const serializedColumnWidths: Record<string, Record<number, number>> = {};
-  columnWidths.value.forEach((widths, tabId) => {
-    serializedColumnWidths[tabId] = Object.fromEntries(widths);
-  });
-
   const state = {
     tabs: sanitizedTabs,
     activeTab: activeTab.value,
@@ -717,7 +727,12 @@ const saveState = () => {
     connectionName: currentConnectionName.value,
     showSearchInput: showSearchInput.value,
     tabCounter: tabCounter.value,
-    columnWidths: serializedColumnWidths,
+    columnWidths: Object.fromEntries(
+      Array.from(columnWidths.value.entries()).map(([tabId, widths]) => [
+        tabId,
+        Object.fromEntries(widths)
+      ])
+    ),
   };
 
   try {
@@ -791,20 +806,6 @@ window.addEventListener("message", (event) => {
       activeTab.value = state.activeTab || "tab-1";
       expandedCells.value = new Set(state.expandedCells || []);
       showSearchInput.value = state.showSearchInput || false;
-      
-      // Restore column widths
-      if (state.columnWidths) {
-        columnWidths.value.clear();
-        Object.entries(state.columnWidths).forEach(([tabId, widths]) => {
-          const widthMap = new Map<number, number>();
-          if (widths && typeof widths === 'object' && !Array.isArray(widths)) {
-            Object.entries(widths as Record<number, number>).forEach(([k, v]) => {
-              widthMap.set(Number(k), Number(v));
-            });
-          }
-          columnWidths.value.set(tabId, widthMap);
-        });
-      }
     }
   } else if (message.command === "init") {
     // When webview becomes visible again (e.g., switching back from terminal)
@@ -887,7 +888,6 @@ window.addEventListener("message", (event) => {
               ? JSON.parse(message.payload.message)
               : message.payload.message;
 
-          // Ensure the output data has the correct structure
           const outputData = {
             columns: rawOutputData.columns || [],
             rows: rawOutputData.rows || [],
@@ -895,15 +895,19 @@ window.addEventListener("message", (event) => {
             query: rawOutputData.query || null
           };
 
-          // Validate that columns and rows are properly aligned
-          if (outputData.columns.length > 0 && outputData.rows.length > 0) {
-            const expectedColumnCount = outputData.columns.length;
-            const firstRowLength = outputData.rows[0]?.length || 0;
+          const flattenedData = flattenStructColumns(outputData.columns, outputData.rows, outputData.query);
+
+          if (flattenedData.columns.length > 0 && flattenedData.rows.length > 0) {
+            const expectedColumnCount = flattenedData.columns.length;
+            const firstRowLength = flattenedData.rows[0]?.length || 0;
             
             if (expectedColumnCount !== firstRowLength) {
               console.warn(`Column/row mismatch: ${expectedColumnCount} columns but ${firstRowLength} values in first row`);
             }
           }
+
+          outputData.columns = flattenedData.columns;
+          outputData.rows = flattenedData.rows;
 
           // Get console messages from the payload
           const consoleMessages = limitConsoleMessages(message.payload.consoleMessages || []);
@@ -1379,7 +1383,7 @@ onMounted(() => {
   // Detect if running on Windows or macOS
   const isMac = navigator.platform.toUpperCase().startsWith("MAC");
   // Update the modifier key symbol based on platform
-  modifierKey.value = isMac ? "?" : "Ctrl";
+  modifierKey.value = isMac ? "⌘" : "Ctrl";
 
   vscode.postMessage({ command: "bruin.requestState" });
   vscode.postMessage({ command: "bruin.requestTimeout" });
@@ -1392,8 +1396,6 @@ onUnmounted(() => {
   if (resizeState.value) {
     stopResize();
   }
-  document.removeEventListener('mousemove', handleResize);
-  document.removeEventListener('mouseup', stopResize);
 });
 
 watch(
@@ -1458,7 +1460,10 @@ const formatCellValue = (value) => {
     return { text: "NULL", isNull: true };
   }
   
-  // Handle arrays and objects by converting to JSON
+  if (Array.isArray(value)) {
+    return { text: value, isNull: false };
+  }
+  
   if (typeof value === 'object') {
     try {
       return { text: JSON.stringify(value, null, 2), isNull: false };
@@ -1498,18 +1503,21 @@ const cancelQuery = () => {
 
 // Get column width style for a specific column
 const getColumnWidthStyle = (colIndex: number) => {
-  if (!currentTab.value) return {};
+  if (!currentTab.value) return { minWidth: '120px', maxWidth: '300px' };
   
   const tabId = currentTab.value.id;
   const widths = columnWidths.value.get(tabId);
+  
   if (widths && widths.has(colIndex)) {
     const width = widths.get(colIndex)!;
     return {
       width: `${width}px`,
       minWidth: `${width}px`,
+      maxWidth: `${width}px`,
     };
   }
-  return {};
+  
+  return { minWidth: '120px', maxWidth: '300px' };
 };
 
 // Start resizing a column
@@ -1522,21 +1530,18 @@ const startResize = (event: MouseEvent, columnIndex: number) => {
   const tabId = currentTab.value.id;
   const widths = columnWidths.value.get(tabId) || new Map();
   
-  // Get the actual current width of the column header element
   const headerElement = (event.target as HTMLElement).closest('th');
-  const currentWidth = headerElement ? headerElement.offsetWidth : (widths.get(columnIndex) || 0);
+  const currentWidth = headerElement ? headerElement.offsetWidth : (widths.get(columnIndex) || 150);
   
   resizeState.value = {
     isResizing: true,
     columnIndex,
     startX: event.clientX,
-    startWidth: currentWidth || 160, // Use actual width or default
+    startWidth: currentWidth,
   };
   
   document.addEventListener('mousemove', handleResize);
   document.addEventListener('mouseup', stopResize);
-  
-  // Prevent text selection during resize
   document.body.style.userSelect = 'none';
   document.body.style.cursor = 'col-resize';
 };
@@ -1546,7 +1551,7 @@ const handleResize = (event: MouseEvent) => {
   if (!resizeState.value || !currentTab.value) return;
   
   const deltaX = event.clientX - resizeState.value.startX;
-  const newWidth = Math.max(50, resizeState.value.startWidth + deltaX); // Minimum width of 50px
+  const newWidth = Math.max(80, resizeState.value.startWidth + deltaX);
   
   const tabId = currentTab.value.id;
   if (!columnWidths.value.has(tabId)) {
@@ -1561,8 +1566,6 @@ const handleResize = (event: MouseEvent) => {
 const stopResize = () => {
   document.removeEventListener('mousemove', handleResize);
   document.removeEventListener('mouseup', stopResize);
-  
-  // Restore text selection
   document.body.style.userSelect = '';
   document.body.style.cursor = '';
   
@@ -1614,7 +1617,34 @@ thead th {
   top: 0;
   z-index: 2;
   background-color: var(--vscode-editor-background) !important;
-  overflow: hidden;
+  overflow: visible;
+}
+
+thead th > div:first-child {
+  overflow: visible;
+  white-space: nowrap;
+}
+
+thead th .resize-handle {
+  background-color: var(--vscode-button-background);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  position: absolute;
+  right: -2px;
+  top: 0;
+  width: 5px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 10;
+}
+
+thead th:hover .resize-handle {
+  opacity: 0.6;
+}
+
+thead th .resize-handle:hover {
+  opacity: 1;
+  background-color: var(--vscode-button-background);
 }
 
 thead th::after {
@@ -1625,26 +1655,6 @@ thead th::after {
   width: 100%;
   border-bottom: 1px solid var(--vscode-commandCenter-border);
   z-index: 1;
-}
-
-/* Resize handle styles */
-thead th > div:last-child {
-  background-color: transparent;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-thead th:hover > div:last-child {
-  opacity: 0.5;
-}
-
-thead th > div:last-child:hover {
-  opacity: 1;
-  background-color: var(--vscode-button-background);
-}
-vscode-badge {
-  min-width: 0;
-  flex-shrink: 1;
 }
 
 vscode-badge::part(control) {
@@ -1668,6 +1678,22 @@ vscode-badge::part(control) {
   100% {
     transform: rotate(360deg);
   }
+}
+
+.array-cell {
+  display: flex;
+  flex-direction: column;
+}
+
+.array-item {
+  display: block;
+  line-height: 1.4;
+}
+
+.array-item:not(:last-child) {
+  border-bottom: 1px solid var(--vscode-panel-border);
+  padding-bottom: 2px;
+  margin-bottom: 2px;
 }
 </style>
 

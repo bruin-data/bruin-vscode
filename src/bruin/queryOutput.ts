@@ -47,7 +47,7 @@ export class BruinQueryOutput extends BruinCommand {
     if (connectionName && query) {
       console.log("Using direct query mode: --connection + --query");
       constructedFlags.push("--connection", connectionName);
-      constructedFlags.push("--query", query);
+      constructedFlags.push("--query", String(query));
     } else if (query && !isAsset) {
       // For non-asset files with query content but no connection, we need a connection
       console.log("Non-asset file detected but no connection specified. Cannot execute query.");
@@ -56,7 +56,7 @@ export class BruinQueryOutput extends BruinCommand {
     } else if (query) {
       console.log("Using auto-detect mode: --asset + --query");
       constructedFlags.push("--asset", asset);
-      constructedFlags.push("--query", query);
+      constructedFlags.push("--query", String(query));
     } else {
       console.log("Using asset mode: --asset" + (environment ? " + --environment" : ""));
       constructedFlags.push("--asset", asset);
