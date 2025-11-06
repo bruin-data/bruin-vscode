@@ -15,7 +15,6 @@ import {
 } from "../utilities/getPipelineLineage";
 import {
   extractStructFieldsFromTypeString,
-  extractStructFieldNamesFromQuery,
   flattenStructColumns,
 } from "../utilities/structUtils";
 import * as pipelineData from "../utilities/pipeline.json";
@@ -1710,47 +1709,6 @@ suite('AssetLineage hover functionality', () => {
       });
     });
 
-    suite("extractStructFieldNamesFromQuery", () => {
-      test("should extract field names from struct query", () => {
-        const query = "SELECT struct(1 AS a, 2 AS b, 3 AS c) AS struct_col LIMIT 100";
-        const result = extractStructFieldNamesFromQuery(query, "struct_col");
-        
-        assert.deepStrictEqual(result, ["a", "b", "c"]);
-      });
-
-      test("should extract field names with backticks", () => {
-        const query = "SELECT struct('test' AS login, '123' AS id) AS `author` LIMIT 100";
-        const result = extractStructFieldNamesFromQuery(query, "author");
-        
-        assert.deepStrictEqual(result, ["login", "id"]);
-      });
-
-      test("should handle query with column name in single quotes", () => {
-        const query = "SELECT struct('value' AS field1) AS 'my_struct'";
-        const result = extractStructFieldNamesFromQuery(query, "my_struct");
-        
-        assert.deepStrictEqual(result, ["field1"]);
-      });
-
-      test("should return empty array for non-matching query", () => {
-        const query = "SELECT * FROM table";
-        const result = extractStructFieldNamesFromQuery(query, "struct_col");
-        
-        assert.deepStrictEqual(result, []);
-      });
-
-      test("should return empty array for empty query", () => {
-        const result = extractStructFieldNamesFromQuery("", "struct_col");
-        assert.deepStrictEqual(result, []);
-      });
-
-      test("should handle complex struct with multiple fields", () => {
-        const query = "SELECT struct('test' AS login, '123' AS id, 'test' AS display_name, 'test' AS avatar_url, 'test' AS url) AS author";
-        const result = extractStructFieldNamesFromQuery(query, "author");
-        
-        assert.deepStrictEqual(result, ["login", "id", "display_name", "avatar_url", "url"]);
-      });
-    });
 
     suite("flattenStructColumns", () => {
       test("should flatten STRUCT column with fields in type string", () => {
@@ -1841,31 +1799,6 @@ suite('AssetLineage hover functionality', () => {
         ]);
       });
 
-      test("should use query string to extract field names", () => {
-        const columns = [
-          {
-            name: "author",
-            type: "RECORD"
-          }
-        ];
-
-        const rows = [
-          [{"login":"test","id":"123"}]
-        ];
-
-        const query = "SELECT struct('test' AS login, '123' AS id) AS author";
-
-        const result = flattenStructColumns(columns, rows, query);
-
-        assert.deepStrictEqual(result.columns, [
-          { name: "author.login", type: "" },
-          { name: "author.id", type: "" }
-        ]);
-
-        assert.deepStrictEqual(result.rows, [
-          ["test", "123"]
-        ]);
-      });
 
       test("should handle nested array structure", () => {
         const columns = [
@@ -1881,14 +1814,13 @@ suite('AssetLineage hover functionality', () => {
 
         const result = flattenStructColumns(columns, rows);
 
+        // Since the nested array [[[1, 2, 3]]] is not an object, it should not be flattened
         assert.deepStrictEqual(result.columns, [
-          { name: "struct.field0", type: "" },
-          { name: "struct.field1", type: "" },
-          { name: "struct.field2", type: "" }
+          { name: "struct", type: "RECORD" }
         ]);
 
         assert.deepStrictEqual(result.rows, [
-          [1, 2, 3]
+          [[[1, 2, 3]]]
         ]);
       });
 
