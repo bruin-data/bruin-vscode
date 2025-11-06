@@ -386,7 +386,7 @@
                     <div class="flex flex-col">
                       <div v-if="Array.isArray(value)" class="array-cell">
                         <div
-                          v-for="(item, itemIndex) in value"
+                          v-for="(item, itemIndex) in (isExpanded(index, colIndex) ? value : value.slice(0, 10))"
                           :key="itemIndex"
                           class="array-item"
                         >
@@ -394,6 +394,15 @@
                         </div>
                         <div v-if="value.length === 0" class="text-descriptionForeground opacity-60 italic uppercase">
                           Empty Array
+                        </div>
+                        <div v-if="value.length > 10" class="text-descriptionForeground opacity-60 italic text-xs mt-1">
+                          {{ isExpanded(index, colIndex) ? `Showing all ${value.length} items` : `... and ${value.length - 10} more` }}
+                          <button
+                            @click.stop="toggleCellExpansion(index, colIndex)"
+                            class="ml-2 underline hover:no-underline"
+                          >
+                            {{ isExpanded(index, colIndex) ? 'Collapse' : 'Show all' }}
+                          </button>
                         </div>
                       </div>
                       <template v-else>
