@@ -107,39 +107,6 @@ const flattenNestedStruct = (
   return result;
 };
 
-const QUERY_FIELD_PATTERN = /(?:\S+\s+)?AS\s+([a-zA-Z_][a-zA-Z0-9_]*)/gi;
-
-export const extractStructFieldNamesFromQuery = (query: string, structColumnName: string): string[] => {
-  if (!query || !structColumnName) return [];
-  
-  try {
-    const escapedColumnName = structColumnName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    
-    const structPattern = new RegExp(
-      `struct\\s*\\(([^)]+)\\)\\s+(?:AS\\s+)?[\`'"]?${escapedColumnName}[\`'"]?|[\`'"]?${escapedColumnName}[\`'"]?\\s*=\\s*struct\\s*\\(([^)]+)\\)`,
-      'i'
-    );
-    
-    const match = query.match(structPattern);
-    if (!match) return [];
-    
-    const structContent = match[1] || match[2];
-    if (!structContent) return [];
-    
-    const fieldNames: string[] = [];
-    let fieldMatch;
-    
-    QUERY_FIELD_PATTERN.lastIndex = 0;
-    while ((fieldMatch = QUERY_FIELD_PATTERN.exec(structContent)) !== null) {
-      fieldNames.push(fieldMatch[1]);
-    }
-    
-    return fieldNames;
-  } catch (e) {
-    console.warn('Error extracting struct field names from query:', e);
-    return [];
-  }
-};
 
 export const flattenStructColumns = (columns: any[], rows: any[][], query?: string | null): { columns: any[], rows: any[][] } => {
   if (!columns || !rows || rows.length === 0) {
@@ -206,10 +173,6 @@ export const flattenStructColumns = (columns: any[], rows: any[][], query?: stri
         }
       }
 
-      if (fieldPaths.length === 0 && query) {
-        const fieldNames = extractStructFieldNamesFromQuery(query, columnName);
-        fieldPaths = fieldNames;
-      }
 
       if (fieldPaths.length === 0 && rows.length > 0) {
         const firstRowValue = rows[0]?.[colIndex];
