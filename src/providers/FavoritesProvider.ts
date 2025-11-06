@@ -85,8 +85,10 @@ class FavoriteItem extends vscode.TreeItem {
       this.command = {
         command: "bruin.showTableDetails",
         title: "Show Table Details",
-        // table.name is already fully qualified (schema.table), no need for separate schema parameter
-        arguments: [table.name, undefined, table.connectionName, table.environment],
+        // Pass schema/database name for all connection types
+        // For schema-aware: table.schema is the schema name
+        // For non-schema-aware: table.schema is the database name
+        arguments: [table.name, table.schema, table.connectionName, table.environment],
       };
     } else if (this.contextValue === "favorite_column") {
       this.iconPath = new vscode.ThemeIcon("symbol-field");

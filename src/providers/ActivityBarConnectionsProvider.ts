@@ -527,8 +527,8 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
           tableTreeItem.command = {
             command: "bruin.showTableDetails",
             title: "Show Table Details",
-            // For nested schemas, tableName is already qualified (schema.table), so don't pass schema separately
-            arguments: [qualifiedTableName, undefined, schema.connectionName, environment],
+            // For nested schemas, pass table name and schema name
+            arguments: [table, schema.name, schema.connectionName, environment],
           };
           return tableTreeItem;
         });
@@ -593,7 +593,7 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
           tableTreeItem.command = {
             command: "bruin.showTableDetails",
             title: "Show Table Details",
-            // Pass schema name for proper SQL generation
+            // Pass table name with database name (schema.name is actually the database for DuckDB/BigQuery)
             arguments: [table, schema.name, schema.connectionName, environment],
           };
           return tableTreeItem;
@@ -632,9 +632,9 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
       }
 
       try {
-        // If connection doesn't support schemas, just pass table name without schema prefix
+        // Use database for schema-aware, schema (which is really the database) for non-schema-aware
         const databaseParam = table.database || table.schema;
-        const tableParam = table.hasSchemaSupport === false ? table.name : table.name;
+        const tableParam = table.name;
 
         const columnsResponse = await this.getColumnsSummary(
           table.connectionName,
@@ -860,9 +860,9 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
     }
 
     try {
-      // If connection doesn't support schemas, just pass table name without schema prefix
+      // Use database for schema-aware, schema (which is really the database) for non-schema-aware
       const databaseParam = table.database || table.schema;
-      const tableParam = table.hasSchemaSupport === false ? table.name : table.name;
+      const tableParam = table.name;
 
       const columnsResponse = await this.getColumnsSummary(
         table.connectionName,

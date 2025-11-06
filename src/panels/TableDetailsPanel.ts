@@ -28,8 +28,10 @@ import {
     public static async render(extensionUri: Uri, tableName: string, schemaName?: string, connectionName?: string, environmentName?: string) {
       try {
         const cleanTableName = tableName.replace(/\.sql$/, "");
-        
-        
+
+        // Debug logging
+        console.log('[TableDetailsPanel] Received params:', { tableName, schemaName, connectionName, environmentName });
+
         // Create logs directory in workspace for temporary SQL files
         const workspaceFolder = workspace.workspaceFolders?.[0];
         if (!workspaceFolder) {
@@ -52,12 +54,21 @@ import {
         let initialContent = `-- environment: ${environmentName || 'default'}\n`;
         initialContent += `-- connection: ${connectionName || 'default'}\n`;
 
-        // Construct the table reference
-        // If schemaName is provided, use schema.table format
-        // Otherwise, use tableName as-is (it may already be fully qualified)
-        const tableReference = schemaName
-          ? `${this._sanitizeTableName(schemaName)}.${this._sanitizeTableName(cleanTableName)}`
-          : this._sanitizeTableName(cleanTableName);
+        // Construct the table reference based on schema support
+        let tableReference: string;
+
+        // Check if tableName already contains a dot (already qualified)
+        if (cleanTableName.includes('.')) {
+          // Already qualified (e.g., "schema.table"), use as-is
+          tableReference = this._sanitizeTableName(cleanTableName);
+        } else if (schemaName) {
+          // Not qualified, add schema prefix
+          tableReference = `${this._sanitizeTableName(schemaName)}.${this._sanitizeTableName(cleanTableName)}`;
+        } else {
+          // No schema provided, use table name only
+          tableReference = this._sanitizeTableName(cleanTableName);
+        }
+
         initialContent += `SELECT * FROM ${tableReference};\n\n`;
   
         fs.writeFileSync(tempFilePath, initialContent);
