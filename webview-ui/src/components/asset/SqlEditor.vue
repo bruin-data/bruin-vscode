@@ -1,26 +1,36 @@
 <template>
   <div class="highlight-container rounded overflow-visible">
-    <div class="header flex items-center justify-between px-1.5 py-0.5 border-commandCenter-border shadow-sm">
+    <div
+      class="header flex items-center justify-between px-1.5 py-0.5 border-commandCenter-border shadow-sm"
+    >
       <label class="text-xs font-sans">Preview</label>
       <div class="flex items-center">
         <!-- BigQuery Cost Estimate (success and error) -->
-        <div v-if="language === 'sql' && (bigqueryCostEstimate || bigqueryError)" class="flex items-center gap-1 relative z-50">
+        <div
+          v-if="language === 'sql' && (bigqueryCostEstimate || bigqueryError)"
+          class="flex items-center gap-1 relative z-50"
+        >
           <!-- Success state -->
           <template v-if="!bigqueryError && bigqueryCostEstimate">
-            <span class="text-xs opacity-85 mr-1 text-[var(--vscode-foreground)]">{{ bigqueryCostEstimate }}</span>
+            <span
+              :title="formatBytes(bigqueryMetadata.TotalBytesProcessed)"
+              class="text-xs opacity-85 mr-1 text-[var(--vscode-foreground)]"
+              >{{ bigqueryCostEstimate }}</span
+            >
           </template>
-          
+
           <!-- Error state with hover -->
           <template v-else-if="bigqueryError">
-            <span 
+            <span
               ref="errorIcon"
-              class="text-sm cursor-pointer" 
-              style="color: var(--vscode-notificationsErrorIcon-foreground);"
+              class="text-sm cursor-pointer"
+              style="color: var(--vscode-notificationsErrorIcon-foreground)"
               @mouseenter="showCostError = true"
               @mouseleave="handleMouseLeave"
               @click="toggleErrorSticky"
-            >$</span>
-            
+              >$</span
+            >
+
             <!-- Error tooltip -->
             <div
               v-if="showCostError"
@@ -30,8 +40,11 @@
               @mouseleave="handleTooltipMouseLeave"
             >
               <div class="flex items-start justify-between gap-2">
-                <span class="text-xs text-[var(--vscode-notificationsErrorIcon-foreground)] break-words flex-1 select-text">{{ bigqueryError }}</span>
-                <button 
+                <span
+                  class="text-xs text-[var(--vscode-notificationsErrorIcon-foreground)] break-words flex-1 select-text"
+                  >{{ bigqueryError }}</span
+                >
+                <button
                   v-if="isErrorSticky"
                   @click="closeError"
                   class="p-1 hover:bg-[var(--vscode-list-hoverBackground)] rounded text-[var(--vscode-foreground)] opacity-70 hover:opacity-100 flex-shrink-0"
@@ -43,7 +56,7 @@
             </div>
           </template>
         </div>
-        
+
         <div class="relative" v-if="showIntervalAlert">
           <vscode-button
             appearance="icon"
@@ -114,6 +127,7 @@ import "highlight.js/styles/default.css";
 import hljs from "highlight.js/lib/core";
 import { DynamicScroller, DynamicScrollerItem } from "vue3-virtual-scroller";
 import "vue3-virtual-scroller/dist/vue3-virtual-scroller.css";
+import { formatBytes } from "@/utilities/helper";
 
 const props = defineProps({
   code: String | undefined,
@@ -122,12 +136,12 @@ const props = defineProps({
   showIntervalAlert: Boolean,
   bigqueryMetadata: {
     type: Object,
-    default: null
+    default: null,
   },
   bigqueryError: {
     type: String,
-    default: null
-  }
+    default: null,
+  },
 });
 
 const showIntervalAlert = ref(props.showIntervalAlert);
@@ -168,7 +182,7 @@ const maxEditorHeight = "500px";
 const lineNumberWidth = computed(() => {
   const totalLines = visibleHighlightedLines.value.length;
   const digits = totalLines.toString().length;
-  return 20 + (digits * 8);
+  return 20 + digits * 8;
 });
 
 const shouldUseVirtualScroller = computed(() => {
@@ -233,18 +247,17 @@ const onClickOutsideWarning = () => {
 
 const bigqueryCostEstimate = computed(() => {
   if (!props.bigqueryMetadata || props.bigqueryError) return null;
-  
+
   const bytesProcessed = props.bigqueryMetadata.TotalBytesProcessed;
-  if (typeof bytesProcessed !== 'number') return null;
-  
+  if (typeof bytesProcessed !== "number") return null;
+
   // Convert bytes to TB (1 TB = 1024^4 bytes)
   const tbProcessed = bytesProcessed / (1024 * 1024 * 1024 * 1024);
-  
 
   const cost = tbProcessed * 6.25;
-  
+
   if (cost === 0) {
-    return '$0.00';
+    return "$0.00";
   } else {
     return `$${cost.toFixed(2)}`;
   }
@@ -274,16 +287,15 @@ const closeError = () => {
   isErrorSticky.value = false;
 };
 
-
 const tooltipPosition = computed(() => {
   if (!errorIcon.value) {
     return {
-      position: 'fixed',
-      top: '50px',
-      left: '50px',
+      position: "fixed",
+      top: "50px",
+      left: "50px",
       zIndex: 9999,
-      maxWidth: '400px',
-      minWidth: '250px'
+      maxWidth: "400px",
+      minWidth: "250px",
     };
   }
 
@@ -291,32 +303,32 @@ const tooltipPosition = computed(() => {
     const rect = errorIcon.value.getBoundingClientRect();
     const tooltipWidth = 400; // max width of tooltip
     const viewportWidth = window.innerWidth;
-    
+
     // Calculate left position to ensure tooltip stays within viewport
     // Position tooltip to the right of the icon, but if it would go off-screen, position it to the left
     let leftOffset = rect.right + 10; // Start to the right of the icon
-    
+
     if (leftOffset + tooltipWidth > viewportWidth) {
       // If tooltip would go off-screen to the right, position it to the left of the icon
       leftOffset = Math.max(10, rect.left - tooltipWidth - 10);
     }
-    
+
     return {
-      position: 'fixed',
+      position: "fixed",
       top: `${rect.top - 60}px`, // Position above the icon
       left: `${leftOffset}px`,
       zIndex: 9999,
-      maxWidth: '400px',
-      minWidth: '250px'
+      maxWidth: "400px",
+      minWidth: "250px",
     };
   } catch (error) {
     return {
-      position: 'fixed',
-      top: '50px',
-      left: '50px',
+      position: "fixed",
+      top: "50px",
+      left: "50px",
       zIndex: 9999,
-      maxWidth: '400px',
-      minWidth: '250px'
+      maxWidth: "400px",
+      minWidth: "250px",
     };
   }
 });
