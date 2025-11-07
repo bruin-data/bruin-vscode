@@ -1,4 +1,7 @@
 # Changelog
+## [0.71.4] - [2025-11-07]
+- Validation now supports the `--full-refresh` flag, and will prompt users to update their Bruin CLI if their version does not meet the minimum required for this feature.
+
 ## [0.71.3] - [2025-11-07]
 - Query cost now refreshes when toggling the `interval_modifiers` checkbox, tag indentation validation has been improved, and `SqlEditor` now shows `processedBytes` on query cost hover.
 
