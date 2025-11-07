@@ -792,7 +792,7 @@ suite("BruinValidate Tests", () => {
     const flags = ["-o", "json"];
     runStub.resolves("{}");
 
-    await bruinValidate.validate(filePath, { flags });
+    await bruinValidate.validate(filePath, { flags }, "");
 
     sinon.assert.calledOnceWithExactly(runStub, [...flags, filePath], { ignoresErrors: false });
   });

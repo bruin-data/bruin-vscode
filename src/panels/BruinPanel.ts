@@ -467,7 +467,8 @@ export class BruinPanel {
             );
 
             const defaultExcludeTag = getDefaultExcludeTag();
-            await validatorAll.validate(bruinWorkspaceDir, {}, defaultExcludeTag);
+            const fullRefreshAll = this._checkboxState["Full-Refresh"] || false;
+            await validatorAll.validate(bruinWorkspaceDir, {}, defaultExcludeTag, fullRefreshAll);
             break;
           case "bruin.checkTelemtryPreference":
             const config = workspace.getConfiguration("bruin");
@@ -495,9 +496,10 @@ export class BruinPanel {
             try {
               // Get default exclude tag
               const excludeTag = getDefaultExcludeTag();
+              const fullRefreshPipeline = this._checkboxState["Full-Refresh"] || false;
               // Pass the exclude tag to validate method
       
-              await pipelineValidator.validate(currentPipelinePath, {}, excludeTag);
+              await pipelineValidator.validate(currentPipelinePath, {}, excludeTag, fullRefreshPipeline);
             } catch (error) {
               console.error("Error validating pipeline:", currentPipelinePath, error);
             }
@@ -555,8 +557,8 @@ export class BruinPanel {
             );
             const validator = new BruinValidate(getBruinExecutablePath(), "");
             
-            
-            await validator.validate(filePath);
+            const fullRefreshAsset = this._checkboxState["Full-Refresh"] || false;
+            await validator.validate(filePath, {}, "", fullRefreshAsset);
             break;
           case "bruin.runSql":
             if (!this._lastRenderedDocumentUri) {
