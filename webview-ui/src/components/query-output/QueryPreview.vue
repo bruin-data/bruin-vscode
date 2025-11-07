@@ -388,7 +388,7 @@
                         <div
                           v-for="(item, itemIndex) in (isExpanded(index, colIndex) ? value : value.slice(0, 10))"
                           :key="itemIndex"
-                          class="array-item"
+                          class="array-item break-words overflow-hidden"
                         >
                           {{ item === null || item === undefined ? 'NULL' : item }}
                         </div>
@@ -1688,6 +1688,10 @@ vscode-badge::part(control) {
 .array-item {
   display: block;
   line-height: 1.4;
+  word-break: break-all;
+  overflow-wrap: break-word;
+  white-space: normal;
+  max-width: 100%;
 }
 
 .array-item:not(:last-child) {
