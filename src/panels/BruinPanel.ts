@@ -881,6 +881,7 @@ export class BruinPanel {
           case "bruin.convertToAsset":
             if (this._lastRenderedDocumentUri) {
               await this._convertToAsset(this._lastRenderedDocumentUri.fsPath);
+              await parseAssetCommand(this._lastRenderedDocumentUri);
             }
             break;
           case "bruin.getPipelineAssets":
