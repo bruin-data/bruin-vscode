@@ -524,6 +524,17 @@ export class BruinPanel {
               // Render with flags if we have a valid document
               if (this._lastRenderedDocumentUri?.fsPath) {
                 await renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri.fsPath);
+                const assetMetadata = new BruinInternalAssetMetadata(
+                  getBruinExecutablePath(),
+                  vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || ""  
+                );
+                await assetMetadata.getAssetMetadata(
+                  this._lastRenderedDocumentUri.fsPath,
+                  undefined,
+                  this._currentStartDate,
+                  this._currentEndDate,
+                  this._currentEnvironment
+                );
               }
               break;
 

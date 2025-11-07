@@ -1,4 +1,7 @@
 # Changelog
+## [0.71.3] - [2025-11-07]
+- Query cost now refreshes when toggling the `interval_modifiers` checkbox, tag indentation validation has been improved, and `SqlEditor` now shows `processedBytes` on query cost hover.
+
 ## [0.71.2] - [2025-11-06]
 - Enhanced QueryPreview with array handling and improved struct formatting.
 

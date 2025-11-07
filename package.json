@@ -2,7 +2,7 @@
   "name": "bruin",
   "displayName": "Bruin",
   "description": "Manage your Bruin data assets from within VS Code.",
-  "version": "0.71.2",
+  "version": "0.71.3",
   "engines": {
     "vscode": "^1.87.0"
   },
@@ -54,20 +54,6 @@
     "languages": [
       {
         "id": "sql",
-        "extensions": [
-          ".sql"
-        ],
-        "configuration": "./syntaxes/bruin-sql-injection.json"
-      },
-      {
-        "id": "sql-bigquery",
-        "extensions": [
-          ".sql"
-        ],
-        "configuration": "./syntaxes/bruin-sql-injection.json"
-      },
-      {
-        "id": "snowflake-sql",
         "extensions": [
           ".sql"
         ],
@@ -289,7 +275,9 @@
         "path": "./syntaxes/bruin-sql-injection.json",
         "scopeName": "sql.comment.block",
         "injectTo": [
-          "source.sql"
+          "source.sql",
+          "source.sql-bigquery",
+          "source.pgsql"
         ]
       },
       {

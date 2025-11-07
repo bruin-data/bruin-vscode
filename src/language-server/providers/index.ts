@@ -5,4 +5,5 @@ export { AssetCompletions } from './assetCompletions';
 export { MaterializationValidator } from './materializationValidator';
 export { QueryValidator } from './queryValidator';
 export { CustomCheckCompletions } from './customCheckCompletions';
-export { SecretsCompletions } from './secretsCompletions'; 
+export { SecretsCompletions } from './secretsCompletions';
+export { TagValidator } from './tagValidator'; 
