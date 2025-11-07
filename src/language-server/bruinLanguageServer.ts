@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { getDependsSectionOffsets } from '../utilities/helperUtils';
 import { BruinInternalParse } from '../bruin/bruinInternalParse';
 import { getBruinExecutablePath } from '../providers/BruinExecutableService';
-import { MaterializationCompletions, ColumnCompletions, TopLevelCompletions, AssetCompletions, MaterializationValidator, QueryValidator, CustomCheckCompletions, SecretsCompletions } from './providers';
+import { MaterializationCompletions, ColumnCompletions, TopLevelCompletions, AssetCompletions, MaterializationValidator, QueryValidator, CustomCheckCompletions, SecretsCompletions, TagValidator } from './providers';
 import { BruinBlockDetector } from './utils/bruinBlockDetector';
 
 export class BruinLanguageServer {
@@ -16,6 +16,7 @@ export class BruinLanguageServer {
     private queryValidator: QueryValidator;
     private customCheckCompletions: CustomCheckCompletions;
     private secretsCompletions: SecretsCompletions;
+    private tagValidator: TagValidator;
 
     constructor() {
         // Subscribe to panel messages to capture parse results
@@ -30,6 +31,7 @@ export class BruinLanguageServer {
         this.queryValidator = new QueryValidator();
         this.customCheckCompletions = new CustomCheckCompletions();
         this.secretsCompletions = new SecretsCompletions();
+        this.tagValidator = new TagValidator();
     }
 
     public static getInstance(): BruinLanguageServer {
@@ -288,7 +290,8 @@ export class BruinLanguageServer {
     public validateMaterialization(document: vscode.TextDocument): vscode.Diagnostic[] {
         const materializationDiagnostics = this.materializationValidator.validateMaterialization(document);
         const queryDiagnostics = this.queryValidator.validateQuery(document);
-        return [...materializationDiagnostics, ...queryDiagnostics];
+        const tagDiagnostics = this.tagValidator.validateTags(document);
+        return [...materializationDiagnostics, ...queryDiagnostics, ...tagDiagnostics];
     }
 
     /**
