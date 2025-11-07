@@ -276,7 +276,8 @@
         "scopeName": "sql.comment.block",
         "injectTo": [
           "source.sql",
-          "source.sql-bigquery"
+          "source.sql-bigquery",
+          "source.pgsql"
         ]
       },
       {

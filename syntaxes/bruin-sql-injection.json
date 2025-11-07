@@ -1,6 +1,6 @@
 {
     "scopeName": "sql.comment.block",
-    "injectionSelector": "L:source.sql, L:source.sql-bigquery",
+    "injectionSelector": "L:source.sql, L:source.sql-bigquery, L:source.pgsql",
     "patterns": [
         {
             "include": "#bruin-sql"
@@ -27,5 +27,6 @@
                 }
             }
         }
+        
     }
 }
