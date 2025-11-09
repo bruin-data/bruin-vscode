@@ -19,6 +19,11 @@
           "type": "string",
           "description": "A brief description of the asset"
         },
+        "start_date": {
+          "type": "string",
+          "format": "date",
+          "description": "The start date for this asset"
+        },
         "type": {
           "type": "string",
           "enum": [
