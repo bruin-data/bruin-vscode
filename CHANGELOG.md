@@ -1,4 +1,8 @@
 # Changelog
+## [0.71.5] - [2025-01-13]
+- Removed `--full-refresh` flag from validation command.
+
+
 ## [0.71.4] - [2025-11-07]
 - Validation now supports the `--full-refresh` flag, and will prompt users to update their Bruin CLI if their version does not meet the minimum required for this feature.
 

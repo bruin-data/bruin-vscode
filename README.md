@@ -9,7 +9,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 - Renders SQL content within a VS Code Webview.
 - Copy SQL content with a single click.
 - Auto-refreshes when the file is updated.
-- Supports running and validating assets with options like `--downstream` and `--full-refresh` via checkboxes.
+- Supports running and validating assets with options like `--downstream` via checkboxes.
 - Date inputs for selecting start and end dates for the `run` command.
 
 
@@ -63,10 +63,10 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.71.5**: Removed `--full-refresh` flag from validation command.
 - **0.71.4**: Validation now supports the `--full-refresh` flag, and will prompt users to update their Bruin CLI if their version does not meet the minimum required for this feature.
 - **0.71.3**: Query cost now refreshes when toggling the `interval_modifiers` checkbox, tag indentation validation has been improved, and `SqlEditor` now shows `processedBytes` on query cost hover.
 - **0.71.2**: Enhanced QueryPreview with array handling and improved struct formatting.
-- **0.71.1**: Resolved an issue where some database connections were not displaying correctly in the database summary.
 - **0.71.0**: Added variables overrides management UI to the extension.
 - **0.70.9**: Enhanced the ingestr asset UI, including support for custom incremental keys, and introduced column resizing in the query preview.
 
