@@ -40,38 +40,7 @@ export class BruinValidate extends BruinCommand {
     });
 
     try {
-      // Check version compatibility if fullRefresh is requested
-      if (fullRefresh) {
-        const versionInfo = await getBruinVersion();
-        
-        if (!versionInfo) {
-          const errorMessage = `Could not determine Bruin CLI version. Please ensure Bruin CLI is properly installed.`;
-          
-          BruinPanel.postMessage("validation-message", {
-            status: "error",
-            message: JSON.stringify({ error: errorMessage }),
-          });
-          return;
-        }
-        
-        const minRequiredVersion = "0.11.348";
-        const isOutdated = compareVersions(versionInfo.version, minRequiredVersion);
-        
-        if (isOutdated) {
-          const errorMessage = `The --full-refresh flag requires Bruin CLI version ${minRequiredVersion} or higher. Current version: ${versionInfo.version}. Please update your Bruin CLI to use this feature.`;
-          
-          BruinPanel.postMessage("validation-message", {
-            status: "error",
-            message: JSON.stringify({ error: errorMessage }),
-          });
-          return;
-        }
-      }
-
       const commandFlags = [...flags];
-      if (fullRefresh) {
-        commandFlags.push("--full-refresh");
-      }
       // Add exclude-tag if provided
       if (excludeTag) {
         commandFlags.push("--exclude-tag", excludeTag);
