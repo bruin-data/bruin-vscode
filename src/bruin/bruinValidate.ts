@@ -41,9 +41,6 @@ export class BruinValidate extends BruinCommand {
 
     try {
       const commandFlags = [...flags];
-      if (fullRefresh) {
-        commandFlags.push("--full-refresh");
-      }
       // Add exclude-tag if provided
       if (excludeTag) {
         commandFlags.push("--exclude-tag", excludeTag);
