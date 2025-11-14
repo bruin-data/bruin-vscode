@@ -81,6 +81,10 @@
           "$ref": "#/$defs/domains",
           "description": "Domains for this asset"
         },
+        "start_date": {
+          "type": "string",
+          "description": "The start date of the asset"
+        },
         "parameters": {
           "type": "object",
           "properties": {
@@ -111,7 +115,8 @@
                 "clickhouse",
                 "gcs",
                 "mongo_atlas",
-                "mysql"
+                "mysql",
+                "elasticsearch"
               ],
               "description": "The destination system",
               "additionalProperties": true
