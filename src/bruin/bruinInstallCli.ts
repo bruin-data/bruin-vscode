@@ -58,7 +58,7 @@ export class BruinInstallCLI {
   private async getCommand(isUpdate: boolean, version?: string): Promise<string> {
     console.debug("getCommand called with", { isUpdate, version });
     this.scriptPath = version ? this.scriptPathSpecificVersion : this.scriptPath;
-    const specificVersion = version ? ` v${version}` : "";
+    const specificVersion = version ? ` ${version.startsWith('v') ? version : 'v' + version}` : "";
     if (os.platform() === "win32") {
       const gitBashPath = findGitBashPath();
 
