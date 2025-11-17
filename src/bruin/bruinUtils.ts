@@ -358,17 +358,42 @@ export const createIntegratedTerminal = async (
 };
 
 export { BruinInstallCLI } from "./bruinInstallCli";
-  
-export function compareVersions(current: string, latest: string): boolean {
-  const normalize = (v: string) => v.replace(/^v/, '').split('.').map(Number);
-  const [currMajor, currMinor, currPatch] = normalize(current);
-  const [latestMajor, latestMinor, latestPatch] = normalize(latest);
 
-  return (
-    currMajor < latestMajor ||
-    (currMajor === latestMajor && currMinor < latestMinor) ||
-    (currMajor === latestMajor && currMinor === latestMinor && currPatch < latestPatch)
-  );
+/**
+ * Represents a semantic version (major.minor.patch)
+ */
+export type Version = {
+  readonly major: number;
+  readonly minor: number;
+  readonly patch: number;
+};
+
+/**
+ * Parses a version string (e.g., "0.11.348" or "v0.11.348") into a Version object
+ */
+export function parseVersion(versionString: string): Version {
+  const normalized = versionString.replace(/^v/, '').split('.').map(Number);
+  if (normalized.length !== 3 || normalized.some(isNaN)) {
+    throw new Error(`Invalid version format: ${versionString}`);
+  }
+  return {
+    major: normalized[0],
+    minor: normalized[1],
+    patch: normalized[2],
+  };
+}
+
+/**
+ * Checks if version is greater than or equal to other version
+ */
+export function versionGte(version: Version, other: Version): boolean {
+  if (version.major !== other.major) {
+    return version.major > other.major;
+  }
+  if (version.minor !== other.minor) {
+    return version.minor > other.minor;
+  }
+  return version.patch >= other.patch;
 }
 
 export class BruinVersionController extends BruinCommand {
@@ -417,7 +442,9 @@ export async function checkCliVersion(): Promise<{
   }
 
   const { version, latest } = versionInfo;
-  const isOutdated = compareVersions(version, latest);
+  const currentVersion = parseVersion(version);
+  const latestVersion = parseVersion(latest);
+  const isOutdated = !versionGte(currentVersion, latestVersion);
 
   return {
     status: isOutdated ? 'outdated' : 'current',

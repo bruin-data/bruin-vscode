@@ -34,7 +34,8 @@ import {
   BruinInstallCLI,
   bruinWorkspaceDirectory,
   checkCliVersion,
-  compareVersions,
+  parseVersion,
+  versionGte,
   findGitBashPath,
   getBruinVersion,
   replacePathSeparator,
@@ -99,19 +100,7 @@ suite("Bruin Utility Tests", () => {
   teardown(() => {
     execFileStub.restore();
   });
-  suite("Compare versions tests", () => {
-    test("should return false for equal versions", () => {
-      assert.strictEqual(compareVersions("v1.0.0", "v1.0.0"), false);
-    });
-  
-    test("should return false when current > latest", () => {
-      assert.strictEqual(compareVersions("v1.1.0", "v1.0.0"), false);
-    });
-  
-    test("should return true when current < latest", () => {
-      assert.strictEqual(compareVersions("v1.0.0", "v1.1.0"), true);
-    });
-
+  suite("getBruinVersion tests", () => {
     test("getBruinVersion returns valid version data", async () => {
       execFileStub.yields(null, '{"version": "v1.0.0", "latest": "v1.1.0"}', '');
       
@@ -124,6 +113,42 @@ suite("Bruin Utility Tests", () => {
       execFileStub.yields(new Error("Command failed"), '', '');
       const versionInfo = await getBruinVersion();
       assert.strictEqual(versionInfo, null);
+    });
+  });
+
+  suite("Version parsing and comparison tests", () => {
+    test("parseVersion should parse version strings correctly", () => {
+      const version1 = parseVersion("0.11.348");
+      assert.strictEqual(version1.major, 0);
+      assert.strictEqual(version1.minor, 11);
+      assert.strictEqual(version1.patch, 348);
+
+      const version2 = parseVersion("v1.2.3");
+      assert.strictEqual(version2.major, 1);
+      assert.strictEqual(version2.minor, 2);
+      assert.strictEqual(version2.patch, 3);
+    });
+
+    test("parseVersion should throw error for invalid format", () => {
+      assert.throws(() => parseVersion("invalid"), Error);
+      assert.throws(() => parseVersion("1.2"), Error);
+      assert.throws(() => parseVersion("1.2.3.4"), Error);
+    });
+
+    test("versionGte should correctly compare versions", () => {
+      const v1 = parseVersion("1.0.0");
+      const v2 = parseVersion("1.0.0");
+      assert.strictEqual(versionGte(v1, v2), true);
+
+      const v3 = parseVersion("1.1.0");
+      const v4 = parseVersion("1.0.0");
+      assert.strictEqual(versionGte(v3, v4), true);
+      assert.strictEqual(versionGte(v4, v3), false);
+
+      const v5 = parseVersion("0.11.348");
+      const v6 = parseVersion("0.11.349");
+      assert.strictEqual(versionGte(v5, v6), false);
+      assert.strictEqual(versionGte(v6, v5), true);
     });
   });
 
@@ -347,7 +372,6 @@ suite("BruinInstallCLI Tests", () => {
   let execStub: sinon.SinonStub;
   let osPlatformStub: sinon.SinonStub;
   let createIntegratedTerminalStub: sinon.SinonStub;
-  let compareVersionsStub: sinon.SinonStub;
   let workspaceFoldersStub: sinon.SinonStub;
   let terminalStub: Partial<vscode.Terminal>;
 
@@ -359,7 +383,6 @@ suite("BruinInstallCLI Tests", () => {
     execStub = sandbox.stub();
     sandbox.stub(util, "promisify").returns(execAsyncStub);
     osPlatformStub = sandbox.stub(os, "platform");
-    compareVersionsStub = sandbox.stub(bruinUtils, "compareVersions");
 
     // Setup terminal stub
     terminalStub = {
