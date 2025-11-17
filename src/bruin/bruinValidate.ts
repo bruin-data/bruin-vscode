@@ -2,7 +2,7 @@ import { BruinCommand } from "./bruinCommand";
 import { BruinPanel } from "../panels/BruinPanel";
 import { BruinCommandOptions } from "../types";
 import { platform } from "os";
-import { getBruinVersion, compareVersions } from "./bruinUtils";
+import { getBruinVersion, parseVersion, versionGte } from "./bruinUtils";
 /**
  * Extends the BruinCommand class to implement the bruin validate command on Bruin assets.
  */
@@ -44,6 +44,18 @@ export class BruinValidate extends BruinCommand {
       // Add exclude-tag if provided
       if (excludeTag) {
         commandFlags.push("--exclude-tag", excludeTag);
+      }
+      
+      if (fullRefresh) {
+        const versionInfo = await getBruinVersion();
+        if (versionInfo) {
+          const current = parseVersion(versionInfo.version);
+          const minimum = parseVersion("0.11.348");
+          // Only add flag if version check succeeds and version is >= minRequiredVersion
+          if (versionGte(current, minimum)) {
+            commandFlags.push("--full-refresh");
+          }
+        }
       }
       
       const result = await this.run([...commandFlags, filePath], { ignoresErrors });

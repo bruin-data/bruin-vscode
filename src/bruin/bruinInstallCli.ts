@@ -3,7 +3,7 @@ import { exec } from "child_process";
 import * as os from "os";
 import { promisify } from "util";
 import { getBruinExecutablePath } from "../providers/BruinExecutableService";
-import { compareVersions, findGitBashPath, getBruinVersion } from "./bruinUtils";
+import { parseVersion, versionGte, findGitBashPath, getBruinVersion } from "./bruinUtils";
 import * as fs from "fs";
 import path = require("path");
 
@@ -104,7 +104,9 @@ export class BruinInstallCLI {
       throw new Error("Failed to get version info");
     }
   
-    return !compareVersions(versionInfo.version, versionInfo.latest);
+    const currentVersion = parseVersion(versionInfo.version);
+    const latestVersion = parseVersion(versionInfo.latest);
+    return versionGte(currentVersion, latestVersion);
   }
   
 

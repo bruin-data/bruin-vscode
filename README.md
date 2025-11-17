@@ -63,15 +63,13 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.71.6**: The `--full-refresh` flag is now conditionally added to the validate command when the Bruin CLI version is 0.11.348 or higher.
 - **0.71.5**: Removed `--full-refresh` flag from validation command.
 - **0.71.4**: Validation now supports the `--full-refresh` flag, and will prompt users to update their Bruin CLI if their version does not meet the minimum required for this feature.
 - **0.71.3**: Query cost now refreshes when toggling the `interval_modifiers` checkbox, tag indentation validation has been improved, and `SqlEditor` now shows `processedBytes` on query cost hover.
 - **0.71.2**: Enhanced QueryPreview with array handling and improved struct formatting.
-- **0.71.0**: Added variables overrides management UI to the extension.
-- **0.70.9**: Enhanced the ingestr asset UI, including support for custom incremental keys, and introduced column resizing in the query preview.
 
 For a full changelog, see Bruin Extension [Changelog](https://marketplace.visualstudio.com/items/bruin.bruin/changelog).
 
 ### How to Update
-
 To update to the latest version, search for "Bruin" in the Extensions Marketplace and click the Update button.
