@@ -46,6 +46,15 @@ export class BruinValidate extends BruinCommand {
         commandFlags.push("--exclude-tag", excludeTag);
       }
       
+      if (fullRefresh) {
+        const versionInfo = await getBruinVersion();
+        const minRequiredVersion = "0.11.348";
+        // Only add flag if version check succeeds and version is >= minRequiredVersion
+        if (versionInfo && !compareVersions(versionInfo.version, minRequiredVersion)) {
+          commandFlags.push("--full-refresh");
+        }
+      }
+      
       const result = await this.run([...commandFlags, filePath], { ignoresErrors });
       let validationResults = JSON.parse(result);
 
