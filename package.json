@@ -577,15 +577,16 @@
     "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "^2.4.0",
     "eslint": "^8.57.0",
-    "mocha": "^11.0.1",
+    "mocha": "^11.0.0",
     "prettier": "^3.2.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.3",
-    "vscode-extension-tester": "^8.17.0",
+    "vscode-extension-tester": "^8.2.0",
     "vscode-test": "^1.6.1"
   },
   "overrides": {
-    "undici": "^6.21.1"
+    "undici": "^6.21.1",
+    "glob": "^11.0.0"
   },
   "dependencies": {
     "@rudderstack/analytics-js": "^3.11.15",
