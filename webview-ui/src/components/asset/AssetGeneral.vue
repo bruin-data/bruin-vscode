@@ -703,7 +703,21 @@ const checkboxItems = ref([
 // Tag filter state
 const includeTags = ref<string[]>([]);
 const excludeTags = ref<string[]>([]);
-const availableTags = computed(() => (Array.isArray(props.tags) ? props.tags : []));
+const availableTags = computed(() => {
+  if (isPipelineData.value && pipelineInfo.value?.assets) {
+    // For pipeline files: aggregate all tags from all assets
+    const allTags = new Set<string>();
+    pipelineInfo.value.assets.forEach(asset => {
+      if (asset.tags && Array.isArray(asset.tags)) {
+        asset.tags.forEach(tag => allTags.add(tag));
+      }
+    });
+    return Array.from(allTags).sort();
+  }
+  
+  // For individual assets: use current asset tags
+  return Array.isArray(props.tags) ? props.tags : [];
+});
 const isTagFilterOpen = ref(false);
 const tagFilterContainer = ref<HTMLElement | null>(null);
 const tagDropdownStyle = ref<Record<string, string>>({});
