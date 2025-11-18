@@ -1,4 +1,7 @@
 # Changelog
+## [0.71.7] - [2025-11-18]
+- The tag filter dropdown now displays all available tags at the pipeline level, improving usability across assets and pipelines.
+
 ## [0.71.6] - [2025-11-17]
 - The `--full-refresh` flag is now conditionally added to the validate command when the Bruin CLI version is 0.11.348 or higher.
 
