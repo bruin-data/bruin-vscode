@@ -48,7 +48,7 @@
           <CheckboxGroup :checkboxItems="checkboxItems" label="Options" />
           <!-- Tag Filter Controls (subtle) -->
           <div class="mt-2 flex items-center gap-2" ref="tagFilterContainer">
-            <div class="flex items-center gap-[1px]">
+            <div class="flex items-center gap-[1px] relative">
               <label class="text-xs text-editor-fg">Tags</label>
               <vscode-button
                 appearance="icon"
@@ -69,8 +69,7 @@
               <!-- Dropdown -->
               <div
                 v-if="isTagFilterOpen"
-                class="fixed z-[99999] w-[220px] max-w-[90vw] bg-dropdown-bg border border-commandCenter-border shadow-md rounded overflow-hidden tag-filter-dropdown"
-                :style="tagDropdownStyle"
+                class="absolute top-full left-0 z-[99999] w-[220px] max-w-[90vw] bg-dropdown-bg border border-commandCenter-border shadow-md rounded overflow-hidden tag-filter-dropdown mt-1"
                 @mousedown.stop
               >
                 <div
@@ -720,7 +719,6 @@ const availableTags = computed(() => {
 });
 const isTagFilterOpen = ref(false);
 const tagFilterContainer = ref<HTMLElement | null>(null);
-const tagDropdownStyle = ref<Record<string, string>>({});
 const tagFilterSearch = ref("");
 const hasActiveTagFilters = computed(
   () => includeTags.value.length > 0 || excludeTags.value.length > 0
@@ -743,19 +741,6 @@ const filteredTags = computed(() => {
 
 function toggleTagFilterOpen() {
   isTagFilterOpen.value = !isTagFilterOpen.value;
-  updateTagDropdownPosition();
-}
-
-function updateTagDropdownPosition() {
-  try {
-    const el = document.getElementById("tag-filter-button");
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    tagDropdownStyle.value = {
-      top: `${rect.bottom + 4}px`,
-      left: `${rect.left}px`,
-    };
-  } catch (_) {}
 }
 
 function closeTagFilter() {
@@ -772,20 +757,13 @@ function onWindowClick(e: MouseEvent) {
   }
 }
 
-function onWindowResize() {
-  if (isTagFilterOpen.value) {
-    updateTagDropdownPosition();
-  }
-}
 
 onMounted(() => {
   window.addEventListener("click", onWindowClick, true);
-  window.addEventListener("resize", onWindowResize);
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener("click", onWindowClick, true);
-  window.removeEventListener("resize", onWindowResize);
 });
 
 function clearAllTagFilters() {
