@@ -48,7 +48,7 @@
           <CheckboxGroup :checkboxItems="checkboxItems" label="Options" />
           <!-- Tag Filter Controls (subtle) -->
           <div class="mt-2 flex items-center gap-2" ref="tagFilterContainer">
-            <div class="flex items-center gap-[1px]">
+            <div class="flex items-center gap-[1px] relative">
               <label class="text-xs text-editor-fg">Tags</label>
               <vscode-button
                 appearance="icon"
@@ -69,8 +69,7 @@
               <!-- Dropdown -->
               <div
                 v-if="isTagFilterOpen"
-                class="fixed z-[99999] w-[220px] max-w-[90vw] bg-dropdown-bg border border-commandCenter-border shadow-md rounded overflow-hidden tag-filter-dropdown"
-                :style="tagDropdownStyle"
+                class="absolute top-full left-0 z-[99999] w-[220px] max-w-[90vw] bg-dropdown-bg border border-commandCenter-border shadow-md rounded overflow-hidden tag-filter-dropdown mt-1"
                 @mousedown.stop
               >
                 <div
@@ -703,10 +702,23 @@ const checkboxItems = ref([
 // Tag filter state
 const includeTags = ref<string[]>([]);
 const excludeTags = ref<string[]>([]);
-const availableTags = computed(() => (Array.isArray(props.tags) ? props.tags : []));
+const availableTags = computed(() => {
+  if (isPipelineData.value && pipelineInfo.value?.assets) {
+    // For pipeline files: aggregate all tags from all assets
+    const allTags = new Set<string>();
+    pipelineInfo.value.assets.forEach(asset => {
+      if (asset.tags && Array.isArray(asset.tags)) {
+        asset.tags.forEach(tag => allTags.add(tag));
+      }
+    });
+    return Array.from(allTags).sort();
+  }
+  
+  // For individual assets: use current asset tags
+  return Array.isArray(props.tags) ? props.tags : [];
+});
 const isTagFilterOpen = ref(false);
 const tagFilterContainer = ref<HTMLElement | null>(null);
-const tagDropdownStyle = ref<Record<string, string>>({});
 const tagFilterSearch = ref("");
 const hasActiveTagFilters = computed(
   () => includeTags.value.length > 0 || excludeTags.value.length > 0
@@ -729,19 +741,6 @@ const filteredTags = computed(() => {
 
 function toggleTagFilterOpen() {
   isTagFilterOpen.value = !isTagFilterOpen.value;
-  updateTagDropdownPosition();
-}
-
-function updateTagDropdownPosition() {
-  try {
-    const el = document.getElementById("tag-filter-button");
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    tagDropdownStyle.value = {
-      top: `${rect.bottom + 4}px`,
-      left: `${rect.left}px`,
-    };
-  } catch (_) {}
 }
 
 function closeTagFilter() {
@@ -758,20 +757,13 @@ function onWindowClick(e: MouseEvent) {
   }
 }
 
-function onWindowResize() {
-  if (isTagFilterOpen.value) {
-    updateTagDropdownPosition();
-  }
-}
 
 onMounted(() => {
   window.addEventListener("click", onWindowClick, true);
-  window.addEventListener("resize", onWindowResize);
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener("click", onWindowClick, true);
-  window.removeEventListener("resize", onWindowResize);
 });
 
 function clearAllTagFilters() {
@@ -1155,16 +1147,34 @@ function stripExcludeTagFlags(flags: string) {
   }
 }
 
+function stripAllTagFlags(flags: string) {
+  try {
+    return flags
+      .replace(/\s--tag\s+[^\s]+/g, "")
+      .replace(/\s--exclude-tag\s+[^\s]+/g, "");
+  } catch (_) {
+    return flags;
+  }
+}
+
 function runAssetOnly() {
   const fullRefreshChecked = checkboxItems.value.find(
     (item) => item.name === "Full-Refresh"
   )?.checked;
 
+  // Helper to conditionally strip tags based on file type
+  const getRunPayload = () => {
+    const baseFlags = getCheckboxChangePayload();
+    if (isPipelineData.value) {
+      return baseFlags;
+    } else {
+      return stripAllTagFlags(baseFlags);
+    }
+  };
+
   if (fullRefreshChecked) {
     showFullRefreshConfirmation(() => {
-      const payload = buildCommandPayload(
-        stripExcludeTagFlags(stripIncludeTagFlags(getCheckboxChangePayload()))
-      );
+      const payload = buildCommandPayload(getRunPayload());
       vscode.postMessage({
         command: "bruin.runSql",
         payload,
@@ -1173,9 +1183,7 @@ function runAssetOnly() {
     return;
   }
 
-  const payload = buildCommandPayload(
-    stripExcludeTagFlags(stripIncludeTagFlags(getCheckboxChangePayload()))
-  );
+  const payload = buildCommandPayload(getRunPayload());
 
   vscode.postMessage({
     command: "bruin.runSql",

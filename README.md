@@ -63,6 +63,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.71.7**: The tag filter dropdown now displays all available tags at the pipeline level, improving usability across assets and pipelines.
 - **0.71.6**: The `--full-refresh` flag is now conditionally added to the validate command when the Bruin CLI version is 0.11.348 or higher.
 - **0.71.5**: Removed `--full-refresh` flag from validation command.
 - **0.71.4**: Validation now supports the `--full-refresh` flag, and will prompt users to update their Bruin CLI if their version does not meet the minimum required for this feature.
