@@ -1169,16 +1169,34 @@ function stripExcludeTagFlags(flags: string) {
   }
 }
 
+function stripAllTagFlags(flags: string) {
+  try {
+    return flags
+      .replace(/\s--tag\s+[^\s]+/g, "")
+      .replace(/\s--exclude-tag\s+[^\s]+/g, "");
+  } catch (_) {
+    return flags;
+  }
+}
+
 function runAssetOnly() {
   const fullRefreshChecked = checkboxItems.value.find(
     (item) => item.name === "Full-Refresh"
   )?.checked;
 
+  // Helper to conditionally strip tags based on file type
+  const getRunPayload = () => {
+    const baseFlags = getCheckboxChangePayload();
+    if (isPipelineData.value) {
+      return baseFlags;
+    } else {
+      return stripAllTagFlags(baseFlags);
+    }
+  };
+
   if (fullRefreshChecked) {
     showFullRefreshConfirmation(() => {
-      const payload = buildCommandPayload(
-        stripExcludeTagFlags(stripIncludeTagFlags(getCheckboxChangePayload()))
-      );
+      const payload = buildCommandPayload(getRunPayload());
       vscode.postMessage({
         command: "bruin.runSql",
         payload,
@@ -1187,9 +1205,7 @@ function runAssetOnly() {
     return;
   }
 
-  const payload = buildCommandPayload(
-    stripExcludeTagFlags(stripIncludeTagFlags(getCheckboxChangePayload()))
-  );
+  const payload = buildCommandPayload(getRunPayload());
 
   vscode.postMessage({
     command: "bruin.runSql",
