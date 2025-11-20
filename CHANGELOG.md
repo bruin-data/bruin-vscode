@@ -1,4 +1,7 @@
 # Changelog
+## [0.71.8] - [2025-11-20]
+- Fixed the GCS connections form issues.
+
 ## [0.71.7] - [2025-11-18]
 - The tag filter dropdown now displays all available tags at the pipeline level, improving usability across assets and pipelines.
 
