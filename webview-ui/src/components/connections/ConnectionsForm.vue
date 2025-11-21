@@ -195,7 +195,7 @@ watch(
         };
       }
       
-      if (newConnection.type === "google_cloud_platform") {
+      if (newConnection.type === "google_cloud_platform" || newConnection.type === "gcs") {
         serviceAccountInputMethod.value = determineServiceAccountInputMethod(newConnection.credentials || newConnection);
         console.log("Service account input method set to:", serviceAccountInputMethod.value);
         
@@ -353,8 +353,8 @@ const submitForm = () => {
       field.id !== "environment" &&
       field.id !== "id" // Don't include id in credentials
     ) {
-      // Special handling for Google Cloud Platform service account
-      if (form.value.connection_type === "google_cloud_platform" && field.id === "service_account_json") {
+      // Special handling for Google Cloud Platform and GCS service account
+      if ((form.value.connection_type === "google_cloud_platform" || form.value.connection_type === "gcs") && field.id === "service_account_json") {
         // If a file is selected, use the file path
         if (selectedFile.value) {
           connectionData.credentials.service_account_file = selectedFile.value.path;
@@ -371,7 +371,7 @@ const submitForm = () => {
   });
 
   // Special handling for use_application_default_credentials
-  if (form.value.connection_type === "google_cloud_platform" && form.value.use_application_default_credentials) {
+  if ((form.value.connection_type === "google_cloud_platform" || form.value.connection_type === "gcs") && form.value.use_application_default_credentials) {
     connectionData.credentials.use_application_default_credentials = form.value.use_application_default_credentials;
   }
 
