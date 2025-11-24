@@ -4115,9 +4115,8 @@ describe("Bruin Webview Test", function () {
           "Edit button not found - column may not have saved properly"
         );
         
-        // Verify the saved values are displayed
-        const cells = await newColumnRow.findElements(By.css('td'));
-        const nameCell = cells[2]; // Name column
+        // Verify the saved values are displayed - look for the cell containing the column name
+        const nameCell = await newColumnRow.findElement(By.xpath(`.//span[@title="${testColumnName}" or contains(text(), "${testColumnName}")]`));
         const savedName = await nameCell.getText();
         
         assert.ok(savedName.includes(testColumnName), `Saved column name should contain "${testColumnName}"`);
@@ -4198,10 +4197,9 @@ describe("Bruin Webview Test", function () {
         await sleep(1500);
         console.log("✓ Saved changes");
 
-        // Verify changes were saved
+        // Verify changes were saved - look for the cell containing the updated name
         const row = await driver.findElement(By.id(`column-row-${columnToEdit}`));
-        const cells = await row.findElements(By.css('td'));
-        const nameCell = cells[2]; // Name column
+        const nameCell = await row.findElement(By.xpath(`.//span[@title="${updatedName}" or contains(text(), "${updatedName}")]`));
         const savedName = await nameCell.getText();
         
         assert.ok(savedName.includes(updatedName), `Column name should be updated to "${updatedName}"`);
@@ -4422,9 +4420,8 @@ describe("Bruin Webview Test", function () {
 
         // Verify owner was saved by checking the owner cell content
         const row = await driver.findElement(By.id(`column-row-${columnToEdit}`));
-        const cells = await row.findElements(By.css('td'));
-        const ownerCell = cells[5]; // Owner is the 6th column (index 5)
-        const ownerSpan = await ownerCell.findElement(By.css('span'));
+        // Find owner cell by looking for span containing the owner value (more robust than hardcoded index)
+        const ownerSpan = await row.findElement(By.xpath(`.//span[@title*="${testOwner}" or contains(text(), "${testOwner}")]`));
         const savedOwner = await ownerSpan.getText();
         
         assert.ok(savedOwner.includes(testOwner), `Owner should be set to "${testOwner}"`);
