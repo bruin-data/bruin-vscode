@@ -4421,7 +4421,7 @@ describe("Bruin Webview Test", function () {
         // Verify owner was saved by checking the owner cell content
         const row = await driver.findElement(By.id(`column-row-${columnToEdit}`));
         // Find owner cell by looking for span containing the owner value (more robust than hardcoded index)
-        const ownerSpan = await row.findElement(By.xpath(`.//span[@title*="${testOwner}" or contains(text(), "${testOwner}")]`));
+        const ownerSpan = await row.findElement(By.xpath(`.//span[contains(@title, "${testOwner}") or contains(text(), "${testOwner}")]`));
         const savedOwner = await ownerSpan.getText();
         
         assert.ok(savedOwner.includes(testOwner), `Owner should be set to "${testOwner}"`);
