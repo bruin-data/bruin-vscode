@@ -726,6 +726,7 @@ const tabs = ref([
     props: computed(() => ({
       columns: columns.value,
       isConfigFile: isConfigFile.value,
+      materializationStrategy: materializationProps.value?.strategy,
     })),
   },
   {

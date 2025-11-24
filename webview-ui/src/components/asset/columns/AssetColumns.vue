@@ -52,7 +52,7 @@
             <th class="px-2 py-1 text-left" style="width: 2rem;" title="Primary key">
               <KeyIcon class="h-4 w-4 text-editor-fg opacity-60" />
             </th>
-            <th class="px-2 py-1 text-center" style="width: 2rem;" title="Update on merge">
+            <th v-if="showMergeColumn" class="px-2 py-1 text-center" style="width: 2rem;" title="Update on merge">
               Merge
             </th>
             <th class="px-2 py-1 text-center" style="width: 2rem;" title="Nullable">
@@ -84,7 +84,7 @@
             </td>
             
             <!-- Update on Merge -->
-            <td class="px-2 py-1 text-center" style="width: 2rem;">
+            <td v-if="showMergeColumn" class="px-2 py-1 text-center" style="width: 2rem;">
               <span
                 @click="toggleUpdateOnMergeDirect(index)"
                 class="cursor-pointer hover:opacity-80 text-xs font-mono"
@@ -393,6 +393,10 @@ const props = defineProps({
     type: Boolean,
     required: true,
   },
+  materializationStrategy: {
+    type: String,
+    default: null,
+  },
 });
 
 const showDeleteAlert = ref(false);
@@ -415,6 +419,7 @@ const newAcceptedValuesInput = ref("");
 const error = ref(null);
 const showAddCheckDropdown = ref(null);
 const isConfigFile = computed(() => props.isConfigFile);
+const showMergeColumn = computed(() => props.materializationStrategy === 'merge');
 
 // Reactive inputs for inline editing
 const domainsInput = ref("");
