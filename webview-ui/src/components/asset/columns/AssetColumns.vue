@@ -52,6 +52,9 @@
             <th class="px-2 py-1 text-left" style="width: 2rem;" title="Primary key">
               <KeyIcon class="h-4 w-4 text-editor-fg opacity-60" />
             </th>
+            <th class="px-2 py-1 text-center" style="width: 2rem;" title="Update on merge">
+              Merge
+            </th>
             <th class="px-2 py-1 text-center" style="width: 2rem;" title="Nullable">
               Null
             </th>
@@ -78,6 +81,18 @@
                 title="Set as primary key"
               >
               </vscode-checkbox>
+            </td>
+            
+            <!-- Update on Merge -->
+            <td class="px-2 py-1 text-center" style="width: 2rem;">
+              <span
+                @click="toggleUpdateOnMergeDirect(index)"
+                class="cursor-pointer hover:opacity-80 text-xs font-mono"
+                :class="column.update_on_merge ? 'text-editorInfo-foreground' : 'text-editor-fg opacity-50'"
+                :title="column.update_on_merge ? 'Update on merge (click to disable)' : 'No update on merge (click to enable)'"
+              >
+                {{ column.update_on_merge ? '✓' : '✗' }}
+              </span>
             </td>
             
             <!-- Nullable -->
@@ -512,6 +527,31 @@ const togglePrimaryKey = (event, index) => {
     payload: payload,
     source: "togglePrimaryKey",
   });
+};
+
+const toggleUpdateOnMergeDirect = (index) => {
+  const col = localColumns.value[index];
+  if (!col) return;
+
+  localColumns.value[index] = {
+    ...col,
+    update_on_merge: !col.update_on_merge,
+  };
+
+  try {
+    const formattedColumns = formatColumnsForPayload(localColumns.value);
+    const payload = { columns: formattedColumns };
+        const payloadStr = JSON.stringify(payload);
+    const safePayload = JSON.parse(payloadStr);
+    
+    vscode.postMessage({
+      command: "bruin.setAssetDetails",
+      payload: safePayload,
+      source: "toggleUpdateOnMergeDirect",
+    });
+  } catch (error) {
+    localColumns.value[index] = col;
+  }
 };
 
 const toggleNullableDirect = (index) => {
