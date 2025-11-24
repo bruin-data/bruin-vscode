@@ -1,4 +1,7 @@
 # Changelog
+## [0.71.9] - [2025-11-24]
+- Added support for the `update_on_merge` column property in the asset columns UI.
+
 ## [0.71.8] - [2025-11-20]
 - Fixed the GCS connections form issues.
 
