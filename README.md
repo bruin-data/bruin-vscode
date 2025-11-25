@@ -63,6 +63,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.71.10**: Added a new "Merge all" button to the asset columns UI.
 - **0.71.9**: Added support for the `update_on_merge` column property in the asset columns UI.
 - **0.71.8**: Fixed the GCS connections form issues.
 - **0.71.7**: The tag filter dropdown now displays all available tags at the pipeline level, improving usability across assets and pipelines.
