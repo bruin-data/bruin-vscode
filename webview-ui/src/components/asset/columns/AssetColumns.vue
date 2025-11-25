@@ -1,10 +1,21 @@
 <template>
   <div class="flex flex-col py-4 sm:py-1 h-full w-full relative">
     <div class="flex justify-end mb-4 space-x-2">
-      <vscode-button id="fill-from-db-button" @click="fillColumnsFromDB" :disabled="fillColumnsStatus === 'loading'" class="py-1 focus:outline-none disabled:cursor-not-allowed flex-shrink-0 whitespace-nowrap">
+      <vscode-button 
+        v-if="showMergeColumn && localColumns.length > 0" 
+        id="toggle-all-merge-button" 
+        @click="toggleAllMergeSimple" 
+        appearance="secondary"
+        class="py-0.5 focus:outline-none disabled:cursor-not-allowed flex-shrink-0 whitespace-nowrap text-xs" 
+        :disabled="isConfigFile"
+        :title="allMergeSelected ? 'Unmerge all columns' : 'Merge all columns'"
+      > 
+        {{ allMergeSelected ? 'Unmerge all' : 'Merge all' }}
+      </vscode-button>
+      <vscode-button id="fill-from-db-button" @click="fillColumnsFromDB" :disabled="fillColumnsStatus === 'loading'" class="py-0.5 focus:outline-none disabled:cursor-not-allowed flex-shrink-0 whitespace-nowrap text-xs">
         <template v-if="fillColumnsStatus === 'loading'">
           <svg
-            class="animate-spin mr-1 h-4 w-4 text-editor-bg"
+            class="animate-spin mr-1 h-3 w-3 text-editor-bg"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
@@ -25,14 +36,14 @@
           </svg>
         </template>
         <template v-else-if="fillColumnsStatus === 'success'">
-          <span class="codicon codicon-check h-4 w-4 mr-1 text-editor-button-fg" aria-hidden="true"></span>
+          <span class="codicon codicon-check h-3 w-3 mr-1 text-editor-button-fg" aria-hidden="true"></span>
         </template>
         <template v-else-if="fillColumnsStatus === 'error'">
-          <span class="codicon codicon-error h-4 w-4 mr-1 text-editorError-foreground" aria-hidden="true"></span>
+          <span class="codicon codicon-error h-3 w-3 mr-1 text-editorError-foreground" aria-hidden="true"></span>
         </template>
         Fill from DB
       </vscode-button>
-      <vscode-button id="add-column-button" @click="handleAddColumn" class="py-1 focus:outline-none disabled:cursor-not-allowed flex-shrink-0 whitespace-nowrap" :disabled="isConfigFile"> Add column </vscode-button>
+      <vscode-button id="add-column-button" @click="handleAddColumn" class="py-0.5 focus:outline-none disabled:cursor-not-allowed flex-shrink-0 whitespace-nowrap text-xs" :disabled="isConfigFile"> Add column </vscode-button>
     </div>
     
     <!-- Error message for fill operation -->
@@ -420,6 +431,16 @@ const error = ref(null);
 const showAddCheckDropdown = ref(null);
 const isConfigFile = computed(() => props.isConfigFile);
 const showMergeColumn = computed(() => props.materializationStrategy === 'merge');
+
+// Computed properties for merge column header checkbox
+const allMergeSelected = computed(() => {
+  if (!localColumns.value.length) return false;
+  return localColumns.value.every(column => column.update_on_merge);
+});
+
+const someMergeSelected = computed(() => {
+  return localColumns.value.some(column => column.update_on_merge);
+});
 
 // Reactive inputs for inline editing
 const domainsInput = ref("");
@@ -922,6 +943,32 @@ const fillColumnsFromDB = () => {
   vscode.postMessage({
     command: "bruin.fillAssetColumn",
   });
+};
+
+const toggleAllMergeSimple = () => {
+  try {
+    // Toggle based on current state - if all are selected, unselect all, otherwise select all
+    const shouldMergeAll = !allMergeSelected.value;
+    
+    // Set update_on_merge for all columns
+    localColumns.value = localColumns.value.map(column => ({
+      ...column,
+      update_on_merge: shouldMergeAll,
+    }));
+
+    const formattedColumns = formatColumnsForPayload(localColumns.value);
+    const payload = { columns: formattedColumns };
+    const payloadStr = JSON.stringify(payload);
+    const safePayload = JSON.parse(payloadStr);
+    
+    vscode.postMessage({
+      command: "bruin.setAssetDetails",
+      payload: safePayload,
+      source: "toggleAllMergeSimple",
+    });
+  } catch (error) {
+    showError(`Failed to toggle merge for all columns. Please try again. \n ${error}`);
+  }
 };
 
 

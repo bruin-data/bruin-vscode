@@ -1,4 +1,7 @@
 # Changelog
+## [0.71.10] - [2025-11-25]
+- Added a new "Merge all" button to the asset columns UI.
+
 ## [0.71.9] - [2025-11-24]
 - Added support for the `update_on_merge` column property in the asset columns UI.
 
