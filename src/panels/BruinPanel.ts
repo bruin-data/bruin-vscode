@@ -53,6 +53,7 @@ import { getDefaultCheckboxSettings, getDefaultExcludeTag, getFormatSqlfluff } f
 import { exec } from "child_process";
 import { flowLineageCommand } from "../extension/commands/FlowLineageCommand";
 import { fileCache } from "../utils/fileCache";
+import { cliCommandCache } from "../utils/cliCommandCache";
 
 /**
  * This class manages the state and behavior of Bruin webview panels.
@@ -80,6 +81,8 @@ export class BruinPanel {
   private _currentStartDate: string = "";
   private _currentEndDate: string = "";
   private _currentEnvironment: string = "";
+  private _isDisposed: boolean = false;
+  private _metadataDebounceTimer: NodeJS.Timeout | undefined;
 
   /**
    * The BruinPanel class private constructor (called only from the render method).
@@ -103,9 +106,11 @@ export class BruinPanel {
 
     this._disposables.push(
       workspace.onDidSaveTextDocument(async (editor) => {
-        // Invalidate cache for the saved file
+        // Invalidate caches for the saved file
         if (editor && editor.uri) {
           fileCache.invalidate(editor.uri.fsPath);
+          // Invalidate CLI cache for asset-related commands
+          cliCommandCache.invalidateByPattern(/parse|internal-parse|validate/);
         }
 
         if (editor && editor.uri.fsPath.endsWith(".bruin.yml")) {
@@ -123,8 +128,9 @@ export class BruinPanel {
 
       // Watch for external changes to .bruin.yml files (e.g., from bruin init)
       workspace.createFileSystemWatcher("**/.bruin.yml").onDidChange(async (uri) => {
-        // Invalidate cache for changed file
+        // Invalidate caches for changed file
         fileCache.invalidate(uri.fsPath);
+        cliCommandCache.invalidateByWorkspace(this._extensionUri.fsPath);
 
         getEnvListCommand(this._lastRenderedDocumentUri);
         getConnections(this._lastRenderedDocumentUri);
@@ -135,8 +141,9 @@ export class BruinPanel {
 
       // Watch for changes to pipeline.yml and pipeline.yaml files
       workspace.createFileSystemWatcher("**/pipeline.{yml,yaml}").onDidChange(async (uri) => {
-        // Invalidate cache for changed file
+        // Invalidate caches for changed file
         fileCache.invalidate(uri.fsPath);
+        cliCommandCache.invalidateByPattern(/pipeline|environment/);
         
         // Send file-changed message to webview to refresh variables
         this._panel.webview.postMessage({
@@ -149,15 +156,18 @@ export class BruinPanel {
         // One-time recreation only if the panel was originally created in settings-only (no active editor)
         // and we are seeing the first active editor. Ignore subsequent focus toggles.
         if (this._initialSettingsOnlyMode && !this._hasRecreatedFromSettingsOnly && editor && editor.document?.uri) {
-          const extUri = this._extensionUri;
           this._hasRecreatedFromSettingsOnly = true;
-          setTimeout(() => {
-            try {
-              this.dispose();
-            } finally {
-              BruinPanel.render(extUri);
-            }
-          }, 0);
+          // Instead of disposing and recreating, just update the state
+          this._lastRenderedDocumentUri = editor.document.uri;
+          this._initialSettingsOnlyMode = false;
+          
+          // Send the file change message to update the webview
+          this._panel.webview.postMessage({
+            command: "file-changed",
+            filePath: editor.document.uri.fsPath,
+          });
+          
+          await this._handleAssetDetection(editor.document.uri);
           return;
         }
 
@@ -286,11 +296,15 @@ export class BruinPanel {
     data: string | { status: string; message: string | any },
     panelType?: string
   ) {
-    if (BruinPanel.currentPanel?._panel) {
-      BruinPanel.currentPanel._panel.webview.postMessage({
-        command: name,
-        payload: data,
-      });
+    if (BruinPanel.currentPanel?._panel && !BruinPanel.currentPanel._isDisposed) {
+      try {
+        BruinPanel.currentPanel._panel.webview.postMessage({
+          command: name,
+          payload: data,
+        });
+      } catch (error) {
+        console.error('Error posting message to disposed panel:', error);
+      }
     }
   }
 
@@ -330,6 +344,11 @@ export class BruinPanel {
    * Cleans up and disposes of webview resources when the webview panel is closed.
    */
   public dispose() {
+    if (this._isDisposed) {
+      return; // Already disposed
+    }
+    
+    this._isDisposed = true;
     BruinPanel.currentPanel = undefined;
 
     // Clear any pending asset detection timer
@@ -344,15 +363,29 @@ export class BruinPanel {
       this._renderDebounceTimer = undefined;
     }
 
-    // Dispose of the current webview panel
-    this._panel.dispose();
+    // Clear any pending metadata timer
+    if (this._metadataDebounceTimer) {
+      clearTimeout(this._metadataDebounceTimer);
+      this._metadataDebounceTimer = undefined;
+    }
 
-    // Dispose of all disposables (i.e. commands) for the current webview panel
+    // Dispose of all disposables (i.e. commands) for the current webview panel first
     while (this._disposables.length) {
       const disposable = this._disposables.pop();
       if (disposable) {
-        disposable.dispose();
+        try {
+          disposable.dispose();
+        } catch (error) {
+          console.error('Error disposing resource:', error);
+        }
       }
+    }
+
+    // Dispose of the current webview panel last
+    try {
+      this._panel.dispose();
+    } catch (error) {
+      console.error('Error disposing panel:', error);
     }
   }
 
@@ -536,13 +569,8 @@ export class BruinPanel {
               // Render with flags if we have a valid document
               if (this._lastRenderedDocumentUri?.fsPath) {
                 await renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri.fsPath);
-                const assetMetadata = new BruinInternalAssetMetadata(
-                  getBruinExecutablePath(),
-                  vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || ""  
-                );
-                await assetMetadata.getAssetMetadata(
+                this._requestAssetMetadataDebounced(
                   this._lastRenderedDocumentUri.fsPath,
-                  undefined,
                   this._currentStartDate,
                   this._currentEndDate,
                   this._currentEnvironment
@@ -1071,25 +1099,13 @@ export class BruinPanel {
             const isAssetForMetadata = await this._isAssetFile(metadataAssetPath);
             
             if (isAssetForMetadata) {
-              const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || "";
-              const assetMetadata = new BruinInternalAssetMetadata(
-                getBruinExecutablePath(),
-                workspaceFolder
-              );
-              
               // Use payload values if provided, otherwise use stored values
               const { startDate, endDate, environment } = message.payload || {};
               const finalStartDate = startDate || this._currentStartDate;
               const finalEndDate = endDate || this._currentEndDate;
               const finalEnvironment = environment || this._currentEnvironment;
               
-              await assetMetadata.getAssetMetadata(
-                metadataAssetPath,
-                undefined,
-                finalStartDate,
-                finalEndDate,
-                finalEnvironment
-              );
+              this._requestAssetMetadataDebounced(metadataAssetPath, finalStartDate, finalEndDate, finalEnvironment);
             }
             break;
           case "bruin.parsePipelineForVariables":
@@ -1242,7 +1258,7 @@ export class BruinPanel {
         if (window.activeTextEditor?.document.uri.fsPath === filePath) {
           await this._performAssetDetection(filePath, fileUri);
         }
-      }, 500);
+      }, 1000);
     }
   }
 
@@ -1334,13 +1350,52 @@ export class BruinPanel {
       } catch (err) {
         console.error("Debounced SQL render failed:", err);
       }
-    }, 200);
+    }, 800);
+  }
+
+  private _requestAssetMetadataDebounced(filePath: string, startDate: string, endDate: string, environment: string): void {
+    // Clear any existing timer
+    if (this._metadataDebounceTimer) {
+      clearTimeout(this._metadataDebounceTimer);
+    }
+    
+    // Set new timer with 300ms delay to avoid flooding metadata requests
+    this._metadataDebounceTimer = setTimeout(async () => {
+      if (this._isDisposed) return;
+      
+      try {
+        const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || "";
+        const assetMetadata = new BruinInternalAssetMetadata(
+          getBruinExecutablePath(),
+          workspaceFolder
+        );
+        
+        await assetMetadata.getAssetMetadata(
+          filePath,
+          undefined,
+          startDate,
+          endDate,
+          environment
+        );
+      } catch (error) {
+        console.error('Error getting asset metadata:', error);
+      }
+    }, 300);
   }
 
   private async _isAssetFile(filePath: string): Promise<boolean> {
 
     try {
-      // Primary method: Use CLI internal parse command
+      // Quick pre-filter: Check file extension first to avoid unnecessary CLI calls
+      const fileExt = this._getFileExtension(filePath);
+      const validExtensions = [".sql", ".py", ".yml", ".yaml"];
+      
+      if (!validExtensions.includes(`.${fileExt}`)) {
+        console.log(`_isAssetFile: Invalid extension ${fileExt} for ${filePath}, skipping CLI check`);
+        return false;
+      }
+
+      // Primary method: Use CLI internal parse command (now with caching)
       const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || "";
       const parser = new BruinInternalParse(
         getBruinExecutablePath(),
@@ -1357,16 +1412,10 @@ export class BruinPanel {
       // Fallback: If CLI says it's not an asset, use regex-based detection
       // This helps with malformed files that CLI can't parse but are still assets
       console.log(`_isAssetFile: CLI returned false, checking with regex fallback for ${filePath}`);
-      const fileExt = this._getFileExtension(filePath);
-      const validExtensions = [".sql", ".py", ".yml", ".yaml"];
+      const fallbackResult = await isBruinAsset(filePath, validExtensions);
+      console.log(`_isAssetFile: Regex fallback result for ${filePath}: ${fallbackResult}`);
+      return fallbackResult;
       
-      if (validExtensions.includes(`.${fileExt}`)) {
-        const fallbackResult = await isBruinAsset(filePath, validExtensions);
-        console.log(`_isAssetFile: Regex fallback result for ${filePath}: ${fallbackResult}`);
-        return fallbackResult;
-      }
-      
-      return false;
     } catch (error) {
       console.error(`_isAssetFile: Error checking if file is asset (${filePath}):`, error);
       

@@ -1,7 +1,29 @@
 import * as vscode from "vscode";
 import { isBruinSqlAsset } from "../utilities/helperUtils";
 
+interface ParsedStatementsCache {
+  text: string;
+  textHash: string;
+  statements: Array<{text: string, startOffset: number, endOffset: number}>;
+  timestamp: number;
+}
+
+// Simple hash function for string content
+function simpleHash(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return hash.toString();
+}
+
 export class QueryCodeLensProvider implements vscode.CodeLensProvider {
+  private parseCache = new Map<string, ParsedStatementsCache>();
+  private readonly CACHE_TTL = 30000; // 30 seconds
+  private readonly MAX_CACHE_SIZE = 100;
+
   public async provideCodeLenses(
     document: vscode.TextDocument,
     token: vscode.CancellationToken
@@ -36,7 +58,7 @@ export class QueryCodeLensProvider implements vscode.CodeLensProvider {
 
     // Search for SQL statements separated by semicolons in the masked text
     // This regex finds statements that end with semicolon or end of file
-    const statements = this.parseStatements(maskedText);
+    const statements = this.parseStatementsWithCache(document.uri.fsPath, maskedText);
 
     for (const [idx, statement] of statements.entries()) {
       if (token.isCancellationRequested) {
@@ -93,6 +115,39 @@ export class QueryCodeLensProvider implements vscode.CodeLensProvider {
     }
 
     return codeLenses;
+  }
+
+  private parseStatementsWithCache(filePath: string, text: string): Array<{text: string, startOffset: number, endOffset: number}> {
+    const textHash = simpleHash(text);
+    const cacheKey = filePath;
+    const now = Date.now();
+    
+    // Check cache first
+    const cached = this.parseCache.get(cacheKey);
+    if (cached && cached.textHash === textHash && (now - cached.timestamp) < this.CACHE_TTL) {
+      return cached.statements;
+    }
+    
+    // Parse statements
+    const statements = this.parseStatements(text);
+    
+    // Clean up cache if too large
+    if (this.parseCache.size >= this.MAX_CACHE_SIZE) {
+      const oldestKey = this.parseCache.keys().next().value;
+      if (typeof oldestKey === 'string') {
+        this.parseCache.delete(oldestKey);
+      }
+    }
+    
+    // Cache results
+    this.parseCache.set(cacheKey, {
+      text,
+      textHash,
+      statements,
+      timestamp: now
+    });
+    
+    return statements;
   }
 
   private parseStatements(text: string): Array<{text: string, startOffset: number, endOffset: number}> {

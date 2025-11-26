@@ -1,6 +1,7 @@
 // eslint-disable-next-line @typescript-eslint/naming-convention
 import * as child_process from "child_process";
 import { removeAnsiColors } from "../utilities/helperUtils";
+import { cliCommandCache } from "../utils/cliCommandCache";
 
 /** Common functionality used to execute Bruin commands. */
 export abstract class BruinCommand {
@@ -52,8 +53,26 @@ export abstract class BruinCommand {
       ignoresErrors?: boolean; 
     } = {}
   ): Promise<string> {
+    const args = this.execArgs(query);
+    const commandString = `${this.bruinExecutable} ${args.join(' ')}`;
+    
+    // Check if this command should be cached
+    if (cliCommandCache.shouldCache(this.bruinCommand(), query)) {
+      return cliCommandCache.executeCommand(
+        this.bruinCommand(),
+        args,
+        this.workingDirectory,
+        () => this.executeCommand(args, ignoresErrors)
+      );
+    } else {
+      // Execute directly for non-cacheable commands
+      return this.executeCommand(args, ignoresErrors);
+    }
+  }
+
+  private executeCommand(args: string[], ignoresErrors: boolean): Promise<string> {
     const startTime = Date.now();
-    const commandString = `${this.bruinExecutable} ${this.execArgs(query).join(' ')}`;
+    const commandString = `${this.bruinExecutable} ${args.join(' ')}`;
     
     if (!BruinCommand.isTestMode) {
       console.log(`[${new Date().toISOString()}] Starting command: ${commandString}`);
@@ -63,11 +82,20 @@ export abstract class BruinCommand {
       const execOptions = {
         cwd: this.workingDirectory,
         maxBuffer: 1024 * 1024 * 10, // 10MB
+        windowsHide: true,
+        env: {
+          ...process.env,
+          // Windows-specific optimizations
+          ...(process.platform === 'win32' && {
+            BRUIN_NO_COLOR: '1',
+            BRUIN_NO_INTERACTIVE: '1'
+          })
+        },
       };
 
       child_process.execFile(
         this.bruinExecutable,
-        this.execArgs(query),
+        args,
         execOptions,
         (error: Error | null, stdout: string, stderr: string) => {
           const endTime = Date.now();
@@ -78,13 +106,19 @@ export abstract class BruinCommand {
           }
 
           if (error) {
+            const errorOutput = stderr ? stderr : stdout;
+            const errorMessage = error.message || "Command failed";
+            const fullError = errorOutput 
+              ? `${errorMessage}\n${removeAnsiColors(errorOutput)}`
+              : errorMessage;
+            
             if (!BruinCommand.isTestMode) {
-              console.error(`[${new Date().toISOString()}] Command failed after ${duration}ms:`, error.message);
+              console.error(`[${new Date().toISOString()}] Command failed after ${duration}ms:`, fullError);
             }
             if (ignoresErrors) {
               resolve("");
             } else {
-              reject(removeAnsiColors(stderr ? stderr : stdout));
+              reject(fullError);
             }
           } else {
             resolve(removeAnsiColors(stdout.toString()));
@@ -132,6 +166,16 @@ export abstract class BruinCommand {
     
     const proc = child_process.spawn(this.bruinExecutable, this.execArgs(query), {
       cwd: this.workingDirectory,
+      windowsHide: true,
+      shell: process.platform === 'win32',
+      env: {
+        ...process.env,
+        // Windows-specific optimizations
+        ...(process.platform === 'win32' && {
+          BRUIN_NO_COLOR: '1',
+          BRUIN_NO_INTERACTIVE: '1'
+        })
+      },
     });
 
     const promise = new Promise<string>((resolve, reject) => {

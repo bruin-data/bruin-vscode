@@ -22,16 +22,26 @@ export class FileContentCache {
 
     public async readFile(filePath: string): Promise<string | null> {
         try {
+            const cached = this.cache.get(filePath);
+            const now = Date.now();
+
+            // If we have a recent cache entry, check if it's still fresh
+            if (cached && (now - cached.mtime) < this.cacheTTL) {
+                // Only stat if cache is getting old (last 5 seconds of TTL)
+                if ((now - cached.mtime) < (this.cacheTTL - 5000)) {
+                    return cached.content;
+                }
+            }
+
             // Get file stats to check if file has changed
             const stats = await fs.promises.stat(filePath);
-            const cached = this.cache.get(filePath);
 
-            // Check if cache is valid (same mtime and size, and not expired)
-            const now = Date.now();
+            // Check if cache is valid (same mtime and size)
             if (cached && 
                 cached.mtime === stats.mtimeMs && 
-                cached.size === stats.size &&
-                (now - cached.mtime) < this.cacheTTL) {
+                cached.size === stats.size) {
+                // Update timestamp to extend cache life
+                cached.mtime = now;
                 return cached.content;
             }
 
@@ -58,16 +68,26 @@ export class FileContentCache {
 
     public readFileSync(filePath: string): string | null {
         try {
+            const cached = this.cache.get(filePath);
+            const now = Date.now();
+
+            // If we have a recent cache entry, avoid stat calls
+            if (cached && (now - cached.mtime) < this.cacheTTL) {
+                // Only stat if cache is getting old (last 5 seconds of TTL)
+                if ((now - cached.mtime) < (this.cacheTTL - 5000)) {
+                    return cached.content;
+                }
+            }
+
             // Get file stats to check if file has changed
             const stats = fs.statSync(filePath);
-            const cached = this.cache.get(filePath);
 
-            // Check if cache is valid
-            const now = Date.now();
+            // Check if cache is valid (same mtime and size)
             if (cached && 
                 cached.mtime === stats.mtimeMs && 
-                cached.size === stats.size &&
-                (now - cached.mtime) < this.cacheTTL) {
+                cached.size === stats.size) {
+                // Update timestamp to extend cache life
+                cached.mtime = now;
                 return cached.content;
             }
 

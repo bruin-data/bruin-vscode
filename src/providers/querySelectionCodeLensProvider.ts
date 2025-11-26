@@ -16,7 +16,7 @@ export class QuerySelectionCodeLensProvider implements vscode.CodeLensProvider {
         }
         this.debounceTimer = setTimeout(() => {
           this._onDidChangeCodeLenses.fire();
-        }, 100);
+        }, 500);
       })
     );
 
