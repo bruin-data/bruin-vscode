@@ -167,7 +167,6 @@ export abstract class BruinCommand {
     const proc = child_process.spawn(this.bruinExecutable, this.execArgs(query), {
       cwd: this.workingDirectory,
       windowsHide: true,
-      shell: process.platform === 'win32',
       env: {
         ...process.env,
         // Windows-specific optimizations
