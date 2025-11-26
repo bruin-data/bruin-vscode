@@ -5,6 +5,7 @@ import { BruinExportQueryOutput } from "../../bruin/exportQueryOutput";
 import { QueryPreviewPanel } from "../../panels/QueryPreviewPanel";
 import { getBruinExecutablePath } from "../../providers/BruinExecutableService";
 import { isBruinSqlAsset, isYamlBruinAsset } from "../../utilities/helperUtils";
+import { fileCache } from "../../utils/fileCache";
 
 export const getQueryOutput = async (environment: string, limit: string, lastRenderedDocumentUri: Uri | undefined, tabId?: string, startDate?: string, endDate?: string, connectionName?: string) => {
   let editor = window.activeTextEditor;
@@ -48,37 +49,27 @@ export const getQueryOutput = async (environment: string, limit: string, lastRen
 
   // If still no query and it's not an asset file, use the entire file content
   if (!selectedQuery && !isAsset) {
-    let fileContentString = "";
-    try {
-      const fileContent = await workspace.fs.readFile(lastRenderedDocumentUri);
-      fileContentString = Buffer.from(fileContent).toString('utf-8');
-    } catch (error) {
-      fileContentString = "";
+    const fileContentString = await fileCache.readFile(lastRenderedDocumentUri.fsPath);
+    if (fileContentString) {
+      // Remove connection comment lines from the query content
+      selectedQuery = fileContentString
+        .split('\n')
+        .filter((line: string) => !line.trim().match(/^--\s*connection:\s*/i))
+        .join('\n')
+        .trim();
     }
-    
-    // Remove connection comment lines from the query content
-    selectedQuery = fileContentString
-      .split('\n')
-      .filter((line: string) => !line.trim().match(/^--\s*connection:\s*/i))
-      .join('\n')
-      .trim();
   }
   
   // Detect connection name from file content if not provided
   let detectedConnectionName = connectionName;
   if(!isAsset && !detectedConnectionName) {
-    try {
-      const fileContent = await workspace.fs.readFile(lastRenderedDocumentUri);
-      const fileContentString = Buffer.from(fileContent).toString('utf-8');
-      if (fileContentString) {
-        // Look for connection comment pattern: -- connection: connection-name
-        const connectionMatch = fileContentString.match(/--\s*connection:\s*([^\n\r]+)/i);
-        if (connectionMatch) {
-          detectedConnectionName = connectionMatch[1].trim();
-        }
+    const fileContentString = await fileCache.readFile(lastRenderedDocumentUri.fsPath);
+    if (fileContentString) {
+      // Look for connection comment pattern: -- connection: connection-name
+      const connectionMatch = fileContentString.match(/--\s*connection:\s*([^\n\r]+)/i);
+      if (connectionMatch) {
+        detectedConnectionName = connectionMatch[1].trim();
       }
-    } catch (error) {
-      console.error("Error reading file for connection detection:", error);
     }
   }
 

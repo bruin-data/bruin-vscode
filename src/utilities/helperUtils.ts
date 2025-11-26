@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
 import path = require("path");
+import { fileCache } from "../utils/fileCache";
 export const isEditorActive = (): boolean => !!vscode.window.activeTextEditor;
 import * as cronParser from "cron-parser";
 
@@ -106,7 +107,11 @@ export const isBruinAsset = async (
   const bruinPattern = /(\"\"\"\s*@bruin\s*$)|(\/\*\s*@bruin\s*$)/m;
 
   try {
-    const assetContent = fs.readFileSync(fileName, "utf8");
+    const assetContent = fileCache.readFileSync(fileName);
+    if (assetContent === null) {
+      return false;
+    }
+    
     const bruinAsset =
       bruinPattern.test(assetContent) ||
       [".asset.yml", ".asset.yaml", ".task.yml", ".task.yaml"].includes(fileExtension);
