@@ -46,16 +46,20 @@ export const getQueryOutput = async (environment: string, limit: string, lastRen
     console.log("Text selection:", selectedQuery ? `"${selectedQuery.substring(0, 50)}..."` : "none");
   }
 
-  // If still no query and it's not an asset file, use the entire file content
-  if (!selectedQuery && !isAsset) {
-    let fileContentString = "";
+  // Read file content once for non-asset files (to avoid duplicate reads)
+  let fileContentString = "";
+  if (!isAsset && (!selectedQuery || !connectionName)) {
     try {
       const fileContent = await workspace.fs.readFile(lastRenderedDocumentUri);
       fileContentString = Buffer.from(fileContent).toString('utf-8');
     } catch (error) {
+      console.error("Error reading file:", error);
       fileContentString = "";
     }
-    
+  }
+  
+  // If still no query and it's not an asset file, use the entire file content
+  if (!selectedQuery && !isAsset && fileContentString) {
     // Remove connection comment lines from the query content
     selectedQuery = fileContentString
       .split('\n')
@@ -66,19 +70,11 @@ export const getQueryOutput = async (environment: string, limit: string, lastRen
   
   // Detect connection name from file content if not provided
   let detectedConnectionName = connectionName;
-  if(!isAsset && !detectedConnectionName) {
-    try {
-      const fileContent = await workspace.fs.readFile(lastRenderedDocumentUri);
-      const fileContentString = Buffer.from(fileContent).toString('utf-8');
-      if (fileContentString) {
-        // Look for connection comment pattern: -- connection: connection-name
-        const connectionMatch = fileContentString.match(/--\s*connection:\s*([^\n\r]+)/i);
-        if (connectionMatch) {
-          detectedConnectionName = connectionMatch[1].trim();
-        }
-      }
-    } catch (error) {
-      console.error("Error reading file for connection detection:", error);
+  if (!isAsset && !detectedConnectionName && fileContentString) {
+    // Look for connection comment pattern: -- connection: connection-name
+    const connectionMatch = fileContentString.match(/--\s*connection:\s*([^\n\r]+)/i);
+    if (connectionMatch) {
+      detectedConnectionName = connectionMatch[1].trim();
     }
   }
 
