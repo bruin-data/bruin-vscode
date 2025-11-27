@@ -1597,10 +1597,20 @@ suite("BruinCommand Tests", () => {
       assert.ok(result.promise instanceof Promise, "Should return a promise");
       assert.strictEqual(result.process, mockProcess, "Should return the spawned process");
       
+      // Prepare expected spawn options based on platform
+      const expectedOptions: any = { cwd: "path/to/working/directory" };
+      if (process.platform === 'win32') {
+        expectedOptions.windowsHide = true;
+        expectedOptions.env = {
+          ...process.env,
+          BRUIN_NO_COLOR: '1'
+        };
+      }
+      
       sinon.assert.calledOnceWithExactly(spawnStub, 
         "path/to/bruin", 
         ["test-command", "--test"],
-        { cwd: "path/to/working/directory" }
+        expectedOptions
       );
     });
 
@@ -1775,10 +1785,20 @@ suite("BruinCommand Tests", () => {
       assert.ok(result.promise instanceof Promise);
       assert.strictEqual(result.process, mockProcess);
       
+      // Prepare expected spawn options based on platform
+      const expectedOptions: any = { cwd: "path/to/working/directory" };
+      if (process.platform === 'win32') {
+        expectedOptions.windowsHide = true;
+        expectedOptions.env = {
+          ...process.env,
+          BRUIN_NO_COLOR: '1'
+        };
+      }
+      
       sinon.assert.calledOnceWithExactly(spawnStub, 
         "path/to/bruin", 
         ["test-command"],
-        { cwd: "path/to/working/directory" }
+        expectedOptions
       );
     });
   });
