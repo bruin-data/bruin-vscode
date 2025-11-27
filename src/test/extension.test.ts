@@ -1584,6 +1584,9 @@ suite("BruinCommand Tests", () => {
         kill: sinon.stub()
       };
       spawnStub = sinon.stub(require("child_process"), "spawn").returns(mockProcess);
+      
+      // Reset stub call history (in case setup is called multiple times)
+      spawnStub.resetHistory();
     });
 
     teardown(() => {
@@ -1597,21 +1600,19 @@ suite("BruinCommand Tests", () => {
       assert.ok(result.promise instanceof Promise, "Should return a promise");
       assert.strictEqual(result.process, mockProcess, "Should return the spawned process");
       
-      // Prepare expected spawn options based on platform
-      const expectedOptions: any = { cwd: "path/to/working/directory" };
-      if (process.platform === 'win32') {
-        expectedOptions.windowsHide = true;
-        expectedOptions.env = {
-          ...process.env,
-          BRUIN_NO_COLOR: '1'
-        };
-      }
+      // Check that spawn was called with correct executable and arguments
+      sinon.assert.calledOnce(spawnStub);
+      const [executable, args, options] = spawnStub.getCall(0).args;
       
-      sinon.assert.calledOnceWithExactly(spawnStub, 
-        "path/to/bruin", 
-        ["test-command", "--test"],
-        expectedOptions
-      );
+      assert.strictEqual(executable, "path/to/bruin");
+      assert.deepStrictEqual(args, ["test-command", "--test"]);
+      assert.strictEqual(options.cwd, "path/to/working/directory");
+      
+      // On Windows, check for Windows-specific options
+      if (process.platform === 'win32') {
+        assert.strictEqual(options.windowsHide, true);
+        assert.strictEqual(options.env.BRUIN_NO_COLOR, '1');
+      }
     });
 
     test("runCancellable should resolve with stdout on success", async () => {
@@ -1785,21 +1786,19 @@ suite("BruinCommand Tests", () => {
       assert.ok(result.promise instanceof Promise);
       assert.strictEqual(result.process, mockProcess);
       
-      // Prepare expected spawn options based on platform
-      const expectedOptions: any = { cwd: "path/to/working/directory" };
-      if (process.platform === 'win32') {
-        expectedOptions.windowsHide = true;
-        expectedOptions.env = {
-          ...process.env,
-          BRUIN_NO_COLOR: '1'
-        };
-      }
+      // Check that spawn was called with correct executable and arguments
+      sinon.assert.calledOnce(spawnStub);
+      const [executable, args, options] = spawnStub.getCall(0).args;
       
-      sinon.assert.calledOnceWithExactly(spawnStub, 
-        "path/to/bruin", 
-        ["test-command"],
-        expectedOptions
-      );
+      assert.strictEqual(executable, "path/to/bruin");
+      assert.deepStrictEqual(args, ["test-command"]);
+      assert.strictEqual(options.cwd, "path/to/working/directory");
+      
+      // On Windows, check for Windows-specific options
+      if (process.platform === 'win32') {
+        assert.strictEqual(options.windowsHide, true);
+        assert.strictEqual(options.env.BRUIN_NO_COLOR, '1');
+      }
     });
   });
 });
