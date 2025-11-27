@@ -52,7 +52,6 @@ import { BruinLineageInternalParse } from "../bruin/bruinFlowLineage";
 import { getDefaultCheckboxSettings, getDefaultExcludeTag, getFormatSqlfluff } from "../extension/configuration";
 import { exec } from "child_process";
 import { flowLineageCommand } from "../extension/commands/FlowLineageCommand";
-import { fileCache } from "../utils/fileCache";
 
 /**
  * This class manages the state and behavior of Bruin webview panels.
@@ -105,10 +104,6 @@ export class BruinPanel {
 
     this._disposables.push(
       workspace.onDidSaveTextDocument(async (editor) => {
-        // Invalidate file cache for the saved file
-        if (editor && editor.uri) {
-          fileCache.invalidate(editor.uri.fsPath);
-        }
 
         if (editor && editor.uri.fsPath.endsWith(".bruin.yml")) {
           getEnvListCommand(this._lastRenderedDocumentUri);
@@ -125,8 +120,6 @@ export class BruinPanel {
 
       // Watch for external changes to .bruin.yml files (e.g., from bruin init)
       workspace.createFileSystemWatcher("**/.bruin.yml").onDidChange(async (uri) => {
-        // Invalidate file cache for changed file
-        fileCache.invalidate(uri.fsPath);
 
         getEnvListCommand(this._lastRenderedDocumentUri);
         getConnections(this._lastRenderedDocumentUri);
@@ -137,8 +130,6 @@ export class BruinPanel {
 
       // Watch for changes to pipeline.yml and pipeline.yaml files
       workspace.createFileSystemWatcher("**/pipeline.{yml,yaml}").onDidChange(async (uri) => {
-        // Invalidate file cache for changed file
-        fileCache.invalidate(uri.fsPath);
         
         // Send file-changed message to webview to refresh variables
         this._panel.webview.postMessage({

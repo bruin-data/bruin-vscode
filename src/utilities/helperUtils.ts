@@ -1,7 +1,6 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
 import path = require("path");
-import { fileCache } from "../utils/fileCache";
 export const isEditorActive = (): boolean => !!vscode.window.activeTextEditor;
 import * as cronParser from "cron-parser";
 
@@ -112,10 +111,7 @@ export const isBruinAsset = async (
       return false;
     }
     
-    const assetContent = fileCache.readFileSync(fileName);
-    if (assetContent === null) {
-      return false;
-    }
+    const assetContent = fs.readFileSync(fileName, 'utf8');
     
     const bruinAsset =
       bruinPattern.test(assetContent) ||

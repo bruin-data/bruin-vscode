@@ -8,7 +8,6 @@ import { EnhancedPipelineData, PipelineColumnInfo } from "../../types";
 import { getCurrentPipelinePath } from "../../bruin/bruinUtils";
 import * as path from "path";
 import * as fs from "fs";
-import { fileCache } from "../../utils/fileCache";
 
 /**
  * Get the full path to the pipeline file (pipeline.yml or pipeline.yaml)
@@ -76,11 +75,8 @@ export const patchAssetCommand = async (body: object, lastRenderedDocumentUri: U
   );
   const success = await patched.patchAsset(body, lastRenderedDocumentUri.fsPath);
   
-  // After successful patch, invalidate file cache and re-parse the asset to update the webview
+  // After successful patch, re-parse the asset to update the webview
   if (success) {
-    // Clear file cache for the modified file
-    fileCache.invalidate(lastRenderedDocumentUri.fsPath);
-    
     await parseAssetCommand(lastRenderedDocumentUri);
   }
 };
@@ -111,11 +107,8 @@ export const patchPipelineCommand = async (body: object, lastRenderedDocumentUri
   
   const success = await patched.patchPipeline(body, pipelineFilePath);
   
-  // After successful patch, invalidate file cache and re-parse the pipeline to update the webview
+  // After successful patch, re-parse the pipeline to update the webview
   if (success) {
-    // Clear file cache for the modified pipeline file
-    fileCache.invalidate(pipelineFilePath);
-    
     await parsePipelineCommand(lastRenderedDocumentUri);
     
     // Also send the updated variables back to the webview
