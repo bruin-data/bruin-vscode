@@ -63,15 +63,11 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.71.11**: improved the extension performance for windows users.
 - **0.71.10**: Added a new "Merge all" button to the asset columns UI.
 - **0.71.9**: Added support for the `update_on_merge` column property in the asset columns UI.
 - **0.71.8**: Fixed the GCS connections form issues.
 - **0.71.7**: The tag filter dropdown now displays all available tags at the pipeline level, improving usability across assets and pipelines.
-- **0.71.6**: The `--full-refresh` flag is now conditionally added to the validate command when the Bruin CLI version is 0.11.348 or higher.
-- **0.71.5**: Removed `--full-refresh` flag from validation command.
-- **0.71.4**: Validation now supports the `--full-refresh` flag, and will prompt users to update their Bruin CLI if their version does not meet the minimum required for this feature.
-- **0.71.3**: Query cost now refreshes when toggling the `interval_modifiers` checkbox, tag indentation validation has been improved, and `SqlEditor` now shows `processedBytes` on query cost hover.
-- **0.71.2**: Enhanced QueryPreview with array handling and improved struct formatting.
 
 For a full changelog, see Bruin Extension [Changelog](https://marketplace.visualstudio.com/items/bruin.bruin/changelog).
 
