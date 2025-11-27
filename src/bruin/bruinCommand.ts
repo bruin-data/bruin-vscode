@@ -56,8 +56,8 @@ export abstract class BruinCommand {
     const args = this.execArgs(query);
     const commandString = `${this.bruinExecutable} ${args.join(' ')}`;
     
-    // Check if this command should be cached
-    if (cliCommandCache.shouldCache(this.bruinCommand(), query)) {
+    // Check if this command should be cached (skip caching in test mode)
+    if (!BruinCommand.isTestMode && cliCommandCache.shouldCache(this.bruinCommand(), query)) {
       return cliCommandCache.executeCommand(
         this.bruinCommand(),
         args,
@@ -65,7 +65,7 @@ export abstract class BruinCommand {
         () => this.executeCommand(args, ignoresErrors)
       );
     } else {
-      // Execute directly for non-cacheable commands
+      // Execute directly for non-cacheable commands or in test mode
       return this.executeCommand(args, ignoresErrors);
     }
   }
@@ -79,19 +79,23 @@ export abstract class BruinCommand {
     }
     
     return new Promise((resolve, reject) => {
-      const execOptions = {
+      const execOptions: any = {
         cwd: this.workingDirectory,
         maxBuffer: 1024 * 1024 * 10, // 10MB
-        windowsHide: true,
-        env: {
+      };
+
+      // Only apply performance optimizations in production (not in tests)
+      if (!BruinCommand.isTestMode) {
+        execOptions.windowsHide = true;
+        execOptions.env = {
           ...process.env,
           // Windows-specific optimizations
           ...(process.platform === 'win32' && {
             BRUIN_NO_COLOR: '1',
             BRUIN_NO_INTERACTIVE: '1'
           })
-        },
-      };
+        };
+      }
 
       child_process.execFile(
         this.bruinExecutable,
@@ -107,14 +111,14 @@ export abstract class BruinCommand {
 
           if (error) {
             const errorOutput = stderr ? stderr : stdout;
-            const errorMessage = error.message || "Command failed";
             const fullError = errorOutput 
-              ? `${errorMessage}\n${removeAnsiColors(errorOutput)}`
-              : errorMessage;
+              ? removeAnsiColors(errorOutput)
+              : error.message || "Command failed";
             
             if (!BruinCommand.isTestMode) {
               console.error(`[${new Date().toISOString()}] Command failed after ${duration}ms:`, fullError);
             }
+            
             if (ignoresErrors) {
               resolve("");
             } else {
@@ -164,18 +168,24 @@ export abstract class BruinCommand {
       timestamp: new Date().toISOString()
     });
     
-    const proc = child_process.spawn(this.bruinExecutable, this.execArgs(query), {
+    const spawnOptions: any = {
       cwd: this.workingDirectory,
-      windowsHide: true,
-      env: {
+    };
+
+    // Only apply performance optimizations in production (not in tests)
+    if (!BruinCommand.isTestMode) {
+      spawnOptions.windowsHide = true;
+      spawnOptions.env = {
         ...process.env,
         // Windows-specific optimizations
         ...(process.platform === 'win32' && {
           BRUIN_NO_COLOR: '1',
           BRUIN_NO_INTERACTIVE: '1'
         })
-      },
-    });
+      };
+    }
+
+    const proc = child_process.spawn(this.bruinExecutable, this.execArgs(query), spawnOptions);
 
     const promise = new Promise<string>((resolve, reject) => {
       let stdout = "";
