@@ -60,10 +60,19 @@ export abstract class BruinCommand {
     }
     
     return new Promise((resolve, reject) => {
-      const execOptions = {
+      const execOptions: any = {
         cwd: this.workingDirectory,
         maxBuffer: 1024 * 1024 * 10, // 10MB
       };
+
+      // Windows-specific optimizations
+      if (process.platform === 'win32') {
+        execOptions.windowsHide = true;
+        execOptions.env = {
+          ...process.env,
+          BRUIN_NO_COLOR: '1'
+        };
+      }
 
       child_process.execFile(
         this.bruinExecutable,
@@ -130,9 +139,20 @@ export abstract class BruinCommand {
       timestamp: new Date().toISOString()
     });
     
-    const proc = child_process.spawn(this.bruinExecutable, this.execArgs(query), {
+    const spawnOptions: any = {
       cwd: this.workingDirectory,
-    });
+    };
+
+    // Windows-specific optimizations
+    if (process.platform === 'win32') {
+      spawnOptions.windowsHide = true;
+      spawnOptions.env = {
+        ...process.env,
+        BRUIN_NO_COLOR: '1'
+      };
+    }
+
+    const proc = child_process.spawn(this.bruinExecutable, this.execArgs(query), spawnOptions);
 
     const promise = new Promise<string>((resolve, reject) => {
       let stdout = "";
