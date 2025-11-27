@@ -53,7 +53,6 @@ import { getDefaultCheckboxSettings, getDefaultExcludeTag, getFormatSqlfluff } f
 import { exec } from "child_process";
 import { flowLineageCommand } from "../extension/commands/FlowLineageCommand";
 import { fileCache } from "../utils/fileCache";
-import { cliCommandCache } from "../utils/cliCommandCache";
 
 /**
  * This class manages the state and behavior of Bruin webview panels.
@@ -106,11 +105,9 @@ export class BruinPanel {
 
     this._disposables.push(
       workspace.onDidSaveTextDocument(async (editor) => {
-        // Invalidate caches for the saved file
+        // Invalidate file cache for the saved file
         if (editor && editor.uri) {
           fileCache.invalidate(editor.uri.fsPath);
-          // Invalidate CLI cache for asset-related commands
-          cliCommandCache.invalidateByPattern(/parse|internal-parse|validate/);
         }
 
         if (editor && editor.uri.fsPath.endsWith(".bruin.yml")) {
@@ -128,9 +125,8 @@ export class BruinPanel {
 
       // Watch for external changes to .bruin.yml files (e.g., from bruin init)
       workspace.createFileSystemWatcher("**/.bruin.yml").onDidChange(async (uri) => {
-        // Invalidate caches for changed file
+        // Invalidate file cache for changed file
         fileCache.invalidate(uri.fsPath);
-        cliCommandCache.invalidateByWorkspace(this._extensionUri.fsPath);
 
         getEnvListCommand(this._lastRenderedDocumentUri);
         getConnections(this._lastRenderedDocumentUri);
@@ -141,9 +137,8 @@ export class BruinPanel {
 
       // Watch for changes to pipeline.yml and pipeline.yaml files
       workspace.createFileSystemWatcher("**/pipeline.{yml,yaml}").onDidChange(async (uri) => {
-        // Invalidate caches for changed file
+        // Invalidate file cache for changed file
         fileCache.invalidate(uri.fsPath);
-        cliCommandCache.invalidateByPattern(/pipeline|environment/);
         
         // Send file-changed message to webview to refresh variables
         this._panel.webview.postMessage({

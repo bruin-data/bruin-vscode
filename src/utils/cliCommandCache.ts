@@ -187,7 +187,7 @@ export class CliCommandCache {
         
         // Medium TTL for asset metadata and parsing
         if (fullCommand.includes('internal asset-metadata') || fullCommand.includes('internal parse-asset')) {
-            return 15000; // 15 seconds
+            return 3000; // 3 seconds - reduced for faster UI updates after patches
         }
         
         // Default TTL

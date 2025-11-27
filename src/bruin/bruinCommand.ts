@@ -1,7 +1,6 @@
 // eslint-disable-next-line @typescript-eslint/naming-convention
 import * as child_process from "child_process";
 import { removeAnsiColors } from "../utilities/helperUtils";
-import { cliCommandCache } from "../utils/cliCommandCache";
 
 /** Common functionality used to execute Bruin commands. */
 export abstract class BruinCommand {
@@ -56,18 +55,8 @@ export abstract class BruinCommand {
     const args = this.execArgs(query);
     const commandString = `${this.bruinExecutable} ${args.join(' ')}`;
     
-    // Check if this command should be cached (skip caching in test mode)
-    if (!BruinCommand.isTestMode && cliCommandCache.shouldCache(this.bruinCommand(), query)) {
-      return cliCommandCache.executeCommand(
-        this.bruinCommand(),
-        args,
-        this.workingDirectory,
-        () => this.executeCommand(args, ignoresErrors)
-      );
-    } else {
-      // Execute directly for non-cacheable commands or in test mode
-      return this.executeCommand(args, ignoresErrors);
-    }
+    // Execute directly without caching
+    return this.executeCommand(args, ignoresErrors);
   }
 
   private executeCommand(args: string[], ignoresErrors: boolean): Promise<string> {
