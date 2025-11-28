@@ -1584,6 +1584,9 @@ suite("BruinCommand Tests", () => {
         kill: sinon.stub()
       };
       spawnStub = sinon.stub(require("child_process"), "spawn").returns(mockProcess);
+      
+      // Reset stub call history (in case setup is called multiple times)
+      spawnStub.resetHistory();
     });
 
     teardown(() => {
@@ -1597,11 +1600,19 @@ suite("BruinCommand Tests", () => {
       assert.ok(result.promise instanceof Promise, "Should return a promise");
       assert.strictEqual(result.process, mockProcess, "Should return the spawned process");
       
-      sinon.assert.calledOnceWithExactly(spawnStub, 
-        "path/to/bruin", 
-        ["test-command", "--test"],
-        { cwd: "path/to/working/directory" }
-      );
+      // Check that spawn was called with correct executable and arguments
+      sinon.assert.calledOnce(spawnStub);
+      const [executable, args, options] = spawnStub.getCall(0).args;
+      
+      assert.strictEqual(executable, "path/to/bruin");
+      assert.deepStrictEqual(args, ["test-command", "--test"]);
+      assert.strictEqual(options.cwd, "path/to/working/directory");
+      
+      // On Windows, check for Windows-specific options
+      if (process.platform === 'win32') {
+        assert.strictEqual(options.windowsHide, true);
+        assert.strictEqual(options.env.BRUIN_NO_COLOR, '1');
+      }
     });
 
     test("runCancellable should resolve with stdout on success", async () => {
@@ -1775,11 +1786,19 @@ suite("BruinCommand Tests", () => {
       assert.ok(result.promise instanceof Promise);
       assert.strictEqual(result.process, mockProcess);
       
-      sinon.assert.calledOnceWithExactly(spawnStub, 
-        "path/to/bruin", 
-        ["test-command"],
-        { cwd: "path/to/working/directory" }
-      );
+      // Check that spawn was called with correct executable and arguments
+      sinon.assert.calledOnce(spawnStub);
+      const [executable, args, options] = spawnStub.getCall(0).args;
+      
+      assert.strictEqual(executable, "path/to/bruin");
+      assert.deepStrictEqual(args, ["test-command"]);
+      assert.strictEqual(options.cwd, "path/to/working/directory");
+      
+      // On Windows, check for Windows-specific options
+      if (process.platform === 'win32') {
+        assert.strictEqual(options.windowsHide, true);
+        assert.strictEqual(options.env.BRUIN_NO_COLOR, '1');
+      }
     });
   });
 });
@@ -5879,13 +5898,22 @@ suite(" Query export Tests", () => {
       const result = await bruinDBTCommand.getFetchDatabases(connectionName);
       
       assert.deepStrictEqual(result, mockResponse);
-      sinon.assert.calledOnceWithExactly(
-        execFileStub,
-        "path/to/bruin",
-        ["internal", "fetch-databases", "-c", connectionName, "-o", "json"],
-        { cwd: "path/to/working/directory", maxBuffer: 10485760 },
-        sinon.match.func
-      );
+      
+      // Check that execFile was called with correct executable, arguments, and callback
+      sinon.assert.calledOnce(execFileStub);
+      const [executable, args, options, callback] = execFileStub.getCall(0).args;
+      
+      assert.strictEqual(executable, "path/to/bruin");
+      assert.deepStrictEqual(args, ["internal", "fetch-databases", "-c", connectionName, "-o", "json"]);
+      assert.strictEqual(options.cwd, "path/to/working/directory");
+      assert.strictEqual(options.maxBuffer, 10485760);
+      assert.strictEqual(typeof callback, "function");
+      
+      // On Windows, check for Windows-specific options
+      if (process.platform === 'win32') {
+        assert.strictEqual(options.windowsHide, true);
+        assert.strictEqual(options.env.BRUIN_NO_COLOR, '1');
+      }
     });
 
     test("getFetchDatabases should throw error on command failure", async () => {
@@ -5913,13 +5941,22 @@ suite(" Query export Tests", () => {
       const result = await bruinDBTCommand.getFetchTables(connectionName, database);
       
       assert.deepStrictEqual(result, mockResponse);
-      sinon.assert.calledOnceWithExactly(
-        execFileStub,
-        "path/to/bruin",
-        ["internal", "fetch-tables", "-c", connectionName, "-d", database, "-o", "json"],
-        { cwd: "path/to/working/directory", maxBuffer: 10485760 },
-        sinon.match.func
-      );
+      
+      // Check that execFile was called with correct executable, arguments, and callback
+      sinon.assert.calledOnce(execFileStub);
+      const [executable, args, options, callback] = execFileStub.getCall(0).args;
+      
+      assert.strictEqual(executable, "path/to/bruin");
+      assert.deepStrictEqual(args, ["internal", "fetch-tables", "-c", connectionName, "-d", database, "-o", "json"]);
+      assert.strictEqual(options.cwd, "path/to/working/directory");
+      assert.strictEqual(options.maxBuffer, 10485760);
+      assert.strictEqual(typeof callback, "function");
+      
+      // On Windows, check for Windows-specific options
+      if (process.platform === 'win32') {
+        assert.strictEqual(options.windowsHide, true);
+        assert.strictEqual(options.env.BRUIN_NO_COLOR, '1');
+      }
     });
 
     test("getFetchTables should throw error on command failure", async () => {
@@ -5952,13 +5989,22 @@ suite(" Query export Tests", () => {
       const result = await bruinDBTCommand.getFetchColumns(connectionName, database, table);
       
       assert.deepStrictEqual(result, mockResponse);
-      sinon.assert.calledOnceWithExactly(
-        execFileStub,
-        "path/to/bruin",
-        ["internal", "fetch-columns", "-c", connectionName, "-d", database, "-table", table, "-o", "json"],
-        { cwd: "path/to/working/directory", maxBuffer: 10485760 },
-        sinon.match.func
-      );
+      
+      // Check that execFile was called with correct executable, arguments, and callback
+      sinon.assert.calledOnce(execFileStub);
+      const [executable, args, options, callback] = execFileStub.getCall(0).args;
+      
+      assert.strictEqual(executable, "path/to/bruin");
+      assert.deepStrictEqual(args, ["internal", "fetch-columns", "-c", connectionName, "-d", database, "-table", table, "-o", "json"]);
+      assert.strictEqual(options.cwd, "path/to/working/directory");
+      assert.strictEqual(options.maxBuffer, 10485760);
+      assert.strictEqual(typeof callback, "function");
+      
+      // On Windows, check for Windows-specific options
+      if (process.platform === 'win32') {
+        assert.strictEqual(options.windowsHide, true);
+        assert.strictEqual(options.env.BRUIN_NO_COLOR, '1');
+      }
     });
 
     test("getFetchColumns should throw error on command failure", async () => {
@@ -5999,13 +6045,22 @@ suite(" Query export Tests", () => {
       const result = await bruinDBTCommand.getFetchTables(connectionName, database);
       
       assert.deepStrictEqual(result, mockResponse);
-      sinon.assert.calledOnceWithExactly(
-        execFileStub,
-        "path/to/bruin",
-        ["internal", "fetch-tables", "-c", connectionName, "-d", "", "-o", "json"],
-        { cwd: "path/to/working/directory", maxBuffer: 10485760 },
-        sinon.match.func
-      );
+      
+      // Check that execFile was called with correct executable, arguments, and callback
+      sinon.assert.calledOnce(execFileStub);
+      const [executable, args, options, callback] = execFileStub.getCall(0).args;
+      
+      assert.strictEqual(executable, "path/to/bruin");
+      assert.deepStrictEqual(args, ["internal", "fetch-tables", "-c", connectionName, "-d", "", "-o", "json"]);
+      assert.strictEqual(options.cwd, "path/to/working/directory");
+      assert.strictEqual(options.maxBuffer, 10485760);
+      assert.strictEqual(typeof callback, "function");
+      
+      // On Windows, check for Windows-specific options
+      if (process.platform === 'win32') {
+        assert.strictEqual(options.windowsHide, true);
+        assert.strictEqual(options.env.BRUIN_NO_COLOR, '1');
+      }
     });
 
  

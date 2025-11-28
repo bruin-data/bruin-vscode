@@ -1,4 +1,7 @@
 # Changelog
+## [0.71.11] - [2025-11-27]
+- Improved the extension performance for windows users.
+
 ## [0.71.10] - [2025-11-25]
 - Added a new "Merge all" button to the asset columns UI.
 

@@ -106,6 +106,11 @@ export const isBruinAsset = async (
   const bruinPattern = /(\"\"\"\s*@bruin\s*$)|(\/\*\s*@bruin\s*$)/m;
 
   try {
+    // Quick existence check before reading file content
+    if (!fs.existsSync(fileName)) {
+      return false;
+    }
+    
     const assetContent = fs.readFileSync(fileName, "utf8");
     const bruinAsset =
       bruinPattern.test(assetContent) ||
