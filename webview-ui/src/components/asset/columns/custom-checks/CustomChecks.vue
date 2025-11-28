@@ -40,17 +40,11 @@
           </td>
           <td class="px-2 py-1 font-medium font-mono text-xs w-1/6 text-center">
             <div class="flex flex-col gap-1">
-              <div v-if="check.value !== null && check.value !== undefined && check.value !== 0" class="truncate" :title="String(check.value)">
-                val: {{ check.value }}
-              </div>
-              <div v-else-if="check.count !== null && check.count !== undefined && check.count !== 0" class="truncate" :title="String(check.count)">
+              <div v-if="check.count !== null && check.count !== undefined" class="truncate" :title="String(check.count)">
                 count: {{ check.count }}
               </div>
               <div v-else-if="check.value !== null && check.value !== undefined" class="truncate" :title="String(check.value)">
                 val: {{ check.value }}
-              </div>
-              <div v-else-if="check.count !== null && check.count !== undefined" class="truncate" :title="String(check.count)">
-                count: {{ check.count }}
               </div>
             </div>
           </td>
@@ -247,11 +241,6 @@ const checkType = ref<'value' | 'count'>('value');
 const showDeleteAlert = ref<number | null>(null);
 const isNewCheck = ref<boolean>(false);
 
-// Helper function to check if a field has a meaningful value
-const hasValue = (field: any) => {
-  return field !== null && field !== undefined && field !== '' && field !== 0;
-};
-
 
 // Computed property to check for duplicate names
 const isDuplicateName = computed(() => {
@@ -335,10 +324,13 @@ const startEditing = (index: number) => {
   ) as CustomChecks;
   isNewCheck.value = false;
   
-  if (hasValue(editingCustomCheck.value.count)) {
+  const hasCount = editingCustomCheck.value.count !== null && editingCustomCheck.value.count !== undefined;
+  const hasValue = editingCustomCheck.value.value !== null && editingCustomCheck.value.value !== undefined;
+  
+  if (hasCount) {
     checkType.value = 'count';
     editingCustomCheck.value.value = null;
-  } else if (hasValue(editingCustomCheck.value.value)) {
+  } else if (hasValue) {
     checkType.value = 'value';
     editingCustomCheck.value.count = null;
   } else {
@@ -376,16 +368,19 @@ const saveCustomChecks = () => {
       }
 
       const updatedCheck: any = {
-        ...editingCustomCheck.value,
+        id: editingCustomCheck.value.id,
         name: editingCustomCheck.value.name.trim(),
+        description: editingCustomCheck.value.description || '',
+        query: editingCustomCheck.value.query || '',
       };
 
-      delete updatedCheck.value;
-      delete updatedCheck.count;
+      if (editingCustomCheck.value.blocking !== undefined) {
+        updatedCheck.blocking = editingCustomCheck.value.blocking;
+      }
 
-      if (checkType.value === 'value' && editingCustomCheck.value.value !== null && editingCustomCheck.value.value !== undefined && editingCustomCheck.value.value !== 0) {
+      if (checkType.value === 'value' && editingCustomCheck.value.value !== null && editingCustomCheck.value.value !== undefined) {
         updatedCheck.value = Number(editingCustomCheck.value.value);
-      } else if (checkType.value === 'count' && editingCustomCheck.value.count !== null && editingCustomCheck.value.count !== undefined && editingCustomCheck.value.count !== 0) {
+      } else if (checkType.value === 'count' && editingCustomCheck.value.count !== null && editingCustomCheck.value.count !== undefined) {
         updatedCheck.count = Number(editingCustomCheck.value.count);
       }
 
@@ -409,11 +404,14 @@ const saveCustomChecks = () => {
         formattedCheck.blocking = Boolean(check.blocking);
       }
 
-      // Include value or count (but not both) - exclude zero values
-      if (check.value !== null && check.value !== undefined && check.value !== 0) {
-        formattedCheck.value = Number(check.value);
-      } else if (check.count !== null && check.count !== undefined && check.count !== 0) {
+      // Include value OR count (but not both) - allow zero values
+      const hasCount = check.count !== null && check.count !== undefined;
+      const hasValue = check.value !== null && check.value !== undefined;
+      
+      if (hasCount) {
         formattedCheck.count = Number(check.count);
+      } else if (hasValue) {
+        formattedCheck.value = Number(check.value);
       }
 
       return formattedCheck;
@@ -450,7 +448,6 @@ watch(
     isNewCheck.value = false;
     localCustomChecks.value = newCustomChecks.map((check) => ({
       ...check,
-      count: check.count ?? 0,
     }));
   },
   { deep: true, immediate: true }
