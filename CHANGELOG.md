@@ -1,4 +1,7 @@
 # Changelog
+## [0.71.12] - [2025-11-28]
+- Fixed the custom checks UI issues.
+
 ## [0.71.11] - [2025-11-27]
 - Improved the extension performance for windows users.
 
