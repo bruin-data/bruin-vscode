@@ -1,4 +1,8 @@
 # Changelog
+
+## [0.71.13] - [2025-12-01]
+- Improved the render icon visibility.
+
 ## [0.71.12] - [2025-11-28]
 - Fixed the custom checks UI issues.
 
