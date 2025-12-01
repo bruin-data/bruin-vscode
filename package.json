@@ -289,7 +289,7 @@
       }
     ],
     "menus": {
-      "editor/title": [
+      "editor/title/run": [
         {
           "command": "bruin.renderSQL",
           "group": "navigation"
