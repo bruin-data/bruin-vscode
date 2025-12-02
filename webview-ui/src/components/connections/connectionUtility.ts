@@ -21,9 +21,8 @@ export const generateConnectionConfig = (schema: any) => {
           prop !== "name" &&
           prop !== "service_account_file" &&
           prop !== "use_application_default_credentials" &&
-          // Remove deprecated S3 fields
-          prop !== "bucket_name" &&
-          prop !== "path_to_file"
+          // Remove deprecated S3 fields only for S3 connections
+          !(type === "s3" && (prop === "bucket_name" || prop === "path_to_file"))
         )
         .map((prop) => {
           const propDef = connectionDef.properties[prop];
