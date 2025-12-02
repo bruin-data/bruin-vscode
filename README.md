@@ -63,6 +63,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.71.14**: Added missing fields to the GCS connections form.
 - **0.71.13**: Improved the render icon visibility.
 - **0.71.12**: Fixed the custom checks UI issues.
 - **0.71.11**: improved the extension performance for windows users.
