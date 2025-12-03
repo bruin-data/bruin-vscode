@@ -1,4 +1,6 @@
 # Changelog
+## [0.71.14] - [2025-12-02]
+- Added missing fields to the GCS connections form.
 
 ## [0.71.13] - [2025-12-01]
 - Improved the render icon visibility.
