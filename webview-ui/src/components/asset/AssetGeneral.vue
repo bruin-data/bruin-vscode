@@ -175,7 +175,7 @@
           <div class="inline-flex">
             <vscode-button
               @click="handleBruinValidateCurrentAsset"
-              :disabled="isNotAsset || isError"
+              :disabled="isNotAsset"
               class="text-xs h-7"
             >
               <div class="flex items-center justify-center">
@@ -218,7 +218,7 @@
             </vscode-button>
             <Menu as="div" class="relative -ml-px block">
               <MenuButton
-                :disabled="isNotAsset || isError"
+                :disabled="isNotAsset"
                 class="relative h-7 border border-transparent inline-flex items-center disabled:opacity-50 disabled:cursor-not-allowed bg-editor-button-bg px-1 text-editor-button-fg hover:bg-editor-button-hover-bg focus:z-10"
               >
                 <ChevronDownIcon class="h-3 w-3" aria-hidden="true" />
@@ -280,7 +280,7 @@
             label="Run"
             :icon="PlayIcon"
             icon-class="h-3 w-3 mr-1"
-            :disabled="isNotAsset || isError"
+            :disabled="isNotAsset"
             :dropdown-items="[
               { key: 'run-with-downstream', label: 'Run with downstream' },
               { key: 'run-current-pipeline', label: 'Run the whole pipeline' },
