@@ -1,4 +1,7 @@
 # Changelog
+## [0.71.15] - [2025-12-11]
+- Increased the query preview row limit to 50,000. The "Validate & Run" button now remains enabled even if there is an error.
+
 ## [0.71.14] - [2025-12-02]
 - Added missing fields to the GCS connections form.
 

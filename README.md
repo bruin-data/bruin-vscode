@@ -63,14 +63,12 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.71.15**: Increased the query preview row limit to 50,000. The "Validate & Run" button now remains enabled even if there is an error.
 - **0.71.14**: Added missing fields to the GCS connections form.
 - **0.71.13**: Improved the render icon visibility.
 - **0.71.12**: Fixed the custom checks UI issues.
 - **0.71.11**: improved the extension performance for windows users.
 - **0.71.10**: Added a new "Merge all" button to the asset columns UI.
-- **0.71.9**: Added support for the `update_on_merge` column property in the asset columns UI.
-- **0.71.8**: Fixed the GCS connections form issues.
-- **0.71.7**: The tag filter dropdown now displays all available tags at the pipeline level, improving usability across assets and pipelines.
 
 For a full changelog, see Bruin Extension [Changelog](https://marketplace.visualstudio.com/items/bruin.bruin/changelog).
 
