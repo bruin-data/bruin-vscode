@@ -28,7 +28,7 @@
               v-model="limit"
               class="w-12 h-6 text-3xs rounded bg-editorWidget-bg text-editor-fg hover:bg-input-background focus:bg-input-background focus:outline-none px-1"
               min="1"
-              max="1000"
+              max="50000"
             />
           </div>
           <div class="flex items-center space-x-1">
@@ -514,7 +514,7 @@ const connectionsStore = useConnectionsStore();
 const currentEnvironment = ref<string>(props.environment);
 const modifierKey = ref("⌘"); // Default to Mac symbol
 const currentConnectionName = ref("");
-const limit = ref(100);
+const limit = ref(1000);
 const showSearchInput = ref(false);
 const hoveredTab = ref("");
 const copied = ref(false);
@@ -540,7 +540,7 @@ const defaultTab = {
   error: null,
   isLoading: false,
   searchInput: "",
-  limit: 100,
+  limit: 1000,
   filteredRows: [],
   totalRowCount: 0,
   filteredRowCount: 0,
@@ -654,7 +654,7 @@ const addTab = () => {
     label: newTabLabel,
     parsedOutput: undefined,
     error: null,
-    limit: 100,
+    limit: 1000,
     isLoading: false,
     searchInput: "",
     filteredRows: [],
@@ -1021,7 +1021,7 @@ const closeTab = (tabId: string) => {
         error: null,
         isLoading: false,
         searchInput: "",
-        limit: 100,
+        limit: 1000,
         filteredRows: [],
         totalRowCount: 0,
         filteredRowCount: 0,
@@ -1233,7 +1233,7 @@ const updateFilteredRows = () => {
 const runQuery = () => {
   // Reset cell expansions when running a new query
   expandedCells.value.clear();
-  if (limit.value > 1000 || limit.value < 1) {
+  if (limit.value > 50000 || limit.value < 1) {
     limit.value = 1000;
   }
   
