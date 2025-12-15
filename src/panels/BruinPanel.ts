@@ -543,10 +543,12 @@ export class BruinPanel {
               break;
 
           case "bruin.renderDdl":
-            console.log("bruin.renderDdl - Message payload:", message.payload);
-            console.log("bruin.renderDdl - Full message:", message);
-            
             if (!this._lastRenderedDocumentUri) {
+              this._panel.webview.postMessage({
+                command: "ddlResponse",
+                status: "error",
+                message: "No active asset found"
+              });
               break;
             }
 
@@ -555,7 +557,12 @@ export class BruinPanel {
             try {
               const versionInfo = await getBruinVersion();
               if (!versionInfo) {
-                return;
+                this._panel.webview.postMessage({
+                  command: "ddlResponse",
+                  status: "error",
+                  message: "Failed to get Bruin CLI version information"
+                });
+                break;
               }
 
               const current = parseVersion(versionInfo.version);
@@ -576,20 +583,21 @@ export class BruinPanel {
               );
               
               const filePath = this._lastRenderedDocumentUri.fsPath;
-              console.log("bruin.renderDdl - About to call renderDdl with filePath:", filePath);
-              console.log("bruin.renderDdl - Bruin executable path:", getBruinExecutablePath());
-              console.log("bruin.renderDdl - Workspace folder:", vscode.workspace.workspaceFolders?.[0]?.uri.fsPath);
-              console.log("bruin.renderDdl - Current flags:", this._flags);
+              const flagArgs: string[] = [];
               
-              // Parse the flags to extract individual arguments
-              const flagArgs = this._flags ? this._flags.trim().split(/\s+/).filter(arg => arg.length > 0) : [];
-              console.log("bruin.renderDdl - Parsed flag arguments:", flagArgs);
+              if (this._currentStartDate) {
+                flagArgs.push("--start-date", this._currentStartDate);
+              }
               
-              // Combine file path with flags
-              const args = [...flagArgs, filePath];
-              console.log("bruin.renderDdl - Final command arguments:", args);
+              if (this._currentEndDate) {
+                flagArgs.push("--end-date", this._currentEndDate);
+              }
               
-              const ddl = await ddlRenderer.renderDdl(args);
+              if (this._checkboxState?.["Interval-modifiers"]) {
+                flagArgs.push("--apply-interval-modifiers");
+              }
+              
+              const ddl = await ddlRenderer.renderDdl(filePath, flagArgs, false);
               this._panel.webview.postMessage({
                 command: "ddlResponse",
                 status: "success",
@@ -605,14 +613,13 @@ export class BruinPanel {
                   status: "error",
                   message: `DDL rendering requires Bruin CLI version >= ${MIN_DDL_VERSION}`
                 });
-                break;
+              } else {
+                this._panel.webview.postMessage({
+                  command: "ddlResponse",
+                  status: "error",
+                  message: `Failed to generate DDL: ${errorMessage}`
+                });
               }
-              this._panel.webview.postMessage({
-                command: "ddlResponse",
-                status: "error",
-                message: `Failed to generate DDL: ${errorMessage}`
-              });
-              break;
             }
             break;
 

@@ -1,3 +1,4 @@
+import { BruinCommandOptions } from "../types";
 import { BruinCommand } from "./bruinCommand";
 
 /**
@@ -17,14 +18,16 @@ export class BruinRenderDdl extends BruinCommand {
   /**
    * Renders the DDL version of the specified asset.
    *
-   * @param {string | string[]} filePath - The path of the asset to generate DDL for, or array of arguments including flags.
+   * @param {string | string[]} filePath - The path of the asset to generate DDL for.
    * @returns {Promise<string>} A promise that resolves with the DDL string.
    */
-  public async renderDdl(filePath: string | string[]): Promise<string> {
+  public async renderDdl(
+    filePath: string,
+    commandFlags: string[],
+    ignoresErrors: boolean
+  ): Promise<string> {
     try {
-      // Don't use -o json, just get raw DDL output
-      const args = Array.isArray(filePath) ? filePath : [filePath];
-      const result = await this.run(args);
+      const result = await this.run([...commandFlags, filePath], { ignoresErrors });
       return result.trim();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
