@@ -63,12 +63,8 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.72.0**: Added support for DDL rendering in the SQL editor.
 - **0.71.15**: Increased the query preview row limit to 50,000. The "Validate & Run" button now remains enabled even if there is an error.
-- **0.71.14**: Added missing fields to the GCS connections form.
-- **0.71.13**: Improved the render icon visibility.
-- **0.71.12**: Fixed the custom checks UI issues.
-- **0.71.11**: improved the extension performance for windows users.
-- **0.71.10**: Added a new "Merge all" button to the asset columns UI.
 
 For a full changelog, see Bruin Extension [Changelog](https://marketplace.visualstudio.com/items/bruin.bruin/changelog).
 

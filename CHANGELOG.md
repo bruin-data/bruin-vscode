@@ -1,4 +1,8 @@
 # Changelog
+
+## [0.72.0] - [2025-12-15]
+- Added support for DDL rendering in the SQL editor.
+
 ## [0.71.15] - [2025-12-11]
 - Increased the query preview row limit to 50,000. The "Validate & Run" button now remains enabled even if there is an error.
 
