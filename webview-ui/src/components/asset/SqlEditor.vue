@@ -100,7 +100,7 @@
         <vscode-button
           @click="copyToClipboard"
           appearance="icon"
-          :disabled="!code"
+          :disabled="!currentCode"
           class="copy-button flex items-center bg-none border-none cursor-pointer"
         >
           <span class="codicon codicon-copy text-xs" v-show="!copied" aria-hidden="true" />
@@ -186,7 +186,7 @@ const vClickOutside = {
 };
 
 function copyToClipboard() {
-  navigator.clipboard.writeText(props.code);
+  navigator.clipboard.writeText(currentCode.value);
   copied.value = true;
   setTimeout(() => {
     copied.value = false;
