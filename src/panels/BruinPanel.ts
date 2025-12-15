@@ -4,6 +4,7 @@ import { getUri } from "../utilities/getUri";
 import { getNonce } from "../utilities/getNonce";
 import {
   BruinValidate,
+  BruinRenderDdl,
   bruinWorkspaceDirectory,
   checkCliVersion,
   createIntegratedTerminal,
@@ -12,8 +13,9 @@ import {
   runBruinCommandInIntegratedTerminal,
   formatInIntegratedTerminal,
   escapeFilePath,
-
-
+  getBruinVersion,
+  parseVersion,
+  versionGte,
 } from "../bruin";
 import { BruinFill } from "../bruin/bruinFill";
 import { BruinInit } from "../bruin/bruinInit";
@@ -539,6 +541,80 @@ export class BruinPanel {
                 );
               }
               break;
+
+          case "bruin.renderDdl":
+            console.log("bruin.renderDdl - Message payload:", message.payload);
+            console.log("bruin.renderDdl - Full message:", message);
+            
+            if (!this._lastRenderedDocumentUri) {
+              break;
+            }
+
+            const MIN_DDL_VERSION = "0.11.392"; 
+
+            try {
+              const versionInfo = await getBruinVersion();
+              if (!versionInfo) {
+                return;
+              }
+
+              const current = parseVersion(versionInfo.version);
+              const minimum = parseVersion(MIN_DDL_VERSION);
+              
+              if (!versionGte(current, minimum)) {
+                this._panel.webview.postMessage({
+                  command: "ddlResponse",
+                  status: "error",
+                  message: `DDL rendering requires Bruin CLI version >= ${MIN_DDL_VERSION}, but current version is ${versionInfo.version}`
+                });
+                break;
+              }
+
+              const ddlRenderer = new BruinRenderDdl(
+                getBruinExecutablePath(),
+                vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || ""
+              );
+              
+              const filePath = this._lastRenderedDocumentUri.fsPath;
+              console.log("bruin.renderDdl - About to call renderDdl with filePath:", filePath);
+              console.log("bruin.renderDdl - Bruin executable path:", getBruinExecutablePath());
+              console.log("bruin.renderDdl - Workspace folder:", vscode.workspace.workspaceFolders?.[0]?.uri.fsPath);
+              console.log("bruin.renderDdl - Current flags:", this._flags);
+              
+              // Parse the flags to extract individual arguments
+              const flagArgs = this._flags ? this._flags.trim().split(/\s+/).filter(arg => arg.length > 0) : [];
+              console.log("bruin.renderDdl - Parsed flag arguments:", flagArgs);
+              
+              // Combine file path with flags
+              const args = [...flagArgs, filePath];
+              console.log("bruin.renderDdl - Final command arguments:", args);
+              
+              const ddl = await ddlRenderer.renderDdl(args);
+              this._panel.webview.postMessage({
+                command: "ddlResponse",
+                status: "success",
+                ddl
+              });
+            } catch (error) {
+              const errorMessage = error instanceof Error ? error.message : String(error);
+              const isCommandNotFound = errorMessage.includes("No help topic") || errorMessage.includes("render-ddl");
+              
+              if (isCommandNotFound) {
+                this._panel.webview.postMessage({
+                  command: "ddlResponse",
+                  status: "error",
+                  message: `DDL rendering requires Bruin CLI version >= ${MIN_DDL_VERSION}`
+                });
+                break;
+              }
+              this._panel.webview.postMessage({
+                command: "ddlResponse",
+                status: "error",
+                message: `Failed to generate DDL: ${errorMessage}`
+              });
+              break;
+            }
+            break;
 
           case "bruin.validate":
             if (!this._lastRenderedDocumentUri) {

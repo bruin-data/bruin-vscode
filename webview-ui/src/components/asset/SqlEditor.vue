@@ -3,7 +3,21 @@
     <div
       class="header flex items-center justify-between px-1.5 py-0.5 border-commandCenter-border shadow-sm"
     >
-      <label class="text-xs font-sans">Preview</label>
+      <!-- Tab Navigation -->
+      <div class="flex items-center gap-1">
+        <button
+          @click="activeTab = 'preview'"
+          :class="['tab-button', { active: activeTab === 'preview' }]"
+        >
+          Preview
+        </button>
+        <button
+          @click="activeTab = 'ddl'"
+          :class="['tab-button', { active: activeTab === 'ddl' }]"
+        >
+          DDL
+        </button>
+      </div>
       <div class="flex items-center">
         <!-- BigQuery Cost Estimate (success and error) -->
         <div
@@ -94,6 +108,7 @@
         </vscode-button>
       </div>
     </div>
+    <!-- Code Editor -->
     <div id="sql-editor" class="code-container pb-0">
       <!-- Use regular rendering for small content, virtual scroller for large content -->
       <div v-if="shouldUseVirtualScroller" class="scroller">
@@ -122,12 +137,13 @@
 </template>
 
 <script setup>
-import { ref, defineProps, computed, watch } from "vue";
+import { ref, defineProps, computed, watch, onMounted, onBeforeUnmount } from "vue";
 import "highlight.js/styles/default.css";
 import hljs from "highlight.js/lib/core";
 import { DynamicScroller, DynamicScrollerItem } from "vue3-virtual-scroller";
 import "vue3-virtual-scroller/dist/vue3-virtual-scroller.css";
 import { formatBytes } from "@/utilities/helper";
+import { vscode } from "@/utilities/vscode";
 
 const props = defineProps({
   code: String | undefined,
@@ -144,6 +160,9 @@ const props = defineProps({
   },
 });
 
+const activeTab = ref('preview');
+const ddlContent = ref('');
+const ddlLoading = ref(false);
 const showIntervalAlert = ref(props.showIntervalAlert);
 const showAlertMassage = ref(false);
 const copied = ref(false);
@@ -189,9 +208,19 @@ const shouldUseVirtualScroller = computed(() => {
   return visibleHighlightedLines.value.length > 50;
 });
 
+const currentCode = computed(() => {
+  if (activeTab.value === 'ddl') {
+    if (ddlLoading.value) {
+      return '-- Loading DDL...';
+    }
+    return ddlContent.value || '-- Click to generate DDL';
+  }
+  return props.code;
+});
+
 const highlightedLines = computed(() => {
-  if (!props.code) return [""];
-  const highlighted = hljs.highlight(props.code, { language: props.language }).value;
+  if (!currentCode.value) return [""];
+  const highlighted = hljs.highlight(currentCode.value, { language: props.language }).value;
   return highlighted.split("\n").map((line) => `<span>${line}</span>`);
 });
 
@@ -333,6 +362,60 @@ const tooltipPosition = computed(() => {
   }
 });
 
+// Function to request DDL from backend
+const requestDdl = () => {
+  console.log('Requesting DDL from backend');
+  ddlLoading.value = true;
+  
+  vscode.postMessage({
+    command: 'bruin.renderDdl'
+  });
+  console.log('DDL request sent to backend');
+};
+
+// Function to handle DDL response from backend
+const handleDdlResponse = (response) => {
+  console.log('Handling DDL response:', response);
+  ddlLoading.value = false;
+  if (response.status === 'success') {
+    ddlContent.value = response.ddl || '-- No DDL content received';
+    console.log('DDL content set:', ddlContent.value);
+  } else {
+    ddlContent.value = `-- Error generating DDL\n-- ${response.message || 'Unknown error'}`;
+    console.error('DDL generation failed:', response.message);
+  }
+};
+
+// Watch for tab changes to load DDL when needed
+watch(activeTab, (newTab) => {
+  if (newTab === 'ddl' && !ddlContent.value && !ddlLoading.value) {
+    requestDdl();
+  }
+});
+
+// Listen for DDL responses from the backend
+const handleMessage = (event) => {
+  if (!event || !event.data) return;
+  const envelope = event.data;
+  console.log('SqlEditor received message:', envelope);
+  
+  if (envelope.command === 'ddlResponse') {
+    console.log('Processing DDL response:', envelope);
+    handleDdlResponse(envelope);
+  }
+};
+
+// Setup message listeners
+onMounted(() => {
+  window.addEventListener('message', handleMessage);
+  console.log('SqlEditor: Message listener added');
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('message', handleMessage);
+  console.log('SqlEditor: Message listener removed');
+});
+
 watch(
   () => props.showIntervalAlert,
   (newVal) => {
@@ -438,4 +521,28 @@ watch(
   backdrop-filter: blur(8px);
   font-family: var(--vscode-font-family);
 }
+
+.tab-button {
+  padding: 4px;
+  background: transparent;
+  border: none;
+  color: var(--vscode-disabledForeground);
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.tab-button:hover {
+  background-color: var(--vscode-list-hoverBackground);
+  color: var(--vscode-foreground);
+}
+
+.tab-button.active {
+  color: var(--vscode-foreground);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 6px;
+}
+
 </style>
