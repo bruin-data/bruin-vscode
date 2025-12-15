@@ -4,6 +4,7 @@ import { getUri } from "../utilities/getUri";
 import { getNonce } from "../utilities/getNonce";
 import {
   BruinValidate,
+  BruinRenderDdl,
   bruinWorkspaceDirectory,
   checkCliVersion,
   createIntegratedTerminal,
@@ -12,8 +13,9 @@ import {
   runBruinCommandInIntegratedTerminal,
   formatInIntegratedTerminal,
   escapeFilePath,
-
-
+  getBruinVersion,
+  parseVersion,
+  versionGte,
 } from "../bruin";
 import { BruinFill } from "../bruin/bruinFill";
 import { BruinInit } from "../bruin/bruinInit";
@@ -539,6 +541,87 @@ export class BruinPanel {
                 );
               }
               break;
+
+          case "bruin.renderDdl":
+            if (!this._lastRenderedDocumentUri) {
+              this._panel.webview.postMessage({
+                command: "ddlResponse",
+                status: "error",
+                message: "No active asset found"
+              });
+              break;
+            }
+
+            const MIN_DDL_VERSION = "0.11.392"; 
+
+            try {
+              const versionInfo = await getBruinVersion();
+              if (!versionInfo) {
+                this._panel.webview.postMessage({
+                  command: "ddlResponse",
+                  status: "error",
+                  message: "Failed to get Bruin CLI version information"
+                });
+                break;
+              }
+
+              const current = parseVersion(versionInfo.version);
+              const minimum = parseVersion(MIN_DDL_VERSION);
+              
+              if (!versionGte(current, minimum)) {
+                this._panel.webview.postMessage({
+                  command: "ddlResponse",
+                  status: "error",
+                  message: `DDL rendering requires Bruin CLI version >= ${MIN_DDL_VERSION}, but current version is ${versionInfo.version}`
+                });
+                break;
+              }
+
+              const ddlRenderer = new BruinRenderDdl(
+                getBruinExecutablePath(),
+                vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || ""
+              );
+              
+              const filePath = this._lastRenderedDocumentUri.fsPath;
+              const flagArgs: string[] = [];
+              
+              if (this._currentStartDate) {
+                flagArgs.push("--start-date", this._currentStartDate);
+              }
+              
+              if (this._currentEndDate) {
+                flagArgs.push("--end-date", this._currentEndDate);
+              }
+              
+              if (this._checkboxState?.["Interval-modifiers"]) {
+                flagArgs.push("--apply-interval-modifiers");
+              }
+              
+              const ddl = await ddlRenderer.renderDdl(filePath, flagArgs, false);
+              this._panel.webview.postMessage({
+                command: "ddlResponse",
+                status: "success",
+                ddl
+              });
+            } catch (error) {
+              const errorMessage = error instanceof Error ? error.message : String(error);
+              const isCommandNotFound = errorMessage.includes("No help topic") || errorMessage.includes("render-ddl");
+              
+              if (isCommandNotFound) {
+                this._panel.webview.postMessage({
+                  command: "ddlResponse",
+                  status: "error",
+                  message: `DDL rendering requires Bruin CLI version >= ${MIN_DDL_VERSION}`
+                });
+              } else {
+                this._panel.webview.postMessage({
+                  command: "ddlResponse",
+                  status: "error",
+                  message: `Failed to generate DDL: ${errorMessage}`
+                });
+              }
+            }
+            break;
 
           case "bruin.validate":
             if (!this._lastRenderedDocumentUri) {

@@ -413,7 +413,7 @@
 </template>
 <script setup lang="ts">
 import { vscode } from "@/utilities/vscode";
-import { computed, onBeforeUnmount, onMounted, ref, defineProps, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import ErrorAlert from "@/components/ui/alerts/ErrorAlert.vue";
 import WarningAlert from "@/components/ui/alerts/WarningAlert.vue";
 import AlertWithActions from "@/components/ui/alerts/AlertWithActions.vue";
