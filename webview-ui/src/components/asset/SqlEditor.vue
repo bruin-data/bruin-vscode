@@ -558,7 +558,6 @@ watch(
 }
 
 .tab-button:hover {
-  background-color: var(--vscode-list-hoverBackground);
   color: var(--vscode-foreground);
 }
 
