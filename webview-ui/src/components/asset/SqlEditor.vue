@@ -1,7 +1,7 @@
 <template>
   <div class="highlight-container rounded overflow-visible">
     <div
-      class="header flex items-center justify-between px-1.5 py-0.5 border-commandCenter-border shadow-sm"
+      class="header flex items-center justify-between  py-0.5 border-commandCenter-border shadow-sm"
     >
       <!-- Tab Navigation -->
       <div class="flex items-center gap-1">
@@ -435,7 +435,7 @@ watch(
 
 .header {
   color: var(--vscode-disabledForeground);
-  background-color: var(--vscode-input-background);
+  background-color: var(--vscode-editor-background);
 }
 
 .copy-button {
@@ -523,7 +523,7 @@ watch(
 }
 
 .tab-button {
-  padding: 4px;
+  padding: 4px 4px 4px 0px;
   background: transparent;
   border: none;
   color: var(--vscode-disabledForeground);
