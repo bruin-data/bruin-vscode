@@ -1,7 +1,7 @@
 <template>
   <div class="highlight-container rounded overflow-visible">
     <div
-      class="header flex items-center justify-between px-1.5 py-0.5 border-commandCenter-border shadow-sm"
+      class="header flex items-center justify-between  py-0.5 border-commandCenter-border shadow-sm"
     >
       <!-- Tab Navigation -->
       <div class="flex items-center gap-1">
@@ -97,19 +97,21 @@
             </div>
           </div>
         </div>
+      </div>
+    </div>
+    <!-- Code Editor -->
+    <div id="sql-editor" class="code-container pb-0">
+      <div class="copy-button-wrapper">
         <vscode-button
           @click="copyToClipboard"
           appearance="icon"
           :disabled="!currentCode"
-          class="copy-button flex items-center bg-none border-none cursor-pointer"
+          class="copy-button"
         >
           <span class="codicon codicon-copy text-xs" v-show="!copied" aria-hidden="true" />
           <span v-if="copied" class="codicon codicon-check text-xs"></span>
         </vscode-button>
       </div>
-    </div>
-    <!-- Code Editor -->
-    <div id="sql-editor" class="code-container pb-0">
       <!-- Use regular rendering for small content, virtual scroller for large content -->
       <div v-if="shouldUseVirtualScroller" class="scroller">
         <DynamicScroller
@@ -435,11 +437,31 @@ watch(
 
 .header {
   color: var(--vscode-disabledForeground);
-  background-color: var(--vscode-input-background);
+  background-color: var(--vscode-editor-background);
+}
+
+.copy-button-wrapper {
+  position: sticky;
+  top: 6px;
+  z-index: 10;
+  display: flex;
+  justify-content: flex-end;
+  pointer-events: none;
+  margin-right: 4px;
+  height: 0;
+  overflow: visible;
 }
 
 .copy-button {
+  pointer-events: auto;
   color: var(--vscode-icon-foreground);
+  background-color: var(--vscode-sideBar-background);
+  border: 1px solid var(--vscode-input-border);
+  cursor: pointer;
+}
+
+.copy-button:hover {
+  background-color: var(--vscode-list-hoverBackground);
 }
 
 #sql-editor,
@@ -469,6 +491,7 @@ watch(
   padding: 8px 0;
   flex-grow: 1;
 }
+
 
 .line-number {
   height: v-bind(lineHeight + "px");
@@ -523,26 +546,35 @@ watch(
 }
 
 .tab-button {
-  padding: 4px;
+  padding: 4px 4px 4px 0px;
   background: transparent;
   border: none;
   color: var(--vscode-disabledForeground);
   font-size: 12px;
+  font-family: var(--vscode-font-family);
   cursor: pointer;
   border-radius: 4px;
   transition: all 0.2s ease;
 }
 
 .tab-button:hover {
-  background-color: var(--vscode-list-hoverBackground);
   color: var(--vscode-foreground);
 }
 
 .tab-button.active {
   color: var(--vscode-foreground);
-  text-decoration: underline;
-  text-decoration-thickness: 2px;
-  text-underline-offset: 6px;
+  position: relative;
+}
+
+.tab-button.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: calc((var(--design-unit) / 4) * 1px);
+  background: var(--panel-tab-active-foreground);
+  border-radius: calc(var(--corner-radius) * 1px);
 }
 
 </style>
