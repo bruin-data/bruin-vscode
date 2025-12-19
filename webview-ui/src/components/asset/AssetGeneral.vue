@@ -377,6 +377,7 @@
             :copied="false"
             :language="language"
             :showIntervalAlert="showIntervalAlert"
+            :assetType="props.assetType"
             :bigqueryMetadata="bigqueryMetadata"
             :bigqueryError="props.assetMetadataError"
           />
