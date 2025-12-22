@@ -1,4 +1,7 @@
 # Changelog
+## [0.72.2] - [2025-12-19]
+- Fixed the BigQuery cost estimate to conditionally display based on the asset type.
+
 ## [0.72.1] - [2025-12-16]
 - Improved the SQL editor UI.
 

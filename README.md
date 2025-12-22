@@ -63,6 +63,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.72.2**: Fixed the BigQuery cost estimate to conditionally display based on the asset type.
 - **0.72.1**: Improved the SQL editor UI.
 - **0.72.0**: Added support for DDL rendering in the SQL editor, this will require the CLI version 0.11.392 or higher.
 - **0.71.15**: Increased the query preview row limit to 50,000. The "Validate & Run" button now remains enabled even if there is an error.

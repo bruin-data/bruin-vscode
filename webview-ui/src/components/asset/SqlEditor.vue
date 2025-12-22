@@ -21,7 +21,7 @@
       <div class="flex items-center">
         <!-- BigQuery Cost Estimate (success and error) -->
         <div
-          v-if="language === 'sql' && (bigqueryCostEstimate || bigqueryError)"
+          v-if="language === 'sql' && isBigQueryAsset && (bigqueryCostEstimate || bigqueryError)"
           class="flex items-center gap-1 relative z-50"
         >
           <!-- Success state -->
@@ -152,6 +152,10 @@ const props = defineProps({
   language: "sql" | "python" | "yaml",
   copied: Boolean,
   showIntervalAlert: Boolean,
+  assetType: {
+    type: String,
+    default: null,
+  },
   bigqueryMetadata: {
     type: Object,
     default: null,
@@ -275,6 +279,10 @@ const onClickOutsideWarning = () => {
     clickOpened.value = false;
   }
 };
+
+const isBigQueryAsset = computed(() => {
+  return props.assetType && props.assetType.startsWith('bq');
+});
 
 const bigqueryCostEstimate = computed(() => {
   if (!props.bigqueryMetadata || props.bigqueryError) return null;
