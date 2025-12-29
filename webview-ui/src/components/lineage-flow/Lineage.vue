@@ -194,7 +194,7 @@ import { Background } from "@vue-flow/background";
 import { Controls } from "@vue-flow/controls";
 import { MiniMap } from "@vue-flow/minimap";
 import "@vue-flow/controls/dist/style.css";
-import { computed, onMounted, defineProps, watch, ref, nextTick } from "vue";
+import { computed, onMounted, watch, ref, nextTick } from "vue";
 import ELK from "elkjs/lib/elk.bundled.js";
 import CustomNode from "@/components/lineage-flow/custom-nodes/CustomNodes.vue";
 import CustomNodeWithColumn from "@/components/lineage-flow/custom-nodes/CustomNodesWithColumn.vue";
@@ -222,6 +222,7 @@ const showPipelineView = ref(false);
 const showColumnView = ref(false);
 const showLoadingIndicator = ref(false);
 let loadingTimer: NodeJS.Timeout | null = null;
+const shouldAutoFit = ref(true); 
 
 // Debug computed properties
 const shouldShowLoading = computed(() => {
@@ -483,16 +484,25 @@ const onNodesDragged = (draggedNodes: NodeDragEvent[]) => {
   );
 };
 
-// Fit view helper to mirror control behavior
-const fitViewSmooth = async () => {
+
+// Fit view helper - now with smart auto-fit logic
+const fitViewSmooth = async (forceAutoFit = false, useAnimation = false) => {
   await nextTick();
-  const duration = nextFitInstant.value ? 0 : 300;
-  nextFitInstant.value = false;
+  
+  // Only auto-fit if explicitly requested or first load
+  if (!forceAutoFit && !shouldAutoFit.value) {
+    return;
+  }
+  
+  const duration = useAnimation ? 300 : 0;
+  
   try {
     fitView({ padding: 0.2, duration });
+    shouldAutoFit.value = false; // Disable auto-fit after first use
   } catch (e) {
     await nextTick();
     fitView({ padding: 0.2, duration });
+    shouldAutoFit.value = false;
   }
 };
 
@@ -509,13 +519,14 @@ const _updateGraph = async () => {
         if (!layoutedGraphData) {
           layoutedGraphData = await applyLayout(graphData.nodes, graphData.edges);
           layoutCache.value.set(key, layoutedGraphData);
-        }
+        }      
         setNodes(layoutedGraphData.nodes);
         setEdges(layoutedGraphData.edges);
         isLayouting.value = false;
         isLoadingLocal.value = false;
         await nextTick();
-        await fitViewSmooth();
+        
+        await fitViewSmooth(true, false);
       } else {
         setNodes([]);
         setEdges([]);
@@ -604,7 +615,7 @@ const onAddUpstream = async (nodeId: string) => {
   setEdges(layoutedData.edges);
   await nextTick();
   isLayouting.value = false;
-  await fitViewSmooth();
+  await fitViewSmooth(false, false); 
   // Bump version so the next full recompute reflows with correct left/right ordering
   assetGraphVersion.value++;
 };
@@ -633,7 +644,7 @@ const onAddDownstream = async (nodeId: string) => {
   setEdges(layoutedData.edges);
   await nextTick();
   isLayouting.value = false;
-  await fitViewSmooth();
+  await fitViewSmooth(false, false); 
   assetGraphVersion.value++;
 };
 
@@ -668,10 +679,12 @@ const handleAssetView = async (emittedData: {
       expandedNodes.value = {};
     }
   }
-  // Make the first fit instantaneous to avoid visible movement
-  nextFitInstant.value = true;
+  
   // Force FilterTab remount in asset view to close the panel
   assetFilterTabKey.value++;
+  
+  // Don't force auto-fit when switching back to asset view
+  // The _updateGraph function will handle viewport restoration
   await _updateGraph();
 };
 
@@ -695,6 +708,10 @@ onMounted(() => {
     isLoading: props.isLoading,
     LineageError: props.LineageError 
   });
+  
+  // Enable auto-fit for first load
+  shouldAutoFit.value = true;
+  
   processProperties();
 });
 
@@ -789,7 +806,7 @@ const buildPipelineElements = async () => {
 };
 
 const onPipelineNodesInitialized = async () => {
-  await fitViewSmooth();
+  await fitViewSmooth(true, false); 
 };
 
 const handleAssetViewWithFilter = (filterState?: { filterType: "direct" | "all"; expandAllUpstreams: boolean; expandAllDownstreams: boolean }) => {
@@ -995,11 +1012,11 @@ const buildColumnElements = async () => {
 };
 
 const onColumnNodesInitialized = async () => {
-  await fitViewSmooth();
+  await fitViewSmooth(true, false); 
 };
 
 const onAssetNodesInitialized = async () => {
-  await fitViewSmooth();
+  await fitViewSmooth(true, false); 
 };
 
 const handleColumnHover = (assetName: string, columnName: string): void => {
