@@ -136,9 +136,9 @@
         :expandAllDownstreams="columnExpandAllDownstreams"
         :showPipelineView="false"
         :showColumnView="true"
-        @update:filterType="() => {}"
-        @update:expandAllUpstreams="() => {}"
-        @update:expandAllDownstreams="() => {}"
+        @update:filterType="(value) => { columnFilterType = value; }"
+        @update:expandAllUpstreams="(value) => { columnExpandAllUpstreams = value; }"
+        @update:expandAllDownstreams="(value) => { columnExpandAllDownstreams = value; }"
         @pipeline-view="handlePipelineView"
         @column-view="handleColumnLevelLineage"
         @asset-view="handleAssetViewWithFilter"
@@ -701,6 +701,11 @@ const handlePipelineView = async () => {
 const handleColumnLevelLineage = async () => {
   showColumnView.value = true;
   showPipelineView.value = false;
+  // Reset column filter state when entering column view
+  // Set to "all" so buttons are visible, but keep both toggles inactive
+  columnFilterType.value = "all";
+  columnExpandAllUpstreams.value = false;
+  columnExpandAllDownstreams.value = false;
   await buildColumnElements();
 };
 
@@ -827,8 +832,8 @@ const handleAssetViewWithFilter = (filterState?: { filterType: "direct" | "all";
 const columnSelectedNodeId = ref<string | null>(null);
 const columnExpandedNodes = ref<{ [key: string]: boolean }>({});
 const columnFilterType = ref<"direct" | "all">("all");
-const columnExpandAllUpstreams = ref(true);
-const columnExpandAllDownstreams = ref(true);
+const columnExpandAllUpstreams = ref(false);
+const columnExpandAllDownstreams = ref(false);
 const columnElements = ref<{ nodes: any[]; edges: any[] }>({ nodes: [], edges: [] });
 const hoveredColumn = ref<{ assetName: string; columnName: string } | null>(null);
 
