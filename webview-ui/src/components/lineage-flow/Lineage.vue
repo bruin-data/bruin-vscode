@@ -4,9 +4,6 @@
       <vscode-progress-ring></vscode-progress-ring>
       <span class="ml-2 text-editor-fg">Loading lineage data...</span>
     </div>
-    <div v-else-if="shouldShowError" class="error-message">
-      <span class="ml-2">{{ error }}</span>
-    </div>
     
     <!-- Asset View -->
     <VueFlow
@@ -128,6 +125,11 @@
       :node-draggable="true"
     >
       <Background />
+      
+      <!-- Error message on VueFlow background -->
+      <div v-if="shouldShowError" class="error-on-flow">
+        <div class="text-center text-editor-fg text-sm max-w-sm">{{ error }}</div>
+      </div>
       <FilterTab
         :filterType="columnFilterType"
         :expandAllUpstreams="columnExpandAllUpstreams"
@@ -252,7 +254,7 @@ const shouldShowError = computed(() => {
 });
 
 const shouldShowAssetView = computed(() => {
-  return !showPipelineView.value && !showColumnView.value && !shouldShowLoading.value && !shouldShowError.value;
+  return !showPipelineView.value && !showColumnView.value && !shouldShowLoading.value;
 });
 
 // ===== Asset View State =====
@@ -671,6 +673,7 @@ const handleAssetView = async (emittedData: {
 }) => {
   showPipelineView.value = false;
   showColumnView.value = false;
+  error.value = null; // Clear any column lineage errors when switching to asset view
   if (emittedData.filterState) {
     filterType.value = emittedData.filterState.filterType;
     expandAllUpstreams.value = emittedData.filterState.expandAllUpstreams;
@@ -691,6 +694,7 @@ const handleAssetView = async (emittedData: {
 const handlePipelineView = async () => {
   showPipelineView.value = true;
   showColumnView.value = false;
+  error.value = null; // Clear any column lineage errors when switching to pipeline view
   await buildPipelineElements();
 };
 
@@ -988,7 +992,7 @@ const buildColumnElements = async () => {
   if (!hasColumnData) {
     console.warn("No column lineage data available. The data may have been parsed without the -c flag.");
     columnElements.value = { nodes: [], edges: [] };
-    error.value = "No column lineage data found. To view column-level lineage, ensure the pipeline data includes column information by using the 'parse pipeline -c' command or refresh the lineage data.";
+    error.value = "No column lineage data found. To view column-level lineage, ensure the pipeline data includes column information";
     return;
   }
   error.value = null;
@@ -1088,7 +1092,7 @@ vscode-checkbox {
   @apply absolute top-0 left-0 z-10 flex items-center justify-center w-full h-full bg-editor-bg;
 }
 
-.error-message {
-  @apply flex items-center justify-center w-full h-full bg-editor-bg;
+.error-on-flow {
+  @apply absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 flex items-center justify-center p-4 bg-editor-bg border border-gray-300 rounded-md shadow-lg pointer-events-none;
 }
 </style>
