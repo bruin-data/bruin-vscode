@@ -5,6 +5,7 @@ import {
   createColumnNode, 
    
 } from '@/utilities/graphGenerator';
+import { findDownstreamAssets, getDownstreamAssetNames } from '@/utilities/assetDependencies';
 
 export const getAssetDatasetWithColumns = (
   pipelineData: any,
@@ -74,17 +75,15 @@ export const getAssetDatasetWithColumns = (
   };
 
   const deduceDownstream = (asset) => {
-    return pipelineData.assets
-      .filter(a => a.upstreams?.some(up => up.value === asset.name))
-      .map(a => ({
+    return getDownstreamAssetNames(asset.name, pipelineData.assets)
+      .map(name => ({
         type: "asset",
-        value: a.name
+        value: name
       }));
   };
 
   const getDownstreamAssets = (asset) => {
-    return pipelineData.assets
-      .filter(a => a.upstreams?.some(up => up.value === asset.name))
+    return findDownstreamAssets(asset.name, pipelineData.assets)
       .map(a => {
         const downstreams = deduceDownstream(a);
         return {

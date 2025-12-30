@@ -207,6 +207,7 @@ import {
   generateGraphForUpstream,
   generateColumnGraph
 } from "@/utilities/graphGenerator";
+import { fetchAllDownstreams, fetchAllUpstreams } from "@/utilities/assetDependencies";
 import { buildPipelineLineage, applyLayout as applyPipelineLayout } from "@/components/lineage-flow/pipeline-lineage/pipelineLineageBuilder";
 import { buildColumnLineage } from "@/components/lineage-flow/column-level/useColumnLevel";
 import type { AssetDataset } from "@/types";
@@ -315,14 +316,14 @@ const baseGraphData = computed(() => {
 const allDownstreamAssets = computed(() => {
   if (!props.assetDataset?.downstream || !expandAllDownstreams.value) return [];
   return props.assetDataset.downstream.reduce((acc: any[], downstream: any) => {
-    return acc.concat(fetchAllDownstreams(downstream.name));
+    return acc.concat(fetchAllDownstreams(downstream.name, props.pipelineData.assets));
   }, []);
 });
 
 const allUpstreamAssets = computed(() => {
   if (!props.assetDataset?.upstreams || !expandAllUpstreams.value) return [];
   return props.assetDataset.upstreams.reduce((acc: any[], upstream: any) => {
-    return acc.concat(fetchAllUpstreams(upstream.name));
+    return acc.concat(fetchAllUpstreams(upstream.name, props.pipelineData.assets));
   }, []);
 });
 
@@ -357,25 +358,7 @@ const currentGraphData = computed(() => {
   return { nodes: [], edges: [] };
 });
 
-const fetchAllDownstreams = (assetName: string, downstreamAssets: any[] = []): any[] => {
-  const currentAsset = props.pipelineData.assets.find((asset: any) => asset.name === assetName);
-  if (!currentAsset) return downstreamAssets;
-  downstreamAssets.push(currentAsset);
-  currentAsset?.downstream?.forEach((d: any) => {
-    fetchAllDownstreams(d.name, downstreamAssets);
-  });
-  return downstreamAssets;
-};
-
-const fetchAllUpstreams = (assetName: string, upstreamAssets: any[] = []): any[] => {
-  const currentAsset = props.pipelineData.assets.find((asset: any) => asset.name === assetName);
-  if (!currentAsset) return upstreamAssets;
-  upstreamAssets.push(currentAsset);
-  currentAsset?.upstreams?.forEach((u: any) => {
-    fetchAllUpstreams(u.name, upstreamAssets);
-  });
-  return upstreamAssets;
-};
+// Import utility functions to avoid duplication
 
 const applyLayout = async (inputNodes?: any[], inputEdges?: any[]) => {
   const nodesToLayout = inputNodes || nodes.value;
