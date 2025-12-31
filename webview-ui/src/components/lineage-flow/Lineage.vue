@@ -4,9 +4,6 @@
       <vscode-progress-ring></vscode-progress-ring>
       <span class="ml-2 text-editor-fg">Loading lineage data...</span>
     </div>
-    <div v-else-if="shouldShowError" class="error-message">
-      <span class="ml-2">{{ error }}</span>
-    </div>
     
     <!-- Asset View -->
     <VueFlow
@@ -128,15 +125,20 @@
       :node-draggable="true"
     >
       <Background />
+      
+      <!-- Error message on VueFlow background -->
+      <div v-if="shouldShowError" class="error-on-flow">
+        <div class="text-center text-editor-fg text-sm max-w-sm">{{ error }}</div>
+      </div>
       <FilterTab
         :filterType="columnFilterType"
         :expandAllUpstreams="columnExpandAllUpstreams"
         :expandAllDownstreams="columnExpandAllDownstreams"
         :showPipelineView="false"
         :showColumnView="true"
-        @update:filterType="() => {}"
-        @update:expandAllUpstreams="() => {}"
-        @update:expandAllDownstreams="() => {}"
+        @update:filterType="(value) => { columnFilterType = value; }"
+        @update:expandAllUpstreams="(value) => { columnExpandAllUpstreams = value; }"
+        @update:expandAllDownstreams="(value) => { columnExpandAllDownstreams = value; }"
         @pipeline-view="handlePipelineView"
         @column-view="handleColumnLevelLineage"
         @asset-view="handleAssetViewWithFilter"
@@ -194,7 +196,7 @@ import { Background } from "@vue-flow/background";
 import { Controls } from "@vue-flow/controls";
 import { MiniMap } from "@vue-flow/minimap";
 import "@vue-flow/controls/dist/style.css";
-import { computed, onMounted, defineProps, watch, ref, nextTick } from "vue";
+import { computed, onMounted, watch, ref, nextTick } from "vue";
 import ELK from "elkjs/lib/elk.bundled.js";
 import CustomNode from "@/components/lineage-flow/custom-nodes/CustomNodes.vue";
 import CustomNodeWithColumn from "@/components/lineage-flow/custom-nodes/CustomNodesWithColumn.vue";
@@ -205,6 +207,7 @@ import {
   generateGraphForUpstream,
   generateColumnGraph
 } from "@/utilities/graphGenerator";
+import { fetchAllDownstreams, fetchAllUpstreams } from "@/utilities/assetDependencies";
 import { buildPipelineLineage, applyLayout as applyPipelineLayout } from "@/components/lineage-flow/pipeline-lineage/pipelineLineageBuilder";
 import { buildColumnLineage } from "@/components/lineage-flow/column-level/useColumnLevel";
 import type { AssetDataset } from "@/types";
@@ -222,6 +225,7 @@ const showPipelineView = ref(false);
 const showColumnView = ref(false);
 const showLoadingIndicator = ref(false);
 let loadingTimer: NodeJS.Timeout | null = null;
+const shouldAutoFit = ref(true); 
 
 // Debug computed properties
 const shouldShowLoading = computed(() => {
@@ -251,7 +255,7 @@ const shouldShowError = computed(() => {
 });
 
 const shouldShowAssetView = computed(() => {
-  return !showPipelineView.value && !showColumnView.value && !shouldShowLoading.value && !shouldShowError.value;
+  return !showPipelineView.value && !showColumnView.value && !shouldShowLoading.value;
 });
 
 // ===== Asset View State =====
@@ -312,14 +316,14 @@ const baseGraphData = computed(() => {
 const allDownstreamAssets = computed(() => {
   if (!props.assetDataset?.downstream || !expandAllDownstreams.value) return [];
   return props.assetDataset.downstream.reduce((acc: any[], downstream: any) => {
-    return acc.concat(fetchAllDownstreams(downstream.name));
+    return acc.concat(fetchAllDownstreams(downstream.name, props.pipelineData.assets));
   }, []);
 });
 
 const allUpstreamAssets = computed(() => {
   if (!props.assetDataset?.upstreams || !expandAllUpstreams.value) return [];
   return props.assetDataset.upstreams.reduce((acc: any[], upstream: any) => {
-    return acc.concat(fetchAllUpstreams(upstream.name));
+    return acc.concat(fetchAllUpstreams(upstream.name, props.pipelineData.assets));
   }, []);
 });
 
@@ -354,25 +358,7 @@ const currentGraphData = computed(() => {
   return { nodes: [], edges: [] };
 });
 
-const fetchAllDownstreams = (assetName: string, downstreamAssets: any[] = []): any[] => {
-  const currentAsset = props.pipelineData.assets.find((asset: any) => asset.name === assetName);
-  if (!currentAsset) return downstreamAssets;
-  downstreamAssets.push(currentAsset);
-  currentAsset?.downstream?.forEach((d: any) => {
-    fetchAllDownstreams(d.name, downstreamAssets);
-  });
-  return downstreamAssets;
-};
-
-const fetchAllUpstreams = (assetName: string, upstreamAssets: any[] = []): any[] => {
-  const currentAsset = props.pipelineData.assets.find((asset: any) => asset.name === assetName);
-  if (!currentAsset) return upstreamAssets;
-  upstreamAssets.push(currentAsset);
-  currentAsset?.upstreams?.forEach((u: any) => {
-    fetchAllUpstreams(u.name, upstreamAssets);
-  });
-  return upstreamAssets;
-};
+// Import utility functions to avoid duplication
 
 const applyLayout = async (inputNodes?: any[], inputEdges?: any[]) => {
   const nodesToLayout = inputNodes || nodes.value;
@@ -483,16 +469,25 @@ const onNodesDragged = (draggedNodes: NodeDragEvent[]) => {
   );
 };
 
-// Fit view helper to mirror control behavior
-const fitViewSmooth = async () => {
+
+// Fit view helper - now with smart auto-fit logic
+const fitViewSmooth = async (forceAutoFit = false, useAnimation = false) => {
   await nextTick();
-  const duration = nextFitInstant.value ? 0 : 300;
-  nextFitInstant.value = false;
+  
+  // Only auto-fit if explicitly requested or first load
+  if (!forceAutoFit && !shouldAutoFit.value) {
+    return;
+  }
+  
+  const duration = useAnimation ? 300 : 0;
+  
   try {
     fitView({ padding: 0.2, duration });
+    shouldAutoFit.value = false; // Disable auto-fit after first use
   } catch (e) {
     await nextTick();
     fitView({ padding: 0.2, duration });
+    shouldAutoFit.value = false;
   }
 };
 
@@ -509,13 +504,14 @@ const _updateGraph = async () => {
         if (!layoutedGraphData) {
           layoutedGraphData = await applyLayout(graphData.nodes, graphData.edges);
           layoutCache.value.set(key, layoutedGraphData);
-        }
+        }      
         setNodes(layoutedGraphData.nodes);
         setEdges(layoutedGraphData.edges);
         isLayouting.value = false;
         isLoadingLocal.value = false;
         await nextTick();
-        await fitViewSmooth();
+        
+        await fitViewSmooth(true, false);
       } else {
         setNodes([]);
         setEdges([]);
@@ -604,7 +600,7 @@ const onAddUpstream = async (nodeId: string) => {
   setEdges(layoutedData.edges);
   await nextTick();
   isLayouting.value = false;
-  await fitViewSmooth();
+  await fitViewSmooth(false, false); 
   // Bump version so the next full recompute reflows with correct left/right ordering
   assetGraphVersion.value++;
 };
@@ -633,7 +629,7 @@ const onAddDownstream = async (nodeId: string) => {
   setEdges(layoutedData.edges);
   await nextTick();
   isLayouting.value = false;
-  await fitViewSmooth();
+  await fitViewSmooth(false, false); 
   assetGraphVersion.value++;
 };
 
@@ -660,6 +656,7 @@ const handleAssetView = async (emittedData: {
 }) => {
   showPipelineView.value = false;
   showColumnView.value = false;
+  error.value = null; // Clear any column lineage errors when switching to asset view
   if (emittedData.filterState) {
     filterType.value = emittedData.filterState.filterType;
     expandAllUpstreams.value = emittedData.filterState.expandAllUpstreams;
@@ -668,22 +665,30 @@ const handleAssetView = async (emittedData: {
       expandedNodes.value = {};
     }
   }
-  // Make the first fit instantaneous to avoid visible movement
-  nextFitInstant.value = true;
+  
   // Force FilterTab remount in asset view to close the panel
   assetFilterTabKey.value++;
+  
+  // Don't force auto-fit when switching back to asset view
+  // The _updateGraph function will handle viewport restoration
   await _updateGraph();
 };
 
 const handlePipelineView = async () => {
   showPipelineView.value = true;
   showColumnView.value = false;
+  error.value = null; // Clear any column lineage errors when switching to pipeline view
   await buildPipelineElements();
 };
 
 const handleColumnLevelLineage = async () => {
   showColumnView.value = true;
   showPipelineView.value = false;
+  // Reset column filter state when entering column view
+  // Set to "all" so buttons are visible, but keep both toggles inactive
+  columnFilterType.value = "all";
+  columnExpandAllUpstreams.value = false;
+  columnExpandAllDownstreams.value = false;
   await buildColumnElements();
 };
 
@@ -695,6 +700,10 @@ onMounted(() => {
     isLoading: props.isLoading,
     LineageError: props.LineageError 
   });
+  
+  // Enable auto-fit for first load
+  shouldAutoFit.value = true;
+  
   processProperties();
 });
 
@@ -789,7 +798,7 @@ const buildPipelineElements = async () => {
 };
 
 const onPipelineNodesInitialized = async () => {
-  await fitViewSmooth();
+  await fitViewSmooth(true, false); 
 };
 
 const handleAssetViewWithFilter = (filterState?: { filterType: "direct" | "all"; expandAllUpstreams: boolean; expandAllDownstreams: boolean }) => {
@@ -806,8 +815,8 @@ const handleAssetViewWithFilter = (filterState?: { filterType: "direct" | "all";
 const columnSelectedNodeId = ref<string | null>(null);
 const columnExpandedNodes = ref<{ [key: string]: boolean }>({});
 const columnFilterType = ref<"direct" | "all">("all");
-const columnExpandAllUpstreams = ref(true);
-const columnExpandAllDownstreams = ref(true);
+const columnExpandAllUpstreams = ref(false);
+const columnExpandAllDownstreams = ref(false);
 const columnElements = ref<{ nodes: any[]; edges: any[] }>({ nodes: [], edges: [] });
 const hoveredColumn = ref<{ assetName: string; columnName: string } | null>(null);
 
@@ -971,7 +980,7 @@ const buildColumnElements = async () => {
   if (!hasColumnData) {
     console.warn("No column lineage data available. The data may have been parsed without the -c flag.");
     columnElements.value = { nodes: [], edges: [] };
-    error.value = "No column lineage data found. To view column-level lineage, ensure the pipeline data includes column information by using the 'parse pipeline -c' command or refresh the lineage data.";
+    error.value = "No column lineage data found. To view column-level lineage, ensure the pipeline data includes column information";
     return;
   }
   error.value = null;
@@ -995,11 +1004,11 @@ const buildColumnElements = async () => {
 };
 
 const onColumnNodesInitialized = async () => {
-  await fitViewSmooth();
+  await fitViewSmooth(true, false); 
 };
 
 const onAssetNodesInitialized = async () => {
-  await fitViewSmooth();
+  await fitViewSmooth(true, false); 
 };
 
 const handleColumnHover = (assetName: string, columnName: string): void => {
@@ -1071,7 +1080,7 @@ vscode-checkbox {
   @apply absolute top-0 left-0 z-10 flex items-center justify-center w-full h-full bg-editor-bg;
 }
 
-.error-message {
-  @apply flex items-center justify-center w-full h-full bg-editor-bg;
+.error-on-flow {
+  @apply absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 flex items-center justify-center p-4 bg-editor-bg border border-gray-300 rounded-md shadow-lg pointer-events-none;
 }
 </style>
