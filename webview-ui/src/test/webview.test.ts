@@ -22,7 +22,13 @@ import FilterTab from "@/components/lineage-flow/filterTab/filterTab.vue";
 import "./mocks/vueFlow"; // Import the mocks
 import { buildPipelineLineage, generateGraph } from "@/components/lineage-flow/pipeline-lineage/pipelineLineageBuilder";
 import { buildColumnLineage, getAssetDatasetWithColumns } from "@/components/lineage-flow/column-level/useColumnLevel";
-import { generateColumnGraph, createColumnLevelEdges } from "@/utilities/graphGenerator";
+import { generateColumnGraph, createColumnLevelEdges, generateGraphFromJSON, generateGraphForUpstream, generateGraphForDownstream } from "@/utilities/graphGenerator";
+import { 
+  findDownstreamAssets, 
+  getDownstreamAssetNames,
+  fetchAllDownstreams, 
+  fetchAllUpstreams 
+} from '@/utilities/assetDependencies';
 import { mount } from "@vue/test-utils";
 
 // Mock VSCode API wrapper to control persistent webview state
@@ -1975,6 +1981,259 @@ suite('AssetLineage hover functionality', () => {
           ["value1", "a_val", "b_val", 42]
         ]);
       });
+    });
+  });
+
+  suite('Graph Generator - Complete Subgraph Connectivity', () => {
+    // Test data for diamond pattern: A→B, A→C, B→C
+    const mockPipelineData = {
+      assets: [
+        {
+          name: 'asset_a',
+          id: 'asset_a',
+          type: 'sql',
+          upstreams: []
+        },
+        {
+          name: 'asset_b',
+          id: 'asset_b', 
+          type: 'sql',
+          upstreams: [{ value: 'asset_a' }]
+        },
+        {
+          name: 'asset_c',
+          id: 'asset_c',
+          type: 'sql',
+          upstreams: [{ value: 'asset_a' }, { value: 'asset_b' }]
+        }
+      ]
+    };
+
+    const mockAssetA = {
+      id: 'asset_a',
+      name: 'asset_a',
+      type: 'sql',
+      isFocusAsset: true,
+      upstreams: [],
+      downstream: [
+        { name: 'asset_b', type: 'sql' },
+        { name: 'asset_c', type: 'sql' }
+      ]
+    };
+
+    const mockAssetB = {
+      id: 'asset_b',
+      name: 'asset_b',
+      type: 'sql',
+      isFocusAsset: true,
+      upstreams: [{ name: 'asset_a', type: 'sql' }],
+      downstream: [{ name: 'asset_c', type: 'sql' }]
+    };
+
+    const mockAssetC = {
+      id: 'asset_c',
+      name: 'asset_c',
+      type: 'sql',
+      isFocusAsset: true,
+      upstreams: [
+        { name: 'asset_a', type: 'sql' },
+        { name: 'asset_b', type: 'sql' }
+      ],
+      downstream: []
+    };
+
+    test('should generate complete subgraph edges when viewing asset A', () => {
+      const result = generateGraphFromJSON(mockAssetA, mockPipelineData);
+      
+      const edgeIds = result.edges.map(edge => edge.id);
+      
+      // Should include all edges in the diamond pattern
+      expect(edgeIds).toContain('asset_a-asset_b'); // Direct: A→B
+      expect(edgeIds).toContain('asset_a-asset_c'); // Direct: A→C  
+      expect(edgeIds).toContain('asset_b-asset_c'); // Complete subgraph: B→C
+      
+      // Should have 3 nodes
+      expect(result.nodes).toHaveLength(3);
+      expect(result.nodes.map(n => n.id)).toContain('asset_a');
+      expect(result.nodes.map(n => n.id)).toContain('asset_b');
+      expect(result.nodes.map(n => n.id)).toContain('asset_c');
+    });
+
+    test('should generate complete subgraph edges when viewing asset B', () => {
+      const result = generateGraphFromJSON(mockAssetB, mockPipelineData);
+      
+      const edgeIds = result.edges.map(edge => edge.id);
+      
+      // Should include all edges in the diamond pattern
+      expect(edgeIds).toContain('asset_a-asset_b'); // Direct: A→B
+      expect(edgeIds).toContain('asset_b-asset_c'); // Direct: B→C
+      expect(edgeIds).toContain('asset_a-asset_c'); // Complete subgraph: A→C
+    });
+
+    test('should generate complete subgraph edges when viewing asset C', () => {
+      const result = generateGraphFromJSON(mockAssetC, mockPipelineData);
+      
+      const edgeIds = result.edges.map(edge => edge.id);
+      
+      // Should include all edges in the diamond pattern
+      expect(edgeIds).toContain('asset_a-asset_c'); // Direct: A→C
+      expect(edgeIds).toContain('asset_b-asset_c'); // Direct: B→C  
+      expect(edgeIds).toContain('asset_a-asset_b'); // Complete subgraph: A→B
+    });
+
+    test('should not create duplicate edges', () => {
+      const result = generateGraphFromJSON(mockAssetA, mockPipelineData);
+      
+      const edgeIds = result.edges.map(edge => edge.id);
+      const uniqueEdgeIds = [...new Set(edgeIds)];
+      
+      // All edge IDs should be unique
+      expect(edgeIds).toEqual(uniqueEdgeIds);
+    });
+
+    test('should work without pipeline data (fallback)', () => {
+      const result = generateGraphFromJSON(mockAssetA);
+      
+      // Should still generate basic edges from asset data
+      expect(result.nodes.length).toBeGreaterThan(0);
+      expect(result.edges.length).toBeGreaterThan(0);
+    });
+  });
+
+  suite('Asset Dependencies - Recursive Fetching', () => {
+    // Test data for complex dependency chain
+    const mockPipelineAssets = [
+      {
+        name: 'raw_source',
+        id: 'raw_source',
+        upstreams: []
+      },
+      {
+        name: 'clean_data',
+        id: 'clean_data', 
+        upstreams: [{ value: 'raw_source' }]
+      },
+      {
+        name: 'feature_eng',
+        id: 'feature_eng',
+        upstreams: [{ value: 'clean_data' }]
+      },
+      {
+        name: 'model_training',
+        id: 'model_training',
+        upstreams: [{ value: 'feature_eng' }]
+      },
+      {
+        name: 'model_validation',
+        id: 'model_validation', 
+        upstreams: [{ value: 'model_training' }]
+      },
+      {
+        name: 'predictions',
+        id: 'predictions',
+        upstreams: [{ value: 'model_validation' }]
+      },
+      // Branch from feature_eng
+      {
+        name: 'analytics_report',
+        id: 'analytics_report',
+        upstreams: [{ value: 'feature_eng' }]
+      }
+    ];
+
+    test('should find direct downstream assets', () => {
+      const downstreams = findDownstreamAssets('clean_data', mockPipelineAssets);
+      
+      expect(downstreams).toHaveLength(1);
+      expect(downstreams[0].name).toBe('feature_eng');
+    });
+
+    test('should find multiple downstream assets', () => {
+      const downstreams = findDownstreamAssets('feature_eng', mockPipelineAssets);
+      
+      expect(downstreams).toHaveLength(2);
+      const names = downstreams.map(asset => asset.name);
+      expect(names).toContain('model_training');
+      expect(names).toContain('analytics_report');
+    });
+
+    test('should recursively fetch all downstream dependencies', () => {
+      const allDownstreams = fetchAllDownstreams('raw_source', mockPipelineAssets);
+      
+      const names = allDownstreams.map(asset => asset.name);
+      
+      // Should include raw_source itself
+      expect(names).toContain('raw_source');
+      
+      // Should include entire downstream chain
+      expect(names).toContain('clean_data');
+      expect(names).toContain('feature_eng');
+      expect(names).toContain('model_training');
+      expect(names).toContain('model_validation');
+      expect(names).toContain('predictions');
+      
+      // Should include branch
+      expect(names).toContain('analytics_report');
+      
+      // Total: 7 assets (including starting asset)
+      expect(allDownstreams).toHaveLength(7);
+    });
+
+    test('should recursively fetch all upstream dependencies', () => {
+      const allUpstreams = fetchAllUpstreams('predictions', mockPipelineAssets);
+      
+      const names = allUpstreams.map(asset => asset.name);
+      
+      // Should include predictions itself
+      expect(names).toContain('predictions');
+      
+      // Should include entire upstream chain
+      expect(names).toContain('model_validation');
+      expect(names).toContain('model_training');
+      expect(names).toContain('feature_eng');
+      expect(names).toContain('clean_data');
+      expect(names).toContain('raw_source');
+      
+      // Total: 6 assets (full chain)
+      expect(allUpstreams).toHaveLength(6);
+    });
+
+    test('should prevent infinite loops in circular dependencies', () => {
+      const circularAssets = [
+        {
+          name: 'asset_a',
+          id: 'asset_a',
+          upstreams: [{ value: 'asset_c' }] // Creates circle: A→B→C→A
+        },
+        {
+          name: 'asset_b',
+          id: 'asset_b', 
+          upstreams: [{ value: 'asset_a' }]
+        },
+        {
+          name: 'asset_c',
+          id: 'asset_c',
+          upstreams: [{ value: 'asset_b' }]
+        }
+      ];
+
+      const allDownstreams = fetchAllDownstreams('asset_a', circularAssets);
+      
+      // Should not hang and should include each asset only once
+      expect(allDownstreams).toHaveLength(3);
+      
+      const names = allDownstreams.map(asset => asset.name);
+      expect(names).toContain('asset_a');
+      expect(names).toContain('asset_b'); 
+      expect(names).toContain('asset_c');
+    });
+
+    test('should handle empty pipeline assets array', () => {
+      const downstreams = fetchAllDownstreams('any_asset', []);
+      expect(downstreams).toHaveLength(0);
+      
+      const upstreams = fetchAllUpstreams('any_asset', []);
+      expect(upstreams).toHaveLength(0);
     });
   });
 });
