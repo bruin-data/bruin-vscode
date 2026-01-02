@@ -5,8 +5,53 @@ import { processUpstreamAssets, processDownstreamAssets } from "@/components/lin
 import type { AssetColumnInfo, ColumnInfo, ColumnLineage, ColumnUpstream } from '@/types';
 import type { Node, Edge } from "@vue-flow/core";
 
-// Asset-level graph generation
-export const generateGraphFromJSON = (asset) => {
+/**
+ * Generate edges between all assets in a subgraph using pipeline data to show complete connectivity
+ */
+const generateCompleteSubgraphEdges = (assets: any[], pipelineData?: any): any[] => {
+  const edges: any[] = [];
+  const assetNames = new Set(assets.map(asset => asset.name));
+  
+  // If we don't have pipeline data, fall back to asset-level data
+  if (!pipelineData) {
+    assets.forEach(asset => {
+      asset.downstream?.forEach((downstreamAsset: any) => {
+        if (assetNames.has(downstreamAsset.name)) {
+          edges.push({
+            id: `${asset.name}-${downstreamAsset.name}`,
+            source: asset.name,
+            target: downstreamAsset.name
+          });
+        }
+      });
+    });
+    return edges;
+  }
+
+  // Use pipeline data to find ALL relationships between assets in subgraph
+  pipelineData.assets.forEach((asset: any) => {
+    // Only process assets that are in our subgraph
+    if (!assetNames.has(asset.name)) return;
+    
+    // Check each upstream relationship
+    asset.upstreams?.forEach((upstream: any) => {
+      // If the upstream is also in our subgraph, create edge
+      if (assetNames.has(upstream.value)) {
+        const edgeId = `${upstream.value}-${asset.name}`;
+        edges.push({
+          id: edgeId,
+          source: upstream.value,
+          target: asset.name
+        });
+      }
+    });
+  });
+
+  return edges;
+};
+
+// Asset-level graph generation  
+export const generateGraphFromJSON = (asset, pipelineData?: any) => {
   const localNodes = new Map();
   const localEdges: any[] = [];
 
@@ -55,7 +100,18 @@ export const generateGraphFromJSON = (asset) => {
   };
 
   processAsset(asset, asset.isFocusAsset);
-  return { nodes: Array.from(localNodes.values()), edges: localEdges };
+  
+  // Generate additional edges between non-focal assets in the subgraph
+  const allAssets = [asset, ...(asset.upstreams || []), ...(asset.downstream || [])];
+  const completeEdges = generateCompleteSubgraphEdges(allAssets, pipelineData);
+  
+  // Merge edges, avoiding duplicates
+  const allEdges = [...localEdges, ...completeEdges];
+  const uniqueEdges = allEdges.filter((edge, index, arr) => 
+    arr.findIndex(e => e.id === edge.id) === index
+  );
+  
+  return { nodes: Array.from(localNodes.values()), edges: uniqueEdges };
 };
 
 export const generateGraphForUpstream = (nodeName: string, pipelineData: any, focusAssetId: string) => {
@@ -65,11 +121,13 @@ export const generateGraphForUpstream = (nodeName: string, pipelineData: any, fo
   const upstream = getAssetDataset(pipelineData, upstreamAsset.id);
   const focusAssetUpstreavms = pipelineData.assets.find((asset: any) => asset.id === focusAssetId)?.upstreams.map((upstream: any) => upstream.value) || [];
 
-  return generateGraphFromJSON({
+  const baseResult = generateGraphFromJSON({
     ...upstream,
     downstream: [],
     isFocusAsset: false,
-  });
+  }, pipelineData);
+  
+  return baseResult;
 };
 
 export const generateGraphForDownstream = (nodeName: string, pipelineData: any) => {
@@ -77,11 +135,13 @@ export const generateGraphForDownstream = (nodeName: string, pipelineData: any) 
   if (!downstreamAsset) return { nodes: [], edges: [] };
 
   const downstream = getAssetDataset(pipelineData, downstreamAsset.id);
-  return generateGraphFromJSON({
+  const baseResult = generateGraphFromJSON({
     ...downstream,
     upstreams: [],
     isFocusAsset: false,
-  });
+  }, pipelineData);
+  
+  return baseResult;
 };
 
 // Column-level graph generation utilities
