@@ -44,6 +44,7 @@ export class BruinTableDiff extends BruinCommand {
     ];
 
     console.log(`BruinTableDiff: Executing data-diff with explicit connections:`, args);
+    console.log(`BruinTableDiff: Full command: bruin data-diff ${args.join(' ')}`);
     
     try {
       const { promise, process } = this.runCancellable(args, options);
@@ -51,6 +52,12 @@ export class BruinTableDiff extends BruinCommand {
 
       const result = await promise;
       console.log(`BruinTableDiff: Command completed successfully`);
+      console.log(`BruinTableDiff: Result length: ${result.length} characters`);
+      if (result.length > 0) {
+        console.log(`BruinTableDiff: Result preview (first 300 chars): ${result.substring(0, 300)}`);
+      } else {
+        console.warn(`BruinTableDiff: WARNING - Empty result returned!`);
+      }
       return result;
     } catch (error) {
       console.error(`BruinTableDiff: Command failed:`, error);

@@ -323,7 +323,13 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
         const { workspaceFolder, connections } = await this.getWorkspaceSetup();
         const tableDiff = new BruinTableDiff(getBruinExecutablePath(), workspaceFolder);
         
-        // Use explicit connection mode: connection_name:table_name format
+        console.log(`TableDiffPanel: Comparing tables:`);
+        console.log(`  Working directory: ${workspaceFolder}`);
+        console.log(`  Source: ${sourceConnection} -> ${sourceTable}`);
+        console.log(`  Target: ${targetConnection} -> ${targetTable}`);
+        console.log(`  Schema only: ${schemaOnly}`);
+        console.log(`  Executable path: ${getBruinExecutablePath()}`);
+        
         const result = await tableDiff.compareTables(
           sourceConnection,
           sourceTable,
@@ -332,6 +338,15 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
           schemaOnly
         );
 
+        console.log(`TableDiffPanel: Received result, length: ${result.length}`);
+        if (result.length === 0) {
+          console.error(`TableDiffPanel: ERROR - Empty result received!`);
+          console.error(`TableDiffPanel: This might indicate:`);
+          console.error(`  1. The command failed silently`);
+          console.error(`  2. Output is being written to stderr instead of stdout`);
+          console.error(`  3. The working directory or connection configuration is incorrect`);
+        }
+        
         const sourceInfo = `${sourceConnection}:${sourceTable}`;
         const targetInfo = `${targetConnection}:${targetTable}`;
         
@@ -369,13 +384,21 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
   }
 
   private showResults(source: string, target: string, results: string): void {
+    console.log(`TableDiffPanel: showResults called with:`);
+    console.log(`  Source: ${source}`);
+    console.log(`  Target: ${target}`);
+    console.log(`  Results length: ${results.length}`);
+    console.log(`  Results preview: ${results.substring(0, 200)}...`);
+    
     if (TableDiffPanel._view) {
       TableDiffPanel._view.webview.postMessage({
         command: 'showResults',
         source,
         target,
-        results
+        results: results || '' // Ensure we always send a string, even if empty
       });
+    } else {
+      console.warn(`TableDiffPanel: _view is not available, cannot send results`);
     }
   }
 

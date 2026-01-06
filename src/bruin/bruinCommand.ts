@@ -162,6 +162,10 @@ export abstract class BruinCommand {
         const output = data.toString();
         stdout += output;
         
+        if (!BruinCommand.isTestMode) {
+          console.log(`[${new Date().toISOString()}] Received stdout data: ${output.length} bytes`);
+        }
+        
         // Capture stdout messages
         const timestamp = new Date().toISOString();
         const lines = output.trim().split('\n').filter((line: string) => line.length > 0);
@@ -177,6 +181,13 @@ export abstract class BruinCommand {
       proc.stderr?.on("data", (data) => {
         const output = data.toString();
         stderr += output;
+        
+        if (!BruinCommand.isTestMode) {
+          console.log(`[${new Date().toISOString()}] Received stderr data: ${output.length} bytes`);
+          if (output.length > 0) {
+            console.log(`[${new Date().toISOString()}] stderr content: ${output.substring(0, 500)}`);
+          }
+        }
         
         // Capture stderr messages
         const timestamp = new Date().toISOString();
@@ -213,7 +224,20 @@ export abstract class BruinCommand {
           });
           reject(new Error("Command was cancelled"));
         } else if (code === 0) {
-          resolve(removeAnsiColors(stdout));
+          // Log for debugging
+          console.log(`[${new Date().toISOString()}] Command succeeded - exit code: ${code}`);
+          console.log(`[${new Date().toISOString()}] stdout length: ${stdout.length}, stderr length: ${stderr.length}`);
+          
+          if (stdout.length === 0 && stderr.length > 0) {
+            console.warn(`[${new Date().toISOString()}] WARNING: stdout is empty but stderr has ${stderr.length} bytes. Using stderr as output.`);
+            console.warn(`[${new Date().toISOString()}] stderr content preview: ${stderr.substring(0, 500)}`);
+            resolve(removeAnsiColors(stderr));
+          } else if (stdout.length === 0 && stderr.length === 0) {
+            console.warn(`[${new Date().toISOString()}] WARNING: Both stdout and stderr are empty! Command may have produced no output.`);
+            resolve("");
+          } else {
+            resolve(removeAnsiColors(stdout));
+          }
         } else {
           if (!BruinCommand.isTestMode) {
             console.error(`[${new Date().toISOString()}] Command failed after ${duration}ms:`, stderr || stdout);
