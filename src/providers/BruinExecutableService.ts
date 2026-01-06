@@ -36,6 +36,12 @@ export class BruinExecutableService {
    * Get the Bruin executable path, using cache if available
    */
   public getExecutablePath(): string {
+    // TODO: TEMPORARY - Remove after testing
+    const testPath = path.join(os.homedir(), "Documents", "Projects", "bruin", "bin", "bruin");
+    this.cachedExecutablePath = testPath;
+    return testPath;
+    
+    /* TEMPORARILY COMMENTED OUT FOR TESTING
     const currentTime = Date.now();
     
     // Return cached value if it exists and is still valid
@@ -98,6 +104,7 @@ export class BruinExecutableService {
       this.cachedExecutablePath = bruinExecutable;
       return bruinExecutable;
     }
+    END TEMPORARILY COMMENTED OUT */
   }
 
   /**

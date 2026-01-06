@@ -40,6 +40,7 @@ export class BruinTableDiff extends BruinCommand {
     const args = [
       `${sourceConnection}:${sourceTable}`,
       `${targetConnection}:${targetTable}`,
+      "-o", "json",
       ...(schemaOnly ? ["--schema-only"] : [])
     ];
 
