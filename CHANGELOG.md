@@ -1,4 +1,7 @@
 # Changelog
+### [0.72.3] - [2025-12-31]
+- Improved dependency expansion to show complete graph connectivity.
+
 ## [0.72.2] - [2025-12-19]
 - Fixed the BigQuery cost estimate to conditionally display based on the asset type.
 

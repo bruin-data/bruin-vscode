@@ -310,7 +310,7 @@ const computeCacheKey = (): string => {
 
 const baseGraphData = computed(() => {
   if (!props.assetDataset) return { nodes: [], edges: [] };
-  return generateGraphFromJSON(props.assetDataset);
+  return generateGraphFromJSON(props.assetDataset, props.pipelineData);
 });
 
 const allDownstreamAssets = computed(() => {
