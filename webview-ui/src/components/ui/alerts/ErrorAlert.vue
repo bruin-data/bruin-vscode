@@ -62,37 +62,70 @@
 
         <!-- Full Pipeline Validation Display -->
         <div v-else>
-          <div @click="toggleExpansion(index)" class="flex items-center cursor-pointer mt-4">
-            <component
-              :is="errorMessage.expanded ? ChevronDownIcon : ChevronRightIcon"
-              class="h-5 w-5 text-red-500"
-              aria-hidden="true"
-            />
-            <span class="ml-2 text-red-700">Pipeline: {{ errorMessage.pipeline }}</span>
-          </div>
-          <div v-if="errorMessage.expanded" class="ml-5 mt-2">
-            <div v-for="(issue, issueIndex) in errorMessage.issues" :key="issueIndex" class="mb-2">
-              <h4 v-if="issue.asset" class="text-md font-semibold text-gray-900">
-                Asset: {{ issue.asset }}
-              </h4>
-              <p class="text-sm text-red-600">{{ issue.description }}</p>
-              <div v-if="issue.context.length" class="flex items-center space-x-1 mt-2 justify-end">
-                <button
-                  @click="toggleIssueExpansion(index, issueIndex)"
-                  class="text-xs text-red-700 flex items-center"
-                >
-                  <span class="mr-1">Details</span>
-                  <component
-                    :is="issue.expanded ? ChevronUpIcon : ChevronDownIcon"
-                    class="h-4 w-4"
-                    aria-hidden="true"
-                  />
-                </button>
+          <!-- Single Pipeline: No collapse functionality -->
+          <div v-if="processedErrors.length === 1" class="mt-4">
+            <h4 class="text-md font-semibold text-red-700">Pipeline: {{ errorMessage.pipeline }}</h4>
+            <div class="mt-2">
+              <div v-for="(issue, issueIndex) in errorMessage.issues" :key="issueIndex" class="mb-2">
+                <h4 v-if="issue.asset" class="text-md font-semibold text-gray-900">
+                  Asset: {{ issue.asset }}
+                </h4>
+                <p class="text-sm text-red-600">{{ issue.description }}</p>
+                <div v-if="issue.context.length" class="flex items-center space-x-1 mt-2 justify-end">
+                  <button
+                    @click="toggleIssueExpansion(index, issueIndex)"
+                    class="text-xs text-red-700 flex items-center"
+                  >
+                    <span class="mr-1">Details</span>
+                    <component
+                      :is="issue.expanded ? ChevronUpIcon : ChevronDownIcon"
+                      class="h-4 w-4"
+                      aria-hidden="true"
+                    />
+                  </button>
+                </div>
+                <div v-if="issue.expanded" class="text-sm text-gray-700 ml-1 mt-1 w-full">
+                  <pre class="whitespace-pre-wrap bg-red-100 rounded p-2">{{
+                    issue.context.join("\n")
+                  }}</pre>
+                </div>
               </div>
-              <div v-if="issue.expanded" class="text-sm text-gray-700 ml-1 mt-1 w-full">
-                <pre class="whitespace-pre-wrap bg-red-100 rounded p-2">{{
-                  issue.context.join("\n")
-                }}</pre>
+            </div>
+          </div>
+          <!-- Multiple Pipelines: Show with collapse functionality -->
+          <div v-else>
+            <div @click="toggleExpansion(index)" class="flex items-center cursor-pointer mt-4">
+              <component
+                :is="errorMessage.expanded ? ChevronDownIcon : ChevronRightIcon"
+                class="h-5 w-5 text-red-500"
+                aria-hidden="true"
+              />
+              <span class="ml-2 text-red-700">Pipeline: {{ errorMessage.pipeline }}</span>
+            </div>
+            <div v-if="errorMessage.expanded" class="ml-5 mt-2">
+              <div v-for="(issue, issueIndex) in errorMessage.issues" :key="issueIndex" class="mb-2">
+                <h4 v-if="issue.asset" class="text-md font-semibold text-gray-900">
+                  Asset: {{ issue.asset }}
+                </h4>
+                <p class="text-sm text-red-600">{{ issue.description }}</p>
+                <div v-if="issue.context.length" class="flex items-center space-x-1 mt-2 justify-end">
+                  <button
+                    @click="toggleIssueExpansion(index, issueIndex)"
+                    class="text-xs text-red-700 flex items-center"
+                  >
+                    <span class="mr-1">Details</span>
+                    <component
+                      :is="issue.expanded ? ChevronUpIcon : ChevronDownIcon"
+                      class="h-4 w-4"
+                      aria-hidden="true"
+                    />
+                  </button>
+                </div>
+                <div v-if="issue.expanded" class="text-sm text-gray-700 ml-1 mt-1 w-full">
+                  <pre class="whitespace-pre-wrap bg-red-100 rounded p-2">{{
+                    issue.context.join("\n")
+                  }}</pre>
+                </div>
               </div>
             </div>
           </div>
