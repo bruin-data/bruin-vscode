@@ -1,4 +1,7 @@
 # Changelog
+## [0.72.4] - [2026-01-06]
+- Improved the validation errors display.
+
 ### [0.72.3] - [2025-12-31]
 - Improved dependency expansion to show complete graph connectivity.
 
