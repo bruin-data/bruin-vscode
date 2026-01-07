@@ -80,6 +80,26 @@
           </div>
         </div>
         
+        <!-- Legend -->
+        <div class="flex items-center gap-4 mb-2 px-1 py-1.5 bg-editorWidget-bg/50 rounded text-2xs">
+          <span class="flex items-center gap-1">
+            <span class="px-1 py-0.5 rounded bg-green-500/20 text-green-400">+ Target</span>
+            <span class="text-editor-fg opacity-40">only in target</span>
+          </span>
+          <span class="flex items-center gap-1">
+            <span class="px-1 py-0.5 rounded bg-red-500/20 text-red-400">− Source</span>
+            <span class="text-editor-fg opacity-40">only in source</span>
+          </span>
+          <span class="flex items-center gap-1">
+            <span class="px-1 py-0.5 rounded bg-yellow-500/20 text-yellow-400">≠ Diff</span>
+            <span class="text-editor-fg opacity-40">type differs</span>
+          </span>
+          <span class="flex items-center gap-1">
+            <span class="px-1 py-0.5 rounded bg-editor-fg/10 text-editor-fg opacity-60">= Match</span>
+            <span class="text-editor-fg opacity-40">identical</span>
+          </span>
+        </div>
+
         <div class="flex items-center justify-between mb-1 px-1">
           <span class="text-xs text-editor-fg opacity-60">
             {{ filteredSchemaColumns.length }} columns{{ schemaChangesCount > 0 ? ` • ${schemaChangesCount} changes` : '' }}
@@ -125,9 +145,11 @@
               class="flex items-center justify-between px-2 py-1.5 cursor-pointer hover:bg-editor-bg"
             >
               <div class="flex items-center gap-2">
-                <span :class="getStatusIcon(column.status)" class="text-xs"></span>
+                <span :class="getStatusBadge(column.status).class" class="text-2xs px-1.5 py-0.5 rounded font-medium">
+                  {{ getStatusBadge(column.status).label }}
+                </span>
                 <span class="font-mono text-editor-fg text-xs font-medium">{{ column.name }}</span>
-                <span class="text-xs text-editor-fg opacity-50">{{ column.type?.source || column.type?.target }}</span>
+                <span class="text-xs text-editor-fg opacity-50">{{ getTypeDisplay(column) }}</span>
               </div>
               <span class="codicon text-editor-fg opacity-40 text-xs" :class="expandedColumns.includes(column.name) ? 'codicon-chevron-down' : 'codicon-chevron-right'"></span>
             </div>
@@ -516,13 +538,27 @@ function copyAlterStatements() {
   }
 }
 
-function getStatusIcon(status: string): string {
+function getStatusBadge(status: string): { label: string; class: string } {
   switch (status) {
-    case 'added': return 'codicon codicon-add text-green-500';
-    case 'removed': return 'codicon codicon-remove text-red-500';
-    case 'modified': return 'codicon codicon-circle-filled text-yellow-500';
-    default: return 'codicon codicon-check text-editor-fg opacity-40';
+    case 'added': 
+      return { label: '+ Target', class: 'bg-green-500/20 text-green-400' };
+    case 'removed': 
+      return { label: '− Source', class: 'bg-red-500/20 text-red-400' };
+    case 'modified': 
+      return { label: '≠ Diff', class: 'bg-yellow-500/20 text-yellow-400' };
+    default: 
+      return { label: '= Match', class: 'bg-editor-fg/10 text-editor-fg opacity-60' };
   }
+}
+
+function getTypeDisplay(column: ColumnDiff): string {
+  const source = column.type?.source || '-';
+  const target = column.type?.target || '-';
+  
+  if (source === '-') return target;
+  if (target === '-') return source;
+  if (source !== target) return `${source} → ${target}`;
+  return source;
 }
 
 function getDataTypeIcon(dataType: string): string {
