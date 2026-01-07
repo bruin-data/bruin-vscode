@@ -149,6 +149,35 @@
             </div>
           </div>
         </div>
+        
+        <!-- ALTER Statements -->
+        <div v-if="parsedData.alterStatements" class="mt-3 px-1">
+          <div class="border border-panel-border rounded bg-editorWidget-bg overflow-hidden">
+            <div 
+              @click="showAlterStatements = !showAlterStatements"
+              class="flex items-center justify-between px-2 py-1.5 cursor-pointer hover:bg-editor-bg"
+            >
+              <div class="flex items-center gap-2">
+                <span class="codicon codicon-database text-yellow-500 text-xs"></span>
+                <span class="text-xs font-medium text-editor-fg">Sync SQL</span>
+                <span class="text-2xs text-editor-fg opacity-50">ALTER statements to match source</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <button 
+                  @click.stop="copyAlterStatements"
+                  class="p-0.5 text-editor-fg opacity-60 hover:opacity-100"
+                  :title="copiedAlter ? 'Copied!' : 'Copy SQL'"
+                >
+                  <span :class="copiedAlter ? 'codicon codicon-check text-green-500' : 'codicon codicon-copy'" class="text-xs"></span>
+                </button>
+                <span class="codicon text-editor-fg opacity-40 text-xs" :class="showAlterStatements ? 'codicon-chevron-down' : 'codicon-chevron-right'"></span>
+              </div>
+            </div>
+            <div v-if="showAlterStatements" class="border-t border-panel-border bg-editor-bg p-2">
+              <pre class="text-xs font-mono text-editor-fg whitespace-pre-wrap">{{ parsedData.alterStatements }}</pre>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Data Tab -->
@@ -320,6 +349,8 @@ const typeFilter = ref('all');
 const activeTab = ref('schema');
 const showImportantOnly = ref(false);
 const expandedColumns = ref<string[]>([]);
+const showAlterStatements = ref(false);
+const copiedAlter = ref(false);
 
 // Parse the raw output
 const parsedData = computed<ParsedDiff>(() => {
@@ -454,6 +485,16 @@ function expandAll(tabType: 'schema' | 'data') {
     expandedColumns.value = filteredSchemaColumns.value.map(c => c.name);
   } else {
     expandedColumns.value = filteredDataColumns.value.map(c => c.columnName);
+  }
+}
+
+function copyAlterStatements() {
+  if (parsedData.value.alterStatements) {
+    navigator.clipboard.writeText(parsedData.value.alterStatements);
+    copiedAlter.value = true;
+    setTimeout(() => {
+      copiedAlter.value = false;
+    }, 2000);
   }
 }
 
