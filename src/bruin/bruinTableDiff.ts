@@ -1,12 +1,17 @@
 import { BruinCommandOptions } from "../types";
 import { BruinCommand } from "./bruinCommand";
+import { getBruinVersion, parseVersion, versionGte } from "./bruinUtils";
 import * as child_process from "child_process";
+
+// Minimum version that supports -o json flag for data-diff
+const MIN_JSON_OUTPUT_VERSION = "0.11.404";
 
 /**
  * Extends the BruinCommand class to implement the bruin data-diff command.
  */
 export class BruinTableDiff extends BruinCommand {
   private static runningProcess: child_process.ChildProcess | null = null;
+  private static supportsJsonOutput: boolean | null = null;
 
   /**
    * Specifies the Bruin command string.
@@ -15,6 +20,34 @@ export class BruinTableDiff extends BruinCommand {
    */
   protected bruinCommand(): string {
     return "data-diff";
+  }
+
+  /**
+   * Checks if the current CLI version supports JSON output for data-diff.
+   * Caches the result for subsequent calls.
+   */
+  private async checkJsonOutputSupport(): Promise<boolean> {
+    if (BruinTableDiff.supportsJsonOutput !== null) {
+      return BruinTableDiff.supportsJsonOutput;
+    }
+
+    try {
+      const versionInfo = await getBruinVersion();
+      if (versionInfo) {
+        const current = parseVersion(versionInfo.version);
+        const minimum = parseVersion(MIN_JSON_OUTPUT_VERSION);
+        BruinTableDiff.supportsJsonOutput = versionGte(current, minimum);
+        console.log(`BruinTableDiff: CLI version ${versionInfo.version}, JSON output supported: ${BruinTableDiff.supportsJsonOutput}`);
+      } else {
+        BruinTableDiff.supportsJsonOutput = false;
+        console.warn("BruinTableDiff: Could not determine CLI version, JSON output disabled");
+      }
+    } catch (error) {
+      console.error("BruinTableDiff: Version check failed:", error);
+      BruinTableDiff.supportsJsonOutput = false;
+    }
+
+    return BruinTableDiff.supportsJsonOutput;
   }
 
   /**
@@ -37,10 +70,13 @@ export class BruinTableDiff extends BruinCommand {
     schemaOnly: boolean = false,
     options: BruinCommandOptions = {}
   ): Promise<string> {
+    // Check if JSON output is supported
+    const useJsonOutput = await this.checkJsonOutputSupport();
+
     const args = [
       `${sourceConnection}:${sourceTable}`,
       `${targetConnection}:${targetTable}`,
-      "-o", "json",
+      ...(useJsonOutput ? ["-o", "json"] : []),
       ...(schemaOnly ? ["--schema-only"] : [])
     ];
 
@@ -81,5 +117,8 @@ export class BruinTableDiff extends BruinCommand {
     }
   }
 
-
+  /** Reset the cached version check (useful when CLI is updated). */
+  public static resetVersionCache(): void {
+    BruinTableDiff.supportsJsonOutput = null;
+  }
 }

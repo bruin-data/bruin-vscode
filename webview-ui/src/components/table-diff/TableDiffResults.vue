@@ -1,7 +1,15 @@
 <template>
   <div class="flex flex-col h-full">
-    <!-- Summary Bar -->
-    <div class="flex items-center py-2 px-3 bg-editorWidget-bg border-b border-panel-border">
+    <!-- Legacy CLI Warning -->
+    <div v-if="isLegacyOutput" class="flex items-center gap-2 py-2 px-3 bg-yellow-500/10 border-b border-yellow-500/30">
+      <span class="codicon codicon-warning text-yellow-500"></span>
+      <span class="text-xs text-editor-fg">
+        Update Bruin CLI to v0.11.404+ for detailed comparison results. 
+      </span>
+    </div>
+
+    <!-- Summary Bar (only show if we have data) -->
+    <div v-if="!isLegacyOutput" class="flex items-center py-2 px-3 bg-editorWidget-bg border-b border-panel-border">
       <div class="flex items-center gap-3">
         <span class="codicon codicon-diff-multiple text-editor-fg opacity-60"></span>
         <span class="text-sm text-editor-fg">
@@ -12,8 +20,13 @@
       </div>
     </div>
 
-    <!-- Tab Navigation -->
-    <div class="flex items-center border-b border-panel-border bg-editor-bg">
+    <!-- Legacy Raw Output -->
+    <div v-if="isLegacyOutput" class="flex-1 overflow-auto p-3 bg-editor-bg">
+      <pre class="text-xs font-mono text-editor-fg whitespace-pre-wrap">{{ rawOutput }}</pre>
+    </div>
+
+    <!-- Tab Navigation (hide in legacy mode) -->
+    <div v-if="!isLegacyOutput" class="flex items-center border-b border-panel-border bg-editor-bg">
       <button
         v-for="tab in tabs"
         :key="tab.id"
@@ -36,8 +49,8 @@
       </button>
     </div>
 
-    <!-- Tab Content -->
-    <div class="flex-1 overflow-auto bg-editor-bg">
+    <!-- Tab Content (hide in legacy mode) -->
+    <div v-if="!isLegacyOutput" class="flex-1 overflow-auto bg-editor-bg">
       <!-- Schema Tab -->
       <div v-if="activeTab === 'schema'" class="p-2">
         <!-- Search & Filter Bar for Schema -->
@@ -352,11 +365,15 @@ const expandedColumns = ref<string[]>([]);
 const showAlterStatements = ref(false);
 const copiedAlter = ref(false);
 
+// Track if we're using legacy (non-JSON) output
+const isLegacyOutput = ref(false);
+
 // Parse the raw output
 const parsedData = computed<ParsedDiff>(() => {
   try {
     // Try to parse as JSON first
     const parsed = JSON.parse(props.rawOutput);
+    isLegacyOutput.value = false;
     return {
       summary: parsed.summary || { rowCount: { source: 0, target: 0, diff: 0 }, columnCount: { source: 0, target: 0, diff: 0 } },
       schemaDiffs: parsed.schemaDiffs || [],
@@ -364,7 +381,8 @@ const parsedData = computed<ParsedDiff>(() => {
       alterStatements: parsed.alterStatements || ''
     };
   } catch {
-    // If not JSON, try to parse the text output
+    // If not JSON, we're in legacy mode
+    isLegacyOutput.value = true;
     return parseTextOutput(props.rawOutput);
   }
 });
