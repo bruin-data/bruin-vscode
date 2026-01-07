@@ -1,67 +1,14 @@
 <template>
   <div class="flex flex-col h-full">
     <!-- Summary Bar -->
-    <div class="flex items-center justify-between py-2 px-3 bg-editorWidget-bg border-b border-panel-border">
+    <div class="flex items-center py-2 px-3 bg-editorWidget-bg border-b border-panel-border">
       <div class="flex items-center gap-3">
         <span class="codicon codicon-diff-multiple text-editor-fg opacity-60"></span>
         <span class="text-sm text-editor-fg">
           <span class="font-semibold">{{ summary.rowCount.source }}</span>→<span class="font-semibold">{{ summary.rowCount.target }}</span> rows
           •
           <span class="font-semibold">{{ summary.columnCount.source }}</span>→<span class="font-semibold">{{ summary.columnCount.target }}</span> columns
-          •
         </span>
-        <span :class="impactBadgeClass" class="text-xs px-2 py-0.5 rounded">
-          {{ impactLevel }} Impact
-        </span>
-      </div>
-      <div class="flex items-center gap-2">
-        <button
-          @click="showImportantOnly = !showImportantOnly"
-          :class="[
-            'px-3 py-1 text-xs rounded transition-colors',
-            showImportantOnly 
-              ? 'bg-blue-600 text-white' 
-              : 'bg-editorWidget-bg text-editor-fg border border-panel-border hover:bg-editor-bg'
-          ]"
-        >
-          {{ showImportantOnly ? 'Important Only' : 'Show All' }}
-        </button>
-        <button class="p-1 text-editor-fg opacity-60 hover:opacity-100" title="View Code" @click="$emit('viewCode')">
-          <span class="codicon codicon-code"></span>
-        </button>
-        <button class="p-1 text-editor-fg opacity-60 hover:opacity-100" title="Copy" @click="copyResults">
-          <span class="codicon codicon-copy"></span>
-        </button>
-        <button class="p-1 text-editor-fg opacity-60 hover:opacity-100" title="Raw Output" @click="$emit('toggleRaw')">
-          <span class="codicon codicon-list-flat"></span>
-        </button>
-      </div>
-    </div>
-
-    <!-- Search & Filter Bar -->
-    <div class="flex items-center gap-3 py-2 px-3 bg-editor-bg border-b border-panel-border">
-      <div class="relative flex-1">
-        <span class="codicon codicon-search absolute left-2 top-1/2 -translate-y-1/2 text-editor-fg opacity-40"></span>
-        <input
-          v-model="searchQuery"
-          type="text"
-          placeholder="Search columns..."
-          class="w-full pl-8 pr-3 py-1.5 text-sm bg-editorWidget-bg border border-panel-border rounded text-editor-fg placeholder-editor-fg placeholder-opacity-40 focus:outline-none focus:border-blue-500"
-        />
-      </div>
-      <div class="relative">
-        <select
-          v-model="typeFilter"
-          class="appearance-none pl-3 pr-8 py-1.5 text-sm bg-editorWidget-bg border border-panel-border rounded text-editor-fg focus:outline-none focus:border-blue-500 cursor-pointer"
-        >
-          <option value="all">All Types</option>
-          <option value="string">String</option>
-          <option value="int">Integer</option>
-          <option value="float">Float</option>
-          <option value="bool">Boolean</option>
-          <option value="date">Date/Time</option>
-        </select>
-        <span class="codicon codicon-chevron-down absolute right-2 top-1/2 -translate-y-1/2 text-editor-fg opacity-60 pointer-events-none"></span>
       </div>
     </div>
 
@@ -80,7 +27,12 @@
       >
         <span :class="tab.icon"></span>
         {{ tab.label }}
-        <span v-if="tab.count > 0" class="text-xs opacity-70">{{ tab.count }}</span>
+        <span 
+          v-if="tab.count > 0" 
+          class="text-2xs min-w-[16px] h-[16px] px-1 flex items-center justify-center rounded-full bg-badge-bg text-editor-fg"
+        >
+          {{ tab.count }}
+        </span>
       </button>
     </div>
 
@@ -88,22 +40,65 @@
     <div class="flex-1 overflow-auto bg-editor-bg">
       <!-- Schema Tab -->
       <div v-if="activeTab === 'schema'" class="p-2">
-        <div class="flex items-center justify-between mb-2 px-1">
-          <span class="text-xs text-editor-fg opacity-60">
-            Showing {{ filteredSchemaColumns.length }} columns{{ schemaChangesCount > 0 ? ` with ${schemaChangesCount} schema changes` : '' }}
-          </span>
-          <button 
-            v-if="expandedColumns.length > 0"
-            @click="collapseAll"
-            class="text-xs text-editor-fg opacity-60 hover:opacity-100"
-          >
-            Collapse All
-          </button>
+        <!-- Search & Filter Bar for Schema -->
+        <div class="flex items-center gap-2 py-1 px-1 mb-1">
+          <div class="relative flex-1">
+            <span class="codicon codicon-search absolute left-2 top-1/2 -translate-y-1/2 text-editor-fg opacity-40 text-xs"></span>
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="Search..."
+              class="w-full pl-7 pr-2 py-1 text-xs bg-editorWidget-bg border border-panel-border rounded text-editor-fg placeholder-editor-fg placeholder-opacity-40 focus:outline-none focus:border-blue-500"
+            />
+          </div>
+          <div class="relative">
+            <select
+              v-model="typeFilter"
+              class="appearance-none pl-2 pr-6 py-1 text-xs bg-editorWidget-bg border border-panel-border rounded text-editor-fg focus:outline-none focus:border-blue-500 cursor-pointer"
+            >
+              <option value="all">All</option>
+              <option value="string">String</option>
+              <option value="int">Int</option>
+              <option value="float">Float</option>
+              <option value="bool">Bool</option>
+              <option value="date">Date</option>
+            </select>
+            <span class="codicon codicon-chevron-down absolute right-1.5 top-1/2 -translate-y-1/2 text-editor-fg opacity-60 pointer-events-none text-xs"></span>
+          </div>
         </div>
         
-        <div v-if="filteredSchemaColumns.length === 0" class="text-center py-8 text-editor-fg opacity-60">
-          <span class="codicon codicon-info text-2xl block mb-2"></span>
-          <p>No columns match your search</p>
+        <div class="flex items-center justify-between mb-1 px-1">
+          <span class="text-xs text-editor-fg opacity-60">
+            {{ filteredSchemaColumns.length }} columns{{ schemaChangesCount > 0 ? ` • ${schemaChangesCount} changes` : '' }}
+          </span>
+          <div class="flex items-center gap-2">
+            <button
+              @click="showImportantOnly = !showImportantOnly"
+              class="text-xs text-editor-fg opacity-60 hover:opacity-100"
+            >
+              {{ showImportantOnly ? 'Show All' : 'Important Only' }}
+            </button>
+            <span class="text-editor-fg opacity-20">|</span>
+            <button 
+              v-if="!allSchemaExpanded"
+              @click="expandAll('schema')"
+              class="text-xs text-editor-fg opacity-60 hover:opacity-100"
+            >
+              Expand All
+            </button>
+            <button 
+              v-else
+              @click="collapseAll"
+              class="text-xs text-editor-fg opacity-60 hover:opacity-100"
+            >
+              Collapse All
+            </button>
+          </div>
+        </div>
+        
+        <div v-if="filteredSchemaColumns.length === 0" class="text-center py-6 text-editor-fg opacity-60">
+          <span class="codicon codicon-info text-xl block mb-1"></span>
+          <p class="text-xs">No columns match your search</p>
         </div>
         
         <div v-else class="space-y-1">
@@ -114,40 +109,40 @@
           >
             <div 
               @click="toggleColumn(column.name)"
-              class="flex items-center justify-between p-2 cursor-pointer hover:bg-editor-bg"
+              class="flex items-center justify-between px-2 py-1.5 cursor-pointer hover:bg-editor-bg"
             >
               <div class="flex items-center gap-2">
-                <span :class="getStatusIcon(column.status)"></span>
-                <span class="font-mono text-editor-fg text-sm font-medium">{{ column.name }}</span>
+                <span :class="getStatusIcon(column.status)" class="text-xs"></span>
+                <span class="font-mono text-editor-fg text-xs font-medium">{{ column.name }}</span>
                 <span class="text-xs text-editor-fg opacity-50">{{ column.type?.source || column.type?.target }}</span>
               </div>
-              <span class="codicon text-editor-fg opacity-40" :class="expandedColumns.includes(column.name) ? 'codicon-chevron-down' : 'codicon-chevron-right'"></span>
+              <span class="codicon text-editor-fg opacity-40 text-xs" :class="expandedColumns.includes(column.name) ? 'codicon-chevron-down' : 'codicon-chevron-right'"></span>
             </div>
             
-            <div v-if="expandedColumns.includes(column.name)" class="border-t border-panel-border p-3 bg-editor-bg">
-              <table class="w-full text-sm">
-                <thead>
-                  <tr class="text-editor-fg opacity-60 text-xs">
-                    <th class="text-left py-1 font-medium">Property</th>
-                    <th class="text-left py-1 font-medium">Source</th>
-                    <th class="text-left py-1 font-medium">Target</th>
+            <div v-if="expandedColumns.includes(column.name)" class="border-t border-panel-border bg-editor-bg">
+              <table class="w-full text-xs">
+                <thead class="bg-editorWidget-bg">
+                  <tr class="text-editor-fg opacity-60 border-b border-panel-border">
+                    <th class="text-left py-1 px-2 font-medium">Property</th>
+                    <th class="text-left py-1 px-2 font-medium">Source</th>
+                    <th class="text-left py-1 px-2 font-medium">Target</th>
                   </tr>
                 </thead>
                 <tbody class="text-editor-fg">
-                  <tr :class="column.type?.isDifferent ? 'bg-yellow-500/10' : ''">
-                    <td class="py-1 opacity-70">Type</td>
-                    <td class="py-1 font-mono">{{ column.type?.source || '-' }}</td>
-                    <td class="py-1 font-mono">{{ column.type?.target || '-' }}</td>
+                  <tr :class="column.type?.isDifferent ? 'bg-yellow-500/10' : ''" class="border-b border-panel-border last:border-b-0">
+                    <td class="py-1 px-2 opacity-70">Type</td>
+                    <td class="py-1 px-2 font-mono">{{ column.type?.source || '-' }}</td>
+                    <td class="py-1 px-2 font-mono">{{ column.type?.target || '-' }}</td>
                   </tr>
-                  <tr :class="column.nullable?.isDifferent ? 'bg-yellow-500/10' : ''">
-                    <td class="py-1 opacity-70">Nullable</td>
-                    <td class="py-1 font-mono">{{ column.nullable?.source || '-' }}</td>
-                    <td class="py-1 font-mono">{{ column.nullable?.target || '-' }}</td>
+                  <tr :class="column.nullable?.isDifferent ? 'bg-yellow-500/10' : ''" class="border-b border-panel-border last:border-b-0">
+                    <td class="py-1 px-2 opacity-70">Nullable</td>
+                    <td class="py-1 px-2 font-mono">{{ column.nullable?.source || '-' }}</td>
+                    <td class="py-1 px-2 font-mono">{{ column.nullable?.target || '-' }}</td>
                   </tr>
-                  <tr :class="column.constraints?.isDifferent ? 'bg-yellow-500/10' : ''">
-                    <td class="py-1 opacity-70">Constraints</td>
-                    <td class="py-1 font-mono">{{ column.constraints?.source || '-' }}</td>
-                    <td class="py-1 font-mono">{{ column.constraints?.target || '-' }}</td>
+                  <tr :class="column.constraints?.isDifferent ? 'bg-yellow-500/10' : ''" class="border-b border-panel-border last:border-b-0">
+                    <td class="py-1 px-2 opacity-70">Constraints</td>
+                    <td class="py-1 px-2 font-mono">{{ column.constraints?.source || '-' }}</td>
+                    <td class="py-1 px-2 font-mono">{{ column.constraints?.target || '-' }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -157,23 +152,66 @@
       </div>
 
       <!-- Data Tab -->
-      <div v-if="activeTab === 'data'" class="p-2">
-        <div class="flex items-center justify-between mb-2 px-1">
-          <span class="text-xs text-editor-fg opacity-60">
-            Showing {{ filteredDataColumns.length }} columns with data changes
-          </span>
-          <button 
-            v-if="expandedColumns.length > 0"
-            @click="collapseAll"
-            class="text-xs text-editor-fg opacity-60 hover:opacity-100"
-          >
-            Collapse All
-          </button>
+      <div v-if="activeTab === 'data'" class="py-2">
+        <!-- Search & Filter Bar for Data -->
+        <div class="flex items-center gap-2 py-1 px-1 mb-1">
+          <div class="relative flex-1">
+            <span class="codicon codicon-search absolute left-2 top-1/2 -translate-y-1/2 text-editor-fg opacity-40 text-xs"></span>
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="Search..."
+              class="w-full pl-7 pr-2 py-1 text-xs bg-editorWidget-bg border border-panel-border rounded text-editor-fg placeholder-editor-fg placeholder-opacity-40 focus:outline-none focus:border-blue-500"
+            />
+          </div>
+          <div class="relative">
+            <select
+              v-model="typeFilter"
+              class="appearance-none pl-2 pr-6 py-1 text-xs bg-editorWidget-bg border border-panel-border rounded text-editor-fg focus:outline-none focus:border-blue-500 cursor-pointer"
+            >
+              <option value="all">All</option>
+              <option value="string">String</option>
+              <option value="int">Int</option>
+              <option value="float">Float</option>
+              <option value="bool">Bool</option>
+              <option value="date">Date</option>
+            </select>
+            <span class="codicon codicon-chevron-down absolute right-1.5 top-1/2 -translate-y-1/2 text-editor-fg opacity-60 pointer-events-none text-xs"></span>
+          </div>
         </div>
         
-        <div v-if="filteredDataColumns.length === 0" class="text-center py-8 text-editor-fg opacity-60">
-          <span class="codicon codicon-info text-2xl block mb-2"></span>
-          <p>No data statistics available</p>
+        <div class="flex items-center justify-between mb-1 px-1">
+          <span class="text-xs text-editor-fg opacity-60">
+            {{ filteredDataColumns.length }} columns
+          </span>
+          <div class="flex items-center gap-2">
+            <button
+              @click="showImportantOnly = !showImportantOnly"
+              class="text-xs text-editor-fg opacity-60 hover:opacity-100"
+            >
+              {{ showImportantOnly ? 'Show All' : 'Important Only' }}
+            </button>
+            <span class="text-editor-fg opacity-20">|</span>
+            <button 
+              v-if="!allDataExpanded"
+              @click="expandAll('data')"
+              class="text-xs text-editor-fg opacity-60 hover:opacity-100"
+            >
+              Expand All
+            </button>
+            <button 
+              v-else
+              @click="collapseAll"
+              class="text-xs text-editor-fg opacity-60 hover:opacity-100"
+            >
+              Collapse All
+            </button>
+          </div>
+        </div>
+        
+        <div v-if="filteredDataColumns.length === 0" class="text-center py-6 text-editor-fg opacity-60">
+          <span class="codicon codicon-info text-xl block mb-1"></span>
+          <p class="text-xs">No data statistics available</p>
         </div>
         
         <div v-else class="space-y-1">
@@ -184,16 +222,16 @@
           >
             <div 
               @click="toggleColumn(column.columnName)"
-              class="flex items-center justify-between p-2 cursor-pointer hover:bg-editor-bg"
+              class="flex items-center justify-between px-2 py-1.5 cursor-pointer hover:bg-editor-bg"
             >
               <div class="flex items-center gap-2">
-                <span :class="getDataTypeIcon(column.dataType)"></span>
-                <span class="font-mono text-editor-fg text-sm font-medium">{{ column.columnName }}</span>
+                <span :class="getDataTypeIcon(column.dataType)" class="text-xs"></span>
+                <span class="font-mono text-editor-fg text-xs font-medium">{{ column.columnName }}</span>
                 <span class="text-xs text-editor-fg opacity-50">{{ column.dataType }}</span>
               </div>
               <div class="flex items-center gap-2">
-                <span class="text-xs text-editor-fg opacity-60">{{ getColumnChangeCount(column) }} changes</span>
-                <span class="codicon text-editor-fg opacity-40" :class="expandedColumns.includes(column.columnName) ? 'codicon-chevron-down' : 'codicon-chevron-right'"></span>
+                <span class="text-xs text-editor-fg opacity-60">{{ getColumnChangeCount(column) }} Δ</span>
+                <span class="codicon text-editor-fg opacity-40 text-xs" :class="expandedColumns.includes(column.columnName) ? 'codicon-chevron-down' : 'codicon-chevron-right'"></span>
               </div>
             </div>
             
@@ -201,11 +239,11 @@
               <table class="w-full text-xs">
                 <thead class="bg-editorWidget-bg">
                   <tr class="text-editor-fg opacity-60 border-b border-panel-border">
-                    <th class="text-left py-1.5 px-2 font-medium">Metric</th>
-                    <th class="text-right py-1.5 px-2 font-medium">Source</th>
-                    <th class="text-right py-1.5 px-2 font-medium">Target</th>
-                    <th class="text-right py-1.5 px-2 font-medium">Δ</th>
-                    <th class="text-right py-1.5 px-2 font-medium">Δ%</th>
+                    <th class="text-left py-1 px-2 font-medium">Metric</th>
+                    <th class="text-right py-1 px-2 font-medium">Source</th>
+                    <th class="text-right py-1 px-2 font-medium">Target</th>
+                    <th class="text-right py-1 px-2 font-medium">Δ</th>
+                    <th class="text-right py-1 px-2 font-medium">Δ%</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -215,11 +253,11 @@
                     :class="hasStatChange(stat) ? 'bg-red-500/5' : ''"
                     class="border-b border-panel-border last:border-b-0"
                   >
-                    <td class="py-1.5 px-2 text-editor-fg">{{ stat.name }}</td>
-                    <td class="py-1.5 px-2 text-right font-mono text-editor-fg">{{ formatValue(stat.source) }}</td>
-                    <td class="py-1.5 px-2 text-right font-mono text-editor-fg">{{ formatValue(stat.target) }}</td>
-                    <td class="py-1.5 px-2 text-right font-mono" :class="getDiffClass(stat.diff)">{{ formatValue(stat.diff) }}</td>
-                    <td class="py-1.5 px-2 text-right font-mono" :class="getDiffClass(stat.diffPercent)">{{ stat.diffPercent || '-' }}</td>
+                    <td class="py-1 px-2 text-editor-fg">{{ stat.name }}</td>
+                    <td class="py-1 px-2 text-right font-mono text-editor-fg">{{ formatValue(stat.source) }}</td>
+                    <td class="py-1 px-2 text-right font-mono text-editor-fg">{{ formatValue(stat.target) }}</td>
+                    <td class="py-1 px-2 text-right font-mono" :class="getDiffClass(stat.diff)">{{ formatValue(stat.diff) }}</td>
+                    <td class="py-1 px-2 text-right font-mono" :class="getDiffClass(stat.diffPercent)">{{ stat.diffPercent || '-' }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -228,13 +266,6 @@
         </div>
       </div>
 
-      <!-- Metrics Tab -->
-      <div v-if="activeTab === 'metrics'" class="p-4">
-        <div class="text-center py-8 text-editor-fg opacity-60">
-          <span class="codicon codicon-graph text-2xl block mb-2"></span>
-          <p>Metrics visualization coming soon</p>
-        </div>
-      </div>
     </div>
   </div>
 </template>
@@ -247,8 +278,6 @@ const props = defineProps<{
   rawOutput: string;
 }>();
 
-// Emit
-defineEmits(['viewCode', 'toggleRaw']);
 
 // Types
 interface TableDiffSummary {
@@ -339,37 +368,13 @@ function parseTextOutput(text: string): ParsedDiff {
 // Computed
 const summary = computed(() => parsedData.value.summary);
 
-const impactLevel = computed(() => {
-  const schemaChanges = parsedData.value.schemaDiffs.filter(c => c.status !== 'unchanged').length;
-  const dataChanges = parsedData.value.columnStatistics.filter(c => 
-    c.statistics.some(s => hasStatChange(s))
-  ).length;
-  
-  const total = schemaChanges + dataChanges;
-  if (total === 0) return 'No';
-  if (total <= 2) return 'Low';
-  if (total <= 5) return 'Medium';
-  return 'High';
-});
-
-const impactBadgeClass = computed(() => {
-  switch (impactLevel.value) {
-    case 'No': return 'bg-green-500/20 text-green-400';
-    case 'Low': return 'bg-blue-500/20 text-blue-400';
-    case 'Medium': return 'bg-yellow-500/20 text-yellow-400';
-    case 'High': return 'bg-red-500/20 text-red-400';
-    default: return 'bg-gray-500/20 text-gray-400';
-  }
-});
-
 const schemaChangesCount = computed(() => 
   parsedData.value.schemaDiffs.filter(c => c.status !== 'unchanged').length
 );
 
 const tabs = computed(() => [
   { id: 'schema', label: 'Schema', icon: 'codicon codicon-symbol-structure', count: schemaChangesCount.value },
-  { id: 'data', label: 'Data', icon: 'codicon codicon-file', count: parsedData.value.columnStatistics.length },
-  { id: 'metrics', label: 'Metrics', icon: 'codicon codicon-graph', count: 0 }
+  { id: 'data', label: 'Data', icon: 'codicon codicon-file', count: parsedData.value.columnStatistics.length }
 ]);
 
 const filteredSchemaColumns = computed(() => {
@@ -419,6 +424,17 @@ const filteredDataColumns = computed(() => {
   return columns;
 });
 
+// Check if all columns are expanded
+const allSchemaExpanded = computed(() => {
+  if (filteredSchemaColumns.value.length === 0) return false;
+  return filteredSchemaColumns.value.every(c => expandedColumns.value.includes(c.name));
+});
+
+const allDataExpanded = computed(() => {
+  if (filteredDataColumns.value.length === 0) return false;
+  return filteredDataColumns.value.every(c => expandedColumns.value.includes(c.columnName));
+});
+
 // Methods
 function toggleColumn(name: string) {
   const index = expandedColumns.value.indexOf(name);
@@ -431,6 +447,14 @@ function toggleColumn(name: string) {
 
 function collapseAll() {
   expandedColumns.value = [];
+}
+
+function expandAll(tabType: 'schema' | 'data') {
+  if (tabType === 'schema') {
+    expandedColumns.value = filteredSchemaColumns.value.map(c => c.name);
+  } else {
+    expandedColumns.value = filteredDataColumns.value.map(c => c.columnName);
+  }
 }
 
 function getStatusIcon(status: string): string {
@@ -494,9 +518,6 @@ function formatValue(value: any): string {
   return String(value);
 }
 
-function copyResults() {
-  navigator.clipboard.writeText(props.rawOutput);
-}
 
 // Auto-expand columns with changes on data load
 watch(() => parsedData.value, (newData) => {

@@ -146,8 +146,8 @@
               </vscode-badge>
             </div>
             <div class="flex items-center gap-2">
-              <vscode-button title="Copy Results" appearance="icon" @click="copyResults">
-                <span class="codicon codicon-copy text-editor-fg"></span>
+              <vscode-button :title="copied ? 'Copied!' : 'Copy Results'" appearance="icon" @click="copyResults">
+                <span :class="copied ? 'codicon codicon-check text-green-500' : 'codicon codicon-copy text-editor-fg'"></span>
               </vscode-button>
               <vscode-button title="Clear Results" appearance="icon" @click="clearResults">
                 <span class="codicon codicon-clear-all text-editor-fg"></span>
@@ -549,9 +549,15 @@ const clearResults = () => {
   schemaOnlyComparison.value = false;
 };
 
+const copied = ref(false);
+
 const copyResults = () => {
   if (results.value) {
     navigator.clipboard.writeText(results.value);
+    copied.value = true;
+    setTimeout(() => {
+      copied.value = false;
+    }, 2000);
   }
 };
 
