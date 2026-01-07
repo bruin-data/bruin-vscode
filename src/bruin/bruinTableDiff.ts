@@ -11,7 +11,6 @@ const MIN_JSON_OUTPUT_VERSION = "0.11.404";
  */
 export class BruinTableDiff extends BruinCommand {
   private static runningProcess: child_process.ChildProcess | null = null;
-  private static supportsJsonOutput: boolean | null = null;
 
   /**
    * Specifies the Bruin command string.
@@ -24,30 +23,24 @@ export class BruinTableDiff extends BruinCommand {
 
   /**
    * Checks if the current CLI version supports JSON output for data-diff.
-   * Caches the result for subsequent calls.
    */
   private async checkJsonOutputSupport(): Promise<boolean> {
-    if (BruinTableDiff.supportsJsonOutput !== null) {
-      return BruinTableDiff.supportsJsonOutput;
-    }
-
     try {
       const versionInfo = await getBruinVersion();
       if (versionInfo) {
         const current = parseVersion(versionInfo.version);
         const minimum = parseVersion(MIN_JSON_OUTPUT_VERSION);
-        BruinTableDiff.supportsJsonOutput = versionGte(current, minimum);
-        console.log(`BruinTableDiff: CLI version ${versionInfo.version}, JSON output supported: ${BruinTableDiff.supportsJsonOutput}`);
+        const supported = versionGte(current, minimum);
+        console.log(`BruinTableDiff: CLI version ${versionInfo.version}, JSON output supported: ${supported}`);
+        return supported;
       } else {
-        BruinTableDiff.supportsJsonOutput = false;
         console.warn("BruinTableDiff: Could not determine CLI version, JSON output disabled");
+        return false;
       }
     } catch (error) {
       console.error("BruinTableDiff: Version check failed:", error);
-      BruinTableDiff.supportsJsonOutput = false;
+      return false;
     }
-
-    return BruinTableDiff.supportsJsonOutput;
   }
 
   /**
@@ -117,8 +110,4 @@ export class BruinTableDiff extends BruinCommand {
     }
   }
 
-  /** Reset the cached version check (useful when CLI is updated). */
-  public static resetVersionCache(): void {
-    BruinTableDiff.supportsJsonOutput = null;
-  }
 }

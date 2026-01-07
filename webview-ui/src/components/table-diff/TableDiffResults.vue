@@ -53,80 +53,28 @@
     <div v-if="!isLegacyOutput" class="flex-1 overflow-auto bg-editor-bg">
       <!-- Schema Tab -->
       <div v-if="activeTab === 'schema'" class="p-2">
-        <!-- Search & Filter Bar for Schema -->
-        <div class="flex items-center gap-2 py-1 px-1 mb-1">
-          <div class="relative flex-1">
-            <span class="codicon codicon-search absolute left-2 top-1/2 -translate-y-1/2 text-editor-fg opacity-40 text-xs"></span>
-            <input
-              v-model="searchQuery"
-              type="text"
-              placeholder="Search..."
-              class="w-full pl-7 pr-2 py-1 text-xs bg-editorWidget-bg border border-panel-border rounded text-editor-fg placeholder-editor-fg placeholder-opacity-40 focus:outline-none focus:border-blue-500"
-            />
-          </div>
-          <div class="relative">
-            <select
-              v-model="typeFilter"
-              class="appearance-none pl-2 pr-6 py-1 text-xs bg-editorWidget-bg border border-panel-border rounded text-editor-fg focus:outline-none focus:border-blue-500 cursor-pointer"
-            >
-              <option value="all">All</option>
-              <option value="string">String</option>
-              <option value="int">Int</option>
-              <option value="float">Float</option>
-              <option value="bool">Bool</option>
-              <option value="date">Date</option>
-            </select>
-            <span class="codicon codicon-chevron-down absolute right-1.5 top-1/2 -translate-y-1/2 text-editor-fg opacity-60 pointer-events-none text-xs"></span>
-          </div>
-        </div>
-        
-        <!-- Legend -->
-        <div class="flex items-center gap-4 mb-2 px-1 py-1.5 bg-editorWidget-bg/50 rounded text-2xs">
-          <span class="flex items-center gap-1">
-            <span class="px-1 py-0.5 rounded bg-green-500/20 text-green-400">+ Target</span>
-            <span class="text-editor-fg opacity-40">only in target</span>
-          </span>
-          <span class="flex items-center gap-1">
-            <span class="px-1 py-0.5 rounded bg-red-500/20 text-red-400">− Source</span>
-            <span class="text-editor-fg opacity-40">only in source</span>
-          </span>
-          <span class="flex items-center gap-1">
-            <span class="px-1 py-0.5 rounded bg-yellow-500/20 text-yellow-400">≠ Diff</span>
-            <span class="text-editor-fg opacity-40">type differs</span>
-          </span>
-          <span class="flex items-center gap-1">
-            <span class="px-1 py-0.5 rounded bg-editor-fg/10 text-editor-fg opacity-60">= Match</span>
-            <span class="text-editor-fg opacity-40">identical</span>
-          </span>
-        </div>
-
-        <div class="flex items-center justify-between mb-1 px-1">
-          <span class="text-xs text-editor-fg opacity-60">
-            {{ filteredSchemaColumns.length }} columns{{ schemaChangesCount > 0 ? ` • ${schemaChangesCount} changes` : '' }}
-          </span>
+        <!-- Search & Filter Bar -->
+        <div class="flex items-center justify-between gap-2 py-1 px-1 mb-2">
           <div class="flex items-center gap-2">
+            <div class="relative">
+              <span class="codicon codicon-search absolute left-2 top-1/2 -translate-y-1/2 text-editor-fg opacity-40 text-xs"></span>
+              <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="Search..."
+                class="w-40 pl-7 pr-2 py-1 text-xs bg-editorWidget-bg border border-panel-border rounded text-editor-fg placeholder-editor-fg placeholder-opacity-40 focus:outline-none focus:border-blue-500"
+              />
+            </div>
             <button
               @click="showImportantOnly = !showImportantOnly"
               class="text-xs text-editor-fg opacity-60 hover:opacity-100"
             >
-              {{ showImportantOnly ? 'Show All' : 'Important Only' }}
-            </button>
-            <span class="text-editor-fg opacity-20">|</span>
-            <button 
-              v-if="!allSchemaExpanded"
-              @click="expandAll('schema')"
-              class="text-xs text-editor-fg opacity-60 hover:opacity-100"
-            >
-              Expand All
-            </button>
-            <button 
-              v-else
-              @click="collapseAll"
-              class="text-xs text-editor-fg opacity-60 hover:opacity-100"
-            >
-              Collapse All
+              {{ showImportantOnly ? 'Show All' : 'Changes Only' }}
             </button>
           </div>
+          <span class="text-xs text-editor-fg opacity-60">
+            {{ filteredSchemaColumns.length }} columns{{ schemaChangesCount > 0 ? ` • ${schemaChangesCount} changes` : '' }}
+          </span>
         </div>
         
         <div v-if="filteredSchemaColumns.length === 0" class="text-center py-6 text-editor-fg opacity-60">
@@ -134,55 +82,59 @@
           <p class="text-xs">No columns match your search</p>
         </div>
         
-        <div v-else class="space-y-1">
-          <div 
-            v-for="column in filteredSchemaColumns" 
-            :key="column.name"
-            class="border border-panel-border rounded bg-editorWidget-bg overflow-hidden"
-          >
-            <div 
-              @click="toggleColumn(column.name)"
-              class="flex items-center justify-between px-2 py-1.5 cursor-pointer hover:bg-editor-bg"
-            >
-              <div class="flex items-center gap-2">
-                <span :class="getStatusBadge(column.status).class" class="text-2xs px-1.5 py-0.5 rounded font-medium">
-                  {{ getStatusBadge(column.status).label }}
-                </span>
-                <span class="font-mono text-editor-fg text-xs font-medium">{{ column.name }}</span>
-                <span class="text-xs text-editor-fg opacity-50">{{ getTypeDisplay(column) }}</span>
-              </div>
-              <span class="codicon text-editor-fg opacity-40 text-xs" :class="expandedColumns.includes(column.name) ? 'codicon-chevron-down' : 'codicon-chevron-right'"></span>
-            </div>
-            
-            <div v-if="expandedColumns.includes(column.name)" class="border-t border-panel-border bg-editor-bg">
-              <table class="w-full text-xs">
-                <thead class="bg-editorWidget-bg">
-                  <tr class="text-editor-fg opacity-60 border-b border-panel-border">
-                    <th class="text-left py-1 px-2 font-medium">Property</th>
-                    <th class="text-left py-1 px-2 font-medium">Source</th>
-                    <th class="text-left py-1 px-2 font-medium">Target</th>
-                  </tr>
-                </thead>
-                <tbody class="text-editor-fg">
-                  <tr :class="column.type?.isDifferent ? 'bg-yellow-500/10' : ''" class="border-b border-panel-border last:border-b-0">
-                    <td class="py-1 px-2 opacity-70">Type</td>
-                    <td class="py-1 px-2 font-mono">{{ column.type?.source || '-' }}</td>
-                    <td class="py-1 px-2 font-mono">{{ column.type?.target || '-' }}</td>
-                  </tr>
-                  <tr :class="column.nullable?.isDifferent ? 'bg-yellow-500/10' : ''" class="border-b border-panel-border last:border-b-0">
-                    <td class="py-1 px-2 opacity-70">Nullable</td>
-                    <td class="py-1 px-2 font-mono">{{ column.nullable?.source || '-' }}</td>
-                    <td class="py-1 px-2 font-mono">{{ column.nullable?.target || '-' }}</td>
-                  </tr>
-                  <tr :class="column.constraints?.isDifferent ? 'bg-yellow-500/10' : ''" class="border-b border-panel-border last:border-b-0">
-                    <td class="py-1 px-2 opacity-70">Constraints</td>
-                    <td class="py-1 px-2 font-mono">{{ column.constraints?.source || '-' }}</td>
-                    <td class="py-1 px-2 font-mono">{{ column.constraints?.target || '-' }}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
+        <!-- CLI-style Table -->
+        <div v-else class="border border-panel-border rounded overflow-hidden overflow-x-auto">
+          <table class="w-full text-2xs">
+            <thead class="bg-editorWidget-bg">
+              <tr class="border-b border-panel-border">
+                <th class="text-left py-1 px-1.5 font-medium text-editor-fg">Column</th>
+                <th class="text-left py-1 px-1.5 font-medium text-editor-fg opacity-60">Prop</th>
+                <th class="text-left py-1 px-1.5 font-medium text-editor-fg truncate max-w-[180px]" :title="parsedData.sourceTable">
+                  {{ formatTableName(parsedData.sourceTable) }}
+                </th>
+                <th class="text-left py-1 px-1.5 font-medium text-editor-fg truncate max-w-[180px]" :title="parsedData.targetTable">
+                  {{ formatTableName(parsedData.targetTable) }}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <template v-for="column in filteredSchemaColumns" :key="column.name">
+                <!-- Type row -->
+                <tr class="border-b border-panel-border">
+                  <td rowspan="3" class="py-0.5 px-1.5 font-mono font-medium align-top border-r border-panel-border" :class="getColumnNameClass(column.status)">
+                    {{ column.name }}
+                  </td>
+                  <td class="py-0.5 px-1.5 text-editor-fg opacity-60">Type</td>
+                  <td class="py-0.5 px-1.5 font-mono" :class="getValueClass(column.type?.source, column.status, 'source')">
+                    {{ column.type?.source || '-' }}
+                  </td>
+                  <td class="py-0.5 px-1.5 font-mono" :class="getValueClass(column.type?.target, column.status, 'target')">
+                    {{ column.type?.target || '-' }}
+                  </td>
+                </tr>
+                <!-- Nullable row -->
+                <tr class="border-b border-panel-border">
+                  <td class="py-0.5 px-1.5 text-editor-fg opacity-60">Nullable</td>
+                  <td class="py-0.5 px-1.5 font-mono" :class="getValueClass(column.nullable?.source, column.status, 'source')">
+                    {{ column.nullable?.source || '-' }}
+                  </td>
+                  <td class="py-0.5 px-1.5 font-mono" :class="getValueClass(column.nullable?.target, column.status, 'target')">
+                    {{ column.nullable?.target || '-' }}
+                  </td>
+                </tr>
+                <!-- Constraints row -->
+                <tr class="border-b border-panel-border last:border-b-0">
+                  <td class="py-0.5 px-1.5 text-editor-fg opacity-60">Constraints</td>
+                  <td class="py-0.5 px-1.5 font-mono" :class="getValueClass(column.constraints?.source, column.status, 'source')">
+                    {{ column.constraints?.source || '-' }}
+                  </td>
+                  <td class="py-0.5 px-1.5 font-mono" :class="getValueClass(column.constraints?.target, column.status, 'target')">
+                    {{ column.constraints?.target || '-' }}
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
         </div>
         
         <!-- ALTER Statements -->
@@ -304,8 +256,8 @@
                 <thead class="bg-editorWidget-bg">
                   <tr class="text-editor-fg opacity-60 border-b border-panel-border">
                     <th class="text-left py-1 px-2 font-medium">Metric</th>
-                    <th class="text-right py-1 px-2 font-medium">Source</th>
-                    <th class="text-right py-1 px-2 font-medium">Target</th>
+                    <th class="text-right py-1 px-2 font-medium truncate max-w-[120px]" :title="parsedData.sourceTable">{{ formatTableName(parsedData.sourceTable) }}</th>
+                    <th class="text-right py-1 px-2 font-medium truncate max-w-[120px]" :title="parsedData.targetTable">{{ formatTableName(parsedData.targetTable) }}</th>
                     <th class="text-right py-1 px-2 font-medium">Δ</th>
                     <th class="text-right py-1 px-2 font-medium">Δ%</th>
                   </tr>
@@ -376,6 +328,8 @@ interface ParsedDiff {
   schemaDiffs: ColumnDiff[];
   columnStatistics: ColumnStatistics[];
   alterStatements?: string;
+  sourceTable?: string;
+  targetTable?: string;
 }
 
 // State
@@ -400,7 +354,9 @@ const parsedData = computed<ParsedDiff>(() => {
       summary: parsed.summary || { rowCount: { source: 0, target: 0, diff: 0 }, columnCount: { source: 0, target: 0, diff: 0 } },
       schemaDiffs: parsed.schemaDiffs || [],
       columnStatistics: parsed.columnStatistics || [],
-      alterStatements: parsed.alterStatements || ''
+      alterStatements: parsed.alterStatements || '',
+      sourceTable: parsed.sourceTable || 'Source',
+      targetTable: parsed.targetTable || 'Target'
     };
   } catch {
     // If not JSON, we're in legacy mode
@@ -538,27 +494,36 @@ function copyAlterStatements() {
   }
 }
 
-function getStatusBadge(status: string): { label: string; class: string } {
-  switch (status) {
-    case 'added': 
-      return { label: '+ Target', class: 'bg-green-500/20 text-green-400' };
-    case 'removed': 
-      return { label: '− Source', class: 'bg-red-500/20 text-red-400' };
-    case 'modified': 
-      return { label: '≠ Diff', class: 'bg-yellow-500/20 text-yellow-400' };
-    default: 
-      return { label: '= Match', class: 'bg-editor-fg/10 text-editor-fg opacity-60' };
-  }
+function formatTableName(fullName: string | undefined): string {
+  if (!fullName) return 'Table';
+  // If it's in format "connection:schema.table", extract just "schema.table"
+  const parts = fullName.split(':');
+  return parts.length > 1 ? parts[1] : fullName;
 }
 
-function getTypeDisplay(column: ColumnDiff): string {
-  const source = column.type?.source || '-';
-  const target = column.type?.target || '-';
+function getColumnNameClass(status: string): string {
+  // Yellow for any difference, default for match
+  if (status === 'added' || status === 'removed' || status === 'modified') {
+    return 'text-green-500';
+  }
+  return 'text-editor-fg';
+}
+
+function getValueClass(value: string | undefined, status: string, side: 'source' | 'target'): string {
+  const val = value || '-';
   
-  if (source === '-') return target;
-  if (target === '-') return source;
-  if (source !== target) return `${source} → ${target}`;
-  return source;
+  // If the value is "-", it's missing
+  if (val === '-') {
+    return 'text-editor-fg opacity-40';
+  }
+  
+  // Yellow for any column that has differences
+  if (status === 'added' || status === 'removed' || status === 'modified') {
+    return 'text-green-500';
+  }
+  
+  // Default - matching values
+  return 'text-editor-fg';
 }
 
 function getDataTypeIcon(dataType: string): string {
