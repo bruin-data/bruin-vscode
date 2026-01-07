@@ -100,8 +100,8 @@
             <tbody>
               <template v-for="column in filteredSchemaColumns" :key="column.name">
                 <!-- Type row -->
-                <tr class="border-b border-panel-border">
-                  <td rowspan="3" class="py-0.5 px-1.5 font-mono font-medium align-top border-r border-panel-border" :class="getColumnNameClass(column.status)">
+                <tr>
+                  <td rowspan="3" class="py-0.5 px-1.5 font-mono font-medium align-top border-r border-panel-border border-b" :class="getColumnNameClass(column.status)">
                     {{ column.name }}
                   </td>
                   <td class="py-0.5 px-1.5 text-editor-fg opacity-60">Type</td>
@@ -113,7 +113,7 @@
                   </td>
                 </tr>
                 <!-- Nullable row -->
-                <tr class="border-b border-panel-border">
+                <tr>
                   <td class="py-0.5 px-1.5 text-editor-fg opacity-60">Nullable</td>
                   <td class="py-0.5 px-1.5 font-mono" :class="getValueClass(column.nullable?.source, column.status, 'source')">
                     {{ column.nullable?.source || '-' }}
@@ -122,8 +122,8 @@
                     {{ column.nullable?.target || '-' }}
                   </td>
                 </tr>
-                <!-- Constraints row -->
-                <tr class="border-b border-panel-border last:border-b-0">
+                <!-- Constraints row - border separates column groups -->
+                <tr class="border-b border-panel-border">
                   <td class="py-0.5 px-1.5 text-editor-fg opacity-60">Constraints</td>
                   <td class="py-0.5 px-1.5 font-mono" :class="getValueClass(column.constraints?.source, column.status, 'source')">
                     {{ column.constraints?.source || '-' }}
