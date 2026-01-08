@@ -102,19 +102,16 @@
             ]
           }
         },
-        "teams": {
+        "ms_teams": {
           "type": "array",
           "items": {
             "type": "object",
             "properties": {
-              "webhook_url": {
+              "connection": {
                 "type": "string",
-                "description": "Microsoft Teams webhook URL"
+                "description": "Microsoft Teams connection name"
               }
-            },
-            "required": [
-              "webhook_url"
-            ]
+            }
           }
         }
       },
