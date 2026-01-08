@@ -97,42 +97,45 @@
                 </th>
               </tr>
             </thead>
-            <tbody>
-              <template v-for="column in filteredSchemaColumns" :key="column.name">
-                <!-- Type row -->
-                <tr>
-                  <td rowspan="3" class="py-0.5 px-1.5 font-mono font-medium align-top border-r border-panel-border border-b" :class="getColumnNameClass(column.status)">
-                    {{ column.name }}
-                  </td>
-                  <td class="py-0.5 px-1.5 text-editor-fg opacity-60">Type</td>
-                  <td class="py-0.5 px-1.5 font-mono" :class="getValueClass(column.type?.source, column.status, 'source')">
-                    {{ column.type?.source || '-' }}
-                  </td>
-                  <td class="py-0.5 px-1.5 font-mono" :class="getValueClass(column.type?.target, column.status, 'target')">
-                    {{ column.type?.target || '-' }}
-                  </td>
-                </tr>
-                <!-- Nullable row -->
-                <tr>
-                  <td class="py-0.5 px-1.5 text-editor-fg opacity-60">Nullable</td>
-                  <td class="py-0.5 px-1.5 font-mono" :class="getValueClass(column.nullable?.source, column.status, 'source')">
-                    {{ column.nullable?.source || '-' }}
-                  </td>
-                  <td class="py-0.5 px-1.5 font-mono" :class="getValueClass(column.nullable?.target, column.status, 'target')">
-                    {{ column.nullable?.target || '-' }}
-                  </td>
-                </tr>
-                <!-- Constraints row - border separates column groups -->
-                <tr class="border-b border-panel-border">
-                  <td class="py-0.5 px-1.5 text-editor-fg opacity-60">Constraints</td>
-                  <td class="py-0.5 px-1.5 font-mono" :class="getValueClass(column.constraints?.source, column.status, 'source')">
-                    {{ column.constraints?.source || '-' }}
-                  </td>
-                  <td class="py-0.5 px-1.5 font-mono" :class="getValueClass(column.constraints?.target, column.status, 'target')">
-                    {{ column.constraints?.target || '-' }}
-                  </td>
-                </tr>
-              </template>
+            <tbody 
+              v-for="(column, idx) in filteredSchemaColumns" 
+              :key="column.name"
+              class="schema-group"
+              :class="{ 'schema-row-alt': idx % 2 === 1 }"
+            >
+              <!-- Type row -->
+              <tr>
+                <td rowspan="3" class="py-0.5 px-1.5 font-mono font-medium align-top border-r border-panel-border border-b" :class="getColumnNameClass(column.status)">
+                  {{ column.name }}
+                </td>
+                <td class="py-0.5 px-1.5 text-editor-fg opacity-60">Type</td>
+                <td class="py-0.5 px-1.5 font-mono" :class="getValueClass(column.type?.source, column.status, 'source')">
+                  {{ column.type?.source || '-' }}
+                </td>
+                <td class="py-0.5 px-1.5 font-mono" :class="getValueClass(column.type?.target, column.status, 'target')">
+                  {{ column.type?.target || '-' }}
+                </td>
+              </tr>
+              <!-- Nullable row -->
+              <tr>
+                <td class="py-0.5 px-1.5 text-editor-fg opacity-60">Nullable</td>
+                <td class="py-0.5 px-1.5 font-mono" :class="getValueClass(column.nullable?.source, column.status, 'source')">
+                  {{ column.nullable?.source || '-' }}
+                </td>
+                <td class="py-0.5 px-1.5 font-mono" :class="getValueClass(column.nullable?.target, column.status, 'target')">
+                  {{ column.nullable?.target || '-' }}
+                </td>
+              </tr>
+              <!-- Constraints row -->
+              <tr class="border-b border-panel-border">
+                <td class="py-0.5 px-1.5 text-editor-fg opacity-60">Constraints</td>
+                <td class="py-0.5 px-1.5 font-mono" :class="getValueClass(column.constraints?.source, column.status, 'source')">
+                  {{ column.constraints?.source || '-' }}
+                </td>
+                <td class="py-0.5 px-1.5 font-mono" :class="getValueClass(column.constraints?.target, column.status, 'target')">
+                  {{ column.constraints?.target || '-' }}
+                </td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -599,6 +602,16 @@ select {
 
 input::placeholder {
   opacity: 0.4;
+}
+
+/* Alternating row backgrounds for schema table */
+.schema-row-alt {
+  background-color: var(--vscode-editorWidget-background);
+}
+
+/* Hover highlights entire column group */
+.schema-group:hover tr {
+  background-color: var(--vscode-list-hoverBackground);
 }
 </style>
 
