@@ -1,4 +1,7 @@
 # Changelog
+## [0.72.6] - [2026-01-08]
+- Enhanced validation schema and refined asset conversion logic.
+
 ## [0.72.5] - [2026-01-08]
 - Improved the table diff UI.
 
