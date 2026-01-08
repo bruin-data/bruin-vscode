@@ -1,6 +1,10 @@
 import { BruinCommandOptions } from "../types";
 import { BruinCommand } from "./bruinCommand";
+import { getBruinVersion, parseVersion, versionGte } from "./bruinUtils";
 import * as child_process from "child_process";
+
+// Minimum version that supports -o json flag for data-diff
+const MIN_JSON_OUTPUT_VERSION = "0.11.404";
 
 /**
  * Extends the BruinCommand class to implement the bruin data-diff command.
@@ -15,6 +19,24 @@ export class BruinTableDiff extends BruinCommand {
    */
   protected bruinCommand(): string {
     return "data-diff";
+  }
+
+  /**
+   * Checks if the current CLI version supports JSON output for data-diff.
+   */
+  private async checkJsonOutputSupport(): Promise<boolean> {
+    try {
+      const versionInfo = await getBruinVersion();
+      if (versionInfo) {
+        const current = parseVersion(versionInfo.version);
+        const minimum = parseVersion(MIN_JSON_OUTPUT_VERSION);
+        return versionGte(current, minimum);
+      }
+      return false;
+    } catch (error) {
+      console.error("BruinTableDiff: Version check failed:", error);
+      return false;
+    }
   }
 
   /**
@@ -37,24 +59,20 @@ export class BruinTableDiff extends BruinCommand {
     schemaOnly: boolean = false,
     options: BruinCommandOptions = {}
   ): Promise<string> {
+    // Check if JSON output is supported
+    const useJsonOutput = await this.checkJsonOutputSupport();
+
     const args = [
       `${sourceConnection}:${sourceTable}`,
       `${targetConnection}:${targetTable}`,
+      ...(useJsonOutput ? ["-o", "json"] : []),
       ...(schemaOnly ? ["--schema-only"] : [])
     ];
 
-    console.log(`BruinTableDiff: Executing data-diff with explicit connections:`, args);
-    
     try {
       const { promise, process } = this.runCancellable(args, options);
       BruinTableDiff.runningProcess = process;
-
-      const result = await promise;
-      console.log(`BruinTableDiff: Command completed successfully`);
-      return result;
-    } catch (error) {
-      console.error(`BruinTableDiff: Command failed:`, error);
-      throw error;
+      return await promise;
     } finally {
       BruinTableDiff.runningProcess = null;
     }
@@ -72,6 +90,5 @@ export class BruinTableDiff extends BruinCommand {
       BruinTableDiff.runningProcess = null;
     }
   }
-
 
 }

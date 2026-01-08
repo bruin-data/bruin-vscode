@@ -202,8 +202,6 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
 
     try {
       const { bruinDBTCommand } = await this.getWorkspaceSetup();
-      
-      console.log(`Fetching schemas for ${connectionName}`);
       const rawSchemas = await bruinDBTCommand.getFetchDatabases(connectionName);
       const schemaNames = this.parseSchemas(rawSchemas);
       
@@ -232,15 +230,11 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
       console.log(`sendTables called: connection=${connectionName}, schema=${schemaName}, type=${type}`);
       
       const { bruinDBTCommand } = await this.getWorkspaceSetup();
-      
-      console.log(`Fetching tables for ${connectionName}.${schemaName}`);
       const rawTables = await bruinDBTCommand.getFetchTables(connectionName, schemaName);
       console.log('Raw tables response:', rawTables);
       
       const tables = this.parseTables(rawTables);
-      console.log('Parsed tables:', tables);
 
-      console.log(`Sending updateTables message with ${tables.length} tables:`, tables);
       TableDiffPanel._view.webview.postMessage({
         command: 'updateTables',
         tables,
@@ -259,21 +253,12 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
 
   private async sendSchemasAndTables(connectionName: string, type: string) {
     if (!TableDiffPanel._view) return;
-    
-    console.log(`sendSchemasAndTables called with connectionName: ${connectionName}, type: ${type}`);
 
     try {
       const { bruinDBTCommand } = await this.getWorkspaceSetup();
-      
-      // Get only schemas first - this is much faster
       const rawSchemas = await bruinDBTCommand.getFetchDatabases(connectionName);
       const schemas = this.parseSchemas(rawSchemas);
-
-      // Instead of fetching all tables, just send schema names as suggestions
-      // Users can type "schema.table" format
       const schemaNames = schemas.map(schema => `${schema}.`);
-
-      console.log(`Sending ${schemaNames.length} schema names for ${connectionName}:`, schemaNames);
       
       TableDiffPanel._view.webview.postMessage({
         command: 'updateSchemasAndTables',
@@ -320,10 +305,9 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
           }
         });
 
-        const { workspaceFolder, connections } = await this.getWorkspaceSetup();
+        const { workspaceFolder } = await this.getWorkspaceSetup();
         const tableDiff = new BruinTableDiff(getBruinExecutablePath(), workspaceFolder);
         
-        // Use explicit connection mode: connection_name:table_name format
         const result = await tableDiff.compareTables(
           sourceConnection,
           sourceTable,
@@ -374,7 +358,7 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
         command: 'showResults',
         source,
         target,
-        results
+        results: results || ''
       });
     }
   }

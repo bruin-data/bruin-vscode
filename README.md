@@ -63,6 +63,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.72.5**: Improved the table diff UI.
 - **0.72.4**: Improved the validation errors display.
 - **0.72.3**: Improved dependency expansion to show complete graph connectivity.
 - **0.72.2**: Fixed the BigQuery cost estimate to conditionally display based on the asset type.

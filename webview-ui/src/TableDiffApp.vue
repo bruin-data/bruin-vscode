@@ -125,7 +125,7 @@
          </div>
       </div>
 
-      <div v-if="hasResults || error" class="flex-1">
+      <div v-if="hasResults || error" class="flex-1 overflow-auto">
         <div v-if="error" class="p-4 border-b border-panel-border">
           <div class="flex items-center mb-2">
             <span class="codicon codicon-error text-red-500 mr-2"></span>
@@ -136,8 +136,8 @@
           </div>
         </div>
 
-        <div v-if="hasResults" class="p-1 mt-2">
-          <div class="flex items-center justify-between mb-3">
+        <div v-if="hasResults" class="mt-2">
+          <div class="flex items-center justify-between mb-3 px-4">
             <div class="flex items-center gap-2">
               <span class="codicon codicon-diff text-blue-500"></span>
               <h3 class="text-sm font-medium text-editor-fg">Comparison Results</h3>
@@ -146,8 +146,8 @@
               </vscode-badge>
             </div>
             <div class="flex items-center gap-2">
-              <vscode-button title="Copy Results" appearance="icon" @click="copyResults">
-                <span class="codicon codicon-copy text-editor-fg"></span>
+              <vscode-button :title="copied ? 'Copied!' : 'Copy Results'" appearance="icon" @click="copyResults">
+                <span :class="copied ? 'codicon codicon-check text-green-500' : 'codicon codicon-copy text-editor-fg'"></span>
               </vscode-button>
               <vscode-button title="Clear Results" appearance="icon" @click="clearResults">
                 <span class="codicon codicon-clear-all text-editor-fg"></span>
@@ -155,11 +155,7 @@
             </div>
           </div>
 
-          <div class="bg-editorWidget-bg border border-commandCenter-border rounded overflow-hidden">
-            <div class="h-full overflow-auto">
-              <pre class="text-xs font-mono p-4 text-editor-fg whitespace-pre overflow-x-auto">{{ results }}</pre>
-            </div>
-          </div>
+          <TableDiffResults :raw-output="results" />
         </div>
       </div>
 
@@ -183,6 +179,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { vscode } from "@/utilities/vscode";
+import TableDiffResults from "@/components/table-diff/TableDiffResults.vue";
 
 // Types
 interface Connection {
@@ -552,9 +549,15 @@ const clearResults = () => {
   schemaOnlyComparison.value = false;
 };
 
+const copied = ref(false);
+
 const copyResults = () => {
   if (results.value) {
     navigator.clipboard.writeText(results.value);
+    copied.value = true;
+    setTimeout(() => {
+      copied.value = false;
+    }, 2000);
   }
 };
 
@@ -582,6 +585,13 @@ const handleMessage = (event: MessageEvent) => {
 
     case "showResults":
       isLoading.value = false;
+      console.log('TableDiffApp: Received showResults message:', {
+        hasError: !!message.error,
+        resultsLength: message.results?.length || 0,
+        source: message.source,
+        target: message.target
+      });
+      
       if (message.status === 'cancelled') {
         // Reset to initial state: clear results and error, keep inputs
         clearResults();
@@ -590,9 +600,18 @@ const handleMessage = (event: MessageEvent) => {
       if (message.error) {
         error.value = message.error;
         results.value = "";
+        console.error('TableDiffApp: Error received:', message.error);
       } else {
         error.value = "";
-        results.value = message.results || "";
+        const resultText = message.results || "";
+        results.value = resultText;
+        
+        if (!resultText || resultText.trim().length === 0) {
+          console.warn('TableDiffApp: Warning - received empty results');
+          error.value = "No results returned from comparison. Please check the console for details.";
+        } else {
+          console.log('TableDiffApp: Results received successfully, length:', resultText.length);
+        }
       }
       comparisonInfo.value = {
         source: message.source || "",
