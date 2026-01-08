@@ -76,6 +76,13 @@ export class BruinInternalParse extends BruinCommand {
         return true; // They are valid bruin files, just not convertible assets
       }
 
+      // For YAML files, check if file already has .asset.yml or .asset.yaml extension
+      // This takes priority over CLI check to avoid false negatives when CLI parsing fails
+      if (filePath.endsWith(".asset.yml") || filePath.endsWith(".asset.yaml")) {
+        console.log("checkIfAsset: File has .asset.yml/.asset.yaml extension, returning true");
+        return true;
+      }
+
       // Run CLI parse command to check if file is an asset
       const result = await this.run(["parse-asset", filePath], { ignoresErrors: true });
       

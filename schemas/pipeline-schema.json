@@ -101,11 +101,21 @@
               "channel"
             ]
           }
+        },
+        "ms_teams": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "connection": {
+                "type": "string",
+                "description": "Microsoft Teams connection name"
+              }
+            }
+          }
         }
       },
-      "required": [
-        "slack"
-      ]
+      "additionalProperties": true
     },
     "catchup": {
       "type": "boolean",
