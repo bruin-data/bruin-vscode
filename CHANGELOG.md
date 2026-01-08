@@ -1,4 +1,7 @@
 # Changelog
+## [0.72.5] - [2026-01-08]
+- Improved the table diff UI.
+
 ## [0.72.4] - [2026-01-06]
 - Improved the validation errors display.
 
