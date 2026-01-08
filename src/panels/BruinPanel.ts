@@ -1413,6 +1413,13 @@ export class BruinPanel {
   private async _isAssetFile(filePath: string): Promise<boolean> {
 
     try {
+      // For YAML files, check if file already has .asset.yml or .asset.yaml extension first
+      // This takes priority over CLI check to avoid false negatives when CLI parsing fails
+      if (filePath.endsWith(".asset.yml") || filePath.endsWith(".asset.yaml")) {
+        console.log(`_isAssetFile: File has .asset.yml/.asset.yaml extension, returning true for ${filePath}`);
+        return true;
+      }
+
       // Primary method: Use CLI internal parse command
       const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || "";
       const parser = new BruinInternalParse(
@@ -1491,6 +1498,16 @@ export class BruinPanel {
       });
 
       if (fileExt === "yml" || fileExt === "yaml") {
+        // Check if file already has .asset.yml or .asset.yaml extension
+        if (filePath.endsWith(".asset.yml") || filePath.endsWith(".asset.yaml")) {
+          console.log("_convertToAsset: File already has .asset.yml/.asset.yaml extension, skipping rename", filePath);
+          // File is already an asset, just trigger asset detection to update UI
+          setTimeout(async () => {
+            await this._handleAssetDetection(this._lastRenderedDocumentUri!);
+          }, 100);
+          return;
+        }
+        
         // For YAML files, rename to *.asset.yml
         const newPath = filePath.replace(`.${fileExt}`, `.asset.${fileExt}`);
         console.log("_convertToAsset: Renaming", filePath, "to", newPath);
