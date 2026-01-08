@@ -202,8 +202,6 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
 
     try {
       const { bruinDBTCommand } = await this.getWorkspaceSetup();
-      
-      console.log(`Fetching schemas for ${connectionName}`);
       const rawSchemas = await bruinDBTCommand.getFetchDatabases(connectionName);
       const schemaNames = this.parseSchemas(rawSchemas);
       
@@ -232,15 +230,11 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
       console.log(`sendTables called: connection=${connectionName}, schema=${schemaName}, type=${type}`);
       
       const { bruinDBTCommand } = await this.getWorkspaceSetup();
-      
-      console.log(`Fetching tables for ${connectionName}.${schemaName}`);
       const rawTables = await bruinDBTCommand.getFetchTables(connectionName, schemaName);
       console.log('Raw tables response:', rawTables);
       
       const tables = this.parseTables(rawTables);
-      console.log('Parsed tables:', tables);
 
-      console.log(`Sending updateTables message with ${tables.length} tables:`, tables);
       TableDiffPanel._view.webview.postMessage({
         command: 'updateTables',
         tables,
@@ -259,21 +253,12 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
 
   private async sendSchemasAndTables(connectionName: string, type: string) {
     if (!TableDiffPanel._view) return;
-    
-    console.log(`sendSchemasAndTables called with connectionName: ${connectionName}, type: ${type}`);
 
     try {
       const { bruinDBTCommand } = await this.getWorkspaceSetup();
-      
-      // Get only schemas first - this is much faster
       const rawSchemas = await bruinDBTCommand.getFetchDatabases(connectionName);
       const schemas = this.parseSchemas(rawSchemas);
-
-      // Instead of fetching all tables, just send schema names as suggestions
-      // Users can type "schema.table" format
       const schemaNames = schemas.map(schema => `${schema}.`);
-
-      console.log(`Sending ${schemaNames.length} schema names for ${connectionName}:`, schemaNames);
       
       TableDiffPanel._view.webview.postMessage({
         command: 'updateSchemasAndTables',
@@ -320,15 +305,8 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
           }
         });
 
-        const { workspaceFolder, connections } = await this.getWorkspaceSetup();
+        const { workspaceFolder } = await this.getWorkspaceSetup();
         const tableDiff = new BruinTableDiff(getBruinExecutablePath(), workspaceFolder);
-        
-        console.log(`TableDiffPanel: Comparing tables:`);
-        console.log(`  Working directory: ${workspaceFolder}`);
-        console.log(`  Source: ${sourceConnection} -> ${sourceTable}`);
-        console.log(`  Target: ${targetConnection} -> ${targetTable}`);
-        console.log(`  Schema only: ${schemaOnly}`);
-        console.log(`  Executable path: ${getBruinExecutablePath()}`);
         
         const result = await tableDiff.compareTables(
           sourceConnection,
@@ -338,15 +316,6 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
           schemaOnly
         );
 
-        console.log(`TableDiffPanel: Received result, length: ${result.length}`);
-        if (result.length === 0) {
-          console.error(`TableDiffPanel: ERROR - Empty result received!`);
-          console.error(`TableDiffPanel: This might indicate:`);
-          console.error(`  1. The command failed silently`);
-          console.error(`  2. Output is being written to stderr instead of stdout`);
-          console.error(`  3. The working directory or connection configuration is incorrect`);
-        }
-        
         const sourceInfo = `${sourceConnection}:${sourceTable}`;
         const targetInfo = `${targetConnection}:${targetTable}`;
         
@@ -384,21 +353,13 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
   }
 
   private showResults(source: string, target: string, results: string): void {
-    console.log(`TableDiffPanel: showResults called with:`);
-    console.log(`  Source: ${source}`);
-    console.log(`  Target: ${target}`);
-    console.log(`  Results length: ${results.length}`);
-    console.log(`  Results preview: ${results.substring(0, 200)}...`);
-    
     if (TableDiffPanel._view) {
       TableDiffPanel._view.webview.postMessage({
         command: 'showResults',
         source,
         target,
-        results: results || '' // Ensure we always send a string, even if empty
+        results: results || ''
       });
-    } else {
-      console.warn(`TableDiffPanel: _view is not available, cannot send results`);
     }
   }
 

@@ -30,13 +30,9 @@ export class BruinTableDiff extends BruinCommand {
       if (versionInfo) {
         const current = parseVersion(versionInfo.version);
         const minimum = parseVersion(MIN_JSON_OUTPUT_VERSION);
-        const supported = versionGte(current, minimum);
-        console.log(`BruinTableDiff: CLI version ${versionInfo.version}, JSON output supported: ${supported}`);
-        return supported;
-      } else {
-        console.warn("BruinTableDiff: Could not determine CLI version, JSON output disabled");
-        return false;
+        return versionGte(current, minimum);
       }
+      return false;
     } catch (error) {
       console.error("BruinTableDiff: Version check failed:", error);
       return false;
@@ -73,25 +69,10 @@ export class BruinTableDiff extends BruinCommand {
       ...(schemaOnly ? ["--schema-only"] : [])
     ];
 
-    console.log(`BruinTableDiff: Executing data-diff with explicit connections:`, args);
-    console.log(`BruinTableDiff: Full command: bruin data-diff ${args.join(' ')}`);
-    
     try {
       const { promise, process } = this.runCancellable(args, options);
       BruinTableDiff.runningProcess = process;
-
-      const result = await promise;
-      console.log(`BruinTableDiff: Command completed successfully`);
-      console.log(`BruinTableDiff: Result length: ${result.length} characters`);
-      if (result.length > 0) {
-        console.log(`BruinTableDiff: Result preview (first 300 chars): ${result.substring(0, 300)}`);
-      } else {
-        console.warn(`BruinTableDiff: WARNING - Empty result returned!`);
-      }
-      return result;
-    } catch (error) {
-      console.error(`BruinTableDiff: Command failed:`, error);
-      throw error;
+      return await promise;
     } finally {
       BruinTableDiff.runningProcess = null;
     }
