@@ -101,11 +101,24 @@
               "channel"
             ]
           }
+        },
+        "teams": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "webhook_url": {
+                "type": "string",
+                "description": "Microsoft Teams webhook URL"
+              }
+            },
+            "required": [
+              "webhook_url"
+            ]
+          }
         }
       },
-      "required": [
-        "slack"
-      ]
+      "additionalProperties": true
     },
     "catchup": {
       "type": "boolean",
