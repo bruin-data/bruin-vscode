@@ -216,6 +216,71 @@ export class MaterializationValidator {
                 diagnostics.push(diagnostic);
             }
             
+            // Validate format of start: and end: values
+            // Format should be: number immediately followed by unit letter (e.g., "-13d", "5h")
+            // Invalid formats include: "-13 day", "5 hour", etc. (with space)
+            const startEndMatch = line.match(/^\s+(start|end):\s*(.+)$/);
+            if (startEndMatch) {
+                let value = startEndMatch[2].trim();
+                // Remove quotes if present (YAML can have quoted strings)
+                const isQuoted = (value.startsWith('"') && value.endsWith('"')) || 
+                                 (value.startsWith("'") && value.endsWith("'"));
+                if (isQuoted) {
+                    value = value.slice(1, -1);
+                }
+                
+                // Check if value has a space between number and unit (invalid format)
+                // Pattern matches: optional minus sign, digits, space, then letters
+                if (value.match(/^-?\d+\s+[a-zA-Z]+/)) {
+                    // Extract the number and unit to suggest correct format
+                    const numberUnitMatch = value.match(/^(-?\d+)\s+([a-zA-Z]+)/);
+                    if (numberUnitMatch) {
+                        const number = numberUnitMatch[1];
+                        const unit = numberUnitMatch[2].toLowerCase();
+                        // Map common unit words to their single-letter abbreviations
+                        const unitMap: { [key: string]: string } = {
+                            'day': 'd',
+                            'days': 'd',
+                            'hour': 'h',
+                            'hours': 'h',
+                            'minute': 'm',
+                            'minutes': 'm',
+                            'min': 'm',
+                            'second': 's',
+                            'seconds': 's',
+                            'sec': 's',
+                            'week': 'w',
+                            'weeks': 'w',
+                            'month': 'M',
+                            'months': 'M',
+                            'year': 'y',
+                            'years': 'y'
+                        };
+                        // Get unit letter from map or use first letter
+                        const unitLetter = unitMap[unit] || unit.charAt(0).toLowerCase();
+                        const correctFormat = `${number}${unitLetter}`;
+                        
+                        // Find the position of the value in the line (including quotes if present)
+                        const originalValue = startEndMatch[2].trim();
+                        const valueStart = line.indexOf(originalValue);
+                        const valueEnd = valueStart + originalValue.length;
+                        
+                        const range = new vscode.Range(
+                            i,
+                            valueStart,
+                            i,
+                            valueEnd
+                        );
+                        const diagnostic = new vscode.Diagnostic(
+                            range,
+                            `Invalid interval_modifiers format. Use "${correctFormat}" instead of "${value}". Format should be number immediately followed by unit letter (e.g., "-13d", "5h").`,
+                            vscode.DiagnosticSeverity.Error
+                        );
+                        diagnostics.push(diagnostic);
+                    }
+                }
+            }
+            
             // Stop if we hit another top-level property
             if (line.match(/^\w+:\s*$/)) {
                 break;
