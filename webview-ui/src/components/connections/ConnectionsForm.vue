@@ -53,7 +53,7 @@ import { ref, computed, watch, defineEmits, defineProps, onMounted } from "vue";
 import FormField from "./FormField.vue";
 import { XMarkIcon } from "@heroicons/vue/20/solid";
 import { useConnectionsStore } from "@/store/bruinStore";
-import { generateConnectionConfig } from "./connectionUtility";
+import { generateConnectionConfig, supportsApplicationDefaultCredentials } from "./connectionUtility";
 
 const connectionsStore = useConnectionsStore();
 
@@ -183,7 +183,6 @@ watch(
 watch(
   () => props.connection,
   (newConnection) => {
-    console.log("Connection data received:", newConnection);
     if (Object.keys(newConnection).length > 0) {
       // Only update form if not already populated
       if (!form.value.connection_name) {
@@ -195,22 +194,18 @@ watch(
         };
       }
       
-      if (newConnection.type === "google_cloud_platform" || newConnection.type === "gcs") {
+      if (supportsApplicationDefaultCredentials(newConnection.type, connectionSchema)) {
         serviceAccountInputMethod.value = determineServiceAccountInputMethod(newConnection.credentials || newConnection);
-        console.log("Service account input method set to:", serviceAccountInputMethod.value);
         
         const credentials = newConnection.credentials || newConnection;
         if (credentials.service_account_file) {
           selectedFile.value = getServiceAccountFile(credentials);
-          console.log("Service account file set to:", selectedFile.value);
           form.value.service_account_json = "";
         } else if (credentials.service_account_json) {
           selectedFile.value = null;
-          console.log("Service account JSON found, setting text input");
           form.value.service_account_json = credentials.service_account_json;
         } else if (credentials.use_application_default_credentials) {
           form.value.use_application_default_credentials = credentials.use_application_default_credentials;
-          console.log("Apply default credentials set to:", form.value.use_application_default_credentials);
         }
       }
     }
@@ -260,6 +255,7 @@ const handleServiceAccountInputMethodChange = (newMethod) => {
   } else if (newMethod === "default") {
     // Clear both file and text when switching to default
     form.value.service_account_json = "";
+    form.value.use_application_default_credentials = true;
     selectedFile.value = null;
   }
   
@@ -346,57 +342,33 @@ const submitForm = () => {
     connectionData.id = form.value.id;
   }
 
+  const supportsDefaultCreds = supportsApplicationDefaultCredentials(form.value.connection_type, connectionSchema);
+  const useDefaultCreds = form.value.use_application_default_credentials === true;
+
   formFields.value.forEach((field) => {
     if (
       field.id !== "connection_type" &&
       field.id !== "connection_name" &&
       field.id !== "environment" &&
-      field.id !== "id" // Don't include id in credentials
+      field.id !== "id"
     ) {
-      // Special handling for Google Cloud Platform and GCS service account
-      if ((form.value.connection_type === "google_cloud_platform" || form.value.connection_type === "gcs") && field.id === "service_account_json") {
-        // If a file is selected, use the file path
-        if (selectedFile.value) {
-          connectionData.credentials.service_account_file = selectedFile.value.path;
-        }
-        // If text is provided, use the text content
-        if (form.value.service_account_json) {
-          connectionData.credentials.service_account_json = form.value.service_account_json;
+      if (supportsDefaultCreds && field.id === "service_account_json") {
+        if (!useDefaultCreds) {
+          if (selectedFile.value) {
+            connectionData.credentials.service_account_file = selectedFile.value.path;
+          }
+          if (form.value.service_account_json && form.value.service_account_json.trim() !== "") {
+            connectionData.credentials.service_account_json = form.value.service_account_json;
+          }
         }
       } else {
-        // For other connection types, add fields as before
         connectionData.credentials[field.id] = form.value[field.id];
       }
     }
   });
 
-  // Special handling for use_application_default_credentials
-  if ((form.value.connection_type === "google_cloud_platform" || form.value.connection_type === "gcs") && form.value.use_application_default_credentials) {
-    connectionData.credentials.use_application_default_credentials = form.value.use_application_default_credentials;
-  }
-
-  console.log("============connection credentials============");
-  console.log(connectionData.credentials);
-  
-  // Debug: Log private key if present
-  if (connectionData.credentials.private_key) {
-    console.log("============PRIVATE KEY BEING SENT============");
-    console.log(connectionData.credentials.private_key);
-    console.log("============PRIVATE KEY LENGTH============");
-    console.log(connectionData.credentials.private_key.length);
-  }
-  
-  // Debug: Log all Snowflake credentials
-  if (connectionData.type === "snowflake") {
-    console.log("============SNOWFLAKE CONNECTION DEBUG============");
-    console.log("Account:", connectionData.credentials.account);
-    console.log("Username:", connectionData.credentials.username);
-    console.log("Has Password:", !!connectionData.credentials.password);
-    console.log("Has Private Key:", !!connectionData.credentials.private_key);
-    console.log("Has Private Key Path:", !!connectionData.credentials.private_key_path);
-    console.log("Role:", connectionData.credentials.role);
-    console.log("Database:", connectionData.credentials.database);
-    console.log("Warehouse:", connectionData.credentials.warehouse);
+  if (supportsDefaultCreds && useDefaultCreds) {
+    connectionData.credentials.use_application_default_credentials = true;
   }
 
   emit("submit", connectionData);

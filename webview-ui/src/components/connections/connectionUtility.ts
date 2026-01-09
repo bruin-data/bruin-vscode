@@ -100,3 +100,36 @@ export const orderConnectionsAsc = (connections: any[]) => {
   });
 };
 
+export const supportsApplicationDefaultCredentials = (connectionType: string, schema: any): boolean => {
+  if (!connectionType) {
+    return false;
+  }
+
+  if (schema && schema.$defs && schema.$defs.Connections && schema.$defs.Connections.properties) {
+    const connectionTypeDef = schema.$defs.Connections.properties[connectionType];
+    if (connectionTypeDef && connectionTypeDef.items && connectionTypeDef.items.$ref) {
+      const connectionDefKey = connectionTypeDef.items.$ref.split("/").pop();
+      const connectionDef = schema.$defs[connectionDefKey];
+      
+      if (connectionDef && connectionDef.properties) {
+        if (connectionDef.properties.hasOwnProperty("use_application_default_credentials")) {
+          return true;
+        }
+      }
+    }
+  }
+
+  const gcpRelatedPatterns = [
+    'google_cloud_platform',
+    'gcp',
+    'gcs',
+    'dataproc',
+    'spanner',
+    'bigquery',
+    'google'
+  ];
+  
+  const normalizedType = connectionType.toLowerCase();
+  return gcpRelatedPatterns.some(pattern => normalizedType.includes(pattern));
+};
+
