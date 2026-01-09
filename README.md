@@ -63,11 +63,11 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.72.7**: Improved the application default credentials logic.
 - **0.72.6**: Enhanced validation schema and refined asset conversion logic.
 - **0.72.5**: Improved the table diff UI.
-- **0.72.4**: Improved the validation errors display.
 
-For a full changelog, see Bruin Extension [Changelog](https://marketplace.visualstudio.com/items/bruin.bruin/changelog).
+For a full changelog, see Bruin Extension [Changelog](https://github.com/bruin-data/bruin-vscode/blob/main/CHANGELOG.md).
 
 ### How to Update
 To update to the latest version, search for "Bruin" in the Extensions Marketplace and click the Update button.

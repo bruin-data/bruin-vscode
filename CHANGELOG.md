@@ -1,4 +1,7 @@
 # Changelog
+## [0.72.7] - [2026-01-09]
+- Improved the application default credentials logic.
+
 ## [0.72.6] - [2026-01-08]
 - Enhanced validation schema and refined asset conversion logic.
 
