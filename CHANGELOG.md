@@ -1,4 +1,8 @@
 # Changelog
+
+## [0.72.8] - [2026-01-12]
+- Improved the tag filter dropdown to display only the available tags for the current pipeline.
+
 ## [0.72.7] - [2026-01-09]
 - Improved the application default credentials logic.
 

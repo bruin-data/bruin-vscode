@@ -63,6 +63,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.72.8**: Improved the tag filter dropdown to display only the available tags for the current pipeline.
 - **0.72.7**: Improved the application default credentials logic.
 - **0.72.6**: Enhanced validation schema and refined asset conversion logic.
 - **0.72.5**: Improved the table diff UI.
