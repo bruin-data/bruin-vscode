@@ -857,8 +857,12 @@ onMounted(() => {
     checkboxState?: { [key: string]: boolean };
     startDate?: string;
     endDate?: string;
+    // Legacy fields (kept for backwards compatibility)
     includeTags?: string[];
     excludeTags?: string[];
+    tagsFilePath?: string;
+    // Per-pipeline tag filters
+    tagFiltersByPipeline?: Record<string, { includeTags: string[]; excludeTags: string[] }>;
     variableOverrides?: Record<string, any>;
     applyVariableOverrides?: boolean;
   };
@@ -880,12 +884,17 @@ onMounted(() => {
   if (persistedState?.applyVariableOverrides !== undefined) {
     applyVariableOverrides.value = persistedState.applyVariableOverrides;
   }
+  // Restore tags for the current pipeline (only if we have a valid file path)
   try {
-    if (Array.isArray(persistedState?.includeTags)) {
-      includeTags.value = [...(persistedState.includeTags || [])];
-    }
-    if (Array.isArray(persistedState?.excludeTags)) {
-      excludeTags.value = [...(persistedState.excludeTags || [])];
+    const currentFilePath = props.filePath;
+    if (currentFilePath && persistedState?.tagFiltersByPipeline?.[currentFilePath]) {
+      const pipelineTags = persistedState.tagFiltersByPipeline[currentFilePath];
+      if (Array.isArray(pipelineTags.includeTags)) {
+        includeTags.value = [...pipelineTags.includeTags];
+      }
+      if (Array.isArray(pipelineTags.excludeTags)) {
+        excludeTags.value = [...pipelineTags.excludeTags];
+      }
     }
   } catch (_) {}
 
@@ -937,16 +946,31 @@ watch(
 
     try {
       const prevState = (vscode.getState() as Record<string, any>) || {};
-      vscode.setState({
+      const currentFilePath = props.filePath;
+      
+      // Build state update
+      const stateUpdate: Record<string, any> = {
         ...prevState,
         checkboxState,
         startDate: startDate.value,
         endDate: endDate.value,
-        includeTags: includeTags.value,
-        excludeTags: excludeTags.value,
         variableOverrides: currentVariableOverrides.value,
         applyVariableOverrides: applyVariableOverrides.value,
-      });
+      };
+      
+      // Only persist tag filters if we have a valid file path
+      if (currentFilePath) {
+        const existingTagFilters = prevState.tagFiltersByPipeline || {};
+        stateUpdate.tagFiltersByPipeline = {
+          ...existingTagFilters,
+          [currentFilePath]: {
+            includeTags: [...includeTags.value],
+            excludeTags: [...excludeTags.value],
+          },
+        };
+      }
+      
+      vscode.setState(stateUpdate);
     } catch (_) {}
   },
   { deep: true }
