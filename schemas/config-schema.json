@@ -492,25 +492,87 @@
             "additionalProperties": false
         },
         "databricksConnection": {
+            "title": "Databricks Connection",
+            "description": "Configure Databricks connection with either token-based authentication or OAuth (client_id + client_secret)",
             "type": "object",
             "properties": {
                 "name": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Connection name identifier"
                 },
                 "host": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Databricks host URL (e.g., dbc-example.cloud.databricks.com)"
                 },
                 "token": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Databricks personal access token (cannot be used with client_id/client_secret)"
+                },
+                "client_id": {
+                    "type": "string",
+                    "description": "OAuth client ID (must be used with client_secret, cannot be used with token)"
+                },
+                "client_secret": {
+                    "type": "string",
+                    "description": "OAuth client secret (must be used with client_id, cannot be used with token)"
                 },
                 "path": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "HTTP path to the SQL warehouse (e.g., /sql/1.0/warehouses/xxxxx)"
+                },
+                "port": {
+                    "type": "integer",
+                    "description": "Databricks port (typically 443 for HTTPS)",
+                    "default": 443
+                },
+                "catalog": {
+                    "type": "string",
+                    "description": "Databricks catalog name"
+                },
+                "schema": {
+                    "type": "string",
+                    "description": "Databricks schema name"
                 }
             },
+            "oneOf": [
+                {
+                    "title": "Token Authentication",
+                    "description": "Use personal access token for authentication",
+                    "required": [
+                        "token"
+                    ],
+                    "not": {
+                        "anyOf": [
+                            {
+                                "required": [
+                                    "client_id"
+                                ]
+                            },
+                            {
+                                "required": [
+                                    "client_secret"
+                                ]
+                            }
+                        ]
+                    }
+                },
+                {
+                    "title": "OAuth Authentication",
+                    "description": "Use OAuth client credentials for authentication",
+                    "required": [
+                        "client_id",
+                        "client_secret"
+                    ],
+                    "not": {
+                        "required": [
+                            "token"
+                        ]
+                    }
+                }
+            ],
             "required": [
                 "name",
-                "host",
-                "token"
+                "host"
             ],
             "additionalProperties": true
         },
