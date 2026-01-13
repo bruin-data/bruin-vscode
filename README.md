@@ -63,6 +63,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.72.10**: Added support for BigQuery source asset type in the validation schema.
 - **0.72.9**: Added support for new authentication methods to databricks connection schema.
 - **0.72.8**: Improved the tag filter dropdown to display only the available tags for the current pipeline.
 - **0.72.7**: Improved the application default credentials logic.
