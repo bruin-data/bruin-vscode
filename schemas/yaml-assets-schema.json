@@ -116,7 +116,8 @@
                 "gcs",
                 "mongo_atlas",
                 "mysql",
-                "elasticsearch"
+                "elasticsearch",
+                "motherduck"
               ],
               "description": "The destination system",
               "additionalProperties": true
