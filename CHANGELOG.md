@@ -1,4 +1,7 @@
 # Changelog
+## [0.73.0] - [2026-01-13]
+- Added support for sensor mode in the run command and extension settings.
+
 ## [0.72.10] - [2026-01-13]
 - Added support for BigQuery source asset type in the validation schema.
 
