@@ -63,10 +63,9 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.72.9**: Added support for new authentication methods to databricks connection schema.
 - **0.72.8**: Improved the tag filter dropdown to display only the available tags for the current pipeline.
 - **0.72.7**: Improved the application default credentials logic.
-- **0.72.6**: Enhanced validation schema and refined asset conversion logic.
-- **0.72.5**: Improved the table diff UI.
 
 For a full changelog, see Bruin Extension [Changelog](https://github.com/bruin-data/bruin-vscode/blob/main/CHANGELOG.md).
 
