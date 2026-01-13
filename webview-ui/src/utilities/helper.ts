@@ -21,18 +21,22 @@ export const concatCommandFlags = (
   endDate: string,
   endDateExclusive: string,
   checkboxItems: CheckboxItems[],
-  tagFilters?: { include?: string[]; exclude?: string[] } | null
+  tagFilters?: { include?: string[]; exclude?: string[] } | null,
+  sensorModeSetting?: string
 ): string => {
   // Only include start-date flag if startDate is not empty
   const startDateFlag = startDate ? ` --start-date ${startDate.endsWith("Z") ? startDate : startDate + "Z"}` : "";
   const endDateFlag = isExclusiveChecked(checkboxItems) ? ` --end-date ${endDateExclusive}` : ` --end-date ${endDate}`;
 
   const checkboxesFlags = checkboxItems
-    .filter((item) => item.checked && item.name !== "Exclusive-End-Date" && item.name !== "Interval-modifiers")
+    .filter((item) => item.checked && item.name !== "Exclusive-End-Date" && item.name !== "Interval-modifiers" && item.name !== "Apply-Sensor-Mode")
     .map((item) => ` --${item.name.toLowerCase()}`);
   const intervalModifiersFlags = checkboxItems
     .filter((item) => item.checked && item.name === "Interval-modifiers")
     .map((item) => ` --apply-${item.name.toLowerCase()}`);
+  // Add sensor mode flag when Apply-Sensor-Mode is checked, using the configured setting
+  const applySensorMode = checkboxItems.some((item) => item.checked && item.name === "Apply-Sensor-Mode");
+  const sensorModeFlag = applySensorMode && sensorModeSetting ? ` --sensor-mode ${sensorModeSetting}` : "";
   const tagFlags: string[] = [];
   if (tagFilters) {
     const includeList = Array.isArray(tagFilters.include) ? tagFilters.include : [];
@@ -48,7 +52,8 @@ export const concatCommandFlags = (
       }
     }
   }
-  return [startDateFlag, endDateFlag, ...checkboxesFlags, ...intervalModifiersFlags, ...tagFlags].filter(flag => flag).join("");
+  
+  return [startDateFlag, endDateFlag, ...checkboxesFlags, ...intervalModifiersFlags, sensorModeFlag, ...tagFlags].filter(flag => flag).join("");
 };
 
 export const handleError = (validationError: any | null, renderSQLAssetError: any | null) => {

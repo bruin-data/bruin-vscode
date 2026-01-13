@@ -51,7 +51,7 @@ import { BruinInternalListTemplates } from "../bruin/bruinInternalListTemplates"
 import { BruinInternalAssetMetadata } from "../bruin/bruinInternalAssetMetadata";
 import { BruinLineageInternalParse } from "../bruin/bruinFlowLineage";
 
-import { getDefaultCheckboxSettings, getDefaultExcludeTag, getFormatSqlfluff } from "../extension/configuration";
+import { getDefaultCheckboxSettings, getDefaultExcludeTag, getFormatSqlfluff, getSensorModeSetting } from "../extension/configuration";
 import { exec } from "child_process";
 import { flowLineageCommand } from "../extension/commands/FlowLineageCommand";
 
@@ -81,6 +81,7 @@ export class BruinPanel {
   private _currentStartDate: string = "";
   private _currentEndDate: string = "";
   private _currentEnvironment: string = "";
+  private _sensorModeSetting: string = "skip";
 
   /**
    * The BruinPanel class private constructor (called only from the render method).
@@ -97,7 +98,9 @@ export class BruinPanel {
       "Interval-modifiers": defaultSettings.defaultIntervalModifiers,
       "Exclusive-End-Date": defaultSettings.defaultExclusiveEndDate,
       "Push-Metadata": defaultSettings.defaultPushMetadata,
+      "Apply-Sensor-Mode": defaultSettings.defaultApplySensorMode,
     };
+    this._sensorModeSetting = getSensorModeSetting();
     const iconPath = Uri.joinPath(extensionUri, "img", "bruin-logo-sm128.png");
     panel.iconPath = { light: iconPath, dark: iconPath };
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
@@ -268,7 +271,8 @@ export class BruinPanel {
     const bruinPanel = new BruinPanel(panel, extensionUri);
     bruinPanel._panel.webview.postMessage({
       command: 'setDefaultCheckboxStates',
-      payload: bruinPanel._checkboxState
+      payload: bruinPanel._checkboxState,
+      sensorModeSetting: bruinPanel._sensorModeSetting
     });
     return bruinPanel;
   }
@@ -314,6 +318,7 @@ export class BruinPanel {
       this.currentPanel._panel.webview.postMessage({
         command: "setDefaultCheckboxStates",
         payload: this.currentPanel._checkboxState,
+        sensorModeSetting: this.currentPanel._sensorModeSetting,
       });
     }
   }

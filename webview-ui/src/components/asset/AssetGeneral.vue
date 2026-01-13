@@ -698,7 +698,11 @@ const checkboxItems = ref([
   { name: "Interval-modifiers", checked: false },
   { name: "Exclusive-End-Date", checked: true },
   { name: "Push-Metadata", checked: false },
+  { name: "Apply-Sensor-Mode", checked: false },
 ]);
+
+// Sensor mode setting from VS Code configuration
+const sensorModeSetting = ref<string>("skip");
 
 // Tag filter state
 const includeTags = ref<string[]>([]);
@@ -813,7 +817,8 @@ function getCheckboxChangePayload() {
     {
       include: includeTags.value,
       exclude: excludeTags.value,
-    }
+    },
+    sensorModeSetting.value
   );
 
   if (
@@ -1582,12 +1587,18 @@ function receiveMessage(event: { data: any }) {
           }));
         } catch (_) {}
 
+        // Store sensor mode setting from extension
+        if (envelope.sensorModeSetting) {
+          sensorModeSetting.value = envelope.sensorModeSetting;
+        }
+
         // Sync persisted state with values coming from the extension side
         try {
           const prevState = (vscode.getState() as Record<string, any>) || {};
           vscode.setState({
             ...prevState,
             checkboxState: envelope.payload,
+            sensorModeSetting: sensorModeSetting.value,
           });
         } catch (_) {}
       }
