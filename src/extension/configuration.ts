@@ -10,7 +10,13 @@ export function getDefaultCheckboxSettings() {
     defaultIntervalModifiers: config.get<boolean>("defaultIntervalModifiers", false),
     defaultExclusiveEndDate: config.get<boolean>("defaultExclusiveEndDate", true),
     defaultPushMetadata: config.get<boolean>("defaultPushMetadata", false),
+    defaultApplySensorMode: config.get<boolean>("defaultApplySensorMode", false),
   };
+}
+
+export function getSensorModeSetting(): string {
+  const config = vscode.workspace.getConfiguration("bruin.run");
+  return config.get<string>("sensorMode", "skip");
 }
 
 export function getFormatSqlfluff(): boolean {

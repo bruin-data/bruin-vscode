@@ -5461,6 +5461,7 @@ suite(" Query export Tests", () => {
             .withArgs("defaultIntervalModifiers", false).returns(true)
             .withArgs("defaultExclusiveEndDate", false).returns(true)
             .withArgs("defaultPushMetadata", false).returns(true)
+            .withArgs("defaultApplySensorMode", false).returns(true)
         };
         workspaceGetConfigurationStub.withArgs("bruin.checkbox").returns(mockConfig);
 
@@ -5471,6 +5472,7 @@ suite(" Query export Tests", () => {
           defaultIntervalModifiers: true,
           defaultExclusiveEndDate: true,
           defaultPushMetadata: true,
+          defaultApplySensorMode: true,
         });
         sinon.assert.calledWith(workspaceGetConfigurationStub, "bruin.checkbox");
       });
@@ -5481,6 +5483,7 @@ suite(" Query export Tests", () => {
             .withArgs("defaultIntervalModifiers", false).returns(false)
             .withArgs("defaultExclusiveEndDate", false).returns(false)
             .withArgs("defaultPushMetadata", false).returns(false)
+            .withArgs("defaultApplySensorMode", false).returns(false)
         };
         workspaceGetConfigurationStub.withArgs("bruin.checkbox").returns(mockConfig);
 
@@ -5491,7 +5494,35 @@ suite(" Query export Tests", () => {
           defaultIntervalModifiers: false,
           defaultExclusiveEndDate: false,
           defaultPushMetadata: false,
+          defaultApplySensorMode: false,
         });
+      });
+    });
+
+    suite("getSensorModeSetting", () => {
+      test("should return sensor mode setting from configuration", () => {
+        const mockConfig = {
+          get: sinon.stub().withArgs("sensorMode", "skip").returns("wait")
+        };
+        workspaceGetConfigurationStub.withArgs("bruin.run").returns(mockConfig);
+
+        const { getSensorModeSetting } = require("../extension/configuration");
+        const result = getSensorModeSetting();
+
+        assert.strictEqual(result, "wait");
+        sinon.assert.calledWith(workspaceGetConfigurationStub, "bruin.run");
+      });
+
+      test("should return default value when configuration is not set", () => {
+        const mockConfig = {
+          get: sinon.stub().withArgs("sensorMode", "skip").returns("skip")
+        };
+        workspaceGetConfigurationStub.withArgs("bruin.run").returns(mockConfig);
+
+        const { getSensorModeSetting } = require("../extension/configuration");
+        const result = getSensorModeSetting();
+
+        assert.strictEqual(result, "skip");
       });
     });
 

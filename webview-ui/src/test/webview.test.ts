@@ -434,6 +434,7 @@ suite("AssetGeneral persistence", () => {
       { name: 'Interval-modifiers', checked: true },
       { name: 'Exclusive-End-Date', checked: false },
       { name: 'Push-Metadata', checked: true },
+      { name: 'Apply-Sensor-Mode', checked: false },
     ];
 
     // Set specific dates

@@ -2,7 +2,7 @@
   "name": "bruin",
   "displayName": "Bruin",
   "description": "Manage your Bruin data assets from within VS Code.",
-  "version": "0.72.10",
+  "version": "0.73.0",
   "engines": {
     "vscode": "^1.87.0"
   },
@@ -182,6 +182,26 @@
           "type": "boolean",
           "default": false,
           "description": "Sets whether the 'Push-Metadata' checkbox is checked by default."
+        },
+        "bruin.checkbox.defaultApplySensorMode": {
+          "type": "boolean",
+          "default": false,
+          "description": "Sets whether the 'Apply-Sensor-Mode' checkbox is checked by default."
+        },
+        "bruin.run.sensorMode": {
+          "type": "string",
+          "enum": [
+            "once",
+            "skip",
+            "wait"
+          ],
+          "enumDescriptions": [
+            "Run sensor query once and proceed based on result (default)",
+            "Skip sensors entirely (useful for local development)",
+            "Loop until the expected result is met (production-like behavior)"
+          ],
+          "default": "skip",
+          "description": "Sensor mode to use when 'Apply-Sensor-Mode' checkbox is enabled. 'once' runs the sensor query once, 'skip' bypasses sensors, 'wait' loops until condition is met."
         },
         "bruin.validate.defaultExcludeTag": {
           "type": "string",
