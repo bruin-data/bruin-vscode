@@ -26,6 +26,7 @@
             "sf.sql",
             "sf.sensor.query",
             "bq.sql",
+            "bq.source",
             "bq.sensor.table",
             "bq.sensor.query",
             "duckdb.sensor.query",
