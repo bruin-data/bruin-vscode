@@ -1,4 +1,7 @@
 # Changelog
+## [0.72.10] - [2026-01-13]
+- Added support for BigQuery source asset type in the validation schema.
+
 ## [0.72.9] - [2026-01-13]
 - Added support for new authentication methods to databricks connection schema.
 
