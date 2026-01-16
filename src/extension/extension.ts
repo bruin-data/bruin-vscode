@@ -70,7 +70,7 @@ function initializeAnalytics(): any {
   }
 }
 
-function trackEvent(eventName: string, properties: Record<string, any> = {}): void {
+export function trackEvent(eventName: string, properties: Record<string, any> = {}): void {
   try {
     const client = initializeAnalytics();
     if (!client) {
@@ -286,7 +286,7 @@ export async function activate(context: ExtensionContext) {
   const commandDisposables = [
     commands.registerCommand("bruin.refreshConnections", () => {
       try {
-        trackEvent("Command Executed", { command: "refreshConnections" });
+        trackEvent("Command Executed", { command: "refreshConnections", source: "user" });
         activityBarConnectionsProvider.refresh();
         //vscode.window.showInformationMessage("Connections refreshed successfully!");
       } catch (error) {
@@ -296,7 +296,7 @@ export async function activate(context: ExtensionContext) {
     }),
     commands.registerCommand("bruin.refreshConnection", (item: any) => {
       try {
-        trackEvent("Command Executed", { command: "refreshConnection" });
+        trackEvent("Command Executed", { command: "refreshConnection", source: "user" });
         if (item && item.itemData && item.itemData.name) {
           // Pass environment information if available
           const environment = item.itemData.environment;
@@ -311,7 +311,7 @@ export async function activate(context: ExtensionContext) {
     }),
     commands.registerCommand("bruin.refreshSchema", (item: any) => {
       try {
-        trackEvent("Command Executed", { command: "refreshSchema" });
+        trackEvent("Command Executed", { command: "refreshSchema", source: "user" });
         if (item && item.itemData) {
           activityBarConnectionsProvider.refreshSchema(item.itemData);
           vscode.window.showInformationMessage(`Schema ${item.itemData.name} refreshed.`);
@@ -323,7 +323,7 @@ export async function activate(context: ExtensionContext) {
     }),
     commands.registerCommand("bruin.showConnectionDetails", (connection: any) => {
       try {
-        trackEvent("Command Executed", { command: "showConnectionDetails" });
+        trackEvent("Command Executed", { command: "showConnectionDetails", source: "user" });
         const details = `Connection: ${connection.name}\nType: ${connection.type}\nStatus: ${connection.status}`;
         if (connection.host) {
           const hostDetails = `\nHost: ${connection.host}:${connection.port || "default"}`;
@@ -339,7 +339,7 @@ export async function activate(context: ExtensionContext) {
    
     commands.registerCommand("bruin.addSchemaToFavorites", async (item: any) => {
       try {
-        trackEvent("Command Executed", { command: "addSchemaToFavorites" });
+        trackEvent("Command Executed", { command: "addSchemaToFavorites", source: "user" });
         if (item && item.itemData && "tables" in item.itemData) {
           await activityBarConnectionsProvider.toggleSchemaFavorite(item.itemData);
           favoritesProvider.refresh();
@@ -351,7 +351,7 @@ export async function activate(context: ExtensionContext) {
     }),
     commands.registerCommand("bruin.removeSchemaFromFavorites", async (item: any) => {
       try {
-        trackEvent("Command Executed", { command: "removeSchemaFromFavorites" });
+        trackEvent("Command Executed", { command: "removeSchemaFromFavorites", source: "user" });
         if (item && item.itemData && "tables" in item.itemData) {
           await activityBarConnectionsProvider.toggleSchemaFavorite(item.itemData);
           favoritesProvider.refresh();
@@ -363,7 +363,7 @@ export async function activate(context: ExtensionContext) {
     }),
     commands.registerCommand("bruin.refreshFavorites", () => {
       try {
-        trackEvent("Command Executed", { command: "refreshFavorites" });
+        trackEvent("Command Executed", { command: "refreshFavorites", source: "user" });
         favoritesProvider.refresh();
         vscode.window.showInformationMessage("Favorites refreshed successfully!");
       } catch (error) {
@@ -373,7 +373,7 @@ export async function activate(context: ExtensionContext) {
     }),
     commands.registerCommand("bruin.removeFavorite", async (item: any) => {
       try {
-        trackEvent("Command Executed", { command: "removeFavorite" });
+        trackEvent("Command Executed", { command: "removeFavorite", source: "user" });
         if (item && item.itemData && item.contextValue === "favorite_schema") {
           await favoritesProvider.removeFavorite(item.itemData);
           activityBarConnectionsProvider.refresh();
@@ -386,7 +386,7 @@ export async function activate(context: ExtensionContext) {
     }),
     commands.registerCommand("bruin.removeTableFavorite", async (item: any) => {
       try {
-        trackEvent("Command Executed", { command: "removeTableFavorite" });
+        trackEvent("Command Executed", { command: "removeTableFavorite", source: "user" });
         if (
           item &&
           item.itemData &&
@@ -410,7 +410,7 @@ export async function activate(context: ExtensionContext) {
     }),
     commands.registerCommand("bruin.addTableToFavorites", async (item: any) => {
       try {
-        trackEvent("Command Executed", { command: "addTableToFavorites" });
+        trackEvent("Command Executed", { command: "addTableToFavorites", source: "user" });
         if (item && item.itemData && "name" in item.itemData && "schema" in item.itemData) {
           await activityBarConnectionsProvider.toggleTableFavorite(item.itemData, item);
           favoritesProvider.refresh();
@@ -422,7 +422,7 @@ export async function activate(context: ExtensionContext) {
     }),
     commands.registerCommand("bruin.removeTableFromFavorites", async (item: any) => {
       try {
-        trackEvent("Command Executed", { command: "removeTableFromFavorites" });
+        trackEvent("Command Executed", { command: "removeTableFromFavorites", source: "user" });
         if (item && item.itemData && "name" in item.itemData && "schema" in item.itemData) {
           await activityBarConnectionsProvider.toggleTableFavorite(item.itemData, item);
           favoritesProvider.refresh();
@@ -434,7 +434,7 @@ export async function activate(context: ExtensionContext) {
     }),
     commands.registerCommand("bruin.runQuery", async (uri: vscode.Uri, range: vscode.Range, isAsset?: boolean, queryCount?: number, queryText?: string) => {
       try {
-        trackEvent("Command Executed", { command: "runQuery" });
+        trackEvent("Command Executed", { command: "runQuery", source: "user" });
         const document = await workspace.openTextDocument(uri);
         const activeTabId = QueryPreviewPanel.getActiveTabId();
         
@@ -529,7 +529,7 @@ export async function activate(context: ExtensionContext) {
     }),
     commands.registerCommand("bruin.renderSQL", async () => {
       try {
-        trackEvent("Command Executed", { command: "renderSQL" });
+        trackEvent("Command Executed", { command: "renderSQL", source: "user" });
         console.time("render-sql-command");
         await renderCommand(context.extensionUri);
         console.timeEnd("render-sql-command");
@@ -541,7 +541,7 @@ export async function activate(context: ExtensionContext) {
 
     commands.registerCommand("bruin.installCli", async () => {
       try {
-        trackEvent("Command Executed", { command: "installCli" });
+        trackEvent("Command Executed", { command: "installCli", source: "user" });
         console.time("install-cli-command");
         await installOrUpdateCli();
         console.timeEnd("install-cli-command");
@@ -557,6 +557,7 @@ export async function activate(context: ExtensionContext) {
         trackEvent("Command Executed", {
           command: "toggleFoldings",
           state: toggled ? "folded" : "unfolded",
+          source: "user",
         });
         console.time("toggle-foldings-command");
         await toggleFoldingsCommand(toggled);
@@ -569,7 +570,7 @@ export async function activate(context: ExtensionContext) {
 
     commands.registerCommand("bruin.convertFileToAsset", async () => {
       try {
-        trackEvent("Command Executed", { command: "convertFileToAsset" });
+        trackEvent("Command Executed", { command: "convertFileToAsset", source: "user" });
         if (BruinPanel.currentPanel) {
           //await BruinPanel.currentPanel.convertCurrentDocument();
   
@@ -593,7 +594,7 @@ export async function activate(context: ExtensionContext) {
     }),
     commands.registerCommand("bruin.testCompletion", async () => {
       try {
-        trackEvent("Command Executed", { command: "testCompletion" });
+        trackEvent("Command Executed", { command: "testCompletion", source: "user" });
         const editor = window.activeTextEditor;
         if (!editor) {
           vscode.window.showWarningMessage("No active editor found");
@@ -610,7 +611,7 @@ export async function activate(context: ExtensionContext) {
     }),
     commands.registerCommand("bruin.triggerCompletions", async () => {
       try {
-        trackEvent("Command Executed", { command: "triggerCompletions" });
+        trackEvent("Command Executed", { command: "triggerCompletions", source: "user" });
         const editor = window.activeTextEditor;
         if (!editor) {
           vscode.window.showWarningMessage("No active editor found");
@@ -627,7 +628,7 @@ export async function activate(context: ExtensionContext) {
     }),
     commands.registerCommand("bruin.showWalkthrough", async () => {
       try {
-        trackEvent("Command Executed", { command: "showWalkthrough" });
+        trackEvent("Command Executed", { command: "showWalkthrough", source: "user" });
         await vscode.commands.executeCommand('workbench.action.openWalkthrough', 'bruin.bruin-getting-started');
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
@@ -638,7 +639,7 @@ export async function activate(context: ExtensionContext) {
       "bruin.showTableDetails",
       (tableName: string, schemaName?: string, connectionName?: string, environmentName?: string) => {
         try {
-          trackEvent("Command Executed", { command: "showTableDetails" });
+          trackEvent("Command Executed", { command: "showTableDetails", source: "user" });
           TableDetailsPanel.render(context.extensionUri, tableName, schemaName, connectionName, environmentName);
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error);
