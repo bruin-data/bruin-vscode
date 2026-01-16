@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { getNonce } from "../utilities/getNonce";
 import { getUri } from "../utilities/getUri";
 import { flowLineageCommand } from "../extension/commands/FlowLineageCommand";
+import { trackEvent } from "../extension/extension";
 
 export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposable {
   private static instance: LineagePanel;
@@ -257,12 +258,14 @@ export abstract class BaseLineagePanel implements vscode.WebviewViewProvider, vs
     webview.onDidReceiveMessage((message) => {
       switch (message.command) {
         case "bruin.openAssetDetails":
+          trackEvent("Command Executed", { command: "openAssetDetails", source: "extension" });
           const assetFilePath = message.payload;
           vscode.workspace.openTextDocument(vscode.Uri.file(assetFilePath)).then((doc) => {
             vscode.window.showTextDocument(doc);
           });
           break;
         case "bruin.assetGraphLineage":
+          trackEvent("Command Executed", { command: "assetGraphLineage", source: "extension" });
           this._lastRenderedDocumentUri = vscode.window.activeTextEditor?.document.uri;
           if (!this._lastRenderedDocumentUri) {
             console.debug("No active document found.");

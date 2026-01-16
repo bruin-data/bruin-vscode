@@ -5,6 +5,7 @@ import { BruinConnections } from "../bruin/bruinConnections";
 import { BruinDBTCommand } from "../bruin/bruinDBTCommand";
 import { getUri } from "../utilities/getUri";
 import { getBruinExecutablePath } from "../providers/BruinExecutableService";
+import { trackEvent } from "../extension/extension";
 
 export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Disposable {
   public static readonly viewId = "bruin.tableDiffView";
@@ -61,25 +62,30 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
         async message => {
           switch (message.command) {
             case 'getConnections':
+              trackEvent("Command Executed", { command: "getConnections", source: "extension" });
               await this.sendConnections();
               break;
             case 'getSchemas':
+              trackEvent("Command Executed", { command: "getSchemas", source: "extension" });
               await this.sendSchemas(message.connectionName, message.type);
               break;
             case 'getTables':
+              trackEvent("Command Executed", { command: "getTables", source: "extension" });
               console.log('Received getTables message:', message);
               await this.sendTables(message.connectionName, message.schemaName, message.type);
               break;
             case 'executeTableDiff':
+              trackEvent("Command Executed", { command: "executeTableDiff", source: "extension" });
               await this.executeDiff(
-                message.sourceConnection, 
-                message.sourceTable, 
-                message.targetConnection, 
+                message.sourceConnection,
+                message.sourceTable,
+                message.targetConnection,
                 message.targetTable,
                 message.schemaOnly
               );
               break;
             case 'cancelTableDiff':
+              trackEvent("Command Executed", { command: "cancelTableDiff", source: "extension" });
               BruinTableDiff.cancelDiff();
               webviewView.webview.postMessage({
                 command: 'showResults',
@@ -87,6 +93,7 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
               });
               break;
             case 'clearTableDiff':
+              trackEvent("Command Executed", { command: "clearTableDiff", source: "extension" });
               this.clearResults();
               break;
             case 'saveState':
@@ -100,6 +107,7 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
               });
               break;
             case 'getSchemasAndTables':
+              trackEvent("Command Executed", { command: "getSchemasAndTables", source: "extension" });
               console.log('Received getSchemasAndTables message:', message);
               await this.sendSchemasAndTables(message.connectionName, message.type);
               break;
