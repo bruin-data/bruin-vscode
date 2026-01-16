@@ -30,3 +30,8 @@ defineProps({
   title: String,  
 });
 </script>
+<style scoped>
+#alert-with-actions {
+  z-index: 1000;
+}
+</style>
