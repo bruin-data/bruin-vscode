@@ -1,4 +1,8 @@
 # Changelog
+
+## [0.73.1] - [2026-01-19]
+- Added detailed telemetry for the extension to better understand the extension usage and it.
+
 ## [0.73.0] - [2026-01-13]
 - Added support for sensor mode in the run command and extension settings.
 
