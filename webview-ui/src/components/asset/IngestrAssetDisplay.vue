@@ -396,20 +396,22 @@ const saveField = (field: string) => {
     isCustomSourceTable.value = false;
   }
   
-  // When source_connection changes, fetch available tables
+  // When source_connection changes, fetch available tables and reset related fields
   if (field === 'source_connection' && editingValues.value[field]) {
-    // Clear current source table since connection changed
+    // Clear source table, strategy and key since connection changed
     localParameters.value.source_table = '';
+    localParameters.value.incremental_strategy = '';
+    localParameters.value.incremental_key = '';
     
-    // Save with source_table explicitly cleared
+    // Save with related fields explicitly cleared
     const updatedParameters = { ...props.parameters };
     Object.entries(localParameters.value).forEach(([key, value]) => {
       if (value !== null && value !== undefined && value !== '') {
         updatedParameters[key] = value;
+      } else {
+        delete updatedParameters[key];
       }
     });
-    // Explicitly set source_table to empty
-    updatedParameters.source_table = '';
     
     // Mark as internal update so watcher doesn't reset editing states
     isInternalUpdate.value = true;
@@ -443,6 +445,9 @@ const saveParameters = () => {
   Object.entries(localParameters.value).forEach(([key, value]) => {
     if (value !== null && value !== undefined && value !== '') {
       updatedParameters[key] = value;
+    } else {
+      // Remove the key if value is empty (e.g., incremental_strategy set to "None")
+      delete updatedParameters[key];
     }
   });
   
