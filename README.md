@@ -63,6 +63,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.73.1**: Added detailed telemetry for the extension to better understand the extension usage and it.
 - **0.73.0**: Added support for sensor mode in the run command and extension settings.
 - **0.72.10**: Added support for BigQuery source asset type in the validation schema.
 - **0.72.9**: Added support for new authentication methods to databricks connection schema.
