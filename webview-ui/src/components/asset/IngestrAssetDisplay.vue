@@ -38,7 +38,7 @@
             :ref="el => { if (el) inputRefs.source_connection = el as HTMLSelectElement }"
             class="bg-input-background text-input-foreground text-xs border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg px-2 py-1 rounded w-full"
           >
-            <option value="">Select connection...</option>
+            <option value="">None</option>
             <option v-for="connection in availableSourceConnections" :key="connection.name" :value="connection.name">
               {{ connection.name }} ({{ connection.type }})
             </option>
@@ -53,7 +53,8 @@
       <div id="source-table-row" class="flex items-center gap-2">
         <span 
           id="source-table-label"
-          class="text-2xs min-w-[140px] cursor-help text-editor-fg opacity-70" 
+          class="text-2xs min-w-[140px] cursor-help" 
+          :class="!localParameters.source_table ? 'text-errorForeground' : 'text-editor-fg opacity-70'"
           title="The name of the table/view to extract data from in your source database."
         >Source Table: <span class="text-errorForeground">*</span></span>
         <div 
@@ -72,7 +73,7 @@
               :ref="el => { if (el) inputRefs.source_table = el as HTMLSelectElement }"
               class="bg-input-background text-input-foreground text-xs border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg px-2 py-1 rounded flex-1"
             >
-              <option value="">Select table...</option>
+              <option value="">None</option>
               <option v-for="table in availableSourceTables" :key="table" :value="table">
                 {{ table }}
               </option>
@@ -91,8 +92,8 @@
             />
             <span v-if="isLoadingSourceTables" class="codicon codicon-loading codicon-modifier-spin text-xs"></span>
           </div>
-          <span v-else id="source-table-value" class="block" :class="{ 'italic opacity-70': !localParameters.source_table }">
-            {{ localParameters.source_table || 'Click to select table' }}
+          <span v-else id="source-table-value" class="block" :class="{ 'italic opacity-70': !localParameters.source_table, 'text-errorForeground': !localParameters.source_table }">
+            {{ localParameters.source_table || 'Required: Click to set table' }}
           </span>
         </div>
       </div>
@@ -120,7 +121,7 @@
             :ref="el => { if (el) inputRefs.destination = el as HTMLSelectElement }"
             class="bg-input-background text-input-foreground text-xs border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg px-2 py-1 rounded w-full"
           >
-            <option value="">Select destination...</option>
+            <option value="">None</option>
             <option v-for="dest in AVAILABLE_DESTINATIONS" :key="dest.value" :value="dest.value">
               {{ dest.label }}
             </option>
@@ -187,7 +188,7 @@
               :ref="el => { if (el) inputRefs.incremental_key = el as HTMLSelectElement }"
               class="bg-input-background text-input-foreground text-xs border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg px-2 py-1 rounded flex-1"
             >
-              <option value="">Select column...</option>
+              <option value="">None</option>
               <option v-for="column in availableColumns" :key="column" :value="column">
                 {{ column }}
               </option>
@@ -231,7 +232,6 @@ const emit = defineEmits<{
 
 const availableConnections = ref<Array<{ name: string; type: string }>>([]);
 
-// Collapsible sections state
 const expandedSections = ref({
   ingestr: true,
 });
@@ -254,7 +254,7 @@ const editingValues = ref<Record<string, string>>({});
 const inputRefs = ref<Record<string, HTMLInputElement | HTMLSelectElement>>({});
 const isCustomIncrementalKey = ref(false);
 const isCustomSourceTable = ref(false);
-const isInternalUpdate = ref(false); // Flag to track user-initiated changes
+const isInternalUpdate = ref(false);
 
 const destinationDisplayName = (dest: string) => {
   const destination = AVAILABLE_DESTINATIONS.find(d => d.value === dest);
@@ -262,7 +262,6 @@ const destinationDisplayName = (dest: string) => {
 };
 
 
-// Available destinations for Ingestr
 const AVAILABLE_DESTINATIONS = [
   { value: 'athena', label: 'AWS Athena' },
   { value: 'clickhouse', label: 'Clickhouse' },
@@ -277,7 +276,6 @@ const AVAILABLE_DESTINATIONS = [
   { value: 'gcs', label: 'Google Cloud Storage' },
 ] as const;
 
-// Available incremental strategies
 const INCREMENTAL_STRATEGIES = [
   { value: '', label: 'None' },
   { value: 'replace', label: 'Replace' },
@@ -286,17 +284,12 @@ const INCREMENTAL_STRATEGIES = [
   { value: 'delete+insert', label: 'Delete + Insert' }
 ] as const;
 
-// Import schema to get data platform types dynamically
 import assetsSchema from '../../../../schemas/yaml-assets-schema.json';
-
-// Data platform types (destinations) - these should NOT appear in source connections
 const DATA_PLATFORM_TYPES = (assetsSchema.$defs?.AssetsSchema?.properties?.parameters?.properties?.destination?.enum || []) as string[];
 
-// Source tables state
 const availableSourceTables = ref<string[]>([]);
 const isLoadingSourceTables = ref(false);
 
-// Filtered source connections (exclude data platforms)
 const availableSourceConnections = computed(() => {
   return availableConnections.value.filter(conn => 
     !DATA_PLATFORM_TYPES.includes(conn.type.toLowerCase() as any)
@@ -332,19 +325,11 @@ const startEditing = (field: string) => {
   editingValues.value[field] = localParameters.value[field] || '';
   
   if (field === 'incremental_key') {
-    const currentValue = localParameters.value.incremental_key || '';
     isCustomIncrementalKey.value = false;
   }
   
   if (field === 'source_table') {
     isCustomSourceTable.value = false;
-    console.log('🔍 [IngestrAssetDisplay] Starting source_table edit:', {
-      availableTables: availableSourceTables.value.length,
-      isLoading: isLoadingSourceTables.value,
-      isCustom: isCustomSourceTable.value,
-      sourceConnection: localParameters.value.source_connection
-    });
-    // If we have a source connection but no tables loaded yet, fetch them
     if (localParameters.value.source_connection && availableSourceTables.value.length === 0 && !isLoadingSourceTables.value) {
       fetchSourceTables(localParameters.value.source_connection);
     }
@@ -360,7 +345,6 @@ const startEditing = (field: string) => {
 
 const handleIncrementalKeyChange = () => {
   if (editingValues.value.incremental_key === '__CUSTOM__') {
-    // Switch to custom input mode
     isCustomIncrementalKey.value = true;
     editingValues.value.incremental_key = '';
     nextTick(() => {
@@ -369,9 +353,8 @@ const handleIncrementalKeyChange = () => {
         input.focus();
       }
     });
-  } else if (editingValues.value.incremental_key && editingValues.value.incremental_key !== '__CUSTOM__') {
+  } else if (editingValues.value.incremental_key !== '__CUSTOM__') {
     saveField('incremental_key');
-    isCustomIncrementalKey.value = false;
   }
 };
 
@@ -379,46 +362,44 @@ const handleIncrementalKeyBlur = () => {
   if (editingValues.value.incremental_key && editingValues.value.incremental_key !== '__CUSTOM__') {
     saveField('incremental_key');
     isCustomIncrementalKey.value = false;
+  } else if (!editingValues.value.incremental_key || editingValues.value.incremental_key === '') {
+    editingField.value.incremental_key = false;
+    isCustomIncrementalKey.value = false;
   }
 };
 
 const saveField = (field: string) => {
-  localParameters.value[field] = editingValues.value[field];
+  const oldValue = localParameters.value[field];
+  const newValue = editingValues.value[field];
+  
+  localParameters.value[field] = newValue;
   editingField.value[field] = false;
   
-  // Reset custom mode flag when saving incremental_key
   if (field === 'incremental_key') {
     isCustomIncrementalKey.value = false;
   }
   
-  // Reset custom mode flag when saving source_table
   if (field === 'source_table') {
     isCustomSourceTable.value = false;
   }
   
-  // When source_connection changes, fetch available tables
-  if (field === 'source_connection' && editingValues.value[field]) {
-    // Clear only source table since connection changed
+  // Only clear source_table and fetch new tables if source_connection actually CHANGED
+  if (field === 'source_connection' && newValue && newValue !== oldValue) {
     localParameters.value.source_table = '';
     
-    // Save with source_table explicitly cleared
     const updatedParameters = { ...props.parameters };
     Object.entries(localParameters.value).forEach(([key, value]) => {
       if (value !== null && value !== undefined && value !== '') {
         updatedParameters[key] = value;
-      } else if (key === 'source_table') {
-        // Only delete source_table, keep other fields
+      } else {
         delete updatedParameters[key];
       }
     });
     
-    // Mark as internal update so watcher doesn't reset editing states
     isInternalUpdate.value = true;
     emit('save', updatedParameters as IngestrParameters);
-    
-    // Then fetch new tables
-    fetchSourceTables(editingValues.value[field]);
-    return; // Skip the regular saveParameters call
+    fetchSourceTables(newValue);
+    return;
   }
   
   isInternalUpdate.value = true;
@@ -445,17 +426,16 @@ const saveParameters = () => {
     if (value !== null && value !== undefined && value !== '') {
       updatedParameters[key] = value;
     } else {
-      // Remove the key if value is empty (e.g., incremental_strategy set to "None")
       delete updatedParameters[key];
     }
   });
   
+  console.log('📤 [IngestrAssetDisplay] Saving parameters:', JSON.stringify(updatedParameters, null, 2));
   emit('save', updatedParameters as IngestrParameters);
 };
 
 onMounted(() => {
   window.addEventListener("message", handleMessage);
-  // Request connections list when component mounts
   vscode.postMessage({ command: "bruin.getConnectionsList" });
 });
 
@@ -473,25 +453,20 @@ const handleMessage = (event: MessageEvent) => {
 };
 
 const handleConnectionsList = (payload: any) => {
-  console.log('📥 [IngestrAssetDisplay] Received connections:', payload);
   if (payload.status === "success" && payload.message) {
     const data = payload.message;
     const parsedConnections: Array<{ name: string; type: string }> = [];
     
     if (Array.isArray(data)) {
-      // Old format - array of connections with type property
       data.forEach((conn: any) => {
         if (conn.name && conn.type) {
           parsedConnections.push({ name: conn.name, type: conn.type });
         }
       });
     } else if (data && data.environments) {
-      // New format - nested structure: environments -> env_name -> connections -> type -> [connections]
-      // Use selected_environment if available, otherwise use first environment
       const envName = data.selected_environment_name || data.default_environment_name || Object.keys(data.environments)[0];
       const envConnections = data.environments[envName]?.connections || {};
       
-      // Iterate through connection types (e.g., "fireflies", "chess", "bigquery")
       Object.keys(envConnections).forEach((connectionType: string) => {
         const connectionsOfType = envConnections[connectionType];
         if (Array.isArray(connectionsOfType)) {
@@ -503,7 +478,6 @@ const handleConnectionsList = (payload: any) => {
         }
       });
     } else if (data && data.selected_environment?.connections) {
-      // Alternative format with selected_environment directly
       const envConnections = data.selected_environment.connections;
       Object.keys(envConnections).forEach((connectionType: string) => {
         const connectionsOfType = envConnections[connectionType];
@@ -518,87 +492,69 @@ const handleConnectionsList = (payload: any) => {
     }
     
     availableConnections.value = parsedConnections;
-    console.log('📋 [IngestrAssetDisplay] Parsed connections:', availableConnections.value);
-    console.log('🔍 [IngestrAssetDisplay] Filtered source connections:', availableSourceConnections.value);
+    
+    if (localParameters.value.source_connection && availableSourceTables.value.length === 0) {
+      fetchSourceTables(localParameters.value.source_connection);
+    }
   }
 };
 
 const handleIngestrSources = (payload: any) => {
-  console.log('📥 [IngestrAssetDisplay] Received ingestr sources:', payload);
   isLoadingSourceTables.value = false;
   if (payload.status === "success" && payload.message) {
     if (Array.isArray(payload.message)) {
       availableSourceTables.value = payload.message;
-      console.log('✅ [IngestrAssetDisplay] Stored source tables:', availableSourceTables.value.length, 'tables');
     } else {
       availableSourceTables.value = [];
-      console.warn('⚠️ [IngestrAssetDisplay] Message is not an array:', typeof payload.message);
     }
   } else {
-    console.error("❌ [IngestrAssetDisplay] Error fetching ingestr sources:", payload.message);
     availableSourceTables.value = [];
   }
 };
 
-// Get the connection type from the connection name
 const getConnectionType = (connectionName: string): string | null => {
   const connection = availableConnections.value.find(conn => conn.name === connectionName);
   return connection ? connection.type : null;
 };
 
-// Fetch available source tables for the selected source connection
 const fetchSourceTables = (connectionName: string) => {
   const sourceType = getConnectionType(connectionName);
-  console.log(`📤 [IngestrAssetDisplay] Fetching source tables for connection: "${connectionName}", type: "${sourceType}"`);
   if (sourceType) {
     isLoadingSourceTables.value = true;
     availableSourceTables.value = [];
     isCustomSourceTable.value = false;
-    console.log(`📤 [IngestrAssetDisplay] Sending bruin.getIngestrSourceTables with sourceType: "${sourceType}"`);
     vscode.postMessage({
       command: "bruin.getIngestrSourceTables",
       payload: { sourceType }
     });
-  } else {
-    console.warn(`⚠️ [IngestrAssetDisplay] Could not find connection type for: "${connectionName}"`);
   }
 };
 
-// Handle source table dropdown change
 const handleSourceTableChange = () => {
-  console.log('🔄 [IngestrAssetDisplay] Source table changed:', editingValues.value.source_table);
   if (editingValues.value.source_table === '__CUSTOM__') {
-    console.log('✏️ [IngestrAssetDisplay] Switching to custom input');
     isCustomSourceTable.value = true;
     editingValues.value.source_table = '';
     nextTick(() => {
       const input = inputRefs.value.source_table;
       if (input && 'focus' in input) {
         input.focus();
-        console.log('✅ [IngestrAssetDisplay] Custom input focused');
       }
     });
-  } else if (editingValues.value.source_table && editingValues.value.source_table !== '__CUSTOM__') {
-    // Save immediately when a table is selected
-    console.log('💾 [IngestrAssetDisplay] Saving selected table:', editingValues.value.source_table);
+  } else if (editingValues.value.source_table !== '__CUSTOM__') {
     saveField('source_table');
-    isCustomSourceTable.value = false;
   }
 };
 
 const handleSourceTableBlur = () => {
-  // Don't do anything on blur if we're switching to custom input
   if (isCustomSourceTable.value) {
     return;
   }
   
-  // If blur with no selection, cancel editing
   if (!editingValues.value.source_table || editingValues.value.source_table === '') {
     cancelEdit('source_table');
   }
 };
 
-// Track previous source connection to detect actual changes
 const previousSourceConnection = ref<string>('');
 
 watch(
@@ -608,15 +564,6 @@ watch(
       const newSourceConnection = newParameters.source_connection || '';
       const sourceConnectionChanged = previousSourceConnection.value !== newSourceConnection;
       
-      console.log('👁️ [IngestrAssetDisplay] Watcher triggered:', {
-        previousConn: previousSourceConnection.value,
-        newConn: newSourceConnection,
-        changed: sourceConnectionChanged,
-        currentTables: availableSourceTables.value.length,
-        isInternal: isInternalUpdate.value
-      });
-      
-      // Reset all fields to empty, then apply new parameters
       localParameters.value = {
         source: newParameters.source || '',
         source_connection: newSourceConnection,
@@ -626,24 +573,18 @@ watch(
         incremental_key: newParameters.incremental_key || '',
       };
       
-      // Only clear editing states when switching assets (external change), not for user edits
       if (!isInternalUpdate.value) {
         editingField.value = {};
         editingValues.value = {};
         isCustomIncrementalKey.value = false;
         isCustomSourceTable.value = false;
         
-        // Clear source tables only for external changes (asset switch)
         if (sourceConnectionChanged) {
-          console.log('🧹 [IngestrAssetDisplay] Clearing tables due to asset switch');
           availableSourceTables.value = [];
           isLoadingSourceTables.value = false;
         }
-      } else {
-        console.log('✅ [IngestrAssetDisplay] Internal update - keeping editing states');
       }
       
-      // Reset the internal update flag
       isInternalUpdate.value = false;
       previousSourceConnection.value = newSourceConnection;
     }
