@@ -254,6 +254,7 @@ const editingValues = ref<Record<string, string>>({});
 const inputRefs = ref<Record<string, HTMLInputElement | HTMLSelectElement>>({});
 const isCustomIncrementalKey = ref(false);
 const isCustomSourceTable = ref(false);
+const isInternalUpdate = ref(false); // Flag to track user-initiated changes
 
 const destinationDisplayName = (dest: string) => {
   const destination = AVAILABLE_DESTINATIONS.find(d => d.value === dest);
@@ -285,23 +286,11 @@ const INCREMENTAL_STRATEGIES = [
   { value: 'delete+insert', label: 'Delete + Insert' }
 ] as const;
 
+// Import schema to get data platform types dynamically
+import assetsSchema from '../../../../schemas/yaml-assets-schema.json';
+
 // Data platform types (destinations) - these should NOT appear in source connections
-const DATA_PLATFORM_TYPES = [
-  'athena',
-  'bigquery',
-  'snowflake',
-  'postgres',
-  'redshift',
-  'mssql',
-  'databricks',
-  'synapse',
-  'duckdb',
-  'clickhouse',
-  'gcs',
-  'mongo_atlas',
-  'mysql',
-  'elasticsearch'
-] as const;
+const DATA_PLATFORM_TYPES = (assetsSchema.$defs?.AssetsSchema?.properties?.parameters?.properties?.destination?.enum || []) as string[];
 
 // Source tables state
 const availableSourceTables = ref<string[]>([]);
@@ -422,6 +411,8 @@ const saveField = (field: string) => {
     // Explicitly set source_table to empty
     updatedParameters.source_table = '';
     
+    // Mark as internal update so watcher doesn't reset editing states
+    isInternalUpdate.value = true;
     emit('save', updatedParameters as IngestrParameters);
     
     // Then fetch new tables
@@ -429,6 +420,7 @@ const saveField = (field: string) => {
     return; // Skip the regular saveParameters call
   }
   
+  isInternalUpdate.value = true;
   saveParameters();
 };
 
@@ -616,7 +608,8 @@ watch(
         previousConn: previousSourceConnection.value,
         newConn: newSourceConnection,
         changed: sourceConnectionChanged,
-        currentTables: availableSourceTables.value.length
+        currentTables: availableSourceTables.value.length,
+        isInternal: isInternalUpdate.value
       });
       
       // Reset all fields to empty, then apply new parameters
@@ -629,21 +622,26 @@ watch(
         incremental_key: newParameters.incremental_key || '',
       };
       
-      // Clear any editing states when switching assets
-      editingField.value = {};
-      editingValues.value = {};
-      isCustomIncrementalKey.value = false;
-      isCustomSourceTable.value = false;
-      
-      // Only clear source tables if source connection actually changed (switching assets)
-      if (sourceConnectionChanged) {
-        console.log('🧹 [IngestrAssetDisplay] Clearing tables due to source connection change');
-        availableSourceTables.value = [];
-        isLoadingSourceTables.value = false;
-        previousSourceConnection.value = newSourceConnection;
+      // Only clear editing states when switching assets (external change), not for user edits
+      if (!isInternalUpdate.value) {
+        editingField.value = {};
+        editingValues.value = {};
+        isCustomIncrementalKey.value = false;
+        isCustomSourceTable.value = false;
+        
+        // Clear source tables only for external changes (asset switch)
+        if (sourceConnectionChanged) {
+          console.log('🧹 [IngestrAssetDisplay] Clearing tables due to asset switch');
+          availableSourceTables.value = [];
+          isLoadingSourceTables.value = false;
+        }
       } else {
-        console.log('✅ [IngestrAssetDisplay] Keeping tables (no connection change)');
+        console.log('✅ [IngestrAssetDisplay] Internal update - keeping editing states');
       }
+      
+      // Reset the internal update flag
+      isInternalUpdate.value = false;
+      previousSourceConnection.value = newSourceConnection;
     }
   },
   { deep: true, immediate: true }
