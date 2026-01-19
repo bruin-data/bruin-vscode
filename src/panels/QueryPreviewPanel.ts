@@ -5,6 +5,7 @@ import { exportQueryResults, getQueryOutput } from "../extension/commands/queryC
 import { getEnvListCommand } from "../extension/commands/getEnvListCommand";
 import { BruinQueryOutput } from "../bruin/queryOutput";
 import { getQueryTimeout } from "../extension/configuration";
+import { trackEvent } from "../extension/extension";
 
 export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Disposable {
   public static readonly viewId = "bruin.QueryPreviewView";
@@ -291,6 +292,7 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
           break;
 
         case "bruin.getQueryOutput":
+          trackEvent("Command Executed", { command: "getQueryOutput", source: "extension" });
           this.environment = message.payload.environment;
           this.limit = message.payload.limit;
           const tabId = message.payload.tabId || "tab-1";
@@ -338,6 +340,7 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
           this.loadAndSendQueryOutput(this.environment, this.limit, tabId, startDate, endDate);
           break;
         case "bruin.clearQueryOutput":
+          trackEvent("Command Executed", { command: "clearQueryOutput", source: "extension" });
           const tabId2 = message.payload?.tabId || null;
           // Send a clear message back to the webview with the specific tab ID
           QueryPreviewPanel.postMessage("query-output-clear", {
@@ -346,6 +349,7 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
           });
           break;
         case "bruin.exportQueryOutput":
+          trackEvent("Command Executed", { command: "exportQueryOutput", source: "extension" });
           const exportTabId = message.payload?.tabId || "tab-1";
           const connectionName = message.payload?.connectionName || null;
           const assetPath = QueryPreviewPanel.getTabAssetPath(exportTabId);
@@ -356,6 +360,7 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
           }
           break;
         case "bruin.cancelQuery":
+          trackEvent("Command Executed", { command: "cancelQuery", source: "extension" });
           const cancelTabId = message.payload?.tabId;
           BruinQueryOutput.cancelQuery(cancelTabId);
           break;

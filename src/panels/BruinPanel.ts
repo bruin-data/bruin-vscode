@@ -2,6 +2,7 @@
 import { Disposable, Webview, WebviewPanel, window, Uri, ViewColumn, workspace } from "vscode";
 import { getUri } from "../utilities/getUri";
 import { getNonce } from "../utilities/getNonce";
+import { trackEvent } from "../extension/extension";
 import {
   BruinValidate,
   BruinRenderDdl,
@@ -448,8 +449,9 @@ export class BruinPanel {
         const command = message.command;
         switch (command) {
           case "bruin.validateAll":
+            trackEvent("Command Executed", { command: "validateAll", source: "extension" });
             let bruinWorkspaceDir: string | undefined;
-            
+
             if (this._lastRenderedDocumentUri) {
               bruinWorkspaceDir = await bruinWorkspaceDirectory(this._lastRenderedDocumentUri.fsPath);
             }
@@ -486,6 +488,7 @@ export class BruinPanel {
             });
             break;
           case "bruin.validateCurrentPipeline":
+            trackEvent("Command Executed", { command: "validateCurrentPipeline", source: "extension" });
             if (!this._lastRenderedDocumentUri) {
               console.error("No active document to validate.");
               return;
@@ -548,6 +551,7 @@ export class BruinPanel {
               break;
 
           case "bruin.renderDdl":
+            trackEvent("Command Executed", { command: "renderDdl", source: "extension" });
             if (!this._lastRenderedDocumentUri) {
               this._panel.webview.postMessage({
                 command: "ddlResponse",
@@ -629,6 +633,7 @@ export class BruinPanel {
             break;
 
           case "bruin.validate":
+            trackEvent("Command Executed", { command: "validate", source: "extension" });
             if (!this._lastRenderedDocumentUri) {
               console.error("No active document to validate.");
               return;
@@ -649,6 +654,7 @@ export class BruinPanel {
             await validator.validate(filePath, {}, "", fullRefreshAsset);
             break;
           case "bruin.runSql":
+            trackEvent("Command Executed", { command: "runSql", source: "extension" });
             if (!this._lastRenderedDocumentUri) {
               return;
             }
@@ -669,6 +675,7 @@ export class BruinPanel {
             runInIntegratedTerminal(await "", runPath, message.payload, "bruin");
             break;
           case "bruin.runCurrentPipeline":
+            trackEvent("Command Executed", { command: "runCurrentPipeline", source: "extension" });
             if (!this._lastRenderedDocumentUri) {
               return;
             }
@@ -713,6 +720,7 @@ export class BruinPanel {
             break;
 
           case "bruin.fillAssetDependency":
+            trackEvent("Command Executed", { command: "fillAssetDependency", source: "extension" });
             if (!this._lastRenderedDocumentUri) {
               console.error("No active document to fill asset dependency.");
               return;
@@ -738,6 +746,7 @@ export class BruinPanel {
             return;
 
           case "bruin.fillAssetColumn":
+            trackEvent("Command Executed", { command: "fillAssetColumn", source: "extension" });
             if (!this._lastRenderedDocumentUri) {
               console.error("No active document to fill asset column.");
               return;
@@ -847,6 +856,7 @@ export class BruinPanel {
             break;
 
           case "bruin.editConnection":
+            trackEvent("Command Executed", { command: "editConnection", source: "extension" });
             const { oldConnection, newConnection } = message.payload;
             try {
               // Delete the old connection
@@ -881,10 +891,12 @@ export class BruinPanel {
             }
             break;
           case "bruin.deleteConnection":
+            trackEvent("Command Executed", { command: "deleteConnection", source: "extension" });
             const { name, environment } = message.payload;
             deleteConnection(environment, name, this._lastRenderedDocumentUri);
             break;
           case "bruin.createConnection":
+            trackEvent("Command Executed", { command: "createConnection", source: "extension" });
             await createConnection(
               message.payload.environment,
               message.payload.name,
@@ -896,6 +908,7 @@ export class BruinPanel {
             await getConnections(this._lastRenderedDocumentUri);
             break;
           case "bruin.testConnection":
+            trackEvent("Command Executed", { command: "testConnection", source: "extension" });
             const connectionData = message.payload;
             await testConnection(
               connectionData.environment,
@@ -979,6 +992,7 @@ export class BruinPanel {
             flowLineageCommand(this._lastRenderedDocumentUri, "BruinPanel");
             break;
           case "bruin.createEnvironment":
+            trackEvent("Command Executed", { command: "createEnvironment", source: "extension" });
             const { environmentName } = message.payload;
             console.log("Creating environment:", environmentName);
             try {
@@ -1005,6 +1019,7 @@ export class BruinPanel {
             }
             break;
           case "bruin.deleteEnvironment":
+            trackEvent("Command Executed", { command: "deleteEnvironment", source: "extension" });
             const { environmentName: deleteEnvName } = message.payload;
             console.log("Deleting environment:", deleteEnvName);
             try {
@@ -1031,6 +1046,7 @@ export class BruinPanel {
             }
             break;
           case "bruin.updateEnvironment":
+            trackEvent("Command Executed", { command: "updateEnvironment", source: "extension" });
             const { currentName, newName } = message.payload;
             console.log("Updating environment:", currentName, "to", newName);
             try {
@@ -1079,9 +1095,10 @@ export class BruinPanel {
             }
             break;
           case "bruin.initProject":
+            trackEvent("Command Executed", { command: "initProject", source: "extension" });
             try {
               console.log("Initializing project with template:", message.payload.templateName, "inPlace:", message.payload.inPlace);
-              
+
               // Ask user to select folder for new project
               const folderUri = await vscode.window.showOpenDialog({
                 canSelectFiles: false,
@@ -1205,6 +1222,7 @@ export class BruinPanel {
             }
             break;
           case "bruin.formatAsset":
+            trackEvent("Command Executed", { command: "formatAsset", source: "extension" });
             const sqlfluffSingle = getFormatSqlfluff();
             const workspaceF = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || "";
             if (!this._lastRenderedDocumentUri) {
@@ -1213,6 +1231,7 @@ export class BruinPanel {
             await formatInIntegratedTerminal(this._lastRenderedDocumentUri.fsPath, workspaceF, sqlfluffSingle, "bruin");
             break;
           case "bruin.formatAllAssets":
+            trackEvent("Command Executed", { command: "formatAllAssets", source: "extension" });
             const sqlfluff = getFormatSqlfluff();
             const workspaceFold = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || "";
             // Format all assets in the workspace (empty string for all assets)
