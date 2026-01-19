@@ -35,6 +35,7 @@ import {
   deleteConnection,
   getConnections,
   getConnectionsListFromSchema,
+  getIngestrSourceTables,
   testConnection,
 } from "../extension/commands/manageConnections";
 import { createEnvironment, deleteEnvironment, updateEnvironment } from "../extension/commands/manageEnvironments";
@@ -806,6 +807,12 @@ export class BruinPanel {
 
           case "bruin.getConnectionsSchema":
             getConnectionsListFromSchema(this._lastRenderedDocumentUri);
+            break;
+          case "bruin.getIngestrSourceTables":
+            const sourceType = message.payload?.sourceType;
+            if (sourceType) {
+              getIngestrSourceTables(sourceType, this._lastRenderedDocumentUri);
+            }
             break;
           case "bruinConnections.fileSelected":
             const fileUri = await vscode.window.showOpenDialog({
