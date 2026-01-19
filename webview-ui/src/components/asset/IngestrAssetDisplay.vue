@@ -396,19 +396,18 @@ const saveField = (field: string) => {
     isCustomSourceTable.value = false;
   }
   
-  // When source_connection changes, fetch available tables and reset related fields
+  // When source_connection changes, fetch available tables
   if (field === 'source_connection' && editingValues.value[field]) {
-    // Clear source table, strategy and key since connection changed
+    // Clear only source table since connection changed
     localParameters.value.source_table = '';
-    localParameters.value.incremental_strategy = '';
-    localParameters.value.incremental_key = '';
     
-    // Save with related fields explicitly cleared
+    // Save with source_table explicitly cleared
     const updatedParameters = { ...props.parameters };
     Object.entries(localParameters.value).forEach(([key, value]) => {
       if (value !== null && value !== undefined && value !== '') {
         updatedParameters[key] = value;
-      } else {
+      } else if (key === 'source_table') {
+        // Only delete source_table, keep other fields
         delete updatedParameters[key];
       }
     });
