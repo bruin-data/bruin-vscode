@@ -68,7 +68,7 @@
               id="source-table-select"
               v-model="editingValues.source_table"
               @change="handleSourceTableChange"
-              @blur="() => { if (!editingValues.source_table) cancelEdit('source_table'); }"
+              @blur="handleSourceTableBlur"
               :ref="el => { if (el) inputRefs.source_table = el as HTMLSelectElement }"
               class="bg-input-background text-input-foreground text-xs border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg px-2 py-1 rounded flex-1"
             >
@@ -570,32 +570,34 @@ const fetchSourceTables = (connectionName: string) => {
 
 // Handle source table dropdown change
 const handleSourceTableChange = () => {
+  console.log('🔄 [IngestrAssetDisplay] Source table changed:', editingValues.value.source_table);
   if (editingValues.value.source_table === '__CUSTOM__') {
+    console.log('✏️ [IngestrAssetDisplay] Switching to custom input');
     isCustomSourceTable.value = true;
     editingValues.value.source_table = '';
     nextTick(() => {
       const input = inputRefs.value.source_table;
       if (input && 'focus' in input) {
         input.focus();
+        console.log('✅ [IngestrAssetDisplay] Custom input focused');
       }
     });
   } else if (editingValues.value.source_table && editingValues.value.source_table !== '__CUSTOM__') {
     // Save immediately when a table is selected
+    console.log('💾 [IngestrAssetDisplay] Saving selected table:', editingValues.value.source_table);
     saveField('source_table');
     isCustomSourceTable.value = false;
   }
 };
 
 const handleSourceTableBlur = () => {
-  // Only save on blur if there's a valid value
-  // Don't save if empty or custom marker
-  if (editingValues.value.source_table && 
-      editingValues.value.source_table !== '__CUSTOM__' && 
-      editingValues.value.source_table !== '') {
-    saveField('source_table');
-    isCustomSourceTable.value = false;
-  } else if (!editingValues.value.source_table || editingValues.value.source_table === '') {
-    // If blur with no selection, just cancel editing
+  // Don't do anything on blur if we're switching to custom input
+  if (isCustomSourceTable.value) {
+    return;
+  }
+  
+  // If blur with no selection, cancel editing
+  if (!editingValues.value.source_table || editingValues.value.source_table === '') {
     cancelEdit('source_table');
   }
 };
