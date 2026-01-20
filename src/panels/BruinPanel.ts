@@ -793,9 +793,6 @@ export class BruinPanel {
             break;
           case "bruin.updateQueryDates":
             const { startDate, endDate } = message.payload;
-            console.log(
-              `BruinPanel: Sending dates to QueryPreviewPanel - start: ${startDate}, end: ${endDate}`
-            );
             QueryPreviewPanel.postMessage("update-query-dates", {
               status: "success",
               message: {
