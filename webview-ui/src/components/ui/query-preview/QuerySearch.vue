@@ -1,3 +1,4 @@
+
 <template>
   <div
     v-if="visible"
@@ -23,7 +24,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick, defineEmits, defineProps } from "vue";
+import { ref, watch, nextTick } from "vue";
 
 const props = defineProps({
   visible: {
