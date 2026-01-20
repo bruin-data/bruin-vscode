@@ -38,7 +38,7 @@
             :ref="el => { if (el) inputRefs.source_connection = el as HTMLSelectElement }"
             class="bg-input-background text-input-foreground text-xs border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg px-2 py-1 rounded w-full"
           >
-            <option value="">None</option>
+            <option value="">Select connection...</option>
             <option v-for="connection in availableSourceConnections" :key="connection.name" :value="connection.name">
               {{ connection.name }} ({{ connection.type }})
             </option>
@@ -73,7 +73,7 @@
               :ref="el => { if (el) inputRefs.source_table = el as HTMLSelectElement }"
               class="bg-input-background text-input-foreground text-xs border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg px-2 py-1 rounded flex-1"
             >
-              <option value="">None</option>
+              <option value="">Select table...</option>
               <option v-for="table in availableSourceTables" :key="table" :value="table">
                 {{ table }}
               </option>
@@ -121,7 +121,7 @@
             :ref="el => { if (el) inputRefs.destination = el as HTMLSelectElement }"
             class="bg-input-background text-input-foreground text-xs border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg px-2 py-1 rounded w-full"
           >
-            <option value="">None</option>
+            <option value="">Select destination...</option>
             <option v-for="dest in AVAILABLE_DESTINATIONS" :key="dest.value" :value="dest.value">
               {{ dest.label }}
             </option>
@@ -188,7 +188,7 @@
               :ref="el => { if (el) inputRefs.incremental_key = el as HTMLSelectElement }"
               class="bg-input-background text-input-foreground text-xs border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg px-2 py-1 rounded flex-1"
             >
-              <option value="">Select column</option>
+              <option value="">Select column...</option>
               <option v-for="column in availableColumns" :key="column" :value="column">
                 {{ column }}
               </option>
