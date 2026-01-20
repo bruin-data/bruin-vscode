@@ -18,7 +18,7 @@
               <DateInput
                 label="Start Date"
                 v-model="startDate"
-                :disabled="isFullRefreshChecked && isPipelineStartDateAvailable"
+                :disabled="isFullRefreshChecked"
               />
               <DateInput label="End Date" v-model="endDate" />
               <div class="flex items-center gap-1 self-start xs:self-end">
@@ -807,7 +807,7 @@ watch(
 
 function getCheckboxChangePayload() {
   const effectiveStartDate =
-    isFullRefreshChecked.value && isPipelineStartDateAvailable.value ? "" : startDate.value;
+    isFullRefreshChecked.value && isPipelineStartDateAvailable.value ? props.startDate : startDate.value;
 
   let baseFlags = concatCommandFlags(
     effectiveStartDate,
@@ -1463,12 +1463,16 @@ onBeforeUnmount(() => {
 });
 
 watch(
-  [startDate, endDate, selectedEnv],
+  [startDate, endDate, selectedEnv, isFullRefreshChecked, () => props.startDate],
   ([newStart, newEnd, newEnv]) => {
+    const effectiveStartDate = isFullRefreshChecked.value && isPipelineStartDateAvailable.value
+      ? props.startDate
+      : newStart;
+
     vscode.postMessage({
       command: "bruin.updateQueryDates",
       payload: {
-        startDate: String(newStart || ""),
+        startDate: String(effectiveStartDate || ""),
         endDate: String(newEnd || ""),
         environment: String(newEnv || ""),
       },
@@ -1477,7 +1481,7 @@ watch(
     vscode.postMessage({
       command: "bruin.getAssetMetadata",
       payload: {
-        startDate: String(newStart || ""),
+        startDate: String(effectiveStartDate || ""),
         endDate: String(newEnd || ""),
         environment: String(newEnv || ""),
       },
