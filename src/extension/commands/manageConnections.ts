@@ -8,6 +8,7 @@ import {
   BruinGetAllBruinConnections,
   BruinTestConnection,
 } from "../../bruin/bruinConnections";
+import { BruinIngestrSources } from "../../bruin/bruinIngestrSources";
 import { getBruinExecutablePath } from "../../providers/BruinExecutableService";
 
 /**
@@ -108,3 +109,17 @@ export const testConnection = async (
   }
 };
 
+export const getIngestrSourceTables = async (
+  sourceType: string,
+  lastRenderedDocumentUri: Uri | undefined
+) => {
+  try {
+    console.log("Getting ingestr source tables for type:", sourceType);
+    const workingDirectory = await getWorkingDirectory(lastRenderedDocumentUri);
+    const bruinIngestrSources = new BruinIngestrSources(getBruinExecutablePath(), workingDirectory);
+    await bruinIngestrSources.getIngestrSources(sourceType);
+  } catch (error) {
+    console.error("Error getting ingestr source tables:", error);
+    throw error;
+  }
+};
