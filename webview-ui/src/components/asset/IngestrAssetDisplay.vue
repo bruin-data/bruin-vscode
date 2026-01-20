@@ -65,7 +65,7 @@
         >
           <div v-if="editingField.source_table" class="flex items-center gap-1 w-full" @click.stop @keydown.escape="cancelEdit('source_table')">
             <select 
-              v-if="availableSourceTables.length > 0 && !isCustomSourceTable"
+              v-if="sourceTableUseSelect && !isCustomSourceTable"
               id="source-table-select"
               v-model="editingValues.source_table"
               @change="handleSourceTableChange"
@@ -289,6 +289,8 @@ const DATA_PLATFORM_TYPES = (assetsSchema.$defs?.AssetsSchema?.properties?.param
 
 const availableSourceTables = ref<string[]>([]);
 const isLoadingSourceTables = ref(false);
+// Lock in whether to use select or input when entering edit mode (prevents DOM switching mid-edit)
+const sourceTableUseSelect = ref(false);
 
 const availableSourceConnections = computed(() => {
   return availableConnections.value.filter(conn => 
@@ -330,6 +332,8 @@ const startEditing = (field: string) => {
   
   if (field === 'source_table') {
     isCustomSourceTable.value = false;
+    // Lock in the element type at the start of editing (prevents DOM switching mid-edit)
+    sourceTableUseSelect.value = availableSourceTables.value.length > 0;
     if (localParameters.value.source_connection && availableSourceTables.value.length === 0 && !isLoadingSourceTables.value) {
       fetchSourceTables(localParameters.value.source_connection);
     }
@@ -381,6 +385,7 @@ const saveField = (field: string) => {
   
   if (field === 'source_table') {
     isCustomSourceTable.value = false;
+    sourceTableUseSelect.value = false;
   }
   
   // Only clear source_table and fetch new tables if source_connection actually CHANGED
@@ -416,6 +421,7 @@ const cancelEdit = (field: string) => {
   
   if (field === 'source_table') {
     isCustomSourceTable.value = false;
+    sourceTableUseSelect.value = false;
   }
 };
 
