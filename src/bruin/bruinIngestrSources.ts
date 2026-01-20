@@ -36,8 +36,15 @@ export class BruinIngestrSources extends BruinCommand {
         }
       }
     } catch (error) {
-      console.error("Error occurred while getting ingestr sources:", error);
-      this.postMessageToPanels("error", String(error));
+      const errorString = String(error);
+      console.error("Error occurred while getting ingestr sources:", errorString);
+      
+      // Check if the CLI doesn't support the ingestr-sources command (older CLI version)
+      const isUnsupportedCommand = errorString.includes("flag provided but not defined") || 
+          errorString.includes("unknown command") ||
+          errorString.includes("not defined");
+      
+      this.postMessageToPanels(isUnsupportedCommand ? "unsupported" : "error", null);
     }
   }
 

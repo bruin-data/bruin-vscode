@@ -510,11 +510,41 @@ const handleIngestrSources = (payload: any) => {
   if (payload.status === "success" && payload.message) {
     if (Array.isArray(payload.message)) {
       availableSourceTables.value = payload.message;
+      // If we got tables while in edit mode, switch to select
+      if (editingField.value.source_table && payload.message.length > 0) {
+        sourceTableUseSelect.value = true;
+        nextTick(() => {
+          const input = inputRefs.value.source_table;
+          if (input) input.focus();
+        });
+      }
     } else {
       availableSourceTables.value = [];
     }
-  } else {
+  } else if (payload.status === "unsupported") {
+    // CLI doesn't support the command - fall back to manual input gracefully
+    console.warn("[IngestrAssetDisplay] Update Bruin CLI to enable source table options");
     availableSourceTables.value = [];
+    sourceTableUseSelect.value = false;
+    isCustomSourceTable.value = true;
+    // Focus the input field if we're in editing mode
+    if (editingField.value.source_table) {
+      nextTick(() => {
+        const input = inputRefs.value.source_table;
+        if (input) input.focus();
+      });
+    }
+  } else {
+    // Error case - also fall back to manual input
+    availableSourceTables.value = [];
+    sourceTableUseSelect.value = false;
+    isCustomSourceTable.value = true;
+    if (editingField.value.source_table) {
+      nextTick(() => {
+        const input = inputRefs.value.source_table;
+        if (input) input.focus();
+      });
+    }
   }
 };
 
