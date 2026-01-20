@@ -25,7 +25,10 @@ export const concatCommandFlags = (
   sensorModeSetting?: string
 ): string => {
   // Only include start-date flag if startDate is not empty
-  const startDateFlag = startDate ? ` --start-date ${startDate.endsWith("Z") ? startDate : startDate + "Z"}` : "";
+  // Only add 'Z' suffix to datetime strings (containing 'T'), not simple date strings
+  const startDateFlag = startDate
+    ? ` --start-date ${startDate.endsWith("Z") || !startDate.includes("T") ? startDate : startDate + "Z"}`
+    : "";
   const endDateFlag = isExclusiveChecked(checkboxItems) ? ` --end-date ${endDateExclusive}` : ` --end-date ${endDate}`;
 
   const checkboxesFlags = checkboxItems

@@ -351,14 +351,14 @@
                     v-for="(column, colIndex) in currentTab.parsedOutput.columns"
                     :key="typeof column === 'string' ? column : column.name"
                     class="sticky top-0 p-1 text-left font-semibold text-editor-fg bg-editor-bg border-x border-commandCenter-border before:absolute before:bottom-0 before:left-0 before:w-full before:border-b before:border-commandCenter-border relative"
-                    :style="getColumnWidthStyle(colIndex)"
+                    :style="getColumnWidthStyle(Number(colIndex))"
                   >
                     <div class="flex items-center w-full overflow-hidden pr-1">
-                      <span class="truncate flex-1 min-w-0 block">{{ typeof column === 'string' ? column : (column.name || `Column ${colIndex + 1}`) }}</span>
+                      <span class="truncate flex-1 min-w-0 block">{{ typeof column === 'string' ? column : (column.name || `Column ${Number(colIndex) + 1}`) }}</span>
                     </div>
                     <div
                       class="resize-handle"
-                      @mousedown="startResize($event, colIndex)"
+                      @mousedown="startResize($event, Number(colIndex))"
                       title="Drag to resize column"
                     ></div>
                   </th>
@@ -381,7 +381,7 @@
                     :key="colIndex"
                     class="p-1 text-editor-fg font-mono border border-commandCenter-border relative"
                     :class="{ 'cursor-pointer': cellHasOverflow(value) }"
-                    :style="getColumnWidthStyle(colIndex)"
+                    :style="getColumnWidthStyle(Number(colIndex))"
                   >
                     <div class="flex flex-col">
                       <div v-if="Array.isArray(value)" class="array-cell">
@@ -519,6 +519,8 @@ const showSearchInput = ref(false);
 const hoveredTab = ref("");
 const copied = ref(false);
 const queryTimeout = ref(60); // Default timeout in seconds
+const currentStartDate = ref("");
+const currentEndDate = ref("");
 // State for expanded cells
 const expandedCells = ref(new Set<string>());
 // State for query panel tabs
@@ -816,12 +818,18 @@ window.addEventListener("message", (event) => {
     if (message.payload && typeof message.payload.timeout === "number") {
       queryTimeout.value = message.payload.timeout;
     }
+  } else if (message.command === "update-query-dates") {
+    if (message.payload && message.payload.message) {
+      const { startDate, endDate } = message.payload.message;
+      currentStartDate.value = startDate || "";
+      currentEndDate.value = endDate || "";
+    }
   } else if (message.command === "bruin.executePreviewQuery") {
     // Handle preview intellisense query execution with current limit
     const tabId = message.payload.tabId || activeTab.value;
     const selectedEnvironment = currentEnvironment.value;
     const extractedQuery = message.payload.extractedQuery || "";
-    
+
     // Send query execution request with current limit from UI
     vscode.postMessage({
       command: "bruin.getQueryOutput",
@@ -830,6 +838,8 @@ window.addEventListener("message", (event) => {
         limit: limit.value.toString(),
         query: extractedQuery,
         tabId: tabId,
+        startDate: currentStartDate.value,
+        endDate: currentEndDate.value,
       },
     });
   }
@@ -1277,6 +1287,8 @@ const runQuery = () => {
         limit: limit.value.toString(),
         query: "",
         tabId: activeTab.value,
+        startDate: currentStartDate.value,
+        endDate: currentEndDate.value,
       },
     });
 

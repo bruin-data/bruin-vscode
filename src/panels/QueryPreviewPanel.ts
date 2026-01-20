@@ -285,9 +285,13 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
           break;
         case "bruin.requestState":
           const state = await this._restoreState();
+          // Check if the saved state is for the current asset
+          const currentAssetPath = this._lastRenderedDocumentUri?.fsPath || "";
+          const shouldRestoreState = !currentAssetPath || !state || this._shouldRestoreStateForAsset(state, currentAssetPath);
+
           webview.postMessage({
             command: "bruin.restoreState",
-            payload: state,
+            payload: shouldRestoreState ? state : null,
           });
           break;
 
@@ -471,6 +475,19 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
     } catch (error) {
       console.error("Error restoring state:", error);
     }
+  }
+
+  private _shouldRestoreStateForAsset(state: any, currentAssetPath: string): boolean {
+    if (!state || !state.tabs || !Array.isArray(state.tabs)) {
+      return true; // No tabs to check, safe to restore
+    }
+
+    // Check if any tab is for the current asset
+    const hasMatchingTab = state.tabs.some((tab: any) => {
+      return tab.assetPath === currentAssetPath;
+    });
+
+    return hasMatchingTab;
   }
 
   public async initPanel(event: vscode.TextEditor | vscode.TextDocumentChangeEvent | undefined) {

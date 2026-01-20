@@ -131,7 +131,7 @@
 import AssetDetails from "@/components/asset/AssetDetails.vue";
 import { vscode } from "@/utilities/vscode";
 import { ref, onMounted, computed, watch, nextTick, onBeforeUnmount } from "vue";
-import { parseAssetDetails, parseEnvironmentList } from "./utilities/helper";
+import { parseAssetDetails, parseEnvironmentList, parsePipelineData } from "./utilities/helper";
 import { updateValue } from "./utilities/helper";
 import { useConnectionsStore } from "./store/bruinStore";
 import type { Asset, EnvironmentsList } from "./types";
@@ -603,6 +603,16 @@ const hasIntervalModifiers = computed(() => {
 
 const startDate = computed(() => {
   if (!data.value) return "";
+
+  const parsedData = typeof data.value === "string" ? JSON.parse(data.value) : data.value;
+
+  // For pipeline config files (pipeline.yml), get start_date directly
+  if (parsedData.type === "pipelineConfig") {
+    console.log("Pipeline config start date:", parsedData.raw);
+    return parsedData.raw?.start_date || "";
+  }
+
+  // For asset files, get start_date from the pipeline property
   const parsedDetails = parseAssetDetails(data.value);
   return parsedDetails?.pipeline?.start_date || "";
 });
