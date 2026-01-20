@@ -1,4 +1,6 @@
 # Changelog
+## [0.74.1] - [2026-01-20]
+- The start date field is now disabled when "Full Refresh" is selected, including at the pipeline level, and pipeline runs now consistently use the correct start date.
 
 ## [0.74.0] - [2026-01-20]
 - Added source table dropdown for Ingestr assets, fetching available tables from the connected source.
