@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.74.0] - [2026-01-20]
+- Added source table dropdown for Ingestr assets, fetching available tables from the connected source.
+
 ## [0.73.1] - [2026-01-19]
 - Added detailed telemetry for the extension to better understand the extension usage and it.
 
