@@ -1,4 +1,7 @@
 # Changelog
+## [0.74.2] - [2026-01-21]
+- Added a setting to toggle the automatic update of the Bruin CLI.
+
 ## [0.74.1] - [2026-01-20]
 - The start date field is now disabled when "Full Refresh" is selected, including at the pipeline level, and pipeline runs now consistently use the correct start date.
 
