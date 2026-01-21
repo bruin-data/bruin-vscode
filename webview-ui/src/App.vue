@@ -912,7 +912,7 @@ watch(isBruinInstalled, (newStatus) => {
   if (newStatus) {
     // CLI is now installed; backend will drive parsing via detection
     loadEnvironmentsList();
-    vscode.postMessage({ command: "bruin.checkBruinCLIVersion" });
+    // Version check is now handled automatically by the extension on activation and periodically
   }
 });
 

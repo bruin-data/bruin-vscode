@@ -2929,7 +2929,7 @@ suite("BruinQueryOutput", () => {
   
     sinon.assert.calledWith(queryPreviewPanelStub, "query-output-message", {
       status: "error",
-      message: "This feature requires the latest Bruin CLI version. Please update your CLI.",
+      message: "The command flag is not recognized. Please check your command syntax.",
       tabId: undefined,
       consoleMessages: []
     });
@@ -4234,10 +4234,10 @@ suite(" Query export Tests", () => {
         await bruinLineageInternalParse.parseAssetLineage(filePath);
         
         sinon.assert.calledOnce(showErrorMessageStub);
-        sinon.assert.calledWith(showErrorMessageStub, "Bruin CLI is not installed or is outdated. Please install or update Bruin CLI to use this feature.");
+        sinon.assert.calledWith(showErrorMessageStub, "Bruin CLI command not recognized. Please check that Bruin CLI is installed and the command is correct.");
         sinon.assert.calledWith(updateLineageDataStub, {
           status: "error",
-          message: "Bruin CLI is not installed or is outdated. Please install or update Bruin CLI to use this feature."
+          message: "Bruin CLI command not recognized. Please check that Bruin CLI is installed and the command is correct."
         });
       });
 

@@ -261,6 +261,11 @@
           "type": "number",
           "default": 1000,
           "description": "Timeout in seconds for query execution (default: 1000 seconds)"
+        },
+        "bruin.cli.autoUpdate": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically update the Bruin CLI when a new version is available."
         }
       }
     },

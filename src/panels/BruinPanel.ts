@@ -14,9 +14,6 @@ import {
   runBruinCommandInIntegratedTerminal,
   formatInIntegratedTerminal,
   escapeFilePath,
-  getBruinVersion,
-  parseVersion,
-  versionGte,
 } from "../bruin";
 import { BruinFill } from "../bruin/bruinFill";
 import { BruinInit } from "../bruin/bruinInit";
@@ -293,6 +290,16 @@ export class BruinPanel {
   }
 
   /**
+   * Posts CLI version status to the webview in the expected format.
+   */
+  public postVersionStatus(versionStatus: { status: string; current?: string; latest?: string }): void {
+    this._panel.webview.postMessage({
+      command: "bruinCliVersionStatus",
+      versionStatus,
+    });
+  }
+
+  /**
    * Renders the current webview panel if it exists otherwise a new webview panel
    * will be created and displayed.
    *
@@ -562,31 +569,7 @@ export class BruinPanel {
               break;
             }
 
-            const MIN_DDL_VERSION = "0.11.392"; 
-
             try {
-              const versionInfo = await getBruinVersion();
-              if (!versionInfo) {
-                this._panel.webview.postMessage({
-                  command: "ddlResponse",
-                  status: "error",
-                  message: "Failed to get Bruin CLI version information"
-                });
-                break;
-              }
-
-              const current = parseVersion(versionInfo.version);
-              const minimum = parseVersion(MIN_DDL_VERSION);
-              
-              if (!versionGte(current, minimum)) {
-                this._panel.webview.postMessage({
-                  command: "ddlResponse",
-                  status: "error",
-                  message: `DDL rendering requires Bruin CLI version >= ${MIN_DDL_VERSION}, but current version is ${versionInfo.version}`
-                });
-                break;
-              }
-
               const ddlRenderer = new BruinRenderDdl(
                 getBruinExecutablePath(),
                 vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || ""
@@ -615,21 +598,11 @@ export class BruinPanel {
               });
             } catch (error) {
               const errorMessage = error instanceof Error ? error.message : String(error);
-              const isCommandNotFound = errorMessage.includes("No help topic") || errorMessage.includes("render-ddl");
-              
-              if (isCommandNotFound) {
-                this._panel.webview.postMessage({
-                  command: "ddlResponse",
-                  status: "error",
-                  message: `DDL rendering requires Bruin CLI version >= ${MIN_DDL_VERSION}`
-                });
-              } else {
-                this._panel.webview.postMessage({
-                  command: "ddlResponse",
-                  status: "error",
-                  message: `Failed to generate DDL: ${errorMessage}`
-                });
-              }
+              this._panel.webview.postMessage({
+                command: "ddlResponse",
+                status: "error",
+                message: `Failed to generate DDL: ${errorMessage}`
+              });
             }
             break;
 
@@ -984,6 +957,12 @@ export class BruinPanel {
             const version = message.version;
             console.log("Installing specific version:", version);
             await this.updateBruinCli(version);
+            // Disable auto-update when user installs a specific version
+            const bruinConfig = workspace.getConfiguration("bruin");
+            await bruinConfig.update("cli.autoUpdate", false, vscode.ConfigurationTarget.Global);
+            vscode.window.showInformationMessage(
+              "Bruin CLI auto-update has been disabled. Re-enable it in settings if needed."
+            );
             break;
           case "bruin.convertToAsset":
             if (this._lastRenderedDocumentUri) {
@@ -1009,16 +988,9 @@ export class BruinPanel {
               });
             } catch (error) {
               const errorMessage = String(error);
-              let userMessage = `Failed to create environment: ${errorMessage}`;
-              
-              // Check for outdated CLI version
-              if (errorMessage.includes("No help topic for 'create'")) {
-                userMessage = "It seems like your CLI version may be outdated. Please update it to use the create command.";
-              }
-              
               BruinPanel.postMessage("environment-created-message", {
                 status: "error",
-                message: userMessage
+                message: `Failed to create environment: ${errorMessage}`
               });
             }
             break;
@@ -1036,16 +1008,9 @@ export class BruinPanel {
               });
             } catch (error) {
               const errorMessage = String(error);
-              let userMessage = `Failed to delete environment: ${errorMessage}`;
-              
-              // Check for outdated CLI version
-              if (errorMessage.includes("No help topic for 'delete'")) {
-                userMessage = "It seems like your CLI version may be outdated. Please update it to use the delete command.";
-              }
-              
               BruinPanel.postMessage("environment-deleted-message", {
                 status: "error",
-                message: userMessage
+                message: `Failed to delete environment: ${errorMessage}`
               });
             }
             break;
@@ -1063,16 +1028,9 @@ export class BruinPanel {
               });
             } catch (error) {
               const errorMessage = String(error);
-              let userMessage = `Failed to update environment: ${errorMessage}`;
-              
-              // Check for outdated CLI version
-              if (errorMessage.includes("No help topic for 'update'")) {
-                userMessage = "It seems like your CLI version may be outdated. Please update it to use the update command.";
-              }
-              
               BruinPanel.postMessage("environment-updated-message", {
                 status: "error",
-                message: userMessage
+                message: `Failed to update environment: ${errorMessage}`
               });
             }
             break;
