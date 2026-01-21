@@ -10,20 +10,3 @@ export const installOrUpdateCli = async () => {
     await bruinInstaller.installBruinCli();
   }
 };
-
-export const checkBruinCliVersion = async () => {
-  const bruinCLIManager = new BruinInstallCLI();
-  const checkCliVersion = bruinCLIManager.checkBruinCLIVersion();
-  if (await checkCliVersion) {
-    return;
-  } else {
-    const message = "Your CLI is outdated. Please update it to access all the latest features.";    
-    const closeButton = "Close";
-
-    vscode.window.showWarningMessage(message, closeButton).then((selection) => {
-      if (selection === closeButton) {
-        // Do nothing, just close the message
-      }
-    });
-  }
-};

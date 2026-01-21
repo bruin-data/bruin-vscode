@@ -39,7 +39,6 @@ export class BruinIngestrSources extends BruinCommand {
       const errorString = String(error);
       console.error("Error occurred while getting ingestr sources:", errorString);
       
-      // Check if the CLI doesn't support the ingestr-sources command (older CLI version)
       const isUnsupportedCommand = errorString.includes("flag provided but not defined") || 
           errorString.includes("unknown command") ||
           errorString.includes("not defined");

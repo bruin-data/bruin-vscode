@@ -32,6 +32,7 @@ import { FavoritesProvider } from "../providers/FavoritesProvider";
 import { BruinLanguageServer } from "../language-server/bruinLanguageServer";
 import { BruinInstallCLI } from "../bruin/bruinInstallCli";
 import { TableDetailsPanel } from "../panels/TableDetailsPanel";
+import { checkCliVersion } from "../bruin/bruinUtils";
 
 let analyticsClient: any = null;
 
@@ -119,6 +120,84 @@ async function updatePathSeparator(config: WorkspaceConfiguration): Promise<void
   }
 }
 
+// Interval for periodic CLI version checks (6 hours in milliseconds)
+const CLI_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
+let cliCheckInterval: NodeJS.Timeout | undefined;
+
+/**
+ * Checks if the Bruin CLI needs an update and silently updates it if auto-update is enabled.
+ * Always notifies the BruinPanel of the current version status.
+ */
+async function autoUpdateCliIfEnabled(): Promise<void> {
+  const config = workspace.getConfiguration("bruin");
+  const autoUpdateEnabled = config.get<boolean>("cli.autoUpdate", true);
+
+  const bruinInstaller = new BruinInstallCLI();
+
+  // Check if CLI is installed
+  const installStatus = await bruinInstaller.checkBruinCliInstallation();
+  if (!installStatus.installed) {
+    console.log("Bruin CLI not installed, skipping auto-update");
+    return;
+  }
+
+  // Check if CLI is outdated
+  const versionStatus = await checkCliVersion();
+
+  // Always notify UI of current version status so Update button shows correctly
+  if (BruinPanel.currentPanel) {
+    BruinPanel.currentPanel.postVersionStatus(versionStatus);
+  }
+
+  if (versionStatus.status !== "outdated") {
+    console.log(`Bruin CLI is ${versionStatus.status}, no update needed`);
+    return;
+  }
+
+  // If auto-update is disabled, just show the status but don't update
+  if (!autoUpdateEnabled) {
+    console.log("Bruin CLI auto-update is disabled, showing outdated status only");
+    return;
+  }
+
+  console.log(`Bruin CLI update available: ${versionStatus.current} -> ${versionStatus.latest}`);
+
+  // Perform silent update
+  const updateSuccess = await bruinInstaller.silentUpdateBruinCli();
+  if (updateSuccess) {
+    console.log("Bruin CLI updated successfully");
+    trackEvent("CLI Auto-Updated", {
+      fromVersion: versionStatus.current,
+      toVersion: versionStatus.latest,
+    });
+
+    // Notify BruinPanel to refresh the version status in UI after update
+    const newVersionStatus = await checkCliVersion();
+    if (BruinPanel.currentPanel) {
+      BruinPanel.currentPanel.postVersionStatus(newVersionStatus);
+    }
+  } else {
+    console.log("Bruin CLI silent update failed, UI still shows outdated status");
+  }
+}
+
+/**
+ * Sets up periodic CLI version checks every 6 hours.
+ */
+function setupPeriodicCliCheck(): void {
+  // Clear any existing interval
+  if (cliCheckInterval) {
+    clearInterval(cliCheckInterval);
+  }
+
+  cliCheckInterval = setInterval(() => {
+    console.log("Running periodic CLI version check");
+    autoUpdateCliIfEnabled().catch((error) => {
+      console.error("Periodic auto-update check failed:", error);
+    });
+  }, CLI_CHECK_INTERVAL_MS);
+}
+
 export async function activate(context: ExtensionContext) {
   const startTime = Date.now();
   console.time("Bruin Activation Total");
@@ -185,6 +264,17 @@ export async function activate(context: ExtensionContext) {
           status: "timeoutUpdate",
           message: { timeout: newTimeout }
         });
+      }
+      // When auto-update is re-enabled, trigger an immediate check
+      if (e.affectsConfiguration("bruin.cli.autoUpdate")) {
+        const config = workspace.getConfiguration("bruin");
+        const autoUpdateEnabled = config.get<boolean>("cli.autoUpdate", true);
+        if (autoUpdateEnabled) {
+          console.log("Auto-update re-enabled, triggering CLI version check");
+          autoUpdateCliIfEnabled().catch((error) => {
+            console.error("Auto-update check after re-enable failed:", error);
+          });
+        }
       }
     })
   );
@@ -662,6 +752,12 @@ export async function activate(context: ExtensionContext) {
   console.debug(`Bruin activated successfully in ${activationTime}ms`);
   console.timeEnd("Bruin Activation Total");
 
+  // Auto-update CLI in the background (non-blocking) and setup periodic checks
+  autoUpdateCliIfEnabled().catch((error) => {
+    console.error("Auto-update check failed:", error);
+  });
+  setupPeriodicCliCheck();
+
   // Show walkthrough on first activation (unless in test environment)
   if (isFirstActivation) {
     await context.globalState.update('bruin.hasActivated', true);
@@ -692,4 +788,10 @@ export async function activate(context: ExtensionContext) {
 
 }
 
-
+export function deactivate(): void {
+  // Clean up periodic CLI check interval
+  if (cliCheckInterval) {
+    clearInterval(cliCheckInterval);
+    cliCheckInterval = undefined;
+  }
+}

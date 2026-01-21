@@ -42,10 +42,9 @@ export class BruinConnections extends BruinCommand {
         },
         (error) => {
           console.error("Error occurred while getting connections:", error); // Debug message
-          // Check if the error is related to an outdated or missing CLI
           if (error.includes("No help topic for")) {
             const cliError =
-              "The Bruin CLI is out of date. Please update it to access your connections.";
+              "The Bruin CLI command was not recognized. Please check that Bruin CLI is installed and the command is correct.";
             //   console.error("CLI error message:", cliError); // Debug message
             this.postMessageToPanels("error", cliError);
           } else {
