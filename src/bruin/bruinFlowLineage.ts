@@ -167,7 +167,7 @@ export class BruinLineageInternalParse extends BruinCommand {
         : String(error);
   
       if (errorMessage.includes("No help topic for")) {
-        const formattedError = "Bruin CLI is not installed or is outdated. Please install or update Bruin CLI to use this feature.";
+        const formattedError = "Bruin CLI command not recognized. Please check that Bruin CLI is installed and the command is correct.";
         vscode.window.showErrorMessage(formattedError);
         updateLineageData({
           status: "error",

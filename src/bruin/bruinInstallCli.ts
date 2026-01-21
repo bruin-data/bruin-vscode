@@ -3,7 +3,7 @@ import { exec } from "child_process";
 import * as os from "os";
 import { promisify } from "util";
 import { getBruinExecutablePath } from "../providers/BruinExecutableService";
-import { parseVersion, versionGte, findGitBashPath, getBruinVersion } from "./bruinUtils";
+import { findGitBashPath, getBruinVersion } from "./bruinUtils";
 import * as fs from "fs";
 import path = require("path");
 
@@ -97,18 +97,6 @@ export class BruinInstallCLI {
     }
     return versionInfo.version;
   }
-  
-  public async checkBruinCLIVersion(): Promise<boolean> {
-    const versionInfo = await getBruinVersion();
-    if (!versionInfo) {
-      throw new Error("Failed to get version info");
-    }
-  
-    const currentVersion = parseVersion(versionInfo.version);
-    const latestVersion = parseVersion(versionInfo.latest);
-    return versionGte(currentVersion, latestVersion);
-  }
-  
 
   public async installBruinCli(onDone?: () => void): Promise<void> {
     const installCommand = await this.getCommand(false);
@@ -126,6 +114,34 @@ export class BruinInstallCLI {
 
     if (onDone) {
       onDone(); // Notify the caller
+    }
+  }
+
+  /**
+   * Silently updates the Bruin CLI in the background without showing terminal output.
+   * Returns true if update was successful, false otherwise.
+   */
+  public async silentUpdateBruinCli(): Promise<boolean> {
+    try {
+      const scriptPath = this.scriptPath;
+      let command: string;
+
+      if (os.platform() === "win32") {
+        const gitBashPath = findGitBashPath();
+        if (!gitBashPath) {
+          console.log("Git Bash not found, cannot perform silent update");
+          return false;
+        }
+        command = `"${gitBashPath}" -c "curl -LsSL ${scriptPath} | sh -s --"`;
+      } else {
+        command = `curl -LsSL ${scriptPath} | sh -s --`;
+      }
+
+      await execAsync(command, { timeout: 120000 }); // 2 minute timeout
+      return true;
+    } catch (error) {
+      console.error("Silent CLI update failed:", error);
+      return false;
     }
   }
 

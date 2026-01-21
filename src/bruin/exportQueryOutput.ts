@@ -113,7 +113,7 @@ export class BruinExportQueryOutput extends BruinCommand {
       if (message.includes("flag provided but not defined")) {
         this.postMessageToPanels(
           "error",
-          "This feature requires the latest Bruin CLI version. Please update your CLI."
+          "The command flag is not recognized. Please check your command syntax."
         );
         return;
       }

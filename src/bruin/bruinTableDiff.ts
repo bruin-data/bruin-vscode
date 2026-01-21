@@ -1,10 +1,6 @@
 import { BruinCommandOptions } from "../types";
 import { BruinCommand } from "./bruinCommand";
-import { getBruinVersion, parseVersion, versionGte } from "./bruinUtils";
 import * as child_process from "child_process";
-
-// Minimum version that supports -o json flag for data-diff
-const MIN_JSON_OUTPUT_VERSION = "0.11.404";
 
 /**
  * Extends the BruinCommand class to implement the bruin data-diff command.
@@ -21,23 +17,6 @@ export class BruinTableDiff extends BruinCommand {
     return "data-diff";
   }
 
-  /**
-   * Checks if the current CLI version supports JSON output for data-diff.
-   */
-  private async checkJsonOutputSupport(): Promise<boolean> {
-    try {
-      const versionInfo = await getBruinVersion();
-      if (versionInfo) {
-        const current = parseVersion(versionInfo.version);
-        const minimum = parseVersion(MIN_JSON_OUTPUT_VERSION);
-        return versionGte(current, minimum);
-      }
-      return false;
-    } catch (error) {
-      console.error("BruinTableDiff: Version check failed:", error);
-      return false;
-    }
-  }
 
   /**
    * Execute table diff between two tables using explicit connection names.
@@ -59,13 +38,10 @@ export class BruinTableDiff extends BruinCommand {
     schemaOnly: boolean = false,
     options: BruinCommandOptions = {}
   ): Promise<string> {
-    // Check if JSON output is supported
-    const useJsonOutput = await this.checkJsonOutputSupport();
-
     const args = [
       `${sourceConnection}:${sourceTable}`,
       `${targetConnection}:${targetTable}`,
-      ...(useJsonOutput ? ["-o", "json"] : []),
+      "-o", "json",
       ...(schemaOnly ? ["--schema-only"] : [])
     ];
 
