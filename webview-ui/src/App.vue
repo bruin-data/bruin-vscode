@@ -372,6 +372,7 @@ const handleMessage = (event: MessageEvent) => {
       }
       case "pipeline-assets":
         pipelineAssetsData.value = updateValue(message, "success");
+        console.log("Pipeline assets:", pipelineAssetsData.value);
         break;
       case "asset-metadata-message":
         const metadataResult = updateValue(message, "success");
@@ -726,6 +727,7 @@ const tabs = ref([
       columns: columns.value,
       assetMetadata: assetMetadata.value,
       assetMetadataError: assetMetadataError.value,
+      pipelineAssets: pipelineAssets.value,
       filePath: lastRenderedDocument.value,
     })),
     emits: ["update:assetName", "update:description"],

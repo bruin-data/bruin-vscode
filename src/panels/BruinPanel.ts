@@ -14,6 +14,7 @@ import {
   runBruinCommandInIntegratedTerminal,
   formatInIntegratedTerminal,
   escapeFilePath,
+  runMultipleAssetsInTerminal,
 } from "../bruin";
 import { BruinFill } from "../bruin/bruinFill";
 import { BruinInit } from "../bruin/bruinInit";
@@ -657,6 +658,15 @@ export class BruinPanel {
             const currentPipeline = getCurrentPipelinePath(currfilePath || "");
 
             runInIntegratedTerminal("", await currentPipeline, message.payload, "bruin");
+            break;
+
+          case "bruin.runMultipleAssets":
+            trackEvent("Command Executed", { command: "runMultipleAssets", source: "extension" });
+            if (!message.payload?.assets || message.payload.assets.length === 0) {
+              return;
+            }
+            // Run multiple assets sequentially in the terminal
+            runMultipleAssetsInTerminal(message.payload.assets, message.payload.flags);
             break;
 
           case "bruin.getAssetDetails":

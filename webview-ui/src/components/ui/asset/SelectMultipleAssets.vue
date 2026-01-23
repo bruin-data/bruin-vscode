@@ -1,0 +1,280 @@
+<template>
+    <div v-if="isOpen" class="mt-2">
+        <!-- Header row with controls -->
+        <div class="flex items-center justify-between mb-1">
+            <div class="flex items-center gap-1.5">
+                <span class="text-xs text-editor-fg opacity-70">Select assets</span>
+                <div class="flex items-center gap-1 text-2xs">
+                    <button @click="selectAll" class="text-editorLink-activeFg hover:underline">All</button>
+                    <span class="text-editor-fg opacity-30">|</span>
+                    <button @click="clearAll" class="text-editorLink-activeFg hover:underline">Clear</button>
+                    <span class="text-editor-fg opacity-30">|</span>
+                    <button @click="invertSelection" class="text-editorLink-activeFg hover:underline">Invert</button>
+                </div>
+            </div>
+            <button @click="$emit('close')" class="text-editor-fg opacity-50 hover:opacity-100" title="Close">
+                <span class="codicon codicon-close text-xs"></span>
+            </button>
+        </div>
+
+        <!-- Search -->
+        <input v-model="searchQuery" type="text" placeholder="Search assets..."
+            class="w-full px-2 py-1 text-xs bg-sideBar-bg text-editor-fg border border-commandCenter-border rounded focus:outline-none mb-1" />
+
+        <!-- Asset list -->
+        <div class="max-h-48 overflow-y-auto border border-commandCenter-border rounded bg-sideBar-bg">
+            <div v-if="loading" class="text-center text-editor-fg opacity-60 py-4 text-xs">
+                Loading assets...
+            </div>
+            <template v-else>
+                <div v-for="asset in filteredAssets" :key="asset.name"
+                    class="flex items-center gap-2 px-2 py-1 hover:bg-list-hoverBackground border-b border-commandCenter-border last:border-b-0">
+                    <vscode-checkbox :checked="isAssetSelected(asset.name)"
+                        @change="handleAssetToggle(asset.name, $event)" class="text-xs flex-1 min-w-0">
+                        <span class="font-mono truncate" :class="{ 'opacity-60': isDownstreamAsset(asset.name) }">
+                            {{ asset.name }}
+                            <span v-if="isDownstreamAsset(asset.name)" class="text-2xs opacity-50 ml-1">(downstream)</span>
+                        </span>
+                    </vscode-checkbox>
+                    <div v-if="isAssetSelected(asset.name)" class="flex items-center gap-1 flex-shrink-0">
+                        <button 
+                            @click="addDirectDownstreams(asset.name)"
+                            class="text-2xs px-1.5 py-0.5 rounded text-editorLink-activeFg bg-editor-bg border border-commandCenter-border hover:bg-list-hoverBackground"
+                            title="Add direct downstream assets">
+                            Direct Downstreams
+                        </button>
+                        <button 
+                            @click="addAllDownstreams(asset.name)"
+                            class="text-2xs px-1.5 py-0.5 rounded text-editorLink-activeFg bg-editor-bg border border-commandCenter-border hover:bg-list-hoverBackground"
+                            title="Add all downstream assets">
+                            All Downstreams
+                        </button>
+                    </div>
+                </div>
+                <div v-if="filteredAssets.length === 0" class="text-center text-editor-fg opacity-50 py-3 text-xs">
+                    {{ assets.length === 0 ? 'No assets found in pipeline' : 'No matching assets' }}
+                </div>
+            </template>
+        </div>
+
+        <!-- Footer with count and run button -->
+        <div class="flex items-center justify-between mt-2">
+            <span class="text-xs text-editor-fg opacity-60">
+                {{ selectedCount }} selected
+                <span v-if="fullRefreshEnabled && selectedCount > 0" class="text-2xs opacity-70">
+                    (full refresh applied on all {{ selectedCount }})
+                </span>
+            </span>
+            <vscode-button @click="runSelectedAssets" :disabled="selectedCount === 0" class="text-xs h-7">
+                <div class="flex items-center justify-center">
+                    <PlayIcon class="h-3 w-3 mr-1" aria-hidden="true" />
+                    <span>Run</span>
+                </div>
+            </vscode-button>
+        </div>
+    </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, watch } from 'vue';
+import { PlayIcon } from '@heroicons/vue/24/outline';
+import { findDownstreamAssets, fetchAllDownstreams } from '@/utilities/assetDependencies';
+
+interface Asset {
+    name: string;
+    id?: string;
+    definition_file?: { path: string };
+}
+
+export interface SelectedAssetWithSettings {
+    name: string;
+    definition_file?: { path: string };
+    fullRefresh: boolean;
+}
+
+const props = defineProps<{
+    isOpen: boolean;
+    assets: Asset[];
+    loading?: boolean;
+    initialSelected?: SelectedAssetWithSettings[];
+    fullRefreshEnabled?: boolean;
+}>();
+
+const emit = defineEmits<{
+    (e: 'close'): void;
+    (e: 'run', assets: SelectedAssetWithSettings[]): void;
+}>();
+
+// Map of asset name -> { selected, fullRefresh, isDownstream }
+const assetSettings = ref<Map<string, { selected: boolean; fullRefresh: boolean; isDownstream?: boolean }>>(new Map());
+const searchQuery = ref('');
+
+const filteredAssets = computed(() => {
+    const query = searchQuery.value.toLowerCase().trim();
+    if (!query) return props.assets;
+    return props.assets.filter((asset) =>
+        asset.name.toLowerCase().includes(query)
+    );
+});
+
+const selectedCount = computed(() => {
+    return Array.from(assetSettings.value.values()).filter(s => s.selected).length;
+});
+
+const fullRefreshEnabled = computed(() => {
+    return props.fullRefreshEnabled || false;
+});
+
+const isAssetSelected = (name: string) => {
+    return assetSettings.value.get(name)?.selected ?? false;
+};
+
+const isDownstreamAsset = (name: string) => {
+    return assetSettings.value.get(name)?.isDownstream ?? false;
+};
+
+const handleAssetToggle = (assetName: string, event: any) => {
+    const isChecked = event.target.checked;
+    const current = assetSettings.value.get(assetName) || { selected: false, fullRefresh: false, isDownstream: false };
+    // Apply full-refresh based on the main checkbox state
+    // Keep isDownstream flag if it was set
+    assetSettings.value.set(assetName, { 
+        selected: isChecked, 
+        fullRefresh: isChecked && fullRefreshEnabled.value,
+        isDownstream: isChecked ? current.isDownstream : false
+    });
+    // Trigger reactivity
+    assetSettings.value = new Map(assetSettings.value);
+};
+
+const addDirectDownstreams = (assetName: string) => {
+    const downstreamAssets = findDownstreamAssets(assetName, props.assets);
+    
+    downstreamAssets.forEach((asset) => {
+        // Skip if it's the same asset
+        if (asset.name === assetName) return;
+        
+        const current = assetSettings.value.get(asset.name) || { selected: false, fullRefresh: false, isDownstream: false };
+        assetSettings.value.set(asset.name, {
+            selected: true,
+            fullRefresh: current.selected ? current.fullRefresh : fullRefreshEnabled.value,
+            isDownstream: true
+        });
+    });
+    
+    // Trigger reactivity
+    assetSettings.value = new Map(assetSettings.value);
+};
+
+const addAllDownstreams = (assetName: string) => {
+    // Get all downstream assets recursively (excluding the original asset)
+    const allDownstreamAssets = fetchAllDownstreams(assetName, props.assets, []);
+    
+    // Filter out the original asset
+    const downstreams = allDownstreamAssets.filter(asset => asset.name !== assetName);
+    
+    downstreams.forEach((asset) => {
+        const current = assetSettings.value.get(asset.name) || { selected: false, fullRefresh: false, isDownstream: false };
+        assetSettings.value.set(asset.name, {
+            selected: true,
+            fullRefresh: current.selected ? current.fullRefresh : fullRefreshEnabled.value,
+            isDownstream: true
+        });
+    });
+    
+    // Trigger reactivity
+    assetSettings.value = new Map(assetSettings.value);
+};
+
+const selectAll = () => {
+    filteredAssets.value.forEach((asset) => {
+        const current = assetSettings.value.get(asset.name) || { selected: false, fullRefresh: false, isDownstream: false };
+        assetSettings.value.set(asset.name, { 
+            selected: true, 
+            fullRefresh: fullRefreshEnabled.value,
+            isDownstream: current.isDownstream
+        });
+    });
+    assetSettings.value = new Map(assetSettings.value);
+};
+
+const clearAll = () => {
+    assetSettings.value.forEach((settings, name) => {
+        assetSettings.value.set(name, { ...settings, selected: false });
+    });
+    assetSettings.value = new Map(assetSettings.value);
+};
+
+const invertSelection = () => {
+    filteredAssets.value.forEach((asset) => {
+        const current = assetSettings.value.get(asset.name) || { selected: false, fullRefresh: false, isDownstream: false };
+        assetSettings.value.set(asset.name, { 
+            selected: !current.selected, 
+            fullRefresh: !current.selected && fullRefreshEnabled.value,
+            isDownstream: !current.selected ? current.isDownstream : false
+        });
+    });
+    assetSettings.value = new Map(assetSettings.value);
+};
+
+const runSelectedAssets = () => {
+    const assetsToRun: SelectedAssetWithSettings[] = [];
+
+    props.assets.forEach((asset) => {
+        const settings = assetSettings.value.get(asset.name);
+        if (settings?.selected) {
+            assetsToRun.push({
+                name: asset.name,
+                definition_file: asset.definition_file,
+                fullRefresh: settings.fullRefresh,
+            });
+        }
+    });
+
+    emit('run', assetsToRun);
+};
+
+// Watch for full-refresh changes and update all selected assets
+watch(
+    () => props.fullRefreshEnabled,
+    (enabled) => {
+        assetSettings.value.forEach((settings, name) => {
+            if (settings.selected) {
+                assetSettings.value.set(name, { ...settings, fullRefresh: enabled });
+            }
+        });
+        assetSettings.value = new Map(assetSettings.value);
+    }
+);
+
+// Initialize selection when dialog opens
+watch(
+    () => props.isOpen,
+    (isOpen) => {
+        if (isOpen) {
+            // Initialize from initialSelected or start fresh
+            const newSettings = new Map<string, { selected: boolean; fullRefresh: boolean; isDownstream?: boolean }>();
+
+            if (props.initialSelected && props.initialSelected.length > 0) {
+                props.initialSelected.forEach((asset) => {
+                    const current = assetSettings.value.get(asset.name);
+                    newSettings.set(asset.name, { 
+                        selected: true, 
+                        fullRefresh: fullRefreshEnabled.value || asset.fullRefresh,
+                        isDownstream: current?.isDownstream || false
+                    });
+                });
+            }
+
+            assetSettings.value = newSettings;
+            searchQuery.value = '';
+        }
+    }
+);
+</script>
+<style scoped>
+
+vscode-button::part(control) {
+    @apply border-none pl-1.5;
+}
+</style>

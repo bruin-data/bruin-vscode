@@ -119,6 +119,7 @@ module.exports = {
         "notification-bg": "var(--vscode-notification-background)",
         "notification-fg": "var(--vscode-notification-foreground)",
         "notificationsInfoIcon-fg": "var(--vscode-notificationsInfoIcon-foreground)",
+        "sideBar-bg": "var(--vscode-sideBar-background)",
         "notificationsWarningIcon-fg": "var(--vscode-notificationsWarningIcon-foreground)",
         "button-bg": "var(--vscode-button-background)",
         "button-hover-bg": "var(--vscode-button-hoverBackground)",
