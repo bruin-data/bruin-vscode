@@ -55,6 +55,13 @@ vi.mock("@/store/bruinStore", () => ({
     setDefaultEnvironment: vi.fn(),
     getDefaultEnvironment: vi.fn(() => null),
   })),
+  usePipelineRunStore: vi.fn(() => ({
+    selectedAssets: [],
+    showDialog: false,
+    setSelectedAssets: vi.fn(),
+    clearSelectedAssets: vi.fn(),
+    setShowDialog: vi.fn(),
+  })),
 }));
 
 import AssetGeneral from "@/components/asset/AssetGeneral.vue";
