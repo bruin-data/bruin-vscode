@@ -306,21 +306,28 @@
       <!-- Selected assets summary (clickable to open panel) -->
       <div
         v-if="selectedAssetsForRun.length > 0 && !showSelectMultipleAssetsDialog"
-        class="mt-2 flex items-center gap-2 text-xs"
+        class="mt-2 flex items-center gap-1.5 text-xs min-w-0"
       >
         <button
           @click="openMultipleAssetsPanel"
-          class="flex-1 flex items-center gap-2 text-left hover:bg-list-hoverBackground rounded px-1 py-0.5 -mx-1"
+          class="flex-1 flex items-center gap-1.5 text-left hover:bg-list-hoverBackground rounded px-1 py-0.5 -mx-1 min-w-0 overflow-hidden"
           title="Click to edit selection"
         >
-          <span class="text-editor-fg opacity-60">Selected:</span>
-          <span
-            class="flex-1 truncate text-editor-fg font-mono text-2xs opacity-80"
-          >
-            {{ selectedAssetsForRun.map(a => a.name).join(', ') }}
+          <span class="text-editor-fg text-2xs opacity-60 flex-shrink-0">Selected:</span>
+          <span class="flex items-center gap-2 min-w-0 overflow-hidden">
+            <span
+              v-for="(name, index) in selectedAssetsDisplay.names"
+              :key="name"
+              class="inline-block px-1.5 py-0.5 bg-badge-bg text-badge-fg text-2xs rounded font-mono truncate max-w-28"
+              :title="name"
+            >{{ name }}</span>
+            <span
+              v-if="selectedAssetsDisplay.remaining > 0"
+              class="text-2xs text-editor-fg opacity-60 flex-shrink-0"
+            >+{{ selectedAssetsDisplay.remaining }} more</span>
           </span>
-          <span v-if="isFullRefreshChecked && selectedAssetsForRun.length > 0" class="text-2xs text-editor-fg opacity-50">
-            (full refresh applied on all {{ selectedAssetsForRun.length }})
+          <span v-if="isFullRefreshChecked" class="text-2xs text-editor-fg opacity-50 flex-shrink-0 ml-1">
+            (full refresh)
           </span>
         </button>
         <button
@@ -545,6 +552,19 @@ const currentPipelineName = ref<string | null>(null);
 const runButtonLabel = computed(() => {
   const count = selectedAssetsForRun.value.length;
   return count > 0 ? `Run (${count})` : 'Run';
+});
+
+// Display selected assets - first 2 names + "and X more"
+const selectedAssetsDisplay = computed(() => {
+  const assets = selectedAssetsForRun.value;
+  const maxDisplay = 2;
+
+  if (assets.length === 0) return { names: [], remaining: 0 };
+
+  const displayedNames = assets.slice(0, maxDisplay).map(a => a.name);
+  const remaining = Math.max(0, assets.length - maxDisplay);
+
+  return { names: displayedNames, remaining };
 });
 
 const isPipelineStartDateAvailable = computed(() => {

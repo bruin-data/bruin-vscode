@@ -1,5 +1,5 @@
 <template>
-    <div v-if="isOpen" class="mt-2">
+    <div v-if="isOpen" class="mt-2 flex flex-col">
         <!-- Header row with controls -->
         <div class="flex items-center justify-between mb-1">
             <div class="flex items-center gap-1.5">
@@ -22,9 +22,9 @@
             class="w-full px-2 py-1 text-xs bg-sideBar-bg text-editor-fg border border-commandCenter-border rounded focus:outline-none mb-1" />
 
         <!-- Asset list with table header -->
-        <div class="border border-commandCenter-border rounded bg-sideBar-bg overflow-hidden">
-            <!-- Table header -->
-            <div class="flex items-center px-2 py-1 bg-editorWidget-bg border-b border-commandCenter-border text-2xs text-editor-fg opacity-70">
+        <div class="border border-commandCenter-border rounded bg-sideBar-bg overflow-hidden flex flex-col">
+            <!-- Table header - sticky -->
+            <div class="flex items-center px-2 py-1 bg-editorWidget-bg border-b border-commandCenter-border text-2xs text-editor-fg opacity-70 flex-shrink-0">
                 <div class="flex-1 min-w-0">Asset</div>
                 <div class="w-20 text-center flex-shrink-0 leading-tight">
                     <div>Direct</div>
@@ -37,7 +37,7 @@
             </div>
 
             <!-- Scrollable content -->
-            <div class="max-h-44 overflow-y-auto">
+            <div class="max-h-44 overflow-y-auto flex-1">
                 <div v-if="loading" class="text-center text-editor-fg opacity-60 py-4 text-xs">
                     Loading assets...
                 </div>
@@ -87,30 +87,30 @@
                     </div>
                 </template>
             </div>
-        </div>
 
-        <!-- Footer with count and run button -->
-        <div class="flex items-center justify-between mt-2">
-            <span class="text-xs text-editor-fg opacity-60">
-                {{ selectedCount }} selected
-                <span v-if="fullRefreshEnabled && selectedCount > 0" class="text-2xs opacity-70">
-                    (full refresh applied on all {{ selectedCount }})
+            <!-- Footer - sticky at bottom -->
+            <div class="flex items-center justify-between px-2 py-1.5 bg-editorWidget-bg border-t border-commandCenter-border flex-shrink-0">
+                <span class="text-xs text-editor-fg opacity-60">
+                    {{ selectedCount }} selected
+                    <span v-if="fullRefreshEnabled && selectedCount > 0" class="text-2xs opacity-70">
+                        (full refresh)
+                    </span>
                 </span>
-            </span>
-            <vscode-button @click="runSelectedAssets" :disabled="selectedCount === 0" class="text-xs h-7">
-                <div class="flex items-center justify-center">
-                    <PlayIcon class="h-3 w-3 mr-1" aria-hidden="true" />
-                    <span>Run</span>
-                </div>
-            </vscode-button>
+                <vscode-button @click="applySelection" :disabled="selectedCount === 0" class="text-xs h-6">
+                    <div class="flex items-center justify-center">
+                        <span class="codicon codicon-check mr-1"></span>
+                        <span>Apply</span>
+                    </div>
+                </vscode-button>
+            </div>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import { PlayIcon } from '@heroicons/vue/24/outline';
 import { findDownstreamAssets, fetchAllDownstreams } from '@/utilities/assetDependencies';
+import { usePipelineRunStore } from '@/store/bruinStore';
 
 interface Asset {
     name: string;
@@ -136,6 +136,8 @@ const emit = defineEmits<{
     (e: 'close'): void;
     (e: 'run', assets: SelectedAssetWithSettings[]): void;
 }>();
+
+const pipelineRunStore = usePipelineRunStore();
 
 // Map of asset name -> { selected, fullRefresh, isDownstream }
 const assetSettings = ref<Map<string, { selected: boolean; fullRefresh: boolean; isDownstream?: boolean }>>(new Map());
@@ -270,13 +272,14 @@ const invertSelection = () => {
     assetSettings.value = new Map(assetSettings.value);
 };
 
-const runSelectedAssets = () => {
-    const assetsToRun: SelectedAssetWithSettings[] = [];
+// Sync current selection to the store (for real-time Run button update)
+const syncToStore = () => {
+    const selectedAssets: SelectedAssetWithSettings[] = [];
 
     props.assets.forEach((asset) => {
         const settings = assetSettings.value.get(asset.name);
         if (settings?.selected) {
-            assetsToRun.push({
+            selectedAssets.push({
                 name: asset.name,
                 definition_file: asset.definition_file,
                 fullRefresh: settings.fullRefresh,
@@ -284,7 +287,12 @@ const runSelectedAssets = () => {
         }
     });
 
-    emit('run', assetsToRun);
+    pipelineRunStore.setSelectedAssets(selectedAssets);
+};
+
+const applySelection = () => {
+    syncToStore();
+    emit('close');
 };
 
 // Watch for full-refresh changes and update all selected assets
@@ -298,6 +306,17 @@ watch(
         });
         assetSettings.value = new Map(assetSettings.value);
     }
+);
+
+// Sync to store in real-time whenever selection changes
+watch(
+    assetSettings,
+    () => {
+        if (props.isOpen) {
+            syncToStore();
+        }
+    },
+    { deep: true }
 );
 
 // Initialize selection when dialog opens
