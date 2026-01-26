@@ -63,11 +63,10 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.75.0**: Added support for selecting and running multiple Bruin assets with pipeline-level persistence and automatic downstream handling.
 - **0.74.2**: Added a setting to toggle the automatic update of the Bruin CLI.
 - **0.74.1**: The start date field is now disabled when "Full Refresh" is selected, including at the pipeline level, and pipeline runs now consistently use the correct start date.
 - **0.74.0**: Added source table dropdown for Ingestr assets, fetching available tables from the connected source.
-- **0.73.1**: Added detailed telemetry for the extension to better understand the extension usage and it.
-- **0.73.0**: Added support for sensor mode in the run command and extension settings.
 
 For a full changelog, see Bruin Extension [Changelog](https://github.com/bruin-data/bruin-vscode/blob/main/CHANGELOG.md).
 

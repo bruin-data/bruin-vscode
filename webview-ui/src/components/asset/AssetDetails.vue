@@ -90,6 +90,7 @@
         :tags="props.tags || []"
         :assetMetadata="props.assetMetadata"
         :assetMetadataError="props.assetMetadataError"
+        :pipelineAssets="props.pipelineAssets || []"
         :pipeline="props.pipeline"
         :filePath="props.filePath"
         :startDate="props.startDate"
@@ -123,6 +124,7 @@ const props = defineProps<{
   tags?: string[];
   assetMetadata?: any;
   assetMetadataError?: string;
+  pipelineAssets?: any[];
   filePath: string;
 }>();
 

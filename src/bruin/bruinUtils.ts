@@ -312,6 +312,50 @@ export const formatInIntegratedTerminal = async (
   await new Promise((resolve) => setTimeout(resolve, 1000));
 };
 
+/**
+ * Runs multiple Bruin assets in the integrated terminal.
+ * @param {string[]} assetPaths - Array of asset file paths to run.
+ * @param {string} [flags] - Optional flags to be passed to the Bruin run command.
+ * @returns {Promise<void>} A promise that resolves when the command is queued.
+ */
+export const runMultipleAssetsInTerminal = async (
+  assetPaths: string[],
+  flags?: string
+): Promise<void> => {
+  if (!assetPaths || assetPaths.length === 0) {
+    return;
+  }
+
+  const bruinExecutable = getBruinExecutablePath();
+  const terminal = await createIntegratedTerminal(undefined);
+
+  const useUnixFormatting = shouldUseUnixFormatting(terminal);
+
+  const executable = ((terminal.creationOptions as vscode.TerminalOptions).shellPath?.includes("bash"))
+    ? "bruin"
+    : bruinExecutable;
+
+  // Escape and join all asset paths
+  const escapedPaths = assetPaths.map((p) => escapeFilePath(p)).join(' ');
+
+  // Build command using the same formatting as runInIntegratedTerminal
+  let command = "";
+  if (flags && flags.trim().length > 0) {
+    command = formatBruinCommand(executable, BRUIN_RUN_SQL_COMMAND, flags, escapedPaths, useUnixFormatting);
+  } else {
+    command = `${executable} ${BRUIN_RUN_SQL_COMMAND} ${escapedPaths}`;
+  }
+
+  terminal.show(true);
+  terminal.sendText(" ");
+
+  setTimeout(() => {
+    terminal.sendText(command);
+  }, 500);
+
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+};
+
 export const createIntegratedTerminal = async (
   workingDir: string | undefined
 ): Promise<vscode.Terminal> => {

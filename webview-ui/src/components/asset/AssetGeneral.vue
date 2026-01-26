@@ -277,7 +277,7 @@
 
           <!-- Run Button Group -->
           <ButtonGroup
-            label="Run"
+            :label="runButtonLabel"
             :icon="PlayIcon"
             icon-class="h-3 w-3 mr-1"
             :disabled="isNotAsset"
@@ -285,11 +285,58 @@
               { key: 'run-with-downstream', label: 'Run with downstream' },
               { key: 'run-current-pipeline', label: 'Run the whole pipeline' },
               { key: 'run-with-continue', label: 'Continue from last failure' },
+              { key: 'run-multiple-assets', label: 'Run multiple assets' },
             ]"
             @main-click="runAssetOnly"
             @dropdown-click="handleRunDropdown"
           />
         </div>
+      </div>
+
+      <SelectMultipleAssets
+        :isOpen="showSelectMultipleAssetsDialog"
+        :assets="pipelineAssets"
+        :loading="loadingPipelineAssets"
+        :initialSelected="selectedAssetsForRun"
+        :fullRefreshEnabled="isFullRefreshChecked"
+        @close="showSelectMultipleAssetsDialog = false"
+        @run="handleRunMultipleAssets"
+      />
+
+      <!-- Selected assets summary (clickable to open panel) -->
+      <div
+        v-if="selectedAssetsForRun.length > 0 && !showSelectMultipleAssetsDialog"
+        class="mt-2 flex items-center gap-1.5 text-xs min-w-0"
+      >
+        <button
+          @click="openMultipleAssetsPanel"
+          class="flex-1 flex items-center gap-1.5 text-left hover:bg-list-hoverBackground rounded px-1 py-0.5 -mx-1 min-w-0 overflow-hidden"
+          title="Click to edit selection"
+        >
+          <span class="text-editor-fg text-2xs opacity-60 flex-shrink-0">Selected:</span>
+          <span class="flex items-center gap-2 min-w-0 overflow-hidden">
+            <span
+              v-for="(name, index) in selectedAssetsDisplay.names"
+              :key="name"
+              class="inline-block px-1.5 py-0.5 bg-badge-bg text-badge-fg text-2xs rounded font-mono truncate max-w-28"
+              :title="name"
+            >{{ name }}</span>
+            <span
+              v-if="selectedAssetsDisplay.remaining > 0"
+              class="text-2xs text-editor-fg opacity-60 flex-shrink-0"
+            >+{{ selectedAssetsDisplay.remaining }} more</span>
+          </span>
+          <span v-if="isFullRefreshChecked" class="text-2xs text-editor-fg opacity-50 flex-shrink-0 ml-1">
+            (full refresh)
+          </span>
+        </button>
+        <button
+          @click="clearSelectedAssets"
+          class="text-editor-fg opacity-50 hover:opacity-100 flex-shrink-0"
+          title="Clear selection"
+        >
+          <span class="codicon codicon-close text-xs"></span>
+        </button>
       </div>
 
       <!-- Alerts and Code Display Section -->
@@ -434,6 +481,7 @@ import AssetVariablesPanel from "@/components/ui/variables-panel/AssetVariablesP
 import ButtonGroup from "@/components/ui/buttons/ButtonGroup.vue";
 import { updateValue, resetStates, determineValidationStatus } from "@/utilities/helper";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/vue";
+import SelectMultipleAssets from "@/components/ui/asset/SelectMultipleAssets.vue";
 import {
   ChevronDownIcon,
   ChevronUpIcon,
@@ -444,7 +492,7 @@ import { SparklesIcon, PlayIcon, ArrowPathRoundedSquareIcon } from "@heroicons/v
 import type { FormattedErrorMessage } from "@/types";
 import { Transition } from "vue";
 import RudderStackService from "@/services/RudderStackService";
-import { useConnectionsStore } from "@/store/bruinStore";
+import { useConnectionsStore, usePipelineRunStore } from "@/store/bruinStore";
 
 /**
  * Define component props
@@ -460,6 +508,7 @@ const props = defineProps<{
   columns: any[];
   tags?: string[];
   assetMetadata?: any;
+  pipelineAssets: any[];
   assetMetadataError?: string;
   pipeline?: any;
   filePath?: string;
@@ -486,6 +535,38 @@ const rudderStack = RudderStackService.getInstance();
 const showIntervalAlert = ref(false);
 const dismissedIntervalAlert = ref(false);
 const variableOverridesCount = ref(0);
+const pipelineRunStore = usePipelineRunStore();
+const showSelectMultipleAssetsDialog = computed({
+  get: () => pipelineRunStore.showDialog,
+  set: (val) => pipelineRunStore.setShowDialog(val),
+});
+const loadingPipelineAssets = ref(false);
+const pipelineAssets = computed(() => props.pipelineAssets || []);
+const selectedAssetsForRun = computed({
+  get: () => pipelineRunStore.selectedAssets,
+  set: (val) => pipelineRunStore.setSelectedAssets(val),
+});
+const currentPipelineName = ref<string | null>(null);
+
+// Dynamic run button label based on selected assets
+const runButtonLabel = computed(() => {
+  const count = selectedAssetsForRun.value.length;
+  return count > 0 ? `Run (${count})` : 'Run';
+});
+
+// Display selected assets - first 2 names + "and X more"
+const selectedAssetsDisplay = computed(() => {
+  const assets = selectedAssetsForRun.value;
+  const maxDisplay = 2;
+
+  if (assets.length === 0) return { names: [], remaining: 0 };
+
+  const displayedNames = assets.slice(0, maxDisplay).map(a => a.name);
+  const remaining = Math.max(0, assets.length - maxDisplay);
+
+  return { names: displayedNames, remaining };
+});
+
 const isPipelineStartDateAvailable = computed(() => {
   const startDate = props.startDate;
   return startDate !== undefined && startDate !== null && startDate !== "";
@@ -532,9 +613,92 @@ const handleRunDropdown = (key: string) => {
     case "run-with-continue":
       runPipelineWithContinue();
       break;
+    case "run-multiple-assets":
+      runMultipleAssets();
+      break;
   }
 };
 
+const runMultipleAssets = () => {
+  showSelectMultipleAssetsDialog.value = true;
+  // Request fresh pipeline assets when dialog opens
+  vscode.postMessage({ command: "bruin.getPipelineAssets" });
+};
+
+interface AssetWithSettings {
+  name: string;
+  definition_file?: { path: string };
+  fullRefresh: boolean;
+}
+
+// Open multiple assets panel (for editing existing selection)
+const openMultipleAssetsPanel = () => {
+  showSelectMultipleAssetsDialog.value = true;
+  vscode.postMessage({ command: "bruin.getPipelineAssets" });
+};
+
+// Handle run from multi-select dialog - run immediately with per-asset settings
+const handleRunMultipleAssets = (assets: AssetWithSettings[]) => {
+  showSelectMultipleAssetsDialog.value = false;
+
+  if (assets.length === 0) return;
+
+  // Store selection for display
+  selectedAssetsForRun.value = assets;
+
+  // Check if full-refresh is enabled from the main checkbox
+  const isFullRefresh = isFullRefreshChecked.value;
+
+  // Build base flags without full refresh (we'll add it if needed)
+  const baseFlags = stripFullRefreshFlag(stripAllTagFlags(getCheckboxChangePayload()));
+
+  const executeRun = () => {
+    const assetPaths = assets
+      .map((a) => a.definition_file?.path)
+      .filter((p): p is string => !!p);
+
+    if (assetPaths.length === 0) return;
+
+    // Build base payload first
+    const basePayload = buildCommandPayload(baseFlags);
+    
+    // Add --full-refresh flag if enabled (applies to all selected assets)
+    const flags = isFullRefresh ? basePayload + " --full-refresh" : basePayload;
+    
+    vscode.postMessage({
+      command: "bruin.runMultipleAssets",
+      payload: {
+        assets: assetPaths,
+        flags: flags,
+      },
+    });
+  };
+
+  // Show confirmation if full-refresh is enabled
+  if (isFullRefresh) {
+    showFullRefreshConfirmation(executeRun);
+  } else {
+    executeRun();
+  }
+};
+
+// Clear selected assets
+const clearSelectedAssets = () => {
+  selectedAssetsForRun.value = [];
+};
+
+// Run selected assets (called from main Run button when assets are selected)
+const runSelectedAssets = () => {
+  if (selectedAssetsForRun.value.length === 0) return;
+
+  // Use the stored per-asset settings
+  handleRunMultipleAssets(selectedAssetsForRun.value);
+};
+
+// Helper to strip --full-refresh from flags
+const stripFullRefreshFlag = (flags: string): string => {
+  return flags.replace(/--full-refresh\s*/g, '').trim();
+};
 const showFullRefreshConfirmation = (runAction: () => void) => {
   pendingRunAction.value = runAction;
   showFullRefreshAlert.value = true;
@@ -562,6 +726,7 @@ const isPipelineData = computed(() => {
 });
 
 const pipelineInfo = computed(() => {
+  console.log("Pipeline info:", props.pipeline, props.pipeline?.raw);
   return props.pipeline?.raw || props.pipeline || {};
 });
 
@@ -1188,6 +1353,12 @@ function stripAllTagFlags(flags: string) {
 }
 
 function runAssetOnly() {
+  // If multiple assets are selected, run those instead
+  if (selectedAssetsForRun.value.length > 0) {
+    runSelectedAssets();
+    return;
+  }
+
   const fullRefreshChecked = checkboxItems.value.find(
     (item) => item.name === "Full-Refresh"
   )?.checked;
@@ -1488,6 +1659,18 @@ watch(
     });
   },
   { immediate: true }
+);
+
+// Reset selected assets only when pipeline changes (not when switching files in same pipeline)
+watch(
+  () => props.pipeline?.name,
+  (newPipelineName, oldPipelineName) => {
+    if (newPipelineName !== oldPipelineName && oldPipelineName !== undefined) {
+      selectedAssetsForRun.value = [];
+      showSelectMultipleAssetsDialog.value = false;
+    }
+    currentPipelineName.value = newPipelineName || null;
+  }
 );
 
 function receiveMessage(event: { data: any }) {
