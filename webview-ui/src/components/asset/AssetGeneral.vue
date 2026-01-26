@@ -485,7 +485,7 @@ import { SparklesIcon, PlayIcon, ArrowPathRoundedSquareIcon } from "@heroicons/v
 import type { FormattedErrorMessage } from "@/types";
 import { Transition } from "vue";
 import RudderStackService from "@/services/RudderStackService";
-import { useConnectionsStore } from "@/store/bruinStore";
+import { useConnectionsStore, usePipelineRunStore } from "@/store/bruinStore";
 
 /**
  * Define component props
@@ -528,10 +528,17 @@ const rudderStack = RudderStackService.getInstance();
 const showIntervalAlert = ref(false);
 const dismissedIntervalAlert = ref(false);
 const variableOverridesCount = ref(0);
-const showSelectMultipleAssetsDialog = ref(false);
+const pipelineRunStore = usePipelineRunStore();
+const showSelectMultipleAssetsDialog = computed({
+  get: () => pipelineRunStore.showDialog,
+  set: (val) => pipelineRunStore.setShowDialog(val),
+});
 const loadingPipelineAssets = ref(false);
 const pipelineAssets = computed(() => props.pipelineAssets || []);
-const selectedAssetsForRun = ref<{ name: string; definition_file?: { path: string }; fullRefresh: boolean }[]>([]);
+const selectedAssetsForRun = computed({
+  get: () => pipelineRunStore.selectedAssets,
+  set: (val) => pipelineRunStore.setSelectedAssets(val),
+});
 const currentPipelineName = ref<string | null>(null);
 
 const isPipelineStartDateAvailable = computed(() => {

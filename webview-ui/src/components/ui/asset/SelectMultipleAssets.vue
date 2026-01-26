@@ -21,40 +21,73 @@
         <input v-model="searchQuery" type="text" placeholder="Search assets..."
             class="w-full px-2 py-1 text-xs bg-sideBar-bg text-editor-fg border border-commandCenter-border rounded focus:outline-none mb-1" />
 
-        <!-- Asset list -->
-        <div class="max-h-48 overflow-y-auto border border-commandCenter-border rounded bg-sideBar-bg">
-            <div v-if="loading" class="text-center text-editor-fg opacity-60 py-4 text-xs">
-                Loading assets...
+        <!-- Asset list with table header -->
+        <div class="border border-commandCenter-border rounded bg-sideBar-bg overflow-hidden">
+            <!-- Table header -->
+            <div class="flex items-center px-2 py-1 bg-editorWidget-bg border-b border-commandCenter-border text-2xs text-editor-fg opacity-70">
+                <div class="flex-1 min-w-0">Asset</div>
+                <div class="w-20 text-center flex-shrink-0 leading-tight">
+                    <div>Direct</div>
+                    <div class="opacity-60">Downstream</div>
+                </div>
+                <div class="w-20 text-center flex-shrink-0 leading-tight">
+                    <div>All</div>
+                    <div class="opacity-60">Downstream</div>
+                </div>
             </div>
-            <template v-else>
-                <div v-for="asset in filteredAssets" :key="asset.name"
-                    class="flex items-center gap-2 px-2 py-1 hover:bg-list-hoverBackground border-b border-commandCenter-border last:border-b-0">
-                    <vscode-checkbox :checked="isAssetSelected(asset.name)"
-                        @change="handleAssetToggle(asset.name, $event)" class="text-xs flex-1 min-w-0">
-                        <span class="font-mono truncate" :class="{ 'opacity-60': isDownstreamAsset(asset.name) }">
-                            {{ asset.name }}
-                            <span v-if="isDownstreamAsset(asset.name)" class="text-2xs opacity-50 ml-1">(downstream)</span>
-                        </span>
-                    </vscode-checkbox>
-                    <div v-if="isAssetSelected(asset.name)" class="flex items-center gap-1 flex-shrink-0">
-                        <button 
-                            @click="addDirectDownstreams(asset.name)"
-                            class="text-2xs px-1.5 py-0.5 rounded text-editorLink-activeFg bg-editor-bg border border-commandCenter-border hover:bg-list-hoverBackground"
-                            title="Add direct downstream assets">
-                            Direct Downstreams
-                        </button>
-                        <button 
-                            @click="addAllDownstreams(asset.name)"
-                            class="text-2xs px-1.5 py-0.5 rounded text-editorLink-activeFg bg-editor-bg border border-commandCenter-border hover:bg-list-hoverBackground"
-                            title="Add all downstream assets">
-                            All Downstreams
-                        </button>
+
+            <!-- Scrollable content -->
+            <div class="max-h-44 overflow-y-auto">
+                <div v-if="loading" class="text-center text-editor-fg opacity-60 py-4 text-xs">
+                    Loading assets...
+                </div>
+                <template v-else>
+                    <div v-for="asset in filteredAssets" :key="asset.name"
+                        class="flex items-center px-2 py-1 hover:bg-list-hoverBackground border-b border-commandCenter-border last:border-b-0 group">
+                        <!-- Asset checkbox -->
+                        <div class="flex-1 min-w-0">
+                            <vscode-checkbox :checked="isAssetSelected(asset.name)"
+                                @change="handleAssetToggle(asset.name, $event)" class="text-xs">
+                                <span class="font-mono truncate block max-w-full">
+                                    {{ asset.name }}
+                                    <span v-if="isDownstreamAsset(asset.name)" class="text-2xs opacity-50 ml-1">(downstream)</span>
+                                </span>
+                            </vscode-checkbox>
+                        </div>
+                        <!-- Direct downstreams button -->
+                        <div class="w-20 text-center flex-shrink-0">
+                            <button
+                                v-if="isAssetSelected(asset.name)"
+                                @click.stop="addDirectDownstreams(asset.name)"
+                                class="text-2xs px-1.5 py-0.5 rounded transition-colors"
+                                :class="hasDownstreams(asset.name, 'direct')
+                                    ? 'text-editorLink-activeFg hover:bg-list-hoverBackground'
+                                    : 'text-editor-fg opacity-30 cursor-not-allowed'"
+                                :disabled="!hasDownstreams(asset.name, 'direct')"
+                                :title="hasDownstreams(asset.name, 'direct') ? 'Add direct downstream assets' : 'No direct downstreams'">
+                                <span class="codicon codicon-arrow-right"></span>
+                            </button>
+                        </div>
+                        <!-- All downstreams button -->
+                        <div class="w-20 text-center flex-shrink-0">
+                            <button
+                                v-if="isAssetSelected(asset.name)"
+                                @click.stop="addAllDownstreams(asset.name)"
+                                class="text-2xs px-1.5 py-0.5 rounded transition-colors"
+                                :class="hasDownstreams(asset.name, 'all')
+                                    ? 'text-editorLink-activeFg hover:bg-list-hoverBackground'
+                                    : 'text-editor-fg opacity-30 cursor-not-allowed'"
+                                :disabled="!hasDownstreams(asset.name, 'all')"
+                                :title="hasDownstreams(asset.name, 'all') ? 'Add all downstream assets' : 'No downstreams'">
+                                <span class="codicon codicon-arrow-down"></span>
+                            </button>
+                        </div>
                     </div>
-                </div>
-                <div v-if="filteredAssets.length === 0" class="text-center text-editor-fg opacity-50 py-3 text-xs">
-                    {{ assets.length === 0 ? 'No assets found in pipeline' : 'No matching assets' }}
-                </div>
-            </template>
+                    <div v-if="filteredAssets.length === 0" class="text-center text-editor-fg opacity-50 py-3 text-xs">
+                        {{ assets.length === 0 ? 'No assets found in pipeline' : 'No matching assets' }}
+                    </div>
+                </template>
+            </div>
         </div>
 
         <!-- Footer with count and run button -->
@@ -133,6 +166,16 @@ const isDownstreamAsset = (name: string) => {
     return assetSettings.value.get(name)?.isDownstream ?? false;
 };
 
+const hasDownstreams = (assetName: string, type: 'direct' | 'all'): boolean => {
+    if (type === 'direct') {
+        const downstreams = findDownstreamAssets(assetName, props.assets);
+        return downstreams.length > 0;
+    } else {
+        const allDownstreams = fetchAllDownstreams(assetName, props.assets, []);
+        return allDownstreams.filter(a => a.name !== assetName).length > 0;
+    }
+};
+
 const handleAssetToggle = (assetName: string, event: any) => {
     const isChecked = event.target.checked;
     const current = assetSettings.value.get(assetName) || { selected: false, fullRefresh: false, isDownstream: false };
@@ -150,16 +193,25 @@ const handleAssetToggle = (assetName: string, event: any) => {
 const addDirectDownstreams = (assetName: string) => {
     const downstreamAssets = findDownstreamAssets(assetName, props.assets);
     
+    if (downstreamAssets.length === 0) return;
+    
+    let addedCount = 0;
     downstreamAssets.forEach((asset) => {
         // Skip if it's the same asset
         if (asset.name === assetName) return;
         
         const current = assetSettings.value.get(asset.name) || { selected: false, fullRefresh: false, isDownstream: false };
+        const wasAlreadySelected = current.selected;
+        
         assetSettings.value.set(asset.name, {
             selected: true,
             fullRefresh: current.selected ? current.fullRefresh : fullRefreshEnabled.value,
             isDownstream: true
         });
+        
+        if (!wasAlreadySelected) {
+            addedCount++;
+        }
     });
     
     // Trigger reactivity
@@ -172,6 +224,8 @@ const addAllDownstreams = (assetName: string) => {
     
     // Filter out the original asset
     const downstreams = allDownstreamAssets.filter(asset => asset.name !== assetName);
+    
+    if (downstreams.length === 0) return;
     
     downstreams.forEach((asset) => {
         const current = assetSettings.value.get(asset.name) || { selected: false, fullRefresh: false, isDownstream: false };

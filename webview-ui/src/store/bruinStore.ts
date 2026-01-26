@@ -1,6 +1,30 @@
 import { defineStore } from "pinia";
 import { v4 as uuidv4 } from "uuid";
 
+export interface SelectedAssetForRun {
+  name: string;
+  definition_file?: { path: string };
+  fullRefresh: boolean;
+}
+
+export const usePipelineRunStore = defineStore("pipelineRun", {
+  state: () => ({
+    selectedAssets: [] as SelectedAssetForRun[],
+    showDialog: false,
+  }),
+  actions: {
+    setSelectedAssets(assets: SelectedAssetForRun[]) {
+      this.selectedAssets = assets;
+    },
+    clearSelectedAssets() {
+      this.selectedAssets = [];
+    },
+    setShowDialog(show: boolean) {
+      this.showDialog = show;
+    },
+  },
+});
+
 export const useConnectionsStore = defineStore("connections", {
   state: () => ({
     connections: [] as any[],
