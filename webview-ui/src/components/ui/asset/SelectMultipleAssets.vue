@@ -50,7 +50,6 @@
                                 @change="handleAssetToggle(asset.name, $event)" class="text-xs">
                                 <span class="font-mono truncate block max-w-full">
                                     {{ asset.name }}
-                                    <span v-if="isDownstreamAsset(asset.name)" class="text-2xs opacity-50 ml-1">(downstream)</span>
                                 </span>
                             </vscode-checkbox>
                         </div>
