@@ -277,7 +277,7 @@
 
           <!-- Run Button Group -->
           <ButtonGroup
-            label="Run"
+            :label="runButtonLabel"
             :icon="PlayIcon"
             icon-class="h-3 w-3 mr-1"
             :disabled="isNotAsset"
@@ -540,6 +540,12 @@ const selectedAssetsForRun = computed({
   set: (val) => pipelineRunStore.setSelectedAssets(val),
 });
 const currentPipelineName = ref<string | null>(null);
+
+// Dynamic run button label based on selected assets
+const runButtonLabel = computed(() => {
+  const count = selectedAssetsForRun.value.length;
+  return count > 0 ? `Run (${count})` : 'Run';
+});
 
 const isPipelineStartDateAvailable = computed(() => {
   const startDate = props.startDate;
