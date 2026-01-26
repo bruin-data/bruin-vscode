@@ -1,4 +1,7 @@
 # Changelog
+## [0.75.0] - [2026-01-26]
+- Added support for selecting and running multiple Bruin assets with pipeline-level persistence and automatic downstream handling.
+
 ## [0.74.2] - [2026-01-21]
 - Added a setting to toggle the automatic update of the Bruin CLI.
 
