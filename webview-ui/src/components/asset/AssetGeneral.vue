@@ -6,36 +6,20 @@
       <div class="flex flex-col">
         <!-- Checkbox and Date Controls Row -->
         <div class="flex flex-col xs:flex-row gap-1 w-full justify-between">
-          <EnvSelectMenu
-            :options="environments"
-            @selected-env="setSelectedEnv"
-            :selectedEnvironment="selectedEnvironment"
-            class="flex-shrink-0"
-          />
+          <EnvSelectMenu :options="environments" @selected-env="setSelectedEnv"
+            :selectedEnvironment="selectedEnvironment" class="flex-shrink-0" />
           <!-- Date Controls and Checkbox Group -->
           <div id="controls" class="flex flex-col xs:w-1/2">
             <div class="flex flex-col xs:flex-row gap-1 w-full justify-between xs:justify-end">
-              <DateInput
-                label="Start Date"
-                v-model="startDate"
-                :disabled="isFullRefreshChecked"
-              />
+              <DateInput label="Start Date" v-model="startDate" :disabled="isFullRefreshChecked" />
               <DateInput label="End Date" v-model="endDate" />
               <div class="flex items-center gap-1 self-start xs:self-end">
-                <button
-                  type="button"
-                  @click="resetDatesOnSchedule"
-                  :title="`Reset Start and End Date`"
-                  class="rounded-sm bg-editor-button-bg p-1 text-editor-button-fg hover:bg-editor-button-hover-bg disabled:opacity-50 disabled:cursor-not-allowed"
-                >
+                <button type="button" @click="resetDatesOnSchedule" :title="`Reset Start and End Date`"
+                  class="rounded-sm bg-editor-button-bg p-1 text-editor-button-fg hover:bg-editor-button-hover-bg disabled:opacity-50 disabled:cursor-not-allowed">
                   <ArrowPathRoundedSquareIcon class="h-3 w-3" aria-hidden="true" />
                 </button>
                 <div class="relative" id="checkbox-group-chevron">
-                  <ChevronUpIcon
-                    v-if="showCheckboxGroup"
-                    class="h-4 w-4"
-                    @click="updateVisibility"
-                  />
+                  <ChevronUpIcon v-if="showCheckboxGroup" class="h-4 w-4" @click="updateVisibility" />
                   <ChevronDownIcon v-else class="h-4 w-4" @click="updateVisibility" />
                 </div>
               </div>
@@ -50,63 +34,40 @@
           <div class="mt-2 flex items-center gap-2" ref="tagFilterContainer">
             <div class="flex items-center gap-[1px] relative">
               <label class="text-xs text-editor-fg">Tags</label>
-              <vscode-button
-                appearance="icon"
-                class="h-3.5 w-auto p-0 opacity-70 hover:opacity-100 inline-flex items-center"
-                id="tag-filter-button"
-                title="Edit tag filters"
-                @click="toggleTagFilterOpen"
-              >
-                <span
-                  :class="[
-                    'codicon',
-                    hasActiveTagFilters ? 'codicon-filter-filled' : 'codicon-filter',
-                    'text-[9px]',
-                  ]"
-                ></span>
+              <vscode-button appearance="icon"
+                class="h-3.5 w-auto p-0 opacity-70 hover:opacity-100 inline-flex items-center" id="tag-filter-button"
+                title="Edit tag filters" @click="toggleTagFilterOpen">
+                <span :class="[
+                  'codicon',
+                  hasActiveTagFilters ? 'codicon-filter-filled' : 'codicon-filter',
+                  'text-[9px]',
+                ]"></span>
               </vscode-button>
 
               <!-- Dropdown -->
-              <div
-                v-if="isTagFilterOpen"
+              <div v-if="isTagFilterOpen"
                 class="absolute top-full left-0 z-[99999] w-[220px] max-w-[90vw] bg-dropdown-bg border border-commandCenter-border shadow-md rounded overflow-hidden tag-filter-dropdown mt-1"
-                @mousedown.stop
-              >
-                <div
-                  class="sticky top-0 bg-dropdown-bg border-b border-commandCenter-border px-2 py-1"
-                >
-                  <input
-                    v-model="tagFilterSearch"
-                    placeholder="Search tags..."
+                @mousedown.stop>
+                <div class="sticky top-0 bg-dropdown-bg border-b border-commandCenter-border px-2 py-1">
+                  <input v-model="tagFilterSearch" placeholder="Search tags..."
                     class="w-full bg-dropdown-bg text-inputValidation-infoBorder text-[11px] border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6 px-2 rounded"
-                    @click.stop
-                    @mousedown.stop
-                  />
+                    @click.stop @mousedown.stop />
                 </div>
                 <div class="max-h-48 overflow-y-auto">
-                  <div
-                    v-for="tag in filteredTags"
-                    :key="tag"
-                    class="flex items-center justify-between px-2 py-1 text-[11px] hover:bg-list-hoverBackground/60"
-                  >
+                  <div v-for="tag in filteredTags" :key="tag"
+                    class="flex items-center justify-between px-2 py-1 text-[11px] hover:bg-list-hoverBackground/60">
                     <span class="font-mono truncate pr-2 opacity-80">{{ tag }}</span>
                     <div class="flex items-center gap-1.5">
-                      <button
-                        type="button"
+                      <button type="button"
                         class="inline-flex items-center justify-center h-3.5 px-1 rounded-sm text-3xs opacity-70 hover:opacity-100"
-                        :class="includeTags.includes(tag) ? 'bg-button-bg text-button-fg' : ''"
-                        title="Include"
-                        @click="toggleTag(tag, 'include')"
-                      >
+                        :class="includeTags.includes(tag) ? 'bg-button-bg text-button-fg' : ''" title="Include"
+                        @click="toggleTag(tag, 'include')">
                         Inc
                       </button>
-                      <button
-                        type="button"
+                      <button type="button"
                         class="inline-flex items-center justify-center h-3.5 px-1 rounded-sm text-3xs opacity-70 hover:opacity-100"
-                        :class="excludeTags.includes(tag) ? 'bg-button-bg text-button-fg' : ''"
-                        title="Exclude"
-                        @click="toggleTag(tag, 'exclude')"
-                      >
+                        :class="excludeTags.includes(tag) ? 'bg-button-bg text-button-fg' : ''" title="Exclude"
+                        @click="toggleTag(tag, 'exclude')">
                         Exc
                       </button>
                     </div>
@@ -116,45 +77,29 @@
                   </div>
                 </div>
                 <div class="flex justify-end gap-2 p-1 border-t border-commandCenter-border">
-                  <vscode-button
-                    class="text-[10px] h-4 px-2 opacity-80 hover:opacity-100"
-                    appearance="secondary"
-                    @click="clearAllTagFilters"
-                    >Clear</vscode-button
-                  >
-                  <vscode-button
-                    class="text-[10px] h-4 px-2 opacity-80 hover:opacity-100"
-                    @click="closeTagFilter"
-                    >Done</vscode-button
-                  >
+                  <vscode-button class="text-[10px] h-4 px-2 opacity-80 hover:opacity-100" appearance="secondary"
+                    @click="clearAllTagFilters">Clear</vscode-button>
+                  <vscode-button class="text-[10px] h-4 px-2 opacity-80 hover:opacity-100"
+                    @click="closeTagFilter">Done</vscode-button>
                 </div>
               </div>
             </div>
             <div v-if="!isPipelineData" class="flex items-center gap-2">
               <div class="flex items-center gap-[1px]">
                 <label class="text-xs text-editor-fg">Variables</label>
-                <span
-                  v-if="pipelineVariables && Object.keys(pipelineVariables).length > 0"
-                  class="text-3xs text-editor-fg opacity-60"
-                >
+                <span v-if="pipelineVariables && Object.keys(pipelineVariables).length > 0"
+                  class="text-3xs text-editor-fg opacity-60">
                   ({{ Object.keys(pipelineVariables).length }})
                 </span>
-                <vscode-button
-                  appearance="icon"
-                  class="h-3.5 w-auto p-0 opacity-70 hover:opacity-100 inline-flex items-center"
-                  id="variables-button"
-                  title="Add temporary variable overrides for this run"
-                  @click="toggleVariablesOpen"
-                >
+                <vscode-button appearance="icon"
+                  class="h-3.5 w-auto p-0 opacity-70 hover:opacity-100 inline-flex items-center" id="variables-button"
+                  title="Add temporary variable overrides for this run" @click="toggleVariablesOpen">
                   <span class="codicon codicon-settings-gear text-[9px]"></span>
                 </vscode-button>
               </div>
               <div class="flex items-center gap-0">
-                <vscode-checkbox
-                  :checked="applyVariableOverrides"
-                  @change="handleApplyOverridesToggle($event.target.checked)"
-                  class="text-xs opacity-70 gap-0"
-                >
+                <vscode-checkbox :checked="applyVariableOverrides"
+                  @change="handleApplyOverridesToggle($event.target.checked)" class="text-xs opacity-70 gap-0">
                   Variable overrides
                 </vscode-checkbox>
                 <span class="text-3xs text-editor-fg opacity-60 -ml-2">
@@ -169,45 +114,73 @@
       <!-- Action Buttons Row -->
       <div class="flex flex-col xs:flex-row gap-2 justify-end items-start xs:items-end">
         <div
-          class="flex flex-col 2xs:flex-row flex-wrap gap-2 justify-start xs:justify-end items-stretch 2xs:items-center w-full xs:w-auto"
-        >
+          class="flex flex-col 2xs:flex-row flex-wrap gap-2 justify-start xs:justify-end items-stretch 2xs:items-center w-full xs:w-auto">
+           <!-- Lock Dependencies Button (Python only) -->
+           <div v-if="props.assetType === 'python'" class="inline-flex">
+             <vscode-button @click="lockPythonDependencies" :disabled="lockDependenciesStatus === 'loading'"
+               class="text-xs h-7" title="Lock Python dependencies in requirements.txt">
+               <div class="flex items-center justify-center">
+                 <template v-if="lockDependenciesStatus === 'success'">
+                   <CheckCircleIcon class="h-4 w-4 mr-1 text-editor-button-fg" aria-hidden="true" />
+                 </template>
+                 <template v-else-if="lockDependenciesStatus === 'error'">
+                   <XCircleIcon class="h-4 w-4 mr-1 text-editorError-foreground" aria-hidden="true" />
+                 </template>
+                 <template v-else-if="lockDependenciesStatus === 'loading'">
+                   <svg class="animate-spin mr-1 h-4 w-4 text-editor-bg" xmlns="http://www.w3.org/2000/svg" fill="none"
+                     viewBox="0 0 24 24">
+                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                     <path class="opacity-75" fill="currentColor"
+                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                     </path>
+                   </svg>
+                 </template>
+                 <template v-else>
+                   <span class="codicon codicon-lock-small mr-1" aria-hidden="true"></span>
+                 </template>
+                 <span>Lock</span>
+               </div>
+             </vscode-button>
+            <Menu as="div" class="relative -ml-px block">
+              <MenuButton :disabled="lockDependenciesStatus === 'loading'"
+                class="relative h-7 border border-transparent inline-flex items-center disabled:opacity-50 disabled:cursor-not-allowed bg-editor-button-bg px-1 text-editor-button-fg hover:bg-editor-button-hover-bg focus:z-10">
+                <ChevronDownIcon class="h-3 w-3" aria-hidden="true" />
+              </MenuButton>
+              <transition enter-active-class="transition ease-out duration-100"
+                enter-from-class="transform opacity-0 scale-95" enter-to-class="transform opacity-100 scale-100"
+                leave-active-class="transition ease-in duration-75" leave-from-class="transform opacity-100 scale-100"
+                leave-to-class="transform opacity-0 scale-95">
+                <MenuItems class="absolute right-0 z-[99999] w-40 origin-top-right">
+                  <div class="p-1 bg-editorWidget-bg rounded-sm border border-commandCenter-border">
+                    <MenuItem key="specific-version">
+                    <vscode-button
+                      class="block text-editor-fg rounded-sm w-full border-0 text-left text-2xs hover:bg-editor-button-hover-bg hover:text-editor-button-fg bg-editorWidget-bg"
+                      @click="showPythonVersionInput = true">
+                      Specific Version...
+                    </vscode-button>
+                    </MenuItem>
+                  </div>
+                </MenuItems>
+              </transition>
+            </Menu>
+          </div>
           <!-- Validate Button Group -->
           <div class="inline-flex">
-            <vscode-button
-              @click="handleBruinValidateCurrentAsset"
-              :disabled="isNotAsset"
-              class="text-xs h-7"
-            >
+            <vscode-button @click="handleBruinValidateCurrentAsset" :disabled="isNotAsset" class="text-xs h-7">
               <div class="flex items-center justify-center">
                 <template v-if="validateButtonStatus === 'validated'">
                   <CheckCircleIcon class="h-4 w-4 mr-1 text-editor-button-fg" aria-hidden="true" />
                 </template>
                 <template v-else-if="validateButtonStatus === 'failed'">
-                  <XCircleIcon
-                    class="h-4 w-4 mr-1 text-editorError-foreground"
-                    aria-hidden="true"
-                  />
+                  <XCircleIcon class="h-4 w-4 mr-1 text-editorError-foreground" aria-hidden="true" />
                 </template>
                 <template v-else-if="validateButtonStatus === 'loading'">
-                  <svg
-                    class="animate-spin mr-1 h-4 w-4 text-editor-bg"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      class="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      stroke-width="4"
-                    ></circle>
-                    <path
-                      class="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
+                  <svg class="animate-spin mr-1 h-4 w-4 text-editor-bg" xmlns="http://www.w3.org/2000/svg" fill="none"
+                    viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                    </path>
                   </svg>
                 </template>
                 <template v-else>
@@ -217,57 +190,46 @@
               </div>
             </vscode-button>
             <Menu as="div" class="relative -ml-px block">
-              <MenuButton
-                :disabled="isNotAsset"
-                class="relative h-7 border border-transparent inline-flex items-center disabled:opacity-50 disabled:cursor-not-allowed bg-editor-button-bg px-1 text-editor-button-fg hover:bg-editor-button-hover-bg focus:z-10"
-              >
+              <MenuButton :disabled="isNotAsset"
+                class="relative h-7 border border-transparent inline-flex items-center disabled:opacity-50 disabled:cursor-not-allowed bg-editor-button-bg px-1 text-editor-button-fg hover:bg-editor-button-hover-bg focus:z-10">
                 <ChevronDownIcon class="h-3 w-3" aria-hidden="true" />
               </MenuButton>
               <!-- Dropdown Menu for Validate -->
-              <transition
-                enter-active-class="transition ease-out duration-100"
-                enter-from-class="transform opacity-0 scale-95"
-                enter-to-class="transform opacity-100 scale-100"
-                leave-active-class="transition ease-in duration-75"
-                leave-from-class="transform opacity-100 scale-100"
-                leave-to-class="transform opacity-0 scale-95"
-              >
+              <transition enter-active-class="transition ease-out duration-100"
+                enter-from-class="transform opacity-0 scale-95" enter-to-class="transform opacity-100 scale-100"
+                leave-active-class="transition ease-in duration-75" leave-from-class="transform opacity-100 scale-100"
+                leave-to-class="transform opacity-0 scale-95">
                 <MenuItems
-                  class="absolute left-0 xs:right-0 xs:left-auto z-[99999] w-40 xs:w-48 origin-top-left xs:origin-top-right max-w-[calc(100vw-2rem)]"
-                >
+                  class="absolute left-0 xs:right-0 xs:left-auto z-[99999] w-40 xs:w-48 origin-top-left xs:origin-top-right max-w-[calc(100vw-2rem)]">
                   <div class="p-1 bg-editorWidget-bg rounded-sm border border-commandCenter-border">
                     <MenuItem key="validate-current">
-                      <vscode-button
-                        class="block text-editor-fg rounded-sm w-full border-0 text-left text-2xs hover:bg-editor-button-hover-bg hover:text-editor-button-fg bg-editorWidget-bg"
-                        @click="handleBruinValidateCurrentPipeline"
-                      >
-                        Validate current pipeline
-                      </vscode-button>
+                    <vscode-button
+                      class="block text-editor-fg rounded-sm w-full border-0 text-left text-2xs hover:bg-editor-button-hover-bg hover:text-editor-button-fg bg-editorWidget-bg"
+                      @click="handleBruinValidateCurrentPipeline">
+                      Validate current pipeline
+                    </vscode-button>
                     </MenuItem>
                     <MenuItem key="validate-all">
-                      <vscode-button
-                        class="block text-editor-fg rounded-sm w-full border-0 text-left text-2xs hover:bg-editor-button-hover-bg hover:text-editor-button-fg bg-editorWidget-bg"
-                        @click="handleBruinValidateAllPipelines"
-                      >
-                        Validate all pipelines
-                      </vscode-button>
+                    <vscode-button
+                      class="block text-editor-fg rounded-sm w-full border-0 text-left text-2xs hover:bg-editor-button-hover-bg hover:text-editor-button-fg bg-editorWidget-bg"
+                      @click="handleBruinValidateAllPipelines">
+                      Validate all pipelines
+                    </vscode-button>
                     </MenuItem>
                     <div class="border-t border-commandCenter-border my-1"></div>
                     <MenuItem key="format-current">
-                      <vscode-button
-                        class="block text-editor-fg rounded-sm w-full border-0 text-left text-2xs hover:bg-editor-button-hover-bg hover:text-editor-button-fg bg-editorWidget-bg"
-                        @click="formatAsset"
-                      >
-                        Format current asset
-                      </vscode-button>
+                    <vscode-button
+                      class="block text-editor-fg rounded-sm w-full border-0 text-left text-2xs hover:bg-editor-button-hover-bg hover:text-editor-button-fg bg-editorWidget-bg"
+                      @click="formatAsset">
+                      Format current asset
+                    </vscode-button>
                     </MenuItem>
                     <MenuItem key="format-all">
-                      <vscode-button
-                        class="block text-editor-fg rounded-sm w-full border-0 text-left text-2xs hover:bg-editor-button-hover-bg hover:text-editor-button-fg bg-editorWidget-bg"
-                        @click="formatAllAssets"
-                      >
-                        Format all assets
-                      </vscode-button>
+                    <vscode-button
+                      class="block text-editor-fg rounded-sm w-full border-0 text-left text-2xs hover:bg-editor-button-hover-bg hover:text-editor-button-fg bg-editorWidget-bg"
+                      @click="formatAllAssets">
+                      Format all assets
+                    </vscode-button>
                     </MenuItem>
                   </div>
                 </MenuItems>
@@ -276,82 +238,67 @@
           </div>
 
           <!-- Run Button Group -->
-          <ButtonGroup
-            :label="runButtonLabel"
-            :icon="PlayIcon"
-            icon-class="h-3 w-3 mr-1"
-            :disabled="isNotAsset"
+          <ButtonGroup :label="runButtonLabel" :icon="PlayIcon" icon-class="h-3 w-3 mr-1" :disabled="isNotAsset"
             :dropdown-items="[
               { key: 'run-with-downstream', label: 'Run with downstream' },
               { key: 'run-current-pipeline', label: 'Run the whole pipeline' },
               { key: 'run-with-continue', label: 'Continue from last failure' },
               { key: 'run-multiple-assets', label: 'Run multiple assets' },
-            ]"
-            @main-click="runAssetOnly"
-            @dropdown-click="handleRunDropdown"
-          />
+            ]" @main-click="runAssetOnly" @dropdown-click="handleRunDropdown" />
+
+
         </div>
       </div>
 
-      <SelectMultipleAssets
-        :isOpen="showSelectMultipleAssetsDialog"
-        :assets="pipelineAssets"
-        :loading="loadingPipelineAssets"
-        :initialSelected="selectedAssetsForRun"
-        :fullRefreshEnabled="isFullRefreshChecked"
-        @close="showSelectMultipleAssetsDialog = false"
-        @run="handleRunMultipleAssets"
-      />
+      <!-- Python version input (below buttons) -->
+      <div v-if="showPythonVersionInput && props.assetType === 'python'"
+        class="flex items-center justify-end space-x-1">
+        <input v-model="pythonVersion" type="text" placeholder="3.11"
+          class="border rounded-sm text-sm w-20 h-6 bg-input-background text-input-foreground px-2" />
+        <vscode-button @click="lockPythonDependencies(); showPythonVersionInput = false" appearance="icon"
+          class="text-xs bg-input-background text-input-foreground"><span class="codicon codicon-check"></span></vscode-button>
+        <vscode-button @click="showPythonVersionInput = false; pythonVersion = '3.11'" appearance="icon"
+          class="text-xs bg-input-background text-input-foreground"><span class="codicon codicon-x"></span></vscode-button>
+      </div>
+      <!-- Lock error message -->
+      <SimpleErrorAlert :errorMessage="lockDependenciesMessage" errorPhase="Lock Dependencies"
+        @error-close="lockDependenciesStatus = null; lockDependenciesMessage = null"
+        v-if="lockDependenciesMessage && lockDependenciesStatus === 'error'" />
+
+      <SelectMultipleAssets :isOpen="showSelectMultipleAssetsDialog" :assets="pipelineAssets"
+        :loading="loadingPipelineAssets" :initialSelected="selectedAssetsForRun"
+        :fullRefreshEnabled="isFullRefreshChecked" @close="showSelectMultipleAssetsDialog = false"
+        @run="handleRunMultipleAssets" />
 
       <!-- Selected assets summary (clickable to open panel) -->
-      <div
-        v-if="selectedAssetsForRun.length > 0 && !showSelectMultipleAssetsDialog"
-        class="mt-2 flex items-center gap-1.5 text-xs min-w-0"
-      >
-        <button
-          @click="openMultipleAssetsPanel"
+      <div v-if="selectedAssetsForRun.length > 0 && !showSelectMultipleAssetsDialog"
+        class="mt-2 flex items-center gap-1.5 text-xs min-w-0">
+        <button @click="openMultipleAssetsPanel"
           class="flex-1 flex items-center gap-1.5 text-left hover:bg-list-hoverBackground rounded px-1 py-0.5 -mx-1 min-w-0 overflow-hidden"
-          title="Click to edit selection"
-        >
+          title="Click to edit selection">
           <span class="text-editor-fg text-2xs opacity-60 flex-shrink-0">Selected:</span>
           <span class="flex items-center gap-2 min-w-0 overflow-hidden">
-            <span
-              v-for="(name, index) in selectedAssetsDisplay.names"
-              :key="name"
+            <span v-for="(name, index) in selectedAssetsDisplay.names" :key="name"
               class="inline-block px-1.5 py-0.5 bg-badge-bg text-badge-fg text-2xs rounded font-mono truncate max-w-28"
-              :title="name"
-            >{{ name }}</span>
-            <span
-              v-if="selectedAssetsDisplay.remaining > 0"
-              class="text-2xs text-editor-fg opacity-60 flex-shrink-0"
-            >+{{ selectedAssetsDisplay.remaining }} more</span>
+              :title="name">{{ name }}</span>
+            <span v-if="selectedAssetsDisplay.remaining > 0"
+              class="text-2xs text-editor-fg opacity-60 flex-shrink-0">+{{
+                selectedAssetsDisplay.remaining }} more</span>
           </span>
           <span v-if="isFullRefreshChecked" class="text-2xs text-editor-fg opacity-50 flex-shrink-0 ml-1">
             (full refresh)
           </span>
         </button>
-        <button
-          @click="clearSelectedAssets"
-          class="text-editor-fg opacity-50 hover:opacity-100 flex-shrink-0"
-          title="Clear selection"
-        >
+        <button @click="clearSelectedAssets" class="text-editor-fg opacity-50 hover:opacity-100 flex-shrink-0"
+          title="Clear selection">
           <span class="codicon codicon-close text-xs"></span>
         </button>
       </div>
 
       <!-- Alerts and Code Display Section -->
-      <ErrorAlert
-        v-if="hasCriticalErrors"
-        :errorMessage="errorMessage!"
-        class="mb-4"
-        :errorPhase="errorPhase"
-        @errorClose="handleErrorClose"
-      />
-      <WarningAlert
-        v-if="hasWarnings"
-        :warnings="warningMessages"
-        @warningClose="handleWarningClose"
-      />
+      <ErrorAlert v-if="hasCriticalErrors" :errorMessage="errorMessage!" class="mb-4" :errorPhase="errorPhase"
+        @errorClose="handleErrorClose" />
+      <WarningAlert v-if="hasWarnings" :warnings="warningMessages" @warningClose="handleWarningClose" />
 
       <!-- Pipeline Information -->
       <div v-if="isPipelineData" class="mt-4 bg-editorWidget-bg rounded p-2">
@@ -384,22 +331,17 @@
               <td class="py-0.5 pr-3 text-editor-fg opacity-60 w-32 whitespace-nowrap">Assets</td>
               <td class="py-0.5 text-editor-fg font-mono">{{ pipelineInfo.assets.length }}</td>
             </tr>
-            <tr
-              v-if="
-                pipelineInfo.default_connections &&
-                Object.keys(pipelineInfo.default_connections).length > 0
-              "
-            >
+            <tr v-if="
+              pipelineInfo.default_connections &&
+              Object.keys(pipelineInfo.default_connections).length > 0
+            ">
               <td class="py-0.5 pr-3 text-editor-fg opacity-60 w-32 whitespace-nowrap align-top">
                 Default Connection
               </td>
               <td class="py-0.5">
                 <div class="space-y-0.5">
-                  <div
-                    v-for="(connection, type) in pipelineInfo.default_connections"
-                    :key="type"
-                    class="text-xs font-mono text-editor-fg opacity-80"
-                  >
+                  <div v-for="(connection, type) in pipelineInfo.default_connections" :key="type"
+                    class="text-xs font-mono text-editor-fg opacity-80">
                     {{ type }}: {{ connection }}
                   </div>
                 </div>
@@ -411,26 +353,16 @@
 
       <div class="">
         <div v-if="props.assetType === 'ingestr' && !isError" class="mt-1">
-          <IngestrAssetDisplay
-            :parameters="ingestrParameters"
-            :columns="props.columns"
-            @save="handleIngestrSave"
-          />
+          <IngestrAssetDisplay :parameters="ingestrParameters" :columns="props.columns" @save="handleIngestrSave" />
         </div>
         <div v-else-if="code && !renderSQLAssetError" class="mt-1">
           <!-- SqlEditor handles both success and error cost display in its header -->
-          <SqlEditor
-            :code="code"
-            :copied="false"
-            :language="language"
-            :showIntervalAlert="showIntervalAlert"
-            :assetType="props.assetType"
-            :bigqueryMetadata="bigqueryMetadata"
-            :bigqueryError="props.assetMetadataError"
-          />
+          <SqlEditor :code="code" :copied="false" :language="language" :showIntervalAlert="showIntervalAlert"
+            :assetType="props.assetType" :bigqueryMetadata="bigqueryMetadata"
+            :bigqueryError="props.assetMetadataError" />
           <div class="overflow-hidden w-full h-20"></div>
         </div>
-        <div v-else class="overflow-hidden w-full h-20">
+        <div v-else class="overflow-hidden w-full h-40">
           <pre class="white-space"></pre>
         </div>
       </div>
@@ -438,26 +370,14 @@
   </div>
 
   <!-- Full Refresh Confirmation Dialog -->
-  <AlertWithActions
-    v-if="showFullRefreshAlert"
-    message="Do you want to run with full refresh? This may drop the table"
-    confirm-text="Continue"
-    @confirm="confirmFullRefresh"
-    @cancel="cancelFullRefresh"
-  />
+  <AlertWithActions v-if="showFullRefreshAlert" message="Do you want to run with full refresh? This may drop the table"
+    confirm-text="Continue" @confirm="confirmFullRefresh" @cancel="cancelFullRefresh" />
 
-  <AssetVariablesPanel
-    v-if="!isPipelineData"
-    :is-open="isVariablesOpen"
-    :variables="pipelineVariables"
-    trigger-element-id="variables-button"
-    :initial-overrides="currentVariableOverrides"
-    :initial-apply-overrides="applyVariableOverrides"
-    @close="closeVariablesPanel"
-    @render-with-overrides="handleRenderWithOverrides"
-    @save-overrides="handleSaveOverrides"
-    @apply-overrides-toggle="handleApplyOverridesToggle"
-  />
+  <AssetVariablesPanel v-if="!isPipelineData" :is-open="isVariablesOpen" :variables="pipelineVariables"
+    trigger-element-id="variables-button" :initial-overrides="currentVariableOverrides"
+    :initial-apply-overrides="applyVariableOverrides" @close="closeVariablesPanel"
+    @render-with-overrides="handleRenderWithOverrides" @save-overrides="handleSaveOverrides"
+    @apply-overrides-toggle="handleApplyOverridesToggle" />
 </template>
 <script setup lang="ts">
 import { vscode } from "@/utilities/vscode";
@@ -465,6 +385,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import ErrorAlert from "@/components/ui/alerts/ErrorAlert.vue";
 import WarningAlert from "@/components/ui/alerts/WarningAlert.vue";
 import AlertWithActions from "@/components/ui/alerts/AlertWithActions.vue";
+import SimpleErrorAlert from "@/components/ui/alerts/SimpleErrorAlert.vue";
 import {
   handleError,
   concatCommandFlags,
@@ -488,7 +409,7 @@ import {
   CheckCircleIcon,
   XCircleIcon,
 } from "@heroicons/vue/24/solid";
-import { SparklesIcon, PlayIcon, ArrowPathRoundedSquareIcon } from "@heroicons/vue/24/outline";
+import { SparklesIcon, PlayIcon, ArrowPathRoundedSquareIcon, LockClosedIcon } from "@heroicons/vue/24/outline";
 import type { FormattedErrorMessage } from "@/types";
 import { Transition } from "vue";
 import RudderStackService from "@/services/RudderStackService";
@@ -526,6 +447,10 @@ const renderPythonAsset = ref(null);
 const renderSQLAssetError = ref(null);
 const renderAssetAlert = ref<string | null>(null);
 const validateButtonStatus = ref<"validated" | "failed" | "loading" | null>(null);
+const lockDependenciesStatus = ref<"success" | "error" | "loading" | null>(null);
+const lockDependenciesMessage = ref<string | null>(null);
+const showPythonVersionInput = ref(false);
+const pythonVersion = ref("3.11");
 const showWarnings = ref(true);
 const errorState = computed(() => handleError(validationError.value, renderSQLAssetError.value));
 const isError = computed(() => errorState.value?.errorCaptured);
@@ -602,6 +527,16 @@ const formatAllAssets = () => {
   });
 };
 
+const lockPythonDependencies = () => {
+  lockDependenciesStatus.value = "loading";
+  lockDependenciesMessage.value = null;
+  vscode.postMessage({
+    command: "bruin.lockPythonDependencies",
+    payload: { pythonVersion: pythonVersion.value },
+    source: "AssetGeneral_lockPythonDependencies",
+  });
+};
+
 const handleRunDropdown = (key: string) => {
   switch (key) {
     case "run-with-downstream":
@@ -661,10 +596,10 @@ const handleRunMultipleAssets = (assets: AssetWithSettings[]) => {
 
     // Build base payload first
     const basePayload = buildCommandPayload(baseFlags);
-    
+
     // Add --full-refresh flag if enabled (applies to all selected assets)
     const flags = isFullRefresh ? basePayload + " --full-refresh" : basePayload;
-    
+
     vscode.postMessage({
       command: "bruin.runMultipleAssets",
       payload: {
@@ -809,7 +744,7 @@ const parsedErrorMessages = computed(() => {
       try {
         const parsedError = JSON.parse(message);
         message = parsedError.error || message;
-      } catch {}
+      } catch { }
     }
     errors = [{ issues: [{ severity: "critical", message }] }];
   }
@@ -883,7 +818,7 @@ const availableTags = computed(() => {
     });
     return Array.from(allTags).sort();
   }
-  
+
   // For individual assets: use current asset tags
   return Array.isArray(props.tags) ? props.tags : [];
 });
@@ -1066,7 +1001,7 @@ onMounted(() => {
         excludeTags.value = [...pipelineTags.excludeTags];
       }
     }
-  } catch (_) {}
+  } catch (_) { }
 
   sendInitialMessage();
   window.addEventListener("message", receiveMessage);
@@ -1117,7 +1052,7 @@ watch(
     try {
       const prevState = (vscode.getState() as Record<string, any>) || {};
       const currentFilePath = props.filePath;
-      
+
       // Build state update
       const stateUpdate: Record<string, any> = {
         ...prevState,
@@ -1127,7 +1062,7 @@ watch(
         variableOverrides: currentVariableOverrides.value,
         applyVariableOverrides: applyVariableOverrides.value,
       };
-      
+
       // Only persist tag filters if we have a valid file path
       if (currentFilePath) {
         const existingTagFilters = prevState.tagFiltersByPipeline || {};
@@ -1139,9 +1074,9 @@ watch(
           },
         };
       }
-      
+
       vscode.setState(stateUpdate);
-    } catch (_) {}
+    } catch (_) { }
   },
   { deep: true }
 );
@@ -1685,11 +1620,11 @@ function receiveMessage(event: { data: any }) {
       validateButtonStatus.value = isLoading
         ? "loading"
         : determineValidationStatus(
-            validationSuccess.value,
-            validationError.value,
-            isLoading,
-            hasCriticalErrors.value
-          );
+          validationSuccess.value,
+          validationError.value,
+          isLoading,
+          hasCriticalErrors.value
+        );
       errorPhase.value = validationError.value ? "Validation" : "Unknown";
       showWarnings.value = true;
 
@@ -1772,7 +1707,7 @@ function receiveMessage(event: { data: any }) {
             ...item,
             checked: payloadObj[item.name] !== undefined ? payloadObj[item.name] : item.checked,
           }));
-        } catch (_) {}
+        } catch (_) { }
 
         // Store sensor mode setting from extension
         if (envelope.sensorModeSetting) {
@@ -1787,7 +1722,7 @@ function receiveMessage(event: { data: any }) {
             checkboxState: envelope.payload,
             sensorModeSetting: sensorModeSetting.value,
           });
-        } catch (_) {}
+        } catch (_) { }
       }
       break;
 
@@ -1825,6 +1760,24 @@ function receiveMessage(event: { data: any }) {
           command: "showErrorMessage",
           payload: formatError,
         });
+      }
+      break;
+
+    case "lock-python-dependencies-message":
+      if (envelope.payload.status === "loading") {
+        lockDependenciesStatus.value = "loading";
+        lockDependenciesMessage.value = envelope.payload.message;
+      } else if (envelope.payload.status === "success") {
+        lockDependenciesStatus.value = "success";
+        lockDependenciesMessage.value = envelope.payload.message;
+        // Clear success status after 2 seconds (similar to typical button feedback)
+        setTimeout(() => {
+          lockDependenciesStatus.value = null;
+          lockDependenciesMessage.value = null;
+        }, 2000);
+      } else if (envelope.payload.status === "error") {
+        lockDependenciesStatus.value = "error";
+        lockDependenciesMessage.value = envelope.payload.message;
       }
       break;
   }
