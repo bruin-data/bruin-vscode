@@ -17,6 +17,7 @@ import {
   runMultipleAssetsInTerminal,
 } from "../bruin";
 import { BruinFill } from "../bruin/bruinFill";
+import { BruinLockDependencies } from "../bruin/bruinLockDependencies";
 import { BruinInit } from "../bruin/bruinInit";
 import * as vscode from "vscode";
 import { renderCommandWithFlags } from "../extension/commands/renderCommand";
@@ -726,6 +727,39 @@ export class BruinPanel {
               assetWorkspaceDir
             );
             await fillDependencies.fillDependencies(assetPath);
+
+            return;
+
+          case "bruin.lockPythonDependencies":
+            trackEvent("Command Executed", { command: "lockPythonDependencies", source: "extension" });
+            if (!this._lastRenderedDocumentUri) {
+              console.error("No active document to lock Python dependencies.");
+              BruinPanel.postMessage("lock-python-dependencies-message", {
+                status: "error",
+                message: "No active asset found.",
+              });
+              return;
+            }
+
+            const lockAssetPath = this._lastRenderedDocumentUri.fsPath;
+            const lockWorkspaceDir = await bruinWorkspaceDirectory(lockAssetPath);
+
+            if (!lockWorkspaceDir) {
+              console.error("Could not find Bruin workspace directory.");
+              BruinPanel.postMessage("lock-python-dependencies-message", {
+                status: "error",
+                message: "Could not find Bruin workspace directory. Make sure you're in a Bruin project.",
+              });
+              return;
+            }
+
+            const pythonVersion = message.payload?.pythonVersion || "3.11";
+
+            const lockDependencies = new BruinLockDependencies(
+              getBruinExecutablePath(),
+              lockWorkspaceDir
+            );
+            await lockDependencies.lockDependencies(lockAssetPath, pythonVersion);
 
             return;
 
