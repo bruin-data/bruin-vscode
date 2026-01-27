@@ -666,7 +666,7 @@ export class BruinPanel {
               return;
             }
             // Run multiple assets sequentially in the terminal
-            runMultipleAssetsInTerminal(message.payload.assets, message.payload.flags);
+            runMultipleAssetsInTerminal(message.payload.assets, message.payload.flags, "bruin");
             break;
 
           case "bruin.getAssetDetails":

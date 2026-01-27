@@ -1,4 +1,7 @@
 # Changelog
+## [0.75.1] - [2026-01-27]
+- Resolved an issue where executing multiple assets did not function properly on Windows.
+
 ## [0.75.0] - [2026-01-26]
 - Added support for selecting and running multiple Bruin assets with pipeline-level persistence and automatic downstream handling.
 

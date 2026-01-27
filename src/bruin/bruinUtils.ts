@@ -316,17 +316,19 @@ export const formatInIntegratedTerminal = async (
  * Runs multiple Bruin assets in the integrated terminal.
  * @param {string[]} assetPaths - Array of asset file paths to run.
  * @param {string} [flags] - Optional flags to be passed to the Bruin run command.
+ * @param {string} [bruinExecutablePath] - Optional path to the Bruin executable.
  * @returns {Promise<void>} A promise that resolves when the command is queued.
  */
 export const runMultipleAssetsInTerminal = async (
   assetPaths: string[],
-  flags?: string
+  flags?: string,
+  bruinExecutablePath?: string
 ): Promise<void> => {
   if (!assetPaths || assetPaths.length === 0) {
     return;
   }
 
-  const bruinExecutable = getBruinExecutablePath();
+  const bruinExecutable = bruinExecutablePath ? "bruin" : getBruinExecutablePath();
   const terminal = await createIntegratedTerminal(undefined);
 
   const useUnixFormatting = shouldUseUnixFormatting(terminal);
