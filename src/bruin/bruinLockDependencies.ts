@@ -29,7 +29,7 @@ export class BruinLockDependencies extends BruinCommand {
     });
 
     try {
-      const commandFlags = ["lock-asset-dependencies", filePath, "--output", "json"];
+      const commandFlags = ["lock-asset-dependencies", "--output", "json"];
 
       // Only add --python-version if not default (3.11)
       if (pythonVersion && pythonVersion !== "3.11") {
@@ -38,27 +38,35 @@ export class BruinLockDependencies extends BruinCommand {
 
       commandFlags.push(...flags);
 
-      const result = await this.run(commandFlags, { ignoresErrors: true });
+      commandFlags.push(filePath);
+
+      const result = await this.run(commandFlags, { ignoresErrors: false });
 
       // Try to parse JSON response
       let hasErrors = false;
       let message = "Python dependencies locked successfully.";
 
-      try {
-        const jsonResult = JSON.parse(result);
-        if (jsonResult.error) {
-          hasErrors = true;
-          message = jsonResult.error;
-        } else if (jsonResult.message) {
-          message = jsonResult.message;
-        }
-      } catch {
-        // Not JSON, check for error indicators in plain text
-        if (result.toLowerCase().includes("error") || result.toLowerCase().includes("failed")) {
-          hasErrors = true;
-          message = result || "Failed to lock Python dependencies.";
-        } else if (result.trim()) {
-          message = result;
+      // Handle empty/null result
+      if (!result || !result.trim()) {
+        // Empty but no error thrown - treat as success with default message
+        message = "Python dependencies locked successfully.";
+      } else {
+        try {
+          const jsonResult = JSON.parse(result);
+          if (jsonResult.error) {
+            hasErrors = true;
+            message = jsonResult.error;
+          } else if (jsonResult.message) {
+            message = jsonResult.message;
+          }
+        } catch {
+          // Not JSON, check for error indicators in plain text
+          if (result.toLowerCase().includes("error") || result.toLowerCase().includes("failed")) {
+            hasErrors = true;
+            message = result;
+          } else if (result.trim()) {
+            message = result;
+          }
         }
       }
 
