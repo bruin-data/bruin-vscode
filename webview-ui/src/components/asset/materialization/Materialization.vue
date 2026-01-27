@@ -629,6 +629,7 @@
           </div>
         </div>
       </div>
+
     </div>
   </div>
 </template>
@@ -641,7 +642,7 @@ const expandedSections = ref({
   basicInfo: true,
   dependencies: true,
   materialization: true,
-  advanced: false,
+  advanced: true,
 });
 
 const toggleSection = (section) => {
@@ -1393,6 +1394,7 @@ const handleMessage = (event) => {
         fillDependenciesMessage.value = envelope.payload.message;
       }
       break;
+
   }
 };
 
