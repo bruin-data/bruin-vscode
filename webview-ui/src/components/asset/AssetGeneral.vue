@@ -116,7 +116,7 @@
         <div
           class="flex flex-col 2xs:flex-row flex-wrap gap-2 justify-start xs:justify-end items-stretch 2xs:items-center w-full xs:w-auto">
            <!-- Lock Dependencies Button (Python only) -->
-           <div v-if="props.assetType === 'python'" class="inline-flex">
+           <div v-if="props.assetType === 'python' || props.filePath?.endsWith('requirements.txt')" class="inline-flex">
              <vscode-button @click="lockPythonDependencies" :disabled="lockDependenciesStatus === 'loading'"
                class="text-xs h-7" title="Lock Python dependencies in requirements.txt">
                <div class="flex items-center justify-center">
@@ -150,13 +150,13 @@
                 enter-from-class="transform opacity-0 scale-95" enter-to-class="transform opacity-100 scale-100"
                 leave-active-class="transition ease-in duration-75" leave-from-class="transform opacity-100 scale-100"
                 leave-to-class="transform opacity-0 scale-95">
-                <MenuItems class="absolute right-0 z-[99999] w-40 origin-top-right">
+                <MenuItems class="absolute right-0 z-[99999] w-48 origin-top-right">
                   <div class="p-1 bg-editorWidget-bg rounded-sm border border-commandCenter-border">
                     <MenuItem key="specific-version">
                     <vscode-button
-                      class="block text-editor-fg rounded-sm w-full border-0 text-left text-2xs hover:bg-editor-button-hover-bg hover:text-editor-button-fg bg-editorWidget-bg"
+                      class="block text-editor-fg rounded-sm w-full border-0 text-left text-2xs hover:bg-editor-button-hover-bg hover:text-editor-button-fg bg-editorWidget-bg whitespace-nowrap"
                       @click="showPythonVersionInput = true">
-                      Specific Version...
+                      Specify Python Version...
                     </vscode-button>
                     </MenuItem>
                   </div>
