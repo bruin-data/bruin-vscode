@@ -1,4 +1,7 @@
 # Changelog
+## [0.75.2] - [2026-01-28]
+- Fix the catchup default value in the pipeline schema.
+
 ## [0.75.1] - [2026-01-27]
 - Resolved an issue where executing multiple assets did not function properly on Windows.
 
