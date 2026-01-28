@@ -1,4 +1,7 @@
 # Changelog
+## [0.76.0] - [2026-01-28]
+- Added support for locking python dependencies in teh requirements.txt file.
+
 ## [0.75.2] - [2026-01-28]
 - Fix the catchup default value in the pipeline schema.
 
