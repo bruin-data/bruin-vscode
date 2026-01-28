@@ -138,7 +138,7 @@
                  <template v-else>
                    <span class="codicon codicon-lock-small mr-1" aria-hidden="true"></span>
                  </template>
-                 <span>Lock</span>
+                 <span>Lock requirements</span>
                </div>
              </vscode-button>
             <Menu as="div" class="relative -ml-px block">
