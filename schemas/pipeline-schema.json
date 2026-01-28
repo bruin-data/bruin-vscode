@@ -119,7 +119,7 @@
     },
     "catchup": {
       "type": "boolean",
-      "default": "true"
+      "default": false
     },
     "retries": {
       "type": "integer"

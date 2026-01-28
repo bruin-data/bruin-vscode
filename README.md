@@ -63,11 +63,8 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.75.2**: Fix the catchup default value in the pipeline schema.
 - **0.75.1**: Resolved an issue where executing multiple assets did not function properly on Windows.
 - **0.75.0**: Added support for selecting and running multiple Bruin assets with pipeline-level persistence and automatic downstream handling.
-- **0.74.2**: Added a setting to toggle the automatic update of the Bruin CLI.
 
 For a full changelog, see Bruin Extension [Changelog](https://github.com/bruin-data/bruin-vscode/blob/main/CHANGELOG.md).
-
-### How to Update
-To update to the latest version, search for "Bruin" in the Extensions Marketplace and click the Update button.
