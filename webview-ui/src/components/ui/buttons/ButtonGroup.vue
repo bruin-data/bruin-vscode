@@ -40,8 +40,12 @@
               :key="item.key"
             >
               <vscode-button
-                class="block text-editor-fg rounded-sm w-full border-0 text-left text-2xs hover:bg-editor-button-hover-bg hover:text-editor-button-fg bg-editorWidget-bg"
-                @click="$emit('dropdownClick', item.key)"
+                :class="[
+                  'block text-editor-fg rounded-sm w-full border-0 text-left text-2xs bg-editorWidget-bg',
+                  item.disabled ? 'dropdown-item-disabled' : 'hover:bg-editor-button-hover-bg hover:text-editor-button-fg'
+                ]"
+                @click="!item.disabled && $emit('dropdownClick', item.key)"
+                :disabled="item.disabled"
               >
                 {{ item.label }}
               </vscode-button>
@@ -60,6 +64,7 @@ import { ChevronDownIcon } from "@heroicons/vue/24/solid";
 interface DropdownItem {
   key: string;
   label: string;
+  disabled?: boolean;
 }
 
 defineProps<{
@@ -82,5 +87,21 @@ defineEmits<{
 <style scoped>
 vscode-button::part(control) {
   @apply border-none px-1.5;
+}
+
+.dropdown-item-disabled::part(control) {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.dropdown-item-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.dropdown-item-disabled:hover {
+  background-color: transparent !important;
+  color: inherit !important;
 }
 </style>
