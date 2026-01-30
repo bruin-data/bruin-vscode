@@ -85,7 +85,8 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
     limit: string,
     tabId: string,
     startDate?: string,
-    endDate?: string
+    endDate?: string,
+    orderBy?: { column: string; direction: 'asc' | 'desc' } | null
   ) {
     startDate = startDate || QueryPreviewPanel.currentDates.start;
     endDate = endDate || QueryPreviewPanel.currentDates.end;
@@ -113,7 +114,9 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
         this._lastRenderedDocumentUri,
         tabId,
         startDate,
-        endDate
+        endDate,
+        undefined, // connectionName
+        orderBy
       );
 
       // Store the asset path for this tab
@@ -302,6 +305,7 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
           const tabId = message.payload.tabId || "tab-1";
           const startDate = message.payload.startDate || "";
           const endDate = message.payload.endDate || "";
+          const orderBy = message.payload.orderBy || null; // { column: string, direction: 'asc' | 'desc' }
           let extractedQuery = message.payload.query || "";
           
           // Clear stored query for this tab - Run button should get fresh selection/file content
@@ -341,7 +345,7 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
             extractedQuery = "";
           }
 
-          this.loadAndSendQueryOutput(this.environment, this.limit, tabId, startDate, endDate);
+          this.loadAndSendQueryOutput(this.environment, this.limit, tabId, startDate, endDate, orderBy);
           break;
         case "bruin.clearQueryOutput":
           trackEvent("Command Executed", { command: "clearQueryOutput", source: "extension" });

@@ -98,6 +98,19 @@
               {{ queryTimeout }}s
             </vscode-badge>
           </div>
+          
+          <!-- Clear Sorting Button -->
+          <vscode-button 
+            v-if="currentTab?.sortState?.length"
+            title="Clear Sorting (Esc)" 
+            appearance="icon" 
+            @click="clearSorting"
+            class="sort-active-indicator"
+          >
+            <span class="codicon codicon-arrow-up mr-1"></span>
+            <span class="codicon codicon-close text-2xs"></span>
+          </vscode-button>
+
           <QuerySearch
             :visible="showSearchInput"
             :total-count="currentTab?.totalRowCount || 0"
@@ -350,15 +363,50 @@
                   <th
                     v-for="(column, colIndex) in currentTab.parsedOutput.columns"
                     :key="typeof column === 'string' ? column : column.name"
-                    class="sticky top-0 p-1 text-left font-semibold text-editor-fg bg-editor-bg border-x border-commandCenter-border before:absolute before:bottom-0 before:left-0 before:w-full before:border-b before:border-commandCenter-border relative"
+                    @click="handleSort(column, $event)"
+                    class="sticky top-0 p-1 text-left font-semibold text-editor-fg bg-editor-bg border-x border-commandCenter-border before:absolute before:bottom-0 before:left-0 before:w-full before:border-b before:border-commandCenter-border relative cursor-pointer select-none group hover:bg-input-background transition-colors"
+                    :class="{ 
+                      'sort-active bg-input-background': getSortDirection(column) !== null,
+                      'cost-warning': shouldShowCostWarning() 
+                    }"
                     :style="getColumnWidthStyle(Number(colIndex))"
                   >
-                    <div class="flex items-center w-full overflow-hidden pr-1">
+                    <div class="flex items-center w-full overflow-hidden pr-6">
                       <span class="truncate flex-1 min-w-0 block">{{ typeof column === 'string' ? column : (column.name || `Column ${Number(colIndex) + 1}`) }}</span>
+                      
+                      <!-- Sort Indicators -->
+                      <div class="flex items-center gap-1 ml-1 flex-shrink-0">
+                        <template v-if="getSortDirection(column)">
+                          <span class="codicon text-xs" 
+                            :class="getSortDirection(column) === 'asc' ? 'codicon-arrow-up' : 'codicon-arrow-down'"
+                            :style="{ opacity: 1 - (getSortPriority(column) * 0.2) }"
+                          ></span>
+                          <span v-if="currentTab.sortState && currentTab.sortState.length > 1" 
+                            class="text-3xs bg-button-background text-button-foreground rounded px-1 min-w-[14px] text-center">
+                            {{ getSortPriority(column) + 1 }}
+                          </span>
+                        </template>
+                        <span v-else class="codicon codicon-arrow-up opacity-0 group-hover:opacity-30 text-xs transition-opacity"></span>
+                      </div>
                     </div>
+                    
+                    <!-- Cost Warning Tooltip -->
+                    <div v-if="shouldShowCostWarning()" 
+                         class="sort-tooltip absolute top-full left-0 mt-1 p-2 bg-editorWidget-bg border border-commandCenter-border rounded shadow-lg z-50 text-3xs max-w-[220px] hidden group-hover:block">
+                      <div class="flex items-start gap-2">
+                        <span class="codicon codicon-warning text-[--vscode-editorWarning-foreground] mt-0.5 flex-shrink-0"></span>
+                        <div>
+                          <div class="font-semibold mb-1">Processing Cost Warning</div>
+                          <div class="opacity-80 mb-1">Sorting {{ formatNumber(currentTab.totalRowCount) }} rows may incur additional query costs.</div>
+                          <div class="text-[--vscode-textLink-foreground] hover:underline cursor-pointer">Click to sort current page (free)</div>
+                          <div class="text-[--vscode-textLink-foreground] hover:underline cursor-pointer mt-0.5">Shift+click to re-run with ORDER BY</div>
+                        </div>
+                      </div>
+                    </div>
+                    
                     <div
                       class="resize-handle"
-                      @mousedown="startResize($event, Number(colIndex))"
+                      @mousedown.stop="startResize($event, Number(colIndex))"
                       title="Drag to resize column"
                     ></div>
                   </th>
@@ -481,7 +529,6 @@ import {
   nextTick,
   shallowRef,
   triggerRef,
-  reactive,
 } from "vue";
 import { TableCellsIcon } from "@heroicons/vue/24/outline";
 import { vscode } from "@/utilities/vscode";
@@ -490,11 +537,19 @@ import type { EditingState, TabData } from "@/types";
 import { useConnectionsStore } from "@/store/bruinStore";
 import { flattenStructColumns } from "@/utilities/structUtils";
 
-// Helper function to limit console messages size
+// Sorting interfaces
+interface SortState {
+  column: string;
+  direction: 'asc' | 'desc';
+  priority: number;
+}
+
+// Constants
 const MAX_CONSOLE_MESSAGES = 1000;
+const COST_WARNING_THRESHOLD = 10000; // Show cost warning above this row count
 const limitConsoleMessages = (messages: any[]) => {
   if (messages.length > MAX_CONSOLE_MESSAGES) {
-    return messages.slice(-MAX_CONSOLE_MESSAGES); // Keep the most recent messages
+    return messages.slice(-MAX_CONSOLE_MESSAGES);
   }
   return messages;
 };
@@ -512,22 +567,18 @@ const props = defineProps<{
 
 const connectionsStore = useConnectionsStore();
 const currentEnvironment = ref<string>(props.environment);
-const modifierKey = ref("⌘"); // Default to Mac symbol
+const modifierKey = ref("⌘");
 const currentConnectionName = ref("");
 const limit = ref(1000);
 const showSearchInput = ref(false);
 const hoveredTab = ref("");
 const copied = ref(false);
-const queryTimeout = ref(60); // Default timeout in seconds
+const queryTimeout = ref(60);
 const currentStartDate = ref("");
 const currentEndDate = ref("");
-// State for expanded cells
 const expandedCells = ref(new Set<string>());
-// State for query panel tabs
 const activeQueryPanelTab = ref<'query' | 'console'>('query');
-// State for column widths - keyed by tabId and column index
 const columnWidths = ref<Map<string, Map<number, number>>>(new Map());
-// State for column resizing
 const resizeState = ref<{
   isResizing: boolean;
   columnIndex: number;
@@ -535,7 +586,7 @@ const resizeState = ref<{
   startWidth: number;
 } | null>(null);
 
-const defaultTab = {
+const defaultTab: TabData = {
   id: "tab-1",
   label: "Tab 1",
   parsedOutput: undefined,
@@ -552,8 +603,187 @@ const defaultTab = {
   connectionName: props.connectionName,
   showQuery: false,
   consoleMessages: [],
+  sortState: [],
 };
+
 const tabs = shallowRef<TabData[]>([defaultTab]);
+
+// Sorting Helpers
+const getSortDirection = (column: any): 'asc' | 'desc' | null => {
+  if (!currentTab.value?.sortState) return null;
+  const colName = typeof column === 'string' ? column : column.name;
+  const sort = currentTab.value.sortState.find((s: SortState) => s.column === colName);
+  return sort ? sort.direction : null;
+};
+
+const getSortPriority = (column: any): number => {
+  if (!currentTab.value?.sortState) return -1;
+  const colName = typeof column === 'string' ? column : column.name;
+  return currentTab.value.sortState.findIndex((s: SortState) => s.column === colName);
+};
+
+const shouldShowCostWarning = (): boolean => {
+  return (currentTab.value?.totalRowCount || 0) > COST_WARNING_THRESHOLD;
+};
+
+const formatNumber = (num: number): string => {
+  return new Intl.NumberFormat('en-US', { notation: 'compact' }).format(num);
+};
+
+const handleSort = async (column: any, event: MouseEvent) => {
+  if (!currentTab.value) return;
+  
+  const colName = typeof column === 'string' ? column : column.name;
+  const currentDirection = getSortDirection(column);
+  const isMultiSort = event.ctrlKey || event.metaKey;
+  const isServerSort = event.shiftKey;
+  
+  // Server-side sort with cost warning
+  if (isServerSort && shouldShowCostWarning()) {
+    const confirmed = confirm(
+      `Sorting ${formatNumber(currentTab.value.totalRowCount)} rows server-side will re-run the query and may incur additional processing costs.\n\nContinue?`
+    );
+    if (!confirmed) return;
+    
+    requestServerSort(colName, currentDirection === 'asc' ? 'desc' : 'asc');
+    return;
+  }
+  
+  // Client-side sorting logic
+  let newSortState: SortState[] = [...(currentTab.value.sortState || [])];
+  const existingIndex = newSortState.findIndex((s: SortState) => s.column === colName);
+  
+  if (existingIndex === -1) {
+    const newSort: SortState = {
+      column: colName,
+      direction: 'asc',
+      priority: newSortState.length
+    };
+    newSortState = isMultiSort ? [...newSortState, newSort] : [newSort];
+  } else {
+    const current = newSortState[existingIndex];
+    if (current.direction === 'asc') {
+      newSortState[existingIndex] = { ...current, direction: 'desc' };
+    } else {
+      newSortState.splice(existingIndex, 1);
+      newSortState.forEach((s, i) => s.priority = i);
+    }
+    
+    if (!isMultiSort && newSortState.length > 1) {
+      newSortState = newSortState.filter((s: SortState) => s.column === colName);
+    }
+  }
+  
+  // Update tab with new sort state
+  const tabIndex = tabs.value.findIndex(t => t.id === activeTab.value);
+  if (tabIndex !== -1) {
+    const newTab = {
+      ...tabs.value[tabIndex],
+      sortState: newSortState
+    };
+    tabs.value.splice(tabIndex, 1, newTab);
+    applySorting();
+    saveState();
+  }
+};
+
+const applySorting = () => {
+  if (!currentTab.value?.parsedOutput?.rows) return;
+
+  const columns = currentTab.value.parsedOutput.columns;
+  const searchTerm = currentTab.value.searchInput?.trim().toLowerCase();
+
+  // Start with original rows, then filter if there's a search term
+  let rows: any[];
+  if (searchTerm) {
+    rows = currentTab.value.parsedOutput.rows.filter((row: any[]) => {
+      for (let i = 0; i < row.length; i++) {
+        const cell = row[i];
+        if (cell !== null && String(cell).toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+      }
+      return false;
+    });
+  } else {
+    rows = [...currentTab.value.parsedOutput.rows];
+  }
+
+  // Apply sorting if there's a sort state
+  if (currentTab.value.sortState && currentTab.value.sortState.length > 0) {
+    rows.sort((a, b) => {
+      for (const sort of currentTab.value!.sortState!) {
+        const colIndex = columns.findIndex((c: any) =>
+          (typeof c === 'string' ? c : c.name) === sort.column
+        );
+
+        if (colIndex === -1) continue;
+
+        let valA = a[colIndex];
+        let valB = b[colIndex];
+
+        if (valA === null || valA === undefined) valA = -Infinity;
+        if (valB === null || valB === undefined) valB = -Infinity;
+
+        let comparison = 0;
+        if (typeof valA === 'number' && typeof valB === 'number') {
+          comparison = valA - valB;
+        } else if (!isNaN(Date.parse(valA)) && !isNaN(Date.parse(valB))) {
+          comparison = new Date(valA).getTime() - new Date(valB).getTime();
+        } else {
+          comparison = String(valA).localeCompare(String(valB), undefined, { numeric: true });
+        }
+
+        if (comparison !== 0) {
+          return sort.direction === 'asc' ? comparison : -comparison;
+        }
+      }
+      return 0;
+    });
+  }
+
+  // Update filtered rows count
+  const tabIndex = tabs.value.findIndex(t => t.id === activeTab.value);
+  if (tabIndex !== -1) {
+    const newTab = {
+      ...tabs.value[tabIndex],
+      filteredRows: rows,
+      filteredRowCount: rows.length
+    };
+    tabs.value.splice(tabIndex, 1, newTab);
+  }
+  triggerRef(tabs);
+};
+
+const requestServerSort = (column: string, direction: 'asc' | 'desc') => {
+  vscode.postMessage({
+    command: "bruin.getQueryOutput",
+    payload: {
+      environment: currentEnvironment.value,
+      limit: limit.value.toString(),
+      query: "",
+      tabId: activeTab.value,
+      orderBy: { column, direction },
+      startDate: currentStartDate.value,
+      endDate: currentEndDate.value,
+    },
+  });
+};
+
+const clearSorting = () => {
+  if (!currentTab.value) return;
+  const tabIndex = tabs.value.findIndex(t => t.id === activeTab.value);
+  if (tabIndex !== -1) {
+    const newTab = {
+      ...tabs.value[tabIndex],
+      sortState: []
+    };
+    tabs.value.splice(tabIndex, 1, newTab);
+    applySorting();
+    saveState();
+  }
+};
+
 const copyQuery = (query: string) => {
   navigator.clipboard.writeText(query);
   copied.value = true;
@@ -576,8 +806,6 @@ const toggleQueryVisibility = () => {
   triggerRef(tabs);
   nextTick(() => {
     if (currentTab.value?.showQuery) {
-      // Reset to query tab when opening if query exists, otherwise console tab
-      // If there's an error, prioritize console tab to show debug info
       if (currentTab.value?.error && currentTab.value?.consoleMessages?.length > 0) {
         activeQueryPanelTab.value = 'console';
       } else {
@@ -590,29 +818,25 @@ const toggleQueryVisibility = () => {
 };
 
 const activeTab = ref<string>("tab-1");
-const tabCounter = ref(2); // Start from 2 since we already have "Tab 1"
+const tabCounter = ref(2);
 const formatQuery = (query: string) => {
   const lines = query.split("\n");
   return lines.map((line, index) => (index === 0 ? line.trimStart() : line)).join("\n");
 };
 
-// Cache for formatted timestamps to avoid repeated Date object creation
 const timestampCache = new Map<string, string>();
 
 const formatTimestamp = (timestamp: string) => {
-  // Check cache first
   if (timestampCache.has(timestamp)) {
     return timestampCache.get(timestamp)!;
   }
   
-  // Format timestamp and cache result
   const date = new Date(timestamp);
   const hours = date.getHours().toString().padStart(2, '0');
   const minutes = date.getMinutes().toString().padStart(2, '0');
   const seconds = date.getSeconds().toString().padStart(2, '0');
   const formatted = `${hours}:${minutes}:${seconds}`;
   
-  // Cache the result and limit cache size
   timestampCache.set(timestamp, formatted);
   if (timestampCache.size > 1000) {
     const firstKey = timestampCache.keys().next().value;
@@ -623,7 +847,7 @@ const formatTimestamp = (timestamp: string) => {
   
   return formatted;
 };
-// Get current active tab
+
 const currentTab = computed(() => {
   vscode.postMessage({
     command: "bruin.setActiveTabId",
@@ -633,12 +857,9 @@ const currentTab = computed(() => {
   return tabs.value.find((tab) => tab.id === activeTab.value);
 });
 
-// Handle tab switching
 const switchToTab = async (tabId: string) => {
-  // Reset cell expansions when switching tabs
   await nextTick();
   expandedCells.value.clear();
-  // Set the active tab
   activeTab.value = tabId;
 
   nextTick(() => {
@@ -646,7 +867,6 @@ const switchToTab = async (tabId: string) => {
   });
 };
 
-// Add a new tab
 const addTab = () => {
   const newTabId = `tab-${tabCounter.value}`;
   const newTabLabel = `Tab ${tabCounter.value}`;
@@ -668,6 +888,7 @@ const addTab = () => {
     connectionName: currentConnectionName.value,
     showQuery: false,
     consoleMessages: [],
+    sortState: [],
   });
 
   tabCounter.value++;
@@ -696,7 +917,6 @@ const resetPanel = () => {
     command: "bruin.resetState",
   });
 
-  // Force UI update
   nextTick(() => {
     triggerRef(tabs);
   });
@@ -719,6 +939,7 @@ const saveState = () => {
     connectionName: tab.connectionName,
     tabCounter: tabCounter.value,
     consoleMessages: limitConsoleMessages(tab.consoleMessages || []),
+    sortState: tab.sortState || [],
   }));
 
   const state = {
@@ -738,7 +959,6 @@ const saveState = () => {
   };
 
   try {
-    // Verify serializability
     JSON.parse(JSON.stringify(state));
     vscode.postMessage({
       command: "bruin.saveState",
@@ -774,7 +994,7 @@ const reviveParsedOutput = (parsedOutput: any) => {
     return undefined;
   }
 };
-// Handle state restoration
+
 window.addEventListener("message", (event) => {
   const message = event.data;
   if (message.command === "bruin.restoreState") {
@@ -787,8 +1007,7 @@ window.addEventListener("message", (event) => {
         currentEnvironment.value = state.environment;
       }
 
-      // Revive complex objects
-      tabs.value = (state.tabs || []).map((t) => {
+      tabs.value = (state.tabs || []).map((t: any) => {
         const revivedParsedOutput = t.parsedOutput ? reviveParsedOutput(t.parsedOutput) : undefined;
         return {
           ...t,
@@ -800,6 +1019,7 @@ window.addEventListener("message", (event) => {
           isEditing: false,
           filteredRows: revivedParsedOutput?.rows || [],
           consoleMessages: limitConsoleMessages(t.consoleMessages || []),
+          sortState: t.sortState || [],
         };
       });
 
@@ -808,10 +1028,13 @@ window.addEventListener("message", (event) => {
       activeTab.value = state.activeTab || "tab-1";
       expandedCells.value = new Set(state.expandedCells || []);
       showSearchInput.value = state.showSearchInput || false;
+      
+      // Apply sorting if restored
+      nextTick(() => {
+        applySorting();
+      });
     }
   } else if (message.command === "init") {
-    // When webview becomes visible again (e.g., switching back from terminal)
-    // Re-request the saved state to restore the UI
     vscode.postMessage({ command: "bruin.requestState" });
     vscode.postMessage({ command: "bruin.requestTimeout" });
   } else if (message.command === "bruin.timeoutResponse") {
@@ -825,12 +1048,10 @@ window.addEventListener("message", (event) => {
       currentEndDate.value = endDate || "";
     }
   } else if (message.command === "bruin.executePreviewQuery") {
-    // Handle preview intellisense query execution with current limit
     const tabId = message.payload.tabId || activeTab.value;
     const selectedEnvironment = currentEnvironment.value;
     const extractedQuery = message.payload.extractedQuery || "";
 
-    // Send query execution request with current limit from UI
     vscode.postMessage({
       command: "bruin.getQueryOutput",
       payload: {
@@ -844,9 +1065,7 @@ window.addEventListener("message", (event) => {
     });
   }
 
-  // Handle tab-specific query results
   if (message.command === "query-output-message") {
-    // Handle global timeout updates
     if (message.payload.status === "timeoutUpdate") {
       if (message.payload.message && typeof message.payload.message.timeout === "number") {
         queryTimeout.value = message.payload.message.timeout;
@@ -854,24 +1073,20 @@ window.addEventListener("message", (event) => {
       return;
     }
 
-    // Extract the tab ID from the message if available
     const tabId = message.payload?.tabId;
     if (!tabId) {
       console.error("Received query output message without tabId");
       return;
     }
 
-    // Find the specific tab to update
     const tabToUpdate = tabs.value.find((tab) => tab.id === tabId);
 
     if (tabToUpdate) {
       if (message.payload.status === "loading") {
-        // Update loading state and clear results if starting new query
         const tabIndex = tabs.value.findIndex(t => t.id === tabId);
         if (tabIndex !== -1) {
           let newTab = { ...tabToUpdate, isLoading: message.payload.message };
           
-          // Clear existing results when starting new query execution
           if (message.payload.message === true) {
             newTab = {
               ...newTab,
@@ -880,19 +1095,17 @@ window.addEventListener("message", (event) => {
               filteredRows: [],
               totalRowCount: 0,
               filteredRowCount: 0,
-              consoleMessages: []
+              consoleMessages: [],
+              sortState: [],
             };
           }
           
-          // Replace the tab in the array to trigger reactivity
           tabs.value.splice(tabIndex, 1, newTab);
         }
 
-        // Force UI update immediately
         triggerRef(tabs);
       } else if (message.payload.status === "success") {
         try {
-          // Process successful response for this specific tab
           const rawOutputData =
             typeof message.payload.message === "string"
               ? JSON.parse(message.payload.message)
@@ -919,10 +1132,8 @@ window.addEventListener("message", (event) => {
           outputData.columns = flattenedData.columns;
           outputData.rows = flattenedData.rows;
 
-          // Get console messages from the payload
           const consoleMessages = limitConsoleMessages(message.payload.consoleMessages || []);
 
-          // Create a new tab object to trigger reactivity properly
           const tabIndex = tabs.value.findIndex(t => t.id === tabId);
           if (tabIndex !== -1) {
             const newTab = {
@@ -933,17 +1144,21 @@ window.addEventListener("message", (event) => {
               error: null,
               isLoading: false,
               connectionName: outputData.connectionName || tabToUpdate.connectionName,
-              consoleMessages: consoleMessages
+              consoleMessages: consoleMessages,
+              sortState: tabToUpdate.sortState || [],
             };
             
-            // Replace the tab in the array to trigger reactivity
             tabs.value.splice(tabIndex, 1, newTab);
             saveState();
+            
+            // Apply existing sorting to new data
+            nextTick(() => {
+              applySorting();
+            });
           }
         } catch (e) {
           console.error("Error processing tab output:", e);
           
-          // Handle processing error with new tab object
           const consoleMessages = limitConsoleMessages(message.payload.consoleMessages || []);
           const tabIndex = tabs.value.findIndex(t => t.id === tabId);
           if (tabIndex !== -1) {
@@ -958,7 +1173,6 @@ window.addEventListener("message", (event) => {
           }
         }
       } else if (message.payload.status === "error") {
-        // Process error for this specific tab with new tab object
         const consoleMessages = limitConsoleMessages(message.payload.consoleMessages || []);
         const tabIndex = tabs.value.findIndex(t => t.id === tabId);
         if (tabIndex !== -1) {
@@ -974,14 +1188,12 @@ window.addEventListener("message", (event) => {
         }
       }
 
-      // Force a UI update for this tab
       triggerRef(tabs);
     }
   }
   if (message.command === "query-output-clear" && message.payload?.status === "success") {
     const tabId = message.payload.message?.tabId;
     
-    // Find the specific tab to clear if tabId is provided
     if (tabId) {
       const tabToClear = tabs.value.find((tab) => tab.id === tabId);
       if (tabToClear) {
@@ -991,9 +1203,9 @@ window.addEventListener("message", (event) => {
         tabToClear.totalRowCount = 0;
         tabToClear.filteredRowCount = 0;
         tabToClear.consoleMessages = [];
+        tabToClear.sortState = [];
       }
     } else {
-      // If no tabId specified, clear the current tab
       if (currentTab.value) {
         currentTab.value.parsedOutput = undefined;
         currentTab.value.error = null;
@@ -1001,9 +1213,9 @@ window.addEventListener("message", (event) => {
         currentTab.value.totalRowCount = 0;
         currentTab.value.filteredRowCount = 0;
         currentTab.value.consoleMessages = [];
+        currentTab.value.sortState = [];
       }
     }
-    // Force a UI update
     nextTick(() => {
       if (tabs.value) {
         triggerRef(tabs);
@@ -1012,17 +1224,13 @@ window.addEventListener("message", (event) => {
   }
 });
 
-// Close a tab
 const closeTab = (tabId: string) => {
-  // Reset cell expansions
   expandedCells.value.clear();
   const tabIndex = tabs.value.findIndex((tab) => tab.id === tabId);
 
   if (tabIndex !== -1) {
-    // Remove tab first
     tabs.value.splice(tabIndex, 1);
 
-    // If no tabs left, create a new default tab
     if (tabs.value.length === 0) {
       const newDefaultTab = {
         id: "tab-1",
@@ -1041,39 +1249,33 @@ const closeTab = (tabId: string) => {
         connectionName: props.connectionName,
         showQuery: false,
         consoleMessages: [],
+        sortState: [],
       };
       tabs.value.push(newDefaultTab);
       activeTab.value = "tab-1";
-      tabCounter.value = 2; // Reset counter
+      tabCounter.value = 2;
     } else {
-      // If we're closing the active tab, determine which tab to activate next
       if (activeTab.value === tabId) {
-        // If there's a tab to the right, use that
         if (tabIndex < tabs.value.length) {
           activeTab.value = tabs.value[tabIndex].id;
         }
-        // Otherwise use the tab to the left (previous tab)
         else if (tabIndex > 0) {
           activeTab.value = tabs.value[tabIndex - 1].id;
         }
-        // Otherwise use the first available tab
         else {
           activeTab.value = tabs.value[0].id;
         }
       }
 
-      // Reset the counter when only tab-1 is left
       if (tabs.value.length === 1 && tabs.value[0].id === "tab-1") {
         tabCounter.value = 2;
       }
     }
 
-    // Clear editing state if closing edited tab
     if (editingState.value?.tabId === tabId) {
       cancelEdit();
     }
 
-    // Force Vue to update immediately
     nextTick(() => {
       triggerRef(tabs);
     });
@@ -1082,14 +1284,10 @@ const closeTab = (tabId: string) => {
   saveState();
 };
 
-// Clear results for the current tab
 const clearTabResults = () => {
-  // Reset cell expansions
   expandedCells.value.clear();
 
-  // Immediately clear local state
   if (currentTab.value) {
-    // Create a completely new object instead of modifying properties
     const index = tabs.value.findIndex((tab) => tab.id === currentTab.value?.id);
     if (index !== -1) {
       const newTab = {
@@ -1100,11 +1298,11 @@ const clearTabResults = () => {
         totalRowCount: 0,
         filteredRowCount: 0,
         consoleMessages: [],
+        sortState: [],
       };
       tabs.value.splice(index, 1, newTab);
     }
   }
-  // Force a UI update
   nextTick(() => {
     triggerRef(tabs);
   });
@@ -1116,26 +1314,21 @@ const clearTabResults = () => {
   saveState();
 };
 
-// Check if a cell has overflow (needs expand button)
-const cellHasOverflow = (value) => {
+const cellHasOverflow = (value: any) => {
   if (value === null || value === undefined) return false;
   const stringValue = String(value);
-  // Show expand button if content is longer than 30 chars
   return stringValue.length > 30;
 };
 
-// Create a unique key for tracking expanded cells
-const getCellKey = (rowIndex, colIndex) => {
+const getCellKey = (rowIndex: number, colIndex: number) => {
   return `${activeTab.value}-${rowIndex}-${colIndex}`;
 };
 
-// Check if a specific cell is expanded
-const isExpanded = (rowIndex, colIndex) => {
+const isExpanded = (rowIndex: number, colIndex: number) => {
   return expandedCells.value.has(getCellKey(rowIndex, colIndex));
 };
 
-// Toggle cell expansion
-const toggleCellExpansion = (rowIndex, colIndex) => {
+const toggleCellExpansion = (rowIndex: number, colIndex: number) => {
   const cellKey = getCellKey(rowIndex, colIndex);
   if (expandedCells.value.has(cellKey)) {
     expandedCells.value.delete(cellKey);
@@ -1144,32 +1337,26 @@ const toggleCellExpansion = (rowIndex, colIndex) => {
   }
 };
 
-// Modified to only process when the tab matches
 watch(
   () => props.output,
   (newOutput) => {
     if (!newOutput) return;
-    // We don't need to process this here anymore since we handle it in the message handler
   }
 );
 
-// Update error state for the current tab
 watch(
   () => props.error,
   (newError) => {
     if (!newError) return;
-    // We don't need to process this here anymore since we handle it in the message handler
   }
 );
 
-// Update environment when prop changes
 watch(
   () => props.environment,
   (newEnvironment) => {
     if (newEnvironment && newEnvironment !== currentEnvironment.value) {
       currentEnvironment.value = newEnvironment;
       
-      // Update the environment for all tabs
       const newTabs = tabs.value.map(tab => ({
         ...tab,
         environment: newEnvironment
@@ -1181,73 +1368,50 @@ watch(
   { immediate: true }
 );
 
-// Update loading state for the current tab - we don't use this anymore
 watch(
   () => props.isLoading,
   (newIsLoading) => {
-    // We don't need this anymore since loading is tab-specific
   }
 );
 
 const updateSearchTerm = (term: string) => {
-  // Reset cell expansions when searching
   expandedCells.value.clear();
   if (currentTab.value) {
     currentTab.value.searchInput = term;
-    // Force immediate update of filtered rows with the new term
     nextTick(() => {
       updateFilteredRows();
-      // Force component update after updating filtered rows
       triggerRef(tabs);
     });
   }
 };
 
-// Update filtered rows based on search input
 const updateFilteredRows = () => {
   if (!currentTab.value || !currentTab.value.parsedOutput || !currentTab.value.parsedOutput.rows) {
     if (currentTab.value) {
-      currentTab.value.filteredRows = [];
-      currentTab.value.filteredRowCount = 0;
-    }
-    return;
-  }
-
-  const searchTerm = currentTab.value.searchInput.trim().toLowerCase();
-
-  if (!searchTerm) {
-    // When search term is empty, immediately restore all rows
-    currentTab.value.filteredRows = currentTab.value.parsedOutput.rows;
-    currentTab.value.filteredRowCount = currentTab.value.totalRowCount;
-    return;
-  }
-
-  // Don't use requestAnimationFrame for filtering to ensure immediate updates
-  const filtered = currentTab.value.parsedOutput.rows.filter((row) => {
-    for (let i = 0; i < row.length; i++) {
-      const cell = row[i];
-      if (cell !== null && String(cell).toLowerCase().includes(searchTerm)) {
-        return true;
+      const tabIndex = tabs.value.findIndex(t => t.id === activeTab.value);
+      if (tabIndex !== -1) {
+        const newTab = {
+          ...tabs.value[tabIndex],
+          filteredRows: [],
+          filteredRowCount: 0
+        };
+        tabs.value.splice(tabIndex, 1, newTab);
+        triggerRef(tabs);
       }
     }
-    return false;
-  });
-
-  if (currentTab.value) {
-    currentTab.value.filteredRows = filtered;
-    currentTab.value.filteredRowCount = filtered.length;
+    return;
   }
+
+  // Use applySorting which handles both filtering and sorting
+  applySorting();
 };
 
-// Run query and store results in the current tab
 const runQuery = () => {
-  // Reset cell expansions when running a new query
   expandedCells.value.clear();
   if (limit.value > 50000 || limit.value < 1) {
     limit.value = 1000;
   }
   
-  // Clear existing results for the current tab first
   if (currentTab.value) {
     const tabIndex = tabs.value.findIndex(t => t.id === activeTab.value);
     if (tabIndex !== -1) {
@@ -1259,7 +1423,8 @@ const runQuery = () => {
         totalRowCount: 0,
         filteredRowCount: 0,
         isLoading: true,
-        consoleMessages: []
+        consoleMessages: [],
+        sortState: [],
       };
       
       tabs.value.splice(tabIndex, 1, clearedTab);
@@ -1268,7 +1433,6 @@ const runQuery = () => {
     triggerRef(tabs);
     const selectedEnvironment = currentEnvironment.value;
     
-    // Update the tab's executedEnvironment to track what was actually sent
     if (currentTab.value) {
       const tabIndex = tabs.value.findIndex(t => t.id === activeTab.value);
       if (tabIndex !== -1) {
@@ -1297,7 +1461,6 @@ const runQuery = () => {
 };
 
 const exportTabResults = () => {
-  // send a message to the panel to export currenttab results
   vscode.postMessage({
     command: "bruin.exportQueryOutput",
     payload: { tabId: activeTab.value, connectionName: currentConnectionName.value },
@@ -1305,13 +1468,11 @@ const exportTabResults = () => {
   saveState();
 };
 
-// Toggle search input visibility
 const toggleSearchInput = () => {
   showSearchInput.value = !showSearchInput.value;
 };
 
-// Highlight matching text in search results
-const highlightMatch = (value, searchTerm) => {
+const highlightMatch = (value: string, searchTerm: string) => {
   if (!searchTerm || !searchTerm.trim() || value === null || value === undefined) {
     return String(value === null || value === undefined ? "" : value);
   }
@@ -1323,7 +1484,6 @@ const highlightMatch = (value, searchTerm) => {
     return stringValue;
   }
 
-  // Cache regex for better performance
   if (!highlightMatchRegexCache[searchTerm]) {
     highlightMatchRegexCache[searchTerm] = new RegExp(`(${escapeRegExp(searchTerm)})`, "gi");
   }
@@ -1333,30 +1493,30 @@ const highlightMatch = (value, searchTerm) => {
     '<span class="bg-yellow-500 text-black">$1</span>'
   );
 };
-const highlightMatchRegexCache = {};
+const highlightMatchRegexCache: Record<string, RegExp> = {};
 
-// Helper function to escape regex special characters
-const escapeRegExp = (string) => {
+const escapeRegExp = (string: string) => {
   return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 };
 
-// Handle keyboard shortcuts
-const handleKeyDown = (event) => {
-  // Run query with Cmd+Enter or Ctrl+Enter
+const handleKeyDown = (event: KeyboardEvent) => {
   if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
     runQuery();
   }
 
-  // Toggle search with Cmd+F or Ctrl+F
   if ((event.ctrlKey || event.metaKey) && event.key === "f") {
     event.preventDefault();
     toggleSearchInput();
   }
 
-  // Close all expanded cells with Escape
-  if (event.key === "Escape" && expandedCells.value.size > 0) {
-    expandedCells.value.clear();
-    event.preventDefault();
+  if (event.key === "Escape") {
+    if (expandedCells.value.size > 0) {
+      expandedCells.value.clear();
+      event.preventDefault();
+    } else if (currentTab.value?.sortState?.length) {
+      clearSorting();
+      event.preventDefault();
+    }
   }
 };
 
@@ -1384,17 +1544,13 @@ const cancelEdit = () => {
   editingState.value = null;
 };
 
-// Add focus directive
 const vFocus = {
   mounted: (el: HTMLInputElement) => el.focus(),
 };
 
-// Lifecycle hooks
 onMounted(() => {
   window.addEventListener("keydown", handleKeyDown);
-  // Detect if running on Windows or macOS
   const isMac = navigator.platform.toUpperCase().startsWith("MAC");
-  // Update the modifier key symbol based on platform
   modifierKey.value = isMac ? "⌘" : "Ctrl";
 
   vscode.postMessage({ command: "bruin.requestState" });
@@ -1402,9 +1558,7 @@ onMounted(() => {
 });
 onUnmounted(() => {
   window.removeEventListener("keydown", handleKeyDown);
-  window.removeEventListener("message", postMessage);
   clearTimeout(saveTimeout);
-  // Clean up resize listeners
   if (resizeState.value) {
     stopResize();
   }
@@ -1467,7 +1621,7 @@ watch(
   }
 );
 
-const formatCellValue = (value) => {
+const formatCellValue = (value: any) => {
   if (value === null || value === undefined) {
     return { text: "NULL", isNull: true };
   }
@@ -1513,7 +1667,6 @@ const cancelQuery = () => {
   });
 };
 
-// Get column width style for a specific column
 const getColumnWidthStyle = (colIndex: number) => {
   if (!currentTab.value) return { minWidth: '120px', maxWidth: '300px' };
   
@@ -1532,7 +1685,6 @@ const getColumnWidthStyle = (colIndex: number) => {
   return { minWidth: '120px', maxWidth: '300px' };
 };
 
-// Start resizing a column
 const startResize = (event: MouseEvent, columnIndex: number) => {
   event.preventDefault();
   event.stopPropagation();
@@ -1558,7 +1710,6 @@ const startResize = (event: MouseEvent, columnIndex: number) => {
   document.body.style.cursor = 'col-resize';
 };
 
-// Handle column resizing
 const handleResize = (event: MouseEvent) => {
   if (!resizeState.value || !currentTab.value) return;
   
@@ -1574,7 +1725,6 @@ const handleResize = (event: MouseEvent) => {
   widths.set(resizeState.value.columnIndex, newWidth);
 };
 
-// Stop resizing
 const stopResize = () => {
   document.removeEventListener('mousemove', handleResize);
   document.removeEventListener('mouseup', stopResize);
@@ -1667,6 +1817,43 @@ thead th::after {
   width: 100%;
   border-bottom: 1px solid var(--vscode-commandCenter-border);
   z-index: 1;
+}
+
+/* Sorting Styles */
+.sort-active {
+  background-color: var(--vscode-input-background) !important;
+  color: var(--vscode-button-foreground) !important;
+}
+
+.sort-active .codicon {
+  color: var(--vscode-button-background);
+}
+
+.sort-tooltip {
+  background-color: var(--vscode-editorWidget-background);
+  border-color: var(--vscode-commandCenter-border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.sort-active-indicator {
+  position: relative;
+  color: var(--vscode-button-background);
+}
+
+.sort-active-indicator:hover {
+  color: var(--vscode-button-hoverBackground);
+}
+
+/* Cost warning visual indicator on header */
+th.cost-warning.sort-active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--vscode-editorWarning-foreground), transparent);
+  opacity: 0.6;
 }
 
 vscode-badge::part(control) {
