@@ -567,7 +567,8 @@ const copyRunCommand = async () => {
     : buildCommandPayload(stripAllTagFlags(baseFlags));
 
   const assetPath = props.filePath || "";
-  const command = `bruin run${flags ? " " + flags.trim() : ""} ${assetPath}`.trim();
+  const escapedPath = assetPath.includes(' ') ? `"${assetPath}"` : assetPath;
+  const command = `bruin run${flags ? " " + flags.trim() : ""} ${escapedPath}`.trim();
 
   try {
     await navigator.clipboard.writeText(command);
