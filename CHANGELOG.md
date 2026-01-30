@@ -1,4 +1,7 @@
 # Changelog
+## [0.76.1] - [2026-01-30]
+- Added a "Copy command" option to the run button group.
+
 ## [0.76.0] - [2026-01-28]
 - Added support for locking python dependencies in teh requirements.txt file.
 
