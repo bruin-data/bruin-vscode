@@ -63,10 +63,9 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.76.2**: Fixed the run with downstream option to be disabled when the file is a pipeline file.
 - **0.76.1**: Added a "Copy command" option to the run button group.
 - **0.76.0**: Added support for locking python dependencies in teh requirements.txt file.
 - **0.75.2**: Fix the catchup default value in the pipeline schema.
-- **0.75.1**: Resolved an issue where executing multiple assets did not function properly on Windows.
-- **0.75.0**: Added support for selecting and running multiple Bruin assets with pipeline-level persistence and automatic downstream handling.
 
 For a full changelog, see Bruin Extension [Changelog](https://github.com/bruin-data/bruin-vscode/blob/main/CHANGELOG.md).

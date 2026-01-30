@@ -1,4 +1,7 @@
 # Changelog
+## [0.76.2] - [2026-01-30]
+- Fixed the run with downstream option to be disabled when the file is a pipeline file.
+
 ## [0.76.1] - [2026-01-30]
 - Added a "Copy command" option to the run button group.
 
