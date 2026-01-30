@@ -1,16 +1,16 @@
 <template>
   <div class="inline-flex">
-    <vscode-button 
-      @click="$emit('mainClick')" 
+    <vscode-button
+      @click="$emit('mainClick')"
       :disabled="disabled"
       class="text-xs h-7"
     >
       <div class="flex items-center justify-center">
-        <component 
-          v-if="icon" 
-          :is="icon" 
-          :class="iconClass" 
-          aria-hidden="true" 
+        <component
+          v-if="icon"
+          :is="icon"
+          :class="iconClass"
+          aria-hidden="true"
         />
         <span v-if="codicon" :class="codiconClass"></span>
         <span>{{ label }}</span>
@@ -35,8 +35,8 @@
           class="absolute left-0 xs:right-0 xs:left-auto z-[99999] w-40 xs:w-48 origin-top-left xs:origin-top-right max-w-[calc(100vw-2rem)]"
         >
           <div class="p-1 bg-editorWidget-bg rounded-sm border border-commandCenter-border">
-            <MenuItem 
-              v-for="item in dropdownItems" 
+            <MenuItem
+              v-for="item in dropdownItems"
               :key="item.key"
             >
               <vscode-button
