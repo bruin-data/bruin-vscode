@@ -239,13 +239,7 @@
 
           <!-- Run Button Group -->
           <ButtonGroup :label="runButtonLabel" :icon="PlayIcon" icon-class="h-3 w-3 mr-1" :disabled="isNotAsset"
-            :dropdown-items="[
-              { key: 'run-with-downstream', label: 'Run with downstream' },
-              { key: 'run-current-pipeline', label: 'Run the whole pipeline' },
-              { key: 'run-with-continue', label: 'Continue from last failure' },
-              { key: 'run-multiple-assets', label: 'Run multiple assets' },
-              { key: 'copy-command', label: 'Copy command' },
-            ]"
+            :dropdown-items="runDropdownItems"
             @main-click="runAssetOnly"
             @dropdown-click="handleRunDropdown" />
 
@@ -482,6 +476,14 @@ const runButtonLabel = computed(() => {
   return count > 0 ? `Run (${count})` : 'Run';
 });
 
+const runDropdownItems = computed(() => [
+  { key: 'run-with-downstream', label: 'Run with downstream', disabled: isPipelineFile.value },
+  { key: 'run-current-pipeline', label: 'Run the whole pipeline' },
+  { key: 'run-with-continue', label: 'Continue from last failure' },
+  { key: 'run-multiple-assets', label: 'Run multiple assets' },
+  { key: 'copy-command', label: 'Copy command' },
+]);
+
 // Display selected assets - first 2 names + "and X more"
 const selectedAssetsDisplay = computed(() => {
   const assets = selectedAssetsForRun.value;
@@ -677,6 +679,13 @@ const ingestrParameters = computed(() => {
 // Computed property for BigQuery metadata
 const bigqueryMetadata = computed(() => {
   return props.assetMetadata?.bigquery || null;
+});
+const isPipelineFile = computed(() => {
+  if (props.filePath) {
+    console.log("isPipelineFile", props.filePath);
+    return props.filePath.endsWith("pipeline.yml") || props.filePath.endsWith("pipeline.yaml");
+  }
+  return false;
 });
 
 const isPipelineData = computed(() => {
