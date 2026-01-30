@@ -244,7 +244,10 @@
               { key: 'run-current-pipeline', label: 'Run the whole pipeline' },
               { key: 'run-with-continue', label: 'Continue from last failure' },
               { key: 'run-multiple-assets', label: 'Run multiple assets' },
-            ]" @main-click="runAssetOnly" @dropdown-click="handleRunDropdown" />
+              { key: 'copy-command', label: 'Copy command' },
+            ]"
+            @main-click="runAssetOnly"
+            @dropdown-click="handleRunDropdown" />
 
 
         </div>
@@ -551,6 +554,32 @@ const handleRunDropdown = (key: string) => {
     case "run-multiple-assets":
       runMultipleAssets();
       break;
+    case "copy-command":
+      copyRunCommand();
+      break;
+  }
+};
+
+const copyRunCommand = async () => {
+  const baseFlags = getCheckboxChangePayload();
+  const flags = isPipelineData.value
+    ? buildCommandPayload(baseFlags)
+    : buildCommandPayload(stripAllTagFlags(baseFlags));
+
+  const assetPath = props.filePath || "";
+  const command = `bruin run${flags ? " " + flags.trim() : ""} ${assetPath}`.trim();
+
+  try {
+    await navigator.clipboard.writeText(command);
+    vscode.postMessage({
+      command: "showInfoMessage",
+      payload: "Command copied to clipboard",
+    });
+  } catch (err) {
+    vscode.postMessage({
+      command: "showErrorMessage",
+      payload: "Failed to copy command to clipboard",
+    });
   }
 };
 
