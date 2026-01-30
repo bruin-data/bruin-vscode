@@ -6,7 +6,7 @@ import { QueryPreviewPanel } from "../../panels/QueryPreviewPanel";
 import { getBruinExecutablePath } from "../../providers/BruinExecutableService";
 import { isBruinSqlAsset, isYamlBruinAsset } from "../../utilities/helperUtils";
 
-export const getQueryOutput = async (environment: string, limit: string, lastRenderedDocumentUri: Uri | undefined, tabId?: string, startDate?: string, endDate?: string, connectionName?: string, orderBy?: { column: string; direction: 'asc' | 'desc' } | null) => {
+export const getQueryOutput = async (environment: string, limit: string, lastRenderedDocumentUri: Uri | undefined, tabId?: string, startDate?: string, endDate?: string, connectionName?: string) => {
   let editor = window.activeTextEditor;
   if (!editor) {
     editor = lastRenderedDocumentUri && await window.showTextDocument(lastRenderedDocumentUri);
@@ -89,29 +89,7 @@ export const getQueryOutput = async (environment: string, limit: string, lastRen
   
   // For asset files: if we have a selected query, use the -q flag; otherwise use the asset path
   // For non-asset files: always use the query content
-  let queryToPass = selectedQuery;
-
-  // Add ORDER BY clause for server-side sorting if requested
-  if (orderBy && queryToPass) {
-    // Remove any trailing semicolon and whitespace
-    queryToPass = queryToPass.replace(/;\s*$/, '').trim();
-
-    // Check if query already has ORDER BY (case insensitive)
-    const hasOrderBy = /\bORDER\s+BY\b/i.test(queryToPass);
-
-    if (!hasOrderBy) {
-      // Add ORDER BY clause
-      const direction = orderBy.direction.toUpperCase();
-      // Quote the column name to handle special characters and reserved words
-      queryToPass = `${queryToPass} ORDER BY "${orderBy.column}" ${direction}`;
-    } else {
-      // Query already has ORDER BY - prepend our sort column
-      queryToPass = queryToPass.replace(
-        /\bORDER\s+BY\b/i,
-        `ORDER BY "${orderBy.column}" ${orderBy.direction.toUpperCase()},`
-      );
-    }
-  }
+  const queryToPass = selectedQuery;
 
   await output.getOutput(environment, lastRenderedDocumentUri.fsPath, limit, tabId, detectedConnectionName, startDate, endDate, { query: queryToPass, isAsset });
 };

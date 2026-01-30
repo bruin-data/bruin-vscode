@@ -365,9 +365,9 @@
                     :key="typeof column === 'string' ? column : column.name"
                     @click="handleSort(column, $event)"
                     class="sticky top-0 p-1 text-left font-semibold text-editor-fg bg-editor-bg border-x border-commandCenter-border before:absolute before:bottom-0 before:left-0 before:w-full before:border-b before:border-commandCenter-border relative cursor-pointer select-none group hover:bg-input-background transition-colors"
-                    :class="{ 
+                    :class="{
                       'sort-active bg-input-background': getSortDirection(column) !== null,
-                      'cost-warning': shouldShowCostWarning() 
+                      'truncated-warning': isResultTruncated()
                     }"
                     :style="getColumnWidthStyle(Number(colIndex))"
                   >
@@ -390,16 +390,14 @@
                       </div>
                     </div>
                     
-                    <!-- Cost Warning Tooltip -->
-                    <div v-if="shouldShowCostWarning()" 
-                         class="sort-tooltip absolute top-full left-0 mt-1 p-2 bg-editorWidget-bg border border-commandCenter-border rounded shadow-lg z-50 text-3xs max-w-[220px] hidden group-hover:block">
+                    <!-- Truncated Results Warning Tooltip -->
+                    <div v-if="isResultTruncated()"
+                         class="sort-tooltip absolute top-full left-0 mt-1 p-2 bg-editorWidget-bg border border-commandCenter-border rounded shadow-lg z-50 text-3xs w-[280px] hidden group-hover:block whitespace-normal">
                       <div class="flex items-start gap-2">
                         <span class="codicon codicon-warning text-[--vscode-editorWarning-foreground] mt-0.5 flex-shrink-0"></span>
-                        <div>
-                          <div class="font-semibold mb-1">Processing Cost Warning</div>
-                          <div class="opacity-80 mb-1">Sorting {{ formatNumber(currentTab.totalRowCount) }} rows may incur additional query costs.</div>
-                          <div class="text-[--vscode-textLink-foreground] hover:underline cursor-pointer">Click to sort current page (free)</div>
-                          <div class="text-[--vscode-textLink-foreground] hover:underline cursor-pointer mt-0.5">Shift+click to re-run with ORDER BY</div>
+                        <div class="flex-1">
+                          <div class="font-semibold mb-1">Partial Results</div>
+                          <div class="opacity-80">Results limited to {{ formatNumber(currentTab?.limit || 0) }} rows. Sorting applies only to fetched data, not the full dataset.</div>
                         </div>
                       </div>
                     </div>
@@ -626,33 +624,27 @@ const shouldShowCostWarning = (): boolean => {
   return (currentTab.value?.totalRowCount || 0) > COST_WARNING_THRESHOLD;
 };
 
+const isResultTruncated = (): boolean => {
+  // Check if row count equals the limit used when query was executed
+  const executedLimit = currentTab.value?.limit || 0;
+  const rowCount = currentTab.value?.totalRowCount || 0;
+  return executedLimit > 0 && rowCount >= executedLimit;
+};
+
 const formatNumber = (num: number): string => {
   return new Intl.NumberFormat('en-US', { notation: 'compact' }).format(num);
 };
 
 const handleSort = async (column: any, event: MouseEvent) => {
   if (!currentTab.value) return;
-  
+
   const colName = typeof column === 'string' ? column : column.name;
-  const currentDirection = getSortDirection(column);
   const isMultiSort = event.ctrlKey || event.metaKey;
-  const isServerSort = event.shiftKey;
-  
-  // Server-side sort with cost warning
-  if (isServerSort && shouldShowCostWarning()) {
-    const confirmed = confirm(
-      `Sorting ${formatNumber(currentTab.value.totalRowCount)} rows server-side will re-run the query and may incur additional processing costs.\n\nContinue?`
-    );
-    if (!confirmed) return;
-    
-    requestServerSort(colName, currentDirection === 'asc' ? 'desc' : 'asc');
-    return;
-  }
-  
+
   // Client-side sorting logic
   let newSortState: SortState[] = [...(currentTab.value.sortState || [])];
   const existingIndex = newSortState.findIndex((s: SortState) => s.column === colName);
-  
+
   if (existingIndex === -1) {
     const newSort: SortState = {
       column: colName,
@@ -668,12 +660,12 @@ const handleSort = async (column: any, event: MouseEvent) => {
       newSortState.splice(existingIndex, 1);
       newSortState.forEach((s, i) => s.priority = i);
     }
-    
+
     if (!isMultiSort && newSortState.length > 1) {
       newSortState = newSortState.filter((s: SortState) => s.column === colName);
     }
   }
-  
+
   // Update tab with new sort state
   const tabIndex = tabs.value.findIndex(t => t.id === activeTab.value);
   if (tabIndex !== -1) {
@@ -753,21 +745,6 @@ const applySorting = () => {
     tabs.value.splice(tabIndex, 1, newTab);
   }
   triggerRef(tabs);
-};
-
-const requestServerSort = (column: string, direction: 'asc' | 'desc') => {
-  vscode.postMessage({
-    command: "bruin.getQueryOutput",
-    payload: {
-      environment: currentEnvironment.value,
-      limit: limit.value.toString(),
-      query: "",
-      tabId: activeTab.value,
-      orderBy: { column, direction },
-      startDate: currentStartDate.value,
-      endDate: currentEndDate.value,
-    },
-  });
 };
 
 const clearSorting = () => {
@@ -1438,7 +1415,8 @@ const runQuery = () => {
       if (tabIndex !== -1) {
         const updatedTab = {
           ...tabs.value[tabIndex],
-          executedEnvironment: selectedEnvironment
+          executedEnvironment: selectedEnvironment,
+          limit: limit.value  // Store the limit used for this query
         };
         tabs.value.splice(tabIndex, 1, updatedTab);
       }
@@ -1844,8 +1822,8 @@ thead th::after {
   color: var(--vscode-button-hoverBackground);
 }
 
-/* Cost warning visual indicator on header */
-th.cost-warning.sort-active::before {
+/* Truncated results warning visual indicator on header */
+th.truncated-warning.sort-active::before {
   content: '';
   position: absolute;
   top: 0;
