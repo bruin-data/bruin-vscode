@@ -735,6 +735,7 @@ const performSort = (column: any, event: MouseEvent | null) => {
       sortState: newSortState
     };
     tabs.value.splice(tabIndex, 1, newTab);
+    triggerRef(tabs); // Trigger reactivity before applySorting reads the new state
     applySorting();
     saveState();
   }
