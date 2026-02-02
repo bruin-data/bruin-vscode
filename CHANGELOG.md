@@ -1,4 +1,7 @@
 # Changelog
+## [0.76.3] - [2026-02-02]
+- Improved the query preview to support sorting and to show the pipeline start date when "Full Refresh" is checked.
+
 ## [0.76.2] - [2026-01-30]
 - Fixed the run with downstream option to be disabled when the file is a pipeline file.
 
