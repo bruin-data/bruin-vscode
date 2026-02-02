@@ -11,7 +11,7 @@
           <!-- Date Controls and Checkbox Group -->
           <div id="controls" class="flex flex-col xs:w-1/2">
             <div class="flex flex-col xs:flex-row gap-1 w-full justify-between xs:justify-end">
-              <DateInput label="Start Date" v-model="startDate" :disabled="isFullRefreshChecked" />
+              <DateInput label="Start Date" v-model="startDateForFullRefresh" :disabled="isFullRefreshChecked" />
               <DateInput label="End Date" v-model="endDate" />
               <div class="flex items-center gap-1 self-start xs:self-end">
                 <button type="button" @click="resetDatesOnSchedule" :title="`Reset Start and End Date`"
@@ -943,6 +943,9 @@ watch(
   },
   { immediate: true }
 );
+const startDateForFullRefresh = computed(() => {
+  return isFullRefreshChecked.value && isPipelineStartDateAvailable.value ? props.startDate : startDate.value;
+});
 
 function getCheckboxChangePayload() {
   const effectiveStartDate =
