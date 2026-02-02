@@ -90,7 +90,7 @@ export const getQueryOutput = async (environment: string, limit: string, lastRen
   // For asset files: if we have a selected query, use the -q flag; otherwise use the asset path
   // For non-asset files: always use the query content
   const queryToPass = selectedQuery;
-  
+
   await output.getOutput(environment, lastRenderedDocumentUri.fsPath, limit, tabId, detectedConnectionName, startDate, endDate, { query: queryToPass, isAsset });
 };
 

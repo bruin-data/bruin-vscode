@@ -190,10 +190,18 @@ export interface Tab {
   filteredRowCount: number;
 }
 
+export interface SortState {
+  column: string;
+  direction: 'asc' | 'desc';
+  priority: number; // For multi-column sort
+}
+
+
 export interface TabData extends Tab {
   parsedOutput: any | undefined;
   error: string | null;
   isLoading: boolean;
+  sortState: SortState[];
   searchInput: string;
   filteredRows: any[];
   totalRowCount: number;

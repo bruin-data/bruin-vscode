@@ -2,7 +2,11 @@ import { Uri } from "vscode";
 import { BruinLineageInternalParse } from "../../bruin/bruinFlowLineage";
 import { getBruinExecutablePath } from "../../providers/BruinExecutableService";
 
-export const flowLineageCommand = async (lastRenderedDocumentUri:  Uri | undefined, panel?: string) => {
+export const flowLineageCommand = async (
+  lastRenderedDocumentUri: Uri | undefined, 
+  panel?: string,
+  includeColumns: boolean = false
+) => {
    if (!lastRenderedDocumentUri) {
     return;
   }
@@ -11,11 +15,14 @@ export const flowLineageCommand = async (lastRenderedDocumentUri:  Uri | undefin
     ""
   );
 
-  // First call standard asset lineage (for test compatibility)
-  await flowLineage.parseAssetLineage(lastRenderedDocumentUri.fsPath, panel);
-  
-  // Then call column-aware version for enhanced lineage data
-  await flowLineage.parseAssetLineageWithColumns(lastRenderedDocumentUri.fsPath, panel, {}, true);
+  // Call lineage parsing with or without columns based on the flag
+  if (includeColumns) {
+    // Only call with -c flag when columns are explicitly requested
+    await flowLineage.parseAssetLineageWithColumns(lastRenderedDocumentUri.fsPath, panel, {}, true);
+  } else {
+    // Standard lineage without columns (no -c flag)
+    await flowLineage.parseAssetLineage(lastRenderedDocumentUri.fsPath, panel);
+  }
 };
   
 

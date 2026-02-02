@@ -4749,9 +4749,8 @@ suite(" Query export Tests", () => {
       sinon.assert.calledOnce(BruinLineageInternalParseStub);
       sinon.assert.calledWith(BruinLineageInternalParseStub, bruinExecutablePath, "");
       sinon.assert.calledOnce(parseAssetLineageStub);
-      sinon.assert.calledWith(parseAssetLineageStub, testUri.fsPath);
-      sinon.assert.calledOnce(parseAssetLineageWithColumnsStub);
-      sinon.assert.calledWith(parseAssetLineageWithColumnsStub, testUri.fsPath);
+      sinon.assert.calledWith(parseAssetLineageStub, testUri.fsPath, undefined);
+      sinon.assert.notCalled(parseAssetLineageWithColumnsStub);
     });
 
     test("should return early when URI is undefined", async () => {
@@ -4823,9 +4822,8 @@ suite(" Query export Tests", () => {
       await flowLineageCommand(testUri);
       
       sinon.assert.calledOnce(parseAssetLineageStub);
-      sinon.assert.calledWith(parseAssetLineageStub, testUri.fsPath);
-      sinon.assert.calledOnce(parseAssetLineageWithColumnsStub);
-      sinon.assert.calledWith(parseAssetLineageWithColumnsStub, testUri.fsPath);
+      sinon.assert.calledWith(parseAssetLineageStub, testUri.fsPath, undefined);
+      sinon.assert.notCalled(parseAssetLineageWithColumnsStub);
     });
 
     test("should work with complex file paths", async () => {
@@ -4839,9 +4837,8 @@ suite(" Query export Tests", () => {
       await flowLineageCommand(testUri);
       
       sinon.assert.calledOnce(parseAssetLineageStub);
-      sinon.assert.calledWith(parseAssetLineageStub, testUri.fsPath);
-      sinon.assert.calledOnce(parseAssetLineageWithColumnsStub);
-      sinon.assert.calledWith(parseAssetLineageWithColumnsStub, testUri.fsPath);
+      sinon.assert.calledWith(parseAssetLineageStub, testUri.fsPath, undefined);
+      sinon.assert.notCalled(parseAssetLineageWithColumnsStub);
     });
 
     test("should use correct working directory", async () => {
@@ -4873,11 +4870,9 @@ suite(" Query export Tests", () => {
       sinon.assert.calledTwice(getBruinExecutablePathStub);
       sinon.assert.calledTwice(BruinLineageInternalParseStub);
       sinon.assert.calledTwice(parseAssetLineageStub);
-      sinon.assert.calledWith(parseAssetLineageStub.firstCall, testUri1.fsPath);
-      sinon.assert.calledWith(parseAssetLineageStub.secondCall, testUri2.fsPath);
-      sinon.assert.calledTwice(parseAssetLineageWithColumnsStub);
-      sinon.assert.calledWith(parseAssetLineageWithColumnsStub.firstCall, testUri1.fsPath);
-      sinon.assert.calledWith(parseAssetLineageWithColumnsStub.secondCall, testUri2.fsPath);
+      sinon.assert.calledWith(parseAssetLineageStub.firstCall, testUri1.fsPath, undefined);
+      sinon.assert.calledWith(parseAssetLineageStub.secondCall, testUri2.fsPath, undefined);
+      sinon.assert.notCalled(parseAssetLineageWithColumnsStub);
     });
   });
 
