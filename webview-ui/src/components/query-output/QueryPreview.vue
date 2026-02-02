@@ -390,17 +390,6 @@
                       </div>
                     </div>
                     
-                    <!-- Truncated Results Warning Tooltip -->
-                    <div v-if="isResultTruncated()"
-                         class="sort-tooltip absolute top-full left-0 mt-1 p-2 bg-editorWidget-bg border border-commandCenter-border rounded shadow-lg z-50 text-3xs w-[280px] hidden group-hover:block whitespace-normal">
-                      <div class="flex items-start gap-2">
-                        <span class="codicon codicon-warning text-[--vscode-editorWarning-foreground] mt-0.5 flex-shrink-0"></span>
-                        <div class="flex-1">
-                          <div class="font-semibold mb-1">Partial Results</div>
-                          <div class="opacity-80">Results limited to {{ formatNumber(currentTab?.limit || 0) }} rows. Sorting applies only to fetched data, not the full dataset.</div>
-                        </div>
-                      </div>
-                    </div>
                     
                     <div
                       class="resize-handle"
@@ -432,7 +421,7 @@
                     <div class="flex flex-col">
                       <div v-if="Array.isArray(value)" class="array-cell">
                         <div
-                          v-for="(item, itemIndex) in (isExpanded(index, colIndex) ? value : value.slice(0, 10))"
+                          v-for="(item, itemIndex) in (isExpanded(index, colIndex as number) ? value : value.slice(0, 10))"
                           :key="itemIndex"
                           class="array-item break-words overflow-hidden"
                         >
@@ -442,20 +431,20 @@
                           Empty Array
                         </div>
                         <div v-if="value.length > 10" class="text-descriptionForeground opacity-60 italic text-xs mt-1">
-                          {{ isExpanded(index, colIndex) ? `Showing all ${value.length} items` : `... and ${value.length - 10} more` }}
+                          {{ isExpanded(index, colIndex as number) ? `Showing all ${value.length} items` : `... and ${value.length - 10} more` }}
                           <button
-                            @click.stop="toggleCellExpansion(index, colIndex)"
+                            @click.stop="toggleCellExpansion(index, colIndex as number)"
                             class="ml-2 underline hover:no-underline"
                           >
-                            {{ isExpanded(index, colIndex) ? 'Collapse' : 'Show all' }}
+                            {{ isExpanded(index, colIndex as number) ? 'Collapse' : 'Show all' }}
                           </button>
                         </div>
                       </div>
                       <template v-else>
                         <div
                           :class="{
-                            'max-h-6 overflow-hidden': !isExpanded(index, colIndex),
-                            'max-h-none': isExpanded(index, colIndex),
+                            'max-h-6 overflow-hidden': !isExpanded(index, colIndex as number),
+                            'max-h-none': isExpanded(index, colIndex as number),
                           }"
                           class="transition-all duration-75 pr-6 break-words"
                         >
@@ -463,25 +452,25 @@
                             :class="{
                               'whitespace-nowrap overflow-hidden text-ellipsis': !isExpanded(
                                 index,
-                                colIndex
+                                colIndex as number
                               ),
-                              'whitespace-pre-wrap': isExpanded(index, colIndex),
+                              'whitespace-pre-wrap': isExpanded(index, colIndex as number),
                               'uppercase text-descriptionForeground opacity-60 italic': formatCellValue(value).isNull
                             }"
-                            v-html="highlightMatch(formatCellValue(value).text, currentTab.searchInput)"
+                            v-html="highlightMatch(formatCellValue(value).text as string, currentTab.searchInput)"
                           ></div>
                         </div>
                         <div v-if="cellHasOverflow(value)" class="absolute right-1 top-1 flex items-center z-10">
                           <vscode-button
                             appearance="icon"
-                            @click.stop="toggleCellExpansion(index, colIndex)"
+                            @click.stop="toggleCellExpansion(index, colIndex as number)"
                             class="text-editor-fg opacity-70 hover:opacity-100 bg-editor-bg"
-                            :title="isExpanded(index, colIndex) ? 'Collapse' : 'Expand'"
+                            :title="isExpanded(index, colIndex as number) ? 'Collapse' : 'Expand'"
                           >
                             <span
                               class="codicon text-xs"
                               :class="
-                                isExpanded(index, colIndex)
+                                isExpanded(index, colIndex as number)
                                   ? 'codicon-chevron-down'
                                   : 'codicon-chevron-right'
                               "
@@ -494,6 +483,49 @@
                 </tr>
               </tbody>
             </table>
+            <!-- Truncation Warning Popover -->
+            <div
+              v-if="showTruncationWarning"
+              class="fixed inset-0 z-50 flex items-center justify-center"
+              @click.self="dismissTruncationWarning(false)"
+            >
+              <div class="bg-editorWidget-bg border border-commandCenter-border rounded-lg shadow-xl p-4 max-w-sm mx-4">
+                <div class="flex items-start justify-between mb-3">
+                  <div class="flex items-center gap-2">
+                    <span class="codicon codicon-warning text-[--vscode-editorWarning-foreground]"></span>
+                    <span class="font-semibold text-sm">Partial Results</span>
+                  </div>
+                  <button
+                    @click="dismissTruncationWarning(false)"
+                    class="text-editor-fg opacity-60 hover:opacity-100 transition-opacity"
+                    title="Close"
+                  >
+                    <span class="codicon codicon-close"></span>
+                  </button>
+                </div>
+
+                <p class="text-xs text-descriptionForeground mb-4">
+                  Results are limited to <strong>{{ formatNumber(currentTab?.limit || 0) }}</strong> rows.
+                  Sorting will apply only to the fetched data, not the full dataset.
+                </p>
+
+                <div class="flex justify-end gap-2">
+                  <vscode-button
+                    appearance="secondary"
+                    @click="dismissTruncationWarning(false)"
+                  >
+                    Cancel
+                  </vscode-button>
+                  <vscode-button
+                    appearance="primary"
+                    @click="dismissTruncationWarning(true)"
+                  >
+                    Sort anyway
+                  </vscode-button>
+                </div>
+              </div>
+            </div>
+
             <div v-if="totalPages > 1" class="flex justify-center items-center my-2 gap-2">
               <button @click="currentPage = 1" :disabled="currentPage === 1" title="First Page">
                 <span class="codicon codicon-chevron-double-left"></span>
@@ -577,6 +609,7 @@ const currentEndDate = ref("");
 const expandedCells = ref(new Set<string>());
 const activeQueryPanelTab = ref<'query' | 'console'>('query');
 const columnWidths = ref<Map<string, Map<number, number>>>(new Map());
+const showTruncationWarning = ref(false);
 const resizeState = ref<{
   isResizing: boolean;
   columnIndex: number;
@@ -635,11 +668,39 @@ const formatNumber = (num: number): string => {
   return new Intl.NumberFormat('en-US', { notation: 'compact' }).format(num);
 };
 
+const truncationWarningAcknowledged = ref(false);
+const pendingSortColumn = ref<any>(null);
+const pendingSortEvent = ref<MouseEvent | null>(null);
+
+const dismissTruncationWarning = (proceed: boolean = false) => {
+  showTruncationWarning.value = false;
+  if (proceed && pendingSortColumn.value) {
+    truncationWarningAcknowledged.value = true;
+    performSort(pendingSortColumn.value, pendingSortEvent.value);
+  }
+  pendingSortColumn.value = null;
+  pendingSortEvent.value = null;
+};
+
 const handleSort = async (column: any, event: MouseEvent) => {
   if (!currentTab.value) return;
 
+  // Show warning if results are truncated and user hasn't acknowledged yet
+  if (isResultTruncated() && !truncationWarningAcknowledged.value) {
+    pendingSortColumn.value = column;
+    pendingSortEvent.value = event;
+    showTruncationWarning.value = true;
+    return;
+  }
+
+  performSort(column, event);
+};
+
+const performSort = (column: any, event: MouseEvent | null) => {
+  if (!currentTab.value) return;
+
   const colName = typeof column === 'string' ? column : column.name;
-  const isMultiSort = event.ctrlKey || event.metaKey;
+  const isMultiSort = event?.ctrlKey || event?.metaKey;
 
   // Client-side sorting logic
   let newSortState: SortState[] = [...(currentTab.value.sortState || [])];
@@ -1068,13 +1129,15 @@ window.addEventListener("message", (event) => {
             newTab = {
               ...newTab,
               parsedOutput: undefined,
-              error: null,  
+              error: null,
               filteredRows: [],
               totalRowCount: 0,
               filteredRowCount: 0,
               consoleMessages: [],
               sortState: [],
             };
+            // Reset truncation warning acknowledgment for new query
+            truncationWarningAcknowledged.value = false;
           }
           
           tabs.value.splice(tabIndex, 1, newTab);
@@ -1488,7 +1551,10 @@ const handleKeyDown = (event: KeyboardEvent) => {
   }
 
   if (event.key === "Escape") {
-    if (expandedCells.value.size > 0) {
+    if (showTruncationWarning.value) {
+      dismissTruncationWarning(false);
+      event.preventDefault();
+    } else if (expandedCells.value.size > 0) {
       expandedCells.value.clear();
       event.preventDefault();
     } else if (currentTab.value?.sortState?.length) {
