@@ -943,8 +943,15 @@ watch(
   },
   { immediate: true }
 );
-const startDateForFullRefresh = computed(() => {
-  return isFullRefreshChecked.value && isPipelineStartDateAvailable.value ? props.startDate : startDate.value;
+const startDateForFullRefresh = computed({
+  get() {
+    return isFullRefreshChecked.value && isPipelineStartDateAvailable.value
+      ? props.startDate
+      : startDate.value;
+  },
+  set(newValue: string) {
+    startDate.value = newValue;
+  },
 });
 
 function getCheckboxChangePayload() {
