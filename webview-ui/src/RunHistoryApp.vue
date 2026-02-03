@@ -83,7 +83,7 @@
             >
               <td class="w-7 px-1">
                 <span
-                  class="flex items-center justify-center w-[18px] h-[18px] rounded-full"
+                  class="flex items-center justify-center w-[16px] h-[16px] rounded-full"
                   :class="run.status === 'succeeded'
                     ? 'bg-[--vscode-testing-iconPassed] text-editor-bg'
                     : 'bg-[--vscode-testing-iconFailed] text-editor-bg'"
@@ -267,7 +267,7 @@ const toggleExpand = (run: RunSummary) => {
 };
 
 const statusIcon = (status: string) => {
-  return status === "succeeded" ? "codicon-pass-filled" : "codicon-error";
+  return status === "succeeded" ? "codicon-pass-filled" : "codicon-close";
 };
 
 const formatTime = (timestamp: string) => {
