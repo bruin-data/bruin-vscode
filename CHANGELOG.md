@@ -1,4 +1,6 @@
 # Changelog
+## [0.76.4] - [2026-02-03]
+- Fixed the start date input field to set teh date correctly.
 ## [0.76.3] - [2026-02-02]
 - Improved the query preview to support sorting and to show the pipeline start date when "Full Refresh" is checked.
 
