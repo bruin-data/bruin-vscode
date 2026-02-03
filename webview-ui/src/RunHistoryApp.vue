@@ -92,7 +92,7 @@
                 </span>
               </td>
               <td class="w-[70px] px-2 py-2">
-                <span class="font-mono text-descriptionForeground">{{ formatRunId(run.runId) }}</span>
+                <span class="font-mono text-descriptionForeground">{{ run.runId }}</span>
               </td>
               <td class="min-w-[100px] px-2 py-2">
                 <span class="font-medium block max-w-[150px] truncate">{{ run.pipeline }}</span>
@@ -308,19 +308,7 @@ const formatFullTime = (timestamp: string) => {
   }
 };
 
-const formatRunId = (runId: string) => {
-  // Run ID format: 2024_01_30_15_04_05
-  // Show as: 15:04:05
-  try {
-    const parts = runId.split('_');
-    if (parts.length >= 6) {
-      return `${parts[3]}:${parts[4]}:${parts[5]}`;
-    }
-    return runId.slice(-8);
-  } catch {
-    return runId;
-  }
-};
+
 
 onMounted(() => {
   window.addEventListener("message", handleMessage);
