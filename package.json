@@ -97,6 +97,11 @@
           "id": "TableDiff",
           "title": "Table Diff",
           "icon": "$(diff)"
+        },
+        {
+          "id": "RunHistory",
+          "title": "Run History",
+          "icon": "$(history)"
         }
       ]
     },
@@ -130,6 +135,13 @@
           "type": "webview",
           "id": "bruin.tableDiffView",
           "name": "Table Diff"
+        }
+      ],
+      "RunHistory": [
+        {
+          "type": "webview",
+          "id": "bruin.runHistoryView",
+          "name": "Run History"
         }
       ]
     },

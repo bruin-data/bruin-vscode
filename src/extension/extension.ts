@@ -23,6 +23,7 @@ import { AssetLineagePanel } from "../panels/LineagePanel";
 import { installOrUpdateCli } from "./commands/updateBruinCLI";
 import { QueryPreviewPanel } from "../panels/QueryPreviewPanel";
 import { TableDiffPanel } from "../panels/TableDiffPanel";
+import { RunHistoryPanel } from "../panels/RunHistoryPanel";
 import { BruinPanel } from "../panels/BruinPanel";
 import { QueryCodeLensProvider } from "../providers/queryCodeLensProvider";
 import { ScheduleCodeLensProvider } from "../providers/scheduleCodeLensProvider";
@@ -353,6 +354,12 @@ export async function activate(context: ExtensionContext) {
   console.log('Extension: Registering TableDiffPanel webview provider with viewId:', TableDiffPanel.viewId);
   context.subscriptions.push(
     window.registerWebviewViewProvider(TableDiffPanel.viewId, tableDiffWebviewProvider)
+  );
+
+  // Create RunHistoryPanel for run history display
+  const runHistoryWebviewProvider = new RunHistoryPanel(context.extensionUri, context);
+  context.subscriptions.push(
+    window.registerWebviewViewProvider(RunHistoryPanel.viewId, runHistoryWebviewProvider)
   );
 
   const favoritesProvider = new FavoritesProvider();
