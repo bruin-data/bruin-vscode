@@ -161,9 +161,8 @@
                     >
                       <span
                         class="codicon text-[12px]"
-                        :class="asset.status === 'succeeded'
-                          ? 'codicon-pass text-[--vscode-testing-iconPassed]'
-                          : 'codicon-error text-[--vscode-testing-iconFailed]'"
+                        :class="assetStatusIconClass(asset.status)"
+                        :title="asset.status"
                       ></span>
                       <span class="truncate max-w-[150px]">{{ asset.name }}</span>
                     </div>
@@ -268,6 +267,17 @@ const toggleExpand = (run: RunSummary) => {
 
 const statusIcon = (status: string) => {
   return status === "succeeded" ? "codicon-pass-filled" : "codicon-close";
+};
+
+const assetStatusIconClass = (status: string) => {
+  if (status === "succeeded") {
+    return "codicon-pass text-[--vscode-testing-iconPassed]";
+  }
+  if (status === "skipped") {
+    return "codicon-circle-slash text-[--vscode-testing-iconSkipped]";
+  }
+  // Treat anything else as failed for now
+  return "codicon-error text-[--vscode-testing-iconFailed]";
 };
 
 const formatTime = (timestamp: string) => {
