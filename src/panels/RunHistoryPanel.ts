@@ -1,10 +1,10 @@
 import * as vscode from "vscode";
-import * as path from "path";
 import { getNonce } from "../utilities/getNonce";
 import { getUri } from "../utilities/getUri";
 import { RunLogService } from "../bruin/runLogService";
 import { bruinWorkspaceDirectory } from "../bruin/bruinUtils";
 import { RunSummary } from "../types/runLog";
+import { BruinLanguageServer } from "../language-server/bruinLanguageServer";
 
 export class RunHistoryPanel implements vscode.WebviewViewProvider, vscode.Disposable {
   public static readonly viewId = "bruin.runHistoryView";
@@ -180,8 +180,105 @@ export class RunHistoryPanel implements vscode.WebviewViewProvider, vscode.Dispo
             await this.refreshRuns();
           }
           break;
+        case "bruin.openAssetFile":
+          await this.openAssetFile(message.payload.assetName, message.payload.filePath);
+          break;
+        case "bruin.copyRunCommand":
+          await this.copyRunCommand(message.payload.filePath, message.payload.parameters);
+          break;
       }
     });
+  }
+
+  private async openAssetFile(assetName: string, logFilePath: string) {
+    try {
+      // Get workspace root from log file path
+      const logPathParts = logFilePath.split("/logs/runs/");
+      const workspaceRoot = logPathParts.length >= 2 ? logPathParts[0] : null;
+
+      // Try to find asset using language server
+      let assetPath: string | null = null;
+
+      // First try with active file
+      const activeFile = vscode.window.activeTextEditor?.document.uri.fsPath;
+      if (activeFile) {
+        const languageServer = BruinLanguageServer.getInstance();
+        assetPath = await languageServer.findAssetFile(assetName, activeFile);
+      }
+
+      // If not found and we have workspace root, try with a file in that workspace
+      if (!assetPath && workspaceRoot) {
+        const languageServer = BruinLanguageServer.getInstance();
+        // Try to find any bruin file in the workspace to use as context
+        const bruinFiles = await vscode.workspace.findFiles(
+          new vscode.RelativePattern(workspaceRoot, "**/*.{sql,py,asset.yml}"),
+          "**/node_modules/**",
+          1
+        );
+        if (bruinFiles.length > 0) {
+          assetPath = await languageServer.findAssetFile(assetName, bruinFiles[0].fsPath);
+        }
+      }
+
+      if (assetPath) {
+        const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(assetPath));
+        await vscode.window.showTextDocument(doc);
+      } else {
+        vscode.window.showWarningMessage(`Could not find file for asset: ${assetName}`);
+      }
+    } catch (error) {
+      console.error("Error opening asset file:", error);
+      vscode.window.showWarningMessage(`Error opening asset: ${assetName}`);
+    }
+  }
+
+  private async copyRunCommand(filePath: string, params: any) {
+    try {
+      const parts = ["bruin", "run"];
+
+      if (params.environment && params.environment !== "default") {
+        parts.push("-e", params.environment);
+      }
+      if (params.downstream) {
+        parts.push("--downstream");
+      }
+      if (params.fullRefresh) {
+        parts.push("--full-refresh");
+      }
+      if (params.force) {
+        parts.push("--force");
+      }
+      if (params.pushMetadata) {
+        parts.push("--push-metadata");
+      }
+      if (params.applyIntervalModifiers) {
+        parts.push("--apply-interval-modifiers");
+      }
+      if (params.tag) {
+        parts.push("--tag", params.tag);
+      }
+      if (params.excludeTag) {
+        parts.push("--exclude-tag", params.excludeTag);
+      }
+      if (params.startDate) {
+        parts.push("--start-date", `"${params.startDate}"`);
+      }
+      if (params.endDate) {
+        parts.push("--end-date", `"${params.endDate}"`);
+      }
+      if (params.only && params.only.length > 0) {
+        params.only.forEach((asset: string) => parts.push("--only", asset));
+      }
+
+      parts.push(".");
+
+      const command = parts.join(" ");
+      await vscode.env.clipboard.writeText(command);
+      vscode.window.showInformationMessage("Run command copied to clipboard");
+    } catch (error) {
+      console.error("Error copying run command:", error);
+      vscode.window.showWarningMessage("Failed to copy run command");
+    }
   }
 
   public static postMessage(command: string, payload: any) {
