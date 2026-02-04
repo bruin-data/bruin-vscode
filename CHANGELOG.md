@@ -2,6 +2,8 @@
 ## [0.77.0] - [2026-02-04]
 - Added a new panel to display run history, showing executed flags and assets, with options to rerun or copy the command.
  
+## [0.76.4] - [2026-02-03]
+- Fixed the start date input field to set teh date correctly.
 ## [0.76.3] - [2026-02-02]
 - Improved the query preview to support sorting and to show the pipeline start date when "Full Refresh" is checked.
 
