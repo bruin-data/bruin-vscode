@@ -64,7 +64,7 @@
             <th class="w-[60px] text-left px-2 py-2 font-medium text-descriptionForeground border-b border-panel-border sticky top-0 bg-editor-bg whitespace-nowrap">
               Time
             </th>
-            <th class="w-6"></th>
+            <th class="w-6 border-b border-panel-border sticky top-0 bg-editor-bg"></th>
           </tr>
         </thead>
         <tbody>
