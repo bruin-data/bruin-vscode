@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col h-full p-2 text-[12px] text-editor-fg bg-editor-bg">
     <div class="mb-3">
-      <div class="flex items-center justify-end ">
+      <div class="flex items-center justify-end">
         <div class="flex items-center gap-2">
           <vscode-dropdown
             v-if="pipelines.length > 1"
@@ -52,16 +52,16 @@
             <th class="w-[90px] text-left px-2 py-2 font-medium text-descriptionForeground border-b border-panel-border sticky top-0 bg-editor-bg whitespace-nowrap">
               Run ID
             </th>
-            <th class="min-w-[100px] text-left px-2 py-2 font-medium text-descriptionForeground border-b border-panel-border sticky top-0 bg-editor-bg whitespace-nowrap">
+            <th class="min-w-[80px] text-left px-2 py-2 font-medium text-descriptionForeground border-b border-panel-border sticky top-0 bg-editor-bg whitespace-nowrap">
               Pipeline
             </th>
-            <th class="w-[80px] text-left px-2 py-2 font-medium text-descriptionForeground border-b border-panel-border sticky top-0 bg-editor-bg whitespace-nowrap">
+            <th class="w-[70px] text-left px-2 py-2 font-medium text-descriptionForeground border-b border-panel-border sticky top-0 bg-editor-bg whitespace-nowrap">
               Assets
             </th>
-            <th class="w-[70px] text-left px-2 py-2 font-medium text-descriptionForeground border-b border-panel-border sticky top-0 bg-editor-bg whitespace-nowrap">
-              Env
+            <th class="min-w-[60px] text-left px-2 py-2 font-medium text-descriptionForeground border-b border-panel-border sticky top-0 bg-editor-bg whitespace-nowrap">
+              Flags
             </th>
-            <th class="w-[70px] text-left px-2 py-2 font-medium text-descriptionForeground border-b border-panel-border sticky top-0 bg-editor-bg whitespace-nowrap">
+            <th class="w-[60px] text-left px-2 py-2 font-medium text-descriptionForeground border-b border-panel-border sticky top-0 bg-editor-bg whitespace-nowrap">
               Time
             </th>
             <th class="w-6"></th>
@@ -91,10 +91,10 @@
               <td class="w-[90px] px-2 py-2">
                 <span class="font-mono text-[10px] text-descriptionForeground">{{ formatRunId(run.runId) }}</span>
               </td>
-              <td class="min-w-[100px] px-2 py-2">
-                <span class="font-medium block max-w-[150px] truncate">{{ run.pipeline }}</span>
+              <td class="min-w-[80px] px-2 py-2">
+                <span class="font-medium block max-w-[120px] truncate">{{ run.pipeline }}</span>
               </td>
-              <td class="w-[80px] px-2 py-2">
+              <td class="w-[70px] px-2 py-2">
                 <span class="flex items-center gap-1">
                   <span
                     v-if="run.succeededAssets > 0"
@@ -105,29 +105,36 @@
                   <span
                     v-if="run.succeededAssets > 0 && run.failedAssets > 0"
                     class="text-descriptionForeground"
-                  >
-                    /
-                  </span>
+                  >/</span>
                   <span
                     v-if="run.failedAssets > 0"
                     class="font-semibold text-[--vscode-testing-iconFailed]"
                   >
                     {{ run.failedAssets }}
                   </span>
-                  <span class="text-descriptionForeground ml-[2px]">
-                    ({{ run.totalAssets }})
+                  <span class="text-descriptionForeground">({{ run.totalAssets }})</span>
+                </span>
+              </td>
+              <td class="min-w-[60px] px-2 py-2">
+                <div class="flex flex-wrap gap-1">
+                  <span
+                    v-for="flag in (run.flags || []).slice(0, 2)"
+                    :key="flag"
+                    class="inline-block rounded px-1 py-0.5 text-[9px] bg-badge-background text-badge-foreground whitespace-nowrap"
+                  >
+                    {{ flag }}
                   </span>
-                </span>
+                  <span
+                    v-if="(run.flags || []).length > 2"
+                    class="inline-block rounded px-1 py-0.5 text-[9px] bg-badge-background text-badge-foreground"
+                    :title="(run.flags || []).slice(2).join(', ')"
+                  >
+                    +{{ (run.flags || []).length - 2 }}
+                  </span>
+                </div>
               </td>
-              <td class="w-[70px] px-2 py-2">
-                <span
-                  class="inline-block rounded px-1.5 py-0.5 text-[10px] bg-badge-background text-badge-foreground"
-                >
-                  {{ run.environment || 'default' }}
-                </span>
-              </td>
-              <td class="w-[70px] px-2 py-2">
-                <span class="text-descriptionForeground" :title="run.timestamp">
+              <td class="w-[60px] px-2 py-2">
+                <span class="text-descriptionForeground text-[10px]" :title="run.timestamp">
                   {{ formatTime(run.timestamp) }}
                 </span>
               </td>
@@ -141,12 +148,8 @@
             <tr v-if="expandedRun === run.runId">
               <td colspan="7" class="p-0 bg-editor-inactiveSelectionBackground">
                 <div class="p-3" v-if="runDetails">
-                  <!-- Header with params and copy -->
-                  <div class="flex items-center justify-between mb-2">
-                    <div v-if="paramsText" class="text-[10px] text-descriptionForeground italic">
-                      {{ paramsText }}
-                    </div>
-                    <div v-else></div>
+                  <!-- Copy button -->
+                  <div class="flex justify-end mb-2">
                     <vscode-button
                       appearance="icon"
                       @click.stop="copyRunCommand(run.filePath)"
@@ -238,6 +241,7 @@ interface RunSummary {
   failedAssets: number;
   environment: string;
   filePath: string;
+  flags?: string[];
 }
 
 const runs = ref<RunSummary[]>([]);
@@ -263,24 +267,6 @@ const sortedAssets = computed(() => {
 const visibleAssets = computed(() => {
   if (showAllAssets.value) return sortedAssets.value;
   return sortedAssets.value.slice(0, ASSETS_LIMIT);
-});
-
-// Build params text
-const paramsText = computed(() => {
-  if (!runDetails.value?.parameters) return "";
-  const params = runDetails.value.parameters;
-  const parts: string[] = [];
-
-  if (params.downstream) parts.push("downstream");
-  if (params.fullRefresh) parts.push("full-refresh");
-  if (params.force) parts.push("force");
-  if (params.pushMetadata) parts.push("push-metadata");
-  if (params.applyIntervalModifiers) parts.push("interval-modifiers");
-  if (params.tag) parts.push(`tag:${params.tag}`);
-  if (params.excludeTag) parts.push(`exclude:${params.excludeTag}`);
-  if (params.only && params.only.length > 0) parts.push(`${params.only.length} specific assets`);
-
-  return parts.length > 0 ? `with ${parts.join(", ")}` : "";
 });
 
 const handleMessage = (event: MessageEvent) => {

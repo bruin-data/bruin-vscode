@@ -79,6 +79,18 @@ export class RunLogService {
     const failed = log.state.filter((a) => a.status === "failed").length;
     const status: RunStatus = failed > 0 ? "failed" : "succeeded";
 
+    // Extract active flags
+    const flags: string[] = [];
+    const params = log.parameters;
+    if (params.downstream) flags.push("downstream");
+    if (params.fullRefresh) flags.push("full-refresh");
+    if (params.force) flags.push("force");
+    if (params.pushMetadata) flags.push("push-metadata");
+    if (params.applyIntervalModifiers) flags.push("interval-modifiers");
+    if (params.tag) flags.push(`tag:${params.tag}`);
+    if (params.excludeTag) flags.push(`exclude:${params.excludeTag}`);
+    if (params.only && params.only.length > 0) flags.push(`${params.only.length} assets`);
+
     return {
       runId: log.run_id,
       pipeline,
@@ -89,6 +101,7 @@ export class RunLogService {
       failedAssets: failed,
       environment: log.parameters.environment,
       filePath,
+      flags: flags.length > 0 ? flags : undefined,
     };
   }
 

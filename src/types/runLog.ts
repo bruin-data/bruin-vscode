@@ -57,6 +57,7 @@ export interface RunSummary {
   environment: string;
   filePath: string;
   duration?: string;
+  flags?: string[];
 }
 
 // Types for the new -o json output from bruin run
