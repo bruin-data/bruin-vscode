@@ -2,7 +2,7 @@
   "name": "bruin",
   "displayName": "Bruin",
   "description": "Manage your Bruin data assets from within VS Code.",
-  "version": "0.76.4",
+  "version": "0.77.0",
   "engines": {
     "vscode": "^1.87.0"
   },
@@ -97,6 +97,11 @@
           "id": "TableDiff",
           "title": "Table Diff",
           "icon": "$(diff)"
+        },
+        {
+          "id": "RunHistory",
+          "title": "Run History",
+          "icon": "$(history)"
         }
       ]
     },
@@ -130,6 +135,13 @@
           "type": "webview",
           "id": "bruin.tableDiffView",
           "name": "Table Diff"
+        }
+      ],
+      "RunHistory": [
+        {
+          "type": "webview",
+          "id": "bruin.runHistoryView",
+          "name": "Run History"
         }
       ]
     },
