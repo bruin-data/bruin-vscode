@@ -68,13 +68,16 @@
           </tr>
         </thead>
         <tbody>
-          <template v-for="run in runs" :key="run.runId">
+          <template v-for="(run, index) in runs" :key="run.runId">
             <tr
               :class="[
                 'cursor-pointer border-b border-panel-border transition-colors',
                 expandedRun === run.runId
-                  ? 'bg-list-activeSelectionBackground'
-                  : 'hover:bg-list-hoverBackground'
+                  ? 'bg-[var(--vscode-list-activeSelectionBackground)]'
+                  : [
+                       'hover:bg-[var(--vscode-list-activeSelectionBackground)]',
+                       index % 2 === 0 ? 'bg-editorWidget-bg' : ''
+                    ]
               ]"
               @click="toggleExpand(run)"
             >
@@ -89,7 +92,7 @@
                 </span>
               </td>
               <td class="w-[90px] px-2 py-2">
-                <span class="font-mono text-[10px] text-descriptionForeground">{{ formatRunId(run.runId) }}</span>
+                <span class="font-mono text-[10px] text-descriptionForeground">{{ run.runId }}</span>
               </td>
               <td class="min-w-[80px] px-2 py-2">
                 <span class="font-medium block max-w-[120px] truncate">{{ run.pipeline }}</span>
@@ -117,13 +120,12 @@
               </td>
               <td class="min-w-[60px] px-2 py-2">
                 <div class="flex flex-wrap gap-1">
-                  <span
+                  <vscode-badge
                     v-for="flag in (run.flags || []).slice(0, 2)"
                     :key="flag"
-                    class="inline-block rounded px-1 py-0.5 text-[9px] bg-badge-background text-badge-foreground whitespace-nowrap"
                   >
                     {{ flag }}
-                  </span>
+                  </vscode-badge>
                   <span
                     v-if="(run.flags || []).length > 2"
                     class="inline-block rounded px-1 py-0.5 text-[9px] bg-badge-background text-badge-foreground"
@@ -145,11 +147,14 @@
                 ></span>
               </td>
             </tr>
-            <tr v-if="expandedRun === run.runId">
-              <td colspan="7" class="p-0 bg-editor-inactiveSelectionBackground">
-                <div class="p-3" v-if="runDetails">
-                  <!-- Copy button -->
-                  <div class="flex justify-end mb-2">
+            <tr v-if="expandedRun === run.runId" class="expanded-details-row">
+              <td colspan="7" class="p-0">
+                <div class="mx-2 my-2 rounded border border-panel-border bg-sideBar-bg shadow-sm overflow-hidden">
+                  <!-- Header bar -->
+                  <div class="flex items-center justify-between px-3 py-1.5 bg-editor-bg border-b border-panel-border">
+                    <span class="text-[10px] text-descriptionForeground font-medium uppercase tracking-wide">
+                      Assets ({{ sortedAssets.length }})
+                    </span>
                     <vscode-button
                       appearance="icon"
                       @click.stop="copyRunCommand(run.filePath)"
@@ -159,35 +164,38 @@
                     </vscode-button>
                   </div>
 
-                  <!-- Assets - sorted: failed, succeeded, skipped -->
-                  <div class="flex flex-wrap gap-1.5">
-                    <div
-                      v-for="asset in visibleAssets"
-                      :key="asset.name"
-                      class="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-panel-border text-[11px] bg-editor-bg cursor-pointer hover:bg-list-hoverBackground transition-colors"
-                      @click.stop="openAssetFile(asset.name)"
-                      :title="`Click to open ${asset.name}`"
-                    >
-                      <span
-                        class="codicon text-[12px]"
-                        :class="assetStatusIconClass(asset.status)"
-                      ></span>
-                      <span class="truncate max-w-[150px]">{{ asset.name }}</span>
+                  <!-- Content -->
+                  <div class="p-3" v-if="runDetails">
+                    <!-- Assets - sorted: failed, succeeded, skipped -->
+                    <div class="flex flex-wrap gap-1.5">
+                      <div
+                        v-for="asset in visibleAssets"
+                        :key="asset.name"
+                       class="inline-flex items-center gap-1 px-2 py-1 rounded border border-panel-border text-[11px] bg-editor-bg cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
+                        @click.stop="openAssetFile(asset.name)"
+                        :title="`Click to open ${asset.name}`"
+                      >
+                        <span
+                          class="codicon text-[12px]"
+                          :class="assetStatusIconClass(asset.status)"
+                        ></span>
+                        <span class="truncate max-w-[150px]">{{ asset.name }}</span>
+                      </div>
+                    </div>
+
+                    <!-- Show more/less -->
+                    <div v-if="sortedAssets.length > ASSETS_LIMIT" class="mt-3">
+                      <button
+                        class="text-[11px] text-[--vscode-textLink-foreground] hover:underline cursor-pointer bg-transparent border-none p-0"
+                        @click.stop="showAllAssets = !showAllAssets"
+                      >
+                        {{ showAllAssets ? 'Show less' : `Show ${sortedAssets.length - ASSETS_LIMIT} more` }}
+                      </button>
                     </div>
                   </div>
-
-                  <!-- Show more/less -->
-                  <div v-if="sortedAssets.length > ASSETS_LIMIT" class="mt-2">
-                    <button
-                      class="text-[11px] text-[--vscode-textLink-foreground] hover:underline cursor-pointer bg-transparent border-none p-0"
-                      @click.stop="showAllAssets = !showAllAssets"
-                    >
-                      {{ showAllAssets ? 'Show less' : `Show ${sortedAssets.length - ASSETS_LIMIT} more` }}
-                    </button>
+                  <div v-else class="py-6 text-center">
+                    <span class="codicon codicon-loading animate-spin"></span>
                   </div>
-                </div>
-                <div v-else class="py-4 text-center">
-                  <span class="codicon codicon-loading animate-spin"></span>
                 </div>
               </td>
             </tr>
@@ -355,14 +363,6 @@ const assetStatusIconClass = (status: string) => {
   return "codicon-error text-[--vscode-testing-iconFailed]";
 };
 
-const formatRunId = (runId: string) => {
-  // Format: 2026_02_03_11_24_30 -> 02/03 11:24
-  const parts = runId.split("_");
-  if (parts.length >= 5) {
-    return `${parts[1]}/${parts[2]} ${parts[3]}:${parts[4]}`;
-  }
-  return runId;
-};
 
 const formatTime = (timestamp: string) => {
   try {
