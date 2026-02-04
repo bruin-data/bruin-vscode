@@ -63,6 +63,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.77.0**: Added a new panel to display run history, showing executed flags and assets, with options to rerun or copy the command.
 - **0.76.3**: Improved the query preview to support sorting and to show the pipeline start date when "Full Refresh" is checked.
 - **0.76.2**: Fixed the run with downstream option to be disabled when the file is a pipeline file.
 - **0.76.1**: Added a "Copy command" option to the run button group.
