@@ -150,52 +150,50 @@
             <tr v-if="expandedRun === run.runId" class="expanded-details-row">
               <td colspan="7" class="p-0">
                 <div class="mx-2 my-2 rounded border border-panel-border bg-sideBar-bg shadow-sm overflow-hidden">
-                  <!-- Header bar -->
-                  <div class="flex items-center justify-between px-3 py-1.5 bg-editor-bg border-b border-panel-border">
-                    <span class="text-[10px] text-descriptionForeground font-medium uppercase tracking-wide">
-                      Assets ({{ sortedAssets.length }})
-                    </span>
-                    <vscode-button
-                      appearance="icon"
-                      @click.stop="copyRunCommand(run.filePath)"
-                      title="Copy run command"
-                    >
-                      <span class="codicon codicon-copy"></span>
-                    </vscode-button>
-                  </div>
-
-                  <!-- Content -->
-                  <div class="p-3" v-if="runDetails">
-                    <!-- Assets - sorted: failed, succeeded, skipped -->
-                    <div class="flex flex-wrap gap-1.5">
-                      <div
-                        v-for="asset in visibleAssets"
-                        :key="asset.name"
-                       class="inline-flex items-center gap-1 px-2 py-1 rounded border border-panel-border text-[11px] bg-editor-bg cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
-                        @click.stop="openAssetFile(asset.name)"
-                        :title="`Click to open ${asset.name}`"
-                      >
-                        <span
-                          class="codicon text-[12px]"
-                          :class="assetStatusIconClass(asset.status)"
-                        ></span>
-                        <span class="truncate max-w-[150px]">{{ asset.name }}</span>
-                      </div>
-                    </div>
-
-                    <!-- Show more/less -->
-                    <div v-if="sortedAssets.length > ASSETS_LIMIT" class="mt-3">
-                      <button
-                        class="text-[11px] text-[--vscode-textLink-foreground] hover:underline cursor-pointer bg-transparent border-none p-0"
-                        @click.stop="showAllAssets = !showAllAssets"
-                      >
-                        {{ showAllAssets ? 'Show less' : `Show ${sortedAssets.length - ASSETS_LIMIT} more` }}
-                      </button>
-                    </div>
-                  </div>
-                  <div v-else class="py-6 text-center">
+                  <!-- Loading state -->
+                  <div v-if="!runDetails" class="py-6 text-center">
                     <span class="codicon codicon-loading animate-spin"></span>
                   </div>
+
+                  <!-- Loaded content -->
+                  <template v-else>
+                    <!-- Header bar -->
+                    <div class="flex items-center justify-between px-3 py-1.5 bg-editor-bg border-b border-panel-border">
+                      <span class="text-[10px] text-descriptionForeground font-medium uppercase tracking-wide">
+                        Assets ({{ sortedAssets.length }})
+                      </span>
+                    </div>
+
+                    <!-- Content -->
+                    <div class="p-3">
+                      <!-- Assets - sorted: failed, succeeded, skipped -->
+                      <div class="flex flex-wrap gap-1.5">
+                        <div
+                          v-for="asset in visibleAssets"
+                          :key="asset.name"
+                          class="inline-flex items-center gap-1 px-2 py-1 rounded border border-panel-border text-[11px] bg-editor-bg cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
+                          @click.stop="openAssetFile(asset.name)"
+                          :title="`Click to open ${asset.name}`"
+                        >
+                          <span
+                            class="codicon text-[12px]"
+                            :class="assetStatusIconClass(asset.status)"
+                          ></span>
+                          <span class="truncate max-w-[150px]">{{ asset.name }}</span>
+                        </div>
+                      </div>
+
+                      <!-- Show more/less -->
+                      <div v-if="sortedAssets.length > ASSETS_LIMIT" class="mt-3">
+                        <button
+                          class="text-[11px] text-[--vscode-textLink-foreground] hover:underline cursor-pointer bg-transparent border-none p-0"
+                          @click.stop="showAllAssets = !showAllAssets"
+                        >
+                          {{ showAllAssets ? 'Show less' : `Show ${sortedAssets.length - ASSETS_LIMIT} more` }}
+                        </button>
+                      </div>
+                    </div>
+                  </template>
                 </div>
               </td>
             </tr>
@@ -338,14 +336,6 @@ const openAssetFile = (assetName: string) => {
       pipeline: currentRun?.pipeline,
       filePath: currentRun?.filePath
     },
-  });
-};
-
-const copyRunCommand = (filePath: string) => {
-  if (!runDetails.value) return;
-  vscode.postMessage({
-    command: "bruin.copyRunCommand",
-    payload: { filePath, parameters: runDetails.value.parameters },
   });
 };
 
