@@ -91,6 +91,15 @@ export class RunLogService {
     if (params.excludeTag) flags.push(`exclude:${params.excludeTag}`);
     if (params.only && params.only.length > 0) flags.push(`${params.only.length} assets`);
 
+    // Extract run path from cmdline (last argument is the asset/pipeline path)
+    let runPath: string | undefined;
+    if (log.cmdline && log.cmdline.length > 0) {
+      const lastArg = log.cmdline[log.cmdline.length - 1];
+      if (lastArg && !lastArg.startsWith("-")) {
+        runPath = lastArg;
+      }
+    }
+
     return {
       runId: log.run_id,
       pipeline,
@@ -102,6 +111,7 @@ export class RunLogService {
       environment: log.parameters.environment,
       filePath,
       flags: flags.length > 0 ? flags : undefined,
+      runPath,
     };
   }
 

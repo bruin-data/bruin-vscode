@@ -162,6 +162,22 @@
                       <span class="text-[10px] text-descriptionForeground font-medium uppercase tracking-wide">
                         Assets ({{ sortedAssets.length }})
                       </span>
+                      <div class="flex items-center gap-1" v-if="runDetails.cmdline">
+                        <vscode-button
+                          appearance="icon"
+                          @click.stop="copyRunCommand"
+                          title="Copy run command"
+                        >
+                          <span class="codicon codicon-copy"></span>
+                        </vscode-button>
+                        <vscode-button
+                          appearance="icon"
+                          @click.stop="rerunCommand"
+                          title="Rerun"
+                        >
+                          <span class="codicon codicon-debug-rerun"></span>
+                        </vscode-button>
+                      </div>
                     </div>
 
                     <!-- Content -->
@@ -235,6 +251,7 @@ interface RunDetails {
   metadata: any;
   timestamp: string;
   run_id: string;
+  cmdline?: string[];
 }
 
 interface RunSummary {
@@ -248,6 +265,7 @@ interface RunSummary {
   environment: string;
   filePath: string;
   flags?: string[];
+  runPath?: string;
 }
 
 const runs = ref<RunSummary[]>([]);
@@ -333,9 +351,24 @@ const openAssetFile = (assetName: string) => {
     command: "bruin.openAssetFile",
     payload: {
       assetName,
-      pipeline: currentRun?.pipeline,
-      filePath: currentRun?.filePath
+      runPath: currentRun?.runPath
     },
+  });
+};
+
+const copyRunCommand = () => {
+  if (!runDetails.value?.cmdline) return;
+  vscode.postMessage({
+    command: "bruin.copyRunCommand",
+    payload: { cmdline: [...runDetails.value.cmdline] },
+  });
+};
+
+const rerunCommand = () => {
+  if (!runDetails.value?.cmdline) return;
+  vscode.postMessage({
+    command: "bruin.rerunCommand",
+    payload: { cmdline: [...runDetails.value.cmdline] },
   });
 };
 

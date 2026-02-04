@@ -438,7 +438,7 @@ export class BruinLanguageServer {
                 return null;
             }
 
-            const asset = pipelineData.assets.find((asset: any) => 
+            const asset = pipelineData.assets.find((asset: any) =>
                 asset.name === dependencyName
             );
 
@@ -448,7 +448,6 @@ export class BruinLanguageServer {
 
             return null;
         } catch (error) {
-            console.error('Error finding asset file:', error);
             return null;
         }
     }

@@ -42,6 +42,7 @@ export interface RunLog {
   timestamp: string;
   run_id: string;
   compatibility_hash: string;
+  cmdline?: string[];
 }
 
 export type RunStatus = "succeeded" | "failed" | "running";
@@ -58,6 +59,7 @@ export interface RunSummary {
   filePath: string;
   duration?: string;
   flags?: string[];
+  runPath?: string; // The asset/pipeline path from cmdline
 }
 
 // Types for the new -o json output from bruin run

@@ -181,49 +181,33 @@ export class RunHistoryPanel implements vscode.WebviewViewProvider, vscode.Dispo
           }
           break;
         case "bruin.openAssetFile":
-          await this.openAssetFile(message.payload.assetName, message.payload.filePath, message.payload.pipeline);
+          await this.openAssetFile(message.payload.assetName, message.payload.runPath);
+          break;
+        case "bruin.copyRunCommand":
+          await this.copyRunCommand(message.payload.cmdline);
+          break;
+        case "bruin.rerunCommand":
+          await this.rerunCommand(message.payload.cmdline);
           break;
       }
     });
   }
 
-  private async openAssetFile(assetName: string, logFilePath: string, pipeline?: string) {
+  private async openAssetFile(assetName: string, runPath?: string) {
     try {
-      // Get workspace root from log file path
-      const logPathParts = logFilePath.split("/logs/runs/");
-      const workspaceRoot = logPathParts.length >= 2 ? logPathParts[0] : null;
-
-      // Try to find asset using language server
       let assetPath: string | null = null;
       const languageServer = BruinLanguageServer.getInstance();
 
-      // First try with active file if it's a bruin file
-      const activeFile = vscode.window.activeTextEditor?.document.uri.fsPath;
-      if (activeFile && (activeFile.endsWith('.sql') || activeFile.endsWith('.py') || activeFile.endsWith('.yml'))) {
-        assetPath = await languageServer.findAssetFile(assetName, activeFile);
+      // Use runPath from cmdline as context (most accurate - same pipeline)
+      if (runPath) {
+        assetPath = await languageServer.findAssetFile(assetName, runPath);
       }
 
-      // If not found and we have workspace root and pipeline, try with a file from that specific pipeline
-      if (!assetPath && workspaceRoot && pipeline) {
-        const pipelinePattern = new vscode.RelativePattern(
-          workspaceRoot,
-          `${pipeline}/**/*.{sql,py,asset.yml}`
-        );
-        const bruinFiles = await vscode.workspace.findFiles(pipelinePattern, "**/node_modules/**", 1);
-        if (bruinFiles.length > 0) {
-          assetPath = await languageServer.findAssetFile(assetName, bruinFiles[0].fsPath);
-        }
-      }
-
-      // Fallback: try any bruin file in workspace
-      if (!assetPath && workspaceRoot) {
-        const bruinFiles = await vscode.workspace.findFiles(
-          new vscode.RelativePattern(workspaceRoot, "**/*.{sql,py,asset.yml}"),
-          "**/node_modules/**",
-          1
-        );
-        if (bruinFiles.length > 0) {
-          assetPath = await languageServer.findAssetFile(assetName, bruinFiles[0].fsPath);
+      // Fallback: try with active file
+      if (!assetPath) {
+        const activeFile = vscode.window.activeTextEditor?.document.uri.fsPath;
+        if (activeFile && (activeFile.endsWith('.sql') || activeFile.endsWith('.py') || activeFile.endsWith('.yml'))) {
+          assetPath = await languageServer.findAssetFile(assetName, activeFile);
         }
       }
 
@@ -234,8 +218,37 @@ export class RunHistoryPanel implements vscode.WebviewViewProvider, vscode.Dispo
         vscode.window.showWarningMessage(`Could not find file for asset: ${assetName}`);
       }
     } catch (error) {
-      console.error("Error opening asset file:", error);
       vscode.window.showWarningMessage(`Error opening asset: ${assetName}`);
+    }
+  }
+
+  private async copyRunCommand(cmdline: string[]) {
+    if (!cmdline || cmdline.length === 0) {
+      vscode.window.showWarningMessage("No command available to copy");
+      return;
+    }
+    try {
+      const command = cmdline.join(" ");
+      await vscode.env.clipboard.writeText(command);
+      vscode.window.showInformationMessage("Run command copied to clipboard");
+    } catch (error) {
+      console.error("Error copying run command:", error);
+      vscode.window.showWarningMessage("Failed to copy run command");
+    }
+  }
+
+  private async rerunCommand(cmdline: string[]) {
+    if (!cmdline || cmdline.length === 0) {
+      vscode.window.showWarningMessage("No command available to rerun");
+      return;
+    }
+    try {
+      const terminal = vscode.window.createTerminal("Bruin Run");
+      terminal.show();
+      terminal.sendText(cmdline.join(" "));
+    } catch (error) {
+      console.error("Error rerunning command:", error);
+      vscode.window.showWarningMessage("Failed to rerun command");
     }
   }
 
