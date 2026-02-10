@@ -1,4 +1,7 @@
 # Changelog
+## [0.77.1] - [2026-02-04]
+- Changed the table diff behavior: it now compares only the schema by default, and uses the `--full` flag for full data diffs.
+
 ## [0.77.0] - [2026-02-04]
 - Added a new panel to display run history, showing executed flags and assets, with options to rerun or copy the command.
  

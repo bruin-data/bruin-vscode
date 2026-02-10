@@ -63,10 +63,9 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.77.1**: Changed the table diff behavior: it now compares only the schema by default, and uses the `--full` flag for full data diffs.
 - **0.77.0**: Added a new panel to display run history, showing executed flags and assets, with options to rerun or copy the command.
-- **0.76.4**: Fixed the start date input field to set teh date correctly.
+- **0.76.4**: Fixed the start date input field to set the date correctly.
 - **0.76.3**: Improved the query preview to support sorting and to show the pipeline start date when "Full Refresh" is checked.
-- **0.76.2**: Fixed the run with downstream option to be disabled when the file is a pipeline file.
-- **0.76.1**: Added a "Copy command" option to the run button group.
 
 For a full changelog, see Bruin Extension [Changelog](https://github.com/bruin-data/bruin-vscode/blob/main/CHANGELOG.md).
