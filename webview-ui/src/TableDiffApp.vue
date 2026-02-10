@@ -95,12 +95,12 @@
                  <div class="flex items-center gap-3 ml-auto">
            <div class="flex items-center gap-2">
              <vscode-checkbox
-               v-model="schemaOnlyComparison"
-               @change="onSchemaOnlyChange"
+               v-model="fullDataComparison"
+               @change="onFullDataChange"
                :disabled="isLoading"
              ></vscode-checkbox>
-             <label class="text-xs text-editor-fg cursor-pointer" @click="toggleSchemaOnly">
-               Schema only
+             <label class="text-xs text-editor-fg cursor-pointer" @click="toggleFullData">
+               Full data
              </label>
            </div>
            
@@ -203,7 +203,7 @@ const isLoading = ref(false);
 const results = ref("");
 const error = ref("");
 const comparisonInfo = ref<ComparisonInfo>({ source: "", target: "" });
-const schemaOnlyComparison = ref(false);
+const fullDataComparison = ref(false);
 
 // Autocomplete state
 const sourceTables = ref<string[]>([]);
@@ -532,7 +532,7 @@ const executeComparison = () => {
     targetConnection: targetConnection.value,
     sourceTable: sourceTableInput.value.trim(),
     targetTable: targetTableInput.value.trim(),
-    schemaOnly: schemaOnlyComparison.value,
+    fullDataDiff: fullDataComparison.value,
   });
 };
 
@@ -546,7 +546,7 @@ const clearResults = () => {
   results.value = "";
   error.value = "";
   comparisonInfo.value = { source: "", target: "" };
-  schemaOnlyComparison.value = false;
+  fullDataComparison.value = false;
 };
 
 const copied = ref(false);
@@ -561,15 +561,15 @@ const copyResults = () => {
   }
 };
 
-const onSchemaOnlyChange = (event: Event) => {
+const onFullDataChange = (event: Event) => {
   const target = event.target as HTMLInputElement;
-  schemaOnlyComparison.value = target.checked;
-  console.log('Schema only comparison:', schemaOnlyComparison.value);
+  fullDataComparison.value = target.checked;
+  console.log('Full data comparison:', fullDataComparison.value);
 };
 
-const toggleSchemaOnly = () => {
-  schemaOnlyComparison.value = !schemaOnlyComparison.value;
-  console.log('Schema only comparison toggled to:', schemaOnlyComparison.value);
+const toggleFullData = () => {
+  fullDataComparison.value = !fullDataComparison.value;
+  console.log('Full data comparison toggled to:', fullDataComparison.value);
 };
 
 // Message handling

@@ -1,32 +1,34 @@
 <template>
   <div class="flex flex-col h-full">
-    <!-- Legacy CLI Warning -->
-    <div v-if="isLegacyOutput" class="flex items-center gap-2 py-2 px-3 bg-yellow-500/10 border-b border-yellow-500/30">
-      <span class="codicon codicon-warning text-yellow-500"></span>
-      <span class="text-xs text-editor-fg">
-        Update Bruin CLI to v0.11.404+ for detailed comparison results. 
-      </span>
-    </div>
-
-    <!-- Summary Bar (only show if we have data) -->
-    <div v-if="!isLegacyOutput" class="flex items-center py-2 px-3 bg-editorWidget-bg border-b border-panel-border">
-      <div class="flex items-center gap-3">
-        <span class="codicon codicon-diff-multiple text-editor-fg opacity-60"></span>
-        <span class="text-sm text-editor-fg">
-          <span class="font-semibold">{{ summary.rowCount.source }}</span>→<span class="font-semibold">{{ summary.rowCount.target }}</span> rows
-          •
-          <span class="font-semibold">{{ summary.columnCount.source }}</span>→<span class="font-semibold">{{ summary.columnCount.target }}</span> columns
+    <!-- Parse Error - Show Raw Output -->
+    <template v-if="parseError">
+      <div class="flex items-center gap-2 py-2 px-3 bg-yellow-500/10 border-b border-yellow-500/30">
+        <span class="codicon codicon-warning text-yellow-500"></span>
+        <span class="text-xs text-editor-fg">
+          Failed to parse results. Showing raw output.
         </span>
       </div>
-    </div>
+      <div class="flex-1 overflow-auto p-3 bg-editor-bg">
+        <pre class="text-xs font-mono text-editor-fg whitespace-pre-wrap">{{ rawOutput }}</pre>
+      </div>
+    </template>
 
-    <!-- Legacy Raw Output -->
-    <div v-if="isLegacyOutput" class="flex-1 overflow-auto p-3 bg-editor-bg">
-      <pre class="text-xs font-mono text-editor-fg whitespace-pre-wrap">{{ rawOutput }}</pre>
-    </div>
+    <!-- Normal Parsed View -->
+    <template v-else>
+      <!-- Summary Bar -->
+      <div class="flex items-center py-2 px-3 bg-editorWidget-bg border-b border-panel-border">
+        <div class="flex items-center gap-3">
+          <span class="codicon codicon-diff-multiple text-editor-fg opacity-60"></span>
+          <span class="text-sm text-editor-fg">
+            <span class="font-semibold">{{ summary.rowCount.source }}</span>→<span class="font-semibold">{{ summary.rowCount.target }}</span> rows
+            •
+            <span class="font-semibold">{{ summary.columnCount.source }}</span>→<span class="font-semibold">{{ summary.columnCount.target }}</span> columns
+          </span>
+        </div>
+      </div>
 
-    <!-- Tab Navigation (hide in legacy mode) -->
-    <div v-if="!isLegacyOutput" class="flex items-center border-b border-panel-border bg-editor-bg">
+      <!-- Tab Navigation -->
+      <div class="flex items-center border-b border-panel-border bg-editor-bg">
       <button
         v-for="tab in tabs"
         :key="tab.id"
@@ -49,8 +51,8 @@
       </button>
     </div>
 
-    <!-- Tab Content (hide in legacy mode) -->
-    <div v-if="!isLegacyOutput" class="flex-1 overflow-auto bg-editor-bg">
+    <!-- Tab Content -->
+    <div class="flex-1 overflow-auto bg-editor-bg">
       <!-- Schema Tab -->
       <div v-if="activeTab === 'schema'" class="p-2">
         <!-- Search & Filter Bar -->
@@ -286,6 +288,7 @@
       </div>
 
     </div>
+    </template>
   </div>
 </template>
 
@@ -343,57 +346,46 @@ const showImportantOnly = ref(false);
 const expandedColumns = ref<string[]>([]);
 const showAlterStatements = ref(false);
 const copiedAlter = ref(false);
-
-// Track if we're using legacy (non-JSON) output
-const isLegacyOutput = ref(false);
+const parseError = ref<string | null>(null);
 
 // Parse the raw output
 const parsedData = computed<ParsedDiff>(() => {
+  const trimmedOutput = props.rawOutput?.trim() || '';
+  const defaultResult: ParsedDiff = {
+    summary: { rowCount: { source: 0, target: 0, diff: 0 }, columnCount: { source: 0, target: 0, diff: 0 } },
+    schemaDiffs: [],
+    columnStatistics: [],
+    alterStatements: '',
+    sourceTable: 'Source',
+    targetTable: 'Target'
+  };
+
+  if (!trimmedOutput) {
+    parseError.value = null;
+    return defaultResult;
+  }
+
   try {
-    // Try to parse as JSON first
-    const parsed = JSON.parse(props.rawOutput);
-    isLegacyOutput.value = false;
+    const parsed = JSON.parse(trimmedOutput);
+    parseError.value = null;
     return {
-      summary: parsed.summary || { rowCount: { source: 0, target: 0, diff: 0 }, columnCount: { source: 0, target: 0, diff: 0 } },
+      summary: parsed.summary || defaultResult.summary,
       schemaDiffs: parsed.schemaDiffs || [],
       columnStatistics: parsed.columnStatistics || [],
       alterStatements: parsed.alterStatements || '',
       sourceTable: parsed.sourceTable || 'Source',
       targetTable: parsed.targetTable || 'Target'
     };
-  } catch {
-    // If not JSON, we're in legacy mode
-    isLegacyOutput.value = true;
-    return parseTextOutput(props.rawOutput);
+  } catch (e) {
+    const errorMsg = e instanceof Error ? e.message : String(e);
+    console.error('Failed to parse JSON output:', e);
+    console.error('Output length:', trimmedOutput.length);
+    console.error('Output starts with:', trimmedOutput.substring(0, 200));
+    console.error('Output ends with:', trimmedOutput.substring(trimmedOutput.length - 200));
+    parseError.value = errorMsg;
+    return defaultResult;
   }
 });
-
-// Parse text output (fallback)
-function parseTextOutput(text: string): ParsedDiff {
-  const summary: TableDiffSummary = {
-    rowCount: { source: 0, target: 0, diff: 0 },
-    columnCount: { source: 0, target: 0, diff: 0 }
-  };
-  const schemaDiffs: ColumnDiff[] = [];
-  const columnStatistics: ColumnStatistics[] = [];
-
-  // Try to extract row/column counts from text
-  const rowMatch = text.match(/Row Count[^\d]*(\d+)[^\d]*(\d+)/);
-  if (rowMatch) {
-    summary.rowCount.source = parseInt(rowMatch[1]);
-    summary.rowCount.target = parseInt(rowMatch[2]);
-    summary.rowCount.diff = summary.rowCount.target - summary.rowCount.source;
-  }
-
-  const colMatch = text.match(/Column Count[^\d]*(\d+)[^\d]*(\d+)/);
-  if (colMatch) {
-    summary.columnCount.source = parseInt(colMatch[1]);
-    summary.columnCount.target = parseInt(colMatch[2]);
-    summary.columnCount.diff = summary.columnCount.target - summary.columnCount.source;
-  }
-
-  return { summary, schemaDiffs, columnStatistics };
-}
 
 // Computed
 const summary = computed(() => parsedData.value.summary);

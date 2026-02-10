@@ -394,6 +394,7 @@
                     <div
                       class="resize-handle"
                       @mousedown.stop="startResize($event, Number(colIndex))"
+                      @click.stop
                       title="Drag to resize column"
                     ></div>
                   </th>
