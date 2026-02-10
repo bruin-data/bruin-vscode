@@ -81,7 +81,7 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
                 message.sourceTable,
                 message.targetConnection,
                 message.targetTable,
-                message.schemaOnly
+                message.fullDataDiff
               );
               break;
             case 'cancelTableDiff':
@@ -291,7 +291,7 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
     sourceTable: string,
     targetConnection: string,
     targetTable: string,
-    schemaOnly: boolean
+    fullDataDiff: boolean
   ) {
     try {
       await vscode.window.withProgress({
@@ -321,7 +321,7 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
           sourceTable,
           targetConnection,
           targetTable,
-          schemaOnly
+          fullDataDiff
         );
 
         const sourceInfo = `${sourceConnection}:${sourceTable}`;

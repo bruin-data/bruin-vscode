@@ -26,7 +26,7 @@ export class BruinTableDiff extends BruinCommand {
    * @param {string} sourceTable - The source table in format 'schema.table' or 'table'.
    * @param {string} targetConnection - The target connection name.
    * @param {string} targetTable - The target table in format 'schema.table' or 'table'.
-   * @param {boolean} [schemaOnly=false] - Whether to compare only schema differences.
+   * @param {boolean} [fullDataDiff=false] - Whether to compare the full data differences.
    * @param {BruinCommandOptions} [options={}] - Optional parameters for execution.
    * @returns {Promise<string>} A promise that resolves with the diff results.
    */
@@ -35,14 +35,14 @@ export class BruinTableDiff extends BruinCommand {
     sourceTable: string,
     targetConnection: string,
     targetTable: string,
-    schemaOnly: boolean = false,
+    fullDataDiff: boolean = false,
     options: BruinCommandOptions = {}
   ): Promise<string> {
     const args = [
       `${sourceConnection}:${sourceTable}`,
       `${targetConnection}:${targetTable}`,
       "-o", "json",
-      ...(schemaOnly ? ["--schema-only"] : [])
+      ...(fullDataDiff ? ["--full"] : [])
     ];
 
     try {
