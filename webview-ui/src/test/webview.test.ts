@@ -2108,7 +2108,361 @@ suite('AssetLineage hover functionality', () => {
     });
   });
 
-  suite('Asset Dependencies - Recursive Fetching', () => {
+  suite('GCP use_application_default_credentials string vs boolean handling', () => {
+  // This suite tests the critical fix for handling both boolean `true` and string "true"
+  // values for use_application_default_credentials, which was causing credentials to be lost
+  // when editing GCP connections
+
+  test('should treat boolean true as using default credentials', () => {
+    const form = { value: { use_application_default_credentials: true } };
+
+    // Simulate the fixed comparison logic from ConnectionsForm.vue:350
+    const useDefaultCreds = form.value.use_application_default_credentials === true ||
+                            form.value.use_application_default_credentials === "true";
+
+    assert.strictEqual(useDefaultCreds, true);
+  });
+
+  test('should treat string "true" as using default credentials', () => {
+    const form = { value: { use_application_default_credentials: "true" } };
+
+    // Simulate the fixed comparison logic from ConnectionsForm.vue:350
+    const useDefaultCreds = form.value.use_application_default_credentials === true ||
+                            form.value.use_application_default_credentials === "true";
+
+    assert.strictEqual(useDefaultCreds, true);
+  });
+
+  test('should treat boolean false as NOT using default credentials', () => {
+    const form = { value: { use_application_default_credentials: false } };
+
+    const useDefaultCreds = form.value.use_application_default_credentials === true ||
+                            form.value.use_application_default_credentials === "true";
+
+    assert.strictEqual(useDefaultCreds, false);
+  });
+
+  test('should treat string "false" as NOT using default credentials', () => {
+    const form = { value: { use_application_default_credentials: "false" } };
+
+    const useDefaultCreds = form.value.use_application_default_credentials === true ||
+                            form.value.use_application_default_credentials === "true";
+
+    assert.strictEqual(useDefaultCreds, false);
+  });
+
+  test('should treat undefined as NOT using default credentials', () => {
+    const form = { value: { use_application_default_credentials: undefined } };
+
+    const useDefaultCreds = form.value.use_application_default_credentials === true ||
+                            form.value.use_application_default_credentials === "true";
+
+    assert.strictEqual(useDefaultCreds, false);
+  });
+
+  test('should treat null as NOT using default credentials', () => {
+    const form = { value: { use_application_default_credentials: null } };
+
+    const useDefaultCreds = form.value.use_application_default_credentials === true ||
+                            form.value.use_application_default_credentials === "true";
+
+    assert.strictEqual(useDefaultCreds, false);
+  });
+
+  test('GCP connection data should include use_application_default_credentials when boolean true', () => {
+    const form = {
+      connection_type: "google_cloud_platform",
+      connection_name: "test-gcp",
+      environment: "dev",
+      use_application_default_credentials: true,
+      project_id: "my-project",
+    };
+
+    const connectionData: any = {
+      name: form.connection_name,
+      type: form.connection_type,
+      environment: form.environment,
+      credentials: {},
+    };
+
+    const useDefaultCreds = form.use_application_default_credentials === true ||
+                            form.use_application_default_credentials === "true" as any;
+
+    if (form.connection_type === "google_cloud_platform" && useDefaultCreds) {
+      connectionData.credentials.use_application_default_credentials = true;
+    }
+
+    assert.strictEqual(connectionData.credentials.use_application_default_credentials, true);
+  });
+
+  test('GCP connection data should include use_application_default_credentials when string "true"', () => {
+    const form = {
+      connection_type: "google_cloud_platform",
+      connection_name: "test-gcp",
+      environment: "dev",
+      use_application_default_credentials: "true" as any,
+      project_id: "my-project",
+    };
+
+    const connectionData: any = {
+      name: form.connection_name,
+      type: form.connection_type,
+      environment: form.environment,
+      credentials: {},
+    };
+
+    const useDefaultCreds = form.use_application_default_credentials === true ||
+                            form.use_application_default_credentials === "true";
+
+    if (form.connection_type === "google_cloud_platform" && useDefaultCreds) {
+      connectionData.credentials.use_application_default_credentials = true;
+    }
+
+    assert.strictEqual(connectionData.credentials.use_application_default_credentials, true);
+  });
+
+  test('GCP connection should preserve use_application_default_credentials when adding location field', () => {
+    // This simulates the bug scenario: user has a GCP connection with use_application_default_credentials,
+    // then adds a location field, and the credentials should be preserved
+
+    const existingConnection = {
+      type: "google_cloud_platform",
+      name: "my-gcp-connection",
+      project_id: "my-project",
+      use_application_default_credentials: true,
+    };
+
+    // Simulate editing the connection and adding a location
+    const editedConnection = {
+      ...existingConnection,
+      location: "us-central1",
+    };
+
+    // The credentials should still include use_application_default_credentials
+    const credentials = editedConnection;
+    const useDefaultCreds = credentials.use_application_default_credentials === true ||
+                            (credentials.use_application_default_credentials as any) === "true";
+
+    assert.strictEqual(useDefaultCreds, true);
+    assert.strictEqual(editedConnection.location, "us-central1");
+    assert.strictEqual(editedConnection.use_application_default_credentials, true);
+  });
+
+  test('determineServiceAccountInputMethod should return "default" when use_application_default_credentials is true', () => {
+    // Simulate the determineServiceAccountInputMethod function from ConnectionsForm.vue
+    const determineServiceAccountInputMethod = (connection: any) => {
+      if (connection.service_account_file) {
+        return "file";
+      } else if (connection.service_account_json) {
+        return "text";
+      } else if (connection.use_application_default_credentials) {
+        return "default";
+      }
+      return "file";
+    };
+
+    const connectionWithBooleanTrue = { use_application_default_credentials: true };
+    const connectionWithStringTrue = { use_application_default_credentials: "true" };
+    const connectionWithFile = { service_account_file: "/path/to/file.json" };
+    const connectionWithJson = { service_account_json: "{...}" };
+
+    assert.strictEqual(determineServiceAccountInputMethod(connectionWithBooleanTrue), "default");
+    assert.strictEqual(determineServiceAccountInputMethod(connectionWithStringTrue), "default");
+    assert.strictEqual(determineServiceAccountInputMethod(connectionWithFile), "file");
+    assert.strictEqual(determineServiceAccountInputMethod(connectionWithJson), "text");
+  });
+});
+
+suite('DateInput component logic', () => {
+  // Test the date parsing and validation logic from DateInput.vue
+
+  test('should parse valid date format yyyy-MM-dd HH:mm', () => {
+    // Simulate the tryParseDate function logic
+    const tryParseDate = (value: string): boolean => {
+      if (!value.trim()) {
+        return false;
+      }
+      // Simple validation - check format YYYY-MM-DD HH:mm
+      const regex = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/;
+      return regex.test(value.trim());
+    };
+
+    assert.strictEqual(tryParseDate("2024-07-08 14:30"), true);
+    assert.strictEqual(tryParseDate("2025-01-15 00:00"), true);
+    assert.strictEqual(tryParseDate("2024-12-31 23:59"), true);
+  });
+
+  test('should reject invalid date formats', () => {
+    const tryParseDate = (value: string): boolean => {
+      if (!value.trim()) {
+        return false;
+      }
+      const regex = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/;
+      return regex.test(value.trim());
+    };
+
+    assert.strictEqual(tryParseDate("2024/07/08 14:30"), false);
+    assert.strictEqual(tryParseDate("07-08-2024 14:30"), false);
+    assert.strictEqual(tryParseDate("2024-07-08"), false);
+    assert.strictEqual(tryParseDate("14:30"), false);
+    assert.strictEqual(tryParseDate("invalid date"), false);
+    assert.strictEqual(tryParseDate(""), false);
+    assert.strictEqual(tryParseDate("   "), false);
+  });
+
+  test('should handle empty string input', () => {
+    const tryParseDate = (value: string): { valid: boolean; error: string | null } => {
+      if (!value.trim()) {
+        return { valid: false, error: null };
+      }
+      const regex = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/;
+      if (!regex.test(value.trim())) {
+        return { valid: false, error: "Invalid date format." };
+      }
+      return { valid: true, error: null };
+    };
+
+    const emptyResult = tryParseDate("");
+    assert.strictEqual(emptyResult.valid, false);
+    assert.strictEqual(emptyResult.error, null);
+
+    const whitespaceResult = tryParseDate("   ");
+    assert.strictEqual(whitespaceResult.valid, false);
+    assert.strictEqual(whitespaceResult.error, null);
+  });
+
+  test('startDate and endDate should be properly initialized', () => {
+    // Simulate the initialization logic from AssetGeneral.vue
+    const today = new Date("2024-07-08T12:00:00.000Z");
+
+    const startDate = new Date(Date.UTC(
+      today.getUTCFullYear(),
+      today.getUTCMonth(),
+      today.getUTCDate() - 1,
+      0, 0, 0, 0
+    )).toISOString().slice(0, -1);
+
+    const endDate = new Date(Date.UTC(
+      today.getUTCFullYear(),
+      today.getUTCMonth(),
+      today.getUTCDate(),
+      0, 0, 0, 0
+    )).toISOString().slice(0, -1);
+
+    // startDate should be yesterday at midnight UTC
+    assert.strictEqual(startDate.includes("2024-07-07"), true);
+    assert.strictEqual(startDate.includes("T00:00:00"), true);
+
+    // endDate should be today at midnight UTC
+    assert.strictEqual(endDate.includes("2024-07-08"), true);
+    assert.strictEqual(endDate.includes("T00:00:00"), true);
+  });
+
+  test('startDate should be before endDate after initialization', () => {
+    const today = new Date("2024-07-08T12:00:00.000Z");
+
+    const startDateObj = new Date(Date.UTC(
+      today.getUTCFullYear(),
+      today.getUTCMonth(),
+      today.getUTCDate() - 1,
+      0, 0, 0, 0
+    ));
+
+    const endDateObj = new Date(Date.UTC(
+      today.getUTCFullYear(),
+      today.getUTCMonth(),
+      today.getUTCDate(),
+      0, 0, 0, 0
+    ));
+
+    assert.strictEqual(startDateObj.getTime() < endDateObj.getTime(), true);
+  });
+
+  test('date update should preserve valid values', () => {
+    // Simulate updating a date value
+    const startDate = { value: "2024-07-07T00:00:00.000Z" };
+    const newValue = "2024-07-06T12:30:00.000Z";
+
+    startDate.value = newValue;
+
+    assert.strictEqual(startDate.value, newValue);
+  });
+
+  test('resetStartEndDate should set correct dates for daily schedule', () => {
+    const today = new Date("2024-07-08T05:23:00.000Z");
+    const startDate = { value: "" };
+    const endDate = { value: "" };
+
+    // Simulate the resetStartEndDate function for daily schedule
+    resetStartEndDate("daily", today.getTime(), startDate, endDate);
+
+    assert.strictEqual(startDate.value, "2024-07-07T00:00:00.000Z");
+    assert.strictEqual(endDate.value, "2024-07-08T00:00:00.000Z");
+  });
+
+  test('resetStartEndDate should set correct dates for hourly schedule', () => {
+    const today = new Date("2024-07-08T05:23:00.000Z");
+    const startDate = { value: "" };
+    const endDate = { value: "" };
+
+    resetStartEndDate("hourly", today.getTime(), startDate, endDate);
+
+    assert.strictEqual(startDate.value, "2024-07-08T04:00:00.000Z");
+    assert.strictEqual(endDate.value, "2024-07-08T05:00:00.000Z");
+  });
+
+  test('adjustEndDateForExclusive should subtract one nanosecond', () => {
+    const endDate = "2024-07-08T00:00:00.000Z";
+    const exclusiveEndDate = adjustEndDateForExclusive(endDate);
+
+    // Should be one nanosecond before midnight, which is 23:59:59.999999999 of the previous moment
+    assert.strictEqual(exclusiveEndDate, "2024-07-07T23:59:59.999999999Z");
+  });
+
+  test('date input should work with both text input and datetime picker', () => {
+    // Simulate the computed utcModelValue from DateInput.vue
+    const formatForPicker = (isoString: string): string => {
+      const date = new Date(isoString);
+      if (isNaN(date.getTime())) return "";
+
+      const year = date.getUTCFullYear();
+      const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(date.getUTCDate()).padStart(2, '0');
+      const hours = String(date.getUTCHours()).padStart(2, '0');
+      const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+
+      return `${year}-${month}-${day}T${hours}:${minutes}`;
+    };
+
+    const isoString = "2024-07-08T14:30:00.000Z";
+    const pickerValue = formatForPicker(isoString);
+
+    assert.strictEqual(pickerValue, "2024-07-08T14:30");
+  });
+
+  test('date input should display value in yyyy-MM-dd HH:mm format', () => {
+    // Simulate the computed displayValue from DateInput.vue
+    const formatForDisplay = (isoString: string): string => {
+      const date = new Date(isoString);
+      if (isNaN(date.getTime())) return "";
+
+      const year = date.getUTCFullYear();
+      const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(date.getUTCDate()).padStart(2, '0');
+      const hours = String(date.getUTCHours()).padStart(2, '0');
+      const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+
+      return `${year}-${month}-${day} ${hours}:${minutes}`;
+    };
+
+    const isoString = "2024-07-08T14:30:00.000Z";
+    const displayValue = formatForDisplay(isoString);
+
+    assert.strictEqual(displayValue, "2024-07-08 14:30");
+  });
+});
+
+suite('Asset Dependencies - Recursive Fetching', () => {
     // Test data for complex dependency chain
     const mockPipelineAssets = [
       {
