@@ -1,5 +1,8 @@
 # Changelog
-## [0.77.1] - [2026-02-04]
+## [0.77.2] - [2026-02-11]
+- Fixed a bug where adding a location to a BigQuery connection with `use_application_default_credentials` would remove the credentials setting.
+
+## [0.77.1] - [2026-02-10]
 - Changed the table diff behavior: it now compares only the schema by default, and uses the `--full` flag for full data diffs.
 
 ## [0.77.0] - [2026-02-04]
