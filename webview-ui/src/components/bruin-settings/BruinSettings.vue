@@ -313,10 +313,12 @@ const showConnectionForm = (connectionOrEnvironment = null, duplicate = false) =
           name: duplicatedName,
           service_account_file: connection.service_account_file || "",
           service_account_json: connection.service_account_json || "",
+          use_application_default_credentials: connection.use_application_default_credentials || false,
           credentials: {
             ...connection,
             service_account_file: connection.service_account_file || "",
             service_account_json: connection.service_account_json || "",
+            use_application_default_credentials: connection.use_application_default_credentials || false,
           },
         };
       } else {
