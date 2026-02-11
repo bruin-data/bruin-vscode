@@ -195,17 +195,20 @@ watch(
       }
       
       if (supportsApplicationDefaultCredentials(newConnection.type, connectionSchema)) {
-        serviceAccountInputMethod.value = determineServiceAccountInputMethod(newConnection.credentials || newConnection);
-        
         const credentials = newConnection.credentials || newConnection;
+        serviceAccountInputMethod.value = determineServiceAccountInputMethod(credentials);
+
+        // Always preserve use_application_default_credentials for GCP connections
+        if (credentials.use_application_default_credentials !== undefined) {
+          form.value.use_application_default_credentials = credentials.use_application_default_credentials;
+        }
+
         if (credentials.service_account_file) {
           selectedFile.value = getServiceAccountFile(credentials);
           form.value.service_account_json = "";
         } else if (credentials.service_account_json) {
           selectedFile.value = null;
           form.value.service_account_json = credentials.service_account_json;
-        } else if (credentials.use_application_default_credentials) {
-          form.value.use_application_default_credentials = credentials.use_application_default_credentials;
         }
       }
     }
@@ -242,7 +245,7 @@ const handleFileSelected = (file) => {
 
 const handleServiceAccountInputMethodChange = (newMethod) => {
   serviceAccountInputMethod.value = newMethod;
-  
+
   if (newMethod === "file") {
     // Clear text input when switching to file
     form.value.service_account_json = "";
@@ -258,7 +261,7 @@ const handleServiceAccountInputMethodChange = (newMethod) => {
     form.value.use_application_default_credentials = true;
     selectedFile.value = null;
   }
-  
+
   // Clear validation errors
   validationErrors.value.service_account_json = null;
 };
@@ -343,7 +346,8 @@ const submitForm = () => {
   }
 
   const supportsDefaultCreds = supportsApplicationDefaultCredentials(form.value.connection_type, connectionSchema);
-  const useDefaultCreds = form.value.use_application_default_credentials === true;
+  // Handle both boolean true and string "true"
+  const useDefaultCreds = form.value.use_application_default_credentials === true || form.value.use_application_default_credentials === "true";
 
   formFields.value.forEach((field) => {
     if (
