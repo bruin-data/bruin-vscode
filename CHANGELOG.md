@@ -1,4 +1,4 @@
-# Changeloga
+# Changelog
 ## [0.77.4] - [2026-02-16]
 - Fixed "Preview" running the wrong query in multi-query assets.
 
