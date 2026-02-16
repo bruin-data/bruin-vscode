@@ -337,8 +337,11 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
               QueryPreviewPanel.setTabQuery(tabId, extractedQuery);
             }
           } else {
-            // For asset files, do not set or send a query, let the CLI handle it
-            extractedQuery = "";
+            // For asset files, if a specific query was provided (from codelens), use it
+            // Otherwise, let the CLI handle it by not sending a query
+            if (extractedQuery) {
+              QueryPreviewPanel.setTabQuery(tabId, extractedQuery);
+            }
           }
 
           this.loadAndSendQueryOutput(this.environment, this.limit, tabId, startDate, endDate);
