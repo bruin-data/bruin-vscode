@@ -1,4 +1,7 @@
-# Changelog
+# Changeloga
+## [0.77.4] - [2026-02-16]
+- Fixed "Preview" running the wrong query in multi-query assets.
+
 ## [0.77.3] - [2026-02-16]
 - Added support to show query costs for eligible sources, such as BigQuery, in the table diff panel.
 

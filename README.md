@@ -63,11 +63,10 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.77.4**: Fixed "Preview" running the wrong query in multi-query assets.
 - **0.77.3**: Added support to show query costs for eligible sources, such as BigQuery, in the table diff panel.
 - **0.77.2**: Fixed a bug where adding a location to a BigQuery connection with `use_application_default_credentials` would remove the credentials setting.
 - **0.77.1**: Changed the table diff behavior: it now compares only the schema by default, and uses the `--full` flag for full data diffs.
-- **0.77.0**: Added a new panel to display run history, showing executed flags and assets, with options to rerun or copy the command.
-- **0.76.4**: Fixed the start date input field to set the date correctly.
-- **0.76.3**: Improved the query preview to support sorting and to show the pipeline start date when "Full Refresh" is checked.
+
 
 For a full changelog, see Bruin Extension [Changelog](https://github.com/bruin-data/bruin-vscode/blob/main/CHANGELOG.md).
