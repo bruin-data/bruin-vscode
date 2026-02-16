@@ -28,7 +28,7 @@
           <template v-if="!bigqueryError && bigqueryCostEstimate">
             <span
               :title="formatBytes(bigqueryMetadata.TotalBytesProcessed)"
-              class="text-xs opacity-85 mr-1 text-[var(--vscode-foreground)]"
+              class="text-xs opacity-85 mr-1 text-[var(--vscode-foreground)] cursor-help"
               >{{ bigqueryCostEstimate }}</span
             >
           </template>
@@ -144,7 +144,7 @@ import "highlight.js/styles/default.css";
 import hljs from "highlight.js/lib/core";
 import { DynamicScroller, DynamicScrollerItem } from "vue3-virtual-scroller";
 import "vue3-virtual-scroller/dist/vue3-virtual-scroller.css";
-import { formatBytes } from "@/utilities/helper";
+import { formatBytes, calculateBigQueryCost } from "@/utilities/helper";
 import { vscode } from "@/utilities/vscode";
 
 const props = defineProps({
@@ -286,20 +286,7 @@ const isBigQueryAsset = computed(() => {
 
 const bigqueryCostEstimate = computed(() => {
   if (!props.bigqueryMetadata || props.bigqueryError) return null;
-
-  const bytesProcessed = props.bigqueryMetadata.TotalBytesProcessed;
-  if (typeof bytesProcessed !== "number") return null;
-
-  // Convert bytes to TB (1 TB = 1024^4 bytes)
-  const tbProcessed = bytesProcessed / (1024 * 1024 * 1024 * 1024);
-
-  const cost = tbProcessed * 6.25;
-
-  if (cost === 0) {
-    return "$0.00";
-  } else {
-    return `$${cost.toFixed(2)}`;
-  }
+  return calculateBigQueryCost(props.bigqueryMetadata.TotalBytesProcessed);
 });
 
 const toggleErrorSticky = () => {
