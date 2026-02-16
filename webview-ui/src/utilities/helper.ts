@@ -253,11 +253,28 @@ export const transformColumnData = (columns) => {
 
 export const formatBytes = (bytes: number): string => {
   if (bytes === 0) return '0 B';
-  
+
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
   const i = Math.floor(Math.log(bytes) / Math.log(1024));
   const value = bytes / Math.pow(1024, i);
-  
+
   if (i === 0) return `${value} ${sizes[i]}`;
     return `${parseFloat(value.toFixed(2))} ${sizes[i]}`;
+};
+
+/**
+ * Calculate BigQuery cost from bytes processed.
+ * BigQuery pricing: $6.25 per TB
+ *
+ * @param bytesProcessed - Number of bytes processed
+ * @returns Formatted cost string (e.g., "$0.01") or null if invalid input
+ */
+export const calculateBigQueryCost = (bytesProcessed: number | undefined | null): string | null => {
+  if (typeof bytesProcessed !== 'number' || bytesProcessed < 0) return null;
+
+  // Convert bytes to TB (1 TB = 1024^4 bytes)
+  const tbProcessed = bytesProcessed / (1024 * 1024 * 1024 * 1024);
+  const cost = tbProcessed * 6.25;
+
+  return `$${cost.toFixed(2)}`;
 };

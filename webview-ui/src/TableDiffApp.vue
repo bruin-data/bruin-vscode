@@ -102,6 +102,17 @@
              <label class="text-xs text-editor-fg cursor-pointer" @click="toggleFullData">
                Full data
              </label>
+             <!-- Cost estimate display for BigQuery -->
+             <span v-if="costEstimateLoading" class="text-2xs text-editor-fg opacity-60 ml-1">
+               <span class="inline-block w-3 h-3 border border-t-transparent border-editor-fg rounded-full animate-spin"></span>
+             </span>
+             <span
+               v-else-if="costEstimate && fullDataComparison && isBigQueryConnection"
+               class="text-2xs text-editor-fg opacity-75 ml-1 cursor-help"
+               :title="getCostEstimateTooltip()"
+             >
+               ~{{ formatCostEstimate() }}
+             </span>
            </div>
            
           <vscode-button
@@ -179,6 +190,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { vscode } from "@/utilities/vscode";
+import { formatBytes, calculateBigQueryCost } from "@/utilities/helper";
 import TableDiffResults from "@/components/table-diff/TableDiffResults.vue";
 
 // Types
@@ -205,6 +217,11 @@ const error = ref("");
 const comparisonInfo = ref<ComparisonInfo>({ source: "", target: "" });
 const fullDataComparison = ref(false);
 
+// Cost estimation state
+const costEstimate = ref<string | null>(null);
+const costEstimateLoading = ref(false);
+const costEstimateError = ref<string | null>(null);
+
 // Autocomplete state
 const sourceTables = ref<string[]>([]);
 const targetTables = ref<string[]>([]);
@@ -223,19 +240,44 @@ const canExecuteComparison = computed(() => {
   return sourceConnection.value && targetConnection.value && hasSourceTable && hasTargetTable;
 });
 
+// Check if both connections are BigQuery (cost estimation only works for BigQuery)
+const isBigQueryConnection = computed(() => {
+  const sourceConn = connections.value.find(c => c.name === sourceConnection.value);
+  const targetConn = connections.value.find(c => c.name === targetConnection.value);
+
+  if (!sourceConn || !targetConn) return false;
+
+  const isBQ = (type: string) => {
+    if (!type) return false;
+    const lowerType = type.toLowerCase();
+    return lowerType === 'bigquery' || lowerType === 'google_cloud_platform';
+  };
+  return isBQ(sourceConn.type) && isBQ(targetConn.type);
+});
+
+// Whether cost estimation can be requested
+const canEstimateCost = computed(() => {
+  return fullDataComparison.value &&
+         isBigQueryConnection.value &&
+         canExecuteComparison.value;
+});
+
 
 // Methods
 const onSourceConnectionChange = (event: Event) => {
   const target = event.target as HTMLSelectElement;
   sourceConnection.value = target.value;
-  
+
   console.log('Source connection changed to:', sourceConnection.value);
-  
+
   // Clear existing tables and fetch new ones immediately
   sourceTables.value = [];
   sourceTableSuggestions.value = [];
   showSourceSuggestions.value = false;
-  
+
+  // Clear cost estimate when connection changes
+  clearCostEstimate();
+
   // Fetch schemas and tables immediately when connection changes
   if (sourceConnection.value) {
     console.log('Fetching schemas and tables for source connection');
@@ -246,12 +288,15 @@ const onSourceConnectionChange = (event: Event) => {
 const onTargetConnectionChange = (event: Event) => {
   const target = event.target as HTMLSelectElement;
   targetConnection.value = target.value;
-  
+
   // Clear existing tables and fetch new ones immediately
   targetTables.value = [];
   targetTableSuggestions.value = [];
   showTargetSuggestions.value = false;
-  
+
+  // Clear cost estimate when connection changes
+  clearCostEstimate();
+
   // Fetch schemas and tables immediately when connection changes
   if (targetConnection.value) {
     console.log('Fetching schemas and tables for target connection');
@@ -547,6 +592,7 @@ const clearResults = () => {
   error.value = "";
   comparisonInfo.value = { source: "", target: "" };
   fullDataComparison.value = false;
+  clearCostEstimate();
 };
 
 const copied = ref(false);
@@ -561,15 +607,112 @@ const copyResults = () => {
   }
 };
 
+const requestCostEstimate = () => {
+  if (!canEstimateCost.value) {
+    costEstimate.value = null;
+    costEstimateError.value = null;
+    return;
+  }
+
+  costEstimateLoading.value = true;
+  costEstimate.value = null;
+  costEstimateError.value = null;
+
+  vscode.postMessage({
+    command: "estimateDiffCost",
+    sourceConnection: sourceConnection.value,
+    targetConnection: targetConnection.value,
+    sourceTable: sourceTableInput.value.trim(),
+    targetTable: targetTableInput.value.trim(),
+  });
+};
+
+const clearCostEstimate = () => {
+  costEstimate.value = null;
+  costEstimateError.value = null;
+  costEstimateLoading.value = false;
+};
+
+// Helper to extract bytes processed from various possible field names
+const getBytesProcessed = (estimate: any): number | null => {
+  const bytesProcessed = estimate.total_bytes_processed
+    || estimate.totalBytesProcessed
+    || estimate.TotalBytesProcessed
+    || estimate.bytes_processed
+    || estimate.bytesProcessed;
+  return typeof bytesProcessed === 'number' ? bytesProcessed : null;
+};
+
+const formatCostEstimate = (): string => {
+  if (!costEstimate.value) return '';
+
+  try {
+    const estimate = typeof costEstimate.value === 'string'
+      ? JSON.parse(costEstimate.value)
+      : costEstimate.value;
+
+    // Try to extract cost from common response formats
+    if (estimate.estimated_cost !== undefined) {
+      return `$${Number(estimate.estimated_cost).toFixed(2)}`;
+    }
+    if (estimate.cost !== undefined) {
+      return `$${Number(estimate.cost).toFixed(2)}`;
+    }
+
+    const bytesProcessed = getBytesProcessed(estimate);
+    if (bytesProcessed !== null) {
+      return calculateBigQueryCost(bytesProcessed) || '';
+    }
+
+    // If we can't parse, just show what we have
+    return typeof estimate === 'string' ? estimate : JSON.stringify(estimate);
+  } catch (e) {
+    return String(costEstimate.value);
+  }
+};
+
+const getCostEstimateTooltip = (): string => {
+  if (!costEstimate.value) return '';
+
+  try {
+    const estimate = typeof costEstimate.value === 'string'
+      ? JSON.parse(costEstimate.value)
+      : costEstimate.value;
+
+    const parts: string[] = ['Estimated cost for full data comparison'];
+
+    const bytesProcessed = getBytesProcessed(estimate);
+    if (bytesProcessed) {
+      parts.push(`Data to scan: ${formatBytes(bytesProcessed)}`);
+    }
+
+    return parts.join('\n');
+  } catch (e) {
+    return 'Estimated cost for full data comparison';
+  }
+};
+
 const onFullDataChange = (event: Event) => {
   const target = event.target as HTMLInputElement;
   fullDataComparison.value = target.checked;
   console.log('Full data comparison:', fullDataComparison.value);
+
+  if (fullDataComparison.value) {
+    requestCostEstimate();
+  } else {
+    clearCostEstimate();
+  }
 };
 
 const toggleFullData = () => {
   fullDataComparison.value = !fullDataComparison.value;
   console.log('Full data comparison toggled to:', fullDataComparison.value);
+
+  if (fullDataComparison.value) {
+    requestCostEstimate();
+  } else {
+    clearCostEstimate();
+  }
 };
 
 // Message handling
@@ -634,6 +777,22 @@ const handleMessage = (event: MessageEvent) => {
         console.log('Updated target tables:', targetTables.value);
       }
       break;
+
+    case "costEstimate":
+      costEstimateLoading.value = false;
+      if (message.error) {
+        costEstimateError.value = message.error;
+        costEstimate.value = null;
+      } else {
+        costEstimateError.value = null;
+        try {
+          const parsed = typeof message.result === 'string' ? JSON.parse(message.result) : message.result;
+          costEstimate.value = parsed;
+        } catch (e) {
+          costEstimate.value = message.result;
+        }
+      }
+      break;
   }
 };
 
@@ -646,5 +805,18 @@ onMounted(() => {
 vscode-badge::part(control) {
   background-color: transparent !important;
   color: var(--vscode-editor-fg) !important;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
 }
 </style>

@@ -1,4 +1,7 @@
 # Changelog
+## [0.77.3] - [2026-02-16]
+- Added support to show query costs for eligible sources, such as BigQuery, in the table diff panel.
+
 ## [0.77.2] - [2026-02-11]
 - Fixed a bug where adding a location to a BigQuery connection with `use_application_default_credentials` would remove the credentials setting.
 
