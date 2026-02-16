@@ -67,4 +67,33 @@ export class BruinTableDiff extends BruinCommand {
     }
   }
 
+  /**
+   * Estimate the cost of a full data diff operation (BigQuery only).
+   * Uses --dry-run --full flags to get cost estimate without executing.
+   *
+   * @param {string} sourceConnection - The source connection name.
+   * @param {string} sourceTable - The source table in format 'schema.table' or 'table'.
+   * @param {string} targetConnection - The target connection name.
+   * @param {string} targetTable - The target table in format 'schema.table' or 'table'.
+   * @param {BruinCommandOptions} [options={}] - Optional parameters for execution.
+   * @returns {Promise<string>} A promise that resolves with the cost estimate JSON.
+   */
+  public async estimateCost(
+    sourceConnection: string,
+    sourceTable: string,
+    targetConnection: string,
+    targetTable: string,
+    options: BruinCommandOptions = {}
+  ): Promise<string> {
+    const args = [
+      `${sourceConnection}:${sourceTable}`,
+      `${targetConnection}:${targetTable}`,
+      "--dry-run",
+      "--full"
+    ];
+
+    const { promise } = this.runCancellable(args, options);
+    return await promise;
+  }
+
 }

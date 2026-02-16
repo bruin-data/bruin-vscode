@@ -111,6 +111,15 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
               console.log('Received getSchemasAndTables message:', message);
               await this.sendSchemasAndTables(message.connectionName, message.type);
               break;
+            case 'estimateDiffCost':
+              trackEvent("Command Executed", { command: "estimateDiffCost", source: "extension" });
+              await this.estimateDiffCost(
+                message.sourceConnection,
+                message.sourceTable,
+                message.targetConnection,
+                message.targetTable
+              );
+              break;
           }
         },
         undefined,
@@ -357,6 +366,38 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
       if (!errorMessage.includes('Command was cancelled')) {
         vscode.window.showErrorMessage(`Table comparison failed: ${errorMessage}`);
       }
+    }
+  }
+
+  private async estimateDiffCost(
+    sourceConnection: string,
+    sourceTable: string,
+    targetConnection: string,
+    targetTable: string
+  ) {
+    if (!TableDiffPanel._view) return;
+
+    try {
+      const { workspaceFolder } = await this.getWorkspaceSetup();
+      const tableDiff = new BruinTableDiff(getBruinExecutablePath(), workspaceFolder);
+
+      const result = await tableDiff.estimateCost(
+        sourceConnection,
+        sourceTable,
+        targetConnection,
+        targetTable
+      );
+
+      TableDiffPanel._view.webview.postMessage({
+        command: 'costEstimate',
+        result: result
+      });
+    } catch (error) {
+      console.error('Error estimating diff cost:', error);
+      TableDiffPanel._view.webview.postMessage({
+        command: 'costEstimate',
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   }
 
