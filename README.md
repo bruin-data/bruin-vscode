@@ -63,6 +63,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.77.3**: Added support to show query costs for eligible sources, such as BigQuery, in the table diff panel.
 - **0.77.2**: Fixed a bug where adding a location to a BigQuery connection with `use_application_default_credentials` would remove the credentials setting.
 - **0.77.1**: Changed the table diff behavior: it now compares only the schema by default, and uses the `--full` flag for full data diffs.
 - **0.77.0**: Added a new panel to display run history, showing executed flags and assets, with options to rerun or copy the command.
