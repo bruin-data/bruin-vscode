@@ -1,4 +1,7 @@
 # Changelog
+## [0.77.5] - [2026-02-20]
+- Fixed the "Copy Command" feature so that it correctly supports copying run command for multiple selected assets.
+
 ## [0.77.4] - [2026-02-16]
 - Fixed "Preview" running the wrong query in multi-query assets.
 

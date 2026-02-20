@@ -564,25 +564,67 @@ const handleRunDropdown = (key: string) => {
 
 const copyRunCommand = async () => {
   const baseFlags = getCheckboxChangePayload();
-  const flags = isPipelineData.value
-    ? buildCommandPayload(baseFlags)
-    : buildCommandPayload(stripAllTagFlags(baseFlags));
 
-  const assetPath = props.filePath || "";
-  const escapedPath = assetPath.includes(' ') ? `"${assetPath}"` : assetPath;
-  const command = `bruin run${flags ? " " + flags.trim() : ""} ${escapedPath}`.trim();
+  // Check if multiple assets are selected
+  if (selectedAssetsForRun.value.length > 0) {
+    // Copy command for multiple assets
+    const strippedFlags = stripFullRefreshFlag(stripAllTagFlags(baseFlags));
+    let flags = buildCommandPayload(strippedFlags);
 
-  try {
-    await navigator.clipboard.writeText(command);
-    vscode.postMessage({
-      command: "showInfoMessage",
-      payload: "Command copied to clipboard",
-    });
-  } catch (err) {
-    vscode.postMessage({
-      command: "showErrorMessage",
-      payload: "Failed to copy command to clipboard",
-    });
+    // Add --full-refresh if enabled
+    if (isFullRefreshChecked.value) {
+      flags = flags ? `${flags} --full-refresh` : "--full-refresh";
+    }
+
+    const assetPaths = selectedAssetsForRun.value
+      .map((a) => a.definition_file?.path)
+      .filter((p): p is string => !!p)
+      .map((p) => p.includes(' ') ? `"${p}"` : p);
+
+    if (assetPaths.length === 0) {
+      vscode.postMessage({
+        command: "showErrorMessage",
+        payload: "No valid asset paths found",
+      });
+      return;
+    }
+
+    const command = `bruin run${flags ? " " + flags.trim() : ""} ${assetPaths.join(" ")}`.trim();
+
+    try {
+      await navigator.clipboard.writeText(command);
+      vscode.postMessage({
+        command: "showInfoMessage",
+        payload: `Command copied for ${assetPaths.length} assets`,
+      });
+    } catch (err) {
+      vscode.postMessage({
+        command: "showErrorMessage",
+        payload: "Failed to copy command to clipboard",
+      });
+    }
+  } else {
+    // Copy command for single asset (current file)
+    const flags = isPipelineData.value
+      ? buildCommandPayload(baseFlags)
+      : buildCommandPayload(stripAllTagFlags(baseFlags));
+
+    const assetPath = props.filePath || "";
+    const escapedPath = assetPath.includes(' ') ? `"${assetPath}"` : assetPath;
+    const command = `bruin run${flags ? " " + flags.trim() : ""} ${escapedPath}`.trim();
+
+    try {
+      await navigator.clipboard.writeText(command);
+      vscode.postMessage({
+        command: "showInfoMessage",
+        payload: "Command copied to clipboard",
+      });
+    } catch (err) {
+      vscode.postMessage({
+        command: "showErrorMessage",
+        payload: "Failed to copy command to clipboard",
+      });
+    }
   }
 };
 
