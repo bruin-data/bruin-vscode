@@ -63,6 +63,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.77.6**: Enhanced the asset schema to support additional asset types.
 - **0.77.5**: Fixed the "Copy Command" feature so that it correctly supports copying the run command for multiple selected assets.
 - **0.77.4**: Fixed "Preview" running the wrong query in multi-query assets.
 - **0.77.3**: Added support to show query costs for eligible sources, such as BigQuery, in the table diff panel.

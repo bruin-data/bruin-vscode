@@ -1,4 +1,7 @@
 # Changelog
+## [0.77.6] - [2026-02-20]
+- Enhanced the asset schema to support additional asset types.
+
 ## [0.77.5] - [2026-02-20]
 - Fixed the "Copy Command" feature so that it correctly supports copying run command for multiple selected assets.
 
