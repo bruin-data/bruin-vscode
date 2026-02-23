@@ -51,9 +51,11 @@ export class TopLevelCompletions {
 
         const assetTypes = [
             { name: 'python', description: 'Python asset' },
-            { name: 'sf.sql', description: 'Snowflake SQL asset' }, 
+            { name: 'sf.sql', description: 'Snowflake SQL asset' },
+            { name: 'sf.source', description: 'Snowflake source asset' },
             { name: 'sf.sensor.query', description: 'Snowflake sensor query asset' },
             { name: 'bq.sql', description: 'BigQuery SQL asset' },
+            { name: 'bq.source', description: 'BigQuery source asset' },
             { name: 'bq.sensor.table', description: 'BigQuery sensor table asset' },
             { name: 'bq.sensor.query', description: 'BigQuery sensor query asset' },
             { name: 'duckdb.sensor.query', description: 'DuckDB sensor query asset' },
@@ -65,17 +67,29 @@ export class TopLevelCompletions {
             { name: 'clickhouse.sensor.query', description: 'ClickHouse sensor query asset' },
             { name: 'empty', description: 'Empty asset' },
             { name: 'pg.sql', description: 'PostgreSQL SQL asset' },
+            { name: 'pg.source', description: 'PostgreSQL source asset' },
             { name: 'rs.sql', description: 'Redshift SQL asset' },
+            { name: 'rs.source', description: 'Redshift source asset' },
             { name: 'ms.sql', description: 'Microsoft SQL Server SQL asset' },
+            { name: 'ms.source', description: 'Microsoft SQL Server source asset' },
             { name: 'synapse.sql', description: 'Azure Synapse SQL asset' },
+            { name: 'synapse.source', description: 'Azure Synapse source asset' },
             { name: 'ingestr', description: 'Ingestr asset' },
+            { name: 'duckdb.sql', description: 'DuckDB SQL asset' },
             { name: 'duckdb.seed', description: 'DuckDB seed asset' },
+            { name: 'duckdb.source', description: 'DuckDB source asset' },
             { name: 'emr_serverless.spark', description: 'EMR Serverless Spark asset' },
             { name: 'emr_serverless.pyspark', description: 'EMR Serverless PySpark asset' },
+            { name: 'athena.sql', description: 'Athena SQL asset' },
             { name: 'athena.seed', description: 'Athena seed asset' },
+            { name: 'athena.source', description: 'Athena source asset' },
             { name: 'bq.seed', description: 'BigQuery seed asset' },
+            { name: 'clickhouse.sql', description: 'ClickHouse SQL asset' },
             { name: 'clickhouse.seed', description: 'ClickHouse seed asset' },
+            { name: 'clickhouse.source', description: 'ClickHouse source asset' },
+            { name: 'databricks.sql', description: 'Databricks SQL asset' },
             { name: 'databricks.seed', description: 'Databricks seed asset' },
+            { name: 'databricks.source', description: 'Databricks source asset' },
             { name: 'ms.seed', description: 'Microsoft SQL Server seed asset' },
             { name: 'pg.seed', description: 'PostgreSQL seed asset' },
             { name: 'rs.seed', description: 'Redshift seed asset' },
@@ -87,7 +101,9 @@ export class TopLevelCompletions {
             { name: 'qlikview', description: 'QlikView asset' },
             { name: 'sisense', description: 'Sisense asset' },
             { name: 'domo', description: 'Domo asset' },
-            { name: 'quicksight', description: 'Amazon QuickSight asset' }
+            { name: 'quicksight', description: 'Amazon QuickSight asset' },
+            { name: 'oracle.sql', description: 'Oracle SQL asset' },
+            { name: 'oracle.source', description: 'Oracle source asset' }
         ];
 
         assetTypes.forEach(type => {
