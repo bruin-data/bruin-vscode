@@ -1,55 +1,55 @@
 <template>
     <div
       v-if="formattedWarningMessages.length"
-      class="rounded-md bg-yellow-50 p-4 my-4 overflow-hidden transition-all duration-300"
-      :class="{ 'h-16': !isOverallExpanded, 'max-h-64': isOverallExpanded }"
+      class="rounded-md bg-amber-50 p-3 my-2 transition-all duration-300"
+      :class="{ 'h-12 overflow-hidden': !isOverallExpanded }"
     >
       <div class="flex justify-between items-center">
         <div class="flex items-center flex-grow">
-          <ExclamationTriangleIcon class="h-5 w-5 text-yellow-500 mr-2" aria-hidden="true" />
-          <h3 class="text-lg font-medium text-yellow-800">Warnings</h3>
+          <ExclamationTriangleIcon class="h-4 w-4 text-amber-400 mr-2" aria-hidden="true" />
+          <h3 class="text-sm font-medium text-amber-700">Warnings</h3>
         </div>
         <div class="flex items-center">
-          <button @click="toggleOverallExpansion" class="text-yellow-500 mr-2">
-            <component :is="isOverallExpanded ? ChevronUpIcon : ChevronDownIcon" class="h-5 w-5" aria-hidden="true" />
+          <button @click="toggleOverallExpansion" class="text-amber-400 hover:text-amber-500 mr-1">
+            <component :is="isOverallExpanded ? ChevronUpIcon : ChevronDownIcon" class="h-4 w-4" aria-hidden="true" />
           </button>
-          <button @click="$emit('warningClose')" class="text-yellow-700">
-            <XMarkIcon class="h-5 w-5" aria-hidden="true" />
+          <button @click="$emit('warningClose')" class="text-amber-400 hover:text-amber-500">
+            <XMarkIcon class="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
       </div>
-      <div v-if="isOverallExpanded" class="mt-4 overflow-y-auto" style="max-height: 200px">
+      <div v-if="isOverallExpanded" class="mt-2 overflow-y-auto" style="max-height: 250px">
         <div v-for="(warning, index) in formattedWarningMessages" :key="index">
-          <div class="mt-4">
+          <div class="mt-2">
             <div @click="toggleWarningExpansion(index)" class="flex items-center cursor-pointer">
-              <component :is="expandedWarnings[index] ? ChevronDownIcon : ChevronRightIcon" class="h-5 w-5 text-yellow-500" aria-hidden="true" />
-              <span class="ml-2 text-yellow-700">Pipeline: {{ warning.pipeline }}</span>
+              <component :is="expandedWarnings[index] ? ChevronDownIcon : ChevronRightIcon" class="h-4 w-4 text-amber-400" aria-hidden="true" />
+              <span class="ml-1 text-xs text-amber-600">Pipeline: {{ warning.pipeline }}</span>
             </div>
           </div>
-          <div v-if="expandedWarnings[index]" class="ml-5 mt-2">
+          <div v-if="expandedWarnings[index]" class="ml-4 mt-1">
             <div
               v-for="(issue, issueIndex) in warning.issues"
               :key="issueIndex"
-              class="mb-2"
+              class="mb-1"
             >
-              <h4 v-if="issue.asset" class="text-md font-semibold text-gray-900">
+              <h4 v-if="issue.asset" class="text-xs font-medium text-gray-600">
                 Asset: {{ issue.asset }}
               </h4>
-              <p class="text-sm text-yellow-600">{{ issue.description }}</p>
+              <p class="text-xs text-amber-600">{{ issue.description }}</p>
               <div
                 v-if="issue.context && issue.context.length"
-                class="flex items-center space-x-1 mt-2 justify-end"
+                class="flex items-center space-x-1 mt-1 justify-end"
               >
                 <button
                   @click="toggleIssueExpansion(index, issueIndex)"
-                  class="text-xs text-yellow-700 flex items-center"
+                  class="text-xs text-amber-500 hover:text-amber-600 flex items-center"
                 >
                   <span class="mr-1">Details</span>
-                  <component :is="expandedIssues[index]?.[issueIndex] ? ChevronUpIcon : ChevronDownIcon" class="h-4 w-4" aria-hidden="true" />
+                  <component :is="expandedIssues[index]?.[issueIndex] ? ChevronUpIcon : ChevronDownIcon" class="h-3 w-3" aria-hidden="true" />
                 </button>
               </div>
-              <div v-if="expandedIssues[index]?.[issueIndex]" class="text-sm text-gray-700 ml-1 mt-1 w-full">
-                <pre class="whitespace-pre-wrap bg-yellow-100 rounded p-2">{{ issue.context.join('\n') }}</pre>
+              <div v-if="expandedIssues[index]?.[issueIndex]" class="text-xs text-gray-600 mt-1 w-full">
+                <pre class="whitespace-pre-wrap bg-amber-100 rounded p-2">{{ issue.context.join('\n') }}</pre>
               </div>
             </div>
           </div>

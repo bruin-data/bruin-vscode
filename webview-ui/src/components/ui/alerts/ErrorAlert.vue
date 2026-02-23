@@ -2,58 +2,58 @@
   <!-- Main container for the error alert -->
   <div
     v-if="processedErrors.length"
-    class="rounded-md bg-red-50 p-4 my-4 overflow-hidden transition-all duration-300"
-    :class="{ 'h-16': !isExpanded, 'max-h-64': isExpanded }"
+    class="rounded-md bg-rose-50 p-3 my-2 transition-all duration-300"
+    :class="{ 'h-12 overflow-hidden': !isExpanded }"
   >
     <!-- Header section with error icon, title, and control buttons -->
     <div class="flex justify-between items-center">
       <div class="flex items-center flex-grow">
-        <XCircleIcon class="h-5 w-5 text-red-500 mr-2" aria-hidden="true" />
-        <h3 class="text-lg font-medium text-red-800">{{ errorPhase }} Error</h3>
+        <XCircleIcon class="h-4 w-4 text-rose-400 mr-2" aria-hidden="true" />
+        <h3 class="text-sm font-medium text-rose-700">{{ errorPhase }} Error</h3>
       </div>
       <div class="flex items-center">
         <!-- Toggle button for expanding/collapsing the error details -->
-        <button v-if="errorPhase !== 'Rendering'" @click="isExpanded = !isExpanded" class="text-red-500 mr-2">
+        <button v-if="errorPhase !== 'Rendering'" @click="isExpanded = !isExpanded" class="text-rose-400 hover:text-rose-500 mr-1">
           <component
             :is="isExpanded ? ChevronUpIcon : ChevronDownIcon"
-            class="h-5 w-5"
+            class="h-4 w-4"
             aria-hidden="true"
           />
         </button>
         <!-- Button to close the error alert -->
-        <button @click="$emit('errorClose')" class="text-red-700">
-          <XMarkIcon class="h-5 w-5" aria-hidden="true" />
+        <button @click="$emit('errorClose')" class="text-rose-400 hover:text-rose-500">
+          <XMarkIcon class="h-4 w-4" aria-hidden="true" />
         </button>
       </div>
     </div>
     <!-- Expanded section to display detailed error messages -->
-    <div v-if="isExpanded && errorPhase !== 'Rendering'" class="overflow-y-auto" style="max-height: 200px">
+    <div v-if="isExpanded && errorPhase !== 'Rendering'" class="overflow-y-auto" style="max-height: 250px">
       <template v-for="(errorMessage, index) in processedErrors" :key="index">
         <!-- Single Asset Validation Display -->
-        <div v-if="isSingleAsset" class="mt-4">
-          <h4 class="text-md font-semibold text-gray-900">Asset: {{ singleAssetName }}</h4>
+        <div v-if="isSingleAsset" class="mt-2">
+          <h4 class="text-xs font-medium text-gray-600">Asset: {{ singleAssetName }}</h4>
           <div
             v-for="(issue, issueIndex) in errorMessage.issues"
             :key="issueIndex"
-            class="mb-2 ml-2"
+            class="mb-1 ml-2"
           >
-            <p class="text-sm text-red-600">{{ issue.description }}</p>
-            <div v-if="issue.context.length" class="flex items-center space-x-1 mt-2 justify-end">
+            <p class="text-xs text-rose-600">{{ issue.description }}</p>
+            <div v-if="issue.context.length" class="flex items-center space-x-1 mt-1 justify-end">
               <!-- Button to toggle the expansion of issue details -->
               <button
                 @click="toggleIssueExpansion(index, issueIndex)"
-                class="text-xs text-red-700 flex items-center"
+                class="text-xs text-rose-500 hover:text-rose-600 flex items-center"
               >
                 <span class="mr-1">Details</span>
                 <component
                   :is="issue.expanded ? ChevronUpIcon : ChevronDownIcon"
-                  class="h-4 w-4"
+                  class="h-3 w-3"
                   aria-hidden="true"
                 />
               </button>
             </div>
-            <div v-if="issue.expanded" class="text-sm text-gray-700 ml-1 mt-1 w-full">
-              <pre class="whitespace-pre-wrap bg-red-100 rounded p-2">{{
+            <div v-if="issue.expanded" class="text-xs text-gray-600 ml-1 mt-1 w-full">
+              <pre class="whitespace-pre-wrap bg-rose-100 rounded p-2">{{
                 issue.context.join("\n")
               }}</pre>
             </div>
@@ -63,29 +63,29 @@
         <!-- Full Pipeline Validation Display -->
         <div v-else>
           <!-- Single Pipeline: No collapse functionality -->
-          <div v-if="processedErrors.length === 1" class="mt-4">
-            <h4 class="text-md font-semibold text-red-700">Pipeline: {{ errorMessage.pipeline }}</h4>
-            <div class="mt-2">
-              <div v-for="(issue, issueIndex) in errorMessage.issues" :key="issueIndex" class="mb-2">
-                <h4 v-if="issue.asset" class="text-md font-semibold text-gray-900">
+          <div v-if="processedErrors.length === 1" class="mt-2">
+            <h4 class="text-xs font-medium text-rose-600">Pipeline: {{ errorMessage.pipeline }}</h4>
+            <div class="mt-1">
+              <div v-for="(issue, issueIndex) in errorMessage.issues" :key="issueIndex" class="mb-1">
+                <h4 v-if="issue.asset" class="text-xs font-medium text-gray-600">
                   Asset: {{ issue.asset }}
                 </h4>
-                <p class="text-sm text-red-600">{{ issue.description }}</p>
-                <div v-if="issue.context.length" class="flex items-center space-x-1 mt-2 justify-end">
+                <p class="text-xs text-rose-600">{{ issue.description }}</p>
+                <div v-if="issue.context.length" class="flex items-center space-x-1 mt-1 justify-end">
                   <button
                     @click="toggleIssueExpansion(index, issueIndex)"
-                    class="text-xs text-red-700 flex items-center"
+                    class="text-xs text-rose-500 hover:text-rose-600 flex items-center"
                   >
                     <span class="mr-1">Details</span>
                     <component
                       :is="issue.expanded ? ChevronUpIcon : ChevronDownIcon"
-                      class="h-4 w-4"
+                      class="h-3 w-3"
                       aria-hidden="true"
                     />
                   </button>
                 </div>
-                <div v-if="issue.expanded" class="text-sm text-gray-700 ml-1 mt-1 w-full">
-                  <pre class="whitespace-pre-wrap bg-red-100 rounded p-2">{{
+                <div v-if="issue.expanded" class="text-xs text-gray-600 ml-1 mt-1 w-full">
+                  <pre class="whitespace-pre-wrap bg-rose-100 rounded p-2">{{
                     issue.context.join("\n")
                   }}</pre>
                 </div>
@@ -94,35 +94,35 @@
           </div>
           <!-- Multiple Pipelines: Show with collapse functionality -->
           <div v-else>
-            <div @click="toggleExpansion(index)" class="flex items-center cursor-pointer mt-4">
+            <div @click="toggleExpansion(index)" class="flex items-center cursor-pointer mt-2">
               <component
                 :is="errorMessage.expanded ? ChevronDownIcon : ChevronRightIcon"
-                class="h-5 w-5 text-red-500"
+                class="h-4 w-4 text-rose-400"
                 aria-hidden="true"
               />
-              <span class="ml-2 text-red-700">Pipeline: {{ errorMessage.pipeline }}</span>
+              <span class="ml-1 text-xs text-rose-600">Pipeline: {{ errorMessage.pipeline }}</span>
             </div>
-            <div v-if="errorMessage.expanded" class="ml-5 mt-2">
-              <div v-for="(issue, issueIndex) in errorMessage.issues" :key="issueIndex" class="mb-2">
-                <h4 v-if="issue.asset" class="text-md font-semibold text-gray-900">
+            <div v-if="errorMessage.expanded" class="ml-4 mt-1">
+              <div v-for="(issue, issueIndex) in errorMessage.issues" :key="issueIndex" class="mb-1">
+                <h4 v-if="issue.asset" class="text-xs font-medium text-gray-600">
                   Asset: {{ issue.asset }}
                 </h4>
-                <p class="text-sm text-red-600">{{ issue.description }}</p>
-                <div v-if="issue.context.length" class="flex items-center space-x-1 mt-2 justify-end">
+                <p class="text-xs text-rose-600">{{ issue.description }}</p>
+                <div v-if="issue.context.length" class="flex items-center space-x-1 mt-1 justify-end">
                   <button
                     @click="toggleIssueExpansion(index, issueIndex)"
-                    class="text-xs text-red-700 flex items-center"
+                    class="text-xs text-rose-500 hover:text-rose-600 flex items-center"
                   >
                     <span class="mr-1">Details</span>
                     <component
                       :is="issue.expanded ? ChevronUpIcon : ChevronDownIcon"
-                      class="h-4 w-4"
+                      class="h-3 w-3"
                       aria-hidden="true"
                     />
                   </button>
                 </div>
-                <div v-if="issue.expanded" class="text-sm text-gray-700 ml-1 mt-1 w-full">
-                  <pre class="whitespace-pre-wrap bg-red-100 rounded p-2">{{
+                <div v-if="issue.expanded" class="text-xs text-gray-600 ml-1 mt-1 w-full">
+                  <pre class="whitespace-pre-wrap bg-rose-100 rounded p-2">{{
                     issue.context.join("\n")
                   }}</pre>
                 </div>
@@ -133,8 +133,8 @@
       </template>
     </div>
     <!-- Display only the error message for Rendering phase -->
-    <div v-if="errorPhase === 'Rendering'" class="mt-2">
-      <p class="text-sm text-red-600">{{ processedErrors[0]?.issues[0]?.description }}</p>
+    <div v-if="errorPhase === 'Rendering'" class="mt-1">
+      <p class="text-xs text-rose-600">{{ processedErrors[0]?.issues[0]?.description }}</p>
     </div>
   </div>
 </template>
