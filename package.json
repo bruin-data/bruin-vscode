@@ -85,22 +85,22 @@
       "panel": [
         {
           "id": "bruin-assetLineageView",
-          "title": "Lineage",
+          "title": "🐻 Lineage",
           "icon": "$(graph)"
         },
         {
           "id": "QueryPreview",
-          "title": "Query Preview",
+          "title": "🐻 Query Preview",
           "icon": "$(preview)"
         },
         {
           "id": "TableDiff",
-          "title": "Table Diff",
+          "title": "🐻 Table Diff",
           "icon": "$(diff)"
         },
         {
           "id": "RunHistory",
-          "title": "Run History",
+          "title": "🐻 Run History",
           "icon": "$(history)"
         }
       ]
