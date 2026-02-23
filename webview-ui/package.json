@@ -48,6 +48,15 @@
     "vue-tsc": "^2.0.7"
   },
   "overrides": {
-    "glob": "^11.0.0"
+    "glob": "^11.0.0",
+    "npm-run-all2": {
+      "minimatch": "^10.2.1"
+    },
+    "@vue/language-core": {
+      "minimatch": "^10.2.1"
+    },
+    "editorconfig": {
+      "minimatch": "^10.2.1"
+    }
   }
 }
