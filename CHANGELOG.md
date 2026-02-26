@@ -1,5 +1,8 @@
 # Changelog
-## [0.77.6] - [2026-02-20]
+## [0.77.7] - [2026-02-24]
+- Improved the styling of panel titles and alert components for a more consistent and polished UI.
+
+## [0.77.6] - [2026-02-23]
 - Enhanced the asset schema to support additional asset types.
 
 ## [0.77.5] - [2026-02-20]
