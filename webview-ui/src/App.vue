@@ -772,6 +772,7 @@ const tabs = ref([
       environments: computed(() => environmentsList.value),
       versionStatus: computed(() => versionStatus.value),
       settingsOnlyMode: computed(() => settingsOnlyMode.value),
+      allowDataLoading: computed(() => settingsOnlyMode.value || hasParsedContent.value),
     },
   },
 ]);
