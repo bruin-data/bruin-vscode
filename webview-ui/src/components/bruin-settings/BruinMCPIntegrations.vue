@@ -40,24 +40,17 @@
           @keydown.space.prevent="toggleMcpIntegration(integration.id, integration.status.configured)"
         >
           <div class="flex items-center justify-between gap-3">
-            <div class="min-w-0">
+            <div class="min-w-0 flex items-center gap-2">
+              <span
+                class="inline-flex h-6 w-6 items-center justify-center rounded-full border transition-colors"
+                :class="mcpPowerButtonClass(integration.id, integration.status)"
+              >
+                <span class="text-sm leading-none" aria-hidden="true">⏻</span>
+              </span>
               <div class="text-sm font-medium text-editor-fg">{{ integration.label }}</div>
             </div>
 
             <div class="flex items-center gap-2 flex-shrink-0">
-              <span
-                class="relative inline-flex h-5 w-9 rounded-full border transition-colors"
-                :class="mcpToggleTrackClass(integration.id, integration.status.configured)"
-              >
-                <span
-                  class="absolute top-0.5 h-3.5 w-3.5 rounded-full bg-editor-fg transition-all"
-                  :class="
-                    integration.status.configured
-                      ? 'left-[18px]'
-                      : 'left-[2px]'
-                  "
-                ></span>
-              </span>
               <vscode-button
                 appearance="icon"
                 @click.stop="toggleInfo(integration.id)"
@@ -401,14 +394,26 @@ function mcpIntegrationCardClass(id: McpClientId, status: McpIntegrationStatus):
   }
 }
 
-function mcpToggleTrackClass(id: McpClientId, configured: boolean): string {
+function mcpPowerButtonClass(id: McpClientId, status: McpIntegrationStatus): string {
   if (togglingMcpTarget.value === id) {
-    return "border-commandCenter-border bg-input-background";
+    return "border-commandCenter-border bg-input-background opacity-70";
   }
 
-  return configured
-    ? "border-green-500/60 bg-green-500/25"
-    : "border-commandCenter-border bg-input-background";
+  switch (status.status) {
+    case "checking":
+      return "border-blue-500/60 bg-blue-500/20 text-blue-300";
+    case "ready":
+      return "border-green-500/60 bg-green-500/20 text-green-300";
+    case "client_missing":
+      return "border-yellow-500/60 bg-yellow-500/20 text-yellow-300";
+    case "bruin_missing":
+      return "border-orange-500/60 bg-orange-500/20 text-orange-300";
+    case "error":
+      return "border-red-500/60 bg-red-500/20 text-red-300";
+    case "not_configured":
+    default:
+      return "border-commandCenter-border bg-input-background text-editor-fg opacity-80";
+  }
 }
 
 onMounted(() => {
