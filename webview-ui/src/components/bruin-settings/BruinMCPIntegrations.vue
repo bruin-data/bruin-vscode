@@ -27,55 +27,54 @@
         Configure Bruin MCP for supported clients and monitor configuration status.
       </p>
 
-      <div class="mt-3 space-y-2">
+      <div class="mt-3 flex flex-wrap gap-2">
         <div
           v-for="integration in mcpIntegrations"
           :key="integration.id"
-          class="rounded border border-commandCenter-border p-3"
+          role="button"
+          tabindex="0"
+          class="rounded border p-3 min-w-[170px] cursor-pointer select-none transition-colors"
+          :class="mcpIntegrationCardClass(integration.id, integration.status)"
+          @click="toggleMcpIntegration(integration.id, integration.status.configured)"
+          @keydown.enter.prevent="toggleMcpIntegration(integration.id, integration.status.configured)"
+          @keydown.space.prevent="toggleMcpIntegration(integration.id, integration.status.configured)"
         >
-          <div class="flex items-start justify-between gap-3">
+          <div class="flex items-center justify-between gap-3">
             <div class="min-w-0">
-              <div class="flex items-center gap-2">
-                <span class="text-sm font-medium text-editor-fg">{{ integration.label }}</span>
-                <span
-                  class="px-2 py-0.5 rounded text-xs border"
-                  :class="mcpStatusBadgeClass(integration.status.status)"
-                >
-                  {{ mcpStatusLabel(integration.status.status) }}
-                </span>
-              </div>
-              <div v-if="infoExpanded[integration.id]" class="mt-2">
-                <div class="text-xs text-editor-fg opacity-80">{{ integration.description }}</div>
-                <div class="text-xs text-editor-fg opacity-80 mt-1">
-                  {{ integration.status.details }}
-                </div>
-                <div v-if="integration.status.configPath" class="text-xs text-editor-fg opacity-60 mt-1 font-mono">
-                  {{ integration.status.configPath }}
-                </div>
-              </div>
+              <div class="text-sm font-medium text-editor-fg">{{ integration.label }}</div>
             </div>
 
-            <div class="flex items-center gap-1 flex-shrink-0">
+            <div class="flex items-center gap-2 flex-shrink-0">
+              <span
+                class="relative inline-flex h-5 w-9 rounded-full border transition-colors"
+                :class="mcpToggleTrackClass(integration.id, integration.status.configured)"
+              >
+                <span
+                  class="absolute top-0.5 h-3.5 w-3.5 rounded-full bg-editor-fg transition-all"
+                  :class="
+                    integration.status.configured
+                      ? 'left-[18px]'
+                      : 'left-[2px]'
+                  "
+                ></span>
+              </span>
               <vscode-button
                 appearance="icon"
-                @click="toggleInfo(integration.id)"
+                @click.stop="toggleInfo(integration.id)"
                 :title="infoExpanded[integration.id] ? 'Hide details' : 'Show details'"
               >
                 <span class="codicon codicon-info"></span>
               </vscode-button>
-              <vscode-button
-                appearance="secondary"
-                @click="configureMcpIntegration(integration.id)"
-                :disabled="installingMcpTarget === integration.id"
-              >
-                {{
-                  installingMcpTarget === integration.id
-                    ? "Configuring..."
-                    : integration.status.configured
-                      ? "Reconfigure"
-                      : "Configure"
-                }}
-              </vscode-button>
+            </div>
+          </div>
+
+          <div v-if="infoExpanded[integration.id]" class="mt-2">
+            <div class="text-xs text-editor-fg opacity-80">{{ integration.description }}</div>
+            <div class="text-xs text-editor-fg opacity-80 mt-1">
+              {{ integration.status.details }}
+            </div>
+            <div v-if="integration.status.configPath" class="text-xs text-editor-fg opacity-60 mt-1 font-mono">
+              {{ integration.status.configPath }}
             </div>
           </div>
         </div>
@@ -88,6 +87,18 @@
       >
         <div class="text-sm" :class="mcpFeedbackClass">{{ mcpFeedbackMessage }}</div>
         <vscode-button appearance="icon" title="Dismiss message" @click="dismissMcpFeedback">
+          <span class="codicon codicon-close"></span>
+        </vscode-button>
+      </div>
+
+      <div
+        v-for="statusAlert in mcpStatusAlerts"
+        :key="statusAlert.key"
+        class="mt-2 rounded border px-3 py-2 flex items-start justify-between gap-2"
+        :class="statusAlert.className"
+      >
+        <div class="text-sm text-editor-fg">{{ statusAlert.message }}</div>
+        <vscode-button appearance="icon" title="Dismiss status alert" @click="dismissStatusAlert(statusAlert.key)">
           <span class="codicon codicon-close"></span>
         </vscode-button>
       </div>
@@ -128,7 +139,7 @@ const props = withDefaults(
   }
 );
 
-const installingMcpTarget = ref<McpClientId | null>(null);
+const togglingMcpTarget = ref<McpClientId | null>(null);
 const mcpFeedbackMessage = ref("");
 const mcpFeedbackType = ref<"success" | "error" | "">("");
 const infoExpanded = ref<Record<McpClientId, boolean>>({
@@ -184,6 +195,7 @@ const defaultMcpStatus: Record<McpClientId, McpIntegrationStatus> = {
 
 const mcpStatusByClient = ref<Record<McpClientId, McpIntegrationStatus>>({ ...defaultMcpStatus });
 const hasRequestedInitialStatuses = ref(false);
+const dismissedStatusAlerts = ref<Record<string, boolean>>({});
 const mcpIntegrationMetadata: Array<{
   id: McpClientId;
   label: string;
@@ -238,14 +250,8 @@ const mcpFeedbackContainerClass = computed(() => {
   return "bg-input-background border-commandCenter-border";
 });
 
-function mcpStatusLabel(status: McpIntegrationStatusType): string {
+function mcpProblemStatusLabel(status: McpIntegrationStatusType): string | null {
   switch (status) {
-    case "checking":
-      return "Checking";
-    case "ready":
-      return "Ready";
-    case "not_configured":
-      return "Not configured";
     case "client_missing":
       return "Client missing";
     case "bruin_missing":
@@ -253,18 +259,12 @@ function mcpStatusLabel(status: McpIntegrationStatusType): string {
     case "error":
       return "Error";
     default:
-      return "Unknown";
+      return null;
   }
 }
 
-function mcpStatusBadgeClass(status: McpIntegrationStatusType): string {
+function mcpProblemStatusClass(status: McpIntegrationStatusType): string {
   switch (status) {
-    case "checking":
-      return "bg-blue-500/15 text-blue-300 border-blue-500/40";
-    case "ready":
-      return "bg-green-500/15 text-green-300 border-green-500/40";
-    case "not_configured":
-      return "bg-input-background text-editor-fg border-commandCenter-border";
     case "client_missing":
       return "bg-yellow-500/15 text-yellow-300 border-yellow-500/40";
     case "bruin_missing":
@@ -275,6 +275,28 @@ function mcpStatusBadgeClass(status: McpIntegrationStatusType): string {
       return "bg-input-background text-editor-fg border-commandCenter-border";
   }
 }
+
+const mcpStatusAlerts = computed(() =>
+  mcpIntegrations.value
+    .map((integration) => {
+      const problemLabel = mcpProblemStatusLabel(integration.status.status);
+      if (!problemLabel) {
+        return null;
+      }
+
+      const key = `${integration.id}:${integration.status.status}:${integration.status.details}`;
+      if (dismissedStatusAlerts.value[key]) {
+        return null;
+      }
+
+      return {
+        key,
+        className: mcpProblemStatusClass(integration.status.status),
+        message: `${integration.label} - ${problemLabel}: ${integration.status.details}`,
+      };
+    })
+    .filter((item): item is { key: string; className: string; message: string } => Boolean(item))
+);
 
 function handleMessage(event: MessageEvent) {
   const message = event.data;
@@ -295,13 +317,13 @@ function handleMessage(event: MessageEvent) {
       break;
 
     case "mcp-integration-install-message":
-      installingMcpTarget.value = null;
+      togglingMcpTarget.value = null;
       if (message.payload?.status === "success") {
         mcpFeedbackType.value = "success";
-        mcpFeedbackMessage.value = message.payload?.message || "MCP integration configured.";
+        mcpFeedbackMessage.value = message.payload?.message || "MCP integration updated.";
       } else {
         mcpFeedbackType.value = "error";
-        mcpFeedbackMessage.value = message.payload?.message || "Failed to configure MCP integration.";
+        mcpFeedbackMessage.value = message.payload?.message || "Failed to update MCP integration.";
       }
       break;
   }
@@ -323,12 +345,16 @@ function requestInitialStatusesIfAllowed() {
   refreshMcpStatuses();
 }
 
-function configureMcpIntegration(target: McpClientId) {
-  installingMcpTarget.value = target;
+function toggleMcpIntegration(target: McpClientId, currentlyConfigured: boolean) {
+  if (togglingMcpTarget.value) {
+    return;
+  }
+
+  togglingMcpTarget.value = target;
   mcpFeedbackMessage.value = "";
   mcpFeedbackType.value = "";
   vscode.postMessage({
-    command: "bruin.installMcpIntegration",
+    command: currentlyConfigured ? "bruin.uninstallMcpIntegration" : "bruin.installMcpIntegration",
     payload: { target },
   });
 }
@@ -347,6 +373,42 @@ function openBruinMcpDocs() {
 function dismissMcpFeedback() {
   mcpFeedbackMessage.value = "";
   mcpFeedbackType.value = "";
+}
+
+function dismissStatusAlert(key: string) {
+  dismissedStatusAlerts.value[key] = true;
+}
+
+function mcpIntegrationCardClass(id: McpClientId, status: McpIntegrationStatus): string {
+  if (togglingMcpTarget.value === id) {
+    return "bg-input-background border-commandCenter-border opacity-70";
+  }
+
+  switch (status.status) {
+    case "checking":
+      return "bg-blue-500/10 border-blue-500/40";
+    case "ready":
+      return "bg-green-500/10 border-green-500/40";
+    case "client_missing":
+      return "bg-yellow-500/10 border-yellow-500/40";
+    case "bruin_missing":
+      return "bg-orange-500/10 border-orange-500/40";
+    case "error":
+      return "bg-red-500/10 border-red-500/40";
+    case "not_configured":
+    default:
+      return "bg-input-background border-commandCenter-border";
+  }
+}
+
+function mcpToggleTrackClass(id: McpClientId, configured: boolean): string {
+  if (togglingMcpTarget.value === id) {
+    return "border-commandCenter-border bg-input-background";
+  }
+
+  return configured
+    ? "border-green-500/60 bg-green-500/25"
+    : "border-commandCenter-border bg-input-background";
 }
 
 onMounted(() => {

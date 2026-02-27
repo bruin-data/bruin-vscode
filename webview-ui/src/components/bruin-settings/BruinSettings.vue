@@ -1,11 +1,11 @@
 <template>
   <div class="flex flex-col space-y-6">
     <div>
-      <BruinCLI :versionStatus="versionStatus" :allow-initial-load="allowDataLoading" />
+      <BruinCLI :versionStatus="versionStatus" />
     </div>
 
     <div>
-      <BruinMCPIntegrations :allow-initial-load="allowDataLoading" />
+      <BruinMCPIntegrations />
     </div>
 
     <div v-if="isBruinInstalled && !settingsOnlyMode" class="bg-editorWidget-bg shadow sm:rounded-lg">

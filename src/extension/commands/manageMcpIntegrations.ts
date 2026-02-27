@@ -33,6 +33,11 @@ export interface McpIntegrationInstallResult {
   message: string;
 }
 
+export interface McpIntegrationUninstallResult {
+  target: McpClientId;
+  message: string;
+}
+
 function formatExecError(error: unknown): string {
   if (!error) {
     return "";
@@ -495,6 +500,30 @@ async function writeBruinMcpJsonConfig(
   await fs.promises.writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`, "utf8");
 }
 
+async function removeBruinMcpJsonConfig(configPath: string): Promise<void> {
+  if (!fs.existsSync(configPath)) {
+    return;
+  }
+
+  const config = await readJsonFile(configPath);
+  if (!config || typeof config !== "object" || Array.isArray(config)) {
+    throw new Error(`Invalid MCP JSON structure in ${configPath}`);
+  }
+
+  let updated = false;
+  for (const rootKey of ["servers", "mcpServers"] as const) {
+    const root = config[rootKey];
+    if (root && typeof root === "object" && !Array.isArray(root) && root.bruin) {
+      delete root.bruin;
+      updated = true;
+    }
+  }
+
+  if (updated) {
+    await fs.promises.writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`, "utf8");
+  }
+}
+
 export async function getMcpIntegrationStatuses(
   lastRenderedDocumentUri: vscode.Uri | undefined
 ): Promise<McpIntegrationStatus[]> {
@@ -579,6 +608,56 @@ export async function installMcpIntegration(
       return {
         target,
         message: "Configured Bruin MCP for Claude Code (global user scope).",
+      };
+    }
+    default:
+      throw new Error(`Unsupported MCP integration target: ${target}`);
+  }
+}
+
+export async function uninstallMcpIntegration(
+  target: McpClientId,
+  lastRenderedDocumentUri: vscode.Uri | undefined
+): Promise<McpIntegrationUninstallResult> {
+  const workspaceRoot = getWorkspaceRoot(lastRenderedDocumentUri);
+
+  switch (target) {
+    case "vscode": {
+      const configPath = getVsCodeGlobalMcpConfigPath();
+      await removeBruinMcpJsonConfig(configPath);
+      return {
+        target,
+        message: `Disabled Bruin MCP in ${configPath}.`,
+      };
+    }
+    case "cursor": {
+      const configPath = getCursorGlobalMcpConfigPath();
+      await removeBruinMcpJsonConfig(configPath);
+      return {
+        target,
+        message: `Disabled Bruin MCP in ${configPath}.`,
+      };
+    }
+    case "codex": {
+      const codexAvailable = await commandExists("codex");
+      if (!codexAvailable) {
+        throw new Error("Codex CLI is not available in PATH.");
+      }
+      await removeCodexMcpServerIfExists(workspaceRoot);
+      return {
+        target,
+        message: "Disabled Bruin MCP for Codex CLI.",
+      };
+    }
+    case "claude": {
+      const claudeAvailable = await commandExists("claude");
+      if (!claudeAvailable) {
+        throw new Error("Claude CLI is not available in PATH.");
+      }
+      await removeClaudeMcpServerIfExists();
+      return {
+        target,
+        message: "Disabled Bruin MCP for Claude Code (global user scope).",
       };
     }
     default:
