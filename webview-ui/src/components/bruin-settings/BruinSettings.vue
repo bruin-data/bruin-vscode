@@ -1,11 +1,11 @@
 <template>
   <div class="flex flex-col space-y-6">
     <div>
-      <BruinCLI :versionStatus="versionStatus" />
+      <BruinCLI :versionStatus="versionStatus" :allow-initial-load="allowDataLoading" />
     </div>
 
     <div>
-      <BruinMCPIntegrations />
+      <BruinMCPIntegrations :allow-initial-load="allowDataLoading" />
     </div>
 
     <div v-if="isBruinInstalled && !settingsOnlyMode" class="bg-editorWidget-bg shadow sm:rounded-lg">
@@ -145,6 +145,10 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
+  allowDataLoading: {
+    type: Boolean,
+    default: true,
+  },
 });
 
 const connectionsStore = useConnectionsStore();
@@ -172,24 +176,35 @@ const projectCreationSuccess = ref(false);
 const successMessage = ref("");
 const templateDropdownRef = ref<HTMLElement | null>(null);
 const createInPlace = ref(true); // Default to true (in-place creation)
+const hasBootstrappedData = ref(false);
+const allowDataLoading = computed(() => props.allowDataLoading !== false);
 
 const connectionFormKey = computed(() => {
   return connectionToEdit.value?.id ? `edit-${connectionToEdit.value.id}` : "new-connection";
 });
 
- onMounted(() => {
-  window.addEventListener("message", handleMessage);
-  
+const bootstrapSettingsData = () => {
+  if (!allowDataLoading.value || hasBootstrappedData.value) {
+    return;
+  }
+
+  hasBootstrappedData.value = true;
+
   // Only load connections data if not in settings-only mode
   if (!props.settingsOnlyMode) {
     vscode.postMessage({ command: "bruin.getConnectionsList" });
     vscode.postMessage({ command: "bruin.getConnectionsSchema" });
   }
-  
+
   // Load templates if Bruin is installed
   if (props.isBruinInstalled) {
     loadTemplates();
   }
+};
+
+onMounted(() => {
+  window.addEventListener("message", handleMessage);
+  bootstrapSettingsData();
 });
 
 onBeforeUnmount(() => {
@@ -598,8 +613,14 @@ const handleProjectInit = (payload) => {
 
 // Watch for isBruinInstalled changes to load templates
 watch(() => props.isBruinInstalled, (newValue) => {
-  if (newValue && templates.value.length === 0) {
+  if (allowDataLoading.value && newValue && templates.value.length === 0) {
     loadTemplates();
+  }
+});
+
+watch(() => props.allowDataLoading, (newValue) => {
+  if (newValue) {
+    bootstrapSettingsData();
   }
 });
 </script>

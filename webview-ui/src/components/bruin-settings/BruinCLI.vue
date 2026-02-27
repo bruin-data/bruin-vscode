@@ -139,7 +139,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from "vue";
+import { ref, onMounted, onBeforeUnmount, computed, watch } from "vue";
 import { vscode } from "@/utilities/vscode";
 import { DocumentDuplicateIcon } from "@heroicons/vue/24/outline";
 
@@ -148,6 +148,10 @@ const props = defineProps({
     type: Object,
     required: true,
     default: () => ({ status: "", current: "", latest: "" }),
+  },
+  allowInitialLoad: {
+    type: Boolean,
+    default: true,
   },
 });
 
@@ -164,30 +168,46 @@ const errorMessage = ref("");
 const showVersionOptions = ref(false);
 const showSpecificVersionInput = ref(false);
 const versionOptionsDropdown = ref<HTMLElement | null>(null);
+const hasRequestedInitialStatus = ref(false);
+
+const requestCliStatusIfAllowed = () => {
+  if (!props.allowInitialLoad || hasRequestedInitialStatus.value) {
+    return;
+  }
+
+  hasRequestedInitialStatus.value = true;
+  checkBruinCliInstallation();
+};
+
+const handleMessage = (event: MessageEvent) => {
+  const message = event.data;
+  switch (message.command) {
+    case "bruinCliInstallationStatus":
+      isBruinCliInstalled.value = message.installed;
+      isWindows.value = message.isWindows;
+      gitAvailable.value = message.gitAvailable;
+      console.log("BruinCLI installation status:", isBruinCliInstalled.value);
+      break;
+
+    case "installationInfo":
+      console.log("Updating currentPlatform:", message.platform);
+      currentPlatform.value = message.platform;
+      console.log("Updating bruinCliVersion:", message.cliVersion);
+      bruinCliVersion.value = message.cliVersion;
+      bruinVscodeVersion.value = message.extensionVersion;
+      break;
+  }
+};
 
 onMounted(() => {
-  checkBruinCliInstallation();
-  window.addEventListener("message", (event) => {
-    const message = event.data;
-    switch (message.command) {
-      case "bruinCliInstallationStatus":
-        isBruinCliInstalled.value = message.installed;
-        isWindows.value = message.isWindows;
-        gitAvailable.value = message.gitAvailable;
-        console.log("BruinCLI installation status:", isBruinCliInstalled.value);
-        break;
-
-      case "installationInfo":
-        console.log("Updating currentPlatform:", message.platform);
-        currentPlatform.value = message.platform;
-        console.log("Updating bruinCliVersion:", message.cliVersion);
-        bruinCliVersion.value = message.cliVersion;
-        bruinVscodeVersion.value = message.extensionVersion;
-        break;
-    }
-  });
+  requestCliStatusIfAllowed();
+  window.addEventListener("message", handleMessage);
 
   console.log("BruinCLI component mounted, versionStatus:", props.versionStatus);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("message", handleMessage);
 });
 
 const openBruinDocumentation = () => {
@@ -273,6 +293,15 @@ watch(
     console.log("BruinCLI.vue - versionStatus updated:", newStatus);
   },
   { deep: true }
+);
+
+watch(
+  () => props.allowInitialLoad,
+  (isAllowed) => {
+    if (isAllowed) {
+      requestCliStatusIfAllowed();
+    }
+  }
 );
 </script>
 

@@ -96,7 +96,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onBeforeUnmount, onMounted, computed } from "vue";
+import { ref, onBeforeUnmount, onMounted, computed, watch } from "vue";
 import { vscode } from "@/utilities/vscode";
 
 type McpClientId = "vscode" | "cursor" | "codex" | "claude";
@@ -118,6 +118,15 @@ interface McpIntegrationStatus {
   configPath: string | null;
   details: string;
 }
+
+const props = withDefaults(
+  defineProps<{
+    allowInitialLoad?: boolean;
+  }>(),
+  {
+    allowInitialLoad: true,
+  }
+);
 
 const installingMcpTarget = ref<McpClientId | null>(null);
 const mcpFeedbackMessage = ref("");
@@ -174,6 +183,7 @@ const defaultMcpStatus: Record<McpClientId, McpIntegrationStatus> = {
 };
 
 const mcpStatusByClient = ref<Record<McpClientId, McpIntegrationStatus>>({ ...defaultMcpStatus });
+const hasRequestedInitialStatuses = ref(false);
 const mcpIntegrationMetadata: Array<{
   id: McpClientId;
   label: string;
@@ -304,6 +314,15 @@ function refreshMcpStatuses() {
   vscode.postMessage({ command: "bruin.getMcpIntegrationStatus" });
 }
 
+function requestInitialStatusesIfAllowed() {
+  if (!props.allowInitialLoad || hasRequestedInitialStatuses.value) {
+    return;
+  }
+
+  hasRequestedInitialStatuses.value = true;
+  refreshMcpStatuses();
+}
+
 function configureMcpIntegration(target: McpClientId) {
   installingMcpTarget.value = target;
   mcpFeedbackMessage.value = "";
@@ -331,11 +350,20 @@ function dismissMcpFeedback() {
 }
 
 onMounted(() => {
-  refreshMcpStatuses();
   window.addEventListener("message", handleMessage);
+  requestInitialStatusesIfAllowed();
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener("message", handleMessage);
 });
+
+watch(
+  () => props.allowInitialLoad,
+  (isAllowed) => {
+    if (isAllowed) {
+      requestInitialStatusesIfAllowed();
+    }
+  }
+);
 </script>
