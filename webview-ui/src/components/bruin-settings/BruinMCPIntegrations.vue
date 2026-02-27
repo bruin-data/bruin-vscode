@@ -49,26 +49,6 @@
               </span>
               <div class="text-sm font-medium text-editor-fg">{{ integration.label }}</div>
             </div>
-
-            <div class="flex items-center gap-2 flex-shrink-0">
-              <vscode-button
-                appearance="icon"
-                @click.stop="toggleInfo(integration.id)"
-                :title="infoExpanded[integration.id] ? 'Hide details' : 'Show details'"
-              >
-                <span class="codicon codicon-info"></span>
-              </vscode-button>
-            </div>
-          </div>
-
-          <div v-if="infoExpanded[integration.id]" class="mt-2">
-            <div class="text-xs text-editor-fg opacity-80">{{ integration.description }}</div>
-            <div class="text-xs text-editor-fg opacity-80 mt-1">
-              {{ integration.status.details }}
-            </div>
-            <div v-if="integration.status.configPath" class="text-xs text-editor-fg opacity-60 mt-1 font-mono">
-              {{ integration.status.configPath }}
-            </div>
           </div>
         </div>
       </div>
@@ -135,12 +115,6 @@ const props = withDefaults(
 const togglingMcpTarget = ref<McpClientId | null>(null);
 const mcpFeedbackMessage = ref("");
 const mcpFeedbackType = ref<"success" | "error" | "">("");
-const infoExpanded = ref<Record<McpClientId, boolean>>({
-  vscode: false,
-  cursor: false,
-  codex: false,
-  claude: false,
-});
 const bruinMcpDocsUrl = "https://getbruin.com/docs/bruin/getting-started/bruin-mcp.html";
 
 const defaultMcpStatus: Record<McpClientId, McpIntegrationStatus> = {
@@ -192,27 +166,22 @@ const dismissedStatusAlerts = ref<Record<string, boolean>>({});
 const mcpIntegrationMetadata: Array<{
   id: McpClientId;
   label: string;
-  description: string;
 }> = [
   {
     id: "vscode",
     label: "VS Code",
-    description: "Writes global user config to VS Code mcp.json",
   },
   {
     id: "cursor",
     label: "Cursor",
-    description: "Writes global user config to ~/.cursor/mcp.json",
   },
   {
     id: "codex",
     label: "Codex CLI",
-    description: "Runs codex CLI MCP registration for Bruin",
   },
   {
     id: "claude",
     label: "Claude Code",
-    description: "Runs claude CLI MCP registration for Bruin in global user scope",
   },
 ];
 
@@ -350,10 +319,6 @@ function toggleMcpIntegration(target: McpClientId, currentlyConfigured: boolean)
     command: currentlyConfigured ? "bruin.uninstallMcpIntegration" : "bruin.installMcpIntegration",
     payload: { target },
   });
-}
-
-function toggleInfo(target: McpClientId) {
-  infoExpanded.value[target] = !infoExpanded.value[target];
 }
 
 function openBruinMcpDocs() {
