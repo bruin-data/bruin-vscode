@@ -177,7 +177,7 @@ const successMessage = ref("");
 const templateDropdownRef = ref<HTMLElement | null>(null);
 const createInPlace = ref(true); // Default to true (in-place creation)
 const hasBootstrappedData = ref(false);
-const allowDataLoading = computed(() => props.allowDataLoading !== false);
+const allowDataLoading = computed(() => props.allowDataLoading);
 
 const connectionFormKey = computed(() => {
   return connectionToEdit.value?.id ? `edit-${connectionToEdit.value.id}` : "new-connection";
