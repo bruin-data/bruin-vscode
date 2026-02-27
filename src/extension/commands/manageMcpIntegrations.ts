@@ -2,11 +2,12 @@ import * as vscode from "vscode";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
-import { exec } from "child_process";
+import { exec, execFile } from "child_process";
 import { promisify } from "util";
 import { getBruinExecutablePath } from "../../providers/BruinExecutableService";
 
 const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 export type McpClientId = "vscode" | "cursor" | "codex" | "claude";
 export type McpIntegrationStatusType =
@@ -73,10 +74,6 @@ async function removeClaudeMcpServerIfExists(): Promise<void> {
   }
 }
 
-function quoteShell(value: string): string {
-  return `"${value.replace(/"/g, '\\"')}"`;
-}
-
 async function commandExists(commandName: string): Promise<boolean> {
   const checkCommand =
     process.platform === "win32" ? `where ${commandName}` : `command -v ${commandName}`;
@@ -91,7 +88,7 @@ async function commandExists(commandName: string): Promise<boolean> {
 async function isBruinCliAvailable(): Promise<boolean> {
   const bruinExecutablePath = getBruinExecutablePath();
   try {
-    await execAsync(`${quoteShell(bruinExecutablePath)} --version`);
+    await execFileAsync(bruinExecutablePath, ["--version"]);
     return true;
   } catch {
     return false;
