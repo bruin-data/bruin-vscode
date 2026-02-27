@@ -880,8 +880,14 @@ const isCurrentFileSql = computed(() => {
 
 let saveTimeout = null;
 let lastSavedPayload = null;
+// This prevents the patch-message command from firing when switching to Details tab
+const isInitializing = ref(true);
 
 const debouncedSave = () => {
+  // Skip saving during initialization to prevent unwanted auto-format on tab switch
+  if (isInitializing.value) {
+    return;
+  }
   if (saveTimeout) {
     clearTimeout(saveTimeout);
   }
@@ -1062,7 +1068,6 @@ onMounted(() => {
   localMaterialization.value = initializeLocalMaterialization(props.materialization);
   partitionInput.value = localMaterialization.value.partition_by || "";
   clusterInputValue.value = localMaterialization.value.cluster_by.join(", ");
-  
   watch(
     () => props.materialization,
     (newVal) => {
@@ -1072,6 +1077,10 @@ onMounted(() => {
     },
     { deep: true }
   );
+
+  nextTick(() => {
+    isInitializing.value = false;
+  });
 });
 
 watch(
