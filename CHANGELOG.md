@@ -1,5 +1,8 @@
 # Changelog
-## [0.77.7] - [2026-02-24]
+## [0.77.8] - [2026-02-27]
+- Fixed an issue where switching to the Details tab would trigger auto-formatting unexpectedly.
+
+## [0.77.7] - [2026-02-26]
 - Improved the styling of panel titles and alert components for a more consistent and polished UI.
 
 ## [0.77.6] - [2026-02-23]

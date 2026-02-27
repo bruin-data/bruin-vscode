@@ -63,8 +63,8 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.77.8**: Fixed an issue where switching to the Details tab would trigger auto-formatting unexpectedly.
 - **0.77.7**: Improved the styling of panel titles and alert components for a more consistent and polished UI.
 - **0.77.6**: Enhanced the asset schema to support additional asset types.
-- **0.77.5**: Fixed the "Copy Command" feature so that it correctly supports copying the run command for multiple selected assets.
 
 For a full changelog, see Bruin Extension [Changelog](https://github.com/bruin-data/bruin-vscode/blob/main/CHANGELOG.md).
