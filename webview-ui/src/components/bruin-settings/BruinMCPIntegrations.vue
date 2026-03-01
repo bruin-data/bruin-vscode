@@ -27,13 +27,13 @@
         Configure Bruin MCP for supported clients and monitor configuration status.
       </p>
 
-      <div class="mt-3 flex flex-wrap gap-2">
+      <div class="mt-3 grid gap-2" style="grid-template-columns: repeat(auto-fit, minmax(145px, 1fr))">
         <div
           v-for="integration in mcpIntegrations"
           :key="integration.id"
           role="button"
           tabindex="0"
-          class="rounded border px-2 py-1.5 min-w-[145px] cursor-pointer select-none transition-colors"
+          class="rounded border px-2 py-1.5 cursor-pointer select-none transition-colors"
           :class="mcpIntegrationCardClass(integration.id, integration.status)"
           @click="toggleMcpIntegration(integration.id, integration.status.configured)"
           @keydown.enter.prevent="toggleMcpIntegration(integration.id, integration.status.configured)"
