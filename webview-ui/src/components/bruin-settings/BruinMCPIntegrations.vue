@@ -45,7 +45,13 @@
                 class="inline-flex h-5 w-5 items-center justify-center rounded-full border transition-colors"
                 :class="mcpPowerButtonClass(integration.id, integration.status)"
               >
-                <span class="text-xs leading-none" aria-hidden="true">⏻</span>
+                <span
+                  v-if="togglingMcpTarget === integration.id"
+                  class="codicon codicon-sync codicon-modifier-spin leading-none inline-block"
+                  style="font-size: 12px;"
+                  aria-hidden="true"
+                ></span>
+                <span v-else class="text-xs leading-none" aria-hidden="true">⏻</span>
               </span>
               <div class="text-sm font-medium text-editor-fg">{{ integration.label }}</div>
             </div>
@@ -113,6 +119,7 @@ const props = withDefaults(
 );
 
 const togglingMcpTarget = ref<McpClientId | null>(null);
+const awaitingPostToggleRefresh = ref(false);
 const mcpFeedbackMessage = ref("");
 const mcpFeedbackType = ref<"success" | "error" | "">("");
 const bruinMcpDocsUrl = "https://getbruin.com/docs/bruin/getting-started/bruin-mcp.html";
@@ -272,18 +279,32 @@ function handleMessage(event: MessageEvent) {
           }
         });
         mcpStatusByClient.value = updatedStatuses;
+
+        if (awaitingPostToggleRefresh.value && togglingMcpTarget.value) {
+          const hasUpdatedTargetStatus = message.payload.message.some(
+            (statusItem: McpIntegrationStatus) => statusItem?.id === togglingMcpTarget.value
+          );
+          if (hasUpdatedTargetStatus) {
+            togglingMcpTarget.value = null;
+            awaitingPostToggleRefresh.value = false;
+          }
+        }
       } else {
+        togglingMcpTarget.value = null;
+        awaitingPostToggleRefresh.value = false;
         mcpFeedbackType.value = "error";
         mcpFeedbackMessage.value = message.payload?.message || "Failed to load MCP statuses.";
       }
       break;
 
     case "mcp-integration-install-message":
-      togglingMcpTarget.value = null;
       if (message.payload?.status === "success") {
+        awaitingPostToggleRefresh.value = true;
         mcpFeedbackType.value = "success";
         mcpFeedbackMessage.value = message.payload?.message || "MCP integration updated.";
       } else {
+        togglingMcpTarget.value = null;
+        awaitingPostToggleRefresh.value = false;
         mcpFeedbackType.value = "error";
         mcpFeedbackMessage.value = message.payload?.message || "Failed to update MCP integration.";
       }
@@ -313,6 +334,7 @@ function toggleMcpIntegration(target: McpClientId, currentlyConfigured: boolean)
   }
 
   togglingMcpTarget.value = target;
+  awaitingPostToggleRefresh.value = false;
   mcpFeedbackMessage.value = "";
   mcpFeedbackType.value = "";
   vscode.postMessage({
@@ -339,7 +361,7 @@ function dismissStatusAlert(key: string) {
 
 function mcpIntegrationCardClass(id: McpClientId, status: McpIntegrationStatus): string {
   if (togglingMcpTarget.value === id) {
-    return "bg-input-background border-commandCenter-border opacity-70";
+    return "bg-blue-500/10 border-blue-500/40";
   }
 
   switch (status.status) {
@@ -361,7 +383,7 @@ function mcpIntegrationCardClass(id: McpClientId, status: McpIntegrationStatus):
 
 function mcpPowerButtonClass(id: McpClientId, status: McpIntegrationStatus): string {
   if (togglingMcpTarget.value === id) {
-    return "border-commandCenter-border bg-input-background opacity-70";
+    return "border-blue-500/60 bg-blue-500/20 text-blue-300";
   }
 
   switch (status.status) {
