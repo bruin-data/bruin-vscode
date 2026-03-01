@@ -33,19 +33,19 @@
           :key="integration.id"
           role="button"
           tabindex="0"
-          class="rounded border p-3 min-w-[170px] cursor-pointer select-none transition-colors"
+          class="rounded border px-2 py-1.5 min-w-[145px] cursor-pointer select-none transition-colors"
           :class="mcpIntegrationCardClass(integration.id, integration.status)"
           @click="toggleMcpIntegration(integration.id, integration.status.configured)"
           @keydown.enter.prevent="toggleMcpIntegration(integration.id, integration.status.configured)"
           @keydown.space.prevent="toggleMcpIntegration(integration.id, integration.status.configured)"
         >
-          <div class="flex items-center justify-between gap-3">
-            <div class="min-w-0 flex items-center gap-2">
+          <div class="flex items-center justify-between gap-2">
+            <div class="min-w-0 flex items-center gap-1.5">
               <span
-                class="inline-flex h-6 w-6 items-center justify-center rounded-full border transition-colors"
+                class="inline-flex h-5 w-5 items-center justify-center rounded-full border transition-colors"
                 :class="mcpPowerButtonClass(integration.id, integration.status)"
               >
-                <span class="text-sm leading-none" aria-hidden="true">⏻</span>
+                <span class="text-xs leading-none" aria-hidden="true">⏻</span>
               </span>
               <div class="text-sm font-medium text-editor-fg">{{ integration.label }}</div>
             </div>
