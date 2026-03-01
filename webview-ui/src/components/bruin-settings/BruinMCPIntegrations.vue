@@ -46,7 +46,7 @@
                 :class="mcpPowerButtonClass(integration.id, integration.status)"
               >
                 <span
-                  v-if="togglingMcpTarget === integration.id"
+                  v-if="togglingMcpTarget === integration.id || integration.status.status === 'checking'"
                   class="codicon codicon-sync codicon-modifier-spin leading-none inline-block"
                   style="font-size: 12px;"
                   aria-hidden="true"
