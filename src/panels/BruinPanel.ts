@@ -76,6 +76,8 @@ import { flowLineageCommand } from "../extension/commands/FlowLineageCommand";
 export class BruinPanel {
   public static currentPanel: BruinPanel | undefined;
   public static readonly viewId = "bruin.panel";
+  private static _extensionContext: vscode.ExtensionContext | undefined;
+  private static readonly CLOUD_MCP_BEARER_TOKEN_SECRET_KEY = "bruin.mcp.cloudBearerToken";
   private readonly _panel: WebviewPanel;
   private readonly _extensionUri: Uri;
   private _disposables: Disposable[] = [];
@@ -90,6 +92,10 @@ export class BruinPanel {
   private _currentEndDate: string = "";
   private _currentEnvironment: string = "";
   private _sensorModeSetting: string = "skip";
+
+  public static setExtensionContext(context: vscode.ExtensionContext): void {
+    BruinPanel._extensionContext = context;
+  }
 
   /**
    * The BruinPanel class private constructor (called only from the render method).
@@ -854,6 +860,61 @@ export class BruinPanel {
                   status: "error",
                   message: `Failed to load MCP integration status: ${error}`,
                   variant,
+                },
+              });
+            }
+            break;
+          case "bruin.getMcpCloudBearerToken":
+            try {
+              const token =
+                (await BruinPanel._extensionContext?.secrets.get(BruinPanel.CLOUD_MCP_BEARER_TOKEN_SECRET_KEY)) ?? "";
+              this._panel.webview.postMessage({
+                command: "mcp-cloud-bearer-token-message",
+                payload: {
+                  status: "success",
+                  token,
+                },
+              });
+            } catch (error) {
+              this._panel.webview.postMessage({
+                command: "mcp-cloud-bearer-token-message",
+                payload: {
+                  status: "error",
+                  message: `Failed to load cloud bearer token: ${error}`,
+                },
+              });
+            }
+            break;
+          case "bruin.saveMcpCloudBearerToken":
+            try {
+              if (!BruinPanel._extensionContext) {
+                throw new Error("Extension context is not available.");
+              }
+
+              const token =
+                typeof message.payload?.token === "string" ? message.payload.token.trim() : "";
+
+              if (token.length > 0) {
+                await BruinPanel._extensionContext.secrets.store(
+                  BruinPanel.CLOUD_MCP_BEARER_TOKEN_SECRET_KEY,
+                  token
+                );
+              } else {
+                await BruinPanel._extensionContext.secrets.delete(BruinPanel.CLOUD_MCP_BEARER_TOKEN_SECRET_KEY);
+              }
+
+              this._panel.webview.postMessage({
+                command: "mcp-cloud-bearer-token-saved-message",
+                payload: {
+                  status: "success",
+                },
+              });
+            } catch (error) {
+              this._panel.webview.postMessage({
+                command: "mcp-cloud-bearer-token-saved-message",
+                payload: {
+                  status: "error",
+                  message: `Failed to save cloud bearer token: ${error}`,
                 },
               });
             }

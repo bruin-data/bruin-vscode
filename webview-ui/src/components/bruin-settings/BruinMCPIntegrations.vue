@@ -501,6 +501,10 @@ function toggleMcpIntegration(variant: McpVariant, target: McpClientId, currentl
 function toggleCloudTokenEdit() {
   if (cloudTokenEditable.value) {
     cloudBearerToken.value = cloudBearerToken.value.trim();
+    vscode.postMessage({
+      command: "bruin.saveMcpCloudBearerToken",
+      payload: { token: cloudBearerToken.value },
+    });
     cloudTokenEditable.value = false;
     startCloudTokenReconfigureBatch();
     return;
@@ -592,6 +596,24 @@ function handleMessage(event: MessageEvent) {
       }
       break;
     }
+
+    case "mcp-cloud-bearer-token-message":
+      if (message.payload?.status === "success") {
+        const token = typeof message.payload?.token === "string" ? message.payload.token : "";
+        cloudBearerToken.value = token;
+        cloudTokenEditable.value = token.trim().length === 0;
+      } else {
+        mcpFeedbackType.value = "error";
+        mcpFeedbackMessage.value = message.payload?.message || "Failed to load cloud bearer token.";
+      }
+      break;
+
+    case "mcp-cloud-bearer-token-saved-message":
+      if (message.payload?.status !== "success") {
+        mcpFeedbackType.value = "error";
+        mcpFeedbackMessage.value = message.payload?.message || "Failed to save cloud bearer token.";
+      }
+      break;
   }
 }
 
@@ -707,10 +729,8 @@ function mcpPowerButtonClass(
 }
 
 onMounted(() => {
-  if (!cloudBearerToken.value.trim()) {
-    cloudTokenEditable.value = true;
-  }
   window.addEventListener("message", handleMessage);
+  vscode.postMessage({ command: "bruin.getMcpCloudBearerToken" });
   requestInitialStatusesIfAllowed();
 });
 
