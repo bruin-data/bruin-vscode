@@ -91,6 +91,7 @@
             </vscode-button>
           </div>
 
+
           <div class="mt-2 grid gap-2" style="grid-template-columns: repeat(auto-fit, minmax(145px, 1fr))">
             <div
               v-for="integration in cloudIntegrations"
@@ -124,6 +125,10 @@
                 </div>
               </div>
             </div>
+          </div>
+          <div class="mt-2 flex items-start gap-1.5 text-xs text-editor-fg opacity-50">
+            <span class="codicon codicon-warning ml-1.5 text-[10px]" aria-hidden="true"></span>
+            <span>Status shows configuration only; not live connectivity. Validate the token.</span>
           </div>
         </div>
       </div>
