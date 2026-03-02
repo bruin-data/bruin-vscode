@@ -44,6 +44,7 @@ import {
   installMcpIntegration,
   uninstallMcpIntegration,
   McpClientId,
+  McpVariant,
 } from "../extension/commands/manageMcpIntegrations";
 import { openGlossary } from "../bruin/bruinGlossaryUtility";
 import { QueryPreviewPanel } from "./QueryPreviewPanel";
@@ -75,6 +76,8 @@ import { flowLineageCommand } from "../extension/commands/FlowLineageCommand";
 export class BruinPanel {
   public static currentPanel: BruinPanel | undefined;
   public static readonly viewId = "bruin.panel";
+  private static _extensionContext: vscode.ExtensionContext | undefined;
+  private static readonly CLOUD_MCP_BEARER_TOKEN_SECRET_KEY = "bruin.mcp.cloudBearerToken";
   private readonly _panel: WebviewPanel;
   private readonly _extensionUri: Uri;
   private _disposables: Disposable[] = [];
@@ -89,6 +92,10 @@ export class BruinPanel {
   private _currentEndDate: string = "";
   private _currentEnvironment: string = "";
   private _sensorModeSetting: string = "skip";
+
+  public static setExtensionContext(context: vscode.ExtensionContext): void {
+    BruinPanel._extensionContext = context;
+  }
 
   /**
    * The BruinPanel class private constructor (called only from the render method).
@@ -835,13 +842,15 @@ export class BruinPanel {
             await this.installBruinCli();
             break;
           case "bruin.getMcpIntegrationStatus":
+            const variant = (message.payload?.variant as McpVariant | undefined) ?? "bruin";
             try {
-              const mcpStatuses = await getMcpIntegrationStatuses(this._lastRenderedDocumentUri);
+              const mcpStatuses = await getMcpIntegrationStatuses(this._lastRenderedDocumentUri, variant);
               this._panel.webview.postMessage({
                 command: "mcp-integration-status-message",
                 payload: {
                   status: "success",
                   message: mcpStatuses,
+                  variant,
                 },
               });
             } catch (error) {
@@ -850,6 +859,62 @@ export class BruinPanel {
                 payload: {
                   status: "error",
                   message: `Failed to load MCP integration status: ${error}`,
+                  variant,
+                },
+              });
+            }
+            break;
+          case "bruin.getMcpCloudBearerToken":
+            try {
+              const token =
+                (await BruinPanel._extensionContext?.secrets.get(BruinPanel.CLOUD_MCP_BEARER_TOKEN_SECRET_KEY)) ?? "";
+              this._panel.webview.postMessage({
+                command: "mcp-cloud-bearer-token-message",
+                payload: {
+                  status: "success",
+                  token,
+                },
+              });
+            } catch (error) {
+              this._panel.webview.postMessage({
+                command: "mcp-cloud-bearer-token-message",
+                payload: {
+                  status: "error",
+                  message: `Failed to load cloud bearer token: ${error}`,
+                },
+              });
+            }
+            break;
+          case "bruin.saveMcpCloudBearerToken":
+            try {
+              if (!BruinPanel._extensionContext) {
+                throw new Error("Extension context is not available.");
+              }
+
+              const token =
+                typeof message.payload?.token === "string" ? message.payload.token.trim() : "";
+
+              if (token.length > 0) {
+                await BruinPanel._extensionContext.secrets.store(
+                  BruinPanel.CLOUD_MCP_BEARER_TOKEN_SECRET_KEY,
+                  token
+                );
+              } else {
+                await BruinPanel._extensionContext.secrets.delete(BruinPanel.CLOUD_MCP_BEARER_TOKEN_SECRET_KEY);
+              }
+
+              this._panel.webview.postMessage({
+                command: "mcp-cloud-bearer-token-saved-message",
+                payload: {
+                  status: "success",
+                },
+              });
+            } catch (error) {
+              this._panel.webview.postMessage({
+                command: "mcp-cloud-bearer-token-saved-message",
+                payload: {
+                  status: "error",
+                  message: `Failed to save cloud bearer token: ${error}`,
                 },
               });
             }
@@ -857,26 +922,34 @@ export class BruinPanel {
           case "bruin.installMcpIntegration":
             try {
               const target = message.payload?.target as McpClientId | undefined;
+              const variant = (message.payload?.variant as McpVariant | undefined) ?? "bruin";
+              const bearerToken =
+                typeof message.payload?.bearerToken === "string" ? message.payload.bearerToken : undefined;
               if (!target) {
                 throw new Error("No MCP integration target provided.");
               }
 
-              const installResult = await installMcpIntegration(target, this._lastRenderedDocumentUri);
+              const installResult = await installMcpIntegration(target, this._lastRenderedDocumentUri, {
+                variant,
+                bearerToken,
+              });
               this._panel.webview.postMessage({
                 command: "mcp-integration-install-message",
                 payload: {
                   status: "success",
                   message: installResult.message,
                   target: installResult.target,
+                  variant,
                 },
               });
 
-              const mcpStatuses = await getMcpIntegrationStatuses(this._lastRenderedDocumentUri);
+              const mcpStatuses = await getMcpIntegrationStatuses(this._lastRenderedDocumentUri, variant);
               this._panel.webview.postMessage({
                 command: "mcp-integration-status-message",
                 payload: {
                   status: "success",
                   message: mcpStatuses,
+                  variant,
                 },
               });
             } catch (error) {
@@ -886,6 +959,7 @@ export class BruinPanel {
                   status: "error",
                   message: `Failed to configure MCP integration: ${error}`,
                   target: message.payload?.target ?? null,
+                  variant: message.payload?.variant ?? "bruin",
                 },
               });
             }
@@ -893,26 +967,29 @@ export class BruinPanel {
           case "bruin.uninstallMcpIntegration":
             try {
               const target = message.payload?.target as McpClientId | undefined;
+              const variant = (message.payload?.variant as McpVariant | undefined) ?? "bruin";
               if (!target) {
                 throw new Error("No MCP integration target provided.");
               }
 
-              const uninstallResult = await uninstallMcpIntegration(target, this._lastRenderedDocumentUri);
+              const uninstallResult = await uninstallMcpIntegration(target, this._lastRenderedDocumentUri, variant);
               this._panel.webview.postMessage({
                 command: "mcp-integration-install-message",
                 payload: {
                   status: "success",
                   message: uninstallResult.message,
                   target: uninstallResult.target,
+                  variant,
                 },
               });
 
-              const mcpStatuses = await getMcpIntegrationStatuses(this._lastRenderedDocumentUri);
+              const mcpStatuses = await getMcpIntegrationStatuses(this._lastRenderedDocumentUri, variant);
               this._panel.webview.postMessage({
                 command: "mcp-integration-status-message",
                 payload: {
                   status: "success",
                   message: mcpStatuses,
+                  variant,
                 },
               });
             } catch (error) {
@@ -922,6 +999,7 @@ export class BruinPanel {
                   status: "error",
                   message: `Failed to disable MCP integration: ${error}`,
                   target: message.payload?.target ?? null,
+                  variant: message.payload?.variant ?? "bruin",
                 },
               });
             }

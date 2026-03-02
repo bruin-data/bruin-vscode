@@ -9,7 +9,12 @@ import { getBruinExecutablePath } from "../../providers/BruinExecutableService";
 const execAsync = promisify(exec);
 const execFileAsync = promisify(execFile);
 
+const BRUIN_CLOUD_MCP_URL = "https://cloud.getbruin.com/mcp";
+const BRUIN_LOCAL_SERVER_NAME = "bruin";
+const BRUIN_CLOUD_SERVER_NAME = "bruin_cloud";
+
 export type McpClientId = "vscode" | "cursor" | "codex" | "claude";
+export type McpVariant = "bruin" | "cloud";
 export type McpIntegrationStatusType =
   | "ready"
   | "not_configured"
@@ -43,6 +48,17 @@ function formatExecError(error: unknown): string {
     return "";
   }
 
+  if (typeof error === "object" && error !== null) {
+    const execError = error as { message?: string; stderr?: string; stdout?: string };
+    const parts = [execError.message || "", execError.stderr || "", execError.stdout || ""]
+      .map((part) => part.trim())
+      .filter(Boolean);
+
+    if (parts.length > 0) {
+      return parts.join("\n");
+    }
+  }
+
   if (error instanceof Error) {
     return error.message;
   }
@@ -50,9 +66,12 @@ function formatExecError(error: unknown): string {
   return String(error);
 }
 
-async function removeCodexMcpServerIfExists(workspaceRoot: string | undefined): Promise<void> {
+async function removeCodexMcpServerIfExists(
+  serverName: string,
+  workspaceRoot: string | undefined
+): Promise<void> {
   try {
-    await execAsync("codex mcp remove bruin", {
+    await execAsync(`codex mcp remove ${serverName}`, {
       cwd: workspaceRoot,
       timeout: 30000,
     });
@@ -65,9 +84,9 @@ function isClaudeMcpMissingServerError(message: string): boolean {
   return /no .*mcp server .*found/i.test(message);
 }
 
-async function removeClaudeMcpServerIfExists(): Promise<void> {
+async function removeClaudeMcpServerIfExists(serverName: string): Promise<void> {
   try {
-    await execAsync("claude mcp remove -s user bruin", {
+    await execFileAsync("claude", ["mcp", "remove", "-s", "user", serverName], {
       cwd: os.homedir(),
       timeout: 30000,
     });
@@ -80,8 +99,7 @@ async function removeClaudeMcpServerIfExists(): Promise<void> {
 }
 
 async function commandExists(commandName: string): Promise<boolean> {
-  const checkCommand =
-    process.platform === "win32" ? `where ${commandName}` : `command -v ${commandName}`;
+  const checkCommand = process.platform === "win32" ? `where ${commandName}` : `command -v ${commandName}`;
   try {
     await execAsync(checkCommand);
     return true;
@@ -101,8 +119,6 @@ async function isBruinCliAvailable(): Promise<boolean> {
 }
 
 function getWorkspaceRoot(lastRenderedDocumentUri: vscode.Uri | undefined): string | undefined {
-  // For MCP workspace config, always anchor to the opened workspace root instead of
-  // the last active file context (which can be stale across panel restores).
   const primaryWorkspace = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
   if (primaryWorkspace) {
     return primaryWorkspace;
@@ -138,14 +154,32 @@ function getCursorGlobalMcpConfigPath(): string {
   return path.join(os.homedir(), ".cursor", "mcp.json");
 }
 
+function getCodexGlobalConfigPath(): string {
+  return path.join(os.homedir(), ".codex", "config.toml");
+}
+
 async function readJsonFile(filePath: string): Promise<any> {
   const content = await fs.promises.readFile(filePath, "utf8");
   return JSON.parse(content);
 }
 
+function getJsonServer(config: any, serverName: string): any | null {
+  const fromServers = config?.servers?.[serverName];
+  if (fromServers && typeof fromServers === "object" && !Array.isArray(fromServers)) {
+    return fromServers;
+  }
+
+  const fromMcpServers = config?.mcpServers?.[serverName];
+  if (fromMcpServers && typeof fromMcpServers === "object" && !Array.isArray(fromMcpServers)) {
+    return fromMcpServers;
+  }
+
+  return null;
+}
+
 function hasBruinMcpServerDefinition(config: any): boolean {
-  const server = config?.servers?.bruin || config?.mcpServers?.bruin;
-  if (!server || typeof server !== "object" || Array.isArray(server)) {
+  const server = getJsonServer(config, BRUIN_LOCAL_SERVER_NAME);
+  if (!server) {
     return false;
   }
 
@@ -163,6 +197,24 @@ function hasBruinMcpServerDefinition(config: any): boolean {
     command.includes("bruin");
 
   return commandLooksLikeBruin && args.includes("mcp");
+}
+
+function hasBruinCloudMcpServerDefinition(config: any): boolean {
+  const server = getJsonServer(config, BRUIN_CLOUD_SERVER_NAME);
+  if (!server) {
+    return false;
+  }
+
+  const type = typeof server.type === "string" ? server.type.toLowerCase() : "";
+  const url = typeof server.url === "string" ? server.url.toLowerCase() : "";
+  const authHeader =
+    typeof server.headers?.Authorization === "string"
+      ? server.headers.Authorization
+      : typeof server.headers?.authorization === "string"
+        ? server.headers.authorization
+        : "";
+
+  return type === "streamable-http" && url === BRUIN_CLOUD_MCP_URL && /bearer\s+.+/i.test(authHeader);
 }
 
 function evaluateStatus(params: {
@@ -256,6 +308,10 @@ async function getJsonMcpConfigStatus(params: {
   label: string;
   configPath: string;
   bruinAvailable: boolean;
+  requiresClientCli?: boolean;
+  isConfigured: (config: any) => boolean;
+  configuredDetails: string;
+  missingDetails: string;
 }): Promise<McpIntegrationStatus> {
   const fileExists = fs.existsSync(params.configPath);
   if (!fileExists) {
@@ -267,13 +323,13 @@ async function getJsonMcpConfigStatus(params: {
       bruinAvailable: params.bruinAvailable,
       configPath: params.configPath,
       details: `No MCP config found at ${params.configPath}.`,
-      requiresClientCli: false,
+      requiresClientCli: Boolean(params.requiresClientCli),
     });
   }
 
   try {
     const config = await readJsonFile(params.configPath);
-    const configured = hasBruinMcpServerDefinition(config);
+    const configured = params.isConfigured(config);
     return evaluateStatus({
       id: params.id,
       label: params.label,
@@ -281,10 +337,8 @@ async function getJsonMcpConfigStatus(params: {
       clientAvailable: true,
       bruinAvailable: params.bruinAvailable,
       configPath: params.configPath,
-      details: configured
-        ? `Configured in ${params.configPath}.`
-        : `Config exists but Bruin MCP entry is missing in ${params.configPath}.`,
-      requiresClientCli: false,
+      details: configured ? params.configuredDetails : params.missingDetails,
+      requiresClientCli: Boolean(params.requiresClientCli),
     });
   } catch (error) {
     return evaluateStatus({
@@ -295,7 +349,7 @@ async function getJsonMcpConfigStatus(params: {
       bruinAvailable: params.bruinAvailable,
       configPath: params.configPath,
       details: "",
-      requiresClientCli: false,
+      requiresClientCli: Boolean(params.requiresClientCli),
       error: `Invalid JSON in ${params.configPath}: ${error}`,
     });
   }
@@ -309,7 +363,7 @@ function parseTomlArrayValues(rawValues: string): string[] {
 }
 
 function hasBruinCodexMcpServer(content: string): boolean {
-  const blockMatch = content.match(/\[mcp_servers\.bruin\]([\s\S]*?)(?=\n\[|$)/);
+  const blockMatch = content.match(/\[mcp_servers\.(?:bruin|"bruin"|'bruin')\]([\s\S]*?)(?=\n\[|$)/i);
   if (!blockMatch) {
     return false;
   }
@@ -325,15 +379,47 @@ function hasBruinCodexMcpServer(content: string): boolean {
   return commandIsBruin && (args.length === 0 || hasMcpArg || blockContent.toLowerCase().includes("mcp"));
 }
 
-function outputContainsBruinListEntry(output: string): boolean {
-  return /^\s*bruin(?:\s*:|\s{2,}|\t)/im.test(output) || /^\s*bruin\s*$/im.test(output);
+function hasBruinCloudCodexMcpServer(content: string): boolean {
+  const blockMatch = content.match(
+    /\[mcp_servers\.(?:bruin_cloud|"bruin_cloud"|'bruin_cloud')\]([\s\S]*?)(?=\n\[|$)/i
+  );
+  if (!blockMatch) {
+    return false;
+  }
+
+  const blockContent = blockMatch[1];
+  const hasExpectedUrl = /url\s*=\s*["']https:\/\/cloud\.getbruin\.com\/mcp["']/i.test(blockContent);
+  const hasInlineBearerHeader =
+    /http_headers\s*=\s*\{[^}]*authorization\s*=\s*["']bearer\s+.+["'][^}]*\}/i.test(blockContent);
+  const nestedHeaderMatch = content.match(
+    /\[mcp_servers\.(?:bruin_cloud|"bruin_cloud"|'bruin_cloud')\.(?:http_headers|"http_headers"|'http_headers')\]([\s\S]*?)(?=\n\[|$)/i
+  );
+  const hasNestedBearerHeader = Boolean(
+    nestedHeaderMatch && /authorization\s*=\s*["']bearer\s+.+["']/i.test(nestedHeaderMatch[1])
+  );
+  return hasExpectedUrl && (hasInlineBearerHeader || hasNestedBearerHeader);
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function outputContainsListEntry(output: string, serverName: string): boolean {
+  const escaped = escapeRegExp(serverName);
+  const entryRegex = new RegExp(`^\\s*${escaped}(?:\\s*:|\\s{2,}|\\t)`, "im");
+  const exactRegex = new RegExp(`^\\s*${escaped}\\s*$`, "im");
+  return entryRegex.test(output) || exactRegex.test(output);
 }
 
 async function getCodexMcpStatus(
+  variant: McpVariant,
   workspaceRoot: string | undefined,
   bruinAvailable: boolean,
   codexCliAvailable: boolean
 ): Promise<McpIntegrationStatus> {
+  const isCloud = variant === "cloud";
+  const serverName = isCloud ? BRUIN_CLOUD_SERVER_NAME : BRUIN_LOCAL_SERVER_NAME;
+
   if (codexCliAvailable) {
     try {
       const { stdout, stderr } = await execAsync("codex mcp list", {
@@ -341,14 +427,14 @@ async function getCodexMcpStatus(
         timeout: 20000,
       });
       const output = `${stdout || ""}\n${stderr || ""}`;
-      if (outputContainsBruinListEntry(output)) {
+      if (outputContainsListEntry(output, serverName)) {
         return evaluateStatus({
           id: "codex",
           label: "Codex CLI",
           configured: true,
           clientAvailable: true,
           bruinAvailable,
-          details: "Bruin MCP is configured in Codex CLI.",
+          details: isCloud ? "Bruin Cloud MCP is configured in Codex CLI." : "Bruin MCP is configured in Codex CLI.",
           requiresClientCli: true,
         });
       }
@@ -358,10 +444,10 @@ async function getCodexMcpStatus(
   }
 
   const candidatePaths: string[] = [];
-  if (workspaceRoot) {
+  if (!isCloud && workspaceRoot) {
     candidatePaths.push(path.join(workspaceRoot, ".codex", "config.toml"));
   }
-  candidatePaths.push(path.join(os.homedir(), ".codex", "config.toml"));
+  candidatePaths.push(getCodexGlobalConfigPath());
 
   for (const configPath of candidatePaths) {
     if (!fs.existsSync(configPath)) {
@@ -369,7 +455,7 @@ async function getCodexMcpStatus(
     }
     try {
       const content = await fs.promises.readFile(configPath, "utf8");
-      const configured = hasBruinCodexMcpServer(content);
+      const configured = isCloud ? hasBruinCloudCodexMcpServer(content) : hasBruinCodexMcpServer(content);
       if (configured) {
         return evaluateStatus({
           id: "codex",
@@ -403,12 +489,13 @@ async function getCodexMcpStatus(
     configured: false,
     clientAvailable: codexCliAvailable,
     bruinAvailable,
-    details: "No Bruin MCP server found in Codex config.",
+    details: isCloud ? "No Bruin Cloud MCP server found in Codex config." : "No Bruin MCP server found in Codex config.",
     requiresClientCli: true,
   });
 }
 
 async function getClaudeMcpStatus(
+  variant: McpVariant,
   bruinAvailable: boolean,
   claudeCliAvailable: boolean
 ): Promise<McpIntegrationStatus> {
@@ -424,8 +511,11 @@ async function getClaudeMcpStatus(
     });
   }
 
+  const isCloud = variant === "cloud";
+  const serverName = isCloud ? BRUIN_CLOUD_SERVER_NAME : BRUIN_LOCAL_SERVER_NAME;
+
   try {
-    const { stdout, stderr } = await execAsync("claude mcp get bruin", {
+    const { stdout, stderr } = await execAsync(`claude mcp get ${serverName}`, {
       cwd: os.homedir(),
       timeout: 20000,
     });
@@ -441,7 +531,21 @@ async function getClaudeMcpStatus(
         configured: false,
         clientAvailable: true,
         bruinAvailable,
-        details: `Bruin MCP is configured in ${scope}, not in global user scope.`,
+        details: isCloud
+          ? `Bruin Cloud MCP is configured in ${scope}, not in global user scope.`
+          : `Bruin MCP is configured in ${scope}, not in global user scope.`,
+        requiresClientCli: true,
+      });
+    }
+
+    if (isCloud && !output.toLowerCase().includes(BRUIN_CLOUD_MCP_URL)) {
+      return evaluateStatus({
+        id: "claude",
+        label: "Claude Code",
+        configured: false,
+        clientAvailable: true,
+        bruinAvailable,
+        details: "Bruin Cloud MCP exists in Claude Code, but URL is not set to https://cloud.getbruin.com/mcp.",
         requiresClientCli: true,
       });
     }
@@ -452,7 +556,9 @@ async function getClaudeMcpStatus(
       configured: true,
       clientAvailable: true,
       bruinAvailable,
-      details: "Bruin MCP is configured in Claude Code (global user scope).",
+      details: isCloud
+        ? "Bruin Cloud MCP is configured in Claude Code (global user scope)."
+        : "Bruin MCP is configured in Claude Code (global user scope).",
       requiresClientCli: true,
     });
   } catch {
@@ -462,15 +568,19 @@ async function getClaudeMcpStatus(
       configured: false,
       clientAvailable: true,
       bruinAvailable,
-      details: "Bruin MCP is not configured in Claude Code (global user scope).",
+      details: isCloud
+        ? "Bruin Cloud MCP is not configured in Claude Code (global user scope)."
+        : "Bruin MCP is not configured in Claude Code (global user scope).",
       requiresClientCli: true,
     });
   }
 }
 
-async function writeBruinMcpJsonConfig(
+async function upsertJsonMcpServerConfig(
   configPath: string,
-  serverRootKey: "servers" | "mcpServers"
+  serverRootKey: "servers" | "mcpServers",
+  serverName: string,
+  serverConfig: Record<string, unknown>
 ): Promise<void> {
   await fs.promises.mkdir(path.dirname(configPath), { recursive: true });
 
@@ -483,24 +593,39 @@ async function writeBruinMcpJsonConfig(
   }
 
   const existingServers =
-    config[serverRootKey] &&
-    typeof config[serverRootKey] === "object" &&
-    !Array.isArray(config[serverRootKey])
+    config[serverRootKey] && typeof config[serverRootKey] === "object" && !Array.isArray(config[serverRootKey])
       ? config[serverRootKey]
       : {};
 
   config[serverRootKey] = {
     ...existingServers,
-    bruin: {
-      command: "bruin",
-      args: ["mcp"],
-    },
+    [serverName]: serverConfig,
   };
 
   await fs.promises.writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`, "utf8");
 }
 
-async function removeBruinMcpJsonConfig(configPath: string): Promise<void> {
+async function writeBruinMcpJsonConfig(
+  configPath: string,
+  serverRootKey: "servers" | "mcpServers"
+): Promise<void> {
+  await upsertJsonMcpServerConfig(configPath, serverRootKey, BRUIN_LOCAL_SERVER_NAME, {
+    command: "bruin",
+    args: ["mcp"],
+  });
+}
+
+async function writeBruinCloudCursorMcpJsonConfig(configPath: string, bearerToken: string): Promise<void> {
+  await upsertJsonMcpServerConfig(configPath, "mcpServers", BRUIN_CLOUD_SERVER_NAME, {
+    type: "streamable-http",
+    url: BRUIN_CLOUD_MCP_URL,
+    headers: {
+      Authorization: `Bearer ${bearerToken}`,
+    },
+  });
+}
+
+async function removeMcpJsonServerConfig(configPath: string, serverName: string): Promise<void> {
   if (!fs.existsSync(configPath)) {
     return;
   }
@@ -513,8 +638,8 @@ async function removeBruinMcpJsonConfig(configPath: string): Promise<void> {
   let updated = false;
   for (const rootKey of ["servers", "mcpServers"] as const) {
     const root = config[rootKey];
-    if (root && typeof root === "object" && !Array.isArray(root) && root.bruin) {
-      delete root.bruin;
+    if (root && typeof root === "object" && !Array.isArray(root) && root[serverName]) {
+      delete root[serverName];
       updated = true;
     }
   }
@@ -524,75 +649,256 @@ async function removeBruinMcpJsonConfig(configPath: string): Promise<void> {
   }
 }
 
+function parseTomlSectionHeader(line: string): string | null {
+  const match = line.match(/^\s*\[([^\]]+)\]\s*$/);
+  if (!match?.[1]) {
+    return null;
+  }
+
+  return match[1].trim().toLowerCase();
+}
+
+function normalizeTomlSectionPath(path: string): string {
+  return path
+    .split(".")
+    .map((part) => part.trim().replace(/^["']|["']$/g, "").trim())
+    .filter(Boolean)
+    .join(".")
+    .toLowerCase();
+}
+
+function removeTomlSections(content: string, sectionHeaders: string[]): { updatedContent: string; changed: boolean } {
+  const targetHeaders = sectionHeaders.map((header) => normalizeTomlSectionPath(header));
+  const lines = content.split(/\r?\n/);
+  const remainingLines: string[] = [];
+  let changed = false;
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const currentHeaderRaw = parseTomlSectionHeader(lines[index]);
+    const currentHeader = currentHeaderRaw ? normalizeTomlSectionPath(currentHeaderRaw) : null;
+    const shouldRemove =
+      currentHeader &&
+      targetHeaders.some((targetHeader) => currentHeader === targetHeader || currentHeader.startsWith(`${targetHeader}.`));
+
+    if (shouldRemove) {
+      changed = true;
+      index += 1;
+
+      while (index < lines.length) {
+        if (parseTomlSectionHeader(lines[index])) {
+          index -= 1;
+          break;
+        }
+        index += 1;
+      }
+      continue;
+    }
+
+    remainingLines.push(lines[index]);
+  }
+
+  if (!changed) {
+    return { updatedContent: content, changed: false };
+  }
+
+  const updatedContent = remainingLines.join("\n").replace(/\n{3,}/g, "\n\n").trimEnd();
+  return { updatedContent: updatedContent.length > 0 ? `${updatedContent}\n` : "", changed: true };
+}
+
+function tomlEscape(value: string): string {
+  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
+function buildBruinCloudCodexSection(bearerToken: string): string {
+  const escapedToken = tomlEscape(bearerToken);
+  return [
+    "[mcp_servers.bruin_cloud]",
+    `url = \"${BRUIN_CLOUD_MCP_URL}\"`,
+    `http_headers = { Authorization = \"Bearer ${escapedToken}\" }`,
+    "enabled = true",
+    "",
+  ].join("\n");
+}
+
+async function upsertBruinCloudCodexConfig(bearerToken: string): Promise<string> {
+  const configPath = getCodexGlobalConfigPath();
+  await fs.promises.mkdir(path.dirname(configPath), { recursive: true });
+
+  const existingContent = fs.existsSync(configPath) ? await fs.promises.readFile(configPath, "utf8") : "";
+  const withoutSection = removeTomlSections(existingContent, [
+    "mcp_servers.bruin_cloud",
+    "mcp_servers.\"bruin_cloud\"",
+    "mcp_servers.'bruin_cloud'",
+  ]).updatedContent.trimEnd();
+  const separator = withoutSection.length > 0 ? "\n\n" : "";
+  const nextContent = `${withoutSection}${separator}${buildBruinCloudCodexSection(bearerToken)}`;
+
+  await fs.promises.writeFile(configPath, nextContent, "utf8");
+  return configPath;
+}
+
+async function removeBruinCloudCodexConfig(): Promise<string> {
+  const configPath = getCodexGlobalConfigPath();
+  if (!fs.existsSync(configPath)) {
+    return configPath;
+  }
+
+  const content = await fs.promises.readFile(configPath, "utf8");
+  const { updatedContent, changed } = removeTomlSections(content, [
+    "mcp_servers.bruin_cloud",
+    "mcp_servers.\"bruin_cloud\"",
+    "mcp_servers.'bruin_cloud'",
+  ]);
+  if (changed) {
+    await fs.promises.writeFile(configPath, updatedContent, "utf8");
+  }
+
+  return configPath;
+}
+
 export async function getMcpIntegrationStatuses(
-  lastRenderedDocumentUri: vscode.Uri | undefined
+  lastRenderedDocumentUri: vscode.Uri | undefined,
+  variant: McpVariant = "bruin"
 ): Promise<McpIntegrationStatus[]> {
   const workspaceRoot = getWorkspaceRoot(lastRenderedDocumentUri);
-  const bruinAvailable = await isBruinCliAvailable();
+  const isCloud = variant === "cloud";
+  const bruinAvailable = isCloud ? true : await isBruinCliAvailable();
+
   const [codexCliAvailable, claudeCliAvailable] = await Promise.all([
     commandExists("codex"),
     commandExists("claude"),
   ]);
 
-  const vscodeConfigPath = getVsCodeGlobalMcpConfigPath();
+  if (!isCloud) {
+    const vscodeConfigPath = getVsCodeGlobalMcpConfigPath();
+    const cursorConfigPath = getCursorGlobalMcpConfigPath();
+
+    const vscodeStatus = await getJsonMcpConfigStatus({
+      id: "vscode",
+      label: "VS Code",
+      configPath: vscodeConfigPath,
+      bruinAvailable,
+      isConfigured: hasBruinMcpServerDefinition,
+      configuredDetails: `Configured in ${vscodeConfigPath}.`,
+      missingDetails: `Config exists but Bruin MCP entry is missing in ${vscodeConfigPath}.`,
+    });
+
+    const cursorStatus = await getJsonMcpConfigStatus({
+      id: "cursor",
+      label: "Cursor",
+      configPath: cursorConfigPath,
+      bruinAvailable,
+      isConfigured: hasBruinMcpServerDefinition,
+      configuredDetails: `Configured in ${cursorConfigPath}.`,
+      missingDetails: `Config exists but Bruin MCP entry is missing in ${cursorConfigPath}.`,
+    });
+
+    const codexStatus = await getCodexMcpStatus("bruin", workspaceRoot, bruinAvailable, codexCliAvailable);
+    const claudeStatus = await getClaudeMcpStatus("bruin", bruinAvailable, claudeCliAvailable);
+
+    return [vscodeStatus, cursorStatus, codexStatus, claudeStatus];
+  }
+
   const cursorConfigPath = getCursorGlobalMcpConfigPath();
-
-  const vscodeStatus = await getJsonMcpConfigStatus({
-    id: "vscode",
-    label: "VS Code",
-    configPath: vscodeConfigPath,
-    bruinAvailable,
-  });
-
   const cursorStatus = await getJsonMcpConfigStatus({
     id: "cursor",
     label: "Cursor",
     configPath: cursorConfigPath,
     bruinAvailable,
+    isConfigured: hasBruinCloudMcpServerDefinition,
+    configuredDetails: `Configured in ${cursorConfigPath}.`,
+    missingDetails: `Config exists but Bruin Cloud MCP entry is missing in ${cursorConfigPath}.`,
   });
 
-  const codexStatus = await getCodexMcpStatus(workspaceRoot, bruinAvailable, codexCliAvailable);
-  const claudeStatus = await getClaudeMcpStatus(bruinAvailable, claudeCliAvailable);
+  const codexStatus = await getCodexMcpStatus("cloud", workspaceRoot, bruinAvailable, codexCliAvailable);
+  const claudeStatus = await getClaudeMcpStatus("cloud", bruinAvailable, claudeCliAvailable);
 
-  return [vscodeStatus, cursorStatus, codexStatus, claudeStatus];
+  return [cursorStatus, codexStatus, claudeStatus];
 }
 
 export async function installMcpIntegration(
   target: McpClientId,
-  lastRenderedDocumentUri: vscode.Uri | undefined
+  lastRenderedDocumentUri: vscode.Uri | undefined,
+  options?: {
+    variant?: McpVariant;
+    bearerToken?: string;
+  }
 ): Promise<McpIntegrationInstallResult> {
+  const variant = options?.variant ?? "bruin";
   const workspaceRoot = getWorkspaceRoot(lastRenderedDocumentUri);
 
-  switch (target) {
-    case "vscode": {
-      const configPath = getVsCodeGlobalMcpConfigPath();
-      await writeBruinMcpJsonConfig(configPath, "servers");
-      return {
-        target,
-        message: `Configured Bruin MCP in ${configPath}.`,
-      };
+  if (variant === "bruin") {
+    switch (target) {
+      case "vscode": {
+        const configPath = getVsCodeGlobalMcpConfigPath();
+        await writeBruinMcpJsonConfig(configPath, "servers");
+        return {
+          target,
+          message: `Configured Bruin MCP in ${configPath}.`,
+        };
+      }
+      case "cursor": {
+        const configPath = getCursorGlobalMcpConfigPath();
+        await writeBruinMcpJsonConfig(configPath, "mcpServers");
+        return {
+          target,
+          message: `Configured Bruin MCP in ${configPath}.`,
+        };
+      }
+      case "codex": {
+        const codexAvailable = await commandExists("codex");
+        if (!codexAvailable) {
+          throw new Error("Codex CLI is not available in PATH.");
+        }
+        await removeCodexMcpServerIfExists(BRUIN_LOCAL_SERVER_NAME, workspaceRoot);
+        await execAsync("codex mcp add bruin -- bruin mcp", {
+          cwd: workspaceRoot,
+          timeout: 30000,
+        });
+        return {
+          target,
+          message: "Configured Bruin MCP for Codex CLI.",
+        };
+      }
+      case "claude": {
+        const claudeAvailable = await commandExists("claude");
+        if (!claudeAvailable) {
+          throw new Error("Claude CLI is not available in PATH.");
+        }
+        await removeClaudeMcpServerIfExists(BRUIN_LOCAL_SERVER_NAME);
+        await execAsync("claude mcp add -s user bruin -- bruin mcp", {
+          cwd: os.homedir(),
+          timeout: 30000,
+        });
+        return {
+          target,
+          message: "Configured Bruin MCP for Claude Code (global user scope).",
+        };
+      }
+      default:
+        throw new Error(`Unsupported MCP integration target: ${target}`);
     }
+  }
+
+  const bearerToken = options?.bearerToken?.trim();
+  if (!bearerToken) {
+    throw new Error("Bearer token is required for Bruin Cloud MCP.");
+  }
+
+  switch (target) {
     case "cursor": {
       const configPath = getCursorGlobalMcpConfigPath();
-      await writeBruinMcpJsonConfig(configPath, "mcpServers");
+      await writeBruinCloudCursorMcpJsonConfig(configPath, bearerToken);
       return {
         target,
-        message: `Configured Bruin MCP in ${configPath}.`,
+        message: `Configured Bruin Cloud MCP in ${configPath}.`,
       };
     }
     case "codex": {
-      const codexAvailable = await commandExists("codex");
-      if (!codexAvailable) {
-        throw new Error("Codex CLI is not available in PATH.");
-      }
-      await removeCodexMcpServerIfExists(workspaceRoot);
-      await execAsync("codex mcp add bruin -- bruin mcp", {
-        cwd: workspaceRoot,
-        timeout: 30000,
-      });
+      const configPath = await upsertBruinCloudCodexConfig(bearerToken);
       return {
         target,
-        message: "Configured Bruin MCP for Codex CLI.",
+        message: `Configured Bruin Cloud MCP in ${configPath}.`,
       };
     }
     case "claude": {
@@ -600,53 +906,104 @@ export async function installMcpIntegration(
       if (!claudeAvailable) {
         throw new Error("Claude CLI is not available in PATH.");
       }
-      await removeClaudeMcpServerIfExists();
-      await execAsync("claude mcp add -s user bruin -- bruin mcp", {
-        cwd: os.homedir(),
-        timeout: 30000,
-      });
+
+      await removeClaudeMcpServerIfExists(BRUIN_CLOUD_SERVER_NAME);
+      await execFileAsync(
+        "claude",
+        [
+          "mcp",
+          "add",
+          "-s",
+          "user",
+          "--transport",
+          "http",
+          BRUIN_CLOUD_SERVER_NAME,
+          BRUIN_CLOUD_MCP_URL,
+          "--header",
+          `Authorization: Bearer ${bearerToken}`,
+        ],
+        {
+          cwd: os.homedir(),
+          timeout: 30000,
+        }
+      );
+
       return {
         target,
-        message: "Configured Bruin MCP for Claude Code (global user scope).",
+        message: "Configured Bruin Cloud MCP for Claude Code (global user scope).",
       };
     }
     default:
-      throw new Error(`Unsupported MCP integration target: ${target}`);
+      throw new Error(`Unsupported Bruin Cloud MCP integration target: ${target}`);
   }
 }
 
 export async function uninstallMcpIntegration(
   target: McpClientId,
-  lastRenderedDocumentUri: vscode.Uri | undefined
+  lastRenderedDocumentUri: vscode.Uri | undefined,
+  variant: McpVariant = "bruin"
 ): Promise<McpIntegrationUninstallResult> {
   const workspaceRoot = getWorkspaceRoot(lastRenderedDocumentUri);
 
-  switch (target) {
-    case "vscode": {
-      const configPath = getVsCodeGlobalMcpConfigPath();
-      await removeBruinMcpJsonConfig(configPath);
-      return {
-        target,
-        message: `Disabled Bruin MCP in ${configPath}.`,
-      };
+  if (variant === "bruin") {
+    switch (target) {
+      case "vscode": {
+        const configPath = getVsCodeGlobalMcpConfigPath();
+        await removeMcpJsonServerConfig(configPath, BRUIN_LOCAL_SERVER_NAME);
+        return {
+          target,
+          message: `Removed Bruin MCP from ${configPath}.`,
+        };
+      }
+      case "cursor": {
+        const configPath = getCursorGlobalMcpConfigPath();
+        await removeMcpJsonServerConfig(configPath, BRUIN_LOCAL_SERVER_NAME);
+        return {
+          target,
+          message: `Removed Bruin MCP from ${configPath}.`,
+        };
+      }
+      case "codex": {
+        const codexAvailable = await commandExists("codex");
+        if (!codexAvailable) {
+          throw new Error("Codex CLI is not available in PATH.");
+        }
+        await removeCodexMcpServerIfExists(BRUIN_LOCAL_SERVER_NAME, workspaceRoot);
+        return {
+          target,
+          message: "Removed Bruin MCP from Codex CLI.",
+        };
+      }
+      case "claude": {
+        const claudeAvailable = await commandExists("claude");
+        if (!claudeAvailable) {
+          throw new Error("Claude CLI is not available in PATH.");
+        }
+        await removeClaudeMcpServerIfExists(BRUIN_LOCAL_SERVER_NAME);
+        return {
+          target,
+          message: "Removed Bruin MCP from Claude Code (global user scope).",
+        };
+      }
+      default:
+        throw new Error(`Unsupported MCP integration target: ${target}`);
     }
+  }
+
+  switch (target) {
     case "cursor": {
       const configPath = getCursorGlobalMcpConfigPath();
-      await removeBruinMcpJsonConfig(configPath);
+      await removeMcpJsonServerConfig(configPath, BRUIN_CLOUD_SERVER_NAME);
       return {
         target,
-        message: `Disabled Bruin MCP in ${configPath}.`,
+        message: `Removed Bruin Cloud MCP from ${configPath}.`,
       };
     }
     case "codex": {
-      const codexAvailable = await commandExists("codex");
-      if (!codexAvailable) {
-        throw new Error("Codex CLI is not available in PATH.");
-      }
-      await removeCodexMcpServerIfExists(workspaceRoot);
+      const configPath = await removeBruinCloudCodexConfig();
       return {
         target,
-        message: "Disabled Bruin MCP for Codex CLI.",
+        message: `Removed Bruin Cloud MCP from ${configPath}.`,
       };
     }
     case "claude": {
@@ -654,13 +1011,13 @@ export async function uninstallMcpIntegration(
       if (!claudeAvailable) {
         throw new Error("Claude CLI is not available in PATH.");
       }
-      await removeClaudeMcpServerIfExists();
+      await removeClaudeMcpServerIfExists(BRUIN_CLOUD_SERVER_NAME);
       return {
         target,
-        message: "Disabled Bruin MCP for Claude Code (global user scope).",
+        message: "Removed Bruin Cloud MCP from Claude Code (global user scope).",
       };
     }
     default:
-      throw new Error(`Unsupported MCP integration target: ${target}`);
+      throw new Error(`Unsupported Bruin Cloud MCP integration target: ${target}`);
   }
 }
