@@ -243,6 +243,9 @@ const awaitingPostToggleRefresh = ref<McpVariant | null>(null);
 const mcpFeedbackMessage = ref("");
 const mcpFeedbackType = ref<"success" | "error" | "">("");
 const dismissedStatusAlerts = ref<Record<string, boolean>>({});
+const cloudTokenReconfigureInProgress = ref(false);
+const cloudTokenReconfigureQueue = ref<McpClientId[]>([]);
+const cloudTokenReconfigureResults = ref<Array<{ target: McpClientId; success: boolean; message: string }>>([]);
 
 const cloudBearerToken = ref("");
 const cloudTokenEditable = ref(false);
@@ -393,6 +396,74 @@ function isIntegrationLoading(variant: McpVariant, target: McpClientId, status: 
   return isToggling(variant, target) || status.status === "checking";
 }
 
+function finalizeCloudTokenReconfigureBatch() {
+  const total = cloudTokenReconfigureResults.value.length;
+  const failures = cloudTokenReconfigureResults.value.filter((result) => !result.success).length;
+  cloudTokenReconfigureInProgress.value = false;
+  cloudTokenReconfigureQueue.value = [];
+
+  if (total === 0) {
+    mcpFeedbackType.value = "";
+    mcpFeedbackMessage.value = "Token confirmed.";
+    return;
+  }
+
+  if (failures === 0) {
+    mcpFeedbackType.value = "success";
+    mcpFeedbackMessage.value = `Reconfigured ${total} Bruin Cloud MCP integration${total === 1 ? "" : "s"} with the new token.`;
+    return;
+  }
+
+  mcpFeedbackType.value = "error";
+  mcpFeedbackMessage.value = `Reconfigured ${total - failures}/${total} Bruin Cloud MCP integrations.`;
+}
+
+function runNextCloudTokenReconfigure() {
+  if (!cloudTokenReconfigureInProgress.value) {
+    return;
+  }
+
+  if (togglingIntegration.value || awaitingPostToggleRefresh.value) {
+    return;
+  }
+
+  const nextTarget = cloudTokenReconfigureQueue.value.shift();
+  if (!nextTarget) {
+    finalizeCloudTokenReconfigureBatch();
+    return;
+  }
+
+  togglingIntegration.value = { variant: "cloud", target: nextTarget };
+  vscode.postMessage({
+    command: "bruin.installMcpIntegration",
+    payload: {
+      variant: "cloud",
+      target: nextTarget,
+      bearerToken: cloudBearerToken.value.trim(),
+    },
+  });
+}
+
+function startCloudTokenReconfigureBatch() {
+  if (!isCloudToggleEnabled.value || cloudTokenReconfigureInProgress.value) {
+    return;
+  }
+
+  const configuredTargets = cloudIntegrations.value.filter((integration) => integration.status.configured).map((i) => i.id);
+  if (configuredTargets.length === 0) {
+    mcpFeedbackType.value = "";
+    mcpFeedbackMessage.value = "Token confirmed.";
+    return;
+  }
+
+  cloudTokenReconfigureInProgress.value = true;
+  cloudTokenReconfigureQueue.value = [...configuredTargets];
+  cloudTokenReconfigureResults.value = [];
+  mcpFeedbackType.value = "";
+  mcpFeedbackMessage.value = `Reconfiguring ${configuredTargets.length} Bruin Cloud MCP integration${configuredTargets.length === 1 ? "" : "s"}...`;
+  runNextCloudTokenReconfigure();
+}
+
 function toggleMcpIntegration(variant: McpVariant, target: McpClientId, currentlyConfigured: boolean) {
   if (togglingIntegration.value) {
     return;
@@ -430,8 +501,11 @@ function toggleMcpIntegration(variant: McpVariant, target: McpClientId, currentl
 function toggleCloudTokenEdit() {
   if (cloudTokenEditable.value) {
     cloudBearerToken.value = cloudBearerToken.value.trim();
+    cloudTokenEditable.value = false;
+    startCloudTokenReconfigureBatch();
+    return;
   }
-  cloudTokenEditable.value = !cloudTokenEditable.value;
+  cloudTokenEditable.value = true;
 }
 
 function handleMessage(event: MessageEvent) {
@@ -453,12 +527,27 @@ function handleMessage(event: MessageEvent) {
           if (updatedStatuses[targetId]) {
             togglingIntegration.value = null;
             awaitingPostToggleRefresh.value = null;
+            if (cloudTokenReconfigureInProgress.value && variant === "cloud") {
+              runNextCloudTokenReconfigure();
+            }
           }
         }
       } else {
+        const failedTarget = togglingIntegration.value?.variant === variant ? togglingIntegration.value?.target : null;
+        if (cloudTokenReconfigureInProgress.value && variant === "cloud" && failedTarget) {
+          cloudTokenReconfigureResults.value.push({
+            target: failedTarget,
+            success: false,
+            message: String(message.payload?.message || "Failed to load MCP statuses."),
+          });
+        }
         if (togglingIntegration.value?.variant === variant) {
           togglingIntegration.value = null;
           awaitingPostToggleRefresh.value = null;
+          if (cloudTokenReconfigureInProgress.value && variant === "cloud") {
+            runNextCloudTokenReconfigure();
+            return;
+          }
         }
         mcpFeedbackType.value = "error";
         mcpFeedbackMessage.value = message.payload?.message || "Failed to load MCP statuses.";
@@ -469,14 +558,34 @@ function handleMessage(event: MessageEvent) {
     case "mcp-integration-install-message": {
       const variant: McpVariant = message.payload?.variant === "cloud" ? "cloud" : "bruin";
       if (message.payload?.status === "success") {
+        if (cloudTokenReconfigureInProgress.value && variant === "cloud") {
+          cloudTokenReconfigureResults.value.push({
+            target: message.payload?.target as McpClientId,
+            success: true,
+            message: String(message.payload?.message || "MCP integration updated."),
+          });
+        }
         awaitingPostToggleRefresh.value = variant;
-        const feedbackMessage = String(message.payload?.message || "MCP integration updated.");
-        mcpFeedbackType.value = /disabled\s+bruin/i.test(feedbackMessage) ? "" : "success";
-        mcpFeedbackMessage.value = feedbackMessage;
+        if (!cloudTokenReconfigureInProgress.value) {
+          const feedbackMessage = String(message.payload?.message || "MCP integration updated.");
+          mcpFeedbackType.value = /disabled\s+bruin/i.test(feedbackMessage) ? "" : "success";
+          mcpFeedbackMessage.value = feedbackMessage;
+        }
       } else {
+        if (cloudTokenReconfigureInProgress.value && variant === "cloud") {
+          cloudTokenReconfigureResults.value.push({
+            target: message.payload?.target as McpClientId,
+            success: false,
+            message: String(message.payload?.message || "Failed to update MCP integration."),
+          });
+        }
         if (togglingIntegration.value?.variant === variant) {
           togglingIntegration.value = null;
           awaitingPostToggleRefresh.value = null;
+          if (cloudTokenReconfigureInProgress.value && variant === "cloud") {
+            runNextCloudTokenReconfigure();
+            return;
+          }
         }
         mcpFeedbackType.value = "error";
         mcpFeedbackMessage.value = message.payload?.message || "Failed to update MCP integration.";
