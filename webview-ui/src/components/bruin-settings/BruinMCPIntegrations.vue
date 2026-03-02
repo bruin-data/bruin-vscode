@@ -300,8 +300,9 @@ function handleMessage(event: MessageEvent) {
     case "mcp-integration-install-message":
       if (message.payload?.status === "success") {
         awaitingPostToggleRefresh.value = true;
-        mcpFeedbackType.value = "success";
-        mcpFeedbackMessage.value = message.payload?.message || "MCP integration updated.";
+        const feedbackMessage = String(message.payload?.message || "MCP integration updated.");
+        mcpFeedbackType.value = /disabled\s+bruin\s+mcp/i.test(feedbackMessage) ? "" : "success";
+        mcpFeedbackMessage.value = feedbackMessage;
       } else {
         togglingMcpTarget.value = null;
         awaitingPostToggleRefresh.value = false;
