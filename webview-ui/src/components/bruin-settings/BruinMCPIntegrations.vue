@@ -96,9 +96,12 @@
               v-for="integration in cloudIntegrations"
               :key="`cloud-${integration.id}`"
               role="button"
-              tabindex="0"
+              :tabindex="isCloudToggleEnabled ? 0 : -1"
               class="rounded border px-2 py-1.5 cursor-pointer select-none transition-colors"
-              :class="mcpIntegrationCardClass('cloud', integration.id, integration.status)"
+              :class="[
+                mcpIntegrationCardClass('cloud', integration.id, integration.status),
+                { 'cursor-not-allowed': !isCloudToggleEnabled },
+              ]"
               @click="toggleMcpIntegration('cloud', integration.id, integration.status.configured)"
               @keydown.enter.prevent="toggleMcpIntegration('cloud', integration.id, integration.status.configured)"
               @keydown.space.prevent="toggleMcpIntegration('cloud', integration.id, integration.status.configured)"
@@ -238,6 +241,9 @@ const dismissedStatusAlerts = ref<Record<string, boolean>>({});
 
 const cloudBearerToken = ref("");
 const cloudTokenEditable = ref(false);
+const isCloudToggleEnabled = computed(
+  () => cloudBearerToken.value.trim().length > 0 && !cloudTokenEditable.value
+);
 
 const bruinIntegrations = computed(() =>
   bruinMetadata.map((integration) => ({
@@ -376,11 +382,20 @@ function isToggling(variant: McpVariant, target: McpClientId): boolean {
 }
 
 function isIntegrationLoading(variant: McpVariant, target: McpClientId, status: McpIntegrationStatus): boolean {
+  if (variant === "cloud" && !isCloudToggleEnabled.value) {
+    return status.status === "checking";
+  }
   return isToggling(variant, target) || status.status === "checking";
 }
 
 function toggleMcpIntegration(variant: McpVariant, target: McpClientId, currentlyConfigured: boolean) {
   if (togglingIntegration.value) {
+    return;
+  }
+
+  if (variant === "cloud" && !isCloudToggleEnabled.value) {
+    mcpFeedbackType.value = "error";
+    mcpFeedbackMessage.value = "Set a bearer token and press check to confirm before configuring Bruin Cloud MCP.";
     return;
   }
 
@@ -494,6 +509,24 @@ function mcpIntegrationCardClass(
   id: McpClientId,
   status: McpIntegrationStatus
 ): string {
+  if (variant === "cloud" && !isCloudToggleEnabled.value) {
+    switch (status.status) {
+      case "checking":
+        return "bg-blue-500/10 border-blue-500/40 opacity-55";
+      case "ready":
+        return "bg-green-500/10 border-green-500/40 opacity-55";
+      case "client_missing":
+        return "bg-yellow-500/10 border-yellow-500/40 opacity-55";
+      case "bruin_missing":
+        return "bg-orange-500/10 border-orange-500/40 opacity-55";
+      case "error":
+        return "bg-red-500/10 border-red-500/40 opacity-55";
+      case "not_configured":
+      default:
+        return "bg-input-background border-commandCenter-border opacity-60";
+    }
+  }
+
   if (isToggling(variant, id)) {
     return "bg-blue-500/10 border-blue-500/40";
   }
@@ -520,6 +553,24 @@ function mcpPowerButtonClass(
   id: McpClientId,
   status: McpIntegrationStatus
 ): string {
+  if (variant === "cloud" && !isCloudToggleEnabled.value) {
+    switch (status.status) {
+      case "checking":
+        return "border-blue-500/60 bg-blue-500/20 text-blue-300 opacity-55";
+      case "ready":
+        return "border-green-500/60 bg-green-500/20 text-green-300 opacity-55";
+      case "client_missing":
+        return "border-yellow-500/60 bg-yellow-500/20 text-yellow-300 opacity-55";
+      case "bruin_missing":
+        return "border-orange-500/60 bg-orange-500/20 text-orange-300 opacity-55";
+      case "error":
+        return "border-red-500/60 bg-red-500/20 text-red-300 opacity-55";
+      case "not_configured":
+      default:
+        return "border-commandCenter-border bg-input-background text-editor-fg opacity-60";
+    }
+  }
+
   if (isToggling(variant, id)) {
     return "border-blue-500/60 bg-blue-500/20 text-blue-300";
   }
