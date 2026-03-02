@@ -572,7 +572,7 @@ function handleMessage(event: MessageEvent) {
         awaitingPostToggleRefresh.value = variant;
         if (!cloudTokenReconfigureInProgress.value) {
           const feedbackMessage = String(message.payload?.message || "MCP integration updated.");
-          mcpFeedbackType.value = /disabled\s+bruin/i.test(feedbackMessage) ? "" : "success";
+          mcpFeedbackType.value = /(disabled|removed)\s+bruin/i.test(feedbackMessage) ? "" : "success";
           mcpFeedbackMessage.value = feedbackMessage;
         }
       } else {

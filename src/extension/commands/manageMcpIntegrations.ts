@@ -952,7 +952,7 @@ export async function uninstallMcpIntegration(
         await removeMcpJsonServerConfig(configPath, BRUIN_LOCAL_SERVER_NAME);
         return {
           target,
-          message: `Disabled Bruin MCP in ${configPath}.`,
+          message: `Removed Bruin MCP from ${configPath}.`,
         };
       }
       case "cursor": {
@@ -960,7 +960,7 @@ export async function uninstallMcpIntegration(
         await removeMcpJsonServerConfig(configPath, BRUIN_LOCAL_SERVER_NAME);
         return {
           target,
-          message: `Disabled Bruin MCP in ${configPath}.`,
+          message: `Removed Bruin MCP from ${configPath}.`,
         };
       }
       case "codex": {
@@ -971,7 +971,7 @@ export async function uninstallMcpIntegration(
         await removeCodexMcpServerIfExists(BRUIN_LOCAL_SERVER_NAME, workspaceRoot);
         return {
           target,
-          message: "Disabled Bruin MCP for Codex CLI.",
+          message: "Removed Bruin MCP from Codex CLI.",
         };
       }
       case "claude": {
@@ -982,7 +982,7 @@ export async function uninstallMcpIntegration(
         await removeClaudeMcpServerIfExists(BRUIN_LOCAL_SERVER_NAME);
         return {
           target,
-          message: "Disabled Bruin MCP for Claude Code (global user scope).",
+          message: "Removed Bruin MCP from Claude Code (global user scope).",
         };
       }
       default:
@@ -996,14 +996,14 @@ export async function uninstallMcpIntegration(
       await removeMcpJsonServerConfig(configPath, BRUIN_CLOUD_SERVER_NAME);
       return {
         target,
-        message: `Disabled Bruin Cloud MCP in ${configPath}.`,
+        message: `Removed Bruin Cloud MCP from ${configPath}.`,
       };
     }
     case "codex": {
       const configPath = await removeBruinCloudCodexConfig();
       return {
         target,
-        message: `Disabled Bruin Cloud MCP in ${configPath}.`,
+        message: `Removed Bruin Cloud MCP from ${configPath}.`,
       };
     }
     case "claude": {
@@ -1014,7 +1014,7 @@ export async function uninstallMcpIntegration(
       await removeClaudeMcpServerIfExists(BRUIN_CLOUD_SERVER_NAME);
       return {
         target,
-        message: "Disabled Bruin Cloud MCP for Claude Code (global user scope).",
+        message: "Removed Bruin Cloud MCP from Claude Code (global user scope).",
       };
     }
     default:
