@@ -44,6 +44,7 @@ import {
   installMcpIntegration,
   uninstallMcpIntegration,
   McpClientId,
+  McpVariant,
 } from "../extension/commands/manageMcpIntegrations";
 import { openGlossary } from "../bruin/bruinGlossaryUtility";
 import { QueryPreviewPanel } from "./QueryPreviewPanel";
@@ -835,13 +836,15 @@ export class BruinPanel {
             await this.installBruinCli();
             break;
           case "bruin.getMcpIntegrationStatus":
+            const variant = (message.payload?.variant as McpVariant | undefined) ?? "bruin";
             try {
-              const mcpStatuses = await getMcpIntegrationStatuses(this._lastRenderedDocumentUri);
+              const mcpStatuses = await getMcpIntegrationStatuses(this._lastRenderedDocumentUri, variant);
               this._panel.webview.postMessage({
                 command: "mcp-integration-status-message",
                 payload: {
                   status: "success",
                   message: mcpStatuses,
+                  variant,
                 },
               });
             } catch (error) {
@@ -850,6 +853,7 @@ export class BruinPanel {
                 payload: {
                   status: "error",
                   message: `Failed to load MCP integration status: ${error}`,
+                  variant,
                 },
               });
             }
@@ -857,26 +861,34 @@ export class BruinPanel {
           case "bruin.installMcpIntegration":
             try {
               const target = message.payload?.target as McpClientId | undefined;
+              const variant = (message.payload?.variant as McpVariant | undefined) ?? "bruin";
+              const bearerToken =
+                typeof message.payload?.bearerToken === "string" ? message.payload.bearerToken : undefined;
               if (!target) {
                 throw new Error("No MCP integration target provided.");
               }
 
-              const installResult = await installMcpIntegration(target, this._lastRenderedDocumentUri);
+              const installResult = await installMcpIntegration(target, this._lastRenderedDocumentUri, {
+                variant,
+                bearerToken,
+              });
               this._panel.webview.postMessage({
                 command: "mcp-integration-install-message",
                 payload: {
                   status: "success",
                   message: installResult.message,
                   target: installResult.target,
+                  variant,
                 },
               });
 
-              const mcpStatuses = await getMcpIntegrationStatuses(this._lastRenderedDocumentUri);
+              const mcpStatuses = await getMcpIntegrationStatuses(this._lastRenderedDocumentUri, variant);
               this._panel.webview.postMessage({
                 command: "mcp-integration-status-message",
                 payload: {
                   status: "success",
                   message: mcpStatuses,
+                  variant,
                 },
               });
             } catch (error) {
@@ -886,6 +898,7 @@ export class BruinPanel {
                   status: "error",
                   message: `Failed to configure MCP integration: ${error}`,
                   target: message.payload?.target ?? null,
+                  variant: message.payload?.variant ?? "bruin",
                 },
               });
             }
@@ -893,26 +906,29 @@ export class BruinPanel {
           case "bruin.uninstallMcpIntegration":
             try {
               const target = message.payload?.target as McpClientId | undefined;
+              const variant = (message.payload?.variant as McpVariant | undefined) ?? "bruin";
               if (!target) {
                 throw new Error("No MCP integration target provided.");
               }
 
-              const uninstallResult = await uninstallMcpIntegration(target, this._lastRenderedDocumentUri);
+              const uninstallResult = await uninstallMcpIntegration(target, this._lastRenderedDocumentUri, variant);
               this._panel.webview.postMessage({
                 command: "mcp-integration-install-message",
                 payload: {
                   status: "success",
                   message: uninstallResult.message,
                   target: uninstallResult.target,
+                  variant,
                 },
               });
 
-              const mcpStatuses = await getMcpIntegrationStatuses(this._lastRenderedDocumentUri);
+              const mcpStatuses = await getMcpIntegrationStatuses(this._lastRenderedDocumentUri, variant);
               this._panel.webview.postMessage({
                 command: "mcp-integration-status-message",
                 payload: {
                   status: "success",
                   message: mcpStatuses,
+                  variant,
                 },
               });
             } catch (error) {
@@ -922,6 +938,7 @@ export class BruinPanel {
                   status: "error",
                   message: `Failed to disable MCP integration: ${error}`,
                   target: message.payload?.target ?? null,
+                  variant: message.payload?.variant ?? "bruin",
                 },
               });
             }
