@@ -42,6 +42,7 @@ import { createEnvironment, deleteEnvironment, updateEnvironment } from "../exte
 import {
   getMcpIntegrationStatuses,
   installMcpIntegration,
+  uninstallMcpIntegration,
   McpClientId,
 } from "../extension/commands/manageMcpIntegrations";
 import { openGlossary } from "../bruin/bruinGlossaryUtility";
@@ -884,6 +885,42 @@ export class BruinPanel {
                 payload: {
                   status: "error",
                   message: `Failed to configure MCP integration: ${error}`,
+                  target: message.payload?.target ?? null,
+                },
+              });
+            }
+            break;
+          case "bruin.uninstallMcpIntegration":
+            try {
+              const target = message.payload?.target as McpClientId | undefined;
+              if (!target) {
+                throw new Error("No MCP integration target provided.");
+              }
+
+              const uninstallResult = await uninstallMcpIntegration(target, this._lastRenderedDocumentUri);
+              this._panel.webview.postMessage({
+                command: "mcp-integration-install-message",
+                payload: {
+                  status: "success",
+                  message: uninstallResult.message,
+                  target: uninstallResult.target,
+                },
+              });
+
+              const mcpStatuses = await getMcpIntegrationStatuses(this._lastRenderedDocumentUri);
+              this._panel.webview.postMessage({
+                command: "mcp-integration-status-message",
+                payload: {
+                  status: "success",
+                  message: mcpStatuses,
+                },
+              });
+            } catch (error) {
+              this._panel.webview.postMessage({
+                command: "mcp-integration-install-message",
+                payload: {
+                  status: "error",
+                  message: `Failed to disable MCP integration: ${error}`,
                   target: message.payload?.target ?? null,
                 },
               });
