@@ -593,6 +593,9 @@ function mcpPowerButtonClass(
 }
 
 onMounted(() => {
+  if (!cloudBearerToken.value.trim()) {
+    cloudTokenEditable.value = true;
+  }
   window.addEventListener("message", handleMessage);
   requestInitialStatusesIfAllowed();
 });
