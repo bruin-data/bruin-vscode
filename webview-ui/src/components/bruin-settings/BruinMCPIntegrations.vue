@@ -39,9 +39,9 @@
                 <span class="text-sm font-medium text-editor-fg">{{ integration.label }}</span>
                 <span
                   class="px-2 py-0.5 rounded text-xs border"
-                  :class="mcpStatusBadgeClass(integration.status.status)"
+                  :class="MCP_STATUS_CONFIG[integration.status.status]?.badgeClass"
                 >
-                  {{ mcpStatusLabel(integration.status.status) }}
+                  {{ MCP_STATUS_CONFIG[integration.status.status]?.label ?? "Unknown" }}
                 </span>
               </div>
               <div v-if="infoExpanded[integration.id]" class="mt-2">
@@ -98,7 +98,13 @@
 <script setup lang="ts">
 import { ref, onBeforeUnmount, onMounted, computed } from "vue";
 import { vscode } from "@/utilities/vscode";
-import type { McpClientId, McpIntegrationStatus, McpIntegrationStatusType } from "@/types";
+import type { McpClientId, McpIntegrationStatus } from "@/types";
+import {
+  BRUIN_MCP_DOCS_URL,
+  DEFAULT_MCP_STATUS,
+  MCP_INTEGRATION_METADATA,
+  MCP_STATUS_CONFIG,
+} from "@/constants";
 
 const installingMcpTarget = ref<McpClientId | null>(null);
 const mcpFeedbackMessage = ref("");
@@ -109,83 +115,13 @@ const infoExpanded = ref<Record<McpClientId, boolean>>({
   codex: false,
   claude: false,
 });
-const bruinMcpDocsUrl = "https://getbruin.com/docs/bruin/getting-started/bruin-mcp.html";
 
-const defaultMcpStatus: Record<McpClientId, McpIntegrationStatus> = {
-  vscode: {
-    id: "vscode",
-    label: "VS Code",
-    status: "checking",
-    configured: false,
-    clientAvailable: true,
-    bruinAvailable: false,
-    configPath: null,
-    details: "Checking configuration...",
-  },
-  cursor: {
-    id: "cursor",
-    label: "Cursor",
-    status: "checking",
-    configured: false,
-    clientAvailable: true,
-    bruinAvailable: false,
-    configPath: null,
-    details: "Checking configuration...",
-  },
-  codex: {
-    id: "codex",
-    label: "Codex CLI",
-    status: "checking",
-    configured: false,
-    clientAvailable: true,
-    bruinAvailable: false,
-    configPath: null,
-    details: "Checking configuration...",
-  },
-  claude: {
-    id: "claude",
-    label: "Claude Code",
-    status: "checking",
-    configured: false,
-    clientAvailable: true,
-    bruinAvailable: false,
-    configPath: null,
-    details: "Checking configuration...",
-  },
-};
-
-const mcpStatusByClient = ref<Record<McpClientId, McpIntegrationStatus>>({ ...defaultMcpStatus });
-const mcpIntegrationMetadata: Array<{
-  id: McpClientId;
-  label: string;
-  description: string;
-}> = [
-  {
-    id: "vscode",
-    label: "VS Code",
-    description: "Writes global user config to VS Code mcp.json",
-  },
-  {
-    id: "cursor",
-    label: "Cursor",
-    description: "Writes global user config to ~/.cursor/mcp.json",
-  },
-  {
-    id: "codex",
-    label: "Codex CLI",
-    description: "Runs codex CLI MCP registration for Bruin",
-  },
-  {
-    id: "claude",
-    label: "Claude Code",
-    description: "Runs claude CLI MCP registration for Bruin in global user scope",
-  },
-];
+const mcpStatusByClient = ref<Record<McpClientId, McpIntegrationStatus>>({ ...DEFAULT_MCP_STATUS });
 
 const mcpIntegrations = computed(() =>
-  mcpIntegrationMetadata.map((integration) => ({
+  MCP_INTEGRATION_METADATA.map((integration) => ({
     ...integration,
-    status: mcpStatusByClient.value[integration.id] ?? defaultMcpStatus[integration.id],
+    status: mcpStatusByClient.value[integration.id] ?? DEFAULT_MCP_STATUS[integration.id],
   }))
 );
 
@@ -208,44 +144,6 @@ const mcpFeedbackContainerClass = computed(() => {
   }
   return "bg-input-background border-commandCenter-border";
 });
-
-function mcpStatusLabel(status: McpIntegrationStatusType): string {
-  switch (status) {
-    case "checking":
-      return "Checking";
-    case "ready":
-      return "Ready";
-    case "not_configured":
-      return "Not configured";
-    case "client_missing":
-      return "Client missing";
-    case "bruin_missing":
-      return "Bruin missing";
-    case "error":
-      return "Error";
-    default:
-      return "Unknown";
-  }
-}
-
-function mcpStatusBadgeClass(status: McpIntegrationStatusType): string {
-  switch (status) {
-    case "checking":
-      return "bg-blue-500/15 text-blue-300 border-blue-500/40";
-    case "ready":
-      return "bg-green-500/15 text-green-300 border-green-500/40";
-    case "not_configured":
-      return "bg-input-background text-editor-fg border-commandCenter-border";
-    case "client_missing":
-      return "bg-yellow-500/15 text-yellow-300 border-yellow-500/40";
-    case "bruin_missing":
-      return "bg-orange-500/15 text-orange-300 border-orange-500/40";
-    case "error":
-      return "bg-red-500/15 text-red-300 border-red-500/40";
-    default:
-      return "bg-input-background text-editor-fg border-commandCenter-border";
-  }
-}
 
 function handleMessage(event: MessageEvent) {
   const message = event.data;
@@ -280,7 +178,7 @@ function handleMessage(event: MessageEvent) {
 
 function refreshMcpStatuses() {
   mcpStatusByClient.value = {
-    ...defaultMcpStatus,
+    ...DEFAULT_MCP_STATUS,
   };
   vscode.postMessage({ command: "bruin.getMcpIntegrationStatus" });
 }
@@ -302,7 +200,7 @@ function toggleInfo(target: McpClientId) {
 function openBruinMcpDocs() {
   vscode.postMessage({
     command: "bruin.openDocumentationLink",
-    payload: bruinMcpDocsUrl,
+    payload: BRUIN_MCP_DOCS_URL,
   });
 }
 
