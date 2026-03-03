@@ -32,7 +32,6 @@
           v-for="integration in mcpIntegrations"
           :key="integration.id"
           class="rounded border border-commandCenter-border px-3 py-2"
-          :title="getTooltip(integration)"
         >
           <div class="flex items-center justify-between gap-2">
             <div class="flex items-center gap-2 min-w-0">
@@ -45,31 +44,38 @@
               </span>
             </div>
 
-            <vscode-button
-              appearance="secondary"
-              class="mcp-config-btn"
-              @click="configureMcpIntegration(integration.id)"
-              :disabled="installingMcpTarget === integration.id"
-            >
-              {{
-                installingMcpTarget === integration.id
-                  ? "..."
-                  : integration.status.configured
-                    ? "Reconfigure"
-                    : "Configure"
-              }}
-            </vscode-button>
+            <div class="flex items-center gap-1">
+              <span
+                v-if="getTooltip(integration)"
+                class="info-icon codicon codicon-info"
+                :title="getTooltip(integration)"
+              ></span>
+              <vscode-button
+                appearance="secondary"
+                class="mcp-config-btn"
+                @click="configureMcpIntegration(integration.id)"
+                :disabled="installingMcpTarget === integration.id"
+              >
+                {{
+                  installingMcpTarget === integration.id
+                    ? "..."
+                    : integration.status.configured
+                      ? "Reconfigure"
+                      : "Configure"
+                }}
+              </vscode-button>
+            </div>
           </div>
         </div>
       </div>
 
       <div
         v-if="mcpFeedbackMessage"
-        class="mt-3 rounded border px-3 py-2 flex items-start justify-between gap-2"
+        class="mt-2 rounded border px-1.5 py-1 flex items-center justify-between gap-1"
         :class="mcpFeedbackContainerClass"
       >
-        <div class="text-sm" :class="mcpFeedbackClass">{{ mcpFeedbackMessage }}</div>
-        <vscode-button appearance="icon" title="Dismiss message" @click="dismissMcpFeedback">
+        <span class="text-3xs" :class="mcpFeedbackClass">{{ mcpFeedbackMessage }}</span>
+        <vscode-button appearance="icon" title="Dismiss" @click="dismissMcpFeedback" class="feedback-close-btn">
           <span class="codicon codicon-close"></span>
         </vscode-button>
       </div>
@@ -118,18 +124,14 @@ const mcpFeedbackContainerClass = computed(() => {
   if (mcpFeedbackType.value === "success") {
     return "feedback-container-success";
   }
-  return "bg-input-background border-commandCenter-border";
+  return "border-commandCenter-border";
 });
 
-function getTooltip(integration: { description: string; status: McpIntegrationStatus }) {
-  const lines = [integration.description];
-  if (integration.status.details) {
-    lines.push(integration.status.details);
-  }
+function getTooltip(integration: { status: McpIntegrationStatus }) {
   if (integration.status.configPath) {
-    lines.push(`Config: ${integration.status.configPath}`);
+    return integration.status.configPath;
   }
-  return lines.join("\n");
+  return integration.status.details || "";
 }
 
 function handleMessage(event: MessageEvent) {
@@ -236,11 +238,32 @@ onBeforeUnmount(() => {
 }
 
 .feedback-container-success {
-  @apply bg-status-success-bg border-status-success-border;
+  @apply border-status-success-border bg-transparent;
 }
 
 .feedback-container-error {
-  @apply bg-status-error-bg border-status-error-border;
+  @apply border-status-error-border bg-transparent;
+}
+
+.feedback-close-btn {
+  padding: 0;
+  min-width: auto;
+  height: auto;
+}
+
+.feedback-close-btn::part(control) {
+  padding: 2px;
+  min-width: auto;
+}
+
+.info-icon {
+  font-size: 10px;
+  opacity: 0.4;
+  cursor: help;
+}
+
+.info-icon:hover {
+  opacity: 0.7;
 }
 
 /* Fixed width button for consistent sizing */
