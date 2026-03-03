@@ -34,6 +34,44 @@ export const isBruinBinaryAvailable = async (): Promise<boolean> => {
 };
 
 /**
+ * Checks if a command exists in the system PATH.
+ * @param {string} commandName - The name of the command to check.
+ * @returns {Promise<boolean>} Returns true if the command exists, false otherwise.
+ */
+export const commandExists = async (commandName: string): Promise<boolean> => {
+  const checkCommand =
+    process.platform === "win32" ? `where ${commandName}` : `command -v ${commandName}`;
+  try {
+    await promisify(exec)(checkCommand);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Gets the primary workspace root folder path.
+ * Falls back to the workspace folder containing the given document URI if no primary workspace is found.
+ * @param {vscode.Uri | undefined} documentUri - Optional document URI to find the containing workspace folder.
+ * @returns {string | undefined} The workspace root path, or undefined if no workspace is open.
+ */
+export const getWorkspaceRoot = (documentUri?: vscode.Uri): string | undefined => {
+  const primaryWorkspace = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+  if (primaryWorkspace) {
+    return primaryWorkspace;
+  }
+
+  if (documentUri) {
+    const workspaceForDocument = vscode.workspace.getWorkspaceFolder(documentUri);
+    if (workspaceForDocument) {
+      return workspaceForDocument.uri.fsPath;
+    }
+  }
+
+  return undefined;
+};
+
+/**
  * Replaces path separators in a given path string based on the user configuration and platform.
  *
  * @param {string} path - The original path string.
