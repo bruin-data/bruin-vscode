@@ -5,6 +5,7 @@ import * as path from "path";
 import { exec, execFile } from "child_process";
 import { promisify } from "util";
 import { getBruinExecutablePath } from "../../providers/BruinExecutableService";
+import { commandExists, getWorkspaceRoot } from "../../bruin/bruinUtils";
 
 const execAsync = promisify(exec);
 const execFileAsync = promisify(execFile);
@@ -74,17 +75,6 @@ async function removeClaudeMcpServerIfExists(): Promise<void> {
   }
 }
 
-async function commandExists(commandName: string): Promise<boolean> {
-  const checkCommand =
-    process.platform === "win32" ? `where ${commandName}` : `command -v ${commandName}`;
-  try {
-    await execAsync(checkCommand);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 async function isBruinCliAvailable(): Promise<boolean> {
   const bruinExecutablePath = getBruinExecutablePath();
   try {
@@ -93,24 +83,6 @@ async function isBruinCliAvailable(): Promise<boolean> {
   } catch {
     return false;
   }
-}
-
-function getWorkspaceRoot(lastRenderedDocumentUri: vscode.Uri | undefined): string | undefined {
-  // For MCP workspace config, always anchor to the opened workspace root instead of
-  // the last active file context (which can be stale across panel restores).
-  const primaryWorkspace = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-  if (primaryWorkspace) {
-    return primaryWorkspace;
-  }
-
-  if (lastRenderedDocumentUri) {
-    const workspaceForDocument = vscode.workspace.getWorkspaceFolder(lastRenderedDocumentUri);
-    if (workspaceForDocument) {
-      return workspaceForDocument.uri.fsPath;
-    }
-  }
-
-  return undefined;
 }
 
 function getVsCodeGlobalMcpConfigPath(): string {
