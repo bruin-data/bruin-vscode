@@ -5,7 +5,7 @@ export const BRUIN_MCP_DOCS_URL = "https://getbruin.com/docs/bruin/getting-start
 export const DEFAULT_MCP_STATUS: Record<McpClientId, McpIntegrationStatus> = {
   vscode: {
     id: "vscode",
-    label: "VS Code",
+    label: "GitHub Copilot (VS Code)",
     status: "checking",
     configured: false,
     clientAvailable: true,
@@ -15,7 +15,7 @@ export const DEFAULT_MCP_STATUS: Record<McpClientId, McpIntegrationStatus> = {
   },
   cursor: {
     id: "cursor",
-    label: "Cursor",
+    label: "Cursor AI",
     status: "checking",
     configured: false,
     clientAvailable: true,
@@ -52,51 +52,49 @@ export const MCP_INTEGRATION_METADATA: Array<{
 }> = [
   {
     id: "vscode",
-    label: "VS Code",
-    description: "Writes global user config to VS Code mcp.json",
+    label: "GitHub Copilot (VS Code)",
+    description: "Configures Bruin MCP for GitHub Copilot in VS Code",
   },
   {
     id: "cursor",
-    label: "Cursor",
-    description: "Writes global user config to ~/.cursor/mcp.json",
+    label: "Cursor AI",
+    description: "Configures Bruin MCP for Cursor's built-in AI assistant",
   },
   {
     id: "codex",
     label: "Codex CLI",
-    description: "Runs codex CLI MCP registration for Bruin",
+    description: "Registers Bruin MCP with OpenAI Codex CLI",
   },
   {
     id: "claude",
     label: "Claude Code",
-    description: "Runs claude CLI MCP registration for Bruin in global user scope",
+    description: "Registers Bruin MCP with Claude Code CLI",
   },
 ];
 
-const DEFAULT_BADGE_CLASS = "bg-input-background text-editor-fg border-commandCenter-border";
-
-export const MCP_STATUS_CONFIG: Record<McpIntegrationStatusType, { label: string; badgeClass: string }> = {
+export const MCP_STATUS_CONFIG: Record<McpIntegrationStatusType, { label: string; statusClass: string }> = {
   checking: {
     label: "Checking",
-    badgeClass: "bg-blue-500/15 text-blue-300 border-blue-500/40",
+    statusClass: "status-checking",
   },
   ready: {
     label: "Ready",
-    badgeClass: "bg-green-500/15 text-green-300 border-green-500/40",
+    statusClass: "status-ready",
   },
   not_configured: {
     label: "Not configured",
-    badgeClass: DEFAULT_BADGE_CLASS,
+    statusClass: "status-default",
   },
   client_missing: {
     label: "Client missing",
-    badgeClass: "bg-yellow-500/15 text-yellow-300 border-yellow-500/40",
+    statusClass: "status-warning",
   },
   bruin_missing: {
     label: "Bruin missing",
-    badgeClass: "bg-orange-500/15 text-orange-300 border-orange-500/40",
+    statusClass: "status-warning",
   },
   error: {
     label: "Error",
-    badgeClass: "bg-red-500/15 text-red-300 border-red-500/40",
+    statusClass: "status-error",
   },
 };

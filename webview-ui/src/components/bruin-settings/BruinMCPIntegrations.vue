@@ -24,59 +24,41 @@
       </div>
 
       <p class="text-sm text-editor-fg mt-1">
-        Configure Bruin MCP for supported clients and monitor configuration status.
+        Configure Bruin MCP for supported AI clients.
       </p>
 
-      <div class="mt-3 space-y-2">
+      <div class="mt-3 space-y-1.5">
         <div
           v-for="integration in mcpIntegrations"
           :key="integration.id"
-          class="rounded border border-commandCenter-border p-3"
+          class="rounded border border-commandCenter-border px-3 py-2"
+          :title="getTooltip(integration)"
         >
-          <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0">
-              <div class="flex items-center gap-2">
-                <span class="text-sm font-medium text-editor-fg">{{ integration.label }}</span>
-                <span
-                  class="px-2 py-0.5 rounded text-xs border"
-                  :class="MCP_STATUS_CONFIG[integration.status.status]?.badgeClass"
-                >
-                  {{ MCP_STATUS_CONFIG[integration.status.status]?.label ?? "Unknown" }}
-                </span>
-              </div>
-              <div v-if="infoExpanded[integration.id]" class="mt-2">
-                <div class="text-xs text-editor-fg opacity-80">{{ integration.description }}</div>
-                <div class="text-xs text-editor-fg opacity-80 mt-1">
-                  {{ integration.status.details }}
-                </div>
-                <div v-if="integration.status.configPath" class="text-xs text-editor-fg opacity-60 mt-1 font-mono">
-                  {{ integration.status.configPath }}
-                </div>
-              </div>
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="text-sm text-editor-fg truncate">{{ integration.label }}</span>
+              <span
+                class="status-badge"
+                :class="MCP_STATUS_CONFIG[integration.status.status]?.statusClass"
+              >
+                {{ MCP_STATUS_CONFIG[integration.status.status]?.label ?? "Unknown" }}
+              </span>
             </div>
 
-            <div class="flex items-center gap-1 flex-shrink-0">
-              <vscode-button
-                appearance="icon"
-                @click="toggleInfo(integration.id)"
-                :title="infoExpanded[integration.id] ? 'Hide details' : 'Show details'"
-              >
-                <span class="codicon codicon-info"></span>
-              </vscode-button>
-              <vscode-button
-                appearance="secondary"
-                @click="configureMcpIntegration(integration.id)"
-                :disabled="installingMcpTarget === integration.id"
-              >
-                {{
-                  installingMcpTarget === integration.id
-                    ? "Configuring..."
-                    : integration.status.configured
-                      ? "Reconfigure"
-                      : "Configure"
-                }}
-              </vscode-button>
-            </div>
+            <vscode-button
+              appearance="secondary"
+              class="mcp-config-btn"
+              @click="configureMcpIntegration(integration.id)"
+              :disabled="installingMcpTarget === integration.id"
+            >
+              {{
+                installingMcpTarget === integration.id
+                  ? "..."
+                  : integration.status.configured
+                    ? "Reconfigure"
+                    : "Configure"
+              }}
+            </vscode-button>
           </div>
         </div>
       </div>
@@ -109,12 +91,6 @@ import {
 const installingMcpTarget = ref<McpClientId | null>(null);
 const mcpFeedbackMessage = ref("");
 const mcpFeedbackType = ref<"success" | "error" | "">("");
-const infoExpanded = ref<Record<McpClientId, boolean>>({
-  vscode: false,
-  cursor: false,
-  codex: false,
-  claude: false,
-});
 
 const mcpStatusByClient = ref<Record<McpClientId, McpIntegrationStatus>>({ ...DEFAULT_MCP_STATUS });
 
@@ -127,23 +103,34 @@ const mcpIntegrations = computed(() =>
 
 const mcpFeedbackClass = computed(() => {
   if (mcpFeedbackType.value === "error") {
-    return "text-errorForeground";
+    return "feedback-error";
   }
   if (mcpFeedbackType.value === "success") {
-    return "text-green-300";
+    return "feedback-success";
   }
   return "text-editor-fg";
 });
 
 const mcpFeedbackContainerClass = computed(() => {
   if (mcpFeedbackType.value === "error") {
-    return "bg-red-500/10 border-red-500/40";
+    return "feedback-container-error";
   }
   if (mcpFeedbackType.value === "success") {
-    return "bg-green-500/10 border-green-500/40";
+    return "feedback-container-success";
   }
   return "bg-input-background border-commandCenter-border";
 });
+
+function getTooltip(integration: { description: string; status: McpIntegrationStatus }) {
+  const lines = [integration.description];
+  if (integration.status.details) {
+    lines.push(integration.status.details);
+  }
+  if (integration.status.configPath) {
+    lines.push(`Config: ${integration.status.configPath}`);
+  }
+  return lines.join("\n");
+}
 
 function handleMessage(event: MessageEvent) {
   const message = event.data;
@@ -193,10 +180,6 @@ function configureMcpIntegration(target: McpClientId) {
   });
 }
 
-function toggleInfo(target: McpClientId) {
-  infoExpanded.value[target] = !infoExpanded.value[target];
-}
-
 function openBruinMcpDocs() {
   vscode.postMessage({
     command: "bruin.openDocumentationLink",
@@ -218,3 +201,58 @@ onBeforeUnmount(() => {
   window.removeEventListener("message", handleMessage);
 });
 </script>
+
+<style scoped>
+.status-badge {
+  @apply inline-flex items-center px-1.5 py-px rounded-sm text-3xs font-medium whitespace-nowrap border;
+}
+
+.status-checking {
+  @apply bg-status-info-bg text-status-info-fg border-status-info-border;
+}
+
+.status-ready {
+  @apply bg-status-success-bg text-status-success-fg border-status-success-border;
+}
+
+.status-default {
+  @apply bg-input-background text-input-foreground border-commandCenter-border;
+}
+
+.status-warning {
+  @apply bg-status-warning-bg text-status-warning-fg border-status-warning-border;
+}
+
+.status-error {
+  @apply bg-status-error-bg text-status-error-fg border-status-error-border;
+}
+
+.feedback-success {
+  @apply text-status-success-fg;
+}
+
+.feedback-error {
+  @apply text-status-error-fg;
+}
+
+.feedback-container-success {
+  @apply bg-status-success-bg border-status-success-border;
+}
+
+.feedback-container-error {
+  @apply bg-status-error-bg border-status-error-border;
+}
+
+/* Fixed width button for consistent sizing */
+.mcp-config-btn {
+  min-width: 80px;
+  text-align: center;
+}
+
+.mcp-config-btn::part(control) {
+  min-width: 80px;
+  justify-content: center;
+  padding: 2px 8px;
+  font-size: 11px;
+}
+</style>
