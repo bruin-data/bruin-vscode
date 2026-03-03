@@ -2,13 +2,11 @@ import * as vscode from "vscode";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
-import { exec, execFile } from "child_process";
+import { exec } from "child_process";
 import { promisify } from "util";
-import { getBruinExecutablePath } from "../../providers/BruinExecutableService";
-import { commandExists, getWorkspaceRoot } from "../../bruin/bruinUtils";
+import { commandExists, getWorkspaceRoot, isBruinCliAvailable } from "../../bruin/bruinUtils";
 
 const execAsync = promisify(exec);
-const execFileAsync = promisify(execFile);
 
 export type McpClientId = "vscode" | "cursor" | "codex" | "claude";
 export type McpIntegrationStatusType =
@@ -72,16 +70,6 @@ async function removeClaudeMcpServerIfExists(): Promise<void> {
     if (!isClaudeMcpMissingServerError(errorMessage)) {
       throw error;
     }
-  }
-}
-
-async function isBruinCliAvailable(): Promise<boolean> {
-  const bruinExecutablePath = getBruinExecutablePath();
-  try {
-    await execFileAsync(bruinExecutablePath, ["--version"]);
-    return true;
-  } catch {
-    return false;
   }
 }
 
@@ -471,8 +459,8 @@ export async function getMcpIntegrationStatuses(
   lastRenderedDocumentUri: vscode.Uri | undefined
 ): Promise<McpIntegrationStatus[]> {
   const workspaceRoot = getWorkspaceRoot(lastRenderedDocumentUri);
-  const bruinAvailable = await isBruinCliAvailable();
-  const [codexCliAvailable, claudeCliAvailable] = await Promise.all([
+  const [bruinAvailable, codexCliAvailable, claudeCliAvailable] = await Promise.all([
+    isBruinCliAvailable(),
     commandExists("codex"),
     commandExists("claude"),
   ]);

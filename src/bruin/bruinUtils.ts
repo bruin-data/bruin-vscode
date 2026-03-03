@@ -1,7 +1,7 @@
 import { BRUIN_RUN_SQL_COMMAND, BRUIN_WHERE_COMMAND, BRUIN_WHICH_COMMAND } from "../constants";
 
 import * as os from "os";
-import { exec, execSync } from "child_process";
+import { exec, execFile, execSync } from "child_process";
 import { promisify } from "util";
 import * as fs from "fs";
 import * as path from "path";
@@ -69,6 +69,21 @@ export const getWorkspaceRoot = (documentUri?: vscode.Uri): string | undefined =
   }
 
   return undefined;
+};
+
+/**
+ * Checks if the Bruin CLI is available and functional by running `bruin --version`.
+ * This is a lightweight check suitable for status queries.
+ * @returns {Promise<boolean>} Returns true if bruin CLI is available and working, false otherwise.
+ */
+export const isBruinCliAvailable = async (): Promise<boolean> => {
+  const bruinExecutablePath = getBruinExecutablePath();
+  try {
+    await promisify(execFile)(bruinExecutablePath, ["--version"]);
+    return true;
+  } catch {
+    return false;
+  }
 };
 
 /**
