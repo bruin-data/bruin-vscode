@@ -36,7 +36,7 @@
         >
           <div class="flex items-center justify-between gap-2">
             <div class="flex items-center gap-2 min-w-0">
-              <span class="text-sm text-editor-fg truncate">{{ integration.label }}</span>
+              <span class="text-xs text-editor-fg truncate">{{ integration.label }}</span>
               <span
                 class="status-badge"
                 :class="MCP_STATUS_CONFIG[integration.status.status]?.statusClass"
