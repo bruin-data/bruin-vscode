@@ -98,26 +98,7 @@
 <script setup lang="ts">
 import { ref, onBeforeUnmount, onMounted, computed } from "vue";
 import { vscode } from "@/utilities/vscode";
-
-type McpClientId = "vscode" | "cursor" | "codex" | "claude";
-type McpIntegrationStatusType =
-  | "checking"
-  | "ready"
-  | "not_configured"
-  | "client_missing"
-  | "bruin_missing"
-  | "error";
-
-interface McpIntegrationStatus {
-  id: McpClientId;
-  label: string;
-  status: McpIntegrationStatusType;
-  configured: boolean;
-  clientAvailable: boolean;
-  bruinAvailable: boolean;
-  configPath: string | null;
-  details: string;
-}
+import type { McpClientId, McpIntegrationStatus, McpIntegrationStatusType } from "@/types";
 
 const installingMcpTarget = ref<McpClientId | null>(null);
 const mcpFeedbackMessage = ref("");
