@@ -460,9 +460,9 @@ async function writeBruinMcpJsonConfig(
   await fs.promises.writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`, "utf8");
 }
 
-async function removeBruinMcpJsonConfig(configPath: string): Promise<void> {
+async function removeBruinMcpJsonConfig(configPath: string): Promise<boolean> {
   if (!fs.existsSync(configPath)) {
-    return;
+    return false;
   }
 
   const config = await readJsonFile(configPath);
@@ -482,6 +482,8 @@ async function removeBruinMcpJsonConfig(configPath: string): Promise<void> {
   if (updated) {
     await fs.promises.writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`, "utf8");
   }
+
+  return updated;
 }
 
 export async function getMcpIntegrationStatuses(
@@ -584,18 +586,22 @@ export async function uninstallMcpIntegration(
   switch (target) {
     case "vscode": {
       const configPath = getVsCodeGlobalMcpConfigPath();
-      await removeBruinMcpJsonConfig(configPath);
+      const wasRemoved = await removeBruinMcpJsonConfig(configPath);
       return {
         target,
-        message: `Disabled Bruin MCP in ${configPath}.`,
+        message: wasRemoved
+          ? `Disabled Bruin MCP in ${configPath}.`
+          : `Bruin MCP was not configured in ${configPath}.`,
       };
     }
     case "cursor": {
       const configPath = getCursorGlobalMcpConfigPath();
-      await removeBruinMcpJsonConfig(configPath);
+      const wasRemoved = await removeBruinMcpJsonConfig(configPath);
       return {
         target,
-        message: `Disabled Bruin MCP in ${configPath}.`,
+        message: wasRemoved
+          ? `Disabled Bruin MCP in ${configPath}.`
+          : `Bruin MCP was not configured in ${configPath}.`,
       };
     }
     case "codex": {
