@@ -1,8 +1,9 @@
-const animate = require("tailwindcss-animate");
+import animate from "tailwindcss-animate";
 import typography from "@tailwindcss/typography";
+import forms from "@tailwindcss/forms";
 
 /** @type {import('tailwindcss').Config} */
-module.exports = {
+export default {
   darkMode: ["class"],
   safelist: ["dark"],
   prefix: "",
@@ -125,6 +126,20 @@ module.exports = {
         "button-hover-bg": "var(--vscode-button-hoverBackground)",
         "button-fg": "var(--vscode-button-foreground)",
 
+        // MCP Status badge colors
+        "status-info-bg": "rgba(55, 148, 255, 0.1)",
+        "status-info-fg": "var(--vscode-editorInfo-foreground, #3794ff)",
+        "status-info-border": "rgba(55, 148, 255, 0.3)",
+        "status-success-bg": "rgba(115, 201, 145, 0.1)",
+        "status-success-fg": "var(--vscode-testing-iconPassed, #73c991)",
+        "status-success-border": "rgba(115, 201, 145, 0.3)",
+        "status-warning-bg": "var(--vscode-inputValidation-warningBackground, rgba(255, 204, 0, 0.1))",
+        "status-warning-fg": "var(--vscode-editorWarning-foreground, #cca700)",
+        "status-warning-border": "var(--vscode-inputValidation-warningBorder, rgba(255, 204, 0, 0.3))",
+        "status-error-bg": "var(--vscode-inputValidation-errorBackground, rgba(255, 0, 0, 0.1))",
+        "status-error-fg": "var(--vscode-errorForeground, #f14c4c)",
+        "status-error-border": "var(--vscode-inputValidation-errorBorder, rgba(255, 0, 0, 0.3))",
+
         "primary": {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
@@ -191,5 +206,5 @@ module.exports = {
       },
     },
   },
-  plugins: [typography, animate, require("@tailwindcss/forms")],
+  plugins: [typography, animate, forms],
 };

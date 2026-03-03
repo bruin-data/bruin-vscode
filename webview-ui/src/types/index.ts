@@ -248,3 +248,24 @@ export interface EnhancedPipelineData {
   schemaInfo?: Record<string, any>;
   raw: any;
 }
+
+// MCP Integration types
+export type McpClientId = "vscode" | "cursor" | "codex" | "claude";
+export type McpIntegrationStatusType =
+  | "checking"
+  | "ready"
+  | "not_configured"
+  | "client_missing"
+  | "bruin_missing"
+  | "error";
+
+export interface McpIntegrationStatus {
+  id: McpClientId;
+  label: string;
+  status: McpIntegrationStatusType;
+  configured: boolean;
+  clientAvailable: boolean;
+  bruinAvailable: boolean;
+  configPath: string | null;
+  details: string;
+}

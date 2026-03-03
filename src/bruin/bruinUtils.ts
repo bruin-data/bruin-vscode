@@ -1,7 +1,7 @@
 import { BRUIN_RUN_SQL_COMMAND, BRUIN_WHERE_COMMAND, BRUIN_WHICH_COMMAND } from "../constants";
 
 import * as os from "os";
-import { exec, execSync } from "child_process";
+import { exec, execFile, execSync } from "child_process";
 import { promisify } from "util";
 import * as fs from "fs";
 import * as path from "path";
@@ -31,6 +31,59 @@ export const isBruinBinaryAvailable = async (): Promise<boolean> => {
     return false;
   }
   return true;
+};
+
+/**
+ * Checks if a command exists in the system PATH.
+ * @param {string} commandName - The name of the command to check.
+ * @returns {Promise<boolean>} Returns true if the command exists, false otherwise.
+ */
+export const commandExists = async (commandName: string): Promise<boolean> => {
+  const checkCommand =
+    process.platform === "win32" ? `where ${commandName}` : `command -v ${commandName}`;
+  try {
+    await promisify(exec)(checkCommand);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Gets the primary workspace root folder path.
+ * Falls back to the workspace folder containing the given document URI if no primary workspace is found.
+ * @param {vscode.Uri | undefined} documentUri - Optional document URI to find the containing workspace folder.
+ * @returns {string | undefined} The workspace root path, or undefined if no workspace is open.
+ */
+export const getWorkspaceRoot = (documentUri?: vscode.Uri): string | undefined => {
+  const primaryWorkspace = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+  if (primaryWorkspace) {
+    return primaryWorkspace;
+  }
+
+  if (documentUri) {
+    const workspaceForDocument = vscode.workspace.getWorkspaceFolder(documentUri);
+    if (workspaceForDocument) {
+      return workspaceForDocument.uri.fsPath;
+    }
+  }
+
+  return undefined;
+};
+
+/**
+ * Checks if the Bruin CLI is available and functional by running `bruin --version`.
+ * This is a lightweight check suitable for status queries.
+ * @returns {Promise<boolean>} Returns true if bruin CLI is available and working, false otherwise.
+ */
+export const isBruinCliAvailable = async (): Promise<boolean> => {
+  const bruinExecutablePath = getBruinExecutablePath();
+  try {
+    await promisify(execFile)(bruinExecutablePath, ["--version"]);
+    return true;
+  } catch {
+    return false;
+  }
 };
 
 /**

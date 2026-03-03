@@ -4,6 +4,10 @@
       <BruinCLI :versionStatus="versionStatus" />
     </div>
 
+    <div>
+      <BruinMCPIntegrations />
+    </div>
+
     <div v-if="isBruinInstalled && !settingsOnlyMode" class="bg-editorWidget-bg shadow sm:rounded-lg">
       <ConnectionsList
         :connections="connections"
@@ -123,6 +127,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from "vue";
 import BruinCLI from "@/components/bruin-settings/BruinCLI.vue";
+import BruinMCPIntegrations from "@/components/bruin-settings/BruinMCPIntegrations.vue";
 import ConnectionsList from "@/components/connections/ConnectionList.vue";
 import ConnectionForm from "@/components/connections/ConnectionsForm.vue";
 import DeleteAlert from "@/components/ui/alerts/AlertWithActions.vue";

@@ -7648,3 +7648,219 @@ parameters:
   });
 });
 });
+
+suite("Utility Functions Tests", () => {
+  suite("commandExists", () => {
+    let execStub: sinon.SinonStub;
+    let commandExistsFunc: typeof bruinUtils.commandExists;
+
+    setup(async () => {
+      execStub = sinon.stub(child_process, "exec");
+      // Re-import to get fresh module with stubbed exec
+      commandExistsFunc = bruinUtils.commandExists;
+    });
+
+    teardown(() => {
+      execStub.restore();
+    });
+
+    test("should return true when command exists", async () => {
+      // Simulate successful command execution
+      execStub.callsFake((_cmd: string, callback: Function) => {
+        callback(null, { stdout: "/usr/bin/node", stderr: "" });
+      });
+
+      const result = await commandExistsFunc("node");
+      assert.strictEqual(result, true, "Should return true for existing command");
+    });
+
+    test("should return false when command does not exist", async () => {
+      // Simulate command not found error
+      execStub.callsFake((_cmd: string, callback: Function) => {
+        callback(new Error("command not found"), { stdout: "", stderr: "" });
+      });
+
+      const result = await commandExistsFunc("nonexistent-command-xyz");
+      assert.strictEqual(result, false, "Should return false for non-existing command");
+    });
+
+    test("should use 'where' command on Windows", async () => {
+      const originalPlatform = Object.getOwnPropertyDescriptor(process, "platform");
+      Object.defineProperty(process, "platform", { value: "win32" });
+
+      execStub.callsFake((cmd: string, callback: Function) => {
+        if (cmd.startsWith("where ")) {
+          callback(null, { stdout: "C:\\Program Files\\node.exe", stderr: "" });
+        } else {
+          callback(new Error("unexpected command"), { stdout: "", stderr: "" });
+        }
+      });
+
+      const result = await commandExistsFunc("node");
+      assert.strictEqual(result, true, "Should return true on Windows");
+
+      // Restore platform
+      if (originalPlatform) {
+        Object.defineProperty(process, "platform", originalPlatform);
+      }
+    });
+
+    test("should use 'command -v' on Unix-like systems", async () => {
+      const originalPlatform = Object.getOwnPropertyDescriptor(process, "platform");
+      Object.defineProperty(process, "platform", { value: "darwin" });
+
+      execStub.callsFake((cmd: string, callback: Function) => {
+        if (cmd.startsWith("command -v ")) {
+          callback(null, { stdout: "/usr/local/bin/node", stderr: "" });
+        } else {
+          callback(new Error("unexpected command"), { stdout: "", stderr: "" });
+        }
+      });
+
+      const result = await commandExistsFunc("node");
+      assert.strictEqual(result, true, "Should return true on Unix");
+
+      // Restore platform
+      if (originalPlatform) {
+        Object.defineProperty(process, "platform", originalPlatform);
+      }
+    });
+  });
+
+  suite("getWorkspaceRoot", () => {
+    let workspaceFoldersStub: sinon.SinonStub;
+    let getWorkspaceFolderStub: sinon.SinonStub;
+
+    setup(() => {
+      workspaceFoldersStub = sinon.stub(vscode.workspace, "workspaceFolders");
+      getWorkspaceFolderStub = sinon.stub(vscode.workspace, "getWorkspaceFolder");
+    });
+
+    teardown(() => {
+      workspaceFoldersStub.restore();
+      getWorkspaceFolderStub.restore();
+    });
+
+    test("should return primary workspace folder when available", () => {
+      const mockWorkspacePath = "/path/to/workspace";
+      workspaceFoldersStub.value([
+        { uri: { fsPath: mockWorkspacePath } },
+      ]);
+
+      const result = bruinUtils.getWorkspaceRoot();
+      assert.strictEqual(result, mockWorkspacePath, "Should return primary workspace path");
+    });
+
+    test("should return undefined when no workspace folders exist", () => {
+      workspaceFoldersStub.value(undefined);
+      getWorkspaceFolderStub.returns(undefined);
+
+      const result = bruinUtils.getWorkspaceRoot();
+      assert.strictEqual(result, undefined, "Should return undefined when no workspace");
+    });
+
+    test("should fallback to document workspace when no primary workspace", () => {
+      const mockDocumentWorkspacePath = "/path/to/document/workspace";
+      workspaceFoldersStub.value(undefined);
+      getWorkspaceFolderStub.returns({
+        uri: { fsPath: mockDocumentWorkspacePath },
+      });
+
+      const documentUri = vscode.Uri.file("/path/to/document/file.ts");
+      const result = bruinUtils.getWorkspaceRoot(documentUri);
+
+      assert.strictEqual(result, mockDocumentWorkspacePath, "Should return document workspace path");
+      sinon.assert.calledWith(getWorkspaceFolderStub, documentUri);
+    });
+
+    test("should return undefined when document has no workspace folder", () => {
+      workspaceFoldersStub.value(undefined);
+      getWorkspaceFolderStub.returns(undefined);
+
+      const documentUri = vscode.Uri.file("/standalone/file.ts");
+      const result = bruinUtils.getWorkspaceRoot(documentUri);
+
+      assert.strictEqual(result, undefined, "Should return undefined for standalone file");
+    });
+
+    test("should prefer primary workspace over document workspace", () => {
+      const primaryPath = "/primary/workspace";
+      const documentPath = "/document/workspace";
+
+      workspaceFoldersStub.value([
+        { uri: { fsPath: primaryPath } },
+      ]);
+      getWorkspaceFolderStub.returns({
+        uri: { fsPath: documentPath },
+      });
+
+      const documentUri = vscode.Uri.file("/document/workspace/file.ts");
+      const result = bruinUtils.getWorkspaceRoot(documentUri);
+
+      assert.strictEqual(result, primaryPath, "Should prefer primary workspace");
+    });
+  });
+
+  suite("isBruinCliAvailable", () => {
+    let execFileStub: sinon.SinonStub;
+    let getBruinExecutablePathStub: sinon.SinonStub;
+
+    setup(async () => {
+      execFileStub = sinon.stub(child_process, "execFile");
+      // Stub getBruinExecutablePath from the BruinExecutableService module
+      const bruinExecutableServiceModule = await import("../providers/BruinExecutableService");
+      getBruinExecutablePathStub = sinon.stub(bruinExecutableServiceModule, "getBruinExecutablePath").returns("/usr/local/bin/bruin");
+    });
+
+    teardown(() => {
+      execFileStub.restore();
+      getBruinExecutablePathStub.restore();
+    });
+
+    test("should return true when bruin CLI runs successfully", async () => {
+      execFileStub.callsFake((_file: string, _args: string[], callback: Function) => {
+        callback(null, "bruin version 0.1.0", "");
+      });
+
+      const result = await bruinUtils.isBruinCliAvailable();
+      assert.strictEqual(result, true, "Should return true when bruin --version succeeds");
+    });
+
+    test("should return false when bruin CLI is not available", async () => {
+      execFileStub.callsFake((_file: string, _args: string[], callback: Function) => {
+        callback(new Error("command not found"), "", "");
+      });
+
+      const result = await bruinUtils.isBruinCliAvailable();
+      assert.strictEqual(result, false, "Should return false when bruin --version fails");
+    });
+
+    test("should return false when bruin CLI returns error exit code", async () => {
+      execFileStub.callsFake((_file: string, _args: string[], callback: Function) => {
+        const error = new Error("Command failed");
+        (error as any).code = 1;
+        callback(error, "", "bruin: command not found");
+      });
+
+      const result = await bruinUtils.isBruinCliAvailable();
+      assert.strictEqual(result, false, "Should return false on non-zero exit code");
+    });
+
+    test("should use getBruinExecutablePath for the command", async () => {
+      getBruinExecutablePathStub.returns("/custom/path/bruin");
+
+      execFileStub.callsFake((file: string, _args: string[], callback: Function) => {
+        // Verify the command uses the custom path
+        if (file === "/custom/path/bruin") {
+          callback(null, "bruin version 0.1.0", "");
+        } else {
+          callback(new Error("wrong path"), "", "");
+        }
+      });
+
+      const result = await bruinUtils.isBruinCliAvailable();
+      assert.strictEqual(result, true, "Should use custom executable path");
+      sinon.assert.called(getBruinExecutablePathStub);
+    });
+  });
+});
