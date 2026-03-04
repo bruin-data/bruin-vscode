@@ -251,6 +251,7 @@ export interface EnhancedPipelineData {
 
 // MCP Integration types
 export type McpClientId = "vscode" | "cursor" | "codex" | "claude";
+export type McpVariant = "bruin" | "cloud";
 export type McpIntegrationStatusType =
   | "checking"
   | "ready"
