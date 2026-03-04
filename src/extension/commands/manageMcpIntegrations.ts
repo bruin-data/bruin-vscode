@@ -887,7 +887,7 @@ export async function installMcpIntegration(
 
   const bearerToken = options?.bearerToken?.trim();
   if (!bearerToken) {
-    throw new Error("Bearer token is required for Bruin Cloud MCP.");
+    throw new Error("API token is required for Bruin Cloud MCP.");
   }
 
   switch (target) {

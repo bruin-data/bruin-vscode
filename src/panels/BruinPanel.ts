@@ -925,15 +925,21 @@ export class BruinPanel {
             try {
               const target = message.payload?.target as McpClientId | undefined;
               const variant = (message.payload?.variant as McpVariant | undefined) ?? "bruin";
-              const bearerToken =
-                typeof message.payload?.bearerToken === "string" ? message.payload.bearerToken : undefined;
               if (!target) {
                 throw new Error("No MCP integration target provided.");
               }
 
+              // For cloud variant, retrieve API token from secrets storage
+              let apiToken: string | undefined;
+              if (variant === "cloud") {
+                apiToken = await BruinPanel._extensionContext?.secrets.get(
+                  BruinPanel.CLOUD_MCP_BEARER_TOKEN_SECRET_KEY
+                );
+              }
+
               const installResult = await installMcpIntegration(target, this._lastRenderedDocumentUri, {
                 variant,
-                bearerToken,
+                bearerToken: apiToken,
               });
               this._panel.webview.postMessage({
                 command: "mcp-integration-install-message",
