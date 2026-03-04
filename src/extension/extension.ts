@@ -202,6 +202,7 @@ function setupPeriodicCliCheck(): void {
 export async function activate(context: ExtensionContext) {
   const startTime = Date.now();
   console.time("Bruin Activation Total");
+  BruinPanel.setExtensionContext(context);
   
   // Check if this is first time activation
   const isFirstActivation = !context.globalState.get('bruin.hasActivated', false);
