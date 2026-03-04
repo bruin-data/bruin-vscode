@@ -1,6 +1,7 @@
 <template>
   <div class="bg-editorWidget-bg shadow sm:rounded-lg">
     <div class="p-4 sm:p-4">
+      <!-- Collapsible Header -->
       <div class="flex items-center justify-between">
         <h3 class="text-lg font-medium text-editor-fg">Bruin MCP Integrations</h3>
         <div class="flex items-center gap-1">
@@ -20,14 +21,23 @@
           >
             <span class="codicon codicon-refresh"></span>
           </vscode-button>
+          <vscode-button
+            appearance="icon"
+            @click="isExpanded = !isExpanded"
+            :title="isExpanded ? 'Collapse' : 'Expand'"
+            class="text-md font-semibold"
+          >
+            <span class="codicon" :class="isExpanded ? 'codicon-chevron-up' : 'codicon-chevron-down'"></span>
+          </vscode-button>
         </div>
       </div>
 
-      <p class="text-sm text-editor-fg mt-1">
-        Configure Bruin MCP for supported AI clients.
-      </p>
+      <div v-if="isExpanded">
+        <p class="text-sm text-editor-fg mt-1">
+          Configure Bruin MCP for supported AI clients.
+        </p>
 
-      <!-- Tabs -->
+        <!-- Tabs -->
       <div class="mt-3 flex border-b border-commandCenter-border">
         <button
           type="button"
@@ -135,6 +145,7 @@
           <span class="codicon codicon-close"></span>
         </vscode-button>
       </div>
+      </div>
     </div>
   </div>
 </template>
@@ -161,6 +172,7 @@ const props = withDefaults(
   }
 );
 
+const isExpanded = ref(false);
 const activeTab = ref<McpVariant>("bruin");
 const togglingMcpTarget = ref<string | null>(null);
 const mcpFeedbackMessage = ref("");
