@@ -1,4 +1,7 @@
 # Changelog
+## [0.78.0] - [2026-03-04]
+- Added MCP integration for AI clients (GitHub Copilot, Cursor, Codex CLI, Claude Code) with Bruin Cloud support.
+
 ## [0.77.8] - [2026-02-27]
 - Fixed an issue where switching to the Details tab would trigger auto-formatting unexpectedly.
 
