@@ -538,16 +538,21 @@ async function getClaudeMcpStatus(
       });
     }
 
-    if (isCloud && !output.toLowerCase().includes(BRUIN_CLOUD_MCP_URL)) {
-      return evaluateStatus({
-        id: "claude",
-        label: "Claude Code",
-        configured: false,
-        clientAvailable: true,
-        bruinAvailable,
-        details: "Bruin Cloud MCP exists in Claude Code, but URL is not set to https://cloud.getbruin.com/mcp.",
-        requiresClientCli: true,
-      });
+    if (isCloud) {
+      // Extract URL from output and compare exactly to avoid substring attacks
+      const urlMatch = output.match(/url:\s*(\S+)/i);
+      const extractedUrl = urlMatch?.[1]?.trim();
+      if (extractedUrl !== BRUIN_CLOUD_MCP_URL) {
+        return evaluateStatus({
+          id: "claude",
+          label: "Claude Code",
+          configured: false,
+          clientAvailable: true,
+          bruinAvailable,
+          details: "Bruin Cloud MCP exists in Claude Code, but URL is not set to https://cloud.getbruin.com/mcp.",
+          requiresClientCli: true,
+        });
+      }
     }
 
     return evaluateStatus({
