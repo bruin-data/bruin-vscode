@@ -53,15 +53,15 @@
               <vscode-button
                 appearance="secondary"
                 class="mcp-config-btn"
-                @click="configureMcpIntegration(integration.id)"
-                :disabled="installingMcpTarget === integration.id"
+                @click="toggleMcpIntegration(integration.id, integration.status.configured)"
+                :disabled="togglingMcpTarget === integration.id"
               >
                 {{
-                  installingMcpTarget === integration.id
+                  togglingMcpTarget === integration.id
                     ? "..."
                     : integration.status.configured
-                      ? "Reconfigure"
-                      : "Configure"
+                      ? "Disable"
+                      : "Enable"
                 }}
               </vscode-button>
             </div>
@@ -103,7 +103,7 @@ const props = withDefaults(
   }
 );
 
-const installingMcpTarget = ref<McpClientId | null>(null);
+const togglingMcpTarget = ref<McpClientId | null>(null);
 const mcpFeedbackMessage = ref("");
 const mcpFeedbackType = ref<"success" | "error" | "">("");
 
@@ -163,13 +163,24 @@ function handleMessage(event: MessageEvent) {
       break;
 
     case "mcp-integration-install-message":
-      installingMcpTarget.value = null;
+      togglingMcpTarget.value = null;
       if (message.payload?.status === "success") {
         mcpFeedbackType.value = "success";
-        mcpFeedbackMessage.value = message.payload?.message || "MCP integration configured.";
+        mcpFeedbackMessage.value = message.payload?.message || "MCP integration enabled.";
       } else {
         mcpFeedbackType.value = "error";
-        mcpFeedbackMessage.value = message.payload?.message || "Failed to configure MCP integration.";
+        mcpFeedbackMessage.value = message.payload?.message || "Failed to enable MCP integration.";
+      }
+      break;
+
+    case "mcp-integration-uninstall-message":
+      togglingMcpTarget.value = null;
+      if (message.payload?.status === "success") {
+        mcpFeedbackType.value = "success";
+        mcpFeedbackMessage.value = message.payload?.message || "MCP integration disabled.";
+      } else {
+        mcpFeedbackType.value = "error";
+        mcpFeedbackMessage.value = message.payload?.message || "Failed to disable MCP integration.";
       }
       break;
   }
@@ -190,12 +201,12 @@ function requestInitialStatusesIfAllowed() {
   refreshMcpStatuses();
 }
 
-function configureMcpIntegration(target: McpClientId) {
-  installingMcpTarget.value = target;
+function toggleMcpIntegration(target: McpClientId, isConfigured: boolean) {
+  togglingMcpTarget.value = target;
   mcpFeedbackMessage.value = "";
   mcpFeedbackType.value = "";
   vscode.postMessage({
-    command: "bruin.installMcpIntegration",
+    command: isConfigured ? "bruin.uninstallMcpIntegration" : "bruin.installMcpIntegration",
     payload: { target },
   });
 }
