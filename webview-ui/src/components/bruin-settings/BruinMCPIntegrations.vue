@@ -14,7 +14,7 @@
           </vscode-button>
           <vscode-button
             appearance="icon"
-            @click="refreshMcpStatuses"
+            @click="refreshAllMcpStatuses"
             title="Refresh MCP integration status"
             class="text-md font-semibold"
           >
@@ -27,43 +27,135 @@
         Configure Bruin MCP for supported AI clients.
       </p>
 
-      <div class="mt-3 space-y-1.5">
-        <div
-          v-for="integration in mcpIntegrations"
-          :key="integration.id"
-          class="rounded border border-commandCenter-border px-3 py-2"
+      <!-- Bruin Local MCP Section -->
+      <div class="mt-3">
+        <button
+          type="button"
+          class="section-header"
+          @click="localSectionExpanded = !localSectionExpanded"
         >
-          <div class="flex items-center justify-between gap-2">
-            <div class="flex items-center gap-2 min-w-0">
-              <span class="text-xs text-editor-fg truncate">{{ integration.label }}</span>
-              <span
-                class="status-badge"
-                :class="MCP_STATUS_CONFIG[integration.status.status]?.statusClass"
-              >
-                {{ MCP_STATUS_CONFIG[integration.status.status]?.label ?? "Unknown" }}
-              </span>
-            </div>
+          <span class="codicon" :class="localSectionExpanded ? 'codicon-chevron-down' : 'codicon-chevron-right'"></span>
+          <span class="text-xs font-medium text-editor-fg">Bruin MCP (Local)</span>
+        </button>
 
-            <div class="flex items-center gap-1">
-              <span
-                v-if="getTooltip(integration)"
-                class="info-icon codicon codicon-info"
-                :title="getTooltip(integration)"
-              ></span>
+        <div v-if="localSectionExpanded" class="mt-1.5 space-y-1.5">
+          <div
+            v-for="integration in localMcpIntegrations"
+            :key="integration.id"
+            class="rounded border border-commandCenter-border px-3 py-2"
+          >
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="text-xs text-editor-fg truncate">{{ integration.label }}</span>
+                <span
+                  class="status-badge"
+                  :class="MCP_STATUS_CONFIG[integration.status.status]?.statusClass"
+                >
+                  {{ MCP_STATUS_CONFIG[integration.status.status]?.label ?? "Unknown" }}
+                </span>
+              </div>
+
+              <div class="flex items-center gap-1">
+                <span
+                  v-if="getTooltip(integration)"
+                  class="info-icon codicon codicon-info"
+                  :title="getTooltip(integration)"
+                ></span>
+                <vscode-button
+                  appearance="secondary"
+                  class="mcp-config-btn"
+                  @click="toggleMcpIntegration('bruin', integration.id, integration.status.configured)"
+                  :disabled="togglingMcpTarget === `bruin-${integration.id}`"
+                >
+                  {{
+                    togglingMcpTarget === `bruin-${integration.id}`
+                      ? "..."
+                      : integration.status.configured
+                        ? "Disable"
+                        : "Enable"
+                  }}
+                </vscode-button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bruin Cloud MCP Section -->
+      <div class="mt-3">
+        <button
+          type="button"
+          class="section-header"
+          @click="cloudSectionExpanded = !cloudSectionExpanded"
+        >
+          <span class="codicon" :class="cloudSectionExpanded ? 'codicon-chevron-down' : 'codicon-chevron-right'"></span>
+          <span class="text-xs font-medium text-editor-fg">Bruin Cloud MCP</span>
+        </button>
+
+        <div v-if="cloudSectionExpanded" class="mt-1.5 space-y-1.5">
+          <!-- Bearer Token Input -->
+          <div class="rounded border border-commandCenter-border px-3 py-2">
+            <div class="flex items-center gap-2">
+              <label class="text-xs text-editor-fg whitespace-nowrap">Bearer Token:</label>
+              <input
+                type="password"
+                v-model="cloudBearerToken"
+                placeholder="Enter your Bruin Cloud API token"
+                class="token-input"
+                @input="onBearerTokenChange"
+              />
               <vscode-button
                 appearance="secondary"
                 class="mcp-config-btn"
-                @click="toggleMcpIntegration(integration.id, integration.status.configured)"
-                :disabled="togglingMcpTarget === integration.id"
+                @click="saveBearerToken"
+                :disabled="isSavingToken || !cloudBearerToken.trim()"
               >
-                {{
-                  togglingMcpTarget === integration.id
-                    ? "..."
-                    : integration.status.configured
-                      ? "Disable"
-                      : "Enable"
-                }}
+                {{ isSavingToken ? "..." : "Save" }}
               </vscode-button>
+            </div>
+            <p class="text-3xs text-editor-fg mt-1 opacity-60">
+              Get your token from <a href="#" @click.prevent="openCloudTokenPage" class="underline">cloud.getbruin.com</a>
+            </p>
+          </div>
+
+          <div
+            v-for="integration in cloudMcpIntegrations"
+            :key="integration.id"
+            class="rounded border border-commandCenter-border px-3 py-2"
+          >
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="text-xs text-editor-fg truncate">{{ integration.label }}</span>
+                <span
+                  class="status-badge"
+                  :class="MCP_STATUS_CONFIG[integration.status.status]?.statusClass"
+                >
+                  {{ MCP_STATUS_CONFIG[integration.status.status]?.label ?? "Unknown" }}
+                </span>
+              </div>
+
+              <div class="flex items-center gap-1">
+                <span
+                  v-if="getTooltip(integration)"
+                  class="info-icon codicon codicon-info"
+                  :title="getTooltip(integration)"
+                ></span>
+                <vscode-button
+                  appearance="secondary"
+                  class="mcp-config-btn"
+                  @click="toggleMcpIntegration('cloud', integration.id, integration.status.configured)"
+                  :disabled="togglingMcpTarget === `cloud-${integration.id}` || !hasCloudBearerToken"
+                  :title="!hasCloudBearerToken ? 'Save bearer token first' : ''"
+                >
+                  {{
+                    togglingMcpTarget === `cloud-${integration.id}`
+                      ? "..."
+                      : integration.status.configured
+                        ? "Disable"
+                        : "Enable"
+                  }}
+                </vscode-button>
+              </div>
             </div>
           </div>
         </div>
@@ -86,11 +178,13 @@
 <script setup lang="ts">
 import { ref, onBeforeUnmount, onMounted, computed, watch } from "vue";
 import { vscode } from "@/utilities/vscode";
-import type { McpClientId, McpIntegrationStatus } from "@/types";
+import type { McpClientId, McpIntegrationStatus, McpVariant } from "@/types";
 import {
   BRUIN_MCP_DOCS_URL,
   DEFAULT_MCP_STATUS,
+  DEFAULT_CLOUD_MCP_STATUS,
   MCP_INTEGRATION_METADATA,
+  CLOUD_MCP_INTEGRATION_METADATA,
   MCP_STATUS_CONFIG,
 } from "@/constants";
 
@@ -103,17 +197,32 @@ const props = withDefaults(
   }
 );
 
-const togglingMcpTarget = ref<McpClientId | null>(null);
+const togglingMcpTarget = ref<string | null>(null);
 const mcpFeedbackMessage = ref("");
 const mcpFeedbackType = ref<"success" | "error" | "">("");
 
-const mcpStatusByClient = ref<Record<McpClientId, McpIntegrationStatus>>({ ...DEFAULT_MCP_STATUS });
+const localMcpStatusByClient = ref<Record<McpClientId, McpIntegrationStatus>>({ ...DEFAULT_MCP_STATUS });
+const cloudMcpStatusByClient = ref<Record<McpClientId, McpIntegrationStatus>>({ ...DEFAULT_CLOUD_MCP_STATUS });
 const hasRequestedInitialStatuses = ref(false);
 
-const mcpIntegrations = computed(() =>
+const localSectionExpanded = ref(true);
+const cloudSectionExpanded = ref(false);
+
+const cloudBearerToken = ref("");
+const hasCloudBearerToken = ref(false);
+const isSavingToken = ref(false);
+
+const localMcpIntegrations = computed(() =>
   MCP_INTEGRATION_METADATA.map((integration) => ({
     ...integration,
-    status: mcpStatusByClient.value[integration.id] ?? DEFAULT_MCP_STATUS[integration.id],
+    status: localMcpStatusByClient.value[integration.id] ?? DEFAULT_MCP_STATUS[integration.id],
+  }))
+);
+
+const cloudMcpIntegrations = computed(() =>
+  CLOUD_MCP_INTEGRATION_METADATA.map((integration) => ({
+    ...integration,
+    status: cloudMcpStatusByClient.value[integration.id] ?? DEFAULT_CLOUD_MCP_STATUS[integration.id],
   }))
 );
 
@@ -147,20 +256,23 @@ function getTooltip(integration: { status: McpIntegrationStatus }) {
 function handleMessage(event: MessageEvent) {
   const message = event.data;
   switch (message.command) {
-    case "mcp-integration-status-message":
+    case "mcp-integration-status-message": {
+      const variant = message.payload?.variant as McpVariant | undefined;
       if (message.payload?.status === "success" && Array.isArray(message.payload?.message)) {
-        const updatedStatuses = { ...mcpStatusByClient.value };
+        const statusMap = variant === "cloud" ? cloudMcpStatusByClient : localMcpStatusByClient;
+        const updatedStatuses = { ...statusMap.value };
         message.payload.message.forEach((statusItem: McpIntegrationStatus) => {
           if (statusItem?.id) {
             updatedStatuses[statusItem.id] = statusItem;
           }
         });
-        mcpStatusByClient.value = updatedStatuses;
+        statusMap.value = updatedStatuses;
       } else {
         mcpFeedbackType.value = "error";
         mcpFeedbackMessage.value = message.payload?.message || "Failed to load MCP statuses.";
       }
       break;
+    }
 
     case "mcp-integration-install-message":
       togglingMcpTarget.value = null;
@@ -183,14 +295,37 @@ function handleMessage(event: MessageEvent) {
         mcpFeedbackMessage.value = message.payload?.message || "Failed to disable MCP integration.";
       }
       break;
+
+    case "mcp-cloud-bearer-token-message":
+      if (message.payload?.status === "success") {
+        const hasToken = !!message.payload?.token;
+        hasCloudBearerToken.value = hasToken;
+        if (hasToken) {
+          cloudBearerToken.value = "••••••••••••••••";
+        }
+      }
+      break;
+
+    case "mcp-cloud-bearer-token-saved-message":
+      isSavingToken.value = false;
+      if (message.payload?.status === "success") {
+        hasCloudBearerToken.value = true;
+        cloudBearerToken.value = "••••••••••••••••";
+        mcpFeedbackType.value = "success";
+        mcpFeedbackMessage.value = "Bearer token saved.";
+      } else {
+        mcpFeedbackType.value = "error";
+        mcpFeedbackMessage.value = message.payload?.message || "Failed to save bearer token.";
+      }
+      break;
   }
 }
 
-function refreshMcpStatuses() {
-  mcpStatusByClient.value = {
-    ...DEFAULT_MCP_STATUS,
-  };
-  vscode.postMessage({ command: "bruin.getMcpIntegrationStatus" });
+function refreshAllMcpStatuses() {
+  localMcpStatusByClient.value = { ...DEFAULT_MCP_STATUS };
+  cloudMcpStatusByClient.value = { ...DEFAULT_CLOUD_MCP_STATUS };
+  vscode.postMessage({ command: "bruin.getMcpIntegrationStatus", payload: { variant: "bruin" } });
+  vscode.postMessage({ command: "bruin.getMcpIntegrationStatus", payload: { variant: "cloud" } });
 }
 
 function requestInitialStatusesIfAllowed() {
@@ -198,16 +333,17 @@ function requestInitialStatusesIfAllowed() {
     return;
   }
   hasRequestedInitialStatuses.value = true;
-  refreshMcpStatuses();
+  refreshAllMcpStatuses();
+  vscode.postMessage({ command: "bruin.getMcpCloudBearerToken" });
 }
 
-function toggleMcpIntegration(target: McpClientId, isConfigured: boolean) {
-  togglingMcpTarget.value = target;
+function toggleMcpIntegration(variant: McpVariant, target: McpClientId, isConfigured: boolean) {
+  togglingMcpTarget.value = `${variant}-${target}`;
   mcpFeedbackMessage.value = "";
   mcpFeedbackType.value = "";
   vscode.postMessage({
     command: isConfigured ? "bruin.uninstallMcpIntegration" : "bruin.installMcpIntegration",
-    payload: { target },
+    payload: { target, variant },
   });
 }
 
@@ -216,6 +352,30 @@ function openBruinMcpDocs() {
     command: "bruin.openDocumentationLink",
     payload: BRUIN_MCP_DOCS_URL,
   });
+}
+
+function openCloudTokenPage() {
+  vscode.postMessage({
+    command: "bruin.openDocumentationLink",
+    payload: "https://cloud.getbruin.com/settings/api-tokens",
+  });
+}
+
+function saveBearerToken() {
+  if (!cloudBearerToken.value.trim() || cloudBearerToken.value === "••••••••••••••••") {
+    return;
+  }
+  isSavingToken.value = true;
+  vscode.postMessage({
+    command: "bruin.saveMcpCloudBearerToken",
+    payload: { token: cloudBearerToken.value.trim() },
+  });
+}
+
+function onBearerTokenChange() {
+  if (cloudBearerToken.value !== "••••••••••••••••") {
+    hasCloudBearerToken.value = false;
+  }
 }
 
 function dismissMcpFeedback() {
@@ -243,6 +403,14 @@ watch(
 </script>
 
 <style scoped>
+.section-header {
+  @apply flex items-center gap-1 w-full text-left bg-transparent border-none cursor-pointer p-0;
+}
+
+.section-header:hover {
+  @apply opacity-80;
+}
+
 .status-badge {
   @apply inline-flex items-center px-1.5 py-px rounded-sm text-3xs font-medium whitespace-nowrap border;
 }
@@ -315,5 +483,17 @@ watch(
   justify-content: center;
   padding: 2px 8px;
   font-size: 11px;
+}
+
+.token-input {
+  @apply flex-1 bg-input-background text-input-foreground border border-commandCenter-border rounded px-2 py-1 text-xs;
+}
+
+.token-input::placeholder {
+  @apply text-input-foreground opacity-50;
+}
+
+.token-input:focus {
+  @apply outline-none border-inputOption-activeBorder;
 }
 </style>
