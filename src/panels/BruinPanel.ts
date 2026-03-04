@@ -894,19 +894,21 @@ export class BruinPanel {
               const token =
                 typeof message.payload?.token === "string" ? message.payload.token.trim() : "";
 
-              if (token.length > 0) {
+              const isClearing = token.length === 0;
+              if (isClearing) {
+                await BruinPanel._extensionContext.secrets.delete(BruinPanel.CLOUD_MCP_BEARER_TOKEN_SECRET_KEY);
+              } else {
                 await BruinPanel._extensionContext.secrets.store(
                   BruinPanel.CLOUD_MCP_BEARER_TOKEN_SECRET_KEY,
                   token
                 );
-              } else {
-                await BruinPanel._extensionContext.secrets.delete(BruinPanel.CLOUD_MCP_BEARER_TOKEN_SECRET_KEY);
               }
 
               this._panel.webview.postMessage({
                 command: "mcp-cloud-bearer-token-saved-message",
                 payload: {
                   status: "success",
+                  action: isClearing ? "cleared" : "saved",
                 },
               });
             } catch (error) {

@@ -100,18 +100,8 @@ export const MCP_STATUS_CONFIG: Record<McpIntegrationStatusType, { label: string
   },
 };
 
-// Cloud MCP Integration
-export const DEFAULT_CLOUD_MCP_STATUS: Record<McpClientId, McpIntegrationStatus> = {
-  vscode: {
-    id: "vscode",
-    label: "GitHub Copilot (VS Code)",
-    status: "checking",
-    configured: false,
-    clientAvailable: true,
-    bruinAvailable: true,
-    configPath: null,
-    details: "Checking configuration...",
-  },
+// Cloud MCP Integration (VS Code not supported for cloud variant)
+export const DEFAULT_CLOUD_MCP_STATUS: Partial<Record<McpClientId, McpIntegrationStatus>> = {
   cursor: {
     id: "cursor",
     label: "Cursor AI",
@@ -149,11 +139,6 @@ export const CLOUD_MCP_INTEGRATION_METADATA: Array<{
   label: string;
   description: string;
 }> = [
-  {
-    id: "vscode",
-    label: "GitHub Copilot (VS Code)",
-    description: "Configures Bruin Cloud MCP for GitHub Copilot in VS Code",
-  },
   {
     id: "cursor",
     label: "Cursor AI",
