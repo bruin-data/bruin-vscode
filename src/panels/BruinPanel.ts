@@ -880,7 +880,7 @@ export class BruinPanel {
                 command: "mcp-cloud-bearer-token-message",
                 payload: {
                   status: "error",
-                  message: `Failed to load cloud bearer token: ${error}`,
+                  message: `Failed to load cloud API token: ${error}`,
                 },
               });
             }
@@ -916,7 +916,7 @@ export class BruinPanel {
                 command: "mcp-cloud-bearer-token-saved-message",
                 payload: {
                   status: "error",
-                  message: `Failed to save cloud bearer token: ${error}`,
+                  message: `Failed to save cloud API token: ${error}`,
                 },
               });
             }

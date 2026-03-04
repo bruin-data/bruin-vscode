@@ -47,11 +47,11 @@
         </button>
       </div>
 
-      <!-- Cloud Bearer Token (only shown for cloud tab) -->
+      <!-- Cloud API Token (only shown for cloud tab) -->
       <div v-if="activeTab === 'cloud'" class="mt-2 rounded border border-commandCenter-border px-2 py-1.5">
         <div class="flex items-center gap-1.5">
           <!-- Token exists -->
-          <template v-if="hasCloudBearerToken">
+          <template v-if="hasCloudApiToken">
             <span class="text-3xs text-status-success-fg flex items-center gap-1">
               <span class="codicon codicon-check"></span>
               Token saved
@@ -59,7 +59,7 @@
             <vscode-button
               appearance="secondary"
               class="mcp-btn"
-              @click="clearBearerToken"
+              @click="clearApiToken"
               :disabled="isClearingToken"
             >
               {{ isClearingToken ? "..." : "Clear" }}
@@ -70,15 +70,15 @@
             <label class="text-3xs text-editor-fg whitespace-nowrap">Token:</label>
             <input
               type="password"
-              v-model="cloudBearerToken"
+              v-model="cloudApiToken"
               placeholder="API token"
               class="flex-1 min-w-0 bg-input-background text-input-foreground border border-commandCenter-border rounded text-3xs px-1.5 py-0.5 h-[22px] box-border outline-none focus:border-inputOption-activeBorder"
             />
             <vscode-button
               appearance="secondary"
               class="mcp-btn"
-              @click="saveBearerToken"
-              :disabled="isSavingToken || !cloudBearerToken.trim()"
+              @click="saveApiToken"
+              :disabled="isSavingToken || !cloudApiToken.trim()"
             >
               {{ isSavingToken ? "..." : "Save" }}
             </vscode-button>
@@ -178,8 +178,8 @@ const localMcpStatusByClient = ref<Record<McpClientId, McpIntegrationStatus>>({ 
 const cloudMcpStatusByClient = ref<Partial<Record<McpClientId, McpIntegrationStatus>>>({ ...DEFAULT_CLOUD_MCP_STATUS });
 const hasRequestedInitialStatuses = ref(false);
 
-const cloudBearerToken = ref("");
-const hasCloudBearerToken = ref(false);
+const cloudApiToken = ref("");
+const hasCloudApiToken = ref(false);
 const isSavingToken = ref(false);
 const isClearingToken = ref(false);
 
@@ -227,13 +227,13 @@ function getTooltip(integration: { status: McpIntegrationStatus }) {
 function isButtonDisabled(integrationId: McpClientId): boolean {
   const targetKey = `${activeTab.value}-${integrationId}`;
   if (togglingMcpTarget.value === targetKey) return true;
-  if (activeTab.value === "cloud" && !hasCloudBearerToken.value) return true;
+  if (activeTab.value === "cloud" && !hasCloudApiToken.value) return true;
   return false;
 }
 
 function getButtonTitle(): string {
-  if (activeTab.value === "cloud" && !hasCloudBearerToken.value) {
-    return "Save bearer token first";
+  if (activeTab.value === "cloud" && !hasCloudApiToken.value) {
+    return "Save API token first";
   }
   return "";
 }
@@ -284,7 +284,7 @@ function handleMessage(event: MessageEvent) {
 
     case "mcp-cloud-bearer-token-message":
       if (message.payload?.status === "success") {
-        hasCloudBearerToken.value = !!message.payload?.token;
+        hasCloudApiToken.value = !!message.payload?.token;
       }
       break;
 
@@ -292,11 +292,11 @@ function handleMessage(event: MessageEvent) {
       isSavingToken.value = false;
       isClearingToken.value = false;
       if (message.payload?.status === "success") {
-        hasCloudBearerToken.value = message.payload?.action !== "cleared";
-        cloudBearerToken.value = "";
+        hasCloudApiToken.value = message.payload?.action !== "cleared";
+        cloudApiToken.value = "";
         showFeedback("success", message.payload?.action === "cleared" ? "Token cleared." : "Token saved.");
       } else {
-        showFeedback("error", message.payload?.message || "Failed to save bearer token.");
+        showFeedback("error", message.payload?.message || "Failed to save API token.");
       }
       break;
   }
@@ -344,16 +344,16 @@ function openCloudTokenPage() {
   });
 }
 
-function saveBearerToken() {
-  if (!cloudBearerToken.value.trim()) return;
+function saveApiToken() {
+  if (!cloudApiToken.value.trim()) return;
   isSavingToken.value = true;
   vscode.postMessage({
     command: "bruin.saveMcpCloudBearerToken",
-    payload: { token: cloudBearerToken.value.trim() },
+    payload: { token: cloudApiToken.value.trim() },
   });
 }
 
-function clearBearerToken() {
+function clearApiToken() {
   isClearingToken.value = true;
   vscode.postMessage({
     command: "bruin.saveMcpCloudBearerToken",
