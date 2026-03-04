@@ -1,6 +1,7 @@
 <template>
   <div class="bg-editorWidget-bg shadow sm:rounded-lg">
     <div class="p-4 sm:p-4">
+      <!-- Collapsible Header -->
       <div class="flex items-center justify-between">
         <h3 class="text-lg font-medium text-editor-fg">Bruin MCP Integrations</h3>
         <div class="flex items-center gap-1">
@@ -20,16 +21,86 @@
           >
             <span class="codicon codicon-refresh"></span>
           </vscode-button>
+          <vscode-button
+            appearance="icon"
+            @click="isExpanded = !isExpanded"
+            :title="isExpanded ? 'Collapse' : 'Expand'"
+            class="text-md font-semibold"
+          >
+            <span class="codicon" :class="isExpanded ? 'codicon-chevron-up' : 'codicon-chevron-down'"></span>
+          </vscode-button>
         </div>
       </div>
 
-      <p class="text-sm text-editor-fg mt-1">
-        Configure Bruin MCP for supported AI clients.
-      </p>
+      <div v-if="isExpanded">
+        <p class="text-sm text-editor-fg mt-1">
+          Configure Bruin MCP for supported AI clients.
+        </p>
 
-      <div class="mt-3 space-y-1.5">
+        <!-- Tabs -->
+      <div class="mt-3 flex border-b border-commandCenter-border">
+        <button
+          type="button"
+          class="px-3 py-1.5 text-xs font-medium text-editor-fg border-b-2 -mb-px bg-transparent cursor-pointer hover:opacity-80"
+          :class="activeTab === 'bruin' ? 'border-editor-fg' : 'border-transparent'"
+          @click="activeTab = 'bruin'"
+        >
+          Local
+        </button>
+        <button
+          type="button"
+          class="px-3 py-1.5 text-xs font-medium text-editor-fg border-b-2 -mb-px bg-transparent cursor-pointer hover:opacity-80"
+          :class="activeTab === 'cloud' ? 'border-editor-fg' : 'border-transparent'"
+          @click="activeTab = 'cloud'"
+        >
+          Cloud
+        </button>
+      </div>
+
+      <!-- Cloud API Token (only shown for cloud tab) -->
+      <div v-if="activeTab === 'cloud'" class="mt-2 rounded border border-commandCenter-border px-2 py-1.5">
+        <div class="flex items-center gap-1.5">
+          <!-- Token exists -->
+          <template v-if="hasCloudApiToken">
+            <span class="text-3xs text-status-success-fg flex items-center gap-1">
+              <span class="codicon codicon-check"></span>
+              Token saved
+            </span>
+            <vscode-button
+              appearance="secondary"
+              class="mcp-btn"
+              @click="clearApiToken"
+              :disabled="isClearingToken"
+            >
+              {{ isClearingToken ? "..." : "Clear" }}
+            </vscode-button>
+          </template>
+          <!-- No token -->
+          <template v-else>
+            <label class="text-3xs text-editor-fg whitespace-nowrap">Token:</label>
+            <input
+              type="password"
+              v-model="cloudApiToken"
+              placeholder="API token"
+              class="flex-1 min-w-0 bg-input-background text-input-foreground border border-commandCenter-border rounded text-3xs px-1.5 py-0.5 h-[22px] box-border outline-none focus:border-inputOption-activeBorder"
+            />
+            <vscode-button
+              appearance="secondary"
+              class="mcp-btn"
+              @click="saveApiToken"
+              :disabled="isSavingToken || !cloudApiToken.trim()"
+            >
+              {{ isSavingToken ? "..." : "Save" }}
+            </vscode-button>
+            <a href="#" @click.prevent="openCloudTokenPage" class="text-3xs underline opacity-60 whitespace-nowrap" title="Get token from cloud.getbruin.com">Get token</a>
+          </template>
+        </div>
+      </div>
+
+      <!-- Integration List -->
+      <div class="mt-2 space-y-1.5">
         <div
-          v-for="integration in mcpIntegrations"
+          v-for="integration in currentIntegrations"
           :key="integration.id"
           class="rounded border border-commandCenter-border px-3 py-2"
         >
@@ -37,8 +108,8 @@
             <div class="flex items-center gap-2 min-w-0">
               <span class="text-xs text-editor-fg truncate">{{ integration.label }}</span>
               <span
-                class="status-badge"
-                :class="MCP_STATUS_CONFIG[integration.status.status]?.statusClass"
+                class="inline-flex items-center px-1.5 py-px rounded-sm text-3xs font-medium whitespace-nowrap border"
+                :class="getStatusClass(integration.status.status)"
               >
                 {{ MCP_STATUS_CONFIG[integration.status.status]?.label ?? "Unknown" }}
               </span>
@@ -47,22 +118,17 @@
             <div class="flex items-center gap-1">
               <span
                 v-if="getTooltip(integration)"
-                class="info-icon codicon codicon-info"
+                class="codicon codicon-info text-[10px] opacity-40 cursor-help hover:opacity-70"
                 :title="getTooltip(integration)"
               ></span>
               <vscode-button
                 appearance="secondary"
-                class="mcp-config-btn"
+                class="mcp-btn"
                 @click="toggleMcpIntegration(integration.id, integration.status.configured)"
-                :disabled="togglingMcpTarget === integration.id"
+                :disabled="isButtonDisabled(integration.id)"
+                :title="getButtonTitle()"
               >
-                {{
-                  togglingMcpTarget === integration.id
-                    ? "..."
-                    : integration.status.configured
-                      ? "Disable"
-                      : "Enable"
-                }}
+                {{ getButtonLabel(integration.id, integration.status.configured) }}
               </vscode-button>
             </div>
           </div>
@@ -75,9 +141,10 @@
         :class="mcpFeedbackContainerClass"
       >
         <span class="text-3xs" :class="mcpFeedbackClass">{{ mcpFeedbackMessage }}</span>
-        <vscode-button appearance="icon" title="Dismiss" @click="dismissMcpFeedback" class="feedback-close-btn">
+        <vscode-button appearance="icon" title="Dismiss" @click="dismissMcpFeedback" class="p-0 min-w-0 h-auto">
           <span class="codicon codicon-close"></span>
         </vscode-button>
+      </div>
       </div>
     </div>
   </div>
@@ -86,11 +153,13 @@
 <script setup lang="ts">
 import { ref, onBeforeUnmount, onMounted, computed, watch } from "vue";
 import { vscode } from "@/utilities/vscode";
-import type { McpClientId, McpIntegrationStatus } from "@/types";
+import type { McpClientId, McpIntegrationStatus, McpVariant, McpIntegrationStatusType } from "@/types";
 import {
   BRUIN_MCP_DOCS_URL,
   DEFAULT_MCP_STATUS,
+  DEFAULT_CLOUD_MCP_STATUS,
   MCP_INTEGRATION_METADATA,
+  CLOUD_MCP_INTEGRATION_METADATA,
   MCP_STATUS_CONFIG,
 } from "@/constants";
 
@@ -103,111 +172,173 @@ const props = withDefaults(
   }
 );
 
-const togglingMcpTarget = ref<McpClientId | null>(null);
+const isExpanded = ref(false);
+const activeTab = ref<McpVariant>("bruin");
+const togglingMcpTarget = ref<string | null>(null);
 const mcpFeedbackMessage = ref("");
 const mcpFeedbackType = ref<"success" | "error" | "">("");
+let feedbackTimeout: ReturnType<typeof setTimeout> | null = null;
 
-const mcpStatusByClient = ref<Record<McpClientId, McpIntegrationStatus>>({ ...DEFAULT_MCP_STATUS });
+function showFeedback(type: "success" | "error", message: string) {
+  if (feedbackTimeout) clearTimeout(feedbackTimeout);
+  mcpFeedbackType.value = type;
+  mcpFeedbackMessage.value = message;
+  feedbackTimeout = setTimeout(dismissMcpFeedback, 4000);
+}
+
+const localMcpStatusByClient = ref<Record<McpClientId, McpIntegrationStatus>>({ ...DEFAULT_MCP_STATUS });
+const cloudMcpStatusByClient = ref<Partial<Record<McpClientId, McpIntegrationStatus>>>({ ...DEFAULT_CLOUD_MCP_STATUS });
 const hasRequestedInitialStatuses = ref(false);
 
-const mcpIntegrations = computed(() =>
-  MCP_INTEGRATION_METADATA.map((integration) => ({
+const cloudApiToken = ref("");
+const hasCloudApiToken = ref(false);
+const isSavingToken = ref(false);
+const isClearingToken = ref(false);
+
+const STATUS_CLASSES: Record<McpIntegrationStatusType, string> = {
+  checking: "bg-status-info-bg text-status-info-fg border-status-info-border",
+  ready: "bg-status-success-bg text-status-success-fg border-status-success-border",
+  not_configured: "bg-input-background text-input-foreground border-commandCenter-border",
+  client_missing: "bg-status-warning-bg text-status-warning-fg border-status-warning-border",
+  bruin_missing: "bg-status-warning-bg text-status-warning-fg border-status-warning-border",
+  error: "bg-status-error-bg text-status-error-fg border-status-error-border",
+};
+
+function getStatusClass(status: McpIntegrationStatusType): string {
+  return STATUS_CLASSES[status] || STATUS_CLASSES.not_configured;
+}
+
+const currentIntegrations = computed(() => {
+  const metadata = activeTab.value === "cloud" ? CLOUD_MCP_INTEGRATION_METADATA : MCP_INTEGRATION_METADATA;
+  const statusMap = activeTab.value === "cloud" ? cloudMcpStatusByClient.value : localMcpStatusByClient.value;
+  const defaults = activeTab.value === "cloud" ? DEFAULT_CLOUD_MCP_STATUS : DEFAULT_MCP_STATUS;
+
+  return metadata.map((integration) => ({
     ...integration,
-    status: mcpStatusByClient.value[integration.id] ?? DEFAULT_MCP_STATUS[integration.id],
-  }))
-);
+    status: statusMap[integration.id] ?? defaults[integration.id] as McpIntegrationStatus,
+  }));
+});
 
 const mcpFeedbackClass = computed(() => {
-  if (mcpFeedbackType.value === "error") {
-    return "feedback-error";
-  }
-  if (mcpFeedbackType.value === "success") {
-    return "feedback-success";
-  }
+  if (mcpFeedbackType.value === "error") return "text-status-error-fg";
+  if (mcpFeedbackType.value === "success") return "text-status-success-fg";
   return "text-editor-fg";
 });
 
 const mcpFeedbackContainerClass = computed(() => {
-  if (mcpFeedbackType.value === "error") {
-    return "feedback-container-error";
-  }
-  if (mcpFeedbackType.value === "success") {
-    return "feedback-container-success";
-  }
+  if (mcpFeedbackType.value === "error") return "border-status-error-border bg-transparent";
+  if (mcpFeedbackType.value === "success") return "border-status-success-border bg-transparent";
   return "border-commandCenter-border";
 });
 
 function getTooltip(integration: { status: McpIntegrationStatus }) {
-  if (integration.status.configPath) {
-    return integration.status.configPath;
-  }
+  if (integration.status.configPath) return integration.status.configPath;
   return integration.status.details || "";
+}
+
+function isButtonDisabled(integrationId: McpClientId): boolean {
+  const targetKey = `${activeTab.value}-${integrationId}`;
+  if (togglingMcpTarget.value === targetKey) return true;
+  if (activeTab.value === "cloud" && !hasCloudApiToken.value) return true;
+  return false;
+}
+
+function getButtonTitle(): string {
+  if (activeTab.value === "cloud" && !hasCloudApiToken.value) {
+    return "Save API token first";
+  }
+  return "";
+}
+
+function getButtonLabel(integrationId: McpClientId, isConfigured: boolean): string {
+  const targetKey = `${activeTab.value}-${integrationId}`;
+  if (togglingMcpTarget.value === targetKey) return "...";
+  return isConfigured ? "Disable" : "Enable";
 }
 
 function handleMessage(event: MessageEvent) {
   const message = event.data;
   switch (message.command) {
-    case "mcp-integration-status-message":
+    case "mcp-integration-status-message": {
+      const variant = message.payload?.variant as McpVariant | undefined;
       if (message.payload?.status === "success" && Array.isArray(message.payload?.message)) {
-        const updatedStatuses = { ...mcpStatusByClient.value };
+        const statusMap = variant === "cloud" ? cloudMcpStatusByClient : localMcpStatusByClient;
+        const updatedStatuses = { ...statusMap.value };
         message.payload.message.forEach((statusItem: McpIntegrationStatus) => {
           if (statusItem?.id) {
             updatedStatuses[statusItem.id] = statusItem;
           }
         });
-        mcpStatusByClient.value = updatedStatuses;
+        statusMap.value = updatedStatuses;
       } else {
-        mcpFeedbackType.value = "error";
-        mcpFeedbackMessage.value = message.payload?.message || "Failed to load MCP statuses.";
+        showFeedback("error", message.payload?.message || "Failed to load MCP statuses.");
       }
       break;
+    }
 
     case "mcp-integration-install-message":
       togglingMcpTarget.value = null;
       if (message.payload?.status === "success") {
-        mcpFeedbackType.value = "success";
-        mcpFeedbackMessage.value = message.payload?.message || "MCP integration enabled.";
+        showFeedback("success", message.payload?.message || "MCP integration enabled.");
       } else {
-        mcpFeedbackType.value = "error";
-        mcpFeedbackMessage.value = message.payload?.message || "Failed to enable MCP integration.";
+        showFeedback("error", message.payload?.message || "Failed to enable MCP integration.");
       }
       break;
 
     case "mcp-integration-uninstall-message":
       togglingMcpTarget.value = null;
       if (message.payload?.status === "success") {
-        mcpFeedbackType.value = "success";
-        mcpFeedbackMessage.value = message.payload?.message || "MCP integration disabled.";
+        showFeedback("success", message.payload?.message || "MCP integration disabled.");
       } else {
-        mcpFeedbackType.value = "error";
-        mcpFeedbackMessage.value = message.payload?.message || "Failed to disable MCP integration.";
+        showFeedback("error", message.payload?.message || "Failed to disable MCP integration.");
+      }
+      break;
+
+    case "mcp-cloud-bearer-token-message":
+      if (message.payload?.status === "success") {
+        hasCloudApiToken.value = !!message.payload?.token;
+      }
+      break;
+
+    case "mcp-cloud-bearer-token-saved-message":
+      isSavingToken.value = false;
+      isClearingToken.value = false;
+      if (message.payload?.status === "success") {
+        hasCloudApiToken.value = message.payload?.action !== "cleared";
+        cloudApiToken.value = "";
+        showFeedback("success", message.payload?.action === "cleared" ? "Token cleared." : "Token saved.");
+      } else {
+        showFeedback("error", message.payload?.message || "Failed to save API token.");
       }
       break;
   }
 }
 
 function refreshMcpStatuses() {
-  mcpStatusByClient.value = {
-    ...DEFAULT_MCP_STATUS,
-  };
-  vscode.postMessage({ command: "bruin.getMcpIntegrationStatus" });
+  if (activeTab.value === "bruin") {
+    localMcpStatusByClient.value = { ...DEFAULT_MCP_STATUS };
+    vscode.postMessage({ command: "bruin.getMcpIntegrationStatus", payload: { variant: "bruin" } });
+  } else {
+    cloudMcpStatusByClient.value = { ...DEFAULT_CLOUD_MCP_STATUS } as Partial<Record<McpClientId, McpIntegrationStatus>>;
+    vscode.postMessage({ command: "bruin.getMcpIntegrationStatus", payload: { variant: "cloud" } });
+  }
 }
 
 function requestInitialStatusesIfAllowed() {
-  if (!props.allowInitialLoad || hasRequestedInitialStatuses.value) {
-    return;
-  }
+  if (!props.allowInitialLoad || hasRequestedInitialStatuses.value) return;
   hasRequestedInitialStatuses.value = true;
-  refreshMcpStatuses();
+
+  localMcpStatusByClient.value = { ...DEFAULT_MCP_STATUS };
+  vscode.postMessage({ command: "bruin.getMcpIntegrationStatus", payload: { variant: "bruin" } });
+  vscode.postMessage({ command: "bruin.getMcpCloudBearerToken" });
 }
 
 function toggleMcpIntegration(target: McpClientId, isConfigured: boolean) {
-  togglingMcpTarget.value = target;
-  mcpFeedbackMessage.value = "";
-  mcpFeedbackType.value = "";
+  togglingMcpTarget.value = `${activeTab.value}-${target}`;
+  dismissMcpFeedback();
   vscode.postMessage({
     command: isConfigured ? "bruin.uninstallMcpIntegration" : "bruin.installMcpIntegration",
-    payload: { target },
+    payload: { target, variant: activeTab.value },
   });
 }
 
@@ -218,10 +349,48 @@ function openBruinMcpDocs() {
   });
 }
 
+function openCloudTokenPage() {
+  vscode.postMessage({
+    command: "bruin.openDocumentationLink",
+    payload: "https://cloud.getbruin.com/user/api-tokens",
+  });
+}
+
+function saveApiToken() {
+  if (!cloudApiToken.value.trim()) return;
+  isSavingToken.value = true;
+  vscode.postMessage({
+    command: "bruin.saveMcpCloudBearerToken",
+    payload: { token: cloudApiToken.value.trim() },
+  });
+}
+
+function clearApiToken() {
+  isClearingToken.value = true;
+  vscode.postMessage({
+    command: "bruin.saveMcpCloudBearerToken",
+    payload: { token: "" },
+  });
+}
+
 function dismissMcpFeedback() {
+  if (feedbackTimeout) {
+    clearTimeout(feedbackTimeout);
+    feedbackTimeout = null;
+  }
   mcpFeedbackMessage.value = "";
   mcpFeedbackType.value = "";
 }
+
+watch(activeTab, (newTab) => {
+  if (newTab === "cloud") {
+    cloudMcpStatusByClient.value = { ...DEFAULT_CLOUD_MCP_STATUS } as Partial<Record<McpClientId, McpIntegrationStatus>>;
+    vscode.postMessage({ command: "bruin.getMcpIntegrationStatus", payload: { variant: "cloud" } });
+  } else {
+    localMcpStatusByClient.value = { ...DEFAULT_MCP_STATUS };
+    vscode.postMessage({ command: "bruin.getMcpIntegrationStatus", payload: { variant: "bruin" } });
+  }
+});
 
 onMounted(() => {
   window.addEventListener("message", handleMessage);
@@ -235,83 +404,20 @@ onBeforeUnmount(() => {
 watch(
   () => props.allowInitialLoad,
   (isAllowed) => {
-    if (isAllowed) {
-      requestInitialStatusesIfAllowed();
-    }
+    if (isAllowed) requestInitialStatusesIfAllowed();
   }
 );
 </script>
 
 <style scoped>
-.status-badge {
-  @apply inline-flex items-center px-1.5 py-px rounded-sm text-3xs font-medium whitespace-nowrap border;
-}
-
-.status-checking {
-  @apply bg-status-info-bg text-status-info-fg border-status-info-border;
-}
-
-.status-ready {
-  @apply bg-status-success-bg text-status-success-fg border-status-success-border;
-}
-
-.status-default {
-  @apply bg-input-background text-input-foreground border-commandCenter-border;
-}
-
-.status-warning {
-  @apply bg-status-warning-bg text-status-warning-fg border-status-warning-border;
-}
-
-.status-error {
-  @apply bg-status-error-bg text-status-error-fg border-status-error-border;
-}
-
-.feedback-success {
-  @apply text-status-success-fg;
-}
-
-.feedback-error {
-  @apply text-status-error-fg;
-}
-
-.feedback-container-success {
-  @apply border-status-success-border bg-transparent;
-}
-
-.feedback-container-error {
-  @apply border-status-error-border bg-transparent;
-}
-
-.feedback-close-btn {
-  padding: 0;
-  min-width: auto;
-  height: auto;
-}
-
-.feedback-close-btn::part(control) {
-  padding: 2px;
-  min-width: auto;
-}
-
-.info-icon {
-  font-size: 10px;
-  opacity: 0.4;
-  cursor: help;
-}
-
-.info-icon:hover {
-  opacity: 0.7;
-}
-
-/* Fixed width button for consistent sizing */
-.mcp-config-btn {
-  min-width: 80px;
+/* Only keep styles that can't be done with Tailwind (::part selectors for web components) */
+.mcp-btn {
+  min-width: 60px;
   text-align: center;
 }
 
-.mcp-config-btn::part(control) {
-  min-width: 80px;
+.mcp-btn::part(control) {
+  min-width: 60px;
   justify-content: center;
   padding: 2px 8px;
   font-size: 11px;
