@@ -1,4 +1,7 @@
 # Changelog
+## [0.78.1] - [2026-03-06]
+- Added lock environment toggle in Query Preview.
+
 ## [0.78.0] - [2026-03-04]
 - Added MCP integration for AI clients (GitHub Copilot, Cursor, Codex CLI, Claude Code) with Bruin Cloud support.
 
