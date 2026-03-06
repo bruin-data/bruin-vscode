@@ -63,6 +63,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.78.1**: Added lock environment toggle in Query Preview.
 - **0.78.0**: Added MCP integration for AI clients (GitHub Copilot, Cursor, Codex CLI, Claude Code) with Bruin Cloud support.
 - **0.77.8**: Fixed an issue where switching to the Details tab would trigger auto-formatting unexpectedly.
 - **0.77.7**: Improved the styling of panel titles and alert components for a more consistent and polished UI.
