@@ -151,6 +151,45 @@
           <vscode-button title="Clear Results" appearance="icon" @click="clearTabResults">
             <span class="codicon codicon-clear-all text-editor-fg"></span>
           </vscode-button>
+          <!-- Export Controls: Format Dropdown + Copy + Save -->
+          <div class="flex items-center gap-0.5" v-if="currentTab?.parsedOutput?.rows?.length">
+            <!-- Format Selector -->
+            <div class="relative">
+              <button
+                @click="showFormatDropdown = !showFormatDropdown"
+                class="flex items-center gap-1 px-2 py-1 text-xs text-editor-fg hover:bg-editorWidget-bg rounded"
+                title="Select export format"
+              >
+                <span>{{ FORMAT_LABELS[exportFormat] }}</span>
+                <span class="codicon codicon-chevron-down text-2xs"></span>
+              </button>
+              <div
+                v-if="showFormatDropdown"
+                class="absolute right-0 top-full mt-1 bg-dropdown-bg border border-dropdown-border rounded shadow-lg z-50 min-w-[120px]"
+              >
+                <button
+                  v-for="format in exportFormats"
+                  :key="format"
+                  @click="exportFormat = format; showFormatDropdown = false"
+                  class="w-full px-3 py-1.5 text-left text-xs hover:bg-list-hoverBackground flex items-center justify-between"
+                  :class="{ 'bg-list-activeSelectionBackground': exportFormat === format }"
+                >
+                  <span>{{ FORMAT_LABELS[format] }}</span>
+                  <span v-if="exportFormat === format" class="codicon codicon-check text-xs"></span>
+                </button>
+              </div>
+            </div>
+            <!-- Copy Button -->
+            <vscode-button
+              title="Copy to Clipboard"
+              appearance="icon"
+              @click="copyResults"
+            >
+              <span v-if="!copiedResults" class="codicon codicon-copy text-editor-fg"></span>
+              <span v-else class="codicon codicon-check text-green-500"></span>
+            </vscode-button>
+          </div>
+          <!-- Export Button (CLI) -->
           <vscode-button title="Export Results" appearance="icon" @click="exportTabResults">
             <span
               v-if="!isExportLoading"
@@ -580,6 +619,7 @@ import QuerySearch from "../ui/query-preview/QuerySearch.vue";
 import type { EditingState, TabData } from "@/types";
 import { useConnectionsStore } from "@/store/bruinStore";
 import { flattenStructColumns } from "@/utilities/structUtils";
+import { formatData, copyToClipboard, FORMAT_LABELS, type ExportFormat } from "@/utilities/dataFormatters";
 
 // Sorting interfaces
 interface SortState {
@@ -626,6 +666,10 @@ const expandedCells = ref(new Set<string>());
 const activeQueryPanelTab = ref<'query' | 'console'>('query');
 const columnWidths = ref<Map<string, Map<number, number>>>(new Map());
 const showTruncationWarning = ref(false);
+const showFormatDropdown = ref(false);
+const exportFormat = ref<ExportFormat>('csv');
+const exportFormats: ExportFormat[] = ['csv', 'tsv', 'json'];
+const copiedResults = ref(false);
 const resizeState = ref<{
   isResizing: boolean;
   columnIndex: number;
@@ -845,6 +889,21 @@ const copyQuery = (query: string) => {
   setTimeout(() => {
     copied.value = false;
   }, 2000);
+};
+
+const copyResults = async () => {
+  if (!currentTab.value?.parsedOutput) return;
+
+  const { columns, rows } = currentTab.value.parsedOutput;
+  const formatted = formatData(exportFormat.value, { columns, rows });
+  const success = await copyToClipboard(formatted);
+
+  if (success) {
+    copiedResults.value = true;
+    setTimeout(() => {
+      copiedResults.value = false;
+    }, 2000);
+  }
 };
 
 const toggleQueryVisibility = () => {
@@ -1641,8 +1700,16 @@ const vFocus = {
   mounted: (el: HTMLInputElement) => el.focus(),
 };
 
+const handleClickOutside = (event: MouseEvent) => {
+  const target = event.target as HTMLElement;
+  if (showFormatDropdown.value && !target.closest('.relative')) {
+    showFormatDropdown.value = false;
+  }
+};
+
 onMounted(() => {
   window.addEventListener("keydown", handleKeyDown);
+  window.addEventListener("click", handleClickOutside);
   const isMac = navigator.platform.toUpperCase().startsWith("MAC");
   modifierKey.value = isMac ? "⌘" : "Ctrl";
 
@@ -1651,6 +1718,7 @@ onMounted(() => {
 });
 onUnmounted(() => {
   window.removeEventListener("keydown", handleKeyDown);
+  window.removeEventListener("click", handleClickOutside);
   clearTimeout(saveTimeout);
   if (resizeState.value) {
     stopResize();
@@ -1994,6 +2062,20 @@ vscode-badge::part(control) {
   border-bottom: 1px solid var(--vscode-panel-border);
   padding-bottom: 2px;
   margin-bottom: 2px;
+}
+
+/* Copy dropdown styles */
+.bg-dropdown-bg {
+  background-color: var(--vscode-dropdown-background);
+}
+.border-dropdown-border {
+  border-color: var(--vscode-dropdown-border);
+}
+.bg-list-hoverBackground:hover {
+  background-color: var(--vscode-list-hoverBackground);
+}
+.bg-list-activeSelectionBackground {
+  background-color: var(--vscode-list-activeSelectionBackground);
 }
 </style>
 
