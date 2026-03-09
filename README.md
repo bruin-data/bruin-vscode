@@ -63,9 +63,8 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ## Release Notes
 ### Recent Update
+- **0.78.2**: Fixed an issue where the default value for an existing connection was not applied correctly.
 - **0.78.1**: Added lock environment toggle in Query Preview.
 - **0.78.0**: Added MCP integration for AI clients (GitHub Copilot, Cursor, Codex CLI, Claude Code) with Bruin Cloud support.
-- **0.77.8**: Fixed an issue where switching to the Details tab would trigger auto-formatting unexpectedly.
-- **0.77.7**: Improved the styling of panel titles and alert components for a more consistent and polished UI.
 
 For a full changelog, see Bruin Extension [Changelog](https://github.com/bruin-data/bruin-vscode/blob/main/CHANGELOG.md).
