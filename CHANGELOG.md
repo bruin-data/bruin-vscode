@@ -1,4 +1,8 @@
 # Changelog
+
+## [0.79.0] - [2026-03-09]
+- Added copy results as CSV, TSV, or JSON to the Query Preview.
+
 ## [0.78.2] - [2026-03-09]
 - Fixed a bug where editing a connection would incorrectly overwrite existing values with default field values.
 
