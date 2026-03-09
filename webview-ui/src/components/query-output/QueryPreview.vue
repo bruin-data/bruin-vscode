@@ -151,52 +151,59 @@
           <vscode-button title="Clear Results" appearance="icon" @click="clearTabResults">
             <span class="codicon codicon-clear-all text-editor-fg"></span>
           </vscode-button>
-          <!-- Export Dropdown Menu -->
-          <div class="relative" v-if="currentTab?.parsedOutput?.rows?.length">
-            <button
-              @click="showExportMenu = !showExportMenu"
+          <!-- Copy Dropdown Menu -->
+          <Menu as="div" class="relative" v-if="currentTab?.parsedOutput?.rows?.length">
+            <MenuButton
               class="flex items-center gap-1 px-2 py-1 text-xs text-editor-fg hover:bg-editorWidget-bg rounded"
-              title="Export options"
             >
-              <span class="codicon codicon-export text-editor-fg"></span>
-              <span>Export</span>
-              <span class="codicon codicon-chevron-down text-2xs"></span>
-            </button>
-            <div
-              v-if="showExportMenu"
-              class="absolute right-0 top-full mt-1 bg-dropdown-bg border border-dropdown-border rounded shadow-lg z-50 min-w-[160px] py-1"
+              <span>Copy</span>
+              <ChevronDownIcon class="h-3 w-3" />
+            </MenuButton>
+            <transition
+              enter-active-class="transition ease-out duration-100"
+              enter-from-class="transform opacity-0 scale-95"
+              enter-to-class="transform opacity-100 scale-100"
+              leave-active-class="transition ease-in duration-75"
+              leave-from-class="transform opacity-100 scale-100"
+              leave-to-class="transform opacity-0 scale-95"
             >
-              <!-- Copy options -->
-              <button
-                v-for="format in exportFormats"
-                :key="format"
-                @click="copyResultsAs(format)"
-                class="w-full px-3 py-1.5 text-left text-xs hover:bg-list-hoverBackground flex items-center gap-2"
-              >
-                <span class="codicon codicon-copy text-2xs opacity-70"></span>
-                <span>Copy as {{ FORMAT_LABELS[format] }}</span>
-              </button>
-              <!-- Divider -->
-              <div class="border-t border-dropdown-border my-1"></div>
-              <!-- Save to file -->
-              <button
-                @click="exportTabResults(); showExportMenu = false"
-                class="w-full px-3 py-1.5 text-left text-xs hover:bg-list-hoverBackground flex items-center gap-2"
-              >
-                <span class="codicon codicon-desktop-download text-2xs opacity-70"></span>
-                <span>Save to File</span>
-                <span v-if="isExportLoading" class="spinner-small ml-auto"></span>
-              </button>
-            </div>
+              <MenuItems class="absolute right-0 z-50 mt-1 w-36 origin-top-right">
+                <div class="p-1 bg-editorWidget-bg rounded-sm border border-commandCenter-border shadow-lg">
+                  <!-- Copy format options -->
+                  <MenuItem v-for="format in exportFormats" :key="format" v-slot="{ active }">
+                    <button
+                      @click="copyResultsAs(format)"
+                      class="block w-full px-2 py-1 text-left text-xs rounded-sm"
+                      :class="active ? 'bg-list-hoverBackground text-editor-fg' : 'text-editor-fg'"
+                    >
+                      {{ FORMAT_LABELS[format] }}
+                    </button>
+                  </MenuItem>
+                  <!-- Divider -->
+                  <div class="border-t border-commandCenter-border my-1"></div>
+                  <!-- Save to file -->
+                  <MenuItem v-slot="{ active }">
+                    <button
+                      @click="exportTabResults()"
+                      class="block w-full px-2 py-1 text-left text-xs rounded-sm flex items-center"
+                      :class="active ? 'bg-list-hoverBackground text-editor-fg' : 'text-editor-fg'"
+                    >
+                      <span>Save to File (CSV)</span>
+                      <span v-if="isExportLoading" class="spinner-small ml-auto"></span>
+                    </button>
+                  </MenuItem>
+                </div>
+              </MenuItems>
+            </transition>
             <!-- Copied feedback toast -->
             <div
               v-if="copiedResults"
-              class="absolute right-0 top-full mt-1 px-2 py-1 text-xs bg-notification-bg border border-dropdown-border rounded shadow-lg z-50 flex items-center gap-1"
+              class="absolute right-0 top-full mt-1 px-2 py-1 text-xs bg-editorWidget-bg border border-commandCenter-border rounded shadow-lg z-50 flex items-center gap-1"
             >
               <span class="codicon codicon-check text-green-500"></span>
               <span>Copied!</span>
             </div>
-          </div>
+          </Menu>
           <vscode-button title="Reset Panel" appearance="icon" @click="resetPanel">
             <span class="codicon codicon-refresh text-editor-fg"></span>
           </vscode-button>
@@ -613,7 +620,8 @@ import {
   shallowRef,
   triggerRef,
 } from "vue";
-import { TableCellsIcon } from "@heroicons/vue/24/outline";
+import { TableCellsIcon, ChevronDownIcon } from "@heroicons/vue/24/outline";
+import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/vue";
 import { vscode } from "@/utilities/vscode";
 import QuerySearch from "../ui/query-preview/QuerySearch.vue";
 import type { EditingState, TabData } from "@/types";
@@ -666,7 +674,6 @@ const expandedCells = ref(new Set<string>());
 const activeQueryPanelTab = ref<'query' | 'console'>('query');
 const columnWidths = ref<Map<string, Map<number, number>>>(new Map());
 const showTruncationWarning = ref(false);
-const showExportMenu = ref(false);
 const exportFormats: ExportFormat[] = ['csv', 'tsv', 'json'];
 const copiedResults = ref(false);
 const resizeState = ref<{
@@ -893,7 +900,6 @@ const copyQuery = (query: string) => {
 const copyResultsAs = async (format: ExportFormat) => {
   if (!currentTab.value?.parsedOutput) return;
 
-  showExportMenu.value = false;
   const { columns, rows } = currentTab.value.parsedOutput;
   const formatted = formatData(format, { columns, rows });
   const success = await copyToClipboard(formatted);
@@ -1700,16 +1706,8 @@ const vFocus = {
   mounted: (el: HTMLInputElement) => el.focus(),
 };
 
-const handleClickOutside = (event: MouseEvent) => {
-  const target = event.target as HTMLElement;
-  if (showExportMenu.value && !target.closest('.relative')) {
-    showExportMenu.value = false;
-  }
-};
-
 onMounted(() => {
   window.addEventListener("keydown", handleKeyDown);
-  window.addEventListener("click", handleClickOutside);
   const isMac = navigator.platform.toUpperCase().startsWith("MAC");
   modifierKey.value = isMac ? "⌘" : "Ctrl";
 
@@ -1718,7 +1716,6 @@ onMounted(() => {
 });
 onUnmounted(() => {
   window.removeEventListener("keydown", handleKeyDown);
-  window.removeEventListener("click", handleClickOutside);
   clearTimeout(saveTimeout);
   if (resizeState.value) {
     stopResize();
