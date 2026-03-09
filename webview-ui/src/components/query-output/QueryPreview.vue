@@ -151,13 +151,59 @@
           <vscode-button title="Clear Results" appearance="icon" @click="clearTabResults">
             <span class="codicon codicon-clear-all text-editor-fg"></span>
           </vscode-button>
-          <vscode-button title="Export Results" appearance="icon" @click="exportTabResults">
-            <span
-              v-if="!isExportLoading"
-              class="codicon codicon-desktop-download text-editor-fg"
-            ></span>
-            <span v-else class="spinner"></span>
-          </vscode-button>
+          <!-- Copy Dropdown Menu -->
+          <Menu as="div" class="relative" v-if="currentTab?.parsedOutput?.rows?.length">
+            <MenuButton
+              class="flex items-center gap-1 px-2 py-1 text-xs text-editor-fg hover:bg-editorWidget-bg rounded"
+            >
+              <span>Copy</span>
+              <ChevronDownIcon class="h-3 w-3" />
+            </MenuButton>
+            <transition
+              enter-active-class="transition ease-out duration-100"
+              enter-from-class="transform opacity-0 scale-95"
+              enter-to-class="transform opacity-100 scale-100"
+              leave-active-class="transition ease-in duration-75"
+              leave-from-class="transform opacity-100 scale-100"
+              leave-to-class="transform opacity-0 scale-95"
+            >
+              <MenuItems class="absolute right-0 z-50 mt-1 w-36 origin-top-right">
+                <div class="p-1 bg-editorWidget-bg rounded-sm border border-commandCenter-border shadow-lg">
+                  <!-- Copy format options -->
+                  <MenuItem v-for="format in exportFormats" :key="format" v-slot="{ active }">
+                    <button
+                      @click="copyResultsAs(format)"
+                      class="block w-full px-2 py-1 text-left text-xs rounded-sm"
+                      :class="active ? 'bg-list-hoverBackground text-editor-fg' : 'text-editor-fg'"
+                    >
+                      {{ FORMAT_LABELS[format] }}
+                    </button>
+                  </MenuItem>
+                  <!-- Divider -->
+                  <div class="border-t border-commandCenter-border my-1"></div>
+                  <!-- Save to file -->
+                  <MenuItem v-slot="{ active }">
+                    <button
+                      @click="exportTabResults()"
+                      class="block w-full px-2 py-1 text-left text-xs rounded-sm flex items-center"
+                      :class="active ? 'bg-list-hoverBackground text-editor-fg' : 'text-editor-fg'"
+                    >
+                      <span>Save to File (CSV)</span>
+                      <span v-if="isExportLoading" class="spinner-small ml-auto"></span>
+                    </button>
+                  </MenuItem>
+                </div>
+              </MenuItems>
+            </transition>
+            <!-- Copied feedback toast -->
+            <div
+              v-if="copiedResults"
+              class="absolute right-0 top-full mt-1 px-2 py-1 text-xs bg-editorWidget-bg border border-commandCenter-border rounded shadow-lg z-50 flex items-center gap-1"
+            >
+              <span class="codicon codicon-check text-green-500"></span>
+              <span>Copied!</span>
+            </div>
+          </Menu>
           <vscode-button title="Reset Panel" appearance="icon" @click="resetPanel">
             <span class="codicon codicon-refresh text-editor-fg"></span>
           </vscode-button>
@@ -574,12 +620,14 @@ import {
   shallowRef,
   triggerRef,
 } from "vue";
-import { TableCellsIcon } from "@heroicons/vue/24/outline";
+import { TableCellsIcon, ChevronDownIcon } from "@heroicons/vue/24/outline";
+import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/vue";
 import { vscode } from "@/utilities/vscode";
 import QuerySearch from "../ui/query-preview/QuerySearch.vue";
 import type { EditingState, TabData } from "@/types";
 import { useConnectionsStore } from "@/store/bruinStore";
 import { flattenStructColumns } from "@/utilities/structUtils";
+import { formatData, copyToClipboard, FORMAT_LABELS, type ExportFormat } from "@/utilities/dataFormatters";
 
 // Sorting interfaces
 interface SortState {
@@ -626,6 +674,8 @@ const expandedCells = ref(new Set<string>());
 const activeQueryPanelTab = ref<'query' | 'console'>('query');
 const columnWidths = ref<Map<string, Map<number, number>>>(new Map());
 const showTruncationWarning = ref(false);
+const exportFormats: ExportFormat[] = ['csv', 'tsv', 'json'];
+const copiedResults = ref(false);
 const resizeState = ref<{
   isResizing: boolean;
   columnIndex: number;
@@ -845,6 +895,21 @@ const copyQuery = (query: string) => {
   setTimeout(() => {
     copied.value = false;
   }, 2000);
+};
+
+const copyResultsAs = async (format: ExportFormat) => {
+  if (!currentTab.value?.parsedOutput) return;
+
+  const { columns, rows } = currentTab.value.parsedOutput;
+  const formatted = formatData(format, { columns, rows });
+  const success = await copyToClipboard(formatted);
+
+  if (success) {
+    copiedResults.value = true;
+    setTimeout(() => {
+      copiedResults.value = false;
+    }, 2000);
+  }
 };
 
 const toggleQueryVisibility = () => {
@@ -1994,6 +2059,29 @@ vscode-badge::part(control) {
   border-bottom: 1px solid var(--vscode-panel-border);
   padding-bottom: 2px;
   margin-bottom: 2px;
+}
+
+/* Export dropdown styles */
+.bg-dropdown-bg {
+  background-color: var(--vscode-dropdown-background);
+}
+.border-dropdown-border {
+  border-color: var(--vscode-dropdown-border);
+}
+.bg-list-hoverBackground:hover {
+  background-color: var(--vscode-list-hoverBackground);
+}
+.bg-notification-bg {
+  background-color: var(--vscode-notifications-background);
+}
+.spinner-small {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--vscode-progressBar-background, rgba(255, 255, 255, 0.2));
+  border-top: 2px solid var(--vscode-progressBar-foreground, #0078d4);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
 }
 </style>
 
