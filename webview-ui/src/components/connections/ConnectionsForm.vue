@@ -224,7 +224,7 @@ watch(
     if (newType) {
       const config = connectionConfig[newType] || [];
       config.forEach((field) => {
-        if (field.defaultValue !== undefined) {
+        if (field.defaultValue !== undefined && !props.isEditing) {
           form.value[field.id] = field.defaultValue;
         }
       });
