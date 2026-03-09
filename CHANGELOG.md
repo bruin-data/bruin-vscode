@@ -1,6 +1,6 @@
 # Changelog
 ## [0.78.2] - [2026-03-09]
-- Fixed an issue where the default value for an existing connection was not applied correctly.
+- Fixed a bug where editing a connection would incorrectly overwrite existing values with default field values.
 
 ## [0.78.1] - [2026-03-09]
 - Added lock environment toggle in Query Preview.
