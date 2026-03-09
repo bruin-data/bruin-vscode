@@ -151,52 +151,52 @@
           <vscode-button title="Clear Results" appearance="icon" @click="clearTabResults">
             <span class="codicon codicon-clear-all text-editor-fg"></span>
           </vscode-button>
-          <!-- Export Controls: Format Dropdown + Copy + Save -->
-          <div class="flex items-center gap-0.5" v-if="currentTab?.parsedOutput?.rows?.length">
-            <!-- Format Selector -->
-            <div class="relative">
-              <button
-                @click="showFormatDropdown = !showFormatDropdown"
-                class="flex items-center gap-1 px-2 py-1 text-xs text-editor-fg hover:bg-editorWidget-bg rounded"
-                title="Select export format"
-              >
-                <span>{{ FORMAT_LABELS[exportFormat] }}</span>
-                <span class="codicon codicon-chevron-down text-2xs"></span>
-              </button>
-              <div
-                v-if="showFormatDropdown"
-                class="absolute right-0 top-full mt-1 bg-dropdown-bg border border-dropdown-border rounded shadow-lg z-50 min-w-[120px]"
-              >
-                <button
-                  v-for="format in exportFormats"
-                  :key="format"
-                  @click="exportFormat = format; showFormatDropdown = false"
-                  class="w-full px-3 py-1.5 text-left text-xs hover:bg-list-hoverBackground flex items-center justify-between"
-                  :class="{ 'bg-list-activeSelectionBackground': exportFormat === format }"
-                >
-                  <span>{{ FORMAT_LABELS[format] }}</span>
-                  <span v-if="exportFormat === format" class="codicon codicon-check text-xs"></span>
-                </button>
-              </div>
-            </div>
-            <!-- Copy Button -->
-            <vscode-button
-              title="Copy to Clipboard"
-              appearance="icon"
-              @click="copyResults"
+          <!-- Export Dropdown Menu -->
+          <div class="relative" v-if="currentTab?.parsedOutput?.rows?.length">
+            <button
+              @click="showExportMenu = !showExportMenu"
+              class="flex items-center gap-1 px-2 py-1 text-xs text-editor-fg hover:bg-editorWidget-bg rounded"
+              title="Export options"
             >
-              <span v-if="!copiedResults" class="codicon codicon-copy text-editor-fg"></span>
-              <span v-else class="codicon codicon-check text-green-500"></span>
-            </vscode-button>
+              <span class="codicon codicon-export text-editor-fg"></span>
+              <span>Export</span>
+              <span class="codicon codicon-chevron-down text-2xs"></span>
+            </button>
+            <div
+              v-if="showExportMenu"
+              class="absolute right-0 top-full mt-1 bg-dropdown-bg border border-dropdown-border rounded shadow-lg z-50 min-w-[160px] py-1"
+            >
+              <!-- Copy options -->
+              <button
+                v-for="format in exportFormats"
+                :key="format"
+                @click="copyResultsAs(format)"
+                class="w-full px-3 py-1.5 text-left text-xs hover:bg-list-hoverBackground flex items-center gap-2"
+              >
+                <span class="codicon codicon-copy text-2xs opacity-70"></span>
+                <span>Copy as {{ FORMAT_LABELS[format] }}</span>
+              </button>
+              <!-- Divider -->
+              <div class="border-t border-dropdown-border my-1"></div>
+              <!-- Save to file -->
+              <button
+                @click="exportTabResults(); showExportMenu = false"
+                class="w-full px-3 py-1.5 text-left text-xs hover:bg-list-hoverBackground flex items-center gap-2"
+              >
+                <span class="codicon codicon-desktop-download text-2xs opacity-70"></span>
+                <span>Save to File</span>
+                <span v-if="isExportLoading" class="spinner-small ml-auto"></span>
+              </button>
+            </div>
+            <!-- Copied feedback toast -->
+            <div
+              v-if="copiedResults"
+              class="absolute right-0 top-full mt-1 px-2 py-1 text-xs bg-notification-bg border border-dropdown-border rounded shadow-lg z-50 flex items-center gap-1"
+            >
+              <span class="codicon codicon-check text-green-500"></span>
+              <span>Copied!</span>
+            </div>
           </div>
-          <!-- Export Button (CLI) -->
-          <vscode-button title="Export Results" appearance="icon" @click="exportTabResults">
-            <span
-              v-if="!isExportLoading"
-              class="codicon codicon-desktop-download text-editor-fg"
-            ></span>
-            <span v-else class="spinner"></span>
-          </vscode-button>
           <vscode-button title="Reset Panel" appearance="icon" @click="resetPanel">
             <span class="codicon codicon-refresh text-editor-fg"></span>
           </vscode-button>
@@ -666,8 +666,7 @@ const expandedCells = ref(new Set<string>());
 const activeQueryPanelTab = ref<'query' | 'console'>('query');
 const columnWidths = ref<Map<string, Map<number, number>>>(new Map());
 const showTruncationWarning = ref(false);
-const showFormatDropdown = ref(false);
-const exportFormat = ref<ExportFormat>('csv');
+const showExportMenu = ref(false);
 const exportFormats: ExportFormat[] = ['csv', 'tsv', 'json'];
 const copiedResults = ref(false);
 const resizeState = ref<{
@@ -891,11 +890,12 @@ const copyQuery = (query: string) => {
   }, 2000);
 };
 
-const copyResults = async () => {
+const copyResultsAs = async (format: ExportFormat) => {
   if (!currentTab.value?.parsedOutput) return;
 
+  showExportMenu.value = false;
   const { columns, rows } = currentTab.value.parsedOutput;
-  const formatted = formatData(exportFormat.value, { columns, rows });
+  const formatted = formatData(format, { columns, rows });
   const success = await copyToClipboard(formatted);
 
   if (success) {
@@ -1702,8 +1702,8 @@ const vFocus = {
 
 const handleClickOutside = (event: MouseEvent) => {
   const target = event.target as HTMLElement;
-  if (showFormatDropdown.value && !target.closest('.relative')) {
-    showFormatDropdown.value = false;
+  if (showExportMenu.value && !target.closest('.relative')) {
+    showExportMenu.value = false;
   }
 };
 
@@ -2064,7 +2064,7 @@ vscode-badge::part(control) {
   margin-bottom: 2px;
 }
 
-/* Copy dropdown styles */
+/* Export dropdown styles */
 .bg-dropdown-bg {
   background-color: var(--vscode-dropdown-background);
 }
@@ -2074,8 +2074,17 @@ vscode-badge::part(control) {
 .bg-list-hoverBackground:hover {
   background-color: var(--vscode-list-hoverBackground);
 }
-.bg-list-activeSelectionBackground {
-  background-color: var(--vscode-list-activeSelectionBackground);
+.bg-notification-bg {
+  background-color: var(--vscode-notifications-background);
+}
+.spinner-small {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--vscode-progressBar-background, rgba(255, 255, 255, 0.2));
+  border-top: 2px solid var(--vscode-progressBar-foreground, #0078d4);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
 }
 </style>
 
