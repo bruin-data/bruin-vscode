@@ -237,7 +237,7 @@ export class BruinPanel {
     this._panel.webview.html = this._getWebviewContent(this._panel.webview, extensionUri, null);
     this._lastRenderedDocumentUri = window.activeTextEditor?.document.uri;
     this._setWebviewMessageListener(this._panel.webview);
-    
+
     this._checkCliStatus();
   }
   private async _checkCliStatus(): Promise<void> {

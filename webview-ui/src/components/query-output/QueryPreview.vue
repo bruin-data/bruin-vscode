@@ -83,9 +83,22 @@
           <!-- Search Component -->
           <div class="flex items-center space-x-2">
             <span class="text-2xs text-editor-fg opacity-65">Running in:</span>
-            <vscode-badge :class="badgeClass" class="truncate">
-              {{ displayEnvironment }}
-            </vscode-badge>
+            <div class="flex items-center gap-1">
+              <vscode-badge :class="badgeClass" class="truncate">
+                {{ displayEnvironment }}
+              </vscode-badge>
+              <button
+                :title="isEnvironmentLocked ? 'Unlock environment (currently locked to ' + lockedEnvironment + ')' : 'Lock environment to prevent changes'"
+                @click="toggleEnvironmentLock"
+                class="flex items-center justify-center p-0.5 hover:bg-editorWidget-bg rounded"
+              >
+                <span
+                  class="codicon"
+                  style="font-size: 12px;"
+                  :class="isEnvironmentLocked ? 'codicon-lock text-yellow-500' : 'codicon-unlock opacity-40'"
+                ></span>
+              </button>
+            </div>
             <vscode-badge
               v-if="currentTab?.parsedOutput?.connectionName"
               :class="badgeClass"
@@ -598,6 +611,8 @@ const props = defineProps<{
 
 const connectionsStore = useConnectionsStore();
 const currentEnvironment = ref<string>(props.environment);
+const isEnvironmentLocked = ref(false);
+const lockedEnvironment = ref<string>("");
 const modifierKey = ref("⌘");
 const currentConnectionName = ref("");
 const limit = ref(1000);
@@ -996,6 +1011,8 @@ const saveState = () => {
         Object.fromEntries(widths)
       ])
     ),
+    isEnvironmentLocked: isEnvironmentLocked.value,
+    lockedEnvironment: lockedEnvironment.value,
   };
 
   try {
@@ -1068,7 +1085,15 @@ window.addEventListener("message", (event) => {
       activeTab.value = state.activeTab || "tab-1";
       expandedCells.value = new Set(state.expandedCells || []);
       showSearchInput.value = state.showSearchInput || false;
-      
+
+      // Restore environment lock state
+      if (state.isEnvironmentLocked !== undefined) {
+        isEnvironmentLocked.value = state.isEnvironmentLocked;
+      }
+      if (state.lockedEnvironment) {
+        lockedEnvironment.value = state.lockedEnvironment;
+      }
+
       // Apply sorting if restored
       nextTick(() => {
         applySorting();
@@ -1089,7 +1114,10 @@ window.addEventListener("message", (event) => {
     }
   } else if (message.command === "bruin.executePreviewQuery") {
     const tabId = message.payload.tabId || activeTab.value;
-    const selectedEnvironment = currentEnvironment.value;
+    // Use locked environment if lock is enabled
+    const selectedEnvironment = isEnvironmentLocked.value && lockedEnvironment.value
+      ? lockedEnvironment.value
+      : currentEnvironment.value;
     const extractedQuery = message.payload.extractedQuery || "";
 
     vscode.postMessage({
@@ -1473,8 +1501,11 @@ const runQuery = () => {
     }
 
     triggerRef(tabs);
-    const selectedEnvironment = currentEnvironment.value;
-    
+    // Use locked environment if lock is enabled, otherwise use current environment
+    const selectedEnvironment = isEnvironmentLocked.value && lockedEnvironment.value
+      ? lockedEnvironment.value
+      : currentEnvironment.value;
+
     if (currentTab.value) {
       const tabIndex = tabs.value.findIndex(t => t.id === activeTab.value);
       if (tabIndex !== -1) {
@@ -1486,7 +1517,7 @@ const runQuery = () => {
         tabs.value.splice(tabIndex, 1, updatedTab);
       }
     }
-    
+
     vscode.postMessage({
       command: "bruin.getQueryOutput",
       payload: {
@@ -1508,6 +1539,22 @@ const exportTabResults = () => {
     command: "bruin.exportQueryOutput",
     payload: { tabId: activeTab.value, connectionName: currentConnectionName.value },
   });
+  saveState();
+};
+
+const toggleEnvironmentLock = () => {
+  if (isEnvironmentLocked.value) {
+    // Unlock
+    isEnvironmentLocked.value = false;
+    lockedEnvironment.value = "";
+  } else {
+    // Lock to current environment
+    const envToLock = currentEnvironment.value || displayEnvironment.value;
+    if (envToLock) {
+      isEnvironmentLocked.value = true;
+      lockedEnvironment.value = envToLock;
+    }
+  }
   saveState();
 };
 
@@ -1625,6 +1672,10 @@ watch(
 );
 
 const displayEnvironment = computed(() => {
+  // If environment is locked, always show the locked environment
+  if (isEnvironmentLocked.value && lockedEnvironment.value) {
+    return lockedEnvironment.value;
+  }
   try {
     const storedEnv = connectionsStore?.getDefaultEnvironment?.();
     return currentTab.value?.executedEnvironment || storedEnv || currentEnvironment.value || "";
