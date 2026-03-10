@@ -29,7 +29,6 @@ import { QueryCodeLensProvider } from "../providers/queryCodeLensProvider";
 import { ScheduleCodeLensProvider } from "../providers/scheduleCodeLensProvider";
 import { QuerySelectionCodeLensProvider } from "../providers/querySelectionCodeLensProvider";
 import { ActivityBarConnectionsProvider } from "../providers/ActivityBarConnectionsProvider";
-import { FavoritesProvider } from "../providers/FavoritesProvider";
 import { QueryConsoleViewProvider } from "../providers/QueryConsoleViewProvider";
 import { BruinLanguageServer } from "../language-server/bruinLanguageServer";
 import { BruinInstallCLI } from "../bruin/bruinInstallCli";
@@ -364,9 +363,6 @@ export async function activate(context: ExtensionContext) {
     window.registerWebviewViewProvider(RunHistoryPanel.viewId, runHistoryWebviewProvider)
   );
 
-  const favoritesProvider = new FavoritesProvider();
-  vscode.window.registerTreeDataProvider("bruinFavorites", favoritesProvider);
-
   // Create Query Console webview provider
   const queryConsoleProvider = new QueryConsoleViewProvider(context.extensionUri, context, activityBarConnectionsProvider);
   context.subscriptions.push(
@@ -454,101 +450,6 @@ export async function activate(context: ExtensionContext) {
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         vscode.window.showErrorMessage(`Error inserting table: ${errorMessage}`);
-      }
-    }),
-    commands.registerCommand("bruin.addSchemaToFavorites", async (item: any) => {
-      try {
-        trackEvent("Command Executed", { command: "addSchemaToFavorites", source: "user" });
-        if (item && item.itemData && "tables" in item.itemData) {
-          await activityBarConnectionsProvider.toggleSchemaFavorite(item.itemData);
-          favoritesProvider.refresh();
-        }
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        vscode.window.showErrorMessage(`Error adding schema to favorites: ${errorMessage}`);
-      }
-    }),
-    commands.registerCommand("bruin.removeSchemaFromFavorites", async (item: any) => {
-      try {
-        trackEvent("Command Executed", { command: "removeSchemaFromFavorites", source: "user" });
-        if (item && item.itemData && "tables" in item.itemData) {
-          await activityBarConnectionsProvider.toggleSchemaFavorite(item.itemData);
-          favoritesProvider.refresh();
-        }
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        vscode.window.showErrorMessage(`Error removing schema from favorites: ${errorMessage}`);
-      }
-    }),
-    commands.registerCommand("bruin.refreshFavorites", () => {
-      try {
-        trackEvent("Command Executed", { command: "refreshFavorites", source: "user" });
-        favoritesProvider.refresh();
-        vscode.window.showInformationMessage("Favorites refreshed successfully!");
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        vscode.window.showErrorMessage(`Error refreshing favorites: ${errorMessage}`);
-      }
-    }),
-    commands.registerCommand("bruin.removeFavorite", async (item: any) => {
-      try {
-        trackEvent("Command Executed", { command: "removeFavorite", source: "user" });
-        if (item && item.itemData && item.contextValue === "favorite_schema") {
-          await favoritesProvider.removeFavorite(item.itemData);
-          activityBarConnectionsProvider.refresh();
-          vscode.window.showInformationMessage("Favorite removed successfully!");
-        }
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        vscode.window.showErrorMessage(`Error removing favorite: ${errorMessage}`);
-      }
-    }),
-    commands.registerCommand("bruin.removeTableFavorite", async (item: any) => {
-      try {
-        trackEvent("Command Executed", { command: "removeTableFavorite", source: "user" });
-        if (
-          item &&
-          item.itemData &&
-          (item.contextValue === "favorite_table" || item.contextValue === "favorite_table_starred")
-        ) {
-          const tableData = item.itemData as any;
-          const tableFavorite = {
-            tableName: tableData.name,
-            schemaName: tableData.schema,
-            connectionName: tableData.connectionName,
-            environment: tableData.environment,
-          };
-          await favoritesProvider.removeTableFavorite(tableFavorite);
-          activityBarConnectionsProvider.refresh();
-          vscode.window.showInformationMessage("Table favorite removed successfully!");
-        }
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        vscode.window.showErrorMessage(`Error removing table favorite: ${errorMessage}`);
-      }
-    }),
-    commands.registerCommand("bruin.addTableToFavorites", async (item: any) => {
-      try {
-        trackEvent("Command Executed", { command: "addTableToFavorites", source: "user" });
-        if (item && item.itemData && "name" in item.itemData && "schema" in item.itemData) {
-          await activityBarConnectionsProvider.toggleTableFavorite(item.itemData, item);
-          favoritesProvider.refresh();
-        }
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        vscode.window.showErrorMessage(`Error adding table to favorites: ${errorMessage}`);
-      }
-    }),
-    commands.registerCommand("bruin.removeTableFromFavorites", async (item: any) => {
-      try {
-        trackEvent("Command Executed", { command: "removeTableFromFavorites", source: "user" });
-        if (item && item.itemData && "name" in item.itemData && "schema" in item.itemData) {
-          await activityBarConnectionsProvider.toggleTableFavorite(item.itemData, item);
-          favoritesProvider.refresh();
-        }
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        vscode.window.showErrorMessage(`Error removing table from favorites: ${errorMessage}`);
       }
     }),
     commands.registerCommand("bruin.runQuery", async (uri: vscode.Uri, range: vscode.Range, isAsset?: boolean, queryCount?: number, queryText?: string) => {
@@ -699,16 +600,6 @@ export async function activate(context: ExtensionContext) {
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         vscode.window.showErrorMessage(`Error converting file to asset: ${errorMessage}`);
-      }
-    }),
-    commands.registerCommand("bruin.toggleTableFavorite", async (item: any) => {
-      if (item && item.itemData) {
-        await activityBarConnectionsProvider.toggleTableFavorite(item.itemData, item);
-      }
-    }),
-    commands.registerCommand("bruin.toggleTableUnfavorite", async (item: any) => {
-      if (item && item.itemData) {
-        await activityBarConnectionsProvider.toggleTableFavorite(item.itemData, item);
       }
     }),
     commands.registerCommand("bruin.testCompletion", async () => {

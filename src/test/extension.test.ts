@@ -6274,8 +6274,8 @@ suite(" Query export Tests", () => {
         const publicSchemaItem = schemaItems.find((item: any) => item.label === 'public');
         assert.ok(publicSchemaItem, "Should find public schema");
         
-        // Verify schema context value (should be unfavorite by default)
-        assert.ok(['schema_favorite', 'schema_unfavorite'].includes(publicSchemaItem.contextValue), 
+        // Verify schema context value
+        assert.strictEqual(publicSchemaItem.contextValue, 'schema',
           "Schema should have correct context value");
 
         // Get table items
@@ -6287,7 +6287,7 @@ suite(" Query export Tests", () => {
         assert.ok(usersTableItem, "Should find users table");
         
         // Verify table properties
-        assert.strictEqual(usersTableItem.contextValue, 'table_unfavorite', "Table should have correct context value");
+        assert.strictEqual(usersTableItem.contextValue, 'table', "Table should have correct context value");
         assert.strictEqual(usersTableItem.collapsibleState, 1, "Table should be collapsible"); // TreeItemCollapsibleState.Collapsed = 1
         
         // Verify command is set correctly
@@ -6373,7 +6373,7 @@ suite(" Query export Tests", () => {
 
         // Check table item properties
         const tableItem = tableItems[0];
-        assert.strictEqual(tableItem.contextValue, 'table_unfavorite', "Table should have correct context value");
+        assert.strictEqual(tableItem.contextValue, 'table', "Table should have correct context value");
         assert.ok(tableItem.iconPath, "Table should have icon");
         assert.strictEqual(tableItem.collapsibleState, 1, "Table should be collapsible"); // TreeItemCollapsibleState.Collapsed = 1
 
@@ -6391,8 +6391,8 @@ suite(" Query export Tests", () => {
         assert.ok(orderHistoryItem, "Should find order_history table");
         
         // Verify both tables have correct context and command
-        assert.strictEqual(customerDataItem.contextValue, 'table_unfavorite', "customer_data should have table context");
-        assert.strictEqual(orderHistoryItem.contextValue, 'table_unfavorite', "order_history should have table context");
+        assert.strictEqual(customerDataItem.contextValue, 'table', "customer_data should have table context");
+        assert.strictEqual(orderHistoryItem.contextValue, 'table', "order_history should have table context");
         
         assert.ok(customerDataItem.command, "customer_data should have command");
         assert.ok(orderHistoryItem.command, "order_history should have command");
@@ -6482,165 +6482,6 @@ suite(" Query export Tests", () => {
         // Verify QueryPreview panel focus
         assert.ok(mockQueryPreviewPanel.focusSafely.calledOnce, "Should focus QueryPreview panel");
       });
-
-      test("schema favorite toggle should work correctly", async () => {
-        const { ActivityBarConnectionsProvider } = require("../providers/ActivityBarConnectionsProvider");
-        
-        const mockDbSummary = [
-          {
-            name: 'users_schema',
-            tables: []
-          }
-        ];
-
-        const BruinConnectionsStub = sinon.stub().returns({
-          getConnectionsForActivityBar: sinon.stub().resolves([
-            { name: 'test-db', type: 'postgres', environment: 'dev' }
-          ])
-        });
-
-        const BruinDBTCommandStub = sinon.stub().returns({
-          getFetchDatabases: sinon.stub().resolves(mockDbSummary),
-          getFetchTables: sinon.stub().resolves({ tables: [] })
-        });
-
-        const originalBruinConnections = require("../bruin/bruinConnections").BruinConnections;
-        const originalBruinDBTCommand = require("../bruin/bruinDBTCommand").BruinDBTCommand;
-        
-        require("../bruin/bruinConnections").BruinConnections = BruinConnectionsStub;
-        require("../bruin/bruinDBTCommand").BruinDBTCommand = BruinDBTCommandStub;
-
-        const provider = new ActivityBarConnectionsProvider("/test/path");
-        
-        await new Promise(resolve => setTimeout(resolve, 100));
-
-        // Navigate to schema
-        const connectionItems = await provider.getChildren();
-        const connectionItem = connectionItems[0];
-        const schemaItems = await provider.getChildren(connectionItem);
-        const schemaItem = schemaItems[0];
-
-        // Initially should be unfavorite
-        assert.strictEqual(schemaItem.contextValue, 'schema_unfavorite', "Schema should be unfavorite initially");
-        assert.strictEqual(provider.isSchemaFavorite(schemaItem.itemData), false, "Schema should not be favorite");
-
-        // Toggle to favorite
-        await provider.toggleSchemaFavorite(schemaItem.itemData);
-        
-        // Check favorite status
-        assert.strictEqual(provider.isSchemaFavorite(schemaItem.itemData), true, "Schema should be favorite after toggle");
-
-        // Toggle back to unfavorite
-        await provider.toggleSchemaFavorite(schemaItem.itemData);
-        assert.strictEqual(provider.isSchemaFavorite(schemaItem.itemData), false, "Schema should be unfavorite after second toggle");
-
-        // Restore
-        require("../bruin/bruinConnections").BruinConnections = originalBruinConnections;
-        require("../bruin/bruinDBTCommand").BruinDBTCommand = originalBruinDBTCommand;
-      });
-
-      test("table favorite toggle should work correctly", async function() {
-        this.timeout(30000); // Increase timeout for CI stability
-        const { ActivityBarConnectionsProvider } = require("../providers/ActivityBarConnectionsProvider");
-        
-        const mockDbSummary = [
-          {
-            name: 'orders_schema',
-            tables: []
-          }
-        ];
-
-        const mockTablesResponse = {
-          tables: ['orders_table', 'customers_table']
-        };
-
-        const BruinConnectionsStub = sinon.stub().returns({
-          getConnectionsForActivityBar: sinon.stub().resolves([
-            { name: 'prod-db', type: 'snowflake', environment: 'production' }
-          ])
-        });
-
-        const BruinDBTCommandStub = sinon.stub().returns({
-          getFetchDatabases: sinon.stub().resolves(mockDbSummary),
-          getFetchTables: sinon.stub().resolves(mockTablesResponse)
-        });
-
-        const originalBruinConnections = require("../bruin/bruinConnections").BruinConnections;
-        const originalBruinDBTCommand = require("../bruin/bruinDBTCommand").BruinDBTCommand;
-        
-        require("../bruin/bruinConnections").BruinConnections = BruinConnectionsStub;
-        require("../bruin/bruinDBTCommand").BruinDBTCommand = BruinDBTCommandStub;
-
-        let provider;
-        try {
-          provider = new ActivityBarConnectionsProvider("/test/path");
-          
-          // Clear any existing table favorites for clean test state
-          provider.tableFavorites.clear();
-          
-          // Wait for provider to initialize
-          await new Promise(resolve => setTimeout(resolve, 200));
-
-          // Navigate to table
-          const connectionItems = await provider.getChildren();
-          assert.ok(connectionItems && connectionItems.length > 0, "Should have connection items");
-          const connectionItem = connectionItems[0];
-          
-          const schemaItems = await provider.getChildren(connectionItem);
-          assert.ok(schemaItems && schemaItems.length > 0, "Should have schema items");
-          const schemaItem = schemaItems[0];
-          
-          const tableItems = await provider.getChildren(schemaItem);
-          assert.ok(tableItems && tableItems.length > 0, "Should have table items");
-          const tableItem = tableItems[0];
-
-          // Initially should be unfavorite
-          assert.strictEqual(tableItem.contextValue, 'table_unfavorite', "Table should be unfavorite initially");
-          assert.strictEqual(provider.isTableFavorite(tableItem.itemData), false, "Table should not be favorite");
-
-          // Toggle to favorite
-          console.log("Toggling table to favorite...");
-          await provider.toggleTableFavorite(tableItem.itemData, tableItem);
-          
-          // Wait for async operations to complete
-          await new Promise(resolve => setTimeout(resolve, 500));
-          console.log("Toggle to favorite completed");
-          
-          // Check favorite status
-          assert.strictEqual(provider.isTableFavorite(tableItem.itemData), true, "Table should be favorite after toggle");
-
-          // Get updated tree item
-          const updatedTreeItem = provider.getTreeItem(tableItem);
-          assert.strictEqual(updatedTreeItem.contextValue, 'table_favorite', "Table should have favorite context value");
-
-          // Toggle back to unfavorite
-          console.log("Toggling table back to unfavorite...");
-          await provider.toggleTableFavorite(tableItem.itemData, tableItem);
-          
-          // Wait for async operations to complete
-          await new Promise(resolve => setTimeout(resolve, 500));
-          console.log("Toggle to unfavorite completed");
-          
-          assert.strictEqual(provider.isTableFavorite(tableItem.itemData), false, "Table should be unfavorite after second toggle");
-
-          // Verify context value is updated
-          const finalTreeItem = provider.getTreeItem(tableItem);
-          assert.strictEqual(finalTreeItem.contextValue, 'table_unfavorite', "Table should have unfavorite context value");
-
-        } finally {
-          // Properly dispose the provider to prevent memory leaks
-          if (provider && provider._onDidChangeTreeData) {
-            provider._onDidChangeTreeData.dispose();
-          }
-          
-          // Restore original classes
-          require("../bruin/bruinConnections").BruinConnections = originalBruinConnections;
-          require("../bruin/bruinDBTCommand").BruinDBTCommand = originalBruinDBTCommand;
-        }
-      });
-
-   
-     
 
     });
 
@@ -7470,7 +7311,6 @@ parameters:
     test("should not have hardcoded 'bruin' strings in source files", async () => {
       const sourceFiles = [
         "../providers/ActivityBarConnectionsProvider.ts",
-        "../providers/FavoritesProvider.ts", 
         "../panels/TableDiffPanel.ts"
       ];
 
@@ -7617,7 +7457,6 @@ parameters:
     test("Source code should use getBruinExecutablePath imports", async () => {
       const filesToCheck = [
         "../providers/ActivityBarConnectionsProvider.ts",
-        "../providers/FavoritesProvider.ts",
         "../panels/TableDiffPanel.ts"
       ];
 
