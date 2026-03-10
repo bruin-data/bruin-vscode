@@ -67,9 +67,10 @@ Click the arrow icon on any table in the Databases panel to insert it."
         @click="executeQuery"
         :disabled="!canExecute"
         class="text-xs h-7"
+        title="Run query in Query Preview panel"
       >
-        <div class="flex items-center justify-center gap-1">
-          <span class="codicon codicon-play"></span>
+        <div class="flex items-center justify-center">
+          <span class="codicon codicon-play mr-1" aria-hidden="true"></span>
           <span>Run</span>
         </div>
       </vscode-button>
