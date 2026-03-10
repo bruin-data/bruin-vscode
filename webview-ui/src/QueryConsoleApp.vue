@@ -66,13 +66,15 @@ Click the arrow icon on any table in the Databases panel to insert it."
       <vscode-button
         @click="executeQuery"
         :disabled="!canExecute"
-        class="run-button"
+        class="text-xs h-7"
       >
-        <span class="codicon codicon-play"></span>
-        Run in Preview
+        <div class="flex items-center justify-center gap-1">
+          <span class="codicon codicon-play"></span>
+          <span>Run</span>
+        </div>
       </vscode-button>
       <span class="keyboard-hint">
-        <kbd>{{ isMac ? 'Cmd' : 'Ctrl' }}</kbd> + <kbd>Enter</kbd> to run
+        <kbd>{{ isMac ? 'Cmd' : 'Ctrl' }}</kbd> + <kbd>Enter</kbd>
       </span>
     </div>
 
@@ -366,12 +368,6 @@ watch([query, selectedConnection, limit], () => {
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.run-button {
-  display: flex;
-  align-items: center;
-  gap: 4px;
 }
 
 .keyboard-hint {
