@@ -65,13 +65,27 @@ Click the arrow icon on any table in the Databases panel to insert it."
     <div class="action-bar">
       <vscode-button
         @click="executeQuery"
-        :disabled="!canExecute"
+        :disabled="!canExecute || runStatus === 'loading'"
         class="text-xs h-7"
         title="Run query in Query Preview panel"
       >
-        <div class="flex items-center justify-center">
-          <span class="codicon codicon-play mr-1" aria-hidden="true"></span>
-          <span>Run</span>
+        <div class="inline-flex items-center justify-center">
+          <template v-if="runStatus === 'success'">
+            <span class="codicon codicon-check mr-1 text-green-500 leading-none" aria-hidden="true"></span>
+          </template>
+          <template v-else-if="runStatus === 'error'">
+            <span class="codicon codicon-error mr-1 text-red-500 leading-none" aria-hidden="true"></span>
+          </template>
+          <template v-else-if="runStatus === 'loading'">
+            <svg class="animate-spin mr-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          </template>
+          <template v-else>
+            <span class="codicon codicon-play mr-1 leading-none" aria-hidden="true"></span>
+          </template>
+          <span class="leading-none">Run</span>
         </div>
       </vscode-button>
       <span class="keyboard-hint">
@@ -98,6 +112,7 @@ const limit = ref("1000");
 const connections = ref<Array<{ name: string; type: string; environment?: string }>>([]);
 const statusMessage = ref<{ type: 'success' | 'error'; text: string } | null>(null);
 const queryEditor = ref<HTMLTextAreaElement | null>(null);
+const runStatus = ref<'idle' | 'loading' | 'success' | 'error'>('idle');
 
 // Computed
 const isMac = computed(() => navigator.platform.toUpperCase().indexOf("MAC") >= 0);
@@ -108,9 +123,10 @@ const canExecute = computed(() => {
 
 // Methods
 const executeQuery = () => {
-  if (!canExecute.value) return;
+  if (!canExecute.value || runStatus.value === 'loading') return;
 
   statusMessage.value = null;
+  runStatus.value = 'loading';
 
   vscode.postMessage({
     command: "executeQuery",
@@ -207,12 +223,14 @@ const handleMessage = (event: MessageEvent) => {
 
     case "query-sent":
       // Query was sent to Query Preview panel
+      runStatus.value = 'success';
       statusMessage.value = {
         type: 'success',
         text: 'Query sent to Query Preview panel'
       };
-      // Clear the message after 3 seconds
+      // Reset after 3 seconds
       setTimeout(() => {
+        runStatus.value = 'idle';
         if (statusMessage.value?.type === 'success') {
           statusMessage.value = null;
         }
@@ -221,10 +239,15 @@ const handleMessage = (event: MessageEvent) => {
 
     case "query-result":
       if (message.payload.status === "error") {
+        runStatus.value = 'error';
         statusMessage.value = {
           type: 'error',
           text: message.payload.message || 'Query execution failed'
         };
+        // Reset after 3 seconds
+        setTimeout(() => {
+          runStatus.value = 'idle';
+        }, 3000);
       }
       break;
 
