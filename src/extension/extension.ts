@@ -30,6 +30,7 @@ import { ScheduleCodeLensProvider } from "../providers/scheduleCodeLensProvider"
 import { QuerySelectionCodeLensProvider } from "../providers/querySelectionCodeLensProvider";
 import { ActivityBarConnectionsProvider } from "../providers/ActivityBarConnectionsProvider";
 import { FavoritesProvider } from "../providers/FavoritesProvider";
+import { QueryConsoleViewProvider } from "../providers/QueryConsoleViewProvider";
 import { BruinLanguageServer } from "../language-server/bruinLanguageServer";
 import { BruinInstallCLI } from "../bruin/bruinInstallCli";
 import { TableDetailsPanel } from "../panels/TableDetailsPanel";
@@ -366,6 +367,11 @@ export async function activate(context: ExtensionContext) {
   const favoritesProvider = new FavoritesProvider();
   vscode.window.registerTreeDataProvider("bruinFavorites", favoritesProvider);
 
+  // Create Query Console webview provider
+  const queryConsoleProvider = new QueryConsoleViewProvider(context.extensionUri, context, activityBarConnectionsProvider);
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(QueryConsoleViewProvider.viewId, queryConsoleProvider)
+  );
 
   try {
     const bruinLanguageServer = BruinLanguageServer.getInstance();
@@ -434,7 +440,22 @@ export async function activate(context: ExtensionContext) {
         vscode.window.showErrorMessage(`Error showing connection details: ${errorMessage}`);
       }
     }),
-   
+    commands.registerCommand("bruin.insertTableToConsole", (item: any) => {
+      try {
+        trackEvent("Command Executed", { command: "insertTableToConsole", source: "user" });
+        if (item && item.itemData && "name" in item.itemData && "schema" in item.itemData) {
+          const table = item.itemData;
+          QueryConsoleViewProvider.insertTableReference(
+            table.name,
+            table.schema,
+            table.connectionName
+          );
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error inserting table: ${errorMessage}`);
+      }
+    }),
     commands.registerCommand("bruin.addSchemaToFavorites", async (item: any) => {
       try {
         trackEvent("Command Executed", { command: "addSchemaToFavorites", source: "user" });

@@ -149,6 +149,69 @@ export class BruinQueryOutput extends BruinCommand {
   }
 
   /**
+   * Run a direct query against a connection and return the result.
+   * This method is used by the Query Console and doesn't depend on QueryPreviewPanel.
+   */
+  public async runDirectQuery(
+    connectionName: string,
+    query: string,
+    environment: string,
+    limit: string,
+    timeout: string,
+    tabId: string
+  ): Promise<any> {
+    const constructedFlags = ["-o", "json"];
+    constructedFlags.push("--connection", connectionName);
+    constructedFlags.push("--query", String(query));
+
+    if (environment) {
+      constructedFlags.push("--environment", environment);
+    }
+    if (limit) {
+      constructedFlags.push("--limit", limit);
+    }
+    constructedFlags.push("--timeout", timeout);
+
+    console.log("Direct query CLI command: bruin query", constructedFlags.join(" "));
+
+    try {
+      const { promise, process } = this.runCancellable(constructedFlags, { ignoresErrors: false });
+
+      // Store the process for potential cancellation
+      BruinQueryOutput.runningProcesses.set(tabId, process);
+
+      const result = await promise;
+
+      // Remove process from tracking once completed
+      BruinQueryOutput.runningProcesses.delete(tabId);
+
+      if (result.includes("flag provided but not defined")) {
+        throw new Error("The command flag is not recognized. Please check your command syntax.");
+      }
+
+      // Parse and return the result
+      try {
+        return JSON.parse(result);
+      } catch {
+        return result;
+      }
+    } catch (error: any) {
+      // Remove process from tracking on error
+      BruinQueryOutput.runningProcesses.delete(tabId);
+
+      const errorMessage = error.message || error.toString();
+
+      if (errorMessage.includes("Command was cancelled") ||
+          errorMessage.includes("context canceled")) {
+        throw new Error("Query cancelled by user.");
+      } else if (errorMessage.includes("timeout") || errorMessage.includes("timed out")) {
+        throw new Error(`Query timed out after ${timeout} seconds.`);
+      }
+      throw error;
+    }
+  }
+
+  /**
    * Helper function to post messages to the panel with a specific status and message.
    *
    * @param {string} status - Status of the message ('success' or 'error').

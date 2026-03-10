@@ -114,6 +114,11 @@
         {
           "id": "bruinConnections",
           "name": "Databases"
+        },
+        {
+          "type": "webview",
+          "id": "bruin.queryConsoleView",
+          "name": "Query Console"
         }
       ],
       "bruin-assetLineageView": [
@@ -401,6 +406,11 @@
           "command": "bruin.removeTableFromFavorites",
           "when": "view == bruinConnections && viewItem == 'table_favorite'",
           "group": "inline@1"
+        },
+        {
+          "command": "bruin.insertTableToConsole",
+          "when": "view == bruinConnections && (viewItem == 'table' || viewItem == 'table_favorite' || viewItem == 'table_unfavorite')",
+          "group": "inline@3"
         }
       ]
     },
@@ -514,6 +524,13 @@
         "category": "Bruin",
         "icon": "$(play)",
         "description": "Preview the selected SQL query in the Query Preview panel."
+      },
+      {
+        "command": "bruin.insertTableToConsole",
+        "title": "Insert into Query Console",
+        "category": "Bruin",
+        "icon": "$(arrow-right)",
+        "description": "Insert table name into the Query Console."
       },
       {
         "command": "bruin.showWalkthrough",
