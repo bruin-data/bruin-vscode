@@ -229,9 +229,10 @@ const handleMessage = (event: MessageEvent) => {
       // Insert table reference from the Databases tree
       if (message.payload.tableName) {
         insertTextAtCursor(message.payload.tableName);
-        // If connection is specified and not already selected, update it
-        if (message.payload.connectionName && !selectedConnection.value) {
+        // Always set the connection to match the inserted table
+        if (message.payload.connectionName) {
           selectedConnection.value = message.payload.connectionName;
+          saveState();
         }
       }
       break;
@@ -345,6 +346,7 @@ watch([query, selectedConnection, limit], () => {
 .query-editor {
   flex: 1;
   width: 100%;
+  min-height: 100px;
   padding: 8px;
   border: none;
   background: var(--vscode-input-background);
@@ -352,7 +354,7 @@ watch([query, selectedConnection, limit], () => {
   font-family: var(--vscode-editor-font-family), monospace;
   font-size: 13px;
   line-height: 1.5;
-  resize: none;
+  resize: vertical;
   outline: none;
 }
 
