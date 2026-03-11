@@ -67,6 +67,7 @@ export default defineConfig({
                 queryPreview: resolve(__dirname, 'query-preview/index.html'),
                 tableDiff: resolve(__dirname, 'table-diff/index.html'),
                 runHistory: resolve(__dirname, 'run-history/index.html'),
+                queryConsole: resolve(__dirname, 'query-console/index.html'),
             },
             output: {
                 entryFileNames: `assets/[name].js`,

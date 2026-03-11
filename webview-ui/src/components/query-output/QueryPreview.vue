@@ -1196,6 +1196,51 @@ window.addEventListener("message", (event) => {
         endDate: currentEndDate.value,
       },
     });
+  } else if (message.command === "console-query-execute") {
+    // Handle query from Query Console - create a new tab and set up for results
+    const payload = message.payload;
+    const msgData = payload.message || payload;
+    const tabId = msgData.tabId || payload.tabId;
+    const queryText = msgData.query || "";
+    const connectionName = msgData.connectionName || "";
+    const environment = msgData.environment || currentEnvironment.value;
+    const queryLimit = msgData.limit || "1000";
+
+    // Use the current tab counter for the label
+    const newTabLabel = `Tab ${tabCounter.value}`;
+
+    // Create a new tab for the console query
+    const newTab = {
+      id: tabId,
+      label: newTabLabel,
+      parsedOutput: undefined,
+      error: null,
+      limit: parseInt(queryLimit) || 1000,
+      isLoading: true,
+      searchInput: "",
+      filteredRows: [],
+      totalRowCount: 0,
+      filteredRowCount: 0,
+      isEditing: false,
+      environment: environment,
+      executedEnvironment: environment,
+      connectionName: connectionName,
+      showQuery: true, // Show the query for console queries
+      consoleMessages: [],
+      sortState: [],
+      consoleQuery: queryText, // Store the query text
+    };
+
+    // Add the new tab and switch to it
+    tabs.value.push(newTab);
+    activeTab.value = tabId;
+    tabCounter.value++;
+
+    // Update current connection name
+    currentConnectionName.value = connectionName;
+
+    saveState();
+    triggerRef(tabs);
   }
 
   if (message.command === "query-output-message") {
@@ -1212,7 +1257,36 @@ window.addEventListener("message", (event) => {
       return;
     }
 
-    const tabToUpdate = tabs.value.find((tab) => tab.id === tabId);
+    let tabToUpdate = tabs.value.find((tab) => tab.id === tabId);
+
+    // Auto-create tab for console queries if it doesn't exist
+    if (!tabToUpdate && tabId.startsWith("console-")) {
+      const newTabLabel = `Tab ${tabCounter.value}`;
+      const newTab = {
+        id: tabId,
+        label: newTabLabel,
+        parsedOutput: undefined,
+        error: null,
+        limit: 1000,
+        isLoading: true,
+        searchInput: "",
+        filteredRows: [],
+        totalRowCount: 0,
+        filteredRowCount: 0,
+        isEditing: false,
+        environment: currentEnvironment.value,
+        executedEnvironment: currentEnvironment.value,
+        connectionName: "",
+        showQuery: true,
+        consoleMessages: [],
+        sortState: [],
+      };
+      tabs.value.push(newTab);
+      activeTab.value = tabId;
+      tabCounter.value++;
+      tabToUpdate = newTab;
+      triggerRef(tabs);
+    }
 
     if (tabToUpdate) {
       if (message.payload.status === "loading") {
