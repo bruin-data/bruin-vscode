@@ -1,4 +1,6 @@
 # Changelog
+## [0.79.1] - [2026-03-11]
+- Fixed SQL Editor syntax highlighting.                                     
 
 ## [0.79.0] - [2026-03-09]
 - Added copy results as CSV, TSV, or JSON to the Query Preview.
