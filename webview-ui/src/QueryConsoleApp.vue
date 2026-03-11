@@ -371,9 +371,11 @@ watch([selectedConnection, limit], () => {
   flex-direction: column;
   flex: 1;
   min-height: 120px;
+  max-height: 400px;
   border: 1px solid var(--vscode-input-border);
   border-radius: 4px;
   overflow: hidden;
+  resize: vertical;
 }
 
 .editor-header {
@@ -401,7 +403,7 @@ watch([selectedConnection, limit], () => {
   flex: 1;
   width: 100%;
   min-height: 100px;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .codemirror-container :deep(.cm-editor) {
@@ -410,6 +412,7 @@ watch([selectedConnection, limit], () => {
 
 .codemirror-container :deep(.cm-scroller) {
   min-height: 100px;
+  overflow: auto;
 }
 
 .action-bar {
