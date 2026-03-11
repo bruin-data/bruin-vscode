@@ -46,11 +46,6 @@ Click the arrow icon on any table in the Databases panel to insert it." @keydown
       </span>
     </div>
 
-    <!-- Status/Error Messages -->
-    <div v-if="statusMessage" class="status-message" :class="statusMessage.type">
-      <span :class="statusMessage.type === 'error' ? 'codicon codicon-error' : 'codicon codicon-check'"></span>
-      {{ statusMessage.text }}
-    </div>
   </div>
 </template>
 
@@ -63,7 +58,6 @@ const query = ref("");
 const selectedConnection = ref("");
 const limit = ref("1000");
 const connections = ref<Array<{ name: string; type: string; environment?: string }>>([]);
-const statusMessage = ref<{ type: 'success' | 'error'; text: string } | null>(null);
 const queryEditor = ref<HTMLTextAreaElement | null>(null);
 const runStatus = ref<'idle' | 'loading' | 'success' | 'error'>('idle');
 
@@ -78,7 +72,6 @@ const canExecute = computed(() => {
 const executeQuery = () => {
   if (!canExecute.value || runStatus.value === 'loading') return;
 
-  statusMessage.value = null;
   runStatus.value = 'loading';
 
   vscode.postMessage({
@@ -88,14 +81,10 @@ const executeQuery = () => {
     environment: getSelectedEnvironment(),
     limit: limit.value || "1000",
   });
-
-  saveState();
 };
 
 const clearQuery = () => {
   query.value = "";
-  statusMessage.value = null;
-  saveState();
 };
 
 const getSelectedEnvironment = (): string => {
@@ -132,8 +121,6 @@ const insertTextAtCursor = (text: string) => {
     queryEditor.value?.setSelectionRange(newPos, newPos);
     queryEditor.value?.focus();
   }, 0);
-
-  saveState();
 };
 
 const loadConnections = () => {
@@ -144,7 +131,6 @@ const saveState = () => {
   vscode.postMessage({
     command: "saveState",
     payload: {
-      query: query.value,
       selectedConnection: selectedConnection.value,
       limit: limit.value,
     },
@@ -152,7 +138,6 @@ const saveState = () => {
 };
 
 const restoreState = (state: any) => {
-  if (state.query) query.value = state.query;
   if (state.selectedConnection) selectedConnection.value = state.selectedConnection;
   if (state.limit) limit.value = state.limit;
 };
@@ -167,36 +152,21 @@ const handleMessage = (event: MessageEvent) => {
         connections.value = message.payload.connections || [];
       } else {
         console.error("Failed to load connections:", message.payload.message);
-        statusMessage.value = {
-          type: 'error',
-          text: 'Failed to load connections: ' + (message.payload.message || 'Unknown error')
-        };
       }
       break;
 
     case "query-sent":
       // Query was sent to Query Preview panel
       runStatus.value = 'success';
-      statusMessage.value = {
-        type: 'success',
-        text: 'Query sent to Query Preview panel'
-      };
       // Reset after 3 seconds
       setTimeout(() => {
         runStatus.value = 'idle';
-        if (statusMessage.value?.type === 'success') {
-          statusMessage.value = null;
-        }
       }, 3000);
       break;
 
     case "query-result":
       if (message.payload.status === "error") {
         runStatus.value = 'error';
-        statusMessage.value = {
-          type: 'error',
-          text: message.payload.message || 'Query execution failed'
-        };
         // Reset after 3 seconds
         setTimeout(() => {
           runStatus.value = 'idle';
@@ -237,7 +207,7 @@ onUnmounted(() => {
 
 // Watch for changes to save state (debounced)
 let saveTimeout: number | null = null;
-watch([query, selectedConnection, limit], () => {
+watch([selectedConnection, limit], () => {
   if (saveTimeout) clearTimeout(saveTimeout);
   saveTimeout = setTimeout(() => saveState(), 500) as unknown as number;
 }, { deep: true });
@@ -362,26 +332,6 @@ watch([query, selectedConnection, limit], () => {
   font-size: 10px;
 }
 
-.status-message {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px;
-  border-radius: 4px;
-  font-size: 12px;
-}
-
-.status-message.success {
-  background: var(--vscode-inputValidation-infoBackground);
-  color: var(--vscode-inputValidation-infoForeground);
-  border: 1px solid var(--vscode-inputValidation-infoBorder);
-}
-
-.status-message.error {
-  background: var(--vscode-inputValidation-errorBackground);
-  color: var(--vscode-errorForeground);
-  border: 1px solid var(--vscode-inputValidation-errorBorder);
-}
 vscode-button::part(control){
   @apply border-none pl-1;
 }
