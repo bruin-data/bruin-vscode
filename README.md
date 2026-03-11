@@ -70,7 +70,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 ## Release Notes
 
 ### Recent Update
-- **0.79.0**: Fixed SQL Editor syntax highlighting.
+- **0.79.1**: Fixed SQL Editor syntax highlighting.
 - **0.79.0**: Added copy results as CSV, TSV, or JSON to the Query Preview.
 - **0.78.2**: Fixed a bug where editing a connection would incorrectly overwrite existing values with default field values.
 - **0.78.1**: Added lock environment toggle in Query Preview.
