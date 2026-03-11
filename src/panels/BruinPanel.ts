@@ -396,6 +396,12 @@ export class BruinPanel {
     const codiconsUri = webview.asWebviewUri(
       vscode.Uri.joinPath(extensionUri, "webview-ui", "build", "assets", "codicon.css")
     );
+    const highlightStylesUri = getUri(webview, extensionUri, [
+      "webview-ui",
+      "build",
+      "assets",
+      "github-dark-dimmed.css",
+    ]);
     const scriptUriCustomElt = webview.asWebviewUri(
       vscode.Uri.joinPath(extensionUri, "webview-ui", "build", "assets", "custom-elements.js")
     );
@@ -426,6 +432,7 @@ export class BruinPanel {
           <link rel="stylesheet" type="text/css" href="${stylesUri}">
           <link rel="stylesheet" href="${stylesUriCustomElt}">
           <link rel="stylesheet" href="${codiconsUri}">
+          <link rel="stylesheet" href="${highlightStylesUri}">
           <title>Bruin Panel</title>
           <script nonce="${nonce}">
             // Set initial CLI status before Vue app loads (null = unknown)
