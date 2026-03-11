@@ -5,31 +5,16 @@
       <div class="selector-row">
         <div class="selector-group">
           <label class="selector-label">Connection</label>
-          <vscode-dropdown
-            v-model="selectedConnection"
-            @change="onConnectionChange"
-            class="connection-dropdown"
-          >
+          <vscode-dropdown v-model="selectedConnection" @change="onConnectionChange" class="connection-dropdown">
             <vscode-option value="">Select connection...</vscode-option>
-            <vscode-option
-              v-for="conn in connections"
-              :key="`${conn.name}-${conn.environment}`"
-              :value="conn.name"
-            >
+            <vscode-option v-for="conn in connections" :key="`${conn.name}-${conn.environment}`" :value="conn.name">
               {{ conn.name }} ({{ conn.environment || 'default' }})
             </vscode-option>
           </vscode-dropdown>
         </div>
         <div class="selector-group limit-group">
           <label class="selector-label">Limit</label>
-          <vscode-text-field
-            v-model="limit"
-            type="number"
-            min="1"
-            max="50000"
-            class="limit-input"
-            placeholder="1000"
-          />
+          <vscode-text-field v-model="limit" type="number" min="1" max="50000" class="limit-input" placeholder="1000" />
         </div>
       </div>
     </div>
@@ -39,54 +24,22 @@
       <div class="editor-header">
         <span class="editor-title">SQL Query</span>
         <div class="editor-actions">
-          <vscode-button
-            appearance="icon"
-            title="Clear query"
-            @click="clearQuery"
-            :disabled="!query.trim()"
-          >
+          <vscode-button appearance="icon" title="Clear query" @click="clearQuery" :disabled="!query.trim()">
             <span class="codicon codicon-clear-all"></span>
           </vscode-button>
         </div>
       </div>
-      <textarea
-        ref="queryEditor"
-        v-model="query"
-        class="query-editor"
-        placeholder="Enter your SQL query here...
+      <textarea ref="queryEditor" v-model="query" class="query-editor" placeholder="Enter your SQL query here...
 
-Click the arrow icon on any table in the Databases panel to insert it."
-        @keydown="handleKeydown"
-        spellcheck="false"
-      ></textarea>
+Click the arrow icon on any table in the Databases panel to insert it." @keydown="handleKeydown"
+        spellcheck="false"></textarea>
     </div>
 
     <!-- Action Buttons -->
     <div class="action-bar">
-      <vscode-button
-        @click="executeQuery"
-        :disabled="!canExecute || runStatus === 'loading'"
-        class="text-xs h-7"
-        title="Run query in Query Preview panel"
-      >
-        <div class="inline-flex items-center justify-center">
-          <template v-if="runStatus === 'success'">
-            <span class="codicon codicon-check mr-1 text-green-500 leading-none" aria-hidden="true"></span>
-          </template>
-          <template v-else-if="runStatus === 'error'">
-            <span class="codicon codicon-error mr-1 text-red-500 leading-none" aria-hidden="true"></span>
-          </template>
-          <template v-else-if="runStatus === 'loading'">
-            <svg class="animate-spin mr-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-          </template>
-          <template v-else>
-            <span class="codicon codicon-play mr-1 leading-none" aria-hidden="true"></span>
-          </template>
-          <span class="leading-none">Run</span>
-        </div>
+      <vscode-button @click="executeQuery" :disabled="!canExecute || runStatus === 'loading'" class="text-xs h-7"
+        title="Run query in Query Preview panel">
+        <span class="codicon codicon-play mr-1"></span> Run in Preview
       </vscode-button>
       <span class="keyboard-hint">
         <kbd>{{ isMac ? 'Cmd' : 'Ctrl' }}</kbd> + <kbd>Enter</kbd>
@@ -428,5 +381,15 @@ watch([query, selectedConnection, limit], () => {
   background: var(--vscode-inputValidation-errorBackground);
   color: var(--vscode-errorForeground);
   border: 1px solid var(--vscode-inputValidation-errorBorder);
+}
+vscode-button::part(control){
+  @apply border-none pl-1;
+}
+
+.codicon-play {
+  font-size: 12px !important;
+}
+.codicon-play::before{
+  vertical-align: middle;
 }
 </style>
