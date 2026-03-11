@@ -207,7 +207,7 @@ const handleMessage = (event: MessageEvent) => {
     case "insert-table":
       // Insert table reference from the Databases tree
       if (message.payload.tableName) {
-        insertTextAtCursor(message.payload.tableName);
+        insertTextAtCursor(`select * from ${message.payload.tableName}`);
         // Always set the connection to match the inserted table
         if (message.payload.connectionName) {
           selectedConnection.value = message.payload.connectionName;
