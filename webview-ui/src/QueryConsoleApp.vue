@@ -150,6 +150,8 @@ const handleMessage = (event: MessageEvent) => {
     case "connections-loaded":
       if (message.payload.status === "success") {
         connections.value = message.payload.connections || [];
+        // Request state after connections are loaded
+        vscode.postMessage({ command: "getState" });
       } else {
         console.error("Failed to load connections:", message.payload.message);
       }
@@ -177,7 +179,8 @@ const handleMessage = (event: MessageEvent) => {
     case "insert-table":
       // Insert table reference from the Databases tree
       if (message.payload.tableName) {
-        insertTextAtCursor(`select * from ${message.payload.tableName}`);
+        // Clear existing query and insert new select statement
+        query.value = `select * from ${message.payload.tableName}`;
         // Always set the connection to match the inserted table
         if (message.payload.connectionName) {
           selectedConnection.value = message.payload.connectionName;
@@ -198,7 +201,6 @@ const handleMessage = (event: MessageEvent) => {
 onMounted(() => {
   window.addEventListener("message", handleMessage);
   loadConnections();
-  vscode.postMessage({ command: "getState" });
 });
 
 onUnmounted(() => {
