@@ -29,10 +29,7 @@
           </vscode-button>
         </div>
       </div>
-      <textarea ref="queryEditor" v-model="query" class="query-editor" placeholder="Enter your SQL query here...
-
-Click the arrow icon on any table in the Databases panel to insert it." @keydown="handleKeydown"
-        spellcheck="false"></textarea>
+      <div ref="editorContainer" class="codemirror-container"></div>
     </div>
 
     <!-- Action Buttons -->
@@ -50,15 +47,23 @@ Click the arrow icon on any table in the Databases panel to insert it." @keydown
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch, shallowRef } from "vue";
 import { vscode } from "./utilities/vscode";
+import { EditorState } from "@codemirror/state";
+import { EditorView, keymap, placeholder } from "@codemirror/view";
+import { sql } from "@codemirror/lang-sql";
+import { defaultKeymap } from "@codemirror/commands";
+import { autocompletion } from "@codemirror/autocomplete";
+import { syntaxHighlighting, HighlightStyle } from "@codemirror/language";
+import { tags } from "@lezer/highlight";
 
 // State
 const query = ref("");
 const selectedConnection = ref("");
 const limit = ref("1000");
 const connections = ref<Array<{ name: string; type: string; environment?: string }>>([]);
-const queryEditor = ref<HTMLTextAreaElement | null>(null);
+const editorContainer = ref<HTMLElement | null>(null);
+const editorView = shallowRef<EditorView | null>(null);
 const runStatus = ref<'idle' | 'loading' | 'success' | 'error'>('idle');
 
 // Computed
@@ -67,6 +72,55 @@ const isMac = computed(() => navigator.platform.toUpperCase().indexOf("MAC") >= 
 const canExecute = computed(() => {
   return query.value.trim() && selectedConnection.value;
 });
+
+// VS Code theme for CodeMirror
+const vscodeTheme = EditorView.theme({
+  "&": {
+    backgroundColor: "var(--vscode-input-background)",
+    color: "var(--vscode-input-foreground)",
+    fontSize: "13px",
+    height: "100%",
+  },
+  ".cm-content": {
+    fontFamily: "var(--vscode-editor-font-family), monospace",
+    padding: "8px",
+    caretColor: "var(--vscode-editorCursor-foreground)",
+  },
+  ".cm-cursor": {
+    borderLeftColor: "var(--vscode-editorCursor-foreground)",
+  },
+  "&.cm-focused .cm-selectionBackground, .cm-selectionBackground": {
+    backgroundColor: "var(--vscode-editor-selectionBackground)",
+  },
+  ".cm-activeLine": {
+    backgroundColor: "transparent",
+  },
+  ".cm-gutters": {
+    display: "none",
+  },
+  ".cm-placeholder": {
+    color: "var(--vscode-input-placeholderForeground)",
+  },
+  ".cm-scroller": {
+    overflow: "auto",
+  },
+}, { dark: true });
+
+// SQL syntax highlighting colors for VS Code theme
+const sqlHighlightStyle = HighlightStyle.define([
+  { tag: tags.keyword, color: "#569cd6" },
+  { tag: tags.operator, color: "#d4d4d4" },
+  { tag: tags.string, color: "#ce9178" },
+  { tag: tags.number, color: "#b5cea8" },
+  { tag: tags.comment, color: "#6a9955" },
+  { tag: tags.typeName, color: "#4ec9b0" },
+  { tag: tags.propertyName, color: "#9cdcfe" },
+  { tag: tags.variableName, color: "#9cdcfe" },
+  { tag: tags.punctuation, color: "#d4d4d4" },
+  { tag: tags.bracket, color: "#ffd700" },
+  { tag: tags.function(tags.variableName), color: "#dcdcaa" },
+  { tag: tags.standard(tags.name), color: "#4ec9b0" },
+]);
 
 // Methods
 const executeQuery = () => {
@@ -85,19 +139,16 @@ const executeQuery = () => {
 
 const clearQuery = () => {
   query.value = "";
+  if (editorView.value) {
+    editorView.value.dispatch({
+      changes: { from: 0, to: editorView.value.state.doc.length, insert: "" }
+    });
+  }
 };
 
 const getSelectedEnvironment = (): string => {
   const conn = connections.value.find((c) => c.name === selectedConnection.value);
   return conn?.environment || "";
-};
-
-const handleKeydown = (event: KeyboardEvent) => {
-  // Cmd/Ctrl + Enter to execute
-  if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
-    event.preventDefault();
-    executeQuery();
-  }
 };
 
 const onConnectionChange = (event: Event) => {
@@ -106,21 +157,23 @@ const onConnectionChange = (event: Event) => {
   saveState();
 };
 
-const insertTextAtCursor = (text: string) => {
-  if (!queryEditor.value) return;
+const setEditorContent = (content: string) => {
+  if (editorView.value) {
+    editorView.value.dispatch({
+      changes: { from: 0, to: editorView.value.state.doc.length, insert: content }
+    });
+  }
+};
 
-  const start = queryEditor.value.selectionStart;
-  const end = queryEditor.value.selectionEnd;
-  const before = query.value.substring(0, start);
-  const after = query.value.substring(end);
-
-  query.value = before + text + after;
-
-  const newPos = start + text.length;
-  setTimeout(() => {
-    queryEditor.value?.setSelectionRange(newPos, newPos);
-    queryEditor.value?.focus();
-  }, 0);
+const insertAtCursor = (text: string) => {
+  if (editorView.value) {
+    const cursor = editorView.value.state.selection.main.head;
+    editorView.value.dispatch({
+      changes: { from: cursor, insert: text },
+      selection: { anchor: cursor + text.length }
+    });
+    editorView.value.focus();
+  }
 };
 
 const loadConnections = () => {
@@ -179,8 +232,18 @@ const handleMessage = (event: MessageEvent) => {
     case "insert-table":
       // Insert table reference from the Databases tree
       if (message.payload.tableName) {
-        // Clear existing query and insert new select statement
-        query.value = `select * from ${message.payload.tableName}`;
+        const tableName = message.payload.tableName;
+
+        if (query.value.trim() === "") {
+          // Empty query: insert full select statement
+          const newQuery = `select * from ${tableName}`;
+          query.value = newQuery;
+          setEditorContent(newQuery);
+        } else {
+          // Query has content: insert just the table name at cursor
+          insertAtCursor(tableName);
+        }
+
         // Always set the connection to match the inserted table
         if (message.payload.connectionName) {
           selectedConnection.value = message.payload.connectionName;
@@ -201,10 +264,50 @@ const handleMessage = (event: MessageEvent) => {
 onMounted(() => {
   window.addEventListener("message", handleMessage);
   loadConnections();
+
+  // Initialize CodeMirror editor
+  if (editorContainer.value) {
+    const runQueryKeymap = keymap.of([{
+      key: "Mod-Enter",
+      run: () => {
+        executeQuery();
+        return true;
+      }
+    }]);
+
+    const updateListener = EditorView.updateListener.of((update) => {
+      if (update.docChanged) {
+        query.value = update.state.doc.toString();
+      }
+    });
+
+    const state = EditorState.create({
+      doc: "",
+      extensions: [
+        runQueryKeymap,
+        keymap.of(defaultKeymap),
+        sql(),
+        autocompletion(),
+        vscodeTheme,
+        syntaxHighlighting(sqlHighlightStyle),
+        placeholder("Enter your SQL query here...\n\nClick the arrow icon on any table in the Databases panel to insert it."),
+        updateListener,
+        EditorView.lineWrapping,
+      ],
+    });
+
+    editorView.value = new EditorView({
+      state,
+      parent: editorContainer.value,
+    });
+  }
 });
 
 onUnmounted(() => {
   window.removeEventListener("message", handleMessage);
+  if (editorView.value) {
+    editorView.value.destroy();
+  }
 });
 
 // Watch for changes to save state (debounced)
@@ -294,23 +397,19 @@ watch([selectedConnection, limit], () => {
   gap: 4px;
 }
 
-.query-editor {
+.codemirror-container {
   flex: 1;
   width: 100%;
   min-height: 100px;
-  padding: 8px;
-  border: none;
-  background: var(--vscode-input-background);
-  color: var(--vscode-input-foreground);
-  font-family: var(--vscode-editor-font-family), monospace;
-  font-size: 13px;
-  line-height: 1.5;
-  resize: vertical;
-  outline: none;
+  overflow: hidden;
 }
 
-.query-editor::placeholder {
-  color: var(--vscode-input-placeholderForeground);
+.codemirror-container :deep(.cm-editor) {
+  height: 100%;
+}
+
+.codemirror-container :deep(.cm-scroller) {
+  min-height: 100px;
 }
 
 .action-bar {
