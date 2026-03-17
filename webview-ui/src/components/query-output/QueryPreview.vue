@@ -204,6 +204,22 @@
               <span>Copied!</span>
             </div>
           </Menu>
+          <!-- Export in progress indicator with cancel -->
+          <div
+            v-if="isExportLoading"
+            class="flex items-center gap-1 px-2 py-1 text-xs text-editor-fg bg-editorWidget-bg rounded"
+          >
+            <span class="spinner-small"></span>
+            <span>Exporting...</span>
+            <vscode-button
+              title="Cancel Export"
+              appearance="icon"
+              @click="cancelExport"
+              class="ml-1"
+            >
+              <span class="codicon codicon-stop-circle text-red-500"></span>
+            </vscode-button>
+          </div>
           <vscode-button title="Reset Panel" appearance="icon" @click="resetPanel">
             <span class="codicon codicon-refresh text-editor-fg"></span>
           </vscode-button>
@@ -1825,6 +1841,13 @@ watch(
 const cancelQuery = () => {
   vscode.postMessage({
     command: "bruin.cancelQuery",
+    payload: { tabId: activeTab.value },
+  });
+};
+
+const cancelExport = () => {
+  vscode.postMessage({
+    command: "bruin.cancelExport",
     payload: { tabId: activeTab.value },
   });
 };

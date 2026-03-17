@@ -126,7 +126,7 @@ export const exportQueryResults = async (lastRenderedDocumentUri: Uri | undefine
     );
     
     // Use the stored query for the specific tab
-    await output.exportResults(assetPath, connectionName, { query: tabQuery });
+    await output.exportResults(assetPath, connectionName, currentTabId, { query: tabQuery });
   } catch (error) {
     console.error("Error exporting query data:", error);
   }

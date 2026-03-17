@@ -4,6 +4,7 @@ import { getUri } from "../utilities/getUri";
 import { exportQueryResults, getQueryOutput } from "../extension/commands/queryCommands";
 import { getEnvListCommand } from "../extension/commands/getEnvListCommand";
 import { BruinQueryOutput } from "../bruin/queryOutput";
+import { BruinExportQueryOutput } from "../bruin/exportQueryOutput";
 import { getQueryTimeout } from "../extension/configuration";
 import { trackEvent } from "../extension/extension";
 
@@ -370,6 +371,11 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
           trackEvent("Command Executed", { command: "cancelQuery", source: "extension" });
           const cancelTabId = message.payload?.tabId;
           BruinQueryOutput.cancelQuery(cancelTabId);
+          break;
+        case "bruin.cancelExport":
+          trackEvent("Command Executed", { command: "cancelExport", source: "extension" });
+          const cancelExportTabId = message.payload?.tabId;
+          BruinExportQueryOutput.cancelExport(cancelExportTabId);
           break;
         case "bruin.requestTimeout":
           const timeout = getQueryTimeout();

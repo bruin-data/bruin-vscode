@@ -68,6 +68,10 @@ const handleMessage = (event) => {
     case "query-export-message":
       if (message.payload.status === "export-loading") {
         isExportLoading.value = message.payload.message; // true or false
+      } else if (message.payload.status === "cancelled") {
+        // Handle cancelled export - show as info message, not error
+        QueryExport.value = message.payload.message;
+        QueryExportError.value = null;
       } else {
         QueryExport.value = updateValue(message, "success");
         QueryExportError.value = updateValue(message, "error");

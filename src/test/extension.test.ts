@@ -2986,7 +2986,7 @@ suite(" Query export Tests", () => {
       return "success";
     };
 
-    await bruinQueryExport.exportResults(asset, undefined, { flags, ignoresErrors, query });
+    await bruinQueryExport.exportResults(asset, undefined, "tab-1", { flags, ignoresErrors, query });
   });
 
   test("should handle errors and reset isLoading", async () => {
@@ -2997,7 +2997,7 @@ suite(" Query export Tests", () => {
       throw error;
     };
 
-    await bruinQueryExport.exportResults(asset, connectionName, {});
+    await bruinQueryExport.exportResults(asset, connectionName, "tab-1", {});
 
     // Ensure error message is sent to the panel
     sinon.assert.calledWith(queryPreviewPanelStub, "query-export-message", {
@@ -3006,7 +3006,7 @@ suite(" Query export Tests", () => {
     });
     // Ensure isLoading is reset to false
     assert.deepStrictEqual(bruinQueryExport.isLoading, false);
-  }); 
+  });
 
   test("should exclude -q when query is empty", async () => {
     const asset = "exampleAsset";
@@ -3019,7 +3019,7 @@ suite(" Query export Tests", () => {
       return "success";
     };
 
-    await bruinQueryExport.exportResults(asset, undefined, options);
+    await bruinQueryExport.exportResults(asset, undefined, "tab-1", options);
   });
 
 });
