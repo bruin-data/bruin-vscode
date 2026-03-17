@@ -70,10 +70,10 @@ Bruin is a unified analytics platform that enables data professionals to work en
 ## Release Notes
 
 ### Recent Update
+- **0.79.2**: Added cancel button for export query operations, allowing users to stop long-running exports.
 - **0.79.1**: Fixed SQL Editor syntax highlighting.
 - **0.79.0**: Added copy results as CSV, TSV, or JSON to the Query Preview.
 - **0.78.2**: Fixed a bug where editing a connection would incorrectly overwrite existing values with default field values.
 - **0.78.1**: Added lock environment toggle in Query Preview.
-- **0.78.0**: Added MCP integration for AI clients (GitHub Copilot, Cursor, Codex CLI, Claude Code) with Bruin Cloud support.
 
 For a full changelog, see Bruin Extension [Changelog](https://github.com/bruin-data/bruin-vscode/blob/main/CHANGELOG.md).
