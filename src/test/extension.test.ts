@@ -2714,6 +2714,10 @@ class TestableBruinQueryExport extends BruinExportQueryOutput {
   public run(query: string[], options?: { ignoresErrors?: boolean }): Promise<string> {
     return super.run(query, options);
   }
+
+  public runCancellable(query: string[], options?: { ignoresErrors?: boolean }): { promise: Promise<string>; process: any; consoleMessages: Array<{type: 'stdout' | 'stderr' | 'info', message: string, timestamp: string}> } {
+    return super.runCancellable(query, options);
+  }
 }
 suite("Query Output Tests", () => {
   let getWorkspaceFolderStub: sinon.SinonStub;
@@ -2980,24 +2984,36 @@ suite(" Query export Tests", () => {
     const ignoresErrors = false;
     const query = "SELECT * FROM table";
 
-    // Mock the run method to simulate successful export
-    bruinQueryExport.run = async (flags: string[]) => {
+    // Mock the runCancellable method to simulate successful export
+    const mockProcess = { kill: sinon.stub() };
+    bruinQueryExport.runCancellable = (flags: string[]) => {
       assert.deepStrictEqual(flags, ["-export", "-asset", asset, "-q", query, "-o", "json"]);
-      return "success";
+      return {
+        promise: Promise.resolve("success"),
+        process: mockProcess as any,
+        consoleMessages: []
+      };
     };
 
-    await bruinQueryExport.exportResults(asset, undefined, { flags, ignoresErrors, query });
+    await bruinQueryExport.exportResults(asset, undefined, "tab-1", { flags, ignoresErrors, query });
   });
 
   test("should handle errors and reset isLoading", async () => {
     const asset = "exampleAsset.sql";
     const error = new Error("Mock error");
     const connectionName = "";
-    bruinQueryExport.run = async () => {
-      throw error;
+
+    // Mock the runCancellable method to simulate error
+    const mockProcess = { kill: sinon.stub() };
+    bruinQueryExport.runCancellable = () => {
+      return {
+        promise: Promise.reject(error),
+        process: mockProcess as any,
+        consoleMessages: []
+      };
     };
 
-    await bruinQueryExport.exportResults(asset, connectionName, {});
+    await bruinQueryExport.exportResults(asset, connectionName, "tab-1", {});
 
     // Ensure error message is sent to the panel
     sinon.assert.calledWith(queryPreviewPanelStub, "query-export-message", {
@@ -3006,20 +3022,26 @@ suite(" Query export Tests", () => {
     });
     // Ensure isLoading is reset to false
     assert.deepStrictEqual(bruinQueryExport.isLoading, false);
-  }); 
+  });
 
   test("should exclude -q when query is empty", async () => {
     const asset = "exampleAsset";
     const options = { ignoresErrors: false };
 
-    bruinQueryExport.run = async (flags: string[]) => {
+    // Mock the runCancellable method to simulate successful export
+    const mockProcess = { kill: sinon.stub() };
+    bruinQueryExport.runCancellable = (flags: string[]) => {
       const includeQuery = flags.includes("-q");
       assert.deepStrictEqual(includeQuery, false);
       assert.deepStrictEqual(flags, ["-export", "-asset", asset, "-o", "json"]);
-      return "success";
+      return {
+        promise: Promise.resolve("success"),
+        process: mockProcess as any,
+        consoleMessages: []
+      };
     };
 
-    await bruinQueryExport.exportResults(asset, undefined, options);
+    await bruinQueryExport.exportResults(asset, undefined, "tab-1", options);
   });
 
 });
