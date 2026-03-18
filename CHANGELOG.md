@@ -1,4 +1,7 @@
 # Changelog
+## [0.79.3] - [2026-03-18]
+- Added ability to select text in the SQL editor and run the selection directly in Query Preview for debugging.
+
 ## [0.79.2] - [2026-03-18]
 - Added cancel button for export query operations, allowing users to stop long-running exports.
 

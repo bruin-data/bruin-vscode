@@ -17,6 +17,14 @@
         >
           DDL
         </button>
+        <span v-if="selectedText" class="separator">|</span>
+        <button
+          v-if="selectedText"
+          @click="runSelectedText"
+          class="preview-selection-btn"
+        >
+          Preview selection
+        </button>
       </div>
       <div class="flex items-center">
         <!-- BigQuery Cost Estimate (success and error) -->
@@ -100,7 +108,7 @@
       </div>
     </div>
     <!-- Code Editor -->
-    <div id="sql-editor" class="code-container pb-0">
+    <div id="sql-editor" class="code-container pb-0" @mouseup="handleTextSelection">
       <div class="copy-button-wrapper">
         <vscode-button
           @click="copyToClipboard"
@@ -176,6 +184,7 @@ const clickOpened = ref(false);
 const showCostError = ref(false);
 const isErrorSticky = ref(false);
 const errorIcon = ref(null);
+const selectedText = ref('');
 
 const vClickOutside = {
   mounted(el, binding) {
@@ -197,6 +206,36 @@ function copyToClipboard() {
   setTimeout(() => {
     copied.value = false;
   }, 2000);
+}
+
+// Handle text selection in the code editor
+function handleTextSelection() {
+  const selection = window.getSelection();
+  let text = selection?.toString().trim() || '';
+
+  // Remove line numbers that get included in selection
+  // Line numbers appear as standalone numbers on their own line when selected
+  if (text) {
+    text = text
+      .split('\n')
+      .filter(line => !/^\d+$/.test(line.trim())) // Remove lines that are just numbers (line numbers)
+      .join('\n')
+      .trim();
+  }
+
+  selectedText.value = text;
+}
+
+// Run selected text in Query Preview panel
+function runSelectedText() {
+  if (!selectedText.value) return;
+
+  vscode.postMessage({
+    command: 'bruin.runSelectedInPreview',
+    payload: {
+      query: selectedText.value
+    }
+  });
 }
 
 const lineHeight = 18;
@@ -402,14 +441,25 @@ const handleMessage = (event) => {
   }
 };
 
+// Handle selection change to clear when deselected
+function handleSelectionChange() {
+  const selection = window.getSelection();
+  const text = selection?.toString().trim() || '';
+  if (!text) {
+    selectedText.value = '';
+  }
+}
+
 // Setup message listeners
 onMounted(() => {
   window.addEventListener('message', handleMessage);
+  document.addEventListener('selectionchange', handleSelectionChange);
   console.log('SqlEditor: Message listener added');
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener('message', handleMessage);
+  document.removeEventListener('selectionchange', handleSelectionChange);
   console.log('SqlEditor: Message listener removed');
 });
 
@@ -457,6 +507,26 @@ watch(
 
 .copy-button:hover {
   background-color: var(--vscode-list-hoverBackground);
+}
+
+.separator {
+  color: var(--vscode-disabledForeground);
+  font-size: 12px;
+  margin: 0 4px;
+}
+
+.preview-selection-btn {
+  background: transparent;
+  border: none;
+  color: var(--vscode-textLink-foreground);
+  font-size: 12px;
+  font-family: var(--vscode-font-family);
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.preview-selection-btn:hover {
+  color: var(--vscode-textLink-activeForeground);
 }
 
 #sql-editor,
