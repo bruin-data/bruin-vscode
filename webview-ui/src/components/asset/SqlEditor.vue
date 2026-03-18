@@ -109,7 +109,7 @@
     <div id="sql-editor" class="code-container pb-0">
       <div class="copy-button-wrapper">
         <vscode-button
-          v-if="activeTab === 'raw' && rawQueryContent"
+          v-if="activeTab === 'raw' && rawQuerySuccess"
           @click="runRawQueryInPreview"
           appearance="icon"
           class="copy-button mr-1"
@@ -186,6 +186,7 @@ const ddlContent = ref('');
 const ddlLoading = ref(false);
 const rawQueryContent = ref('');
 const rawQueryLoading = ref(false);
+const rawQuerySuccess = ref(false);
 const showIntervalAlert = ref(props.showIntervalAlert);
 const showAlertMassage = ref(false);
 const copied = ref(false);
@@ -399,6 +400,7 @@ const requestDdl = () => {
 const requestRawQuery = () => {
   console.log('Requesting raw query from backend');
   rawQueryLoading.value = true;
+  rawQuerySuccess.value = false;
 
   vscode.postMessage({
     command: 'bruin.renderRawQuery'
@@ -440,7 +442,7 @@ watch(activeTab, (newTab) => {
   if (newTab === 'ddl' && !ddlContent.value && !ddlLoading.value) {
     requestDdl();
   }
-  if (newTab === 'raw' && !rawQueryContent.value && !rawQueryLoading.value) {
+  if (newTab === 'raw' && !rawQuerySuccess.value && !rawQueryLoading.value) {
     requestRawQuery();
   }
 });
@@ -451,9 +453,11 @@ const handleRawQueryResponse = (response) => {
   rawQueryLoading.value = false;
   if (response.status === 'success') {
     rawQueryContent.value = response.query || '-- No query content received';
+    rawQuerySuccess.value = true;
     console.log('Raw query content set:', rawQueryContent.value);
   } else {
     rawQueryContent.value = `-- Error getting raw query\n-- ${response.message || 'Unknown error'}`;
+    rawQuerySuccess.value = false;
     console.error('Raw query fetch failed:', response.message);
   }
 };
@@ -506,6 +510,7 @@ watch(
       // Clear cache for tabs not currently visible so they refresh when switched to
       ddlContent.value = '';
       rawQueryContent.value = '';
+      rawQuerySuccess.value = false;
     }
   }
 );
