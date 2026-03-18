@@ -1,5 +1,5 @@
 # Changelog
-## [0.79.2] - [2026-03-17]
+## [0.79.2] - [2026-03-18]
 - Added cancel button for export query operations, allowing users to stop long-running exports.
 
 ## [0.79.1] - [2026-03-11]
