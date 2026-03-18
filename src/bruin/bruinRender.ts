@@ -195,6 +195,17 @@ export class BruinRender extends BruinCommand {
       }
     );
   }
+
+  /**
+   * Executes render with custom flags and returns the raw result.
+   * Used primarily for --raw-query flag to get unmaterialized query.
+   *
+   * @param {string[]} flags - Command flags including file path
+   * @returns {Promise<string>} The raw command output
+   */
+  public async runRawQuery(flags: string[]): Promise<string> {
+    return this.run(flags, { ignoresErrors: false });
+  }
 }
 
 // this class only perfor the render command and return the query output

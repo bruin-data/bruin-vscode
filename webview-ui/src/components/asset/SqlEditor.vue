@@ -4,12 +4,18 @@
       class="header flex items-center justify-between  py-0.5 border-commandCenter-border shadow-sm"
     >
       <!-- Tab Navigation -->
-      <div class="flex items-center gap-1">
+      <div class="flex items-center gap-2">
         <button
-          @click="activeTab = 'preview'"
-          :class="['tab-button', { active: activeTab === 'preview' }]"
+          @click="activeTab = 'rendered'"
+          :class="['tab-button', { active: activeTab === 'rendered' }]"
         >
-          Preview
+          Rendered
+        </button>
+        <button
+          @click="activeTab = 'raw'"
+          :class="['tab-button', { active: activeTab === 'raw' }]"
+        >
+          Raw
         </button>
         <button
           @click="activeTab = 'ddl'"
@@ -103,6 +109,15 @@
     <div id="sql-editor" class="code-container pb-0">
       <div class="copy-button-wrapper">
         <vscode-button
+          v-if="activeTab === 'raw' && rawQueryContent"
+          @click="runRawQueryInPreview"
+          appearance="icon"
+          class="copy-button mr-1"
+          title="Run in Query Preview"
+        >
+          <span class="codicon codicon-play text-xs" aria-hidden="true"></span>
+        </vscode-button>
+        <vscode-button
           @click="copyToClipboard"
           appearance="icon"
           :disabled="!currentCode"
@@ -166,9 +181,11 @@ const props = defineProps({
   },
 });
 
-const activeTab = ref('preview');
+const activeTab = ref('rendered');
 const ddlContent = ref('');
 const ddlLoading = ref(false);
+const rawQueryContent = ref('');
+const rawQueryLoading = ref(false);
 const showIntervalAlert = ref(props.showIntervalAlert);
 const showAlertMassage = ref(false);
 const copied = ref(false);
@@ -216,10 +233,18 @@ const shouldUseVirtualScroller = computed(() => {
 
 const currentCode = computed(() => {
   if (activeTab.value === 'ddl') {
-    if (ddlLoading.value) {
+    // Show existing content while loading, only show loading message if no content yet
+    if (ddlLoading.value && !ddlContent.value) {
       return '-- Loading DDL...';
     }
-    return ddlContent.value || '-- Click to generate DDL';
+    return ddlContent.value || '-- Loading DDL...';
+  }
+  if (activeTab.value === 'raw') {
+    // Show existing content while loading, only show loading message if no content yet
+    if (rawQueryLoading.value && !rawQueryContent.value) {
+      return '-- Loading raw query...';
+    }
+    return rawQueryContent.value || '-- Loading raw query...';
   }
   return props.code;
 });
@@ -363,11 +388,38 @@ const tooltipPosition = computed(() => {
 const requestDdl = () => {
   console.log('Requesting DDL from backend');
   ddlLoading.value = true;
-  
+
   vscode.postMessage({
     command: 'bruin.renderDdl'
   });
   console.log('DDL request sent to backend');
+};
+
+// Function to request raw query from backend
+const requestRawQuery = () => {
+  console.log('Requesting raw query from backend');
+  rawQueryLoading.value = true;
+
+  vscode.postMessage({
+    command: 'bruin.renderRawQuery'
+  });
+  console.log('Raw query request sent to backend');
+};
+
+// Function to run raw query in Query Preview panel
+const runRawQueryInPreview = () => {
+  if (!rawQueryContent.value) {
+    console.log('No raw query content to run');
+    return;
+  }
+
+  console.log('Running raw query in preview panel');
+  vscode.postMessage({
+    command: 'bruin.runRawQueryInPreview',
+    payload: {
+      query: rawQueryContent.value
+    }
+  });
 };
 
 // Function to handle DDL response from backend
@@ -383,22 +435,43 @@ const handleDdlResponse = (response) => {
   }
 };
 
-// Watch for tab changes to load DDL when needed
+// Watch for tab changes to load DDL or raw query when needed
 watch(activeTab, (newTab) => {
   if (newTab === 'ddl' && !ddlContent.value && !ddlLoading.value) {
     requestDdl();
   }
+  if (newTab === 'raw' && !rawQueryContent.value && !rawQueryLoading.value) {
+    requestRawQuery();
+  }
 });
 
-// Listen for DDL responses from the backend
+// Handle raw query response from backend
+const handleRawQueryResponse = (response) => {
+  console.log('Handling raw query response:', response);
+  rawQueryLoading.value = false;
+  if (response.status === 'success') {
+    rawQueryContent.value = response.query || '-- No query content received';
+    console.log('Raw query content set:', rawQueryContent.value);
+  } else {
+    rawQueryContent.value = `-- Error getting raw query\n-- ${response.message || 'Unknown error'}`;
+    console.error('Raw query fetch failed:', response.message);
+  }
+};
+
+// Listen for DDL and raw query responses from the backend
 const handleMessage = (event) => {
   if (!event || !event.data) return;
   const envelope = event.data;
   console.log('SqlEditor received message:', envelope);
-  
+
   if (envelope.command === 'ddlResponse') {
     console.log('Processing DDL response:', envelope);
     handleDdlResponse(envelope);
+  }
+
+  if (envelope.command === 'rawQueryResponse') {
+    console.log('Processing raw query response:', envelope);
+    handleRawQueryResponse(envelope);
   }
 };
 
@@ -417,6 +490,23 @@ watch(
   () => props.showIntervalAlert,
   (newVal) => {
     showIntervalAlert.value = newVal;
+  }
+);
+
+// Re-fetch DDL and raw query when source code changes (keep showing old content while loading)
+watch(
+  () => props.code,
+  () => {
+    // Re-fetch if currently viewing that tab (don't clear - keep showing old content)
+    if (activeTab.value === 'ddl') {
+      requestDdl();
+    } else if (activeTab.value === 'raw') {
+      requestRawQuery();
+    } else {
+      // Clear cache for tabs not currently visible so they refresh when switched to
+      ddlContent.value = '';
+      rawQueryContent.value = '';
+    }
   }
 );
 </script>
@@ -541,7 +631,7 @@ watch(
 }
 
 .tab-button {
-  padding: 4px 4px 4px 0px;
+  padding: 4px 8px 4px 0;
   background: transparent;
   border: none;
   color: var(--vscode-disabledForeground);
