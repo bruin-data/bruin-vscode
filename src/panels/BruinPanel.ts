@@ -628,6 +628,47 @@ export class BruinPanel {
             }
             break;
 
+          case "bruin.runSelectedInPreview":
+            trackEvent("Command Executed", { command: "runSelectedInPreview", source: "extension" });
+            try {
+              const selectedQuery = message.payload?.query;
+              if (!selectedQuery) {
+                vscode.window.showWarningMessage("No text selected to run");
+                break;
+              }
+
+              const activeTabId = QueryPreviewPanel.getActiveTabId();
+
+              // Clear previous state for this tab
+              QueryPreviewPanel.clearTabState(activeTabId);
+
+              // Set the query for this tab
+              QueryPreviewPanel.setLastExecutedQuery(selectedQuery);
+              QueryPreviewPanel.setTabQuery(activeTabId, selectedQuery);
+
+              // Show loading state
+              QueryPreviewPanel.postMessage("query-output-message", {
+                status: "loading",
+                message: true,
+                tabId: activeTabId,
+              });
+
+              // Focus the Query Preview panel
+              await QueryPreviewPanel.focusSafely();
+
+              // Execute the query
+              QueryPreviewPanel.postMessage("bruin.executePreviewQuery", {
+                status: "success",
+                message: "",
+                tabId: activeTabId,
+                extractedQuery: selectedQuery
+              });
+            } catch (error) {
+              const errorMessage = error instanceof Error ? error.message : String(error);
+              vscode.window.showErrorMessage(`Error running selection in preview: ${errorMessage}`);
+            }
+            break;
+
           case "bruin.validate":
             trackEvent("Command Executed", { command: "validate", source: "extension" });
             if (!this._lastRenderedDocumentUri) {
