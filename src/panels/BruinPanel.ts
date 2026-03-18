@@ -6,7 +6,6 @@ import { trackEvent } from "../extension/extension";
 import {
   BruinValidate,
   BruinRenderDdl,
-  BruinRender,
   bruinWorkspaceDirectory,
   checkCliVersion,
   createIntegratedTerminal,
@@ -626,99 +625,6 @@ export class BruinPanel {
                 status: "error",
                 message: `Failed to generate DDL: ${errorMessage}`
               });
-            }
-            break;
-
-          case "bruin.renderRawQuery":
-            trackEvent("Command Executed", { command: "renderRawQuery", source: "extension" });
-            if (!this._lastRenderedDocumentUri) {
-              this._panel.webview.postMessage({
-                command: "rawQueryResponse",
-                status: "error",
-                message: "No active asset found"
-              });
-              break;
-            }
-
-            try {
-              const rawRenderer = new BruinRender(
-                getBruinExecutablePath(),
-                vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || ""
-              );
-
-              const rawFilePath = this._lastRenderedDocumentUri.fsPath;
-              const rawFlagArgs: string[] = ["--raw-query", "-o", "json"];
-
-              if (this._currentStartDate) {
-                rawFlagArgs.push("--start-date", this._currentStartDate);
-              }
-
-              if (this._currentEndDate) {
-                rawFlagArgs.push("--end-date", this._currentEndDate);
-              }
-
-              if (this._checkboxState?.["Interval-modifiers"]) {
-                rawFlagArgs.push("--apply-interval-modifiers");
-              }
-
-              rawFlagArgs.push(rawFilePath);
-
-              const rawResult = await rawRenderer.runRawQuery(rawFlagArgs);
-              const parsedRaw = JSON.parse(rawResult);
-
-              this._panel.webview.postMessage({
-                command: "rawQueryResponse",
-                status: "success",
-                query: parsedRaw.query
-              });
-            } catch (error) {
-              const errorMessage = error instanceof Error ? error.message : String(error);
-              this._panel.webview.postMessage({
-                command: "rawQueryResponse",
-                status: "error",
-                message: `Failed to get raw query: ${errorMessage}`
-              });
-            }
-            break;
-
-          case "bruin.runRawQueryInPreview":
-            trackEvent("Command Executed", { command: "runRawQueryInPreview", source: "extension" });
-            try {
-              const queryToRun = message.payload?.query;
-              if (!queryToRun) {
-                vscode.window.showWarningMessage("No query to run");
-                break;
-              }
-
-              const activeTabId = QueryPreviewPanel.getActiveTabId();
-
-              // Clear previous state for this tab
-              QueryPreviewPanel.clearTabState(activeTabId);
-
-              // Set the query for this tab
-              QueryPreviewPanel.setLastExecutedQuery(queryToRun);
-              QueryPreviewPanel.setTabQuery(activeTabId, queryToRun);
-
-              // Show loading state
-              QueryPreviewPanel.postMessage("query-output-message", {
-                status: "loading",
-                message: true,
-                tabId: activeTabId,
-              });
-
-              // Focus the Query Preview panel
-              await QueryPreviewPanel.focusSafely();
-
-              // Execute the query
-              QueryPreviewPanel.postMessage("bruin.executePreviewQuery", {
-                status: "success",
-                message: "",
-                tabId: activeTabId,
-                extractedQuery: queryToRun
-              });
-            } catch (error) {
-              const errorMessage = error instanceof Error ? error.message : String(error);
-              vscode.window.showErrorMessage(`Error running query in preview: ${errorMessage}`);
             }
             break;
 
