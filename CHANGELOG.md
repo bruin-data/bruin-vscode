@@ -1,4 +1,8 @@
 # Changelog
+## [0.79.4] - [2026-03-23]
+- Fixed "Fill from DB" to use the selected environment instead of the default environment.
+- Fixed start date input to remain enabled when "Full Refresh" is selected.
+
 ## [0.79.3] - [2026-03-18]
 - Added ability to select text in the SQL editor and run the selection directly in Query Preview for debugging.
 
