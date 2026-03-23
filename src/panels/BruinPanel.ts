@@ -787,7 +787,10 @@ export class BruinPanel {
               getBruinExecutablePath(),
               assetWorkspaceDir
             );
-            await fillDependencies.fillDependencies(assetPath);
+            const fillDependenciesFlags = this._currentEnvironment
+              ? ["--environment", this._currentEnvironment]
+              : [];
+            await fillDependencies.fillDependencies(assetPath, { flags: fillDependenciesFlags });
 
             return;
 
@@ -846,7 +849,10 @@ export class BruinPanel {
               getBruinExecutablePath(),
               assetWorkspaceDirFillColumn
             );
-            await fillColumns.fillColumns(assetPathFillColumn);
+            const fillColumnsFlags = this._currentEnvironment
+              ? ["--environment", this._currentEnvironment]
+              : [];
+            await fillColumns.fillColumns(assetPathFillColumn, { flags: fillColumnsFlags });
             parseAssetCommand(this._lastRenderedDocumentUri);
             return;
 
@@ -860,8 +866,7 @@ export class BruinPanel {
             break;
           case "bruin.setSelectedEnvironment":
             const envData = message.payload;
-            console.log("Setting selected environment :", envData);
-            
+
             // Store the environment for metadata calls
             this._currentEnvironment = envData;
             
