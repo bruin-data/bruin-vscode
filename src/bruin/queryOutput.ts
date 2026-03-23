@@ -42,6 +42,12 @@ export class BruinQueryOutput extends BruinCommand {
     // Construct base flags dynamically
     this.isLoading = true;
     this.postMessageToPanels("loading", this.isLoading, tabId);
+
+    // Cancel any existing query for this tab before starting a new one
+    if (tabId) {
+      BruinQueryOutput.cancelQuery(tabId);
+    }
+
     const constructedFlags = ["-o", "json"];
 
     if (connectionName && query) {
