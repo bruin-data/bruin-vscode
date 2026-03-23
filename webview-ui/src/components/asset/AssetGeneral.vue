@@ -11,7 +11,7 @@
           <!-- Date Controls and Checkbox Group -->
           <div id="controls" class="flex flex-col xs:w-1/2">
             <div class="flex flex-col xs:flex-row gap-1 w-full justify-between xs:justify-end">
-              <DateInput label="Start Date" v-model="startDateForFullRefresh" :disabled="isFullRefreshChecked" />
+              <DateInput label="Start Date" v-model="startDate" />
               <DateInput label="End Date" v-model="endDate" />
               <div class="flex items-center gap-1 self-start xs:self-end">
                 <button type="button" @click="resetDatesOnSchedule" :title="`Reset Start and End Date`"
@@ -497,11 +497,6 @@ const selectedAssetsDisplay = computed(() => {
   return { names: displayedNames, remaining };
 });
 
-const isPipelineStartDateAvailable = computed(() => {
-  const startDate = props.startDate;
-  return startDate !== undefined && startDate !== null && startDate !== "";
-});
-
 // Full refresh alert state
 const showFullRefreshAlert = ref(false);
 const pendingRunAction = ref<(() => void) | null>(null);
@@ -985,20 +980,9 @@ watch(
   },
   { immediate: true }
 );
-const startDateForFullRefresh = computed({
-  get() {
-    return isFullRefreshChecked.value && isPipelineStartDateAvailable.value
-      ? props.startDate
-      : startDate.value;
-  },
-  set(newValue: string) {
-    startDate.value = newValue;
-  },
-});
 
 function getCheckboxChangePayload() {
-  const effectiveStartDate =
-    isFullRefreshChecked.value && isPipelineStartDateAvailable.value ? props.startDate : startDate.value;
+  const effectiveStartDate = startDate.value;
 
   let baseFlags = concatCommandFlags(
     effectiveStartDate,
@@ -1660,16 +1644,12 @@ onBeforeUnmount(() => {
 });
 
 watch(
-  [startDate, endDate, selectedEnv, isFullRefreshChecked, () => props.startDate],
+  [startDate, endDate, selectedEnv],
   ([newStart, newEnd, newEnv]) => {
-    const effectiveStartDate = isFullRefreshChecked.value && isPipelineStartDateAvailable.value
-      ? props.startDate
-      : newStart;
-
     vscode.postMessage({
       command: "bruin.updateQueryDates",
       payload: {
-        startDate: String(effectiveStartDate || ""),
+        startDate: String(newStart || ""),
         endDate: String(newEnd || ""),
         environment: String(newEnv || ""),
       },
@@ -1678,7 +1658,7 @@ watch(
     vscode.postMessage({
       command: "bruin.getAssetMetadata",
       payload: {
-        startDate: String(effectiveStartDate || ""),
+        startDate: String(newStart || ""),
         endDate: String(newEnd || ""),
         environment: String(newEnv || ""),
       },
