@@ -722,6 +722,7 @@ const tabs = ref([
       environments: environmentsList.value,
       selectedEnvironment: selectedEnvironment.value,
       hasIntervalModifiers: hasIntervalModifiers.value,
+      intervalModifiers: intervalModifiers.value,
       startDate: startDate.value,
       parameters: ingestrParameters.value,
       columns: columns.value,

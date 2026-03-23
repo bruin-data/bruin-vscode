@@ -84,6 +84,7 @@
         :environments="environments"
         :selectedEnvironment="selectedEnvironment"
         :hasIntervalModifiers="hasIntervalModifiers"
+        :intervalModifiers="props.intervalModifiers"
         :assetType="props.type"
         :parameters="parameters"
         :columns="props.columns || []"
@@ -119,6 +120,7 @@ const props = defineProps<{
   environments: string[];
   selectedEnvironment: string;
   hasIntervalModifiers: boolean;
+  intervalModifiers?: { start?: string | Record<string, number>; end?: string | Record<string, number> };
   parameters?: any;
   columns?: any[];
   tags?: string[];

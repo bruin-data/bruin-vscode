@@ -6,6 +6,7 @@
         :key="index"
         @change="handleCheckboxChange(item, $event)"
         :checked="item.checked"
+        :title="getTooltip(item.name)"
       >
         {{ item.name }}
       </vscode-checkbox>
@@ -20,11 +21,16 @@ import type { CheckboxItems } from "@/types";
 const props = defineProps<{
   checkboxItems: CheckboxItems[];
   label: string;
+  tooltips?: Record<string, string>;
 }>();
 
 const expanded = ref(true);
 
 function handleCheckboxChange(item: any, event: any) {
   item.checked = event.target.checked;
+}
+
+function getTooltip(name: string): string {
+  return props.tooltips?.[name] || '';
 }
 </script>

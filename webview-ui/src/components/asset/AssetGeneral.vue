@@ -24,12 +24,12 @@
                 </div>
               </div>
             </div>
-          </div>
+            </div>
         </div>
 
         <!-- Conditional rendering of CheckboxGroup -->
         <div v-if="showCheckboxGroup">
-          <CheckboxGroup :checkboxItems="checkboxItems" label="Options" />
+          <CheckboxGroup :checkboxItems="checkboxItems" label="Options" :tooltips="checkboxTooltips" />
           <!-- Tag Filter Controls (subtle) -->
           <div class="mt-2 flex items-center gap-2" ref="tagFilterContainer">
             <div class="flex items-center gap-[1px] relative">
@@ -411,6 +411,11 @@ import type { FormattedErrorMessage } from "@/types";
 import { Transition } from "vue";
 import RudderStackService from "@/services/RudderStackService";
 import { useConnectionsStore, usePipelineRunStore } from "@/store/bruinStore";
+import {
+  parseIntervalModifier,
+  applyModifierToDate,
+  formatModifierForDisplay,
+} from "@/utilities/intervalModifiers";
 
 /**
  * Define component props
@@ -421,6 +426,7 @@ const props = defineProps<{
   environments: string[];
   selectedEnvironment: string;
   hasIntervalModifiers: boolean;
+  intervalModifiers?: { start?: string | Record<string, number>; end?: string | Record<string, number> };
   assetType?: string;
   parameters: any;
   columns: any[];
@@ -980,6 +986,77 @@ watch(
   },
   { immediate: true }
 );
+
+// Computed property for modified dates preview
+const modifiedDatesPreview = computed(() => {
+  if (!props.hasIntervalModifiers || !props.intervalModifiers) {
+    return null;
+  }
+
+  const startModifier = parseIntervalModifier(props.intervalModifiers.start);
+  const endModifier = parseIntervalModifier(props.intervalModifiers.end);
+
+  if (!startModifier && !endModifier) {
+    return null;
+  }
+
+  const result: {
+    startModified: string | null;
+    startModifierText: string;
+    endModified: string | null;
+    endModifierText: string;
+  } = {
+    startModified: null,
+    startModifierText: '',
+    endModified: null,
+    endModifierText: '',
+  };
+
+  if (startModifier) {
+    const modifiedStart = applyModifierToDate(startDate.value, startModifier);
+    result.startModified = modifiedStart.toFormat('yyyy-MM-dd HH:mm');
+    result.startModifierText = formatModifierForDisplay(props.intervalModifiers.start);
+  }
+
+  if (endModifier) {
+    const modifiedEnd = applyModifierToDate(endDate.value, endModifier);
+    result.endModified = modifiedEnd.toFormat('yyyy-MM-dd HH:mm');
+    result.endModifierText = formatModifierForDisplay(props.intervalModifiers.end);
+  }
+
+  return result;
+});
+
+// Check if interval modifiers checkbox is checked
+const isIntervalModifiersChecked = computed(() => {
+  return checkboxItems.value.find((item) => item.name === "Interval-modifiers")?.checked || false;
+});
+
+// Generate tooltip text for interval modifiers checkbox
+const intervalModifiersTooltip = computed(() => {
+  const preview = modifiedDatesPreview.value;
+  if (!preview) return '';
+
+  const lines: string[] = [];
+  if (preview.startModified) {
+    lines.push(`Start: ${preview.startModified} (${preview.startModifierText})`);
+  }
+  if (preview.endModified) {
+    lines.push(`End: ${preview.endModified} (${preview.endModifierText})`);
+  }
+
+  if (lines.length === 0) return '';
+  return lines.join('\n');
+});
+
+// Tooltips for checkboxes
+const checkboxTooltips = computed(() => {
+  const tooltips: Record<string, string> = {};
+  if (intervalModifiersTooltip.value) {
+    tooltips['Interval-modifiers'] = intervalModifiersTooltip.value;
+  }
+  return tooltips;
+});
 
 function getCheckboxChangePayload() {
   const effectiveStartDate = startDate.value;
