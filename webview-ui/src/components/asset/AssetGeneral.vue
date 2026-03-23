@@ -1031,7 +1031,7 @@ const language = ref("");
 const code = ref(null);
 onMounted(() => {
   if (props.selectedEnvironment) {
-    selectedEnv.value = props.selectedEnvironment;
+    setSelectedEnv(props.selectedEnvironment);
   }
   const persistedState = vscode.getState() as {
     checkboxState?: { [key: string]: boolean };
@@ -1086,7 +1086,9 @@ onMounted(() => {
 watch(
   () => props.selectedEnvironment,
   (newValue) => {
-    selectedEnv.value = newValue;
+    if (newValue) {
+      setSelectedEnv(newValue);
+    }
   }
 );
 
