@@ -16,6 +16,8 @@ import {
   escapeFilePath,
   runMultipleAssetsInTerminal,
 } from "../bruin";
+import { runBackfillInTerminal } from "../bruin/bruinBackfill";
+import { BackfillConfig } from "../bruin/backfillTypes";
 import { BruinFill } from "../bruin/bruinFill";
 import { BruinLockDependencies } from "../bruin/bruinLockDependencies";
 import { BruinInit } from "../bruin/bruinInit";
@@ -729,6 +731,22 @@ export class BruinPanel {
             }
             // Run multiple assets sequentially in the terminal
             runMultipleAssetsInTerminal(message.payload.assets, message.payload.flags, "bruin");
+            break;
+
+          case "bruin.startBackfill":
+            trackEvent("Command Executed", { command: "startBackfill", source: "extension" });
+            if (!this._lastRenderedDocumentUri) {
+              vscode.window.showErrorMessage("No active document for backfill");
+              return;
+            }
+
+            const backfillConfig: BackfillConfig = {
+              ...message.payload,
+              assetPath: this._lastRenderedDocumentUri.fsPath
+            };
+
+            // Run backfill in terminal (like other run commands)
+            runBackfillInTerminal(backfillConfig);
             break;
 
           case "bruin.getAssetDetails":

@@ -267,6 +267,15 @@
         :fullRefreshEnabled="isFullRefreshChecked" @close="showSelectMultipleAssetsDialog = false"
         @run="handleRunMultipleAssets" />
 
+      <BackfillDialog
+        :isOpen="showBackfillDialog"
+        :initialStartDate="startDate"
+        :initialEndDate="endDate"
+        :environment="selectedEnv"
+        @close="showBackfillDialog = false"
+        @started="showBackfillDialog = false"
+      />
+
       <!-- Selected assets summary (clickable to open panel) -->
       <div v-if="selectedAssetsForRun.length > 0 && !showSelectMultipleAssetsDialog"
         class="mt-2 flex items-center gap-1.5 text-xs min-w-0">
@@ -400,6 +409,7 @@ import ButtonGroup from "@/components/ui/buttons/ButtonGroup.vue";
 import { updateValue, resetStates, determineValidationStatus } from "@/utilities/helper";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/vue";
 import SelectMultipleAssets from "@/components/ui/asset/SelectMultipleAssets.vue";
+import BackfillDialog from "@/components/ui/backfill/BackfillDialog.vue";
 import {
   ChevronDownIcon,
   ChevronUpIcon,
@@ -462,6 +472,7 @@ const showSelectMultipleAssetsDialog = computed({
   get: () => pipelineRunStore.showDialog,
   set: (val) => pipelineRunStore.setShowDialog(val),
 });
+const showBackfillDialog = ref(false);
 const loadingPipelineAssets = ref(false);
 const pipelineAssets = computed(() => props.pipelineAssets || []);
 const selectedAssetsForRun = computed({
@@ -481,6 +492,7 @@ const runDropdownItems = computed(() => [
   { key: 'run-current-pipeline', label: 'Run the whole pipeline' },
   { key: 'run-with-continue', label: 'Continue from last failure' },
   { key: 'run-multiple-assets', label: 'Run multiple assets' },
+  { key: 'run-backfill', label: 'Run backfill...' },
   { key: 'copy-command', label: 'Copy command' },
 ]);
 
@@ -550,6 +562,9 @@ const handleRunDropdown = (key: string) => {
       break;
     case "run-multiple-assets":
       runMultipleAssets();
+      break;
+    case "run-backfill":
+      showBackfillDialog.value = true;
       break;
     case "copy-command":
       copyRunCommand();
