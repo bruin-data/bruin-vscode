@@ -273,7 +273,6 @@
         :initialEndDate="endDate"
         :environment="selectedEnv"
         @close="showBackfillDialog = false"
-        @started="showBackfillDialog = false"
       />
 
       <!-- Selected assets summary (clickable to open panel) -->

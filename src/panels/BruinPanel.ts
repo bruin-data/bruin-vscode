@@ -16,7 +16,7 @@ import {
   escapeFilePath,
   runMultipleAssetsInTerminal,
 } from "../bruin";
-import { runBackfillInTerminal } from "../bruin/bruinBackfill";
+import { runBackfillInTerminal, cancelBackfill } from "../bruin/bruinBackfill";
 import { BackfillConfig } from "../bruin/backfillTypes";
 import { BruinFill } from "../bruin/bruinFill";
 import { BruinLockDependencies } from "../bruin/bruinLockDependencies";
@@ -745,8 +745,12 @@ export class BruinPanel {
               assetPath: this._lastRenderedDocumentUri.fsPath
             };
 
-            // Run backfill in terminal (like other run commands)
+            // Run backfill with progress UI
             runBackfillInTerminal(backfillConfig);
+            break;
+
+          case "bruin.cancelBackfill":
+            cancelBackfill();
             break;
 
           case "bruin.getAssetDetails":

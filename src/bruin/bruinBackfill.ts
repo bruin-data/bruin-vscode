@@ -4,11 +4,8 @@ import {
   BackfillInterval,
   IntervalUnit,
 } from "./backfillTypes";
-import {
-  createIntegratedTerminal,
-  escapeFilePath,
-} from "./bruinUtils";
 import { getBruinExecutablePath } from "../providers/BruinExecutableService";
+import { createIntegratedTerminal, escapeFilePath, shouldUseUnixFormatting } from "./bruinUtils";
 
 /**
  * Advances a date by the specified interval unit and size
@@ -51,8 +48,6 @@ export function splitIntervals(
   while (current < endDate) {
     const intervalStart = new Date(current);
     const intervalEnd = advanceDate(current, intervalUnit, intervalSize);
-
-    // Clamp to endDate
     const effectiveEnd = intervalEnd > endDate ? endDate : intervalEnd;
 
     intervals.push({
@@ -69,16 +64,7 @@ export function splitIntervals(
 }
 
 /**
- * Formats a date for display (YYYY-MM-DD HH:mm)
- */
-function formatDateForDisplay(isoDate: string): string {
-  const date = new Date(isoDate);
-  return date.toISOString().replace("T", " ").substring(0, 16);
-}
-
-/**
- * Runs a backfill operation by sending commands to the integrated terminal.
- * Each interval runs sequentially with status output.
+ * Runs a backfill operation in the integrated terminal
  */
 export async function runBackfillInTerminal(config: BackfillConfig): Promise<void> {
   const intervals = splitIntervals(
@@ -93,67 +79,51 @@ export async function runBackfillInTerminal(config: BackfillConfig): Promise<voi
     return;
   }
 
-  const terminal = await createIntegratedTerminal(undefined);
   const bruinExecutable = getBruinExecutablePath();
+  const escapedAssetPath = escapeFilePath(config.assetPath);
+  const terminal = await createIntegratedTerminal(undefined);
 
+  const useUnixFormatting = shouldUseUnixFormatting(terminal);
   const executable = ((terminal.creationOptions as vscode.TerminalOptions).shellPath?.includes("bash"))
     ? "bruin"
     : bruinExecutable;
 
-  const escapedAssetPath = escapeFilePath(config.assetPath);
+  // Build commands for each interval
+  const commands: string[] = [];
 
-  // Show terminal
-  terminal.show(true);
-
-  // Send header
-  terminal.sendText(`echo ""`);
-  terminal.sendText(`echo "============================================================"`);
-  terminal.sendText(`echo "BACKFILL STARTED"`);
-  terminal.sendText(`echo "============================================================"`);
-  terminal.sendText(`echo "Asset: ${escapedAssetPath}"`);
-  terminal.sendText(`echo "Date Range: ${formatDateForDisplay(config.startDate)} to ${formatDateForDisplay(config.endDate)}"`);
-  terminal.sendText(`echo "Interval: ${config.intervalSize} ${config.intervalUnit}(s)"`);
-  terminal.sendText(`echo "Total Jobs: ${intervals.length}"`);
-  terminal.sendText(`echo "============================================================"`);
-  terminal.sendText(`echo ""`);
-
-  // Run each interval command
   for (const interval of intervals) {
-    const jobNum = interval.index + 1;
-    const totalJobs = intervals.length;
+    const args = ["run"];
 
-    // Build the bruin run command for this interval
-    let runCmd = `${executable} run`;
-    runCmd += ` --start-date ${interval.startDate}`;
-    runCmd += ` --end-date ${interval.endDate}`;
+    args.push("--start-date", interval.startDate);
+    args.push("--end-date", interval.endDate);
 
     if (config.environment) {
-      runCmd += ` --environment ${config.environment}`;
+      args.push("--environment", config.environment);
     }
 
-    if (config.flags) {
-      runCmd += ` ${config.flags}`;
-    }
+    args.push(escapedAssetPath);
 
-    runCmd += ` ${escapedAssetPath}`;
-
-    // Echo job info and run the command
-    terminal.sendText(`echo "[${jobNum}/${totalJobs}] Running: ${formatDateForDisplay(interval.startDate)} to ${formatDateForDisplay(interval.endDate)}"`);
-    terminal.sendText(runCmd);
+    commands.push(`${executable} ${args.join(" ")}`);
   }
 
-  // Send summary header (will appear after all jobs complete)
-  terminal.sendText(`echo ""`);
-  terminal.sendText(`echo "============================================================"`);
-  terminal.sendText(`echo "BACKFILL COMPLETE - ${intervals.length} jobs executed"`);
-  terminal.sendText(`echo "============================================================"`);
-  terminal.sendText(`echo ""`);
+  // Join commands with && so they run sequentially
+  const fullCommand = commands.join(" && ");
+
+  terminal.show(true);
+  terminal.sendText(" ");
+
+  setTimeout(() => {
+    terminal.sendText(fullCommand);
+  }, 500);
 }
+
+// Keep alias for compatibility
+export const runBackfillWithProgress = runBackfillInTerminal;
 
 /**
  * Estimates the number of jobs for a given backfill configuration
  */
-export function estimateBackfillJobs(config: Omit<BackfillConfig, 'assetPath'>): number {
+export function estimateBackfillJobs(config: Omit<BackfillConfig, "assetPath">): number {
   const intervals = splitIntervals(
     new Date(config.startDate),
     new Date(config.endDate),
@@ -161,4 +131,12 @@ export function estimateBackfillJobs(config: Omit<BackfillConfig, 'assetPath'>):
     config.intervalSize
   );
   return intervals.length;
+}
+
+/**
+ * Cancels the current backfill operation (no-op for terminal approach)
+ */
+export function cancelBackfill(): void {
+  // For terminal approach, user can press Ctrl+C in the terminal
+  vscode.window.showInformationMessage("Press Ctrl+C in the terminal to cancel the backfill");
 }

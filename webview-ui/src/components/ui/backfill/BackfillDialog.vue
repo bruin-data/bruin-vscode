@@ -46,7 +46,7 @@
         <!-- Preview info -->
         <div class="text-2xs text-editor-fg opacity-60">
           <span v-if="estimatedJobs > 0">
-            This will create <span class="font-medium text-editor-fg opacity-90">{{ estimatedJobs }}</span> sequential jobs
+            This will run <span class="font-medium text-editor-fg opacity-90">{{ estimatedJobs }}</span> sequential jobs in the terminal
           </span>
           <span v-else-if="!isValid" class="text-editorError-foreground">
             {{ validationError }}
@@ -55,10 +55,7 @@
       </div>
 
       <!-- Footer -->
-      <div class="flex items-center justify-between px-2 py-1.5 bg-editorWidget-bg border-t border-commandCenter-border">
-        <span class="text-2xs text-editor-fg opacity-50">
-          Output shown in terminal
-        </span>
+      <div class="flex items-center justify-end px-2 py-1.5 bg-editorWidget-bg border-t border-commandCenter-border">
         <vscode-button @click="startBackfill" :disabled="!isValid || estimatedJobs === 0" class="text-xs h-6">
           <div class="flex items-center justify-center">
             <span class="codicon codicon-play mr-1"></span>
@@ -93,7 +90,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'close'): void;
-  (e: 'started'): void;
 }>();
 
 // Initialize dates to yesterday and today
@@ -123,9 +119,7 @@ const validationError = computed(() => {
   return '';
 });
 
-const isValid = computed(() => {
-  return validationError.value === '';
-});
+const isValid = computed(() => validationError.value === '');
 
 const estimatedJobs = computed(() => {
   if (!isValid.value) return 0;
@@ -138,8 +132,8 @@ const estimatedJobs = computed(() => {
     hour: 3600000,
     day: 86400000,
     week: 604800000,
-    month: 2592000000, // ~30 days
-    year: 31536000000, // 365 days
+    month: 2592000000,
+    year: 31536000000,
   };
 
   const intervalMs = unitMs[config.value.intervalUnit] * config.value.intervalSize;
@@ -160,16 +154,15 @@ const startBackfill = () => {
     },
   });
 
-  emit('started');
+  // Close the dialog - backfill will run in terminal
   emit('close');
 };
 
-// Reset state when dialog opens
+// Update config when props change
 watch(
   () => props.isOpen,
   (isOpen) => {
     if (isOpen) {
-      // Use provided dates or defaults
       if (props.initialStartDate) {
         config.value.startDate = props.initialStartDate;
       }
