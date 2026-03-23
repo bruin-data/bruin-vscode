@@ -52,6 +52,12 @@ export class BruinExportQueryOutput extends BruinCommand {
     // Construct base flags dynamically
     this.isLoading = true;
     this.postMessageToPanels("export-loading", this.isLoading);
+
+    // Cancel any existing export for this tab before starting a new one
+    if (tabId) {
+      BruinExportQueryOutput.cancelExport(tabId);
+    }
+
     const constructedFlags = ["-export"];
 
     const hasExplicitQuery = query && query.trim().length > 0;
