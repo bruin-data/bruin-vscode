@@ -1,4 +1,7 @@
 # Changelog
+## [0.79.5] - [2026-03-23]
+- Added interval modifiers preview tooltip: hover over the "Interval-modifiers" checkbox to see how start/end dates will be modified.
+
 ## [0.79.4] - [2026-03-23]
 - Fixed "Fill from DB" to use the selected environment instead of the default environment.
 - Fixed start date input to remain enabled when "Full Refresh" is selected.
