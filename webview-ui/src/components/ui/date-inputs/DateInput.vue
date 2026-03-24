@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col w-full min-w-0">
+  <div class="flex flex-col w-full xs:min-w-32 max-w-40">
     <label class="text-xs text-editor-fg mb-1 font-medium whitespace-nowrap">
       {{ label }}
       <span class="text-3xs italic font-mono opacity-65 text-editor-fg">(UTC)</span>
@@ -15,23 +15,23 @@
         placeholder="YYYY-MM-DD HH:mm"
         :class="[
           { 'border-red-500': error, 'opacity-50 cursor-not-allowed': disabled },
-          align === 'left' ? 'pl-6 pr-1' : 'pl-1 pr-6'
+          align === 'left' ? 'pl-6 pr-1' : 'px-1 pr-6'
         ]"
         :disabled="disabled"
       />
       <input
         type="datetime-local"
         ref="dateTimeInput"
-        class="absolute w-4 h-4 opacity-0 cursor-pointer datetime-input"
+        class="absolute w-4 h-4 opacity-0 cursor-pointer"
         :class="align === 'left' ? 'left-0' : 'right-0'"
         :value="utcModelValue"
         @input="updateFromPicker"
         :disabled="disabled"
       />
       <div
-        class="absolute"
+        class="absolute pointer-events-none"
         :class="[
-          disabled ? 'pointer-events-none opacity-50' : 'pointer-events-none',
+          { 'opacity-50': disabled },
           align === 'left' ? 'left-1' : 'right-1'
         ]"
         @click.stop="openPicker"
@@ -157,7 +157,7 @@ const openPicker = () => {
 </script>
 
 <style scoped>
-input[type="datetime-local"].datetime-input {
+input[type="datetime-local"] {
   position: absolute;
   top: 0;
   bottom: 0;
@@ -166,16 +166,6 @@ input[type="datetime-local"].datetime-input {
   border: none;
   cursor: pointer;
   z-index: 1;
-}
-
-input[type="datetime-local"].datetime-input.left-0 {
-  left: 0;
-  right: auto;
-}
-
-input[type="datetime-local"].datetime-input.right-0 {
-  right: 0;
-  left: auto;
 }
 
 .border-red-500 {
