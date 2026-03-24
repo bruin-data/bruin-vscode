@@ -9,11 +9,13 @@
           <EnvSelectMenu :options="environments" @selected-env="setSelectedEnv"
             :selectedEnvironment="selectedEnvironment" class="flex-shrink-0" />
           <!-- Date Controls and Checkbox Group -->
-          <div id="controls" class="flex flex-col xs:w-1/2">
-            <div class="flex flex-col xs:flex-row gap-1 w-full justify-between xs:justify-end">
-              <DateInput label="Start Date" v-model="startDate" />
-              <DateInput label="End Date" v-model="endDate" />
-              <div class="flex items-center gap-1 self-start xs:self-end">
+          <div id="controls" class="flex flex-col xs:w-auto xs:flex-1">
+            <div class="flex flex-col xs:flex-row gap-2 w-full xs:justify-end xs:items-end">
+              <div class="grid grid-cols-2 xs:flex xs:flex-row gap-2 w-full xs:w-auto">
+                <DateInput label="Start Date" v-model="startDate" class="xs:w-36" />
+                <DateInput label="End Date" v-model="endDate" align="left" class="xs:w-36" />
+              </div>
+              <div class="flex items-center gap-1 self-start xs:self-end mt-1 xs:mt-0">
                 <button type="button" @click="resetDatesOnSchedule" :title="`Reset Start and End Date`"
                   class="rounded-sm bg-editor-button-bg p-1 text-editor-button-fg hover:bg-editor-button-hover-bg disabled:opacity-50 disabled:cursor-not-allowed">
                   <ArrowPathRoundedSquareIcon class="h-3 w-3" aria-hidden="true" />
