@@ -426,7 +426,7 @@ const props = defineProps<{
   environments: string[];
   selectedEnvironment: string;
   hasIntervalModifiers: boolean;
-  intervalModifiers?: { start?: string | Record<string, number>; end?: string | Record<string, number> };
+  intervalModifiers?: { start?: string; end?: string };
   assetType?: string;
   parameters: any;
   columns: any[];

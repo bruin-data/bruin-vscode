@@ -11,87 +11,57 @@ describe("parseIntervalModifier", () => {
     expect(parseIntervalModifier(null)).toBeNull();
   });
 
-  test("returns null for zero number", () => {
-    expect(parseIntervalModifier(0)).toBeNull();
+  test("returns null for empty string", () => {
+    expect(parseIntervalModifier("")).toBeNull();
   });
 
-  test("parses number as cron_periods", () => {
-    expect(parseIntervalModifier(5)).toEqual({ cron_periods: 5 });
-    expect(parseIntervalModifier(-3)).toEqual({ cron_periods: -3 });
+  test("parses days", () => {
+    expect(parseIntervalModifier("-13d")).toEqual({ value: -13, unit: "days" });
+    expect(parseIntervalModifier("5d")).toEqual({ value: 5, unit: "days" });
   });
 
-  test("parses string format with days", () => {
-    expect(parseIntervalModifier("-13d")).toEqual({ days: -13 });
-    expect(parseIntervalModifier("5d")).toEqual({ days: 5 });
+  test("parses hours", () => {
+    expect(parseIntervalModifier("-2h")).toEqual({ value: -2, unit: "hours" });
+    expect(parseIntervalModifier("24h")).toEqual({ value: 24, unit: "hours" });
   });
 
-  test("parses string format with hours", () => {
-    expect(parseIntervalModifier("-2h")).toEqual({ hours: -2 });
-    expect(parseIntervalModifier("24h")).toEqual({ hours: 24 });
+  test("parses minutes", () => {
+    expect(parseIntervalModifier("-30m")).toEqual({ value: -30, unit: "minutes" });
+    expect(parseIntervalModifier("15m")).toEqual({ value: 15, unit: "minutes" });
   });
 
-  test("parses string format with weeks", () => {
-    expect(parseIntervalModifier("-1w")).toEqual({ weeks: -1 });
-    expect(parseIntervalModifier("2w")).toEqual({ weeks: 2 });
+  test("parses seconds", () => {
+    expect(parseIntervalModifier("-60s")).toEqual({ value: -60, unit: "seconds" });
+    expect(parseIntervalModifier("30s")).toEqual({ value: 30, unit: "seconds" });
   });
 
-  test("parses string format with months (M)", () => {
-    expect(parseIntervalModifier("-1M")).toEqual({ months: -1 });
-    expect(parseIntervalModifier("3M")).toEqual({ months: 3 });
+  test("parses months (uppercase M)", () => {
+    expect(parseIntervalModifier("-1M")).toEqual({ value: -1, unit: "months" });
+    expect(parseIntervalModifier("3M")).toEqual({ value: 3, unit: "months" });
   });
 
-  test("parses string format with minutes (m)", () => {
-    expect(parseIntervalModifier("-30m")).toEqual({ minutes: -30 });
+  test("parses milliseconds (two-char suffix)", () => {
+    expect(parseIntervalModifier("500ms")).toEqual({ value: 500, unit: "milliseconds" });
+    expect(parseIntervalModifier("-100ms")).toEqual({ value: -100, unit: "milliseconds" });
   });
 
-  test("parses string format with seconds (s)", () => {
-    expect(parseIntervalModifier("-60s")).toEqual({ seconds: -60 });
+  test("parses nanoseconds (two-char suffix)", () => {
+    expect(parseIntervalModifier("1000ns")).toEqual({ value: 1000, unit: "nanoseconds" });
+    expect(parseIntervalModifier("-500ns")).toEqual({ value: -500, unit: "nanoseconds" });
   });
 
-  test("returns null for invalid string", () => {
+  test("returns null for invalid format", () => {
     expect(parseIntervalModifier("invalid")).toBeNull();
     expect(parseIntervalModifier("13")).toBeNull();
     expect(parseIntervalModifier("d13")).toBeNull();
+    expect(parseIntervalModifier("13x")).toBeNull();
   });
 
-  test("parses object format with days", () => {
-    expect(parseIntervalModifier({ days: -13 })).toEqual({ days: -13 });
-    expect(parseIntervalModifier({ days: 5 })).toEqual({ days: 5 });
-  });
-
-  test("parses object format with hours", () => {
-    expect(parseIntervalModifier({ hours: -2 })).toEqual({ hours: -2 });
-    expect(parseIntervalModifier({ hours: 24 })).toEqual({ hours: 24 });
-  });
-
-  test("parses object format with months", () => {
-    expect(parseIntervalModifier({ months: -1 })).toEqual({ months: -1 });
-  });
-
-  test("parses object format with minutes", () => {
-    expect(parseIntervalModifier({ minutes: -30 })).toEqual({ minutes: -30 });
-  });
-
-  test("parses object format with seconds", () => {
-    expect(parseIntervalModifier({ seconds: -60 })).toEqual({ seconds: -60 });
-  });
-
-  test("parses object format with cron_periods", () => {
-    expect(parseIntervalModifier({ cron_periods: 2 })).toEqual({ cron_periods: 2 });
-  });
-
-  test("returns null for object with all zero values", () => {
-    expect(parseIntervalModifier({ days: 0 })).toBeNull();
-    expect(parseIntervalModifier({ hours: 0, days: 0 })).toBeNull();
-  });
-
-  test("parses object with multiple non-zero fields (matches CLI)", () => {
-    expect(parseIntervalModifier({ days: -13, hours: 5 })).toEqual({ days: -13, hours: 5 });
-    expect(parseIntervalModifier({ months: 1, days: -5, hours: 2 })).toEqual({ months: 1, days: -5, hours: 2 });
-  });
-
-  test("ignores zero fields in multi-field object", () => {
-    expect(parseIntervalModifier({ days: 0, hours: 5 })).toEqual({ hours: 5 });
+  test("returns null for non-string input", () => {
+    // @ts-expect-error Testing invalid input
+    expect(parseIntervalModifier(123)).toBeNull();
+    // @ts-expect-error Testing invalid input
+    expect(parseIntervalModifier({ days: -13 })).toBeNull();
   });
 });
 
@@ -99,53 +69,38 @@ describe("applyModifierToDate", () => {
   const baseDate = "2025-03-15T12:00:00.000Z";
 
   test("applies days modifier", () => {
-    const result = applyModifierToDate(baseDate, { days: -13 });
+    const result = applyModifierToDate(baseDate, { value: -13, unit: "days" });
     expect(result.toISO()).toBe("2025-03-02T12:00:00.000Z");
   });
 
   test("applies positive days modifier", () => {
-    const result = applyModifierToDate(baseDate, { days: 5 });
+    const result = applyModifierToDate(baseDate, { value: 5, unit: "days" });
     expect(result.toISO()).toBe("2025-03-20T12:00:00.000Z");
   });
 
   test("applies hours modifier", () => {
-    const result = applyModifierToDate(baseDate, { hours: -2 });
+    const result = applyModifierToDate(baseDate, { value: -2, unit: "hours" });
     expect(result.toISO()).toBe("2025-03-15T10:00:00.000Z");
   });
 
-  test("applies weeks modifier", () => {
-    const result = applyModifierToDate(baseDate, { weeks: -1 });
-    expect(result.toISO()).toBe("2025-03-08T12:00:00.000Z");
-  });
-
   test("applies months modifier", () => {
-    const result = applyModifierToDate(baseDate, { months: -1 });
+    const result = applyModifierToDate(baseDate, { value: -1, unit: "months" });
     expect(result.toISO()).toBe("2025-02-15T12:00:00.000Z");
   });
 
   test("applies minutes modifier", () => {
-    const result = applyModifierToDate(baseDate, { minutes: -30 });
+    const result = applyModifierToDate(baseDate, { value: -30, unit: "minutes" });
     expect(result.toISO()).toBe("2025-03-15T11:30:00.000Z");
   });
 
   test("applies seconds modifier", () => {
-    const result = applyModifierToDate(baseDate, { seconds: -60 });
+    const result = applyModifierToDate(baseDate, { value: -60, unit: "seconds" });
     expect(result.toISO()).toBe("2025-03-15T11:59:00.000Z");
   });
 
-  test("cron_periods modifier returns unchanged date", () => {
-    const result = applyModifierToDate(baseDate, { cron_periods: 2 });
-    expect(result.toISO()).toBe("2025-03-15T12:00:00.000Z");
-  });
-
-  test("applies multiple modifiers at once (matches CLI)", () => {
-    const result = applyModifierToDate(baseDate, { days: -13, hours: 5 });
-    expect(result.toISO()).toBe("2025-03-02T17:00:00.000Z");
-  });
-
-  test("applies months and days together", () => {
-    const result = applyModifierToDate(baseDate, { months: -1, days: -5 });
-    expect(result.toISO()).toBe("2025-02-10T12:00:00.000Z");
+  test("applies milliseconds modifier", () => {
+    const result = applyModifierToDate(baseDate, { value: 500, unit: "milliseconds" });
+    expect(result.toISO()).toBe("2025-03-15T12:00:00.500Z");
   });
 });
 
@@ -156,39 +111,40 @@ describe("formatModifierForDisplay", () => {
   });
 
   test("formats negative days", () => {
-    expect(formatModifierForDisplay({ days: -13 })).toBe("-13 days");
+    expect(formatModifierForDisplay("-13d")).toBe("-13 days");
   });
 
   test("formats positive days with plus sign", () => {
-    expect(formatModifierForDisplay({ days: 5 })).toBe("+5 days");
+    expect(formatModifierForDisplay("5d")).toBe("+5 days");
   });
 
   test("formats singular day", () => {
-    expect(formatModifierForDisplay({ days: 1 })).toBe("+1 day");
-    expect(formatModifierForDisplay({ days: -1 })).toBe("-1 day");
+    expect(formatModifierForDisplay("1d")).toBe("+1 day");
+    expect(formatModifierForDisplay("-1d")).toBe("-1 day");
   });
 
   test("formats hours", () => {
-    expect(formatModifierForDisplay({ hours: -2 })).toBe("-2 hours");
-    expect(formatModifierForDisplay({ hours: 1 })).toBe("+1 hour");
+    expect(formatModifierForDisplay("-2h")).toBe("-2 hours");
+    expect(formatModifierForDisplay("1h")).toBe("+1 hour");
   });
 
-  test("formats string input", () => {
-    expect(formatModifierForDisplay("-13d")).toBe("-13 days");
-    expect(formatModifierForDisplay("5h")).toBe("+5 hours");
+  test("formats minutes", () => {
+    expect(formatModifierForDisplay("-30m")).toBe("-30 minutes");
+    expect(formatModifierForDisplay("1m")).toBe("+1 minute");
   });
 
-  test("formats number input (periods)", () => {
-    expect(formatModifierForDisplay(2)).toBe("+2 periods");
-    expect(formatModifierForDisplay(-1)).toBe("-1 period");
+  test("formats months", () => {
+    expect(formatModifierForDisplay("-1M")).toBe("-1 month");
+    expect(formatModifierForDisplay("3M")).toBe("+3 months");
   });
 
-  test("formats multiple fields in order", () => {
-    expect(formatModifierForDisplay({ days: -13, hours: 5 })).toBe("-13 days, +5 hours");
-    expect(formatModifierForDisplay({ months: 1, days: -5 })).toBe("+1 month, -5 days");
+  test("formats milliseconds", () => {
+    expect(formatModifierForDisplay("500ms")).toBe("+500 milliseconds");
+    expect(formatModifierForDisplay("-100ms")).toBe("-100 milliseconds");
   });
 
-  test("formats fields in correct order (months, weeks, days, hours, minutes, seconds)", () => {
-    expect(formatModifierForDisplay({ hours: 2, months: 1, days: -5 })).toBe("+1 month, -5 days, +2 hours");
+  test("formats nanoseconds", () => {
+    expect(formatModifierForDisplay("1000ns")).toBe("+1000 nanoseconds");
+    expect(formatModifierForDisplay("-1ns")).toBe("-1 nanosecond");
   });
 });
