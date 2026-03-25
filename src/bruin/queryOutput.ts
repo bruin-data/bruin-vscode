@@ -91,11 +91,13 @@ export class BruinQueryOutput extends BruinCommand {
     console.log("Final CLI command: bruin query", finalFlags.join(" "));
 
     let consoleMessages: Array<{type: 'stdout' | 'stderr' | 'info', message: string, timestamp: string}> = [];
-    
+    let currentProcess: child_process.ChildProcess | undefined;
+
     try {
       const { promise, process, consoleMessages: cmdConsoleMessages } = this.runCancellable(finalFlags, { ignoresErrors });
+      currentProcess = process;
       consoleMessages = cmdConsoleMessages; // Store console messages for use in catch block
-      
+
       // Store the process for potential cancellation
       if (tabId) {
         BruinQueryOutput.runningProcesses.set(tabId, process);
@@ -119,9 +121,10 @@ export class BruinQueryOutput extends BruinCommand {
       }
       this.postMessageToPanels("success", result, tabId, consoleMessages);
     } catch (error: any) {
-      // Check if a newer query has started for this tab - if so, skip cleanup messages
-      // to avoid overwriting the new query's UI state
-      const newerQueryStarted = tabId && BruinQueryOutput.runningProcesses.has(tabId);
+      // Check if a newer query has started for this tab by comparing process references
+      // (not just existence - our own errored process would still be in the map)
+      const processInMap = tabId ? BruinQueryOutput.runningProcesses.get(tabId) : undefined;
+      const newerQueryStarted = processInMap !== undefined && processInMap !== currentProcess;
 
       // Only delete from tracking if no newer query has taken over
       if (tabId && !newerQueryStarted) {
@@ -151,7 +154,8 @@ export class BruinQueryOutput extends BruinCommand {
     }
     finally {
       // Skip posting loading:false if a newer query has started
-      const newerQueryStarted = tabId && BruinQueryOutput.runningProcesses.has(tabId);
+      const processInMap = tabId ? BruinQueryOutput.runningProcesses.get(tabId) : undefined;
+      const newerQueryStarted = processInMap !== undefined && processInMap !== currentProcess;
       if (!newerQueryStarted) {
         this.isLoading = false;
         this.postMessageToPanels("loading", this.isLoading, tabId, []);

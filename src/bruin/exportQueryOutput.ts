@@ -91,6 +91,8 @@ export class BruinExportQueryOutput extends BruinCommand {
     // Use provided flags or fallback to constructed flags
     const finalFlags = flags.length > 0 ? flags : constructedFlags;
 
+    let currentProcess: child_process.ChildProcess | undefined;
+
     try {
       // Cancel any existing export for this tab right before starting a new one
       // (moved here to minimize async gap - no awaits between cancel and process registration)
@@ -99,6 +101,7 @@ export class BruinExportQueryOutput extends BruinCommand {
       }
 
       const { promise, process } = this.runCancellable(finalFlags, { ignoresErrors });
+      currentProcess = process;
 
       // Store the process for potential cancellation immediately after spawning
       if (tabId) {
@@ -144,9 +147,10 @@ export class BruinExportQueryOutput extends BruinCommand {
       }
       this.postMessageToPanels("success", message);
     } catch (error: any) {
-      // Check if a newer export has started for this tab - if so, skip cleanup messages
-      // to avoid overwriting the new export's UI state
-      const newerExportStarted = tabId && BruinExportQueryOutput.runningProcesses.has(tabId);
+      // Check if a newer export has started by comparing process references
+      // (not just existence - our own errored process would still be in the map)
+      const processInMap = tabId ? BruinExportQueryOutput.runningProcesses.get(tabId) : undefined;
+      const newerExportStarted = processInMap !== undefined && processInMap !== currentProcess;
 
       // Only delete from tracking if no newer export has taken over
       if (tabId && !newerExportStarted) {
@@ -171,7 +175,8 @@ export class BruinExportQueryOutput extends BruinCommand {
       }
     } finally {
       // Skip posting loading:false if a newer export has started
-      const newerExportStarted = tabId && BruinExportQueryOutput.runningProcesses.has(tabId);
+      const processInMap = tabId ? BruinExportQueryOutput.runningProcesses.get(tabId) : undefined;
+      const newerExportStarted = processInMap !== undefined && processInMap !== currentProcess;
       if (!newerExportStarted) {
         this.isLoading = false;
         this.postMessageToPanels("export-loading", this.isLoading);
