@@ -34,6 +34,10 @@ export class BruinValidate extends BruinCommand {
   ): Promise<void> {
     if (BruinValidate.isLoading) {
       console.log("Validation already in progress, skipping.");
+      BruinPanel.postMessage("validation-message", {
+        status: "info",
+        message: "Validation already in progress, please wait...",
+      });
       return;
     }
     BruinValidate.isLoading = true;

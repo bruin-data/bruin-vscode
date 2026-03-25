@@ -119,16 +119,26 @@ export class BruinQueryOutput extends BruinCommand {
       }
       this.postMessageToPanels("success", result, tabId, consoleMessages);
     } catch (error: any) {
-      // Remove process from tracking on error
-      if (tabId) {
+      // Check if a newer query has started for this tab - if so, skip cleanup messages
+      // to avoid overwriting the new query's UI state
+      const newerQueryStarted = tabId && BruinQueryOutput.runningProcesses.has(tabId);
+
+      // Only delete from tracking if no newer query has taken over
+      if (tabId && !newerQueryStarted) {
         BruinQueryOutput.runningProcesses.delete(tabId);
       }
-      
+
       console.error("Error occurred while running query:", error);
+
+      // Skip posting messages if a newer query is running
+      if (newerQueryStarted) {
+        return;
+      }
+
       const errorMessage = error.message || error.toString();
-      
+
       // Use the console messages we captured before the error occurred
-      if (errorMessage.includes("Command was cancelled") || 
+      if (errorMessage.includes("Command was cancelled") ||
           errorMessage.includes("context canceled") ||
           errorMessage.includes("query execution failed: failed to initiate query read: context canceled")) {
         this.postMessageToPanels("cancelled", "Query cancelled by user.", tabId, consoleMessages);
@@ -140,8 +150,12 @@ export class BruinQueryOutput extends BruinCommand {
       }
     }
     finally {
-      this.isLoading = false;
-      this.postMessageToPanels("loading", this.isLoading, tabId, []);
+      // Skip posting loading:false if a newer query has started
+      const newerQueryStarted = tabId && BruinQueryOutput.runningProcesses.has(tabId);
+      if (!newerQueryStarted) {
+        this.isLoading = false;
+        this.postMessageToPanels("loading", this.isLoading, tabId, []);
+      }
     }
   }
 

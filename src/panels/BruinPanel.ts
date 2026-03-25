@@ -1652,6 +1652,8 @@ export class BruinPanel {
       }
     } catch (error) {
       console.error("_performAssetDetection: Error in asset detection flow:", error);
+      // Only update UI if this is still the current detection request
+      // (prevents stale error handlers from clearing the UI for a newer file)
       if (this._assetDetectionGeneration !== generation) { return; }
       // On error, clear convert message to prevent stale UI
       this._panel.webview.postMessage({

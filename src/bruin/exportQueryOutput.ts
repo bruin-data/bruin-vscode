@@ -53,11 +53,6 @@ export class BruinExportQueryOutput extends BruinCommand {
     this.isLoading = true;
     this.postMessageToPanels("export-loading", this.isLoading);
 
-    // Cancel any existing export for this tab before starting a new one
-    if (tabId) {
-      BruinExportQueryOutput.cancelExport(tabId);
-    }
-
     const constructedFlags = ["-export"];
 
     const hasExplicitQuery = query && query.trim().length > 0;
@@ -97,9 +92,15 @@ export class BruinExportQueryOutput extends BruinCommand {
     const finalFlags = flags.length > 0 ? flags : constructedFlags;
 
     try {
+      // Cancel any existing export for this tab right before starting a new one
+      // (moved here to minimize async gap - no awaits between cancel and process registration)
+      if (tabId) {
+        BruinExportQueryOutput.cancelExport(tabId);
+      }
+
       const { promise, process } = this.runCancellable(finalFlags, { ignoresErrors });
 
-      // Store the process for potential cancellation
+      // Store the process for potential cancellation immediately after spawning
       if (tabId) {
         BruinExportQueryOutput.runningProcesses.set(tabId, process);
       }
@@ -143,12 +144,22 @@ export class BruinExportQueryOutput extends BruinCommand {
       }
       this.postMessageToPanels("success", message);
     } catch (error: any) {
-      // Remove process from tracking on error
-      if (tabId) {
+      // Check if a newer export has started for this tab - if so, skip cleanup messages
+      // to avoid overwriting the new export's UI state
+      const newerExportStarted = tabId && BruinExportQueryOutput.runningProcesses.has(tabId);
+
+      // Only delete from tracking if no newer export has taken over
+      if (tabId && !newerExportStarted) {
         BruinExportQueryOutput.runningProcesses.delete(tabId);
       }
 
       console.error("Error occurred while exporting query results:", error);
+
+      // Skip posting messages if a newer export is running
+      if (newerExportStarted) {
+        return;
+      }
+
       const errorMessage = error.message || error.toString();
 
       // Check if the export was cancelled
@@ -159,8 +170,12 @@ export class BruinExportQueryOutput extends BruinCommand {
         this.postMessageToPanels("error", errorMessage);
       }
     } finally {
-      this.isLoading = false;
-      this.postMessageToPanels("export-loading", this.isLoading);
+      // Skip posting loading:false if a newer export has started
+      const newerExportStarted = tabId && BruinExportQueryOutput.runningProcesses.has(tabId);
+      if (!newerExportStarted) {
+        this.isLoading = false;
+        this.postMessageToPanels("export-loading", this.isLoading);
+      }
     }
   }
 
