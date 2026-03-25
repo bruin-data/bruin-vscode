@@ -807,6 +807,7 @@ suite("BruinValidate Tests", () => {
   });
 
   teardown(() => {
+    BruinValidate.isLoading = false;
     sinon.restore();
   });
 
@@ -854,7 +855,7 @@ suite("BruinValidate Tests", () => {
 
     // Assert loading state before completion
     assert.strictEqual(
-      bruinValidate.isLoading,
+      BruinValidate.isLoading,
       true,
       "Loading state should be true during validation"
     );
@@ -863,7 +864,7 @@ suite("BruinValidate Tests", () => {
 
     // Assert loading state after completion
     assert.strictEqual(
-      bruinValidate.isLoading,
+      BruinValidate.isLoading,
       false,
       "Loading state should be false after validation"
     );
@@ -889,7 +890,7 @@ suite("BruinValidate Tests", () => {
     await bruinValidate.validate(filePath);
 
     assert.strictEqual(
-      bruinValidate.isLoading,
+      BruinValidate.isLoading,
       false,
       "Loading state should be false after validation"
     );

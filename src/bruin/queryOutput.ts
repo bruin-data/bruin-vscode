@@ -42,6 +42,12 @@ export class BruinQueryOutput extends BruinCommand {
     // Construct base flags dynamically
     this.isLoading = true;
     this.postMessageToPanels("loading", this.isLoading, tabId);
+
+    // Cancel any existing query for this tab before starting a new one
+    if (tabId) {
+      BruinQueryOutput.cancelQuery(tabId);
+    }
+
     const constructedFlags = ["-o", "json"];
 
     if (connectionName && query) {
@@ -85,11 +91,13 @@ export class BruinQueryOutput extends BruinCommand {
     console.log("Final CLI command: bruin query", finalFlags.join(" "));
 
     let consoleMessages: Array<{type: 'stdout' | 'stderr' | 'info', message: string, timestamp: string}> = [];
-    
+    let currentProcess: child_process.ChildProcess | undefined;
+
     try {
       const { promise, process, consoleMessages: cmdConsoleMessages } = this.runCancellable(finalFlags, { ignoresErrors });
+      currentProcess = process;
       consoleMessages = cmdConsoleMessages; // Store console messages for use in catch block
-      
+
       // Store the process for potential cancellation
       if (tabId) {
         BruinQueryOutput.runningProcesses.set(tabId, process);
@@ -113,16 +121,27 @@ export class BruinQueryOutput extends BruinCommand {
       }
       this.postMessageToPanels("success", result, tabId, consoleMessages);
     } catch (error: any) {
-      // Remove process from tracking on error
-      if (tabId) {
+      // Check if a newer query has started for this tab by comparing process references
+      // (not just existence - our own errored process would still be in the map)
+      const processInMap = tabId ? BruinQueryOutput.runningProcesses.get(tabId) : undefined;
+      const newerQueryStarted = processInMap !== undefined && processInMap !== currentProcess;
+
+      // Only delete from tracking if no newer query has taken over
+      if (tabId && !newerQueryStarted) {
         BruinQueryOutput.runningProcesses.delete(tabId);
       }
-      
+
       console.error("Error occurred while running query:", error);
+
+      // Skip posting messages if a newer query is running
+      if (newerQueryStarted) {
+        return;
+      }
+
       const errorMessage = error.message || error.toString();
-      
+
       // Use the console messages we captured before the error occurred
-      if (errorMessage.includes("Command was cancelled") || 
+      if (errorMessage.includes("Command was cancelled") ||
           errorMessage.includes("context canceled") ||
           errorMessage.includes("query execution failed: failed to initiate query read: context canceled")) {
         this.postMessageToPanels("cancelled", "Query cancelled by user.", tabId, consoleMessages);
@@ -134,8 +153,13 @@ export class BruinQueryOutput extends BruinCommand {
       }
     }
     finally {
-      this.isLoading = false;
-      this.postMessageToPanels("loading", this.isLoading, tabId, []);
+      // Skip posting loading:false if a newer query has started
+      const processInMap = tabId ? BruinQueryOutput.runningProcesses.get(tabId) : undefined;
+      const newerQueryStarted = processInMap !== undefined && processInMap !== currentProcess;
+      if (!newerQueryStarted) {
+        this.isLoading = false;
+        this.postMessageToPanels("loading", this.isLoading, tabId, []);
+      }
     }
   }
 

@@ -5,11 +5,8 @@ import { buildRenderFlags } from "../../utilities/helperUtils";
 import { getBruinExecutablePath } from "../../providers/BruinExecutableService";
 
 export const renderCommand = async (extensionUri: vscode.Uri) => {
-  // Always render the panel, even if no active editor
-  BruinPanel.render(extensionUri);
-
   const activeEditor = vscode.window.activeTextEditor;
-  
+
   // Always render the panel
   BruinPanel.render(extensionUri);
   

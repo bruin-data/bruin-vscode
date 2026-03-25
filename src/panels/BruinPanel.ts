@@ -84,6 +84,7 @@ export class BruinPanel {
   private _lastRenderedDocumentUri: Uri | undefined;
   private _flags: string = "";
   private _assetDetectionDebounceTimer: NodeJS.Timeout | undefined;
+  private _assetDetectionGeneration: number = 0;
   private _renderDebounceTimer: NodeJS.Timeout | undefined;
   private _cliInstalled: boolean | null = null;
   private _initialSettingsOnlyMode: boolean = false;
@@ -1573,23 +1574,26 @@ export class BruinPanel {
       clearTimeout(this._assetDetectionDebounceTimer);
     }
 
+    // Increment generation to invalidate any in-flight detection
+    const generation = ++this._assetDetectionGeneration;
+
     const isFileSwitch = this._lastRenderedDocumentUri?.fsPath !== filePath;
-    
+
     if (isFileSwitch) {
-      await this._performAssetDetection(filePath, fileUri);
+      await this._performAssetDetection(filePath, fileUri, generation);
     } else {
       this._assetDetectionDebounceTimer = setTimeout(async () => {
         if (window.activeTextEditor?.document.uri.fsPath === filePath) {
-          await this._performAssetDetection(filePath, fileUri);
+          await this._performAssetDetection(filePath, fileUri, generation);
         }
       }, 500);
     }
   }
 
-  private async _performAssetDetection(filePath: string, fileUri: Uri): Promise<void> {
+  private async _performAssetDetection(filePath: string, fileUri: Uri, generation: number): Promise<void> {
     try {
       console.log("_performAssetDetection: Starting detection for", filePath);
-      
+
       // Check for config files first (highest priority)
       const isConfigFile =
         filePath.endsWith("pipeline.yml") ||
@@ -1598,6 +1602,7 @@ export class BruinPanel {
         filePath.endsWith(".bruin.yaml");
 
       if (isConfigFile) {
+        if (this._assetDetectionGeneration !== generation) { return; }
         console.log("_performAssetDetection: File is a config file", filePath);
         this._panel.webview.postMessage({
           command: "clear-convert-message",
@@ -1612,6 +1617,7 @@ export class BruinPanel {
       }
 
       const isAsset = await this._isAssetFile(filePath);
+      if (this._assetDetectionGeneration !== generation) { return; }
       console.log("_performAssetDetection: CLI determined file is an asset:", filePath, isAsset);
       if (isAsset) {
         this._panel.webview.postMessage({
@@ -1628,6 +1634,7 @@ export class BruinPanel {
 
       // Only check for conversion if it's NOT an asset and NOT a config file
       const inAssetsFolder = await this._isInAssetsFolder(filePath);
+      if (this._assetDetectionGeneration !== generation) { return; }
       const fileExt = this._getFileExtension(filePath);
       const isSupportedFileType = ["yml", "yaml", "py", "sql"].includes(fileExt);
 
@@ -1650,6 +1657,9 @@ export class BruinPanel {
       }
     } catch (error) {
       console.error("_performAssetDetection: Error in asset detection flow:", error);
+      // Only update UI if this is still the current detection request
+      // (prevents stale error handlers from clearing the UI for a newer file)
+      if (this._assetDetectionGeneration !== generation) { return; }
       // On error, clear convert message to prevent stale UI
       this._panel.webview.postMessage({
         command: "clear-convert-message",

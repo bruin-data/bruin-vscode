@@ -15,7 +15,7 @@ export class BruinValidate extends BruinCommand {
     return "validate";
   }
 
-  public isLoading: boolean = false;
+  public static isLoading: boolean = false;
 
   /**
    * Validates a Bruin Asset based on it's path with optional flags and error handling.
@@ -32,7 +32,15 @@ export class BruinValidate extends BruinCommand {
     excludeTag: string = "",
     fullRefresh: boolean = false
   ): Promise<void> {
-    this.isLoading = true;
+    if (BruinValidate.isLoading) {
+      console.log("Validation already in progress, skipping.");
+      BruinPanel.postMessage("validation-message", {
+        status: "info",
+        message: "Validation already in progress, please wait...",
+      });
+      return;
+    }
+    BruinValidate.isLoading = true;
     BruinPanel.postMessage("validation-message", {
       status: "loading",
       message: "Validating asset...",
@@ -119,7 +127,7 @@ export class BruinValidate extends BruinCommand {
         message: errorMessage,
       });
     } finally {
-      this.isLoading = false; // Reset loading state when validation completes or fails
+      BruinValidate.isLoading = false; // Reset loading state when validation completes or fails
     }
   }
 }
