@@ -1,4 +1,7 @@
 # Changelog
+## [0.79.5] - [2026-03-25]
+- Improved End Date calendar picker positioning to reduce overflow on smaller screens.
+
 ## [0.79.4] - [2026-03-23]
 - Fixed "Fill from DB" to use the selected environment instead of the default environment.
 - Fixed start date input to remain enabled when "Full Refresh" is selected.
