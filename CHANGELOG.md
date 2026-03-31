@@ -1,4 +1,7 @@
 # Changelog
+## [0.79.6] - [2026-03-31]
+- Fixed "Fill from Query" command failing due to unsupported `--environment` flag being passed to `fill-asset-dependencies`.
+
 ## [0.79.5] - [2026-03-23]
 - Added interval modifiers preview tooltip: hover over the "Interval-modifiers" checkbox to see how start/end dates will be modified.
 

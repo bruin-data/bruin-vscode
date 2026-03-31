@@ -70,10 +70,10 @@ Bruin is a unified analytics platform that enables data professionals to work en
 ## Release Notes
 
 ### Recent Update
+- **0.79.6**: Fixed "Fill from Query" command failing due to unsupported `--environment` flag.
 - **0.79.5**: Added interval modifiers preview tooltip on the checkbox.
 - **0.79.4**: Fixed "Fill from DB" to use selected environment; fixed start date input on full refresh.
 - **0.79.3**: Added ability to select and run SQL text directly in Query Preview.
 - **0.79.2**: Added cancel button for export query operations, allowing users to stop long-running exports.
-- **0.79.1**: Fixed SQL Editor syntax highlighting.
 
 For a full changelog, see Bruin Extension [Changelog](https://github.com/bruin-data/bruin-vscode/blob/main/CHANGELOG.md).
