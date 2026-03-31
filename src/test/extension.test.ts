@@ -2208,22 +2208,50 @@ suite("BruinPanel Tests", () => {
         fillDependencies: fillDependenciesStub
       });
       const postMessageStub = sinon.stub(BruinPanel, "postMessage");
-      
+
       // Mock the modules
       const bruinExecutableServiceModule = await import("../providers/BruinExecutableService");
       sinon.replace(bruinExecutableServiceModule, "getBruinExecutablePath", getBruinExecutablePathStub);
-      
+
       const bruinFillModule = await import("../bruin/bruinFill");
       sinon.replace(bruinFillModule, "BruinFill", BruinFillStub as any);
-      
-      await (windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0]({ 
+
+      await (windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0]({
         command: "bruin.fillAssetDependency" });
 
       // Verify workspace directory lookup and BruinFill instantiation
       assert.ok(bruinWorkspaceDirectoryStub.calledOnceWith(mockDocumentUri.fsPath));
       assert.ok(BruinFillStub.calledOnceWith("/path/to/bruin", "/mock/workspace"));
       assert.ok(fillDependenciesStub.calledOnceWith(mockDocumentUri.fsPath));
-      
+
+      postMessageStub.restore();
+    });
+
+    test("handles bruin.fillAssetDependency command does not pass environment flag", async () => {
+      // fill-asset-dependencies CLI command does not support --environment flag (only fill-columns-from-db does)
+      const getBruinExecutablePathStub = sinon.stub().returns("/path/to/bruin");
+      const fillDependenciesStub = sinon.stub();
+      const BruinFillStub = sinon.stub().returns({
+        fillDependencies: fillDependenciesStub
+      });
+      const postMessageStub = sinon.stub(BruinPanel, "postMessage");
+
+      // Mock the modules
+      const bruinExecutableServiceModule = await import("../providers/BruinExecutableService");
+      sinon.replace(bruinExecutableServiceModule, "getBruinExecutablePath", getBruinExecutablePathStub);
+
+      const bruinFillModule = await import("../bruin/bruinFill");
+      sinon.replace(bruinFillModule, "BruinFill", BruinFillStub as any);
+
+      await (windowCreateWebviewPanelStub.returnValues[0].webview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0]({
+        command: "bruin.fillAssetDependency" });
+
+      // Verify fillDependencies is called with only the file path (no options with environment flags)
+      assert.ok(fillDependenciesStub.calledOnce, "fillDependencies should be called once");
+      const callArgs = fillDependenciesStub.firstCall.args;
+      assert.strictEqual(callArgs.length, 1, "fillDependencies should be called with only one argument (the file path)");
+      assert.strictEqual(callArgs[0], mockDocumentUri.fsPath, "First argument should be the file path");
+
       postMessageStub.restore();
     });
     test("handles bruin.fillAssetColumn command", async () => {
