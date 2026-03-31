@@ -788,10 +788,8 @@ export class BruinPanel {
               getBruinExecutablePath(),
               assetWorkspaceDir
             );
-            const fillDependenciesFlags = this._currentEnvironment
-              ? ["--environment", this._currentEnvironment]
-              : [];
-            await fillDependencies.fillDependencies(assetPath, { flags: fillDependenciesFlags });
+            // Note: fill-asset-dependencies does not support --environment flag (only fill-columns-from-db does)
+            await fillDependencies.fillDependencies(assetPath);
 
             return;
 
