@@ -216,14 +216,29 @@ export const getPreviousRun = (schedule: string, timestamp: number) => {
   return { startTime, endTime };
 };
 
-export const resetStartEndDate = (schedule: string, today: number, startDate: { value: string }, endDate: { value: string }) => {
+export const resetStartEndDate = (schedule: string, today: number | Date, startDate: { value: string }, endDate: { value: string }) => {
+  // Convert Date to timestamp if needed
+  const timestamp = typeof today === "number" ? today : today.getTime();
+
+  // For continuous schedules, use sensible defaults: start of today to now
+  if (schedule === "continuous") {
+    const now = DateTime.fromMillis(timestamp).toUTC();
+    const startOfDay = now.startOf("day");
+
+    startDate.value = startOfDay.toISO({ includeMillis: false });
+    endDate.value = now.toISO({ includeMillis: false });
+
+    console.log("Continuous schedule - start:", startDate.value, "end:", endDate.value);
+    return;
+  }
+
   const { startTime, endTime } = getPreviousRun(schedule, today);
   console.log("start date:", startDate.value, "end date:", endDate.value);
   console.log("today", today, "start time:", startTime, "end time:", endTime);
 
   startDate.value = DateTime.fromMillis(startTime).toUTC().toISO({ includeMillis: false });
   endDate.value = DateTime.fromMillis(endTime).toUTC().toISO({ includeMillis: false });
-  
+
   console.log("start:", startDate.value, "end:", endDate.value);
 };
 

@@ -395,6 +395,14 @@ suite("testing webview", () => {
     assert.strictEqual(endDateExclusive, "2023-07-10T19:59:59.999999999Z");
   });
 
+  test('test reset Start End Date for "continuous" schedule', () => {
+    schedule = "continuous";
+    resetStartEndDate(schedule, today, startDate, endDate);
+    // For continuous: start = start of today (00:00 UTC), end = now
+    assert.strictEqual(startDate.value, "2024-07-08T00:00:00.000Z");
+    assert.strictEqual(endDate.value, "2024-07-08T05:23:00.000Z");
+  });
+
   test("test get previous run for invalid schedule", () => {
     schedule = "invalid";
     try {
