@@ -14,7 +14,7 @@
               <DateInput label="Start Date" v-model="startDate" />
               <DateInput label="End Date" v-model="endDate" />
               <div class="flex items-center gap-1 self-start xs:self-end">
-                <button type="button" @click="resetDatesOnSchedule" :title="`Reset Start and End Date`"
+                <button type="button" @click="resetDatesOnSchedule" :title="props.schedule === 'continuous' ? 'Reset dates to today (start of day to now)' : `Reset dates to the previous ${props.schedule || 'scheduled'} run interval`"
                   class="rounded-sm bg-editor-button-bg p-1 text-editor-button-fg hover:bg-editor-button-hover-bg disabled:opacity-50 disabled:cursor-not-allowed">
                   <ArrowPathRoundedSquareIcon class="h-3 w-3" aria-hidden="true" />
                 </button>

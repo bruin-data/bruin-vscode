@@ -1,4 +1,8 @@
 # Changelog
+## [0.79.7] - [2026-04-02]
+- Fixed reset date button for continuous pipelines: now resets to today's date range (start of day to now) instead of throwing an error.
+- Improved reset date button tooltip to clarify behavior based on pipeline schedule.
+
 ## [0.79.6] - [2026-03-31]
 - Fixed "Fill from Query" command failing due to unsupported `--environment` flag being passed to `fill-asset-dependencies`.
 
