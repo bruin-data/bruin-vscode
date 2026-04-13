@@ -477,11 +477,14 @@
     "ts-node": "^10.9.2",
     "typescript": "^5.4.3",
     "vscode-extension-tester": "^8.2.0",
-    "vscode-test": "^1.6.1"
+    "vscode-test": "^1.4.1"
   },
   "overrides": {
     "undici": "^6.21.1",
-    "glob": "^11.0.0"
+    "glob": "^11.0.0",
+    "axios": "^1.15.0",
+    "diff": "^8.0.3",
+    "serialize-javascript": "^7.0.5"
   },
   "dependencies": {
     "@rudderstack/analytics-js": "^3.11.15",
