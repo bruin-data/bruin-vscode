@@ -34,14 +34,10 @@ jobs:
         node-version: '22'
         cache: 'npm'
 
-    - name: Upgrade npm to v11 for min-release-age support
+    - name: Install dependencies with npm@11 (for min-release-age support)
       run: |
-        npm cache clean --force
-        npm install -g npm@11 --force
-        npm --version
-
-    - name: npm-ci
-      run: npm ci
+        npx npm@11 ci
+        cd webview-ui && npx npm@11 ci
 
     - name: Allow unprivileged user namespace (ubuntu)
       if: ${{ startsWith(matrix.os, 'ubuntu') }}
@@ -51,16 +47,13 @@ jobs:
       if: ${{ startsWith(matrix.os, 'ubuntu') }}
       uses: browser-actions/setup-chrome@v1
 
-    - name: Setup Chrome browser (macOS)  
+    - name: Setup Chrome browser (macOS)
       if: ${{ startsWith(matrix.os, 'macos') }}
       uses: browser-actions/setup-chrome@v1
 
     - name: Setup Chrome browser (Windows)
       if: ${{ startsWith(matrix.os, 'windows') }}
       uses: browser-actions/setup-chrome@v1
-
-    - name: Install dependencies
-      run: npm run install:all
 
     # install bruin cli for linux, mac and windows
     - name: Install Bruin CLI

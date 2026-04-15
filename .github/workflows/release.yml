@@ -22,16 +22,10 @@ jobs:
         node-version: '22'
         registry-url: 'https://registry.npmjs.org'
 
-    - name: Upgrade npm to v11 for min-release-age support
+    - name: Install dependencies with npm@11 (for min-release-age support)
       run: |
-        npm cache clean --force
-        npm install -g npm@11 --force
-        npm --version
-
-    - name: Install dependencies
-      run: |
-        npm ci
-        npm run install:all
+        npx npm@11 ci
+        cd webview-ui && npx npm@11 ci
 
     - name: Install vsce and ovsx
       run: npm install -g @vscode/vsce ovsx
