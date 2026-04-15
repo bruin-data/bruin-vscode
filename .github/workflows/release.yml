@@ -19,13 +19,13 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '22'
+        node-version: '22.14.0'
         registry-url: 'https://registry.npmjs.org'
 
     - name: Install dependencies with npm@11 (for min-release-age support)
       run: |
-        npx npm@11 ci
-        cd webview-ui && npx npm@11 ci
+        npx npm@11.10.0 ci
+        cd webview-ui && npx npm@11.10.0 ci
 
     - name: Install vsce and ovsx
       run: npm install -g @vscode/vsce ovsx
