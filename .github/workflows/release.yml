@@ -19,8 +19,11 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '20'
+        node-version: '22'
         registry-url: 'https://registry.npmjs.org'
+
+    - name: Upgrade npm to v11 for min-release-age support
+      run: npm install -g npm@11
 
     - name: Install dependencies
       run: |
