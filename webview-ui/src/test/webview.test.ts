@@ -7,6 +7,7 @@ import {
   getPreviousRun,
   adjustEndDateForExclusive,
   getUpstreams,
+  normalizePath,
 } from "../utilities/helper";
 import {
   getAssetDependencies,
@@ -67,6 +68,66 @@ vi.mock("@/store/bruinStore", () => ({
 import AssetGeneral from "@/components/asset/AssetGeneral.vue";
 
 vi.mock("markdown-it");
+
+/**
+ * Tests for normalizePath utility function.
+ * This function ensures file paths from different sources (VS Code, CLI)
+ * can be compared correctly on Windows where path casing and separators may vary.
+ */
+suite("normalizePath - Windows path compatibility", () => {
+  test("should convert backslashes to forward slashes", () => {
+    expect(normalizePath("C:\\Users\\test\\file.sql")).toBe("c:/users/test/file.sql");
+  });
+
+  test("should lowercase the entire path", () => {
+    expect(normalizePath("C:/Users/Test/FILE.SQL")).toBe("c:/users/test/file.sql");
+  });
+
+  test("should handle mixed slashes", () => {
+    expect(normalizePath("C:\\Users/test\\file.sql")).toBe("c:/users/test/file.sql");
+  });
+
+  test("should return empty string for null input", () => {
+    expect(normalizePath(null)).toBe("");
+  });
+
+  test("should return empty string for undefined input", () => {
+    expect(normalizePath(undefined)).toBe("");
+  });
+
+  test("should return empty string for empty string input", () => {
+    expect(normalizePath("")).toBe("");
+  });
+
+  test("should handle Unix-style paths (no change except lowercase)", () => {
+    expect(normalizePath("/home/user/file.sql")).toBe("/home/user/file.sql");
+  });
+
+  test("should handle Windows network paths (UNC)", () => {
+    expect(normalizePath("\\\\Mac\\Home\\Desktop\\file.sql")).toBe("//mac/home/desktop/file.sql");
+  });
+
+  test("should handle Parallels-style Mac paths on Windows", () => {
+    const windowsPath = "C:\\Mac\\Home\\Desktop\\bruin-test\\file.sql";
+    const cliPath = "c:/Mac/Home/Desktop/bruin-test/file.sql";
+    expect(normalizePath(windowsPath)).toBe(normalizePath(cliPath));
+  });
+
+  test("should make paths from VS Code and CLI comparable", () => {
+    // Simulating actual paths seen in the bug report
+    const vscodePath = "c:\\Mac\\Home\\Desktop\\bruin-test\\spark-health-dags-v2-main\\pace-export\\tasks\\dashboard\\bookings.sql";
+    const cliPath = "c:/Mac/Home/Desktop/bruin-test/spark-health-dags-v2-main/pace-export/tasks/dashboard/bookings.sql";
+
+    expect(normalizePath(vscodePath)).toBe(normalizePath(cliPath));
+    expect(normalizePath(vscodePath)).toBe("c:/mac/home/desktop/bruin-test/spark-health-dags-v2-main/pace-export/tasks/dashboard/bookings.sql");
+  });
+
+  test("should handle different drive letter casing", () => {
+    const upperDrive = "C:\\Users\\test\\file.sql";
+    const lowerDrive = "c:\\Users\\test\\file.sql";
+    expect(normalizePath(upperDrive)).toBe(normalizePath(lowerDrive));
+  });
+});
 
 suite("testing webview", () => {
   const environments = ["dev", "qa", "prod"];

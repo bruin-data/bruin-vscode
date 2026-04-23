@@ -1,4 +1,7 @@
 # Changelog
+## [0.79.8] - [2026-04-23]
+- Fixed Bruin panel not updating on file save in latest VS Code versions on Windows due to path comparison issues.
+
 ## [0.79.7] - [2026-04-02]
 - Fixed reset date button for continuous pipelines: now resets to today's date range (start of day to now) instead of throwing an error.
 - Improved reset date button tooltip to clarify behavior based on pipeline schedule.
