@@ -293,3 +293,17 @@ export const calculateBigQueryCost = (bytesProcessed: number | undefined | null)
 
   return `$${cost.toFixed(2)}`;
 };
+
+/**
+ * Normalize file paths for cross-platform comparison.
+ * Converts backslashes to forward slashes and lowercases the path.
+ * This ensures paths from different sources (VS Code, CLI) can be compared
+ * correctly on Windows where path casing and separators may vary.
+ *
+ * @param path - The file path to normalize
+ * @returns Normalized path string, or empty string if input is null/undefined
+ */
+export const normalizePath = (path: string | null | undefined): string => {
+  if (!path) return "";
+  return path.replace(/\\/g, "/").toLowerCase();
+};

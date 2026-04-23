@@ -131,7 +131,7 @@
 import AssetDetails from "@/components/asset/AssetDetails.vue";
 import { vscode } from "@/utilities/vscode";
 import { ref, onMounted, computed, watch, nextTick, onBeforeUnmount } from "vue";
-import { parseAssetDetails, parseEnvironmentList, parsePipelineData } from "./utilities/helper";
+import { parseAssetDetails, parseEnvironmentList, parsePipelineData, normalizePath } from "./utilities/helper";
 import { updateValue } from "./utilities/helper";
 import { useConnectionsStore } from "./store/bruinStore";
 import type { Asset, EnvironmentsList } from "./types";
@@ -285,10 +285,11 @@ const handleMessage = (event: MessageEvent) => {
         const parsed = typeof parsedRaw === "string" ? JSON.parse(parsedRaw) : parsedRaw;
         // If currently showing convert prompt, allow parse to replace it (brief convert flicker is acceptable)
         // Ignore stale parse results that don't correspond to the currently tracked file
+        // Use normalized paths for comparison to handle Windows path differences (backslashes, case)
         try {
           const parsedFilePath = (parsed && (parsed.filePath || (parsed.asset?.executable_file?.path ?? null))) || null;
           const currentFilePath = lastRenderedDocument.value;
-          if (parsedFilePath && currentFilePath && parsedFilePath !== currentFilePath) {
+          if (parsedFilePath && currentFilePath && normalizePath(parsedFilePath) !== normalizePath(currentFilePath)) {
             break;
           }
         } catch (_) {
@@ -302,7 +303,7 @@ const handleMessage = (event: MessageEvent) => {
           // Always clear metadata when parsing new content to show loading state
           assetMetadata.value = null;
           assetMetadataError.value = null;
-          
+
           // If we receive asset parsing data successfully, assume CLI is installed
           isBruinInstalled.value = true;
           updateAppState();
@@ -328,7 +329,8 @@ const handleMessage = (event: MessageEvent) => {
             setTimeout(() => {
               const currentPath = lastRenderedDocument.value;
               const expectedPath = parsed && (parsed.filePath || (parsed.asset?.executable_file?.path ?? null));
-              if (currentPath === expectedPath) {
+              // Use normalized paths for comparison to handle Windows path differences
+              if (normalizePath(currentPath) === normalizePath(expectedPath)) {
                 vscode.postMessage({ command: "bruin.refocusActiveEditor" });
               }
             }, 1000);
