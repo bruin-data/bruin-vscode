@@ -13,31 +13,6 @@ import { QueryPreviewPanel } from "../panels/QueryPreviewPanel";
 import { time } from "console";
 
 /**
- * Extract the SQL query from rendered ingestr asset content.
- * The render command returns the full YAML with variables resolved.
- * We extract just the query portion for display.
- */
-function extractQueryFromRenderedContent(content: string): string | null {
-  try {
-    // Find the query section in the rendered YAML
-    const queryMatch = content.match(/query:\s*\|?\s*\n([\s\S]*?)(?=\n[a-zA-Z_]+:|$)/);
-    if (queryMatch && queryMatch[1]) {
-      // Remove leading indentation from each line
-      const query = queryMatch[1]
-        .split('\n')
-        .map(line => line.replace(/^[ ]{2,4}/, ''))
-        .join('\n')
-        .trim();
-      return query || null;
-    }
-    return null;
-  } catch (error) {
-    console.error("Error extracting query:", error);
-    return null;
-  }
-}
-
-/**
  * Extends the BruinCommand class to implement the rendering process specific to Bruin assets.
  * It checks if the file is a Python or SQL Bruin asset and manages the rendering accordingly.
  */
@@ -96,11 +71,6 @@ export class BruinRender extends BruinCommand {
         status: "bruin-asset-alert",
         message: "-- Python, Yaml, or Pipeline BRUIN asset detected --",
       });
-
-      // For ingestr assets, also render to get resolved variable values
-      if (isIngestrAsset) {
-        this.renderIngestrParams(filePath, { flags, ignoresErrors });
-      }
       return;
     }
 
@@ -155,33 +125,6 @@ export class BruinRender extends BruinCommand {
     return JSON.stringify({ error: String(error) });
   }
 
-  /**
-   * Renders ingestr asset to get the resolved query with variables expanded.
-   * Sends the rendered query to the webview via render-ingestr-params-message.
-   */
-  private async renderIngestrParams(
-    filePath: string,
-    { flags = ["-o", "json"], ignoresErrors = false }: BruinCommandOptions = {}
-  ): Promise<void> {
-    try {
-      const result = await this.run([...flags, filePath], { ignoresErrors });
-      const parsed = JSON.parse(result);
-
-      if (parsed.query) {
-        // Extract just the query from the rendered content
-        const query = extractQueryFromRenderedContent(parsed.query);
-        if (query) {
-          BruinPanel?.postMessage("render-ingestr-params-message", {
-            status: "success",
-            message: { query },
-          });
-        }
-      }
-    } catch (error) {
-      console.error("Error rendering ingestr query:", error);
-    }
-  }
-  
   private async isBruinPipeline(filePath: string): Promise<boolean> {
     return await isBruinPipeline(filePath);
   }

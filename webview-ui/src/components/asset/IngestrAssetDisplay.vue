@@ -248,17 +248,6 @@
               <span class="text-xs text-editor-fg">{{ displayParams.incremental_key }}</span>
             </div>
 
-            <!-- Query if available -->
-            <div v-if="displayParams.query" class="mt-3">
-              <SqlEditor
-                :code="cleanQuery"
-                language="sql"
-                :showIntervalAlert="false"
-                :showDdlTab="false"
-                previewLabel="Query"
-              />
-            </div>
-
             <!-- Empty state -->
             <div v-if="!displayParams.source_connection && !displayParams.source_table && !displayParams.destination" class="text-xs text-editor-fg opacity-60 italic py-2 text-center">
               No parameters configured
@@ -274,11 +263,9 @@
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import type { IngestrParameters } from '@/types';
 import { vscode } from '@/utilities/vscode';
-import SqlEditor from './SqlEditor.vue';
 
 const props = defineProps<{
   parameters: Partial<IngestrParameters>;
-  renderedParameters?: Record<string, string> | null;
   columns: any[];
 }>();
 
@@ -318,10 +305,9 @@ const destinationDisplayName = (dest: string) => {
   return destination?.label || dest;
 };
 
-// Display params for rendered view - uses local params for display, rendered query if available
+// Display params for rendered view - uses local params from parse command
 const displayParams = computed(() => {
   const local = localParameters.value;
-  const renderedQuery = props.renderedParameters?.query || '';
 
   return {
     source_connection: local.source_connection || '',
@@ -329,21 +315,8 @@ const displayParams = computed(() => {
     destination: local.destination ? destinationDisplayName(local.destination) : '',
     incremental_strategy: local.incremental_strategy || '',
     incremental_key: local.incremental_key || '',
-    query: renderedQuery,
   };
 });
-
-// Clean query - remove YAML artifacts
-const cleanQuery = computed(() => {
-  if (!displayParams.value.query) return '';
-  let q = displayParams.value.query;
-  // Remove YAML multiline indicator if present
-  if (q.startsWith('|') || q.startsWith('>')) {
-    q = q.substring(1);
-  }
-  return q.trim();
-});
-
 
 const AVAILABLE_DESTINATIONS = [
   { value: 'athena', label: 'AWS Athena' },
