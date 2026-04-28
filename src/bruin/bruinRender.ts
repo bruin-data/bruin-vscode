@@ -13,61 +13,26 @@ import { QueryPreviewPanel } from "../panels/QueryPreviewPanel";
 import { time } from "console";
 
 /**
- * Extract parameters from rendered ingestr asset YAML content.
+ * Extract the SQL query from rendered ingestr asset content.
+ * The render command returns the full YAML with variables resolved.
+ * We extract just the query portion for display.
  */
-function parseIngestrParameters(yamlContent: string): Record<string, string> | null {
+function extractQueryFromRenderedContent(content: string): string | null {
   try {
-    const params: Record<string, string> = {};
-
-    // Simple regex extraction for each parameter
-    const simpleParams = ['source_connection', 'source_table', 'destination', 'incremental_strategy', 'incremental_key'];
-
-    for (const param of simpleParams) {
-      const match = yamlContent.match(new RegExp(`${param}:\\s*(.+)`, 'm'));
-      if (match && match[1]) {
-        // Clean up the value - remove quotes and trim
-        let value = match[1].trim();
-        value = value.replace(/^["']|["']$/g, '');
-        if (value && value !== '|' && value !== '>') {
-          params[param] = value;
-        }
-      }
+    // Find the query section in the rendered YAML
+    const queryMatch = content.match(/query:\s*\|?\s*\n([\s\S]*?)(?=\n[a-zA-Z_]+:|$)/);
+    if (queryMatch && queryMatch[1]) {
+      // Remove leading indentation from each line
+      const query = queryMatch[1]
+        .split('\n')
+        .map(line => line.replace(/^[ ]{2,4}/, ''))
+        .join('\n')
+        .trim();
+      return query || null;
     }
-
-    // Extract query - find the query block and get everything after it until next top-level key
-    const queryStart = yamlContent.indexOf('query:');
-    if (queryStart !== -1) {
-      const afterQuery = yamlContent.substring(queryStart + 6).trim();
-
-      if (afterQuery.startsWith('|') || afterQuery.startsWith('>')) {
-        // Multiline query - get indented lines
-        const lines = afterQuery.split('\n').slice(1); // Skip the | or > line
-        const queryLines: string[] = [];
-
-        for (const line of lines) {
-          // Stop at next non-indented line (next YAML key)
-          if (line.match(/^[a-zA-Z_]/)) break;
-          if (line.trim()) {
-            // Remove leading indentation
-            queryLines.push(line.replace(/^[ ]{2,4}/, ''));
-          }
-        }
-
-        if (queryLines.length > 0) {
-          params['query'] = queryLines.join('\n');
-        }
-      } else {
-        // Single line query
-        const singleLine = afterQuery.split('\n')[0].trim();
-        if (singleLine) {
-          params['query'] = singleLine.replace(/^["']|["']$/g, '');
-        }
-      }
-    }
-
-    return Object.keys(params).length > 0 ? params : null;
+    return null;
   } catch (error) {
-    console.error("Error parsing ingestr parameters:", error);
+    console.error("Error extracting query:", error);
     return null;
   }
 }
@@ -191,8 +156,8 @@ export class BruinRender extends BruinCommand {
   }
 
   /**
-   * Renders ingestr asset parameters to get resolved variable values.
-   * Sends rendered parameters to the webview via render-ingestr-params-message.
+   * Renders ingestr asset to get the resolved query with variables expanded.
+   * Sends the rendered query to the webview via render-ingestr-params-message.
    */
   private async renderIngestrParams(
     filePath: string,
@@ -203,16 +168,17 @@ export class BruinRender extends BruinCommand {
       const parsed = JSON.parse(result);
 
       if (parsed.query) {
-        const renderedParams = parseIngestrParameters(parsed.query);
-        if (renderedParams) {
+        // Extract just the query from the rendered content
+        const query = extractQueryFromRenderedContent(parsed.query);
+        if (query) {
           BruinPanel?.postMessage("render-ingestr-params-message", {
             status: "success",
-            message: renderedParams,
+            message: { query },
           });
         }
       }
     } catch (error) {
-      console.error("Error rendering ingestr parameters:", error);
+      console.error("Error rendering ingestr query:", error);
     }
   }
   

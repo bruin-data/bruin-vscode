@@ -318,19 +318,18 @@ const destinationDisplayName = (dest: string) => {
   return destination?.label || dest;
 };
 
-// Computed property that merges rendered parameters with raw local parameters
-// Priority: rendered params > raw local params
+// Display params for rendered view - uses local params for display, rendered query if available
 const displayParams = computed(() => {
-  const rendered = props.renderedParameters || {};
   const local = localParameters.value;
+  const renderedQuery = props.renderedParameters?.query || '';
 
   return {
-    source_connection: rendered.source_connection || local.source_connection || '',
-    source_table: rendered.source_table || local.source_table || '',
-    destination: rendered.destination || (local.destination ? destinationDisplayName(local.destination) : ''),
-    incremental_strategy: rendered.incremental_strategy || local.incremental_strategy || '',
-    incremental_key: rendered.incremental_key || local.incremental_key || '',
-    query: rendered.query || '',
+    source_connection: local.source_connection || '',
+    source_table: local.source_table || '',
+    destination: local.destination ? destinationDisplayName(local.destination) : '',
+    incremental_strategy: local.incremental_strategy || '',
+    incremental_key: local.incremental_key || '',
+    query: renderedQuery,
   };
 });
 
