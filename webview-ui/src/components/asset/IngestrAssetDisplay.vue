@@ -5,24 +5,14 @@
       <div id="ingestr-header" class="p-1 bg-editorWidget-bg border-inherit cursor-pointer hover:bg-input-background transition-colors duration-150 rounded-t" @click="toggleSection('ingestr')">
         <div class="flex items-center justify-between w-full">
           <span id="ingestr-title" class="text-xs font-medium text-editor-fg pl-1">Ingestr</span>
-          <div class="flex items-center gap-1">
-            <!-- Edit button in header -->
+          <div class="flex items-center gap-2">
+            <!-- Edit/Done text link in header -->
             <button
-              v-if="expandedSections.ingestr && !isEditMode"
-              @click.stop="isEditMode = true"
-              class="flex items-center text-editor-fg opacity-60 hover:opacity-100 transition-colors p-0.5 rounded hover:bg-input-background"
-              title="Edit parameters"
+              v-if="expandedSections.ingestr"
+              @click.stop="isEditMode = !isEditMode"
+              class="text-2xs text-textLink-foreground hover:text-textLink-activeForeground transition-colors"
             >
-              <span class="codicon codicon-edit text-xs"></span>
-            </button>
-            <!-- Done button in header when editing -->
-            <button
-              v-if="expandedSections.ingestr && isEditMode"
-              @click.stop="isEditMode = false"
-              class="flex items-center gap-0.5 text-2xs text-editorLink-activeFg hover:text-editor-fg transition-colors p-0.5 rounded hover:bg-input-background"
-              title="Done editing"
-            >
-              <span class="codicon codicon-check text-xs"></span>
+              {{ isEditMode ? 'Done' : 'Edit' }}
             </button>
             <span
               id="ingestr-chevron"
