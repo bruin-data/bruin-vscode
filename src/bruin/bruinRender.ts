@@ -13,47 +13,56 @@ import { QueryPreviewPanel } from "../panels/QueryPreviewPanel";
 import { time } from "console";
 
 /**
- * Simple YAML parser for extracting parameters from rendered ingestr assets.
- * Handles basic key-value pairs in the parameters section.
+ * Extract parameters from rendered ingestr asset YAML content.
  */
 function parseIngestrParameters(yamlContent: string): Record<string, string> | null {
   try {
-    // Find the parameters section
-    const parametersMatch = yamlContent.match(/^parameters:\s*\n((?:[ ]{2}[^\n]+\n?)+)/m);
-    if (!parametersMatch) {
-      return null;
-    }
-
-    const parametersBlock = parametersMatch[1];
     const params: Record<string, string> = {};
 
-    // Parse each key-value pair (handles simple values, not multi-line)
-    const lines = parametersBlock.split('\n');
-    let currentKey: string | null = null;
-    let currentValue: string = '';
+    // Simple regex extraction for each parameter
+    const simpleParams = ['source_connection', 'source_table', 'destination', 'incremental_strategy', 'incremental_key'];
 
-    for (const line of lines) {
-      // Skip empty lines
-      if (line.trim() === '') continue;
-
-      // Check for key-value pair (2-space indented)
-      const kvMatch = line.match(/^[ ]{2}([a-zA-Z_][a-zA-Z0-9_]*):\s*(.*)$/);
-      if (kvMatch) {
-        // Save previous key-value if exists
-        if (currentKey !== null) {
-          params[currentKey] = currentValue.trim();
+    for (const param of simpleParams) {
+      const match = yamlContent.match(new RegExp(`${param}:\\s*(.+)`, 'm'));
+      if (match && match[1]) {
+        // Clean up the value - remove quotes and trim
+        let value = match[1].trim();
+        value = value.replace(/^["']|["']$/g, '');
+        if (value && value !== '|' && value !== '>') {
+          params[param] = value;
         }
-        currentKey = kvMatch[1];
-        currentValue = kvMatch[2];
-      } else if (currentKey !== null && line.startsWith('    ')) {
-        // Continuation of multi-line value
-        currentValue += '\n' + line.substring(4);
       }
     }
 
-    // Save last key-value pair
-    if (currentKey !== null) {
-      params[currentKey] = currentValue.trim();
+    // Extract query - find the query block and get everything after it until next top-level key
+    const queryStart = yamlContent.indexOf('query:');
+    if (queryStart !== -1) {
+      const afterQuery = yamlContent.substring(queryStart + 6).trim();
+
+      if (afterQuery.startsWith('|') || afterQuery.startsWith('>')) {
+        // Multiline query - get indented lines
+        const lines = afterQuery.split('\n').slice(1); // Skip the | or > line
+        const queryLines: string[] = [];
+
+        for (const line of lines) {
+          // Stop at next non-indented line (next YAML key)
+          if (line.match(/^[a-zA-Z_]/)) break;
+          if (line.trim()) {
+            // Remove leading indentation
+            queryLines.push(line.replace(/^[ ]{2,4}/, ''));
+          }
+        }
+
+        if (queryLines.length > 0) {
+          params['query'] = queryLines.join('\n');
+        }
+      } else {
+        // Single line query
+        const singleLine = afterQuery.split('\n')[0].trim();
+        if (singleLine) {
+          params['query'] = singleLine.replace(/^["']|["']$/g, '');
+        }
+      }
     }
 
     return Object.keys(params).length > 0 ? params : null;

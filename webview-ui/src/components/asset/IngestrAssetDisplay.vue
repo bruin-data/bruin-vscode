@@ -5,27 +5,37 @@
       <div id="ingestr-header" class="p-1 bg-editorWidget-bg border-inherit cursor-pointer hover:bg-input-background transition-colors duration-150 rounded-t" @click="toggleSection('ingestr')">
         <div class="flex items-center justify-between w-full">
           <span id="ingestr-title" class="text-xs font-medium text-editor-fg pl-1">Ingestr</span>
-          <span
-            id="ingestr-chevron"
-            class="codicon transition-transform duration-200"
-            :class="expandedSections.ingestr ? 'codicon-chevron-down' : 'codicon-chevron-right'"
-          ></span>
+          <div class="flex items-center gap-1">
+            <!-- Edit button in header -->
+            <button
+              v-if="expandedSections.ingestr && !isEditMode"
+              @click.stop="isEditMode = true"
+              class="flex items-center text-editor-fg opacity-60 hover:opacity-100 transition-colors p-0.5 rounded hover:bg-input-background"
+              title="Edit parameters"
+            >
+              <span class="codicon codicon-edit text-xs"></span>
+            </button>
+            <!-- Done button in header when editing -->
+            <button
+              v-if="expandedSections.ingestr && isEditMode"
+              @click.stop="isEditMode = false"
+              class="flex items-center gap-0.5 text-2xs text-editorLink-activeFg hover:text-editor-fg transition-colors p-0.5 rounded hover:bg-input-background"
+              title="Done editing"
+            >
+              <span class="codicon codicon-check text-xs"></span>
+            </button>
+            <span
+              id="ingestr-chevron"
+              class="codicon transition-transform duration-200"
+              :class="expandedSections.ingestr ? 'codicon-chevron-down' : 'codicon-chevron-right'"
+            ></span>
+          </div>
         </div>
       </div>
 
       <div v-if="expandedSections.ingestr" id="ingestr-content" class="bg-editor-bg border-t border-commandCenter-border rounded-b">
         <!-- Editable Parameters View -->
         <div v-if="isEditMode" class="p-2 space-y-1">
-          <!-- Header with done button -->
-          <div class="flex items-center justify-end mb-2">
-            <button
-              @click="isEditMode = false"
-              class="flex items-center gap-1 text-2xs text-editorLink-activeFg hover:text-editor-fg transition-colors"
-            >
-              <span class="codicon codicon-check"></span>
-              Done
-            </button>
-          </div>
           <!-- Source Connection -->
           <div id="source-connection-row" class="flex items-center gap-2">
             <span
@@ -225,69 +235,42 @@
 
         <!-- Rendered View (Read-only, default) -->
         <div v-else class="p-2 space-y-2">
-          <!-- Header with edit button -->
-          <div class="flex items-center justify-end">
-            <button
-              @click="isEditMode = true"
-              class="flex items-center gap-1 text-2xs text-editor-fg opacity-60 hover:opacity-100 transition-colors"
-              title="Edit parameters"
-            >
-              <span class="codicon codicon-edit"></span>
-            </button>
-          </div>
-
-          <div v-if="props.renderedParameters" class="space-y-1">
-            <!-- Rendered Parameters -->
-            <div v-if="props.renderedParameters.source_connection" class="flex items-center gap-2">
+          <div class="space-y-1">
+            <!-- Always show all parameters with fallback: rendered -> raw -> empty -->
+            <div v-if="displayParams.source_connection" class="flex items-center gap-2">
               <span class="text-2xs text-editor-fg opacity-70 min-w-[140px]">Source Connection:</span>
-              <span class="text-xs text-editor-fg">{{ props.renderedParameters.source_connection }}</span>
+              <span class="text-xs text-editor-fg">{{ displayParams.source_connection }}</span>
             </div>
-            <div v-if="props.renderedParameters.source_table" class="flex items-center gap-2">
+            <div v-if="displayParams.source_table" class="flex items-center gap-2">
               <span class="text-2xs text-editor-fg opacity-70 min-w-[140px]">Source Table:</span>
-              <span class="text-xs text-editor-fg">{{ props.renderedParameters.source_table }}</span>
+              <span class="text-xs text-editor-fg">{{ displayParams.source_table }}</span>
             </div>
-            <div v-if="props.renderedParameters.destination" class="flex items-center gap-2">
+            <div v-if="displayParams.destination" class="flex items-center gap-2">
               <span class="text-2xs text-editor-fg opacity-70 min-w-[140px]">Destination:</span>
-              <span class="text-xs text-editor-fg">{{ props.renderedParameters.destination }}</span>
+              <span class="text-xs text-editor-fg">{{ displayParams.destination }}</span>
             </div>
-            <div v-if="props.renderedParameters.incremental_strategy" class="flex items-center gap-2">
+            <div v-if="displayParams.incremental_strategy" class="flex items-center gap-2">
               <span class="text-2xs text-editor-fg opacity-70 min-w-[140px]">Incremental Strategy:</span>
-              <span class="text-xs text-editor-fg">{{ props.renderedParameters.incremental_strategy }}</span>
+              <span class="text-xs text-editor-fg">{{ displayParams.incremental_strategy }}</span>
             </div>
-            <div v-if="props.renderedParameters.incremental_key" class="flex items-center gap-2">
+            <div v-if="displayParams.incremental_key" class="flex items-center gap-2">
               <span class="text-2xs text-editor-fg opacity-70 min-w-[140px]">Incremental Key:</span>
-              <span class="text-xs text-editor-fg">{{ props.renderedParameters.incremental_key }}</span>
+              <span class="text-xs text-editor-fg">{{ displayParams.incremental_key }}</span>
             </div>
 
             <!-- Query if available -->
-            <div v-if="props.renderedParameters.query" class="mt-3">
-              <span class="text-2xs text-editor-fg opacity-70 block mb-1">Query:</span>
-              <pre class="text-xs text-editor-fg bg-input-background p-2 rounded overflow-x-auto whitespace-pre-wrap">{{ props.renderedParameters.query }}</pre>
+            <div v-if="displayParams.query" class="mt-3">
+              <SqlEditor
+                :code="cleanQuery"
+                language="sql"
+                :showIntervalAlert="false"
+                :showDdlTab="false"
+                previewLabel="Query"
+              />
             </div>
-          </div>
-          <div v-else class="space-y-1">
-            <!-- Fallback to raw parameters if no rendered available -->
-            <div v-if="localParameters.source_connection" class="flex items-center gap-2">
-              <span class="text-2xs text-editor-fg opacity-70 min-w-[140px]">Source Connection:</span>
-              <span class="text-xs text-editor-fg">{{ localParameters.source_connection }}</span>
-            </div>
-            <div v-if="localParameters.source_table" class="flex items-center gap-2">
-              <span class="text-2xs text-editor-fg opacity-70 min-w-[140px]">Source Table:</span>
-              <span class="text-xs text-editor-fg">{{ localParameters.source_table }}</span>
-            </div>
-            <div v-if="localParameters.destination" class="flex items-center gap-2">
-              <span class="text-2xs text-editor-fg opacity-70 min-w-[140px]">Destination:</span>
-              <span class="text-xs text-editor-fg">{{ destinationDisplayName(localParameters.destination) }}</span>
-            </div>
-            <div v-if="localParameters.incremental_strategy" class="flex items-center gap-2">
-              <span class="text-2xs text-editor-fg opacity-70 min-w-[140px]">Incremental Strategy:</span>
-              <span class="text-xs text-editor-fg">{{ localParameters.incremental_strategy }}</span>
-            </div>
-            <div v-if="localParameters.incremental_key" class="flex items-center gap-2">
-              <span class="text-2xs text-editor-fg opacity-70 min-w-[140px]">Incremental Key:</span>
-              <span class="text-xs text-editor-fg">{{ localParameters.incremental_key }}</span>
-            </div>
-            <div v-if="!localParameters.source_connection && !localParameters.source_table && !localParameters.destination" class="text-xs text-editor-fg opacity-60 italic py-2 text-center">
+
+            <!-- Empty state -->
+            <div v-if="!displayParams.source_connection && !displayParams.source_table && !displayParams.destination" class="text-xs text-editor-fg opacity-60 italic py-2 text-center">
               No parameters configured
             </div>
           </div>
@@ -301,6 +284,7 @@
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import type { IngestrParameters } from '@/types';
 import { vscode } from '@/utilities/vscode';
+import SqlEditor from './SqlEditor.vue';
 
 const props = defineProps<{
   parameters: Partial<IngestrParameters>;
@@ -343,6 +327,33 @@ const destinationDisplayName = (dest: string) => {
   const destination = AVAILABLE_DESTINATIONS.find(d => d.value === dest);
   return destination?.label || dest;
 };
+
+// Computed property that merges rendered parameters with raw local parameters
+// Priority: rendered params > raw local params
+const displayParams = computed(() => {
+  const rendered = props.renderedParameters || {};
+  const local = localParameters.value;
+
+  return {
+    source_connection: rendered.source_connection || local.source_connection || '',
+    source_table: rendered.source_table || local.source_table || '',
+    destination: rendered.destination || (local.destination ? destinationDisplayName(local.destination) : ''),
+    incremental_strategy: rendered.incremental_strategy || local.incremental_strategy || '',
+    incremental_key: rendered.incremental_key || local.incremental_key || '',
+    query: rendered.query || '',
+  };
+});
+
+// Clean query - remove YAML artifacts
+const cleanQuery = computed(() => {
+  if (!displayParams.value.query) return '';
+  let q = displayParams.value.query;
+  // Remove YAML multiline indicator if present
+  if (q.startsWith('|') || q.startsWith('>')) {
+    q = q.substring(1);
+  }
+  return q.trim();
+});
 
 
 const AVAILABLE_DESTINATIONS = [

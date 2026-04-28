@@ -420,12 +420,22 @@ const handleMessage = (event: MessageEvent) => {
         versionStatus.value = message.versionStatus;
         break;
       case "file-changed":
-        lastRenderedDocument.value = message.filePath;
-        // Clear any existing metadata when file changes to prevent stale data
-        assetMetadata.value = null;
-        assetMetadataError.value = null;
-        renderedIngestrParameters.value = null;
-        console.log("🔍 [App.vue] File changed - cleared existing metadata");
+        // Only clear metadata when file path actually changes (not just editor refocus)
+        const previousFilePath = lastRenderedDocument.value;
+        const newFilePath = message.filePath;
+        const fileActuallyChanged = normalizePath(previousFilePath) !== normalizePath(newFilePath);
+
+        lastRenderedDocument.value = newFilePath;
+
+        if (fileActuallyChanged) {
+          // Clear metadata only when switching to a different file
+          assetMetadata.value = null;
+          assetMetadataError.value = null;
+          renderedIngestrParameters.value = null;
+          console.log("🔍 [App.vue] File changed to different file - cleared existing metadata");
+        } else {
+          console.log("🔍 [App.vue] Same file refocused - keeping existing metadata");
+        }
         // Leave current content/tabs as-is for non-relevant files; simply exit settings-only
         settingsOnlyMode.value = false;
         // If current file is a .bruin.yml config, force Settings-only view (with Connections)
