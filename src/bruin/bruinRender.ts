@@ -13,6 +13,57 @@ import { QueryPreviewPanel } from "../panels/QueryPreviewPanel";
 import { time } from "console";
 
 /**
+ * Simple YAML parser for extracting parameters from rendered ingestr assets.
+ * Handles basic key-value pairs in the parameters section.
+ */
+function parseIngestrParameters(yamlContent: string): Record<string, string> | null {
+  try {
+    // Find the parameters section
+    const parametersMatch = yamlContent.match(/^parameters:\s*\n((?:[ ]{2}[^\n]+\n?)+)/m);
+    if (!parametersMatch) {
+      return null;
+    }
+
+    const parametersBlock = parametersMatch[1];
+    const params: Record<string, string> = {};
+
+    // Parse each key-value pair (handles simple values, not multi-line)
+    const lines = parametersBlock.split('\n');
+    let currentKey: string | null = null;
+    let currentValue: string = '';
+
+    for (const line of lines) {
+      // Skip empty lines
+      if (line.trim() === '') continue;
+
+      // Check for key-value pair (2-space indented)
+      const kvMatch = line.match(/^[ ]{2}([a-zA-Z_][a-zA-Z0-9_]*):\s*(.*)$/);
+      if (kvMatch) {
+        // Save previous key-value if exists
+        if (currentKey !== null) {
+          params[currentKey] = currentValue.trim();
+        }
+        currentKey = kvMatch[1];
+        currentValue = kvMatch[2];
+      } else if (currentKey !== null && line.startsWith('    ')) {
+        // Continuation of multi-line value
+        currentValue += '\n' + line.substring(4);
+      }
+    }
+
+    // Save last key-value pair
+    if (currentKey !== null) {
+      params[currentKey] = currentValue.trim();
+    }
+
+    return Object.keys(params).length > 0 ? params : null;
+  } catch (error) {
+    console.error("Error parsing ingestr parameters:", error);
+    return null;
+  }
+}
+
+/**
  * Extends the BruinCommand class to implement the rendering process specific to Bruin assets.
  * It checks if the file is a Python or SQL Bruin asset and manages the rendering accordingly.
  */
@@ -64,13 +115,18 @@ export class BruinRender extends BruinCommand {
     }
 
     const isTaskYml = filePath.endsWith('.task.yml') || filePath.endsWith('.task.yaml');
-    
+    const isIngestrAsset = filePath.endsWith('.asset.yml') || filePath.endsWith('.asset.yaml');
+
     if ((isBruinAsset || isBruinPipeline || (isBruinYaml && !isTaskYml))) {
       BruinPanel?.postMessage("render-message", {
         status: "bruin-asset-alert",
         message: "-- Python, Yaml, or Pipeline BRUIN asset detected --",
       });
-      console.log("Python, Yaml, or Pipeline BRUIN asset detected");
+
+      // For ingestr assets, also render to get resolved variable values
+      if (isIngestrAsset) {
+        this.renderIngestrParams(filePath, { flags, ignoresErrors });
+      }
       return;
     }
 
@@ -123,6 +179,32 @@ export class BruinRender extends BruinCommand {
       return error.startsWith("{") ? error : JSON.stringify({ error });
     }
     return JSON.stringify({ error: String(error) });
+  }
+
+  /**
+   * Renders ingestr asset parameters to get resolved variable values.
+   * Sends rendered parameters to the webview via render-ingestr-params-message.
+   */
+  private async renderIngestrParams(
+    filePath: string,
+    { flags = ["-o", "json"], ignoresErrors = false }: BruinCommandOptions = {}
+  ): Promise<void> {
+    try {
+      const result = await this.run([...flags, filePath], { ignoresErrors });
+      const parsed = JSON.parse(result);
+
+      if (parsed.query) {
+        const renderedParams = parseIngestrParameters(parsed.query);
+        if (renderedParams) {
+          BruinPanel?.postMessage("render-ingestr-params-message", {
+            status: "success",
+            message: renderedParams,
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error rendering ingestr parameters:", error);
+    }
   }
   
   private async isBruinPipeline(filePath: string): Promise<boolean> {

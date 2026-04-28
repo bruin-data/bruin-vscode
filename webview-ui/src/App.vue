@@ -170,6 +170,7 @@ const lastRenderedDocument = ref("");
 const pipelineAssetsData = ref([]);
 const assetMetadata = ref(null);
 const assetMetadataError = ref<string | null>(null);
+const renderedIngestrParameters = ref<Record<string, string> | null>(null);
 const handleMessage = (event: MessageEvent) => {
   const message = event.data;
   console.log("Message received:", message.command, message);
@@ -379,7 +380,7 @@ const handleMessage = (event: MessageEvent) => {
       case "asset-metadata-message":
         const metadataResult = updateValue(message, "success");
         const metadataError = updateValue(message, "error");
-        
+
         if (metadataError) {
           assetMetadataError.value = typeof metadataError === 'string' ? metadataError : String(metadataError);
           assetMetadata.value = null;
@@ -392,6 +393,14 @@ const handleMessage = (event: MessageEvent) => {
             assetMetadata.value = null;
             assetMetadataError.value = "Failed to parse metadata response";
           }
+        }
+        break;
+      case "render-ingestr-params-message":
+        const renderedParams = updateValue(message, "success");
+        if (renderedParams) {
+          renderedIngestrParameters.value = typeof renderedParams === "string"
+            ? JSON.parse(renderedParams)
+            : renderedParams;
         }
         break;
       case "lastRenderedDocument":
@@ -415,6 +424,7 @@ const handleMessage = (event: MessageEvent) => {
         // Clear any existing metadata when file changes to prevent stale data
         assetMetadata.value = null;
         assetMetadataError.value = null;
+        renderedIngestrParameters.value = null;
         console.log("🔍 [App.vue] File changed - cleared existing metadata");
         // Leave current content/tabs as-is for non-relevant files; simply exit settings-only
         settingsOnlyMode.value = false;
@@ -727,6 +737,7 @@ const tabs = ref([
       intervalModifiers: intervalModifiers.value,
       startDate: startDate.value,
       parameters: ingestrParameters.value,
+      renderedParameters: renderedIngestrParameters.value,
       columns: columns.value,
       assetMetadata: assetMetadata.value,
       assetMetadataError: assetMetadataError.value,

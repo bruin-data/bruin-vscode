@@ -6,6 +6,8 @@ import { BruinLineageInternalParse } from "../../bruin/bruinFlowLineage";
 import { BruinPanel } from "../../panels/BruinPanel";
 import { EnhancedPipelineData, PipelineColumnInfo } from "../../types";
 import { getCurrentPipelinePath } from "../../bruin/bruinUtils";
+import { BruinRender } from "../../bruin/bruinRender";
+import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs";
 
@@ -74,10 +76,20 @@ export const patchAssetCommand = async (body: object, lastRenderedDocumentUri: U
      ""
   );
   const success = await patched.patchAsset(body, lastRenderedDocumentUri.fsPath);
-  
+
   // After successful patch, re-parse the asset to update the webview
   if (success) {
     await parseAssetCommand(lastRenderedDocumentUri);
+
+    // For ingestr assets, also re-render to get updated rendered parameters
+    const filePath = lastRenderedDocumentUri.fsPath;
+    if (filePath.endsWith('.asset.yml') || filePath.endsWith('.asset.yaml')) {
+      const renderer = new BruinRender(
+        getBruinExecutablePath(),
+        vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || ""
+      );
+      renderer.render(filePath);
+    }
   }
 };
 

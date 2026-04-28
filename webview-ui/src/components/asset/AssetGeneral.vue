@@ -350,7 +350,7 @@
 
       <div class="">
         <div v-if="props.assetType === 'ingestr' && !isError" class="mt-1">
-          <IngestrAssetDisplay :parameters="ingestrParameters" :columns="props.columns" @save="handleIngestrSave" />
+          <IngestrAssetDisplay :parameters="ingestrParameters" :renderedParameters="props.renderedParameters" :columns="props.columns" @save="handleIngestrSave" />
         </div>
         <div v-else-if="code && !renderSQLAssetError" class="mt-1">
           <!-- SqlEditor handles both success and error cost display in its header -->
@@ -429,6 +429,7 @@ const props = defineProps<{
   intervalModifiers?: { start?: string; end?: string };
   assetType?: string;
   parameters: any;
+  renderedParameters?: Record<string, string> | null;
   columns: any[];
   tags?: string[];
   assetMetadata?: any;

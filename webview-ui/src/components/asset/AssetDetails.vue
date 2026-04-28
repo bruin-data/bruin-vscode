@@ -87,6 +87,7 @@
         :intervalModifiers="props.intervalModifiers"
         :assetType="props.type"
         :parameters="parameters"
+        :renderedParameters="props.renderedParameters"
         :columns="props.columns || []"
         :tags="props.tags || []"
         :assetMetadata="props.assetMetadata"
@@ -122,6 +123,7 @@ const props = defineProps<{
   hasIntervalModifiers: boolean;
   intervalModifiers?: { start?: string; end?: string };
   parameters?: any;
+  renderedParameters?: Record<string, string> | null;
   columns?: any[];
   tags?: string[];
   assetMetadata?: any;

@@ -13,204 +13,285 @@
         </div>
       </div>
 
-      <div v-if="expandedSections.ingestr" id="ingestr-content" class="p-2 space-y-1 bg-editor-bg border-t border-commandCenter-border rounded-b">
-      
-      <!-- Source Connection -->
-      <div id="source-connection-row" class="flex items-center gap-2">
-        <span 
-          id="source-connection-label"
-          class="text-2xs min-w-[140px] cursor-help" 
-          :class="!localParameters.source_connection ? 'text-errorForeground' : 'text-editor-fg opacity-70'"
-          title="The database connection to extract data from. Must be configured in your .bruin.yml file."
-        >Source Connection: <span class="text-errorForeground">*</span></span>
-        <div 
-          id="source-connection-field"
-          class="flex-1 text-xs text-editor-fg"
-          :class="{ 'cursor-pointer hover:bg-input-background px-2 py-1 rounded transition-colors': !editingField.source_connection }"
-          @click="startEditing('source_connection')"
-        >
-          <select 
-            v-if="editingField.source_connection"
-            id="source-connection-select"
-            v-model="editingValues.source_connection"
-            @blur="saveField('source_connection')"
-            @change="saveField('source_connection')"
-            :ref="el => { if (el) inputRefs.source_connection = el as HTMLSelectElement }"
-            class="bg-input-background text-input-foreground text-xs border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg px-2 py-1 rounded w-full"
-          >
-            <option value="">Select connection...</option>
-            <option v-for="connection in availableSourceConnections" :key="connection.name" :value="connection.name">
-              {{ connection.name }} ({{ connection.type }})
-            </option>
-          </select>
-          <span v-else id="source-connection-value" class="block" :class="{ 'italic opacity-70': !localParameters.source_connection, 'text-errorForeground': !localParameters.source_connection }">
-            {{ localParameters.source_connection || 'Required: Click to set connection' }}
-          </span>
-        </div>
-      </div>
-
-      <!-- Source Table -->
-      <div id="source-table-row" class="flex items-center gap-2">
-        <span 
-          id="source-table-label"
-          class="text-2xs min-w-[140px] cursor-help" 
-          :class="!localParameters.source_table ? 'text-errorForeground' : 'text-editor-fg opacity-70'"
-          title="The name of the table/view to extract data from in your source database."
-        >Source Table: <span class="text-errorForeground">*</span></span>
-        <div 
-          id="source-table-field"
-          class="flex-1 text-xs text-editor-fg"
-          :class="{ 'cursor-pointer hover:bg-input-background px-2 py-1 rounded transition-colors': !editingField.source_table }"
-          @click="!editingField.source_table && startEditing('source_table')"
-        >
-          <div v-if="editingField.source_table" class="flex items-center gap-1 w-full" @click.stop @keydown.escape="cancelEdit('source_table')">
-            <select 
-              v-if="sourceTableUseSelect && !isCustomSourceTable"
-              id="source-table-select"
-              v-model="editingValues.source_table"
-              @change="handleSourceTableChange"
-              @blur="handleSourceTableBlur"
-              :ref="el => { if (el) inputRefs.source_table = el as HTMLSelectElement }"
-              class="bg-input-background text-input-foreground text-xs border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg px-2 py-1 rounded flex-1"
+      <div v-if="expandedSections.ingestr" id="ingestr-content" class="bg-editor-bg border-t border-commandCenter-border rounded-b">
+        <!-- Editable Parameters View -->
+        <div v-if="isEditMode" class="p-2 space-y-1">
+          <!-- Header with done button -->
+          <div class="flex items-center justify-end mb-2">
+            <button
+              @click="isEditMode = false"
+              class="flex items-center gap-1 text-2xs text-editorLink-activeFg hover:text-editor-fg transition-colors"
             >
-              <option value="">Select table...</option>
-              <option v-for="table in availableSourceTables" :key="table" :value="table">
-                {{ table }}
-              </option>
-              <option value="__CUSTOM__">Enter custom table...</option>
-            </select>
-            <input 
-              v-else
-              id="source-table-input"
-              v-model="editingValues.source_table"
-              @blur="saveField('source_table')"
-              @keyup.enter="saveField('source_table')"
-              @keyup.escape="cancelEdit('source_table')"
-              :ref="el => { if (el) inputRefs.source_table = el as HTMLInputElement }"
-              class="bg-input-background text-input-foreground text-xs border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg px-2 py-1 rounded w-full"
-              :placeholder="isLoadingSourceTables ? 'Loading tables...' : 'Enter table name'"
-            />
-            <span v-if="isLoadingSourceTables" class="codicon codicon-loading codicon-modifier-spin text-xs"></span>
+              <span class="codicon codicon-check"></span>
+              Done
+            </button>
           </div>
-          <span v-else id="source-table-value" class="block" :class="{ 'italic opacity-70': !localParameters.source_table, 'text-errorForeground': !localParameters.source_table }">
-            {{ localParameters.source_table || 'Required: Click to set table' }}
-          </span>
-        </div>
-      </div>
-
-      <!-- Destination Platform -->
-      <div id="destination-row" class="flex items-center gap-2">
-        <span 
-          id="destination-label"
-          class="text-2xs min-w-[140px] cursor-help" 
-          :class="!localParameters.destination ? 'text-errorForeground' : 'text-editor-fg opacity-70'"
-          title="The target platform where data will be loaded (e.g., Snowflake, BigQuery, Postgres)."
-        >Destination Platform: <span class="text-errorForeground">*</span></span>
-        <div 
-          id="destination-field"
-          class="flex-1 text-xs text-editor-fg"
-          :class="{ 'cursor-pointer hover:bg-input-background px-2 py-1 rounded transition-colors': !editingField.destination }"
-          @click="startEditing('destination')"
-        >
-          <select 
-            v-if="editingField.destination"
-            id="destination-select"
-            v-model="editingValues.destination"
-            @blur="saveField('destination')"
-            @change="saveField('destination')"
-            :ref="el => { if (el) inputRefs.destination = el as HTMLSelectElement }"
-            class="bg-input-background text-input-foreground text-xs border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg px-2 py-1 rounded w-full"
-          >
-            <option value="">Select destination...</option>
-            <option v-for="dest in AVAILABLE_DESTINATIONS" :key="dest.value" :value="dest.value">
-              {{ dest.label }}
-            </option>
-          </select>
-          <span v-else id="destination-value" class="block" :class="{ 'italic opacity-70': !localParameters.destination, 'text-errorForeground': !localParameters.destination }">
-            {{ localParameters.destination ? destinationDisplayName(localParameters.destination) : 'Required: Click to set destination' }}
-          </span>
-        </div>
-      </div>
-
-
-      <!-- Incremental Strategy -->
-      <div id="incremental-strategy-row" class="flex items-center gap-2">
-        <span 
-          id="incremental-strategy-label"
-          class="text-2xs text-editor-fg opacity-70 min-w-[140px] cursor-help" 
-          title="How to handle incremental data updates: replace (full refresh), append (add new rows), merge (upsert), or delete+insert."
-        >Incremental Strategy:</span>
-        <div 
-          id="incremental-strategy-field"
-          class="flex-1 text-xs text-editor-fg"
-          :class="{ 'cursor-pointer hover:bg-input-background px-2 py-1 rounded transition-colors': !editingField.incremental_strategy }"
-          @click="startEditing('incremental_strategy')"
-        >
-          <select 
-            v-if="editingField.incremental_strategy"
-            id="incremental-strategy-select"
-            v-model="editingValues.incremental_strategy"
-            @blur="saveField('incremental_strategy')"
-            @change="saveField('incremental_strategy')"
-            :ref="el => { if (el) inputRefs.incremental_strategy = el as HTMLSelectElement }"
-            class="bg-input-background text-input-foreground text-xs border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg px-2 py-1 rounded w-full"
-          >
-            <option v-for="strategy in INCREMENTAL_STRATEGIES" :key="strategy.value" :value="strategy.value">
-              {{ strategy.label }}
-            </option>
-          </select>
-          <span v-else id="incremental-strategy-value" class="block" :class="{ 'italic opacity-70': !localParameters.incremental_strategy }">
-            {{ localParameters.incremental_strategy || 'Click to set strategy' }}
-          </span>
-        </div>
-      </div>
-
-      <!-- Incremental Key -->
-      <div id="incremental-key-row" class="flex items-center gap-2">
-        <span 
-          id="incremental-key-label"
-          class="text-2xs text-editor-fg opacity-70 min-w-[140px] cursor-help" 
-          title="The column used to identify new/updated records (e.g., timestamp, id). Required for incremental strategies."
-        >Incremental Key:</span>
-        <div 
-          id="incremental-key-field"
-          class="flex-1 text-xs text-editor-fg"
-          :class="{ 'cursor-pointer hover:bg-input-background px-2 py-1 rounded transition-colors': !editingField.incremental_key }"
-          @click="startEditing('incremental_key')"
-        >
-          <div v-if="editingField.incremental_key" class="flex items-center gap-1 w-full">
-            <select 
-              v-if="!isCustomIncrementalKey"
-              id="incremental-key-select"
-              v-model="editingValues.incremental_key"
-              @change="handleIncrementalKeyChange"
-              @blur="handleIncrementalKeyBlur"
-              :ref="el => { if (el) inputRefs.incremental_key = el as HTMLSelectElement }"
-              class="bg-input-background text-input-foreground text-xs border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg px-2 py-1 rounded flex-1"
+          <!-- Source Connection -->
+          <div id="source-connection-row" class="flex items-center gap-2">
+            <span
+              id="source-connection-label"
+              class="text-2xs min-w-[140px] cursor-help"
+              :class="!localParameters.source_connection ? 'text-errorForeground' : 'text-editor-fg opacity-70'"
+              title="The database connection to extract data from. Must be configured in your .bruin.yml file."
+            >Source Connection: <span class="text-errorForeground">*</span></span>
+            <div
+              id="source-connection-field"
+              class="flex-1 text-xs text-editor-fg"
+              :class="{ 'cursor-pointer hover:bg-input-background px-2 py-1 rounded transition-colors': !editingField.source_connection }"
+              @click="startEditing('source_connection')"
             >
-              <option value="">Select column...</option>
-              <option v-for="column in availableColumns" :key="column" :value="column">
-                {{ column }}
-              </option>
-              <option value="__CUSTOM__">Add custom value...</option>
-            </select>
-            <input 
-              v-else
-              id="incremental-key-input"
-              v-model="editingValues.incremental_key"
-              @blur="saveField('incremental_key')"
-              @keyup.enter="saveField('incremental_key')"
-              @keyup.escape="cancelEdit('incremental_key')"
-              :ref="el => { if (el) inputRefs.incremental_key = el as HTMLInputElement }"
-              class="bg-input-background text-input-foreground text-xs border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg px-2 py-1 rounded w-full"
-              placeholder="Enter custom column name"
-            />
+              <select
+                v-if="editingField.source_connection"
+                id="source-connection-select"
+                v-model="editingValues.source_connection"
+                @blur="saveField('source_connection')"
+                @change="saveField('source_connection')"
+                :ref="el => { if (el) inputRefs.source_connection = el as HTMLSelectElement }"
+                class="bg-input-background text-input-foreground text-xs border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg px-2 py-1 rounded w-full"
+              >
+                <option value="">Select connection...</option>
+                <option v-for="connection in availableSourceConnections" :key="connection.name" :value="connection.name">
+                  {{ connection.name }} ({{ connection.type }})
+                </option>
+              </select>
+              <span v-else id="source-connection-value" class="block" :class="{ 'italic opacity-70': !localParameters.source_connection, 'text-errorForeground': !localParameters.source_connection }">
+                {{ localParameters.source_connection || 'Required: Click to set connection' }}
+              </span>
+            </div>
           </div>
-          <span v-else id="incremental-key-value" class="block" :class="{ 'italic opacity-70': !localParameters.incremental_key }">
-            {{ localParameters.incremental_key || 'Click to set key' }}
-          </span>
+
+          <!-- Source Table -->
+          <div id="source-table-row" class="flex items-center gap-2">
+            <span
+              id="source-table-label"
+              class="text-2xs min-w-[140px] cursor-help"
+              :class="!localParameters.source_table ? 'text-errorForeground' : 'text-editor-fg opacity-70'"
+              title="The name of the table/view to extract data from in your source database."
+            >Source Table: <span class="text-errorForeground">*</span></span>
+            <div
+              id="source-table-field"
+              class="flex-1 text-xs text-editor-fg"
+              :class="{ 'cursor-pointer hover:bg-input-background px-2 py-1 rounded transition-colors': !editingField.source_table }"
+              @click="!editingField.source_table && startEditing('source_table')"
+            >
+              <div v-if="editingField.source_table" class="flex items-center gap-1 w-full" @click.stop @keydown.escape="cancelEdit('source_table')">
+                <select
+                  v-if="sourceTableUseSelect && !isCustomSourceTable"
+                  id="source-table-select"
+                  v-model="editingValues.source_table"
+                  @change="handleSourceTableChange"
+                  @blur="handleSourceTableBlur"
+                  :ref="el => { if (el) inputRefs.source_table = el as HTMLSelectElement }"
+                  class="bg-input-background text-input-foreground text-xs border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg px-2 py-1 rounded flex-1"
+                >
+                  <option value="">Select table...</option>
+                  <option v-for="table in availableSourceTables" :key="table" :value="table">
+                    {{ table }}
+                  </option>
+                  <option value="__CUSTOM__">Enter custom table...</option>
+                </select>
+                <input
+                  v-else
+                  id="source-table-input"
+                  v-model="editingValues.source_table"
+                  @blur="saveField('source_table')"
+                  @keyup.enter="saveField('source_table')"
+                  @keyup.escape="cancelEdit('source_table')"
+                  :ref="el => { if (el) inputRefs.source_table = el as HTMLInputElement }"
+                  class="bg-input-background text-input-foreground text-xs border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg px-2 py-1 rounded w-full"
+                  :placeholder="isLoadingSourceTables ? 'Loading tables...' : 'Enter table name'"
+                />
+                <span v-if="isLoadingSourceTables" class="codicon codicon-loading codicon-modifier-spin text-xs"></span>
+              </div>
+              <span v-else id="source-table-value" class="block" :class="{ 'italic opacity-70': !localParameters.source_table, 'text-errorForeground': !localParameters.source_table }">
+                {{ localParameters.source_table || 'Required: Click to set table' }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Destination Platform -->
+          <div id="destination-row" class="flex items-center gap-2">
+            <span
+              id="destination-label"
+              class="text-2xs min-w-[140px] cursor-help"
+              :class="!localParameters.destination ? 'text-errorForeground' : 'text-editor-fg opacity-70'"
+              title="The target platform where data will be loaded (e.g., Snowflake, BigQuery, Postgres)."
+            >Destination Platform: <span class="text-errorForeground">*</span></span>
+            <div
+              id="destination-field"
+              class="flex-1 text-xs text-editor-fg"
+              :class="{ 'cursor-pointer hover:bg-input-background px-2 py-1 rounded transition-colors': !editingField.destination }"
+              @click="startEditing('destination')"
+            >
+              <select
+                v-if="editingField.destination"
+                id="destination-select"
+                v-model="editingValues.destination"
+                @blur="saveField('destination')"
+                @change="saveField('destination')"
+                :ref="el => { if (el) inputRefs.destination = el as HTMLSelectElement }"
+                class="bg-input-background text-input-foreground text-xs border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg px-2 py-1 rounded w-full"
+              >
+                <option value="">Select destination...</option>
+                <option v-for="dest in AVAILABLE_DESTINATIONS" :key="dest.value" :value="dest.value">
+                  {{ dest.label }}
+                </option>
+              </select>
+              <span v-else id="destination-value" class="block" :class="{ 'italic opacity-70': !localParameters.destination, 'text-errorForeground': !localParameters.destination }">
+                {{ localParameters.destination ? destinationDisplayName(localParameters.destination) : 'Required: Click to set destination' }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Incremental Strategy -->
+          <div id="incremental-strategy-row" class="flex items-center gap-2">
+            <span
+              id="incremental-strategy-label"
+              class="text-2xs text-editor-fg opacity-70 min-w-[140px] cursor-help"
+              title="How to handle incremental data updates: replace (full refresh), append (add new rows), merge (upsert), or delete+insert."
+            >Incremental Strategy:</span>
+            <div
+              id="incremental-strategy-field"
+              class="flex-1 text-xs text-editor-fg"
+              :class="{ 'cursor-pointer hover:bg-input-background px-2 py-1 rounded transition-colors': !editingField.incremental_strategy }"
+              @click="startEditing('incremental_strategy')"
+            >
+              <select
+                v-if="editingField.incremental_strategy"
+                id="incremental-strategy-select"
+                v-model="editingValues.incremental_strategy"
+                @blur="saveField('incremental_strategy')"
+                @change="saveField('incremental_strategy')"
+                :ref="el => { if (el) inputRefs.incremental_strategy = el as HTMLSelectElement }"
+                class="bg-input-background text-input-foreground text-xs border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg px-2 py-1 rounded w-full"
+              >
+                <option v-for="strategy in INCREMENTAL_STRATEGIES" :key="strategy.value" :value="strategy.value">
+                  {{ strategy.label }}
+                </option>
+              </select>
+              <span v-else id="incremental-strategy-value" class="block" :class="{ 'italic opacity-70': !localParameters.incremental_strategy }">
+                {{ localParameters.incremental_strategy || 'Click to set strategy' }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Incremental Key -->
+          <div id="incremental-key-row" class="flex items-center gap-2">
+            <span
+              id="incremental-key-label"
+              class="text-2xs text-editor-fg opacity-70 min-w-[140px] cursor-help"
+              title="The column used to identify new/updated records (e.g., timestamp, id). Required for incremental strategies."
+            >Incremental Key:</span>
+            <div
+              id="incremental-key-field"
+              class="flex-1 text-xs text-editor-fg"
+              :class="{ 'cursor-pointer hover:bg-input-background px-2 py-1 rounded transition-colors': !editingField.incremental_key }"
+              @click="startEditing('incremental_key')"
+            >
+              <div v-if="editingField.incremental_key" class="flex items-center gap-1 w-full">
+                <select
+                  v-if="!isCustomIncrementalKey"
+                  id="incremental-key-select"
+                  v-model="editingValues.incremental_key"
+                  @change="handleIncrementalKeyChange"
+                  @blur="handleIncrementalKeyBlur"
+                  :ref="el => { if (el) inputRefs.incremental_key = el as HTMLSelectElement }"
+                  class="bg-input-background text-input-foreground text-xs border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg px-2 py-1 rounded flex-1"
+                >
+                  <option value="">Select column...</option>
+                  <option v-for="column in availableColumns" :key="column" :value="column">
+                    {{ column }}
+                  </option>
+                  <option value="__CUSTOM__">Add custom value...</option>
+                </select>
+                <input
+                  v-else
+                  id="incremental-key-input"
+                  v-model="editingValues.incremental_key"
+                  @blur="saveField('incremental_key')"
+                  @keyup.enter="saveField('incremental_key')"
+                  @keyup.escape="cancelEdit('incremental_key')"
+                  :ref="el => { if (el) inputRefs.incremental_key = el as HTMLInputElement }"
+                  class="bg-input-background text-input-foreground text-xs border-0 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg px-2 py-1 rounded w-full"
+                  placeholder="Enter custom column name"
+                />
+              </div>
+              <span v-else id="incremental-key-value" class="block" :class="{ 'italic opacity-70': !localParameters.incremental_key }">
+                {{ localParameters.incremental_key || 'Click to set key' }}
+              </span>
+            </div>
+          </div>
         </div>
-      </div>
+
+        <!-- Rendered View (Read-only, default) -->
+        <div v-else class="p-2 space-y-2">
+          <!-- Header with edit button -->
+          <div class="flex items-center justify-end">
+            <button
+              @click="isEditMode = true"
+              class="flex items-center gap-1 text-2xs text-editor-fg opacity-60 hover:opacity-100 transition-colors"
+              title="Edit parameters"
+            >
+              <span class="codicon codicon-edit"></span>
+            </button>
+          </div>
+
+          <div v-if="props.renderedParameters" class="space-y-1">
+            <!-- Rendered Parameters -->
+            <div v-if="props.renderedParameters.source_connection" class="flex items-center gap-2">
+              <span class="text-2xs text-editor-fg opacity-70 min-w-[140px]">Source Connection:</span>
+              <span class="text-xs text-editor-fg">{{ props.renderedParameters.source_connection }}</span>
+            </div>
+            <div v-if="props.renderedParameters.source_table" class="flex items-center gap-2">
+              <span class="text-2xs text-editor-fg opacity-70 min-w-[140px]">Source Table:</span>
+              <span class="text-xs text-editor-fg">{{ props.renderedParameters.source_table }}</span>
+            </div>
+            <div v-if="props.renderedParameters.destination" class="flex items-center gap-2">
+              <span class="text-2xs text-editor-fg opacity-70 min-w-[140px]">Destination:</span>
+              <span class="text-xs text-editor-fg">{{ props.renderedParameters.destination }}</span>
+            </div>
+            <div v-if="props.renderedParameters.incremental_strategy" class="flex items-center gap-2">
+              <span class="text-2xs text-editor-fg opacity-70 min-w-[140px]">Incremental Strategy:</span>
+              <span class="text-xs text-editor-fg">{{ props.renderedParameters.incremental_strategy }}</span>
+            </div>
+            <div v-if="props.renderedParameters.incremental_key" class="flex items-center gap-2">
+              <span class="text-2xs text-editor-fg opacity-70 min-w-[140px]">Incremental Key:</span>
+              <span class="text-xs text-editor-fg">{{ props.renderedParameters.incremental_key }}</span>
+            </div>
+
+            <!-- Query if available -->
+            <div v-if="props.renderedParameters.query" class="mt-3">
+              <span class="text-2xs text-editor-fg opacity-70 block mb-1">Query:</span>
+              <pre class="text-xs text-editor-fg bg-input-background p-2 rounded overflow-x-auto whitespace-pre-wrap">{{ props.renderedParameters.query }}</pre>
+            </div>
+          </div>
+          <div v-else class="space-y-1">
+            <!-- Fallback to raw parameters if no rendered available -->
+            <div v-if="localParameters.source_connection" class="flex items-center gap-2">
+              <span class="text-2xs text-editor-fg opacity-70 min-w-[140px]">Source Connection:</span>
+              <span class="text-xs text-editor-fg">{{ localParameters.source_connection }}</span>
+            </div>
+            <div v-if="localParameters.source_table" class="flex items-center gap-2">
+              <span class="text-2xs text-editor-fg opacity-70 min-w-[140px]">Source Table:</span>
+              <span class="text-xs text-editor-fg">{{ localParameters.source_table }}</span>
+            </div>
+            <div v-if="localParameters.destination" class="flex items-center gap-2">
+              <span class="text-2xs text-editor-fg opacity-70 min-w-[140px]">Destination:</span>
+              <span class="text-xs text-editor-fg">{{ destinationDisplayName(localParameters.destination) }}</span>
+            </div>
+            <div v-if="localParameters.incremental_strategy" class="flex items-center gap-2">
+              <span class="text-2xs text-editor-fg opacity-70 min-w-[140px]">Incremental Strategy:</span>
+              <span class="text-xs text-editor-fg">{{ localParameters.incremental_strategy }}</span>
+            </div>
+            <div v-if="localParameters.incremental_key" class="flex items-center gap-2">
+              <span class="text-2xs text-editor-fg opacity-70 min-w-[140px]">Incremental Key:</span>
+              <span class="text-xs text-editor-fg">{{ localParameters.incremental_key }}</span>
+            </div>
+            <div v-if="!localParameters.source_connection && !localParameters.source_table && !localParameters.destination" class="text-xs text-editor-fg opacity-60 italic py-2 text-center">
+              No parameters configured
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -223,6 +304,7 @@ import { vscode } from '@/utilities/vscode';
 
 const props = defineProps<{
   parameters: Partial<IngestrParameters>;
+  renderedParameters?: Record<string, string> | null;
   columns: any[];
 }>();
 
@@ -230,6 +312,7 @@ const emit = defineEmits<{
   save: [parameters: IngestrParameters];
 }>();
 
+const isEditMode = ref(false);
 const availableConnections = ref<Array<{ name: string; type: string }>>([]);
 
 const expandedSections = ref({
@@ -293,7 +376,7 @@ const isLoadingSourceTables = ref(false);
 const sourceTableUseSelect = ref(false);
 
 const availableSourceConnections = computed(() => {
-  return availableConnections.value.filter(conn => 
+  return availableConnections.value.filter(conn =>
     !DATA_PLATFORM_TYPES.includes(conn.type.toLowerCase() as any)
   );
 });
@@ -302,7 +385,7 @@ const availableColumns = computed(() => {
   if (!props.columns || !Array.isArray(props.columns)) {
     return [];
   }
-  
+
   const columns = props.columns.map(column => {
     if (typeof column === 'string') {
       return column;
@@ -313,23 +396,23 @@ const availableColumns = computed(() => {
     }
     return null;
   }).filter(Boolean);
-  
+
   const currentValue = localParameters.value.incremental_key || '';
   if (currentValue && !columns.includes(currentValue)) {
     return [currentValue, ...columns];
   }
-  
+
   return columns;
 });
 
 const startEditing = (field: string) => {
   editingField.value[field] = true;
   editingValues.value[field] = localParameters.value[field] || '';
-  
+
   if (field === 'incremental_key') {
     isCustomIncrementalKey.value = false;
   }
-  
+
   if (field === 'source_table') {
     isCustomSourceTable.value = false;
     // Lock in the element type at the start of editing (prevents DOM switching mid-edit)
@@ -338,7 +421,7 @@ const startEditing = (field: string) => {
       fetchSourceTables(localParameters.value.source_connection);
     }
   }
-  
+
   nextTick(() => {
     const input = inputRefs.value[field];
     if (input) {
@@ -375,23 +458,23 @@ const handleIncrementalKeyBlur = () => {
 const saveField = (field: string) => {
   const oldValue = localParameters.value[field];
   const newValue = editingValues.value[field];
-  
+
   localParameters.value[field] = newValue;
   editingField.value[field] = false;
-  
+
   if (field === 'incremental_key') {
     isCustomIncrementalKey.value = false;
   }
-  
+
   if (field === 'source_table') {
     isCustomSourceTable.value = false;
     sourceTableUseSelect.value = false;
   }
-  
+
   // Only clear source_table and fetch new tables if source_connection actually CHANGED
   if (field === 'source_connection' && newValue && newValue !== oldValue) {
     localParameters.value.source_table = '';
-    
+
     const updatedParameters = { ...props.parameters };
     Object.entries(localParameters.value).forEach(([key, value]) => {
       if (value !== null && value !== undefined && value !== '') {
@@ -400,13 +483,13 @@ const saveField = (field: string) => {
         delete updatedParameters[key];
       }
     });
-    
+
     isInternalUpdate.value = true;
     emit('save', updatedParameters as IngestrParameters);
     fetchSourceTables(newValue);
     return;
   }
-  
+
   isInternalUpdate.value = true;
   saveParameters();
 };
@@ -414,11 +497,11 @@ const saveField = (field: string) => {
 const cancelEdit = (field: string) => {
   editingField.value[field] = false;
   editingValues.value[field] = localParameters.value[field] || '';
-  
+
   if (field === 'incremental_key') {
     isCustomIncrementalKey.value = false;
   }
-  
+
   if (field === 'source_table') {
     isCustomSourceTable.value = false;
     sourceTableUseSelect.value = false;
@@ -427,7 +510,7 @@ const cancelEdit = (field: string) => {
 
 const saveParameters = () => {
   const updatedParameters = { ...props.parameters };
-  
+
   Object.entries(localParameters.value).forEach(([key, value]) => {
     if (value !== null && value !== undefined && value !== '') {
       updatedParameters[key] = value;
@@ -435,8 +518,7 @@ const saveParameters = () => {
       delete updatedParameters[key];
     }
   });
-  
-  console.log('📤 [IngestrAssetDisplay] Saving parameters:', JSON.stringify(updatedParameters, null, 2));
+
   emit('save', updatedParameters as IngestrParameters);
 };
 
@@ -462,7 +544,7 @@ const handleConnectionsList = (payload: any) => {
   if (payload.status === "success" && payload.message) {
     const data = payload.message;
     const parsedConnections: Array<{ name: string; type: string }> = [];
-    
+
     if (Array.isArray(data)) {
       data.forEach((conn: any) => {
         if (conn.name && conn.type) {
@@ -472,7 +554,7 @@ const handleConnectionsList = (payload: any) => {
     } else if (data && data.environments) {
       const envName = data.selected_environment_name || data.default_environment_name || Object.keys(data.environments)[0];
       const envConnections = data.environments[envName]?.connections || {};
-      
+
       Object.keys(envConnections).forEach((connectionType: string) => {
         const connectionsOfType = envConnections[connectionType];
         if (Array.isArray(connectionsOfType)) {
@@ -496,9 +578,9 @@ const handleConnectionsList = (payload: any) => {
         }
       });
     }
-    
+
     availableConnections.value = parsedConnections;
-    
+
     if (localParameters.value.source_connection && availableSourceTables.value.length === 0) {
       fetchSourceTables(localParameters.value.source_connection);
     }
@@ -585,7 +667,7 @@ const handleSourceTableBlur = () => {
   if (isCustomSourceTable.value) {
     return;
   }
-  
+
   if (!editingValues.value.source_table || editingValues.value.source_table === '') {
     cancelEdit('source_table');
   }
@@ -599,7 +681,7 @@ watch(
     if (newParameters) {
       const newSourceConnection = newParameters.source_connection || '';
       const sourceConnectionChanged = previousSourceConnection.value !== newSourceConnection;
-      
+
       localParameters.value = {
         source: newParameters.source || '',
         source_connection: newSourceConnection,
@@ -608,19 +690,19 @@ watch(
         incremental_strategy: newParameters.incremental_strategy || '',
         incremental_key: newParameters.incremental_key || '',
       };
-      
+
       if (!isInternalUpdate.value) {
         editingField.value = {};
         editingValues.value = {};
         isCustomIncrementalKey.value = false;
         isCustomSourceTable.value = false;
-        
+
         if (sourceConnectionChanged) {
           availableSourceTables.value = [];
           isLoadingSourceTables.value = false;
         }
       }
-      
+
       isInternalUpdate.value = false;
       previousSourceConnection.value = newSourceConnection;
     }
