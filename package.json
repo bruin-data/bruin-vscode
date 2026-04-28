@@ -481,7 +481,11 @@
   },
   "overrides": {
     "undici": "^6.21.1",
-    "glob": "^11.0.0"
+    "glob": "^11.0.0",
+    "http-proxy-agent": "^7.0.2",
+    "serialize-javascript": "^7.0.5",
+    "diff": "^8.0.3",
+    "uuid": "^14.0.0"
   },
   "dependencies": {
     "@rudderstack/analytics-js": "^3.11.15",
