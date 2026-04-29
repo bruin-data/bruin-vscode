@@ -170,7 +170,6 @@ const lastRenderedDocument = ref("");
 const pipelineAssetsData = ref([]);
 const assetMetadata = ref(null);
 const assetMetadataError = ref<string | null>(null);
-const renderedIngestrParameters = ref<Record<string, string> | null>(null);
 const handleMessage = (event: MessageEvent) => {
   const message = event.data;
   console.log("Message received:", message.command, message);
@@ -395,14 +394,6 @@ const handleMessage = (event: MessageEvent) => {
           }
         }
         break;
-      case "render-ingestr-params-message":
-        const renderedParams = updateValue(message, "success");
-        if (renderedParams) {
-          renderedIngestrParameters.value = typeof renderedParams === "string"
-            ? JSON.parse(renderedParams)
-            : renderedParams;
-        }
-        break;
       case "lastRenderedDocument":
         // If we have asset data when the document loads, request metadata if not a config file
         if (parsedData.value && parsedData.value.asset) {
@@ -431,7 +422,6 @@ const handleMessage = (event: MessageEvent) => {
           // Clear metadata only when switching to a different file
           assetMetadata.value = null;
           assetMetadataError.value = null;
-          renderedIngestrParameters.value = null;
           console.log("🔍 [App.vue] File changed to different file - cleared existing metadata");
         } else {
           console.log("🔍 [App.vue] Same file refocused - keeping existing metadata");
@@ -747,7 +737,6 @@ const tabs = ref([
       intervalModifiers: intervalModifiers.value,
       startDate: startDate.value,
       parameters: ingestrParameters.value,
-      renderedParameters: renderedIngestrParameters.value,
       columns: columns.value,
       assetMetadata: assetMetadata.value,
       assetMetadataError: assetMetadataError.value,

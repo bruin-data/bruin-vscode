@@ -64,7 +64,6 @@ export class BruinRender extends BruinCommand {
     }
 
     const isTaskYml = filePath.endsWith('.task.yml') || filePath.endsWith('.task.yaml');
-    const isIngestrAsset = filePath.endsWith('.asset.yml') || filePath.endsWith('.asset.yaml');
 
     if ((isBruinAsset || isBruinPipeline || (isBruinYaml && !isTaskYml))) {
       BruinPanel?.postMessage("render-message", {
