@@ -73,21 +73,24 @@ const ensureSectionExpanded = async (driver: WebDriver): Promise<void> => {
 const startEditingField = async (driver: WebDriver, fieldId: string): Promise<void> => {
   // Ensure section is expanded first
   await ensureSectionExpanded(driver);
-  
+
+  // Enter edit mode first (new UI flow)
+  await enterEditMode(driver);
+
   const field = await findElementWithRetry(driver, By.id(fieldId), 10000);
-  
+
   // Ensure field is visible and clickable
   assert(await field.isDisplayed(), `Field ${fieldId} should be visible`);
   assert(await field.isEnabled(), `Field ${fieldId} should be enabled`);
-  
+
   // Scroll into view if needed (Windows compatibility)
   await driver.executeScript("arguments[0].scrollIntoView(true);", field);
   await sleep(500);
-  
+
   // Click the field
   await field.click();
-  console.log(`Clicked ${fieldId}, waiting for edit mode...`);
-  
+  console.log(`Clicked ${fieldId}, waiting for input...`);
+
   // Increased wait time for Windows compatibility - Vue reactivity needs time
   await sleep(2000);
 };
@@ -146,28 +149,81 @@ const testDropdownEditing = async (driver: WebDriver, fieldId: string, selectId:
   await exitEditMode(driver);
 };
 
+// Helper function to enter edit mode by clicking the Edit button
+const enterEditMode = async (driver: WebDriver): Promise<void> => {
+  console.log("Entering edit mode...");
+
+  // Find and click the Edit button in the header
+  const editButtons = await driver.findElements(By.css('#ingestr-header button'));
+  for (const button of editButtons) {
+    const text = await button.getText();
+    if (text === 'Edit') {
+      await button.click();
+      await sleep(1000);
+      console.log("✓ Clicked Edit button");
+      return;
+    }
+  }
+
+  // Fallback: try finding button by text content
+  const allButtons = await driver.findElements(By.tagName('button'));
+  for (const button of allButtons) {
+    try {
+      const text = await button.getText();
+      if (text === 'Edit') {
+        await button.click();
+        await sleep(1000);
+        console.log("✓ Clicked Edit button (fallback)");
+        return;
+      }
+    } catch (e) {
+      // Button might not be visible
+    }
+  }
+
+  console.log("⚠️ Edit button not found - might already be in edit mode");
+};
+
+// Helper function to exit edit mode by clicking the Done button
+const exitEditModeWithButton = async (driver: WebDriver): Promise<void> => {
+  console.log("Exiting edit mode...");
+
+  const buttons = await driver.findElements(By.css('#ingestr-header button'));
+  for (const button of buttons) {
+    const text = await button.getText();
+    if (text === 'Done') {
+      await button.click();
+      await sleep(1000);
+      console.log("✓ Clicked Done button");
+      return;
+    }
+  }
+
+  console.log("⚠️ Done button not found");
+};
+
 // Helper function to wait for the Ingestr component to be fully loaded
 const waitForIngestrComponent = async (driver: WebDriver): Promise<void> => {
   console.log("Waiting for Ingestr component to load...");
-  
+
   // Wait for the main container
   await driver.wait(until.elementLocated(By.id("ingestr-asset-display")), 15000);
   console.log("✓ Ingestr asset display container found");
-  
+
   // Wait for the section
   await driver.wait(until.elementLocated(By.id("ingestr-section")), 10000);
   console.log("✓ Ingestr section found");
-  
+
   // Wait for the header
   await driver.wait(until.elementLocated(By.id("ingestr-header")), 10000);
   console.log("✓ Ingestr header found");
-  
+
   // Ensure section is expanded
   await ensureSectionExpanded(driver);
-  
-  // Wait for at least one field to be present
-  await driver.wait(until.elementLocated(By.id("source-connection-field")), 10000);
-  console.log("✓ Ingestr fields are loaded");
+
+  // Wait for ingestr content to be present (rendered view)
+  await driver.wait(until.elementLocated(By.id("ingestr-content")), 10000);
+  console.log("✓ Ingestr content is loaded");
 };
 
 describe("Ingestr Asset Display Integration Tests", function () {
@@ -657,8 +713,14 @@ describe("Ingestr Asset Display Integration Tests", function () {
 
   describe("Required Fields Display", function () {
     before(async function () {
-      // Ensure section is expanded once for all tests in this group
+      // Ensure section is expanded and enter edit mode for field tests
       await ensureSectionExpanded(driver);
+      await enterEditMode(driver);
+    });
+
+    after(async function () {
+      // Exit edit mode after tests
+      await exitEditModeWithButton(driver);
     });
 
     it("should display source connection field with required indicator", async function () {
@@ -715,8 +777,14 @@ describe("Ingestr Asset Display Integration Tests", function () {
 
   describe("Optional Fields Display", function () {
     before(async function () {
-      // Ensure section is expanded once for all tests in this group
+      // Ensure section is expanded and enter edit mode for field tests
       await ensureSectionExpanded(driver);
+      await enterEditMode(driver);
+    });
+
+    after(async function () {
+      // Exit edit mode after tests
+      await exitEditModeWithButton(driver);
     });
 
     it("should display incremental strategy field without required indicator", async function () {
@@ -756,8 +824,14 @@ describe("Ingestr Asset Display Integration Tests", function () {
 
   describe("Interactive Functionality", function () {
     before(async function () {
-      // Ensure section is expanded once for all tests in this group
+      // Ensure section is expanded and enter edit mode for field tests
       await ensureSectionExpanded(driver);
+      await enterEditMode(driver);
+    });
+
+    after(async function () {
+      // Exit edit mode after tests
+      await exitEditModeWithButton(driver);
     });
 
     it("should be able to toggle section visibility", async function () {
@@ -817,8 +891,14 @@ describe("Ingestr Asset Display Integration Tests", function () {
 
   describe("Field Editing Functionality", function () {
     before(async function () {
-      // Ensure section is expanded once for all tests in this group
+      // Ensure section is expanded and enter edit mode for field tests
       await ensureSectionExpanded(driver);
+      await enterEditMode(driver);
+    });
+
+    after(async function () {
+      // Exit edit mode after tests
+      await exitEditModeWithButton(driver);
     });
 
     it("should allow editing source connection field", async function () {
@@ -998,16 +1078,27 @@ describe("Ingestr Asset Display Integration Tests", function () {
 
   describe("Dropdown Functionality", function () {
     before(async function () {
-      // Ensure section is expanded once for all tests in this group
+      // Ensure section is expanded and enter edit mode for field tests
       await ensureSectionExpanded(driver);
+      await enterEditMode(driver);
     });
 
+    after(async function () {
+      // Exit edit mode after tests
+      await exitEditModeWithButton(driver);
+    });
   });
 
   describe("Field Validation States", function () {
     before(async function () {
-      // Ensure section is expanded once for all tests in this group
+      // Ensure section is expanded and enter edit mode for field tests
       await ensureSectionExpanded(driver);
+      await enterEditMode(driver);
+    });
+
+    after(async function () {
+      // Exit edit mode after tests
+      await exitEditModeWithButton(driver);
     });
 
     it("should show error styling for empty required fields", async function () {
@@ -1053,8 +1144,14 @@ describe("Ingestr Asset Display Integration Tests", function () {
 
   describe("Keyboard Interaction", function () {
     before(async function () {
-      // Ensure section is expanded once for all tests in this group
+      // Ensure section is expanded and enter edit mode for field tests
       await ensureSectionExpanded(driver);
+      await enterEditMode(driver);
+    });
+
+    after(async function () {
+      // Exit edit mode after tests
+      await exitEditModeWithButton(driver);
     });
 
     it("should handle ESC key to cancel editing", async function () {
@@ -1103,8 +1200,14 @@ describe("Ingestr Asset Display Integration Tests", function () {
 
   describe("Field Value Display", function () {
     before(async function () {
-      // Ensure section is expanded once for all tests in this group
+      // Ensure section is expanded and enter edit mode for field tests
       await ensureSectionExpanded(driver);
+      await enterEditMode(driver);
+    });
+
+    after(async function () {
+      // Exit edit mode after tests
+      await exitEditModeWithButton(driver);
     });
 
     it("should handle empty optional fields gracefully", async function () {

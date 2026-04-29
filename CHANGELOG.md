@@ -1,4 +1,7 @@
 # Changelog
+## [0.79.9] - [2026-04-29]
+- Improved Ingestr asset display with edit/view mode toggle using "Edit"/"Done" text link for cleaner UI.
+
 ## [0.79.8] - [2026-04-23]
 - Fixed Bruin panel not updating on file save in latest VS Code versions on Windows due to path comparison issues.
 

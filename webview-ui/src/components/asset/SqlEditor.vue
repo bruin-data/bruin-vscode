@@ -9,9 +9,10 @@
           @click="activeTab = 'preview'"
           :class="['tab-button', { active: activeTab === 'preview' }]"
         >
-          Preview
+          {{ previewLabel }}
         </button>
         <button
+          v-if="showDdlTab"
           @click="activeTab = 'ddl'"
           :class="['tab-button', { active: activeTab === 'ddl' }]"
         >
@@ -171,6 +172,14 @@ const props = defineProps({
   bigqueryError: {
     type: String,
     default: null,
+  },
+  showDdlTab: {
+    type: Boolean,
+    default: true,
+  },
+  previewLabel: {
+    type: String,
+    default: 'Preview',
   },
 });
 

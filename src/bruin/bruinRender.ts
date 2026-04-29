@@ -64,13 +64,12 @@ export class BruinRender extends BruinCommand {
     }
 
     const isTaskYml = filePath.endsWith('.task.yml') || filePath.endsWith('.task.yaml');
-    
+
     if ((isBruinAsset || isBruinPipeline || (isBruinYaml && !isTaskYml))) {
       BruinPanel?.postMessage("render-message", {
         status: "bruin-asset-alert",
         message: "-- Python, Yaml, or Pipeline BRUIN asset detected --",
       });
-      console.log("Python, Yaml, or Pipeline BRUIN asset detected");
       return;
     }
 
@@ -124,7 +123,7 @@ export class BruinRender extends BruinCommand {
     }
     return JSON.stringify({ error: String(error) });
   }
-  
+
   private async isBruinPipeline(filePath: string): Promise<boolean> {
     return await isBruinPipeline(filePath);
   }

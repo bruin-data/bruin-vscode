@@ -70,11 +70,11 @@ Bruin is a unified analytics platform that enables data professionals to work en
 ## Release Notes
 
 ### Recent Update
+- **0.79.9**: Improved Ingestr asset display with edit/view mode toggle.
 - **0.79.8**: Fixed Bruin panel not updating on file save in latest VS Code versions on Windows due to path comparison issues.
 - **0.79.7**: Fixed reset date button for continuous pipelines; improved tooltip to clarify behavior.
 - **0.79.6**: Fixed "Fill from Query" command failing due to unsupported `--environment` flag.
 - **0.79.5**: Added interval modifiers preview tooltip on the checkbox.
 - **0.79.4**: Fixed "Fill from DB" to use selected environment; fixed start date input on full refresh.
-- **0.79.3**: Added ability to select and run SQL text directly in Query Preview.
 
 For a full changelog, see Bruin Extension [Changelog](https://github.com/bruin-data/bruin-vscode/blob/main/CHANGELOG.md).
