@@ -70,7 +70,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 ## Release Notes
 
 ### Recent Update
-- **0.79.9**: Improved Ingestr asset display with edit/view mode toggle; removed fragile YAML parsing.
+- **0.79.9**: Improved Ingestr asset display with edit/view mode toggle.
 - **0.79.8**: Fixed Bruin panel not updating on file save in latest VS Code versions on Windows due to path comparison issues.
 - **0.79.7**: Fixed reset date button for continuous pipelines; improved tooltip to clarify behavior.
 - **0.79.6**: Fixed "Fill from Query" command failing due to unsupported `--environment` flag.
