@@ -891,8 +891,14 @@ describe("Ingestr Asset Display Integration Tests", function () {
 
   describe("Field Editing Functionality", function () {
     before(async function () {
-      // Ensure section is expanded once for all tests in this group
+      // Ensure section is expanded and enter edit mode for field tests
       await ensureSectionExpanded(driver);
+      await enterEditMode(driver);
+    });
+
+    after(async function () {
+      // Exit edit mode after tests
+      await exitEditModeWithButton(driver);
     });
 
     it("should allow editing source connection field", async function () {
