@@ -1444,7 +1444,8 @@ function buildCommandPayload(
   }
 
   if (hasVariants.value && selectedVariant.value && selectedVariant.value.trim() !== "") {
-    payload += " --variant " + selectedVariant.value;
+    const safeVariant = selectedVariant.value.replace(/"/g, '\\"');
+    payload += ` --variant "${safeVariant}"`;
   }
 
   return payload;
