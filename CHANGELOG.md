@@ -1,4 +1,7 @@
 # Changelog
+## [0.80.0] - [2026-05-11]
+- Added variant selector to the asset panel for pipelines that declare variants. The selected variant is passed to `bruin run` as `--variant <name>`.
+
 ## [0.79.9] - [2026-04-29]
 - Improved Ingestr asset display with edit/view mode toggle using "Edit"/"Done" text link for cleaner UI.
 

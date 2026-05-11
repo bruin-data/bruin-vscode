@@ -5,12 +5,14 @@
     <div class="flex flex-col space-y-3">
       <div class="flex flex-col">
         <!-- Checkbox and Date Controls Row -->
-        <div class="flex flex-col xs:flex-row gap-1 w-full justify-between">
+        <div class="flex flex-col xs:flex-row flex-wrap gap-x-3 gap-y-2 w-full">
           <EnvSelectMenu :options="environments" @selected-env="setSelectedEnv"
             :selectedEnvironment="selectedEnvironment" class="flex-shrink-0" />
+          <VariantSelectMenu v-if="hasVariants" :options="variantNames"
+            :selectedVariant="selectedVariant" @selectedVariant="onVariantSelect" class="flex-shrink-0"/>
           <!-- Date Controls and Checkbox Group -->
-          <div id="controls" class="flex flex-col xs:w-1/2">
-            <div class="flex flex-col xs:flex-row gap-1 w-full justify-between xs:justify-end">
+          <div id="controls" class="flex flex-col flex-shrink-0">
+            <div class="flex flex-col xs:flex-row gap-1 w-full">
               <DateInput label="Start Date" v-model="startDate" />
               <DateInput label="End Date" v-model="endDate" />
               <div class="flex items-center gap-1 self-start xs:self-end">
@@ -395,6 +397,7 @@ import SqlEditor from "@/components/asset/SqlEditor.vue";
 import IngestrAssetDisplay from "@/components/asset/IngestrAssetDisplay.vue";
 import CheckboxGroup from "@/components/ui/checkbox-group/CheckboxGroup.vue";
 import EnvSelectMenu from "@/components/ui/select-menu/EnvSelectMenu.vue";
+import VariantSelectMenu from "@/components/ui/select-menu/VariantSelectMenu.vue";
 import AssetVariablesPanel from "@/components/ui/variables-panel/AssetVariablesPanel.vue";
 import ButtonGroup from "@/components/ui/buttons/ButtonGroup.vue";
 import { updateValue, resetStates, determineValidationStatus } from "@/utilities/helper";
@@ -746,6 +749,34 @@ const pipelineInfo = computed(() => {
   console.log("Pipeline info:", props.pipeline, props.pipeline?.raw);
   return props.pipeline?.raw || props.pipeline || {};
 });
+
+// --- Variant selection (for variant-bearing pipelines) -------------------
+const selectedVariant = ref<string>("");
+const variantNames = computed<string[]>(() => {
+  const variants = pipelineInfo.value?.variants;
+  if (!variants || typeof variants !== "object") return [];
+  return Object.keys(variants).sort();
+});
+const hasVariants = computed(() => variantNames.value.length > 0);
+
+watch(
+  variantNames,
+  (names) => {
+    if (names.length === 0) {
+      selectedVariant.value = "";
+      return;
+    }
+    // Keep current selection if still valid; otherwise default to first.
+    if (!names.includes(selectedVariant.value)) {
+      selectedVariant.value = names[0];
+    }
+  },
+  { immediate: true }
+);
+
+function onVariantSelect(value: string) {
+  selectedVariant.value = value;
+}
 
 const fetchedVariables = ref({});
 
@@ -1410,6 +1441,11 @@ function buildCommandPayload(
 
   if (selectedEnv.value && selectedEnv.value.trim() !== "") {
     payload += " --environment " + selectedEnv.value;
+  }
+
+  if (hasVariants.value && selectedVariant.value && selectedVariant.value.trim() !== "") {
+    const safeVariant = selectedVariant.value.replace(/"/g, '\\"');
+    payload += ` --variant "${safeVariant}"`;
   }
 
   return payload;
