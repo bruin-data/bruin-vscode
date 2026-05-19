@@ -1,7 +1,40 @@
+import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
 import { DacServe } from "../bruin/dacServe";
 import { getNonce } from "../utilities/getNonce";
+
+/**
+ * Reads the top-level `name:` field from a dashboard YAML file. Returns the
+ * raw string (unquoted) or undefined if the file isn't readable / doesn't have
+ * one. Deliberately regex-based — adding a full YAML parser dep for a POC is
+ * overkill, and dac's dashboard files put `name:` near the top.
+ */
+function readDashboardName(filePath: string): string | undefined {
+  if (!/\.ya?ml$/i.test(filePath)) {
+    return undefined;
+  }
+  let text: string;
+  try {
+    text = fs.readFileSync(filePath, "utf8");
+  } catch {
+    return undefined;
+  }
+  // Top-level (no indentation) `name:` mapping. Match the first occurrence so
+  // we don't pick up `name:` fields nested under filters/widgets/etc.
+  const match = text.match(/^name:\s*(.+?)\s*$/m);
+  if (!match) {
+    return undefined;
+  }
+  let value = match[1].trim();
+  if (
+    (value.startsWith('"') && value.endsWith('"')) ||
+    (value.startsWith("'") && value.endsWith("'"))
+  ) {
+    value = value.slice(1, -1);
+  }
+  return value || undefined;
+}
 
 /**
  * Proof-of-concept panel that spawns `dac serve` and embeds the resulting web
@@ -15,19 +48,14 @@ export class DacPreviewPanel {
 
   private readonly panel: vscode.WebviewPanel;
   private readonly server: DacServe;
-  private readonly dashboardDir: string;
-  private readonly disposables: vscode.Disposable[] = [];
+  private readonly initialUrl: string;
   private disposed: boolean = false;
 
-  private constructor(panel: vscode.WebviewPanel, server: DacServe, dashboardDir: string) {
+  private constructor(panel: vscode.WebviewPanel, server: DacServe, initialUrl: string) {
     this.panel = panel;
     this.server = server;
-    this.dashboardDir = dashboardDir;
-
-    this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
-    // Live-reload is handled by dac's own websocket from inside the iframe so
-    // that the current dashboard route is preserved. The webview parent does
-    // not drive reloads — see commit history for the previous save-based path.
+    this.initialUrl = initialUrl;
+    this.panel.onDidDispose(() => this.dispose());
   }
 
   private static getOutput(): vscode.OutputChannel {
@@ -69,7 +97,15 @@ export class DacPreviewPanel {
       const server = new DacServe(dashboardDir, port, output, template);
       await server.start();
 
-      const preview = new DacPreviewPanel(panel, server, dashboardDir);
+      const dashboardName = readDashboardName(documentUri.fsPath);
+      const initialUrl = dashboardName
+        ? `${server.url}/d/${encodeURIComponent(dashboardName)}`
+        : server.url;
+      if (dashboardName) {
+        output.appendLine(`[dac] deep-linking to dashboard: ${dashboardName}`);
+      }
+
+      const preview = new DacPreviewPanel(panel, server, initialUrl);
       panel.webview.html = preview.renderHtml();
       void preview;
     } catch (err) {
@@ -89,14 +125,11 @@ export class DacPreviewPanel {
     }
     this.disposed = true;
     this.server.stop();
-    while (this.disposables.length) {
-      this.disposables.pop()?.dispose();
-    }
   }
 
   private renderHtml(): string {
     const nonce = getNonce();
-    const url = this.server.url;
+    const url = this.initialUrl;
     const cspSource = this.panel.webview.cspSource;
     return /*html*/ `
 <!DOCTYPE html>
