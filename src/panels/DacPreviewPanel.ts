@@ -65,6 +65,18 @@ export class DacPreviewPanel {
     this.dashboardDir = dashboardDir;
     this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
 
+    // dac's websocket live-reload doesn't reach through the webview sandbox,
+    // so we trigger a reload from the extension on save. Reloads to the
+    // current deep-link URL so the user stays on the dashboard they're
+    // editing instead of bouncing to the root listing.
+    this.disposables.push(
+      vscode.workspace.onDidSaveTextDocument((doc) => {
+        if (this.isInDashboardDir(doc.uri.fsPath)) {
+          this.panel.webview.postMessage({ type: "reload", url: this.currentUrl });
+        }
+      })
+    );
+
     // Switch the iframe when the user activates a different dashboard YAML
     // inside the dashboard directory. dac is already serving that directory,
     // so we just re-point the iframe at the new /d/<name>.
@@ -200,8 +212,14 @@ export class DacPreviewPanel {
     const iframe = document.getElementById("dac");
     window.addEventListener("message", (event) => {
       const msg = event.data;
-      if (msg && msg.type === "navigate" && typeof msg.url === "string") {
+      if (!msg || typeof msg.url !== "string") {
+        return;
+      }
+      if (msg.type === "navigate") {
         iframe.src = msg.url;
+      } else if (msg.type === "reload") {
+        // Cache-bust to force a real reload through the sandbox.
+        iframe.src = msg.url + (msg.url.includes("?") ? "&" : "?") + "t=" + Date.now();
       }
     });
   </script>
