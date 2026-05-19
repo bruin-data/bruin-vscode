@@ -25,22 +25,9 @@ export class DacPreviewPanel {
     this.dashboardDir = dashboardDir;
 
     this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
-
-    // Reload the iframe when a file inside the dashboard dir is saved. dac has
-    // its own live-reload websocket, but tunneling it through a sandboxed
-    // VS Code webview is flaky, so we drive a reload from the extension side.
-    this.disposables.push(
-      vscode.workspace.onDidSaveTextDocument((doc) => {
-        if (this.isInDashboardDir(doc.uri.fsPath)) {
-          this.panel.webview.postMessage({ type: "reload" });
-        }
-      })
-    );
-  }
-
-  private isInDashboardDir(filePath: string): boolean {
-    const rel = path.relative(this.dashboardDir, filePath);
-    return !!rel && !rel.startsWith("..") && !path.isAbsolute(rel);
+    // Live-reload is handled by dac's own websocket from inside the iframe so
+    // that the current dashboard route is preserved. The webview parent does
+    // not drive reloads — see commit history for the previous save-based path.
   }
 
   private static getOutput(): vscode.OutputChannel {
@@ -137,16 +124,6 @@ export class DacPreviewPanel {
 </head>
 <body>
   <iframe id="dac" src="${escapeHtml(url)}" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
-  <script nonce="${nonce}">
-    const iframe = document.getElementById("dac");
-    const baseUrl = ${JSON.stringify(url)};
-    window.addEventListener("message", (event) => {
-      if (event.data && event.data.type === "reload") {
-        // Cache-bust to force a real reload through the sandbox.
-        iframe.src = baseUrl + "?t=" + Date.now();
-      }
-    });
-  </script>
 </body>
 </html>`;
   }
