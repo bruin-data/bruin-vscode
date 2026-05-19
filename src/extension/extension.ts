@@ -25,6 +25,7 @@ import { QueryPreviewPanel } from "../panels/QueryPreviewPanel";
 import { TableDiffPanel } from "../panels/TableDiffPanel";
 import { RunHistoryPanel } from "../panels/RunHistoryPanel";
 import { BruinPanel } from "../panels/BruinPanel";
+import { DacPreviewPanel } from "../panels/DacPreviewPanel";
 import { QueryCodeLensProvider } from "../providers/queryCodeLensProvider";
 import { ScheduleCodeLensProvider } from "../providers/scheduleCodeLensProvider";
 import { QuerySelectionCodeLensProvider } from "../providers/querySelectionCodeLensProvider";
@@ -612,6 +613,25 @@ export async function activate(context: ExtensionContext) {
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         vscode.window.showErrorMessage(`Error triggering completions: ${errorMessage}`);
+      }
+    }),
+    commands.registerCommand("bruin.previewDashboard", async (uri?: vscode.Uri) => {
+      try {
+        trackEvent("Command Executed", { command: "previewDashboard", source: "user" });
+        const targetUri = uri ?? window.activeTextEditor?.document.uri;
+        if (!targetUri) {
+          vscode.window.showWarningMessage("Open a dashboard YAML file before running Preview Dashboard.");
+          return;
+        }
+        const ext = targetUri.fsPath.toLowerCase();
+        if (!ext.endsWith(".yml") && !ext.endsWith(".yaml") && !ext.endsWith(".tsx")) {
+          vscode.window.showWarningMessage("Preview Dashboard only supports .yml / .yaml / .tsx files.");
+          return;
+        }
+        await DacPreviewPanel.open(targetUri);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error previewing dashboard: ${errorMessage}`);
       }
     }),
     commands.registerCommand("bruin.showWalkthrough", async () => {

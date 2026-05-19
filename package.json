@@ -378,6 +378,13 @@
         "title": "Show Getting Started Walkthrough",
         "category": "Bruin",
         "description": "Show the Bruin getting started walkthrough."
+      },
+      {
+        "command": "bruin.previewDashboard",
+        "title": "Preview Dashboard",
+        "category": "Bruin",
+        "icon": "$(preview)",
+        "description": "Spawn `dac serve` on the current DAC project and preview it in a webview."
       }
     ],
     "keybindings": [
