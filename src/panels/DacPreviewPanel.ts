@@ -15,13 +15,32 @@ export class DacPreviewPanel {
 
   private readonly panel: vscode.WebviewPanel;
   private readonly server: DacServe;
+  private readonly dashboardDir: string;
+  private readonly disposables: vscode.Disposable[] = [];
   private disposed: boolean = false;
 
-  private constructor(panel: vscode.WebviewPanel, server: DacServe) {
+  private constructor(panel: vscode.WebviewPanel, server: DacServe, dashboardDir: string) {
     this.panel = panel;
     this.server = server;
+    this.dashboardDir = dashboardDir;
 
-    this.panel.onDidDispose(() => this.dispose());
+    this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
+
+    // Reload the iframe when a file inside the dashboard dir is saved. dac has
+    // its own live-reload websocket, but tunneling it through a sandboxed
+    // VS Code webview is flaky, so we drive a reload from the extension side.
+    this.disposables.push(
+      vscode.workspace.onDidSaveTextDocument((doc) => {
+        if (this.isInDashboardDir(doc.uri.fsPath)) {
+          this.panel.webview.postMessage({ type: "reload" });
+        }
+      })
+    );
+  }
+
+  private isInDashboardDir(filePath: string): boolean {
+    const rel = path.relative(this.dashboardDir, filePath);
+    return !!rel && !rel.startsWith("..") && !path.isAbsolute(rel);
   }
 
   private static getOutput(): vscode.OutputChannel {
@@ -29,6 +48,13 @@ export class DacPreviewPanel {
       DacPreviewPanel.output = vscode.window.createOutputChannel("Bruin DAC");
     }
     return DacPreviewPanel.output;
+  }
+
+  private static templateForCurrentTheme(): string {
+    const kind = vscode.window.activeColorTheme.kind;
+    const isDark =
+      kind === vscode.ColorThemeKind.Dark || kind === vscode.ColorThemeKind.HighContrast;
+    return isDark ? "bruin-dark" : "bruin";
   }
 
   /**
@@ -52,12 +78,13 @@ export class DacPreviewPanel {
 
     try {
       const port = await DacServe.findFreePort();
-      const server = new DacServe(dashboardDir, port, output);
+      const template = DacPreviewPanel.templateForCurrentTheme();
+      const server = new DacServe(dashboardDir, port, output, template);
       await server.start();
 
-      const preview = new DacPreviewPanel(panel, server);
+      const preview = new DacPreviewPanel(panel, server, dashboardDir);
       panel.webview.html = preview.renderHtml();
-      void preview; // panel owns its lifetime via onDidDispose
+      void preview;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       output.appendLine(`[dac] failed to start: ${message}`);
@@ -75,6 +102,9 @@ export class DacPreviewPanel {
     }
     this.disposed = true;
     this.server.stop();
+    while (this.disposables.length) {
+      this.disposables.pop()?.dispose();
+    }
   }
 
   private renderHtml(): string {
@@ -93,15 +123,30 @@ export class DacPreviewPanel {
       frame-src http://localhost:* http://127.0.0.1:*;
   " />
   <style nonce="${nonce}">
-    html, body { margin: 0; padding: 0; height: 100%; background: var(--vscode-editor-background); }
-    iframe { width: 100%; height: 100vh; border: 0; }
-    .bar { padding: 4px 8px; font: 12px var(--vscode-font-family); color: var(--vscode-descriptionForeground); border-bottom: 1px solid var(--vscode-panel-border); }
+    html, body {
+      margin: 0; padding: 0; height: 100%;
+      background: var(--vscode-editor-background);
+      color: var(--vscode-editor-foreground);
+    }
+    iframe {
+      width: 100%; height: 100vh; border: 0;
+      background: var(--vscode-editor-background);
+    }
   </style>
   <title>DAC Preview</title>
 </head>
 <body>
-  <div class="bar">dac serve @ ${escapeHtml(url)}</div>
-  <iframe src="${escapeHtml(url)}" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+  <iframe id="dac" src="${escapeHtml(url)}" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+  <script nonce="${nonce}">
+    const iframe = document.getElementById("dac");
+    const baseUrl = ${JSON.stringify(url)};
+    window.addEventListener("message", (event) => {
+      if (event.data && event.data.type === "reload") {
+        // Cache-bust to force a real reload through the sandbox.
+        iframe.src = baseUrl + "?t=" + Date.now();
+      }
+    });
+  </script>
 </body>
 </html>`;
   }
@@ -119,7 +164,12 @@ export class DacPreviewPanel {
       script-src 'nonce-${nonce}';
   " />
   <style nonce="${nonce}">
-    body { font: 13px var(--vscode-font-family); color: var(--vscode-foreground); padding: 16px; }
+    body {
+      font: 13px var(--vscode-font-family);
+      color: var(--vscode-foreground);
+      background: var(--vscode-editor-background);
+      padding: 16px;
+    }
   </style>
 </head>
 <body>

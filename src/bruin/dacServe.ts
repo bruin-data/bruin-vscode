@@ -16,11 +16,13 @@ export class DacServe {
   public readonly port: number;
   public readonly dir: string;
   public readonly host: string = "127.0.0.1";
+  public readonly template: string;
 
-  constructor(dir: string, port: number, output: vscode.OutputChannel) {
+  constructor(dir: string, port: number, output: vscode.OutputChannel, template: string = "bruin") {
     this.dir = dir;
     this.port = port;
     this.output = output;
+    this.template = template;
   }
 
   public get url(): string {
@@ -52,7 +54,13 @@ export class DacServe {
    * requests on the chosen port.
    */
   public async start(executable: string = "dac"): Promise<void> {
-    const args = ["serve", "--dir", this.dir, "--port", String(this.port), "--host", this.host];
+    const args = [
+      "serve",
+      "--dir", this.dir,
+      "--port", String(this.port),
+      "--host", this.host,
+      "--template", this.template,
+    ];
     this.output.appendLine(`[dac] $ ${executable} ${args.join(" ")}`);
 
     this.process = child_process.spawn(executable, args, {
