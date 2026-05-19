@@ -48,14 +48,53 @@ export class DacPreviewPanel {
 
   private readonly panel: vscode.WebviewPanel;
   private readonly server: DacServe;
-  private readonly initialUrl: string;
+  private readonly dashboardDir: string;
+  private readonly disposables: vscode.Disposable[] = [];
+  private currentUrl: string;
   private disposed: boolean = false;
 
-  private constructor(panel: vscode.WebviewPanel, server: DacServe, initialUrl: string) {
+  private constructor(
+    panel: vscode.WebviewPanel,
+    server: DacServe,
+    initialUrl: string,
+    dashboardDir: string
+  ) {
     this.panel = panel;
     this.server = server;
-    this.initialUrl = initialUrl;
-    this.panel.onDidDispose(() => this.dispose());
+    this.currentUrl = initialUrl;
+    this.dashboardDir = dashboardDir;
+    this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
+
+    // Switch the iframe when the user activates a different dashboard YAML
+    // inside the dashboard directory. dac is already serving that directory,
+    // so we just re-point the iframe at the new /d/<name>.
+    this.disposables.push(
+      vscode.window.onDidChangeActiveTextEditor((editor) => {
+        if (!editor) {
+          return;
+        }
+        const fsPath = editor.document.uri.fsPath;
+        if (!this.isInDashboardDir(fsPath)) {
+          return;
+        }
+        const name = readDashboardName(fsPath);
+        if (!name) {
+          return;
+        }
+        const newUrl = `${this.server.url}/d/${encodeURIComponent(name)}`;
+        if (newUrl === this.currentUrl) {
+          return;
+        }
+        this.currentUrl = newUrl;
+        DacPreviewPanel.getOutput().appendLine(`[dac] navigating preview to: ${name}`);
+        this.panel.webview.postMessage({ type: "navigate", url: newUrl });
+      })
+    );
+  }
+
+  private isInDashboardDir(filePath: string): boolean {
+    const rel = path.relative(this.dashboardDir, filePath);
+    return !!rel && !rel.startsWith("..") && !path.isAbsolute(rel);
   }
 
   private static getOutput(): vscode.OutputChannel {
@@ -105,7 +144,7 @@ export class DacPreviewPanel {
         output.appendLine(`[dac] deep-linking to dashboard: ${dashboardName}`);
       }
 
-      const preview = new DacPreviewPanel(panel, server, initialUrl);
+      const preview = new DacPreviewPanel(panel, server, initialUrl, dashboardDir);
       panel.webview.html = preview.renderHtml();
       void preview;
     } catch (err) {
@@ -129,7 +168,7 @@ export class DacPreviewPanel {
 
   private renderHtml(): string {
     const nonce = getNonce();
-    const url = this.initialUrl;
+    const url = this.currentUrl;
     const cspSource = this.panel.webview.cspSource;
     return /*html*/ `
 <!DOCTYPE html>
@@ -157,6 +196,15 @@ export class DacPreviewPanel {
 </head>
 <body>
   <iframe id="dac" src="${escapeHtml(url)}" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+  <script nonce="${nonce}">
+    const iframe = document.getElementById("dac");
+    window.addEventListener("message", (event) => {
+      const msg = event.data;
+      if (msg && msg.type === "navigate" && typeof msg.url === "string") {
+        iframe.src = msg.url;
+      }
+    });
+  </script>
 </body>
 </html>`;
   }
