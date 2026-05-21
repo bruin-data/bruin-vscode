@@ -120,22 +120,36 @@ export class MaterializationValidator {
         let topLevelIntervalModifiers = -1;
         let intervalModifiersUnderDefault = -1;
         let defaultStart = -1;
-        
+
         // Find top-level interval_modifiers and default section
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
-            
+
             if (line.match(/^interval_modifiers:\s*$/)) {
                 topLevelIntervalModifiers = i;
             }
-            
+
             if (line.match(/^default:\s*$/)) {
                 defaultStart = i;
             }
-            
+
             // Look for interval_modifiers under default
             if (defaultStart !== -1 && line.match(/^\s+interval_modifiers:\s*$/)) {
                 intervalModifiersUnderDefault = i;
+            }
+
+            // Flag common misspellings (e.g. singular "interval_modifier")
+            const typoMatch = line.match(/^(\s*)(interval_modifier|intervalmodifiers?|interval-modifiers?)\s*:/i);
+            if (typoMatch && typoMatch[2] !== 'interval_modifiers') {
+                const keyStart = typoMatch[1].length;
+                const keyEnd = keyStart + typoMatch[2].length;
+                const range = new vscode.Range(i, keyStart, i, keyEnd);
+                const diagnostic = new vscode.Diagnostic(
+                    range,
+                    `Unknown key "${typoMatch[2]}". Did you mean "interval_modifiers"?`,
+                    vscode.DiagnosticSeverity.Warning
+                );
+                diagnostics.push(diagnostic);
             }
         }
         
