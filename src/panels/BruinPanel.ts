@@ -851,6 +851,10 @@ export class BruinPanel {
             const fillColumnsFlags = this._currentEnvironment
               ? ["--environment", this._currentEnvironment]
               : [];
+            const fillConnectionOverride = message.payload?.connection;
+            if (typeof fillConnectionOverride === "string" && fillConnectionOverride.length > 0) {
+              fillColumnsFlags.push("--connection", fillConnectionOverride);
+            }
             await fillColumns.fillColumns(assetPathFillColumn, { flags: fillColumnsFlags });
             parseAssetCommand(this._lastRenderedDocumentUri);
             return;

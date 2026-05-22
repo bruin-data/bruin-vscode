@@ -752,6 +752,8 @@ const tabs = ref([
       columns: columns.value,
       isConfigFile: isConfigFile.value,
       materializationStrategy: materializationProps.value?.strategy,
+      assetType: assetDetailsProps.value?.type,
+      parameters: ingestrParameters.value,
     })),
   },
   {
