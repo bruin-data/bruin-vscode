@@ -72,10 +72,10 @@
                     id="fill-from-source-connection-item"
                     @click="fillColumnsFromDB(ingestrSourceConnection)"
                     class="block text-editor-fg rounded-sm w-full border-0 text-left text-2xs hover:bg-editor-button-hover-bg hover:text-editor-button-fg bg-editorWidget-bg px-2 py-1"
+                    :title="`${ingestrSourceConnection} (source)`"
                   >
-                    <div class="flex items-center gap-2 min-w-0">
-                      <span class="truncate flex-1 min-w-0" :title="ingestrSourceConnection">{{ ingestrSourceConnection }}</span>
-                      <span class="opacity-60 flex-shrink-0">source</span>
+                    <div class="truncate">
+                      {{ ingestrSourceConnection }} <span class="opacity-60 ml-1">source</span>
                     </div>
                   </button>
                 </MenuItem>
@@ -84,10 +84,10 @@
                   <button
                     @click="fillColumnsFromDB(conn.name)"
                     class="block text-editor-fg rounded-sm w-full border-0 text-left text-2xs hover:bg-editor-button-hover-bg hover:text-editor-button-fg bg-editorWidget-bg px-2 py-1"
+                    :title="`${conn.name} (${conn.type})`"
                   >
-                    <div class="flex items-center gap-2 min-w-0">
-                      <span class="truncate flex-1 min-w-0" :title="conn.name">{{ conn.name }}</span>
-                      <span class="opacity-60 flex-shrink-0 truncate max-w-[40%]" :title="conn.type">{{ conn.type }}</span>
+                    <div class="truncate">
+                      {{ conn.name }} <span class="opacity-60 ml-1">{{ conn.type }}</span>
                     </div>
                   </button>
                 </MenuItem>
