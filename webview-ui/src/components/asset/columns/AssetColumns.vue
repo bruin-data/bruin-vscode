@@ -12,8 +12,8 @@
       > 
         {{ allMergeSelected ? 'Unmerge all' : 'Merge all' }}
       </vscode-button>
-      <div class="flex items-stretch">
-        <vscode-button id="fill-from-db-button" @click="fillColumnsFromDB()" :disabled="fillColumnsStatus === 'loading'" class="py-0.5 focus:outline-none disabled:cursor-not-allowed flex-shrink-0 whitespace-nowrap text-xs rounded-r-none">
+      <div class="inline-flex">
+        <vscode-button id="fill-from-db-button" @click="fillColumnsFromDB()" :disabled="fillColumnsStatus === 'loading'" class="py-0.5 focus:outline-none disabled:cursor-not-allowed flex-shrink-0 whitespace-nowrap text-xs">
           <template v-if="fillColumnsStatus === 'loading'">
             <svg
               class="animate-spin mr-1 h-3 w-3 text-editor-bg"
@@ -44,14 +44,14 @@
           </template>
           Fill from DB
         </vscode-button>
-        <Menu as="div" class="relative">
+        <Menu as="div" class="relative -ml-px block">
           <MenuButton
             id="fill-from-db-menu-button"
-            class="h-full flex items-center px-1 bg-button-background hover:bg-button-hoverBackground text-button-foreground border-l border-editorWidget-border focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             :disabled="fillColumnsStatus === 'loading'"
+            class="relative h-full border border-transparent inline-flex items-center disabled:opacity-50 disabled:cursor-not-allowed bg-editor-button-bg px-1 text-editor-button-fg hover:bg-editor-button-hover-bg focus:z-10"
             title="Fill from a specific connection"
           >
-            <ChevronDownIcon class="h-3 w-3" />
+            <ChevronDownIcon class="h-3 w-3" aria-hidden="true" />
           </MenuButton>
           <transition
             enter-active-class="transition ease-out duration-100"
@@ -61,34 +61,35 @@
             leave-from-class="transform opacity-100 scale-100"
             leave-to-class="transform opacity-0 scale-95"
           >
-            <MenuItems class="absolute right-0 z-50 mt-1 w-64 origin-top-right">
-              <div class="p-1 bg-editorWidget-bg rounded-sm border border-commandCenter-border shadow-lg">
-                <div class="px-2 py-1 text-2xs opacity-60 uppercase tracking-wide">
-                  Fill from connection
-                </div>
-                <MenuItem v-if="ingestrSourceConnection" v-slot="{ active }">
-                  <button
+            <MenuItems
+              class="absolute left-0 xs:right-0 xs:left-auto z-[99999] w-48 xs:w-56 origin-top-left xs:origin-top-right max-w-[calc(100vw-2rem)]"
+            >
+              <div class="p-1 bg-editorWidget-bg rounded-sm border border-commandCenter-border">
+                <MenuItem v-if="ingestrSourceConnection" key="source-conn">
+                  <vscode-button
                     id="fill-from-source-connection-item"
                     @click="fillColumnsFromDB(ingestrSourceConnection)"
-                    class="w-full px-2 py-1 text-left text-xs rounded-sm flex justify-between items-center gap-2"
-                    :class="active ? 'bg-list-hoverBackground text-editor-fg' : 'text-editor-fg'"
+                    class="block text-editor-fg rounded-sm w-full border-0 text-left text-2xs hover:bg-editor-button-hover-bg hover:text-editor-button-fg bg-editorWidget-bg"
                   >
-                    <span class="truncate">{{ ingestrSourceConnection }}</span>
-                    <span class="text-2xs opacity-60 flex-shrink-0">source</span>
-                  </button>
+                    <div class="flex justify-between items-center gap-2 w-full">
+                      <span class="truncate">{{ ingestrSourceConnection }}</span>
+                      <span class="opacity-60 flex-shrink-0">source</span>
+                    </div>
+                  </vscode-button>
                 </MenuItem>
                 <div v-if="ingestrSourceConnection && otherConnections.length" class="border-t border-commandCenter-border my-1"></div>
-                <MenuItem v-for="conn in otherConnections" :key="conn.name" v-slot="{ active }">
-                  <button
+                <MenuItem v-for="conn in otherConnections" :key="conn.name">
+                  <vscode-button
                     @click="fillColumnsFromDB(conn.name)"
-                    class="w-full px-2 py-1 text-left text-xs rounded-sm flex justify-between items-center gap-2"
-                    :class="active ? 'bg-list-hoverBackground text-editor-fg' : 'text-editor-fg'"
+                    class="block text-editor-fg rounded-sm w-full border-0 text-left text-2xs hover:bg-editor-button-hover-bg hover:text-editor-button-fg bg-editorWidget-bg"
                   >
-                    <span class="truncate">{{ conn.name }}</span>
-                    <span class="text-2xs opacity-60 flex-shrink-0">{{ conn.type }}</span>
-                  </button>
+                    <div class="flex justify-between items-center gap-2 w-full">
+                      <span class="truncate">{{ conn.name }}</span>
+                      <span class="opacity-60 flex-shrink-0">{{ conn.type }}</span>
+                    </div>
+                  </vscode-button>
                 </MenuItem>
-                <div v-if="!ingestrSourceConnection && otherConnections.length === 0" class="px-2 py-1 text-xs italic opacity-60">
+                <div v-if="!ingestrSourceConnection && otherConnections.length === 0" class="px-2 py-1 text-2xs italic opacity-60">
                   No connections found
                 </div>
               </div>
