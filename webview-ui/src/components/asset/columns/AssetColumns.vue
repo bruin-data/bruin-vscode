@@ -64,32 +64,30 @@
             leave-to-class="transform opacity-0 scale-95"
           >
             <MenuItems
-              class="absolute right-0 z-[99999] w-64 origin-top-right max-w-[calc(100vw-2rem)]"
+              class="absolute left-0 xs:right-0 xs:left-auto z-[99999] w-56 xs:w-64 origin-top-left xs:origin-top-right max-w-[calc(100vw-2rem)]"
             >
-              <div class="p-1 bg-editorWidget-bg rounded-sm border border-commandCenter-border shadow-lg overflow-hidden">
-                <MenuItem v-if="ingestrSourceConnection" v-slot="{ active }" key="source-conn">
+              <div class="p-1 bg-editorWidget-bg rounded-sm border border-commandCenter-border overflow-hidden">
+                <MenuItem v-if="ingestrSourceConnection" key="source-conn">
                   <button
                     id="fill-from-source-connection-item"
                     @click="fillColumnsFromDB(ingestrSourceConnection)"
-                    class="w-full px-2 py-1 text-left text-xs rounded-sm"
-                    :class="active ? 'bg-list-hoverBackground text-editor-fg' : 'text-editor-fg'"
+                    class="block text-editor-fg rounded-sm w-full border-0 text-left text-2xs hover:bg-editor-button-hover-bg hover:text-editor-button-fg bg-editorWidget-bg px-2 py-1"
                   >
                     <div class="flex items-center gap-2 min-w-0">
                       <span class="truncate flex-1 min-w-0" :title="ingestrSourceConnection">{{ ingestrSourceConnection }}</span>
-                      <span class="opacity-60 text-2xs flex-shrink-0">source</span>
+                      <span class="opacity-60 flex-shrink-0">source</span>
                     </div>
                   </button>
                 </MenuItem>
                 <div v-if="ingestrSourceConnection && otherConnections.length" class="border-t border-commandCenter-border my-1"></div>
-                <MenuItem v-for="conn in otherConnections" :key="conn.name" v-slot="{ active }">
+                <MenuItem v-for="conn in otherConnections" :key="conn.name">
                   <button
                     @click="fillColumnsFromDB(conn.name)"
-                    class="w-full px-2 py-1 text-left text-xs rounded-sm"
-                    :class="active ? 'bg-list-hoverBackground text-editor-fg' : 'text-editor-fg'"
+                    class="block text-editor-fg rounded-sm w-full border-0 text-left text-2xs hover:bg-editor-button-hover-bg hover:text-editor-button-fg bg-editorWidget-bg px-2 py-1"
                   >
                     <div class="flex items-center gap-2 min-w-0">
                       <span class="truncate flex-1 min-w-0" :title="conn.name">{{ conn.name }}</span>
-                      <span class="opacity-60 text-2xs flex-shrink-0 truncate max-w-[40%]" :title="conn.type">{{ conn.type }}</span>
+                      <span class="opacity-60 flex-shrink-0 truncate max-w-[40%]" :title="conn.type">{{ conn.type }}</span>
                     </div>
                   </button>
                 </MenuItem>
