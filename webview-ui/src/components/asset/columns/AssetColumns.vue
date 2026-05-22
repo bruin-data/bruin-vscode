@@ -17,7 +17,7 @@
           <div class="flex items-center justify-center">
             <template v-if="fillColumnsStatus === 'loading'">
               <svg
-                class="animate-spin ml-1 mr-1.5 h-3 w-3 text-editor-bg"
+                class="animate-spin mr-1 h-3 w-3 text-editor-bg"
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
@@ -38,10 +38,10 @@
               </svg>
             </template>
             <template v-else-if="fillColumnsStatus === 'success'">
-              <span class="codicon codicon-check ml-1 mr-1.5 h-3 w-3 text-editor-button-fg" aria-hidden="true"></span>
+              <span class="codicon codicon-check text-sm mr-1 text-editor-button-fg" aria-hidden="true"></span>
             </template>
             <template v-else-if="fillColumnsStatus === 'error'">
-              <span class="codicon codicon-error ml-1 mr-1.5 h-3 w-3 text-editorError-foreground" aria-hidden="true"></span>
+              <span class="codicon codicon-error text-sm mr-1 text-editorError-foreground" aria-hidden="true"></span>
             </template>
             <span>Fill from DB</span>
           </div>
