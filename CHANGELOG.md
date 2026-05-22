@@ -1,4 +1,7 @@
 # Changelog
+## [0.80.1] - [2026-05-22]
+- Added warning for `interval_modifiers` typos.
+
 ## [0.80.0] - [2026-05-11]
 - Added variant selector to the asset panel for pipelines that declare variants. The selected variant is passed to `bruin run` as `--variant <name>`.
 
