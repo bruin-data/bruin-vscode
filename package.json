@@ -485,7 +485,9 @@
     "http-proxy-agent": "^7.0.2",
     "serialize-javascript": "^7.0.5",
     "diff": "^8.0.3",
-    "uuid": "^14.0.0"
+    "uuid": "^14.0.0",
+    "axios": "^1.15.2",
+    "fast-uri": "^3.1.2"
   },
   "dependencies": {
     "@rudderstack/analytics-js": "^3.11.15",
