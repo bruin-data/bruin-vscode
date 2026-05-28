@@ -24,6 +24,8 @@ import {
   prepareFlags,
   cronToHumanReadable,
   buildRenderFlags,
+  friendlifyBruinError,
+  FRIENDLY_NO_GIT_REPO_MESSAGE,
 } from "../utilities/helperUtils";
 import * as configuration from "../extension/configuration";
 import * as bruinUtils from "../bruin/bruinUtils";
@@ -1091,6 +1093,48 @@ suite("Render Command Helper functions", () => {
   test("processLineageData should extract the name property", () => {
     const lineageString = { name: "example-name" };
     assert.strictEqual(processLineageData(lineageString), "example-name");
+  });
+
+  suite("friendlifyBruinError", () => {
+    test("maps 'no git repository found' to the friendly message", () => {
+      assert.strictEqual(
+        friendlifyBruinError("no git repository found"),
+        FRIENDLY_NO_GIT_REPO_MESSAGE
+      );
+    });
+
+    test("maps 'failed to find the git repository root' to the friendly message", () => {
+      assert.strictEqual(
+        friendlifyBruinError("Failed to find the git repository root: no git repository found"),
+        FRIENDLY_NO_GIT_REPO_MESSAGE
+      );
+    });
+
+    test("matches patterns case-insensitively", () => {
+      assert.strictEqual(
+        friendlifyBruinError("NO GIT REPOSITORY FOUND"),
+        FRIENDLY_NO_GIT_REPO_MESSAGE
+      );
+    });
+
+    test("passes through unrelated error strings unchanged", () => {
+      assert.strictEqual(
+        friendlifyBruinError("validation failed: syntax error at line 1"),
+        "validation failed: syntax error at line 1"
+      );
+    });
+
+    test("extracts message from Error instances", () => {
+      assert.strictEqual(
+        friendlifyBruinError(new Error("no git repository found")),
+        FRIENDLY_NO_GIT_REPO_MESSAGE
+      );
+    });
+
+    test("handles null/undefined safely", () => {
+      assert.strictEqual(friendlifyBruinError(null), "");
+      assert.strictEqual(friendlifyBruinError(undefined), "");
+    });
   });
 });
 

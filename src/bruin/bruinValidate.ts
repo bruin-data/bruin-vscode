@@ -2,6 +2,7 @@ import { BruinCommand } from "./bruinCommand";
 import { BruinPanel } from "../panels/BruinPanel";
 import { BruinCommandOptions } from "../types";
 import { platform } from "os";
+import { friendlifyBruinError } from "../utilities/helperUtils";
 /**
  * Extends the BruinCommand class to implement the bruin validate command on Bruin assets.
  */
@@ -100,17 +101,17 @@ export class BruinValidate extends BruinCommand {
 
       // More comprehensive error handling
       if (typeof error === "string") {
-        errorMessage = error;
+        errorMessage = friendlifyBruinError(error);
       } else if (error instanceof Error) {
         errorMessage = JSON.stringify({
-          error: error.message || "An unknown error occurred",
+          error: friendlifyBruinError(error.message || "An unknown error occurred"),
           stack: error.stack,
         });
       } else if (typeof error === "object" && error !== null) {
         try {
           // Attempt to extract meaningful error information
           errorMessage = JSON.stringify({
-            error: error.error || error.message || JSON.stringify(error),
+            error: friendlifyBruinError(error.error || error.message || JSON.stringify(error)),
           });
         } catch {
           errorMessage = JSON.stringify({ error: "An unknown error occurred" });

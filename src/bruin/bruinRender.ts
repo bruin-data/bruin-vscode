@@ -2,6 +2,7 @@ import { BruinPanel } from "../panels/BruinPanel";
 import { BruinCommand } from "./bruinCommand";
 import { BruinCommandOptions } from "../types";
 import {
+  friendlifyBruinError,
   isBruinAsset,
   isBruinPipeline,
   isBruinYaml,
@@ -116,12 +117,23 @@ export class BruinRender extends BruinCommand {
   private parseError(error: unknown): string {
     if (typeof error === 'object' && error !== null) {
       const err = error as Error;
-      return JSON.stringify({ error: err.message });
+      return JSON.stringify({ error: friendlifyBruinError(err.message) });
     }
     if (typeof error === 'string') {
-      return error.startsWith("{") ? error : JSON.stringify({ error });
+      if (error.startsWith("{")) {
+        try {
+          const parsed = JSON.parse(error);
+          if (typeof parsed?.error === "string") {
+            return JSON.stringify({ ...parsed, error: friendlifyBruinError(parsed.error) });
+          }
+        } catch {
+          // fall through to wrapping the raw string
+        }
+        return error;
+      }
+      return JSON.stringify({ error: friendlifyBruinError(error) });
     }
-    return JSON.stringify({ error: String(error) });
+    return JSON.stringify({ error: friendlifyBruinError(String(error)) });
   }
 
   private async isBruinPipeline(filePath: string): Promise<boolean> {

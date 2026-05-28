@@ -1,7 +1,7 @@
 import { BruinCommandOptions } from "../types";
 import { BruinCommand } from "./bruinCommand";
 import { BruinPanel } from "../panels/BruinPanel";
-import { extractNonNullConnections } from "../utilities/helperUtils";
+import { extractNonNullConnections, friendlifyBruinError } from "../utilities/helperUtils";
 
 /**
  * Extends the BruinCommand class to implement the Bruin 'connections list' command.
@@ -58,7 +58,7 @@ export class BruinConnections extends BruinCommand {
             } catch {
               // If not JSON, use the original error
             }
-            this.postMessageToPanels("error", errorMessage);
+            this.postMessageToPanels("error", friendlifyBruinError(errorMessage));
           }
         }
       )

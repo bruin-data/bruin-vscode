@@ -136,6 +136,24 @@ export const removeAnsiColors = (str: string): string => {
   return str.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, "");
 };
 
+export const FRIENDLY_NO_GIT_REPO_MESSAGE =
+  "Bruin requires a git repository. Run `git init` at your project root, then reload the window.";
+
+const NO_GIT_REPO_PATTERNS = [
+  /no git repository found/i,
+  /failed to find the git repository root/i,
+];
+
+export const friendlifyBruinError = (raw: unknown): string => {
+  const text =
+    typeof raw === "string"
+      ? raw
+      : raw instanceof Error
+        ? raw.message
+        : String(raw ?? "");
+  return NO_GIT_REPO_PATTERNS.some((re) => re.test(text)) ? FRIENDLY_NO_GIT_REPO_MESSAGE : text;
+};
+
 /* export const processLineageData =(lineageString : string): any => {
   if (lineageString.startsWith('"') && lineageString.endsWith('"')) {
   lineageString = lineageString.substring(1, lineageString.length - 1);
