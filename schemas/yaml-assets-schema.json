@@ -130,7 +130,8 @@
                 "gcs",
                 "mongo_atlas",
                 "mysql",
-                "elasticsearch"
+                "elasticsearch",
+                "fabric"
               ],
               "description": "The destination system",
               "additionalProperties": true
