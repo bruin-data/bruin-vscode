@@ -1,4 +1,8 @@
 # Changelog
+## [0.80.3] - [2026-06-02]
+- Added Fabric as a valid ingestr destination.
+- Updated dependencies (vitest, tmp, qs, brace-expansion, js-cookie).
+
 ## [0.80.2] - [2026-05-22]
 - Added a connection picker to the "Fill from DB" button on the Columns tab so users can fill columns from a source (or any other) connection instead of only the destination. The new dropdown auto-suggests the source connection on ingestr assets and passes `--connection <name>` to `bruin patch fill-columns-from-db`.
 

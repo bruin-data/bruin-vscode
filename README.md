@@ -70,11 +70,11 @@ Bruin is a unified analytics platform that enables data professionals to work en
 ## Release Notes
 
 ### Recent Update
+- **0.80.3**: Added Fabric as a valid ingestr destination; updated dependencies.
 - **0.80.2**: Added a connection picker to "Fill from DB" so columns can be filled from the source (or any other) connection, with auto-suggestion on ingestr assets.
 - **0.80.1**: Added warning for `interval_modifiers` typos.
 - **0.80.0**: Added variant selector to the asset panel for pipelines that declare variants. The selected variant is passed to `bruin run` as `--variant <name>`.
 - **0.79.9**: Improved Ingestr asset display with edit/view mode toggle.
 - **0.79.8**: Fixed Bruin panel not updating on file save in latest VS Code versions on Windows due to path comparison issues.
-- **0.79.7**: Fixed reset date button for continuous pipelines; improved tooltip to clarify behavior.
 
 For a full changelog, see Bruin Extension [Changelog](https://github.com/bruin-data/bruin-vscode/blob/main/CHANGELOG.md).

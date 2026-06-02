@@ -2,7 +2,7 @@
   "name": "bruin",
   "displayName": "Bruin",
   "description": "Manage your Bruin data assets from within VS Code.",
-  "version": "0.80.2",
+  "version": "0.80.3",
   "engines": {
     "vscode": "^1.87.0"
   },
@@ -487,7 +487,9 @@
     "diff": "^8.0.3",
     "uuid": "^14.0.0",
     "axios": "^1.15.2",
-    "fast-uri": "^3.1.2"
+    "fast-uri": "^3.1.2",
+    "tmp": "^0.2.6",
+    "qs": "^6.15.2"
   },
   "dependencies": {
     "@rudderstack/analytics-js": "^3.11.15",
