@@ -70,6 +70,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 ## Release Notes
 
 ### Recent Update
+- **0.80.3**: Moved the Bruin Render button out of the editor title Run split-button group so it no longer overrides the default Run action on non-Bruin files. The Bruin icon stays visible in the editor title bar.
 - **0.80.2**: Added a connection picker to "Fill from DB" so columns can be filled from the source (or any other) connection, with auto-suggestion on ingestr assets.
 - **0.80.1**: Added warning for `interval_modifiers` typos.
 - **0.80.0**: Added variant selector to the asset panel for pipelines that declare variants. The selected variant is passed to `bruin run` as `--variant <name>`.

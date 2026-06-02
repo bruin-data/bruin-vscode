@@ -1,4 +1,7 @@
 # Changelog
+## [0.80.3] - [2026-06-02]
+- Moved the Bruin Render button out of the editor title Run split-button group so it no longer overrides the default Run action (e.g. "Run Python File") on non-Bruin files. The Bruin icon remains in the editor title bar for one-click access to the side panel.
+
 ## [0.80.2] - [2026-05-22]
 - Added a connection picker to the "Fill from DB" button on the Columns tab so users can fill columns from a source (or any other) connection instead of only the destination. The new dropdown auto-suggests the source connection on ingestr assets and passes `--connection <name>` to `bruin patch fill-columns-from-db`.
 
