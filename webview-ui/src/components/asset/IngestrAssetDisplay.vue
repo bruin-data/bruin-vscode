@@ -330,6 +330,7 @@ const AVAILABLE_DESTINATIONS = [
   { value: 'snowflake', label: 'Snowflake' },
   { value: 'synapse', label: 'Synapse' },
   { value: 'gcs', label: 'Google Cloud Storage' },
+  { value: 'fabric', label: 'Microsoft Fabric' },
 ] as const;
 
 const INCREMENTAL_STRATEGIES = [
