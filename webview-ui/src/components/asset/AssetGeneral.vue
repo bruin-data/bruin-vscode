@@ -124,8 +124,7 @@
             :is-open="isVariablesOpen"
             :variables="pipelineVariables"
             :initial-overrides="currentVariableOverrides"
-            @render-with-overrides="handleRenderWithOverrides"
-            @apply-overrides-toggle="handleApplyOverridesToggle"
+            @save-overrides="handleSaveOverrides"
           />
         </div>
       </div>
@@ -1641,15 +1640,15 @@ function toggleVariablesOpen() {
   isVariablesOpen.value = !isVariablesOpen.value;
 }
 
-function handleRenderWithOverrides(overrides: Record<string, any>) {
+function handleSaveOverrides(overrides: Record<string, any>, applyOverrides: boolean) {
   currentVariableOverrides.value = { ...overrides };
+  applyVariableOverrides.value = applyOverrides;
 
-  // The inline panel applies edits live, so persist on every change instead of
-  // waiting for an explicit save action.
   const prevState = (vscode.getState() as Record<string, any>) || {};
   vscode.setState({
     ...prevState,
     variableOverrides: { ...overrides },
+    applyVariableOverrides: applyOverrides,
   });
 }
 
