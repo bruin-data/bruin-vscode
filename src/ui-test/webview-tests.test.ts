@@ -3776,6 +3776,43 @@ describe("Bruin Webview Test", function () {
 
 
   describe("Advanced Settings tests", function () {
+    const isWindowsAdv = process.platform === 'win32';
+    const isCIAdv = process.env.CI === 'true';
+    const getAdvDelay = (baseDelay: number) => (isWindowsAdv || isCIAdv) ? baseDelay * 3 : baseDelay;
+
+    // Re-locate the element on every attempt so we don't hold a stale reference
+    // when Vue re-renders the form after a value change.
+    const safeElementInteraction = async <T>(
+      elementId: string,
+      action: (element: WebElement) => Promise<T>,
+      maxRetries: number = 3,
+    ): Promise<T | undefined> => {
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+          const element = await driver.wait(
+            until.elementLocated(By.id(elementId)),
+            getAdvDelay(5000),
+            `Element ${elementId} not found`,
+          );
+          return await action(element);
+        } catch (err: any) {
+          const isStale = err?.name === 'StaleElementReferenceError' ||
+            String(err?.message || '').includes('stale element');
+          if (!isStale || attempt === maxRetries - 1) throw err;
+          console.log(`Element ${elementId} became stale on attempt ${attempt + 1}, retrying...`);
+          await sleep(getAdvDelay(200));
+        }
+      }
+    };
+
+    const selectOptionByValue = async (selectId: string, value: string) => {
+      await safeElementInteraction(selectId, async (select) => {
+        await select.click();
+        const option = await select.findElement(By.css(`option[value="${value}"]`));
+        await option.click();
+      });
+    };
+
     beforeEach(async function () {
       this.timeout(25000);
       
@@ -3828,49 +3865,47 @@ describe("Bruin Webview Test", function () {
     });
 
     it("should configure interval modifiers", async function () {
-      this.timeout(25000);
-      
+      this.timeout(getAdvDelay(25000));
+
       try {
         // Ensure Advanced Settings section is still expanded
-        const advancedHeader = await driver.findElement(By.id("advanced-section-header"));
-        const chevron = await advancedHeader.findElement(By.id("advanced-section-chevron"));
-        const chevronClass = await chevron.getAttribute("class");
-        
-        if (chevronClass.includes("codicon-chevron-right")) {
-          await advancedHeader.click();
-          await sleep(3000);
-          console.log("✓ Re-expanded Advanced Settings section for interval modifiers test");
-        }
-        
-        // Test start interval configuration
-        const startIntervalInput = await driver.wait(
+        await safeElementInteraction("advanced-section-header", async (header) => {
+          const chevron = await header.findElement(By.id("advanced-section-chevron"));
+          const chevronClass = await chevron.getAttribute("class");
+          if (chevronClass.includes("codicon-chevron-right")) {
+            await header.click();
+            await sleep(getAdvDelay(3000));
+            console.log("✓ Re-expanded Advanced Settings section for interval modifiers test");
+          }
+        });
+
+        // Wait for the section content to be present before interacting
+        await driver.wait(
           until.elementLocated(By.id("start-interval-input")),
-          10000,
-          "Start interval input not found"
+          getAdvDelay(10000),
+          "Start interval input not found",
         );
-        
-        await startIntervalInput.clear();
-        await startIntervalInput.sendKeys("-2");
+
+        // Test start interval configuration
+        await safeElementInteraction("start-interval-input", async (input) => {
+          await input.clear();
+          await input.sendKeys("-2");
+        });
         console.log("✓ Set start interval value");
-        
-        const startIntervalUnit = await driver.findElement(By.id("start-interval-unit"));
-        await startIntervalUnit.click();
-        const dayOption = await startIntervalUnit.findElement(By.css('option[value="days"]'));
-        await dayOption.click();
+
+        await selectOptionByValue("start-interval-unit", "days");
         console.log("✓ Set start interval unit to days");
-        
+
         // Test end interval configuration
-        const endIntervalInput = await driver.findElement(By.id("end-interval-input"));
-        await endIntervalInput.clear();
-        await endIntervalInput.sendKeys("1");
+        await safeElementInteraction("end-interval-input", async (input) => {
+          await input.clear();
+          await input.sendKeys("1");
+        });
         console.log("✓ Set end interval value");
-        
-        const endIntervalUnit = await driver.findElement(By.id("end-interval-unit"));
-        await endIntervalUnit.click();
-        const endDayOption = await endIntervalUnit.findElement(By.css('option[value="days"]'));
-        await endDayOption.click();
+
+        await selectOptionByValue("end-interval-unit", "days");
         console.log("✓ Set end interval unit to days");
-        
+
       } catch (error) {
         console.log("Error in interval modifiers test:", error);
         throw error;

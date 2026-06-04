@@ -120,6 +120,7 @@
         <div class="flex flex-col items-start space-y-1">
           <div class="flex items-center space-x-2">
             <button
+              type="button"
               :id="`toggle-environment-${environment}`"
               v-if="editingEnvironment !== environment"
               @click="toggleEnvironment(environment)"
