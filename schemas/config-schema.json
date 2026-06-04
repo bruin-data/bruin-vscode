@@ -352,6 +352,9 @@
                 },
                 "database": {
                     "type": "string"
+                },
+                "options": {
+                    "type": "string"
                 }
             },
             "required": [

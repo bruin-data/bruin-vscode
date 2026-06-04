@@ -11,11 +11,20 @@
             </p>
           </div>
           <div class="flex items-center space-x-2">
-            <vscode-button id="add-environment-button" @click="addNewEnvironment" 
+            <button
+              v-if="environmentNames.length > 1"
+              id="toggle-all-environments-button"
+              @click="toggleAllEnvironments"
+              class="text-xs text-descriptionFg hover:text-editor-fg px-2 py-1 cursor-pointer"
+              :title="allCollapsed ? 'Expand all environments' : 'Collapse all environments'"
+            >
+              {{ allCollapsed ? "Expand all" : "Collapse all" }}
+            </button>
+            <vscode-button id="add-environment-button" @click="addNewEnvironment"
             class="font-semibold"
             appearance="secondary">
               <div class="flex items-center">
-                <span class="codicon codicon-plus"></span> 
+                <span class="codicon codicon-plus"></span>
                 <span class="ml-1">Environment</span>
               </div>
             </vscode-button>
@@ -119,6 +128,18 @@
       <div class="flex items-center justify-between mb-2 group hover:bg-editor-hoverBackground rounded px-2 py-1 -mx-2 -my-1">
         <div class="flex flex-col items-start space-y-1">
           <div class="flex items-center space-x-2">
+            <button
+              :id="`toggle-environment-${environment}`"
+              v-if="editingEnvironment !== environment"
+              @click="toggleEnvironment(environment)"
+              class="text-descriptionFg hover:text-editor-fg p-0.5"
+              :title="isCollapsed(environment) ? 'Expand' : 'Collapse'"
+            >
+              <span
+                class="codicon"
+                :class="isCollapsed(environment) ? 'codicon-chevron-right' : 'codicon-chevron-down'"
+              ></span>
+            </button>
             <input
               id="edit-environment-input"
               v-if="editingEnvironment === environment"
@@ -131,13 +152,17 @@
               :class="{ 'border-editorError-foreground': editEnvironmentError }"
               ref="environmentInput"
             />
-            <h3 
+            <h3
               v-else
               :id="`environment-header-${environment}`"
+              @click="toggleEnvironment(environment)"
               @dblclick="startEditingEnvironment(environment)"
-              class="text-sm font-medium text-editor-fg font-mono cursor-pointer px-1 py-0.5"
+              class="text-sm font-medium text-editor-fg font-mono cursor-pointer px-1 py-0.5 select-none"
             >
               {{ environment === defaultEnvironment ? `${environment} (default)` : environment }}
+              <span class="ml-1 text-xs text-descriptionFg opacity-70">
+                ({{ connections.filter(c => !c.isEmpty).length }})
+              </span>
             </h3>
             <div class="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
               <button
@@ -171,7 +196,7 @@
           </div>
         </vscode-button>
       </div>
-      <div class="relative bg-editorWidget-bg">
+      <div v-show="!isCollapsed(environment)" class="relative bg-editorWidget-bg">
         <div class="overflow-x-auto">
           <table id="connections-table" class="min-w-full divide-y divide-commandCenter-border">
             <thead>
@@ -335,6 +360,21 @@ const newEnvironmentName = ref('');
 const newEnvironmentInput = ref(null);
 const newEnvironmentError = ref('');
 
+// Track which environments are collapsed
+const collapsedEnvironments = ref(new Set());
+
+const isCollapsed = (environment) => collapsedEnvironments.value.has(environment);
+
+const toggleEnvironment = (environment) => {
+  const next = new Set(collapsedEnvironments.value);
+  if (next.has(environment)) {
+    next.delete(environment);
+  } else {
+    next.add(environment);
+  }
+  collapsedEnvironments.value = next;
+};
+
 const groupedConnections = computed(() => {
   return connections.value.reduce((grouped, connection) => {
     const environment = connection.environment;
@@ -352,15 +392,30 @@ const existingEnvironments = computed(() => {
 
 const environmentsWithConnections = computed(() => {
   const result = {};
-  
+
   const environments = props.environments || Object.keys(groupedConnections.value);
-  
+
   environments.forEach(environment => {
     result[environment] = groupedConnections.value[environment] || [];
   });
-  
+
   return result;
 });
+
+const environmentNames = computed(() => Object.keys(environmentsWithConnections.value));
+
+const allCollapsed = computed(() =>
+  environmentNames.value.length > 0 &&
+  environmentNames.value.every((env) => collapsedEnvironments.value.has(env))
+);
+
+const toggleAllEnvironments = () => {
+  if (allCollapsed.value) {
+    collapsedEnvironments.value = new Set();
+  } else {
+    collapsedEnvironments.value = new Set(environmentNames.value);
+  }
+};
 
 const toggleMenu = (connectionName, event) => {
   activeMenu.value = activeMenu.value === connectionName ? null : connectionName;
