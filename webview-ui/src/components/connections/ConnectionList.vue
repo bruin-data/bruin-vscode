@@ -11,15 +11,6 @@
             </p>
           </div>
           <div class="flex items-center space-x-2">
-            <button
-              v-if="environmentNames.length > 1"
-              id="toggle-all-environments-button"
-              @click="toggleAllEnvironments"
-              class="text-xs text-descriptionFg hover:text-editor-fg px-2 py-1 cursor-pointer"
-              :title="allCollapsed ? 'Expand all environments' : 'Collapse all environments'"
-            >
-              {{ allCollapsed ? "Expand all" : "Collapse all" }}
-            </button>
             <vscode-button id="add-environment-button" @click="addNewEnvironment"
             class="font-semibold"
             appearance="secondary">
@@ -306,7 +297,7 @@
 
 <script setup>
 import { useConnectionsStore } from "@/store/bruinStore";
-import { computed, onMounted, ref, defineEmits, onUnmounted } from "vue";
+import { computed, onMounted, ref, defineEmits, onUnmounted, watch } from "vue";
 import {
   TrashIcon,
   PencilIcon,
@@ -360,8 +351,9 @@ const newEnvironmentName = ref('');
 const newEnvironmentInput = ref(null);
 const newEnvironmentError = ref('');
 
-// Track which environments are collapsed
+// Track which environments are collapsed (collapsed by default)
 const collapsedEnvironments = ref(new Set());
+const initializedCollapsed = ref(false);
 
 const isCollapsed = (environment) => collapsedEnvironments.value.has(environment);
 
@@ -402,20 +394,14 @@ const environmentsWithConnections = computed(() => {
   return result;
 });
 
-const environmentNames = computed(() => Object.keys(environmentsWithConnections.value));
-
-const allCollapsed = computed(() =>
-  environmentNames.value.length > 0 &&
-  environmentNames.value.every((env) => collapsedEnvironments.value.has(env))
-);
-
-const toggleAllEnvironments = () => {
-  if (allCollapsed.value) {
-    collapsedEnvironments.value = new Set();
-  } else {
-    collapsedEnvironments.value = new Set(environmentNames.value);
+// Initialize all environments as collapsed by default
+watch(environmentsWithConnections, (newVal) => {
+  const envKeys = Object.keys(newVal);
+  if (envKeys.length > 0 && !initializedCollapsed.value) {
+    collapsedEnvironments.value = new Set(envKeys);
+    initializedCollapsed.value = true;
   }
-};
+}, { immediate: true });
 
 const toggleMenu = (connectionName, event) => {
   activeMenu.value = activeMenu.value === connectionName ? null : connectionName;
