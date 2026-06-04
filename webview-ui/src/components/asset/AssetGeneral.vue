@@ -106,7 +106,7 @@
                   </span>
                 </button>
               </div>
-              <div class="flex items-center gap-1">
+              <div class="flex items-center gap-0">
                 <vscode-checkbox :checked="applyVariableOverrides"
                   @change="handleApplyOverridesToggle($event.target.checked)" class="text-xs opacity-70 gap-0">
                   Variable overrides
@@ -114,18 +114,6 @@
                 <span class="text-3xs text-editor-fg opacity-60 -ml-2">
                   ({{ variableOverridesCount }})
                 </span>
-                <!-- Ambient hint: hover to see what's currently overridden. -->
-                <button
-                  v-if="variableOverridesCount > 0"
-                  type="button"
-                  id="active-overrides-hint"
-                  class="text-editor-fg opacity-60 hover:opacity-100 inline-flex items-center"
-                  :title="activeOverridesSummary"
-                  @click="isVariablesOpen = true"
-                  aria-label="Show active overrides"
-                >
-                  <span class="codicon codicon-info text-[10px]"></span>
-                </button>
               </div>
             </div>
           </div>
@@ -140,6 +128,33 @@
             @close="isVariablesOpen = false"
           />
         </div>
+      </div>
+
+      <!-- Run-with Summary: always visible, surfaces options hidden behind the
+           collapsible "Options" section so users can see what the next run will
+           include without scrolling/expanding. -->
+      <div
+        v-if="runWithChips.length > 0"
+        id="run-with-summary"
+        class="flex items-center gap-1.5 flex-wrap text-2xs text-editor-fg opacity-90 overflow-x-auto"
+      >
+        <span class="opacity-60 shrink-0">Run with:</span>
+        <button
+          v-for="chip in runWithChips"
+          :key="chip.id"
+          type="button"
+          :class="[
+            'inline-flex items-center gap-1 px-1.5 py-0.5 rounded border whitespace-nowrap font-mono',
+            chip.variant === 'override'
+              ? 'border-editorLink-activeFg text-editor-fg'
+              : 'border-commandCenter-border text-editor-fg opacity-90 hover:opacity-100',
+          ]"
+          :title="chip.tooltip"
+          @click="chip.onClick && chip.onClick()"
+        >
+          <span v-if="chip.icon" :class="['codicon', chip.icon, 'text-[10px]']"></span>
+          <span>{{ chip.label }}</span>
+        </button>
       </div>
 
       <!-- Action Buttons Row -->
@@ -995,6 +1010,73 @@ const isFullRefreshChecked = computed(() => {
 });
 
 const activeTagCount = computed(() => includeTags.value.length + excludeTags.value.length);
+
+// Chips shown in the "Run with:" strip above the action buttons. Surfaces
+// settings that are otherwise hidden behind the collapsible "Options" section
+// (full-refresh, tag filters, variable overrides) so the user can see what the
+// next run will include without expanding anything.
+interface RunWithChip {
+  id: string;
+  label: string;
+  tooltip: string;
+  icon?: string;
+  variant?: "default" | "override";
+  onClick?: () => void;
+}
+
+function openOptionsAndPanel(target: "variables" | "tags") {
+  showCheckboxGroup.value = true;
+  if (target === "variables") {
+    isVariablesOpen.value = true;
+  } else if (target === "tags") {
+    isTagFilterOpen.value = true;
+  }
+}
+
+const runWithChips = computed<RunWithChip[]>(() => {
+  const chips: RunWithChip[] = [];
+
+  // Active boolean flags from the "Options" checkbox group (Full-Refresh, etc.)
+  for (const item of checkboxItems.value || []) {
+    if (item?.checked) {
+      chips.push({
+        id: `flag-${item.name}`,
+        label: `--${String(item.name).toLowerCase()}`,
+        tooltip: `${item.name} is enabled for this run`,
+        icon: "codicon-pass",
+        onClick: () => { showCheckboxGroup.value = true; },
+      });
+    }
+  }
+
+  // Tag filters
+  if (activeTagCount.value > 0) {
+    const parts: string[] = [];
+    if (includeTags.value.length > 0) parts.push(`+${includeTags.value.join(", +")}`);
+    if (excludeTags.value.length > 0) parts.push(`-${excludeTags.value.join(", -")}`);
+    chips.push({
+      id: "tags",
+      label: `tags: ${activeTagCount.value}`,
+      tooltip: `Tag filters: ${parts.join("  ")}\n(click to edit)`,
+      icon: "codicon-filter-filled",
+      onClick: () => openOptionsAndPanel("tags"),
+    });
+  }
+
+  // Variable overrides — only when they'll actually be applied to the run.
+  if (applyVariableOverrides.value && variableOverridesCount.value > 0) {
+    chips.push({
+      id: "overrides",
+      label: `${variableOverridesCount.value} override${variableOverridesCount.value === 1 ? "" : "s"}`,
+      tooltip: activeOverridesSummary.value,
+      icon: "codicon-symbol-variable",
+      variant: "override",
+      onClick: () => openOptionsAndPanel("variables"),
+    });
+  }
+
+  return chips;
+});
 const filteredTags = computed(() => {
   const q = tagFilterSearch.value.toLowerCase().trim();
   const all = availableTags.value || [];
