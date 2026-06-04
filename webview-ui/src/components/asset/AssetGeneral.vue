@@ -88,16 +88,23 @@
             </div>
             <div v-if="!isPipelineData" class="flex items-center gap-2">
               <div class="flex items-center gap-[1px]">
-                <label class="text-xs text-editor-fg">Variables</label>
-                <span v-if="pipelineVariables && Object.keys(pipelineVariables).length > 0"
-                  class="text-3xs text-editor-fg opacity-60">
-                  ({{ Object.keys(pipelineVariables).length }})
-                </span>
-                <vscode-button appearance="icon"
-                  class="h-3.5 w-auto p-0 opacity-70 hover:opacity-100 inline-flex items-center" id="variables-button"
-                  title="Add temporary variable overrides for this run" @click="toggleVariablesOpen">
-                  <span class="codicon codicon-settings-gear text-[9px]"></span>
-                </vscode-button>
+                <button
+                  type="button"
+                  id="variables-button"
+                  class="inline-flex items-center gap-1 text-xs text-editor-fg opacity-80 hover:opacity-100 px-1 py-0.5 rounded"
+                  :title="isVariablesOpen ? 'Hide variables' : 'Show variables'"
+                  @click="toggleVariablesOpen"
+                >
+                  <span
+                    class="codicon text-[10px]"
+                    :class="isVariablesOpen ? 'codicon-chevron-down' : 'codicon-chevron-right'"
+                  ></span>
+                  <span>Variables</span>
+                  <span v-if="pipelineVariables && Object.keys(pipelineVariables).length > 0"
+                    class="text-3xs opacity-60">
+                    ({{ Object.keys(pipelineVariables).length }})
+                  </span>
+                </button>
               </div>
               <div class="flex items-center gap-0">
                 <vscode-checkbox :checked="applyVariableOverrides"
@@ -110,6 +117,16 @@
               </div>
             </div>
           </div>
+
+          <!-- Inline Variables Panel -->
+          <AssetVariablesPanel
+            v-if="!isPipelineData"
+            :is-open="isVariablesOpen"
+            :variables="pipelineVariables"
+            :initial-overrides="currentVariableOverrides"
+            @render-with-overrides="handleRenderWithOverrides"
+            @apply-overrides-toggle="handleApplyOverridesToggle"
+          />
         </div>
       </div>
 
@@ -372,11 +389,6 @@
   <AlertWithActions v-if="showFullRefreshAlert" message="Do you want to run with full refresh? This may drop the table"
     confirm-text="Continue" @confirm="confirmFullRefresh" @cancel="cancelFullRefresh" />
 
-  <AssetVariablesPanel v-if="!isPipelineData" :is-open="isVariablesOpen" :variables="pipelineVariables"
-    trigger-element-id="variables-button" :initial-overrides="currentVariableOverrides"
-    :initial-apply-overrides="applyVariableOverrides" @close="closeVariablesPanel"
-    @render-with-overrides="handleRenderWithOverrides" @save-overrides="handleSaveOverrides"
-    @apply-overrides-toggle="handleApplyOverridesToggle" />
 </template>
 <script setup lang="ts">
 import { vscode } from "@/utilities/vscode";
@@ -1629,23 +1641,15 @@ function toggleVariablesOpen() {
   isVariablesOpen.value = !isVariablesOpen.value;
 }
 
-function closeVariablesPanel() {
-  isVariablesOpen.value = false;
-}
-
 function handleRenderWithOverrides(overrides: Record<string, any>) {
   currentVariableOverrides.value = { ...overrides };
-}
 
-function handleSaveOverrides(overrides: Record<string, any>, applyOverrides: boolean) {
-  currentVariableOverrides.value = { ...overrides };
-  applyVariableOverrides.value = applyOverrides;
-
+  // The inline panel applies edits live, so persist on every change instead of
+  // waiting for an explicit save action.
   const prevState = (vscode.getState() as Record<string, any>) || {};
   vscode.setState({
     ...prevState,
     variableOverrides: { ...overrides },
-    applyVariableOverrides: applyOverrides,
   });
 }
 

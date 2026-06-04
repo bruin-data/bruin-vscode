@@ -2849,10 +2849,11 @@ describe("Bruin Webview Test", function () {
     let ownerContainer: WebElement;
     let tagsContainer: WebElement;
 
-    // Platform-specific timing adjustments
+    // Platform-specific timing adjustments (3x slower on Windows or CI)
     const isWindows = process.platform === 'win32';
-    const getPlatformDelay = (baseDelay: number) => isWindows ? baseDelay * 2 : baseDelay;
-    
+    const isCI = process.env.CI === 'true';
+    const getPlatformDelay = (baseDelay: number) => (isWindows || isCI) ? baseDelay * 3 : baseDelay;
+
     // Helper function to safely interact with elements that might become stale
     const safeElementInteraction = async (elementId: string, action: (element: WebElement) => Promise<any>, maxRetries: number = 3) => {
       for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -2863,12 +2864,49 @@ describe("Bruin Webview Test", function () {
             `Element ${elementId} not found`
           );
           return await action(element);
-        } catch (staleError) {
-          if (attempt === maxRetries - 1) throw staleError;
+        } catch (err: any) {
+          const isStale = err?.name === 'StaleElementReferenceError' ||
+            String(err?.message || '').includes('stale element');
+          if (!isStale || attempt === maxRetries - 1) throw err;
           console.log(`Element ${elementId} became stale on attempt ${attempt + 1}, retrying...`);
           await sleep(getPlatformDelay(200));
         }
       }
+    };
+
+    // Ensures the Details tab is active and the materialization section is expanded.
+    // Used at the top of every test so a flaky beforeEach can't leave a test running
+    // against a missing section.
+    const ensureMaterializationSectionExpanded = async () => {
+      // Navigate to Details tab (idempotent — clicking an already-active tab is a no-op).
+      const detailsTab = await driver.wait(
+        until.elementLocated(By.id("tab-2")),
+        getPlatformDelay(10000),
+        "Details tab not found",
+      );
+      await detailsTab.click();
+      await sleep(getPlatformDelay(1000));
+
+      // Wait for the materialization section to appear before doing anything else.
+      await driver.wait(
+        until.elementLocated(By.id("materialization-section")),
+        getPlatformDelay(15000),
+        "Materialization section not found",
+      );
+
+      // Expand if collapsed. Re-find via the helper so we don't hold a stale ref.
+      await safeElementInteraction("materialization-section-header", async (header) => {
+        try {
+          const chevron = await header.findElement(By.id("materialization-section-chevron"));
+          const chevronClass = await chevron.getAttribute("class");
+          if (chevronClass.includes("codicon-chevron-right")) {
+            await header.click();
+            await sleep(getPlatformDelay(1500));
+          }
+        } catch {
+          // No chevron — assume already expanded.
+        }
+      });
     };
 
     beforeEach(async function () {
@@ -3164,30 +3202,15 @@ describe("Bruin Webview Test", function () {
     // });
 
     it("should test table materialization shows strategy dropdown", async function () {
-      this.timeout(20000);
-      
+      this.timeout(getPlatformDelay(20000));
+
       try {
-        // Ensure materialization section is expanded
-        const materializationSection = await driver.findElement(By.id("materialization-section"));
-        const sectionHeader = await materializationSection.findElement(By.id("materialization-section-header"));
-        
-        // Check if section is collapsed and expand if needed
-        try {
-          const chevron = await sectionHeader.findElement(By.id("materialization-section-chevron"));
-          const chevronClass = await chevron.getAttribute("class");
-          if (chevronClass.includes("codicon-chevron-right")) {
-            await sectionHeader.click();
-            await sleep(1000);
-            console.log("✓ Expanded materialization section");
-          }
-        } catch (chevronError) {
-          // Section may already be expanded
-        }
+        await ensureMaterializationSectionExpanded();
 
         // First set type to table
         const tableRadio = await driver.wait(
           until.elementLocated(By.id("materialization-type-table")),
-          10000,
+          getPlatformDelay(10000),
           "Materialization type table radio not found"
         );
         await tableRadio.click();
@@ -3212,26 +3235,17 @@ describe("Bruin Webview Test", function () {
     });
 
     it("should test view materialization hides strategy dropdown", async function () {
-      this.timeout(20000);
-      
+      this.timeout(getPlatformDelay(20000));
+
       try {
-        // Ensure materialization section is expanded
-        const materializationSection = await driver.findElement(By.id("materialization-section"));
-        const sectionHeader = await materializationSection.findElement(By.id("materialization-section-header"));
-        
-        try {
-          const chevron = await sectionHeader.findElement(By.id("materialization-section-chevron"));
-          const chevronClass = await chevron.getAttribute("class");
-          if (chevronClass.includes("codicon-chevron-right")) {
-            await sectionHeader.click();
-            await sleep(1000);
-          }
-        } catch (chevronError) {
-          // Section may already be expanded
-        }
+        await ensureMaterializationSectionExpanded();
 
         // Set type to view
-        const viewRadio = await driver.findElement(By.id("materialization-type-view"));
+        const viewRadio = await driver.wait(
+          until.elementLocated(By.id("materialization-type-view")),
+          getPlatformDelay(10000),
+          "Materialization type view radio not found"
+        );
         await viewRadio.click();
         await sleep(1000);
         console.log("✓ Selected view materialization type");
@@ -3256,23 +3270,10 @@ describe("Bruin Webview Test", function () {
     });
 
     it("should test switching between materialization strategies", async function () {
-      this.timeout(25000);
-      
+      this.timeout(getPlatformDelay(25000));
+
       try {
-        // Ensure materialization section is expanded and set to table
-        const materializationSection = await driver.findElement(By.id("materialization-section"));
-        const sectionHeader = await materializationSection.findElement(By.id("materialization-section-header"));
-        
-        try {
-          const chevron = await sectionHeader.findElement(By.id("materialization-section-chevron"));
-          const chevronClass = await chevron.getAttribute("class");
-          if (chevronClass.includes("codicon-chevron-right")) {
-            await sectionHeader.click();
-            await sleep(1000);
-          }
-        } catch (chevronError) {
-          // Section may already be expanded
-        }
+        await ensureMaterializationSectionExpanded();
 
         // Ensure we're working with table type
         const tableRadio = await driver.wait(
@@ -3375,28 +3376,17 @@ describe("Bruin Webview Test", function () {
     });
 
     it("should validate that strategy changes update configuration", async function () {
-      this.timeout(20000);
-      
+      this.timeout(getPlatformDelay(20000));
+
       try {
-        // Ensure materialization section is expanded and set to table
-        const materializationSection = await driver.findElement(By.id("materialization-section"));
-        const sectionHeader = await materializationSection.findElement(By.id("materialization-section-header"));
-        
-        try {
-          const chevron = await sectionHeader.findElement(By.id("materialization-section-chevron"));
-          const chevronClass = await chevron.getAttribute("class");
-          if (chevronClass.includes("codicon-chevron-right")) {
-            await sectionHeader.click();
-            await sleep(1000);
-          }
-        } catch (chevronError) {
-          // Section may already be expanded
-        }
+        await ensureMaterializationSectionExpanded();
+        // Keep a reference to the section header for header-text validation below.
+        const sectionHeader = await driver.findElement(By.id("materialization-section-header"));
 
         // Set to table type first
         const tableRadio = await driver.wait(
           until.elementLocated(By.id("materialization-type-table")),
-          10000,
+          getPlatformDelay(10000),
           "Materialization type table radio not found"
         );
         await tableRadio.click();
@@ -3444,28 +3434,15 @@ describe("Bruin Webview Test", function () {
     });
 
     it("should test delete+insert strategy shows incremental key input", async function () {
-      this.timeout(25000);
-      
+      this.timeout(getPlatformDelay(25000));
+
       try {
-        // Ensure materialization section is expanded and set to table
-        const materializationSection = await driver.findElement(By.id("materialization-section"));
-        const sectionHeader = await materializationSection.findElement(By.id("materialization-section-header"));
-        
-        try {
-          const chevron = await sectionHeader.findElement(By.id("materialization-section-chevron"));
-          const chevronClass = await chevron.getAttribute("class");
-          if (chevronClass.includes("codicon-chevron-right")) {
-            await sectionHeader.click();
-            await sleep(1000);
-          }
-        } catch (chevronError) {
-          // Section may already be expanded
-        }
+        await ensureMaterializationSectionExpanded();
 
         // Set to table type first
         const tableRadio = await driver.wait(
           until.elementLocated(By.id("materialization-type-table")),
-          10000,
+          getPlatformDelay(10000),
           "Materialization type table radio not found"
         );
         await tableRadio.click();
@@ -3536,28 +3513,15 @@ describe("Bruin Webview Test", function () {
     });
 
     it("should test create+replace strategy hides incremental key input", async function () {
-      this.timeout(20000);
-      
+      this.timeout(getPlatformDelay(20000));
+
       try {
-        // Ensure materialization section is expanded and set to table
-        const materializationSection = await driver.findElement(By.id("materialization-section"));
-        const sectionHeader = await materializationSection.findElement(By.id("materialization-section-header"));
-        
-        try {
-          const chevron = await sectionHeader.findElement(By.id("materialization-section-chevron"));
-          const chevronClass = await chevron.getAttribute("class");
-          if (chevronClass.includes("codicon-chevron-right")) {
-            await sectionHeader.click();
-            await sleep(1000);
-          }
-        } catch (chevronError) {
-          // Section may already be expanded
-        }
+        await ensureMaterializationSectionExpanded();
 
         // Set to table type
         const tableRadio = await driver.wait(
           until.elementLocated(By.id("materialization-type-table")),
-          10000,
+          getPlatformDelay(10000),
           "Materialization type table radio not found"
         );
         await tableRadio.click();
@@ -3593,28 +3557,15 @@ describe("Bruin Webview Test", function () {
     });
 
     it("should test time_interval strategy shows both incremental key and time granularity inputs", async function () {
-      this.timeout(20000);
-      
+      this.timeout(getPlatformDelay(20000));
+
       try {
-        // Ensure materialization section is expanded and set to table
-        const materializationSection = await driver.findElement(By.id("materialization-section"));
-        const sectionHeader = await materializationSection.findElement(By.id("materialization-section-header"));
-        
-        try {
-          const chevron = await sectionHeader.findElement(By.id("materialization-section-chevron"));
-          const chevronClass = await chevron.getAttribute("class");
-          if (chevronClass.includes("codicon-chevron-right")) {
-            await sectionHeader.click();
-            await sleep(1000);
-          }
-        } catch (chevronError) {
-          // Section may already be expanded
-        }
+        await ensureMaterializationSectionExpanded();
 
         // Set to table type
         const tableRadio = await driver.wait(
           until.elementLocated(By.id("materialization-type-table")),
-          10000,
+          getPlatformDelay(10000),
           "Materialization type table radio not found"
         );
         await tableRadio.click();
@@ -3699,13 +3650,26 @@ describe("Bruin Webview Test", function () {
     });
 
     it("should test merge strategy shows primary key configuration info", async function () {
-      this.timeout(20000);
-      
+      this.timeout(getPlatformDelay(20000));
+
       try {
+        await ensureMaterializationSectionExpanded();
+
+        // Strategy select only appears for the table materialization type, so set it
+        // first to make this test robust against the section starting in a different
+        // state.
+        const tableRadio = await driver.wait(
+          until.elementLocated(By.id("materialization-type-table")),
+          getPlatformDelay(10000),
+          "Materialization type table radio not found"
+        );
+        await tableRadio.click();
+        await sleep(getPlatformDelay(1000));
+
         // Select merge strategy
         const strategySelect = await driver.wait(
           until.elementLocated(By.id("materialization-strategy-select")),
-          10000,
+          getPlatformDelay(10000),
           "Strategy select not found"
         );
         await strategySelect.click();
