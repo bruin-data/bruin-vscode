@@ -70,6 +70,7 @@ Bruin is a unified analytics platform that enables data professionals to work en
 ## Release Notes
 
 ### Recent Update
+- **0.80.4**: Allowed `options` on MSSQL/Synapse connections in `.bruin.yml`; made connection environments collapsible (collapsed by default) with a connection count per environment.
 - **0.80.3**: Added Fabric as a valid ingestr destination; updated dependencies.
 - **0.80.2**: Added a connection picker to "Fill from DB" so columns can be filled from the source (or any other) connection, with auto-suggestion on ingestr assets.
 - **0.80.1**: Added warning for `interval_modifiers` typos.

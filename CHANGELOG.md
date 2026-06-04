@@ -1,4 +1,8 @@
 # Changelog
+## [0.80.4] - [2026-06-04]
+- Allowed `options` property on MSSQL/Synapse connections in `.bruin.yml`.
+- Made environment groups in the connections webview collapsible (collapsed by default) with a per-environment connection count.
+
 ## [0.80.3] - [2026-06-02]
 - Added Fabric as a valid ingestr destination.
 - Updated dependencies (vitest, tmp, qs, brace-expansion, js-cookie).
