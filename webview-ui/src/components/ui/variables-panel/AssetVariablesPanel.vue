@@ -5,7 +5,7 @@
     class="mt-2 w-full bg-editorWidget-bg border border-commandCenter-border rounded"
   >
     <!-- Header -->
-    <div class="px-2 py-1.5 border-b border-commandCenter-border flex items-center justify-between">
+    <div class="px-2 py-1.5 border-b border-commandCenter-border flex items-center justify-between gap-2">
       <div class="flex items-center gap-2 min-w-0">
         <h4 class="text-xs font-medium text-editor-fg truncate">Variable overrides</h4>
         <span class="text-2xs text-editor-fg opacity-60 shrink-0">
@@ -17,37 +17,63 @@
           title="You have unsaved changes"
         >• unsaved</span>
       </div>
-      <button
-        v-if="draftActiveCount > 0"
-        type="button"
-        id="clear-all-overrides"
-        class="text-2xs text-editor-fg opacity-70 hover:opacity-100 px-2 py-0.5 shrink-0"
-        title="Clear every override in the draft"
-        @click="clearAll"
-      >
-        Clear all
-      </button>
+      <div class="flex items-center gap-1 shrink-0">
+        <button
+          v-if="draftActiveCount > 0"
+          type="button"
+          id="clear-all-overrides"
+          class="text-2xs text-editor-fg opacity-70 hover:opacity-100 px-2 py-0.5"
+          title="Clear every override in the draft"
+          @click="clearAll"
+        >
+          Clear all
+        </button>
+        <button
+          type="button"
+          id="close-variables-panel"
+          class="text-descriptionFg opacity-70 hover:opacity-100 h-5 w-5 inline-flex items-center justify-center"
+          title="Close"
+          @click="$emit('close')"
+        >
+          <span class="codicon codicon-close text-[10px]"></span>
+        </button>
+      </div>
     </div>
 
     <!-- Variables List -->
-    <div class="px-2 py-2 max-h-[360px] overflow-y-auto space-y-2">
+    <div class="px-2 py-2 max-h-[320px] overflow-y-auto">
       <template v-if="variableCount > 0">
         <div
           v-for="(variable, varName) in variables"
           :key="varName"
-          class="rounded border border-commandCenter-border bg-editor-bg p-2"
+          class="py-1.5 border-b border-commandCenter-border last:border-b-0"
         >
-          <!-- Row 1: name, type, clear button -->
-          <div class="flex items-center justify-between gap-2 mb-1">
-            <div class="flex items-center gap-2 min-w-0 flex-1">
+          <!-- Single row: name | type | input | clear -->
+          <div class="flex items-center gap-2">
+            <div class="flex items-center gap-1.5 min-w-0 w-[180px] shrink-0">
               <span
-                class="text-xs font-mono text-editor-fg font-medium truncate"
-                :title="variable.description || String(varName)"
+                class="text-xs font-mono text-editor-fg truncate"
+                :title="(variable.description ? variable.description + '\n' : '') + 'default: ' + formatDisplayValue(variable.default)"
               >{{ varName }}</span>
-              <span class="text-2xs px-1.5 py-0.5 bg-button-bg text-button-fg rounded shrink-0">
+              <span class="text-2xs px-1 py-0.5 bg-button-bg text-button-fg rounded shrink-0">
                 {{ variable.type }}
               </span>
             </div>
+            <input
+              :value="draftInputs[String(varName)] ?? ''"
+              type="text"
+              :placeholder="placeholderFor(variable)"
+              :title="hasDraftOverride(String(varName)) ? '' : 'default: ' + formatDisplayValue(variable.default)"
+              :class="[
+                'flex-1 min-w-0 bg-editorWidget-bg text-editor-fg text-2xs border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6 font-mono',
+                validationErrors[String(varName)]
+                  ? 'border-editorError-foreground'
+                  : hasDraftOverride(String(varName))
+                    ? 'border-editorLink-activeFg'
+                    : 'border-commandCenter-border',
+              ]"
+              @input="handleInput(String(varName), variable, ($event.target as HTMLInputElement).value)"
+            />
             <button
               v-if="hasDraftOverride(String(varName))"
               type="button"
@@ -57,39 +83,16 @@
             >
               <span class="codicon codicon-close text-[10px]"></span>
             </button>
+            <span v-else aria-hidden="true" class="w-5 shrink-0"></span>
           </div>
-
-          <!-- Row 2: override input -->
-          <input
-            :value="draftInputs[String(varName)] ?? ''"
-            type="text"
-            :placeholder="placeholderFor(variable.type)"
-            :class="[
-              'w-full bg-editorWidget-bg text-editor-fg text-2xs border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg h-6 font-mono',
-              validationErrors[String(varName)]
-                ? 'border-editorError-foreground'
-                : hasDraftOverride(String(varName))
-                  ? 'border-editorLink-activeFg'
-                  : 'border-commandCenter-border',
-            ]"
-            @input="handleInput(String(varName), variable, ($event.target as HTMLInputElement).value)"
-          />
 
           <!-- Validation error -->
           <div
             v-if="validationErrors[String(varName)]"
-            class="text-2xs text-editorError-foreground mt-1 flex items-center gap-1"
+            class="text-2xs text-editorError-foreground mt-1 ml-[188px] flex items-center gap-1"
           >
             <span class="codicon codicon-error text-[10px]"></span>
             <span>{{ validationErrors[String(varName)] }}</span>
-          </div>
-
-          <!-- Row 3: default value (compact, below input so it doesn't squash) -->
-          <div
-            class="text-2xs text-editor-fg opacity-60 font-mono mt-1 truncate"
-            :title="`default: ${formatDisplayValue(variable.default)}`"
-          >
-            default: {{ formatDisplayValue(variable.default) }}
           </div>
         </div>
       </template>
@@ -149,6 +152,7 @@ interface Props {
 
 interface Emits {
   (e: "save-overrides", overrides: Record<string, any>, applyOverrides: boolean): void;
+  (e: "close"): void;
 }
 
 const props = defineProps<Props>();
@@ -206,8 +210,14 @@ const saveButtonTooltip = computed(() => {
   return "Apply these overrides";
 });
 
-function placeholderFor(type: string): string {
-  switch (type) {
+function placeholderFor(variable: Variable): string {
+  // Prefer showing the default value as the placeholder so the user always
+  // knows what would run if they don't override. Fall back to a type-shaped
+  // hint when no default is available.
+  if (variable.default !== undefined && variable.default !== null) {
+    return formatVariableValue(variable.default);
+  }
+  switch (variable.type) {
     case "boolean": return "true / false";
     case "integer": return "42";
     case "number": return "3.14";

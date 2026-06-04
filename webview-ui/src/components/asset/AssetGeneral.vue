@@ -106,7 +106,7 @@
                   </span>
                 </button>
               </div>
-              <div class="flex items-center gap-0">
+              <div class="flex items-center gap-1">
                 <vscode-checkbox :checked="applyVariableOverrides"
                   @change="handleApplyOverridesToggle($event.target.checked)" class="text-xs opacity-70 gap-0">
                   Variable overrides
@@ -114,6 +114,18 @@
                 <span class="text-3xs text-editor-fg opacity-60 -ml-2">
                   ({{ variableOverridesCount }})
                 </span>
+                <!-- Ambient hint: hover to see what's currently overridden. -->
+                <button
+                  v-if="variableOverridesCount > 0"
+                  type="button"
+                  id="active-overrides-hint"
+                  class="text-editor-fg opacity-60 hover:opacity-100 inline-flex items-center"
+                  :title="activeOverridesSummary"
+                  @click="isVariablesOpen = true"
+                  aria-label="Show active overrides"
+                >
+                  <span class="codicon codicon-info text-[10px]"></span>
+                </button>
               </div>
             </div>
           </div>
@@ -125,6 +137,7 @@
             :variables="pipelineVariables"
             :initial-overrides="currentVariableOverrides"
             @save-overrides="handleSaveOverrides"
+            @close="isVariablesOpen = false"
           />
         </div>
       </div>
@@ -956,6 +969,27 @@ const hasActiveTagFilters = computed(
 const isVariablesOpen = ref(false);
 const currentVariableOverrides = ref<Record<string, any>>({});
 const applyVariableOverrides = ref(false);
+
+// Human-readable summary of active overrides, shown on hover of the info icon
+// next to the "Variable overrides" checkbox. Lets users see what's currently
+// being injected without having to expand the variables panel.
+const activeOverridesSummary = computed(() => {
+  const declared = pipelineVariables.value || {};
+  const overrides = currentVariableOverrides.value || {};
+  const lines = Object.keys(declared)
+    .filter((k) => overrides[k] !== undefined && overrides[k] !== null && overrides[k] !== "")
+    .map((k) => {
+      const value = overrides[k];
+      const formatted = typeof value === "string"
+        ? `"${value}"`
+        : typeof value === "object"
+          ? JSON.stringify(value)
+          : String(value);
+      return `${k} = ${formatted}`;
+    });
+  if (lines.length === 0) return "No overrides active";
+  return `Active overrides (click to edit):\n${lines.join("\n")}`;
+});
 const isFullRefreshChecked = computed(() => {
   return checkboxItems.value.find((item) => item.name === "Full-Refresh")?.checked || false;
 });
