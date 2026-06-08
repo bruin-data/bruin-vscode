@@ -10,9 +10,8 @@
             :selectedEnvironment="selectedEnvironment" class="flex-shrink-0" />
           <VariantSelectMenu v-if="hasVariants" :options="variantNames"
             :selectedVariant="selectedVariant" @selectedVariant="onVariantSelect" class="flex-shrink-0"/>
-          <!-- Date Controls and Checkbox Group — pushed to the right so the
-               row uses its full width instead of leaving empty space. -->
-          <div id="controls" class="flex flex-col flex-shrink-0 xs:ml-auto">
+          <!-- Date Controls and Checkbox Group -->
+          <div id="controls" class="flex flex-col flex-shrink-0">
             <div class="flex flex-col xs:flex-row gap-1 w-full">
               <DateInput label="Start Date" v-model="startDate" />
               <DateInput label="End Date" v-model="endDate" />
