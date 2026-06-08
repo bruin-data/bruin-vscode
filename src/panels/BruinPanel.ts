@@ -308,7 +308,12 @@ export class BruinPanel {
           }
         })
         .catch(() => {
-          // Real check failed — leave existing cache value alone.
+          // Real check threw — treat as "not installed" so we don't keep
+          // showing the main UI on cold opens only to flip back to the
+          // install screen each time. The webview message itself is sent
+          // by the outer catch (or by the timed-out path, which already
+          // pushed `installed: false`).
+          void BruinPanel.setCachedCliInstalled(false);
         });
 
       const { installed, isWindows, gitAvailable } = await Promise.race([
@@ -327,6 +332,14 @@ export class BruinPanel {
       }
     } catch (error) {
       this._cliInstalled = false;
+      // Persist so the next cold open doesn't flash the cached "installed"
+      // main UI before flipping back to the install screen. The `realCheck`
+      // catch handler also writes this, but doing it here as well covers the
+      // case where the synchronous spawn failed before realCheck was even
+      // created (defensive — `bruinInstaller.checkBruinCliInstallation()`
+      // shouldn't throw synchronously today, but we don't want to depend
+      // on that).
+      void BruinPanel.setCachedCliInstalled(false);
       this._panel.webview.postMessage({
         command: "bruinCliInstallationStatus",
         installed: false,
