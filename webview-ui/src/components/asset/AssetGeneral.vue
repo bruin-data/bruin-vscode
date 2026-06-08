@@ -10,8 +10,9 @@
             :selectedEnvironment="selectedEnvironment" class="flex-shrink-0" />
           <VariantSelectMenu v-if="hasVariants" :options="variantNames"
             :selectedVariant="selectedVariant" @selectedVariant="onVariantSelect" class="flex-shrink-0"/>
-          <!-- Date Controls and Checkbox Group -->
-          <div id="controls" class="flex flex-col flex-shrink-0">
+          <!-- Date Controls and Checkbox Group — pushed to the right so the
+               row uses its full width instead of leaving empty space. -->
+          <div id="controls" class="flex flex-col flex-shrink-0 xs:ml-auto">
             <div class="flex flex-col xs:flex-row gap-1 w-full">
               <DateInput label="Start Date" v-model="startDate" />
               <DateInput label="End Date" v-model="endDate" />
@@ -73,7 +74,7 @@
                           <span class="codicon codicon-close text-[10px]"></span>
                         </button>
                       </div>
-                      <ul class="py-1 max-h-[320px] overflow-y-auto">
+                      <ul v-if="runOptionRows.length > 0" class="py-1 max-h-[320px] overflow-y-auto">
                         <li
                           v-for="row in runOptionRows"
                           :key="row.id"
@@ -85,14 +86,14 @@
                         >
                           <span class="text-editor-fg opacity-60 shrink-0 w-[80px]">{{ row.label }}</span>
                           <span
-                            :class="[
-                              'flex-1 min-w-0 font-mono break-all',
-                              row.active ? 'text-editor-fg' : 'text-editor-fg opacity-50 italic',
-                            ]"
+                            class="flex-1 min-w-0 font-mono break-all text-editor-fg"
                             :title="row.tooltip || row.value"
                           >{{ row.value }}</span>
                         </li>
                       </ul>
+                      <div v-else class="px-2 py-3 text-2xs text-editor-fg opacity-60 italic">
+                        No additional flags, tag filters, or variable overrides set.
+                      </div>
                     </div>
                   </transition>
                 </div>
@@ -1088,7 +1089,6 @@ interface RunOptionRow {
   label: string;
   value: string;
   tooltip?: string;
-  active: boolean; // false for "default" entries (rendered dimmed)
   onClick?: () => void;
 }
 
@@ -1106,40 +1106,18 @@ const hasNonDefaultRunOptions = computed(() => {
   );
 });
 
+// Env, variant, and dates each have their own always-visible widgets at the
+// top of the panel, so the popover only surfaces the run config that's
+// otherwise hidden behind the Options collapsible: active flags, tag filters,
+// and applied variable overrides.
 const runOptionRows = computed<RunOptionRow[]>(() => {
   const rows: RunOptionRow[] = [];
-
-  rows.push({
-    id: "env",
-    label: "Environment",
-    value: selectedEnv.value || "—",
-    active: !!selectedEnv.value,
-  });
-
-  if (hasVariants.value) {
-    rows.push({
-      id: "variant",
-      label: "Variant",
-      value: selectedVariant.value || "default",
-      active: !!selectedVariant.value,
-    });
-  }
-
-  rows.push({
-    id: "dates",
-    label: "Dates",
-    value: startDate.value && endDate.value
-      ? `${startDate.value} → ${endDate.value}`
-      : "—",
-    active: !!(startDate.value && endDate.value),
-  });
 
   if (activeFlagLabels.value.length > 0) {
     rows.push({
       id: "flags",
       label: "Flags",
       value: activeFlagLabels.value.map((n) => `--${n.toLowerCase()}`).join(" "),
-      active: true,
       onClick: () => { showCheckboxGroup.value = true; },
     });
   }
@@ -1152,7 +1130,6 @@ const runOptionRows = computed<RunOptionRow[]>(() => {
       id: "tags",
       label: "Tag filters",
       value: parts.join("  "),
-      active: true,
       onClick: () => openOptionsAndPanel("tags"),
     });
   }
@@ -1163,7 +1140,6 @@ const runOptionRows = computed<RunOptionRow[]>(() => {
       label: "Overrides",
       value: `${variableOverridesCount.value} variable${variableOverridesCount.value === 1 ? "" : "s"} overridden`,
       tooltip: activeOverridesSummary.value,
-      active: true,
       onClick: () => openOptionsAndPanel("variables"),
     });
   }

@@ -169,13 +169,15 @@ const validationErrors = ref<Record<string, string>>({});
 // The last saved state, used to compute `isDirty` and to revert.
 const appliedOverrides = ref<Record<string, any>>({});
 
+// Parent always replaces the prop reference wholesale on save, so a shallow
+// watch is enough — no need to walk the override values on every change.
 watch(
   () => props.initialOverrides,
   (val) => {
     appliedOverrides.value = { ...(val || {}) };
     resetDraftFromApplied();
   },
-  { immediate: true, deep: true },
+  { immediate: true },
 );
 
 function resetDraftFromApplied() {
