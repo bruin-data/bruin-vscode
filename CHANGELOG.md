@@ -1,4 +1,7 @@
 # Changelog
+## [0.80.5] - [2026-06-04]
+- Flattened the run variables UI: variable overrides now appear in an inline panel under the run controls with all variables, defaults, and override inputs visible at once. The "Variable overrides" toggle auto-enables when an override is entered and turns off when the last one is cleared.
+
 ## [0.80.4] - [2026-06-04]
 - Allowed `options` property on MSSQL/Synapse connections in `.bruin.yml`.
 - Made environment groups in the connections webview collapsible (collapsed by default) with a per-environment connection count.
