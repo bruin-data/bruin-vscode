@@ -99,6 +99,29 @@ export class BruinPanel {
   }
 
   /**
+   * Persistent cache of the last known CLI install status so a fresh webview
+   * can boot directly into the main UI when the user has the CLI installed,
+   * instead of flashing the install screen while we await `bruin --version`.
+   */
+  private static readonly CLI_INSTALLED_CACHE_KEY = "bruin.cli.installedCache";
+
+  private static getCachedCliInstalled(): boolean | null {
+    const ctx = BruinPanel._extensionContext;
+    if (!ctx) return null;
+    const cached = ctx.globalState.get<boolean | undefined>(BruinPanel.CLI_INSTALLED_CACHE_KEY);
+    return typeof cached === "boolean" ? cached : null;
+  }
+
+  private static async setCachedCliInstalled(installed: boolean): Promise<void> {
+    const ctx = BruinPanel._extensionContext;
+    if (!ctx) return;
+    if (ctx.globalState.get<boolean | undefined>(BruinPanel.CLI_INSTALLED_CACHE_KEY) === installed) {
+      return; // no-op write avoidance
+    }
+    await ctx.globalState.update(BruinPanel.CLI_INSTALLED_CACHE_KEY, installed);
+  }
+
+  /**
    * The BruinPanel class private constructor (called only from the render method).
    *
    * @param panel A reference to the webview panel
@@ -235,7 +258,15 @@ export class BruinPanel {
   }
 
   private async _initializeWebview(extensionUri: Uri): Promise<void> {
-    this._panel.webview.html = this._getWebviewContent(this._panel.webview, extensionUri, null);
+    // Boot the webview with the last-known CLI install status so users who
+    // already have the CLI don't see the install screen flash while we
+    // re-verify in the background.
+    const cachedCliInstalled = BruinPanel.getCachedCliInstalled();
+    this._panel.webview.html = this._getWebviewContent(
+      this._panel.webview,
+      extensionUri,
+      cachedCliInstalled,
+    );
     this._lastRenderedDocumentUri = window.activeTextEditor?.document.uri;
     this._setWebviewMessageListener(this._panel.webview);
 
@@ -245,11 +276,43 @@ export class BruinPanel {
     try {
       const bruinInstaller = new BruinInstallCLI();
       const detectionTimeoutMs = 2000;
+      let timedOut = false;
       const timeoutPromise = new Promise<{ installed: boolean; isWindows: boolean; gitAvailable: boolean }>((resolve) => {
-        setTimeout(() => resolve({ installed: false, isWindows: process.platform === 'win32', gitAvailable: false }), detectionTimeoutMs);
+        setTimeout(() => {
+          timedOut = true;
+          resolve({ installed: false, isWindows: process.platform === 'win32', gitAvailable: false });
+        }, detectionTimeoutMs);
       });
+
+      // Keep a reference to the real check so we can still react to its result
+      // when the timeout wins the race (slow `bruin --version` on cold shells).
+      const realCheck = bruinInstaller.checkBruinCliInstallation();
+      realCheck
+        .then((real) => {
+          // Cache the real answer regardless of who won the race.
+          void BruinPanel.setCachedCliInstalled(real.installed);
+          // If the timeout already pushed a "not installed" fallback to the
+          // webview, send a corrected status now that the real check has
+          // returned, so the UI flips off the install screen.
+          if (timedOut) {
+            this._cliInstalled = real.installed;
+            this._panel.webview.postMessage({
+              command: "bruinCliInstallationStatus",
+              installed: real.installed,
+              isWindows: real.isWindows,
+              gitAvailable: real.gitAvailable,
+            });
+            if (real.installed && this._lastRenderedDocumentUri) {
+              this._runPostInstallSideEffects(this._lastRenderedDocumentUri).catch(() => {});
+            }
+          }
+        })
+        .catch(() => {
+          // Real check failed — leave existing cache value alone.
+        });
+
       const { installed, isWindows, gitAvailable } = await Promise.race([
-        bruinInstaller.checkBruinCliInstallation(),
+        realCheck,
         timeoutPromise,
       ]);
       this._cliInstalled = installed;
@@ -260,15 +323,7 @@ export class BruinPanel {
         gitAvailable,
       });
       if (installed && this._lastRenderedDocumentUri) {
-        const cliFilePath = this._lastRenderedDocumentUri.fsPath;
-        const isActualAsset = await this._isAssetFile(cliFilePath);
-        
-        if (isActualAsset) {
-          parseAssetCommand(this._lastRenderedDocumentUri);
-        } else {
-          await this._handleAssetDetection(this._lastRenderedDocumentUri);
-        }
-        getEnvListCommand(this._lastRenderedDocumentUri);
+        await this._runPostInstallSideEffects(this._lastRenderedDocumentUri);
       }
     } catch (error) {
       this._cliInstalled = false;
@@ -279,6 +334,22 @@ export class BruinPanel {
         gitAvailable: false,
       });
     }
+  }
+
+  /**
+   * Side effects we run once we know the CLI is installed: parse the asset,
+   * fetch the env list, etc. Extracted so it can run either from the racing
+   * timeout path or from the late real-check follow-up.
+   */
+  private async _runPostInstallSideEffects(uri: Uri): Promise<void> {
+    const filePath = uri.fsPath;
+    const isActualAsset = await this._isAssetFile(filePath);
+    if (isActualAsset) {
+      parseAssetCommand(uri);
+    } else {
+      await this._handleAssetDetection(uri);
+    }
+    getEnvListCommand(uri);
   }
 
 
@@ -1515,6 +1586,8 @@ export class BruinPanel {
   private async checkAndUpdateBruinCliStatus() {
     const bruinInstaller = new BruinInstallCLI();
     const { installed, isWindows, gitAvailable } = await bruinInstaller.checkBruinCliInstallation();
+    this._cliInstalled = installed;
+    void BruinPanel.setCachedCliInstalled(installed);
     this._panel.webview.postMessage({
       command: "bruinCliInstallationStatus",
       installed,
