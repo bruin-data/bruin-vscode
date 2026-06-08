@@ -130,33 +130,6 @@
         </div>
       </div>
 
-      <!-- Run-with Summary: always visible, surfaces options hidden behind the
-           collapsible "Options" section so users can see what the next run will
-           include without scrolling/expanding. -->
-      <div
-        v-if="runWithChips.length > 0"
-        id="run-with-summary"
-        class="flex items-center gap-1.5 flex-wrap text-2xs text-editor-fg opacity-90 overflow-x-auto"
-      >
-        <span class="opacity-60 shrink-0">Run with:</span>
-        <button
-          v-for="chip in runWithChips"
-          :key="chip.id"
-          type="button"
-          :class="[
-            'inline-flex items-center gap-1 px-1.5 py-0.5 rounded border whitespace-nowrap font-mono',
-            chip.variant === 'override'
-              ? 'border-editorLink-activeFg text-editor-fg'
-              : 'border-commandCenter-border text-editor-fg opacity-90 hover:opacity-100',
-          ]"
-          :title="chip.tooltip"
-          @click="chip.onClick && chip.onClick()"
-        >
-          <span v-if="chip.icon" :class="['codicon', chip.icon, 'text-[10px]']"></span>
-          <span>{{ chip.label }}</span>
-        </button>
-      </div>
-
       <!-- Action Buttons Row -->
       <div class="flex flex-col xs:flex-row gap-2 justify-end items-start xs:items-end">
         <div
@@ -281,6 +254,77 @@
                 </MenuItems>
               </transition>
             </Menu>
+          </div>
+
+          <!-- Run options summary: ⓘ button next to Run that opens a popover
+               listing the full effective configuration (env, dates, flags,
+               tags, variable overrides). A small dot indicates non-default
+               state so the user notices without having to open it. -->
+          <div ref="runOptionsContainer" class="relative inline-flex items-center">
+            <button
+              type="button"
+              id="run-options-button"
+              class="relative h-7 w-7 inline-flex items-center justify-center rounded-sm text-editor-fg opacity-70 hover:opacity-100 hover:bg-editor-button-hover-bg"
+              :title="isRunOptionsOpen ? 'Hide run options' : 'Show run options'"
+              :aria-expanded="isRunOptionsOpen"
+              aria-controls="run-options-popover"
+              @click="isRunOptionsOpen = !isRunOptionsOpen"
+            >
+              <span class="codicon codicon-info text-[12px]"></span>
+              <span
+                v-if="hasNonDefaultRunOptions"
+                class="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-editorLink-activeFg"
+                aria-hidden="true"
+              ></span>
+            </button>
+            <transition
+              enter-active-class="transition ease-out duration-100"
+              enter-from-class="transform opacity-0 scale-95"
+              enter-to-class="transform opacity-100 scale-100"
+              leave-active-class="transition ease-in duration-75"
+              leave-from-class="transform opacity-100 scale-100"
+              leave-to-class="transform opacity-0 scale-95"
+            >
+              <div
+                v-if="isRunOptionsOpen"
+                id="run-options-popover"
+                class="absolute right-0 top-full mt-1 z-[99999] w-[280px] max-w-[90vw] bg-editorWidget-bg border border-commandCenter-border rounded shadow-md"
+                role="dialog"
+                aria-label="Run options"
+              >
+                <div class="px-2 py-1.5 border-b border-commandCenter-border flex items-center justify-between">
+                  <span class="text-xs font-medium text-editor-fg">Run options</span>
+                  <button
+                    type="button"
+                    class="text-descriptionFg opacity-70 hover:opacity-100 h-5 w-5 inline-flex items-center justify-center"
+                    title="Close"
+                    @click="isRunOptionsOpen = false"
+                  >
+                    <span class="codicon codicon-close text-[10px]"></span>
+                  </button>
+                </div>
+                <ul class="py-1 max-h-[320px] overflow-y-auto">
+                  <li
+                    v-for="row in runOptionRows"
+                    :key="row.id"
+                    :class="[
+                      'flex items-start gap-2 px-2 py-1 text-2xs',
+                      row.onClick ? 'cursor-pointer hover:bg-editor-hoverBackground' : '',
+                    ]"
+                    @click="row.onClick && (row.onClick(), isRunOptionsOpen = false)"
+                  >
+                    <span class="text-editor-fg opacity-60 shrink-0 w-[80px]">{{ row.label }}</span>
+                    <span
+                      :class="[
+                        'flex-1 min-w-0 font-mono break-all',
+                        row.active ? 'text-editor-fg' : 'text-editor-fg opacity-50 italic',
+                      ]"
+                      :title="row.tooltip || row.value"
+                    >{{ row.value }}</span>
+                  </li>
+                </ul>
+              </div>
+            </transition>
           </div>
 
           <!-- Run Button Group -->
@@ -1011,18 +1055,12 @@ const isFullRefreshChecked = computed(() => {
 
 const activeTagCount = computed(() => includeTags.value.length + excludeTags.value.length);
 
-// Chips shown in the "Run with:" strip above the action buttons. Surfaces
-// settings that are otherwise hidden behind the collapsible "Options" section
-// (full-refresh, tag filters, variable overrides) so the user can see what the
-// next run will include without expanding anything.
-interface RunWithChip {
-  id: string;
-  label: string;
-  tooltip: string;
-  icon?: string;
-  variant?: "default" | "override";
-  onClick?: () => void;
-}
+// Run-options popover (ⓘ button next to the Run button). Surfaces the full
+// effective configuration — env, dates, flags, tags, variable overrides — so
+// the user can verify what the next run will include without expanding the
+// collapsible Options section.
+const isRunOptionsOpen = ref(false);
+const runOptionsContainer = ref<HTMLElement | null>(null);
 
 function openOptionsAndPanel(target: "variables" | "tags") {
   showCheckboxGroup.value = true;
@@ -1033,49 +1071,92 @@ function openOptionsAndPanel(target: "variables" | "tags") {
   }
 }
 
-const runWithChips = computed<RunWithChip[]>(() => {
-  const chips: RunWithChip[] = [];
+interface RunOptionRow {
+  id: string;
+  label: string;
+  value: string;
+  tooltip?: string;
+  active: boolean; // false for "default" entries (rendered dimmed)
+  onClick?: () => void;
+}
 
-  // Active boolean flags from the "Options" checkbox group (Full-Refresh, etc.)
-  for (const item of checkboxItems.value || []) {
-    if (item?.checked) {
-      chips.push({
-        id: `flag-${item.name}`,
-        label: `--${String(item.name).toLowerCase()}`,
-        tooltip: `${item.name} is enabled for this run`,
-        icon: "codicon-pass",
-        onClick: () => { showCheckboxGroup.value = true; },
-      });
-    }
+const activeFlagLabels = computed(() =>
+  (checkboxItems.value || [])
+    .filter((item: any) => item?.checked)
+    .map((item: any) => String(item.name)),
+);
+
+const hasNonDefaultRunOptions = computed(() => {
+  return (
+    activeFlagLabels.value.length > 0 ||
+    activeTagCount.value > 0 ||
+    (applyVariableOverrides.value && variableOverridesCount.value > 0)
+  );
+});
+
+const runOptionRows = computed<RunOptionRow[]>(() => {
+  const rows: RunOptionRow[] = [];
+
+  rows.push({
+    id: "env",
+    label: "Environment",
+    value: selectedEnv.value || "—",
+    active: !!selectedEnv.value,
+  });
+
+  if (hasVariants.value) {
+    rows.push({
+      id: "variant",
+      label: "Variant",
+      value: selectedVariant.value || "default",
+      active: !!selectedVariant.value,
+    });
   }
 
-  // Tag filters
+  rows.push({
+    id: "dates",
+    label: "Dates",
+    value: startDate.value && endDate.value
+      ? `${startDate.value} → ${endDate.value}`
+      : "—",
+    active: !!(startDate.value && endDate.value),
+  });
+
+  if (activeFlagLabels.value.length > 0) {
+    rows.push({
+      id: "flags",
+      label: "Flags",
+      value: activeFlagLabels.value.map((n) => `--${n.toLowerCase()}`).join(" "),
+      active: true,
+      onClick: () => { showCheckboxGroup.value = true; },
+    });
+  }
+
   if (activeTagCount.value > 0) {
     const parts: string[] = [];
     if (includeTags.value.length > 0) parts.push(`+${includeTags.value.join(", +")}`);
     if (excludeTags.value.length > 0) parts.push(`-${excludeTags.value.join(", -")}`);
-    chips.push({
+    rows.push({
       id: "tags",
-      label: `tags: ${activeTagCount.value}`,
-      tooltip: `Tag filters: ${parts.join("  ")}\n(click to edit)`,
-      icon: "codicon-filter-filled",
+      label: "Tag filters",
+      value: parts.join("  "),
+      active: true,
       onClick: () => openOptionsAndPanel("tags"),
     });
   }
 
-  // Variable overrides — only when they'll actually be applied to the run.
   if (applyVariableOverrides.value && variableOverridesCount.value > 0) {
-    chips.push({
+    rows.push({
       id: "overrides",
-      label: `${variableOverridesCount.value} override${variableOverridesCount.value === 1 ? "" : "s"}`,
+      label: "Overrides",
+      value: `${variableOverridesCount.value} variable${variableOverridesCount.value === 1 ? "" : "s"} overridden`,
       tooltip: activeOverridesSummary.value,
-      icon: "codicon-symbol-variable",
-      variant: "override",
+      active: true,
       onClick: () => openOptionsAndPanel("variables"),
     });
   }
 
-  return chips;
+  return rows;
 });
 const filteredTags = computed(() => {
   const q = tagFilterSearch.value.toLowerCase().trim();
@@ -1098,6 +1179,12 @@ function onWindowClick(e: MouseEvent) {
     const container = tagFilterContainer.value;
     if (container && !container.contains(e.target as Node)) {
       isTagFilterOpen.value = false;
+    }
+  }
+  if (isRunOptionsOpen.value) {
+    const container = runOptionsContainer.value;
+    if (container && !container.contains(e.target as Node)) {
+      isRunOptionsOpen.value = false;
     }
   }
 }
