@@ -15,15 +15,98 @@
             <div class="flex flex-col xs:flex-row gap-1 w-full">
               <DateInput label="Start Date" v-model="startDate" />
               <DateInput label="End Date" v-model="endDate" />
-              <div class="flex items-center gap-1 self-start xs:self-end">
-                <button type="button" @click="resetDatesOnSchedule" :title="props.schedule === 'continuous' ? 'Reset dates to today (start of day to now)' : `Reset dates to the previous ${props.schedule || 'scheduled'} run interval`"
-                  class="rounded-sm bg-editor-button-bg p-1 text-editor-button-fg hover:bg-editor-button-hover-bg disabled:opacity-50 disabled:cursor-not-allowed">
+              <!-- Icon group: reset / run-options ⓘ / expand chevron.
+                   Aligned to the bottom of the date inputs so the icons sit
+                   on the same baseline as the input row, not the label. -->
+              <div class="flex items-center self-start xs:self-end h-[26px] gap-0.5 ml-1">
+                <button
+                  type="button"
+                  @click="resetDatesOnSchedule"
+                  :title="props.schedule === 'continuous' ? 'Reset dates to today (start of day to now)' : `Reset dates to the previous ${props.schedule || 'scheduled'} run interval`"
+                  class="h-5 w-5 inline-flex items-center justify-center rounded-sm text-editor-fg opacity-70 hover:opacity-100 hover:bg-editor-button-hover-bg"
+                >
                   <ArrowPathRoundedSquareIcon class="h-3 w-3" aria-hidden="true" />
                 </button>
-                <div class="relative" id="checkbox-group-chevron">
-                  <ChevronUpIcon v-if="showCheckboxGroup" class="h-4 w-4" @click="updateVisibility" />
-                  <ChevronDownIcon v-else class="h-4 w-4" @click="updateVisibility" />
+                <!-- Run options ⓘ button + popover. Lives here (not next to
+                     Run) so it's visually grouped with the other run-config
+                     icons and the chevron that expands their editors. -->
+                <div ref="runOptionsContainer" class="relative inline-flex items-center">
+                  <button
+                    type="button"
+                    id="run-options-button"
+                    class="relative h-5 w-5 inline-flex items-center justify-center rounded-sm text-editor-fg opacity-70 hover:opacity-100 hover:bg-editor-button-hover-bg"
+                    :title="isRunOptionsOpen ? 'Hide run options' : 'Show run options'"
+                    :aria-expanded="isRunOptionsOpen"
+                    aria-controls="run-options-popover"
+                    @click.stop="isRunOptionsOpen = !isRunOptionsOpen"
+                  >
+                    <span class="codicon codicon-info text-[12px]"></span>
+                    <span
+                      v-if="hasNonDefaultRunOptions"
+                      class="absolute top-0.5 right-0.5 h-1.5 w-1.5 rounded-full bg-editorLink-activeFg"
+                      aria-hidden="true"
+                    ></span>
+                  </button>
+                  <transition
+                    enter-active-class="transition ease-out duration-100"
+                    enter-from-class="transform opacity-0 scale-95"
+                    enter-to-class="transform opacity-100 scale-100"
+                    leave-active-class="transition ease-in duration-75"
+                    leave-from-class="transform opacity-100 scale-100"
+                    leave-to-class="transform opacity-0 scale-95"
+                  >
+                    <div
+                      v-if="isRunOptionsOpen"
+                      id="run-options-popover"
+                      class="absolute right-0 top-full mt-1 z-[99999] w-[280px] max-w-[calc(100vw-2rem)] bg-editorWidget-bg border border-commandCenter-border rounded shadow-md"
+                      role="dialog"
+                      aria-label="Run options"
+                    >
+                      <div class="px-2 py-1.5 border-b border-commandCenter-border flex items-center justify-between">
+                        <span class="text-xs font-medium text-editor-fg">Run options</span>
+                        <button
+                          type="button"
+                          class="text-descriptionFg opacity-70 hover:opacity-100 h-5 w-5 inline-flex items-center justify-center"
+                          title="Close"
+                          @click="isRunOptionsOpen = false"
+                        >
+                          <span class="codicon codicon-close text-[10px]"></span>
+                        </button>
+                      </div>
+                      <ul class="py-1 max-h-[320px] overflow-y-auto">
+                        <li
+                          v-for="row in runOptionRows"
+                          :key="row.id"
+                          :class="[
+                            'flex items-start gap-2 px-2 py-1 text-2xs',
+                            row.onClick ? 'cursor-pointer hover:bg-editor-hoverBackground' : '',
+                          ]"
+                          @click="row.onClick && (row.onClick(), isRunOptionsOpen = false)"
+                        >
+                          <span class="text-editor-fg opacity-60 shrink-0 w-[80px]">{{ row.label }}</span>
+                          <span
+                            :class="[
+                              'flex-1 min-w-0 font-mono break-all',
+                              row.active ? 'text-editor-fg' : 'text-editor-fg opacity-50 italic',
+                            ]"
+                            :title="row.tooltip || row.value"
+                          >{{ row.value }}</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </transition>
                 </div>
+                <button
+                  type="button"
+                  id="checkbox-group-chevron"
+                  class="h-5 w-5 inline-flex items-center justify-center rounded-sm text-editor-fg opacity-70 hover:opacity-100 hover:bg-editor-button-hover-bg"
+                  :title="showCheckboxGroup ? 'Hide more options' : 'Show more options'"
+                  :aria-expanded="showCheckboxGroup"
+                  @click="updateVisibility"
+                >
+                  <ChevronUpIcon v-if="showCheckboxGroup" class="h-3.5 w-3.5" />
+                  <ChevronDownIcon v-else class="h-3.5 w-3.5" />
+                </button>
               </div>
             </div>
             </div>
@@ -254,77 +337,6 @@
                 </MenuItems>
               </transition>
             </Menu>
-          </div>
-
-          <!-- Run options summary: ⓘ button next to Run that opens a popover
-               listing the full effective configuration (env, dates, flags,
-               tags, variable overrides). A small dot indicates non-default
-               state so the user notices without having to open it. -->
-          <div ref="runOptionsContainer" class="relative inline-flex items-center">
-            <button
-              type="button"
-              id="run-options-button"
-              class="relative h-7 w-7 inline-flex items-center justify-center rounded-sm text-editor-fg opacity-70 hover:opacity-100 hover:bg-editor-button-hover-bg"
-              :title="isRunOptionsOpen ? 'Hide run options' : 'Show run options'"
-              :aria-expanded="isRunOptionsOpen"
-              aria-controls="run-options-popover"
-              @click="isRunOptionsOpen = !isRunOptionsOpen"
-            >
-              <span class="codicon codicon-info text-[12px]"></span>
-              <span
-                v-if="hasNonDefaultRunOptions"
-                class="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-editorLink-activeFg"
-                aria-hidden="true"
-              ></span>
-            </button>
-            <transition
-              enter-active-class="transition ease-out duration-100"
-              enter-from-class="transform opacity-0 scale-95"
-              enter-to-class="transform opacity-100 scale-100"
-              leave-active-class="transition ease-in duration-75"
-              leave-from-class="transform opacity-100 scale-100"
-              leave-to-class="transform opacity-0 scale-95"
-            >
-              <div
-                v-if="isRunOptionsOpen"
-                id="run-options-popover"
-                class="absolute right-0 top-full mt-1 z-[99999] w-[280px] max-w-[90vw] bg-editorWidget-bg border border-commandCenter-border rounded shadow-md"
-                role="dialog"
-                aria-label="Run options"
-              >
-                <div class="px-2 py-1.5 border-b border-commandCenter-border flex items-center justify-between">
-                  <span class="text-xs font-medium text-editor-fg">Run options</span>
-                  <button
-                    type="button"
-                    class="text-descriptionFg opacity-70 hover:opacity-100 h-5 w-5 inline-flex items-center justify-center"
-                    title="Close"
-                    @click="isRunOptionsOpen = false"
-                  >
-                    <span class="codicon codicon-close text-[10px]"></span>
-                  </button>
-                </div>
-                <ul class="py-1 max-h-[320px] overflow-y-auto">
-                  <li
-                    v-for="row in runOptionRows"
-                    :key="row.id"
-                    :class="[
-                      'flex items-start gap-2 px-2 py-1 text-2xs',
-                      row.onClick ? 'cursor-pointer hover:bg-editor-hoverBackground' : '',
-                    ]"
-                    @click="row.onClick && (row.onClick(), isRunOptionsOpen = false)"
-                  >
-                    <span class="text-editor-fg opacity-60 shrink-0 w-[80px]">{{ row.label }}</span>
-                    <span
-                      :class="[
-                        'flex-1 min-w-0 font-mono break-all',
-                        row.active ? 'text-editor-fg' : 'text-editor-fg opacity-50 italic',
-                      ]"
-                      :title="row.tooltip || row.value"
-                    >{{ row.value }}</span>
-                  </li>
-                </ul>
-              </div>
-            </transition>
           </div>
 
           <!-- Run Button Group -->
