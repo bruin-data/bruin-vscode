@@ -95,6 +95,7 @@
         :pipeline="props.pipeline"
         :filePath="props.filePath"
         :startDate="props.startDate"
+        :materializationStrategy="props.materializationStrategy"
       />
     </div>
   </div>
@@ -128,6 +129,7 @@ const props = defineProps<{
   assetMetadataError?: string;
   pipelineAssets?: any[];
   filePath: string;
+  materializationStrategy?: string;
 }>();
 
 const descriptionRef = ref<HTMLElement | null>(null);

@@ -370,7 +370,9 @@
         @run="handleRunMultipleAssets" />
 
       <BackfillDialog :isOpen="showBackfillDialog" :startDate="startDate" :endDate="endDate"
-        :schedule="props.schedule" @close="showBackfillDialog = false" @run="handleRunBackfill" />
+        :schedule="props.schedule" :fullRefreshChecked="isFullRefreshChecked"
+        :sensorModeActive="isSensorModeActive" :materializationStrategy="props.materializationStrategy"
+        @close="showBackfillDialog = false" @run="handleRunBackfill" />
 
       <!-- Selected assets summary (clickable to open panel) -->
       <div v-if="selectedAssetsForRun.length > 0 && !showSelectMultipleAssetsDialog"
@@ -539,6 +541,7 @@ const props = defineProps<{
   assetMetadataError?: string;
   pipeline?: any;
   filePath?: string;
+  materializationStrategy?: string;
 }>();
 
 /**
@@ -1075,6 +1078,10 @@ const activeOverridesSummary = computed(() => {
 });
 const isFullRefreshChecked = computed(() => {
   return checkboxItems.value.find((item) => item.name === "Full-Refresh")?.checked || false;
+});
+
+const isSensorModeActive = computed(() => {
+  return checkboxItems.value.find((item) => item.name === "Apply-Sensor-Mode")?.checked || false;
 });
 
 const activeTagCount = computed(() => includeTags.value.length + excludeTags.value.length);
@@ -1749,9 +1756,17 @@ function handleRunBackfill(payload: { chunks: BackfillChunk[]; stopOnFailure: bo
   showBackfillDialog.value = false;
   if (!payload.chunks || payload.chunks.length === 0) return;
 
-  const baseFlags = stripDateFlags(
-    stripFullRefreshFlag(stripAllTagFlags(getCheckboxChangePayload()))
+  // buildCommandPayload adds --environment/--variant; without it the backfill
+  // would silently run against the default environment. Then strip the global
+  // dates (each chunk supplies its own), --full-refresh (ignored by backfill),
+  // and tag flags (this is an asset-level run).
+  let baseFlags = stripDateFlags(
+    stripFullRefreshFlag(stripAllTagFlags(buildCommandPayload(getCheckboxChangePayload())))
   );
+
+  // Sensors don't make sense replaying historical windows — force skip so a
+  // backfill never blocks on a sensor (overrides any Apply-Sensor-Mode choice).
+  baseFlags = `${baseFlags.replace(/\s--sensor-mode\s+\S+/g, "").trim()} --sensor-mode skip`.trim();
 
   vscode.postMessage({
     command: "bruin.runBackfill",

@@ -47,6 +47,24 @@
           coarser granularity to cover it all.</span>
       </div>
 
+      <!-- create+replace warning: backfill would just overwrite the table -->
+      <div v-if="isOverwriteStrategy"
+        class="text-2xs text-notificationsWarningIcon-fg flex items-start gap-1">
+        <span class="codicon codicon-warning text-2xs mt-0.5"></span>
+        <span>This asset uses <span class="font-mono">create+replace</span> — each chunk overwrites the whole
+          table, so only the last window would survive. Backfill suits incremental strategies
+          (<span class="font-mono">merge</span> / <span class="font-mono">delete+insert</span> /
+          <span class="font-mono">time_interval</span>).</span>
+      </div>
+
+      <!-- Informational notes about flags backfill adjusts -->
+      <ul v-if="notes.length > 0" class="text-2xs text-editor-fg opacity-60 flex flex-col gap-0.5 list-none m-0 p-0">
+        <li v-for="(note, i) in notes" :key="i" class="flex items-start gap-1">
+          <span class="codicon codicon-info text-2xs mt-0.5"></span>
+          <span>{{ note }}</span>
+        </li>
+      </ul>
+
       <!-- Chunk preview -->
       <div v-if="chunks.length > 0"
         class="border border-commandCenter-border rounded bg-editor-bg max-h-36 overflow-y-auto">
@@ -93,6 +111,9 @@ const props = defineProps<{
   startDate: string;
   endDate: string;
   schedule?: string;
+  fullRefreshChecked?: boolean;
+  sensorModeActive?: boolean;
+  materializationStrategy?: string;
 }>();
 
 const emit = defineEmits<{
@@ -129,6 +150,28 @@ const result = computed(() =>
 const chunks = computed(() => result.value.chunks);
 const truncated = computed(() => result.value.truncated);
 const previewChunks = computed(() => chunks.value.slice(0, previewLimit));
+
+const normalizedStrategy = computed(() =>
+  (props.materializationStrategy || "").toLowerCase().replace(/[\s_]/g, "")
+);
+const isOverwriteStrategy = computed(() => normalizedStrategy.value === "create+replace");
+const isAppendStrategy = computed(() => normalizedStrategy.value === "append");
+
+// Notes explaining the flag adjustments backfill makes (full-refresh dropped,
+// sensors skipped, append duplicates on re-run).
+const notes = computed<string[]>(() => {
+  const out: string[] = [];
+  if (props.fullRefreshChecked) {
+    out.push("Full-refresh is ignored for backfill — each chunk runs its own window.");
+  }
+  if (props.sensorModeActive) {
+    out.push("Sensors are skipped for backfill (--sensor-mode skip).");
+  }
+  if (isAppendStrategy.value) {
+    out.push("append accumulates rows — re-running an already-loaded window will duplicate it.");
+  }
+  return out;
+});
 
 const formatBoundary = (iso: string): string => {
   const dt = DateTime.fromISO(iso, { zone: "utc" });
