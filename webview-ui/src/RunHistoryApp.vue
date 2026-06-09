@@ -183,7 +183,11 @@
                         <span class="text-descriptionForeground w-5 text-right flex-shrink-0">{{ ci + 1 }}</span>
                         <span class="font-mono flex-1 min-w-0 truncate">{{ formatWindow(child.startDate, child.endDate) }}</span>
                         <span class="text-[10px] capitalize flex-shrink-0" :class="childStatusTextClass(child.status)">
-                          {{ child.status }}
+                          {{ child.status }}<span
+                            v-if="child.inferred"
+                            class="not-italic"
+                            title="Inferred: this chunk's per-second log was overwritten by a same-second chunk, but a later chunk ran — so this one completed too."
+                          >*</span>
                         </span>
                       </div>
                     </div>
@@ -320,6 +324,7 @@ interface RunSummary {
   kind?: "run" | "backfill";
   children?: RunSummary[];
   backfill?: BackfillSummary;
+  inferred?: boolean;
 }
 
 const runs = ref<RunSummary[]>([]);

@@ -66,6 +66,9 @@ export interface RunSummary {
   kind?: "run" | "backfill";
   children?: RunSummary[];
   backfill?: BackfillSummary;
+  // True when a chunk's status was inferred because its per-second run log was
+  // overwritten by a same-second chunk, but a later chunk ran (proving it did too).
+  inferred?: boolean;
 }
 
 export interface BackfillSummary {

@@ -8008,4 +8008,32 @@ suite("groupBackfillRuns", () => {
     assert.strictEqual(bf?.backfill?.completedChunks, 1, "offset run matched despite earlier wall-clock digits");
     assert.strictEqual(bf?.children?.[0].status, "succeeded");
   });
+
+  test("infers a collision-lost middle chunk as succeeded when a later chunk ran", () => {
+    // The CLI's per-second log for chunk 1 was overwritten by a same-second
+    // chunk; chunks 0 and 2 survived. Chunk 1 must have run (chunk 2 did).
+    const runs: RunSummary[] = [
+      makeRun({ filePath: "/logs/a", startDate: "2024-01-01T00:00:00Z", endDate: "2024-01-02T00:00:00Z" }),
+      makeRun({ filePath: "/logs/c", startDate: "2024-01-03T00:00:00Z", endDate: "2024-01-04T00:00:00Z" }),
+    ];
+
+    const result = groupBackfillRuns(runs, [manifest]);
+    const bf = result.find((r) => r.kind === "backfill")!;
+    assert.strictEqual(bf.status, "succeeded");
+    assert.strictEqual(bf.backfill?.completedChunks, 3, "all three resolved (middle inferred)");
+    assert.strictEqual(bf.children?.[1].status, "succeeded");
+    assert.strictEqual(bf.children?.[1].inferred, true, "middle chunk flagged inferred");
+    assert.ok(!bf.children?.[0].inferred, "a chunk with a real log is not flagged inferred");
+  });
+
+  test("does not infer chunks after the furthest completed window — they stay pending", () => {
+    const runs: RunSummary[] = [
+      makeRun({ filePath: "/logs/a", startDate: "2024-01-01T00:00:00Z", endDate: "2024-01-02T00:00:00Z" }),
+    ];
+
+    const result = groupBackfillRuns(runs, [manifest]);
+    const bf = result.find((r) => r.kind === "backfill")!;
+    assert.strictEqual(bf.status, "running");
+    assert.strictEqual(bf.children?.filter((c) => c.status === "pending").length, 2);
+  });
 });

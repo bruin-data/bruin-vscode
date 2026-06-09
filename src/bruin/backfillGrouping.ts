@@ -61,7 +61,6 @@ export const groupBackfillRuns = (
 
   for (const manifest of sortedManifests) {
     const children: RunSummary[] = [];
-    let matchedCount = 0;
 
     for (const chunk of manifest.chunks) {
       const match = runs
@@ -71,7 +70,6 @@ export const groupBackfillRuns = (
 
       if (match) {
         consumed.add(match.filePath);
-        matchedCount++;
         children.push({ ...match, kind: "run" });
       } else {
         // Chunk hasn't produced a run log yet (not started, or still running).
@@ -92,6 +90,26 @@ export const groupBackfillRuns = (
       }
     }
 
+    // The CLI names run logs by second, so chunks finishing within the same
+    // second overwrite each other's log file — a fast backfill keeps only one
+    // log per second. But chunks run sequentially in window order, so any chunk
+    // before the furthest one that produced a log must also have run. Resolve
+    // those collision-lost gaps instead of leaving them stuck "pending".
+    // (Under stop-on-failure a failing chunk is the last to write, so its
+    // failure log survives and gaps before it are genuine successes.)
+    let lastRanIndex = -1;
+    children.forEach((c, i) => {
+      if (c.filePath) {
+        lastRanIndex = i;
+      }
+    });
+    for (let i = 0; i < lastRanIndex; i++) {
+      if (children[i].status === "pending") {
+        children[i].status = "succeeded";
+        children[i].inferred = true;
+      }
+    }
+
     const ranChildren = children.filter((c) => c.status !== "pending");
     const pipeline = ranChildren.find((c) => c.pipeline)?.pipeline || "";
     const latestTimestamp = ranChildren.reduce(
@@ -100,6 +118,7 @@ export const groupBackfillRuns = (
     );
     const succeededChunks = children.filter((c) => c.status === "succeeded").length;
     const failedChunks = children.filter((c) => c.status === "failed").length;
+    const resolvedChunks = children.filter((c) => c.status !== "pending").length;
 
     backfills.push({
       runId: manifest.backfillId,
@@ -118,7 +137,7 @@ export const groupBackfillRuns = (
         backfillId: manifest.backfillId,
         startedAt: manifest.startedAt,
         totalChunks: manifest.chunks.length,
-        completedChunks: matchedCount,
+        completedChunks: resolvedChunks,
       },
     });
   }
