@@ -369,6 +369,9 @@
         :fullRefreshEnabled="isFullRefreshChecked" @close="showSelectMultipleAssetsDialog = false"
         @run="handleRunMultipleAssets" />
 
+      <BackfillDialog :isOpen="showBackfillDialog" :startDate="startDate" :endDate="endDate"
+        :schedule="props.schedule" @close="showBackfillDialog = false" @run="handleRunBackfill" />
+
       <!-- Selected assets summary (clickable to open panel) -->
       <div v-if="selectedAssetsForRun.length > 0 && !showSelectMultipleAssetsDialog"
         class="mt-2 flex items-center gap-1.5 text-xs min-w-0">
@@ -498,6 +501,8 @@ import ButtonGroup from "@/components/ui/buttons/ButtonGroup.vue";
 import { updateValue, resetStates, determineValidationStatus } from "@/utilities/helper";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/vue";
 import SelectMultipleAssets from "@/components/ui/asset/SelectMultipleAssets.vue";
+import BackfillDialog from "@/components/ui/asset/BackfillDialog.vue";
+import type { BackfillChunk } from "@/utilities/helper";
 import {
   ChevronDownIcon,
   ChevronUpIcon,
@@ -585,6 +590,7 @@ const runDropdownItems = computed(() => [
   { key: 'run-current-pipeline', label: 'Run the whole pipeline' },
   { key: 'run-with-continue', label: 'Continue from last failure' },
   { key: 'run-multiple-assets', label: 'Run multiple assets' },
+  { key: 'run-backfill', label: 'Backfill…', disabled: isPipelineFile.value },
   { key: 'copy-command', label: 'Copy command' },
 ]);
 
@@ -604,6 +610,9 @@ const selectedAssetsDisplay = computed(() => {
 // Full refresh alert state
 const showFullRefreshAlert = ref(false);
 const pendingRunAction = ref<(() => void) | null>(null);
+
+// Local backfill dialog state
+const showBackfillDialog = ref(false);
 
 // Full refresh alert methods
 const confirmFullRefresh = () => {
@@ -654,6 +663,9 @@ const handleRunDropdown = (key: string) => {
       break;
     case "run-multiple-assets":
       runMultipleAssets();
+      break;
+    case "run-backfill":
+      showBackfillDialog.value = true;
       break;
     case "copy-command":
       copyRunCommand();
@@ -1715,6 +1727,39 @@ function runAssetOnly() {
   vscode.postMessage({
     command: "bruin.runSql",
     payload,
+  });
+}
+
+// Remove the global --start-date/--end-date flags; backfill supplies a
+// per-chunk window instead.
+function stripDateFlags(flags: string): string {
+  return flags
+    .replace(/\s--start-date\s+[^\s]+/g, "")
+    .replace(/\s--end-date\s+[^\s]+/g, "")
+    .trim();
+}
+
+// Kick off a local backfill. We send the per-chunk windows plus the base flags
+// with the global dates and --full-refresh stripped: each chunk supplies its
+// own --start-date/--end-date, and full-refresh is intentionally excluded
+// because the CLI ignores the chunk window under full-refresh (it reloads from
+// the pipeline start_date). Correct window re-runs rely on the asset's
+// incremental strategy.
+function handleRunBackfill(payload: { chunks: BackfillChunk[]; stopOnFailure: boolean }) {
+  showBackfillDialog.value = false;
+  if (!payload.chunks || payload.chunks.length === 0) return;
+
+  const baseFlags = stripDateFlags(
+    stripFullRefreshFlag(stripAllTagFlags(getCheckboxChangePayload()))
+  );
+
+  vscode.postMessage({
+    command: "bruin.runBackfill",
+    payload: {
+      chunks: payload.chunks,
+      flags: baseFlags,
+      stopOnFailure: payload.stopOnFailure,
+    },
   });
 }
 

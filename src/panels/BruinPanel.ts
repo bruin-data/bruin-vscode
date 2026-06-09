@@ -15,6 +15,7 @@ import {
   formatInIntegratedTerminal,
   escapeFilePath,
   runMultipleAssetsInTerminal,
+  runBackfillInTerminal,
 } from "../bruin";
 import { BruinFill } from "../bruin/bruinFill";
 import { BruinLockDependencies } from "../bruin/bruinLockDependencies";
@@ -814,6 +815,24 @@ export class BruinPanel {
             }
             // Run multiple assets sequentially in the terminal
             runMultipleAssetsInTerminal(message.payload.assets, message.payload.flags, "bruin");
+            break;
+
+          case "bruin.runBackfill":
+            trackEvent("Command Executed", { command: "runBackfill", source: "extension" });
+            if (!this._lastRenderedDocumentUri) {
+              return;
+            }
+            if (!message.payload?.chunks || message.payload.chunks.length === 0) {
+              return;
+            }
+            runBackfillInTerminal(
+              this._lastRenderedDocumentUri.fsPath,
+              message.payload.chunks,
+              message.payload.flags,
+              message.payload.stopOnFailure !== false,
+              "",
+              "bruin"
+            );
             break;
 
           case "bruin.getAssetDetails":
