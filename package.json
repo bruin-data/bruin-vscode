@@ -230,6 +230,11 @@
           "type": "boolean",
           "default": true,
           "description": "Automatically update the Bruin CLI when a new version is available."
+        },
+        "bruin.dac.executable": {
+          "type": "string",
+          "default": "",
+          "description": "Full path to the 'dac' executable used by the Preview Dashboard command. Leave empty to discover it on PATH."
         }
       }
     },

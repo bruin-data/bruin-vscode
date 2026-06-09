@@ -26,6 +26,7 @@ import { TableDiffPanel } from "../panels/TableDiffPanel";
 import { RunHistoryPanel } from "../panels/RunHistoryPanel";
 import { BruinPanel } from "../panels/BruinPanel";
 import { DacPreviewPanel } from "../panels/DacPreviewPanel";
+import { DacServerManager } from "../bruin/dacServe";
 import { QueryCodeLensProvider } from "../providers/queryCodeLensProvider";
 import { ScheduleCodeLensProvider } from "../providers/scheduleCodeLensProvider";
 import { QuerySelectionCodeLensProvider } from "../providers/querySelectionCodeLensProvider";
@@ -712,4 +713,6 @@ export function deactivate(): void {
     clearInterval(cliCheckInterval);
     cliCheckInterval = undefined;
   }
+  // Stop any running dac serve processes.
+  DacServerManager.disposeAll();
 }

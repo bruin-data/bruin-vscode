@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
-import { DacServe } from "../bruin/dacServe";
+import { DacServe, DacServerManager, DacNotFoundError } from "../bruin/dacServe";
 import { getNonce } from "../utilities/getNonce";
 
 /**
@@ -135,10 +135,8 @@ export class DacPreviewPanel {
     panel.webview.html = DacPreviewPanel.loadingHtml(panel.webview, "Starting dac serve…");
 
     try {
-      const port = await DacServe.findFreePort();
       const template = DacPreviewPanel.templateForCurrentTheme();
-      const server = new DacServe(dashboardDir, port, output, template);
-      await server.start();
+      const server = await DacServerManager.acquire(dashboardDir, output, template);
 
       const dashboardName = readDashboardName(documentUri.fsPath);
       const initialUrl = dashboardName
@@ -152,6 +150,22 @@ export class DacPreviewPanel {
       panel.webview.html = preview.renderHtml();
       void preview;
     } catch (err) {
+      if (err instanceof DacNotFoundError) {
+        output.appendLine(`[dac] ${err.message}`);
+        panel.webview.html = DacPreviewPanel.loadingHtml(panel.webview, err.message);
+        const choice = await vscode.window.showErrorMessage(
+          "Bruin: the 'dac' executable was not found.",
+          "Open Settings"
+        );
+        if (choice === "Open Settings") {
+          await vscode.commands.executeCommand(
+            "workbench.action.openSettings",
+            "bruin.dac.executable"
+          );
+        }
+        panel.dispose();
+        return;
+      }
       const message = err instanceof Error ? err.message : String(err);
       output.appendLine(`[dac] failed to start: ${message}`);
       panel.webview.html = DacPreviewPanel.loadingHtml(
@@ -167,7 +181,12 @@ export class DacPreviewPanel {
       return;
     }
     this.disposed = true;
-    this.server.stop();
+    // Release our ref on the shared server; the manager stops it once the last
+    // panel for this directory closes.
+    DacServerManager.release(this.dashboardDir);
+    while (this.disposables.length) {
+      this.disposables.pop()?.dispose();
+    }
   }
 
   private renderHtml(): string {
