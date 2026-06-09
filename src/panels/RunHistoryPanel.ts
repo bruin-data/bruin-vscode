@@ -62,9 +62,11 @@ export class RunHistoryPanel implements vscode.WebviewViewProvider, vscode.Dispo
     if (!workspaceRoot) {return;}
 
     this.runLogService = new RunLogService(workspaceRoot);
+    // Watch both per-run logs and backfill manifests so launching a backfill or
+    // any of its chunks completing refreshes the grouped view.
     const logsPattern = new vscode.RelativePattern(
       workspaceRoot,
-      "logs/runs/**/*.json"
+      "logs/{runs,backfills}/**/*.json"
     );
 
     this.fileWatcher?.dispose();

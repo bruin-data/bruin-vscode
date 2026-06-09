@@ -10,6 +10,7 @@ import { getPathSeparator } from "../extension/configuration";
 import { getBruinExecutablePath } from "../providers/BruinExecutableService";
 import { BruinCommand } from "./bruinCommand";
 import { BruinCommandOptions } from "../types";
+import { buildBackfillManifest, writeBackfillManifest } from "./backfillManifest";
 
 /**
  * Checks if the Bruin binary is available in the system path.
@@ -493,6 +494,20 @@ export const runBackfillInTerminal = async (
     stopOnFailure,
     useUnixFormatting
   );
+
+  // Record a manifest so the independently-written per-chunk run logs can be
+  // grouped back into a single backfill entry in the Run History panel.
+  const manifestRoot = await bruinWorkspaceDirectory(assetPath);
+  if (manifestRoot) {
+    const manifest = buildBackfillManifest({
+      assetPath,
+      chunks,
+      stopOnFailure,
+      flags,
+      startedAt: new Date(),
+    });
+    await writeBackfillManifest(manifestRoot, manifest);
+  }
 
   terminal.show(true);
   terminal.sendText(" ");

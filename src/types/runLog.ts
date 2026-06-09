@@ -45,7 +45,7 @@ export interface RunLog {
   cmdline?: string[];
 }
 
-export type RunStatus = "succeeded" | "failed" | "running";
+export type RunStatus = "succeeded" | "failed" | "running" | "pending";
 
 export interface RunSummary {
   runId: string;
@@ -60,6 +60,36 @@ export interface RunSummary {
   duration?: string;
   flags?: string[];
   runPath?: string; // The asset/pipeline path from cmdline
+  startDate?: string; // run window start (from parameters)
+  endDate?: string; // run window end (from parameters)
+  // Backfill grouping: a "backfill" summary groups its per-chunk runs in `children`.
+  kind?: "run" | "backfill";
+  children?: RunSummary[];
+  backfill?: BackfillSummary;
+}
+
+export interface BackfillSummary {
+  backfillId: string;
+  startedAt: string;
+  totalChunks: number;
+  completedChunks: number; // chunks with a matching run log (ran)
+}
+
+// Manifest written by the extension when a local backfill is launched, so the
+// independently-written per-chunk run logs can be grouped back together.
+// Stored at logs/backfills/<backfillId>.json.
+export interface BackfillManifest {
+  backfillId: string;
+  assetPath: string;
+  environment?: string;
+  stopOnFailure: boolean;
+  startedAt: string; // ISO timestamp
+  chunks: BackfillManifestChunk[];
+}
+
+export interface BackfillManifestChunk {
+  start: string;
+  end: string;
 }
 
 // Types for the new -o json output from bruin run

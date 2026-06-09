@@ -27,6 +27,13 @@ import {
 } from "../utilities/helperUtils";
 import * as configuration from "../extension/configuration";
 import * as bruinUtils from "../bruin/bruinUtils";
+import {
+  buildBackfillManifest,
+  buildBackfillId,
+  extractEnvironment,
+} from "../bruin/backfillManifest";
+import { groupBackfillRuns } from "../bruin/backfillGrouping";
+import { RunSummary, BackfillManifest } from "../types/runLog";
 import * as fs from "fs";
 import path = require("path");
 import sinon = require("sinon");
@@ -7868,5 +7875,148 @@ bruin run --start-date 2024-01-02T00:00:00Z --end-date 2024-01-03T00:00:00Z "/pa
       );
     });
     assert.ok(lines[2].trim().endsWith('"/path/to/asset.sql"'), "last line ends with asset path");
+  });
+});
+
+suite("backfill manifest", () => {
+  const startedAt = new Date("2026-06-09T12:34:56.000Z");
+
+  test("buildBackfillId derives a timestamped, sanitized id from the asset name", () => {
+    const id = buildBackfillId(startedAt, "/abs/path/to/staging.backfill_demo.sql");
+    assert.strictEqual(id, "bf_2026_06_09_12_34_56_staging.backfill_demo");
+  });
+
+  test("extractEnvironment pulls --environment out of the flags", () => {
+    assert.strictEqual(extractEnvironment("--push-metadata --environment prod"), "prod");
+    assert.strictEqual(extractEnvironment("--push-metadata"), undefined);
+    assert.strictEqual(extractEnvironment(undefined), undefined);
+  });
+
+  test("buildBackfillManifest captures asset, env, chunks, and ISO startedAt", () => {
+    const manifest = buildBackfillManifest({
+      assetPath: "/abs/asset.sql",
+      chunks: [
+        { start: "2024-01-01T00:00:00Z", end: "2024-01-02T00:00:00Z" },
+        { start: "2024-01-02T00:00:00Z", end: "2024-01-03T00:00:00Z" },
+      ],
+      stopOnFailure: true,
+      flags: "--environment prod",
+      startedAt,
+    });
+
+    assert.strictEqual(manifest.assetPath, "/abs/asset.sql");
+    assert.strictEqual(manifest.environment, "prod");
+    assert.strictEqual(manifest.stopOnFailure, true);
+    assert.strictEqual(manifest.startedAt, "2026-06-09T12:34:56.000Z");
+    assert.strictEqual(manifest.chunks.length, 2);
+    assert.strictEqual(manifest.backfillId, "bf_2026_06_09_12_34_56_asset");
+  });
+});
+
+suite("groupBackfillRuns", () => {
+  const ASSET = "/abs/asset.sql";
+  const STARTED = "2026-06-09T12:00:00.000Z";
+
+  const manifest: BackfillManifest = {
+    backfillId: "bf_test",
+    assetPath: ASSET,
+    environment: "prod",
+    stopOnFailure: true,
+    startedAt: STARTED,
+    chunks: [
+      { start: "2024-01-01T00:00:00Z", end: "2024-01-02T00:00:00Z" },
+      { start: "2024-01-02T00:00:00Z", end: "2024-01-03T00:00:00Z" },
+      { start: "2024-01-03T00:00:00Z", end: "2024-01-04T00:00:00Z" },
+    ],
+  };
+
+  const makeRun = (over: Partial<RunSummary>): RunSummary => ({
+    runId: "r",
+    pipeline: "p",
+    timestamp: "2026-06-09T12:05:00.000Z",
+    status: "succeeded",
+    totalAssets: 1,
+    succeededAssets: 1,
+    failedAssets: 0,
+    environment: "prod",
+    filePath: `/logs/${Math.random()}`,
+    runPath: ASSET,
+    startDate: "2024-01-01T00:00:00Z",
+    endDate: "2024-01-02T00:00:00Z",
+    ...over,
+  });
+
+  test("groups matching chunk runs into one backfill summary and removes them from the flat list", () => {
+    const runs: RunSummary[] = [
+      makeRun({ filePath: "/logs/a", startDate: "2024-01-01T00:00:00Z", endDate: "2024-01-02T00:00:00Z" }),
+      makeRun({ filePath: "/logs/b", startDate: "2024-01-02T00:00:00Z", endDate: "2024-01-03T00:00:00Z" }),
+      makeRun({ filePath: "/logs/c", startDate: "2024-01-03T00:00:00Z", endDate: "2024-01-04T00:00:00Z" }),
+    ];
+
+    const result = groupBackfillRuns(runs, [manifest]);
+    assert.strictEqual(result.length, 1, "all three runs collapse into one backfill row");
+    const bf = result[0];
+    assert.strictEqual(bf.kind, "backfill");
+    assert.strictEqual(bf.status, "succeeded");
+    assert.strictEqual(bf.children?.length, 3);
+    assert.strictEqual(bf.backfill?.completedChunks, 3);
+    assert.strictEqual(bf.backfill?.totalChunks, 3);
+  });
+
+  test("marks unmatched chunks pending and the backfill running", () => {
+    const runs: RunSummary[] = [
+      makeRun({ filePath: "/logs/a", startDate: "2024-01-01T00:00:00Z", endDate: "2024-01-02T00:00:00Z" }),
+    ];
+
+    const result = groupBackfillRuns(runs, [manifest]);
+    const bf = result[0];
+    assert.strictEqual(bf.status, "running");
+    assert.strictEqual(bf.backfill?.completedChunks, 1);
+    assert.strictEqual(bf.children?.filter((c) => c.status === "pending").length, 2);
+  });
+
+  test("rolls up to failed when any chunk failed", () => {
+    const runs: RunSummary[] = [
+      makeRun({ filePath: "/logs/a", startDate: "2024-01-01T00:00:00Z", endDate: "2024-01-02T00:00:00Z" }),
+      makeRun({
+        filePath: "/logs/b",
+        startDate: "2024-01-02T00:00:00Z",
+        endDate: "2024-01-03T00:00:00Z",
+        status: "failed",
+        succeededAssets: 0,
+        failedAssets: 1,
+      }),
+      makeRun({ filePath: "/logs/c", startDate: "2024-01-03T00:00:00Z", endDate: "2024-01-04T00:00:00Z" }),
+    ];
+
+    const result = groupBackfillRuns(runs, [manifest]);
+    assert.strictEqual(result[0].status, "failed");
+    assert.strictEqual(result[0].failedAssets, 1);
+  });
+
+  test("leaves unrelated runs and pre-backfill runs in the flat list", () => {
+    const runs: RunSummary[] = [
+      // different asset → not part of the backfill
+      makeRun({ filePath: "/logs/other", runPath: "/abs/other.sql" }),
+      // same asset+window but ran before the backfill started → not matched
+      makeRun({ filePath: "/logs/old", timestamp: "2026-06-09T11:00:00.000Z" }),
+      // a genuine chunk run
+      makeRun({ filePath: "/logs/a", timestamp: "2026-06-09T12:05:00.000Z" }),
+    ];
+
+    const result = groupBackfillRuns(runs, [manifest]);
+    const backfills = result.filter((r) => r.kind === "backfill");
+    const plain = result.filter((r) => r.kind !== "backfill");
+    assert.strictEqual(backfills.length, 1);
+    assert.ok(plain.some((r) => r.filePath === "/logs/other"), "unrelated run kept");
+    assert.ok(plain.some((r) => r.filePath === "/logs/old"), "pre-backfill run kept");
+    assert.strictEqual(backfills[0].backfill?.completedChunks, 1, "only the post-start run was claimed");
+  });
+
+  test("returns runs untouched when there are no manifests", () => {
+    const runs: RunSummary[] = [makeRun({ filePath: "/logs/a" })];
+    const result = groupBackfillRuns(runs, []);
+    assert.strictEqual(result.length, 1);
+    assert.strictEqual(result[0].kind, undefined);
   });
 });

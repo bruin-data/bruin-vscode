@@ -1,8 +1,10 @@
 import * as fs from "fs";
 import * as path from "path";
-import { RunLog, RunSummary, RunStatus } from "../types/runLog";
+import { RunLog, RunSummary, RunStatus, BackfillManifest } from "../types/runLog";
+import { groupBackfillRuns } from "./backfillGrouping";
 
 const LOGS_DIR = "logs/runs";
+const BACKFILL_LOGS_DIR = "logs/backfills";
 
 export class RunLogService {
   private workspaceRoot: string;
@@ -29,14 +31,16 @@ export class RunLogService {
     const pipelinePath = path.join(this.getLogsPath(), pipeline);
     try {
       const files = await fs.promises.readdir(pipelinePath);
-      const jsonFiles = files.filter((f) => f.endsWith(".json")).sort().reverse().slice(0, limit);
+      // Gather extra so chunk runs aren't truncated before grouping.
+      const jsonFiles = files.filter((f) => f.endsWith(".json")).sort().reverse().slice(0, limit * 4);
 
       const runs: RunSummary[] = [];
       for (const file of jsonFiles) {
         const summary = await this.getRunSummary(pipeline, file);
         if (summary) {runs.push(summary);}
       }
-      return runs;
+      const manifests = await this.getBackfillManifests();
+      return groupBackfillRuns(runs, manifests).slice(0, limit);
     } catch {
       return [];
     }
@@ -47,11 +51,31 @@ export class RunLogService {
     const allRuns: RunSummary[] = [];
 
     for (const pipeline of pipelines) {
-      const runs = await this.getRunsForPipeline(pipeline, limit);
+      // Gather raw (ungrouped) runs per pipeline, then group across the full set.
+      const runs = await this.getRawRunsForPipeline(pipeline, limit * 4);
       allRuns.push(...runs);
     }
 
-    return allRuns.sort((a, b) => b.timestamp.localeCompare(a.timestamp)).slice(0, limit);
+    const manifests = await this.getBackfillManifests();
+    return groupBackfillRuns(allRuns, manifests)
+      .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
+      .slice(0, limit);
+  }
+
+  private async getRawRunsForPipeline(pipeline: string, limit: number): Promise<RunSummary[]> {
+    const pipelinePath = path.join(this.getLogsPath(), pipeline);
+    try {
+      const files = await fs.promises.readdir(pipelinePath);
+      const jsonFiles = files.filter((f) => f.endsWith(".json")).sort().reverse().slice(0, limit);
+      const runs: RunSummary[] = [];
+      for (const file of jsonFiles) {
+        const summary = await this.getRunSummary(pipeline, file);
+        if (summary) {runs.push(summary);}
+      }
+      return runs;
+    } catch {
+      return [];
+    }
   }
 
   private async getRunSummary(pipeline: string, fileName: string): Promise<RunSummary | null> {
@@ -112,7 +136,28 @@ export class RunLogService {
       filePath,
       flags: flags.length > 0 ? flags : undefined,
       runPath,
+      startDate: params.startDate,
+      endDate: params.endDate,
     };
+  }
+
+  async getBackfillManifests(): Promise<BackfillManifest[]> {
+    const dir = path.join(this.workspaceRoot, BACKFILL_LOGS_DIR);
+    try {
+      const files = await fs.promises.readdir(dir);
+      const manifests: BackfillManifest[] = [];
+      for (const file of files.filter((f) => f.endsWith(".json"))) {
+        try {
+          const content = await fs.promises.readFile(path.join(dir, file), "utf-8");
+          manifests.push(JSON.parse(content));
+        } catch {
+          // skip malformed manifest
+        }
+      }
+      return manifests;
+    } catch {
+      return [];
+    }
   }
 
   getLogsDirectory(): string {
