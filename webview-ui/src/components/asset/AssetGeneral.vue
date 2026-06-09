@@ -1740,9 +1740,11 @@ function runAssetOnly() {
 // Remove the global --start-date/--end-date flags; backfill supplies a
 // per-chunk window instead.
 function stripDateFlags(flags: string): string {
+  // \s* (not \s) so the flag is still stripped when it is the first token —
+  // upstream stripFullRefreshFlag trims, so the string can begin with --start-date.
   return flags
-    .replace(/\s--start-date\s+[^\s]+/g, "")
-    .replace(/\s--end-date\s+[^\s]+/g, "")
+    .replace(/\s*--start-date\s+[^\s]+/g, "")
+    .replace(/\s*--end-date\s+[^\s]+/g, "")
     .trim();
 }
 
@@ -1766,7 +1768,7 @@ function handleRunBackfill(payload: { chunks: BackfillChunk[]; stopOnFailure: bo
 
   // Sensors don't make sense replaying historical windows — force skip so a
   // backfill never blocks on a sensor (overrides any Apply-Sensor-Mode choice).
-  baseFlags = `${baseFlags.replace(/\s--sensor-mode\s+\S+/g, "").trim()} --sensor-mode skip`.trim();
+  baseFlags = `${baseFlags.replace(/\s*--sensor-mode\s+\S+/g, "").trim()} --sensor-mode skip`.trim();
 
   vscode.postMessage({
     command: "bruin.runBackfill",
