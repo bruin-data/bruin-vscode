@@ -7750,3 +7750,117 @@ suite("Utility Functions Tests", () => {
     });
   });
 });
+
+suite("buildBackfillCommand", () => {
+  const chunks = [
+    { start: "2024-01-01T00:00:00Z", end: "2024-01-02T00:00:00Z" },
+    { start: "2024-01-02T00:00:00Z", end: "2024-01-03T00:00:00Z" },
+    { start: "2024-01-03T00:00:00Z", end: "2024-01-04T00:00:00Z" },
+  ];
+
+  test("should chain chunks with && when stopOnFailure is true", () => {
+    const result = (bruinUtils as any).buildBackfillCommand(
+      "bruin",
+      chunks,
+      "--environment default",
+      '"/path/to/asset.sql"',
+      true,
+      true
+    );
+
+    const expected = `bruin run --environment default --start-date 2024-01-01T00:00:00Z --end-date 2024-01-02T00:00:00Z "/path/to/asset.sql" && \\
+bruin run --environment default --start-date 2024-01-02T00:00:00Z --end-date 2024-01-03T00:00:00Z "/path/to/asset.sql" && \\
+bruin run --environment default --start-date 2024-01-03T00:00:00Z --end-date 2024-01-04T00:00:00Z "/path/to/asset.sql"`;
+
+    assert.strictEqual(result, expected, "Should chain with && for stop-on-failure");
+  });
+
+  test("should chain chunks with ; when stopOnFailure is false", () => {
+    const result = (bruinUtils as any).buildBackfillCommand(
+      "bruin",
+      chunks,
+      "",
+      '"/path/to/asset.sql"',
+      false,
+      true
+    );
+
+    const expected = `bruin run --start-date 2024-01-01T00:00:00Z --end-date 2024-01-02T00:00:00Z "/path/to/asset.sql" ; \\
+bruin run --start-date 2024-01-02T00:00:00Z --end-date 2024-01-03T00:00:00Z "/path/to/asset.sql" ; \\
+bruin run --start-date 2024-01-03T00:00:00Z --end-date 2024-01-04T00:00:00Z "/path/to/asset.sql"`;
+
+    assert.strictEqual(result, expected, "Should chain with ; for run-all");
+  });
+
+  test("should produce a single command with no separator for one chunk", () => {
+    const result = (bruinUtils as any).buildBackfillCommand(
+      "bruin",
+      [chunks[0]],
+      "--environment default",
+      '"/path/to/asset.sql"',
+      true,
+      true
+    );
+
+    const expected =
+      'bruin run --environment default --start-date 2024-01-01T00:00:00Z --end-date 2024-01-02T00:00:00Z "/path/to/asset.sql"';
+
+    assert.strictEqual(result, expected, "Single chunk should have no separator/continuation");
+  });
+
+  test("should sequence with ; and backtick continuation on non-unix shells even when stopOnFailure is true", () => {
+    const result = (bruinUtils as any).buildBackfillCommand(
+      "bruin",
+      [chunks[0], chunks[1]],
+      "",
+      '"/path/to/asset.sql"',
+      true,
+      false
+    );
+
+    const expected = `bruin run --start-date 2024-01-01T00:00:00Z --end-date 2024-01-02T00:00:00Z "/path/to/asset.sql" ; \`
+bruin run --start-date 2024-01-02T00:00:00Z --end-date 2024-01-03T00:00:00Z "/path/to/asset.sql"`;
+
+    assert.strictEqual(
+      result,
+      expected,
+      "Legacy PowerShell lacks &&, so sequence with ; and backtick continuation"
+    );
+  });
+
+  test("should never inject --full-refresh", () => {
+    const result = (bruinUtils as any).buildBackfillCommand(
+      "bruin",
+      chunks,
+      "--environment default",
+      '"/path/to/asset.sql"',
+      true,
+      true
+    );
+
+    assert.ok(
+      !result.includes("--full-refresh"),
+      "Backfill must not pass --full-refresh (it would ignore the chunk window)"
+    );
+  });
+
+  test("should put each chunk's window, base flags, and asset path on every command", () => {
+    const result = (bruinUtils as any).buildBackfillCommand(
+      "bruin",
+      chunks,
+      "--push-metadata",
+      '"/path/to/asset.sql"',
+      true,
+      true
+    );
+
+    const lines = result.split("\n");
+    assert.strictEqual(lines.length, 3, "One line per chunk");
+    chunks.forEach((chunk: { start: string; end: string }, i: number) => {
+      assert.ok(lines[i].includes(`--start-date ${chunk.start}`), `chunk ${i} has its start-date`);
+      assert.ok(lines[i].includes(`--end-date ${chunk.end}`), `chunk ${i} has its end-date`);
+      assert.ok(lines[i].includes("--push-metadata"), `chunk ${i} keeps base flags`);
+      assert.ok(lines[i].trim().endsWith('"/path/to/asset.sql"'), `chunk ${i} ends with asset path`);
+    });
+  });
+});
