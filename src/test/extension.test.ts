@@ -7758,15 +7758,15 @@ suite("Utility Functions Tests", () => {
   });
 });
 
-suite("buildBackfillCommand", () => {
+suite("buildBackfillScript", () => {
   const chunks = [
     { start: "2024-01-01T00:00:00Z", end: "2024-01-02T00:00:00Z" },
     { start: "2024-01-02T00:00:00Z", end: "2024-01-03T00:00:00Z" },
     { start: "2024-01-03T00:00:00Z", end: "2024-01-04T00:00:00Z" },
   ];
 
-  test("should chain chunks with && when stopOnFailure is true", () => {
-    const result = (bruinUtils as any).buildBackfillCommand(
+  test("bash + stop-on-failure: shebang, set -e, one command per line", () => {
+    const result = (bruinUtils as any).buildBackfillScript(
       "bruin",
       chunks,
       "--environment default",
@@ -7774,16 +7774,23 @@ suite("buildBackfillCommand", () => {
       true,
       true
     );
+    const lines = result.trimEnd().split("\n");
 
-    const expected = `bruin run --environment default --start-date 2024-01-01T00:00:00Z --end-date 2024-01-02T00:00:00Z "/path/to/asset.sql" && \\
-bruin run --environment default --start-date 2024-01-02T00:00:00Z --end-date 2024-01-03T00:00:00Z "/path/to/asset.sql" && \\
-bruin run --environment default --start-date 2024-01-03T00:00:00Z --end-date 2024-01-04T00:00:00Z "/path/to/asset.sql"`;
-
-    assert.strictEqual(result, expected, "Should chain with && for stop-on-failure");
+    assert.strictEqual(lines[0], "#!/usr/bin/env bash");
+    assert.strictEqual(lines[1], "set -e", "stop-on-failure uses set -e");
+    const runLines = lines.filter((l: string) => l.startsWith("bruin run"));
+    assert.strictEqual(runLines.length, 3, "one bruin run per chunk");
+    chunks.forEach((c, i) => {
+      assert.ok(runLines[i].includes(`--start-date ${c.start}`), `chunk ${i} start`);
+      assert.ok(runLines[i].includes(`--end-date ${c.end}`), `chunk ${i} end`);
+      assert.ok(runLines[i].endsWith('"/path/to/asset.sql"'), `chunk ${i} asset path`);
+    });
+    // No chained '&&' / line-continuation '\' — that's the whole point.
+    assert.ok(!result.includes("&&") && !result.includes("\\\n"), "no chaining/continuation");
   });
 
-  test("should chain chunks with ; when stopOnFailure is false", () => {
-    const result = (bruinUtils as any).buildBackfillCommand(
+  test("bash + run-all: omits set -e", () => {
+    const result = (bruinUtils as any).buildBackfillScript(
       "bruin",
       chunks,
       "",
@@ -7791,32 +7798,15 @@ bruin run --environment default --start-date 2024-01-03T00:00:00Z --end-date 202
       false,
       true
     );
-
-    const expected = `bruin run --start-date 2024-01-01T00:00:00Z --end-date 2024-01-02T00:00:00Z "/path/to/asset.sql" ; \\
-bruin run --start-date 2024-01-02T00:00:00Z --end-date 2024-01-03T00:00:00Z "/path/to/asset.sql" ; \\
-bruin run --start-date 2024-01-03T00:00:00Z --end-date 2024-01-04T00:00:00Z "/path/to/asset.sql"`;
-
-    assert.strictEqual(result, expected, "Should chain with ; for run-all");
-  });
-
-  test("should produce a single command with no separator for one chunk", () => {
-    const result = (bruinUtils as any).buildBackfillCommand(
-      "bruin",
-      [chunks[0]],
-      "--environment default",
-      '"/path/to/asset.sql"',
-      true,
-      true
+    assert.ok(!result.includes("set -e"), "run-all must not set -e");
+    assert.strictEqual(
+      result.split("\n").filter((l: string) => l.startsWith("bruin run")).length,
+      3
     );
-
-    const expected =
-      'bruin run --environment default --start-date 2024-01-01T00:00:00Z --end-date 2024-01-02T00:00:00Z "/path/to/asset.sql"';
-
-    assert.strictEqual(result, expected, "Single chunk should have no separator/continuation");
   });
 
-  test("should sequence with ; and backtick continuation on non-unix shells even when stopOnFailure is true", () => {
-    const result = (bruinUtils as any).buildBackfillCommand(
+  test("powershell + stop-on-failure: $LASTEXITCODE guard after each command", () => {
+    const result = (bruinUtils as any).buildBackfillScript(
       "bruin",
       [chunks[0], chunks[1]],
       "",
@@ -7824,19 +7814,25 @@ bruin run --start-date 2024-01-03T00:00:00Z --end-date 2024-01-04T00:00:00Z "/pa
       true,
       false
     );
-
-    const expected = `bruin run --start-date 2024-01-01T00:00:00Z --end-date 2024-01-02T00:00:00Z "/path/to/asset.sql" ; \`
-bruin run --start-date 2024-01-02T00:00:00Z --end-date 2024-01-03T00:00:00Z "/path/to/asset.sql"`;
-
-    assert.strictEqual(
-      result,
-      expected,
-      "Legacy PowerShell lacks &&, so sequence with ; and backtick continuation"
-    );
+    const guards = result.split("\n").filter((l: string) => l.includes("$LASTEXITCODE"));
+    assert.strictEqual(guards.length, 2, "one exit-code guard per chunk");
+    assert.strictEqual(guards[0], "if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }");
   });
 
-  test("should never inject --full-refresh", () => {
-    const result = (bruinUtils as any).buildBackfillCommand(
+  test("powershell + run-all: no exit-code guards", () => {
+    const result = (bruinUtils as any).buildBackfillScript(
+      "bruin",
+      chunks,
+      "",
+      '"/path/to/asset.sql"',
+      false,
+      false
+    );
+    assert.ok(!result.includes("$LASTEXITCODE"), "run-all has no guards");
+  });
+
+  test("never injects --full-refresh", () => {
+    const result = (bruinUtils as any).buildBackfillScript(
       "bruin",
       chunks,
       "--environment default",
@@ -7844,37 +7840,10 @@ bruin run --start-date 2024-01-02T00:00:00Z --end-date 2024-01-03T00:00:00Z "/pa
       true,
       true
     );
-
     assert.ok(
       !result.includes("--full-refresh"),
       "Backfill must not pass --full-refresh (it would ignore the chunk window)"
     );
-  });
-
-  test("should put each chunk's window, base flags, and asset path on every command", () => {
-    const result = (bruinUtils as any).buildBackfillCommand(
-      "bruin",
-      chunks,
-      "--push-metadata",
-      '"/path/to/asset.sql"',
-      true,
-      true
-    );
-
-    const lines = result.split("\n");
-    assert.strictEqual(lines.length, 3, "One line per chunk");
-    chunks.forEach((chunk: { start: string; end: string }, i: number) => {
-      assert.ok(lines[i].includes(`--start-date ${chunk.start}`), `chunk ${i} has its start-date`);
-      assert.ok(lines[i].includes(`--end-date ${chunk.end}`), `chunk ${i} has its end-date`);
-      assert.ok(lines[i].includes("--push-metadata"), `chunk ${i} keeps base flags`);
-      // asset path comes after the dates on every line (non-last lines are then
-      // followed by the separator + line-continuation, so use includes, not endsWith).
-      assert.ok(
-        lines[i].indexOf('"/path/to/asset.sql"') > lines[i].indexOf(`--end-date ${chunk.end}`),
-        `chunk ${i} has the asset path after its window`
-      );
-    });
-    assert.ok(lines[2].trim().endsWith('"/path/to/asset.sql"'), "last line ends with asset path");
   });
 });
 
