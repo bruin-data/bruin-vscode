@@ -9,6 +9,16 @@ const normalizePath = (p?: string): string =>
   (p || "").replace(/^"|"$/g, "").replace(/\\/g, "/").toLowerCase();
 
 /**
+ * Parses an ISO timestamp to epoch millis. Run logs carry a local UTC offset
+ * (e.g. `…+02:00`) while manifest.startedAt is UTC `…Z`, so timestamps must be
+ * compared as instants — a lexicographic string compare is wrong across offsets.
+ */
+const toMillis = (ts?: string): number => {
+  const t = new Date(ts || "").getTime();
+  return isNaN(t) ? 0 : t;
+};
+
+/**
  * Returns true if a per-chunk run log matches a manifest chunk: same asset,
  * exact window, and run happened at or after the backfill was launched.
  */
@@ -21,7 +31,7 @@ const runMatchesChunk = (
     normalizePath(run.runPath) === normalizePath(manifest.assetPath) &&
     run.startDate === chunk.start &&
     run.endDate === chunk.end &&
-    run.timestamp >= manifest.startedAt
+    toMillis(run.timestamp) >= toMillis(manifest.startedAt)
   );
 };
 
@@ -57,7 +67,7 @@ export const groupBackfillRuns = (
       const match = runs
         .filter((r) => !consumed.has(r.filePath))
         .filter((r) => runMatchesChunk(r, manifest, chunk))
-        .sort((a, b) => a.timestamp.localeCompare(b.timestamp))[0];
+        .sort((a, b) => toMillis(a.timestamp) - toMillis(b.timestamp))[0];
 
       if (match) {
         consumed.add(match.filePath);
@@ -85,7 +95,7 @@ export const groupBackfillRuns = (
     const ranChildren = children.filter((c) => c.status !== "pending");
     const pipeline = ranChildren.find((c) => c.pipeline)?.pipeline || "";
     const latestTimestamp = ranChildren.reduce(
-      (acc, c) => (c.timestamp > acc ? c.timestamp : acc),
+      (acc, c) => (toMillis(c.timestamp) > toMillis(acc) ? c.timestamp : acc),
       manifest.startedAt
     );
     const succeededChunks = children.filter((c) => c.status === "succeeded").length;
@@ -114,5 +124,5 @@ export const groupBackfillRuns = (
   }
 
   const remaining = runs.filter((r) => !consumed.has(r.filePath));
-  return [...remaining, ...backfills].sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+  return [...remaining, ...backfills].sort((a, b) => toMillis(b.timestamp) - toMillis(a.timestamp));
 };

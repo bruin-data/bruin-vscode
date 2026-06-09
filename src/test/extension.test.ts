@@ -8019,4 +8019,24 @@ suite("groupBackfillRuns", () => {
     assert.strictEqual(result.length, 1);
     assert.strictEqual(result[0].kind, undefined);
   });
+
+  test("matches a chunk run whose timestamp uses a non-UTC offset later than the UTC startedAt", () => {
+    // Regression: timestamps must be compared as instants, not lexically.
+    // startedAt is UTC (12:00Z); the run is 12:05Z expressed as 07:05-05:00.
+    // A string compare would read "07:05" < "12:00" and wrongly drop the match.
+    const runs: RunSummary[] = [
+      makeRun({
+        filePath: "/logs/a",
+        timestamp: "2026-06-09T07:05:00.000-05:00",
+        startDate: "2024-01-01T00:00:00Z",
+        endDate: "2024-01-02T00:00:00Z",
+      }),
+    ];
+
+    const result = groupBackfillRuns(runs, [manifest]);
+    const bf = result.find((r) => r.kind === "backfill");
+    assert.ok(bf, "backfill row produced");
+    assert.strictEqual(bf?.backfill?.completedChunks, 1, "offset run matched despite earlier wall-clock digits");
+    assert.strictEqual(bf?.children?.[0].status, "succeeded");
+  });
 });
