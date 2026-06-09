@@ -57,7 +57,7 @@ export const groupBackfillRuns = (
   const consumed = new Set<string>(); // run filePath (unique per run log)
   const backfills: RunSummary[] = [];
 
-  const sortedManifests = [...manifests].sort((a, b) => b.startedAt.localeCompare(a.startedAt));
+  const sortedManifests = [...manifests].sort((a, b) => toMillis(b.startedAt) - toMillis(a.startedAt));
 
   for (const manifest of sortedManifests) {
     const children: RunSummary[] = [];

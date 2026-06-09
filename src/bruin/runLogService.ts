@@ -2,9 +2,12 @@ import * as fs from "fs";
 import * as path from "path";
 import { RunLog, RunSummary, RunStatus, BackfillManifest } from "../types/runLog";
 import { groupBackfillRuns } from "./backfillGrouping";
+import { BACKFILL_LOGS_DIR } from "./backfillManifest";
 
 const LOGS_DIR = "logs/runs";
-const BACKFILL_LOGS_DIR = "logs/backfills";
+// Cap how many manifests are loaded (most-recent by mtime) so old backfills
+// whose chunk logs have aged out don't accumulate as stale "running" rows.
+const MAX_BACKFILL_MANIFESTS = 25;
 
 export class RunLogService {
   private workspaceRoot: string;
@@ -57,9 +60,8 @@ export class RunLogService {
     }
 
     const manifests = await this.getBackfillManifests();
-    return groupBackfillRuns(allRuns, manifests)
-      .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
-      .slice(0, limit);
+    // groupBackfillRuns already returns sorted by instant (toMillis); no second sort.
+    return groupBackfillRuns(allRuns, manifests).slice(0, limit);
   }
 
   private async getRawRunsForPipeline(pipeline: string, limit: number): Promise<RunSummary[]> {
@@ -144,9 +146,27 @@ export class RunLogService {
   async getBackfillManifests(): Promise<BackfillManifest[]> {
     const dir = path.join(this.workspaceRoot, BACKFILL_LOGS_DIR);
     try {
-      const files = await fs.promises.readdir(dir);
+      const jsonFiles = (await fs.promises.readdir(dir)).filter((f) => f.endsWith(".json"));
+
+      // Keep only the most-recent manifests by mtime. Old backfills whose chunk
+      // logs have aged out of the run-read window would otherwise resurface as
+      // stale all-"pending"/"running" rows and eat into the display limit.
+      const withMtime = await Promise.all(
+        jsonFiles.map(async (file) => {
+          try {
+            const stat = await fs.promises.stat(path.join(dir, file));
+            return { file, mtime: stat.mtimeMs };
+          } catch {
+            return { file, mtime: 0 };
+          }
+        })
+      );
+      const recent = withMtime
+        .sort((a, b) => b.mtime - a.mtime)
+        .slice(0, MAX_BACKFILL_MANIFESTS);
+
       const manifests: BackfillManifest[] = [];
-      for (const file of files.filter((f) => f.endsWith(".json"))) {
+      for (const { file } of recent) {
         try {
           const content = await fs.promises.readFile(path.join(dir, file), "utf-8");
           manifests.push(JSON.parse(content));
