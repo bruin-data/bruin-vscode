@@ -7860,7 +7860,13 @@ bruin run --start-date 2024-01-02T00:00:00Z --end-date 2024-01-03T00:00:00Z "/pa
       assert.ok(lines[i].includes(`--start-date ${chunk.start}`), `chunk ${i} has its start-date`);
       assert.ok(lines[i].includes(`--end-date ${chunk.end}`), `chunk ${i} has its end-date`);
       assert.ok(lines[i].includes("--push-metadata"), `chunk ${i} keeps base flags`);
-      assert.ok(lines[i].trim().endsWith('"/path/to/asset.sql"'), `chunk ${i} ends with asset path`);
+      // asset path comes after the dates on every line (non-last lines are then
+      // followed by the separator + line-continuation, so use includes, not endsWith).
+      assert.ok(
+        lines[i].indexOf('"/path/to/asset.sql"') > lines[i].indexOf(`--end-date ${chunk.end}`),
+        `chunk ${i} has the asset path after its window`
+      );
     });
+    assert.ok(lines[2].trim().endsWith('"/path/to/asset.sql"'), "last line ends with asset path");
   });
 });
