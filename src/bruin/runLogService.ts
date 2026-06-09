@@ -43,7 +43,12 @@ export class RunLogService {
         if (summary) {runs.push(summary);}
       }
       const manifests = await this.getBackfillManifests();
-      return groupBackfillRuns(runs, manifests).slice(0, limit);
+      // Manifests are global (no pipeline field), so a backfill for an asset in
+      // another pipeline would surface here as an all-pending phantom row. In the
+      // per-pipeline view, drop backfills with no chunk run in this pipeline.
+      return groupBackfillRuns(runs, manifests)
+        .filter((r) => r.kind !== "backfill" || (r.backfill?.completedChunks ?? 0) > 0)
+        .slice(0, limit);
     } catch {
       return [];
     }
@@ -169,7 +174,14 @@ export class RunLogService {
       for (const { file } of recent) {
         try {
           const content = await fs.promises.readFile(path.join(dir, file), "utf-8");
-          manifests.push(JSON.parse(content));
+          const parsed = JSON.parse(content) as BackfillManifest;
+          // Guard against valid-JSON-but-wrong-shape manifests (future schema,
+          // hand-edited, partially written): a non-array `chunks` would throw in
+          // groupBackfillRuns and could blank the whole panel.
+          if (!Array.isArray(parsed?.chunks)) {
+            continue;
+          }
+          manifests.push(parsed);
         } catch {
           // skip malformed manifest
         }

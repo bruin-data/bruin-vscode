@@ -35,9 +35,14 @@ const runMatchesChunk = (
   );
 };
 
-const rollUpStatus = (children: RunSummary[]): RunStatus => {
-  if (children.some((c) => c.status === "failed")) return "failed";
-  if (children.some((c) => c.status === "pending" || c.status === "running")) return "running";
+const rollUpStatus = (children: RunSummary[], stopOnFailure: boolean): RunStatus => {
+  const hasFailed = children.some((c) => c.status === "failed");
+  const inProgress = children.some((c) => c.status === "pending" || c.status === "running");
+  // With stop-on-failure a failure is terminal — the remaining chunks won't run,
+  // so report failed immediately. Without it, every chunk runs regardless, so stay
+  // "running" until all chunks have settled even if some already failed.
+  if (hasFailed && (!inProgress || stopOnFailure)) return "failed";
+  if (inProgress) return "running";
   return "succeeded";
 };
 
@@ -124,7 +129,7 @@ export const groupBackfillRuns = (
       runId: manifest.backfillId,
       pipeline,
       timestamp: latestTimestamp,
-      status: rollUpStatus(children),
+      status: rollUpStatus(children, manifest.stopOnFailure),
       totalAssets: manifest.chunks.length,
       succeededAssets: succeededChunks,
       failedAssets: failedChunks,

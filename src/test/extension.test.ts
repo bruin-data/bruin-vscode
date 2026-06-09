@@ -8036,4 +8036,40 @@ suite("groupBackfillRuns", () => {
     assert.strictEqual(bf.status, "running");
     assert.strictEqual(bf.children?.filter((c) => c.status === "pending").length, 2);
   });
+
+  test("run-all mode stays running while chunks remain, even if one already failed", () => {
+    const runAll: BackfillManifest = { ...manifest, stopOnFailure: false };
+    const runs: RunSummary[] = [
+      makeRun({
+        filePath: "/logs/a",
+        startDate: "2024-01-01T00:00:00Z",
+        endDate: "2024-01-02T00:00:00Z",
+        status: "failed",
+        succeededAssets: 0,
+        failedAssets: 1,
+      }),
+      makeRun({ filePath: "/logs/b", startDate: "2024-01-02T00:00:00Z", endDate: "2024-01-03T00:00:00Z" }),
+      // chunk 3 has no log yet → pending
+    ];
+
+    const bf = groupBackfillRuns(runs, [runAll]).find((r) => r.kind === "backfill")!;
+    // run-all: don't report failed until every chunk has settled
+    assert.strictEqual(bf.status, "running");
+  });
+
+  test("stop-on-failure reports failed immediately even though later chunks stay pending", () => {
+    const runs: RunSummary[] = [
+      makeRun({
+        filePath: "/logs/a",
+        startDate: "2024-01-01T00:00:00Z",
+        endDate: "2024-01-02T00:00:00Z",
+        status: "failed",
+        succeededAssets: 0,
+        failedAssets: 1,
+      }),
+    ];
+
+    const bf = groupBackfillRuns(runs, [manifest]).find((r) => r.kind === "backfill")!;
+    assert.strictEqual(bf.status, "failed");
+  });
 });
