@@ -8,6 +8,8 @@ import {
   adjustEndDateForExclusive,
   getUpstreams,
   normalizePath,
+  buildBackfillChunks,
+  MAX_BACKFILL_CHUNKS,
 } from "../utilities/helper";
 import {
   getAssetDependencies,
@@ -2666,5 +2668,186 @@ suite('Asset Dependencies - Recursive Fetching', () => {
       const upstreams = fetchAllUpstreams('any_asset', []);
       expect(upstreams).toHaveLength(0);
     });
+  });
+});
+
+suite("buildBackfillChunks", () => {
+  test("splits a daily range into contiguous one-day windows", () => {
+    const { chunks, truncated } = buildBackfillChunks(
+      "2024-01-01T00:00:00",
+      "2024-01-05T00:00:00",
+      "daily"
+    );
+
+    expect(truncated).toBe(false);
+    expect(chunks).toEqual([
+      { start: "2024-01-01T00:00:00Z", end: "2024-01-02T00:00:00Z" },
+      { start: "2024-01-02T00:00:00Z", end: "2024-01-03T00:00:00Z" },
+      { start: "2024-01-03T00:00:00Z", end: "2024-01-04T00:00:00Z" },
+      { start: "2024-01-04T00:00:00Z", end: "2024-01-05T00:00:00Z" },
+    ]);
+  });
+
+  test("splits hourly", () => {
+    const { chunks } = buildBackfillChunks(
+      "2024-01-01T00:00:00",
+      "2024-01-01T03:00:00",
+      "hourly"
+    );
+    expect(chunks).toHaveLength(3);
+    expect(chunks[0]).toEqual({ start: "2024-01-01T00:00:00Z", end: "2024-01-01T01:00:00Z" });
+    expect(chunks[2].end).toBe("2024-01-01T03:00:00Z");
+  });
+
+  test("splits weekly", () => {
+    const { chunks } = buildBackfillChunks(
+      "2024-01-01T00:00:00",
+      "2024-01-15T00:00:00",
+      "weekly"
+    );
+    expect(chunks).toHaveLength(2);
+    expect(chunks[0]).toEqual({ start: "2024-01-01T00:00:00Z", end: "2024-01-08T00:00:00Z" });
+    expect(chunks[1]).toEqual({ start: "2024-01-08T00:00:00Z", end: "2024-01-15T00:00:00Z" });
+  });
+
+  test("clamps the final monthly chunk to the end date", () => {
+    const { chunks } = buildBackfillChunks(
+      "2024-01-15T00:00:00",
+      "2024-03-10T00:00:00",
+      "monthly"
+    );
+    expect(chunks).toEqual([
+      { start: "2024-01-15T00:00:00Z", end: "2024-02-15T00:00:00Z" },
+      { start: "2024-02-15T00:00:00Z", end: "2024-03-10T00:00:00Z" },
+    ]);
+  });
+
+  test("chunks are contiguous (each end equals the next start)", () => {
+    const { chunks } = buildBackfillChunks(
+      "2024-01-01T00:00:00",
+      "2024-01-06T12:00:00",
+      "daily"
+    );
+    for (let i = 1; i < chunks.length; i++) {
+      expect(chunks[i].start).toBe(chunks[i - 1].end);
+    }
+    // last chunk reaches the requested end exactly
+    expect(chunks[chunks.length - 1].end).toBe("2024-01-06T12:00:00Z");
+  });
+
+  test("emits ISO boundaries with a trailing Z and no milliseconds", () => {
+    const { chunks } = buildBackfillChunks(
+      "2024-01-01T00:00:00.000",
+      "2024-01-02T00:00:00.000",
+      "daily"
+    );
+    expect(chunks).toHaveLength(1);
+    expect(chunks[0].start).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+    expect(chunks[0].end).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+  });
+
+  test("returns no chunks when end is before or equal to start", () => {
+    expect(buildBackfillChunks("2024-01-05", "2024-01-01", "daily")).toEqual({
+      chunks: [],
+      truncated: false,
+    });
+    expect(buildBackfillChunks("2024-01-01", "2024-01-01", "daily").chunks).toHaveLength(0);
+  });
+
+  test("returns no chunks for invalid dates", () => {
+    expect(buildBackfillChunks("not-a-date", "2024-01-02", "daily").chunks).toHaveLength(0);
+  });
+
+  test("caps at MAX_BACKFILL_CHUNKS and flags truncation", () => {
+    const { chunks, truncated } = buildBackfillChunks(
+      "2020-01-01T00:00:00",
+      "2024-01-01T00:00:00",
+      "daily"
+    );
+    expect(chunks).toHaveLength(MAX_BACKFILL_CHUNKS);
+    expect(truncated).toBe(true);
+  });
+});
+
+suite("backfill flag pipeline (AssetGeneral.handleRunBackfill)", () => {
+  const mountBackfill = () =>
+    mount(AssetGeneral, {
+      props: {
+        schedule: "daily",
+        environments: ["prod"],
+        selectedEnvironment: "prod",
+        hasIntervalModifiers: false,
+        assetType: "sql",
+        parameters: {},
+        columns: [],
+        startDate: "",
+        endDate: "",
+      },
+      global: {
+        stubs: {
+          "vscode-button": { template: "<button><slot /></button>" },
+          "vscode-checkbox": { template: "<input type=\"checkbox\" />" },
+        },
+      },
+    });
+
+  const chunks = [
+    { start: "2024-01-01T00:00:00Z", end: "2024-01-02T00:00:00Z" },
+    { start: "2024-01-02T00:00:00Z", end: "2024-01-03T00:00:00Z" },
+  ];
+
+  test("posts bruin.runBackfill with the chunks and a stop-on-failure flag", async () => {
+    const { vscode } = await import("@/utilities/vscode");
+    const wrapper = mountBackfill();
+    const vm: any = wrapper.vm as any;
+    await wrapper.vm.$nextTick();
+
+    (vscode.postMessage as any).mockClear();
+    vm.handleRunBackfill({ chunks, stopOnFailure: true });
+
+    const call = (vscode.postMessage as any).mock.calls
+      .map((c: any[]) => c[0])
+      .find((m: any) => m.command === "bruin.runBackfill");
+    expect(call).toBeTruthy();
+    expect(call.payload.chunks).toEqual(chunks);
+    expect(call.payload.stopOnFailure).toBe(true);
+  });
+
+  test("includes --environment, strips dates/full-refresh, forces a single --sensor-mode skip", async () => {
+    const { vscode } = await import("@/utilities/vscode");
+    const wrapper = mountBackfill();
+    const vm: any = wrapper.vm as any;
+
+    // User has full-refresh on and an explicit (non-skip) sensor mode.
+    vm.checkboxItems = [
+      { name: "Full-Refresh", checked: true },
+      { name: "Interval-modifiers", checked: false },
+      { name: "Exclusive-End-Date", checked: true },
+      { name: "Push-Metadata", checked: false },
+      { name: "Apply-Sensor-Mode", checked: true },
+    ];
+    vm.sensorModeSetting = "wait";
+    vm.startDate = "2024-01-01T00:00:00.000Z";
+    vm.endDate = "2024-01-10T00:00:00.000Z";
+    await wrapper.vm.$nextTick();
+
+    (vscode.postMessage as any).mockClear();
+    vm.handleRunBackfill({ chunks, stopOnFailure: true });
+
+    const call = (vscode.postMessage as any).mock.calls
+      .map((c: any[]) => c[0])
+      .find((m: any) => m.command === "bruin.runBackfill");
+    const flags: string = call.payload.flags;
+
+    // environment is carried through (regression: it used to be dropped)
+    expect(flags).toContain("--environment prod");
+    // global dates stripped — each chunk supplies its own window downstream
+    expect(flags).not.toContain("--start-date");
+    expect(flags).not.toContain("--end-date");
+    // full-refresh never sent for backfill
+    expect(flags).not.toContain("--full-refresh");
+    // sensors forced to skip, the user's "wait" dropped, no duplicate flag
+    expect(flags).not.toContain("--sensor-mode wait");
+    expect((flags.match(/--sensor-mode skip/g) || []).length).toBe(1);
   });
 });

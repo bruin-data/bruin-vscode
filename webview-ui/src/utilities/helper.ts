@@ -59,6 +59,76 @@ export const concatCommandFlags = (
   return [startDateFlag, endDateFlag, ...checkboxesFlags, ...intervalModifiersFlags, sensorModeFlag, ...tagFlags].filter(flag => flag).join("");
 };
 
+export type BackfillGranularity = "hourly" | "daily" | "weekly" | "monthly";
+
+export interface BackfillChunk {
+  start: string;
+  end: string;
+}
+
+// Hard cap so a wide range + small granularity can't generate thousands of runs.
+export const MAX_BACKFILL_CHUNKS = 365;
+
+const GRANULARITY_DURATIONS: Record<BackfillGranularity, Record<string, number>> = {
+  hourly: { hours: 1 },
+  daily: { days: 1 },
+  weekly: { weeks: 1 },
+  monthly: { months: 1 },
+};
+
+/**
+ * Splits a date range into contiguous chunk windows for a local backfill.
+ *
+ * Each chunk is `[cursor, min(cursor + granularity, end)]`. Chunks are
+ * contiguous (chunk N's end equals chunk N+1's start), mirroring how the
+ * cloud backfill steps through intervals. Boundaries are emitted as ISO
+ * strings with a trailing `Z` so they match the format the rest of the run
+ * flow sends to the CLI (e.g. `2024-01-01T00:00:00Z`).
+ *
+ * Returns `{ chunks, truncated }` where `truncated` is true when the range
+ * produced more than MAX_BACKFILL_CHUNKS windows and was cut short.
+ */
+export const buildBackfillChunks = (
+  startInput: string,
+  endInput: string,
+  granularity: BackfillGranularity
+): { chunks: BackfillChunk[]; truncated: boolean } => {
+  const start = DateTime.fromISO(startInput, { zone: "utc" });
+  const end = DateTime.fromISO(endInput, { zone: "utc" });
+
+  if (!start.isValid || !end.isValid || end <= start) {
+    return { chunks: [], truncated: false };
+  }
+
+  const step = GRANULARITY_DURATIONS[granularity];
+  const chunks: BackfillChunk[] = [];
+  let cursor = start;
+  let truncated = false;
+
+  while (cursor < end) {
+    let next = cursor.plus(step);
+    if (next > end) {
+      next = end;
+    }
+    chunks.push({
+      start: toBackfillBoundary(cursor),
+      end: toBackfillBoundary(next),
+    });
+    if (chunks.length >= MAX_BACKFILL_CHUNKS && next < end) {
+      truncated = true;
+      break;
+    }
+    cursor = next;
+  }
+
+  return { chunks, truncated };
+};
+
+const toBackfillBoundary = (dt: DateTime): string => {
+  // Match concatCommandFlags: emit ISO with a trailing Z, no fractional seconds.
+  return dt.toUTC().toISO({ suppressMilliseconds: true, includeOffset: false }) + "Z";
+};
+
 export const handleError = (validationError: any | null, renderSQLAssetError: any | null) => {
   if (validationError || renderSQLAssetError) {
     let errorMessage = validationError || renderSQLAssetError || "An error occurred";

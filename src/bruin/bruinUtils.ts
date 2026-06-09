@@ -411,6 +411,97 @@ export const runMultipleAssetsInTerminal = async (
   await new Promise((resolve) => setTimeout(resolve, 1000));
 };
 
+export interface BackfillChunk {
+  start: string;
+  end: string;
+}
+
+/**
+ * Builds a single chained shell command that runs `bruin run` once per chunk,
+ * each with its own --start-date/--end-date window.
+ *
+ * Note: backfill deliberately does NOT pass `--full-refresh`. The CLI ignores
+ * the chunk window under full-refresh and reloads from the pipeline's
+ * start_date, which would defeat interval chunking. Correct re-runs of a window
+ * rely on the asset's incremental strategy (merge / delete+insert / time_interval).
+ *
+ * Chunks are joined with `&&` when `stopOnFailure` is set (abort on the first
+ * failed window) or `;` otherwise (run every window regardless). On non-unix
+ * shells we sequence with `;` since legacy PowerShell lacks `&&`.
+ */
+export const buildBackfillCommand = (
+  executable: string,
+  chunks: BackfillChunk[],
+  flags: string,
+  assetPath: string,
+  stopOnFailure: boolean,
+  useUnixFormatting: boolean = true
+): string => {
+  const baseFlags = (flags || "").trim();
+  const separator = !useUnixFormatting ? " ;" : stopOnFailure ? " &&" : " ;";
+  const continuationChar = useUnixFormatting ? " \\" : " `";
+
+  const lines = chunks.map((chunk) => {
+    const parts = [executable, BRUIN_RUN_SQL_COMMAND];
+    if (baseFlags.length > 0) {
+      parts.push(baseFlags);
+    }
+    parts.push(`--start-date ${chunk.start}`);
+    parts.push(`--end-date ${chunk.end}`);
+    parts.push(assetPath);
+    return parts.join(" ");
+  });
+
+  // Join with `<sep> <continuation>\n` between lines for a readable script.
+  return lines
+    .map((line, index) =>
+      index === lines.length - 1 ? line : `${line}${separator}${continuationChar}\n`
+    )
+    .join("");
+};
+
+/**
+ * Runs a local backfill: `bruin run` once per interval chunk, sequentially, in
+ * the integrated terminal. Mirrors how runInIntegratedTerminal sends commands.
+ */
+export const runBackfillInTerminal = async (
+  assetPath: string,
+  chunks: BackfillChunk[],
+  flags: string | undefined,
+  stopOnFailure: boolean,
+  workingDir?: string | undefined,
+  bruinExecutablePath?: string
+): Promise<void> => {
+  if (!assetPath || !chunks || chunks.length === 0) {
+    return;
+  }
+
+  const escapedAssetPath = escapeFilePath(assetPath);
+  const bruinExecutable = bruinExecutablePath ? "bruin" : getBruinExecutablePath();
+  const terminal = await createIntegratedTerminal(workingDir);
+
+  const useUnixFormatting = shouldUseUnixFormatting(terminal);
+  const executable = ((terminal.creationOptions as vscode.TerminalOptions).shellPath?.includes("bash"))
+    ? "bruin"
+    : bruinExecutable;
+
+  const command = buildBackfillCommand(
+    executable,
+    chunks,
+    flags || "",
+    escapedAssetPath,
+    stopOnFailure,
+    useUnixFormatting
+  );
+
+  terminal.show(true);
+  terminal.sendText(" ");
+  setTimeout(() => {
+    terminal.sendText(command);
+  }, 500);
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+};
+
 export const createIntegratedTerminal = async (
   workingDir: string | undefined
 ): Promise<vscode.Terminal> => {

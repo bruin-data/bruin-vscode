@@ -742,6 +742,7 @@ const tabs = ref([
       assetMetadataError: assetMetadataError.value,
       pipelineAssets: pipelineAssets.value,
       filePath: lastRenderedDocument.value,
+      materializationStrategy: materializationProps.value?.strategy,
     })),
     emits: ["update:assetName", "update:description"],
   },
