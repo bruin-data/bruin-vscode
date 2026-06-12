@@ -19,9 +19,15 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 - Display and manage connections integrated with Bruin CLI.
 - Add, remove or duplicate connections directly from the UI.
-- Test exsiting connections to ensure their validity.
+- Test existing connections to ensure their validity.
 
 ![GIF of Connection Manager](https://github.com/bruin-data/bruin-vscode/blob/main/screenshots/manage-connections.gif?raw=true)
+
+### Database Explorer
+
+- Browse your connections, schemas, and tables from the **Databases** view in the activity bar.
+- Refresh individual connections or schemas in place.
+- Open table details (columns and metadata) for any table directly from the tree.
 
 ### Bruin Settings
 
@@ -37,13 +43,22 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ![GIF of Lineage Panel](https://github.com/bruin-data/bruin-vscode/blob/main/screenshots/lineage-panel-with-options.gif?raw=true)
 
-# Query Preview Panel
+### Query Preview Panel
 
 - Visualizes query execution results in a new panel.
 - Displays formatted output for easier analysis.
 - Supports multi-tab functionality to run different queries separately.
+- Preview a highlighted SQL snippet with the **Preview Selected Query** CodeLens or the `Ctrl+Shift+R` / `Cmd+Shift+R` shortcut.
 
 ![GIF of Lineage Panel](https://github.com/bruin-data/bruin-vscode/blob/main/screenshots/query-preview-options.gif?raw=true)
+
+### Table Diff
+
+- Compare two tables and view the differences side by side in a dedicated panel.
+
+### Run History
+
+- Review the history of your Bruin runs from the **Run History** panel.
 
 ### Autocomplete and Snippets
 
@@ -66,6 +81,10 @@ Bruin is a unified analytics platform that enables data professionals to work en
 3. Search for "Bruin" and click Install.
 
 **Note**: Ensure that you have the Bruin CLI installed on your system before using the new features. For guidance on installing the Bruin CLI, please refer to the [official documentation](https://github.com/bruin-data/bruin).
+
+## Getting Started
+
+After installing, run the **Bruin: Show Getting Started Walkthrough** command from the Command Palette to learn the essential features and shortcuts. The walkthrough also opens automatically the first time the extension is activated.
 
 ## Release Notes
 
