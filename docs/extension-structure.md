@@ -53,5 +53,5 @@ All of the Vue-based webview source. It contains its own `package.json`, `node_m
   - **`useParseAsset.ts`** — listens for asset-parse results and exposes reactive properties.
 - **`utilities/`** — helpers, including `helper.ts` (dates, errors), `getPipelineLineage.ts` (parse pipeline data / asset dependencies), and `graphGenerator.ts` (build upstream/downstream graph data).
 - **`services/`** — e.g. `RudderStackService.ts` (telemetry).
-- **`composables`, `lib`, `constants`, `types`, `assets`** — supporting modules.
+- **`lib`, `constants`, `types`, `assets`** — supporting modules.
 - Root app components: `App.vue`, `AssetLineage.vue`, `QueryPreviewApp.vue`, `RunHistoryApp.vue`, `TableDiffApp.vue` (one per Vite entry).
