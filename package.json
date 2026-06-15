@@ -500,7 +500,7 @@
     "@vue-flow/core": "^1.43.1",
     "@vue-flow/minimap": "^1.5.3",
     "chokidar": "^4.0.3",
-    "concurrently": "^9.0.1",
+    "concurrently": "^10.0.3",
     "cron-parser": "^4.9.0",
     "dotenv": "^16.4.7",
     "elkjs": "^0.9.3",
