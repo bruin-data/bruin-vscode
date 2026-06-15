@@ -60,6 +60,10 @@ export default defineConfig({
     },
     build: {
         outDir: "build",
+        // Webviews run in VS Code's modern Electron/Chromium, so target a recent
+        // baseline. This also avoids esbuild >=0.28 attempting (and failing) to lower
+        // destructuring for the legacy Safari 14 target in its default browser list.
+        target: "es2022",
         rollupOptions: {
             input: {
                 index: resolve(__dirname, 'index.html'),
