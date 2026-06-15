@@ -89,6 +89,7 @@ After installing, run the **Bruin: Show Getting Started Walkthrough** command fr
 ## Release Notes
 
 ### Recent Update
+- **0.81.0**: Added local backfill support with interval chunking — run backfills by splitting a date range into chunks (daily, weekly, monthly, etc.) with stop-on-failure option. Backfill runs are grouped in the Run History panel as expandable rows.
 - **0.80.5**: Flattened the run variables UI — overrides appear inline under the run controls, all variables visible at once, with the "Variable overrides" toggle auto-enabled when an override is entered.
 - **0.80.4**: Allowed `options` on MSSQL/Synapse connections in `.bruin.yml`; made connection environments collapsible (collapsed by default) with a connection count per environment.
 - **0.80.3**: Added Fabric as a valid ingestr destination; updated dependencies.
@@ -96,6 +97,5 @@ After installing, run the **Bruin: Show Getting Started Walkthrough** command fr
 - **0.80.1**: Added warning for `interval_modifiers` typos.
 - **0.80.0**: Added variant selector to the asset panel for pipelines that declare variants. The selected variant is passed to `bruin run` as `--variant <name>`.
 - **0.79.9**: Improved Ingestr asset display with edit/view mode toggle.
-- **0.79.8**: Fixed Bruin panel not updating on file save in latest VS Code versions on Windows due to path comparison issues.
 
 For a full changelog, see Bruin Extension [Changelog](https://github.com/bruin-data/bruin-vscode/blob/main/CHANGELOG.md).
