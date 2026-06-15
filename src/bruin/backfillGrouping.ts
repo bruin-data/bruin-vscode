@@ -1,152 +1,91 @@
-import { RunSummary, RunStatus, BackfillManifest } from "../types/runLog";
-
-/**
- * Normalizes a path for comparison: forward slashes, lowercased, unquoted.
- * The run log's runPath comes from the shell-parsed cmdline while the manifest
- * stores the raw fsPath, so they may differ only in separators/casing.
- */
-const normalizePath = (p?: string): string =>
-  (p || "").replace(/^"|"$/g, "").replace(/\\/g, "/").toLowerCase();
+import { RunSummary, RunStatus } from "../types/runLog";
 
 /**
  * Parses an ISO timestamp to epoch millis. Run logs carry a local UTC offset
- * (e.g. `…+02:00`) while manifest.startedAt is UTC `…Z`, so timestamps must be
- * compared as instants — a lexicographic string compare is wrong across offsets.
+ * (e.g. `…+02:00`), so timestamps must be compared as instants — a lexicographic
+ * string compare is wrong across offsets.
  */
 const toMillis = (ts?: string): number => {
   const t = new Date(ts || "").getTime();
   return isNaN(t) ? 0 : t;
 };
 
-/**
- * Returns true if a per-chunk run log matches a manifest chunk: same asset,
- * exact window, and run happened at or after the backfill was launched.
- */
-const runMatchesChunk = (
-  run: RunSummary,
-  manifest: BackfillManifest,
-  chunk: { start: string; end: string }
-): boolean => {
-  return (
-    normalizePath(run.runPath) === normalizePath(manifest.assetPath) &&
-    run.startDate === chunk.start &&
-    run.endDate === chunk.end &&
-    toMillis(run.timestamp) >= toMillis(manifest.startedAt)
-  );
-};
-
-const rollUpStatus = (children: RunSummary[], stopOnFailure: boolean): RunStatus => {
+const rollUpStatus = (children: RunSummary[], complete: boolean): RunStatus => {
   const hasFailed = children.some((c) => c.status === "failed");
-  const inProgress = children.some((c) => c.status === "pending" || c.status === "running");
-  // With stop-on-failure a failure is terminal — the remaining chunks won't run,
-  // so report failed immediately. Without it, every chunk runs regardless, so stay
-  // "running" until all chunks have settled even if some already failed.
-  if (hasFailed && (!inProgress || stopOnFailure)) return "failed";
-  if (inProgress) return "running";
-  return "succeeded";
+  // Still missing chunks → running, unless a failure already settled it
+  // (stop-on-failure halts the rest; the user re-runs to continue).
+  if (hasFailed) {
+    return "failed";
+  }
+  return complete ? "succeeded" : "running";
 };
 
 /**
- * Groups per-chunk run logs under their backfill manifest, emitting one
- * "backfill" RunSummary per manifest (with the chunk runs as `children`) and
- * leaving all unrelated runs untouched.
+ * Groups per-chunk run logs of a local backfill into one "backfill" RunSummary,
+ * keyed off the `backfillId` the CLI stamps into each chunk's run log
+ * (`bruin run --backfill-id`). All non-backfill runs pass through untouched.
  *
- * Pure: takes the flat run list and the manifests, returns the regrouped list
- * sorted by timestamp descending. Manifests are processed newest-first and each
- * run is claimed at most once, so an identical window run later stays separate.
+ * Pure: takes the flat run list, returns the regrouped list sorted by instant
+ * descending. No manifest, no window-matching, no collision inference — each
+ * chunk keeps its own (collision-free) log, so the group is exact.
  */
-export const groupBackfillRuns = (
-  runs: RunSummary[],
-  manifests: BackfillManifest[]
-): RunSummary[] => {
-  const consumed = new Set<string>(); // run filePath (unique per run log)
-  const backfills: RunSummary[] = [];
+export const groupBackfillRuns = (runs: RunSummary[]): RunSummary[] => {
+  const groups = new Map<string, RunSummary[]>();
+  const passthrough: RunSummary[] = [];
 
-  const sortedManifests = [...manifests].sort((a, b) => toMillis(b.startedAt) - toMillis(a.startedAt));
-
-  for (const manifest of sortedManifests) {
-    const children: RunSummary[] = [];
-
-    for (const chunk of manifest.chunks) {
-      const match = runs
-        .filter((r) => !consumed.has(r.filePath))
-        .filter((r) => runMatchesChunk(r, manifest, chunk))
-        .sort((a, b) => toMillis(a.timestamp) - toMillis(b.timestamp))[0];
-
-      if (match) {
-        consumed.add(match.filePath);
-        children.push({ ...match, kind: "run" });
+  for (const run of runs) {
+    if (run.backfillId) {
+      const existing = groups.get(run.backfillId);
+      if (existing) {
+        existing.push(run);
       } else {
-        // Chunk hasn't produced a run log yet (not started, or still running).
-        children.push({
-          runId: `${manifest.backfillId}:${chunk.start}`,
-          pipeline: "",
-          timestamp: manifest.startedAt,
-          status: "pending",
-          totalAssets: 0,
-          succeededAssets: 0,
-          failedAssets: 0,
-          environment: manifest.environment || "",
-          filePath: "",
-          startDate: chunk.start,
-          endDate: chunk.end,
-          kind: "run",
-        });
+        groups.set(run.backfillId, [run]);
       }
+    } else {
+      passthrough.push(run);
     }
+  }
 
-    // The CLI names run logs by second, so chunks finishing within the same
-    // second overwrite each other's log file — a fast backfill keeps only one
-    // log per second. But chunks run sequentially in window order, so any chunk
-    // before the furthest one that produced a log must also have run. Resolve
-    // those collision-lost gaps instead of leaving them stuck "pending".
-    // (Under stop-on-failure a failing chunk is the last to write, so its
-    // failure log survives and gaps before it are genuine successes.)
-    let lastRanIndex = -1;
-    children.forEach((c, i) => {
-      if (c.filePath) {
-        lastRanIndex = i;
-      }
-    });
-    for (let i = 0; i < lastRanIndex; i++) {
-      if (children[i].status === "pending") {
-        children[i].status = "succeeded";
-        children[i].inferred = true;
-      }
-    }
+  const backfills: RunSummary[] = [];
+  for (const [backfillId, rawChildren] of groups) {
+    // Children newest-window first for display; mark them as plain runs.
+    const children = rawChildren
+      .map((c) => ({ ...c, kind: "run" as const }))
+      .sort((a, b) => (b.startDate || "").localeCompare(a.startDate || ""));
 
-    const ranChildren = children.filter((c) => c.status !== "pending");
-    const pipeline = ranChildren.find((c) => c.pipeline)?.pipeline || "";
-    const latestTimestamp = ranChildren.reduce(
-      (acc, c) => (toMillis(c.timestamp) > toMillis(acc) ? c.timestamp : acc),
-      manifest.startedAt
+    // backfill_total gives the planned chunk count; fall back to what we see.
+    const totalChunks = Math.max(
+      rawChildren.reduce((m, c) => Math.max(m, c.backfillTotal ?? 0), 0),
+      children.length
     );
+    const completedChunks = children.length;
+    const complete = completedChunks >= totalChunks;
+
     const succeededChunks = children.filter((c) => c.status === "succeeded").length;
     const failedChunks = children.filter((c) => c.status === "failed").length;
-    const resolvedChunks = children.filter((c) => c.status !== "pending").length;
+    const latestTimestamp = children.reduce(
+      (acc, c) => (toMillis(c.timestamp) > toMillis(acc) ? c.timestamp : acc),
+      children[0]?.timestamp || ""
+    );
 
     backfills.push({
-      runId: manifest.backfillId,
-      pipeline,
+      runId: backfillId,
+      pipeline: children.find((c) => c.pipeline)?.pipeline || "",
       timestamp: latestTimestamp,
-      status: rollUpStatus(children, manifest.stopOnFailure),
-      totalAssets: manifest.chunks.length,
+      status: rollUpStatus(children, complete),
+      totalAssets: totalChunks,
       succeededAssets: succeededChunks,
       failedAssets: failedChunks,
-      environment: manifest.environment || ranChildren[0]?.environment || "",
+      environment: children[0]?.environment || "",
       filePath: "",
-      runPath: manifest.assetPath,
+      runPath: children[0]?.runPath,
       kind: "backfill",
       children,
-      backfill: {
-        backfillId: manifest.backfillId,
-        startedAt: manifest.startedAt,
-        totalChunks: manifest.chunks.length,
-        completedChunks: resolvedChunks,
-      },
+      backfill: { backfillId, totalChunks, completedChunks },
     });
   }
 
-  const remaining = runs.filter((r) => !consumed.has(r.filePath));
-  return [...remaining, ...backfills].sort((a, b) => toMillis(b.timestamp) - toMillis(a.timestamp));
+  return [...passthrough, ...backfills].sort(
+    (a, b) => toMillis(b.timestamp) - toMillis(a.timestamp)
+  );
 };

@@ -16,6 +16,8 @@ import {
   escapeFilePath,
   runMultipleAssetsInTerminal,
   runBackfillInTerminal,
+  supportsBackfillFlags,
+  BACKFILL_MIN_CLI_VERSION,
 } from "../bruin";
 import { BruinFill } from "../bruin/bruinFill";
 import { BruinLockDependencies } from "../bruin/bruinLockDependencies";
@@ -823,6 +825,14 @@ export class BruinPanel {
               return;
             }
             if (!message.payload?.chunks || message.payload.chunks.length === 0) {
+              return;
+            }
+            // Backfill relies on the CLI's --backfill-id/--backfill-total flags;
+            // older CLIs reject them. Block (don't run a command that would fail).
+            if (!(await supportsBackfillFlags())) {
+              vscode.window.showErrorMessage(
+                `Local backfill requires Bruin CLI v${BACKFILL_MIN_CLI_VERSION} or newer. Please update the Bruin CLI and try again.`
+              );
               return;
             }
             runBackfillInTerminal(

@@ -43,6 +43,10 @@ export interface RunLog {
   run_id: string;
   compatibility_hash: string;
   cmdline?: string[];
+  // Written by `bruin run --backfill-id/--backfill-total` so chunk runs of one
+  // local backfill can be grouped together (omitted for normal runs).
+  backfill_id?: string;
+  backfill_total?: number;
 }
 
 export type RunStatus = "succeeded" | "failed" | "running" | "pending";
@@ -62,37 +66,18 @@ export interface RunSummary {
   runPath?: string; // The asset/pipeline path from cmdline
   startDate?: string; // run window start (from parameters)
   endDate?: string; // run window end (from parameters)
+  backfillId?: string; // backfill_id from the run log, if part of a backfill
+  backfillTotal?: number; // backfill_total from the run log (planned chunk count)
   // Backfill grouping: a "backfill" summary groups its per-chunk runs in `children`.
   kind?: "run" | "backfill";
   children?: RunSummary[];
   backfill?: BackfillSummary;
-  // True when a chunk's status was inferred because its per-second run log was
-  // overwritten by a same-second chunk, but a later chunk ran (proving it did too).
-  inferred?: boolean;
 }
 
 export interface BackfillSummary {
   backfillId: string;
-  startedAt: string;
-  totalChunks: number;
-  completedChunks: number; // chunks with a matching run log (ran)
-}
-
-// Manifest written by the extension when a local backfill is launched, so the
-// independently-written per-chunk run logs can be grouped back together.
-// Stored at logs/backfills/<backfillId>.json.
-export interface BackfillManifest {
-  backfillId: string;
-  assetPath: string;
-  environment?: string;
-  stopOnFailure: boolean;
-  startedAt: string; // ISO timestamp
-  chunks: BackfillManifestChunk[];
-}
-
-export interface BackfillManifestChunk {
-  start: string;
-  end: string;
+  totalChunks: number; // planned chunks (from backfill_total); 0 if unknown
+  completedChunks: number; // chunks that produced a run log
 }
 
 // Types for the new -o json output from bruin run

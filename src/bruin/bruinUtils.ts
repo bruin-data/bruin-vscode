@@ -10,7 +10,6 @@ import { getPathSeparator } from "../extension/configuration";
 import { getBruinExecutablePath } from "../providers/BruinExecutableService";
 import { BruinCommand } from "./bruinCommand";
 import { BruinCommandOptions } from "../types";
-import { buildBackfillManifest, writeBackfillManifest } from "./backfillManifest";
 
 /**
  * Checks if the Bruin binary is available in the system path.
@@ -440,14 +439,19 @@ export const buildBackfillScript = (
   flags: string,
   assetPath: string,
   stopOnFailure: boolean,
+  backfillId: string,
   useUnixFormatting: boolean = true
 ): string => {
   const baseFlags = (flags || "").trim();
+  // --backfill-id/--backfill-total tag every chunk's run log so the Run History
+  // panel can group them back into one backfill entry.
   const commandFor = (chunk: BackfillChunk): string => {
     const parts = [executable, BRUIN_RUN_SQL_COMMAND];
     if (baseFlags.length > 0) {
       parts.push(baseFlags);
     }
+    parts.push(`--backfill-id ${backfillId}`);
+    parts.push(`--backfill-total ${chunks.length}`);
     parts.push(`--start-date ${chunk.start}`);
     parts.push(`--end-date ${chunk.end}`);
     parts.push(assetPath);
@@ -517,33 +521,23 @@ export const runBackfillInTerminal = async (
     ? "bruin"
     : bruinExecutable;
 
+  // One id shared by every chunk's run log; the CLI stamps it via --backfill-id
+  // so the Run History panel can group the chunk runs back together.
+  const backfillId = `bf_${Date.now()}`;
+
   const scriptContent = buildBackfillScript(
     executable,
     chunks,
     flags || "",
     escapedAssetPath,
     stopOnFailure,
+    backfillId,
     useUnixFormatting
   );
 
-  // Record a manifest so the independently-written per-chunk run logs can be
-  // grouped back into a single backfill entry in the Run History panel. Its id
-  // also names the script file.
-  const manifest = buildBackfillManifest({
-    assetPath,
-    chunks,
-    stopOnFailure,
-    flags,
-    startedAt: new Date(),
-  });
-  const manifestRoot = await bruinWorkspaceDirectory(assetPath);
-  if (manifestRoot) {
-    await writeBackfillManifest(manifestRoot, manifest);
-  }
-
   // Run via a script file rather than a long chained command: dozens of chunks
   // would overflow the terminal's line input and corrupt the pasted command.
-  const scriptPath = await writeBackfillScript(manifest.backfillId, scriptContent, useUnixFormatting);
+  const scriptPath = await writeBackfillScript(backfillId, scriptContent, useUnixFormatting);
   const runCommand = useUnixFormatting
     ? `bash "${scriptPath}"`
     : `powershell -ExecutionPolicy Bypass -File "${scriptPath}"`;
@@ -671,6 +665,29 @@ export async function getBruinVersion(): Promise<{ version: string; latest: stri
   } catch (error) {
     console.error(`Version check failed: ${error instanceof Error ? error.message : error}`);
     return null;
+  }
+}
+
+// Minimum Bruin CLI version that supports the backfill run flags
+// (--backfill-id / --backfill-total). Older CLIs reject them with
+// "flag provided but not defined", which would break a local backfill.
+export const BACKFILL_MIN_CLI_VERSION = "0.11.624";
+
+/**
+ * Returns true if the installed Bruin CLI supports the backfill flags.
+ * Errs on the side of allowing: only a positively-parsed version below the
+ * minimum blocks. An unknown / non-semver (e.g. "dev") build is assumed to
+ * support them, so local dev builds aren't falsely blocked.
+ */
+export async function supportsBackfillFlags(): Promise<boolean> {
+  const info = await getBruinVersion();
+  if (!info?.version) {
+    return true;
+  }
+  try {
+    return versionGte(parseVersion(info.version), parseVersion(BACKFILL_MIN_CLI_VERSION));
+  } catch {
+    return true;
   }
 }
 

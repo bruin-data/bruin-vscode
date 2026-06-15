@@ -1,13 +1,9 @@
 import * as fs from "fs";
 import * as path from "path";
-import { RunLog, RunSummary, RunStatus, BackfillManifest } from "../types/runLog";
+import { RunLog, RunSummary, RunStatus } from "../types/runLog";
 import { groupBackfillRuns } from "./backfillGrouping";
-import { BACKFILL_LOGS_DIR } from "./backfillManifest";
 
 const LOGS_DIR = "logs/runs";
-// Cap how many manifests are loaded (most-recent by mtime) so old backfills
-// whose chunk logs have aged out don't accumulate as stale "running" rows.
-const MAX_BACKFILL_MANIFESTS = 25;
 
 export class RunLogService {
   private workspaceRoot: string;
@@ -42,13 +38,7 @@ export class RunLogService {
         const summary = await this.getRunSummary(pipeline, file);
         if (summary) {runs.push(summary);}
       }
-      const manifests = await this.getBackfillManifests();
-      // Manifests are global (no pipeline field), so a backfill for an asset in
-      // another pipeline would surface here as an all-pending phantom row. In the
-      // per-pipeline view, drop backfills with no chunk run in this pipeline.
-      return groupBackfillRuns(runs, manifests)
-        .filter((r) => r.kind !== "backfill" || (r.backfill?.completedChunks ?? 0) > 0)
-        .slice(0, limit);
+      return groupBackfillRuns(runs).slice(0, limit);
     } catch {
       return [];
     }
@@ -64,9 +54,8 @@ export class RunLogService {
       allRuns.push(...runs);
     }
 
-    const manifests = await this.getBackfillManifests();
     // groupBackfillRuns already returns sorted by instant (toMillis); no second sort.
-    return groupBackfillRuns(allRuns, manifests).slice(0, limit);
+    return groupBackfillRuns(allRuns).slice(0, limit);
   }
 
   private async getRawRunsForPipeline(pipeline: string, limit: number): Promise<RunSummary[]> {
@@ -145,51 +134,9 @@ export class RunLogService {
       runPath,
       startDate: params.startDate,
       endDate: params.endDate,
+      backfillId: log.backfill_id,
+      backfillTotal: log.backfill_total,
     };
-  }
-
-  async getBackfillManifests(): Promise<BackfillManifest[]> {
-    const dir = path.join(this.workspaceRoot, BACKFILL_LOGS_DIR);
-    try {
-      const jsonFiles = (await fs.promises.readdir(dir)).filter((f) => f.endsWith(".json"));
-
-      // Keep only the most-recent manifests by mtime. Old backfills whose chunk
-      // logs have aged out of the run-read window would otherwise resurface as
-      // stale all-"pending"/"running" rows and eat into the display limit.
-      const withMtime = await Promise.all(
-        jsonFiles.map(async (file) => {
-          try {
-            const stat = await fs.promises.stat(path.join(dir, file));
-            return { file, mtime: stat.mtimeMs };
-          } catch {
-            return { file, mtime: 0 };
-          }
-        })
-      );
-      const recent = withMtime
-        .sort((a, b) => b.mtime - a.mtime)
-        .slice(0, MAX_BACKFILL_MANIFESTS);
-
-      const manifests: BackfillManifest[] = [];
-      for (const { file } of recent) {
-        try {
-          const content = await fs.promises.readFile(path.join(dir, file), "utf-8");
-          const parsed = JSON.parse(content) as BackfillManifest;
-          // Guard against valid-JSON-but-wrong-shape manifests (future schema,
-          // hand-edited, partially written): a non-array `chunks` would throw in
-          // groupBackfillRuns and could blank the whole panel.
-          if (!Array.isArray(parsed?.chunks)) {
-            continue;
-          }
-          manifests.push(parsed);
-        } catch {
-          // skip malformed manifest
-        }
-      }
-      return manifests;
-    } catch {
-      return [];
-    }
   }
 
   getLogsDirectory(): string {

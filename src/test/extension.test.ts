@@ -27,13 +27,8 @@ import {
 } from "../utilities/helperUtils";
 import * as configuration from "../extension/configuration";
 import * as bruinUtils from "../bruin/bruinUtils";
-import {
-  buildBackfillManifest,
-  buildBackfillId,
-  extractEnvironment,
-} from "../bruin/backfillManifest";
 import { groupBackfillRuns } from "../bruin/backfillGrouping";
-import { RunSummary, BackfillManifest } from "../types/runLog";
+import { RunSummary } from "../types/runLog";
 import * as fs from "fs";
 import path = require("path");
 import sinon = require("sinon");
@@ -7758,6 +7753,7 @@ suite("Utility Functions Tests", () => {
   });
 });
 
+
 suite("buildBackfillScript", () => {
   const chunks = [
     { start: "2024-01-01T00:00:00Z", end: "2024-01-02T00:00:00Z" },
@@ -7765,13 +7761,14 @@ suite("buildBackfillScript", () => {
     { start: "2024-01-03T00:00:00Z", end: "2024-01-04T00:00:00Z" },
   ];
 
-  test("bash + stop-on-failure: shebang, set -e, one command per line", () => {
+  test("bash + stop-on-failure: shebang, set -e, one tagged command per chunk", () => {
     const result = (bruinUtils as any).buildBackfillScript(
       "bruin",
       chunks,
       "--environment default",
       '"/path/to/asset.sql"',
       true,
+      "bf_test",
       true
     );
     const lines = result.trimEnd().split("\n");
@@ -7781,11 +7778,13 @@ suite("buildBackfillScript", () => {
     const runLines = lines.filter((l: string) => l.startsWith("bruin run"));
     assert.strictEqual(runLines.length, 3, "one bruin run per chunk");
     chunks.forEach((c, i) => {
+      assert.ok(runLines[i].includes("--backfill-id bf_test"), `chunk ${i} has backfill id`);
+      assert.ok(runLines[i].includes("--backfill-total 3"), `chunk ${i} has backfill total`);
       assert.ok(runLines[i].includes(`--start-date ${c.start}`), `chunk ${i} start`);
       assert.ok(runLines[i].includes(`--end-date ${c.end}`), `chunk ${i} end`);
       assert.ok(runLines[i].endsWith('"/path/to/asset.sql"'), `chunk ${i} asset path`);
     });
-    // No chained '&&' / line-continuation '\' — that's the whole point.
+    // No chained '&&' / line-continuation '\' — that's the whole point of the script.
     assert.ok(!result.includes("&&") && !result.includes("\\\n"), "no chaining/continuation");
   });
 
@@ -7796,6 +7795,7 @@ suite("buildBackfillScript", () => {
       "",
       '"/path/to/asset.sql"',
       false,
+      "bf_test",
       true
     );
     assert.ok(!result.includes("set -e"), "run-all must not set -e");
@@ -7812,23 +7812,12 @@ suite("buildBackfillScript", () => {
       "",
       '"/path/to/asset.sql"',
       true,
+      "bf_test",
       false
     );
     const guards = result.split("\n").filter((l: string) => l.includes("$LASTEXITCODE"));
     assert.strictEqual(guards.length, 2, "one exit-code guard per chunk");
     assert.strictEqual(guards[0], "if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }");
-  });
-
-  test("powershell + run-all: no exit-code guards", () => {
-    const result = (bruinUtils as any).buildBackfillScript(
-      "bruin",
-      chunks,
-      "",
-      '"/path/to/asset.sql"',
-      false,
-      false
-    );
-    assert.ok(!result.includes("$LASTEXITCODE"), "run-all has no guards");
   });
 
   test("never injects --full-refresh", () => {
@@ -7838,6 +7827,7 @@ suite("buildBackfillScript", () => {
       "--environment default",
       '"/path/to/asset.sql"',
       true,
+      "bf_test",
       true
     );
     assert.ok(
@@ -7847,58 +7837,7 @@ suite("buildBackfillScript", () => {
   });
 });
 
-suite("backfill manifest", () => {
-  const startedAt = new Date("2026-06-09T12:34:56.000Z");
-
-  test("buildBackfillId derives a timestamped, sanitized id from the asset name", () => {
-    const id = buildBackfillId(startedAt, "/abs/path/to/staging.backfill_demo.sql");
-    assert.strictEqual(id, "bf_2026_06_09_12_34_56_staging.backfill_demo");
-  });
-
-  test("extractEnvironment pulls --environment out of the flags", () => {
-    assert.strictEqual(extractEnvironment("--push-metadata --environment prod"), "prod");
-    assert.strictEqual(extractEnvironment("--push-metadata"), undefined);
-    assert.strictEqual(extractEnvironment(undefined), undefined);
-  });
-
-  test("buildBackfillManifest captures asset, env, chunks, and ISO startedAt", () => {
-    const manifest = buildBackfillManifest({
-      assetPath: "/abs/asset.sql",
-      chunks: [
-        { start: "2024-01-01T00:00:00Z", end: "2024-01-02T00:00:00Z" },
-        { start: "2024-01-02T00:00:00Z", end: "2024-01-03T00:00:00Z" },
-      ],
-      stopOnFailure: true,
-      flags: "--environment prod",
-      startedAt,
-    });
-
-    assert.strictEqual(manifest.assetPath, "/abs/asset.sql");
-    assert.strictEqual(manifest.environment, "prod");
-    assert.strictEqual(manifest.stopOnFailure, true);
-    assert.strictEqual(manifest.startedAt, "2026-06-09T12:34:56.000Z");
-    assert.strictEqual(manifest.chunks.length, 2);
-    assert.strictEqual(manifest.backfillId, "bf_2026_06_09_12_34_56_asset");
-  });
-});
-
 suite("groupBackfillRuns", () => {
-  const ASSET = "/abs/asset.sql";
-  const STARTED = "2026-06-09T12:00:00.000Z";
-
-  const manifest: BackfillManifest = {
-    backfillId: "bf_test",
-    assetPath: ASSET,
-    environment: "prod",
-    stopOnFailure: true,
-    startedAt: STARTED,
-    chunks: [
-      { start: "2024-01-01T00:00:00Z", end: "2024-01-02T00:00:00Z" },
-      { start: "2024-01-02T00:00:00Z", end: "2024-01-03T00:00:00Z" },
-      { start: "2024-01-03T00:00:00Z", end: "2024-01-04T00:00:00Z" },
-    ],
-  };
-
   const makeRun = (over: Partial<RunSummary>): RunSummary => ({
     runId: "r",
     pipeline: "p",
@@ -7909,167 +7848,105 @@ suite("groupBackfillRuns", () => {
     failedAssets: 0,
     environment: "prod",
     filePath: `/logs/${Math.random()}`,
-    runPath: ASSET,
+    runPath: "/abs/asset.sql",
     startDate: "2024-01-01T00:00:00Z",
     endDate: "2024-01-02T00:00:00Z",
     ...over,
   });
 
-  test("groups matching chunk runs into one backfill summary and removes them from the flat list", () => {
+  test("groups runs sharing a backfill_id into one backfill row; others pass through", () => {
     const runs: RunSummary[] = [
-      makeRun({ filePath: "/logs/a", startDate: "2024-01-01T00:00:00Z", endDate: "2024-01-02T00:00:00Z" }),
-      makeRun({ filePath: "/logs/b", startDate: "2024-01-02T00:00:00Z", endDate: "2024-01-03T00:00:00Z" }),
-      makeRun({ filePath: "/logs/c", startDate: "2024-01-03T00:00:00Z", endDate: "2024-01-04T00:00:00Z" }),
+      makeRun({ filePath: "/logs/a", backfillId: "bf_1", backfillTotal: 3, startDate: "2024-01-01T00:00:00Z" }),
+      makeRun({ filePath: "/logs/b", backfillId: "bf_1", backfillTotal: 3, startDate: "2024-01-02T00:00:00Z" }),
+      makeRun({ filePath: "/logs/c", backfillId: "bf_1", backfillTotal: 3, startDate: "2024-01-03T00:00:00Z" }),
+      makeRun({ filePath: "/logs/plain" }), // no backfill_id
     ];
 
-    const result = groupBackfillRuns(runs, [manifest]);
-    assert.strictEqual(result.length, 1, "all three runs collapse into one backfill row");
-    const bf = result[0];
-    assert.strictEqual(bf.kind, "backfill");
+    const result = groupBackfillRuns(runs);
+    const backfills = result.filter((r) => r.kind === "backfill");
+    const plain = result.filter((r) => r.kind !== "backfill");
+
+    assert.strictEqual(backfills.length, 1, "one grouped backfill row");
+    assert.strictEqual(plain.length, 1, "the non-backfill run passes through");
+    const bf = backfills[0];
+    assert.strictEqual(bf.runId, "bf_1");
     assert.strictEqual(bf.status, "succeeded");
     assert.strictEqual(bf.children?.length, 3);
     assert.strictEqual(bf.backfill?.completedChunks, 3);
     assert.strictEqual(bf.backfill?.totalChunks, 3);
   });
 
-  test("marks unmatched chunks pending and the backfill running", () => {
+  test("reports running while fewer logs than backfill_total have landed", () => {
     const runs: RunSummary[] = [
-      makeRun({ filePath: "/logs/a", startDate: "2024-01-01T00:00:00Z", endDate: "2024-01-02T00:00:00Z" }),
+      makeRun({ filePath: "/logs/a", backfillId: "bf_1", backfillTotal: 24, startDate: "2024-01-01T00:00:00Z" }),
+      makeRun({ filePath: "/logs/b", backfillId: "bf_1", backfillTotal: 24, startDate: "2024-01-02T00:00:00Z" }),
     ];
 
-    const result = groupBackfillRuns(runs, [manifest]);
-    const bf = result[0];
+    const bf = groupBackfillRuns(runs).find((r) => r.kind === "backfill")!;
     assert.strictEqual(bf.status, "running");
-    assert.strictEqual(bf.backfill?.completedChunks, 1);
-    assert.strictEqual(bf.children?.filter((c) => c.status === "pending").length, 2);
+    assert.strictEqual(bf.backfill?.completedChunks, 2);
+    assert.strictEqual(bf.backfill?.totalChunks, 24);
   });
 
   test("rolls up to failed when any chunk failed", () => {
     const runs: RunSummary[] = [
-      makeRun({ filePath: "/logs/a", startDate: "2024-01-01T00:00:00Z", endDate: "2024-01-02T00:00:00Z" }),
+      makeRun({ filePath: "/logs/a", backfillId: "bf_1", backfillTotal: 2, startDate: "2024-01-01T00:00:00Z" }),
       makeRun({
         filePath: "/logs/b",
+        backfillId: "bf_1",
+        backfillTotal: 2,
         startDate: "2024-01-02T00:00:00Z",
-        endDate: "2024-01-03T00:00:00Z",
         status: "failed",
         succeededAssets: 0,
         failedAssets: 1,
       }),
-      makeRun({ filePath: "/logs/c", startDate: "2024-01-03T00:00:00Z", endDate: "2024-01-04T00:00:00Z" }),
     ];
 
-    const result = groupBackfillRuns(runs, [manifest]);
-    assert.strictEqual(result[0].status, "failed");
-    assert.strictEqual(result[0].failedAssets, 1);
+    const bf = groupBackfillRuns(runs).find((r) => r.kind === "backfill")!;
+    assert.strictEqual(bf.status, "failed");
+    assert.strictEqual(bf.failedAssets, 1);
   });
 
-  test("leaves unrelated runs and pre-backfill runs in the flat list", () => {
+  test("falls back to observed count when backfill_total is absent", () => {
     const runs: RunSummary[] = [
-      // different asset → not part of the backfill
-      makeRun({ filePath: "/logs/other", runPath: "/abs/other.sql" }),
-      // same asset+window but ran before the backfill started → not matched
-      makeRun({ filePath: "/logs/old", timestamp: "2026-06-09T11:00:00.000Z" }),
-      // a genuine chunk run
-      makeRun({ filePath: "/logs/a", timestamp: "2026-06-09T12:05:00.000Z" }),
+      makeRun({ filePath: "/logs/a", backfillId: "bf_1", startDate: "2024-01-01T00:00:00Z" }),
+      makeRun({ filePath: "/logs/b", backfillId: "bf_1", startDate: "2024-01-02T00:00:00Z" }),
     ];
 
-    const result = groupBackfillRuns(runs, [manifest]);
-    const backfills = result.filter((r) => r.kind === "backfill");
-    const plain = result.filter((r) => r.kind !== "backfill");
-    assert.strictEqual(backfills.length, 1);
-    assert.ok(plain.some((r) => r.filePath === "/logs/other"), "unrelated run kept");
-    assert.ok(plain.some((r) => r.filePath === "/logs/old"), "pre-backfill run kept");
-    assert.strictEqual(backfills[0].backfill?.completedChunks, 1, "only the post-start run was claimed");
+    const bf = groupBackfillRuns(runs).find((r) => r.kind === "backfill")!;
+    assert.strictEqual(bf.backfill?.totalChunks, 2, "total falls back to children count");
+    assert.strictEqual(bf.status, "succeeded");
   });
 
-  test("returns runs untouched when there are no manifests", () => {
+  test("leaves a plain run list untouched", () => {
     const runs: RunSummary[] = [makeRun({ filePath: "/logs/a" })];
-    const result = groupBackfillRuns(runs, []);
+    const result = groupBackfillRuns(runs);
     assert.strictEqual(result.length, 1);
     assert.strictEqual(result[0].kind, undefined);
   });
+});
 
-  test("matches a chunk run whose timestamp uses a non-UTC offset later than the UTC startedAt", () => {
-    // Regression: timestamps must be compared as instants, not lexically.
-    // startedAt is UTC (12:00Z); the run is 12:05Z expressed as 07:05-05:00.
-    // A string compare would read "07:05" < "12:00" and wrongly drop the match.
-    const runs: RunSummary[] = [
-      makeRun({
-        filePath: "/logs/a",
-        timestamp: "2026-06-09T07:05:00.000-05:00",
-        startDate: "2024-01-01T00:00:00Z",
-        endDate: "2024-01-02T00:00:00Z",
-      }),
-    ];
+suite("backfill CLI version guard", () => {
+  const parseVersion = (bruinUtils as any).parseVersion;
+  const versionGte = (bruinUtils as any).versionGte;
+  const MIN = (bruinUtils as any).BACKFILL_MIN_CLI_VERSION;
 
-    const result = groupBackfillRuns(runs, [manifest]);
-    const bf = result.find((r) => r.kind === "backfill");
-    assert.ok(bf, "backfill row produced");
-    assert.strictEqual(bf?.backfill?.completedChunks, 1, "offset run matched despite earlier wall-clock digits");
-    assert.strictEqual(bf?.children?.[0].status, "succeeded");
+  test("minimum is v0.11.624", () => {
+    assert.strictEqual(MIN, "0.11.624");
   });
 
-  test("infers a collision-lost middle chunk as succeeded when a later chunk ran", () => {
-    // The CLI's per-second log for chunk 1 was overwritten by a same-second
-    // chunk; chunks 0 and 2 survived. Chunk 1 must have run (chunk 2 did).
-    const runs: RunSummary[] = [
-      makeRun({ filePath: "/logs/a", startDate: "2024-01-01T00:00:00Z", endDate: "2024-01-02T00:00:00Z" }),
-      makeRun({ filePath: "/logs/c", startDate: "2024-01-03T00:00:00Z", endDate: "2024-01-04T00:00:00Z" }),
-    ];
-
-    const result = groupBackfillRuns(runs, [manifest]);
-    const bf = result.find((r) => r.kind === "backfill")!;
-    assert.strictEqual(bf.status, "succeeded");
-    assert.strictEqual(bf.backfill?.completedChunks, 3, "all three resolved (middle inferred)");
-    assert.strictEqual(bf.children?.[1].status, "succeeded");
-    assert.strictEqual(bf.children?.[1].inferred, true, "middle chunk flagged inferred");
-    assert.ok(!bf.children?.[0].inferred, "a chunk with a real log is not flagged inferred");
+  test("v0.11.624 and newer support the backfill flags", () => {
+    const min = parseVersion(MIN);
+    assert.ok(versionGte(parseVersion("0.11.624"), min));
+    assert.ok(versionGte(parseVersion("0.11.700"), min));
+    assert.ok(versionGte(parseVersion("0.12.0"), min));
+    assert.ok(versionGte(parseVersion("1.0.0"), min));
   });
 
-  test("does not infer chunks after the furthest completed window — they stay pending", () => {
-    const runs: RunSummary[] = [
-      makeRun({ filePath: "/logs/a", startDate: "2024-01-01T00:00:00Z", endDate: "2024-01-02T00:00:00Z" }),
-    ];
-
-    const result = groupBackfillRuns(runs, [manifest]);
-    const bf = result.find((r) => r.kind === "backfill")!;
-    assert.strictEqual(bf.status, "running");
-    assert.strictEqual(bf.children?.filter((c) => c.status === "pending").length, 2);
-  });
-
-  test("run-all mode stays running while chunks remain, even if one already failed", () => {
-    const runAll: BackfillManifest = { ...manifest, stopOnFailure: false };
-    const runs: RunSummary[] = [
-      makeRun({
-        filePath: "/logs/a",
-        startDate: "2024-01-01T00:00:00Z",
-        endDate: "2024-01-02T00:00:00Z",
-        status: "failed",
-        succeededAssets: 0,
-        failedAssets: 1,
-      }),
-      makeRun({ filePath: "/logs/b", startDate: "2024-01-02T00:00:00Z", endDate: "2024-01-03T00:00:00Z" }),
-      // chunk 3 has no log yet → pending
-    ];
-
-    const bf = groupBackfillRuns(runs, [runAll]).find((r) => r.kind === "backfill")!;
-    // run-all: don't report failed until every chunk has settled
-    assert.strictEqual(bf.status, "running");
-  });
-
-  test("stop-on-failure reports failed immediately even though later chunks stay pending", () => {
-    const runs: RunSummary[] = [
-      makeRun({
-        filePath: "/logs/a",
-        startDate: "2024-01-01T00:00:00Z",
-        endDate: "2024-01-02T00:00:00Z",
-        status: "failed",
-        succeededAssets: 0,
-        failedAssets: 1,
-      }),
-    ];
-
-    const bf = groupBackfillRuns(runs, [manifest]).find((r) => r.kind === "backfill")!;
-    assert.strictEqual(bf.status, "failed");
+  test("older versions do not", () => {
+    const min = parseVersion(MIN);
+    assert.ok(!versionGte(parseVersion("0.11.623"), min));
+    assert.ok(!versionGte(parseVersion("0.11.0"), min));
+    assert.ok(!versionGte(parseVersion("0.10.999"), min));
   });
 });

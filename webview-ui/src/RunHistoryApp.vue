@@ -183,12 +183,16 @@
                         <span class="text-descriptionForeground w-5 text-right flex-shrink-0">{{ ci + 1 }}</span>
                         <span class="font-mono flex-1 min-w-0 truncate">{{ formatWindow(child.startDate, child.endDate) }}</span>
                         <span class="text-[10px] capitalize flex-shrink-0" :class="childStatusTextClass(child.status)">
-                          {{ child.status }}<span
-                            v-if="child.inferred"
-                            class="not-italic"
-                            title="Inferred: this chunk's per-second log was overwritten by a same-second chunk, but a later chunk ran — so this one completed too."
-                          >*</span>
+                          {{ child.status }}
                         </span>
+                      </div>
+                      <!-- Chunks not yet logged (still running / not started) -->
+                      <div
+                        v-if="pendingChunkCount(run) > 0"
+                        class="flex items-center gap-2 px-2 py-1 text-[11px] text-descriptionForeground italic"
+                      >
+                        <span class="codicon codicon-circle-outline text-[9px] flex-shrink-0"></span>
+                        <span>{{ pendingChunkCount(run) }} more pending…</span>
                       </div>
                     </div>
                   </template>
@@ -302,7 +306,6 @@ interface RunDetails {
 
 interface BackfillSummary {
   backfillId: string;
-  startedAt: string;
   totalChunks: number;
   completedChunks: number;
 }
@@ -324,7 +327,6 @@ interface RunSummary {
   kind?: "run" | "backfill";
   children?: RunSummary[];
   backfill?: BackfillSummary;
-  inferred?: boolean;
 }
 
 const runs = ref<RunSummary[]>([]);
@@ -447,6 +449,13 @@ const statusCircleClass = (status: string) => {
   if (status === "failed") return "bg-[--vscode-testing-iconFailed] text-editor-bg";
   // running / pending
   return "bg-[--vscode-testing-iconQueued] text-editor-bg";
+};
+
+// Chunks the backfill plans (backfill_total) that haven't produced a log yet.
+const pendingChunkCount = (run: RunSummary): number => {
+  const total = run.backfill?.totalChunks ?? 0;
+  const done = run.backfill?.completedChunks ?? (run.children || []).length;
+  return Math.max(0, total - done);
 };
 
 const childStatusTextClass = (status: string) => {
