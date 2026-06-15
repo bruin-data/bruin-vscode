@@ -134,6 +134,19 @@ const toBackfillBoundary = (dt: DateTime): string => {
   return dt.toUTC().toISO({ suppressMilliseconds: true, includeOffset: false }) + "Z";
 };
 
+/**
+ * Formats a backfill chunk-window boundary (ISO) for display: date-only when
+ * it lands on midnight, otherwise with the time. UTC, Luxon-based.
+ */
+export const formatBackfillBoundary = (iso?: string): string => {
+  if (!iso) return "?";
+  const dt = DateTime.fromISO(iso, { zone: "utc" });
+  if (!dt.isValid) return iso;
+  return dt.hour === 0 && dt.minute === 0
+    ? dt.toFormat("yyyy-MM-dd")
+    : dt.toFormat("yyyy-MM-dd HH:mm");
+};
+
 export const handleError = (validationError: any | null, renderSQLAssetError: any | null) => {
   if (validationError || renderSQLAssetError) {
     let errorMessage = validationError || renderSQLAssetError || "An error occurred";

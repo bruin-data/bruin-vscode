@@ -19,6 +19,9 @@ export class RunHistoryPanel implements vscode.WebviewViewProvider, vscode.Dispo
   ) {}
 
   dispose() {
+    if (this.refreshTimer) {
+      clearTimeout(this.refreshTimer);
+    }
     this.fileWatcher?.dispose();
     while (this.disposables.length) {
       this.disposables.pop()?.dispose();
@@ -71,9 +74,19 @@ export class RunHistoryPanel implements vscode.WebviewViewProvider, vscode.Dispo
 
     this.fileWatcher?.dispose();
     this.fileWatcher = vscode.workspace.createFileSystemWatcher(logsPattern);
-    this.fileWatcher.onDidCreate(() => this.refreshRuns());
-    this.fileWatcher.onDidChange(() => this.refreshRuns());
+    // A backfill writes many chunk logs in a burst; debounce so we re-read the
+    // logs once after the burst settles instead of on every individual file.
+    this.fileWatcher.onDidCreate(() => this.debouncedRefresh());
+    this.fileWatcher.onDidChange(() => this.debouncedRefresh());
     this.disposables.push(this.fileWatcher);
+  }
+
+  private refreshTimer?: ReturnType<typeof setTimeout>;
+  private debouncedRefresh() {
+    if (this.refreshTimer) {
+      clearTimeout(this.refreshTimer);
+    }
+    this.refreshTimer = setTimeout(() => this.refreshRuns(), 200);
   }
 
   private async refreshRuns() {

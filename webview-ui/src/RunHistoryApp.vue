@@ -273,6 +273,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { vscode } from "./utilities/vscode";
+import { formatBackfillBoundary } from "./utilities/helper";
 
 const ASSETS_LIMIT = 6;
 
@@ -464,20 +465,8 @@ const childStatusTextClass = (status: string) => {
   return "text-descriptionForeground";
 };
 
-const formatWindow = (start?: string, end?: string) => {
-  const fmt = (s?: string) => {
-    if (!s) return "?";
-    const d = new Date(s);
-    if (isNaN(d.getTime())) return s;
-    const yyyy = d.getUTCFullYear();
-    const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
-    const dd = String(d.getUTCDate()).padStart(2, "0");
-    const hh = String(d.getUTCHours()).padStart(2, "0");
-    const min = String(d.getUTCMinutes()).padStart(2, "0");
-    return hh === "00" && min === "00" ? `${yyyy}-${mm}-${dd}` : `${yyyy}-${mm}-${dd} ${hh}:${min}`;
-  };
-  return `${fmt(start)} → ${fmt(end)}`;
-};
+const formatWindow = (start?: string, end?: string) =>
+  `${formatBackfillBoundary(start)} → ${formatBackfillBoundary(end)}`;
 
 const assetStatusIconClass = (status: string) => {
   if (status === "succeeded") {
