@@ -1,112 +1,57 @@
 # Extension structure
 
-This section provides a quick introduction into how this sample extension is organized and structured.
+This document describes how the Bruin VS Code extension is organized. The project is split into two independently-managed halves:
 
-The two most important directories to take note of are the following:
+- **`src/`** — the extension host ("backend"), a TypeScript Node app.
+- **`webview-ui/`** — a self-contained Vue 3 + Vite app ("frontend") with its own `package.json`, `node_modules`, and `tsconfig.json`.
 
-- `src`: Contains all of the extension source code
-- `webview-ui`: Contains all of the webview UI source code
+This separation strays from the typical VS Code extension layout, where extension and webview code are combined. Keeping them apart avoids dependency/config conflicts and lets the webview use the Vite dev server, so UI iteration doesn't require recompiling the extension.
 
-## **`src` Directory**
+## `src/` directory
 
-The **`src`** directory contains all of the extension-related source code and can be thought of as the "backend" logic for the Bruin VSCode extension. Inside this directory, you will find the following key components:
+The "backend" logic. Key subdirectories:
 
-- **`bruin`**: Contains command files specific to Bruin functionality, such as command handlers for`run`, `validate`, ...
-- **`constants`**: Stores constants that are used throughout the extension.
-- **`panels`**: Defines the logic for the two principal webview panels, which are the **LineagePanel**, and **BruinPanel**.
-- **`providers`**: Includes providers for extension features such as autocompletion, and folding ranges.
-- **`test`**: Contains unit tests for various components, ensuring code quality and correctness.
-- **`types`**: Defines TypeScript types used across the extension for type safety and consistency.
-- **`ui-test`**: Handles user interface testing for the extension, using selenium.
-- **`utilities`**: Includes utility functions that simplify tasks like managing resources or performing commonly needed operations.
+- **`extension/`** — activation entry point and command registration.
+  - **`extension.ts`** — `activate()`/`deactivate()`. Registers all `bruin.*` commands, webview view providers, the connections tree, folding/CodeLens providers, and the language server; also runs CLI auto-update on activation and every 6 hours.
+  - **`configuration.ts`** — reads `bruin.*` settings and reacts to configuration changes.
+  - **`commands/`** — handlers for user-facing commands (render, lineage, manage connections/environments, query commands, CLI update, etc.).
+- **`bruin/`** — one file per Bruin CLI subcommand (`bruinRender`, `bruinRun`, `bruinValidate`, `bruinConnections`, `bruinFlowLineage`, `bruinTableDiff`, …). All extend the abstract `BruinCommand` (`bruinCommand.ts`), which shells out to the `bruin` binary via `execFile`/`spawn`.
+- **`panels/`** — the webview panel classes (see below).
+- **`providers/`** — editor feature providers: folding ranges, CodeLens (query, query-selection, schedule), the activity-bar connections tree, and the executable-path service.
+- **`language-server/`** — completion and validation providers for Bruin YAML/SQL assets (asset, column, custom-check, materialization, secrets, tag, top-level completions; materialization/query/tag validators).
+- **`constants/`** — shared constants.
+- **`types/`** — shared TypeScript types.
+- **`utilities/`** — helpers (date/error handling, URI/nonce generation for webviews, data-diff parsing, etc.).
+- **`test/`** — extension unit tests (run via `@vscode/test-electron`).
+- **`ui-test/`** — Selenium end-to-end tests (run via `vscode-extension-tester`).
 
-#### **`panels` Directory**
+### `panels/` directory
 
-The **`panels`** directory holds all the logic related to webview panels that will be executed within the extension context. This can be thought of as the backend for each webview panel in the extension.
+Each panel is a class that manages one webview surface: creating/rendering it, loading its HTML (which references the built Vue bundle in `webview-ui/build/`), wiring `postMessage` listeners for webview ↔ extension communication, and disposing resources on close.
 
-The directory two TypeScript files, each representing a class that manages the state and behavior of a each webview panel. Key responsibilities of each class include:
+| Panel class | VS Code surface | Vue entry (`webview-ui/`) |
+|---|---|---|
+| `BruinPanel` | editor `WebviewPanel` (singleton), the main asset-details view | `index.html` → `App.vue` |
+| `AssetLineagePanel` (`LineagePanel.ts`) | bottom-panel `WebviewViewProvider` | `lineage/` → `AssetLineage.vue` |
+| `QueryPreviewPanel` | bottom-panel `WebviewViewProvider` | `query-preview/` → `QueryPreviewApp.vue` |
+| `TableDiffPanel` | bottom-panel `WebviewViewProvider` | `table-diff/` → `TableDiffApp.vue` |
+| `RunHistoryPanel` | bottom-panel `WebviewViewProvider` | `run-history/` → `RunHistoryApp.vue` |
+| `TableDetailsPanel` | on-demand `WebviewPanel` | — |
 
-- Creating and rendering the webview panel.
-- Properly cleaning up and disposing of webview resources when the panel is closed.
-- Setting up message listeners to facilitate communication between the webview and the extension.
-- Initializing the webview’s HTML or markdown content.
-- Implementing any custom logic and behavior specific to the webview panel.
+## `webview-ui/` directory
 
-#### **`utilities` Directory**
+All of the Vue-based webview source. It contains its own `package.json`, `node_modules`, `tsconfig.json`, and Vite config, separate from the root extension.
 
-The **`utilities`** directory contains helper functions that make managing the extension easier. 
+`vite.config` declares one `rollupOptions.input` entry per webview surface (`index`, `lineage`, `queryPreview`, `tableDiff`, `runHistory`), each backed by its own `index.html` and root `*.vue` app component. **Adding a webview means adding both a panel class in `src/panels/` and a Vite input here.** Builds output to `webview-ui/build/`, which the panels load from.
 
-#### **`extension.ts`**
+### Subdirectories in `webview-ui/src`
 
-The **`extension.ts`** file contains the logic for activating and deactivating the extension. This file is also where extension commands are registered, allowing interaction between the extension and VSCode. It is a central place where extension startup and shutdown processes are handled.
-
-
-## `webview-ui` directory
-
-The `webview-ui` directory contains all of the Vue-based webview source code and can be thought of as containing the "frontend" code/logic for the extension webview.
-
-`webview-ui` contains its own `package.json`, `node_modules`, `tsconfig.json`, and so on––separate from the  extension in the root directory.
-
-This strays a bit from other extension structures, in that you'll usually find the extension and webview dependencies, configurations, and source code more closely integrated or combined with each other.
-
-However, in this case, there are some unique benefits and reasons for why this extension does not follow those patterns such as easier management of conflicting dependencies and configurations, as well as the ability to use the Vite dev server, which improves the speed of developing the webview UI, versus recompiling the extension code every time we make a change to the webview.
-
- Extension structure
-
-This section provides a quick introduction into how this sample extension is organized and structured.
-
-The two most important directories to take note of are the following:
-
-- `src`: Contains all of the extension source code
-- `webview-ui`: Contains all of the webview UI source code
-
-## **`src` Directory**
-
-The **`extension.ts`** file contains the logic for activating and deactivating the extension. This file is also where extension commands are registered, allowing interaction between the extension and VSCode. It is a central place where extension startup and shutdown processes are handled.
-
-## `webview-ui` directory
-
-The `webview-ui` directory contains all of the Vue-based webview source code and can be thought of as containing the "frontend" code/logic for the extension webview.
-
-`webview-ui` contains its own `package.json`, `node_modules`, `tsconfig.json`, and so on––separate from the extension in the root directory.
-
-This strays a bit from other extension structures, in that you'll usually find the extension and webview dependencies, configurations, and source code more closely integrated or combined with each other.
-
-However, in this case, there are some unique benefits and reasons for why this extension does not follow those patterns such as easier management of conflicting dependencies and configurations, as well as the ability to use the Vite dev server, which improves the speed of developing the webview UI, versus recompiling the extension code every time we make a change to the webview.
-
-### Subdirectories in `webview-ui`
-
-### Files in `utilities`
-
-- **`helper.ts`**: Contains various utility functions for handling dates, errors, and other common tasks.
-- **`getPipelineLineage.ts`**: Contains functions for parsing pipeline data and retrieving asset dependencies.
-- **`graphGenerator.ts`**: Contains functions for generating graph data from JSON, including upstream and downstream graphs.
-
-- **`components`**: Contains Vue components that are used to build the webview UI. Each component is typically a single file component (SFC) with `.vue` extension.
-  - **`asset`**: Contains components related to asset management. 
-    - **`AssetDetails`**: Contains components for displaying asset details.
-    - **`AssetGeneral`**: Contains components for general asset information.
-    - **`SqlEditor`**: Contains components for SQL editing.
-
-  - **`columns`**: Contains components for managing asset columns.
-  - **`bruin-settings`**: Contains components related to Bruin settings.
-    - **`BruinClI.vue`**: Component for managing Bruin CLI settings.
-    - **`BruinSettings`**: Component for managing general Bruin settings.
-  - **`connections`**: Contains components related to managing connections.
-    - **`ConnectionList`**: Component for displaying a list of connections.
-    - **`ConnectionForm`**: Component for managing connection forms.
-    - **`connectionUtility.ts`**: Utility functions for managing connections.
-    - **`FormField`**: Component for form fields used in connection forms.
-  - **`lineage-flow`**: Contains components for managing lineage flow.
-  - **`lineage-text`**: Contains components for managing lineage text.
-  - **`ui`**: Contains general UI components used throughout the webview.
-
-- **`store`**: Contains a penia store for state management within the webview. This is where the application's state is centralized and managed.
-- **`utilities`**: Contains utility functions and helper modules that are used throughout the webview codebase.
-    - **`helper.ts`**: Contains various utility functions for handling dates, errors, and other common tasks.
-    - **`getPipelineLineage.ts`**: Contains functions for parsing pipeline data and retrieving asset dependencies.
-    - **`graphGenerator.ts`**: Contains functions for generating graph data from JSON, including upstream and downstream graphs.
-
-- **`composables`** : Contains reusable Vue composition functions that encapsulate specific logic and can be used across multiple components.
-  - **`useLineage.ts`**: Handles lineage data, listens for messages from the backend, processes the lineage data, and provides computed properties.
-  - **`useParseAsset.ts`**: Handles asset parsing, listens for messages from the backend, processes the parsing results, and provides reactive properties.
+- **`components/`** — Vue single-file components grouped by feature: `asset`, `connections`, `lineage-flow`, `lineage-text`, `query-output`, `table-diff`, `bruin-settings`, and shared `ui` components.
+- **`store/`** — `bruinStore.ts`, the central Pinia store for webview state.
+- **`composables/`** — reusable composition functions:
+  - **`useLineage.ts`** — listens for lineage messages from the extension, processes the data, and exposes computed properties.
+  - **`useParseAsset.ts`** — listens for asset-parse results and exposes reactive properties.
+- **`utilities/`** — helpers, including `helper.ts` (dates, errors), `getPipelineLineage.ts` (parse pipeline data / asset dependencies), and `graphGenerator.ts` (build upstream/downstream graph data).
+- **`services/`** — e.g. `RudderStackService.ts` (telemetry).
+- **`lib`, `constants`, `types`, `assets`** — supporting modules.
+- Root app components: `App.vue`, `AssetLineage.vue`, `QueryPreviewApp.vue`, `RunHistoryApp.vue`, `TableDiffApp.vue` (one per Vite entry).
