@@ -1,4 +1,7 @@
 # Changelog
+## [0.81.0] - [2026-06-15]
+- Added local backfill support with interval chunking: run backfills directly from the extension by splitting a date range into chunks (daily, weekly, monthly, etc.) with options to stop on first failure. Backfill runs are grouped in the Run History panel as expandable rows showing per-chunk status and progress.
+
 ## [0.80.5] - [2026-06-04]
 - Flattened the run variables UI: variable overrides now appear in an inline panel under the run controls with all variables, defaults, and override inputs visible at once. The "Variable overrides" toggle auto-enables when an override is entered and turns off when the last one is cleared.
 
