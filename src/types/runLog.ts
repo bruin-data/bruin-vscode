@@ -43,9 +43,13 @@ export interface RunLog {
   run_id: string;
   compatibility_hash: string;
   cmdline?: string[];
+  // Written by `bruin run --backfill-id/--backfill-total` so chunk runs of one
+  // local backfill can be grouped together (omitted for normal runs).
+  backfill_id?: string;
+  backfill_total?: number;
 }
 
-export type RunStatus = "succeeded" | "failed" | "running";
+export type RunStatus = "succeeded" | "failed" | "running" | "pending";
 
 export interface RunSummary {
   runId: string;
@@ -60,6 +64,20 @@ export interface RunSummary {
   duration?: string;
   flags?: string[];
   runPath?: string; // The asset/pipeline path from cmdline
+  startDate?: string; // run window start (from parameters)
+  endDate?: string; // run window end (from parameters)
+  backfillId?: string; // backfill_id from the run log, if part of a backfill
+  backfillTotal?: number; // backfill_total from the run log (planned chunk count)
+  // Backfill grouping: a "backfill" summary groups its per-chunk runs in `children`.
+  kind?: "run" | "backfill";
+  children?: RunSummary[];
+  backfill?: BackfillSummary;
+}
+
+export interface BackfillSummary {
+  backfillId: string;
+  totalChunks: number; // planned chunks (from backfill_total); 0 if unknown
+  completedChunks: number; // chunks that produced a run log
 }
 
 // Types for the new -o json output from bruin run

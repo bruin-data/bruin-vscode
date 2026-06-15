@@ -2672,7 +2672,11 @@ suite('Asset Dependencies - Recursive Fetching', () => {
 });
 
 suite("buildBackfillChunks", () => {
-  test("splits a daily range into contiguous one-day windows", () => {
+  // Cloud-aligned: each window ends one tick before the next starts (exclusive),
+  // so the boundary instant belongs to exactly one chunk.
+  const EXCL = "T23:59:59.999999999Z";
+
+  test("splits a daily range into exclusive-ended one-day windows", () => {
     const { chunks, truncated } = buildBackfillChunks(
       "2024-01-01T00:00:00",
       "2024-01-05T00:00:00",
@@ -2681,69 +2685,79 @@ suite("buildBackfillChunks", () => {
 
     expect(truncated).toBe(false);
     expect(chunks).toEqual([
-      { start: "2024-01-01T00:00:00Z", end: "2024-01-02T00:00:00Z" },
-      { start: "2024-01-02T00:00:00Z", end: "2024-01-03T00:00:00Z" },
-      { start: "2024-01-03T00:00:00Z", end: "2024-01-04T00:00:00Z" },
-      { start: "2024-01-04T00:00:00Z", end: "2024-01-05T00:00:00Z" },
+      { start: "2024-01-01T00:00:00Z", end: `2024-01-01${EXCL}` },
+      { start: "2024-01-02T00:00:00Z", end: `2024-01-02${EXCL}` },
+      { start: "2024-01-03T00:00:00Z", end: `2024-01-03${EXCL}` },
+      { start: "2024-01-04T00:00:00Z", end: `2024-01-04${EXCL}` },
     ]);
   });
 
-  test("splits hourly", () => {
+  test("splits hourly with exclusive ends", () => {
     const { chunks } = buildBackfillChunks(
       "2024-01-01T00:00:00",
       "2024-01-01T03:00:00",
       "hourly"
     );
     expect(chunks).toHaveLength(3);
-    expect(chunks[0]).toEqual({ start: "2024-01-01T00:00:00Z", end: "2024-01-01T01:00:00Z" });
-    expect(chunks[2].end).toBe("2024-01-01T03:00:00Z");
+    expect(chunks[0]).toEqual({
+      start: "2024-01-01T00:00:00Z",
+      end: "2024-01-01T00:59:59.999999999Z",
+    });
+    expect(chunks[2]).toEqual({
+      start: "2024-01-01T02:00:00Z",
+      end: "2024-01-01T02:59:59.999999999Z",
+    });
   });
 
-  test("splits weekly", () => {
+  test("splits weekly with exclusive ends", () => {
     const { chunks } = buildBackfillChunks(
       "2024-01-01T00:00:00",
       "2024-01-15T00:00:00",
       "weekly"
     );
-    expect(chunks).toHaveLength(2);
-    expect(chunks[0]).toEqual({ start: "2024-01-01T00:00:00Z", end: "2024-01-08T00:00:00Z" });
-    expect(chunks[1]).toEqual({ start: "2024-01-08T00:00:00Z", end: "2024-01-15T00:00:00Z" });
+    expect(chunks).toEqual([
+      { start: "2024-01-01T00:00:00Z", end: `2024-01-07${EXCL}` },
+      { start: "2024-01-08T00:00:00Z", end: `2024-01-14${EXCL}` },
+    ]);
   });
 
-  test("clamps the final monthly chunk to the end date", () => {
+  test("final partial chunk ends at the user's end date exactly", () => {
     const { chunks } = buildBackfillChunks(
       "2024-01-15T00:00:00",
       "2024-03-10T00:00:00",
       "monthly"
     );
     expect(chunks).toEqual([
-      { start: "2024-01-15T00:00:00Z", end: "2024-02-15T00:00:00Z" },
+      { start: "2024-01-15T00:00:00Z", end: `2024-02-14${EXCL}` },
+      // partial last window stops at the requested end, not an exclusive tick
       { start: "2024-02-15T00:00:00Z", end: "2024-03-10T00:00:00Z" },
     ]);
   });
 
-  test("chunks are contiguous (each end equals the next start)", () => {
+  test("windows do not overlap — each end is strictly before the next start", () => {
     const { chunks } = buildBackfillChunks(
       "2024-01-01T00:00:00",
       "2024-01-06T12:00:00",
       "daily"
     );
     for (let i = 1; i < chunks.length; i++) {
-      expect(chunks[i].start).toBe(chunks[i - 1].end);
+      expect(new Date(chunks[i].start).getTime()).toBeGreaterThan(
+        new Date(chunks[i - 1].end).getTime()
+      );
     }
     // last chunk reaches the requested end exactly
     expect(chunks[chunks.length - 1].end).toBe("2024-01-06T12:00:00Z");
   });
 
-  test("emits ISO boundaries with a trailing Z and no milliseconds", () => {
+  test("starts are clean Z boundaries; full-window ends are exclusive", () => {
     const { chunks } = buildBackfillChunks(
       "2024-01-01T00:00:00.000",
-      "2024-01-02T00:00:00.000",
+      "2024-01-03T00:00:00.000",
       "daily"
     );
-    expect(chunks).toHaveLength(1);
-    expect(chunks[0].start).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
-    expect(chunks[0].end).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+    expect(chunks).toHaveLength(2);
+    expect(chunks[0].start).toMatch(/^\d{4}-\d{2}-\d{2}T00:00:00Z$/);
+    expect(chunks[0].end).toMatch(/^\d{4}-\d{2}-\d{2}T23:59:59\.999999999Z$/);
   });
 
   test("returns no chunks when end is before or equal to start", () => {

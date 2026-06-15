@@ -84,15 +84,23 @@
               <td class="w-7 px-1">
                 <span
                   class="flex items-center justify-center w-[16px] h-[16px] rounded-full"
-                  :class="run.status === 'succeeded'
-                    ? 'bg-[--vscode-testing-iconPassed] text-editor-bg'
-                    : 'bg-[--vscode-testing-iconFailed] text-editor-bg'"
+                  :class="statusCircleClass(run.status)"
                 >
-                  <span class="codicon text-[10px]" :class="statusIcon(run.status)"></span>
+                  <span
+                    class="codicon text-[10px]"
+                    :class="[statusIcon(run.status), run.status === 'running' ? 'animate-spin' : '']"
+                  ></span>
                 </span>
               </td>
               <td class="w-[90px] px-2 py-2">
-                <span class="font-mono text-[10px] text-descriptionForeground">{{ run.runId }}</span>
+                <span class="flex items-center gap-1">
+                  <span
+                    v-if="run.kind === 'backfill'"
+                    class="codicon codicon-history text-[10px] text-[--vscode-textLink-foreground]"
+                    title="Backfill"
+                  ></span>
+                  <span class="font-mono text-[10px] text-descriptionForeground truncate max-w-[80px]" :title="run.runId">{{ run.runId }}</span>
+                </span>
               </td>
               <td class="min-w-[80px] px-2 py-2">
                 <span class="font-medium block max-w-[120px] truncate">{{ run.pipeline }}</span>
@@ -150,6 +158,47 @@
             <tr v-if="expandedRun === run.runId" class="expanded-details-row">
               <td colspan="7" class="p-0">
                 <div class="mx-2 my-2 rounded border border-panel-border bg-sideBar-bg shadow-sm overflow-hidden">
+                  <!-- Backfill: list the chunk runs with their window + status -->
+                  <template v-if="run.kind === 'backfill'">
+                    <div class="flex items-center justify-between px-3 py-1.5 bg-editor-bg border-b border-panel-border">
+                      <span class="text-[10px] text-descriptionForeground font-medium uppercase tracking-wide">
+                        Chunks ({{ run.backfill?.completedChunks ?? 0 }}/{{ run.backfill?.totalChunks ?? (run.children || []).length }})
+                      </span>
+                    </div>
+                    <div class="p-2 flex flex-col gap-1">
+                      <div
+                        v-for="(child, ci) in (run.children || [])"
+                        :key="ci"
+                        class="flex items-center gap-2 px-2 py-1 rounded text-[11px] bg-editor-bg"
+                      >
+                        <span
+                          class="flex items-center justify-center w-[14px] h-[14px] rounded-full flex-shrink-0"
+                          :class="statusCircleClass(child.status)"
+                        >
+                          <span
+                            class="codicon text-[9px]"
+                            :class="[statusIcon(child.status), child.status === 'running' ? 'animate-spin' : '']"
+                          ></span>
+                        </span>
+                        <span class="text-descriptionForeground w-5 text-right flex-shrink-0">{{ ci + 1 }}</span>
+                        <span class="font-mono flex-1 min-w-0 truncate">{{ formatWindow(child.startDate, child.endDate) }}</span>
+                        <span class="text-[10px] capitalize flex-shrink-0" :class="childStatusTextClass(child.status)">
+                          {{ child.status }}
+                        </span>
+                      </div>
+                      <!-- Chunks not yet logged (still running / not started) -->
+                      <div
+                        v-if="pendingChunkCount(run) > 0"
+                        class="flex items-center gap-2 px-2 py-1 text-[11px] text-descriptionForeground italic"
+                      >
+                        <span class="codicon codicon-circle-outline text-[9px] flex-shrink-0"></span>
+                        <span>{{ pendingChunkCount(run) }} more pending…</span>
+                      </div>
+                    </div>
+                  </template>
+
+                  <!-- Regular run -->
+                  <template v-else>
                   <!-- Loading state -->
                   <div v-if="!runDetails" class="py-6 text-center">
                     <span class="codicon codicon-loading animate-spin"></span>
@@ -210,6 +259,7 @@
                       </div>
                     </div>
                   </template>
+                  </template>
                 </div>
               </td>
             </tr>
@@ -223,6 +273,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { vscode } from "./utilities/vscode";
+import { formatBackfillBoundary } from "./utilities/helper";
 
 const ASSETS_LIMIT = 6;
 
@@ -254,6 +305,12 @@ interface RunDetails {
   cmdline?: string[];
 }
 
+interface BackfillSummary {
+  backfillId: string;
+  totalChunks: number;
+  completedChunks: number;
+}
+
 interface RunSummary {
   runId: string;
   pipeline: string;
@@ -266,6 +323,11 @@ interface RunSummary {
   filePath: string;
   flags?: string[];
   runPath?: string;
+  startDate?: string;
+  endDate?: string;
+  kind?: "run" | "backfill";
+  children?: RunSummary[];
+  backfill?: BackfillSummary;
 }
 
 const runs = ref<RunSummary[]>([]);
@@ -338,6 +400,9 @@ const toggleExpand = (run: RunSummary) => {
   } else {
     expandedRun.value = run.runId;
     showAllAssets.value = false;
+    runDetails.value = null;
+    // Backfill rows expand to their chunk children inline — no log to fetch.
+    if (run.kind === "backfill") return;
     vscode.postMessage({
       command: "bruin.getRunDetails",
       payload: { filePath: run.filePath },
@@ -373,8 +438,35 @@ const rerunCommand = () => {
 };
 
 const statusIcon = (status: string) => {
-  return status === "succeeded" ? "codicon-pass-filled" : "codicon-close";
+  if (status === "succeeded") return "codicon-pass-filled";
+  if (status === "running") return "codicon-sync";
+  if (status === "pending") return "codicon-circle-outline";
+  return "codicon-close";
 };
+
+// Background colour for the status circle, covering backfill in-progress states.
+const statusCircleClass = (status: string) => {
+  if (status === "succeeded") return "bg-[--vscode-testing-iconPassed] text-editor-bg";
+  if (status === "failed") return "bg-[--vscode-testing-iconFailed] text-editor-bg";
+  // running / pending
+  return "bg-[--vscode-testing-iconQueued] text-editor-bg";
+};
+
+// Chunks the backfill plans (backfill_total) that haven't produced a log yet.
+const pendingChunkCount = (run: RunSummary): number => {
+  const total = run.backfill?.totalChunks ?? 0;
+  const done = run.backfill?.completedChunks ?? (run.children || []).length;
+  return Math.max(0, total - done);
+};
+
+const childStatusTextClass = (status: string) => {
+  if (status === "succeeded") return "text-[--vscode-testing-iconPassed]";
+  if (status === "failed") return "text-[--vscode-testing-iconFailed]";
+  return "text-descriptionForeground";
+};
+
+const formatWindow = (start?: string, end?: string) =>
+  `${formatBackfillBoundary(start)} → ${formatBackfillBoundary(end)}`;
 
 const assetStatusIconClass = (status: string) => {
   if (status === "succeeded") {

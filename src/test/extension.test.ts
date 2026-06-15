@@ -27,6 +27,8 @@ import {
 } from "../utilities/helperUtils";
 import * as configuration from "../extension/configuration";
 import * as bruinUtils from "../bruin/bruinUtils";
+import { groupBackfillRuns } from "../bruin/backfillGrouping";
+import { RunSummary } from "../types/runLog";
 import * as fs from "fs";
 import path = require("path");
 import sinon = require("sinon");
@@ -7751,122 +7753,200 @@ suite("Utility Functions Tests", () => {
   });
 });
 
-suite("buildBackfillCommand", () => {
+
+suite("buildBackfillScript", () => {
   const chunks = [
     { start: "2024-01-01T00:00:00Z", end: "2024-01-02T00:00:00Z" },
     { start: "2024-01-02T00:00:00Z", end: "2024-01-03T00:00:00Z" },
     { start: "2024-01-03T00:00:00Z", end: "2024-01-04T00:00:00Z" },
   ];
 
-  test("should chain chunks with && when stopOnFailure is true", () => {
-    const result = (bruinUtils as any).buildBackfillCommand(
+  test("bash + stop-on-failure: shebang, set -e, one tagged command per chunk", () => {
+    const result = (bruinUtils as any).buildBackfillScript(
       "bruin",
       chunks,
       "--environment default",
       '"/path/to/asset.sql"',
       true,
+      "bf_test",
       true
     );
+    const lines = result.trimEnd().split("\n");
 
-    const expected = `bruin run --environment default --start-date 2024-01-01T00:00:00Z --end-date 2024-01-02T00:00:00Z "/path/to/asset.sql" && \\
-bruin run --environment default --start-date 2024-01-02T00:00:00Z --end-date 2024-01-03T00:00:00Z "/path/to/asset.sql" && \\
-bruin run --environment default --start-date 2024-01-03T00:00:00Z --end-date 2024-01-04T00:00:00Z "/path/to/asset.sql"`;
-
-    assert.strictEqual(result, expected, "Should chain with && for stop-on-failure");
+    assert.strictEqual(lines[0], "#!/usr/bin/env bash");
+    assert.strictEqual(lines[1], "set -e", "stop-on-failure uses set -e");
+    const runLines = lines.filter((l: string) => l.startsWith("bruin run"));
+    assert.strictEqual(runLines.length, 3, "one bruin run per chunk");
+    chunks.forEach((c, i) => {
+      assert.ok(runLines[i].includes("--backfill-id bf_test"), `chunk ${i} has backfill id`);
+      assert.ok(runLines[i].includes("--backfill-total 3"), `chunk ${i} has backfill total`);
+      assert.ok(runLines[i].includes(`--start-date ${c.start}`), `chunk ${i} start`);
+      assert.ok(runLines[i].includes(`--end-date ${c.end}`), `chunk ${i} end`);
+      assert.ok(runLines[i].endsWith('"/path/to/asset.sql"'), `chunk ${i} asset path`);
+    });
+    // No chained '&&' / line-continuation '\' — that's the whole point of the script.
+    assert.ok(!result.includes("&&") && !result.includes("\\\n"), "no chaining/continuation");
   });
 
-  test("should chain chunks with ; when stopOnFailure is false", () => {
-    const result = (bruinUtils as any).buildBackfillCommand(
+  test("bash + run-all: omits set -e", () => {
+    const result = (bruinUtils as any).buildBackfillScript(
       "bruin",
       chunks,
       "",
       '"/path/to/asset.sql"',
       false,
+      "bf_test",
       true
     );
-
-    const expected = `bruin run --start-date 2024-01-01T00:00:00Z --end-date 2024-01-02T00:00:00Z "/path/to/asset.sql" ; \\
-bruin run --start-date 2024-01-02T00:00:00Z --end-date 2024-01-03T00:00:00Z "/path/to/asset.sql" ; \\
-bruin run --start-date 2024-01-03T00:00:00Z --end-date 2024-01-04T00:00:00Z "/path/to/asset.sql"`;
-
-    assert.strictEqual(result, expected, "Should chain with ; for run-all");
-  });
-
-  test("should produce a single command with no separator for one chunk", () => {
-    const result = (bruinUtils as any).buildBackfillCommand(
-      "bruin",
-      [chunks[0]],
-      "--environment default",
-      '"/path/to/asset.sql"',
-      true,
-      true
+    assert.ok(!result.includes("set -e"), "run-all must not set -e");
+    assert.strictEqual(
+      result.split("\n").filter((l: string) => l.startsWith("bruin run")).length,
+      3
     );
-
-    const expected =
-      'bruin run --environment default --start-date 2024-01-01T00:00:00Z --end-date 2024-01-02T00:00:00Z "/path/to/asset.sql"';
-
-    assert.strictEqual(result, expected, "Single chunk should have no separator/continuation");
   });
 
-  test("should sequence with ; and backtick continuation on non-unix shells even when stopOnFailure is true", () => {
-    const result = (bruinUtils as any).buildBackfillCommand(
+  test("powershell + stop-on-failure: $LASTEXITCODE guard after each command", () => {
+    const result = (bruinUtils as any).buildBackfillScript(
       "bruin",
       [chunks[0], chunks[1]],
       "",
       '"/path/to/asset.sql"',
       true,
+      "bf_test",
       false
     );
-
-    const expected = `bruin run --start-date 2024-01-01T00:00:00Z --end-date 2024-01-02T00:00:00Z "/path/to/asset.sql" ; \`
-bruin run --start-date 2024-01-02T00:00:00Z --end-date 2024-01-03T00:00:00Z "/path/to/asset.sql"`;
-
-    assert.strictEqual(
-      result,
-      expected,
-      "Legacy PowerShell lacks &&, so sequence with ; and backtick continuation"
-    );
+    const guards = result.split("\n").filter((l: string) => l.includes("$LASTEXITCODE"));
+    assert.strictEqual(guards.length, 2, "one exit-code guard per chunk");
+    assert.strictEqual(guards[0], "if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }");
   });
 
-  test("should never inject --full-refresh", () => {
-    const result = (bruinUtils as any).buildBackfillCommand(
+  test("never injects --full-refresh", () => {
+    const result = (bruinUtils as any).buildBackfillScript(
       "bruin",
       chunks,
       "--environment default",
       '"/path/to/asset.sql"',
       true,
+      "bf_test",
       true
     );
-
     assert.ok(
       !result.includes("--full-refresh"),
       "Backfill must not pass --full-refresh (it would ignore the chunk window)"
     );
   });
+});
 
-  test("should put each chunk's window, base flags, and asset path on every command", () => {
-    const result = (bruinUtils as any).buildBackfillCommand(
-      "bruin",
-      chunks,
-      "--push-metadata",
-      '"/path/to/asset.sql"',
-      true,
-      true
-    );
+suite("groupBackfillRuns", () => {
+  const makeRun = (over: Partial<RunSummary>): RunSummary => ({
+    runId: "r",
+    pipeline: "p",
+    timestamp: "2026-06-09T12:05:00.000Z",
+    status: "succeeded",
+    totalAssets: 1,
+    succeededAssets: 1,
+    failedAssets: 0,
+    environment: "prod",
+    filePath: `/logs/${Math.random()}`,
+    runPath: "/abs/asset.sql",
+    startDate: "2024-01-01T00:00:00Z",
+    endDate: "2024-01-02T00:00:00Z",
+    ...over,
+  });
 
-    const lines = result.split("\n");
-    assert.strictEqual(lines.length, 3, "One line per chunk");
-    chunks.forEach((chunk: { start: string; end: string }, i: number) => {
-      assert.ok(lines[i].includes(`--start-date ${chunk.start}`), `chunk ${i} has its start-date`);
-      assert.ok(lines[i].includes(`--end-date ${chunk.end}`), `chunk ${i} has its end-date`);
-      assert.ok(lines[i].includes("--push-metadata"), `chunk ${i} keeps base flags`);
-      // asset path comes after the dates on every line (non-last lines are then
-      // followed by the separator + line-continuation, so use includes, not endsWith).
-      assert.ok(
-        lines[i].indexOf('"/path/to/asset.sql"') > lines[i].indexOf(`--end-date ${chunk.end}`),
-        `chunk ${i} has the asset path after its window`
-      );
-    });
-    assert.ok(lines[2].trim().endsWith('"/path/to/asset.sql"'), "last line ends with asset path");
+  test("groups runs sharing a backfill_id into one backfill row; others pass through", () => {
+    const runs: RunSummary[] = [
+      makeRun({ filePath: "/logs/a", backfillId: "bf_1", backfillTotal: 3, startDate: "2024-01-01T00:00:00Z" }),
+      makeRun({ filePath: "/logs/b", backfillId: "bf_1", backfillTotal: 3, startDate: "2024-01-02T00:00:00Z" }),
+      makeRun({ filePath: "/logs/c", backfillId: "bf_1", backfillTotal: 3, startDate: "2024-01-03T00:00:00Z" }),
+      makeRun({ filePath: "/logs/plain" }), // no backfill_id
+    ];
+
+    const result = groupBackfillRuns(runs);
+    const backfills = result.filter((r) => r.kind === "backfill");
+    const plain = result.filter((r) => r.kind !== "backfill");
+
+    assert.strictEqual(backfills.length, 1, "one grouped backfill row");
+    assert.strictEqual(plain.length, 1, "the non-backfill run passes through");
+    const bf = backfills[0];
+    assert.strictEqual(bf.runId, "bf_1");
+    assert.strictEqual(bf.status, "succeeded");
+    assert.strictEqual(bf.children?.length, 3);
+    assert.strictEqual(bf.backfill?.completedChunks, 3);
+    assert.strictEqual(bf.backfill?.totalChunks, 3);
+  });
+
+  test("reports running while fewer logs than backfill_total have landed", () => {
+    const runs: RunSummary[] = [
+      makeRun({ filePath: "/logs/a", backfillId: "bf_1", backfillTotal: 24, startDate: "2024-01-01T00:00:00Z" }),
+      makeRun({ filePath: "/logs/b", backfillId: "bf_1", backfillTotal: 24, startDate: "2024-01-02T00:00:00Z" }),
+    ];
+
+    const bf = groupBackfillRuns(runs).find((r) => r.kind === "backfill")!;
+    assert.strictEqual(bf.status, "running");
+    assert.strictEqual(bf.backfill?.completedChunks, 2);
+    assert.strictEqual(bf.backfill?.totalChunks, 24);
+  });
+
+  test("rolls up to failed when any chunk failed", () => {
+    const runs: RunSummary[] = [
+      makeRun({ filePath: "/logs/a", backfillId: "bf_1", backfillTotal: 2, startDate: "2024-01-01T00:00:00Z" }),
+      makeRun({
+        filePath: "/logs/b",
+        backfillId: "bf_1",
+        backfillTotal: 2,
+        startDate: "2024-01-02T00:00:00Z",
+        status: "failed",
+        succeededAssets: 0,
+        failedAssets: 1,
+      }),
+    ];
+
+    const bf = groupBackfillRuns(runs).find((r) => r.kind === "backfill")!;
+    assert.strictEqual(bf.status, "failed");
+    assert.strictEqual(bf.failedAssets, 1);
+  });
+
+  test("falls back to observed count when backfill_total is absent", () => {
+    const runs: RunSummary[] = [
+      makeRun({ filePath: "/logs/a", backfillId: "bf_1", startDate: "2024-01-01T00:00:00Z" }),
+      makeRun({ filePath: "/logs/b", backfillId: "bf_1", startDate: "2024-01-02T00:00:00Z" }),
+    ];
+
+    const bf = groupBackfillRuns(runs).find((r) => r.kind === "backfill")!;
+    assert.strictEqual(bf.backfill?.totalChunks, 2, "total falls back to children count");
+    assert.strictEqual(bf.status, "succeeded");
+  });
+
+  test("leaves a plain run list untouched", () => {
+    const runs: RunSummary[] = [makeRun({ filePath: "/logs/a" })];
+    const result = groupBackfillRuns(runs);
+    assert.strictEqual(result.length, 1);
+    assert.strictEqual(result[0].kind, undefined);
+  });
+});
+
+suite("backfill CLI version guard", () => {
+  const parseVersion = (bruinUtils as any).parseVersion;
+  const versionGte = (bruinUtils as any).versionGte;
+  const MIN = (bruinUtils as any).BACKFILL_MIN_CLI_VERSION;
+
+  test("minimum is v0.11.624", () => {
+    assert.strictEqual(MIN, "0.11.624");
+  });
+
+  test("v0.11.624 and newer support the backfill flags", () => {
+    const min = parseVersion(MIN);
+    assert.ok(versionGte(parseVersion("0.11.624"), min));
+    assert.ok(versionGte(parseVersion("0.11.700"), min));
+    assert.ok(versionGte(parseVersion("0.12.0"), min));
+    assert.ok(versionGte(parseVersion("1.0.0"), min));
+  });
+
+  test("older versions do not", () => {
+    const min = parseVersion(MIN);
+    assert.ok(!versionGte(parseVersion("0.11.623"), min));
+    assert.ok(!versionGte(parseVersion("0.11.0"), min));
+    assert.ok(!versionGte(parseVersion("0.10.999"), min));
   });
 });

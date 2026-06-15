@@ -77,13 +77,15 @@ const GRANULARITY_DURATIONS: Record<BackfillGranularity, Record<string, number>>
 };
 
 /**
- * Splits a date range into contiguous chunk windows for a local backfill.
+ * Splits a date range into chunk windows for a local backfill, matching the
+ * cloud backfill's `splitIntervals` semantics.
  *
- * Each chunk is `[cursor, min(cursor + granularity, end)]`. Chunks are
- * contiguous (chunk N's end equals chunk N+1's start), mirroring how the
- * cloud backfill steps through intervals. Boundaries are emitted as ISO
- * strings with a trailing `Z` so they match the format the rest of the run
- * flow sends to the CLI (e.g. `2024-01-01T00:00:00Z`).
+ * Each window starts at the step boundary and ends one tick *before* the next
+ * window starts (an exclusive end, e.g. `…T23:59:59.999999999Z`), so the
+ * boundary instant belongs to exactly one chunk — no double-counting. The next
+ * window's start is the full step boundary. The final partial window ends at
+ * the user's `endDate` exactly. This mirrors cloud:
+ *   intervalEnd = start + step - 1 tick;  end = min(intervalEnd, endDate)
  *
  * Returns `{ chunks, truncated }` where `truncated` is true when the range
  * produced more than MAX_BACKFILL_CHUNKS windows and was cut short.
@@ -106,19 +108,22 @@ export const buildBackfillChunks = (
   let truncated = false;
 
   while (cursor < end) {
-    let next = cursor.plus(step);
-    if (next > end) {
-      next = end;
-    }
+    const fullNext = cursor.plus(step);
+    // Full window → exclusive end (one tick before the next start). Final
+    // partial window → the user's end exactly. min(intervalEnd, end), cloud-style.
+    const chunkEnd =
+      fullNext <= end
+        ? adjustEndDateForExclusive(toBackfillBoundary(fullNext))
+        : toBackfillBoundary(end);
     chunks.push({
       start: toBackfillBoundary(cursor),
-      end: toBackfillBoundary(next),
+      end: chunkEnd,
     });
-    if (chunks.length >= MAX_BACKFILL_CHUNKS && next < end) {
+    if (chunks.length >= MAX_BACKFILL_CHUNKS && fullNext < end) {
       truncated = true;
       break;
     }
-    cursor = next;
+    cursor = fullNext;
   }
 
   return { chunks, truncated };
@@ -127,6 +132,19 @@ export const buildBackfillChunks = (
 const toBackfillBoundary = (dt: DateTime): string => {
   // Match concatCommandFlags: emit ISO with a trailing Z, no fractional seconds.
   return dt.toUTC().toISO({ suppressMilliseconds: true, includeOffset: false }) + "Z";
+};
+
+/**
+ * Formats a backfill chunk-window boundary (ISO) for display: date-only when
+ * it lands on midnight, otherwise with the time. UTC, Luxon-based.
+ */
+export const formatBackfillBoundary = (iso?: string): string => {
+  if (!iso) return "?";
+  const dt = DateTime.fromISO(iso, { zone: "utc" });
+  if (!dt.isValid) return iso;
+  return dt.hour === 0 && dt.minute === 0
+    ? dt.toFormat("yyyy-MM-dd")
+    : dt.toFormat("yyyy-MM-dd HH:mm");
 };
 
 export const handleError = (validationError: any | null, renderSQLAssetError: any | null) => {

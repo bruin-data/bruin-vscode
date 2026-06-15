@@ -417,47 +417,83 @@ export interface BackfillChunk {
 }
 
 /**
- * Builds a single chained shell command that runs `bruin run` once per chunk,
- * each with its own --start-date/--end-date window.
+ * Builds the contents of a backfill script: `bruin run` once per chunk, each
+ * with its own --start-date/--end-date window, one command per line.
+ *
+ * A script (rather than one long chained `&&` command sent to the terminal) is
+ * used because a backfill can produce dozens of chunks — a multi-kilobyte
+ * single command with line continuations overflows the terminal's line input
+ * and gets corrupted. The terminal only ever receives a short `bash <script>`.
+ *
+ * Stop-on-failure: bash uses `set -e`; PowerShell checks `$LASTEXITCODE` after
+ * each command (so it's honored everywhere, not just on `&&`-capable shells).
  *
  * Note: backfill deliberately does NOT pass `--full-refresh`. The CLI ignores
  * the chunk window under full-refresh and reloads from the pipeline's
  * start_date, which would defeat interval chunking. Correct re-runs of a window
  * rely on the asset's incremental strategy (merge / delete+insert / time_interval).
- *
- * Chunks are joined with `&&` when `stopOnFailure` is set (abort on the first
- * failed window) or `;` otherwise (run every window regardless). On non-unix
- * shells we sequence with `;` since legacy PowerShell lacks `&&`.
  */
-export const buildBackfillCommand = (
+export const buildBackfillScript = (
   executable: string,
   chunks: BackfillChunk[],
   flags: string,
   assetPath: string,
   stopOnFailure: boolean,
+  backfillId: string,
   useUnixFormatting: boolean = true
 ): string => {
   const baseFlags = (flags || "").trim();
-  const separator = !useUnixFormatting ? " ;" : stopOnFailure ? " &&" : " ;";
-  const continuationChar = useUnixFormatting ? " \\" : " `";
-
-  const lines = chunks.map((chunk) => {
+  // --backfill-id/--backfill-total tag every chunk's run log so the Run History
+  // panel can group them back into one backfill entry.
+  const commandFor = (chunk: BackfillChunk): string => {
     const parts = [executable, BRUIN_RUN_SQL_COMMAND];
     if (baseFlags.length > 0) {
       parts.push(baseFlags);
     }
+    parts.push(`--backfill-id ${backfillId}`);
+    parts.push(`--backfill-total ${chunks.length}`);
     parts.push(`--start-date ${chunk.start}`);
     parts.push(`--end-date ${chunk.end}`);
     parts.push(assetPath);
     return parts.join(" ");
-  });
+  };
 
-  // Join with `<sep> <continuation>\n` between lines for a readable script.
-  return lines
-    .map((line, index) =>
-      index === lines.length - 1 ? line : `${line}${separator}${continuationChar}\n`
-    )
-    .join("");
+  if (useUnixFormatting) {
+    const lines = ["#!/usr/bin/env bash"];
+    if (stopOnFailure) {
+      lines.push("set -e");
+    }
+    lines.push(`echo "Running Bruin backfill (${chunks.length} chunks)..."`);
+    for (const chunk of chunks) {
+      lines.push(commandFor(chunk));
+    }
+    return lines.join("\n") + "\n";
+  }
+
+  // PowerShell: emulate stop-on-failure by checking the exit code after each.
+  const lines: string[] = [`Write-Host "Running Bruin backfill (${chunks.length} chunks)..."`];
+  for (const chunk of chunks) {
+    lines.push(commandFor(chunk));
+    if (stopOnFailure) {
+      lines.push("if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }");
+    }
+  }
+  return lines.join("\n") + "\n";
+};
+
+/**
+ * Writes a backfill script to the OS temp dir and returns its path. The
+ * extension is the file's only writer; it is read once by the shell.
+ */
+export const writeBackfillScript = async (
+  scriptId: string,
+  content: string,
+  useUnixFormatting: boolean
+): Promise<string> => {
+  const ext = useUnixFormatting ? "sh" : "ps1";
+  const scriptPath = path.join(os.tmpdir(), `bruin-backfill-${scriptId}.${ext}`);
+  await fs.promises.writeFile(scriptPath, content, { encoding: "utf-8", mode: 0o755 });
+  return scriptPath;
 };
 
 /**
@@ -485,19 +521,31 @@ export const runBackfillInTerminal = async (
     ? "bruin"
     : bruinExecutable;
 
-  const command = buildBackfillCommand(
+  // One id shared by every chunk's run log; the CLI stamps it via --backfill-id
+  // so the Run History panel can group the chunk runs back together.
+  const backfillId = `bf_${Date.now()}`;
+
+  const scriptContent = buildBackfillScript(
     executable,
     chunks,
     flags || "",
     escapedAssetPath,
     stopOnFailure,
+    backfillId,
     useUnixFormatting
   );
+
+  // Run via a script file rather than a long chained command: dozens of chunks
+  // would overflow the terminal's line input and corrupt the pasted command.
+  const scriptPath = await writeBackfillScript(backfillId, scriptContent, useUnixFormatting);
+  const runCommand = useUnixFormatting
+    ? `bash "${scriptPath}"`
+    : `powershell -ExecutionPolicy Bypass -File "${scriptPath}"`;
 
   terminal.show(true);
   terminal.sendText(" ");
   setTimeout(() => {
-    terminal.sendText(command);
+    terminal.sendText(runCommand);
   }, 500);
   await new Promise((resolve) => setTimeout(resolve, 1000));
 };
@@ -617,6 +665,29 @@ export async function getBruinVersion(): Promise<{ version: string; latest: stri
   } catch (error) {
     console.error(`Version check failed: ${error instanceof Error ? error.message : error}`);
     return null;
+  }
+}
+
+// Minimum Bruin CLI version that supports the backfill run flags
+// (--backfill-id / --backfill-total). Older CLIs reject them with
+// "flag provided but not defined", which would break a local backfill.
+export const BACKFILL_MIN_CLI_VERSION = "0.11.624";
+
+/**
+ * Returns true if the installed Bruin CLI supports the backfill flags.
+ * Errs on the side of allowing: only a positively-parsed version below the
+ * minimum blocks. An unknown / non-semver (e.g. "dev") build is assumed to
+ * support them, so local dev builds aren't falsely blocked.
+ */
+export async function supportsBackfillFlags(): Promise<boolean> {
+  const info = await getBruinVersion();
+  if (!info?.version) {
+    return true;
+  }
+  try {
+    return versionGte(parseVersion(info.version), parseVersion(BACKFILL_MIN_CLI_VERSION));
+  } catch {
+    return true;
   }
 }
 
