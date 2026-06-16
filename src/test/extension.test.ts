@@ -4565,14 +4565,19 @@ suite(" Query export Tests", () => {
         });
       });
 
-      test("should not post message when view is not visible", () => {
+      test("should post message even when view is not visible (retainContextWhenHidden keeps it current)", () => {
         const testData = { status: "success", message: "test data" };
         baseLineagePanel._view = mockWebviewView;
         sinon.stub(mockWebviewView, "visible").value(false);
-        
+
         baseLineagePanel.onDataUpdated(testData);
-        
-        sinon.assert.notCalled(postMessageStub);
+
+        sinon.assert.calledOnce(postMessageStub);
+        sinon.assert.calledWith(postMessageStub, {
+          command: "flow-lineage-message",
+          payload: testData,
+          panelType: "TestPanel"
+        });
       });
 
       test("should not post message when view is undefined", () => {

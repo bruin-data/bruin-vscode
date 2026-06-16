@@ -160,7 +160,11 @@ export abstract class BaseLineagePanel implements vscode.WebviewViewProvider, vs
   };
 
   protected onDataUpdated(data: any) {
-    if (this._view && this._view.visible) {
+    // Post even when the view is hidden: with retainContextWhenHidden the
+    // webview stays alive, so keeping it current while hidden means reopening
+    // the panel shows the right asset immediately instead of briefly flashing
+    // the previously rendered graph before jumping to the new one.
+    if (this._view) {
       this._view.webview.postMessage({
         command: "flow-lineage-message",
         payload: data,
