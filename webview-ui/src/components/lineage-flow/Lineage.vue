@@ -600,7 +600,9 @@ const onAddUpstream = async (nodeId: string) => {
   setEdges(layoutedData.edges);
   await nextTick();
   isLayouting.value = false;
-  await fitViewSmooth(false, false); 
+  // Force an (animated) fit so the viewport zooms out to reveal the newly
+  // expanded upstream nodes — otherwise they're added off-screen.
+  await fitViewSmooth(true, true);
   // Bump version so the next full recompute reflows with correct left/right ordering
   assetGraphVersion.value++;
 };
@@ -629,7 +631,9 @@ const onAddDownstream = async (nodeId: string) => {
   setEdges(layoutedData.edges);
   await nextTick();
   isLayouting.value = false;
-  await fitViewSmooth(false, false); 
+  // Force an (animated) fit so the viewport zooms out to reveal the newly
+  // expanded downstream nodes — otherwise they're added off-screen.
+  await fitViewSmooth(true, true);
   assetGraphVersion.value++;
 };
 

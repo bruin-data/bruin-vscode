@@ -1,4 +1,9 @@
 # Changelog
+## [0.81.1] - [2026-06-16]
+- Fixed lineage panel performance: switching files no longer reloads the whole webview or leaks listeners (which made the panel progressively slower over a session), and per-keystroke parsing is now debounced.
+- Retained the lineage webview while hidden so reopening the panel is instant and lands on the current asset instead of briefly showing the previously rendered graph.
+- Fixed the lineage `+` expand button so the view zooms out to reveal newly added upstream/downstream nodes instead of leaving them off-screen.
+
 ## [0.81.0] - [2026-06-15]
 - Added local backfill support with interval chunking: run backfills directly from the extension by splitting a date range into chunks (daily, weekly, monthly, etc.) with options to stop on first failure. Backfill runs are grouped in the Run History panel as expandable rows showing per-chunk status and progress.
 
