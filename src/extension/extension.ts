@@ -252,7 +252,11 @@ export async function activate(context: ExtensionContext) {
   const queryPreviewWebviewProvider = new QueryPreviewPanel(context.extensionUri, context);
 
   context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider(AssetLineagePanel.viewId, assetLineagePanel),
+    vscode.window.registerWebviewViewProvider(AssetLineagePanel.viewId, assetLineagePanel, {
+      // Keep the lineage webview alive while hidden so switching panels and
+      // coming back is instant instead of rebuilding the whole Vue app.
+      webviewOptions: { retainContextWhenHidden: true },
+    }),
     window.registerWebviewViewProvider(QueryPreviewPanel.viewId, queryPreviewWebviewProvider)
   );
 
