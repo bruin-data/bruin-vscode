@@ -234,7 +234,9 @@ describe("Ingestr Asset Display Integration Tests", function () {
   let testAssetFilePath: string;
 
   before(async function () {
-    this.timeout(180000); // Increase timeout for CI
+    // Allow several setup attempts (each drives a real VS Code + webview and
+    // can take ~1 min) before giving up.
+    this.timeout(420000);
 
     // Coordinate with other tests to prevent resource conflicts
     await TestCoordinator.acquireTestSlot("Ingestr Asset Display Integration Tests");
@@ -244,7 +246,13 @@ describe("Ingestr Asset Display Integration Tests", function () {
     const repoRoot = process.env.REPO_ROOT || path.resolve(__dirname, "../../");
     testWorkspacePath = path.join(repoRoot, "out", "ui-test", "test-pipeline");
     testAssetFilePath = path.join(testWorkspacePath, "assets", "test-ingestr.asset.yml");
-    
+
+    // The webview setup below intermittently fails in CI — the Bruin panel /
+    // ingestr component occasionally doesn't finish rendering before the wait
+    // times out. Mocha's `retries` does NOT re-run failed `before all` hooks,
+    // so retry the whole setup here to absorb a one-off blip rather than
+    // failing the entire suite.
+    const runIngestrSetup = async () => {
     // Aggressively disable walkthrough and welcome screens
     try {
       // Close all editors first
@@ -642,6 +650,32 @@ describe("Ingestr Asset Display Integration Tests", function () {
 
     // Wait for the Ingestr component to be fully loaded
     await waitForIngestrComponent(driver);
+    };
+
+    const MAX_SETUP_ATTEMPTS = 3;
+    let lastSetupError: any;
+    for (let attempt = 1; attempt <= MAX_SETUP_ATTEMPTS; attempt++) {
+      try {
+        await runIngestrSetup();
+        lastSetupError = undefined;
+        break;
+      } catch (err: any) {
+        lastSetupError = err;
+        console.log(
+          `Ingestr webview setup attempt ${attempt}/${MAX_SETUP_ATTEMPTS} failed: ${err?.message ?? err}`
+        );
+        // Return to the top-level DOM so the next attempt can re-locate the iframe.
+        try {
+          await VSBrowser.instance.driver.switchTo().defaultContent();
+        } catch {
+          // ignore — driver may not have an active frame yet
+        }
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+      }
+    }
+    if (lastSetupError) {
+      throw lastSetupError;
+    }
   });
 
   after(async function () {
