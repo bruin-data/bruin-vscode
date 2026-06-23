@@ -272,8 +272,9 @@ suite("testing webview", () => {
   test('test get previous run for "weekly" schedule', () => {
     schedule = "weekly";
     const { startTime, endTime } = getPreviousRun(schedule, today);
-    assert.strictEqual(startTime, new Date("2024-07-01T00:00:00.000Z").getTime());
-    assert.strictEqual(endTime, new Date("2024-07-08T00:00:00.000Z").getTime());
+    // weekly => @weekly => Sunday midnight (matches the cloud scheduler)
+    assert.strictEqual(startTime, new Date("2024-06-30T00:00:00.000Z").getTime());
+    assert.strictEqual(endTime, new Date("2024-07-07T00:00:00.000Z").getTime());
   });
   /**
    * Test suite for getPreviousRun function with "monthly" schedule.
@@ -361,11 +362,12 @@ suite("testing webview", () => {
   test('test reset Start End Date for "weekly" schedule', () => {
     schedule = "weekly";
     resetStartEndDate(schedule, today, startDate, endDate);
-    assert.strictEqual(startDate.value, "2024-07-01T00:00:00.000Z");
-    assert.strictEqual(endDate.value, "2024-07-08T00:00:00.000Z");
+    // weekly => @weekly => Sunday midnight (matches the cloud scheduler)
+    assert.strictEqual(startDate.value, "2024-06-30T00:00:00.000Z");
+    assert.strictEqual(endDate.value, "2024-07-07T00:00:00.000Z");
 
     const endDateExclusive = adjustEndDateForExclusive(endDate.value);
-    assert.strictEqual(endDateExclusive, "2024-07-07T23:59:59.999999999Z");
+    assert.strictEqual(endDateExclusive, "2024-07-06T23:59:59.999999999Z");
   });
 
   test('test reset Start End Date for "monthly" schedule', () => {
