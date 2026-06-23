@@ -502,6 +502,7 @@
     "chokidar": "^4.0.3",
     "concurrently": "^10.0.3",
     "cron-parser": "^4.9.0",
+    "cronstrue": "^2.61.0",
     "dotenv": "^16.4.7",
     "elkjs": "^0.9.3",
     "fs-extra": "^11.3.0",

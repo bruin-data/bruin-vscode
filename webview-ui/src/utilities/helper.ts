@@ -273,10 +273,13 @@ export const scheduleToCron = (schedule: string) => {
     return { cronSchedule: schedule, error: null };
   }
 
+  // Match the cloud scheduler's interpretation of these keywords (it uses cron's
+  // @-aliases), so local backfill windows line up with how pipelines actually run.
+  // Notably @weekly is Sunday midnight, not Monday.
   const cronSchedules = {
     hourly: "0 * * * *",
     daily: "0 0 * * *",
-    weekly: "0 0 * * 1",
+    weekly: "0 0 * * 0",
     monthly: "0 0 1 * *",
   };
 

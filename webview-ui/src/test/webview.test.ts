@@ -155,7 +155,7 @@ suite("testing webview", () => {
   test("test scheduleToCron", () => {
     const hourly = "0 * * * *";
     const daily = "0 0 * * *";
-    const weekly = "0 0 * * 1";
+    const weekly = "0 0 * * 0";
     const monthly = "0 0 1 * *";
 
     const cronHourly = scheduleToCron("hourly");
