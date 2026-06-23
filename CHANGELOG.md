@@ -1,4 +1,7 @@
 # Changelog
+## [0.81.2] - [2026-06-23]
+- Fixed invalid schedule CodeLens labels for cron step patterns (e.g. `0 */6 * * *`) by generating them with `cronstrue`. Also aligned the `weekly` keyword to Sunday (`@weekly`) to match the Bruin Cloud scheduler.
+
 ## [0.81.1] - [2026-06-16]
 - Fixed lineage panel performance: switching files no longer reloads the whole webview or leaks listeners (which made the panel progressively slower over a session), and per-keystroke parsing is now debounced.
 - Retained the lineage webview while hidden so reopening the panel is instant and lands on the current asset instead of briefly showing the previously rendered graph.

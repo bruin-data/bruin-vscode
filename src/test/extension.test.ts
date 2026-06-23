@@ -6552,22 +6552,22 @@ suite(" Query export Tests", () => {
 
       test("should handle daily schedule", () => {
         const result = cronToHumanReadable("daily");
-        assert.strictEqual(result, "Every day at midnight");
+        assert.strictEqual(result, "At 12:00 AM");
       });
 
       test("should handle weekly schedule", () => {
         const result = cronToHumanReadable("weekly");
-        assert.strictEqual(result, "Every Monday at midnight");
+        assert.strictEqual(result, "At 12:00 AM, only on Sunday");
       });
 
       test("should handle monthly schedule", () => {
         const result = cronToHumanReadable("monthly");
-        assert.strictEqual(result, "Every 1st of the month at midnight");
+        assert.strictEqual(result, "At 12:00 AM, on day 1 of the month");
       });
 
       test("should handle yearly schedule", () => {
         const result = cronToHumanReadable("yearly");
-        assert.strictEqual(result, "Every January 1st at midnight");
+        assert.strictEqual(result, "At 12:00 AM, on day 1 of the month, only in January");
       });
     });
 
@@ -6575,113 +6575,123 @@ suite(" Query export Tests", () => {
       suite("daily schedules", () => {
         test("should handle daily at specific time", () => {
           const result = cronToHumanReadable("30 14 * * *");
-          assert.strictEqual(result, "Run every day at 14:30");
+          assert.strictEqual(result, "At 02:30 PM");
         });
 
         test("should handle daily at midnight", () => {
           const result = cronToHumanReadable("0 0 * * *");
-          assert.strictEqual(result, "Run every day at 00:00");
+          assert.strictEqual(result, "At 12:00 AM");
         });
 
         test("should handle daily at different times", () => {
           const result = cronToHumanReadable("15 9 * * *");
-          assert.strictEqual(result, "Run every day at 09:15");
+          assert.strictEqual(result, "At 09:15 AM");
         });
       });
 
       suite("weekly schedules", () => {
         test("should handle single day of week", () => {
           const result = cronToHumanReadable("0 9 * * 1");
-          assert.strictEqual(result, "Run every Monday at 09:00");
+          assert.strictEqual(result, "At 09:00 AM, only on Monday");
         });
 
         test("should handle multiple days of week", () => {
           const result = cronToHumanReadable("0 9 * * 1,3,5");
-          assert.strictEqual(result, "Run every Monday, Wednesday, Friday at 09:00");
+          assert.strictEqual(result, "At 09:00 AM, only on Monday, Wednesday, and Friday");
         });
 
         test("should handle weekend schedule", () => {
           const result = cronToHumanReadable("0 10 * * 0,6");
-          assert.strictEqual(result, "Run every Sunday, Saturday at 10:00");
+          assert.strictEqual(result, "At 10:00 AM, only on Sunday and Saturday");
         });
       });
 
       suite("monthly schedules", () => {
         test("should handle 1st of month", () => {
           const result = cronToHumanReadable("0 0 1 * *");
-          assert.strictEqual(result, "Run on the 1st of every month at 00:00");
+          assert.strictEqual(result, "At 12:00 AM, on day 1 of the month");
         });
 
         test("should handle 2nd of month", () => {
           const result = cronToHumanReadable("0 12 2 * *");
-          assert.strictEqual(result, "Run on the 2nd of every month at 12:00");
+          assert.strictEqual(result, "At 12:00 PM, on day 2 of the month");
         });
 
         test("should handle 3rd of month", () => {
           const result = cronToHumanReadable("30 15 3 * *");
-          assert.strictEqual(result, "Run on the 3rd of every month at 15:30");
+          assert.strictEqual(result, "At 03:30 PM, on day 3 of the month");
         });
 
         test("should handle other days of month", () => {
           const result = cronToHumanReadable("0 8 15 * *");
-          assert.strictEqual(result, "Run on the 15th of every month at 08:00");
+          assert.strictEqual(result, "At 08:00 AM, on day 15 of the month");
         });
       });
 
       suite("hourly schedules", () => {
         test("should handle every hour on the hour", () => {
           const result = cronToHumanReadable("0 * * * *");
-          assert.strictEqual(result, "Run every day every hour");
+          assert.strictEqual(result, "Every hour");
         });
 
         test("should handle every hour at specific minute", () => {
           const result = cronToHumanReadable("30 * * * *");
-          assert.strictEqual(result, "Run every day at 30 minutes past every hour");
+          assert.strictEqual(result, "At 30 minutes past the hour");
         });
 
         test("should handle every hour at 15 minutes past", () => {
           const result = cronToHumanReadable("15 * * * *");
-          assert.strictEqual(result, "Run every day at 15 minutes past every hour");
+          assert.strictEqual(result, "At 15 minutes past the hour");
+        });
+
+        test("should handle every n hours (step pattern)", () => {
+          const result = cronToHumanReadable("0 */6 * * *");
+          assert.strictEqual(result, "At 0 minutes past the hour, every 6 hours");
         });
       });
 
       suite("edge cases", () => {
         test("should handle every minute", () => {
           const result = cronToHumanReadable("* * * * *");
-          assert.strictEqual(result, "Run every day every minute");
+          assert.strictEqual(result, "Every minute");
         });
 
         test("should handle complex schedule", () => {
           const result = cronToHumanReadable("0 0 * * 0");
-          assert.strictEqual(result, "Run every Sunday at 00:00");
+          assert.strictEqual(result, "At 12:00 AM, only on Sunday");
         });
       });
     });
 
     suite("invalid expressions", () => {
+      // cronstrue is configured with throwExceptionOnParseError: false (matching
+      // the cloud app), so invalid input returns cronstrue's standard message.
+      const PARSE_ERROR =
+        "An error occurred when generating the expression description. Check the cron expression syntax.";
+
       test("should handle invalid cron expression with wrong field count", () => {
         const result = cronToHumanReadable("0 0 0");
-        assert.strictEqual(result, "Invalid cron expression: 0 0 0");
+        assert.strictEqual(result, PARSE_ERROR);
       });
 
       test("should handle invalid cron expression with too many fields", () => {
         const result = cronToHumanReadable("0 0 0 0 0 0");
-        assert.strictEqual(result, "Invalid cron expression: 0 0 0 0 0 0");
+        assert.strictEqual(result, PARSE_ERROR);
       });
 
       test("should handle malformed cron expression", () => {
         const result = cronToHumanReadable("invalid");
-        assert.strictEqual(result, "Invalid cron expression: invalid");
+        assert.strictEqual(result, PARSE_ERROR);
       });
 
       test("should handle empty string", () => {
         const result = cronToHumanReadable("");
-        assert.strictEqual(result, "Invalid cron expression: ");
+        assert.strictEqual(result, PARSE_ERROR);
       });
 
       test("should handle invalid field values", () => {
         const result = cronToHumanReadable("60 25 32 13 8");
-        assert.strictEqual(result, "Invalid cron expression: 60 25 32 13 8");
+        assert.strictEqual(result, PARSE_ERROR);
       });
     });
   });
@@ -6718,7 +6728,7 @@ suite(" Query export Tests", () => {
 
         const result = provider.provideCodeLenses(mockDocument, mockToken);
         assert.strictEqual(result.length, 1);
-        assert.strictEqual(result[0].command?.title, "Run every Monday at 09:00");
+        assert.strictEqual(result[0].command?.title, "At 09:00 AM, only on Monday");
         assert.strictEqual(result[0].command?.command, "");
       });
 
@@ -6730,7 +6740,7 @@ suite(" Query export Tests", () => {
 
         const result = provider.provideCodeLenses(mockDocument, mockToken);
         assert.strictEqual(result.length, 1);
-        assert.strictEqual(result[0].command?.title, "Run every day at 00:00");
+        assert.strictEqual(result[0].command?.title, "At 12:00 AM");
         assert.strictEqual(result[0].command?.command, "");
       });
 
@@ -6749,9 +6759,9 @@ schedule: '30 14 * * *'
         const result = provider.provideCodeLenses(mockDocument, mockToken);
         assert.strictEqual(result.length, 3);
         
-        assert.strictEqual(result[0].command?.title, "Run every Monday at 09:00");
-        assert.strictEqual(result[1].command?.title, "Every day at midnight");
-        assert.strictEqual(result[2].command?.title, "Run every day at 14:30");
+        assert.strictEqual(result[0].command?.title, "At 09:00 AM, only on Monday");
+        assert.strictEqual(result[1].command?.title, "At 12:00 AM");
+        assert.strictEqual(result[2].command?.title, "At 02:30 PM");
       });
 
       test("should handle schedule with double quotes", () => {
@@ -6762,7 +6772,7 @@ schedule: '30 14 * * *'
 
         const result = provider.provideCodeLenses(mockDocument, mockToken);
         assert.strictEqual(result.length, 1);
-        assert.strictEqual(result[0].command?.title, "Run every Friday at 12:00");
+        assert.strictEqual(result[0].command?.title, "At 12:00 PM, only on Friday");
       });
 
       test("should handle schedule with single quotes", () => {
@@ -6773,7 +6783,7 @@ schedule: '30 14 * * *'
 
         const result = provider.provideCodeLenses(mockDocument, mockToken);
         assert.strictEqual(result.length, 1);
-        assert.strictEqual(result[0].command?.title, "Run on the 1st of every month at 08:00");
+        assert.strictEqual(result[0].command?.title, "At 08:00 AM, on day 1 of the month");
       });
 
       test("should handle schedule without quotes", () => {
@@ -6798,8 +6808,8 @@ schedule: '30 14 * * *'
 
         const result = provider.provideCodeLenses(mockDocument, mockToken);
         assert.strictEqual(result.length, 2);
-        assert.strictEqual(result[0].command?.title, "Run every day at 06:00");
-        assert.strictEqual(result[1].command?.title, "Run every day at 18:00");
+        assert.strictEqual(result[0].command?.title, "At 06:00 AM");
+        assert.strictEqual(result[1].command?.title, "At 06:00 PM");
       });
 
       test("should handle invalid cron expressions", () => {
@@ -6810,7 +6820,10 @@ schedule: '30 14 * * *'
 
         const result = provider.provideCodeLenses(mockDocument, mockToken);
         assert.strictEqual(result.length, 1);
-        assert.strictEqual(result[0].command?.title, "Invalid cron expression: invalid-cron");
+        assert.strictEqual(
+          result[0].command?.title,
+          "An error occurred when generating the expression description. Check the cron expression syntax."
+        );
       });
 
       test("should create correct range for schedule line", () => {
@@ -6883,7 +6896,7 @@ schedule: '0 12 * * *'
 
         const result = provider.provideCodeLenses(mockDocument, mockToken);
         assert.strictEqual(result.length, 1);
-        assert.strictEqual(result[0].command?.title, "Run every day at 12:00");
+        assert.strictEqual(result[0].command?.title, "At 12:00 PM");
       });
 
       test("should handle schedule field with extra whitespace", () => {
@@ -6894,7 +6907,7 @@ schedule: '0 12 * * *'
 
         const result = provider.provideCodeLenses(mockDocument, mockToken);
         assert.strictEqual(result.length, 1);
-        assert.strictEqual(result[0].command?.title, "Run every Tuesday at 15:00");
+        assert.strictEqual(result[0].command?.title, "At 03:00 PM, only on Tuesday");
       });
 
       test("should handle predefined schedule types", () => {
@@ -6912,10 +6925,10 @@ schedule: yearly
         const result = provider.provideCodeLenses(mockDocument, mockToken);
         assert.strictEqual(result.length, 5);
         assert.strictEqual(result[0].command?.title, "Every hour");
-        assert.strictEqual(result[1].command?.title, "Every day at midnight");
-        assert.strictEqual(result[2].command?.title, "Every Monday at midnight");
-        assert.strictEqual(result[3].command?.title, "Every 1st of the month at midnight");
-        assert.strictEqual(result[4].command?.title, "Every January 1st at midnight");
+        assert.strictEqual(result[1].command?.title, "At 12:00 AM");
+        assert.strictEqual(result[2].command?.title, "At 12:00 AM, only on Sunday");
+        assert.strictEqual(result[3].command?.title, "At 12:00 AM, on day 1 of the month");
+        assert.strictEqual(result[4].command?.title, "At 12:00 AM, on day 1 of the month, only in January");
       });
     });
   });
