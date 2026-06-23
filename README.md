@@ -89,6 +89,7 @@ After installing, run the **Bruin: Show Getting Started Walkthrough** command fr
 ## Release Notes
 
 ### Recent Update
+- **0.81.2**: Fixed the schedule CodeLens showing an invalid time (e.g. "Run every day at NaN:00") for cron step patterns like `0 */6 * * *`. Schedule labels are now generated with `cronstrue`, matching the Bruin Cloud app, and the `weekly` keyword is aligned to Sunday (`@weekly`).
 - **0.81.1**: Improved lineage panel performance — switching files no longer reloads the whole webview or leaks listeners, the hidden panel is retained so reopening is instant and shows the current asset, and the `+` expand button now zooms out to reveal newly added nodes.
 - **0.81.0**: Added local backfill support with interval chunking — run backfills by splitting a date range into chunks (daily, weekly, monthly, etc.) with stop-on-failure option. Backfill runs are grouped in the Run History panel as expandable rows.
 - **0.80.5**: Flattened the run variables UI — overrides appear inline under the run controls, all variables visible at once, with the "Variable overrides" toggle auto-enabled when an override is entered.

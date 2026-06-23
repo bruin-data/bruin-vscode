@@ -1,4 +1,7 @@
 # Changelog
+## [0.81.2] - [2026-06-23]
+- Fixed the schedule CodeLens rendering an invalid time (e.g. "Run every day at NaN:00") for cron step patterns like `0 */6 * * *`. Human-readable schedule labels are now generated with `cronstrue`, matching the Bruin Cloud app. Also aligned the `weekly` keyword to Sunday (`@weekly`) so local backfill windows match how pipelines actually run.
+
 ## [0.81.1] - [2026-06-16]
 - Fixed lineage panel performance: switching files no longer reloads the whole webview or leaks listeners (which made the panel progressively slower over a session), and per-keystroke parsing is now debounced.
 - Retained the lineage webview while hidden so reopening the panel is instant and lands on the current asset instead of briefly showing the previously rendered graph.
