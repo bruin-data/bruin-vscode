@@ -92,6 +92,26 @@ export const styles = {
     "python.beta": {
         main: "bg-green-300 text-green-800",
         label: "bg-green-500 text-white",
+    },
+    "tableau": {
+        main: "bg-blue-300 text-blue-800",
+        label: "bg-blue-500 text-blue-100",
+    },
+    "tableau.dashboard": {
+        main: "bg-blue-300 text-blue-800",
+        label: "bg-blue-500 text-blue-100",
+    },
+    "tableau.datasource": {
+        main: "bg-blue-300 text-blue-800",
+        label: "bg-blue-500 text-blue-100",
+    },
+    "tableau.workbook": {
+        main: "bg-blue-300 text-blue-800",
+        label: "bg-blue-500 text-blue-100",
+    },
+    "tableau.worksheet": {
+        main: "bg-blue-300 text-blue-800",
+        label: "bg-blue-500 text-blue-100",
     }
 }
 

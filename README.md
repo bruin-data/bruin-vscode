@@ -89,6 +89,7 @@ After installing, run the **Bruin: Show Getting Started Walkthrough** command fr
 ## Release Notes
 
 ### Recent Update
+- **0.81.3**: Recognized Tableau assets and synced the full set of Bruin CLI asset types, fixing validation errors and missing autocompletion for newer types.
 - **0.81.2**: Fixed invalid schedule CodeLens labels for cron step patterns (e.g. `0 */6 * * *`) by generating them with `cronstrue`.
 - **0.81.1**: Improved lineage panel performance — switching files no longer reloads the whole webview or leaks listeners, the hidden panel is retained so reopening is instant and shows the current asset, and the `+` expand button now zooms out to reveal newly added nodes.
 - **0.81.0**: Added local backfill support with interval chunking — run backfills by splitting a date range into chunks (daily, weekly, monthly, etc.) with stop-on-failure option. Backfill runs are grouped in the Run History panel as expandable rows.
