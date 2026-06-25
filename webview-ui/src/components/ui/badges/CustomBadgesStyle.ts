@@ -66,5 +66,20 @@ export const badgeStyles = {
     },
     "python.beta": {
         main: "bg-green-400/10 text-green-400 ring-green-400/30",
+    },
+    "tableau": {
+        main: "bg-blue-400/10 text-blue-400 ring-blue-400/30",
+    },
+    "tableau.dashboard": {
+        main: "bg-blue-400/10 text-blue-400 ring-blue-400/30",
+    },
+    "tableau.datasource": {
+        main: "bg-blue-400/10 text-blue-400 ring-blue-400/30",
+    },
+    "tableau.workbook": {
+        main: "bg-blue-400/10 text-blue-400 ring-blue-400/30",
+    },
+    "tableau.worksheet": {
+        main: "bg-blue-400/10 text-blue-400 ring-blue-400/30",
     }
 }

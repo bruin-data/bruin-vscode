@@ -2,7 +2,7 @@
   "name": "bruin",
   "displayName": "Bruin",
   "description": "Manage your Bruin data assets from within VS Code.",
-  "version": "0.81.2",
+  "version": "0.81.3",
   "engines": {
     "vscode": "^1.87.0"
   },
@@ -453,6 +453,8 @@
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "format": "prettier --write src/**/*.ts",
+    "sync:asset-types": "node scripts/sync-asset-types.mjs",
+    "sync:asset-types:check": "node scripts/sync-asset-types.mjs --check",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
     "coverage:integration": "node tools/coverage/generate-coverage-analysis.js && node tools/coverage/real-coverage-calculator.js",
