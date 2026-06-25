@@ -82,7 +82,7 @@ const STANDALONE_LABELS: Record<string, string> = {
  * `<platform>.<kind>` shape rather than maintained by hand.
  */
 export function describeAssetType(type: string): string {
-    if (STANDALONE_LABELS[type]) {
+    if (Object.prototype.hasOwnProperty.call(STANDALONE_LABELS, type)) {
         return STANDALONE_LABELS[type];
     }
     const firstDot = type.indexOf('.');
