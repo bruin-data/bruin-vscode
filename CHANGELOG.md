@@ -1,6 +1,6 @@
 # Changelog
 ## [0.81.3] - [2026-06-24]
-- Recognized Tableau assets (`tableau`, `tableau.dashboard`, `tableau.datasource`, `tableau.workbook`, `tableau.worksheet`) and synced the full set of Bruin CLI asset types, fixing "value not accepted" validation errors and missing autocompletion for newer types. Added `npm run sync:asset-types` to keep the YAML schema and completions aligned with the Bruin CLI going forward.
+- Recognized Tableau assets (`tableau`, `tableau.dashboard`, `tableau.datasource`, `tableau.workbook`, `tableau.worksheet`) and synced the full set of Bruin CLI asset types, fixing "value not accepted" validation errors and missing autocompletion for newer types.
 
 ## [0.81.2] - [2026-06-23]
 - Fixed invalid schedule CodeLens labels for cron step patterns (e.g. `0 */6 * * *`) by generating them with `cronstrue`. Also aligned the `weekly` keyword to Sunday (`@weekly`) to match the Bruin Cloud scheduler.
