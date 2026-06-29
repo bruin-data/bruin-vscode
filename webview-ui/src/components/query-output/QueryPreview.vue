@@ -1260,6 +1260,12 @@ window.addEventListener("message", (event) => {
             };
             // Reset truncation warning acknowledgment for this tab's new query
             acknowledgedTruncationTabs.value.delete(tabId);
+            // Drop any sort queued against this tab's now-replaced results
+            if (pendingSortTabId.value === tabId) {
+              pendingSortAction.value = null;
+              pendingSortTabId.value = null;
+              showTruncationWarning.value = false;
+            }
           }
           
           tabs.value.splice(tabIndex, 1, newTab);
