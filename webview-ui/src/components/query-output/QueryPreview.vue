@@ -1048,6 +1048,13 @@ const resetPanel = () => {
   // Clear all tabs except the first one
   tabs.value = [defaultTab];
 
+  // Old tabs are gone — clear truncation acknowledgement and any queued sort
+  // so the recreated tab-1 doesn't inherit a prior tab's acknowledgement.
+  acknowledgedTruncationTabs.value.clear();
+  pendingSortAction.value = null;
+  pendingSortTabId.value = null;
+  showTruncationWarning.value = false;
+
   // Reset tab counter
   tabCounter.value = 2;
 
@@ -1398,6 +1405,15 @@ const closeTab = (tabId: string) => {
 
   if (tabIndex !== -1) {
     tabs.value.splice(tabIndex, 1);
+
+    // Drop the closed tab's truncation acknowledgement / queued sort so a tab
+    // that later reuses this id (e.g. a recreated tab-1) starts fresh.
+    acknowledgedTruncationTabs.value.delete(tabId);
+    if (pendingSortTabId.value === tabId) {
+      pendingSortAction.value = null;
+      pendingSortTabId.value = null;
+      showTruncationWarning.value = false;
+    }
 
     if (tabs.value.length === 0) {
       const newDefaultTab = {
