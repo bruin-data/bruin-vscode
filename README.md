@@ -89,6 +89,7 @@ After installing, run the **Bruin: Show Getting Started Walkthrough** command fr
 ## Release Notes
 
 ### Recent Update
+- **0.81.4**: Added multi-column sorting to the query preview results table — click headers to sort by several columns at once (most recently clicked is the primary key), with a "Sorted by" bar to flip direction, remove a column, or clear all.
 - **0.81.3**: Recognized Tableau assets and synced the full set of Bruin CLI asset types, fixing validation errors and missing autocompletion for newer types.
 - **0.81.2**: Fixed invalid schedule CodeLens labels for cron step patterns (e.g. `0 */6 * * *`) by generating them with `cronstrue`.
 - **0.81.1**: Improved lineage panel performance — switching files no longer reloads the whole webview or leaks listeners, the hidden panel is retained so reopening is instant and shows the current asset, and the `+` expand button now zooms out to reveal newly added nodes.
