@@ -420,6 +420,46 @@
               </div>
             </div>
           </div>
+          <!-- Multi-column sort bar -->
+          <div
+            v-if="currentTab?.parsedOutput && !currentTab?.error && currentTab.sortState && currentTab.sortState.length > 0"
+            class="flex items-center gap-1.5 flex-wrap px-2 py-1 border-b border-commandCenter-border bg-editor-bg text-xs flex-shrink-0"
+          >
+            <span class="codicon codicon-list-ordered opacity-60 text-xs"></span>
+            <span class="opacity-60 mr-0.5">Sorted by</span>
+            <div
+              v-for="(sort, i) in currentTab.sortState"
+              :key="sort.column"
+              class="flex items-center gap-1 bg-input-background border border-commandCenter-border rounded px-1.5 py-0.5"
+            >
+              <span class="opacity-50 text-3xs">{{ i + 1 }}</span>
+              <span class="truncate max-w-[140px]">{{ sort.column }}</span>
+              <button
+                type="button"
+                class="flex items-center hover:text-button-background"
+                :title="sort.direction === 'asc' ? 'Ascending — click for descending' : 'Descending — click for ascending'"
+                @click="toggleSortDirection(sort.column)"
+              >
+                <span class="codicon text-xs" :class="sort.direction === 'asc' ? 'codicon-arrow-up' : 'codicon-arrow-down'"></span>
+              </button>
+              <button
+                type="button"
+                class="flex items-center opacity-60 hover:opacity-100 hover:text-errorForeground"
+                title="Remove from sort"
+                @click="removeFromSort(sort.column)"
+              >
+                <span class="codicon codicon-close text-3xs"></span>
+              </button>
+            </div>
+            <button
+              type="button"
+              class="ml-1 opacity-70 hover:opacity-100 underline-offset-2 hover:underline"
+              title="Clear all sorting"
+              @click="clearSorting"
+            >
+              Clear
+            </button>
+          </div>
           <!-- Results Table -->
           <div
             v-if="currentTab?.parsedOutput && !currentTab?.error"
@@ -439,6 +479,7 @@
                     v-for="(column, colIndex) in currentTab.parsedOutput.columns"
                     :key="typeof column === 'string' ? column : column.name"
                     @click="handleSort(column, $event)"
+                    title="Click to sort. Click additional columns to sort by several at once (newest column first)."
                     class="sticky top-0 p-1 text-left font-semibold text-editor-fg bg-editor-bg border-x border-commandCenter-border before:absolute before:bottom-0 before:left-0 before:w-full before:border-b before:border-commandCenter-border relative cursor-pointer select-none group hover:bg-input-background transition-colors"
                     :class="{
                       'sort-active bg-input-background': getSortDirection(column) !== null,
@@ -448,15 +489,15 @@
                   >
                     <div class="flex items-center w-full overflow-hidden pr-6">
                       <span class="truncate flex-1 min-w-0 block">{{ typeof column === 'string' ? column : (column.name || `Column ${Number(colIndex) + 1}`) }}</span>
-                      
+
                       <!-- Sort Indicators -->
                       <div class="flex items-center gap-1 ml-1 flex-shrink-0">
                         <template v-if="getSortDirection(column)">
-                          <span class="codicon text-xs" 
+                          <span class="codicon text-xs"
                             :class="getSortDirection(column) === 'asc' ? 'codicon-arrow-up' : 'codicon-arrow-down'"
                             :style="{ opacity: 1 - (getSortPriority(column) * 0.2) }"
                           ></span>
-                          <span v-if="currentTab.sortState && currentTab.sortState.length > 1" 
+                          <span v-if="currentTab.sortState && currentTab.sortState.length > 1"
                             class="text-3xs bg-button-background text-button-foreground rounded px-1 min-w-[14px] text-center">
                             {{ getSortPriority(column) + 1 }}
                           </span>
@@ -644,13 +685,13 @@ import type { EditingState, TabData } from "@/types";
 import { useConnectionsStore } from "@/store/bruinStore";
 import { flattenStructColumns } from "@/utilities/structUtils";
 import { formatData, copyToClipboard, FORMAT_LABELS, type ExportFormat } from "@/utilities/dataFormatters";
-
-// Sorting interfaces
-interface SortState {
-  column: string;
-  direction: 'asc' | 'desc';
-  priority: number;
-}
+import {
+  type SortState,
+  toggleSortColumn,
+  flipSortDirection,
+  removeSortColumn,
+  sortRows,
+} from "@/utilities/querySort";
 
 // Constants
 const MAX_CONSOLE_MESSAGES = 1000;
@@ -751,65 +792,36 @@ const formatNumber = (num: number): string => {
 };
 
 const truncationWarningAcknowledged = ref(false);
-const pendingSortColumn = ref<any>(null);
-const pendingSortEvent = ref<MouseEvent | null>(null);
+const pendingSortAction = ref<(() => void) | null>(null);
 
 const dismissTruncationWarning = (proceed: boolean = false) => {
   showTruncationWarning.value = false;
-  if (proceed && pendingSortColumn.value) {
+  if (proceed && pendingSortAction.value) {
     truncationWarningAcknowledged.value = true;
-    performSort(pendingSortColumn.value, pendingSortEvent.value);
+    pendingSortAction.value();
   }
-  pendingSortColumn.value = null;
-  pendingSortEvent.value = null;
+  pendingSortAction.value = null;
+};
+
+// Run a sort mutation, first warning the user if the result set is truncated
+// (sorting a truncated set only reorders the rows we already fetched).
+const guardedSort = (action: () => void) => {
+  if (isResultTruncated() && !truncationWarningAcknowledged.value) {
+    pendingSortAction.value = action;
+    showTruncationWarning.value = true;
+    return;
+  }
+  action();
 };
 
 const handleSort = async (column: any, event: MouseEvent) => {
   if (!currentTab.value) return;
-
-  // Show warning if results are truncated and user hasn't acknowledged yet
-  if (isResultTruncated() && !truncationWarningAcknowledged.value) {
-    pendingSortColumn.value = column;
-    pendingSortEvent.value = event;
-    showTruncationWarning.value = true;
-    return;
-  }
-
-  performSort(column, event);
+  guardedSort(() => performSort(column, event));
 };
 
-const performSort = (column: any, event: MouseEvent | null) => {
-  if (!currentTab.value) return;
-
-  const colName = typeof column === 'string' ? column : column.name;
-  const isMultiSort = event?.ctrlKey || event?.metaKey;
-
-  // Client-side sorting logic
-  let newSortState: SortState[] = [...(currentTab.value.sortState || [])];
-  const existingIndex = newSortState.findIndex((s: SortState) => s.column === colName);
-
-  if (existingIndex === -1) {
-    const newSort: SortState = {
-      column: colName,
-      direction: 'asc',
-      priority: newSortState.length
-    };
-    newSortState = isMultiSort ? [...newSortState, newSort] : [newSort];
-  } else {
-    const current = newSortState[existingIndex];
-    if (current.direction === 'asc') {
-      newSortState[existingIndex] = { ...current, direction: 'desc' };
-    } else {
-      newSortState.splice(existingIndex, 1);
-      newSortState.forEach((s, i) => s.priority = i);
-    }
-
-    if (!isMultiSort && newSortState.length > 1) {
-      newSortState = newSortState.filter((s: SortState) => s.column === colName);
-    }
-  }
-
-  // Update tab with new sort state
+// Persist a new sort state on the active tab, re-sort, and save.
+const commitSortState = (newSortState: SortState[]) => {
+  newSortState.forEach((s, i) => (s.priority = i));
   const tabIndex = tabs.value.findIndex(t => t.id === activeTab.value);
   if (tabIndex !== -1) {
     const newTab = {
@@ -821,6 +833,26 @@ const performSort = (column: any, event: MouseEvent | null) => {
     applySorting();
     saveState();
   }
+};
+
+const performSort = (column: any, _event: MouseEvent | null) => {
+  if (!currentTab.value) return;
+  const colName = typeof column === 'string' ? column : column.name;
+  // Header click: newest column becomes the primary key, prior columns become
+  // tie-breakers — builds a multi-column sort with no modifier key needed.
+  commitSortState(toggleSortColumn(currentTab.value.sortState || [], colName));
+};
+
+// Flip the direction of one column already in the sort group (sort-bar chip).
+const toggleSortDirection = (colName: string) => {
+  if (!currentTab.value) return;
+  guardedSort(() => commitSortState(flipSortDirection(currentTab.value!.sortState || [], colName)));
+};
+
+// Remove a single column from the sort group (sort-bar chip).
+const removeFromSort = (colName: string) => {
+  if (!currentTab.value) return;
+  guardedSort(() => commitSortState(removeSortColumn(currentTab.value!.sortState || [], colName)));
 };
 
 const applySorting = () => {
@@ -845,38 +877,8 @@ const applySorting = () => {
     rows = [...currentTab.value.parsedOutput.rows];
   }
 
-  // Apply sorting if there's a sort state
-  if (currentTab.value.sortState && currentTab.value.sortState.length > 0) {
-    rows.sort((a, b) => {
-      for (const sort of currentTab.value!.sortState!) {
-        const colIndex = columns.findIndex((c: any) =>
-          (typeof c === 'string' ? c : c.name) === sort.column
-        );
-
-        if (colIndex === -1) continue;
-
-        let valA = a[colIndex];
-        let valB = b[colIndex];
-
-        if (valA === null || valA === undefined) valA = -Infinity;
-        if (valB === null || valB === undefined) valB = -Infinity;
-
-        let comparison = 0;
-        if (typeof valA === 'number' && typeof valB === 'number') {
-          comparison = valA - valB;
-        } else if (!isNaN(Date.parse(valA)) && !isNaN(Date.parse(valB))) {
-          comparison = new Date(valA).getTime() - new Date(valB).getTime();
-        } else {
-          comparison = String(valA).localeCompare(String(valB), undefined, { numeric: true });
-        }
-
-        if (comparison !== 0) {
-          return sort.direction === 'asc' ? comparison : -comparison;
-        }
-      }
-      return 0;
-    });
-  }
+  // Apply the (multi-)column sort
+  rows = sortRows(rows, columns, currentTab.value.sortState || []);
 
   // Update filtered rows count
   const tabIndex = tabs.value.findIndex(t => t.id === activeTab.value);
@@ -893,16 +895,7 @@ const applySorting = () => {
 
 const clearSorting = () => {
   if (!currentTab.value) return;
-  const tabIndex = tabs.value.findIndex(t => t.id === activeTab.value);
-  if (tabIndex !== -1) {
-    const newTab = {
-      ...tabs.value[tabIndex],
-      sortState: []
-    };
-    tabs.value.splice(tabIndex, 1, newTab);
-    applySorting();
-    saveState();
-  }
+  commitSortState([]);
 };
 
 const copyQuery = (query: string) => {

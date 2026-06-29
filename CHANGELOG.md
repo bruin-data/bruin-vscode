@@ -1,4 +1,7 @@
 # Changelog
+## [0.81.4] - [2026-06-29]
+- Added multi-column sorting to the query preview results table: click column headers to sort by several columns at once (the most recently clicked column becomes the primary key and previous ones become tie-breakers). A "Sorted by" bar shows the active columns in order with controls to flip a column's direction, remove one, or clear all.
+
 ## [0.81.3] - [2026-06-24]
 - Recognized Tableau assets (`tableau`, `tableau.dashboard`, `tableau.datasource`, `tableau.workbook`, `tableau.worksheet`) and synced the full set of Bruin CLI asset types, fixing "value not accepted" validation errors and missing autocompletion for newer types.
 
