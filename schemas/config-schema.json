@@ -24,246 +24,4391 @@
     ],
     "additionalProperties": false,
     "definitions": {
-        "environment": {
-            "type": "object",
+        "ADLSConnection": {
             "properties": {
-                "connections": {
-                    "$ref": "#/definitions/connections"
+                "name": {
+                    "type": "string"
                 },
-                "schema_prefix": {
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "account_name": {
+                    "type": "string"
+                },
+                "tenant_id": {
+                    "type": "string"
+                },
+                "client_id": {
+                    "type": "string"
+                },
+                "client_secret": {
+                    "type": "string"
+                },
+                "account_key": {
+                    "type": "string"
+                },
+                "sas_token": {
+                    "type": "string"
+                },
+                "layout": {
                     "type": "string"
                 }
             },
-            "required": [
-                "connections"
-            ],
-            "additionalProperties": false
-        },
-
-        "connections": {
+            "additionalProperties": false,
             "type": "object",
-            "properties": {
-                "google_cloud_platform": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/googleCloudPlatformConnection"
-                    }
-                },
-                "snowflake": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/snowflakeConnection"
-                    }
-                },
-                "postgres": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/postgresConnection"
-                    }
-                },
-                "redshift": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/postgresConnection"
-                    }
-                },
-                "mssql": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/mssqlConnection"
-                    }
-                },
-                "aws": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/awsConnection"
-                    }
-                },
-                "synapse": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/mssqlConnection"
-                    }
-                },
-                "mongo": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/mongoConnection"
-                    }
-                },
-                "mysql": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/mysqlConnection"
-                    }
-                },
-                "notion": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/notionConnection"
-                    }
-                },
-                "shopify": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/shopifyConnection"
-                    }
-                },
-                "gorgias": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/gorgiasConnection"
-                    }
-                },
-                "databricks": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/databricksConnection"
-                    }
-                },
-                "athena": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/athenaConnection"
-                    }
-                },
-                "generic": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/genericConnection"
-                    }
-                }
-            },
-            "additionalProperties": true
-        },
-        "googleCloudPlatformConnection": {
-            "title": "Google Cloud Platform Connection",
-            "description": "Configure Google Cloud Platform connection with exactly one authentication method: service_account_json, service_account_file, or use_application_default_credentials",
-            "type": "object",
-            "properties": {
-                "name": {
-                    "type": "string",
-                    "description": "Connection name identifier"
-                },
-                "service_account_json": {
-                    "type": "string",
-                    "description": "Service account JSON content as a string (cannot be used with service_account_file or use_application_default_credentials)"
-                },
-                "service_account_file": {
-                    "type": "string",
-                    "description": "Path to service account JSON file (cannot be used with service_account_json or use_application_default_credentials)"
-                },
-                "project_id": {
-                    "type": "string",
-                    "description": "Google Cloud Project ID"
-                },
-                "location": {
-                    "type": "string",
-                    "description": "Google Cloud region/location (optional)"
-                },
-                "use_application_default_credentials": {
-                    "type": "boolean",
-                    "description": "Use Google Application Default Credentials (cannot be used with service_account_json or service_account_file)"
-                }
-            },
-            "oneOf": [
-                {
-                    "title": "Service Account JSON Authentication",
-                    "description": "Use service account JSON string for authentication",
-                    "type": "object",
-                    "required": [
-                        "service_account_json"
-                    ],
-                    "not": {
-                        "anyOf": [
-                            {
-                                "required": [
-                                    "service_account_file"
-                                ]
-                            },
-                            {
-                                "required": [
-                                    "use_application_default_credentials"
-                                ]
-                            }
-                        ]
-                    }
-                },
-                {
-                    "title": "Service Account File Authentication",
-                    "description": "Use service account file path for authentication",
-                    "type": "object",
-                    "required": [
-                        "service_account_file"
-                    ],
-                    "not": {
-                        "anyOf": [
-                            {
-                                "required": [
-                                    "service_account_json"
-                                ]
-                            },
-                            {
-                                "required": [
-                                    "use_application_default_credentials"
-                                ]
-                            }
-                        ]
-                    }
-                },
-                {
-                    "title": "Application Default Credentials Authentication",
-                    "description": "Use Google Cloud Application Default Credentials",
-                    "type": "object",
-                    "required": [
-                        "use_application_default_credentials"
-                    ],
-                    "not": {
-                        "anyOf": [
-                            {
-                                "required": [
-                                    "service_account_json"
-                                ]
-                            },
-                            {
-                                "required": [
-                                    "service_account_file"
-                                ]
-                            }
-                        ]
-                    }
-                }
-            ],
             "required": [
                 "name",
-                "project_id"
-            ],
-            "additionalProperties": false,
-            "errorMessage": {
-                "oneOf": "Google Cloud Platform connection must use exactly one authentication method: either 'service_account_json', 'service_account_file', or 'use_application_default_credentials'. You cannot combine multiple authentication methods."
-            }
+                "account_name"
+            ]
         },
-        "snowflakeConnection": {
-            "type": "object",
+        "APIFootballConnection": {
             "properties": {
                 "name": {
                     "type": "string"
                 },
-                "account": {
-                    "type": "string",
-                    "default": "xxxxxxx.xxxxxxx"
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_key": {
+                    "type": "string"
+                },
+                "league": {
+                    "type": "string"
+                },
+                "season": {
+                    "type": "string"
+                },
+                "timezone": {
+                    "type": "string"
+                },
+                "base_url": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_key"
+            ]
+        },
+        "AdjustConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_key": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_key"
+            ]
+        },
+        "AirtableConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "base_id": {
+                    "type": "string"
+                },
+                "access_token": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "base_id",
+                "access_token"
+            ]
+        },
+        "AlliumConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_key": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_key"
+            ]
+        },
+        "AnthropicConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_key": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_key"
+            ]
+        },
+        "AppLovinConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_key": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_key"
+            ]
+        },
+        "AppStoreConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "key_id": {
+                    "type": "string"
+                },
+                "issuer_id": {
+                    "type": "string"
+                },
+                "key_path": {
+                    "type": "string"
+                },
+                "key": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "key_id",
+                "issuer_id",
+                "key_path",
+                "key"
+            ]
+        },
+        "AppleAdsConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "client_id": {
+                    "type": "string"
+                },
+                "team_id": {
+                    "type": "string"
+                },
+                "key_id": {
+                    "type": "string"
+                },
+                "org_id": {
+                    "type": "string"
+                },
+                "key_path": {
+                    "type": "string"
+                },
+                "key_base64": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "client_id",
+                "team_id",
+                "key_id",
+                "org_id",
+                "key_path",
+                "key_base64"
+            ]
+        },
+        "ApplovinMaxConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_key": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_key"
+            ]
+        },
+        "AppsflyerConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_key": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_key"
+            ]
+        },
+        "AsanaConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "access_token": {
+                    "type": "string"
+                },
+                "workspace": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "access_token",
+                "workspace"
+            ]
+        },
+        "AthenaConnection": {
+            "anyOf": [
+                {
+                    "required": [
+                        "access_key_id",
+                        "secret_access_key"
+                    ]
+                },
+                {
+                    "required": [
+                        "profile"
+                    ]
+                }
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "access_key_id": {
+                    "type": "string"
+                },
+                "secret_access_key": {
+                    "type": "string"
+                },
+                "session_token": {
+                    "type": "string"
+                },
+                "query_results_path": {
+                    "type": "string"
+                },
+                "region": {
+                    "type": "string"
+                },
+                "database": {
+                    "type": "string"
+                },
+                "profile": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "query_results_path"
+            ]
+        },
+        "AttioConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_key": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_key"
+            ]
+        },
+        "AwsConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "access_key": {
+                    "type": "string"
+                },
+                "secret_key": {
+                    "type": "string"
+                },
+                "region": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "access_key",
+                "secret_key",
+                "region"
+            ]
+        },
+        "BallDontLieConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_key": {
+                    "type": "string"
+                },
+                "season": {
+                    "type": "string"
+                },
+                "base_url": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_key"
+            ]
+        },
+        "BrazeConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_key": {
+                    "type": "string"
+                },
+                "endpoint": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_key",
+                "endpoint"
+            ]
+        },
+        "BruinCloudConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_token": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_token"
+            ]
+        },
+        "CSVConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "path": {
+                    "type": "string"
+                },
+                "encoding": {
+                    "type": "string"
+                },
+                "layout": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "path"
+            ]
+        },
+        "CassandraConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
                 },
                 "username": {
-                    "type": "string",
-                    "default": "bruin"
+                    "type": "string"
                 },
                 "password": {
                     "type": "string"
                 },
-                "private_key": {
+                "host": {
                     "type": "string"
                 },
-                "private_key_path": {
+                "hosts": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": "array"
+                },
+                "port": {
+                    "type": "integer",
+                    "default": 9042
+                },
+                "keyspace": {
+                    "type": "string"
+                },
+                "consistency": {
+                    "type": "string"
+                },
+                "page_size": {
+                    "type": "integer"
+                },
+                "timeout": {
+                    "type": "string"
+                },
+                "connect_timeout": {
+                    "type": "string"
+                },
+                "ssl": {
+                    "type": "boolean"
+                },
+                "disable_initial_host_lookup": {
+                    "type": "boolean"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "username",
+                "password",
+                "host"
+            ]
+        },
+        "CatalogAuth": {
+            "properties": {
+                "access_key": {
+                    "type": "string"
+                },
+                "secret_key": {
+                    "type": "string"
+                },
+                "session_token": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object"
+        },
+        "CatalogConfig": {
+            "properties": {
+                "type": {
+                    "type": "string"
+                },
+                "catalog_id": {
+                    "type": "string"
+                },
+                "region": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "string"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer"
+                },
+                "database": {
+                    "type": "string"
+                },
+                "auth": {
+                    "$ref": "#/definitions/CatalogAuth"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "type"
+            ]
+        },
+        "ChargebeeConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "site": {
+                    "type": "string"
+                },
+                "api_key": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "site",
+                "api_key"
+            ]
+        },
+        "ChessConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "players": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": "array",
+                    "default": [
+                        "FabianoCaruana",
+                        "Hikaru",
+                        "MagnusCarlsen",
+                        "GothamChess",
+                        "DanielNaroditsky",
+                        "AnishGiri",
+                        "Firouzja2003",
+                        "LevonAronian",
+                        "WesleySo",
+                        "GarryKasparov"
+                    ]
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "players"
+            ]
+        },
+        "ClickHouseConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer"
+                },
+                "database": {
+                    "type": "string"
+                },
+                "http_port": {
+                    "type": "integer"
+                },
+                "secure": {
+                    "type": "integer"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "username",
+                "password",
+                "host",
+                "port",
+                "database"
+            ]
+        },
+        "ClickupConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_token": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_token"
+            ]
+        },
+        "Connections": {
+            "properties": {
+                "aws": {
+                    "items": {
+                        "$ref": "#/definitions/AwsConnection"
+                    },
+                    "type": "array"
+                },
+                "athena": {
+                    "items": {
+                        "$ref": "#/definitions/AthenaConnection"
+                    },
+                    "type": "array"
+                },
+                "google_cloud_platform": {
+                    "items": {
+                        "$ref": "#/definitions/GoogleCloudPlatformConnection"
+                    },
+                    "type": "array"
+                },
+                "snowflake": {
+                    "items": {
+                        "$ref": "#/definitions/SnowflakeConnection"
+                    },
+                    "type": "array"
+                },
+                "postgres": {
+                    "items": {
+                        "$ref": "#/definitions/PostgresConnection"
+                    },
+                    "type": "array"
+                },
+                "redshift": {
+                    "items": {
+                        "$ref": "#/definitions/RedshiftConnection"
+                    },
+                    "type": "array"
+                },
+                "mssql": {
+                    "items": {
+                        "$ref": "#/definitions/MsSQLConnection"
+                    },
+                    "type": "array"
+                },
+                "databricks": {
+                    "items": {
+                        "$ref": "#/definitions/DatabricksConnection"
+                    },
+                    "type": "array"
+                },
+                "adls": {
+                    "items": {
+                        "$ref": "#/definitions/ADLSConnection"
+                    },
+                    "type": "array"
+                },
+                "synapse": {
+                    "items": {
+                        "$ref": "#/definitions/SynapseConnection"
+                    },
+                    "type": "array"
+                },
+                "fabric": {
+                    "items": {
+                        "$ref": "#/definitions/FabricConnection"
+                    },
+                    "type": "array"
+                },
+                "onelake": {
+                    "items": {
+                        "$ref": "#/definitions/OneLakeConnection"
+                    },
+                    "type": "array"
+                },
+                "mongo": {
+                    "items": {
+                        "$ref": "#/definitions/MongoConnection"
+                    },
+                    "type": "array"
+                },
+                "cassandra": {
+                    "items": {
+                        "$ref": "#/definitions/CassandraConnection"
+                    },
+                    "type": "array"
+                },
+                "couchbase": {
+                    "items": {
+                        "$ref": "#/definitions/CouchbaseConnection"
+                    },
+                    "type": "array"
+                },
+                "cratedb": {
+                    "items": {
+                        "$ref": "#/definitions/CrateDBConnection"
+                    },
+                    "type": "array"
+                },
+                "csv": {
+                    "items": {
+                        "$ref": "#/definitions/CSVConnection"
+                    },
+                    "type": "array"
+                },
+                "cursor": {
+                    "items": {
+                        "$ref": "#/definitions/CursorConnection"
+                    },
+                    "type": "array"
+                },
+                "mongo_atlas": {
+                    "items": {
+                        "$ref": "#/definitions/MongoAtlasConnection"
+                    },
+                    "type": "array"
+                },
+                "mysql": {
+                    "items": {
+                        "$ref": "#/definitions/MySQLConnection"
+                    },
+                    "type": "array"
+                },
+                "vitess": {
+                    "items": {
+                        "$ref": "#/definitions/VitessConnection"
+                    },
+                    "type": "array"
+                },
+                "planetscale_mysql": {
+                    "items": {
+                        "$ref": "#/definitions/PlanetScaleConnection"
+                    },
+                    "type": "array"
+                },
+                "notion": {
+                    "items": {
+                        "$ref": "#/definitions/NotionConnection"
+                    },
+                    "type": "array"
+                },
+                "allium": {
+                    "items": {
+                        "$ref": "#/definitions/AlliumConnection"
+                    },
+                    "type": "array"
+                },
+                "hana": {
+                    "items": {
+                        "$ref": "#/definitions/HANAConnection"
+                    },
+                    "type": "array"
+                },
+                "hostaway": {
+                    "items": {
+                        "$ref": "#/definitions/HostawayConnection"
+                    },
+                    "type": "array"
+                },
+                "http": {
+                    "items": {
+                        "$ref": "#/definitions/HTTPConnection"
+                    },
+                    "type": "array"
+                },
+                "shopify": {
+                    "items": {
+                        "$ref": "#/definitions/ShopifyConnection"
+                    },
+                    "type": "array"
+                },
+                "gorgias": {
+                    "items": {
+                        "$ref": "#/definitions/GorgiasConnection"
+                    },
+                    "type": "array"
+                },
+                "g2": {
+                    "items": {
+                        "$ref": "#/definitions/G2Connection"
+                    },
+                    "type": "array"
+                },
+                "klaviyo": {
+                    "items": {
+                        "$ref": "#/definitions/KlaviyoConnection"
+                    },
+                    "type": "array"
+                },
+                "adjust": {
+                    "items": {
+                        "$ref": "#/definitions/AdjustConnection"
+                    },
+                    "type": "array"
+                },
+                "anthropic": {
+                    "items": {
+                        "$ref": "#/definitions/AnthropicConnection"
+                    },
+                    "type": "array"
+                },
+                "generic": {
+                    "items": {
+                        "$ref": "#/definitions/GenericConnection"
+                    },
+                    "type": "array"
+                },
+                "facebookads": {
+                    "items": {
+                        "$ref": "#/definitions/FacebookAdsConnection"
+                    },
+                    "type": "array"
+                },
+                "stripe": {
+                    "items": {
+                        "$ref": "#/definitions/StripeConnection"
+                    },
+                    "type": "array"
+                },
+                "paddle": {
+                    "items": {
+                        "$ref": "#/definitions/PaddleConnection"
+                    },
+                    "type": "array"
+                },
+                "chargebee": {
+                    "items": {
+                        "$ref": "#/definitions/ChargebeeConnection"
+                    },
+                    "type": "array"
+                },
+                "recurly": {
+                    "items": {
+                        "$ref": "#/definitions/RecurlyConnection"
+                    },
+                    "type": "array"
+                },
+                "gitlab": {
+                    "items": {
+                        "$ref": "#/definitions/GitLabConnection"
+                    },
+                    "type": "array"
+                },
+                "appsflyer": {
+                    "items": {
+                        "$ref": "#/definitions/AppsflyerConnection"
+                    },
+                    "type": "array"
+                },
+                "kafka": {
+                    "items": {
+                        "$ref": "#/definitions/KafkaConnection"
+                    },
+                    "type": "array"
+                },
+                "rabbitmq": {
+                    "items": {
+                        "$ref": "#/definitions/RabbitMQConnection"
+                    },
+                    "type": "array"
+                },
+                "duckdb": {
+                    "items": {
+                        "$ref": "#/definitions/DuckDBConnection"
+                    },
+                    "type": "array"
+                },
+                "motherduck": {
+                    "items": {
+                        "$ref": "#/definitions/MotherduckConnection"
+                    },
+                    "type": "array"
+                },
+                "clickhouse": {
+                    "items": {
+                        "$ref": "#/definitions/ClickHouseConnection"
+                    },
+                    "type": "array"
+                },
+                "hubspot": {
+                    "items": {
+                        "$ref": "#/definitions/HubspotConnection"
+                    },
+                    "type": "array"
+                },
+                "intercom": {
+                    "items": {
+                        "$ref": "#/definitions/IntercomConnection"
+                    },
+                    "type": "array"
+                },
+                "github": {
+                    "items": {
+                        "$ref": "#/definitions/GitHubConnection"
+                    },
+                    "type": "array"
+                },
+                "google_sheets": {
+                    "items": {
+                        "$ref": "#/definitions/GoogleSheetsConnection"
+                    },
+                    "type": "array"
+                },
+                "chess": {
+                    "items": {
+                        "$ref": "#/definitions/ChessConnection"
+                    },
+                    "type": "array"
+                },
+                "airtable": {
+                    "items": {
+                        "$ref": "#/definitions/AirtableConnection"
+                    },
+                    "type": "array"
+                },
+                "granola": {
+                    "items": {
+                        "$ref": "#/definitions/GranolaConnection"
+                    },
+                    "type": "array"
+                },
+                "zendesk": {
+                    "items": {
+                        "$ref": "#/definitions/ZendeskConnection"
+                    },
+                    "type": "array"
+                },
+                "kalshi": {
+                    "items": {
+                        "$ref": "#/definitions/KalshiConnection"
+                    },
+                    "type": "array"
+                },
+                "tiktokads": {
+                    "items": {
+                        "$ref": "#/definitions/TikTokAdsConnection"
+                    },
+                    "type": "array"
+                },
+                "snapchatads": {
+                    "items": {
+                        "$ref": "#/definitions/SnapchatAdsConnection"
+                    },
+                    "type": "array"
+                },
+                "s3": {
+                    "items": {
+                        "$ref": "#/definitions/S3Connection"
+                    },
+                    "type": "array"
+                },
+                "slack": {
+                    "items": {
+                        "$ref": "#/definitions/SlackConnection"
+                    },
+                    "type": "array"
+                },
+                "socrata": {
+                    "items": {
+                        "$ref": "#/definitions/SocrataConnection"
+                    },
+                    "type": "array"
+                },
+                "asana": {
+                    "items": {
+                        "$ref": "#/definitions/AsanaConnection"
+                    },
+                    "type": "array"
+                },
+                "dynamodb": {
+                    "items": {
+                        "$ref": "#/definitions/DynamoDBConnection"
+                    },
+                    "type": "array"
+                },
+                "docebo": {
+                    "items": {
+                        "$ref": "#/definitions/DoceboConnection"
+                    },
+                    "type": "array"
+                },
+                "googleads": {
+                    "items": {
+                        "$ref": "#/definitions/GoogleAdsConnection"
+                    },
+                    "type": "array"
+                },
+                "appstore": {
+                    "items": {
+                        "$ref": "#/definitions/AppStoreConnection"
+                    },
+                    "type": "array"
+                },
+                "appleads": {
+                    "items": {
+                        "$ref": "#/definitions/AppleAdsConnection"
+                    },
+                    "type": "array"
+                },
+                "linkedinads": {
+                    "items": {
+                        "$ref": "#/definitions/LinkedInAdsConnection"
+                    },
+                    "type": "array"
+                },
+                "reddit_ads": {
+                    "items": {
+                        "$ref": "#/definitions/RedditAdsConnection"
+                    },
+                    "type": "array"
+                },
+                "mailchimp": {
+                    "items": {
+                        "$ref": "#/definitions/MailchimpConnection"
+                    },
+                    "type": "array"
+                },
+                "manifold": {
+                    "items": {
+                        "$ref": "#/definitions/ManifoldConnection"
+                    },
+                    "type": "array"
+                },
+                "revenuecat": {
+                    "items": {
+                        "$ref": "#/definitions/RevenueCatConnection"
+                    },
+                    "type": "array"
+                },
+                "linear": {
+                    "items": {
+                        "$ref": "#/definitions/LinearConnection"
+                    },
+                    "type": "array"
+                },
+                "gcs": {
+                    "items": {
+                        "$ref": "#/definitions/GCSConnection"
+                    },
+                    "type": "array"
+                },
+                "sharepoint": {
+                    "items": {
+                        "$ref": "#/definitions/SharePointConnection"
+                    },
+                    "type": "array"
+                },
+                "applovinmax": {
+                    "items": {
+                        "$ref": "#/definitions/ApplovinMaxConnection"
+                    },
+                    "type": "array"
+                },
+                "personio": {
+                    "items": {
+                        "$ref": "#/definitions/PersonioConnection"
+                    },
+                    "type": "array"
+                },
+                "kinesis": {
+                    "items": {
+                        "$ref": "#/definitions/KinesisConnection"
+                    },
+                    "type": "array"
+                },
+                "pipedrive": {
+                    "items": {
+                        "$ref": "#/definitions/PipedriveConnection"
+                    },
+                    "type": "array"
+                },
+                "polymarket": {
+                    "items": {
+                        "$ref": "#/definitions/PolymarketConnection"
+                    },
+                    "type": "array"
+                },
+                "mixpanel": {
+                    "items": {
+                        "$ref": "#/definitions/MixpanelConnection"
+                    },
+                    "type": "array"
+                },
+                "clickup": {
+                    "items": {
+                        "$ref": "#/definitions/ClickupConnection"
+                    },
+                    "type": "array"
+                },
+                "jobtread": {
+                    "items": {
+                        "$ref": "#/definitions/JobtreadConnection"
+                    },
+                    "type": "array"
+                },
+                "posthog": {
+                    "items": {
+                        "$ref": "#/definitions/PosthogConnection"
+                    },
+                    "type": "array"
+                },
+                "pinterest": {
+                    "items": {
+                        "$ref": "#/definitions/PinterestConnection"
+                    },
+                    "type": "array"
+                },
+                "trustpilot": {
+                    "items": {
+                        "$ref": "#/definitions/TrustpilotConnection"
+                    },
+                    "type": "array"
+                },
+                "quickbooks": {
+                    "items": {
+                        "$ref": "#/definitions/QuickBooksConnection"
+                    },
+                    "type": "array"
+                },
+                "wise": {
+                    "items": {
+                        "$ref": "#/definitions/WiseConnection"
+                    },
+                    "type": "array"
+                },
+                "wistia": {
+                    "items": {
+                        "$ref": "#/definitions/WistiaConnection"
+                    },
+                    "type": "array"
+                },
+                "zoom": {
+                    "items": {
+                        "$ref": "#/definitions/ZoomConnection"
+                    },
+                    "type": "array"
+                },
+                "emr_serverless": {
+                    "items": {
+                        "$ref": "#/definitions/EMRServerlessConnection"
+                    },
+                    "type": "array"
+                },
+                "dataproc_serverless": {
+                    "items": {
+                        "$ref": "#/definitions/DataprocServerlessConnection"
+                    },
+                    "type": "array"
+                },
+                "googleanalytics": {
+                    "items": {
+                        "$ref": "#/definitions/GoogleAnalyticsConnection"
+                    },
+                    "type": "array"
+                },
+                "gsc": {
+                    "items": {
+                        "$ref": "#/definitions/GSCConnection"
+                    },
+                    "type": "array"
+                },
+                "applovin": {
+                    "items": {
+                        "$ref": "#/definitions/AppLovinConnection"
+                    },
+                    "type": "array"
+                },
+                "frankfurter": {
+                    "items": {
+                        "$ref": "#/definitions/FrankfurterConnection"
+                    },
+                    "type": "array"
+                },
+                "salesforce": {
+                    "items": {
+                        "$ref": "#/definitions/SalesforceConnection"
+                    },
+                    "type": "array"
+                },
+                "sqlite": {
+                    "items": {
+                        "$ref": "#/definitions/SQLiteConnection"
+                    },
+                    "type": "array"
+                },
+                "db2": {
+                    "items": {
+                        "$ref": "#/definitions/DB2Connection"
+                    },
+                    "type": "array"
+                },
+                "oracle": {
+                    "items": {
+                        "$ref": "#/definitions/OracleConnection"
+                    },
+                    "type": "array"
+                },
+                "phantombuster": {
+                    "items": {
+                        "$ref": "#/definitions/PhantombusterConnection"
+                    },
+                    "type": "array"
+                },
+                "elasticsearch": {
+                    "items": {
+                        "$ref": "#/definitions/ElasticsearchConnection"
+                    },
+                    "type": "array"
+                },
+                "solidgate": {
+                    "items": {
+                        "$ref": "#/definitions/SolidgateConnection"
+                    },
+                    "type": "array"
+                },
+                "square": {
+                    "items": {
+                        "$ref": "#/definitions/SquareConnection"
+                    },
+                    "type": "array"
+                },
+                "spanner": {
+                    "items": {
+                        "$ref": "#/definitions/SpannerConnection"
+                    },
+                    "type": "array"
+                },
+                "smartsheet": {
+                    "items": {
+                        "$ref": "#/definitions/SmartsheetConnection"
+                    },
+                    "type": "array"
+                },
+                "attio": {
+                    "items": {
+                        "$ref": "#/definitions/AttioConnection"
+                    },
+                    "type": "array"
+                },
+                "sftp": {
+                    "items": {
+                        "$ref": "#/definitions/SFTPConnection"
+                    },
+                    "type": "array"
+                },
+                "isoc_pulse": {
+                    "items": {
+                        "$ref": "#/definitions/ISOCPulseConnection"
+                    },
+                    "type": "array"
+                },
+                "influxdb": {
+                    "items": {
+                        "$ref": "#/definitions/InfluxDBConnection"
+                    },
+                    "type": "array"
+                },
+                "tableau": {
+                    "items": {
+                        "$ref": "#/definitions/TableauConnection"
+                    },
+                    "type": "array"
+                },
+                "quicksight": {
+                    "items": {
+                        "$ref": "#/definitions/QuickSightConnection"
+                    },
+                    "type": "array"
+                },
+                "trino": {
+                    "items": {
+                        "$ref": "#/definitions/TrinoConnection"
+                    },
+                    "type": "array"
+                },
+                "starrocks": {
+                    "items": {
+                        "$ref": "#/definitions/StarRocksConnection"
+                    },
+                    "type": "array"
+                },
+                "dremio": {
+                    "items": {
+                        "$ref": "#/definitions/DremioConnection"
+                    },
+                    "type": "array"
+                },
+                "sail": {
+                    "items": {
+                        "$ref": "#/definitions/SailConnection"
+                    },
+                    "type": "array"
+                },
+                "fluxx": {
+                    "items": {
+                        "$ref": "#/definitions/FluxxConnection"
+                    },
+                    "type": "array"
+                },
+                "freshdesk": {
+                    "items": {
+                        "$ref": "#/definitions/FreshdeskConnection"
+                    },
+                    "type": "array"
+                },
+                "fundraiseup": {
+                    "items": {
+                        "$ref": "#/definitions/FundraiseUpConnection"
+                    },
+                    "type": "array"
+                },
+                "fireflies": {
+                    "items": {
+                        "$ref": "#/definitions/FirefliesConnection"
+                    },
+                    "type": "array"
+                },
+                "jira": {
+                    "items": {
+                        "$ref": "#/definitions/JiraConnection"
+                    },
+                    "type": "array"
+                },
+                "monday": {
+                    "items": {
+                        "$ref": "#/definitions/MondayConnection"
+                    },
+                    "type": "array"
+                },
+                "plusvibeai": {
+                    "items": {
+                        "$ref": "#/definitions/PlusVibeAIConnection"
+                    },
+                    "type": "array"
+                },
+                "bruin": {
+                    "items": {
+                        "$ref": "#/definitions/BruinCloudConnection"
+                    },
+                    "type": "array"
+                },
+                "primer": {
+                    "items": {
+                        "$ref": "#/definitions/PrimerConnection"
+                    },
+                    "type": "array"
+                },
+                "indeed": {
+                    "items": {
+                        "$ref": "#/definitions/IndeedConnection"
+                    },
+                    "type": "array"
+                },
+                "customerio": {
+                    "items": {
+                        "$ref": "#/definitions/CustomerIoConnection"
+                    },
+                    "type": "array"
+                },
+                "sendgrid": {
+                    "items": {
+                        "$ref": "#/definitions/SendgridConnection"
+                    },
+                    "type": "array"
+                },
+                "twilio": {
+                    "items": {
+                        "$ref": "#/definitions/TwilioConnection"
+                    },
+                    "type": "array"
+                },
+                "braze": {
+                    "items": {
+                        "$ref": "#/definitions/BrazeConnection"
+                    },
+                    "type": "array"
+                },
+                "espn": {
+                    "items": {
+                        "$ref": "#/definitions/EspnConnection"
+                    },
+                    "type": "array"
+                },
+                "apifootball": {
+                    "items": {
+                        "$ref": "#/definitions/APIFootballConnection"
+                    },
+                    "type": "array"
+                },
+                "footballdata": {
+                    "items": {
+                        "$ref": "#/definitions/FootballDataConnection"
+                    },
+                    "type": "array"
+                },
+                "balldontlie": {
+                    "items": {
+                        "$ref": "#/definitions/BallDontLieConnection"
+                    },
+                    "type": "array"
+                },
+                "vertica": {
+                    "items": {
+                        "$ref": "#/definitions/VerticaConnection"
+                    },
+                    "type": "array"
+                },
+                "surveymonkey": {
+                    "items": {
+                        "$ref": "#/definitions/SurveyMonkeyConnection"
+                    },
+                    "type": "array"
+                },
+                "dune": {
+                    "items": {
+                        "$ref": "#/definitions/DuneConnection"
+                    },
+                    "type": "array"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object"
+        },
+        "CouchbaseConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "bucket": {
+                    "type": "string"
+                },
+                "ssl": {
+                    "type": "boolean"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "username",
+                "password",
+                "host"
+            ]
+        },
+        "CrateDBConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer",
+                    "default": 5432
+                },
+                "ssl_mode": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "username",
+                "password",
+                "host"
+            ]
+        },
+        "CursorConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_key": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_key"
+            ]
+        },
+        "CustomerIoConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_key": {
+                    "type": "string"
+                },
+                "region": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_key"
+            ]
+        },
+        "DB2Connection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "string"
+                },
+                "database": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "username",
+                "password",
+                "host",
+                "port",
+                "database"
+            ]
+        },
+        "DatabricksConnection": {
+            "oneOf": [
+                {
+                    "required": [
+                        "token"
+                    ],
+                    "title": "token"
+                },
+                {
+                    "required": [
+                        "client_id",
+                        "client_secret"
+                    ],
+                    "title": "oauth"
+                }
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "token": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "string"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer",
+                    "default": 443
+                },
+                "catalog": {
+                    "type": "string"
+                },
+                "schema": {
+                    "type": "string"
+                },
+                "client_id": {
+                    "type": "string"
+                },
+                "client_secret": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "path",
+                "host",
+                "port",
+                "catalog",
+                "schema"
+            ]
+        },
+        "DataprocServerlessConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "service_account_json": {
+                    "type": "string"
+                },
+                "service_account_file": {
+                    "type": "string"
+                },
+                "use_application_default_credentials": {
+                    "type": "boolean"
+                },
+                "project_id": {
+                    "type": "string"
+                },
+                "region": {
+                    "type": "string"
+                },
+                "workspace": {
+                    "type": "string"
+                },
+                "execution_role": {
+                    "type": "string"
+                },
+                "subnetwork_uri": {
+                    "type": "string"
+                },
+                "network_tags": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": "array"
+                },
+                "kms_key": {
+                    "type": "string"
+                },
+                "staging_bucket": {
+                    "type": "string"
+                },
+                "metastore_service": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "project_id",
+                "region",
+                "workspace",
+                "execution_role"
+            ]
+        },
+        "DoceboConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "base_url": {
+                    "type": "string"
+                },
+                "client_id": {
+                    "type": "string"
+                },
+                "client_secret": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "base_url",
+                "client_id",
+                "client_secret",
+                "username",
+                "password"
+            ]
+        },
+        "DremioConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "token": {
+                    "type": "string"
+                },
+                "database": {
+                    "type": "string"
+                },
+                "tls": {
+                    "type": "boolean"
+                },
+                "tls_skip_verify": {
+                    "type": "boolean"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "host",
+                "port"
+            ]
+        },
+        "DuckDBConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "path": {
+                    "type": "string"
+                },
+                "read_only": {
+                    "type": "boolean"
+                },
+                "lakehouse": {
+                    "$ref": "#/definitions/LakehouseConfig"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "path"
+            ]
+        },
+        "DuneConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_key": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_key"
+            ]
+        },
+        "DynamoDBConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "access_key_id": {
+                    "type": "string"
+                },
+                "secret_access_key": {
+                    "type": "string"
+                },
+                "region": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "access_key_id",
+                "secret_access_key",
+                "region"
+            ]
+        },
+        "EMRServerlessConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "access_key": {
+                    "type": "string"
+                },
+                "secret_key": {
+                    "type": "string"
+                },
+                "application_id": {
+                    "type": "string"
+                },
+                "execution_role": {
+                    "type": "string"
+                },
+                "region": {
+                    "type": "string"
+                },
+                "workspace": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "access_key",
+                "secret_key",
+                "application_id",
+                "execution_role",
+                "region"
+            ]
+        },
+        "ElasticsearchConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer"
+                },
+                "secure": {
+                    "type": "string"
+                },
+                "verify_certs": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "username",
+                "password",
+                "host",
+                "port",
+                "secure",
+                "verify_certs"
+            ]
+        },
+        "EspnConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "sport": {
+                    "type": "string"
+                },
+                "league": {
+                    "type": "string"
+                },
+                "season": {
+                    "type": "string"
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "base_url": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name"
+            ]
+        },
+        "FabricConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer",
+                    "default": 1433
+                },
+                "database": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "options": {
+                    "type": "string"
+                },
+                "use_azure_default_credential": {
+                    "type": "boolean"
+                },
+                "client_id": {
+                    "type": "string"
+                },
+                "client_secret": {
+                    "type": "string"
+                },
+                "tenant_id": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "host",
+                "port",
+                "database"
+            ]
+        },
+        "FacebookAdsConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "access_token": {
+                    "type": "string"
+                },
+                "account_id": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "access_token",
+                "account_id"
+            ]
+        },
+        "FirefliesConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_key": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_key"
+            ]
+        },
+        "FluxxConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "instance": {
+                    "type": "string"
+                },
+                "client_id": {
+                    "type": "string"
+                },
+                "client_secret": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "instance",
+                "client_id",
+                "client_secret"
+            ]
+        },
+        "FootballDataConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_key": {
+                    "type": "string"
+                },
+                "competition": {
+                    "type": "string"
+                },
+                "season": {
+                    "type": "string"
+                },
+                "base_url": {
+                    "type": "string"
+                },
+                "matchday": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "stage": {
+                    "type": "string"
+                },
+                "group": {
+                    "type": "string"
+                },
+                "unfold_goals": {
+                    "type": "boolean"
+                },
+                "unfold_bookings": {
+                    "type": "boolean"
+                },
+                "unfold_subs": {
+                    "type": "boolean"
+                },
+                "unfold_lineups": {
+                    "type": "boolean"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_key"
+            ]
+        },
+        "FrankfurterConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name"
+            ]
+        },
+        "FreshdeskConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "domain": {
+                    "type": "string"
+                },
+                "api_key": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "domain",
+                "api_key"
+            ]
+        },
+        "FundraiseUpConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_key": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_key"
+            ]
+        },
+        "G2Connection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_token": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_token"
+            ]
+        },
+        "GCSConnection": {
+            "oneOf": [
+                {
+                    "required": [
+                        "service_account_file"
+                    ],
+                    "title": "service_account_file"
+                },
+                {
+                    "required": [
+                        "service_account_json"
+                    ],
+                    "title": "service_account_json"
+                }
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "service_account_file": {
+                    "type": "string"
+                },
+                "service_account_json": {
+                    "type": "string"
+                },
+                "bucket_name": {
+                    "type": "string"
+                },
+                "path_to_file": {
+                    "type": "string"
+                },
+                "layout": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name"
+            ]
+        },
+        "GSCConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "service_account_file": {
+                    "type": "string"
+                },
+                "service_account_json": {
+                    "type": "string"
+                },
+                "site_url": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "site_url"
+            ]
+        },
+        "GenericConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "value": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "value"
+            ]
+        },
+        "GitHubConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "access_token": {
+                    "type": "string"
+                },
+                "owner": {
+                    "type": "string"
+                },
+                "repo": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "owner",
+                "repo"
+            ]
+        },
+        "GitLabConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "access_token": {
+                    "type": "string"
+                },
+                "base_url": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "access_token"
+            ]
+        },
+        "GoogleAdsConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "customer_id": {
+                    "type": "string"
+                },
+                "service_account_json": {
+                    "type": "string"
+                },
+                "service_account_file": {
+                    "type": "string"
+                },
+                "dev_token": {
+                    "type": "string"
+                },
+                "login_customer_id": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "customer_id",
+                "dev_token"
+            ]
+        },
+        "GoogleAnalyticsConnection": {
+            "oneOf": [
+                {
+                    "required": [
+                        "service_account_file"
+                    ],
+                    "title": "service_account_file"
+                },
+                {
+                    "required": [
+                        "service_account_json"
+                    ],
+                    "title": "service_account_json"
+                }
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "service_account_file": {
+                    "type": "string"
+                },
+                "service_account_json": {
+                    "type": "string"
+                },
+                "property_id": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "property_id"
+            ]
+        },
+        "GoogleCloudPlatformConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "service_account_json": {
+                    "type": "string"
+                },
+                "service_account_file": {
+                    "type": "string"
+                },
+                "project_id": {
+                    "type": "string"
+                },
+                "location": {
+                    "type": "string"
+                },
+                "use_application_default_credentials": {
+                    "type": "boolean"
+                },
+                "max_billable_bytes": {
+                    "type": "integer"
+                },
+                "max_query_cost": {
+                    "type": "number"
+                },
+                "max_billable_bytes_soft": {
+                    "type": "integer"
+                },
+                "max_query_cost_soft": {
+                    "type": "number"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "project_id"
+            ]
+        },
+        "GoogleSheetsConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "service_account_json": {
+                    "type": "string"
+                },
+                "service_account_file": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name"
+            ]
+        },
+        "GorgiasConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "domain": {
+                    "type": "string"
+                },
+                "api_key": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "domain",
+                "api_key",
+                "email"
+            ]
+        },
+        "GranolaConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_key": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_key"
+            ]
+        },
+        "HANAConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer"
+                },
+                "database": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "username",
+                "password",
+                "host",
+                "port",
+                "database"
+            ]
+        },
+        "HTTPConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "url": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "url"
+            ]
+        },
+        "HostawayConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_key": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_key"
+            ]
+        },
+        "HubspotConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_key": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_key"
+            ]
+        },
+        "ISOCPulseConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "token": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "token"
+            ]
+        },
+        "IndeedConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "client_id": {
+                    "type": "string"
+                },
+                "client_secret": {
+                    "type": "string"
+                },
+                "employer_id": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "client_id",
+                "client_secret",
+                "employer_id"
+            ]
+        },
+        "InfluxDBConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer"
+                },
+                "token": {
+                    "type": "string"
+                },
+                "org": {
+                    "type": "string"
+                },
+                "bucket": {
+                    "type": "string"
+                },
+                "secure": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "host",
+                "token",
+                "org",
+                "bucket"
+            ]
+        },
+        "IntercomConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "access_token": {
+                    "type": "string"
+                },
+                "region": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "access_token",
+                "region"
+            ]
+        },
+        "JiraConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "domain": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "api_token": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "domain",
+                "email",
+                "api_token"
+            ]
+        },
+        "JobtreadConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "grant_key": {
+                    "type": "string"
+                },
+                "organization_id": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "grant_key",
+                "organization_id"
+            ]
+        },
+        "KafkaConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "bootstrap_servers": {
+                    "type": "string"
+                },
+                "group_id": {
+                    "type": "string"
+                },
+                "security_protocol": {
+                    "type": "string"
+                },
+                "sasl_mechanisms": {
+                    "type": "string"
+                },
+                "sasl_username": {
+                    "type": "string"
+                },
+                "sasl_password": {
+                    "type": "string"
+                },
+                "batch_size": {
+                    "type": "string"
+                },
+                "batch_timeout": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "bootstrap_servers",
+                "group_id"
+            ]
+        },
+        "KalshiConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "query_params": {
+                    "additionalProperties": {
+                        "type": "string"
+                    },
+                    "type": "object"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name"
+            ]
+        },
+        "KinesisConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "access_key_id": {
+                    "type": "string"
+                },
+                "secret_access_key": {
+                    "type": "string"
+                },
+                "region": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "access_key_id",
+                "secret_access_key",
+                "region"
+            ]
+        },
+        "KlaviyoConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_key": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_key"
+            ]
+        },
+        "LakehouseConfig": {
+            "properties": {
+                "format": {
+                    "type": "string"
+                },
+                "catalog": {
+                    "$ref": "#/definitions/CatalogConfig"
+                },
+                "storage": {
+                    "$ref": "#/definitions/StorageConfig"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "format"
+            ]
+        },
+        "LinearConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_key": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_key"
+            ]
+        },
+        "LinkedInAdsConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "access_token": {
+                    "type": "string"
+                },
+                "account_ids": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "access_token",
+                "account_ids"
+            ]
+        },
+        "MailchimpConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_key": {
+                    "type": "string"
+                },
+                "server": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_key",
+                "server"
+            ]
+        },
+        "ManifoldConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "query_params": {
+                    "additionalProperties": {
+                        "type": "string"
+                    },
+                    "type": "object"
+                },
+                "query_param_lists": {
+                    "additionalProperties": {
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": "array"
+                    },
+                    "type": "object"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name"
+            ]
+        },
+        "MixpanelConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "api_secret": {
+                    "type": "string"
+                },
+                "project_id": {
+                    "type": "string"
+                },
+                "server": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name"
+            ]
+        },
+        "MondayConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_token": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_token"
+            ]
+        },
+        "MongoAtlasConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "database": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "username",
+                "password",
+                "host",
+                "database"
+            ]
+        },
+        "MongoConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer",
+                    "default": 27017
+                },
+                "database": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "username",
+                "password",
+                "host",
+                "port",
+                "database"
+            ]
+        },
+        "MotherduckConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "token": {
+                    "type": "string"
+                },
+                "database": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "token"
+            ]
+        },
+        "MsSQLConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer",
+                    "default": 1433
+                },
+                "database": {
+                    "type": "string"
+                },
+                "options": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "username",
+                "password",
+                "host",
+                "port",
+                "database"
+            ]
+        },
+        "MySQLConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer",
+                    "default": 3306
+                },
+                "database": {
+                    "type": "string"
+                },
+                "driver": {
+                    "type": "string"
+                },
+                "ssl_ca_path": {
+                    "type": "string"
+                },
+                "ssl_cert_path": {
+                    "type": "string"
+                },
+                "ssl_key_path": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "username",
+                "password",
+                "host",
+                "port",
+                "database"
+            ]
+        },
+        "NotionConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_key": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_key"
+            ]
+        },
+        "OneLakeConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "workspace_name": {
+                    "type": "string"
+                },
+                "lakehouse_name": {
+                    "type": "string"
+                },
+                "tenant_id": {
+                    "type": "string"
+                },
+                "client_id": {
+                    "type": "string"
+                },
+                "client_secret": {
+                    "type": "string"
+                },
+                "sas_token": {
+                    "type": "string"
+                },
+                "use_azure_default_credential": {
+                    "type": "boolean"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "workspace_name",
+                "lakehouse_name"
+            ]
+        },
+        "OracleConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "string"
+                },
+                "service_name": {
+                    "type": "string"
+                },
+                "sid": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string"
+                },
+                "ssl": {
+                    "type": "boolean"
+                },
+                "ssl_verify": {
+                    "type": "boolean"
+                },
+                "prefetch_rows": {
+                    "type": "integer"
+                },
+                "trace_file": {
+                    "type": "string"
+                },
+                "wallet": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "username",
+                "password",
+                "host",
+                "port",
+                "service_name",
+                "sid",
+                "role",
+                "ssl",
+                "ssl_verify",
+                "prefetch_rows",
+                "trace_file",
+                "wallet"
+            ]
+        },
+        "PaddleConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_key": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_key"
+            ]
+        },
+        "PersonioConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "client_id": {
+                    "type": "string"
+                },
+                "client_secret": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "client_id",
+                "client_secret"
+            ]
+        },
+        "PhantombusterConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_key": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_key"
+            ]
+        },
+        "PinterestConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "access_token": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "access_token"
+            ]
+        },
+        "PipedriveConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_token": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_token"
+            ]
+        },
+        "PlanetScaleConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer",
+                    "default": 3306
+                },
+                "database": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "username",
+                "password",
+                "host",
+                "port",
+                "database"
+            ]
+        },
+        "PlusVibeAIConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_key": {
+                    "type": "string"
+                },
+                "workspace_id": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_key",
+                "workspace_id"
+            ]
+        },
+        "PolymarketConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "order": {
+                    "type": "string"
+                },
+                "ascending": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "closed": {
+                    "type": "string"
+                },
+                "live": {
+                    "type": "string"
+                },
+                "active": {
+                    "type": "string"
+                },
+                "archived": {
+                    "type": "string"
+                },
+                "featured": {
+                    "type": "string"
+                },
+                "tag_id": {
+                    "type": "string"
+                },
+                "tag_slug": {
+                    "type": "string"
+                },
+                "series_id": {
+                    "type": "string"
+                },
+                "include_chat": {
+                    "type": "string"
+                },
+                "include_template": {
+                    "type": "string"
+                },
+                "include_markets": {
+                    "type": "string"
+                },
+                "clob_token_ids": {
+                    "type": "string"
+                },
+                "condition_ids": {
+                    "type": "string"
+                },
+                "question_ids": {
+                    "type": "string"
+                },
+                "related_tags": {
+                    "type": "string"
+                },
+                "include_tag": {
+                    "type": "string"
+                },
+                "rfq_enabled": {
+                    "type": "string"
+                },
+                "limit": {
+                    "type": "string"
+                },
+                "offset": {
+                    "type": "string"
+                },
+                "parent_entity_id": {
+                    "type": "string"
+                },
+                "parent_entity_type": {
+                    "type": "string"
+                },
+                "market": {
+                    "type": "string"
+                },
+                "user": {
+                    "type": "string"
+                },
+                "q": {
+                    "type": "string"
+                },
+                "events_status": {
+                    "type": "string"
+                },
+                "markets_status": {
+                    "type": "string"
+                },
+                "token_id": {
+                    "type": "string"
+                },
+                "side": {
+                    "type": "string"
+                },
+                "interval": {
+                    "type": "string"
+                },
+                "fidelity": {
+                    "type": "string"
+                },
+                "taker_only": {
+                    "type": "string"
+                },
+                "filter_type": {
+                    "type": "string"
+                },
+                "filter_amount": {
+                    "type": "string"
+                },
+                "event_id": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name"
+            ]
+        },
+        "PostgresConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer",
+                    "default": 5432
+                },
+                "database": {
+                    "type": "string"
+                },
+                "schema": {
+                    "type": "string"
+                },
+                "pool_max_conns": {
+                    "type": "integer"
+                },
+                "ssl_mode": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "username",
+                "password",
+                "host",
+                "port",
+                "database"
+            ]
+        },
+        "PosthogConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "personal_api_key": {
+                    "type": "string"
+                },
+                "project_id": {
+                    "type": "string"
+                },
+                "base_url": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "personal_api_key",
+                "project_id"
+            ]
+        },
+        "PrimerConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_key": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_key"
+            ]
+        },
+        "QuickBooksConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "company_id": {
+                    "type": "string"
+                },
+                "client_id": {
+                    "type": "string"
+                },
+                "client_secret": {
+                    "type": "string"
+                },
+                "refresh_token": {
+                    "type": "string"
+                },
+                "environment": {
+                    "type": "string"
+                },
+                "minor_version": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "company_id",
+                "client_id",
+                "client_secret",
+                "refresh_token"
+            ]
+        },
+        "QuickSightConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "aws_access_key_id": {
+                    "type": "string"
+                },
+                "aws_secret_access_key": {
+                    "type": "string"
+                },
+                "aws_session_token": {
+                    "type": "string"
+                },
+                "aws_region": {
+                    "type": "string"
+                },
+                "aws_account_id": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "aws_access_key_id",
+                "aws_secret_access_key",
+                "aws_session_token",
+                "aws_region",
+                "aws_account_id"
+            ]
+        },
+        "RabbitMQConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "vhost": {
+                    "type": "string"
+                },
+                "tls": {
+                    "type": "boolean"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "host",
+                "username",
+                "password"
+            ]
+        },
+        "RecurlyConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_key": {
+                    "type": "string"
+                },
+                "region": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_key"
+            ]
+        },
+        "RedditAdsConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "access_token": {
+                    "type": "string"
+                },
+                "client_id": {
+                    "type": "string"
+                },
+                "client_secret": {
+                    "type": "string"
+                },
+                "refresh_token": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name"
+            ]
+        },
+        "RedshiftConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer",
+                    "default": 5439
+                },
+                "database": {
+                    "type": "string"
+                },
+                "schema": {
+                    "type": "string"
+                },
+                "ssl_mode": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "username",
+                "password",
+                "host",
+                "port",
+                "database",
+                "schema"
+            ]
+        },
+        "RevenueCatConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_key": {
+                    "type": "string"
+                },
+                "project_id": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_key",
+                "project_id"
+            ]
+        },
+        "S3Connection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "bucket_name": {
+                    "type": "string"
+                },
+                "path_to_file": {
+                    "type": "string"
+                },
+                "access_key_id": {
+                    "type": "string"
+                },
+                "secret_access_key": {
+                    "type": "string"
+                },
+                "endpoint_url": {
+                    "type": "string"
+                },
+                "layout": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "bucket_name",
+                "path_to_file",
+                "access_key_id",
+                "secret_access_key",
+                "endpoint_url",
+                "layout"
+            ]
+        },
+        "SFTPConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "host",
+                "port",
+                "username",
+                "password"
+            ]
+        },
+        "SQLiteConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "path": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "path"
+            ]
+        },
+        "SailConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "token": {
+                    "type": "string"
+                },
+                "database": {
+                    "type": "string"
+                },
+                "tls": {
+                    "type": "boolean"
+                },
+                "tls_skip_verify": {
+                    "type": "boolean"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "host",
+                "port"
+            ]
+        },
+        "SalesforceConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "token": {
+                    "type": "string"
+                },
+                "access_token": {
+                    "type": "string"
+                },
+                "domain": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "domain"
+            ]
+        },
+        "SendgridConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_key": {
+                    "type": "string"
+                },
+                "on_behalf_of": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_key"
+            ]
+        },
+        "SharePointConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "tenant_id": {
+                    "type": "string"
+                },
+                "client_id": {
+                    "type": "string"
+                },
+                "client_secret": {
+                    "type": "string"
+                },
+                "hostname": {
+                    "type": "string"
+                },
+                "site": {
+                    "type": "string"
+                },
+                "library": {
+                    "type": "string"
+                },
+                "max_file_size": {
+                    "type": "integer"
+                },
+                "max_files": {
+                    "type": "integer"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "tenant_id",
+                "client_id",
+                "client_secret",
+                "hostname",
+                "site"
+            ]
+        },
+        "ShopifyConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "url": {
+                    "type": "string"
+                },
+                "api_key": {
+                    "type": "string"
+                },
+                "client_id": {
+                    "type": "string"
+                },
+                "client_secret": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "url",
+                "api_key"
+            ]
+        },
+        "SlackConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_key": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_key"
+            ]
+        },
+        "SmartsheetConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "access_token": {
+                    "type": "string"
+                },
+                "smartsheet_id": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "access_token"
+            ]
+        },
+        "SnapchatAdsConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "refresh_token": {
+                    "type": "string"
+                },
+                "client_id": {
+                    "type": "string"
+                },
+                "client_secret": {
+                    "type": "string"
+                },
+                "organization_id": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "refresh_token",
+                "client_id",
+                "client_secret"
+            ]
+        },
+        "SnowflakeConnection": {
+            "oneOf": [
+                {
+                    "required": [
+                        "password"
+                    ],
+                    "title": "password"
+                },
+                {
+                    "required": [
+                        "private_key_path"
+                    ],
+                    "title": "private_key_path"
+                },
+                {
+                    "required": [
+                        "private_key"
+                    ],
+                    "title": "private_key"
+                }
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "account": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "password": {
                     "type": "string"
                 },
                 "region": {
@@ -280,19 +4425,34 @@
                 },
                 "warehouse": {
                     "type": "string"
+                },
+                "private_key_path": {
+                    "type": "string"
+                },
+                "private_key": {
+                    "type": "string"
                 }
             },
+            "additionalProperties": false,
+            "type": "object",
             "required": [
                 "name",
                 "account",
                 "username"
-            ],
-            "additionalProperties": false
+            ]
         },
-        "postgresConnection": {
-            "type": "object",
+        "SocrataConnection": {
             "properties": {
                 "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "domain": {
+                    "type": "string"
+                },
+                "app_token": {
                     "type": "string"
                 },
                 "username": {
@@ -300,8 +4460,109 @@
                 },
                 "password": {
                     "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "domain",
+                "app_token"
+            ]
+        },
+        "SolidgateConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "public_key": {
+                    "type": "string"
+                },
+                "secret_key": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "public_key",
+                "secret_key"
+            ]
+        },
+        "SpannerConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "project_id": {
+                    "type": "string"
+                },
+                "instance_id": {
+                    "type": "string"
+                },
+                "database": {
+                    "type": "string"
+                },
+                "service_account_json": {
+                    "type": "string"
+                },
+                "service_account_file": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "project_id",
+                "instance_id",
+                "database"
+            ]
+        },
+        "SquareConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "access_token": {
+                    "type": "string"
+                },
+                "environment": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "access_token"
+            ]
+        },
+        "StarRocksConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
                 },
                 "host": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "password": {
                     "type": "string"
                 },
                 "port": {
@@ -310,33 +4571,120 @@
                 "database": {
                     "type": "string"
                 },
-                "schema": {
+                "catalog": {
                     "type": "string"
                 },
-                "pool_max_conns": {
-                    "type": "integer",
-                    "default": 10
+                "ssl": {
+                    "type": "string"
                 },
-                "ssl_mode": {
-                    "type": "string",
-                    "default": "disable"
+                "http_port": {
+                    "type": "integer"
+                },
+                "replication_num": {
+                    "type": "integer"
                 }
             },
+            "additionalProperties": false,
+            "type": "object",
             "required": [
                 "name",
-                "username",
-                "password",
                 "host",
-                "port",
-                "database"
-            ],
-            "additionalProperties": false
+                "username"
+            ]
         },
-        "mssqlConnection": {
+        "StorageAuth": {
+            "properties": {
+                "access_key": {
+                    "type": "string"
+                },
+                "secret_key": {
+                    "type": "string"
+                },
+                "session_token": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object"
+        },
+        "StorageConfig": {
+            "properties": {
+                "type": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "string"
+                },
+                "region": {
+                    "type": "string"
+                },
+                "endpoint": {
+                    "type": "string"
+                },
+                "url_style": {
+                    "type": "string"
+                },
+                "use_ssl": {
+                    "type": "boolean"
+                },
+                "auth": {
+                    "$ref": "#/definitions/StorageAuth"
+                }
+            },
+            "additionalProperties": false,
             "type": "object",
+            "required": [
+                "type"
+            ]
+        },
+        "StripeConnection": {
             "properties": {
                 "name": {
                     "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_key": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_key"
+            ]
+        },
+        "SurveyMonkeyConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "access_token": {
+                    "type": "string"
+                },
+                "region": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "access_token"
+            ]
+        },
+        "SynapseConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
                 },
                 "username": {
                     "type": "string"
@@ -348,7 +4696,8 @@
                     "type": "string"
                 },
                 "port": {
-                    "type": "integer"
+                    "type": "integer",
+                    "default": 1433
                 },
                 "database": {
                     "type": "string"
@@ -357,6 +4706,8 @@
                     "type": "string"
                 }
             },
+            "additionalProperties": false,
+            "type": "object",
             "required": [
                 "name",
                 "username",
@@ -364,11 +4715,217 @@
                 "host",
                 "port",
                 "database"
-            ],
-            "additionalProperties": false
+            ]
         },
-        "mongoConnection": {
+        "TableauConnection": {
+            "oneOf": [
+                {
+                    "required": [
+                        "username",
+                        "password"
+                    ],
+                    "title": "username_password"
+                },
+                {
+                    "required": [
+                        "personal_access_token_name",
+                        "personal_access_token_secret"
+                    ],
+                    "title": "personal_access_token"
+                }
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "personal_access_token_name": {
+                    "type": "string"
+                },
+                "personal_access_token_secret": {
+                    "type": "string"
+                },
+                "site_id": {
+                    "type": "string"
+                },
+                "api_version": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
             "type": "object",
+            "required": [
+                "name",
+                "host",
+                "site_id"
+            ]
+        },
+        "TikTokAdsConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "access_token": {
+                    "type": "string"
+                },
+                "advertiser_ids": {
+                    "type": "string"
+                },
+                "timezone": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "access_token",
+                "advertiser_ids"
+            ]
+        },
+        "TrinoConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "catalog": {
+                    "type": "string"
+                },
+                "schema": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "host",
+                "port",
+                "username",
+                "catalog",
+                "schema"
+            ]
+        },
+        "TrustpilotConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "business_unit_id": {
+                    "type": "string"
+                },
+                "api_key": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "business_unit_id",
+                "api_key"
+            ]
+        },
+        "TwilioConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "account_sid": {
+                    "type": "string"
+                },
+                "auth_token": {
+                    "type": "string"
+                },
+                "api_key": {
+                    "type": "string"
+                },
+                "api_secret": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "account_sid"
+            ]
+        },
+        "VerticaConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer",
+                    "default": 5433
+                },
+                "database": {
+                    "type": "string"
+                },
+                "schema": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "username",
+                "password",
+                "host",
+                "port",
+                "database"
+            ]
+        },
+        "VitessConnection": {
             "properties": {
                 "name": {
                     "type": "string"
@@ -383,12 +4940,33 @@
                     "type": "string"
                 },
                 "port": {
-                    "type": "integer"
+                    "type": "integer",
+                    "default": 15306
                 },
                 "database": {
                     "type": "string"
+                },
+                "grpc_port": {
+                    "type": "integer"
+                },
+                "grpc_host": {
+                    "type": "string"
+                },
+                "grpc_tls": {
+                    "type": "boolean"
+                },
+                "ssl_ca_path": {
+                    "type": "string"
+                },
+                "ssl_cert_path": {
+                    "type": "string"
+                },
+                "ssl_key_path": {
+                    "type": "string"
                 }
             },
+            "additionalProperties": false,
+            "type": "object",
             "required": [
                 "name",
                 "username",
@@ -396,287 +4974,130 @@
                 "host",
                 "port",
                 "database"
-            ],
-            "additionalProperties": false
+            ]
         },
-        "mysqlConnection": {
-            "type": "object",
+        "WiseConnection": {
             "properties": {
                 "name": {
                     "type": "string"
                 },
-                "username": {
-                    "type": "string"
-                },
-                "password": {
-                    "type": "string"
-                },
-                "host": {
-                    "type": "string"
-                },
-                "port": {
+                "max_concurrent_assets": {
                     "type": "integer"
                 },
-                "database": {
-                    "type": "string"
-                },
-                "driver": {
-                    "type": "string"
-                }
-            },
-            "required": [
-                "name",
-                "username",
-                "password",
-                "host",
-                "port",
-                "database"
-            ],
-            "additionalProperties": false
-        },
-        "notionConnection": {
-            "type": "object",
-            "properties": {
-                "name": {
-                    "type": "string"
-                },
                 "api_key": {
                     "type": "string"
                 }
             },
+            "additionalProperties": false,
+            "type": "object",
             "required": [
                 "name",
                 "api_key"
-            ],
-            "additionalProperties": false
+            ]
         },
-        "shopifyConnection": {
-            "type": "object",
+        "WistiaConnection": {
             "properties": {
                 "name": {
                     "type": "string"
                 },
-                "url": {
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "access_token": {
                     "type": "string"
                 },
                 "api_key": {
+                    "type": "string"
+                },
+                "token": {
+                    "type": "string"
+                },
+                "api_version": {
+                    "type": "string"
+                },
+                "base_url": {
                     "type": "string"
                 }
             },
+            "additionalProperties": false,
+            "type": "object",
             "required": [
                 "name",
-                "url",
-                "api_key"
-            ],
-            "additionalProperties": false
+                "access_token"
+            ]
         },
-        "gorgiasConnection": {
-            "type": "object",
+        "ZendeskConnection": {
             "properties": {
                 "name": {
                     "type": "string"
                 },
-                "domain": {
-                    "type": "string"
+                "max_concurrent_assets": {
+                    "type": "integer"
                 },
-                "api_key": {
+                "api_token": {
                     "type": "string"
                 },
                 "email": {
                     "type": "string"
+                },
+                "oauth_token": {
+                    "type": "string"
+                },
+                "sub_domain": {
+                    "type": "string"
                 }
             },
+            "additionalProperties": false,
+            "type": "object",
             "required": [
                 "name",
-                "domain",
-                "api_key",
-                "email"
-            ],
-            "additionalProperties": false
+                "api_token",
+                "email",
+                "oauth_token",
+                "sub_domain"
+            ]
         },
-        "databricksConnection": {
-            "title": "Databricks Connection",
-            "description": "Configure Databricks connection with either token-based authentication or OAuth (client_id + client_secret)",
-            "type": "object",
+        "ZoomConnection": {
             "properties": {
                 "name": {
-                    "type": "string",
-                    "description": "Connection name identifier"
+                    "type": "string"
                 },
-                "host": {
-                    "type": "string",
-                    "description": "Databricks host URL (e.g., dbc-example.cloud.databricks.com)"
-                },
-                "token": {
-                    "type": "string",
-                    "description": "Databricks personal access token (cannot be used with client_id/client_secret)"
+                "max_concurrent_assets": {
+                    "type": "integer"
                 },
                 "client_id": {
-                    "type": "string",
-                    "description": "OAuth client ID (must be used with client_secret, cannot be used with token)"
+                    "type": "string"
                 },
                 "client_secret": {
-                    "type": "string",
-                    "description": "OAuth client secret (must be used with client_id, cannot be used with token)"
+                    "type": "string"
                 },
-                "path": {
-                    "type": "string",
-                    "description": "HTTP path to the SQL warehouse (e.g., /sql/1.0/warehouses/xxxxx)"
-                },
-                "port": {
-                    "type": "integer",
-                    "description": "Databricks port (typically 443 for HTTPS)",
-                    "default": 443
-                },
-                "catalog": {
-                    "type": "string",
-                    "description": "Databricks catalog name"
-                },
-                "schema": {
-                    "type": "string",
-                    "description": "Databricks schema name"
+                "account_id": {
+                    "type": "string"
                 }
             },
-            "oneOf": [
-                {
-                    "title": "Token Authentication",
-                    "description": "Use personal access token for authentication",
-                    "required": [
-                        "token"
-                    ],
-                    "not": {
-                        "anyOf": [
-                            {
-                                "required": [
-                                    "client_id"
-                                ]
-                            },
-                            {
-                                "required": [
-                                    "client_secret"
-                                ]
-                            }
-                        ]
-                    }
-                },
-                {
-                    "title": "OAuth Authentication",
-                    "description": "Use OAuth client credentials for authentication",
-                    "required": [
-                        "client_id",
-                        "client_secret"
-                    ],
-                    "not": {
-                        "required": [
-                            "token"
-                        ]
-                    }
-                }
-            ],
+            "additionalProperties": false,
+            "type": "object",
             "required": [
                 "name",
-                "host"
-            ],
-            "additionalProperties": true
+                "client_id",
+                "client_secret",
+                "account_id"
+            ]
         },
-        "genericConnection": {
+        "environment": {
             "type": "object",
             "properties": {
-                "name": {
-                    "type": "string"
+                "connections": {
+                    "$ref": "#/definitions/Connections"
                 },
-                "value": {
+                "schema_prefix": {
                     "type": "string"
                 }
             },
             "required": [
-                "name",
-                "value"
+                "connections"
             ],
             "additionalProperties": false
-        },
-        "awsConnection": {
-            "type": "object",
-            "properties": {
-                "name": {
-                    "type": "string"
-                },
-                "access_key": {
-                    "type": "string"
-                },
-                "secret_key": {
-                    "type": "string"
-                },
-                "region": {
-                    "type": "string"
-                }
-            },
-            "required": [
-                "name",
-                "access_key",
-                "secret_key"
-            ],
-            "additionalProperties": false
-        },
-        "aws": {
-            "type": "object",
-            "properties": {
-                "name": {
-                    "type": "string"
-                },
-                "access_key": {
-                    "type": "string"
-                },
-                "secret_key": {
-                    "type": "string"
-                },
-                "region": {
-                    "type": "string"
-                },
-                "output_bucket": {
-                    "type": "string"
-                },
-                "database": {
-                    "type": "string"
-                }
-            },
-            "required": [
-                "name",
-                "access_key",
-                "secret_key"
-            ],
-            "additionalProperties": false
-        },
-        "athenaConnection": {
-            "type": "object",
-            "properties": {
-                "name": {
-                    "type": "string"
-                },
-                "access_key_id": {
-                    "type": "string"
-                },
-                "secret_access_key": {
-                    "type": "string"
-                },
-                "query_results_path": {
-                    "type": "string"
-                },
-                "region": {
-                    "type": "string"
-                },
-                "database": {
-                    "type": "string"
-                }
-            },
-            "required": [
-                "name",
-                "access_key_id",
-                "secret_access_key",
-                "query_results_path",
-                "region"
-            ],
-            "additionalProperties": true
         }
     }
 }
