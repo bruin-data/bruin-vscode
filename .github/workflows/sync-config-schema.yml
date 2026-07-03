@@ -82,11 +82,6 @@ jobs:
       - name: Open PR if the schema changed
         uses: peter-evans/create-pull-request@v7.0.8
         with:
-          # Use a PAT / App token so the opened PR triggers CI. GitHub blocks PRs created
-          # with the default GITHUB_TOKEN from starting further workflow runs, so such a PR
-          # would have no checks. Falls back to github.token when GH_PAT is unset (the PR
-          # still opens, just without CI).
-          token: ${{ secrets.GH_PAT || github.token }}
           commit-message: "chore: sync config-schema.json with Bruin CLI"
           title: "chore: sync config-schema.json with Bruin CLI"
           body: "Automated: regenerated config-schema.json from `bruin internal connections`."
