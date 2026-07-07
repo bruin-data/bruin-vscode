@@ -1,0 +1,89 @@
+name: Sync config-schema
+
+# Regenerates every connection type in schemas/config-schema.json from the Bruin CLI
+# (`bruin internal connections`) on each run, so new types and changed fields are picked
+# up automatically. Runs weekly and on demand; opens a PR when something changed.
+
+on:
+  schedule:
+    - cron: "0 6 * * 1" # Mondays 06:00 UTC
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Bruin CLI
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Pin the install script to the latest release tag (immutable) instead of the
+          # mutable main branch, so a push to main can't change what this workflow runs.
+          VERSION=$(gh api repos/bruin-data/bruin/releases/latest --jq .tag_name)
+          echo "Installing Bruin $VERSION"
+          curl -LsSf "https://raw.githubusercontent.com/bruin-data/bruin/refs/tags/${VERSION}/install.sh" | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Generate config-schema.json from the Bruin CLI
+        run: |
+          node <<'EOF'
+          const { execFileSync } = require("node:child_process");
+          const { writeFileSync } = require("node:fs");
+
+          // 1. Ask the CLI for the connection schema. It emits the "$defs" dialect; the
+          //    extension uses "definitions". One text replace converts every $ref.
+          const raw = execFileSync("bruin", ["internal", "connections"], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+          const cli = JSON.parse(raw.replaceAll("#/$defs/", "#/definitions/"));
+          const definitions = cli["$defs"]; // every connection def, verbatim from the CLI
+
+          // Fail early (before writing anything) if the CLI output isn't the shape we expect.
+          if (!definitions || !definitions.Connections || !definitions.Connections.properties) {
+            throw new Error("Unexpected `bruin internal connections` output: $defs.Connections.properties is missing");
+          }
+          const typeCount = Object.keys(definitions.Connections.properties).length;
+
+          // 2. Add the .bruin.yml skeleton the CLI does not emit.
+          definitions.environment = {
+            type: "object",
+            properties: { connections: { $ref: "#/definitions/Connections" }, schema_prefix: { type: "string" } },
+            required: ["connections"],
+            additionalProperties: false,
+          };
+
+          // 3. Wrap it into the full config schema.
+          const schema = {
+            $schema: "http://json-schema.org/draft-07/schema#",
+            title: "Config",
+            type: "object",
+            properties: {
+              default_environment: { type: "string" },
+              selected_environment_name: { type: "string" },
+              selected_environment: { $ref: "#/definitions/environment" },
+              environments: { type: "object", additionalProperties: { $ref: "#/definitions/environment" } },
+            },
+            required: ["environments"],
+            additionalProperties: false,
+            definitions,
+          };
+
+          writeFileSync("schemas/config-schema.json", JSON.stringify(schema, null, 4) + "\n");
+          console.log(`Wrote ${typeCount} connection types.`);
+          EOF
+
+      - name: Open PR if the schema changed
+        uses: peter-evans/create-pull-request@v7.0.8
+        with:
+          commit-message: "chore: sync config-schema.json with Bruin CLI"
+          title: "chore: sync config-schema.json with Bruin CLI"
+          body: "Automated: regenerated config-schema.json from `bruin internal connections`."
+          branch: bot/sync-config-schema
+          delete-branch: true
