@@ -1,4 +1,7 @@
 # Changelog
+## [0.81.5] - [2026-07-07]
+- Regenerated config-schema.json for all connection types from the Bruin CLI, fixing lint errors for profile-based connections in Athena.
+
 ## [0.81.4] - [2026-06-29]
 - Added multi-column sorting to the query preview results table: click column headers to sort by several columns at once (the most recently clicked column becomes the primary key and previous ones become tie-breakers). A "Sorted by" bar shows the active columns in order with controls to flip a column's direction, remove one, or clear all.
 
