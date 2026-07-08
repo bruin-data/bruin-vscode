@@ -205,7 +205,8 @@ import {
   generateGraphFromJSON,
   generateGraphForDownstream,
   generateGraphForUpstream,
-  generateColumnGraph
+  generateColumnGraph,
+  generateColumnGraphForPipeline
 } from "@/utilities/graphGenerator";
 import { fetchAllDownstreams, fetchAllUpstreams } from "@/utilities/assetDependencies";
 import { buildPipelineLineage, applyLayout as applyPipelineLayout } from "@/components/lineage-flow/pipeline-lineage/pipelineLineageBuilder";
@@ -989,10 +990,12 @@ const buildColumnElements = async () => {
   }
   error.value = null;
   const lineageData = buildColumnLineage(newPipelineData);
-  const { nodes: initialNodes, edges: initialEdges } = generateColumnGraph(
-    lineageData,
-    props.assetDataset?.name || ""
-  );
+  // In pipeline view there is no single focus asset, so render column lineage
+  // across every asset in the pipeline instead of centering on one.
+  const isPipelineView = Boolean((props.assetDataset as any)?.isPipelineView);
+  const { nodes: initialNodes, edges: initialEdges } = isPipelineView
+    ? generateColumnGraphForPipeline(lineageData)
+    : generateColumnGraph(lineageData, props.assetDataset?.name || "");
   const { nodes: layoutNodes, edges: layoutEdges } = await applyPipelineLayout(initialNodes, initialEdges);
 
   // Save original positions for recalculation

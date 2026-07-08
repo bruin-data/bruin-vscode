@@ -323,3 +323,49 @@ export const generateColumnGraph = (
 
   return { nodes, edges };
 };
+
+/**
+ * Generate nodes and edges for a pipeline-wide column-level lineage view.
+ *
+ * Unlike generateColumnGraph, this is not anchored to a single focus asset:
+ * every asset in the pipeline becomes a column node and all asset- and
+ * column-level edges between in-pipeline assets are drawn. Used for the
+ * pipeline view, where there is no single focus asset to center on.
+ */
+export const generateColumnGraphForPipeline = (
+  lineageData: {
+    assets: any[],
+    columnLineageMap: Record<string, ColumnLineage[]>,
+    assetMap: { [key: string]: any }
+  }
+): { nodes: Node[], edges: Edge[] } => {
+  const { assetMap, columnLineageMap } = lineageData;
+  const nodes: Node[] = [];
+  const edges: Edge[] = [];
+  const processedAssets = new Set<string>();
+
+  // Add every asset in the pipeline as a column node.
+  Object.values(assetMap).forEach((asset: any) => {
+    nodes.push(createColumnNode(asset, false, columnLineageMap[asset.name] || []));
+    processedAssets.add(asset.name.toLowerCase());
+  });
+
+  // Draw asset-level edges for every in-pipeline dependency.
+  const assetEdgeSet = new Set<string>();
+  Object.values(assetMap).forEach((asset: any) => {
+    (asset.upstreams || []).forEach((upstream: any) => {
+      if (upstream.type === 'asset' && upstream.value && assetMap[upstream.value]) {
+        const key = `${upstream.value}->${asset.name}`;
+        if (!assetEdgeSet.has(key)) {
+          assetEdgeSet.add(key);
+          edges.push(createAssetEdge(upstream.value, asset.name));
+        }
+      }
+    });
+  });
+
+  // Column-level edges across all assets in the pipeline.
+  edges.push(...createColumnLevelEdges(processedAssets, columnLineageMap, assetMap));
+
+  return { nodes, edges };
+};
