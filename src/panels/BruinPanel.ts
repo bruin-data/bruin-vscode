@@ -1369,9 +1369,8 @@ export class BruinPanel {
             break;
           case "bruin.getPipelineAssets":
             console.log("Getting pipeline assets");
-            // Include column data (-c): this also feeds the lineage panel via
-            // updateLineageData, so fetching without it would clobber the
-            // panel's column-level lineage with a column-less payload.
+            // -c: also feeds the lineage panel, so a column-less fetch would
+            // clobber its column-level lineage.
             flowLineageCommand(this._lastRenderedDocumentUri, "BruinPanel", true);
             break;
           case "bruin.createEnvironment":
@@ -1517,9 +1516,7 @@ export class BruinPanel {
             break;
           case "bruin.showPipelineLineage":
             if (this._lastRenderedDocumentUri) {
-              // Include column-level lineage (-c) so the lineage panel's
-              // "Column Level Lineage" view has the column data it needs;
-              // without it the view reports "No column lineage data found".
+              // -c so the panel's Column Level Lineage view has column data.
               await flowLineageCommand(this._lastRenderedDocumentUri, undefined, true);
             }
             break;

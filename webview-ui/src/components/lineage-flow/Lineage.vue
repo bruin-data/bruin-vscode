@@ -697,11 +697,8 @@ const handleColumnLevelLineage = async () => {
   await buildColumnElements();
 };
 
-// Stable identity of the lineage target currently shown. It changes when the
-// user opens a different asset/pipeline, but stays the same across the repeated
-// data refreshes the extension pushes for the same target (visibility changes,
-// document edits, multiple loader paths). We use it to decide whether a data
-// update should reset the view or just rebuild the current one.
+// Identity of the current lineage target; stays stable across the repeated data
+// refreshes for the same asset/pipeline so we can tell a switch from a refresh.
 const computeTargetKey = () => {
   const ds = props.assetDataset as any;
   if (!ds) return "";
@@ -709,9 +706,7 @@ const computeTargetKey = () => {
 };
 let lastViewKey = "";
 
-// Pick the default view for whichever target is currently loaded: pipeline view
-// for a pipeline, asset view for an asset. Used on first load and whenever the
-// user switches to a different target.
+// Default view for the current target: pipeline view for a pipeline, else asset.
 const selectDefaultViewForTarget = () => {
   const isPipeline = Boolean((props.assetDataset as any)?.isPipelineView);
   showColumnView.value = false;
@@ -724,11 +719,7 @@ const selectDefaultViewForTarget = () => {
 };
 
 onMounted(() => {
-  console.log('🚀 [Lineage] Lineage component mounted');
-
-  // Enable auto-fit for first load
   shouldAutoFit.value = true;
-
   lastViewKey = computeTargetKey();
   selectDefaultViewForTarget();
 });
@@ -750,15 +741,13 @@ watch(
 
     const key = computeTargetKey();
     if (key !== lastViewKey) {
-      // Switched to a different asset/pipeline: reset to its default view.
+      // Switched target: reset to its default view.
       lastViewKey = key;
       selectDefaultViewForTarget();
       return;
     }
 
-    // Same target, data just refreshed: rebuild whichever view the user is in
-    // rather than forcing them back to the pipeline/asset view. This is what
-    // keeps the "Column Level Lineage" view from snapping away on every update.
+    // Same target refreshed: rebuild the current view instead of snapping away.
     if (showColumnView.value) {
       buildColumnElements();
     } else if (showPipelineView.value) {

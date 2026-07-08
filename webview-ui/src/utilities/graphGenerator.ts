@@ -255,12 +255,7 @@ export const createColumnLevelEdges = (
   return edges;
 };
 
-/**
- * Names of assets (lowercased) that participate in column-level lineage —
- * either they own lineage entries (targets) or they feed another asset's
- * column (sources). These are the nodes worth expanding by default in the
- * column view so their column-to-column edges are actually visible.
- */
+/** Assets (lowercased) that are a source or target of column-level lineage. */
 export const getColumnLineageParticipants = (
   columnLineageMap: Record<string, ColumnLineage[]>
 ): Set<string> => {
@@ -275,11 +270,8 @@ export const getColumnLineageParticipants = (
   return participants;
 };
 
-/**
- * Flag the nodes that participate in column lineage so the node component
- * expands their columns by default. Collapsed nodes stack all their column
- * handles on the header, which makes the column edges invisible.
- */
+// Expand columns by default for participating nodes; collapsed nodes hide the
+// column handles, which makes the column edges invisible.
 const markExpandedColumnNodes = (nodes: Node[], participants: Set<string>): void => {
   nodes.forEach(node => {
     if (participants.has(String(node.id).toLowerCase())) {
@@ -356,8 +348,6 @@ export const generateColumnGraph = (
     const columnEdges = createColumnLevelEdges(processedAssets, columnLineageMap, assetMap);
     edges.push(...columnEdges);
 
-    // Expand columns for lineage-participating neighbours so their column
-    // edges are visible (the focus asset is already expanded).
     markExpandedColumnNodes(nodes, getColumnLineageParticipants(columnLineageMap));
   }
 
@@ -365,12 +355,9 @@ export const generateColumnGraph = (
 };
 
 /**
- * Generate nodes and edges for a pipeline-wide column-level lineage view.
- *
- * Unlike generateColumnGraph, this is not anchored to a single focus asset:
- * every asset in the pipeline becomes a column node and all asset- and
- * column-level edges between in-pipeline assets are drawn. Used for the
- * pipeline view, where there is no single focus asset to center on.
+ * Pipeline-wide column-level lineage: every asset becomes a column node and all
+ * asset- and column-level edges are drawn. Used in pipeline view, where there
+ * is no single focus asset to center on.
  */
 export const generateColumnGraphForPipeline = (
   lineageData: {
@@ -384,13 +371,12 @@ export const generateColumnGraphForPipeline = (
   const edges: Edge[] = [];
   const processedAssets = new Set<string>();
 
-  // Add every asset in the pipeline as a column node.
   Object.values(assetMap).forEach((asset: any) => {
     nodes.push(createColumnNode(asset, false, columnLineageMap[asset.name] || []));
     processedAssets.add(asset.name.toLowerCase());
   });
 
-  // Draw asset-level edges for every in-pipeline dependency.
+  // Asset-level edges for every in-pipeline dependency.
   const assetEdgeSet = new Set<string>();
   Object.values(assetMap).forEach((asset: any) => {
     (asset.upstreams || []).forEach((upstream: any) => {
@@ -404,11 +390,7 @@ export const generateColumnGraphForPipeline = (
     });
   });
 
-  // Column-level edges across all assets in the pipeline.
   edges.push(...createColumnLevelEdges(processedAssets, columnLineageMap, assetMap));
-
-  // Expand columns for assets that participate in column lineage so their
-  // column edges are visible; leave metadata-only assets collapsed.
   markExpandedColumnNodes(nodes, getColumnLineageParticipants(columnLineageMap));
 
   return { nodes, edges };
