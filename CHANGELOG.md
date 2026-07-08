@@ -1,4 +1,7 @@
 # Changelog
+## [0.82.0] - [2026-07-08]
+- Overhauled column-level lineage: fixed the "No column lineage data found" error, added a pipeline-wide column view spanning every asset, and expanded participating assets by default so the column-to-column arrows are visible. Also stopped the view from snapping back when lineage data refreshes.
+
 ## [0.81.5] - [2026-07-07]
 - Regenerated config-schema.json for all connection types from the Bruin CLI, fixing lint errors for profile-based connections in Athena.
 

@@ -131,7 +131,9 @@ export abstract class BaseLineagePanel implements vscode.WebviewViewProvider, vs
   protected loadLineageData = async () => {
     if (this._lastRenderedDocumentUri) {
       try {
-        await flowLineageCommand(this._lastRenderedDocumentUri);
+        // -c up front: the webview toggles to the column view without a
+        // round-trip, so the column data must already be present.
+        await flowLineageCommand(this._lastRenderedDocumentUri, undefined, true);
       } catch (error) {
         console.error("❌ [LineagePanel] Error loading lineage data:", error);
       }

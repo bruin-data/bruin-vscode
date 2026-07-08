@@ -25,7 +25,7 @@ import FilterTab from "@/components/lineage-flow/filterTab/filterTab.vue";
 import "./mocks/vueFlow"; // Import the mocks
 import { buildPipelineLineage, generateGraph } from "@/components/lineage-flow/pipeline-lineage/pipelineLineageBuilder";
 import { buildColumnLineage, getAssetDatasetWithColumns } from "@/components/lineage-flow/column-level/useColumnLevel";
-import { generateColumnGraph, createColumnLevelEdges, generateGraphFromJSON, generateGraphForUpstream, generateGraphForDownstream } from "@/utilities/graphGenerator";
+import { generateColumnGraph, generateColumnGraphForPipeline, createColumnLevelEdges, generateGraphFromJSON, generateGraphForUpstream, generateGraphForDownstream } from "@/utilities/graphGenerator";
 import { 
   findDownstreamAssets, 
   getDownstreamAssetNames,
@@ -1346,6 +1346,63 @@ suite('createColumnLevelEdges', () => {
     expect(focusToDownstreamEdge?.data.targetAsset).toBe('downstream_asset');
     expect(focusToDownstreamEdge?.data.sourceColumn).toBe('focus_col');
     expect(focusToDownstreamEdge?.data.targetColumn).toBe('downstream_col');
+  });
+});
+
+suite('generateColumnGraphForPipeline', () => {
+  // a -> b -> c is a chain with column lineage; d is an isolated asset.
+  const assetMap = {
+    a: { name: 'a', columns: [{ name: 'a_col' }], upstreams: [], downstreams: [] },
+    b: {
+      name: 'b',
+      columns: [{ name: 'b_col' }],
+      upstreams: [{ type: 'asset', value: 'a' }],
+      downstreams: []
+    },
+    c: {
+      name: 'c',
+      columns: [{ name: 'c_col' }],
+      upstreams: [{ type: 'asset', value: 'b' }],
+      downstreams: []
+    },
+    d: { name: 'd', columns: [{ name: 'd_col' }], upstreams: [], downstreams: [] }
+  };
+  const columnLineageMap = {
+    b: [{ column: 'b_col', source_columns: [{ asset: 'a', column: 'a_col' }] }],
+    c: [{ column: 'c_col', source_columns: [{ asset: 'b', column: 'b_col' }] }]
+  };
+  const lineageData = { assets: Object.values(assetMap), columnLineageMap, assetMap };
+
+  test('renders a node for every asset in the pipeline, including isolated ones', () => {
+    const { nodes } = generateColumnGraphForPipeline(lineageData);
+    expect(nodes.map(n => n.id).sort()).toEqual(['a', 'b', 'c', 'd']);
+  });
+
+  test('draws asset-level edges for every in-pipeline dependency', () => {
+    const { edges } = generateColumnGraphForPipeline(lineageData);
+    const assetEdges = edges.filter(e => e.data?.type === 'asset-lineage');
+    expect(assetEdges).toHaveLength(2);
+    expect(assetEdges.some(e => e.source === 'a' && e.target === 'b')).toBe(true);
+    expect(assetEdges.some(e => e.source === 'b' && e.target === 'c')).toBe(true);
+  });
+
+  test('draws column-level edges across the whole chain', () => {
+    const { edges } = generateColumnGraphForPipeline(lineageData);
+    const columnEdges = edges.filter(e => e.data?.type === 'column-lineage');
+    expect(columnEdges).toHaveLength(2);
+    expect(columnEdges.some(e => e.id === 'column-a.a_col-to-b.b_col')).toBe(true);
+    expect(columnEdges.some(e => e.id === 'column-b.b_col-to-c.c_col')).toBe(true);
+  });
+
+  test('expands columns by default only for lineage-participating assets', () => {
+    const { nodes } = generateColumnGraphForPipeline(lineageData);
+    const byId = Object.fromEntries(nodes.map(n => [n.id, n]));
+    // a (source), b (source+target), c (target) participate → expanded.
+    expect(byId.a.data.expandColumns).toBe(true);
+    expect(byId.b.data.expandColumns).toBe(true);
+    expect(byId.c.data.expandColumns).toBe(true);
+    // d has no column lineage → left collapsed to reduce clutter.
+    expect(byId.d.data.expandColumns).toBeFalsy();
   });
 });
 

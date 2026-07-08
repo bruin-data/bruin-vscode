@@ -174,7 +174,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, defineEmits } from "vue";
+import { computed, ref, watch, defineEmits } from "vue";
 import { Handle, Position } from "@vue-flow/core";
 import { PlusIcon, ChevronDownIcon } from "@heroicons/vue/24/outline";
 import type { BruinNodeProps, ColumnInfo } from "@/types";
@@ -206,10 +206,15 @@ const showColumns = ref(false);
 const showAllColumns = ref(false);
 const maxVisibleColumns = 5;
 
-// Auto-expand columns for focus assets
-if (props.data?.asset?.isFocusAsset) {
-  showColumns.value = true;
-}
+// Auto-expand columns for the focus asset and any lineage-participating asset so
+// its column edges are visible. A watcher (not a one-time check) keeps this
+// correct when a reused node is re-flagged on a data refresh.
+const shouldAutoExpandColumns = computed(() =>
+  Boolean(props.data?.asset?.isFocusAsset || props.data?.expandColumns || props.data?.asset?.expandColumns)
+);
+watch(shouldAutoExpandColumns, (expand) => {
+  if (expand) showColumns.value = true;
+}, { immediate: true });
 
 // Computed properties
 const columns = computed(() => {

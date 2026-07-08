@@ -138,6 +138,17 @@ function updateNodePositions(layout: any, nodes: Node[]) {
   });
   return updatedNodes;
 };
+// Estimate rendered node height so ELK lays out expanded column nodes without
+// overlap: expanded nodes grow ~one row per column. Only column-view nodes
+// ('customWithColumn') render columns; everything else stays ~80px.
+function estimateNodeHeight(node: Node): number {
+  if (node.type !== 'customWithColumn') return 80;
+  const data: any = node.data || {};
+  const expanded = data.asset?.isFocusAsset || data.expandColumns || data.asset?.expandColumns;
+  const columns = data.columns || data.asset?.columns || [];
+  return expanded && columns.length ? 90 + columns.length * 14 : 80;
+}
+
 // Function to apply ELK layout
 async function applyLayout(nodes: Node[], edges: Edge[]) : Promise<{ nodes: Node[], edges: Edge[] }> {
   const elk = new ELK();
@@ -165,7 +176,7 @@ async function applyLayout(nodes: Node[], edges: Edge[]) : Promise<{ nodes: Node
     children: nodes.map((node) => ({
       id: node.id,
       width: 224, // Same as node-content width
-      height: 80, // Approximate height
+      height: estimateNodeHeight(node),
     })),
     edges: edges.map((edge) => ({
       id: edge.id,
