@@ -57,8 +57,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "account_name"
+                "name"
             ]
         },
         "APIFootballConnection": {
@@ -88,8 +87,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "api_key"
+                "name"
             ]
         },
         "AdjustConnection": {
@@ -107,8 +105,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "api_key"
+                "name"
             ]
         },
         "AirtableConnection": {
@@ -129,9 +126,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "base_id",
-                "access_token"
+                "name"
             ]
         },
         "AlliumConnection": {
@@ -149,8 +144,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "api_key"
+                "name"
             ]
         },
         "AnthropicConnection": {
@@ -168,8 +162,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "api_key"
+                "name"
             ]
         },
         "AppLovinConnection": {
@@ -187,8 +180,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "api_key"
+                "name"
             ]
         },
         "AppStoreConnection": {
@@ -215,11 +207,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "key_id",
-                "issuer_id",
-                "key_path",
-                "key"
+                "name"
             ]
         },
         "AppleAdsConnection": {
@@ -252,13 +240,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "client_id",
-                "team_id",
-                "key_id",
-                "org_id",
-                "key_path",
-                "key_base64"
+                "name"
             ]
         },
         "ApplovinMaxConnection": {
@@ -295,8 +277,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "api_key"
+                "name"
             ]
         },
         "AsanaConnection": {
@@ -317,9 +298,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "access_token",
-                "workspace"
+                "name"
             ]
         },
         "AthenaConnection": {
@@ -368,8 +347,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "query_results_path"
+                "name"
             ]
         },
         "AttioConnection": {
@@ -387,8 +365,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "api_key"
+                "name"
             ]
         },
         "AwsConnection": {
@@ -412,10 +389,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "access_key",
-                "secret_key",
-                "region"
+                "name"
             ]
         },
         "BallDontLieConnection": {
@@ -439,8 +413,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "api_key"
+                "name"
             ]
         },
         "BrazeConnection": {
@@ -461,9 +434,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "api_key",
-                "endpoint"
+                "name"
             ]
         },
         "BruinCloudConnection": {
@@ -481,8 +452,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "api_token"
+                "name"
             ]
         },
         "CSVConnection": {
@@ -506,8 +476,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "path"
+                "name"
             ]
         },
         "CassandraConnection": {
@@ -562,10 +531,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "username",
-                "password",
-                "host"
+                "name"
             ]
         },
         "CatalogAuth": {
@@ -640,9 +606,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "site",
-                "api_key"
+                "name"
             ]
         },
         "ChessConnection": {
@@ -675,8 +639,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "players"
+                "name"
             ]
         },
         "ClickHouseConnection": {
@@ -735,8 +698,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "api_token"
+                "name"
             ]
         },
         "Connections": {
@@ -1588,10 +1550,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "username",
-                "password",
-                "host"
+                "name"
             ]
         },
         "CrateDBConnection": {
@@ -1622,10 +1581,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "username",
-                "password",
-                "host"
+                "name"
             ]
         },
         "CursorConnection": {
@@ -1643,8 +1599,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "api_key"
+                "name"
             ]
         },
         "CustomerIoConnection": {
@@ -1665,8 +1620,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "api_key"
+                "name"
             ]
         },
         "DB2Connection": {
@@ -1696,12 +1650,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "username",
-                "password",
-                "host",
-                "port",
-                "database"
+                "name"
             ]
         },
         "DatabricksConnection": {
@@ -1756,12 +1705,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "path",
-                "host",
-                "port",
-                "catalog",
-                "schema"
+                "name"
             ]
         },
         "DataprocServerlessConnection": {
@@ -1816,7 +1760,6 @@
             "type": "object",
             "required": [
                 "name",
-                "project_id",
                 "region",
                 "workspace",
                 "execution_role"
@@ -1849,12 +1792,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "base_url",
-                "client_id",
-                "client_secret",
-                "username",
-                "password"
+                "name"
             ]
         },
         "DremioConnection": {
@@ -1919,8 +1857,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "path"
+                "name"
             ]
         },
         "DuneConnection": {
@@ -1938,8 +1875,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "api_key"
+                "name"
             ]
         },
         "DynamoDBConnection": {
@@ -1963,10 +1899,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "access_key_id",
-                "secret_access_key",
-                "region"
+                "name"
             ]
         },
         "EMRServerlessConnection": {
@@ -2004,7 +1937,8 @@
                 "secret_key",
                 "application_id",
                 "execution_role",
-                "region"
+                "region",
+                "workspace"
             ]
         },
         "ElasticsearchConnection": {
@@ -2037,13 +1971,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "username",
-                "password",
-                "host",
-                "port",
-                "secure",
-                "verify_certs"
+                "name"
             ]
         },
         "EspnConnection": {
@@ -2119,10 +2047,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "host",
-                "port",
-                "database"
+                "name"
             ]
         },
         "FacebookAdsConnection": {
@@ -2143,9 +2068,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "access_token",
-                "account_id"
+                "name"
             ]
         },
         "FirefliesConnection": {
@@ -2163,8 +2086,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "api_key"
+                "name"
             ]
         },
         "FluxxConnection": {
@@ -2188,10 +2110,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "instance",
-                "client_id",
-                "client_secret"
+                "name"
             ]
         },
         "FootballDataConnection": {
@@ -2242,8 +2161,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "api_key"
+                "name"
             ]
         },
         "FrankfurterConnection": {
@@ -2279,9 +2197,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "domain",
-                "api_key"
+                "name"
             ]
         },
         "FundraiseUpConnection": {
@@ -2299,8 +2215,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "api_key"
+                "name"
             ]
         },
         "G2Connection": {
@@ -2318,8 +2233,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "api_token"
+                "name"
             ]
         },
         "GCSConnection": {
@@ -2384,8 +2298,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "site_url"
+                "name"
             ]
         },
         "GenericConnection": {
@@ -2403,8 +2316,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "value"
+                "name"
             ]
         },
         "GitHubConnection": {
@@ -2428,9 +2340,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "owner",
-                "repo"
+                "name"
             ]
         },
         "GitLabConnection": {
@@ -2451,8 +2361,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "access_token"
+                "name"
             ]
         },
         "GoogleAdsConnection": {
@@ -2482,9 +2391,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "customer_id",
-                "dev_token"
+                "name"
             ]
         },
         "GoogleAnalyticsConnection": {
@@ -2522,8 +2429,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "property_id"
+                "name"
             ]
         },
         "GoogleCloudPlatformConnection": {
@@ -2565,8 +2471,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "project_id"
+                "name"
             ]
         },
         "GoogleSheetsConnection": {
@@ -2611,10 +2516,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "domain",
-                "api_key",
-                "email"
+                "name"
             ]
         },
         "GranolaConnection": {
@@ -2632,8 +2534,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "api_key"
+                "name"
             ]
         },
         "HANAConnection": {
@@ -2663,12 +2564,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "username",
-                "password",
-                "host",
-                "port",
-                "database"
+                "name"
             ]
         },
         "HTTPConnection": {
@@ -2686,8 +2582,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "url"
+                "name"
             ]
         },
         "HostawayConnection": {
@@ -2705,8 +2600,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "api_key"
+                "name"
             ]
         },
         "HubspotConnection": {
@@ -2724,8 +2618,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "api_key"
+                "name"
             ]
         },
         "ISOCPulseConnection": {
@@ -2743,8 +2636,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "token"
+                "name"
             ]
         },
         "IndeedConnection": {
@@ -2768,10 +2660,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "client_id",
-                "client_secret",
-                "employer_id"
+                "name"
             ]
         },
         "InfluxDBConnection": {
@@ -2804,11 +2693,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "host",
-                "token",
-                "org",
-                "bucket"
+                "name"
             ]
         },
         "IntercomConnection": {
@@ -2829,9 +2714,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "access_token",
-                "region"
+                "name"
             ]
         },
         "JiraConnection": {
@@ -2855,10 +2738,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "domain",
-                "email",
-                "api_token"
+                "name"
             ]
         },
         "JobtreadConnection": {
@@ -2879,9 +2759,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "grant_key",
-                "organization_id"
+                "name"
             ]
         },
         "KafkaConnection": {
@@ -2920,9 +2798,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "bootstrap_servers",
-                "group_id"
+                "name"
             ]
         },
         "KalshiConnection": {
@@ -2967,10 +2843,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "access_key_id",
-                "secret_access_key",
-                "region"
+                "name"
             ]
         },
         "KlaviyoConnection": {
@@ -2988,8 +2861,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "api_key"
+                "name"
             ]
         },
         "LakehouseConfig": {
@@ -3025,8 +2897,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "api_key"
+                "name"
             ]
         },
         "LinkedInAdsConnection": {
@@ -3047,9 +2918,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "access_token",
-                "account_ids"
+                "name"
             ]
         },
         "MailchimpConnection": {
@@ -3070,9 +2939,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "api_key",
-                "server"
+                "name"
             ]
         },
         "ManifoldConnection": {
@@ -3150,8 +3017,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "api_token"
+                "name"
             ]
         },
         "MongoAtlasConnection": {
@@ -3178,11 +3044,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "username",
-                "password",
-                "host",
-                "database"
+                "name"
             ]
         },
         "MongoConnection": {
@@ -3213,12 +3075,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "username",
-                "password",
-                "host",
-                "port",
-                "database"
+                "name"
             ]
         },
         "MotherduckConnection": {
@@ -3239,8 +3096,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "token"
+                "name"
             ]
         },
         "MsSQLConnection": {
@@ -3274,12 +3130,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "username",
-                "password",
-                "host",
-                "port",
-                "database"
+                "name"
             ]
         },
         "MySQLConnection": {
@@ -3322,12 +3173,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "username",
-                "password",
-                "host",
-                "port",
-                "database"
+                "name"
             ]
         },
         "NotionConnection": {
@@ -3345,8 +3191,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "api_key"
+                "name"
             ]
         },
         "OneLakeConnection": {
@@ -3382,9 +3227,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "workspace_name",
-                "lakehouse_name"
+                "name"
             ]
         },
         "OracleConnection": {
@@ -3435,19 +3278,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "username",
-                "password",
-                "host",
-                "port",
-                "service_name",
-                "sid",
-                "role",
-                "ssl",
-                "ssl_verify",
-                "prefetch_rows",
-                "trace_file",
-                "wallet"
+                "name"
             ]
         },
         "PaddleConnection": {
@@ -3465,8 +3296,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "api_key"
+                "name"
             ]
         },
         "PersonioConnection": {
@@ -3507,8 +3337,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "api_key"
+                "name"
             ]
         },
         "PinterestConnection": {
@@ -3526,8 +3355,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "access_token"
+                "name"
             ]
         },
         "PipedriveConnection": {
@@ -3545,8 +3373,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "api_token"
+                "name"
             ]
         },
         "PlanetScaleConnection": {
@@ -3574,12 +3401,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "username",
-                "password",
-                "host",
-                "port",
-                "database"
+                "name"
             ]
         },
         "PlusVibeAIConnection": {
@@ -3600,9 +3422,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "api_key",
-                "workspace_id"
+                "name"
             ]
         },
         "PolymarketConnection": {
@@ -3771,12 +3591,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "username",
-                "password",
-                "host",
-                "port",
-                "database"
+                "name"
             ]
         },
         "PosthogConnection": {
@@ -3800,9 +3615,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "personal_api_key",
-                "project_id"
+                "name"
             ]
         },
         "PrimerConnection": {
@@ -3820,8 +3633,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "api_key"
+                "name"
             ]
         },
         "QuickBooksConnection": {
@@ -3854,11 +3666,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "company_id",
-                "client_id",
-                "client_secret",
-                "refresh_token"
+                "name"
             ]
         },
         "QuickSightConnection": {
@@ -3888,12 +3696,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "aws_access_key_id",
-                "aws_secret_access_key",
-                "aws_session_token",
-                "aws_region",
-                "aws_account_id"
+                "name"
             ]
         },
         "RabbitMQConnection": {
@@ -3926,10 +3729,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "host",
-                "username",
-                "password"
+                "name"
             ]
         },
         "RecurlyConnection": {
@@ -3950,8 +3750,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "api_key"
+                "name"
             ]
         },
         "RedditAdsConnection": {
@@ -4015,13 +3814,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "username",
-                "password",
-                "host",
-                "port",
-                "database",
-                "schema"
+                "name"
             ]
         },
         "RevenueCatConnection": {
@@ -4042,9 +3835,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "api_key",
-                "project_id"
+                "name"
             ]
         },
         "S3Connection": {
@@ -4077,13 +3868,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "bucket_name",
-                "path_to_file",
-                "access_key_id",
-                "secret_access_key",
-                "endpoint_url",
-                "layout"
+                "name"
             ]
         },
         "SFTPConnection": {
@@ -4110,11 +3895,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "host",
-                "port",
-                "username",
-                "password"
+                "name"
             ]
         },
         "SQLiteConnection": {
@@ -4132,8 +3913,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "path"
+                "name"
             ]
         },
         "SailConnection": {
@@ -4226,8 +4006,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "api_key"
+                "name"
             ]
         },
         "SharePointConnection": {
@@ -4298,9 +4077,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "url",
-                "api_key"
+                "name"
             ]
         },
         "SlackConnection": {
@@ -4340,8 +4117,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "access_token"
+                "name"
             ]
         },
         "SnapchatAdsConnection": {
@@ -4368,10 +4144,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "refresh_token",
-                "client_id",
-                "client_secret"
+                "name"
             ]
         },
         "SnowflakeConnection": {
@@ -4436,9 +4209,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "account",
-                "username"
+                "name"
             ]
         },
         "SocrataConnection": {
@@ -4465,9 +4236,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "domain",
-                "app_token"
+                "name"
             ]
         },
         "SolidgateConnection": {
@@ -4488,9 +4257,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "public_key",
-                "secret_key"
+                "name"
             ]
         },
         "SpannerConnection": {
@@ -4520,10 +4287,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "project_id",
-                "instance_id",
-                "database"
+                "name"
             ]
         },
         "SquareConnection": {
@@ -4544,8 +4308,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "access_token"
+                "name"
             ]
         },
         "StarRocksConnection": {
@@ -4652,8 +4415,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "api_key"
+                "name"
             ]
         },
         "SurveyMonkeyConnection": {
@@ -4674,8 +4436,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "access_token"
+                "name"
             ]
         },
         "SynapseConnection": {
@@ -4709,12 +4470,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "username",
-                "password",
-                "host",
-                "port",
-                "database"
+                "name"
             ]
         },
         "TableauConnection": {
@@ -4766,9 +4522,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "host",
-                "site_id"
+                "name"
             ]
         },
         "TikTokAdsConnection": {
@@ -4792,9 +4546,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "access_token",
-                "advertiser_ids"
+                "name"
             ]
         },
         "TrinoConnection": {
@@ -4853,9 +4605,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "business_unit_id",
-                "api_key"
+                "name"
             ]
         },
         "TwilioConnection": {
@@ -4882,8 +4632,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "account_sid"
+                "name"
             ]
         },
         "VerticaConnection": {
@@ -4917,12 +4666,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "username",
-                "password",
-                "host",
-                "port",
-                "database"
+                "name"
             ]
         },
         "VitessConnection": {
@@ -4968,12 +4712,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "username",
-                "password",
-                "host",
-                "port",
-                "database"
+                "name"
             ]
         },
         "WiseConnection": {
@@ -4991,8 +4730,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "api_key"
+                "name"
             ]
         },
         "WistiaConnection": {
@@ -5022,8 +4760,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "access_token"
+                "name"
             ]
         },
         "ZendeskConnection": {
@@ -5050,11 +4787,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "api_token",
-                "email",
-                "oauth_token",
-                "sub_domain"
+                "name"
             ]
         },
         "ZoomConnection": {
@@ -5078,10 +4811,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "client_id",
-                "client_secret",
-                "account_id"
+                "name"
             ]
         },
         "environment": {
