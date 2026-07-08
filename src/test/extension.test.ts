@@ -7857,6 +7857,53 @@ suite("buildBackfillScript", () => {
   });
 });
 
+suite("buildRunMultipleAssetsScript", () => {
+  const paths = ["/path/one.sql", "/path/two.sql", "/path/three.sql"];
+
+  test("bash: shebang + single bruin run with all escaped paths and flags", () => {
+    const result = (bruinUtils as any).buildRunMultipleAssetsScript(
+      "bruin",
+      paths,
+      "--environment default",
+      true
+    );
+    const lines = result.trimEnd().split("\n");
+
+    assert.strictEqual(lines[0], "#!/usr/bin/env bash");
+    const runLines = lines.filter((l: string) => l.startsWith("bruin run"));
+    assert.strictEqual(runLines.length, 1, "all assets go into one bruin run invocation");
+    assert.ok(runLines[0].includes("--environment default"), "flags preserved");
+    paths.forEach((p) => assert.ok(runLines[0].includes(`"${p}"`), `path ${p} is quoted`));
+    // No chained '&&' / line-continuation '\' — the script exists to avoid a
+    // multi-kilobyte single command overflowing the terminal input.
+    assert.ok(!result.includes("&&") && !result.includes("\\\n"), "no chaining/continuation");
+  });
+
+  test("bash: omits flags segment when none provided", () => {
+    const result = (bruinUtils as any).buildRunMultipleAssetsScript("bruin", paths, "", true);
+    const runLine = result
+      .trimEnd()
+      .split("\n")
+      .find((l: string) => l.startsWith("bruin run"));
+    assert.strictEqual(runLine, `bruin run "${paths[0]}" "${paths[1]}" "${paths[2]}"`);
+  });
+
+  test("powershell: Write-Host header + single bruin run, no shebang", () => {
+    const result = (bruinUtils as any).buildRunMultipleAssetsScript(
+      "bruin",
+      paths,
+      "--environment default",
+      false
+    );
+    assert.ok(!result.includes("#!/usr/bin/env bash"), "powershell script has no bash shebang");
+    assert.ok(result.startsWith("Write-Host"), "powershell header uses Write-Host");
+    assert.strictEqual(
+      result.split("\n").filter((l: string) => l.startsWith("bruin run")).length,
+      1
+    );
+  });
+});
+
 suite("groupBackfillRuns", () => {
   const makeRun = (over: Partial<RunSummary>): RunSummary => ({
     runId: "r",
