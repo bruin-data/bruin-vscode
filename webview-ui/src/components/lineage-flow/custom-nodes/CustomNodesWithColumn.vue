@@ -206,8 +206,11 @@ const showColumns = ref(false);
 const showAllColumns = ref(false);
 const maxVisibleColumns = 5;
 
-// Auto-expand columns for focus assets
-if (props.data?.asset?.isFocusAsset) {
+// Auto-expand columns for the focus asset and for any asset that participates
+// in column lineage — collapsed nodes hide the column handles, making the
+// column-to-column edges invisible. Users can still collapse a node via the
+// chevron to reduce clutter.
+if (props.data?.asset?.isFocusAsset || props.data?.expandColumns || props.data?.asset?.expandColumns) {
   showColumns.value = true;
 }
 

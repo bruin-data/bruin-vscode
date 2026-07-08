@@ -138,6 +138,22 @@ function updateNodePositions(layout: any, nodes: Node[]) {
   });
   return updatedNodes;
 };
+// Estimate the rendered height of a node so ELK can lay out expanded
+// column-lineage nodes without overlap. Collapsed / asset-only nodes keep the
+// original ~80px; nodes rendered with their columns expanded grow by roughly
+// one row per column.
+function estimateNodeHeight(node: Node): number {
+  const data: any = node.data || {};
+  const expanded = data.asset?.isFocusAsset || data.expandColumns || data.asset?.expandColumns;
+  const columns = data.columns || data.asset?.columns || [];
+  if (expanded && columns.length) {
+    const HEADER_HEIGHT = 90;
+    const COLUMN_ROW_HEIGHT = 14;
+    return HEADER_HEIGHT + columns.length * COLUMN_ROW_HEIGHT;
+  }
+  return 80;
+}
+
 // Function to apply ELK layout
 async function applyLayout(nodes: Node[], edges: Edge[]) : Promise<{ nodes: Node[], edges: Edge[] }> {
   const elk = new ELK();
@@ -152,7 +168,9 @@ async function applyLayout(nodes: Node[], edges: Edge[]) : Promise<{ nodes: Node
       "elk.algorithm": "layered",
       "elk.direction": "RIGHT",
       "elk.layered.spacing.nodeNodeBetweenLayers": "100",
-      "elk.spacing.nodeNode": "0.0",
+      // Vertical gap between nodes in the same layer. Kept small but non-zero so
+      // expanded column nodes don't butt up against (or overlap) each other.
+      "elk.spacing.nodeNode": "24",
       "elk.layered.nodePlacement.strategy": "NETWORK_SIMPLEX",
       "elk.layered.nodePlacement.bk.fixedAlignment": "BALANCED",
       "elk.layered.crossingMinimization.strategy": "LAYER_SWEEP",
@@ -165,7 +183,7 @@ async function applyLayout(nodes: Node[], edges: Edge[]) : Promise<{ nodes: Node
     children: nodes.map((node) => ({
       id: node.id,
       width: 224, // Same as node-content width
-      height: 80, // Approximate height
+      height: estimateNodeHeight(node),
     })),
     edges: edges.map((edge) => ({
       id: edge.id,

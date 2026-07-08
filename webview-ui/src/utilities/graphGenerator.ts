@@ -256,6 +256,42 @@ export const createColumnLevelEdges = (
 };
 
 /**
+ * Names of assets (lowercased) that participate in column-level lineage —
+ * either they own lineage entries (targets) or they feed another asset's
+ * column (sources). These are the nodes worth expanding by default in the
+ * column view so their column-to-column edges are actually visible.
+ */
+export const getColumnLineageParticipants = (
+  columnLineageMap: Record<string, ColumnLineage[]>
+): Set<string> => {
+  const participants = new Set<string>();
+  Object.entries(columnLineageMap).forEach(([assetName, lineage]) => {
+    if (!lineage || lineage.length === 0) return;
+    participants.add(assetName.toLowerCase());
+    lineage.forEach(entry => {
+      entry.source_columns.forEach(sc => participants.add(sc.asset.toLowerCase()));
+    });
+  });
+  return participants;
+};
+
+/**
+ * Flag the nodes that participate in column lineage so the node component
+ * expands their columns by default. Collapsed nodes stack all their column
+ * handles on the header, which makes the column edges invisible.
+ */
+const markExpandedColumnNodes = (nodes: Node[], participants: Set<string>): void => {
+  nodes.forEach(node => {
+    if (participants.has(String(node.id).toLowerCase())) {
+      (node.data as any).expandColumns = true;
+      if ((node.data as any).asset) {
+        (node.data as any).asset.expandColumns = true;
+      }
+    }
+  });
+};
+
+/**
  * Create column node
  */
 export const createColumnNode = (asset: any, isFocusAsset: boolean = false, columnLineage: ColumnLineage[] = []): Node => {
@@ -319,6 +355,10 @@ export const generateColumnGraph = (
     // Add column-level edges based on column lineage information
     const columnEdges = createColumnLevelEdges(processedAssets, columnLineageMap, assetMap);
     edges.push(...columnEdges);
+
+    // Expand columns for lineage-participating neighbours so their column
+    // edges are visible (the focus asset is already expanded).
+    markExpandedColumnNodes(nodes, getColumnLineageParticipants(columnLineageMap));
   }
 
   return { nodes, edges };
@@ -366,6 +406,10 @@ export const generateColumnGraphForPipeline = (
 
   // Column-level edges across all assets in the pipeline.
   edges.push(...createColumnLevelEdges(processedAssets, columnLineageMap, assetMap));
+
+  // Expand columns for assets that participate in column lineage so their
+  // column edges are visible; leave metadata-only assets collapsed.
+  markExpandedColumnNodes(nodes, getColumnLineageParticipants(columnLineageMap));
 
   return { nodes, edges };
 };

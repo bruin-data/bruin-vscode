@@ -1393,6 +1393,17 @@ suite('generateColumnGraphForPipeline', () => {
     expect(columnEdges.some(e => e.id === 'column-a.a_col-to-b.b_col')).toBe(true);
     expect(columnEdges.some(e => e.id === 'column-b.b_col-to-c.c_col')).toBe(true);
   });
+
+  test('expands columns by default only for lineage-participating assets', () => {
+    const { nodes } = generateColumnGraphForPipeline(lineageData);
+    const byId = Object.fromEntries(nodes.map(n => [n.id, n]));
+    // a (source), b (source+target), c (target) participate → expanded.
+    expect(byId.a.data.expandColumns).toBe(true);
+    expect(byId.b.data.expandColumns).toBe(true);
+    expect(byId.c.data.expandColumns).toBe(true);
+    // d has no column lineage → left collapsed to reduce clutter.
+    expect(byId.d.data.expandColumns).toBeFalsy();
+  });
 });
 
 suite('ConnectionsForm updateUseApplicationDefaultCredentials', () => {
