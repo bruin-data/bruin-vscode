@@ -1,9 +1,6 @@
 # Changelog
 ## [0.82.0] - [2026-07-08]
-- Fixed the lineage panel's "Column Level Lineage" view showing "No column lineage data found" even when columns were annotated. The panel now loads column-level lineage (`-c`) up front so the view renders instead of erroring.
-- Added pipeline-wide column-level lineage: opening "Column Level Lineage" from the pipeline view now renders column edges across every asset in the pipeline, instead of only the currently focused asset.
-- Fixed the lineage panel snapping out of the "Column Level Lineage" (or Pipeline) view whenever lineage data refreshed. The panel now only resets the view when you switch to a different asset/pipeline, and rebuilds the current view in place on data updates.
-- Improved the "Column Level Lineage" view: assets that participate in column lineage now open with their columns expanded so the column-to-column arrows are visible, while unrelated assets stay collapsed (and any node can still be collapsed/expanded via its chevron). Node layout now accounts for expanded height so nodes no longer overlap.
+- Overhauled column-level lineage: fixed the "No column lineage data found" error, added a pipeline-wide column view spanning every asset, and expanded participating assets by default so the column-to-column arrows are visible. Also stopped the view from snapping back when lineage data refreshes.
 
 ## [0.81.5] - [2026-07-07]
 - Regenerated config-schema.json for all connection types from the Bruin CLI, fixing lint errors for profile-based connections in Athena.
