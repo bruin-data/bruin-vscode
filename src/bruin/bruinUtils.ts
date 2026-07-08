@@ -365,6 +365,9 @@ export const formatInIntegratedTerminal = async (
   await new Promise((resolve) => setTimeout(resolve, 1000));
 };
 
+// Guarantees a unique script id even when two runs start in the same millisecond.
+let multiAssetRunCounter = 0;
+
 /**
  * Runs multiple Bruin assets in the integrated terminal.
  * @param {string[]} assetPaths - Array of asset file paths to run.
@@ -390,11 +393,7 @@ export const runMultipleAssetsInTerminal = async (
     ? "bruin"
     : bruinExecutable;
 
-  // A few assets fit comfortably in the terminal's line input, so send the
-  // command directly. Past this many paths the single `bruin run <path...>`
-  // string can overflow the terminal input and get corrupted mid-path (a
-  // truncated path and a dangling quote), so route it through a script file
-  // instead — the terminal then only receives a short `bash <script>`.
+  // Beyond a few paths the single `bruin run <path...>` string overflows the terminal input and gets corrupted, so route it through a script file.
   const RUN_VIA_SCRIPT_THRESHOLD = 4;
 
   let runCommand: string;
@@ -405,7 +404,7 @@ export const runMultipleAssetsInTerminal = async (
       flags || "",
       useUnixFormatting
     );
-    const scriptId = `run_${Date.now()}`;
+    const scriptId = `run_${Date.now()}_${multiAssetRunCounter++}`;
     const scriptPath = await writeTerminalScript(
       "bruin-run-multi",
       scriptId,
@@ -433,12 +432,7 @@ export const runMultipleAssetsInTerminal = async (
   await new Promise((resolve) => setTimeout(resolve, 1000));
 };
 
-/**
- * Builds a script that runs the selected assets in a single `bruin run`
- * invocation with all asset paths passed positionally (matching the previous
- * behavior). The paths are written into a script file rather than pasted into
- * the terminal so a long list can't overflow the terminal's line input.
- */
+// Builds a script running all selected assets in one `bruin run` invocation, written to a file so a long path list can't overflow the terminal input.
 export const buildRunMultipleAssetsScript = (
   executable: string,
   assetPaths: string[],
@@ -535,10 +529,7 @@ export const buildBackfillScript = (
   return lines.join("\n") + "\n";
 };
 
-/**
- * Writes a shell script to the OS temp dir and returns its path. The extension
- * is the file's only writer; it is read once by the shell.
- */
+// Writes a shell script to the OS temp dir and returns its path.
 export const writeTerminalScript = async (
   namePrefix: string,
   scriptId: string,
@@ -551,9 +542,7 @@ export const writeTerminalScript = async (
   return scriptPath;
 };
 
-/**
- * Writes a backfill script to the OS temp dir and returns its path.
- */
+// Writes a backfill script to the OS temp dir and returns its path.
 export const writeBackfillScript = async (
   scriptId: string,
   content: string,
