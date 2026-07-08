@@ -89,6 +89,7 @@ After installing, run the **Bruin: Show Getting Started Walkthrough** command fr
 ## Release Notes
 
 ### Recent Update
+- **0.81.6**: Fixed the lineage panel's "Column Level Lineage" view showing "No column lineage data found" even when columns were annotated — the panel now loads column-level lineage up front.
 - **0.81.5**: Regenerated config-schema.json for all 136 connection types from the Bruin CLI, fixing Athena lint so profile-based connections validate correctly.
 - **0.81.4**: Added multi-column sorting to the query preview results table — click headers to sort by several columns at once (most recently clicked is the primary key), with a "Sorted by" bar to flip direction, remove a column, or clear all.
 - **0.81.3**: Recognized Tableau assets and synced the full set of Bruin CLI asset types, fixing validation errors and missing autocompletion for newer types.

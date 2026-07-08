@@ -1514,7 +1514,10 @@ export class BruinPanel {
             break;
           case "bruin.showPipelineLineage":
             if (this._lastRenderedDocumentUri) {
-              await flowLineageCommand(this._lastRenderedDocumentUri);
+              // Include column-level lineage (-c) so the lineage panel's
+              // "Column Level Lineage" view has the column data it needs;
+              // without it the view reports "No column lineage data found".
+              await flowLineageCommand(this._lastRenderedDocumentUri, undefined, true);
             }
             break;
           case "bruin.getAssetMetadata":

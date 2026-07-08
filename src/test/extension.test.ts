@@ -4537,9 +4537,11 @@ suite(" Query export Tests", () => {
         flowLineageCommandStub.resolves();
         
         await baseLineagePanel.loadLineageData();
-        
+
         sinon.assert.calledOnce(flowLineageCommandStub);
-        sinon.assert.calledWith(flowLineageCommandStub, testUri);
+        // Must request column-level lineage (-c) so the panel's "Column Level
+        // Lineage" view has the column data it needs.
+        sinon.assert.calledWith(flowLineageCommandStub, testUri, undefined, true);
       });
 
       test("should not load lineage data when no URI", async () => {
