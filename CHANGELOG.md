@@ -1,4 +1,7 @@
 # Changelog
+## [0.82.1] - [2026-07-08]
+- Fixed "run multiple assets" producing a truncated command with a cut-off path and dangling quote for large selections, which now run via a temporary script file.
+
 ## [0.82.0] - [2026-07-08]
 - Overhauled column-level lineage: fixed the "No column lineage data found" error, added a pipeline-wide column view spanning every asset, and expanded participating assets by default so the column-to-column arrows are visible. Also stopped the view from snapping back when lineage data refreshes.
 

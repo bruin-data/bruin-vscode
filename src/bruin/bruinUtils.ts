@@ -365,6 +365,9 @@ export const formatInIntegratedTerminal = async (
   await new Promise((resolve) => setTimeout(resolve, 1000));
 };
 
+// Guarantees a unique script id even when two runs start in the same millisecond.
+let multiAssetRunCounter = 0;
+
 /**
  * Runs multiple Bruin assets in the integrated terminal.
  * @param {string[]} assetPaths - Array of asset file paths to run.
@@ -390,25 +393,70 @@ export const runMultipleAssetsInTerminal = async (
     ? "bruin"
     : bruinExecutable;
 
-  // Escape and join all asset paths
-  const escapedPaths = assetPaths.map((p) => escapeFilePath(p)).join(' ');
+  // Beyond a few paths the single `bruin run <path...>` string overflows the terminal input and gets corrupted, so route it through a script file.
+  const RUN_VIA_SCRIPT_THRESHOLD = 4;
 
-  // Build command using the same formatting as runInIntegratedTerminal
-  let command = "";
-  if (flags && flags.trim().length > 0) {
-    command = formatBruinCommand(executable, BRUIN_RUN_SQL_COMMAND, flags, escapedPaths, useUnixFormatting);
+  let runCommand: string;
+  if (assetPaths.length > RUN_VIA_SCRIPT_THRESHOLD) {
+    const scriptContent = buildRunMultipleAssetsScript(
+      executable,
+      assetPaths,
+      flags || "",
+      useUnixFormatting
+    );
+    const scriptId = `run_${Date.now()}_${multiAssetRunCounter++}`;
+    const scriptPath = await writeTerminalScript(
+      "bruin-run-multi",
+      scriptId,
+      scriptContent,
+      useUnixFormatting
+    );
+    runCommand = useUnixFormatting
+      ? `bash "${scriptPath}"`
+      : `powershell -ExecutionPolicy Bypass -File "${scriptPath}"`;
   } else {
-    command = `${executable} ${BRUIN_RUN_SQL_COMMAND} ${escapedPaths}`;
+    const escapedPaths = assetPaths.map((p) => escapeFilePath(p)).join(" ");
+    runCommand =
+      flags && flags.trim().length > 0
+        ? formatBruinCommand(executable, BRUIN_RUN_SQL_COMMAND, flags, escapedPaths, useUnixFormatting)
+        : `${executable} ${BRUIN_RUN_SQL_COMMAND} ${escapedPaths}`;
   }
 
   terminal.show(true);
   terminal.sendText(" ");
 
   setTimeout(() => {
-    terminal.sendText(command);
+    terminal.sendText(runCommand);
   }, 500);
 
   await new Promise((resolve) => setTimeout(resolve, 1000));
+};
+
+// Builds a script running all selected assets in one `bruin run` invocation, written to a file so a long path list can't overflow the terminal input.
+export const buildRunMultipleAssetsScript = (
+  executable: string,
+  assetPaths: string[],
+  flags: string,
+  useUnixFormatting: boolean = true
+): string => {
+  const escapedPaths = assetPaths.map((p) => escapeFilePath(p)).join(" ");
+  const baseFlags = (flags || "").trim();
+  const parts = [executable, BRUIN_RUN_SQL_COMMAND];
+  if (baseFlags.length > 0) {
+    parts.push(baseFlags);
+  }
+  parts.push(escapedPaths);
+  const command = parts.join(" ");
+
+  if (useUnixFormatting) {
+    return [
+      "#!/usr/bin/env bash",
+      `echo "Running ${assetPaths.length} Bruin assets..."`,
+      command,
+      "",
+    ].join("\n");
+  }
+  return [`Write-Host "Running ${assetPaths.length} Bruin assets..."`, command, ""].join("\n");
 };
 
 export interface BackfillChunk {
@@ -481,20 +529,25 @@ export const buildBackfillScript = (
   return lines.join("\n") + "\n";
 };
 
-/**
- * Writes a backfill script to the OS temp dir and returns its path. The
- * extension is the file's only writer; it is read once by the shell.
- */
-export const writeBackfillScript = async (
+// Writes a shell script to the OS temp dir and returns its path.
+export const writeTerminalScript = async (
+  namePrefix: string,
   scriptId: string,
   content: string,
   useUnixFormatting: boolean
 ): Promise<string> => {
   const ext = useUnixFormatting ? "sh" : "ps1";
-  const scriptPath = path.join(os.tmpdir(), `bruin-backfill-${scriptId}.${ext}`);
+  const scriptPath = path.join(os.tmpdir(), `${namePrefix}-${scriptId}.${ext}`);
   await fs.promises.writeFile(scriptPath, content, { encoding: "utf-8", mode: 0o755 });
   return scriptPath;
 };
+
+// Writes a backfill script to the OS temp dir and returns its path.
+export const writeBackfillScript = async (
+  scriptId: string,
+  content: string,
+  useUnixFormatting: boolean
+): Promise<string> => writeTerminalScript("bruin-backfill", scriptId, content, useUnixFormatting);
 
 /**
  * Runs a local backfill: `bruin run` once per interval chunk, sequentially, in
