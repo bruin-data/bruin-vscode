@@ -1369,7 +1369,10 @@ export class BruinPanel {
             break;
           case "bruin.getPipelineAssets":
             console.log("Getting pipeline assets");
-            flowLineageCommand(this._lastRenderedDocumentUri, "BruinPanel");
+            // Include column data (-c): this also feeds the lineage panel via
+            // updateLineageData, so fetching without it would clobber the
+            // panel's column-level lineage with a column-less payload.
+            flowLineageCommand(this._lastRenderedDocumentUri, "BruinPanel", true);
             break;
           case "bruin.createEnvironment":
             trackEvent("Command Executed", { command: "createEnvironment", source: "extension" });

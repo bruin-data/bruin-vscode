@@ -697,19 +697,40 @@ const handleColumnLevelLineage = async () => {
   await buildColumnElements();
 };
 
+// Stable identity of the lineage target currently shown. It changes when the
+// user opens a different asset/pipeline, but stays the same across the repeated
+// data refreshes the extension pushes for the same target (visibility changes,
+// document edits, multiple loader paths). We use it to decide whether a data
+// update should reset the view or just rebuild the current one.
+const computeTargetKey = () => {
+  const ds = props.assetDataset as any;
+  if (!ds) return "";
+  return ds.isPipelineView ? `pipeline:${ds.name ?? ""}` : `asset:${ds.id ?? ds.name ?? ""}`;
+};
+let lastViewKey = "";
+
+// Pick the default view for whichever target is currently loaded: pipeline view
+// for a pipeline, asset view for an asset. Used on first load and whenever the
+// user switches to a different target.
+const selectDefaultViewForTarget = () => {
+  const isPipeline = Boolean((props.assetDataset as any)?.isPipelineView);
+  showColumnView.value = false;
+  showPipelineView.value = isPipeline;
+  if (isPipeline) {
+    buildPipelineElements();
+  } else if (props.assetDataset && props.pipelineData) {
+    processProperties();
+  }
+};
+
 onMounted(() => {
   console.log('🚀 [Lineage] Lineage component mounted');
-  console.log('🚀 [Lineage] Props:', { 
-    hasAssetDataset: !!props.assetDataset, 
-    hasPipelineData: !!props.pipelineData, 
-    isLoading: props.isLoading,
-    LineageError: props.LineageError 
-  });
-  
+
   // Enable auto-fit for first load
   shouldAutoFit.value = true;
-  
-  processProperties();
+
+  lastViewKey = computeTargetKey();
+  selectDefaultViewForTarget();
 });
 
 watch(
@@ -724,13 +745,25 @@ watch(
 
 watch(
   () => [props.assetDataset, props.pipelineData],
-  ([newAssetDataset, newPipelineData]) => {
-    // Check if this is a pipeline view and auto-switch
-    if (newAssetDataset && (newAssetDataset as any).isPipelineView) {
-      showPipelineView.value = true;
-      showColumnView.value = false;
+  () => {
+    if (!props.assetDataset) return;
+
+    const key = computeTargetKey();
+    if (key !== lastViewKey) {
+      // Switched to a different asset/pipeline: reset to its default view.
+      lastViewKey = key;
+      selectDefaultViewForTarget();
+      return;
+    }
+
+    // Same target, data just refreshed: rebuild whichever view the user is in
+    // rather than forcing them back to the pipeline/asset view. This is what
+    // keeps the "Column Level Lineage" view from snapping away on every update.
+    if (showColumnView.value) {
+      buildColumnElements();
+    } else if (showPipelineView.value) {
       buildPipelineElements();
-    } else if (newAssetDataset && newPipelineData && !showPipelineView.value && !showColumnView.value) {
+    } else {
       processProperties();
     }
   },
