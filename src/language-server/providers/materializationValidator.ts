@@ -27,21 +27,8 @@ export class MaterializationValidator {
         }
         
         if (materializationStart !== -1) {
-            if (this.getAssetType(lines) === 'ingestr') {
-                // Ingestr assets don't support materialization; the CLI silently ignores
-                // the block. Flag it so it isn't mistaken for a working configuration.
-                const line = lines[materializationStart];
-                const keyEnd = line.indexOf(':');
-                const range = new vscode.Range(materializationStart, 0, materializationStart, keyEnd === -1 ? line.length : keyEnd);
-                diagnostics.push(new vscode.Diagnostic(
-                    range,
-                    'Materialization is not supported for ingestr assets and will be ignored. Configure incremental behavior via "parameters" (e.g. incremental_strategy, incremental_key) instead.',
-                    vscode.DiagnosticSeverity.Warning
-                ));
-            } else {
-                // Validate the materialization section
-                this.validateRequiredFields(document, lines, materializationStart, materializationEnd, diagnostics);
-            }
+            // Validate the materialization section
+            this.validateRequiredFields(document, lines, materializationStart, materializationEnd, diagnostics);
         }
 
         // Validate interval_modifiers placement based on file type
@@ -50,21 +37,6 @@ export class MaterializationValidator {
         return diagnostics;
     }
 
-    /**
-     * Find the top-level asset type (e.g. "ingestr", "bq.sql"). Only matches a
-     * `type:` key at column 0, so it ignores the indented materialization `type`
-     * and nested asset definitions in pipeline.yml.
-     */
-    private getAssetType(lines: string[]): string | null {
-        for (const line of lines) {
-            const match = line.match(/^type:\s*(\S+)/);
-            if (match) {
-                return match[1];
-            }
-        }
-        return null;
-    }
-    
     /**
      * Validate required fields based on strategy
      */

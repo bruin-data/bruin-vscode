@@ -770,7 +770,6 @@ const tabs = ref([
       pipelineAssets: pipelineAssets.value,
       currentFilePath: lastRenderedDocument.value,
       secrets: assetDetailsProps.value?.secrets,
-      assetType: assetDetailsProps.value?.type,
     })),
   },
   {
