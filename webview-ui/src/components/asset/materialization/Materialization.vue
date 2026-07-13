@@ -517,12 +517,8 @@
         </div>
       </div>
 
-      <!-- Materialization Section (not applicable to ingestr assets) -->
-      <div
-        v-if="assetType !== 'ingestr'"
-        id="materialization-section"
-        class="collapsible-section"
-      >
+      <!-- Materialization Section -->
+      <div id="materialization-section" class="collapsible-section">
         <div id="materialization-section-header" class="section-header" @click="toggleSection('materialization')">
           <div class="flex items-center justify-between w-full">
             <div class="flex items-center gap-2">
@@ -557,7 +553,7 @@
               >
                 <vscode-radio id="materialization-type-null" name="materialization-type" value="null" :checked="localMaterialization.type === 'none'">None</vscode-radio>
                 <vscode-radio id="materialization-type-table" name="materialization-type" value="table" :checked="localMaterialization.type === 'table'">Table</vscode-radio>
-                <vscode-radio id="materialization-type-view" name="materialization-type" value="view" :checked="localMaterialization.type === 'view'">View</vscode-radio>
+                <vscode-radio v-if="assetType !== 'ingestr'" id="materialization-type-view" name="materialization-type" value="view" :checked="localMaterialization.type === 'view'">View</vscode-radio>
               </vscode-radio-group>
             </div>
           </div>
@@ -910,7 +906,7 @@ const intervalModifiers = ref({});
 
 const intervalUnits = ["months", "days", "hours", "minutes", "seconds"];
 
-const strategyOptions = [
+const allStrategyOptions = [
   { value: "create+replace", label: "Create + Replace" },
   { value: "delete+insert", label: "Delete + Insert" },
   { value: "append", label: "Append" },
@@ -921,6 +917,16 @@ const strategyOptions = [
   { value: "scd2_by_time", label: "SCD2 by Time" },
   { value: "scd2_by_column", label: "SCD2 by Column" },
 ];
+
+// Ingestr assets delegate the load to ingestr's incremental engine, which only
+// supports these strategies (the SQL-only strategies are rejected by the CLI).
+const INGESTR_STRATEGIES = ["create+replace", "delete+insert", "append", "merge", "truncate+insert"];
+
+const strategyOptions = computed(() =>
+  props.assetType === "ingestr"
+    ? allStrategyOptions.filter((option) => INGESTR_STRATEGIES.includes(option.value))
+    : allStrategyOptions
+);
 
 const startIntervalValue = ref(0);
 const startIntervalUnit = ref("");
