@@ -153,6 +153,30 @@
                 "api_key"
             ]
         },
+        "AmplitudeConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_key": {
+                    "type": "string"
+                },
+                "secret_key": {
+                    "type": "string"
+                },
+                "region": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name"
+            ]
+        },
         "AnthropicConnection": {
             "properties": {
                 "name": {
@@ -861,6 +885,12 @@
                     },
                     "type": "array"
                 },
+                "doris": {
+                    "items": {
+                        "$ref": "#/definitions/DorisConnection"
+                    },
+                    "type": "array"
+                },
                 "vitess": {
                     "items": {
                         "$ref": "#/definitions/VitessConnection"
@@ -1221,6 +1251,12 @@
                     },
                     "type": "array"
                 },
+                "amplitude": {
+                    "items": {
+                        "$ref": "#/definitions/AmplitudeConnection"
+                    },
+                    "type": "array"
+                },
                 "clickup": {
                     "items": {
                         "$ref": "#/definitions/ClickupConnection"
@@ -1452,6 +1488,12 @@
                 "fireflies": {
                     "items": {
                         "$ref": "#/definitions/FirefliesConnection"
+                    },
+                    "type": "array"
+                },
+                "trello": {
+                    "items": {
+                        "$ref": "#/definitions/TrelloConnection"
                     },
                     "type": "array"
                 },
@@ -1855,6 +1897,54 @@
                 "client_secret",
                 "username",
                 "password"
+            ]
+        },
+        "DorisConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer",
+                    "default": 9030
+                },
+                "database": {
+                    "type": "string"
+                },
+                "driver": {
+                    "type": "string"
+                },
+                "ssl_ca_path": {
+                    "type": "string"
+                },
+                "ssl_cert_path": {
+                    "type": "string"
+                },
+                "ssl_key_path": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "username",
+                "password",
+                "host",
+                "port",
+                "database"
             ]
         },
         "DremioConnection": {
@@ -4795,6 +4885,29 @@
                 "name",
                 "access_token",
                 "advertiser_ids"
+            ]
+        },
+        "TrelloConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_key": {
+                    "type": "string"
+                },
+                "token": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_key",
+                "token"
             ]
         },
         "TrinoConnection": {
