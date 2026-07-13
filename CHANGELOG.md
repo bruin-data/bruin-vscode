@@ -1,6 +1,6 @@
 # Changelog
 ## [0.82.2] - [2026-07-13]
-- Hid the Materialization section in the asset Details tab for ingestr assets, which don't support materialization.
+- Hid the Materialization section in the asset Details tab for ingestr assets, which don't support materialization, and added a warning when a `materialization` block is added to an ingestr asset.
 
 ## [0.82.1] - [2026-07-08]
 - Fixed "run multiple assets" producing a truncated command with a cut-off path and dangling quote for large selections, which now run via a temporary script file.
