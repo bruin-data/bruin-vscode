@@ -1,6 +1,6 @@
 # Changelog
 ## [0.82.3] - [2026-07-13]
-- Restored the Materialization section for ingestr assets and removed the related warning, as materialization is now supported for ingestr in the Bruin CLI. Reverts 0.82.2.
+- Restored the Materialization section for ingestr assets (now supported by the Bruin CLI), limited to the options ingestr supports: type "table" only and the create+replace, delete+insert, append, merge, and truncate+insert strategies.
 
 ## [0.82.2] - [2026-07-13]
 - Hid the Materialization section in the asset Details tab for ingestr assets, which don't support materialization, and added a warning when a `materialization` block is added to an ingestr asset.
