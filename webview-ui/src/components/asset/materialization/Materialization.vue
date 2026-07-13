@@ -517,8 +517,12 @@
         </div>
       </div>
 
-      <!-- Materialization Section -->
-      <div id="materialization-section" class="collapsible-section">
+      <!-- Materialization Section (not applicable to ingestr assets) -->
+      <div
+        v-if="assetType !== 'ingestr'"
+        id="materialization-section"
+        class="collapsible-section"
+      >
         <div id="materialization-section-header" class="section-header" @click="toggleSection('materialization')">
           <div class="flex items-center justify-between w-full">
             <div class="flex items-center gap-2">
@@ -704,6 +708,10 @@ const props = defineProps({
   secrets: {
     type: Array,
     default: () => [],
+  },
+  assetType: {
+    type: String,
+    default: "",
   },
 });
 
