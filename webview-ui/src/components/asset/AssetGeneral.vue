@@ -1308,7 +1308,7 @@ const checkboxTooltips = computed(() => {
   }
   tooltips['Apply-Sensor-Mode'] =
     `Runs sensors with --sensor-mode ${sensorModeSetting.value}. ` +
-    `Change the mode in the editor Settings (Cmd/Ctrl+,) — not this panel's Settings tab — ` +
+    `Change the mode in the editor Settings (Cmd/Ctrl+,) ` +
     `by searching "sensor mode" (bruin.run.sensorMode: once / skip / wait).`;
   return tooltips;
 });
