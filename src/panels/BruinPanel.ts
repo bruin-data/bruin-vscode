@@ -248,6 +248,18 @@ export class BruinPanel {
             }
           }
         }
+      }),
+
+      // Keep the open panel in sync when the sensor-mode setting changes, so the
+      // run command uses the current mode instead of the value read at panel open.
+      workspace.onDidChangeConfiguration((e) => {
+        if (e.affectsConfiguration("bruin.run.sensorMode")) {
+          this._sensorModeSetting = getSensorModeSetting();
+          this._panel.webview.postMessage({
+            command: "sensorModeSettingChanged",
+            sensorModeSetting: this._sensorModeSetting,
+          });
+        }
       })
     );
 
