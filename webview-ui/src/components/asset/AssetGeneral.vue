@@ -1306,6 +1306,10 @@ const checkboxTooltips = computed(() => {
   if (intervalModifiersTooltip.value) {
     tooltips['Interval-modifiers'] = intervalModifiersTooltip.value;
   }
+  tooltips['Apply-Sensor-Mode'] =
+    `Runs sensors with --sensor-mode ${sensorModeSetting.value}. ` +
+    `Change the mode in the editor Settings (Cmd/Ctrl+,) ` +
+    `by searching "sensor mode" (bruin.run.sensorMode: once / skip / wait).`;
   return tooltips;
 });
 
@@ -2163,6 +2167,16 @@ function receiveMessage(event: { data: any }) {
             checkboxState: envelope.payload,
             sensorModeSetting: sensorModeSetting.value,
           });
+        } catch (_) { }
+      }
+      break;
+
+    case "sensorModeSettingChanged":
+      if (envelope.sensorModeSetting) {
+        sensorModeSetting.value = envelope.sensorModeSetting;
+        try {
+          const prevState = (vscode.getState() as Record<string, any>) || {};
+          vscode.setState({ ...prevState, sensorModeSetting: sensorModeSetting.value });
         } catch (_) { }
       }
       break;

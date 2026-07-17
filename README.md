@@ -89,6 +89,7 @@ After installing, run the **Bruin: Show Getting Started Walkthrough** command fr
 ## Release Notes
 
 ### Recent Update
+- **0.82.4**: Fixed the "Apply-Sensor-Mode" checkbox using a stale mode: changing the `bruin.run.sensorMode` setting now takes effect immediately in an open asset panel instead of only after reopening it. The checkbox tooltip also shows the active mode and points to the setting.
 - **0.82.3**: Restored the Materialization section for ingestr assets (now supported by the Bruin CLI), limited to the options ingestr supports: type "table" only and the create+replace, delete+insert, append, merge, and truncate+insert strategies.
 - **0.82.2**: Hid the Materialization section in the asset Details tab for ingestr assets, which don't support materialization, and added a warning when a `materialization` block is added to an ingestr asset.
 - **0.82.1**: Fixed "run multiple assets" producing a truncated command with a cut-off path and dangling quote for large selections, which now run via a temporary script file.

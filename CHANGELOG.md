@@ -1,4 +1,7 @@
 # Changelog
+## [0.82.4] - [2026-07-17]
+- Fixed the "Apply-Sensor-Mode" checkbox using a stale mode: changing the `bruin.run.sensorMode` setting now takes effect immediately in an open asset panel instead of only after reopening it. The checkbox tooltip also shows the active mode and points to the setting.
+
 ## [0.82.3] - [2026-07-13]
 - Restored the Materialization section for ingestr assets (now supported by the Bruin CLI), limited to the options ingestr supports: type "table" only and the create+replace, delete+insert, append, merge, and truncate+insert strategies.
 
