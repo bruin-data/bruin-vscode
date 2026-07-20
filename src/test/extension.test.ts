@@ -4101,6 +4101,98 @@ suite(" Query export Tests", () => {
     });
   });
 
+  suite("PipelineLineageCacheService Tests", () => {
+    let cache: any;
+
+    setup(async () => {
+      const { getPipelineLineageCache } = await import("../providers/PipelineLineageCacheService");
+      cache = getPipelineLineageCache();
+      cache.invalidateAll();
+    });
+
+    teardown(() => {
+      cache.invalidateAll();
+    });
+
+    test("returns undefined on a miss", () => {
+      assert.strictEqual(cache.get("/p", false), undefined);
+    });
+
+    test("stores and returns a no-column entry", () => {
+      cache.set("/p", "raw", false);
+      assert.strictEqual(cache.get("/p", false), "raw");
+    });
+
+    test("a no-column entry does not satisfy a column request", () => {
+      cache.set("/p", "raw", false);
+      assert.strictEqual(cache.get("/p", true), undefined);
+    });
+
+    test("a with-columns entry satisfies both column and no-column requests", () => {
+      cache.set("/p", "rawc", true);
+      assert.strictEqual(cache.get("/p", true), "rawc");
+      assert.strictEqual(cache.get("/p", false), "rawc");
+    });
+
+    test("never downgrades a with-columns entry to a no-column one", () => {
+      cache.set("/p", "rawc", true);
+      cache.set("/p", "raw", false);
+      assert.strictEqual(cache.get("/p", true), "rawc");
+    });
+
+    test("invalidate drops the entry and everything beneath the dir", () => {
+      cache.set("/pipe", "dir", false);
+      cache.set("/pipe/pipeline.yml", "file", false);
+      cache.invalidate("/pipe");
+      assert.strictEqual(cache.get("/pipe", false), undefined);
+      assert.strictEqual(cache.get("/pipe/pipeline.yml", false), undefined);
+    });
+
+    test("invalidate leaves other pipelines untouched", () => {
+      cache.set("/pipe-a", "a", false);
+      cache.set("/pipe-b", "b", false);
+      cache.invalidate("/pipe-a");
+      assert.strictEqual(cache.get("/pipe-a", false), undefined);
+      assert.strictEqual(cache.get("/pipe-b", false), "b");
+    });
+  });
+
+  suite("patchAssetCommand cache invalidation", () => {
+    let cache: any;
+    let patchAssetCommand: any;
+
+    setup(async () => {
+      const parseAssetCommandModule = await import("../extension/commands/parseAssetCommand");
+      patchAssetCommand = parseAssetCommandModule.patchAssetCommand;
+
+      const { getPipelineLineageCache } = await import("../providers/PipelineLineageCacheService");
+      cache = getPipelineLineageCache();
+      cache.invalidateAll();
+
+      sinon.stub(BruinInternalPatch.prototype, "patchAsset").resolves(true);
+      const parseModule = await import("../bruin/bruinInternalParse");
+      sinon.stub(parseModule.BruinInternalParse.prototype, "parseAsset").resolves();
+
+      const bruinUtilsModule = await import("../bruin/bruinUtils");
+      sinon.replace(
+        bruinUtilsModule,
+        "getCurrentPipelinePath",
+        sinon.stub().resolves("/pipe") as any
+      );
+    });
+
+    teardown(() => {
+      sinon.restore();
+      cache.invalidateAll();
+    });
+
+    test("clears cached parse results after a successful patch", async () => {
+      cache.set("/pipe", "raw", true);
+      await patchAssetCommand({ key: "value" }, vscode.Uri.file("/pipe/asset.sql"));
+      assert.strictEqual(cache.get("/pipe", true), undefined);
+    });
+  });
+
   suite("BruinLineageInternalParse Tests", () => {
     let bruinLineageInternalParse: any;
     let runStub: sinon.SinonStub;
@@ -4132,6 +4224,11 @@ suite(" Query export Tests", () => {
       
       const lineagePanelModule = await import("../panels/LineagePanel");
       sinon.replace(lineagePanelModule, "updateLineageData", updateLineageDataStub);
+
+      // The pipeline parse cache is a singleton; clear it so cached results from
+      // an earlier test don't short-circuit the CLI call under test.
+      const { getPipelineLineageCache } = await import("../providers/PipelineLineageCacheService");
+      getPipelineLineageCache().invalidateAll();
     });
 
     teardown(() => {
@@ -4539,9 +4636,9 @@ suite(" Query export Tests", () => {
         await baseLineagePanel.loadLineageData();
 
         sinon.assert.calledOnce(flowLineageCommandStub);
-        // Must request column-level lineage (-c) so the panel's "Column Level
-        // Lineage" view has the column data it needs.
-        sinon.assert.calledWith(flowLineageCommandStub, testUri, undefined, true);
+        // Loads asset-level lineage only (no -c). Column lineage is expensive on
+        // large pipelines and is fetched on demand when the Column View opens.
+        sinon.assert.calledWith(flowLineageCommandStub, testUri, undefined, false);
       });
 
       test("should not load lineage data when no URI", async () => {
@@ -4653,6 +4750,21 @@ suite(" Query export Tests", () => {
         });
         
         assert.strictEqual(baseLineagePanel._lastRenderedDocumentUri, mockEditor.document.uri);
+      });
+
+      test("should fetch column lineage on demand with -c", async () => {
+        const testUri = vscode.Uri.file("/test/file.sql");
+        baseLineagePanel._lastRenderedDocumentUri = testUri;
+        flowLineageCommandStub.resolves();
+
+        const context = {} as vscode.WebviewViewResolveContext;
+        const token = {} as vscode.CancellationToken;
+        baseLineagePanel.resolveWebviewView(mockWebviewView, context, token);
+
+        const messageHandler = onDidReceiveMessageStub.firstCall.args[0];
+        await messageHandler({ command: "bruin.fetchColumnLineage" });
+
+        sinon.assert.calledWith(flowLineageCommandStub, testUri, undefined, true);
       });
 
       test("should handle unknown message command", async () => {

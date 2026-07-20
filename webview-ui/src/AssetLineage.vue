@@ -24,6 +24,7 @@ import { getAssetDataset } from "@/components/lineage-flow/asset-lineage/useAsse
 const lineageData = ref(); // Holds the lineage data received from the extension
 const lineageError = ref(); // Holds any errors related to lineage data
 const hasTimedOut = ref(false); // Tracks if initial load has timed out
+const isFetching = ref(false); // A fresh parse is in flight (e.g. after switching files)
 
 let lastMessageId: string | null = null;
 
@@ -37,7 +38,14 @@ const handleMessage = (event) => {
   if (message.panelType !== "AssetLineage") return;
   
   switch (message.command) {
+    case "flow-lineage-loading":
+      // A new parse started (file switch / edit). Show a spinner instead of
+      // leaving the previous graph on screen until the new data arrives.
+      isFetching.value = true;
+      lineageError.value = undefined;
+      return;
     case "flow-lineage-message":
+      isFetching.value = false;
       const newData = updateValue(message, "success");
       const newError = updateValue(message, "error");
       
@@ -65,13 +73,15 @@ const handleMessage = (event) => {
 
 window.addEventListener("message", handleMessage);
 
-// Set a timeout to stop infinite loading after 10 seconds
+// Safety net: only fires if the very first load never returns any data or
+// error. Once a graph has rendered, switches keep the previous data on screen,
+// so this never surfaces a false error mid-parse.
 setTimeout(() => {
   if (!lineageData.value && !lineageError.value) {
     hasTimedOut.value = true;
     lineageError.value = "Timed out loading lineage data. Please try refreshing the panel.";
   }
-}, 10000);
+}, 30000);
 
 const pipeline = computed(() => {
   if (!lineageData.value?.pipeline) return null;
@@ -103,7 +113,9 @@ const assetDataset = computed(() => {
 });
 
 const pipelineData = computed(() => pipeline.value);
-const isLoading = computed(() => !lineageData.value && !lineageError.value && !hasTimedOut.value);
+const isLoading = computed(
+  () => isFetching.value || (!lineageData.value && !lineageError.value && !hasTimedOut.value)
+);
 
 onMounted(() => {
   console.log('🚀 [AssetLineage] Component mounted');

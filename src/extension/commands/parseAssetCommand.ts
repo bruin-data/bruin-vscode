@@ -6,6 +6,7 @@ import { BruinLineageInternalParse } from "../../bruin/bruinFlowLineage";
 import { BruinPanel } from "../../panels/BruinPanel";
 import { EnhancedPipelineData, PipelineColumnInfo } from "../../types";
 import { getCurrentPipelinePath } from "../../bruin/bruinUtils";
+import { getPipelineLineageCache } from "../../providers/PipelineLineageCacheService";
 import { BruinRender } from "../../bruin/bruinRender";
 import * as vscode from "vscode";
 import * as path from "path";
@@ -45,6 +46,18 @@ export const getFullPipelineFilePath = async (filePath: string): Promise<string 
   }
 };
 
+/**
+ * Drop cached pipeline parse results for the pipeline containing `filePath`.
+ * Extension-UI edits write to disk via the Bruin CLI (patch/convert) and bypass
+ * VS Code's document events, so the cache must be invalidated here explicitly.
+ */
+const invalidateLineageCacheForFile = async (filePath: string) => {
+  const pipelineDir = await getCurrentPipelinePath(filePath);
+  if (pipelineDir) {
+    getPipelineLineageCache().invalidate(pipelineDir);
+  }
+};
+
 export const parseAssetCommand = async (lastRenderedDocumentUri: Uri | undefined) => {
   if (!lastRenderedDocumentUri) {
     return;
@@ -79,6 +92,7 @@ export const patchAssetCommand = async (body: object, lastRenderedDocumentUri: U
 
   // After successful patch, re-parse the asset to update the webview
   if (success) {
+    await invalidateLineageCacheForFile(lastRenderedDocumentUri.fsPath);
     await parseAssetCommand(lastRenderedDocumentUri);
 
     // For ingestr assets, also re-render to get updated rendered parameters
@@ -118,9 +132,10 @@ export const patchPipelineCommand = async (body: object, lastRenderedDocumentUri
   );
   
   const success = await patched.patchPipeline(body, pipelineFilePath);
-  
+
   // After successful patch, re-parse the pipeline to update the webview
   if (success) {
+    await invalidateLineageCacheForFile(lastRenderedDocumentUri.fsPath);
     await parsePipelineCommand(lastRenderedDocumentUri);
     
     // Also send the updated variables back to the webview
@@ -189,4 +204,5 @@ export const convertFileToAssetCommand = async (lastRenderedDocumentUri: Uri | u
      ""
   );
   await patched.convertFileToAsset(lastRenderedDocumentUri.fsPath);
+  await invalidateLineageCacheForFile(lastRenderedDocumentUri.fsPath);
 };

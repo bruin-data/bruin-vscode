@@ -3,6 +3,8 @@ import { getNonce } from "../utilities/getNonce";
 import { getUri } from "../utilities/getUri";
 import { flowLineageCommand } from "../extension/commands/FlowLineageCommand";
 import { trackEvent } from "../extension/extension";
+import { getCurrentPipelinePath } from "../bruin/bruinUtils";
+import { getPipelineLineageCache } from "../providers/PipelineLineageCacheService";
 
 export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposable {
   private static instance: LineagePanel;
@@ -122,18 +124,43 @@ export abstract class BaseLineagePanel implements vscode.WebviewViewProvider, vs
     if (this._docChangeDebounceTimer) {
       clearTimeout(this._docChangeDebounceTimer);
     }
-    this._docChangeDebounceTimer = setTimeout(() => {
+    this._docChangeDebounceTimer = setTimeout(async () => {
       this._docChangeDebounceTimer = undefined;
+      // The document changed, so any cached parse for its pipeline is stale.
+      await this.invalidateCacheForCurrentDoc();
       this.loadLineageData();
     }, BaseLineagePanel.docChangeDebounceMs);
+  }
+
+  private invalidateCacheForCurrentDoc = async () => {
+    if (!this._lastRenderedDocumentUri) {
+      return;
+    }
+    const pipelineDir = await getCurrentPipelinePath(this._lastRenderedDocumentUri.fsPath);
+    if (pipelineDir) {
+      getPipelineLineageCache().invalidate(pipelineDir);
+    }
+  };
+
+  // Tell the webview a fresh load has started so it can show a spinner instead
+  // of leaving the previously rendered graph on screen during the parse.
+  private postLoading() {
+    if (this._view) {
+      this._view.webview.postMessage({
+        command: "flow-lineage-loading",
+        panelType: this.panelType,
+      });
+    }
   }
 
   protected loadLineageData = async () => {
     if (this._lastRenderedDocumentUri) {
       try {
-        // -c up front: the webview toggles to the column view without a
-        // round-trip, so the column data must already be present.
-        await flowLineageCommand(this._lastRenderedDocumentUri, undefined, true);
+        this.postLoading();
+        // Load asset-level lineage only. Column lineage (the CLI `-c` flag) is
+        // expensive on large pipelines and is fetched on demand when the user
+        // opens the Column View (see the bruin.fetchColumnLineage handler).
+        await flowLineageCommand(this._lastRenderedDocumentUri, undefined, false);
       } catch (error) {
         console.error("❌ [LineagePanel] Error loading lineage data:", error);
       }
@@ -317,6 +344,16 @@ export abstract class BaseLineagePanel implements vscode.WebviewViewProvider, vs
             return;
           }
           this.refresh(vscode.window.activeTextEditor!!);
+          break;
+        case "bruin.fetchColumnLineage":
+          // On-demand column lineage: the user opened the Column View, so run the
+          // (expensive) `-c` parse now for the current file and post it back.
+          trackEvent("Command Executed", { command: "fetchColumnLineage", source: "extension" });
+          if (this._lastRenderedDocumentUri) {
+            flowLineageCommand(this._lastRenderedDocumentUri, undefined, true).catch((err) =>
+              console.error("❌ [LineagePanel] on-demand column fetch failed:", err)
+            );
+          }
           break;
       }
     })
