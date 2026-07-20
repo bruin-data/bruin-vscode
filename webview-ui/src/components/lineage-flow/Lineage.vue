@@ -15,7 +15,7 @@
       v-if="shouldShowAssetView"
       :id="ASSET_FLOW_ID"
       v-model:elements="elements"
-      :fit-view-on-init="false"
+      :fit-view-on-init="true"
       class="basic-flow"
       :draggable="true"
       :node-draggable="true"
@@ -73,6 +73,7 @@
     <VueFlow
       v-if="showPipelineView"
       :id="PIPELINE_FLOW_ID"
+      :fit-view-on-init="true"
       :nodes="pipelineElements.nodes"
       :edges="pipelineElements.edges"
       @nodesInitialized="onPipelineNodesInitialized"
@@ -124,6 +125,7 @@
     <VueFlow
       v-if="showColumnView"
       :id="COLUMN_FLOW_ID"
+      :fit-view-on-init="true"
       :nodes="columnElements.nodes"
       :edges="columnElements.edges"
       @nodesInitialized="onColumnNodesInitialized"
@@ -525,7 +527,7 @@ const runFit = async () => {
     fit({ padding: FIT_VIEW_PADDING, duration });
   }
 };
-const scheduleFit = debounce(runFit, 120);
+const scheduleFit = debounce(runFit, 50);
 
 const fitViewSmooth = (forceAutoFit = false, useAnimation = false) => {
   // Only auto-fit if explicitly requested or first load
@@ -538,27 +540,6 @@ const fitViewSmooth = (forceAutoFit = false, useAnimation = false) => {
   }
   scheduleFit();
 };
-
-// The asset/pipeline/column views share one Vue Flow viewport. Switching between
-// them (e.g. leaving the column view by opening another file) can leave the new
-// view framed with the previous view's zoom/pan. Re-fit once the asset view's
-// layout has settled after such a switch.
-const activeView = computed(() =>
-  showColumnView.value ? "column" : showPipelineView.value ? "pipeline" : "asset"
-);
-let refitAssetOnSettle = false;
-watch(activeView, (view) => {
-  if (view === "asset") {
-    refitAssetOnSettle = true;
-    shouldAutoFit.value = true;
-  }
-});
-watch(isLayouting, (layouting) => {
-  if (!layouting && refitAssetOnSettle) {
-    refitAssetOnSettle = false;
-    fitViewSmooth(true, false);
-  }
-});
 
 const _updateGraph = async () => {
   if (!showPipelineView.value && !showColumnView.value) {
