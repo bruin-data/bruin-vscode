@@ -764,22 +764,31 @@ watch(
 watch(
   () => [props.assetDataset, props.pipelineData],
   () => {
-    if (!props.assetDataset) return;
+    // Any fresh data or error resolves an on-demand column fetch. Clear the
+    // pending flag first, before the early return below, so a failed fetch
+    // (null assetDataset) can never leave the column-view spinner stuck.
+    const wasFetchingColumns = columnFetchPending.value;
+    columnFetchPending.value = false;
+
+    if (!props.assetDataset) {
+      // Fetch returned no usable data (error / asset not found). Surface it in
+      // the column view instead of spinning forever.
+      if (wasFetchingColumns && showColumnView.value) {
+        buildColumnElements();
+      }
+      return;
+    }
 
     const key = computeTargetKey();
     if (key !== lastViewKey) {
       // Switched target: reset to its default view.
       lastViewKey = key;
-      columnFetchPending.value = false; // a pending column fetch no longer applies
       selectDefaultViewForTarget();
       return;
     }
 
     // Same target refreshed: rebuild the current view instead of snapping away.
     if (showColumnView.value) {
-      // On-demand column data has arrived (or the fetch completed with none),
-      // so the fetch is done; buildColumnElements will surface any real error.
-      columnFetchPending.value = false;
       buildColumnElements();
     } else if (showPipelineView.value) {
       buildPipelineElements();
@@ -788,6 +797,18 @@ watch(
     }
   },
   { immediate: false }
+);
+
+// Surface a lineage error reported by the extension (e.g. a failed on-demand
+// column parse) so the view shows the message rather than an empty graph.
+watch(
+  () => props.LineageError,
+  (newError) => {
+    if (newError) {
+      columnFetchPending.value = false;
+      error.value = newError;
+    }
+  }
 );
 
 onNodeMouseEnter((event: NodeMouseEvent) => {
