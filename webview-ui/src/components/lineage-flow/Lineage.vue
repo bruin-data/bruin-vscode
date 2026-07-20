@@ -1,6 +1,6 @@
 <template>
   <div class="flow">
-    <div v-if="shouldShowLoading" class="loading-overlay">
+    <div v-if="shouldShowLoading || rebuilding" class="loading-overlay">
       <vscode-progress-ring></vscode-progress-ring>
       <span class="ml-2 text-editor-fg">Loading lineage data...</span>
     </div>
@@ -14,7 +14,6 @@
     <VueFlow
       v-if="shouldShowAssetView"
       :id="ASSET_FLOW_ID"
-      :style="{ opacity: flowOpacity, transition: 'opacity 80ms ease-out' }"
       v-model:elements="elements"
       :fit-view-on-init="false"
       class="basic-flow"
@@ -74,7 +73,6 @@
     <VueFlow
       v-if="showPipelineView"
       :id="PIPELINE_FLOW_ID"
-      :style="{ opacity: flowOpacity, transition: 'opacity 80ms ease-out' }"
       :fit-view-on-init="false"
       :nodes="pipelineElements.nodes"
       :edges="pipelineElements.edges"
@@ -127,7 +125,6 @@
     <VueFlow
       v-if="showColumnView"
       :id="COLUMN_FLOW_ID"
-      :style="{ opacity: flowOpacity, transition: 'opacity 80ms ease-out' }"
       :fit-view-on-init="false"
       :nodes="columnElements.nodes"
       :edges="columnElements.edges"
@@ -277,7 +274,9 @@ const shouldShowTopError = computed(() => {
 });
 
 const shouldShowAssetView = computed(() => {
-  return !showPipelineView.value && !showColumnView.value && !shouldShowLoading.value && !shouldShowTopError.value;
+  // Render whenever the asset view is active (even while the rebuild cover is up)
+  // so Vue Flow can measure and fit the graph underneath the cover.
+  return !showPipelineView.value && !showColumnView.value && !shouldShowTopError.value;
 });
 
 // ===== Asset View State =====
@@ -512,27 +511,28 @@ const FIT_VIEW_PADDING = 0.2;
 // changing — exactly like clicking the button.
 let fitAnimate = false;
 
-// Keep the graph invisible from the moment its nodes change until it has been
-// fitted, then reveal it already-framed. Otherwise it paints unframed and then
-// visibly snaps into place. A safety timer guarantees it can never stay hidden.
-const flowOpacity = ref(1);
-let revealTimer: ReturnType<typeof setTimeout> | undefined;
-const hideUntilFit = () => {
-  flowOpacity.value = 0;
-  if (revealTimer) {
-    clearTimeout(revealTimer);
+// Cover the graph with an opaque overlay from the moment a rebuild starts until
+// it has been fitted, so you never see the old graph linger or the new one snap
+// into place — it builds and fits underneath the cover, then the cover lifts to
+// reveal it already-framed. A safety timer guarantees the cover always lifts.
+const rebuilding = ref(false);
+let rebuildSafetyTimer: ReturnType<typeof setTimeout> | undefined;
+const startRebuild = () => {
+  rebuilding.value = true;
+  if (rebuildSafetyTimer) {
+    clearTimeout(rebuildSafetyTimer);
   }
-  revealTimer = setTimeout(() => {
-    flowOpacity.value = 1;
-    revealTimer = undefined;
-  }, 1500);
+  rebuildSafetyTimer = setTimeout(() => {
+    rebuilding.value = false;
+    rebuildSafetyTimer = undefined;
+  }, 2000);
 };
-const reveal = () => {
-  if (revealTimer) {
-    clearTimeout(revealTimer);
-    revealTimer = undefined;
+const endRebuild = () => {
+  if (rebuildSafetyTimer) {
+    clearTimeout(rebuildSafetyTimer);
+    rebuildSafetyTimer = undefined;
   }
-  flowOpacity.value = 1;
+  rebuilding.value = false;
 };
 
 const runFit = async () => {
@@ -555,7 +555,9 @@ const runFit = async () => {
       fit({ padding: FIT_VIEW_PADDING, duration });
     } catch (_) { /* ignore */ }
   }
-  reveal();
+  // Lift the cover one frame after fitting so the reveal shows the fitted graph.
+  await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+  endRebuild();
 };
 const scheduleFit = debounce(runFit, 50);
 
@@ -585,8 +587,6 @@ const _updateGraph = async () => {
           layoutedGraphData = await applyLayout(graphData.nodes, graphData.edges);
           layoutCache.value.set(key, layoutedGraphData);
         }      
-        // Hide until fitted so the graph reveals already-framed (see runFit).
-        hideUntilFit();
         setNodes(layoutedGraphData.nodes);
         setEdges(layoutedGraphData.edges);
         isLayouting.value = false;
@@ -641,6 +641,8 @@ const processProperties = async () => {
   
   // Don't set loading states here - let _updateGraph handle it
   error.value = null;
+  // Cover the graph until the rebuilt asset view is fitted (see runFit).
+  startRebuild();
   console.log('🔄 [Lineage] Starting graph update');
   try {
     await updateGraph();
@@ -950,13 +952,14 @@ const buildPipelineElements = async () => {
     pipelineElements.value = { nodes: [], edges: [] };
     return;
   }
+  // Cover the graph until the pipeline view is fitted (see runFit).
+  startRebuild();
   const lineageData = buildPipelineLineage(props.pipelineData);
   const { nodes: initialNodes, edges: initialEdges } = (await import("@/components/lineage-flow/pipeline-lineage/pipelineLineageBuilder")).generateGraph(
     lineageData,
     props.assetDataset?.name || ""
   );
   const { nodes: layoutNodes, edges: layoutEdges } = await applyPipelineLayout(initialNodes, initialEdges);
-  hideUntilFit();
   pipelineElements.value = { nodes: layoutNodes, edges: layoutEdges };
 };
 
@@ -1146,6 +1149,8 @@ const buildColumnElements = async () => {
     return;
   }
   error.value = null;
+  // Cover the graph until the column view is fitted (see runFit).
+  startRebuild();
   const lineageData = buildColumnLineage(newPipelineData);
   // In pipeline view there is no single focus asset, so render column lineage
   // across every asset in the pipeline instead of centering on one.
@@ -1164,7 +1169,6 @@ const buildColumnElements = async () => {
     };
   });
 
-  hideUntilFit();
   columnElements.value = { nodes: layoutNodes, edges: layoutEdges };
 };
 
