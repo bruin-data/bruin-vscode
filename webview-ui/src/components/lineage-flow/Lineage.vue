@@ -485,22 +485,27 @@ const onNodesDragged = (draggedNodes: NodeDragEvent[]) => {
 
 
 // Fit view helper - now with smart auto-fit logic
+const FIT_VIEW_PADDING = 0.2;
+
 const fitViewSmooth = async (forceAutoFit = false, useAnimation = false) => {
-  await nextTick();
-  
   // Only auto-fit if explicitly requested or first load
   if (!forceAutoFit && !shouldAutoFit.value) {
     return;
   }
-  
+
+  // Wait a frame so Vue Flow has measured node sizes; fitting against real
+  // dimensions is what makes the framing consistent from one render to the next.
+  await nextTick();
+  await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+
   const duration = useAnimation ? 300 : 0;
-  
+
   try {
-    fitView({ padding: 0.2, duration });
+    fitView({ padding: FIT_VIEW_PADDING, duration });
     shouldAutoFit.value = false; // Disable auto-fit after first use
   } catch (e) {
     await nextTick();
-    fitView({ padding: 0.2, duration });
+    fitView({ padding: FIT_VIEW_PADDING, duration });
     shouldAutoFit.value = false;
   }
 };
@@ -523,9 +528,9 @@ const _updateGraph = async () => {
         setEdges(layoutedGraphData.edges);
         isLayouting.value = false;
         isLoadingLocal.value = false;
-        await nextTick();
-        
-        await fitViewSmooth(true, false);
+        // Fitting happens in onAssetNodesInitialized, once Vue Flow has measured
+        // the node sizes. Fitting here as well would run against unmeasured nodes
+        // and race the measured fit, producing inconsistent framing.
       } else {
         setNodes([]);
         setEdges([]);
