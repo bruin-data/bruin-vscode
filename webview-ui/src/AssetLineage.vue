@@ -24,7 +24,6 @@ import { getAssetDataset } from "@/components/lineage-flow/asset-lineage/useAsse
 const lineageData = ref(); // Holds the lineage data received from the extension
 const lineageError = ref(); // Holds any errors related to lineage data
 const hasTimedOut = ref(false); // Tracks if initial load has timed out
-const isFetching = ref(false); // A fresh parse is in flight (e.g. after switching files)
 
 let lastMessageId: string | null = null;
 
@@ -38,14 +37,7 @@ const handleMessage = (event) => {
   if (message.panelType !== "AssetLineage") return;
   
   switch (message.command) {
-    case "flow-lineage-loading":
-      // A new parse started (file switch / edit). Show a spinner instead of
-      // leaving the previous graph on screen until the new data arrives.
-      isFetching.value = true;
-      lineageError.value = undefined;
-      return;
     case "flow-lineage-message":
-      isFetching.value = false;
       const newData = updateValue(message, "success");
       const newError = updateValue(message, "error");
       
@@ -113,9 +105,7 @@ const assetDataset = computed(() => {
 });
 
 const pipelineData = computed(() => pipeline.value);
-const isLoading = computed(
-  () => isFetching.value || (!lineageData.value && !lineageError.value && !hasTimedOut.value)
-);
+const isLoading = computed(() => !lineageData.value && !lineageError.value && !hasTimedOut.value);
 
 onMounted(() => {
   console.log('🚀 [AssetLineage] Component mounted');

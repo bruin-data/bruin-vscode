@@ -4,7 +4,12 @@
       <vscode-progress-ring></vscode-progress-ring>
       <span class="ml-2 text-editor-fg">Loading lineage data...</span>
     </div>
-    
+
+    <!-- Lineage load error (asset / pipeline views) -->
+    <div v-else-if="shouldShowTopError" class="loading-overlay">
+      <div class="text-center text-editor-fg text-sm max-w-md px-4">{{ error }}</div>
+    </div>
+
     <!-- Asset View -->
     <VueFlow
       v-if="shouldShowAssetView"
@@ -258,8 +263,13 @@ const shouldShowError = computed(() => {
   return !!error.value;
 });
 
+// Error banner for the asset/pipeline views (the column view renders its own).
+const shouldShowTopError = computed(() => {
+  return !!error.value && !shouldShowLoading.value && !showColumnView.value;
+});
+
 const shouldShowAssetView = computed(() => {
-  return !showPipelineView.value && !showColumnView.value && !shouldShowLoading.value;
+  return !showPipelineView.value && !showColumnView.value && !shouldShowLoading.value && !shouldShowTopError.value;
 });
 
 // ===== Asset View State =====
@@ -799,16 +809,21 @@ watch(
   { immediate: false }
 );
 
-// Surface a lineage error reported by the extension (e.g. a failed on-demand
-// column parse) so the view shows the message rather than an empty graph.
+// Surface a lineage error reported by the extension (e.g. a pipeline that fails
+// to parse) so the view shows the message rather than spinning forever. On
+// error assetDataset stays null and the data watch above bails out early, so
+// clear the loading flags here or the overlay would never hide.
 watch(
   () => props.LineageError,
   (newError) => {
     if (newError) {
       columnFetchPending.value = false;
+      isLoadingLocal.value = false;
+      isLayouting.value = false;
       error.value = newError;
     }
-  }
+  },
+  { immediate: true }
 );
 
 onNodeMouseEnter((event: NodeMouseEvent) => {

@@ -142,21 +142,9 @@ export abstract class BaseLineagePanel implements vscode.WebviewViewProvider, vs
     }
   };
 
-  // Tell the webview a fresh load has started so it can show a spinner instead
-  // of leaving the previously rendered graph on screen during the parse.
-  private postLoading() {
-    if (this._view) {
-      this._view.webview.postMessage({
-        command: "flow-lineage-loading",
-        panelType: this.panelType,
-      });
-    }
-  }
-
   protected loadLineageData = async () => {
     if (this._lastRenderedDocumentUri) {
       try {
-        this.postLoading();
         // Load asset-level lineage only. Column lineage (the CLI `-c` flag) is
         // expensive on large pipelines and is fetched on demand when the user
         // opens the Column View (see the bruin.fetchColumnLineage handler).
