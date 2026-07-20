@@ -3,6 +3,7 @@ import { BruinCommand } from "./bruinCommand";
 import { updateLineageData } from "../panels/LineagePanel";
 import { getCurrentPipelinePath } from "./bruinUtils";
 import { getPipelineLineageCache } from "../providers/PipelineLineageCacheService";
+import * as path from "path";
 import * as vscode from "vscode";
 import { isConfigFile } from "../utilities/helperUtils";
 import { BruinPanel } from "../panels/BruinPanel";
@@ -90,13 +91,17 @@ export class BruinLineageInternalParse extends BruinCommand {
         : flags;
       
       const pipelinePath = isPipelineFile ? filePath : await getCurrentPipelinePath(filePath) as string;
+      // Key the cache by the pipeline directory so the asset-focused parse (run
+      // against the dir) and the pipeline-focused parse (run against pipeline.yml)
+      // share one cached -c result instead of each running their own.
+      const cacheKey = isPipelineFile ? path.dirname(filePath) : pipelinePath;
       const cache = getPipelineLineageCache();
-      let result = cache.get(pipelinePath, includeColumns);
+      let result = cache.get(cacheKey, includeColumns);
       if (result === undefined) {
         result = await this.run([...enhancedFlags, pipelinePath], { ignoresErrors });
         // Don't cache empty output (e.g. an ignored error) as a valid entry.
         if (result) {
-          cache.set(pipelinePath, result, includeColumns);
+          cache.set(cacheKey, result, includeColumns);
         }
       }
       const pipelineData = JSON.parse(result);
