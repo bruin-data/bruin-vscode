@@ -13,6 +13,7 @@
     <!-- Asset View -->
     <VueFlow
       v-if="shouldShowAssetView"
+      :id="ASSET_FLOW_ID"
       v-model:elements="elements"
       :fit-view-on-init="false"
       class="basic-flow"
@@ -71,6 +72,7 @@
     <!-- Pipeline View (no special filter controls; use Asset behavior) -->
     <VueFlow
       v-if="showPipelineView"
+      :id="PIPELINE_FLOW_ID"
       :nodes="pipelineElements.nodes"
       :edges="pipelineElements.edges"
       @nodesInitialized="onPipelineNodesInitialized"
@@ -121,6 +123,7 @@
     <!-- Column Level View -->
     <VueFlow
       v-if="showColumnView"
+      :id="COLUMN_FLOW_ID"
       :nodes="columnElements.nodes"
       :edges="columnElements.edges"
       @nodesInitialized="onColumnNodesInitialized"
@@ -274,7 +277,16 @@ const shouldShowAssetView = computed(() => {
 
 // ===== Asset View State =====
 const flowRef = ref(null);
-const { nodes, edges, addNodes, addEdges, setNodes, setEdges, fitView, onNodeMouseEnter, onNodeMouseLeave, getNodes, getEdges } = useVueFlow();
+// Each view gets its own Vue Flow instance (matching the id="..." on each
+// <VueFlow> below) so their viewports don't leak into each other. Sharing one
+// instance meant that after switching views, fitView() acted on the old pane
+// and the new view stayed at the previous view's zoom.
+const ASSET_FLOW_ID = "asset-lineage-flow";
+const PIPELINE_FLOW_ID = "pipeline-lineage-flow";
+const COLUMN_FLOW_ID = "column-lineage-flow";
+const { nodes, edges, addNodes, addEdges, setNodes, setEdges, fitView, onNodeMouseEnter, onNodeMouseLeave, getNodes, getEdges } = useVueFlow(ASSET_FLOW_ID);
+const { fitView: fitPipelineView } = useVueFlow(PIPELINE_FLOW_ID);
+const { fitView: fitColumnView } = useVueFlow(COLUMN_FLOW_ID);
 const elements = computed(() => [...nodes.value, ...edges.value]);
 const selectedNodeId = ref<string | null>(null);
 const isLoadingLocal = ref(true);
@@ -500,11 +512,17 @@ const runFit = async () => {
   await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
   const duration = fitAnimate ? 300 : 0;
   fitAnimate = false;
+  // Fit the instance backing the currently visible view.
+  const fit = showColumnView.value
+    ? fitColumnView
+    : showPipelineView.value
+      ? fitPipelineView
+      : fitView;
   try {
-    fitView({ padding: FIT_VIEW_PADDING, duration });
+    fit({ padding: FIT_VIEW_PADDING, duration });
   } catch (e) {
     await nextTick();
-    fitView({ padding: FIT_VIEW_PADDING, duration });
+    fit({ padding: FIT_VIEW_PADDING, duration });
   }
 };
 const scheduleFit = debounce(runFit, 120);
