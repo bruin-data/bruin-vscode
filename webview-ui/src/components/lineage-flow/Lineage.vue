@@ -14,8 +14,9 @@
     <VueFlow
       v-if="shouldShowAssetView"
       :id="ASSET_FLOW_ID"
+      :style="{ opacity: flowOpacity, transition: 'opacity 80ms ease-out' }"
       v-model:elements="elements"
-      :fit-view-on-init="true"
+      :fit-view-on-init="false"
       class="basic-flow"
       :draggable="true"
       :node-draggable="true"
@@ -73,7 +74,8 @@
     <VueFlow
       v-if="showPipelineView"
       :id="PIPELINE_FLOW_ID"
-      :fit-view-on-init="true"
+      :style="{ opacity: flowOpacity, transition: 'opacity 80ms ease-out' }"
+      :fit-view-on-init="false"
       :nodes="pipelineElements.nodes"
       :edges="pipelineElements.edges"
       @nodesInitialized="onPipelineNodesInitialized"
@@ -125,7 +127,8 @@
     <VueFlow
       v-if="showColumnView"
       :id="COLUMN_FLOW_ID"
-      :fit-view-on-init="true"
+      :style="{ opacity: flowOpacity, transition: 'opacity 80ms ease-out' }"
+      :fit-view-on-init="false"
       :nodes="columnElements.nodes"
       :edges="columnElements.edges"
       @nodesInitialized="onColumnNodesInitialized"
@@ -508,6 +511,30 @@ const FIT_VIEW_PADDING = 0.2;
 // debounced fit: whoever fires last wins, and it runs after things stop
 // changing — exactly like clicking the button.
 let fitAnimate = false;
+
+// Keep the graph invisible from the moment its nodes change until it has been
+// fitted, then reveal it already-framed. Otherwise it paints unframed and then
+// visibly snaps into place. A safety timer guarantees it can never stay hidden.
+const flowOpacity = ref(1);
+let revealTimer: ReturnType<typeof setTimeout> | undefined;
+const hideUntilFit = () => {
+  flowOpacity.value = 0;
+  if (revealTimer) {
+    clearTimeout(revealTimer);
+  }
+  revealTimer = setTimeout(() => {
+    flowOpacity.value = 1;
+    revealTimer = undefined;
+  }, 1500);
+};
+const reveal = () => {
+  if (revealTimer) {
+    clearTimeout(revealTimer);
+    revealTimer = undefined;
+  }
+  flowOpacity.value = 1;
+};
+
 const runFit = async () => {
   // Wait for a frame so Vue Flow has measured node sizes before fitting.
   await nextTick();
@@ -524,8 +551,11 @@ const runFit = async () => {
     fit({ padding: FIT_VIEW_PADDING, duration });
   } catch (e) {
     await nextTick();
-    fit({ padding: FIT_VIEW_PADDING, duration });
+    try {
+      fit({ padding: FIT_VIEW_PADDING, duration });
+    } catch (_) { /* ignore */ }
   }
+  reveal();
 };
 const scheduleFit = debounce(runFit, 50);
 
@@ -555,6 +585,8 @@ const _updateGraph = async () => {
           layoutedGraphData = await applyLayout(graphData.nodes, graphData.edges);
           layoutCache.value.set(key, layoutedGraphData);
         }      
+        // Hide until fitted so the graph reveals already-framed (see runFit).
+        hideUntilFit();
         setNodes(layoutedGraphData.nodes);
         setEdges(layoutedGraphData.edges);
         isLayouting.value = false;
@@ -924,6 +956,7 @@ const buildPipelineElements = async () => {
     props.assetDataset?.name || ""
   );
   const { nodes: layoutNodes, edges: layoutEdges } = await applyPipelineLayout(initialNodes, initialEdges);
+  hideUntilFit();
   pipelineElements.value = { nodes: layoutNodes, edges: layoutEdges };
 };
 
@@ -1131,6 +1164,7 @@ const buildColumnElements = async () => {
     };
   });
 
+  hideUntilFit();
   columnElements.value = { nodes: layoutNodes, edges: layoutEdges };
 };
 
