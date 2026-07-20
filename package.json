@@ -287,6 +287,11 @@
         {
           "command": "bruin.renderSQL",
           "group": "navigation"
+        },
+        {
+          "command": "bruin.previewDashboard",
+          "group": "navigation",
+          "when": "resourceExtname == .yml || resourceExtname == .yaml || resourceExtname == .tsx"
         }
       ],
       "editor/context": [
@@ -388,7 +393,7 @@
         "command": "bruin.previewDashboard",
         "title": "Preview Dashboard",
         "category": "Bruin",
-        "icon": "$(preview)",
+        "icon": "$(dashboard)",
         "description": "Spawn `dac serve` on the current DAC project and preview it in a webview."
       }
     ],

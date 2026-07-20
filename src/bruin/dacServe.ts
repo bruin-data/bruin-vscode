@@ -13,6 +13,11 @@ export class DacServe {
   private process: child_process.ChildProcess | undefined;
   private readonly output: vscode.OutputChannel;
   private readonly executable: string;
+  // Recent stdout/stderr lines, kept so a startup failure can report the real
+  // reason dac exited instead of a generic "exited before becoming ready".
+  private recentOutput: string[] = [];
+  private spawnError: Error | undefined;
+  private exitInfo: { code: number | null; signal: NodeJS.Signals | null } | undefined;
 
   public readonly port: number;
   public readonly dir: string;
@@ -80,27 +85,50 @@ export class DacServe {
       env: process.env,
     });
 
+    const capture = (line: string) => {
+      this.recentOutput.push(line);
+      if (this.recentOutput.length > 40) {
+        this.recentOutput.shift();
+      }
+    };
+
     this.process.stdout?.on("data", (data: Buffer) => {
-      this.output.append(`[dac] ${data.toString()}`);
+      const text = data.toString();
+      this.output.append(`[dac] ${text}`);
+      capture(text.trimEnd());
     });
     this.process.stderr?.on("data", (data: Buffer) => {
-      this.output.append(`[dac:err] ${data.toString()}`);
+      const text = data.toString();
+      this.output.append(`[dac:err] ${text}`);
+      capture(text.trimEnd());
     });
     this.process.on("error", (err) => {
+      this.spawnError = err;
       this.output.appendLine(`[dac] process error: ${err.message}`);
     });
     this.process.on("exit", (code, signal) => {
+      this.exitInfo = { code, signal };
       this.output.appendLine(`[dac] exited (code=${code}, signal=${signal})`);
     });
 
     await this.waitUntilReady();
   }
 
+  /** The last few lines dac printed — used to explain a startup failure. */
+  private tail(): string {
+    const text = this.recentOutput.join("\n").trim();
+    return text ? `\n${text}` : "";
+  }
+
   private async waitUntilReady(timeoutMs: number = 15000): Promise<void> {
     const start = Date.now();
     while (Date.now() - start < timeoutMs) {
+      if (this.spawnError) {
+        throw new DacStartError(`Could not launch dac: ${this.spawnError.message}`, this.tail());
+      }
       if (!this.process || this.process.exitCode !== null) {
-        throw new Error("dac process exited before becoming ready");
+        const code = this.exitInfo?.code ?? this.process?.exitCode ?? "unknown";
+        throw new DacStartError(`dac exited (code=${code}) before it was ready.`, this.tail());
       }
       const reachable = await this.ping();
       if (reachable) {
@@ -109,7 +137,7 @@ export class DacServe {
       }
       await new Promise((r) => setTimeout(r, 250));
     }
-    throw new Error(`dac did not become ready within ${timeoutMs}ms`);
+    throw new DacStartError(`dac did not become ready within ${timeoutMs}ms.`, this.tail());
   }
 
   private ping(): Promise<boolean> {
@@ -165,6 +193,24 @@ export class DacNotFoundError extends Error {
   }
 }
 
+/**
+ * Raised when `dac serve` failed to come up. `details` carries the last lines
+ * dac printed (its actual error) so it can be shown to the user instead of a
+ * generic "exited before becoming ready".
+ */
+export class DacStartError extends Error {
+  public readonly details: string;
+  constructor(message: string, details: string = "") {
+    super(details ? `${message}${details}` : message);
+    this.name = "DacStartError";
+    this.details = details.trim();
+  }
+  /** True when the failure looks like a transient port collision worth retrying. */
+  public get isPortInUse(): boolean {
+    return /address already in use|bind|in use|EADDRINUSE/i.test(this.details);
+  }
+}
+
 interface SharedServer {
   server: DacServe;
   refCount: number;
@@ -203,12 +249,28 @@ export class DacServerManager {
       throw new DacNotFoundError();
     }
 
-    const port = await DacServe.findFreePort();
-    const server = new DacServe(dir, port, output, template, executable);
-    await server.start();
-
-    DacServerManager.servers.set(dir, { server, refCount: 1 });
-    return server;
+    // Retry only for a transient port collision (findFreePort → dac bind is a
+    // TOCTOU window). A real failure (bad flag, missing dir) throws immediately
+    // with dac's own error text.
+    let lastError: unknown;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      const port = await DacServe.findFreePort();
+      const server = new DacServe(dir, port, output, template, executable);
+      try {
+        await server.start();
+        DacServerManager.servers.set(dir, { server, refCount: 1 });
+        return server;
+      } catch (err) {
+        lastError = err;
+        server.stop();
+        if (err instanceof DacStartError && err.isPortInUse && attempt < 3) {
+          output.appendLine(`[dac] port ${port} was taken, retrying on a new port…`);
+          continue;
+        }
+        throw err;
+      }
+    }
+    throw lastError;
   }
 
   /**

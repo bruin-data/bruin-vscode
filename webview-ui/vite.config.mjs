@@ -65,6 +65,7 @@ export default defineConfig({
                 index: resolve(__dirname, 'index.html'),
                 lineage: resolve(__dirname, 'lineage/index.html'),
                 queryPreview: resolve(__dirname, 'query-preview/index.html'),
+                dacPreview: resolve(__dirname, 'dac-preview/index.html'),
                 tableDiff: resolve(__dirname, 'table-diff/index.html'),
                 runHistory: resolve(__dirname, 'run-history/index.html'),
             },

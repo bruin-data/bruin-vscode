@@ -96,13 +96,19 @@ export function trackEvent(eventName: string, properties: Record<string, any> = 
 
 async function ensureAutoLockEnabled(config: WorkspaceConfiguration): Promise<void> {
   const autoLockGroups: Record<string, boolean> = config.get("autoLockGroups") || {};
-  const viewTypeKey = `mainThreadWebview-${BruinPanel.viewId}`;
+  // Auto-lock the editor groups of our webview panels so opening a file doesn't
+  // hijack the panel's slot. Applies to the main side panel and the DAC preview.
+  const viewTypeKeys = [
+    `mainThreadWebview-${BruinPanel.viewId}`,
+    `mainThreadWebview-${DacPreviewPanel.viewType}`,
+  ];
 
-  if (!autoLockGroups[viewTypeKey]) {
-    const updatedAutoLockGroups = {
-      ...autoLockGroups,
-      [viewTypeKey]: true,
-    };
+  const missing = viewTypeKeys.filter((key) => !autoLockGroups[key]);
+  if (missing.length) {
+    const updatedAutoLockGroups = { ...autoLockGroups };
+    for (const key of missing) {
+      updatedAutoLockGroups[key] = true;
+    }
 
     try {
       await config.update("autoLockGroups", updatedAutoLockGroups, true);
@@ -629,7 +635,7 @@ export async function activate(context: ExtensionContext) {
           vscode.window.showWarningMessage("Preview Dashboard only supports .yml / .yaml / .tsx files.");
           return;
         }
-        await DacPreviewPanel.open(targetUri);
+        await DacPreviewPanel.open(targetUri, context.extensionUri);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         vscode.window.showErrorMessage(`Error previewing dashboard: ${errorMessage}`);
