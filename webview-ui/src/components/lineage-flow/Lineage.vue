@@ -510,6 +510,27 @@ const fitViewSmooth = async (forceAutoFit = false, useAnimation = false) => {
   }
 };
 
+// The asset/pipeline/column views share one Vue Flow viewport. Switching between
+// them (e.g. leaving the column view by opening another file) can leave the new
+// view framed with the previous view's zoom/pan. Re-fit once the asset view's
+// layout has settled after such a switch.
+const activeView = computed(() =>
+  showColumnView.value ? "column" : showPipelineView.value ? "pipeline" : "asset"
+);
+let refitAssetOnSettle = false;
+watch(activeView, (view) => {
+  if (view === "asset") {
+    refitAssetOnSettle = true;
+    shouldAutoFit.value = true;
+  }
+});
+watch(isLayouting, (layouting) => {
+  if (!layouting && refitAssetOnSettle) {
+    refitAssetOnSettle = false;
+    fitViewSmooth(true, false);
+  }
+});
+
 const _updateGraph = async () => {
   if (!showPipelineView.value && !showColumnView.value) {
     isLoadingLocal.value = true;
