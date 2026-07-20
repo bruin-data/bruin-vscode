@@ -484,30 +484,41 @@ const onNodesDragged = (draggedNodes: NodeDragEvent[]) => {
 };
 
 
-// Fit view helper - now with smart auto-fit logic
+// Fit view helper.
 const FIT_VIEW_PADDING = 0.2;
 
-const fitViewSmooth = async (forceAutoFit = false, useAnimation = false) => {
+// The Controls "fit view" button always frames correctly because it runs
+// fitView() once, at a settled state. Auto-fit failed to match that because it
+// fired from several places (view switch, layout, nodes initialized) at
+// different, mid-transition times. So coalesce every trigger into a single
+// debounced fit: whoever fires last wins, and it runs after things stop
+// changing — exactly like clicking the button.
+let fitAnimate = false;
+const runFit = async () => {
+  // Wait for a frame so Vue Flow has measured node sizes before fitting.
+  await nextTick();
+  await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+  const duration = fitAnimate ? 300 : 0;
+  fitAnimate = false;
+  try {
+    fitView({ padding: FIT_VIEW_PADDING, duration });
+  } catch (e) {
+    await nextTick();
+    fitView({ padding: FIT_VIEW_PADDING, duration });
+  }
+};
+const scheduleFit = debounce(runFit, 120);
+
+const fitViewSmooth = (forceAutoFit = false, useAnimation = false) => {
   // Only auto-fit if explicitly requested or first load
   if (!forceAutoFit && !shouldAutoFit.value) {
     return;
   }
-
-  // Wait a frame so Vue Flow has measured node sizes; fitting against real
-  // dimensions is what makes the framing consistent from one render to the next.
-  await nextTick();
-  await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
-
-  const duration = useAnimation ? 300 : 0;
-
-  try {
-    fitView({ padding: FIT_VIEW_PADDING, duration });
-    shouldAutoFit.value = false; // Disable auto-fit after first use
-  } catch (e) {
-    await nextTick();
-    fitView({ padding: FIT_VIEW_PADDING, duration });
-    shouldAutoFit.value = false;
+  shouldAutoFit.value = false;
+  if (useAnimation) {
+    fitAnimate = true;
   }
+  scheduleFit();
 };
 
 // The asset/pipeline/column views share one Vue Flow viewport. Switching between
