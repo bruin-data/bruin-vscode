@@ -5992,7 +5992,7 @@ suite(" Query export Tests", () => {
       assert.strictEqual(executable, "path/to/bruin");
       assert.deepStrictEqual(args, ["internal", "fetch-databases", "-c", connectionName, "-o", "json"]);
       assert.strictEqual(options.cwd, "path/to/working/directory");
-      assert.strictEqual(options.maxBuffer, 10485760);
+      assert.strictEqual(options.maxBuffer, 67108864);
       assert.strictEqual(typeof callback, "function");
       
       // On Windows, check for Windows-specific options
@@ -6035,7 +6035,7 @@ suite(" Query export Tests", () => {
       assert.strictEqual(executable, "path/to/bruin");
       assert.deepStrictEqual(args, ["internal", "fetch-tables", "-c", connectionName, "-d", database, "-o", "json"]);
       assert.strictEqual(options.cwd, "path/to/working/directory");
-      assert.strictEqual(options.maxBuffer, 10485760);
+      assert.strictEqual(options.maxBuffer, 67108864);
       assert.strictEqual(typeof callback, "function");
       
       // On Windows, check for Windows-specific options
@@ -6083,7 +6083,7 @@ suite(" Query export Tests", () => {
       assert.strictEqual(executable, "path/to/bruin");
       assert.deepStrictEqual(args, ["internal", "fetch-columns", "-c", connectionName, "-d", database, "-table", table, "-o", "json"]);
       assert.strictEqual(options.cwd, "path/to/working/directory");
-      assert.strictEqual(options.maxBuffer, 10485760);
+      assert.strictEqual(options.maxBuffer, 67108864);
       assert.strictEqual(typeof callback, "function");
       
       // On Windows, check for Windows-specific options
@@ -6139,7 +6139,7 @@ suite(" Query export Tests", () => {
       assert.strictEqual(executable, "path/to/bruin");
       assert.deepStrictEqual(args, ["internal", "fetch-tables", "-c", connectionName, "-d", "", "-o", "json"]);
       assert.strictEqual(options.cwd, "path/to/working/directory");
-      assert.strictEqual(options.maxBuffer, 10485760);
+      assert.strictEqual(options.maxBuffer, 67108864);
       assert.strictEqual(typeof callback, "function");
       
       // On Windows, check for Windows-specific options
