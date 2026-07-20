@@ -11,7 +11,7 @@
 
 <script setup lang="ts">
 import Lineage from "@/components/lineage-flow/Lineage.vue";
-import { ref, onUnmounted, computed, watch, onMounted } from "vue";
+import { ref, onUnmounted, computed } from "vue";
 import { updateValue } from "./utilities/helper";
 import { getAssetDataset } from "@/components/lineage-flow/asset-lineage/useAssetLineage";
 
@@ -41,22 +41,19 @@ const handleMessage = (event) => {
       const newData = updateValue(message, "success");
       const newError = updateValue(message, "error");
       
-      // Create a detailed hash to detect truly identical messages
-      const messageId = JSON.stringify({ 
-        assetId: newData?.id, 
-        upstreamNames: newData?.upstreams?.map(u => u.name).sort(), 
+      // Skip identical messages (grouped within 50ms).
+      const messageId = JSON.stringify({
+        assetId: newData?.id,
+        upstreamNames: newData?.upstreams?.map(u => u.name).sort(),
         downstreamNames: newData?.downstream?.map(d => d.name).sort(),
         error: newError,
-        timestamp: Math.floor(Date.now() / 50) // Group within 50ms only
+        timestamp: Math.floor(Date.now() / 50)
       });
-      
-      // Skip if this is the exact same message we just processed
       if (messageId === lastMessageId && messageId !== 'null') {
-        console.log('⚡ [AssetLineage] Skipping duplicate message');
         return;
       }
       lastMessageId = messageId;
-      
+
       lineageData.value = newData;
       lineageError.value = newError;
       break;
@@ -65,9 +62,7 @@ const handleMessage = (event) => {
 
 window.addEventListener("message", handleMessage);
 
-// Safety net: only fires if the very first load never returns any data or
-// error. Once a graph has rendered, switches keep the previous data on screen,
-// so this never surfaces a false error mid-parse.
+// Safety net for a first load that never returns; harmless once a graph exists.
 setTimeout(() => {
   if (!lineageData.value && !lineageError.value) {
     hasTimedOut.value = true;
@@ -85,7 +80,6 @@ const pipeline = computed(() => {
   }
 });
 
-const lineageErr = computed(() => lineageError.value);
 const assetId = computed(() => lineageData.value?.id ?? null);
 const assetDataset = computed(() => {
   // For pipeline view, return the lineage data directly with pipeline info
@@ -106,21 +100,6 @@ const assetDataset = computed(() => {
 
 const pipelineData = computed(() => pipeline.value);
 const isLoading = computed(() => !lineageData.value && !lineageError.value && !hasTimedOut.value);
-
-onMounted(() => {
-  console.log('🚀 [AssetLineage] Component mounted');
-  console.log('🚀 [AssetLineage] Initial lineageData:', lineageData.value);
-  console.log('🚀 [AssetLineage] Initial lineageError:', lineageError.value);
-  console.log('🚀 [AssetLineage] Initial isLoading:', isLoading.value);
-  
-  // Log state changes
-  watch([lineageData, lineageError, isLoading], ([newData, newError, newLoading]) => {
-    console.log('🔄 [AssetLineage] State changed:');
-    console.log('  - lineageData:', !!newData);
-    console.log('  - lineageError:', newError);
-    console.log('  - isLoading:', newLoading);
-  });
-});
 
 onUnmounted(() => {
   window.removeEventListener("message", handleMessage);

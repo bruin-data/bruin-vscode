@@ -243,7 +243,6 @@ const showColumnView = ref(false);
 const columnFetchPending = ref(false);
 const showLoadingIndicator = ref(false);
 let loadingTimer: NodeJS.Timeout | null = null;
-const shouldAutoFit = ref(true); 
 
 // Debug computed properties
 const shouldShowLoading = computed(() => {
@@ -278,17 +277,14 @@ const shouldShowTopError = computed(() => {
 });
 
 const shouldShowAssetView = computed(() => {
-  // Render whenever the asset view is active (even while the rebuild cover is up)
-  // so Vue Flow can measure and fit the graph underneath the cover.
+  // Stays mounted under the rebuild cover so Vue Flow can measure and fit it.
   return !showPipelineView.value && !showColumnView.value && !shouldShowTopError.value;
 });
 
 // ===== Asset View State =====
 const flowRef = ref(null);
-// Each view gets its own Vue Flow instance (matching the id="..." on each
-// <VueFlow> below) so their viewports don't leak into each other. Sharing one
-// instance meant that after switching views, fitView() acted on the old pane
-// and the new view stayed at the previous view's zoom.
+// One Vue Flow instance per view (ids match the <VueFlow> tags) so their
+// viewports don't leak into each other when switching views.
 const ASSET_FLOW_ID = "asset-lineage-flow";
 const PIPELINE_FLOW_ID = "pipeline-lineage-flow";
 const COLUMN_FLOW_ID = "column-lineage-flow";
@@ -504,21 +500,11 @@ const onNodesDragged = (draggedNodes: NodeDragEvent[]) => {
 };
 
 
-// Fit view helper.
 const FIT_VIEW_PADDING = 0.2;
-
-// The Controls "fit view" button always frames correctly because it runs
-// fitView() once, at a settled state. Auto-fit failed to match that because it
-// fired from several places (view switch, layout, nodes initialized) at
-// different, mid-transition times. So coalesce every trigger into a single
-// debounced fit: whoever fires last wins, and it runs after things stop
-// changing — exactly like clicking the button.
 let fitAnimate = false;
 
-// Cover the graph with an opaque overlay from the moment a rebuild starts until
-// it has been fitted, so you never see the old graph linger or the new one snap
-// into place — it builds and fits underneath the cover, then the cover lifts to
-// reveal it already-framed. A safety timer guarantees the cover always lifts.
+// Cover the graph while it rebuilds; it fits under the cover, then the cover
+// lifts to reveal it already-framed. Safety timer ensures the cover always lifts.
 const rebuilding = ref(false);
 let rebuildSafetyTimer: ReturnType<typeof setTimeout> | undefined;
 const startRebuild = () => {
@@ -540,12 +526,11 @@ const endRebuild = () => {
 };
 
 const runFit = async () => {
-  // Wait for a frame so Vue Flow has measured node sizes before fitting.
+  // Wait a frame so Vue Flow has measured node sizes before fitting.
   await nextTick();
   await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
   const duration = fitAnimate ? 300 : 0;
   fitAnimate = false;
-  // Fit the instance backing the currently visible view.
   const fit = showColumnView.value
     ? fitColumnView
     : showPipelineView.value
@@ -559,18 +544,12 @@ const runFit = async () => {
       fit({ padding: FIT_VIEW_PADDING, duration });
     } catch (_) { /* ignore */ }
   }
-  // Lift the cover one frame after fitting so the reveal shows the fitted graph.
   await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
   endRebuild();
 };
 const scheduleFit = debounce(runFit, 50);
 
-const fitViewSmooth = (forceAutoFit = false, useAnimation = false) => {
-  // Only auto-fit if explicitly requested or first load
-  if (!forceAutoFit && !shouldAutoFit.value) {
-    return;
-  }
-  shouldAutoFit.value = false;
+const fitViewSmooth = (useAnimation = false) => {
   if (useAnimation) {
     fitAnimate = true;
   }
@@ -595,9 +574,7 @@ const _updateGraph = async () => {
         setEdges(layoutedGraphData.edges);
         isLayouting.value = false;
         isLoadingLocal.value = false;
-        // Fitting happens in onAssetNodesInitialized, once Vue Flow has measured
-        // the node sizes. Fitting here as well would run against unmeasured nodes
-        // and race the measured fit, producing inconsistent framing.
+        // Fit happens in onAssetNodesInitialized, once node sizes are measured.
       } else {
         setNodes([]);
         setEdges([]);
@@ -617,40 +594,28 @@ const updateGraph = debounce(_updateGraph, 180);
 let lastProcessedKey: string | null = null;
 
 const processProperties = async () => {
-  // Create a key based on current data to avoid duplicate processing
+  // Skip duplicate processing of the same data (grouped within 50ms).
   const currentKey = JSON.stringify({
     assetId: props.assetDataset?.id,
     upstreamNames: props.assetDataset?.upstreams?.map(u => u.name).sort() ?? [],
     downstreamNames: props.assetDataset?.downstream?.map(d => d.name).sort() ?? [],
     pipelineAssets: props.pipelineData?.assets?.length,
-    timestamp: Math.floor(Date.now() / 50) // Group calls within 50ms only
+    timestamp: Math.floor(Date.now() / 50)
   });
-  
-  // Skip if we just processed the same data
   if (currentKey === lastProcessedKey) {
-    console.log('⚡ [Lineage] Skipping duplicate processProperties call');
     return;
   }
   lastProcessedKey = currentKey;
-  
-  console.log('🔄 [Lineage] processProperties called');
-  console.log('🔄 [Lineage] Has assetDataset:', !!props.assetDataset);
-  console.log('🔄 [Lineage] Has pipelineData:', !!props.pipelineData);
-  
+
   if (!props.assetDataset || !props.pipelineData) {
     isLoadingLocal.value = error.value === null;
-    console.log('🔄 [Lineage] Missing data, isLoadingLocal set to:', isLoadingLocal.value);
     return;
   }
-  
-  // Don't set loading states here - let _updateGraph handle it
+
   error.value = null;
-  // Cover the graph until the rebuilt asset view is fitted (see runFit).
   startRebuild();
-  console.log('🔄 [Lineage] Starting graph update');
   try {
     await updateGraph();
-    console.log('✅ [Lineage] Graph updated successfully');
   } catch (err) {
     console.error("Error processing properties:", err);
     error.value = "Failed to generate lineage graph. Please try again.";
@@ -690,7 +655,7 @@ const onAddUpstream = async (nodeId: string) => {
   isLayouting.value = false;
   // Force an (animated) fit so the viewport zooms out to reveal the newly
   // expanded upstream nodes — otherwise they're added off-screen.
-  await fitViewSmooth(true, true);
+  await fitViewSmooth(true);
   // Bump version so the next full recompute reflows with correct left/right ordering
   assetGraphVersion.value++;
 };
@@ -721,7 +686,7 @@ const onAddDownstream = async (nodeId: string) => {
   isLayouting.value = false;
   // Force an (animated) fit so the viewport zooms out to reveal the newly
   // expanded downstream nodes — otherwise they're added off-screen.
-  await fitViewSmooth(true, true);
+  await fitViewSmooth(true);
   assetGraphVersion.value++;
 };
 
@@ -773,8 +738,7 @@ const handlePipelineView = async () => {
   await buildPipelineElements();
 };
 
-// Column data is only present when the pipeline was parsed with the CLI `-c`
-// flag. It is not fetched on load, so the Column View requests it on demand.
+// Column lineage is only present when parsed with `-c` (fetched on demand).
 const hasColumnLineageData = (pipelineData: any): boolean => {
   if (!pipelineData) {
     return false;
@@ -790,14 +754,12 @@ const hasColumnLineageData = (pipelineData: any): boolean => {
 const handleColumnLevelLineage = async () => {
   showColumnView.value = true;
   showPipelineView.value = false;
-  // Reset column filter state when entering column view
-  // Set to "all" so buttons are visible, but keep both toggles inactive
+  // "all" so the toggle buttons are visible, but keep both inactive.
   columnFilterType.value = "all";
   columnExpandAllUpstreams.value = false;
   columnExpandAllDownstreams.value = false;
 
-  // Column data not loaded yet: request it on demand and show a spinner until
-  // the extension parses with `-c` and posts the enriched data back.
+  // Not loaded yet: fetch column lineage (-c) on demand and show a spinner.
   if (!hasColumnLineageData(props.pipelineData)) {
     error.value = null;
     columnElements.value = { nodes: [], edges: [] };
@@ -830,7 +792,6 @@ const selectDefaultViewForTarget = () => {
 };
 
 onMounted(() => {
-  shouldAutoFit.value = true;
   lastViewKey = computeTargetKey();
   selectDefaultViewForTarget();
 });
@@ -848,15 +809,12 @@ watch(
 watch(
   () => [props.assetDataset, props.pipelineData],
   () => {
-    // Any fresh data or error resolves an on-demand column fetch. Clear the
-    // pending flag first, before the early return below, so a failed fetch
-    // (null assetDataset) can never leave the column-view spinner stuck.
+    // Clear a pending column fetch before the early return, so a failed fetch
+    // (null assetDataset) can't leave the column-view spinner stuck.
     const wasFetchingColumns = columnFetchPending.value;
     columnFetchPending.value = false;
 
     if (!props.assetDataset) {
-      // Fetch returned no usable data (error / asset not found). Surface it in
-      // the column view instead of spinning forever.
       if (wasFetchingColumns && showColumnView.value) {
         buildColumnElements();
       }
@@ -865,13 +823,12 @@ watch(
 
     const key = computeTargetKey();
     if (key !== lastViewKey) {
-      // Switched target: reset to its default view.
       lastViewKey = key;
       selectDefaultViewForTarget();
       return;
     }
 
-    // Same target refreshed: rebuild the current view instead of snapping away.
+    // Same target refreshed: rebuild the current view.
     if (showColumnView.value) {
       buildColumnElements();
     } else if (showPipelineView.value) {
@@ -883,10 +840,8 @@ watch(
   { immediate: false }
 );
 
-// Surface a lineage error reported by the extension (e.g. a pipeline that fails
-// to parse) so the view shows the message rather than spinning forever. On
-// error assetDataset stays null and the data watch above bails out early, so
-// clear the loading flags here or the overlay would never hide.
+// On a parse error assetDataset is null and the data watch bails early, so clear
+// the loading flags here and surface the error instead of spinning forever.
 watch(
   () => props.LineageError,
   (newError) => {
@@ -968,7 +923,7 @@ const buildPipelineElements = async () => {
 };
 
 const onPipelineNodesInitialized = async () => {
-  await fitViewSmooth(true, false); 
+  await fitViewSmooth(); 
 };
 
 const handleAssetViewWithFilter = (filterState?: { filterType: "direct" | "all"; expandAllUpstreams: boolean; expandAllDownstreams: boolean }) => {
@@ -1177,11 +1132,11 @@ const buildColumnElements = async () => {
 };
 
 const onColumnNodesInitialized = async () => {
-  await fitViewSmooth(true, false); 
+  await fitViewSmooth(); 
 };
 
 const onAssetNodesInitialized = async () => {
-  await fitViewSmooth(true, false); 
+  await fitViewSmooth(); 
 };
 
 const handleColumnHover = (assetName: string, columnName: string): void => {

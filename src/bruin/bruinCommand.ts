@@ -7,11 +7,7 @@ export abstract class BruinCommand {
   /** Flag to disable logging during tests */
   public static isTestMode = false;
 
-  /**
-   * Max stdout captured from a Bruin command. Lineage parses of large pipelines
-   * already emit several MB (6+ MB on ~1,500 assets), and exceeding this cap
-   * makes execFile throw instead of returning output, breaking the panel.
-   */
+  // Large lineage parses already emit 6+ MB; exceeding this makes execFile throw.
   private static readonly MAX_OUTPUT_BUFFER = 1024 * 1024 * 64; // 64MB
 
   /**

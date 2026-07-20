@@ -7,21 +7,16 @@ interface CacheEntry {
 }
 
 /**
- * Caches the raw JSON output of `bruin internal parse-pipeline` per pipeline.
- *
- * The parse output is identical no matter which asset in the pipeline is
- * focused, so switching between assets of the same pipeline can reuse a cached
- * result instead of re-running the (expensive, especially with `-c`) CLI parse.
- *
- * Superset rule: a `-c` (with-columns) entry can serve a request that does not
- * need columns, but a no-column entry cannot serve a request that does.
+ * Caches raw `bruin internal parse-pipeline` output per pipeline so switching
+ * assets of the same pipeline reuses it instead of re-running the CLI. A
+ * with-columns (`-c`) entry can serve a no-column request, but not vice versa.
  */
 export class PipelineLineageCacheService {
   private static instance: PipelineLineageCacheService;
   private cache = new Map<string, CacheEntry>();
 
   private constructor() {
-    // A different Bruin binary can produce different output, so drop everything.
+    // A different Bruin binary can produce different output.
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration("bruin.executable")) {
         this.invalidateAll();
@@ -56,11 +51,7 @@ export class PipelineLineageCacheService {
     this.cache.set(pipelinePath, { raw, hasColumns });
   }
 
-  /**
-   * Drop every cached entry for the pipeline rooted at `pipelineDir`. Assets are
-   * cached under the pipeline directory while a pipeline.yml is cached under its
-   * own file path, so match the directory and anything beneath it.
-   */
+  /** Drop cached entries for the pipeline rooted at `pipelineDir`. */
   public invalidate(pipelineDir: string): void {
     for (const key of this.cache.keys()) {
       if (key === pipelineDir || key.startsWith(pipelineDir + path.sep) || key.startsWith(pipelineDir + "/")) {

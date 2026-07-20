@@ -145,9 +145,8 @@ export abstract class BaseLineagePanel implements vscode.WebviewViewProvider, vs
   protected loadLineageData = async () => {
     if (this._lastRenderedDocumentUri) {
       try {
-        // Load asset-level lineage only. Column lineage (the CLI `-c` flag) is
-        // expensive on large pipelines and is fetched on demand when the user
-        // opens the Column View (see the bruin.fetchColumnLineage handler).
+        // Asset-level only; column lineage (-c) is fetched on demand via
+        // bruin.fetchColumnLineage when the Column View is opened.
         await flowLineageCommand(this._lastRenderedDocumentUri, undefined, false);
       } catch (error) {
         console.error("❌ [LineagePanel] Error loading lineage data:", error);
@@ -334,8 +333,7 @@ export abstract class BaseLineagePanel implements vscode.WebviewViewProvider, vs
           this.refresh(vscode.window.activeTextEditor!!);
           break;
         case "bruin.fetchColumnLineage":
-          // On-demand column lineage: the user opened the Column View, so run the
-          // (expensive) `-c` parse now for the current file and post it back.
+          // On-demand column lineage: run the -c parse for the current file.
           trackEvent("Command Executed", { command: "fetchColumnLineage", source: "extension" });
           if (this._lastRenderedDocumentUri) {
             flowLineageCommand(this._lastRenderedDocumentUri, undefined, true).catch((err) =>

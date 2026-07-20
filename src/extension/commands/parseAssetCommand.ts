@@ -46,11 +46,8 @@ export const getFullPipelineFilePath = async (filePath: string): Promise<string 
   }
 };
 
-/**
- * Drop cached pipeline parse results for the pipeline containing `filePath`.
- * Extension-UI edits write to disk via the Bruin CLI (patch/convert) and bypass
- * VS Code's document events, so the cache must be invalidated here explicitly.
- */
+// Patch/convert write via the CLI and bypass VS Code doc events, so invalidate
+// the lineage cache for the affected pipeline explicitly.
 const invalidateLineageCacheForFile = async (filePath: string) => {
   const pipelineDir = await getCurrentPipelinePath(filePath);
   if (pipelineDir) {

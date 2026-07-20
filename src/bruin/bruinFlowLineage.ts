@@ -91,9 +91,8 @@ export class BruinLineageInternalParse extends BruinCommand {
         : flags;
       
       const pipelinePath = isPipelineFile ? filePath : await getCurrentPipelinePath(filePath) as string;
-      // Key the cache by the pipeline directory so the asset-focused parse (run
-      // against the dir) and the pipeline-focused parse (run against pipeline.yml)
-      // share one cached -c result instead of each running their own.
+      // Key by pipeline directory so asset- and pipeline-focused parses of the
+      // same pipeline share one cached result.
       const cacheKey = isPipelineFile ? path.dirname(filePath) : pipelinePath;
       const cache = getPipelineLineageCache();
       let result = cache.get(cacheKey, includeColumns);
@@ -179,8 +178,7 @@ export class BruinLineageInternalParse extends BruinCommand {
         ? error.error
         : String(error);
 
-      // The CLI reports failures as a JSON payload ({"error":"..."}); surface the
-      // inner message instead of the raw blob.
+      // Unwrap the CLI's JSON error payload ({"error":"..."}).
       try {
         const parsed = JSON.parse(errorMessage);
         if (parsed?.error) {
@@ -198,9 +196,7 @@ export class BruinLineageInternalParse extends BruinCommand {
           message: formattedError,
         });
       } else {
-        // The parse covers the whole pipeline, so a single broken asset fails
-        // lineage for every asset in it. Make that explicit rather than looking
-        // like an error about the currently focused asset.
+        // Make clear the failure is pipeline-wide, not the focused asset.
         updateLineageData({
           status: "error",
           message: `Couldn't parse this pipeline's lineage. ${errorMessage}`,
