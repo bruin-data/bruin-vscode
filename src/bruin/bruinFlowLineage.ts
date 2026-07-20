@@ -17,7 +17,6 @@ export class BruinLineageInternalParse extends BruinCommand {
   ): Promise<any> {
     const cliResult = await this.run([...flags, filePath], { ignoresErrors });
     const pipelineData = JSON.parse(cliResult);
-    console.log("Pipeline data from parsePipelineConfig", pipelineData);
     const parsedResult: any = {
       name: pipelineData.name || '',
       schedule: pipelineData.schedule || '',
