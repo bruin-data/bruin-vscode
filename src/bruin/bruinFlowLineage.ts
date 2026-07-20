@@ -170,10 +170,21 @@ export class BruinLineageInternalParse extends BruinCommand {
         }
       }
     } catch (error : any) {
-      const errorMessage =  typeof error === "object" && error.error
-        ? error.error 
+      let errorMessage =  typeof error === "object" && error.error
+        ? error.error
         : String(error);
-  
+
+      // The CLI reports failures as a JSON payload ({"error":"..."}); surface the
+      // inner message instead of the raw blob.
+      try {
+        const parsed = JSON.parse(errorMessage);
+        if (parsed?.error) {
+          errorMessage = parsed.error;
+        }
+      } catch {
+        // not JSON, use as-is
+      }
+
       if (errorMessage.includes("No help topic for")) {
         const formattedError = "Bruin CLI command not recognized. Please check that Bruin CLI is installed and the command is correct.";
         vscode.window.showErrorMessage(formattedError);
@@ -182,9 +193,12 @@ export class BruinLineageInternalParse extends BruinCommand {
           message: formattedError,
         });
       } else {
+        // The parse covers the whole pipeline, so a single broken asset fails
+        // lineage for every asset in it. Make that explicit rather than looking
+        // like an error about the currently focused asset.
         updateLineageData({
           status: "error",
-          message: errorMessage,
+          message: `Couldn't parse this pipeline's lineage. ${errorMessage}`,
         });
       }
   

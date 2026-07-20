@@ -4403,7 +4403,7 @@ suite(" Query export Tests", () => {
         
         sinon.assert.calledWith(updateLineageDataStub, {
           status: "error",
-          message: "String error message"
+          message: "Couldn't parse this pipeline's lineage. String error message"
         });
       });
 
@@ -4419,7 +4419,23 @@ suite(" Query export Tests", () => {
         
         sinon.assert.calledWith(updateLineageDataStub, {
           status: "error",
-          message: "Object error message"
+          message: "Couldn't parse this pipeline's lineage. Object error message"
+        });
+      });
+
+      test("should unwrap a JSON error payload from the CLI", async () => {
+        const filePath = "path/to/asset.sql";
+        const error = '{"error":"error creating asset from file \'bad.py\': yaml: line 5"}';
+
+        isConfigFileStub.returns(false);
+        getCurrentPipelinePathStub.resolves("path/to/pipeline.yml");
+        runStub.rejects(error);
+
+        await bruinLineageInternalParse.parseAssetLineage(filePath);
+
+        sinon.assert.calledWith(updateLineageDataStub, {
+          status: "error",
+          message: "Couldn't parse this pipeline's lineage. error creating asset from file 'bad.py': yaml: line 5"
         });
       });
 
