@@ -1,8 +1,12 @@
 <template>
   <div class="flow">
     <div v-if="shouldShowLoading || rebuilding" class="loading-overlay">
-      <vscode-progress-ring></vscode-progress-ring>
-      <span class="ml-2 text-editor-fg">Loading lineage data...</span>
+      <!-- The cover hides the rebuild; only show the spinner when it's actually
+           taking a while, so quick file switches don't flash a loading state. -->
+      <template v-if="shouldShowLoading">
+        <vscode-progress-ring></vscode-progress-ring>
+        <span class="ml-2 text-editor-fg">Loading lineage data...</span>
+      </template>
     </div>
 
     <!-- Lineage load error (asset / pipeline views) -->
