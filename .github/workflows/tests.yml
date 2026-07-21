@@ -18,14 +18,11 @@ permissions:
   pull-requests: write
 
 jobs:
-  # Unit + webview tests.
+  # Unit + webview tests. A single job (Linux) — they're fast and not
+  # OS-specific, so one run is enough.
   unit:
-    name: Unit tests (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+    name: Unit tests
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
@@ -43,7 +40,6 @@ jobs:
         cd webview-ui && npm ci
 
     - name: Allow unprivileged user namespace (ubuntu)
-      if: ${{ startsWith(matrix.os, 'ubuntu') }}
       run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
 
     # Extension tests shell out to the real `bruin` binary (CLI install check),
@@ -52,12 +48,8 @@ jobs:
       run: |
         # The install script pulls a release over the network; retry a few times
         # so a transient download hiccup doesn't fail the whole job.
-        install_flag="-LsSL"
-        if [ "${{ runner.os }}" = "Windows" ]; then
-          install_flag="-LsSf"
-        fi
         for attempt in 1 2 3; do
-          if curl "$install_flag" https://raw.githubusercontent.com/bruin-data/bruin/refs/heads/main/install.sh | sh; then
+          if curl "-LsSL" https://raw.githubusercontent.com/bruin-data/bruin/refs/heads/main/install.sh | sh; then
             exit 0
           fi
           echo "Bruin CLI install failed (attempt $attempt), retrying in 5s..."
@@ -74,13 +66,7 @@ jobs:
       run: npm run build:webview
 
     - name: Run extension tests
-      run: |
-        if [ "$RUNNER_OS" = "Linux" ]; then
-          xvfb-run -a npm run test
-        else
-          npm run test
-        fi
-      shell: bash
+      run: xvfb-run -a npm run test
 
     - name: Run webview tests
       run: npm run test:webview
