@@ -1,12 +1,10 @@
 <template>
   <div class="flow">
-    <div v-if="shouldShowLoading || rebuilding" class="loading-overlay">
-      <!-- The cover hides the rebuild; only show the spinner when it's actually
-           taking a while, so quick file switches don't flash a loading state. -->
-      <template v-if="shouldShowLoading">
-        <vscode-progress-ring></vscode-progress-ring>
-        <span class="ml-2 text-editor-fg">Loading lineage data...</span>
-      </template>
+    <!-- Only shown once a load is genuinely slow (300ms), so quick switches
+         update in place without flashing a loading state. -->
+    <div v-if="shouldShowLoading" class="loading-overlay">
+      <vscode-progress-ring></vscode-progress-ring>
+      <span class="ml-2 text-editor-fg">Loading lineage data...</span>
     </div>
 
     <!-- Lineage load error (asset / pipeline views) -->
@@ -277,7 +275,6 @@ const shouldShowTopError = computed(() => {
 });
 
 const shouldShowAssetView = computed(() => {
-  // Stays mounted under the rebuild cover so Vue Flow can measure and fit it.
   return !showPipelineView.value && !showColumnView.value && !shouldShowTopError.value;
 });
 
@@ -503,28 +500,6 @@ const onNodesDragged = (draggedNodes: NodeDragEvent[]) => {
 const FIT_VIEW_PADDING = 0.2;
 let fitAnimate = false;
 
-// Cover the graph while it rebuilds; it fits under the cover, then the cover
-// lifts to reveal it already-framed. Safety timer ensures the cover always lifts.
-const rebuilding = ref(false);
-let rebuildSafetyTimer: ReturnType<typeof setTimeout> | undefined;
-const startRebuild = () => {
-  rebuilding.value = true;
-  if (rebuildSafetyTimer) {
-    clearTimeout(rebuildSafetyTimer);
-  }
-  rebuildSafetyTimer = setTimeout(() => {
-    rebuilding.value = false;
-    rebuildSafetyTimer = undefined;
-  }, 2000);
-};
-const endRebuild = () => {
-  if (rebuildSafetyTimer) {
-    clearTimeout(rebuildSafetyTimer);
-    rebuildSafetyTimer = undefined;
-  }
-  rebuilding.value = false;
-};
-
 const runFit = async () => {
   // Wait a frame so Vue Flow has measured node sizes before fitting.
   await nextTick();
@@ -544,8 +519,6 @@ const runFit = async () => {
       fit({ padding: FIT_VIEW_PADDING, duration });
     } catch (_) { /* ignore */ }
   }
-  await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
-  endRebuild();
 };
 const scheduleFit = debounce(runFit, 50);
 
@@ -613,7 +586,6 @@ const processProperties = async () => {
   }
 
   error.value = null;
-  startRebuild();
   try {
     await updateGraph();
   } catch (err) {
@@ -911,8 +883,6 @@ const buildPipelineElements = async () => {
     pipelineElements.value = { nodes: [], edges: [] };
     return;
   }
-  // Cover the graph until the pipeline view is fitted (see runFit).
-  startRebuild();
   const lineageData = buildPipelineLineage(props.pipelineData);
   const { nodes: initialNodes, edges: initialEdges } = (await import("@/components/lineage-flow/pipeline-lineage/pipelineLineageBuilder")).generateGraph(
     lineageData,
@@ -1108,8 +1078,6 @@ const buildColumnElements = async () => {
     return;
   }
   error.value = null;
-  // Cover the graph until the column view is fitted (see runFit).
-  startRebuild();
   const lineageData = buildColumnLineage(newPipelineData);
   // In pipeline view there is no single focus asset, so render column lineage
   // across every asset in the pipeline instead of centering on one.
