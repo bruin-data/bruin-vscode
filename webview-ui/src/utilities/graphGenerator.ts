@@ -330,7 +330,6 @@ export const generateColumnGraph = (
   // First, add the focus asset
   const focusAsset = assetMap[focusAssetName];
   if (focusAsset) {
-    console.log(`Focus asset ${focusAssetName} downstreams:`, focusAsset.downstreams);
     nodes.push(createColumnNode(focusAsset, true, columnLineageMap[focusAssetName] || []));
     processedAssets.add(focusAssetName.toLowerCase());
 
