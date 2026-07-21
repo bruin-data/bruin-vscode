@@ -211,6 +211,7 @@ import {
 import { fetchAllDownstreams, fetchAllUpstreams } from "@/utilities/assetDependencies";
 import { buildPipelineLineage, applyLayout as applyPipelineLayout } from "@/components/lineage-flow/pipeline-lineage/pipelineLineageBuilder";
 import { buildColumnLineage } from "@/components/lineage-flow/column-level/useColumnLevel";
+import { vscode } from "@/utilities/vscode";
 import type { AssetDataset } from "@/types";
 
 const props = defineProps<{
@@ -224,13 +225,14 @@ const props = defineProps<{
 const error = ref<string | null>(props.LineageError);
 const showPipelineView = ref(false);
 const showColumnView = ref(false);
+const columnFetchPending = ref(false);
 const showLoadingIndicator = ref(false);
 let loadingTimer: NodeJS.Timeout | null = null;
 const shouldAutoFit = ref(true); 
 
 // Debug computed properties
 const shouldShowLoading = computed(() => {
-  const isActuallyLoading = (props.isLoading || isLoadingLocal.value) || isLayouting.value;
+  const isActuallyLoading = (props.isLoading || isLoadingLocal.value) || isLayouting.value || columnFetchPending.value;
   
   // Start timer when loading begins
   if (isActuallyLoading && !loadingTimer) {
@@ -686,6 +688,19 @@ const handlePipelineView = async () => {
   await buildPipelineElements();
 };
 
+// Column lineage is only present when parsed with `-c` (fetched on demand).
+const hasColumnLineageData = (pd: any): boolean => {
+  if (!pd) {
+    return false;
+  }
+  return Boolean(pd.column_lineage) ||
+    (Array.isArray(pd.assets) && pd.assets.some((a: any) =>
+      a.columns?.length > 0 && a.columns.some((c: any) =>
+        Array.isArray(c.upstreams) && c.upstreams.length > 0
+      )
+    ));
+};
+
 const handleColumnLevelLineage = async () => {
   showColumnView.value = true;
   showPipelineView.value = false;
@@ -694,6 +709,16 @@ const handleColumnLevelLineage = async () => {
   columnFilterType.value = "all";
   columnExpandAllUpstreams.value = false;
   columnExpandAllDownstreams.value = false;
+
+  // Column data not loaded yet: fetch it on demand (-c) and show a spinner.
+  // When it arrives, the pipelineData watcher rebuilds the column view.
+  if (!hasColumnLineageData(props.pipelineData)) {
+    error.value = null;
+    columnElements.value = { nodes: [], edges: [] };
+    columnFetchPending.value = true;
+    vscode.postMessage({ command: "bruin.fetchColumnLineage" });
+    return;
+  }
   await buildColumnElements();
 };
 
@@ -998,18 +1023,18 @@ const buildColumnElements = async () => {
     columnElements.value = { nodes: [], edges: [] };
     return;
   }
-  const hasColumnData = newPipelineData.column_lineage || 
-    (newPipelineData.assets && newPipelineData.assets.some((asset: any) => 
-      asset.columns?.length > 0 && asset.columns.some((col: any) => 
-        col.upstreams && Array.isArray(col.upstreams) && col.upstreams.length > 0
-      )
-    ));
-  if (!hasColumnData) {
+  if (!hasColumnLineageData(newPipelineData)) {
+    // Still waiting on the on-demand `-c` fetch: keep the spinner, no error yet.
+    if (columnFetchPending.value) {
+      columnElements.value = { nodes: [], edges: [] };
+      return;
+    }
     console.warn("No column lineage data available. The data may have been parsed without the -c flag.");
     columnElements.value = { nodes: [], edges: [] };
     error.value = "No column lineage data found. To view column-level lineage, ensure the pipeline data includes column information";
     return;
   }
+  columnFetchPending.value = false;
   error.value = null;
   const lineageData = buildColumnLineage(newPipelineData);
   // In pipeline view there is no single focus asset, so render column lineage
