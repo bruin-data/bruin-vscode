@@ -8,6 +8,13 @@ export abstract class BruinCommand {
   public static isTestMode = false;
 
   /**
+   * Max stdout captured from a Bruin command. Lineage parses of large pipelines
+   * already emit several MB (6+ MB on ~1,500 assets), and exceeding this cap
+   * makes execFile throw instead of returning output, breaking the panel.
+   */
+  private static readonly MAX_OUTPUT_BUFFER = 1024 * 1024 * 64; // 64MB
+
+  /**
    * Initializes a new Bruin command instance.
    *
    * @param bruinExecutable The path to the Bruin executable.
@@ -62,7 +69,7 @@ export abstract class BruinCommand {
     return new Promise((resolve, reject) => {
       const execOptions: any = {
         cwd: this.workingDirectory,
-        maxBuffer: 1024 * 1024 * 10, // 10MB
+        maxBuffer: BruinCommand.MAX_OUTPUT_BUFFER,
       };
 
       // Windows-specific optimizations
