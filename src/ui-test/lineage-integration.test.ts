@@ -592,10 +592,11 @@ describe("Lineage Panel Integration Tests", function () {
         const ariaHiddenElements = await driver.findElements(By.css("[aria-hidden='true']"));
         console.log(`✓ Found ${ariaHiddenElements.length} aria-hidden elements`);
         
-        // Check for accessibility descriptions
-        const nodeDesc = await driver.findElements(By.css("#vue-flow__node-desc-vue-flow-0"));
-        const edgeDesc = await driver.findElements(By.css("#vue-flow__edge-desc-vue-flow-0"));
-        const ariaLive = await driver.findElements(By.css("#vue-flow__aria-live-vue-flow-0"));
+        // Check for accessibility descriptions. Each view has its own Vue Flow
+        // instance; the asset view (shown by default) uses the "asset-lineage-flow" id.
+        const nodeDesc = await driver.findElements(By.css("#vue-flow__node-desc-asset-lineage-flow"));
+        const edgeDesc = await driver.findElements(By.css("#vue-flow__edge-desc-asset-lineage-flow"));
+        const ariaLive = await driver.findElements(By.css("#vue-flow__aria-live-asset-lineage-flow"));
         
         assert(nodeDesc.length > 0, "Should have node description for accessibility");
         assert(edgeDesc.length > 0, "Should have edge description for accessibility");
