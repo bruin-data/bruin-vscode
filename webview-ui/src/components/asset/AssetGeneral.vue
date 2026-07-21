@@ -1,8 +1,5 @@
 <template>
   <!-- Container -->
-  <!-- overflow-visible (not hidden) so the Run/Validate/Lock dropdowns aren't
-       clipped when the content below is short (e.g. ingestr assets). SQL asset
-       sticky headers live inside #sql-editor's own scroll box, so this is safe. -->
   <div class="divide-y overflow-visible w-full">
     <!-- Header Section -->
     <div class="flex flex-col space-y-3">
@@ -1752,9 +1749,7 @@ function runAssetOnly() {
   });
 }
 
-// Run the current asset with --debug, so the run command shows debug output in
-// the terminal. Mirrors runAssetOnly (asset-only, tag-stripped, full-refresh
-// confirmation) with the debug flag added.
+// Run the current asset with the --debug flag.
 function runAssetWithDebug() {
   const fullRefreshChecked = checkboxItems.value.find(
     (item) => item.name === "Full-Refresh"
