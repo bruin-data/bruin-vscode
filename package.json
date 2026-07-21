@@ -2,7 +2,7 @@
   "name": "bruin",
   "displayName": "Bruin",
   "description": "Manage your Bruin data assets from within VS Code.",
-  "version": "0.82.4",
+  "version": "0.82.5",
   "engines": {
     "vscode": "^1.87.0"
   },
@@ -500,7 +500,7 @@
     "@vue-flow/core": "^1.43.1",
     "@vue-flow/minimap": "^1.5.3",
     "chokidar": "^4.0.3",
-    "concurrently": "^10.0.3",
+    "concurrently": "^9.2.4",
     "cron-parser": "^4.9.0",
     "cronstrue": "^2.61.0",
     "dotenv": "^16.4.7",

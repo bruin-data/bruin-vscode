@@ -1,6 +1,6 @@
 <template>
   <!-- Container -->
-  <div class="divide-y overflow-hidden w-full">
+  <div class="divide-y overflow-visible w-full">
     <!-- Header Section -->
     <div class="flex flex-col space-y-3">
       <div class="flex flex-col">
@@ -590,6 +590,7 @@ const runButtonLabel = computed(() => {
 
 const runDropdownItems = computed(() => [
   { key: 'run-with-downstream', label: 'Run with downstream', disabled: isPipelineFile.value },
+  { key: 'run-with-debug', label: 'Run with debug' },
   { key: 'run-current-pipeline', label: 'Run the whole pipeline' },
   { key: 'run-with-continue', label: 'Continue from last failure' },
   { key: 'run-multiple-assets', label: 'Run multiple assets' },
@@ -657,6 +658,9 @@ const handleRunDropdown = (key: string) => {
   switch (key) {
     case "run-with-downstream":
       runAssetWithDownstream();
+      break;
+    case "run-with-debug":
+      runAssetWithDebug();
       break;
     case "run-current-pipeline":
       runCurrentPipeline();
@@ -1649,13 +1653,17 @@ const handleEnvironmentChange = (env) => {
 
 function buildCommandPayload(
   basePayload,
-  options: { downstream?: boolean; continue?: boolean } = {}
+  options: { downstream?: boolean; continue?: boolean; debug?: boolean } = {}
 ) {
-  const { downstream = false, continue: continueFlag = false } = options;
+  const { downstream = false, continue: continueFlag = false, debug = false } = options;
   let payload = basePayload;
 
   if (downstream) {
     payload += " --downstream";
+  }
+
+  if (debug) {
+    payload += " --debug";
   }
 
   if (continueFlag) {
@@ -1739,6 +1747,32 @@ function runAssetOnly() {
     command: "bruin.runSql",
     payload,
   });
+}
+
+// Run the current asset with the --debug flag.
+function runAssetWithDebug() {
+  const fullRefreshChecked = checkboxItems.value.find(
+    (item) => item.name === "Full-Refresh"
+  )?.checked;
+
+  const getRunPayload = () => {
+    const baseFlags = getCheckboxChangePayload();
+    return isPipelineData.value ? baseFlags : stripAllTagFlags(baseFlags);
+  };
+
+  const send = () => {
+    vscode.postMessage({
+      command: "bruin.runSql",
+      payload: buildCommandPayload(getRunPayload(), { debug: true }),
+    });
+  };
+
+  if (fullRefreshChecked) {
+    showFullRefreshConfirmation(send);
+    return;
+  }
+
+  send();
 }
 
 // Remove the global --start-date/--end-date flags; backfill supplies a

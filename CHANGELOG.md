@@ -1,4 +1,7 @@
 # Changelog
+## [0.82.5] - [2026-07-21]
+- Fixed the Run dropdown being clipped on ingestr assets, and added a "Run with debug" option that runs the asset with `--debug`.
+
 ## [0.82.4] - [2026-07-17]
 - Fixed the "Apply-Sensor-Mode" checkbox using a stale mode: changing the `bruin.run.sensorMode` setting now takes effect immediately in an open asset panel instead of only after reopening it. The checkbox tooltip also shows the active mode and points to the setting.
 
