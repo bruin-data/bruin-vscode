@@ -96,6 +96,9 @@ export class BruinPanel {
   private _currentEndDate: string = "";
   private _currentEnvironment: string = "";
   private _sensorModeSetting: string = "skip";
+  // Assets with an asset-metadata CLI call currently in flight, so duplicate
+  // requests for the same file (fired several times per switch) are coalesced.
+  private _metadataInFlight = new Set<string>();
 
   public static setExtensionContext(context: vscode.ExtensionContext): void {
     BruinPanel._extensionContext = context;
@@ -666,13 +669,8 @@ export class BruinPanel {
               // Render with flags if we have a valid document
               if (this._lastRenderedDocumentUri?.fsPath) {
                 await renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri.fsPath);
-                const assetMetadata = new BruinInternalAssetMetadata(
-                  getBruinExecutablePath(),
-                  vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || ""  
-                );
-                await assetMetadata.getAssetMetadata(
+                await this._fetchAssetMetadata(
                   this._lastRenderedDocumentUri.fsPath,
-                  undefined,
                   this._currentStartDate,
                   this._currentEndDate,
                   this._currentEnvironment
@@ -1532,35 +1530,19 @@ export class BruinPanel {
               await flowLineageCommand(this._lastRenderedDocumentUri, undefined, true);
             }
             break;
-          case "bruin.getAssetMetadata":
+          case "bruin.getAssetMetadata": {
             if (!this._lastRenderedDocumentUri) {
               return;
             }
-            const metadataAssetPath = this._lastRenderedDocumentUri.fsPath;
-            const isAssetForMetadata = await this._isAssetFile(metadataAssetPath);
-            
-            if (isAssetForMetadata) {
-              const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || "";
-              const assetMetadata = new BruinInternalAssetMetadata(
-                getBruinExecutablePath(),
-                workspaceFolder
-              );
-              
-              // Use payload values if provided, otherwise use stored values
-              const { startDate, endDate, environment } = message.payload || {};
-              const finalStartDate = startDate || this._currentStartDate;
-              const finalEndDate = endDate || this._currentEndDate;
-              const finalEnvironment = environment || this._currentEnvironment;
-              
-              await assetMetadata.getAssetMetadata(
-                metadataAssetPath,
-                undefined,
-                finalStartDate,
-                finalEndDate,
-                finalEnvironment
-              );
-            }
+            const meta = message.payload || {};
+            await this._fetchAssetMetadata(
+              this._lastRenderedDocumentUri.fsPath,
+              meta.startDate || this._currentStartDate,
+              meta.endDate || this._currentEndDate,
+              meta.environment || this._currentEnvironment
+            );
             break;
+          }
           case "bruin.parsePipelineForVariables":
             if (!this._lastRenderedDocumentUri) {
               return;
@@ -1817,6 +1799,44 @@ export class BruinPanel {
         console.error("Debounced SQL render failed:", err);
       }
     }, 200);
+  }
+
+  private _isPipelineOrConfigFile(filePath: string): boolean {
+    return (
+      filePath.endsWith("pipeline.yml") ||
+      filePath.endsWith("pipeline.yaml") ||
+      filePath.endsWith(".bruin.yml") ||
+      filePath.endsWith(".bruin.yaml")
+    );
+  }
+
+  // Fetch asset metadata, guarding against the CLI panic on pipeline/config files
+  // and coalescing duplicate concurrent requests for the same asset.
+  private async _fetchAssetMetadata(
+    assetPath: string,
+    startDate?: string,
+    endDate?: string,
+    environment?: string
+  ): Promise<void> {
+    if (this._isPipelineOrConfigFile(assetPath)) {
+      return;
+    }
+    if (this._metadataInFlight.has(assetPath)) {
+      return;
+    }
+    this._metadataInFlight.add(assetPath);
+    try {
+      if (!(await this._isAssetFile(assetPath))) {
+        return;
+      }
+      const assetMetadata = new BruinInternalAssetMetadata(
+        getBruinExecutablePath(),
+        vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || ""
+      );
+      await assetMetadata.getAssetMetadata(assetPath, undefined, startDate, endDate, environment);
+    } finally {
+      this._metadataInFlight.delete(assetPath);
+    }
   }
 
   private async _isAssetFile(filePath: string): Promise<boolean> {
