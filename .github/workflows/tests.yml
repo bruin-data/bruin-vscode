@@ -18,14 +18,14 @@ permissions:
   pull-requests: write
 
 jobs:
-  # Unit + webview tests. Runs the full OS matrix on push to main, Linux-only on PRs.
+  # Unit + webview tests.
   unit:
     name: Unit tests (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: ${{ fromJSON(github.event_name == 'push' && '["ubuntu-latest","macos-latest","windows-latest"]' || '["ubuntu-latest"]') }}
+        os: [ubuntu-latest, macos-latest, windows-latest]
 
     steps:
     - uses: actions/checkout@v4
@@ -41,6 +41,31 @@ jobs:
         npm i -g npm@11.10.0
         npm ci
         cd webview-ui && npm ci
+
+    - name: Allow unprivileged user namespace (ubuntu)
+      if: ${{ startsWith(matrix.os, 'ubuntu') }}
+      run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
+    # Extension tests shell out to the real `bruin` binary (CLI install check),
+    # so it must be present before they run.
+    - name: Install Bruin CLI
+      run: |
+        # The install script pulls a release over the network; retry a few times
+        # so a transient download hiccup doesn't fail the whole job.
+        install_flag="-LsSL"
+        if [ "${{ runner.os }}" = "Windows" ]; then
+          install_flag="-LsSf"
+        fi
+        for attempt in 1 2 3; do
+          if curl "$install_flag" https://raw.githubusercontent.com/bruin-data/bruin/refs/heads/main/install.sh | sh; then
+            exit 0
+          fi
+          echo "Bruin CLI install failed (attempt $attempt), retrying in 5s..."
+          sleep 5
+        done
+        echo "Bruin CLI install failed after 3 attempts" >&2
+        exit 1
+      shell: bash
 
     - name: Compile
       run: npm run compile
@@ -61,15 +86,14 @@ jobs:
       run: npm run test:webview
 
   # Selenium/UI integration suites. Each suite runs as its own job so they run
-  # in parallel instead of sequentially. Full OS matrix on push to main,
-  # Linux-only on PRs.
+  # in parallel instead of sequentially.
   integration:
     name: ${{ matrix.suite }} (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: ${{ fromJSON(github.event_name == 'push' && '["ubuntu-latest","macos-latest","windows-latest"]' || '["ubuntu-latest"]') }}
+        os: [ubuntu-latest, macos-latest, windows-latest]
         suite: [connections, ingestr, webview, lineage, query-preview]
 
     steps:
