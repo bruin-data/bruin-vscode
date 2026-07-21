@@ -85,7 +85,13 @@ export abstract class BaseLineagePanel implements vscode.WebviewViewProvider, vs
     this.disposables.push(
       vscode.window.onDidChangeActiveTextEditor((event: vscode.TextEditor | undefined) => {
         if (event && event.document.uri.scheme !== "vscodebruin:panel") {
+          const changedFile = this._lastRenderedDocumentUri?.fsPath !== event.document.uri.fsPath;
           this._lastRenderedDocumentUri = event?.document.uri;
+          // On a real file switch, tell the panel a parse is coming so it shows
+          // loading instead of leaving the previous graph on screen.
+          if (changedFile) {
+            this.postLoading();
+          }
           this.loadLineageData();
           this.initPanel(event);
         }
@@ -175,6 +181,17 @@ export abstract class BaseLineagePanel implements vscode.WebviewViewProvider, vs
     }
     await this.resolveWebviewView(this._view, this.context!, this.token!);
   };
+
+  // Tell the webview a new parse is in flight so it shows loading instead of
+  // the previous graph.
+  private postLoading() {
+    if (this._view) {
+      this._view.webview.postMessage({
+        command: "flow-lineage-loading",
+        panelType: this.panelType,
+      });
+    }
+  }
 
   protected onDataUpdated(data: any) {
     // Post even when the view is hidden: with retainContextWhenHidden the
