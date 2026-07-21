@@ -8,6 +8,7 @@
     <!-- Asset View -->
     <VueFlow
       v-if="shouldShowAssetView"
+      :id="ASSET_FLOW_ID"
       v-model:elements="elements"
       :fit-view-on-init="false"
       class="basic-flow"
@@ -66,6 +67,7 @@
     <!-- Pipeline View (no special filter controls; use Asset behavior) -->
     <VueFlow
       v-if="showPipelineView"
+      :id="PIPELINE_FLOW_ID"
       :nodes="pipelineElements.nodes"
       :edges="pipelineElements.edges"
       @nodesInitialized="onPipelineNodesInitialized"
@@ -116,6 +118,7 @@
     <!-- Column Level View -->
     <VueFlow
       v-if="showColumnView"
+      :id="COLUMN_FLOW_ID"
       :nodes="columnElements.nodes"
       :edges="columnElements.edges"
       @nodesInitialized="onColumnNodesInitialized"
@@ -261,9 +264,17 @@ const shouldShowAssetView = computed(() => {
   return !showPipelineView.value && !showColumnView.value && !shouldShowLoading.value;
 });
 
+// Each view gets its own Vue Flow instance id so their viewports don't leak
+// into each other (e.g. the pipeline zoom carrying into the asset view).
+const ASSET_FLOW_ID = "asset-lineage-flow";
+const PIPELINE_FLOW_ID = "pipeline-lineage-flow";
+const COLUMN_FLOW_ID = "column-lineage-flow";
+
 // ===== Asset View State =====
 const flowRef = ref(null);
-const { nodes, edges, addNodes, addEdges, setNodes, setEdges, fitView, onNodeMouseEnter, onNodeMouseLeave, getNodes, getEdges } = useVueFlow();
+const { nodes, edges, addNodes, addEdges, setNodes, setEdges, fitView, onNodeMouseEnter, onNodeMouseLeave, getNodes, getEdges } = useVueFlow(ASSET_FLOW_ID);
+const { fitView: fitPipelineView } = useVueFlow(PIPELINE_FLOW_ID);
+const { fitView: fitColumnView } = useVueFlow(COLUMN_FLOW_ID);
 const elements = computed(() => [...nodes.value, ...edges.value]);
 const selectedNodeId = ref<string | null>(null);
 const isLoadingLocal = ref(true);
@@ -483,13 +494,18 @@ const fitViewSmooth = async (forceAutoFit = false, useAnimation = false) => {
   }
   
   const duration = useAnimation ? 300 : 0;
-  
+  const fit = showColumnView.value
+    ? fitColumnView
+    : showPipelineView.value
+      ? fitPipelineView
+      : fitView;
+
   try {
-    fitView({ padding: 0.2, duration });
+    fit({ padding: 0.2, duration });
     shouldAutoFit.value = false; // Disable auto-fit after first use
   } catch (e) {
     await nextTick();
-    fitView({ padding: 0.2, duration });
+    fit({ padding: 0.2, duration });
     shouldAutoFit.value = false;
   }
 };
