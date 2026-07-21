@@ -332,6 +332,16 @@ export abstract class BaseLineagePanel implements vscode.WebviewViewProvider, vs
           }
           this.refresh(vscode.window.activeTextEditor!!);
           break;
+        case "bruin.fetchColumnLineage":
+          // On-demand column-level lineage (-c): only fetched when the user
+          // opens the Column view, since -c is far slower than the plain parse.
+          trackEvent("Command Executed", { command: "fetchColumnLineage", source: "extension" });
+          if (this._lastRenderedDocumentUri) {
+            flowLineageCommand(this._lastRenderedDocumentUri, undefined, true).catch((err) =>
+              console.error("[LineagePanel] on-demand column fetch failed", err)
+            );
+          }
+          break;
       }
     })
     );
