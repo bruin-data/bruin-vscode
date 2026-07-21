@@ -3,6 +3,8 @@ import { getNonce } from "../utilities/getNonce";
 import { getUri } from "../utilities/getUri";
 import { flowLineageCommand } from "../extension/commands/FlowLineageCommand";
 import { trackEvent } from "../extension/extension";
+import { getCurrentPipelinePath } from "../bruin/bruinUtils";
+import { getPipelineLineageCache } from "../providers/PipelineLineageCacheService";
 
 export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposable {
   private static instance: LineagePanel;
@@ -122,11 +124,23 @@ export abstract class BaseLineagePanel implements vscode.WebviewViewProvider, vs
     if (this._docChangeDebounceTimer) {
       clearTimeout(this._docChangeDebounceTimer);
     }
-    this._docChangeDebounceTimer = setTimeout(() => {
+    this._docChangeDebounceTimer = setTimeout(async () => {
       this._docChangeDebounceTimer = undefined;
+      // The document changed, so any cached parse for its pipeline is stale.
+      await this.invalidateCacheForCurrentDoc();
       this.loadLineageData();
     }, BaseLineagePanel.docChangeDebounceMs);
   }
+
+  private invalidateCacheForCurrentDoc = async () => {
+    if (!this._lastRenderedDocumentUri) {
+      return;
+    }
+    const pipelineDir = await getCurrentPipelinePath(this._lastRenderedDocumentUri.fsPath);
+    if (pipelineDir) {
+      getPipelineLineageCache().invalidate(pipelineDir);
+    }
+  };
 
   protected loadLineageData = async () => {
     if (this._lastRenderedDocumentUri) {
