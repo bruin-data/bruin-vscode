@@ -3,7 +3,7 @@ import * as http from "http";
 import * as path from "path";
 import * as vscode from "vscode";
 import { DacServe, DacServerManager, DacNotFoundError, DacStartError } from "../bruin/dacServe";
-import { fetchDashboard, fetchDashboardData, DacDashboard } from "../bruin/dacApi";
+import { fetchDashboard, fetchDashboardData, fetchDashboardList, DacDashboard } from "../bruin/dacApi";
 import { getNonce } from "../utilities/getNonce";
 import { getUri } from "../utilities/getUri";
 
@@ -28,6 +28,12 @@ function readDashboardName(filePath: string): string | undefined {
     return undefined;
   }
   let value = match[1].trim();
+  // A block/folded scalar (`name: >` or `name: |`, with optional chomping) has
+  // its value on following lines — the regex would capture just the indicator.
+  // Treat these as unresolved so the caller can fall back to dac's listing.
+  if (/^[|>][+\-0-9]*$/.test(value)) {
+    return undefined;
+  }
   if (
     (value.startsWith('"') && value.endsWith('"')) ||
     (value.startsWith("'") && value.endsWith("'"))
@@ -86,6 +92,7 @@ export class DacPreviewPanel {
   private disposed: boolean = false;
   private sseReq: http.ClientRequest | undefined;
   private reloadTimer: ReturnType<typeof setTimeout> | undefined;
+  private loadSeq: number = 0;
 
   private constructor(
     panel: vscode.WebviewPanel,
@@ -308,16 +315,26 @@ export class DacPreviewPanel {
    * place without a re-render.
    */
   private async load(opts: { dataOnlyIfUnchanged: boolean }): Promise<void> {
-    const name = this.currentName;
-    if (!name) {
-      this.post("error", {
-        message:
-          "Couldn't determine the dashboard name. Open a dashboard YAML with a top-level `name:` field.",
-      });
-      return;
-    }
+    // Tag this load; if a newer load starts (e.g. fast editor switch) we drop
+    // this one's results so a slow response can't overwrite the current view.
+    const seq = ++this.loadSeq;
+    const stale = () => seq !== this.loadSeq || this.disposed;
     try {
+      const name = await this.resolveName();
+      if (stale()) {
+        return;
+      }
+      if (!name) {
+        this.post("error", {
+          message:
+            "Couldn't determine which dashboard to preview. Open a dashboard file (one with a top-level `rows:`).",
+        });
+        return;
+      }
       const dashboard = await fetchDashboard(this.server.url, name);
+      if (stale()) {
+        return;
+      }
       const json = JSON.stringify(dashboard);
       const structureChanged = json !== this.currentDashboardJson;
       if (structureChanged || !opts.dataOnlyIfUnchanged) {
@@ -326,12 +343,39 @@ export class DacPreviewPanel {
         this.post("dashboard", { dashboard });
       }
       const data = await fetchDashboardData(this.server.url, name);
+      if (stale()) {
+        return;
+      }
       this.post("data", { data });
     } catch (err) {
+      if (stale()) {
+        return;
+      }
       const message = err instanceof Error ? err.message : String(err);
       DacPreviewPanel.getOutput().appendLine(`[dac] load failed: ${message}`);
       this.post("error", { message });
     }
+  }
+
+  /**
+   * The dashboard name for the current file. YAML resolves via its top-level
+   * `name:`; TSX (and folded/edge YAML the regex can't read) fall back to dac's
+   * dashboard listing so the preview still works instead of erroring out.
+   */
+  private async resolveName(): Promise<string | undefined> {
+    if (this.currentName) {
+      return this.currentName;
+    }
+    try {
+      const list = await fetchDashboardList(this.server.url);
+      if (list.length) {
+        this.currentName = list[0].name;
+        return this.currentName;
+      }
+    } catch {
+      /* fall through to undefined */
+    }
+    return undefined;
   }
 
   private applyPanelTitle(dashboard: DacDashboard): void {

@@ -212,7 +212,10 @@ export class DacStartError extends Error {
 }
 
 interface SharedServer {
-  server: DacServe;
+  /** Resolves to the ready server. Stored synchronously so concurrent
+   *  acquires for the same dir await one start instead of racing two. */
+  promise: Promise<DacServe>;
+  server?: DacServe;
   refCount: number;
 }
 
@@ -238,10 +241,10 @@ export class DacServerManager {
     template: string
   ): Promise<DacServe> {
     const existing = DacServerManager.servers.get(dir);
-    if (existing && existing.server.isRunning) {
+    if (existing) {
       existing.refCount += 1;
       output.appendLine(`[dac] reusing server for ${dir} (refs=${existing.refCount})`);
-      return existing.server;
+      return existing.promise;
     }
 
     const executable = getDacExecutablePath();
@@ -249,16 +252,43 @@ export class DacServerManager {
       throw new DacNotFoundError();
     }
 
-    // Retry only for a transient port collision (findFreePort → dac bind is a
-    // TOCTOU window). A real failure (bad flag, missing dir) throws immediately
-    // with dac's own error text.
+    // Register the entry synchronously (with a pending promise) so a second
+    // acquire for the same dir joins this start instead of spawning its own.
+    let entry!: SharedServer;
+    const promise = DacServerManager.startServer(dir, output, template, executable).then(
+      (server) => {
+        entry.server = server;
+        return server;
+      }
+    );
+    entry = { refCount: 1, promise };
+    DacServerManager.servers.set(dir, entry);
+
+    try {
+      return await entry.promise;
+    } catch (err) {
+      DacServerManager.servers.delete(dir);
+      throw err;
+    }
+  }
+
+  /**
+   * Starts a `dac serve`, retrying only on a transient port collision
+   * (findFreePort → dac bind is a TOCTOU window). A real failure (bad flag,
+   * missing dir) throws immediately with dac's own error text.
+   */
+  private static async startServer(
+    dir: string,
+    output: vscode.OutputChannel,
+    template: string,
+    executable: string
+  ): Promise<DacServe> {
     let lastError: unknown;
     for (let attempt = 1; attempt <= 3; attempt++) {
       const port = await DacServe.findFreePort();
       const server = new DacServe(dir, port, output, template, executable);
       try {
         await server.start();
-        DacServerManager.servers.set(dir, { server, refCount: 1 });
         return server;
       } catch (err) {
         lastError = err;
@@ -283,15 +313,16 @@ export class DacServerManager {
     }
     entry.refCount -= 1;
     if (entry.refCount <= 0) {
-      entry.server.stop();
       DacServerManager.servers.delete(dir);
+      // Stop once the start settles — covers release during a pending start.
+      entry.promise.then((s) => s.stop()).catch(() => {});
     }
   }
 
   /** Stops every running server. Call on extension deactivate. */
   public static disposeAll(): void {
-    for (const { server } of DacServerManager.servers.values()) {
-      server.stop();
+    for (const entry of DacServerManager.servers.values()) {
+      entry.promise.then((s) => s.stop()).catch(() => {});
     }
     DacServerManager.servers.clear();
   }

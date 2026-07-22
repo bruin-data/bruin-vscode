@@ -33,9 +33,9 @@
             v-for="(v, pi) in series.values"
             :key="pi"
             :x="barX(pi, si)"
-            :y="v === null ? H - pad.b : scaleY(v)"
+            :y="v === null ? zeroY : Math.min(scaleY(v), zeroY)"
             :width="barWidth"
-            :height="v === null ? 0 : H - pad.b - scaleY(v)"
+            :height="v === null ? 0 : Math.abs(scaleY(v) - zeroY)"
             :fill="color(si)"
             :fill-opacity="hover.point === null || hover.point === pi ? 1 : 0.45"
             @mousemove="showBarTip($event, pi, si, v)"
@@ -317,22 +317,37 @@ const seriesList = computed<Series[]>(() =>
   }))
 );
 
-const maxY = computed(() => {
-  let m = 0;
+// Domain spans the data's min/max but always includes zero, so negative
+// values render below the zero baseline instead of falling off the viewport.
+const yDomain = computed(() => {
+  let min = 0;
+  let max = 0;
   for (const s of seriesList.value) {
     for (const v of s.values) {
-      if (v !== null && v > m) {
-        m = v;
+      if (v === null) {
+        continue;
+      }
+      if (v < min) {
+        min = v;
+      }
+      if (v > max) {
+        max = v;
       }
     }
   }
-  return m || 1;
+  if (min === 0 && max === 0) {
+    max = 1;
+  }
+  return { min, max };
 });
 
 function scaleY(v: number): number {
   const h = H - pad.t - pad.b;
-  return H - pad.b - (v / maxY.value) * h;
+  const { min, max } = yDomain.value;
+  const span = max - min || 1;
+  return H - pad.b - ((v - min) / span) * h;
 }
+const zeroY = computed(() => scaleY(0));
 function scaleX(i: number): number {
   const n = Math.max(points.value.length - 1, 1);
   const w = W - pad.l - pad.r;
@@ -349,7 +364,8 @@ function areaPoints(series: Series): string {
   if (!line) {
     return "";
   }
-  return `${scaleX(0)},${H - pad.b} ${line} ${scaleX(points.value.length - 1)},${H - pad.b}`;
+  const base = zeroY.value;
+  return `${scaleX(0)},${base} ${line} ${scaleX(points.value.length - 1)},${base}`;
 }
 
 const barWidth = computed(() => {

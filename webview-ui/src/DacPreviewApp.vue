@@ -54,8 +54,11 @@ const handleMessage = (event: MessageEvent) => {
       break;
     }
     case "data":
-      // Merge so widgets update in place; unchanged widgets keep their values.
-      results.value = { ...results.value, ...(message.payload.data?.widgets ?? {}) };
+      // dac returns every widget's result, so replace wholesale — this drops
+      // results for widgets that no longer exist (avoids stale data on a reused
+      // widget id). No flash: we don't clear results on the "dashboard" message,
+      // so the previous values stay until this atomic replacement.
+      results.value = message.payload.data?.widgets ?? {};
       break;
     case "error":
       errorMessage.value = message.payload?.message ?? "Something went wrong.";
