@@ -10,12 +10,19 @@
     <DacChart v-else-if="widget.type === 'chart'" :widget="widget" :result="result" />
     <DacTable v-else-if="widget.type === 'table'" :widget="widget" :result="result" />
     <DacText v-else-if="widget.type === 'text'" :widget="widget" />
-    <img
-      v-else-if="widget.type === 'image'"
-      :src="widget.src"
-      :alt="widget.alt || widget.name"
-      class="dac-image"
-    />
+    <template v-else-if="widget.type === 'image'">
+      <img
+        v-if="imageLoaded"
+        :src="widget.src"
+        :alt="widget.alt || widget.name"
+        class="dac-image"
+        referrerpolicy="no-referrer"
+      />
+      <button v-else type="button" class="dac-image-gate" @click="imageLoaded = true">
+        <span class="codicon codicon-file-media"></span>
+        <span>Load image from {{ imageHost }}</span>
+      </button>
+    </template>
     <div v-else class="dac-widget-unknown">
       Unsupported widget type: {{ widget.type }}
       <DacTable v-if="result" :widget="widget" :result="result" />
@@ -26,7 +33,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import type { DacWidget, DacWidgetResult } from "./types";
 import DacMetric from "./DacMetric.vue";
 import DacChart from "./DacChart.vue";
@@ -42,6 +49,20 @@ const showTitle = computed(() =>
 );
 
 const query = computed(() => props.result?.query?.trim() || "");
+
+// Don't auto-fetch remote images: loading a remote URL on open would beacon
+// the user's IP/UA to an author-controlled host. Data URIs are inert, so they
+// render immediately; remote images require an explicit click.
+const src = computed(() => props.widget.src ?? "");
+const isRemote = computed(() => /^https?:\/\//i.test(src.value));
+const imageLoaded = ref(!isRemote.value);
+const imageHost = computed(() => {
+  try {
+    return new URL(src.value).host;
+  } catch {
+    return src.value;
+  }
+});
 </script>
 
 <style scoped>
@@ -86,6 +107,22 @@ const query = computed(() => props.result?.query?.trim() || "");
   border: none;
   background: transparent;
   padding: 4px 0;
+}
+.dac-image-gate {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+  background: var(--vscode-editorWidget-background, transparent);
+  border: 1px dashed var(--vscode-editorWidget-border, var(--vscode-panel-border));
+  border-radius: 4px;
+  cursor: pointer;
+}
+.dac-image-gate:hover {
+  color: var(--vscode-foreground);
+  border-color: var(--vscode-focusBorder);
 }
 .dac-image {
   max-width: 100%;
