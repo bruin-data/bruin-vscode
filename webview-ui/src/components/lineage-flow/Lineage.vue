@@ -594,6 +594,10 @@ const processProperties = async () => {
   
   // Don't set loading states here - let _updateGraph handle it
   error.value = null;
+  // updateGraph is debounced, so clear the previous asset's graph now to avoid
+  // showing it for the debounce window before the new one is built.
+  setNodes([]);
+  setEdges([]);
   console.log('🔄 [Lineage] Starting graph update');
   try {
     await updateGraph();
