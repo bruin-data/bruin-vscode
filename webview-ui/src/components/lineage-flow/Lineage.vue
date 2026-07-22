@@ -498,7 +498,6 @@ const onNodesDragged = (draggedNodes: NodeDragEvent[]) => {
 // Fit view helper - now with smart auto-fit logic
 const fitViewSmooth = async (forceAutoFit = false, useAnimation = false) => {
   await nextTick();
-  console.log(`[LT] fitViewSmooth force=${forceAutoFit} shouldAutoFit=${shouldAutoFit.value} view=${showColumnView.value ? "column" : showPipelineView.value ? "pipeline" : "asset"} t=${Math.round(performance.now())}`);
 
   // Only auto-fit if explicitly requested or first load
   if (!forceAutoFit && !shouldAutoFit.value) {
@@ -523,7 +522,6 @@ const fitViewSmooth = async (forceAutoFit = false, useAnimation = false) => {
 };
 
 const _updateGraph = async () => {
-  console.log(`[LT] _updateGraph START asset=${props.assetDataset?.name ?? "?"} t=${Math.round(performance.now())}`);
   if (!showPipelineView.value && !showColumnView.value) {
     isLoadingLocal.value = true;
     isLayouting.value = true;
@@ -770,7 +768,6 @@ let lastViewKey = "";
 // Default view for the current target: pipeline view for a pipeline, else asset.
 const selectDefaultViewForTarget = () => {
   const isPipeline = Boolean((props.assetDataset as any)?.isPipelineView);
-  console.log(`[LT] selectDefaultView isPipeline=${isPipeline} hasPipelineData=${!!props.pipelineData} t=${Math.round(performance.now())}`);
   showColumnView.value = false;
   showPipelineView.value = isPipeline;
   if (isPipeline) {
@@ -800,7 +797,6 @@ watch(
   () => [props.assetDataset, props.pipelineData],
   () => {
     const key = computeTargetKey();
-    console.log(`[LT] dataWatch key=${key} lastViewKey=${lastViewKey} changed=${key !== lastViewKey} hasAsset=${!!props.assetDataset} showPipeline=${showPipelineView.value} showColumn=${showColumnView.value} t=${Math.round(performance.now())}`);
     if (!props.assetDataset) return;
 
     if (key !== lastViewKey) {
@@ -812,13 +808,10 @@ watch(
 
     // Same target refreshed: rebuild the current view instead of snapping away.
     if (showColumnView.value) {
-      console.log("[LT] dataWatch -> refresh column");
       buildColumnElements();
     } else if (showPipelineView.value) {
-      console.log("[LT] dataWatch -> refresh pipeline");
       buildPipelineElements();
     } else {
-      console.log("[LT] dataWatch -> refresh asset");
       processProperties();
     }
   },
@@ -877,7 +870,6 @@ const onPipelineNodeClick = (nodeId: string) => {
 };
 
 const buildPipelineElements = async () => {
-  console.log(`[LT] buildPipeline START assets=${(props.pipelineData as any)?.assets?.length ?? "NONE"} t=${Math.round(performance.now())}`);
   if (!props.pipelineData) {
     pipelineElements.value = { nodes: [], edges: [] };
     return;
@@ -894,7 +886,6 @@ const buildPipelineElements = async () => {
     );
     const { nodes: layoutNodes, edges: layoutEdges } = await applyPipelineLayout(initialNodes, initialEdges);
     pipelineElements.value = { nodes: layoutNodes, edges: layoutEdges };
-    console.log(`[LT] buildPipeline DONE nodes=${layoutNodes.length} edges=${layoutEdges.length} t=${Math.round(performance.now())}`);
   } finally {
     isBuildingView.value = false;
   }
@@ -1070,7 +1061,6 @@ const onColumnNodeClick = (nodeId: string) => {
 
 const buildColumnElements = async () => {
   const newPipelineData = props.pipelineData;
-  console.log(`[LT] buildColumn START hasColumns=${hasColumnLineageData(newPipelineData)} pending=${columnFetchPending.value} t=${Math.round(performance.now())}`);
   if (!newPipelineData) {
     columnElements.value = { nodes: [], edges: [] };
     return;

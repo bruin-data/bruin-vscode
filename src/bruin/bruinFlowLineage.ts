@@ -96,8 +96,7 @@ export class BruinLineageInternalParse extends BruinCommand {
       // assets of the same pipeline reuses it instead of re-running the CLI.
       const cache = getPipelineLineageCache();
       const cacheKey = isPipelineFile ? path.dirname(filePath) : pipelinePath;
-      // TEMP: cache read disabled to check whether it causes the lineage weirdness.
-      let result: string | undefined = undefined;
+      let result = cache.get(cacheKey, includeColumns);
       if (result === undefined) {
         result = await this.run([...enhancedFlags, pipelinePath], { ignoresErrors });
         // Never cache empty output (e.g. ignoresErrors swallowed a failure).

@@ -41,7 +41,6 @@ const handleMessage = (event) => {
     case "flow-lineage-loading":
       // A new parse started (file switch / edit): show loading instead of the
       // previous graph so stale content isn't left on screen.
-      console.log(`[LT] recv loading t=${Math.round(performance.now())}`);
       isReloading.value = true;
       lineageError.value = undefined;
       return;
@@ -49,7 +48,6 @@ const handleMessage = (event) => {
       isReloading.value = false;
       const newData = updateValue(message, "success");
       const newError = updateValue(message, "error");
-      console.log(`[LT] recv message isPipelineView=${!!newData?.isPipelineView} id=${newData?.id ?? "-"} name=${newData?.name ?? "-"} err=${!!newError} t=${Math.round(performance.now())}`);
       
       // Create a detailed hash to detect truly identical messages
       const messageId = JSON.stringify({ 
@@ -62,7 +60,6 @@ const handleMessage = (event) => {
       
       // Skip if this is the exact same message we just processed
       if (messageId === lastMessageId && messageId !== 'null') {
-        console.log(`[LT] skip duplicate message t=${Math.round(performance.now())}`);
         return;
       }
       lastMessageId = messageId;
