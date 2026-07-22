@@ -1,8 +1,8 @@
 <template>
   <div class="flow">
-    <div v-if="shouldShowLoading" class="loading-overlay">
+    <div v-if="shouldShowLoading || isBuildingView" class="loading-overlay">
       <vscode-progress-ring></vscode-progress-ring>
-      <span class="ml-2 text-editor-fg">Loading lineage data...</span>
+      <span class="ml-2 text-editor-fg">{{ loadingMessage }}</span>
     </div>
     
     <!-- Asset View -->
@@ -229,9 +229,20 @@ const error = ref<string | null>(props.LineageError);
 const showPipelineView = ref(false);
 const showColumnView = ref(false);
 const columnFetchPending = ref(false);
+// True while a pipeline/column graph is being (re)built. Drives an immediate
+// loading overlay for those slower builds, instead of a bare dark canvas.
+const isBuildingView = ref(false);
 const showLoadingIndicator = ref(false);
 let loadingTimer: NodeJS.Timeout | null = null;
-const shouldAutoFit = ref(true); 
+const shouldAutoFit = ref(true);
+
+const loadingMessage = computed(() =>
+  showPipelineView.value
+    ? "Building pipeline lineage…"
+    : showColumnView.value
+      ? "Building column lineage…"
+      : "Loading lineage…"
+);
 
 // Debug computed properties
 const shouldShowLoading = computed(() => {
@@ -516,6 +527,9 @@ const _updateGraph = async () => {
   if (!showPipelineView.value && !showColumnView.value) {
     isLoadingLocal.value = true;
     isLayouting.value = true;
+    // Clear the previous asset's graph so it isn't shown while this builds.
+    setNodes([]);
+    setEdges([]);
 
     try {
       const graphData = currentGraphData.value;
@@ -525,7 +539,7 @@ const _updateGraph = async () => {
         if (!layoutedGraphData) {
           layoutedGraphData = await applyLayout(graphData.nodes, graphData.edges);
           layoutCache.value.set(key, layoutedGraphData);
-        }      
+        }
         setNodes(layoutedGraphData.nodes);
         setEdges(layoutedGraphData.edges);
         isLayouting.value = false;
@@ -867,7 +881,7 @@ const buildPipelineElements = async () => {
   // Clear the previous pipeline's graph and show loading so the stale graph
   // isn't left on screen while this (possibly slow) build runs.
   pipelineElements.value = { nodes: [], edges: [] };
-  isLayouting.value = true;
+  isBuildingView.value = true;
   try {
     const lineageData = buildPipelineLineage(props.pipelineData);
     const { nodes: initialNodes, edges: initialEdges } = (await import("@/components/lineage-flow/pipeline-lineage/pipelineLineageBuilder")).generateGraph(
@@ -878,7 +892,7 @@ const buildPipelineElements = async () => {
     pipelineElements.value = { nodes: layoutNodes, edges: layoutEdges };
     console.log(`[LT] buildPipeline DONE nodes=${layoutNodes.length} edges=${layoutEdges.length} t=${Math.round(performance.now())}`);
   } finally {
-    isLayouting.value = false;
+    isBuildingView.value = false;
   }
 };
 
@@ -1073,7 +1087,7 @@ const buildColumnElements = async () => {
   // Clear the previous graph and show loading so a stale column graph isn't
   // left on screen while this build runs.
   columnElements.value = { nodes: [], edges: [] };
-  isLayouting.value = true;
+  isBuildingView.value = true;
   try {
     const lineageData = buildColumnLineage(newPipelineData);
     // In pipeline view there is no single focus asset, so render column lineage
@@ -1095,7 +1109,7 @@ const buildColumnElements = async () => {
 
     columnElements.value = { nodes: layoutNodes, edges: layoutEdges };
   } finally {
-    isLayouting.value = false;
+    isBuildingView.value = false;
   }
 };
 
