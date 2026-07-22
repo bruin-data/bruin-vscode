@@ -89,6 +89,7 @@ After installing, run the **Bruin: Show Getting Started Walkthrough** command fr
 ## Release Notes
 
 ### Recent Update
+- **0.82.6**: Made the asset lineage panel faster to open and switch, with column lineage loaded on demand and pipeline parses cached.
 - **0.82.5**: Fixed the Run dropdown being clipped on ingestr assets, and added a "Run with debug" option that runs the asset with `--debug`.
 - **0.82.4**: Fixed the "Apply-Sensor-Mode" checkbox using a stale mode: changing the `bruin.run.sensorMode` setting now takes effect immediately in an open asset panel instead of only after reopening it. The checkbox tooltip also shows the active mode and points to the setting.
 - **0.82.3**: Restored the Materialization section for ingestr assets (now supported by the Bruin CLI), limited to the options ingestr supports: type "table" only and the create+replace, delete+insert, append, merge, and truncate+insert strategies.

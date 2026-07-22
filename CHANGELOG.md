@@ -1,4 +1,7 @@
 # Changelog
+## [0.82.6] - [2026-07-22]
+- Made the asset lineage panel faster to open and switch, with column lineage loaded on demand and pipeline parses cached.
+
 ## [0.82.5] - [2026-07-21]
 - Fixed the Run dropdown being clipped on ingestr assets, and added a "Run with debug" option that runs the asset with `--debug`.
 
