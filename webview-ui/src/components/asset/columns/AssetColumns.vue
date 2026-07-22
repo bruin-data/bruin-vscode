@@ -12,37 +12,93 @@
       > 
         {{ allMergeSelected ? 'Unmerge all' : 'Merge all' }}
       </vscode-button>
-      <vscode-button id="fill-from-db-button" @click="fillColumnsFromDB" :disabled="fillColumnsStatus === 'loading'" class="py-0.5 focus:outline-none disabled:cursor-not-allowed flex-shrink-0 whitespace-nowrap text-xs">
-        <template v-if="fillColumnsStatus === 'loading'">
-          <svg
-            class="animate-spin mr-1 h-3 w-3 text-editor-bg"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
+      <div class="inline-flex">
+        <vscode-button id="fill-from-db-button" @click="fillColumnsFromDB()" :disabled="fillColumnsStatus === 'loading'" class="py-0.5 focus:outline-none disabled:cursor-not-allowed flex-shrink-0 whitespace-nowrap text-xs">
+          <div class="flex items-center justify-center">
+            <template v-if="fillColumnsStatus === 'loading'">
+              <svg
+                class="animate-spin mr-1 h-3 w-3 text-editor-bg"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  class="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  stroke-width="4"
+                ></circle>
+                <path
+                  class="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+            </template>
+            <template v-else-if="fillColumnsStatus === 'success'">
+              <span class="codicon codicon-check text-sm mr-1 text-editor-button-fg" aria-hidden="true"></span>
+            </template>
+            <template v-else-if="fillColumnsStatus === 'error'">
+              <span class="codicon codicon-error text-sm mr-1 text-editorError-foreground" aria-hidden="true"></span>
+            </template>
+            <span>Fill from DB</span>
+          </div>
+        </vscode-button>
+        <Menu as="div" class="relative -ml-px block">
+          <MenuButton
+            id="fill-from-db-menu-button"
+            :disabled="fillColumnsStatus === 'loading'"
+            class="relative h-full border border-transparent inline-flex items-center disabled:opacity-50 disabled:cursor-not-allowed bg-editor-button-bg px-1 text-editor-button-fg hover:bg-editor-button-hover-bg focus:z-10"
+            title="Fill from a specific connection"
           >
-            <circle
-              class="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              stroke-width="4"
-            ></circle>
-            <path
-              class="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            ></path>
-          </svg>
-        </template>
-        <template v-else-if="fillColumnsStatus === 'success'">
-          <span class="codicon codicon-check h-3 w-3 mr-1 text-editor-button-fg" aria-hidden="true"></span>
-        </template>
-        <template v-else-if="fillColumnsStatus === 'error'">
-          <span class="codicon codicon-error h-3 w-3 mr-1 text-editorError-foreground" aria-hidden="true"></span>
-        </template>
-        Fill from DB
-      </vscode-button>
+            <ChevronDownIcon class="h-3 w-3" aria-hidden="true" />
+          </MenuButton>
+          <transition
+            enter-active-class="transition ease-out duration-100"
+            enter-from-class="transform opacity-0 scale-95"
+            enter-to-class="transform opacity-100 scale-100"
+            leave-active-class="transition ease-in duration-75"
+            leave-from-class="transform opacity-100 scale-100"
+            leave-to-class="transform opacity-0 scale-95"
+          >
+            <MenuItems
+              class="absolute left-0 xs:right-0 xs:left-auto z-[99999] w-56 xs:w-64 origin-top-left xs:origin-top-right max-w-[calc(100vw-2rem)]"
+            >
+              <div class="p-1 bg-editorWidget-bg rounded-sm border border-commandCenter-border overflow-hidden">
+                <MenuItem v-if="ingestrSourceConnection" key="source-conn">
+                  <button
+                    id="fill-from-source-connection-item"
+                    @click="fillColumnsFromDB(ingestrSourceConnection)"
+                    class="block text-editor-fg rounded-sm w-full border-0 text-left text-2xs hover:bg-editor-button-hover-bg hover:text-editor-button-fg bg-editorWidget-bg px-2 py-1"
+                    :title="`${ingestrSourceConnection} (source)`"
+                  >
+                    <div class="truncate">
+                      {{ ingestrSourceConnection }} <span class="opacity-60 ml-1">source</span>
+                    </div>
+                  </button>
+                </MenuItem>
+                <div v-if="ingestrSourceConnection && otherConnections.length" class="border-t border-commandCenter-border my-1"></div>
+                <MenuItem v-for="conn in otherConnections" :key="conn.name">
+                  <button
+                    @click="fillColumnsFromDB(conn.name)"
+                    class="block text-editor-fg rounded-sm w-full border-0 text-left text-2xs hover:bg-editor-button-hover-bg hover:text-editor-button-fg bg-editorWidget-bg px-2 py-1"
+                    :title="`${conn.name} (${conn.type})`"
+                  >
+                    <div class="truncate">
+                      {{ conn.name }} <span class="opacity-60 ml-1">{{ conn.type }}</span>
+                    </div>
+                  </button>
+                </MenuItem>
+                <div v-if="!ingestrSourceConnection && otherConnections.length === 0" class="px-2 py-1 text-2xs italic opacity-60">
+                  No connections found
+                </div>
+              </div>
+            </MenuItems>
+          </transition>
+        </Menu>
+      </div>
       <vscode-button id="add-column-button" @click="handleAddColumn" class="py-0.5 focus:outline-none disabled:cursor-not-allowed flex-shrink-0 whitespace-nowrap text-xs" :disabled="isConfigFile"> Add column </vscode-button>
     </div>
     
@@ -388,7 +444,9 @@ import {
   PlusIcon,
   LinkIcon,
   KeyIcon,
+  ChevronDownIcon,
 } from "@heroicons/vue/20/solid";
+import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/vue";
 import DeleteAlert from "@/components/ui/alerts/AlertWithActions.vue";
 import { vscode } from "@/utilities/vscode";
 import { v4 as uuidv4 } from "uuid"; // Import UUID library to generate unique IDs
@@ -406,6 +464,14 @@ const props = defineProps({
   },
   materializationStrategy: {
     type: String,
+    default: null,
+  },
+  assetType: {
+    type: String,
+    default: null,
+  },
+  parameters: {
+    type: Object,
     default: null,
   },
 });
@@ -449,6 +515,19 @@ const metaInput = ref("");
 // Fill columns from DB status
 const fillColumnsStatus = ref(null);
 const fillColumnsMessage = ref(null);
+
+// Available connections for the "Fill from connection" dropdown.
+const availableConnections = ref([]);
+
+const ingestrSourceConnection = computed(() => {
+  if (props.assetType !== "ingestr") return null;
+  return props.parameters?.source_connection || null;
+});
+
+const otherConnections = computed(() => {
+  const source = ingestrSourceConnection.value;
+  return availableConnections.value.filter((c) => c.name !== source);
+});
 const updatePatternValue = () => {
   const patternCheck = editingColumn.value.checks.find((check) => check.name === "pattern");
   if (patternCheck) {
@@ -936,12 +1015,13 @@ const deleteColumn = (index) => {
   });
 };
 
-const fillColumnsFromDB = () => {
+const fillColumnsFromDB = (connection = null) => {
   // Clear any existing error messages
   fillColumnsStatus.value = "loading";
   fillColumnsMessage.value = null;
   vscode.postMessage({
     command: "bruin.fillAssetColumn",
+    payload: connection ? { connection } : undefined,
   });
 };
 
@@ -998,7 +1078,51 @@ const handleMessage = (event) => {
         fillColumnsMessage.value = errorMessage;
       }
       break;
+    case "connections-list-message":
+      handleConnectionsList(envelope.payload);
+      break;
   }
+};
+
+const handleConnectionsList = (payload) => {
+  if (!payload || payload.status !== "success" || !payload.message) return;
+
+  const data = payload.message;
+  const parsed = [];
+
+  if (Array.isArray(data)) {
+    data.forEach((conn) => {
+      if (conn?.name && conn?.type) {
+        parsed.push({ name: conn.name, type: conn.type });
+      }
+    });
+  } else if (data && data.environments) {
+    const envName =
+      data.selected_environment_name ||
+      data.default_environment_name ||
+      Object.keys(data.environments)[0];
+    const envConnections = data.environments[envName]?.connections || {};
+    Object.keys(envConnections).forEach((connType) => {
+      const list = envConnections[connType];
+      if (Array.isArray(list)) {
+        list.forEach((conn) => {
+          if (conn?.name) parsed.push({ name: conn.name, type: connType });
+        });
+      }
+    });
+  } else if (data && data.selected_environment?.connections) {
+    const envConnections = data.selected_environment.connections;
+    Object.keys(envConnections).forEach((connType) => {
+      const list = envConnections[connType];
+      if (Array.isArray(list)) {
+        list.forEach((conn) => {
+          if (conn?.name) parsed.push({ name: conn.name, type: connType });
+        });
+      }
+    });
+  }
+
+  availableConnections.value = parsed.sort((a, b) => a.name.localeCompare(b.name));
 };
 
 // Handle click outside to close dropdown
@@ -1040,6 +1164,7 @@ onMounted(() => {
   window.addEventListener("message", handleMessage);
   document.addEventListener("click", handleClickOutside);
   document.addEventListener("keydown", handleKeyDown);
+  vscode.postMessage({ command: "bruin.getConnectionsList" });
 });
 
 onUnmounted(() => {

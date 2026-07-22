@@ -365,6 +365,9 @@ export const formatInIntegratedTerminal = async (
   await new Promise((resolve) => setTimeout(resolve, 1000));
 };
 
+// Guarantees a unique script id even when two runs start in the same millisecond.
+let multiAssetRunCounter = 0;
+
 /**
  * Runs multiple Bruin assets in the integrated terminal.
  * @param {string[]} assetPaths - Array of asset file paths to run.
@@ -390,24 +393,213 @@ export const runMultipleAssetsInTerminal = async (
     ? "bruin"
     : bruinExecutable;
 
-  // Escape and join all asset paths
-  const escapedPaths = assetPaths.map((p) => escapeFilePath(p)).join(' ');
+  // Beyond a few paths the single `bruin run <path...>` string overflows the terminal input and gets corrupted, so route it through a script file.
+  const RUN_VIA_SCRIPT_THRESHOLD = 4;
 
-  // Build command using the same formatting as runInIntegratedTerminal
-  let command = "";
-  if (flags && flags.trim().length > 0) {
-    command = formatBruinCommand(executable, BRUIN_RUN_SQL_COMMAND, flags, escapedPaths, useUnixFormatting);
+  let runCommand: string;
+  if (assetPaths.length > RUN_VIA_SCRIPT_THRESHOLD) {
+    const scriptContent = buildRunMultipleAssetsScript(
+      executable,
+      assetPaths,
+      flags || "",
+      useUnixFormatting
+    );
+    const scriptId = `run_${Date.now()}_${multiAssetRunCounter++}`;
+    const scriptPath = await writeTerminalScript(
+      "bruin-run-multi",
+      scriptId,
+      scriptContent,
+      useUnixFormatting
+    );
+    runCommand = useUnixFormatting
+      ? `bash "${scriptPath}"`
+      : `powershell -ExecutionPolicy Bypass -File "${scriptPath}"`;
   } else {
-    command = `${executable} ${BRUIN_RUN_SQL_COMMAND} ${escapedPaths}`;
+    const escapedPaths = assetPaths.map((p) => escapeFilePath(p)).join(" ");
+    runCommand =
+      flags && flags.trim().length > 0
+        ? formatBruinCommand(executable, BRUIN_RUN_SQL_COMMAND, flags, escapedPaths, useUnixFormatting)
+        : `${executable} ${BRUIN_RUN_SQL_COMMAND} ${escapedPaths}`;
   }
 
   terminal.show(true);
   terminal.sendText(" ");
 
   setTimeout(() => {
-    terminal.sendText(command);
+    terminal.sendText(runCommand);
   }, 500);
 
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+};
+
+// Builds a script running all selected assets in one `bruin run` invocation, written to a file so a long path list can't overflow the terminal input.
+export const buildRunMultipleAssetsScript = (
+  executable: string,
+  assetPaths: string[],
+  flags: string,
+  useUnixFormatting: boolean = true
+): string => {
+  const escapedPaths = assetPaths.map((p) => escapeFilePath(p)).join(" ");
+  const baseFlags = (flags || "").trim();
+  const parts = [executable, BRUIN_RUN_SQL_COMMAND];
+  if (baseFlags.length > 0) {
+    parts.push(baseFlags);
+  }
+  parts.push(escapedPaths);
+  const command = parts.join(" ");
+
+  if (useUnixFormatting) {
+    return [
+      "#!/usr/bin/env bash",
+      `echo "Running ${assetPaths.length} Bruin assets..."`,
+      command,
+      "",
+    ].join("\n");
+  }
+  return [`Write-Host "Running ${assetPaths.length} Bruin assets..."`, command, ""].join("\n");
+};
+
+export interface BackfillChunk {
+  start: string;
+  end: string;
+}
+
+/**
+ * Builds the contents of a backfill script: `bruin run` once per chunk, each
+ * with its own --start-date/--end-date window, one command per line.
+ *
+ * A script (rather than one long chained `&&` command sent to the terminal) is
+ * used because a backfill can produce dozens of chunks — a multi-kilobyte
+ * single command with line continuations overflows the terminal's line input
+ * and gets corrupted. The terminal only ever receives a short `bash <script>`.
+ *
+ * Stop-on-failure: bash uses `set -e`; PowerShell checks `$LASTEXITCODE` after
+ * each command (so it's honored everywhere, not just on `&&`-capable shells).
+ *
+ * Note: backfill deliberately does NOT pass `--full-refresh`. The CLI ignores
+ * the chunk window under full-refresh and reloads from the pipeline's
+ * start_date, which would defeat interval chunking. Correct re-runs of a window
+ * rely on the asset's incremental strategy (merge / delete+insert / time_interval).
+ */
+export const buildBackfillScript = (
+  executable: string,
+  chunks: BackfillChunk[],
+  flags: string,
+  assetPath: string,
+  stopOnFailure: boolean,
+  backfillId: string,
+  useUnixFormatting: boolean = true
+): string => {
+  const baseFlags = (flags || "").trim();
+  // --backfill-id/--backfill-total tag every chunk's run log so the Run History
+  // panel can group them back into one backfill entry.
+  const commandFor = (chunk: BackfillChunk): string => {
+    const parts = [executable, BRUIN_RUN_SQL_COMMAND];
+    if (baseFlags.length > 0) {
+      parts.push(baseFlags);
+    }
+    parts.push(`--backfill-id ${backfillId}`);
+    parts.push(`--backfill-total ${chunks.length}`);
+    parts.push(`--start-date ${chunk.start}`);
+    parts.push(`--end-date ${chunk.end}`);
+    parts.push(assetPath);
+    return parts.join(" ");
+  };
+
+  if (useUnixFormatting) {
+    const lines = ["#!/usr/bin/env bash"];
+    if (stopOnFailure) {
+      lines.push("set -e");
+    }
+    lines.push(`echo "Running Bruin backfill (${chunks.length} chunks)..."`);
+    for (const chunk of chunks) {
+      lines.push(commandFor(chunk));
+    }
+    return lines.join("\n") + "\n";
+  }
+
+  // PowerShell: emulate stop-on-failure by checking the exit code after each.
+  const lines: string[] = [`Write-Host "Running Bruin backfill (${chunks.length} chunks)..."`];
+  for (const chunk of chunks) {
+    lines.push(commandFor(chunk));
+    if (stopOnFailure) {
+      lines.push("if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }");
+    }
+  }
+  return lines.join("\n") + "\n";
+};
+
+// Writes a shell script to the OS temp dir and returns its path.
+export const writeTerminalScript = async (
+  namePrefix: string,
+  scriptId: string,
+  content: string,
+  useUnixFormatting: boolean
+): Promise<string> => {
+  const ext = useUnixFormatting ? "sh" : "ps1";
+  const scriptPath = path.join(os.tmpdir(), `${namePrefix}-${scriptId}.${ext}`);
+  await fs.promises.writeFile(scriptPath, content, { encoding: "utf-8", mode: 0o755 });
+  return scriptPath;
+};
+
+// Writes a backfill script to the OS temp dir and returns its path.
+export const writeBackfillScript = async (
+  scriptId: string,
+  content: string,
+  useUnixFormatting: boolean
+): Promise<string> => writeTerminalScript("bruin-backfill", scriptId, content, useUnixFormatting);
+
+/**
+ * Runs a local backfill: `bruin run` once per interval chunk, sequentially, in
+ * the integrated terminal. Mirrors how runInIntegratedTerminal sends commands.
+ */
+export const runBackfillInTerminal = async (
+  assetPath: string,
+  chunks: BackfillChunk[],
+  flags: string | undefined,
+  stopOnFailure: boolean,
+  workingDir?: string | undefined,
+  bruinExecutablePath?: string
+): Promise<void> => {
+  if (!assetPath || !chunks || chunks.length === 0) {
+    return;
+  }
+
+  const escapedAssetPath = escapeFilePath(assetPath);
+  const bruinExecutable = bruinExecutablePath ? "bruin" : getBruinExecutablePath();
+  const terminal = await createIntegratedTerminal(workingDir);
+
+  const useUnixFormatting = shouldUseUnixFormatting(terminal);
+  const executable = ((terminal.creationOptions as vscode.TerminalOptions).shellPath?.includes("bash"))
+    ? "bruin"
+    : bruinExecutable;
+
+  // One id shared by every chunk's run log; the CLI stamps it via --backfill-id
+  // so the Run History panel can group the chunk runs back together.
+  const backfillId = `bf_${Date.now()}`;
+
+  const scriptContent = buildBackfillScript(
+    executable,
+    chunks,
+    flags || "",
+    escapedAssetPath,
+    stopOnFailure,
+    backfillId,
+    useUnixFormatting
+  );
+
+  // Run via a script file rather than a long chained command: dozens of chunks
+  // would overflow the terminal's line input and corrupt the pasted command.
+  const scriptPath = await writeBackfillScript(backfillId, scriptContent, useUnixFormatting);
+  const runCommand = useUnixFormatting
+    ? `bash "${scriptPath}"`
+    : `powershell -ExecutionPolicy Bypass -File "${scriptPath}"`;
+
+  terminal.show(true);
+  terminal.sendText(" ");
+  setTimeout(() => {
+    terminal.sendText(runCommand);
+  }, 500);
   await new Promise((resolve) => setTimeout(resolve, 1000));
 };
 
@@ -526,6 +718,29 @@ export async function getBruinVersion(): Promise<{ version: string; latest: stri
   } catch (error) {
     console.error(`Version check failed: ${error instanceof Error ? error.message : error}`);
     return null;
+  }
+}
+
+// Minimum Bruin CLI version that supports the backfill run flags
+// (--backfill-id / --backfill-total). Older CLIs reject them with
+// "flag provided but not defined", which would break a local backfill.
+export const BACKFILL_MIN_CLI_VERSION = "0.11.624";
+
+/**
+ * Returns true if the installed Bruin CLI supports the backfill flags.
+ * Errs on the side of allowing: only a positively-parsed version below the
+ * minimum blocks. An unknown / non-semver (e.g. "dev") build is assumed to
+ * support them, so local dev builds aren't falsely blocked.
+ */
+export async function supportsBackfillFlags(): Promise<boolean> {
+  const info = await getBruinVersion();
+  if (!info?.version) {
+    return true;
+  }
+  try {
+    return versionGte(parseVersion(info.version), parseVersion(BACKFILL_MIN_CLI_VERSION));
+  } catch {
+    return true;
   }
 }
 

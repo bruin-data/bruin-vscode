@@ -1,4 +1,100 @@
 import * as vscode from 'vscode';
+import { ASSET_TYPES } from './assetTypes';
+
+// Human-readable platform names keyed by the connection prefix of an asset type
+// (the part before the first dot, e.g. `bq` in `bq.sql`).
+const PLATFORM_LABELS: Record<string, string> = {
+    bq: 'BigQuery',
+    sf: 'Snowflake',
+    pg: 'PostgreSQL',
+    rs: 'Redshift',
+    ms: 'Microsoft SQL Server',
+    synapse: 'Azure Synapse',
+    fabric: 'Microsoft Fabric',
+    duckdb: 'DuckDB',
+    motherduck: 'MotherDuck',
+    athena: 'Athena',
+    clickhouse: 'ClickHouse',
+    databricks: 'Databricks',
+    oracle: 'Oracle',
+    my: 'MySQL',
+    trino: 'Trino',
+    dremio: 'Dremio',
+    vertica: 'Vertica',
+    sail: 'Sail',
+    fw: 'Microsoft Fabric',
+    emr_serverless: 'EMR Serverless',
+    dataproc_serverless: 'Dataproc Serverless',
+    s3: 'S3',
+    tableau: 'Tableau',
+    looker: 'Looker',
+    powerbi: 'Power BI',
+    quicksight: 'Amazon QuickSight'
+};
+
+// Human-readable descriptions for the part of an asset type after its platform
+// prefix (the "kind").
+const KIND_LABELS: Record<string, string> = {
+    sql: 'SQL asset',
+    source: 'source asset',
+    seed: 'seed asset',
+    spark: 'Spark asset',
+    pyspark: 'PySpark asset',
+    dashboard: 'dashboard asset',
+    dataset: 'dataset asset',
+    datasource: 'datasource asset',
+    workbook: 'workbook asset',
+    worksheet: 'worksheet asset',
+    'sensor.query': 'sensor query asset',
+    'sensor.table': 'sensor table asset',
+    'sensor.key_sensor': 'key sensor asset'
+};
+
+// Asset types with no platform/kind structure get an explicit label.
+const STANDALONE_LABELS: Record<string, string> = {
+    python: 'Python asset',
+    r: 'R asset',
+    ingestr: 'Ingestr asset',
+    empty: 'Empty asset',
+    tableau: 'Tableau asset',
+    looker: 'Looker asset',
+    looker_studio: 'Looker Studio asset',
+    powerbi: 'Power BI asset',
+    quicksight: 'Amazon QuickSight asset',
+    metabase: 'Metabase asset',
+    gooddata: 'GoodData asset',
+    grafana: 'Grafana asset',
+    redash: 'Redash asset',
+    superset: 'Superset asset',
+    modebi: 'Mode asset',
+    qliksense: 'Qlik Sense asset',
+    qlikview: 'QlikView asset',
+    sisense: 'Sisense asset',
+    domo: 'Domo asset',
+    dynamodb: 'DynamoDB asset',
+    elasticsearch: 'Elasticsearch asset',
+    'agent.claude_code': 'Claude Code agent asset'
+};
+
+/**
+ * Produce a human-readable description for an asset type string. The Bruin CLI
+ * grows new asset types frequently, so descriptions are derived from the type's
+ * `<platform>.<kind>` shape rather than maintained by hand.
+ */
+export function describeAssetType(type: string): string {
+    if (Object.prototype.hasOwnProperty.call(STANDALONE_LABELS, type)) {
+        return STANDALONE_LABELS[type];
+    }
+    const firstDot = type.indexOf('.');
+    if (firstDot === -1) {
+        return `${type} asset`;
+    }
+    const prefix = type.slice(0, firstDot);
+    const kind = type.slice(firstDot + 1);
+    const platform = PLATFORM_LABELS[prefix] ?? prefix;
+    const kindLabel = KIND_LABELS[kind] ?? `${kind.replace(/[._]/g, ' ')} asset`;
+    return `${platform} ${kindLabel}`;
+}
 
 export class TopLevelCompletions {
     /**
@@ -49,68 +145,12 @@ export class TopLevelCompletions {
     public getAssetTypeCompletions(): vscode.CompletionItem[] {
         const completions: vscode.CompletionItem[] = [];
 
-        const assetTypes = [
-            { name: 'python', description: 'Python asset' },
-            { name: 'sf.sql', description: 'Snowflake SQL asset' },
-            { name: 'sf.source', description: 'Snowflake source asset' },
-            { name: 'sf.sensor.query', description: 'Snowflake sensor query asset' },
-            { name: 'bq.sql', description: 'BigQuery SQL asset' },
-            { name: 'bq.source', description: 'BigQuery source asset' },
-            { name: 'bq.sensor.table', description: 'BigQuery sensor table asset' },
-            { name: 'bq.sensor.query', description: 'BigQuery sensor query asset' },
-            { name: 'duckdb.sensor.query', description: 'DuckDB sensor query asset' },
-            { name: 'pg.sensor.query', description: 'PostgreSQL sensor query asset' },
-            { name: 'rs.sensor.query', description: 'Redshift sensor query asset' },
-            { name: 'ms.sensor.query', description: 'Microsoft SQL Server sensor query asset' },
-            { name: 'databricks.sensor.query', description: 'Databricks sensor query asset' },
-            { name: 'synapse.sensor.query', description: 'Azure Synapse sensor query asset' },
-            { name: 'clickhouse.sensor.query', description: 'ClickHouse sensor query asset' },
-            { name: 'empty', description: 'Empty asset' },
-            { name: 'pg.sql', description: 'PostgreSQL SQL asset' },
-            { name: 'pg.source', description: 'PostgreSQL source asset' },
-            { name: 'rs.sql', description: 'Redshift SQL asset' },
-            { name: 'rs.source', description: 'Redshift source asset' },
-            { name: 'ms.sql', description: 'Microsoft SQL Server SQL asset' },
-            { name: 'ms.source', description: 'Microsoft SQL Server source asset' },
-            { name: 'synapse.sql', description: 'Azure Synapse SQL asset' },
-            { name: 'synapse.source', description: 'Azure Synapse source asset' },
-            { name: 'ingestr', description: 'Ingestr asset' },
-            { name: 'duckdb.sql', description: 'DuckDB SQL asset' },
-            { name: 'duckdb.seed', description: 'DuckDB seed asset' },
-            { name: 'duckdb.source', description: 'DuckDB source asset' },
-            { name: 'emr_serverless.spark', description: 'EMR Serverless Spark asset' },
-            { name: 'emr_serverless.pyspark', description: 'EMR Serverless PySpark asset' },
-            { name: 'athena.sql', description: 'Athena SQL asset' },
-            { name: 'athena.seed', description: 'Athena seed asset' },
-            { name: 'athena.source', description: 'Athena source asset' },
-            { name: 'bq.seed', description: 'BigQuery seed asset' },
-            { name: 'clickhouse.sql', description: 'ClickHouse SQL asset' },
-            { name: 'clickhouse.seed', description: 'ClickHouse seed asset' },
-            { name: 'clickhouse.source', description: 'ClickHouse source asset' },
-            { name: 'databricks.sql', description: 'Databricks SQL asset' },
-            { name: 'databricks.seed', description: 'Databricks seed asset' },
-            { name: 'databricks.source', description: 'Databricks source asset' },
-            { name: 'ms.seed', description: 'Microsoft SQL Server seed asset' },
-            { name: 'pg.seed', description: 'PostgreSQL seed asset' },
-            { name: 'rs.seed', description: 'Redshift seed asset' },
-            { name: 'sf.seed', description: 'Snowflake seed asset' },
-            { name: 'synapse.seed', description: 'Azure Synapse seed asset' },
-            { name: 'looker', description: 'Looker asset' },
-            { name: 'powerbi', description: 'Power BI asset' },
-            { name: 'qliksense', description: 'Qlik Sense asset' },
-            { name: 'qlikview', description: 'QlikView asset' },
-            { name: 'sisense', description: 'Sisense asset' },
-            { name: 'domo', description: 'Domo asset' },
-            { name: 'quicksight', description: 'Amazon QuickSight asset' },
-            { name: 'oracle.sql', description: 'Oracle SQL asset' },
-            { name: 'oracle.source', description: 'Oracle source asset' }
-        ];
-
-        assetTypes.forEach(type => {
-            const completion = new vscode.CompletionItem(type.name, vscode.CompletionItemKind.Value);
-            completion.detail = type.description;
-            completion.documentation = new vscode.MarkdownString(`**${type.name}**\n\n${type.description}`);
-            completion.insertText = type.name;
+        ASSET_TYPES.forEach(name => {
+            const description = describeAssetType(name);
+            const completion = new vscode.CompletionItem(name, vscode.CompletionItemKind.Value);
+            completion.detail = description;
+            completion.documentation = new vscode.MarkdownString(`**${name}**\n\n${description}`);
+            completion.insertText = name;
             completions.push(completion);
         });
 

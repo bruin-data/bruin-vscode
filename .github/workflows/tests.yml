@@ -1,6 +1,6 @@
 name: Test
 
-on: 
+on:
   pull_request:
   push:
     branches:
@@ -18,12 +18,11 @@ permissions:
   pull-requests: write
 
 jobs:
-  test:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+  # Unit + webview tests. A single job (Linux) — they're fast and not
+  # OS-specific, so one run is enough.
+  unit:
+    name: Unit tests
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
@@ -36,33 +35,28 @@ jobs:
 
     - name: Install dependencies with npm@11 (for min-release-age support)
       run: |
-        npx npm@11.10.0 ci
-        cd webview-ui && npx npm@11.10.0 ci
+        npm i -g npm@11.10.0
+        npm ci
+        cd webview-ui && npm ci
 
     - name: Allow unprivileged user namespace (ubuntu)
-      if: ${{ startsWith(matrix.os, 'ubuntu') }}
       run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
 
-    - name: Setup Chrome browser (Ubuntu)
-      if: ${{ startsWith(matrix.os, 'ubuntu') }}
-      uses: browser-actions/setup-chrome@v1
-
-    - name: Setup Chrome browser (macOS)
-      if: ${{ startsWith(matrix.os, 'macos') }}
-      uses: browser-actions/setup-chrome@v1
-
-    - name: Setup Chrome browser (Windows)
-      if: ${{ startsWith(matrix.os, 'windows') }}
-      uses: browser-actions/setup-chrome@v1
-
-    # install bruin cli for linux, mac and windows
+    # Extension tests shell out to the real `bruin` binary (CLI install check),
+    # so it must be present before they run.
     - name: Install Bruin CLI
       run: |
-        if [ "${{ runner.os }}" = "Windows" ]; then
-          curl -LsSf https://raw.githubusercontent.com/bruin-data/bruin/refs/heads/main/install.sh | sh
-        else
-          curl -LsSL https://raw.githubusercontent.com/bruin-data/bruin/refs/heads/main/install.sh | sh
-        fi
+        # The install script pulls a release over the network; retry a few times
+        # so a transient download hiccup doesn't fail the whole job.
+        for attempt in 1 2 3; do
+          if curl "-LsSL" https://raw.githubusercontent.com/bruin-data/bruin/refs/heads/main/install.sh | sh; then
+            exit 0
+          fi
+          echo "Bruin CLI install failed (attempt $attempt), retrying in 5s..."
+          sleep 5
+        done
+        echo "Bruin CLI install failed after 3 attempts" >&2
+        exit 1
       shell: bash
 
     - name: Compile
@@ -72,110 +66,123 @@ jobs:
       run: npm run build:webview
 
     - name: Run extension tests
-      run: |
-        if [ "${{ runner.os }}" = "Linux" ]; then
-          xvfb-run -a npm run test
-        else
-          npm run test
-        fi
-      shell: bash
+      run: xvfb-run -a npm run test
 
     - name: Run webview tests
       run: npm run test:webview
 
-    - name: Run basic integration tests
+  # Selenium/UI integration suites. Each suite runs as its own job so they run
+  # in parallel instead of sequentially.
+  integration:
+    name: ${{ matrix.group }} (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        # webview is the long pole, so it runs on its own; the faster suites
+        # share one job and run sequentially to amortize setup.
+        group: [core, webview]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js with cache
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22.14.0'
+        cache: 'npm'
+
+    - name: Install dependencies with npm@11 (for min-release-age support)
       run: |
-        echo "Running connections and ingestr tests..."
-        echo "Note: This step continues even if tests fail to prevent random CI failures from blocking builds"
-        if [ "${{ runner.os }}" = "Linux" ]; then
-          export CHROME_BIN=$(which google-chrome || which chromium-browser || which chromium)
-          export CHROME_USER_DATA_DIR="/tmp/chrome-user-data-basic-$$"
-          xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' npm run selenium:run-tests:connections
-          xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' npm run selenium:run-tests:ingestr
-        elif [ "${{ runner.os }}" = "macOS" ]; then
-          if [ -f "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" ]; then
-            export CHROME_BIN="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-          fi
-          export CHROME_USER_DATA_DIR="/tmp/chrome-user-data-basic-$$"
-          npm run selenium:run-tests:connections
-          npm run selenium:run-tests:ingestr
-        else
-          export CHROME_USER_DATA_DIR="C:\\temp\\chrome-user-data-basic-$$"
-          npm run selenium:run-tests:connections
-          npm run selenium:run-tests:ingestr
+        npm i -g npm@11.10.0
+        npm ci
+        cd webview-ui && npm ci
+
+    - name: Allow unprivileged user namespace (ubuntu)
+      if: ${{ startsWith(matrix.os, 'ubuntu') }}
+      run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
+    - name: Setup Chrome browser
+      uses: browser-actions/setup-chrome@v1
+
+    # install bruin cli for linux, mac and windows
+    - name: Install Bruin CLI
+      run: |
+        # The install script pulls a release over the network; retry a few times
+        # so a transient download hiccup doesn't fail the whole job.
+        install_flag="-LsSL"
+        if [ "${{ runner.os }}" = "Windows" ]; then
+          install_flag="-LsSf"
         fi
+        for attempt in 1 2 3; do
+          if curl "$install_flag" https://raw.githubusercontent.com/bruin-data/bruin/refs/heads/main/install.sh | sh; then
+            exit 0
+          fi
+          echo "Bruin CLI install failed (attempt $attempt), retrying in 5s..."
+          sleep 5
+        done
+        echo "Bruin CLI install failed after 3 attempts" >&2
+        exit 1
       shell: bash
 
-    - name: Run webview integration tests
-      run: |
-        echo "Running webview tests..."
-        echo "Note: This step continues even if tests fail to prevent random CI failures from blocking builds"
-        if [ "${{ runner.os }}" = "Linux" ]; then
-          export CHROME_BIN=$(which google-chrome || which chromium-browser || which chromium)
-          export CHROME_USER_DATA_DIR="/tmp/chrome-user-data-webview-$$"
-          xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' npm run selenium:run-tests:webview
-        elif [ "${{ runner.os }}" = "macOS" ]; then
-          if [ -f "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" ]; then
-            export CHROME_BIN="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-          fi
-          export CHROME_USER_DATA_DIR="/tmp/chrome-user-data-webview-$$"
-          npm run selenium:run-tests:webview
-        else
-          export CHROME_USER_DATA_DIR="C:\\temp\\chrome-user-data-webview-$$"
-          npm run selenium:run-tests:webview
-        fi
-      shell: bash
+    - name: Compile
+      run: npm run compile
 
-    - name: Run lineage integration tests
-      run: |
-        echo "Running lineage tests..."
-        echo "Note: This step continues even if tests fail to prevent random CI failures from blocking builds"
-        if [ "${{ runner.os }}" = "Linux" ]; then
-          export CHROME_BIN=$(which google-chrome || which chromium-browser || which chromium)
-          export CHROME_USER_DATA_DIR="/tmp/chrome-user-data-lineage-$$"
-          xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' npm run selenium:run-tests:lineage
-        elif [ "${{ runner.os }}" = "macOS" ]; then
-          if [ -f "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" ]; then
-            export CHROME_BIN="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-          fi
-          export CHROME_USER_DATA_DIR="/tmp/chrome-user-data-lineage-$$"
-          npm run selenium:run-tests:lineage
-        else
-          export CHROME_USER_DATA_DIR="C:\\temp\\chrome-user-data-lineage-$$"
-          npm run selenium:run-tests:lineage
-        fi
-      shell: bash
+    - name: Build Webview
+      run: npm run build:webview
 
-    - name: Run query preview integration tests
+    # Cache the VS Code + chromedriver binaries that extest downloads, so they
+    # aren't re-fetched (~150MB) on every run. Keyed on the code_version below.
+    - name: Cache VS Code test binaries
+      uses: actions/cache@v4
+      with:
+        path: test-resources
+        key: vscode-test-${{ runner.os }}-1.103.0
+
+    - name: Run ${{ matrix.group }} integration tests
       run: |
-        echo "Running query preview tests..."
-        echo "Note: This step continues even if tests fail to prevent random CI failures from blocking builds"
-        if [ "${{ runner.os }}" = "Linux" ]; then
-          export CHROME_BIN=$(which google-chrome || which chromium-browser || which chromium)
-          export CHROME_USER_DATA_DIR="/tmp/chrome-user-data-query-preview-$$"
-          xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' npm run selenium:run-tests:query-preview
-        elif [ "${{ runner.os }}" = "macOS" ]; then
-          if [ -f "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" ]; then
-            export CHROME_BIN="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+        case "${{ matrix.group }}" in
+          core) SUITES="connections ingestr lineage query-preview" ;;
+          webview) SUITES="webview" ;;
+          *) echo "Unknown group: ${{ matrix.group }}" >&2; exit 1 ;;
+        esac
+
+        run_suite() {
+          suite="$1"
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            export CHROME_BIN=$(which google-chrome || which chromium-browser || which chromium)
+            export CHROME_USER_DATA_DIR="/tmp/chrome-user-data-$suite-$$"
+            xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' npm run selenium:run-tests:$suite
+          elif [ "$RUNNER_OS" = "macOS" ]; then
+            if [ -f "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" ]; then
+              export CHROME_BIN="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+            fi
+            export CHROME_USER_DATA_DIR="/tmp/chrome-user-data-$suite-$$"
+            npm run selenium:run-tests:$suite
+          else
+            export CHROME_USER_DATA_DIR="C:\\temp\\chrome-user-data-$suite-$$"
+            npm run selenium:run-tests:$suite
           fi
-          export CHROME_USER_DATA_DIR="/tmp/chrome-user-data-query-preview-$$"
-          npm run selenium:run-tests:query-preview
-        else
-          export CHROME_USER_DATA_DIR="C:\\temp\\chrome-user-data-query-preview-$$"
-          npm run selenium:run-tests:query-preview
-        fi
+        }
+
+        for suite in $SUITES; do
+          echo "::group::$suite integration tests"
+          run_suite "$suite"
+          echo "::endgroup::"
+        done
       shell: bash
 
     - name: Store UI test logs
       uses: actions/upload-artifact@v4
       if: failure() || cancelled()
       with:
-        name: logs-${{ matrix.os }}
+        name: logs-${{ matrix.os }}-${{ matrix.group }}
         path: test-resources/settings/logs/*
 
     - name: Store UI Test screenshots
       uses: actions/upload-artifact@v4
       if: failure() || cancelled()
       with:
-        name: screenshots-${{ matrix.os }}
+        name: screenshots-${{ matrix.os }}-${{ matrix.group }}
         path: test-resources/screenshots/*.png

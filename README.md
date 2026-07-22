@@ -19,9 +19,15 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 - Display and manage connections integrated with Bruin CLI.
 - Add, remove or duplicate connections directly from the UI.
-- Test exsiting connections to ensure their validity.
+- Test existing connections to ensure their validity.
 
 ![GIF of Connection Manager](https://github.com/bruin-data/bruin-vscode/blob/main/screenshots/manage-connections.gif?raw=true)
+
+### Database Explorer
+
+- Browse your connections, schemas, and tables from the **Databases** view in the activity bar.
+- Refresh individual connections or schemas in place.
+- Open table details (columns and metadata) for any table directly from the tree.
 
 ### Bruin Settings
 
@@ -37,13 +43,22 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 ![GIF of Lineage Panel](https://github.com/bruin-data/bruin-vscode/blob/main/screenshots/lineage-panel-with-options.gif?raw=true)
 
-# Query Preview Panel
+### Query Preview Panel
 
 - Visualizes query execution results in a new panel.
 - Displays formatted output for easier analysis.
 - Supports multi-tab functionality to run different queries separately.
+- Preview a highlighted SQL snippet with the **Preview Selected Query** CodeLens or the `Ctrl+Shift+R` / `Cmd+Shift+R` shortcut.
 
 ![GIF of Lineage Panel](https://github.com/bruin-data/bruin-vscode/blob/main/screenshots/query-preview-options.gif?raw=true)
+
+### Table Diff
+
+- Compare two tables and view the differences side by side in a dedicated panel.
+
+### Run History
+
+- Review the history of your Bruin runs from the **Run History** panel.
 
 ### Autocomplete and Snippets
 
@@ -67,14 +82,31 @@ Bruin is a unified analytics platform that enables data professionals to work en
 
 **Note**: Ensure that you have the Bruin CLI installed on your system before using the new features. For guidance on installing the Bruin CLI, please refer to the [official documentation](https://github.com/bruin-data/bruin).
 
+## Getting Started
+
+After installing, run the **Bruin: Show Getting Started Walkthrough** command from the Command Palette to learn the essential features and shortcuts. The walkthrough also opens automatically the first time the extension is activated.
+
 ## Release Notes
 
 ### Recent Update
+- **0.82.5**: Fixed the Run dropdown being clipped on ingestr assets, and added a "Run with debug" option that runs the asset with `--debug`.
+- **0.82.4**: Fixed the "Apply-Sensor-Mode" checkbox using a stale mode: changing the `bruin.run.sensorMode` setting now takes effect immediately in an open asset panel instead of only after reopening it. The checkbox tooltip also shows the active mode and points to the setting.
+- **0.82.3**: Restored the Materialization section for ingestr assets (now supported by the Bruin CLI), limited to the options ingestr supports: type "table" only and the create+replace, delete+insert, append, merge, and truncate+insert strategies.
+- **0.82.2**: Hid the Materialization section in the asset Details tab for ingestr assets, which don't support materialization, and added a warning when a `materialization` block is added to an ingestr asset.
+- **0.82.1**: Fixed "run multiple assets" producing a truncated command with a cut-off path and dangling quote for large selections, which now run via a temporary script file.
+- **0.82.0**: Overhauled column-level lineage: fixed the "No column lineage data found" error, added a pipeline-wide column view, and expanded participating assets by default so the arrows are visible.
+- **0.81.5**: Regenerated config-schema.json for all 136 connection types from the Bruin CLI, fixing Athena lint so profile-based connections validate correctly.
+- **0.81.4**: Added multi-column sorting to the query preview results table — click headers to sort by several columns at once (most recently clicked is the primary key), with a "Sorted by" bar to flip direction, remove a column, or clear all.
+- **0.81.3**: Recognized Tableau assets and synced the full set of Bruin CLI asset types, fixing validation errors and missing autocompletion for newer types.
+- **0.81.2**: Fixed invalid schedule CodeLens labels for cron step patterns (e.g. `0 */6 * * *`) by generating them with `cronstrue`.
+- **0.81.1**: Improved lineage panel performance — switching files no longer reloads the whole webview or leaks listeners, the hidden panel is retained so reopening is instant and shows the current asset, and the `+` expand button now zooms out to reveal newly added nodes.
+- **0.81.0**: Added local backfill support with interval chunking — run backfills by splitting a date range into chunks (daily, weekly, monthly, etc.) with stop-on-failure option. Backfill runs are grouped in the Run History panel as expandable rows.
+- **0.80.5**: Flattened the run variables UI — overrides appear inline under the run controls, all variables visible at once, with the "Variable overrides" toggle auto-enabled when an override is entered.
+- **0.80.4**: Allowed `options` on MSSQL/Synapse connections in `.bruin.yml`; made connection environments collapsible (collapsed by default) with a connection count per environment.
+- **0.80.3**: Added Fabric as a valid ingestr destination; updated dependencies.
+- **0.80.2**: Added a connection picker to "Fill from DB" so columns can be filled from the source (or any other) connection, with auto-suggestion on ingestr assets.
+- **0.80.1**: Added warning for `interval_modifiers` typos.
+- **0.80.0**: Added variant selector to the asset panel for pipelines that declare variants. The selected variant is passed to `bruin run` as `--variant <name>`.
 - **0.79.9**: Improved Ingestr asset display with edit/view mode toggle.
-- **0.79.8**: Fixed Bruin panel not updating on file save in latest VS Code versions on Windows due to path comparison issues.
-- **0.79.7**: Fixed reset date button for continuous pipelines; improved tooltip to clarify behavior.
-- **0.79.6**: Fixed "Fill from Query" command failing due to unsupported `--environment` flag.
-- **0.79.5**: Added interval modifiers preview tooltip on the checkbox.
-- **0.79.4**: Fixed "Fill from DB" to use selected environment; fixed start date input on full refresh.
 
 For a full changelog, see Bruin Extension [Changelog](https://github.com/bruin-data/bruin-vscode/blob/main/CHANGELOG.md).

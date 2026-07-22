@@ -27,7 +27,6 @@ export function useLineage() {
     const formattedLineage = computed(() => {
         if (lineageSuccess.value) {
             try {
-                console.log("Lineage data:", lineageSuccess.value);
                 return JSON.parse(lineageSuccess.value);
             } catch (e) {
                 console.error("Error parsing lineage data:", e);

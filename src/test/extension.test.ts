@@ -27,6 +27,8 @@ import {
 } from "../utilities/helperUtils";
 import * as configuration from "../extension/configuration";
 import * as bruinUtils from "../bruin/bruinUtils";
+import { groupBackfillRuns } from "../bruin/backfillGrouping";
+import { RunSummary } from "../types/runLog";
 import * as fs from "fs";
 import path = require("path");
 import sinon = require("sinon");
@@ -4535,9 +4537,11 @@ suite(" Query export Tests", () => {
         flowLineageCommandStub.resolves();
         
         await baseLineagePanel.loadLineageData();
-        
+
         sinon.assert.calledOnce(flowLineageCommandStub);
-        sinon.assert.calledWith(flowLineageCommandStub, testUri);
+        // Must request column-level lineage (-c) so the panel's "Column Level
+        // Lineage" view has the column data it needs.
+        sinon.assert.calledWith(flowLineageCommandStub, testUri, undefined, true);
       });
 
       test("should not load lineage data when no URI", async () => {
@@ -4563,14 +4567,19 @@ suite(" Query export Tests", () => {
         });
       });
 
-      test("should not post message when view is not visible", () => {
+      test("should post message even when view is not visible (retainContextWhenHidden keeps it current)", () => {
         const testData = { status: "success", message: "test data" };
         baseLineagePanel._view = mockWebviewView;
         sinon.stub(mockWebviewView, "visible").value(false);
-        
+
         baseLineagePanel.onDataUpdated(testData);
-        
-        sinon.assert.notCalled(postMessageStub);
+
+        sinon.assert.calledOnce(postMessageStub);
+        sinon.assert.calledWith(postMessageStub, {
+          command: "flow-lineage-message",
+          payload: testData,
+          panelType: "TestPanel"
+        });
       });
 
       test("should not post message when view is undefined", () => {
@@ -5983,7 +5992,7 @@ suite(" Query export Tests", () => {
       assert.strictEqual(executable, "path/to/bruin");
       assert.deepStrictEqual(args, ["internal", "fetch-databases", "-c", connectionName, "-o", "json"]);
       assert.strictEqual(options.cwd, "path/to/working/directory");
-      assert.strictEqual(options.maxBuffer, 10485760);
+      assert.strictEqual(options.maxBuffer, 67108864);
       assert.strictEqual(typeof callback, "function");
       
       // On Windows, check for Windows-specific options
@@ -6026,7 +6035,7 @@ suite(" Query export Tests", () => {
       assert.strictEqual(executable, "path/to/bruin");
       assert.deepStrictEqual(args, ["internal", "fetch-tables", "-c", connectionName, "-d", database, "-o", "json"]);
       assert.strictEqual(options.cwd, "path/to/working/directory");
-      assert.strictEqual(options.maxBuffer, 10485760);
+      assert.strictEqual(options.maxBuffer, 67108864);
       assert.strictEqual(typeof callback, "function");
       
       // On Windows, check for Windows-specific options
@@ -6074,7 +6083,7 @@ suite(" Query export Tests", () => {
       assert.strictEqual(executable, "path/to/bruin");
       assert.deepStrictEqual(args, ["internal", "fetch-columns", "-c", connectionName, "-d", database, "-table", table, "-o", "json"]);
       assert.strictEqual(options.cwd, "path/to/working/directory");
-      assert.strictEqual(options.maxBuffer, 10485760);
+      assert.strictEqual(options.maxBuffer, 67108864);
       assert.strictEqual(typeof callback, "function");
       
       // On Windows, check for Windows-specific options
@@ -6130,7 +6139,7 @@ suite(" Query export Tests", () => {
       assert.strictEqual(executable, "path/to/bruin");
       assert.deepStrictEqual(args, ["internal", "fetch-tables", "-c", connectionName, "-d", "", "-o", "json"]);
       assert.strictEqual(options.cwd, "path/to/working/directory");
-      assert.strictEqual(options.maxBuffer, 10485760);
+      assert.strictEqual(options.maxBuffer, 67108864);
       assert.strictEqual(typeof callback, "function");
       
       // On Windows, check for Windows-specific options
@@ -6545,22 +6554,22 @@ suite(" Query export Tests", () => {
 
       test("should handle daily schedule", () => {
         const result = cronToHumanReadable("daily");
-        assert.strictEqual(result, "Every day at midnight");
+        assert.strictEqual(result, "At 12:00 AM");
       });
 
       test("should handle weekly schedule", () => {
         const result = cronToHumanReadable("weekly");
-        assert.strictEqual(result, "Every Monday at midnight");
+        assert.strictEqual(result, "At 12:00 AM, only on Sunday");
       });
 
       test("should handle monthly schedule", () => {
         const result = cronToHumanReadable("monthly");
-        assert.strictEqual(result, "Every 1st of the month at midnight");
+        assert.strictEqual(result, "At 12:00 AM, on day 1 of the month");
       });
 
       test("should handle yearly schedule", () => {
         const result = cronToHumanReadable("yearly");
-        assert.strictEqual(result, "Every January 1st at midnight");
+        assert.strictEqual(result, "At 12:00 AM, on day 1 of the month, only in January");
       });
     });
 
@@ -6568,113 +6577,123 @@ suite(" Query export Tests", () => {
       suite("daily schedules", () => {
         test("should handle daily at specific time", () => {
           const result = cronToHumanReadable("30 14 * * *");
-          assert.strictEqual(result, "Run every day at 14:30");
+          assert.strictEqual(result, "At 02:30 PM");
         });
 
         test("should handle daily at midnight", () => {
           const result = cronToHumanReadable("0 0 * * *");
-          assert.strictEqual(result, "Run every day at 00:00");
+          assert.strictEqual(result, "At 12:00 AM");
         });
 
         test("should handle daily at different times", () => {
           const result = cronToHumanReadable("15 9 * * *");
-          assert.strictEqual(result, "Run every day at 09:15");
+          assert.strictEqual(result, "At 09:15 AM");
         });
       });
 
       suite("weekly schedules", () => {
         test("should handle single day of week", () => {
           const result = cronToHumanReadable("0 9 * * 1");
-          assert.strictEqual(result, "Run every Monday at 09:00");
+          assert.strictEqual(result, "At 09:00 AM, only on Monday");
         });
 
         test("should handle multiple days of week", () => {
           const result = cronToHumanReadable("0 9 * * 1,3,5");
-          assert.strictEqual(result, "Run every Monday, Wednesday, Friday at 09:00");
+          assert.strictEqual(result, "At 09:00 AM, only on Monday, Wednesday, and Friday");
         });
 
         test("should handle weekend schedule", () => {
           const result = cronToHumanReadable("0 10 * * 0,6");
-          assert.strictEqual(result, "Run every Sunday, Saturday at 10:00");
+          assert.strictEqual(result, "At 10:00 AM, only on Sunday and Saturday");
         });
       });
 
       suite("monthly schedules", () => {
         test("should handle 1st of month", () => {
           const result = cronToHumanReadable("0 0 1 * *");
-          assert.strictEqual(result, "Run on the 1st of every month at 00:00");
+          assert.strictEqual(result, "At 12:00 AM, on day 1 of the month");
         });
 
         test("should handle 2nd of month", () => {
           const result = cronToHumanReadable("0 12 2 * *");
-          assert.strictEqual(result, "Run on the 2nd of every month at 12:00");
+          assert.strictEqual(result, "At 12:00 PM, on day 2 of the month");
         });
 
         test("should handle 3rd of month", () => {
           const result = cronToHumanReadable("30 15 3 * *");
-          assert.strictEqual(result, "Run on the 3rd of every month at 15:30");
+          assert.strictEqual(result, "At 03:30 PM, on day 3 of the month");
         });
 
         test("should handle other days of month", () => {
           const result = cronToHumanReadable("0 8 15 * *");
-          assert.strictEqual(result, "Run on the 15th of every month at 08:00");
+          assert.strictEqual(result, "At 08:00 AM, on day 15 of the month");
         });
       });
 
       suite("hourly schedules", () => {
         test("should handle every hour on the hour", () => {
           const result = cronToHumanReadable("0 * * * *");
-          assert.strictEqual(result, "Run every day every hour");
+          assert.strictEqual(result, "Every hour");
         });
 
         test("should handle every hour at specific minute", () => {
           const result = cronToHumanReadable("30 * * * *");
-          assert.strictEqual(result, "Run every day at 30 minutes past every hour");
+          assert.strictEqual(result, "At 30 minutes past the hour");
         });
 
         test("should handle every hour at 15 minutes past", () => {
           const result = cronToHumanReadable("15 * * * *");
-          assert.strictEqual(result, "Run every day at 15 minutes past every hour");
+          assert.strictEqual(result, "At 15 minutes past the hour");
+        });
+
+        test("should handle every n hours (step pattern)", () => {
+          const result = cronToHumanReadable("0 */6 * * *");
+          assert.strictEqual(result, "At 0 minutes past the hour, every 6 hours");
         });
       });
 
       suite("edge cases", () => {
         test("should handle every minute", () => {
           const result = cronToHumanReadable("* * * * *");
-          assert.strictEqual(result, "Run every day every minute");
+          assert.strictEqual(result, "Every minute");
         });
 
         test("should handle complex schedule", () => {
           const result = cronToHumanReadable("0 0 * * 0");
-          assert.strictEqual(result, "Run every Sunday at 00:00");
+          assert.strictEqual(result, "At 12:00 AM, only on Sunday");
         });
       });
     });
 
     suite("invalid expressions", () => {
+      // cronstrue is configured with throwExceptionOnParseError: false (matching
+      // the cloud app), so invalid input returns cronstrue's standard message.
+      const PARSE_ERROR =
+        "An error occurred when generating the expression description. Check the cron expression syntax.";
+
       test("should handle invalid cron expression with wrong field count", () => {
         const result = cronToHumanReadable("0 0 0");
-        assert.strictEqual(result, "Invalid cron expression: 0 0 0");
+        assert.strictEqual(result, PARSE_ERROR);
       });
 
       test("should handle invalid cron expression with too many fields", () => {
         const result = cronToHumanReadable("0 0 0 0 0 0");
-        assert.strictEqual(result, "Invalid cron expression: 0 0 0 0 0 0");
+        assert.strictEqual(result, PARSE_ERROR);
       });
 
       test("should handle malformed cron expression", () => {
         const result = cronToHumanReadable("invalid");
-        assert.strictEqual(result, "Invalid cron expression: invalid");
+        assert.strictEqual(result, PARSE_ERROR);
       });
 
       test("should handle empty string", () => {
         const result = cronToHumanReadable("");
-        assert.strictEqual(result, "Invalid cron expression: ");
+        assert.strictEqual(result, PARSE_ERROR);
       });
 
       test("should handle invalid field values", () => {
         const result = cronToHumanReadable("60 25 32 13 8");
-        assert.strictEqual(result, "Invalid cron expression: 60 25 32 13 8");
+        assert.strictEqual(result, PARSE_ERROR);
       });
     });
   });
@@ -6711,7 +6730,7 @@ suite(" Query export Tests", () => {
 
         const result = provider.provideCodeLenses(mockDocument, mockToken);
         assert.strictEqual(result.length, 1);
-        assert.strictEqual(result[0].command?.title, "Run every Monday at 09:00");
+        assert.strictEqual(result[0].command?.title, "At 09:00 AM, only on Monday");
         assert.strictEqual(result[0].command?.command, "");
       });
 
@@ -6723,7 +6742,7 @@ suite(" Query export Tests", () => {
 
         const result = provider.provideCodeLenses(mockDocument, mockToken);
         assert.strictEqual(result.length, 1);
-        assert.strictEqual(result[0].command?.title, "Run every day at 00:00");
+        assert.strictEqual(result[0].command?.title, "At 12:00 AM");
         assert.strictEqual(result[0].command?.command, "");
       });
 
@@ -6742,9 +6761,9 @@ schedule: '30 14 * * *'
         const result = provider.provideCodeLenses(mockDocument, mockToken);
         assert.strictEqual(result.length, 3);
         
-        assert.strictEqual(result[0].command?.title, "Run every Monday at 09:00");
-        assert.strictEqual(result[1].command?.title, "Every day at midnight");
-        assert.strictEqual(result[2].command?.title, "Run every day at 14:30");
+        assert.strictEqual(result[0].command?.title, "At 09:00 AM, only on Monday");
+        assert.strictEqual(result[1].command?.title, "At 12:00 AM");
+        assert.strictEqual(result[2].command?.title, "At 02:30 PM");
       });
 
       test("should handle schedule with double quotes", () => {
@@ -6755,7 +6774,7 @@ schedule: '30 14 * * *'
 
         const result = provider.provideCodeLenses(mockDocument, mockToken);
         assert.strictEqual(result.length, 1);
-        assert.strictEqual(result[0].command?.title, "Run every Friday at 12:00");
+        assert.strictEqual(result[0].command?.title, "At 12:00 PM, only on Friday");
       });
 
       test("should handle schedule with single quotes", () => {
@@ -6766,7 +6785,7 @@ schedule: '30 14 * * *'
 
         const result = provider.provideCodeLenses(mockDocument, mockToken);
         assert.strictEqual(result.length, 1);
-        assert.strictEqual(result[0].command?.title, "Run on the 1st of every month at 08:00");
+        assert.strictEqual(result[0].command?.title, "At 08:00 AM, on day 1 of the month");
       });
 
       test("should handle schedule without quotes", () => {
@@ -6791,8 +6810,8 @@ schedule: '30 14 * * *'
 
         const result = provider.provideCodeLenses(mockDocument, mockToken);
         assert.strictEqual(result.length, 2);
-        assert.strictEqual(result[0].command?.title, "Run every day at 06:00");
-        assert.strictEqual(result[1].command?.title, "Run every day at 18:00");
+        assert.strictEqual(result[0].command?.title, "At 06:00 AM");
+        assert.strictEqual(result[1].command?.title, "At 06:00 PM");
       });
 
       test("should handle invalid cron expressions", () => {
@@ -6803,7 +6822,10 @@ schedule: '30 14 * * *'
 
         const result = provider.provideCodeLenses(mockDocument, mockToken);
         assert.strictEqual(result.length, 1);
-        assert.strictEqual(result[0].command?.title, "Invalid cron expression: invalid-cron");
+        assert.strictEqual(
+          result[0].command?.title,
+          "An error occurred when generating the expression description. Check the cron expression syntax."
+        );
       });
 
       test("should create correct range for schedule line", () => {
@@ -6876,7 +6898,7 @@ schedule: '0 12 * * *'
 
         const result = provider.provideCodeLenses(mockDocument, mockToken);
         assert.strictEqual(result.length, 1);
-        assert.strictEqual(result[0].command?.title, "Run every day at 12:00");
+        assert.strictEqual(result[0].command?.title, "At 12:00 PM");
       });
 
       test("should handle schedule field with extra whitespace", () => {
@@ -6887,7 +6909,7 @@ schedule: '0 12 * * *'
 
         const result = provider.provideCodeLenses(mockDocument, mockToken);
         assert.strictEqual(result.length, 1);
-        assert.strictEqual(result[0].command?.title, "Run every Tuesday at 15:00");
+        assert.strictEqual(result[0].command?.title, "At 03:00 PM, only on Tuesday");
       });
 
       test("should handle predefined schedule types", () => {
@@ -6905,10 +6927,10 @@ schedule: yearly
         const result = provider.provideCodeLenses(mockDocument, mockToken);
         assert.strictEqual(result.length, 5);
         assert.strictEqual(result[0].command?.title, "Every hour");
-        assert.strictEqual(result[1].command?.title, "Every day at midnight");
-        assert.strictEqual(result[2].command?.title, "Every Monday at midnight");
-        assert.strictEqual(result[3].command?.title, "Every 1st of the month at midnight");
-        assert.strictEqual(result[4].command?.title, "Every January 1st at midnight");
+        assert.strictEqual(result[1].command?.title, "At 12:00 AM");
+        assert.strictEqual(result[2].command?.title, "At 12:00 AM, only on Sunday");
+        assert.strictEqual(result[3].command?.title, "At 12:00 AM, on day 1 of the month");
+        assert.strictEqual(result[4].command?.title, "At 12:00 AM, on day 1 of the month, only in January");
       });
     });
   });
@@ -7748,5 +7770,250 @@ suite("Utility Functions Tests", () => {
       assert.strictEqual(result, true, "Should use custom executable path");
       sinon.assert.called(getBruinExecutablePathStub);
     });
+  });
+});
+
+
+suite("buildBackfillScript", () => {
+  const chunks = [
+    { start: "2024-01-01T00:00:00Z", end: "2024-01-02T00:00:00Z" },
+    { start: "2024-01-02T00:00:00Z", end: "2024-01-03T00:00:00Z" },
+    { start: "2024-01-03T00:00:00Z", end: "2024-01-04T00:00:00Z" },
+  ];
+
+  test("bash + stop-on-failure: shebang, set -e, one tagged command per chunk", () => {
+    const result = (bruinUtils as any).buildBackfillScript(
+      "bruin",
+      chunks,
+      "--environment default",
+      '"/path/to/asset.sql"',
+      true,
+      "bf_test",
+      true
+    );
+    const lines = result.trimEnd().split("\n");
+
+    assert.strictEqual(lines[0], "#!/usr/bin/env bash");
+    assert.strictEqual(lines[1], "set -e", "stop-on-failure uses set -e");
+    const runLines = lines.filter((l: string) => l.startsWith("bruin run"));
+    assert.strictEqual(runLines.length, 3, "one bruin run per chunk");
+    chunks.forEach((c, i) => {
+      assert.ok(runLines[i].includes("--backfill-id bf_test"), `chunk ${i} has backfill id`);
+      assert.ok(runLines[i].includes("--backfill-total 3"), `chunk ${i} has backfill total`);
+      assert.ok(runLines[i].includes(`--start-date ${c.start}`), `chunk ${i} start`);
+      assert.ok(runLines[i].includes(`--end-date ${c.end}`), `chunk ${i} end`);
+      assert.ok(runLines[i].endsWith('"/path/to/asset.sql"'), `chunk ${i} asset path`);
+    });
+    // No chained '&&' / line-continuation '\' — that's the whole point of the script.
+    assert.ok(!result.includes("&&") && !result.includes("\\\n"), "no chaining/continuation");
+  });
+
+  test("bash + run-all: omits set -e", () => {
+    const result = (bruinUtils as any).buildBackfillScript(
+      "bruin",
+      chunks,
+      "",
+      '"/path/to/asset.sql"',
+      false,
+      "bf_test",
+      true
+    );
+    assert.ok(!result.includes("set -e"), "run-all must not set -e");
+    assert.strictEqual(
+      result.split("\n").filter((l: string) => l.startsWith("bruin run")).length,
+      3
+    );
+  });
+
+  test("powershell + stop-on-failure: $LASTEXITCODE guard after each command", () => {
+    const result = (bruinUtils as any).buildBackfillScript(
+      "bruin",
+      [chunks[0], chunks[1]],
+      "",
+      '"/path/to/asset.sql"',
+      true,
+      "bf_test",
+      false
+    );
+    const guards = result.split("\n").filter((l: string) => l.includes("$LASTEXITCODE"));
+    assert.strictEqual(guards.length, 2, "one exit-code guard per chunk");
+    assert.strictEqual(guards[0], "if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }");
+  });
+
+  test("never injects --full-refresh", () => {
+    const result = (bruinUtils as any).buildBackfillScript(
+      "bruin",
+      chunks,
+      "--environment default",
+      '"/path/to/asset.sql"',
+      true,
+      "bf_test",
+      true
+    );
+    assert.ok(
+      !result.includes("--full-refresh"),
+      "Backfill must not pass --full-refresh (it would ignore the chunk window)"
+    );
+  });
+});
+
+suite("buildRunMultipleAssetsScript", () => {
+  const paths = ["/path/one.sql", "/path/two.sql", "/path/three.sql"];
+
+  test("bash: shebang + single bruin run with all escaped paths and flags", () => {
+    const result = (bruinUtils as any).buildRunMultipleAssetsScript(
+      "bruin",
+      paths,
+      "--environment default",
+      true
+    );
+    const lines = result.trimEnd().split("\n");
+
+    assert.strictEqual(lines[0], "#!/usr/bin/env bash");
+    const runLines = lines.filter((l: string) => l.startsWith("bruin run"));
+    assert.strictEqual(runLines.length, 1, "all assets go into one bruin run invocation");
+    assert.ok(runLines[0].includes("--environment default"), "flags preserved");
+    paths.forEach((p) => assert.ok(runLines[0].includes(`"${p}"`), `path ${p} is quoted`));
+    // No chained '&&' / line-continuation '\' — the script exists to avoid a
+    // multi-kilobyte single command overflowing the terminal input.
+    assert.ok(!result.includes("&&") && !result.includes("\\\n"), "no chaining/continuation");
+  });
+
+  test("bash: omits flags segment when none provided", () => {
+    const result = (bruinUtils as any).buildRunMultipleAssetsScript("bruin", paths, "", true);
+    const runLine = result
+      .trimEnd()
+      .split("\n")
+      .find((l: string) => l.startsWith("bruin run"));
+    assert.strictEqual(runLine, `bruin run "${paths[0]}" "${paths[1]}" "${paths[2]}"`);
+  });
+
+  test("powershell: Write-Host header + single bruin run, no shebang", () => {
+    const result = (bruinUtils as any).buildRunMultipleAssetsScript(
+      "bruin",
+      paths,
+      "--environment default",
+      false
+    );
+    assert.ok(!result.includes("#!/usr/bin/env bash"), "powershell script has no bash shebang");
+    assert.ok(result.startsWith("Write-Host"), "powershell header uses Write-Host");
+    assert.strictEqual(
+      result.split("\n").filter((l: string) => l.startsWith("bruin run")).length,
+      1
+    );
+  });
+});
+
+suite("groupBackfillRuns", () => {
+  const makeRun = (over: Partial<RunSummary>): RunSummary => ({
+    runId: "r",
+    pipeline: "p",
+    timestamp: "2026-06-09T12:05:00.000Z",
+    status: "succeeded",
+    totalAssets: 1,
+    succeededAssets: 1,
+    failedAssets: 0,
+    environment: "prod",
+    filePath: `/logs/${Math.random()}`,
+    runPath: "/abs/asset.sql",
+    startDate: "2024-01-01T00:00:00Z",
+    endDate: "2024-01-02T00:00:00Z",
+    ...over,
+  });
+
+  test("groups runs sharing a backfill_id into one backfill row; others pass through", () => {
+    const runs: RunSummary[] = [
+      makeRun({ filePath: "/logs/a", backfillId: "bf_1", backfillTotal: 3, startDate: "2024-01-01T00:00:00Z" }),
+      makeRun({ filePath: "/logs/b", backfillId: "bf_1", backfillTotal: 3, startDate: "2024-01-02T00:00:00Z" }),
+      makeRun({ filePath: "/logs/c", backfillId: "bf_1", backfillTotal: 3, startDate: "2024-01-03T00:00:00Z" }),
+      makeRun({ filePath: "/logs/plain" }), // no backfill_id
+    ];
+
+    const result = groupBackfillRuns(runs);
+    const backfills = result.filter((r) => r.kind === "backfill");
+    const plain = result.filter((r) => r.kind !== "backfill");
+
+    assert.strictEqual(backfills.length, 1, "one grouped backfill row");
+    assert.strictEqual(plain.length, 1, "the non-backfill run passes through");
+    const bf = backfills[0];
+    assert.strictEqual(bf.runId, "bf_1");
+    assert.strictEqual(bf.status, "succeeded");
+    assert.strictEqual(bf.children?.length, 3);
+    assert.strictEqual(bf.backfill?.completedChunks, 3);
+    assert.strictEqual(bf.backfill?.totalChunks, 3);
+  });
+
+  test("reports running while fewer logs than backfill_total have landed", () => {
+    const runs: RunSummary[] = [
+      makeRun({ filePath: "/logs/a", backfillId: "bf_1", backfillTotal: 24, startDate: "2024-01-01T00:00:00Z" }),
+      makeRun({ filePath: "/logs/b", backfillId: "bf_1", backfillTotal: 24, startDate: "2024-01-02T00:00:00Z" }),
+    ];
+
+    const bf = groupBackfillRuns(runs).find((r) => r.kind === "backfill")!;
+    assert.strictEqual(bf.status, "running");
+    assert.strictEqual(bf.backfill?.completedChunks, 2);
+    assert.strictEqual(bf.backfill?.totalChunks, 24);
+  });
+
+  test("rolls up to failed when any chunk failed", () => {
+    const runs: RunSummary[] = [
+      makeRun({ filePath: "/logs/a", backfillId: "bf_1", backfillTotal: 2, startDate: "2024-01-01T00:00:00Z" }),
+      makeRun({
+        filePath: "/logs/b",
+        backfillId: "bf_1",
+        backfillTotal: 2,
+        startDate: "2024-01-02T00:00:00Z",
+        status: "failed",
+        succeededAssets: 0,
+        failedAssets: 1,
+      }),
+    ];
+
+    const bf = groupBackfillRuns(runs).find((r) => r.kind === "backfill")!;
+    assert.strictEqual(bf.status, "failed");
+    assert.strictEqual(bf.failedAssets, 1);
+  });
+
+  test("falls back to observed count when backfill_total is absent", () => {
+    const runs: RunSummary[] = [
+      makeRun({ filePath: "/logs/a", backfillId: "bf_1", startDate: "2024-01-01T00:00:00Z" }),
+      makeRun({ filePath: "/logs/b", backfillId: "bf_1", startDate: "2024-01-02T00:00:00Z" }),
+    ];
+
+    const bf = groupBackfillRuns(runs).find((r) => r.kind === "backfill")!;
+    assert.strictEqual(bf.backfill?.totalChunks, 2, "total falls back to children count");
+    assert.strictEqual(bf.status, "succeeded");
+  });
+
+  test("leaves a plain run list untouched", () => {
+    const runs: RunSummary[] = [makeRun({ filePath: "/logs/a" })];
+    const result = groupBackfillRuns(runs);
+    assert.strictEqual(result.length, 1);
+    assert.strictEqual(result[0].kind, undefined);
+  });
+});
+
+suite("backfill CLI version guard", () => {
+  const parseVersion = (bruinUtils as any).parseVersion;
+  const versionGte = (bruinUtils as any).versionGte;
+  const MIN = (bruinUtils as any).BACKFILL_MIN_CLI_VERSION;
+
+  test("minimum is v0.11.624", () => {
+    assert.strictEqual(MIN, "0.11.624");
+  });
+
+  test("v0.11.624 and newer support the backfill flags", () => {
+    const min = parseVersion(MIN);
+    assert.ok(versionGte(parseVersion("0.11.624"), min));
+    assert.ok(versionGte(parseVersion("0.11.700"), min));
+    assert.ok(versionGte(parseVersion("0.12.0"), min));
+    assert.ok(versionGte(parseVersion("1.0.0"), min));
+  });
+
+  test("older versions do not", () => {
+    const min = parseVersion(MIN);
+    assert.ok(!versionGte(parseVersion("0.11.623"), min));
+    assert.ok(!versionGte(parseVersion("0.11.0"), min));
+    assert.ok(!versionGte(parseVersion("0.10.999"), min));
   });
 });

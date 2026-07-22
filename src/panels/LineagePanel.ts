@@ -68,9 +68,15 @@ export abstract class BaseLineagePanel implements vscode.WebviewViewProvider, vs
 
   private disposables: vscode.Disposable[] = [];
   private isRefreshing = false;
+  // The webview we've already wired up (html + listeners). Used to avoid
+  // re-rendering the whole webview and leaking listeners when resolveWebviewView
+  // is re-entered (e.g. via initPanel on an editor switch).
+  private _initializedWebview: vscode.Webview | undefined;
+  private _docChangeDebounceTimer: ReturnType<typeof setTimeout> | undefined;
+  private static readonly docChangeDebounceMs = 300;
 
   constructor(
-    protected readonly _extensionUri: vscode.Uri, 
+    protected readonly _extensionUri: vscode.Uri,
     panelType: string
   ) {
     this.panelType = panelType;
@@ -85,7 +91,9 @@ export abstract class BaseLineagePanel implements vscode.WebviewViewProvider, vs
       vscode.workspace.onDidChangeTextDocument((event: vscode.TextDocumentChangeEvent) => {
         if (event.document.uri.scheme !== "vscodebruin:panel") {
           this._lastRenderedDocumentUri = event.document.uri;
-          this.loadLineageData();
+          // Debounce: a full pipeline parse per keystroke is expensive on large
+          // pipelines. Coalesce rapid edits into a single CLI call.
+          this.scheduleLoadLineageData();
         }
       })
     );
@@ -97,6 +105,10 @@ export abstract class BaseLineagePanel implements vscode.WebviewViewProvider, vs
   }
 
   dispose() {
+    if (this._docChangeDebounceTimer) {
+      clearTimeout(this._docChangeDebounceTimer);
+      this._docChangeDebounceTimer = undefined;
+    }
     while (this.disposables.length) {
       const x = this.disposables.pop();
       if (x) {
@@ -105,10 +117,23 @@ export abstract class BaseLineagePanel implements vscode.WebviewViewProvider, vs
     }
   }
 
+  // Coalesce bursts of document edits into a single deferred lineage reload.
+  private scheduleLoadLineageData() {
+    if (this._docChangeDebounceTimer) {
+      clearTimeout(this._docChangeDebounceTimer);
+    }
+    this._docChangeDebounceTimer = setTimeout(() => {
+      this._docChangeDebounceTimer = undefined;
+      this.loadLineageData();
+    }, BaseLineagePanel.docChangeDebounceMs);
+  }
+
   protected loadLineageData = async () => {
     if (this._lastRenderedDocumentUri) {
       try {
-        await flowLineageCommand(this._lastRenderedDocumentUri);
+        // -c up front: the webview toggles to the column view without a
+        // round-trip, so the column data must already be present.
+        await flowLineageCommand(this._lastRenderedDocumentUri, undefined, true);
       } catch (error) {
         console.error("❌ [LineagePanel] Error loading lineage data:", error);
       }
@@ -120,7 +145,9 @@ export abstract class BaseLineagePanel implements vscode.WebviewViewProvider, vs
   private refresh = (event: vscode.TextEditor) => {
     if (event.document.uri === this._lastRenderedDocumentUri && !this.isRefreshing) {
       this.isRefreshing = true;
-      this.initPanel(event).then(() => {
+      // Reload lineage data into the existing webview instead of tearing the
+      // whole webview down and reloading it.
+      this.loadLineageData().finally(() => {
         this.isRefreshing = false;
       });
     }
@@ -135,7 +162,11 @@ export abstract class BaseLineagePanel implements vscode.WebviewViewProvider, vs
   };
 
   protected onDataUpdated(data: any) {
-    if (this._view && this._view.visible) {
+    // Post even when the view is hidden: with retainContextWhenHidden the
+    // webview stays alive, so keeping it current while hidden means reopening
+    // the panel shows the right asset immediately instead of briefly flashing
+    // the previously rendered graph before jumping to the new one.
+    if (this._view) {
       this._view.webview.postMessage({
         command: "flow-lineage-message",
         payload: data,
@@ -163,6 +194,17 @@ export abstract class BaseLineagePanel implements vscode.WebviewViewProvider, vs
         localResourceRoots: [this._extensionUri],
       };
 
+      // If this exact webview is already wired up, don't re-render it or
+      // re-register listeners. resolveWebviewView is re-entered whenever we call
+      // initPanel() on an editor switch; re-running it here would reload the
+      // whole Vue app and leak message/visibility listeners on every switch.
+      // VS Code hands us a new webview instance when it actually needs a fresh
+      // render (e.g. after the view was disposed), which falls through below.
+      if (this._initializedWebview === webviewView.webview) {
+        return;
+      }
+      this._initializedWebview = webviewView.webview;
+
       this._setWebviewMessageListener(webviewView.webview);
 
       setTimeout(() => {
@@ -173,12 +215,14 @@ export abstract class BaseLineagePanel implements vscode.WebviewViewProvider, vs
       }, 100);
 
       // Reload lineage data when webview becomes visible
-      webviewView.onDidChangeVisibility(() => {
-        if (this._view!.visible) {
-          this._view!.webview.postMessage({ command: "init", panelType: this.panelType });
-          this.loadLineageData(); // Load lineage data when visible
-        }
-      });
+      this.disposables.push(
+        webviewView.onDidChangeVisibility(() => {
+          if (this._view!.visible) {
+            this._view!.webview.postMessage({ command: "init", panelType: this.panelType });
+            this.loadLineageData(); // Load lineage data when visible
+          }
+        })
+      );
 
       webviewView.webview.html = this._getWebviewContent(webviewView.webview);
     } catch (error) {
@@ -255,6 +299,7 @@ export abstract class BaseLineagePanel implements vscode.WebviewViewProvider, vs
   }
 
   private _setWebviewMessageListener(webview: vscode.Webview) {
+    this.disposables.push(
     webview.onDidReceiveMessage((message) => {
       switch (message.command) {
         case "bruin.openAssetDetails":
@@ -274,7 +319,8 @@ export abstract class BaseLineagePanel implements vscode.WebviewViewProvider, vs
           this.refresh(vscode.window.activeTextEditor!!);
           break;
       }
-    });
+    })
+    );
     webview.postMessage({
       command: "init",
       panelType: this.panelType

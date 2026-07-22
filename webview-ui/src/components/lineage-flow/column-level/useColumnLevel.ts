@@ -14,7 +14,6 @@ export const getAssetDatasetWithColumns = (
   if (!pipelineData || !pipelineData.assets) {
     return null;
   }
-  console.log("pipelineData for columns", pipelineData);
 
   const findAssetById = (id: string) => {
     if (!id) return null;
@@ -125,7 +124,6 @@ export const getAssetDatasetWithColumns = (
     downstream: downstreams,
   };
 
-  console.log("Column Result", JSON.stringify(result, null, 2));
   return result;
 };
 
@@ -265,11 +263,9 @@ export const processDownstreamAssets = (
   const edges: Edge[] = [];
 
   if (focusAsset.downstreams && focusAsset.downstreams.length > 0) {
-    console.log(`Adding ${focusAsset.downstreams.length} downstream assets for ${focusAsset.name}`);
     focusAsset.downstreams.forEach(downstream => {
       if (downstream.type === 'asset' && downstream.value && assetMap[downstream.value]) {
         const downstreamAsset = assetMap[downstream.value];
-        console.log(`Adding downstream asset: ${downstream.value}`);
         nodes.push(createColumnNode(downstreamAsset, false, columnLineageMap[downstream.value] || []));
         processedAssets.add(downstream.value.toLowerCase());
 
@@ -277,8 +273,6 @@ export const processDownstreamAssets = (
         edges.push(createAssetEdge(focusAsset.name, downstream.value));
       }
     });
-  } else {
-    console.log(`No downstream assets found for ${focusAsset.name}`);
   }
 
   return { nodes, edges };

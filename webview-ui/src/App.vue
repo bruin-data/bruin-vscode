@@ -374,7 +374,6 @@ const handleMessage = (event: MessageEvent) => {
       }
       case "pipeline-assets":
         pipelineAssetsData.value = updateValue(message, "success");
-        console.log("Pipeline assets:", pipelineAssetsData.value);
         break;
       case "asset-metadata-message":
         const metadataResult = updateValue(message, "success");
@@ -621,7 +620,6 @@ const startDate = computed(() => {
 
   // For pipeline config files (pipeline.yml), get start_date directly
   if (parsedData.type === "pipelineConfig") {
-    console.log("Pipeline config start date:", parsedData.raw);
     return parsedData.raw?.start_date || "";
   }
 
@@ -681,7 +679,6 @@ const columnsProps = computed(() => {
   if (!data.value) return [];
   const details = parseAssetDetails(data.value);
   const columns = details?.columns || [];
-  console.log("Asset columns:", columns);
   return columns;
 });
 
@@ -708,7 +705,6 @@ const transformedDependencies = computed(() => {
 // Computed property to extract pipeline assets from asset details
 const pipelineAssets = computed(() => {
   const assets = pipelineAssetsData.value || [];
-  console.log("Pipeline assets raw data:", assets);
   // Return the full asset objects, not just the name
   return assets;
 });
@@ -742,6 +738,7 @@ const tabs = ref([
       assetMetadataError: assetMetadataError.value,
       pipelineAssets: pipelineAssets.value,
       filePath: lastRenderedDocument.value,
+      materializationStrategy: materializationProps.value?.strategy,
     })),
     emits: ["update:assetName", "update:description"],
   },
@@ -752,6 +749,8 @@ const tabs = ref([
       columns: columns.value,
       isConfigFile: isConfigFile.value,
       materializationStrategy: materializationProps.value?.strategy,
+      assetType: assetDetailsProps.value?.type,
+      parameters: ingestrParameters.value,
     })),
   },
   {
@@ -767,6 +766,7 @@ const tabs = ref([
       pipelineAssets: pipelineAssets.value,
       currentFilePath: lastRenderedDocument.value,
       secrets: assetDetailsProps.value?.secrets,
+      assetType: assetDetailsProps.value?.type,
     })),
   },
   {

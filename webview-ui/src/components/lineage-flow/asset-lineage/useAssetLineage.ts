@@ -7,9 +7,7 @@ export const getAssetDataset = (
 ): AssetDataset  | null => {
   if (!pipelineData) {
     return null;
-  } 
-  console.log("pipelineData", pipelineData);
-
+  }
 
   const findAssetById = (id) => {
     if (!id) return null;
@@ -79,7 +77,6 @@ export const getAssetDataset = (
     downstream: downstreams,
   };
 
-  console.log("Result", JSON.stringify(result, null, 2));
   return result;
 }
  

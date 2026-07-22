@@ -1,8 +1,12 @@
 import * as fs from "fs";
 import * as path from "path";
 import { RunLog, RunSummary, RunStatus } from "../types/runLog";
+import { groupBackfillRuns } from "./backfillGrouping";
 
 const LOGS_DIR = "logs/runs";
+// Over-fetch raw runs before grouping so a backfill's chunk logs aren't
+// truncated away before they can be collapsed into one row.
+const BACKFILL_OVERFETCH_FACTOR = 4;
 
 export class RunLogService {
   private workspaceRoot: string;
@@ -26,32 +30,31 @@ export class RunLogService {
   }
 
   async getRunsForPipeline(pipeline: string, limit = 20): Promise<RunSummary[]> {
-    const pipelinePath = path.join(this.getLogsPath(), pipeline);
-    try {
-      const files = await fs.promises.readdir(pipelinePath);
-      const jsonFiles = files.filter((f) => f.endsWith(".json")).sort().reverse().slice(0, limit);
-
-      const runs: RunSummary[] = [];
-      for (const file of jsonFiles) {
-        const summary = await this.getRunSummary(pipeline, file);
-        if (summary) {runs.push(summary);}
-      }
-      return runs;
-    } catch {
-      return [];
-    }
+    const runs = await this.getRawRunsForPipeline(pipeline, limit * BACKFILL_OVERFETCH_FACTOR);
+    return groupBackfillRuns(runs).slice(0, limit);
   }
 
   async getAllRuns(limit = 50): Promise<RunSummary[]> {
     const pipelines = await this.getPipelines();
-    const allRuns: RunSummary[] = [];
+    // Read each pipeline's raw runs concurrently, then group across the full set.
+    const perPipeline = await Promise.all(
+      pipelines.map((p) => this.getRawRunsForPipeline(p, limit * BACKFILL_OVERFETCH_FACTOR))
+    );
+    // groupBackfillRuns already returns sorted by instant (toMillis); no second sort.
+    return groupBackfillRuns(perPipeline.flat()).slice(0, limit);
+  }
 
-    for (const pipeline of pipelines) {
-      const runs = await this.getRunsForPipeline(pipeline, limit);
-      allRuns.push(...runs);
+  private async getRawRunsForPipeline(pipeline: string, limit: number): Promise<RunSummary[]> {
+    const pipelinePath = path.join(this.getLogsPath(), pipeline);
+    try {
+      const files = await fs.promises.readdir(pipelinePath);
+      const jsonFiles = files.filter((f) => f.endsWith(".json")).sort().reverse().slice(0, limit);
+      // Read + parse the log files concurrently rather than one await at a time.
+      const summaries = await Promise.all(jsonFiles.map((f) => this.getRunSummary(pipeline, f)));
+      return summaries.filter((s): s is RunSummary => s !== null);
+    } catch {
+      return [];
     }
-
-    return allRuns.sort((a, b) => b.timestamp.localeCompare(a.timestamp)).slice(0, limit);
   }
 
   private async getRunSummary(pipeline: string, fileName: string): Promise<RunSummary | null> {
@@ -112,6 +115,10 @@ export class RunLogService {
       filePath,
       flags: flags.length > 0 ? flags : undefined,
       runPath,
+      startDate: params.startDate,
+      endDate: params.endDate,
+      backfillId: log.backfill_id,
+      backfillTotal: log.backfill_total,
     };
   }
 

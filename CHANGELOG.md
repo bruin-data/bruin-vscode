@@ -1,4 +1,59 @@
 # Changelog
+## [0.82.5] - [2026-07-21]
+- Fixed the Run dropdown being clipped on ingestr assets, and added a "Run with debug" option that runs the asset with `--debug`.
+
+## [0.82.4] - [2026-07-17]
+- Fixed the "Apply-Sensor-Mode" checkbox using a stale mode: changing the `bruin.run.sensorMode` setting now takes effect immediately in an open asset panel instead of only after reopening it. The checkbox tooltip also shows the active mode and points to the setting.
+
+## [0.82.3] - [2026-07-13]
+- Restored the Materialization section for ingestr assets (now supported by the Bruin CLI), limited to the options ingestr supports: type "table" only and the create+replace, delete+insert, append, merge, and truncate+insert strategies.
+
+## [0.82.2] - [2026-07-13]
+- Hid the Materialization section in the asset Details tab for ingestr assets, which don't support materialization, and added a warning when a `materialization` block is added to an ingestr asset.
+
+## [0.82.1] - [2026-07-08]
+- Fixed "run multiple assets" producing a truncated command with a cut-off path and dangling quote for large selections, which now run via a temporary script file.
+
+## [0.82.0] - [2026-07-08]
+- Overhauled column-level lineage: fixed the "No column lineage data found" error, added a pipeline-wide column view spanning every asset, and expanded participating assets by default so the column-to-column arrows are visible. Also stopped the view from snapping back when lineage data refreshes.
+
+## [0.81.5] - [2026-07-07]
+- Regenerated config-schema.json for all connection types from the Bruin CLI, fixing lint errors for profile-based connections in Athena.
+
+## [0.81.4] - [2026-06-29]
+- Added multi-column sorting to the query preview results table: click column headers to sort by several columns at once (the most recently clicked column becomes the primary key and previous ones become tie-breakers). A "Sorted by" bar shows the active columns in order with controls to flip a column's direction, remove one, or clear all.
+
+## [0.81.3] - [2026-06-24]
+- Recognized Tableau assets (`tableau`, `tableau.dashboard`, `tableau.datasource`, `tableau.workbook`, `tableau.worksheet`) and synced the full set of Bruin CLI asset types, fixing "value not accepted" validation errors and missing autocompletion for newer types.
+
+## [0.81.2] - [2026-06-23]
+- Fixed invalid schedule CodeLens labels for cron step patterns (e.g. `0 */6 * * *`) by generating them with `cronstrue`. Also aligned the `weekly` keyword to Sunday (`@weekly`) to match the Bruin Cloud scheduler.
+
+## [0.81.1] - [2026-06-16]
+- Fixed lineage panel performance: switching files no longer reloads the whole webview or leaks listeners (which made the panel progressively slower over a session), and per-keystroke parsing is now debounced.
+- Retained the lineage webview while hidden so reopening the panel is instant and lands on the current asset instead of briefly showing the previously rendered graph.
+- Fixed the lineage `+` expand button so the view zooms out to reveal newly added upstream/downstream nodes instead of leaving them off-screen.
+
+## [0.81.0] - [2026-06-15]
+- Added local backfill support with interval chunking: run backfills directly from the extension by splitting a date range into chunks (daily, weekly, monthly, etc.) with options to stop on first failure. Backfill runs are grouped in the Run History panel as expandable rows showing per-chunk status and progress.
+
+## [0.80.5] - [2026-06-04]
+- Flattened the run variables UI: variable overrides now appear in an inline panel under the run controls with all variables, defaults, and override inputs visible at once. The "Variable overrides" toggle auto-enables when an override is entered and turns off when the last one is cleared.
+
+## [0.80.4] - [2026-06-04]
+- Allowed `options` property on MSSQL/Synapse connections in `.bruin.yml`.
+- Made environment groups in the connections webview collapsible (collapsed by default) with a per-environment connection count.
+
+## [0.80.3] - [2026-06-02]
+- Added Fabric as a valid ingestr destination.
+- Updated dependencies (vitest, tmp, qs, brace-expansion, js-cookie).
+
+## [0.80.2] - [2026-05-22]
+- Added a connection picker to the "Fill from DB" button on the Columns tab so users can fill columns from a source (or any other) connection instead of only the destination. The new dropdown auto-suggests the source connection on ingestr assets and passes `--connection <name>` to `bruin patch fill-columns-from-db`.
+
+## [0.80.1] - [2026-05-22]
+- Added warning for `interval_modifiers` typos.
+
 ## [0.80.0] - [2026-05-11]
 - Added variant selector to the asset panel for pipelines that declare variants. The selected variant is passed to `bruin run` as `--variant <name>`.
 

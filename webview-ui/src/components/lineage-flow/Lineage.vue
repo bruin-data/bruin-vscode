@@ -205,7 +205,8 @@ import {
   generateGraphFromJSON,
   generateGraphForDownstream,
   generateGraphForUpstream,
-  generateColumnGraph
+  generateColumnGraph,
+  generateColumnGraphForPipeline
 } from "@/utilities/graphGenerator";
 import { fetchAllDownstreams, fetchAllUpstreams } from "@/utilities/assetDependencies";
 import { buildPipelineLineage, applyLayout as applyPipelineLayout } from "@/components/lineage-flow/pipeline-lineage/pipelineLineageBuilder";
@@ -600,7 +601,9 @@ const onAddUpstream = async (nodeId: string) => {
   setEdges(layoutedData.edges);
   await nextTick();
   isLayouting.value = false;
-  await fitViewSmooth(false, false); 
+  // Force an (animated) fit so the viewport zooms out to reveal the newly
+  // expanded upstream nodes — otherwise they're added off-screen.
+  await fitViewSmooth(true, true);
   // Bump version so the next full recompute reflows with correct left/right ordering
   assetGraphVersion.value++;
 };
@@ -629,7 +632,9 @@ const onAddDownstream = async (nodeId: string) => {
   setEdges(layoutedData.edges);
   await nextTick();
   isLayouting.value = false;
-  await fitViewSmooth(false, false); 
+  // Force an (animated) fit so the viewport zooms out to reveal the newly
+  // expanded downstream nodes — otherwise they're added off-screen.
+  await fitViewSmooth(true, true);
   assetGraphVersion.value++;
 };
 
@@ -692,19 +697,31 @@ const handleColumnLevelLineage = async () => {
   await buildColumnElements();
 };
 
+// Identity of the current lineage target; stays stable across the repeated data
+// refreshes for the same asset/pipeline so we can tell a switch from a refresh.
+const computeTargetKey = () => {
+  const ds = props.assetDataset as any;
+  if (!ds) return "";
+  return ds.isPipelineView ? `pipeline:${ds.name ?? ""}` : `asset:${ds.id ?? ds.name ?? ""}`;
+};
+let lastViewKey = "";
+
+// Default view for the current target: pipeline view for a pipeline, else asset.
+const selectDefaultViewForTarget = () => {
+  const isPipeline = Boolean((props.assetDataset as any)?.isPipelineView);
+  showColumnView.value = false;
+  showPipelineView.value = isPipeline;
+  if (isPipeline) {
+    buildPipelineElements();
+  } else if (props.assetDataset && props.pipelineData) {
+    processProperties();
+  }
+};
+
 onMounted(() => {
-  console.log('🚀 [Lineage] Lineage component mounted');
-  console.log('🚀 [Lineage] Props:', { 
-    hasAssetDataset: !!props.assetDataset, 
-    hasPipelineData: !!props.pipelineData, 
-    isLoading: props.isLoading,
-    LineageError: props.LineageError 
-  });
-  
-  // Enable auto-fit for first load
   shouldAutoFit.value = true;
-  
-  processProperties();
+  lastViewKey = computeTargetKey();
+  selectDefaultViewForTarget();
 });
 
 watch(
@@ -719,13 +736,23 @@ watch(
 
 watch(
   () => [props.assetDataset, props.pipelineData],
-  ([newAssetDataset, newPipelineData]) => {
-    // Check if this is a pipeline view and auto-switch
-    if (newAssetDataset && (newAssetDataset as any).isPipelineView) {
-      showPipelineView.value = true;
-      showColumnView.value = false;
+  () => {
+    if (!props.assetDataset) return;
+
+    const key = computeTargetKey();
+    if (key !== lastViewKey) {
+      // Switched target: reset to its default view.
+      lastViewKey = key;
+      selectDefaultViewForTarget();
+      return;
+    }
+
+    // Same target refreshed: rebuild the current view instead of snapping away.
+    if (showColumnView.value) {
+      buildColumnElements();
+    } else if (showPipelineView.value) {
       buildPipelineElements();
-    } else if (newAssetDataset && newPipelineData && !showPipelineView.value && !showColumnView.value) {
+    } else {
       processProperties();
     }
   },
@@ -985,10 +1012,12 @@ const buildColumnElements = async () => {
   }
   error.value = null;
   const lineageData = buildColumnLineage(newPipelineData);
-  const { nodes: initialNodes, edges: initialEdges } = generateColumnGraph(
-    lineageData,
-    props.assetDataset?.name || ""
-  );
+  // In pipeline view there is no single focus asset, so render column lineage
+  // across every asset in the pipeline instead of centering on one.
+  const isPipelineView = Boolean((props.assetDataset as any)?.isPipelineView);
+  const { nodes: initialNodes, edges: initialEdges } = isPipelineView
+    ? generateColumnGraphForPipeline(lineageData)
+    : generateColumnGraph(lineageData, props.assetDataset?.name || "");
   const { nodes: layoutNodes, edges: layoutEdges } = await applyPipelineLayout(initialNodes, initialEdges);
 
   // Save original positions for recalculation

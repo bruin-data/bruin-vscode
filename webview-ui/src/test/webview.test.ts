@@ -8,6 +8,8 @@ import {
   adjustEndDateForExclusive,
   getUpstreams,
   normalizePath,
+  buildBackfillChunks,
+  MAX_BACKFILL_CHUNKS,
 } from "../utilities/helper";
 import {
   getAssetDependencies,
@@ -23,7 +25,7 @@ import FilterTab from "@/components/lineage-flow/filterTab/filterTab.vue";
 import "./mocks/vueFlow"; // Import the mocks
 import { buildPipelineLineage, generateGraph } from "@/components/lineage-flow/pipeline-lineage/pipelineLineageBuilder";
 import { buildColumnLineage, getAssetDatasetWithColumns } from "@/components/lineage-flow/column-level/useColumnLevel";
-import { generateColumnGraph, createColumnLevelEdges, generateGraphFromJSON, generateGraphForUpstream, generateGraphForDownstream } from "@/utilities/graphGenerator";
+import { generateColumnGraph, generateColumnGraphForPipeline, createColumnLevelEdges, generateGraphFromJSON, generateGraphForUpstream, generateGraphForDownstream } from "@/utilities/graphGenerator";
 import { 
   findDownstreamAssets, 
   getDownstreamAssetNames,
@@ -153,7 +155,7 @@ suite("testing webview", () => {
   test("test scheduleToCron", () => {
     const hourly = "0 * * * *";
     const daily = "0 0 * * *";
-    const weekly = "0 0 * * 1";
+    const weekly = "0 0 * * 0";
     const monthly = "0 0 1 * *";
 
     const cronHourly = scheduleToCron("hourly");
@@ -270,8 +272,9 @@ suite("testing webview", () => {
   test('test get previous run for "weekly" schedule', () => {
     schedule = "weekly";
     const { startTime, endTime } = getPreviousRun(schedule, today);
-    assert.strictEqual(startTime, new Date("2024-07-01T00:00:00.000Z").getTime());
-    assert.strictEqual(endTime, new Date("2024-07-08T00:00:00.000Z").getTime());
+    // weekly => @weekly => Sunday midnight (matches the cloud scheduler)
+    assert.strictEqual(startTime, new Date("2024-06-30T00:00:00.000Z").getTime());
+    assert.strictEqual(endTime, new Date("2024-07-07T00:00:00.000Z").getTime());
   });
   /**
    * Test suite for getPreviousRun function with "monthly" schedule.
@@ -359,11 +362,12 @@ suite("testing webview", () => {
   test('test reset Start End Date for "weekly" schedule', () => {
     schedule = "weekly";
     resetStartEndDate(schedule, today, startDate, endDate);
-    assert.strictEqual(startDate.value, "2024-07-01T00:00:00.000Z");
-    assert.strictEqual(endDate.value, "2024-07-08T00:00:00.000Z");
+    // weekly => @weekly => Sunday midnight (matches the cloud scheduler)
+    assert.strictEqual(startDate.value, "2024-06-30T00:00:00.000Z");
+    assert.strictEqual(endDate.value, "2024-07-07T00:00:00.000Z");
 
     const endDateExclusive = adjustEndDateForExclusive(endDate.value);
-    assert.strictEqual(endDateExclusive, "2024-07-07T23:59:59.999999999Z");
+    assert.strictEqual(endDateExclusive, "2024-07-06T23:59:59.999999999Z");
   });
 
   test('test reset Start End Date for "monthly" schedule', () => {
@@ -1342,6 +1346,63 @@ suite('createColumnLevelEdges', () => {
     expect(focusToDownstreamEdge?.data.targetAsset).toBe('downstream_asset');
     expect(focusToDownstreamEdge?.data.sourceColumn).toBe('focus_col');
     expect(focusToDownstreamEdge?.data.targetColumn).toBe('downstream_col');
+  });
+});
+
+suite('generateColumnGraphForPipeline', () => {
+  // a -> b -> c is a chain with column lineage; d is an isolated asset.
+  const assetMap = {
+    a: { name: 'a', columns: [{ name: 'a_col' }], upstreams: [], downstreams: [] },
+    b: {
+      name: 'b',
+      columns: [{ name: 'b_col' }],
+      upstreams: [{ type: 'asset', value: 'a' }],
+      downstreams: []
+    },
+    c: {
+      name: 'c',
+      columns: [{ name: 'c_col' }],
+      upstreams: [{ type: 'asset', value: 'b' }],
+      downstreams: []
+    },
+    d: { name: 'd', columns: [{ name: 'd_col' }], upstreams: [], downstreams: [] }
+  };
+  const columnLineageMap = {
+    b: [{ column: 'b_col', source_columns: [{ asset: 'a', column: 'a_col' }] }],
+    c: [{ column: 'c_col', source_columns: [{ asset: 'b', column: 'b_col' }] }]
+  };
+  const lineageData = { assets: Object.values(assetMap), columnLineageMap, assetMap };
+
+  test('renders a node for every asset in the pipeline, including isolated ones', () => {
+    const { nodes } = generateColumnGraphForPipeline(lineageData);
+    expect(nodes.map(n => n.id).sort()).toEqual(['a', 'b', 'c', 'd']);
+  });
+
+  test('draws asset-level edges for every in-pipeline dependency', () => {
+    const { edges } = generateColumnGraphForPipeline(lineageData);
+    const assetEdges = edges.filter(e => e.data?.type === 'asset-lineage');
+    expect(assetEdges).toHaveLength(2);
+    expect(assetEdges.some(e => e.source === 'a' && e.target === 'b')).toBe(true);
+    expect(assetEdges.some(e => e.source === 'b' && e.target === 'c')).toBe(true);
+  });
+
+  test('draws column-level edges across the whole chain', () => {
+    const { edges } = generateColumnGraphForPipeline(lineageData);
+    const columnEdges = edges.filter(e => e.data?.type === 'column-lineage');
+    expect(columnEdges).toHaveLength(2);
+    expect(columnEdges.some(e => e.id === 'column-a.a_col-to-b.b_col')).toBe(true);
+    expect(columnEdges.some(e => e.id === 'column-b.b_col-to-c.c_col')).toBe(true);
+  });
+
+  test('expands columns by default only for lineage-participating assets', () => {
+    const { nodes } = generateColumnGraphForPipeline(lineageData);
+    const byId = Object.fromEntries(nodes.map(n => [n.id, n]));
+    // a (source), b (source+target), c (target) participate → expanded.
+    expect(byId.a.data.expandColumns).toBe(true);
+    expect(byId.b.data.expandColumns).toBe(true);
+    expect(byId.c.data.expandColumns).toBe(true);
+    // d has no column lineage → left collapsed to reduce clutter.
+    expect(byId.d.data.expandColumns).toBeFalsy();
   });
 });
 
@@ -2666,5 +2727,200 @@ suite('Asset Dependencies - Recursive Fetching', () => {
       const upstreams = fetchAllUpstreams('any_asset', []);
       expect(upstreams).toHaveLength(0);
     });
+  });
+});
+
+suite("buildBackfillChunks", () => {
+  // Cloud-aligned: each window ends one tick before the next starts (exclusive),
+  // so the boundary instant belongs to exactly one chunk.
+  const EXCL = "T23:59:59.999999999Z";
+
+  test("splits a daily range into exclusive-ended one-day windows", () => {
+    const { chunks, truncated } = buildBackfillChunks(
+      "2024-01-01T00:00:00",
+      "2024-01-05T00:00:00",
+      "daily"
+    );
+
+    expect(truncated).toBe(false);
+    expect(chunks).toEqual([
+      { start: "2024-01-01T00:00:00Z", end: `2024-01-01${EXCL}` },
+      { start: "2024-01-02T00:00:00Z", end: `2024-01-02${EXCL}` },
+      { start: "2024-01-03T00:00:00Z", end: `2024-01-03${EXCL}` },
+      { start: "2024-01-04T00:00:00Z", end: `2024-01-04${EXCL}` },
+    ]);
+  });
+
+  test("splits hourly with exclusive ends", () => {
+    const { chunks } = buildBackfillChunks(
+      "2024-01-01T00:00:00",
+      "2024-01-01T03:00:00",
+      "hourly"
+    );
+    expect(chunks).toHaveLength(3);
+    expect(chunks[0]).toEqual({
+      start: "2024-01-01T00:00:00Z",
+      end: "2024-01-01T00:59:59.999999999Z",
+    });
+    expect(chunks[2]).toEqual({
+      start: "2024-01-01T02:00:00Z",
+      end: "2024-01-01T02:59:59.999999999Z",
+    });
+  });
+
+  test("splits weekly with exclusive ends", () => {
+    const { chunks } = buildBackfillChunks(
+      "2024-01-01T00:00:00",
+      "2024-01-15T00:00:00",
+      "weekly"
+    );
+    expect(chunks).toEqual([
+      { start: "2024-01-01T00:00:00Z", end: `2024-01-07${EXCL}` },
+      { start: "2024-01-08T00:00:00Z", end: `2024-01-14${EXCL}` },
+    ]);
+  });
+
+  test("final partial chunk ends at the user's end date exactly", () => {
+    const { chunks } = buildBackfillChunks(
+      "2024-01-15T00:00:00",
+      "2024-03-10T00:00:00",
+      "monthly"
+    );
+    expect(chunks).toEqual([
+      { start: "2024-01-15T00:00:00Z", end: `2024-02-14${EXCL}` },
+      // partial last window stops at the requested end, not an exclusive tick
+      { start: "2024-02-15T00:00:00Z", end: "2024-03-10T00:00:00Z" },
+    ]);
+  });
+
+  test("windows do not overlap — each end is strictly before the next start", () => {
+    const { chunks } = buildBackfillChunks(
+      "2024-01-01T00:00:00",
+      "2024-01-06T12:00:00",
+      "daily"
+    );
+    for (let i = 1; i < chunks.length; i++) {
+      expect(new Date(chunks[i].start).getTime()).toBeGreaterThan(
+        new Date(chunks[i - 1].end).getTime()
+      );
+    }
+    // last chunk reaches the requested end exactly
+    expect(chunks[chunks.length - 1].end).toBe("2024-01-06T12:00:00Z");
+  });
+
+  test("starts are clean Z boundaries; full-window ends are exclusive", () => {
+    const { chunks } = buildBackfillChunks(
+      "2024-01-01T00:00:00.000",
+      "2024-01-03T00:00:00.000",
+      "daily"
+    );
+    expect(chunks).toHaveLength(2);
+    expect(chunks[0].start).toMatch(/^\d{4}-\d{2}-\d{2}T00:00:00Z$/);
+    expect(chunks[0].end).toMatch(/^\d{4}-\d{2}-\d{2}T23:59:59\.999999999Z$/);
+  });
+
+  test("returns no chunks when end is before or equal to start", () => {
+    expect(buildBackfillChunks("2024-01-05", "2024-01-01", "daily")).toEqual({
+      chunks: [],
+      truncated: false,
+    });
+    expect(buildBackfillChunks("2024-01-01", "2024-01-01", "daily").chunks).toHaveLength(0);
+  });
+
+  test("returns no chunks for invalid dates", () => {
+    expect(buildBackfillChunks("not-a-date", "2024-01-02", "daily").chunks).toHaveLength(0);
+  });
+
+  test("caps at MAX_BACKFILL_CHUNKS and flags truncation", () => {
+    const { chunks, truncated } = buildBackfillChunks(
+      "2020-01-01T00:00:00",
+      "2024-01-01T00:00:00",
+      "daily"
+    );
+    expect(chunks).toHaveLength(MAX_BACKFILL_CHUNKS);
+    expect(truncated).toBe(true);
+  });
+});
+
+suite("backfill flag pipeline (AssetGeneral.handleRunBackfill)", () => {
+  const mountBackfill = () =>
+    mount(AssetGeneral, {
+      props: {
+        schedule: "daily",
+        environments: ["prod"],
+        selectedEnvironment: "prod",
+        hasIntervalModifiers: false,
+        assetType: "sql",
+        parameters: {},
+        columns: [],
+        startDate: "",
+        endDate: "",
+      },
+      global: {
+        stubs: {
+          "vscode-button": { template: "<button><slot /></button>" },
+          "vscode-checkbox": { template: "<input type=\"checkbox\" />" },
+        },
+      },
+    });
+
+  const chunks = [
+    { start: "2024-01-01T00:00:00Z", end: "2024-01-02T00:00:00Z" },
+    { start: "2024-01-02T00:00:00Z", end: "2024-01-03T00:00:00Z" },
+  ];
+
+  test("posts bruin.runBackfill with the chunks and a stop-on-failure flag", async () => {
+    const { vscode } = await import("@/utilities/vscode");
+    const wrapper = mountBackfill();
+    const vm: any = wrapper.vm as any;
+    await wrapper.vm.$nextTick();
+
+    (vscode.postMessage as any).mockClear();
+    vm.handleRunBackfill({ chunks, stopOnFailure: true });
+
+    const call = (vscode.postMessage as any).mock.calls
+      .map((c: any[]) => c[0])
+      .find((m: any) => m.command === "bruin.runBackfill");
+    expect(call).toBeTruthy();
+    expect(call.payload.chunks).toEqual(chunks);
+    expect(call.payload.stopOnFailure).toBe(true);
+  });
+
+  test("includes --environment, strips dates/full-refresh, forces a single --sensor-mode skip", async () => {
+    const { vscode } = await import("@/utilities/vscode");
+    const wrapper = mountBackfill();
+    const vm: any = wrapper.vm as any;
+
+    // User has full-refresh on and an explicit (non-skip) sensor mode.
+    vm.checkboxItems = [
+      { name: "Full-Refresh", checked: true },
+      { name: "Interval-modifiers", checked: false },
+      { name: "Exclusive-End-Date", checked: true },
+      { name: "Push-Metadata", checked: false },
+      { name: "Apply-Sensor-Mode", checked: true },
+    ];
+    vm.sensorModeSetting = "wait";
+    vm.startDate = "2024-01-01T00:00:00.000Z";
+    vm.endDate = "2024-01-10T00:00:00.000Z";
+    await wrapper.vm.$nextTick();
+
+    (vscode.postMessage as any).mockClear();
+    vm.handleRunBackfill({ chunks, stopOnFailure: true });
+
+    const call = (vscode.postMessage as any).mock.calls
+      .map((c: any[]) => c[0])
+      .find((m: any) => m.command === "bruin.runBackfill");
+    const flags: string = call.payload.flags;
+
+    // environment is carried through (regression: it used to be dropped)
+    expect(flags).toContain("--environment prod");
+    // global dates stripped — each chunk supplies its own window downstream
+    expect(flags).not.toContain("--start-date");
+    expect(flags).not.toContain("--end-date");
+    // full-refresh never sent for backfill
+    expect(flags).not.toContain("--full-refresh");
+    // sensors forced to skip, the user's "wait" dropped, no duplicate flag
+    expect(flags).not.toContain("--sensor-mode wait");
+    expect((flags.match(/--sensor-mode skip/g) || []).length).toBe(1);
   });
 });

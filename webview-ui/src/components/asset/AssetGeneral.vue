@@ -1,6 +1,6 @@
 <template>
   <!-- Container -->
-  <div class="divide-y overflow-hidden w-full">
+  <div class="divide-y overflow-visible w-full">
     <!-- Header Section -->
     <div class="flex flex-col space-y-3">
       <div class="flex flex-col">
@@ -15,15 +15,98 @@
             <div class="flex flex-col xs:flex-row gap-1 w-full">
               <DateInput label="Start Date" v-model="startDate" />
               <DateInput label="End Date" v-model="endDate" />
-              <div class="flex items-center gap-1 self-start xs:self-end">
-                <button type="button" @click="resetDatesOnSchedule" :title="props.schedule === 'continuous' ? 'Reset dates to today (start of day to now)' : `Reset dates to the previous ${props.schedule || 'scheduled'} run interval`"
-                  class="rounded-sm bg-editor-button-bg p-1 text-editor-button-fg hover:bg-editor-button-hover-bg disabled:opacity-50 disabled:cursor-not-allowed">
+              <!-- Icon group: reset / run-options ⓘ / expand chevron.
+                   Aligned to the bottom of the date inputs so the icons sit
+                   on the same baseline as the input row, not the label. -->
+              <div class="flex items-center self-start xs:self-end h-[26px] gap-0.5 ml-1">
+                <button
+                  type="button"
+                  @click="resetDatesOnSchedule"
+                  :title="props.schedule === 'continuous' ? 'Reset dates to today (start of day to now)' : `Reset dates to the previous ${props.schedule || 'scheduled'} run interval`"
+                  class="h-5 w-5 inline-flex items-center justify-center rounded-sm text-editor-fg opacity-70 hover:opacity-100 hover:bg-editor-button-hover-bg"
+                >
                   <ArrowPathRoundedSquareIcon class="h-3 w-3" aria-hidden="true" />
                 </button>
-                <div class="relative" id="checkbox-group-chevron">
-                  <ChevronUpIcon v-if="showCheckboxGroup" class="h-4 w-4" @click="updateVisibility" />
-                  <ChevronDownIcon v-else class="h-4 w-4" @click="updateVisibility" />
+                <!-- Run options ⓘ button + popover. Lives here (not next to
+                     Run) so it's visually grouped with the other run-config
+                     icons and the chevron that expands their editors. -->
+                <div ref="runOptionsContainer" class="relative inline-flex items-center">
+                  <button
+                    type="button"
+                    id="run-options-button"
+                    class="relative h-5 w-5 inline-flex items-center justify-center rounded-sm text-editor-fg opacity-70 hover:opacity-100 hover:bg-editor-button-hover-bg"
+                    :title="isRunOptionsOpen ? 'Hide run options' : 'Show run options'"
+                    :aria-expanded="isRunOptionsOpen"
+                    aria-controls="run-options-popover"
+                    @click.stop="isRunOptionsOpen = !isRunOptionsOpen"
+                  >
+                    <span class="codicon codicon-info text-[12px]"></span>
+                    <span
+                      v-if="hasNonDefaultRunOptions"
+                      class="absolute top-0.5 right-0.5 h-1.5 w-1.5 rounded-full bg-editorLink-activeFg"
+                      aria-hidden="true"
+                    ></span>
+                  </button>
+                  <transition
+                    enter-active-class="transition ease-out duration-100"
+                    enter-from-class="transform opacity-0 scale-95"
+                    enter-to-class="transform opacity-100 scale-100"
+                    leave-active-class="transition ease-in duration-75"
+                    leave-from-class="transform opacity-100 scale-100"
+                    leave-to-class="transform opacity-0 scale-95"
+                  >
+                    <div
+                      v-if="isRunOptionsOpen"
+                      id="run-options-popover"
+                      class="absolute right-0 top-full mt-1 z-[99999] w-[280px] max-w-[calc(100vw-2rem)] bg-editorWidget-bg border border-commandCenter-border rounded shadow-md"
+                      role="dialog"
+                      aria-label="Run options"
+                    >
+                      <div class="px-2 py-1.5 border-b border-commandCenter-border flex items-center justify-between">
+                        <span class="text-xs font-medium text-editor-fg">Run options</span>
+                        <button
+                          type="button"
+                          class="text-descriptionFg opacity-70 hover:opacity-100 h-5 w-5 inline-flex items-center justify-center"
+                          title="Close"
+                          @click="isRunOptionsOpen = false"
+                        >
+                          <span class="codicon codicon-close text-[10px]"></span>
+                        </button>
+                      </div>
+                      <ul v-if="runOptionRows.length > 0" class="py-1 max-h-[320px] overflow-y-auto">
+                        <li
+                          v-for="row in runOptionRows"
+                          :key="row.id"
+                          :class="[
+                            'flex items-start gap-2 px-2 py-1 text-2xs',
+                            row.onClick ? 'cursor-pointer hover:bg-editor-hoverBackground' : '',
+                          ]"
+                          @click="row.onClick && (row.onClick(), isRunOptionsOpen = false)"
+                        >
+                          <span class="text-editor-fg opacity-60 shrink-0 w-[80px]">{{ row.label }}</span>
+                          <span
+                            class="flex-1 min-w-0 font-mono break-all text-editor-fg"
+                            :title="row.tooltip || row.value"
+                          >{{ row.value }}</span>
+                        </li>
+                      </ul>
+                      <div v-else class="px-2 py-3 text-2xs text-editor-fg opacity-60 italic">
+                        No additional flags, tag filters, or variable overrides set.
+                      </div>
+                    </div>
+                  </transition>
                 </div>
+                <button
+                  type="button"
+                  id="checkbox-group-chevron"
+                  class="h-5 w-5 inline-flex items-center justify-center rounded-sm text-editor-fg opacity-70 hover:opacity-100 hover:bg-editor-button-hover-bg"
+                  :title="showCheckboxGroup ? 'Hide more options' : 'Show more options'"
+                  :aria-expanded="showCheckboxGroup"
+                  @click="updateVisibility"
+                >
+                  <ChevronUpIcon v-if="showCheckboxGroup" class="h-3.5 w-3.5" />
+                  <ChevronDownIcon v-else class="h-3.5 w-3.5" />
+                </button>
               </div>
             </div>
             </div>
@@ -88,16 +171,23 @@
             </div>
             <div v-if="!isPipelineData" class="flex items-center gap-2">
               <div class="flex items-center gap-[1px]">
-                <label class="text-xs text-editor-fg">Variables</label>
-                <span v-if="pipelineVariables && Object.keys(pipelineVariables).length > 0"
-                  class="text-3xs text-editor-fg opacity-60">
-                  ({{ Object.keys(pipelineVariables).length }})
-                </span>
-                <vscode-button appearance="icon"
-                  class="h-3.5 w-auto p-0 opacity-70 hover:opacity-100 inline-flex items-center" id="variables-button"
-                  title="Add temporary variable overrides for this run" @click="toggleVariablesOpen">
-                  <span class="codicon codicon-settings-gear text-[9px]"></span>
-                </vscode-button>
+                <button
+                  type="button"
+                  id="variables-button"
+                  class="inline-flex items-center gap-1 text-xs text-editor-fg opacity-80 hover:opacity-100 px-1 py-0.5 rounded"
+                  :title="isVariablesOpen ? 'Hide variables' : 'Show variables'"
+                  @click="toggleVariablesOpen"
+                >
+                  <span
+                    class="codicon text-[10px]"
+                    :class="isVariablesOpen ? 'codicon-chevron-down' : 'codicon-chevron-right'"
+                  ></span>
+                  <span>Variables</span>
+                  <span v-if="pipelineVariables && Object.keys(pipelineVariables).length > 0"
+                    class="text-3xs opacity-60">
+                    ({{ Object.keys(pipelineVariables).length }})
+                  </span>
+                </button>
               </div>
               <div class="flex items-center gap-0">
                 <vscode-checkbox :checked="applyVariableOverrides"
@@ -110,6 +200,16 @@
               </div>
             </div>
           </div>
+
+          <!-- Inline Variables Panel -->
+          <AssetVariablesPanel
+            v-if="!isPipelineData"
+            :is-open="isVariablesOpen"
+            :variables="pipelineVariables"
+            :initial-overrides="currentVariableOverrides"
+            @save-overrides="handleSaveOverrides"
+            @close="isVariablesOpen = false"
+          />
         </div>
       </div>
 
@@ -269,6 +369,11 @@
         :fullRefreshEnabled="isFullRefreshChecked" @close="showSelectMultipleAssetsDialog = false"
         @run="handleRunMultipleAssets" />
 
+      <BackfillDialog :isOpen="showBackfillDialog" :startDate="startDate" :endDate="endDate"
+        :schedule="props.schedule" :fullRefreshChecked="isFullRefreshChecked"
+        :sensorModeActive="isSensorModeActive" :materializationStrategy="props.materializationStrategy"
+        @close="showBackfillDialog = false" @run="handleRunBackfill" />
+
       <!-- Selected assets summary (clickable to open panel) -->
       <div v-if="selectedAssetsForRun.length > 0 && !showSelectMultipleAssetsDialog"
         class="mt-2 flex items-center gap-1.5 text-xs min-w-0">
@@ -372,11 +477,6 @@
   <AlertWithActions v-if="showFullRefreshAlert" message="Do you want to run with full refresh? This may drop the table"
     confirm-text="Continue" @confirm="confirmFullRefresh" @cancel="cancelFullRefresh" />
 
-  <AssetVariablesPanel v-if="!isPipelineData" :is-open="isVariablesOpen" :variables="pipelineVariables"
-    trigger-element-id="variables-button" :initial-overrides="currentVariableOverrides"
-    :initial-apply-overrides="applyVariableOverrides" @close="closeVariablesPanel"
-    @render-with-overrides="handleRenderWithOverrides" @save-overrides="handleSaveOverrides"
-    @apply-overrides-toggle="handleApplyOverridesToggle" />
 </template>
 <script setup lang="ts">
 import { vscode } from "@/utilities/vscode";
@@ -403,6 +503,8 @@ import ButtonGroup from "@/components/ui/buttons/ButtonGroup.vue";
 import { updateValue, resetStates, determineValidationStatus } from "@/utilities/helper";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/vue";
 import SelectMultipleAssets from "@/components/ui/asset/SelectMultipleAssets.vue";
+import BackfillDialog from "@/components/ui/asset/BackfillDialog.vue";
+import type { BackfillChunk } from "@/utilities/helper";
 import {
   ChevronDownIcon,
   ChevronUpIcon,
@@ -439,6 +541,7 @@ const props = defineProps<{
   assetMetadataError?: string;
   pipeline?: any;
   filePath?: string;
+  materializationStrategy?: string;
 }>();
 
 /**
@@ -487,9 +590,11 @@ const runButtonLabel = computed(() => {
 
 const runDropdownItems = computed(() => [
   { key: 'run-with-downstream', label: 'Run with downstream', disabled: isPipelineFile.value },
+  { key: 'run-with-debug', label: 'Run with debug' },
   { key: 'run-current-pipeline', label: 'Run the whole pipeline' },
   { key: 'run-with-continue', label: 'Continue from last failure' },
   { key: 'run-multiple-assets', label: 'Run multiple assets' },
+  { key: 'run-backfill', label: 'Backfill…', disabled: isPipelineFile.value },
   { key: 'copy-command', label: 'Copy command' },
 ]);
 
@@ -509,6 +614,9 @@ const selectedAssetsDisplay = computed(() => {
 // Full refresh alert state
 const showFullRefreshAlert = ref(false);
 const pendingRunAction = ref<(() => void) | null>(null);
+
+// Local backfill dialog state
+const showBackfillDialog = ref(false);
 
 // Full refresh alert methods
 const confirmFullRefresh = () => {
@@ -551,6 +659,9 @@ const handleRunDropdown = (key: string) => {
     case "run-with-downstream":
       runAssetWithDownstream();
       break;
+    case "run-with-debug":
+      runAssetWithDebug();
+      break;
     case "run-current-pipeline":
       runCurrentPipeline();
       break;
@@ -559,6 +670,9 @@ const handleRunDropdown = (key: string) => {
       break;
     case "run-multiple-assets":
       runMultipleAssets();
+      break;
+    case "run-backfill":
+      showBackfillDialog.value = true;
       break;
     case "copy-command":
       copyRunCommand();
@@ -945,11 +1059,115 @@ const hasActiveTagFilters = computed(
 const isVariablesOpen = ref(false);
 const currentVariableOverrides = ref<Record<string, any>>({});
 const applyVariableOverrides = ref(false);
+
+// Human-readable summary of active overrides, shown on hover of the info icon
+// next to the "Variable overrides" checkbox. Lets users see what's currently
+// being injected without having to expand the variables panel.
+const activeOverridesSummary = computed(() => {
+  const declared = pipelineVariables.value || {};
+  const overrides = currentVariableOverrides.value || {};
+  const lines = Object.keys(declared)
+    .filter((k) => overrides[k] !== undefined && overrides[k] !== null && overrides[k] !== "")
+    .map((k) => {
+      const value = overrides[k];
+      const formatted = typeof value === "string"
+        ? `"${value}"`
+        : typeof value === "object"
+          ? JSON.stringify(value)
+          : String(value);
+      return `${k} = ${formatted}`;
+    });
+  if (lines.length === 0) return "No overrides active";
+  return `Active overrides (click to edit):\n${lines.join("\n")}`;
+});
 const isFullRefreshChecked = computed(() => {
   return checkboxItems.value.find((item) => item.name === "Full-Refresh")?.checked || false;
 });
 
+const isSensorModeActive = computed(() => {
+  return checkboxItems.value.find((item) => item.name === "Apply-Sensor-Mode")?.checked || false;
+});
+
 const activeTagCount = computed(() => includeTags.value.length + excludeTags.value.length);
+
+// Run-options popover (ⓘ button next to the Run button). Surfaces the full
+// effective configuration — env, dates, flags, tags, variable overrides — so
+// the user can verify what the next run will include without expanding the
+// collapsible Options section.
+const isRunOptionsOpen = ref(false);
+const runOptionsContainer = ref<HTMLElement | null>(null);
+
+function openOptionsAndPanel(target: "variables" | "tags") {
+  showCheckboxGroup.value = true;
+  if (target === "variables") {
+    isVariablesOpen.value = true;
+  } else if (target === "tags") {
+    isTagFilterOpen.value = true;
+  }
+}
+
+interface RunOptionRow {
+  id: string;
+  label: string;
+  value: string;
+  tooltip?: string;
+  onClick?: () => void;
+}
+
+const activeFlagLabels = computed(() =>
+  (checkboxItems.value || [])
+    .filter((item: any) => item?.checked)
+    .map((item: any) => String(item.name)),
+);
+
+const hasNonDefaultRunOptions = computed(() => {
+  return (
+    activeFlagLabels.value.length > 0 ||
+    activeTagCount.value > 0 ||
+    (applyVariableOverrides.value && variableOverridesCount.value > 0)
+  );
+});
+
+// Env, variant, and dates each have their own always-visible widgets at the
+// top of the panel, so the popover only surfaces the run config that's
+// otherwise hidden behind the Options collapsible: active flags, tag filters,
+// and applied variable overrides.
+const runOptionRows = computed<RunOptionRow[]>(() => {
+  const rows: RunOptionRow[] = [];
+
+  if (activeFlagLabels.value.length > 0) {
+    rows.push({
+      id: "flags",
+      label: "Flags",
+      value: activeFlagLabels.value.map((n) => `--${n.toLowerCase()}`).join(" "),
+      onClick: () => { showCheckboxGroup.value = true; },
+    });
+  }
+
+  if (activeTagCount.value > 0) {
+    const parts: string[] = [];
+    if (includeTags.value.length > 0) parts.push(`+${includeTags.value.join(", +")}`);
+    if (excludeTags.value.length > 0) parts.push(`-${excludeTags.value.join(", -")}`);
+    rows.push({
+      id: "tags",
+      label: "Tag filters",
+      value: parts.join("  "),
+      onClick: () => openOptionsAndPanel("tags"),
+    });
+  }
+
+  if (applyVariableOverrides.value && variableOverridesCount.value > 0) {
+    rows.push({
+      id: "overrides",
+      label: "Overrides",
+      value: `${variableOverridesCount.value} variable${variableOverridesCount.value === 1 ? "" : "s"} overridden`,
+      tooltip: activeOverridesSummary.value,
+      onClick: () => openOptionsAndPanel("variables"),
+    });
+  }
+
+  return rows;
+});
 const filteredTags = computed(() => {
   const q = tagFilterSearch.value.toLowerCase().trim();
   const all = availableTags.value || [];
@@ -971,6 +1189,12 @@ function onWindowClick(e: MouseEvent) {
     const container = tagFilterContainer.value;
     if (container && !container.contains(e.target as Node)) {
       isTagFilterOpen.value = false;
+    }
+  }
+  if (isRunOptionsOpen.value) {
+    const container = runOptionsContainer.value;
+    if (container && !container.contains(e.target as Node)) {
+      isRunOptionsOpen.value = false;
     }
   }
 }
@@ -1086,6 +1310,10 @@ const checkboxTooltips = computed(() => {
   if (intervalModifiersTooltip.value) {
     tooltips['Interval-modifiers'] = intervalModifiersTooltip.value;
   }
+  tooltips['Apply-Sensor-Mode'] =
+    `Runs sensors with --sensor-mode ${sensorModeSetting.value}. ` +
+    `Change the mode in the editor Settings (Cmd/Ctrl+,) ` +
+    `by searching "sensor mode" (bruin.run.sensorMode: once / skip / wait).`;
   return tooltips;
 });
 
@@ -1425,13 +1653,17 @@ const handleEnvironmentChange = (env) => {
 
 function buildCommandPayload(
   basePayload,
-  options: { downstream?: boolean; continue?: boolean } = {}
+  options: { downstream?: boolean; continue?: boolean; debug?: boolean } = {}
 ) {
-  const { downstream = false, continue: continueFlag = false } = options;
+  const { downstream = false, continue: continueFlag = false, debug = false } = options;
   let payload = basePayload;
 
   if (downstream) {
     payload += " --downstream";
+  }
+
+  if (debug) {
+    payload += " --debug";
   }
 
   if (continueFlag) {
@@ -1514,6 +1746,75 @@ function runAssetOnly() {
   vscode.postMessage({
     command: "bruin.runSql",
     payload,
+  });
+}
+
+// Run the current asset with the --debug flag.
+function runAssetWithDebug() {
+  const fullRefreshChecked = checkboxItems.value.find(
+    (item) => item.name === "Full-Refresh"
+  )?.checked;
+
+  const getRunPayload = () => {
+    const baseFlags = getCheckboxChangePayload();
+    return isPipelineData.value ? baseFlags : stripAllTagFlags(baseFlags);
+  };
+
+  const send = () => {
+    vscode.postMessage({
+      command: "bruin.runSql",
+      payload: buildCommandPayload(getRunPayload(), { debug: true }),
+    });
+  };
+
+  if (fullRefreshChecked) {
+    showFullRefreshConfirmation(send);
+    return;
+  }
+
+  send();
+}
+
+// Remove the global --start-date/--end-date flags; backfill supplies a
+// per-chunk window instead.
+function stripDateFlags(flags: string): string {
+  // \s* (not \s) so the flag is still stripped when it is the first token —
+  // upstream stripFullRefreshFlag trims, so the string can begin with --start-date.
+  return flags
+    .replace(/\s*--start-date\s+[^\s]+/g, "")
+    .replace(/\s*--end-date\s+[^\s]+/g, "")
+    .trim();
+}
+
+// Kick off a local backfill. We send the per-chunk windows plus the base flags
+// with the global dates and --full-refresh stripped: each chunk supplies its
+// own --start-date/--end-date, and full-refresh is intentionally excluded
+// because the CLI ignores the chunk window under full-refresh (it reloads from
+// the pipeline start_date). Correct window re-runs rely on the asset's
+// incremental strategy.
+function handleRunBackfill(payload: { chunks: BackfillChunk[]; stopOnFailure: boolean }) {
+  showBackfillDialog.value = false;
+  if (!payload.chunks || payload.chunks.length === 0) return;
+
+  // buildCommandPayload adds --environment/--variant; without it the backfill
+  // would silently run against the default environment. Then strip the global
+  // dates (each chunk supplies its own), --full-refresh (ignored by backfill),
+  // and tag flags (this is an asset-level run).
+  let baseFlags = stripDateFlags(
+    stripFullRefreshFlag(stripAllTagFlags(buildCommandPayload(getCheckboxChangePayload())))
+  );
+
+  // Sensors don't make sense replaying historical windows — force skip so a
+  // backfill never blocks on a sensor (overrides any Apply-Sensor-Mode choice).
+  baseFlags = `${baseFlags.replace(/\s*--sensor-mode\s+\S+/g, "").trim()} --sensor-mode skip`.trim();
+
+  vscode.postMessage({
+    command: "bruin.runBackfill",
+    payload: {
+      chunks: payload.chunks,
+      flags: baseFlags,
+      stopOnFailure: payload.stopOnFailure,
+    },
   });
 }
 
@@ -1627,14 +1928,6 @@ function handleIngestrSave(parameters) {
 
 function toggleVariablesOpen() {
   isVariablesOpen.value = !isVariablesOpen.value;
-}
-
-function closeVariablesPanel() {
-  isVariablesOpen.value = false;
-}
-
-function handleRenderWithOverrides(overrides: Record<string, any>) {
-  currentVariableOverrides.value = { ...overrides };
 }
 
 function handleSaveOverrides(overrides: Record<string, any>, applyOverrides: boolean) {
@@ -1908,6 +2201,16 @@ function receiveMessage(event: { data: any }) {
             checkboxState: envelope.payload,
             sensorModeSetting: sensorModeSetting.value,
           });
+        } catch (_) { }
+      }
+      break;
+
+    case "sensorModeSettingChanged":
+      if (envelope.sensorModeSetting) {
+        sensorModeSetting.value = envelope.sensorModeSetting;
+        try {
+          const prevState = (vscode.getState() as Record<string, any>) || {};
+          vscode.setState({ ...prevState, sensorModeSetting: sensorModeSetting.value });
         } catch (_) { }
       }
       break;

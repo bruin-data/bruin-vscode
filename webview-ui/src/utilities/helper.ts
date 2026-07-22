@@ -59,6 +59,94 @@ export const concatCommandFlags = (
   return [startDateFlag, endDateFlag, ...checkboxesFlags, ...intervalModifiersFlags, sensorModeFlag, ...tagFlags].filter(flag => flag).join("");
 };
 
+export type BackfillGranularity = "hourly" | "daily" | "weekly" | "monthly";
+
+export interface BackfillChunk {
+  start: string;
+  end: string;
+}
+
+// Hard cap so a wide range + small granularity can't generate thousands of runs.
+export const MAX_BACKFILL_CHUNKS = 365;
+
+const GRANULARITY_DURATIONS: Record<BackfillGranularity, Record<string, number>> = {
+  hourly: { hours: 1 },
+  daily: { days: 1 },
+  weekly: { weeks: 1 },
+  monthly: { months: 1 },
+};
+
+/**
+ * Splits a date range into chunk windows for a local backfill, matching the
+ * cloud backfill's `splitIntervals` semantics.
+ *
+ * Each window starts at the step boundary and ends one tick *before* the next
+ * window starts (an exclusive end, e.g. `…T23:59:59.999999999Z`), so the
+ * boundary instant belongs to exactly one chunk — no double-counting. The next
+ * window's start is the full step boundary. The final partial window ends at
+ * the user's `endDate` exactly. This mirrors cloud:
+ *   intervalEnd = start + step - 1 tick;  end = min(intervalEnd, endDate)
+ *
+ * Returns `{ chunks, truncated }` where `truncated` is true when the range
+ * produced more than MAX_BACKFILL_CHUNKS windows and was cut short.
+ */
+export const buildBackfillChunks = (
+  startInput: string,
+  endInput: string,
+  granularity: BackfillGranularity
+): { chunks: BackfillChunk[]; truncated: boolean } => {
+  const start = DateTime.fromISO(startInput, { zone: "utc" });
+  const end = DateTime.fromISO(endInput, { zone: "utc" });
+
+  if (!start.isValid || !end.isValid || end <= start) {
+    return { chunks: [], truncated: false };
+  }
+
+  const step = GRANULARITY_DURATIONS[granularity];
+  const chunks: BackfillChunk[] = [];
+  let cursor = start;
+  let truncated = false;
+
+  while (cursor < end) {
+    const fullNext = cursor.plus(step);
+    // Full window → exclusive end (one tick before the next start). Final
+    // partial window → the user's end exactly. min(intervalEnd, end), cloud-style.
+    const chunkEnd =
+      fullNext <= end
+        ? adjustEndDateForExclusive(toBackfillBoundary(fullNext))
+        : toBackfillBoundary(end);
+    chunks.push({
+      start: toBackfillBoundary(cursor),
+      end: chunkEnd,
+    });
+    if (chunks.length >= MAX_BACKFILL_CHUNKS && fullNext < end) {
+      truncated = true;
+      break;
+    }
+    cursor = fullNext;
+  }
+
+  return { chunks, truncated };
+};
+
+const toBackfillBoundary = (dt: DateTime): string => {
+  // Match concatCommandFlags: emit ISO with a trailing Z, no fractional seconds.
+  return dt.toUTC().toISO({ suppressMilliseconds: true, includeOffset: false }) + "Z";
+};
+
+/**
+ * Formats a backfill chunk-window boundary (ISO) for display: date-only when
+ * it lands on midnight, otherwise with the time. UTC, Luxon-based.
+ */
+export const formatBackfillBoundary = (iso?: string): string => {
+  if (!iso) return "?";
+  const dt = DateTime.fromISO(iso, { zone: "utc" });
+  if (!dt.isValid) return iso;
+  return dt.hour === 0 && dt.minute === 0
+    ? dt.toFormat("yyyy-MM-dd")
+    : dt.toFormat("yyyy-MM-dd HH:mm");
+};
+
 export const handleError = (validationError: any | null, renderSQLAssetError: any | null) => {
   if (validationError || renderSQLAssetError) {
     let errorMessage = validationError || renderSQLAssetError || "An error occurred";
@@ -185,10 +273,13 @@ export const scheduleToCron = (schedule: string) => {
     return { cronSchedule: schedule, error: null };
   }
 
+  // Match the cloud scheduler's interpretation of these keywords (it uses cron's
+  // @-aliases), so local backfill windows line up with how pipelines actually run.
+  // Notably @weekly is Sunday midnight, not Monday.
   const cronSchedules = {
     hourly: "0 * * * *",
     daily: "0 0 * * *",
-    weekly: "0 0 * * 1",
+    weekly: "0 0 * * 0",
     monthly: "0 0 1 * *",
   };
 

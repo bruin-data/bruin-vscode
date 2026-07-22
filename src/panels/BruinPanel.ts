@@ -15,6 +15,9 @@ import {
   formatInIntegratedTerminal,
   escapeFilePath,
   runMultipleAssetsInTerminal,
+  runBackfillInTerminal,
+  supportsBackfillFlags,
+  BACKFILL_MIN_CLI_VERSION,
 } from "../bruin";
 import { BruinFill } from "../bruin/bruinFill";
 import { BruinLockDependencies } from "../bruin/bruinLockDependencies";
@@ -93,9 +96,35 @@ export class BruinPanel {
   private _currentEndDate: string = "";
   private _currentEnvironment: string = "";
   private _sensorModeSetting: string = "skip";
+  // Assets with an asset-metadata CLI call currently in flight, so duplicate
+  // requests for the same file (fired several times per switch) are coalesced.
+  private _metadataInFlight = new Set<string>();
 
   public static setExtensionContext(context: vscode.ExtensionContext): void {
     BruinPanel._extensionContext = context;
+  }
+
+  /**
+   * Persistent cache of the last known CLI install status so a fresh webview
+   * can boot directly into the main UI when the user has the CLI installed,
+   * instead of flashing the install screen while we await `bruin --version`.
+   */
+  private static readonly CLI_INSTALLED_CACHE_KEY = "bruin.cli.installedCache";
+
+  private static getCachedCliInstalled(): boolean | null {
+    const ctx = BruinPanel._extensionContext;
+    if (!ctx) return null;
+    const cached = ctx.globalState.get<boolean | undefined>(BruinPanel.CLI_INSTALLED_CACHE_KEY);
+    return typeof cached === "boolean" ? cached : null;
+  }
+
+  private static async setCachedCliInstalled(installed: boolean): Promise<void> {
+    const ctx = BruinPanel._extensionContext;
+    if (!ctx) return;
+    if (ctx.globalState.get<boolean | undefined>(BruinPanel.CLI_INSTALLED_CACHE_KEY) === installed) {
+      return; // no-op write avoidance
+    }
+    await ctx.globalState.update(BruinPanel.CLI_INSTALLED_CACHE_KEY, installed);
   }
 
   /**
@@ -222,6 +251,18 @@ export class BruinPanel {
             }
           }
         }
+      }),
+
+      // Keep the open panel in sync when the sensor-mode setting changes, so the
+      // run command uses the current mode instead of the value read at panel open.
+      workspace.onDidChangeConfiguration((e) => {
+        if (e.affectsConfiguration("bruin.run.sensorMode")) {
+          this._sensorModeSetting = getSensorModeSetting();
+          this._panel.webview.postMessage({
+            command: "sensorModeSettingChanged",
+            sensorModeSetting: this._sensorModeSetting,
+          });
+        }
       })
     );
 
@@ -235,7 +276,15 @@ export class BruinPanel {
   }
 
   private async _initializeWebview(extensionUri: Uri): Promise<void> {
-    this._panel.webview.html = this._getWebviewContent(this._panel.webview, extensionUri, null);
+    // Boot the webview with the last-known CLI install status so users who
+    // already have the CLI don't see the install screen flash while we
+    // re-verify in the background.
+    const cachedCliInstalled = BruinPanel.getCachedCliInstalled();
+    this._panel.webview.html = this._getWebviewContent(
+      this._panel.webview,
+      extensionUri,
+      cachedCliInstalled,
+    );
     this._lastRenderedDocumentUri = window.activeTextEditor?.document.uri;
     this._setWebviewMessageListener(this._panel.webview);
 
@@ -245,11 +294,48 @@ export class BruinPanel {
     try {
       const bruinInstaller = new BruinInstallCLI();
       const detectionTimeoutMs = 2000;
+      let timedOut = false;
       const timeoutPromise = new Promise<{ installed: boolean; isWindows: boolean; gitAvailable: boolean }>((resolve) => {
-        setTimeout(() => resolve({ installed: false, isWindows: process.platform === 'win32', gitAvailable: false }), detectionTimeoutMs);
+        setTimeout(() => {
+          timedOut = true;
+          resolve({ installed: false, isWindows: process.platform === 'win32', gitAvailable: false });
+        }, detectionTimeoutMs);
       });
+
+      // Keep a reference to the real check so we can still react to its result
+      // when the timeout wins the race (slow `bruin --version` on cold shells).
+      const realCheck = bruinInstaller.checkBruinCliInstallation();
+      realCheck
+        .then((real) => {
+          // Cache the real answer regardless of who won the race.
+          void BruinPanel.setCachedCliInstalled(real.installed);
+          // If the timeout already pushed a "not installed" fallback to the
+          // webview, send a corrected status now that the real check has
+          // returned, so the UI flips off the install screen.
+          if (timedOut) {
+            this._cliInstalled = real.installed;
+            this._panel.webview.postMessage({
+              command: "bruinCliInstallationStatus",
+              installed: real.installed,
+              isWindows: real.isWindows,
+              gitAvailable: real.gitAvailable,
+            });
+            if (real.installed && this._lastRenderedDocumentUri) {
+              this._runPostInstallSideEffects(this._lastRenderedDocumentUri).catch(() => {});
+            }
+          }
+        })
+        .catch(() => {
+          // Real check threw — treat as "not installed" so we don't keep
+          // showing the main UI on cold opens only to flip back to the
+          // install screen each time. The webview message itself is sent
+          // by the outer catch (or by the timed-out path, which already
+          // pushed `installed: false`).
+          void BruinPanel.setCachedCliInstalled(false);
+        });
+
       const { installed, isWindows, gitAvailable } = await Promise.race([
-        bruinInstaller.checkBruinCliInstallation(),
+        realCheck,
         timeoutPromise,
       ]);
       this._cliInstalled = installed;
@@ -260,18 +346,18 @@ export class BruinPanel {
         gitAvailable,
       });
       if (installed && this._lastRenderedDocumentUri) {
-        const cliFilePath = this._lastRenderedDocumentUri.fsPath;
-        const isActualAsset = await this._isAssetFile(cliFilePath);
-        
-        if (isActualAsset) {
-          parseAssetCommand(this._lastRenderedDocumentUri);
-        } else {
-          await this._handleAssetDetection(this._lastRenderedDocumentUri);
-        }
-        getEnvListCommand(this._lastRenderedDocumentUri);
+        await this._runPostInstallSideEffects(this._lastRenderedDocumentUri);
       }
     } catch (error) {
       this._cliInstalled = false;
+      // Persist so the next cold open doesn't flash the cached "installed"
+      // main UI before flipping back to the install screen. The `realCheck`
+      // catch handler also writes this, but doing it here as well covers the
+      // case where the synchronous spawn failed before realCheck was even
+      // created (defensive — `bruinInstaller.checkBruinCliInstallation()`
+      // shouldn't throw synchronously today, but we don't want to depend
+      // on that).
+      void BruinPanel.setCachedCliInstalled(false);
       this._panel.webview.postMessage({
         command: "bruinCliInstallationStatus",
         installed: false,
@@ -279,6 +365,22 @@ export class BruinPanel {
         gitAvailable: false,
       });
     }
+  }
+
+  /**
+   * Side effects we run once we know the CLI is installed: parse the asset,
+   * fetch the env list, etc. Extracted so it can run either from the racing
+   * timeout path or from the late real-check follow-up.
+   */
+  private async _runPostInstallSideEffects(uri: Uri): Promise<void> {
+    const filePath = uri.fsPath;
+    const isActualAsset = await this._isAssetFile(filePath);
+    if (isActualAsset) {
+      parseAssetCommand(uri);
+    } else {
+      await this._handleAssetDetection(uri);
+    }
+    getEnvListCommand(uri);
   }
 
 
@@ -567,13 +669,8 @@ export class BruinPanel {
               // Render with flags if we have a valid document
               if (this._lastRenderedDocumentUri?.fsPath) {
                 await renderCommandWithFlags(this._flags, this._lastRenderedDocumentUri.fsPath);
-                const assetMetadata = new BruinInternalAssetMetadata(
-                  getBruinExecutablePath(),
-                  vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || ""  
-                );
-                await assetMetadata.getAssetMetadata(
+                await this._fetchAssetMetadata(
                   this._lastRenderedDocumentUri.fsPath,
-                  undefined,
                   this._currentStartDate,
                   this._currentEndDate,
                   this._currentEnvironment
@@ -732,6 +829,32 @@ export class BruinPanel {
             runMultipleAssetsInTerminal(message.payload.assets, message.payload.flags, "bruin");
             break;
 
+          case "bruin.runBackfill":
+            trackEvent("Command Executed", { command: "runBackfill", source: "extension" });
+            if (!this._lastRenderedDocumentUri) {
+              return;
+            }
+            if (!message.payload?.chunks || message.payload.chunks.length === 0) {
+              return;
+            }
+            // Backfill relies on the CLI's --backfill-id/--backfill-total flags;
+            // older CLIs reject them. Block (don't run a command that would fail).
+            if (!(await supportsBackfillFlags())) {
+              vscode.window.showErrorMessage(
+                `Local backfill requires Bruin CLI v${BACKFILL_MIN_CLI_VERSION} or newer. Please update the Bruin CLI and try again.`
+              );
+              return;
+            }
+            runBackfillInTerminal(
+              this._lastRenderedDocumentUri.fsPath,
+              message.payload.chunks,
+              message.payload.flags,
+              message.payload.stopOnFailure !== false,
+              "",
+              "bruin"
+            );
+            break;
+
           case "bruin.getAssetDetails":
             if (!this._lastRenderedDocumentUri) {
               return;
@@ -851,6 +974,10 @@ export class BruinPanel {
             const fillColumnsFlags = this._currentEnvironment
               ? ["--environment", this._currentEnvironment]
               : [];
+            const fillConnectionOverride = message.payload?.connection;
+            if (typeof fillConnectionOverride === "string" && fillConnectionOverride.length > 0) {
+              fillColumnsFlags.push("--connection", fillConnectionOverride);
+            }
             await fillColumns.fillColumns(assetPathFillColumn, { flags: fillColumnsFlags });
             parseAssetCommand(this._lastRenderedDocumentUri);
             return;
@@ -1252,7 +1379,9 @@ export class BruinPanel {
             break;
           case "bruin.getPipelineAssets":
             console.log("Getting pipeline assets");
-            flowLineageCommand(this._lastRenderedDocumentUri, "BruinPanel");
+            // -c: also feeds the lineage panel, so a column-less fetch would
+            // clobber its column-level lineage.
+            flowLineageCommand(this._lastRenderedDocumentUri, "BruinPanel", true);
             break;
           case "bruin.createEnvironment":
             trackEvent("Command Executed", { command: "createEnvironment", source: "extension" });
@@ -1397,38 +1526,23 @@ export class BruinPanel {
             break;
           case "bruin.showPipelineLineage":
             if (this._lastRenderedDocumentUri) {
-              await flowLineageCommand(this._lastRenderedDocumentUri);
+              // -c so the panel's Column Level Lineage view has column data.
+              await flowLineageCommand(this._lastRenderedDocumentUri, undefined, true);
             }
             break;
-          case "bruin.getAssetMetadata":
+          case "bruin.getAssetMetadata": {
             if (!this._lastRenderedDocumentUri) {
               return;
             }
-            const metadataAssetPath = this._lastRenderedDocumentUri.fsPath;
-            const isAssetForMetadata = await this._isAssetFile(metadataAssetPath);
-            
-            if (isAssetForMetadata) {
-              const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || "";
-              const assetMetadata = new BruinInternalAssetMetadata(
-                getBruinExecutablePath(),
-                workspaceFolder
-              );
-              
-              // Use payload values if provided, otherwise use stored values
-              const { startDate, endDate, environment } = message.payload || {};
-              const finalStartDate = startDate || this._currentStartDate;
-              const finalEndDate = endDate || this._currentEndDate;
-              const finalEnvironment = environment || this._currentEnvironment;
-              
-              await assetMetadata.getAssetMetadata(
-                metadataAssetPath,
-                undefined,
-                finalStartDate,
-                finalEndDate,
-                finalEnvironment
-              );
-            }
+            const meta = message.payload || {};
+            await this._fetchAssetMetadata(
+              this._lastRenderedDocumentUri.fsPath,
+              meta.startDate || this._currentStartDate,
+              meta.endDate || this._currentEndDate,
+              meta.environment || this._currentEnvironment
+            );
             break;
+          }
           case "bruin.parsePipelineForVariables":
             if (!this._lastRenderedDocumentUri) {
               return;
@@ -1511,6 +1625,8 @@ export class BruinPanel {
   private async checkAndUpdateBruinCliStatus() {
     const bruinInstaller = new BruinInstallCLI();
     const { installed, isWindows, gitAvailable } = await bruinInstaller.checkBruinCliInstallation();
+    this._cliInstalled = installed;
+    void BruinPanel.setCachedCliInstalled(installed);
     this._panel.webview.postMessage({
       command: "bruinCliInstallationStatus",
       installed,
@@ -1683,6 +1799,44 @@ export class BruinPanel {
         console.error("Debounced SQL render failed:", err);
       }
     }, 200);
+  }
+
+  private _isPipelineOrConfigFile(filePath: string): boolean {
+    return (
+      filePath.endsWith("pipeline.yml") ||
+      filePath.endsWith("pipeline.yaml") ||
+      filePath.endsWith(".bruin.yml") ||
+      filePath.endsWith(".bruin.yaml")
+    );
+  }
+
+  // Fetch asset metadata, guarding against the CLI panic on pipeline/config files
+  // and coalescing duplicate concurrent requests for the same asset.
+  private async _fetchAssetMetadata(
+    assetPath: string,
+    startDate?: string,
+    endDate?: string,
+    environment?: string
+  ): Promise<void> {
+    if (this._isPipelineOrConfigFile(assetPath)) {
+      return;
+    }
+    if (this._metadataInFlight.has(assetPath)) {
+      return;
+    }
+    this._metadataInFlight.add(assetPath);
+    try {
+      if (!(await this._isAssetFile(assetPath))) {
+        return;
+      }
+      const assetMetadata = new BruinInternalAssetMetadata(
+        getBruinExecutablePath(),
+        vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || ""
+      );
+      await assetMetadata.getAssetMetadata(assetPath, undefined, startDate, endDate, environment);
+    } finally {
+      this._metadataInFlight.delete(assetPath);
+    }
   }
 
   private async _isAssetFile(filePath: string): Promise<boolean> {
