@@ -864,14 +864,22 @@ const buildPipelineElements = async () => {
     pipelineElements.value = { nodes: [], edges: [] };
     return;
   }
-  const lineageData = buildPipelineLineage(props.pipelineData);
-  const { nodes: initialNodes, edges: initialEdges } = (await import("@/components/lineage-flow/pipeline-lineage/pipelineLineageBuilder")).generateGraph(
-    lineageData,
-    props.assetDataset?.name || ""
-  );
-  const { nodes: layoutNodes, edges: layoutEdges } = await applyPipelineLayout(initialNodes, initialEdges);
-  pipelineElements.value = { nodes: layoutNodes, edges: layoutEdges };
-  console.log(`[LT] buildPipeline DONE nodes=${layoutNodes.length} edges=${layoutEdges.length} t=${Math.round(performance.now())}`);
+  // Clear the previous pipeline's graph and show loading so the stale graph
+  // isn't left on screen while this (possibly slow) build runs.
+  pipelineElements.value = { nodes: [], edges: [] };
+  isLayouting.value = true;
+  try {
+    const lineageData = buildPipelineLineage(props.pipelineData);
+    const { nodes: initialNodes, edges: initialEdges } = (await import("@/components/lineage-flow/pipeline-lineage/pipelineLineageBuilder")).generateGraph(
+      lineageData,
+      props.assetDataset?.name || ""
+    );
+    const { nodes: layoutNodes, edges: layoutEdges } = await applyPipelineLayout(initialNodes, initialEdges);
+    pipelineElements.value = { nodes: layoutNodes, edges: layoutEdges };
+    console.log(`[LT] buildPipeline DONE nodes=${layoutNodes.length} edges=${layoutEdges.length} t=${Math.round(performance.now())}`);
+  } finally {
+    isLayouting.value = false;
+  }
 };
 
 const onPipelineNodesInitialized = async () => {
@@ -1062,25 +1070,33 @@ const buildColumnElements = async () => {
   }
   columnFetchPending.value = false;
   error.value = null;
-  const lineageData = buildColumnLineage(newPipelineData);
-  // In pipeline view there is no single focus asset, so render column lineage
-  // across every asset in the pipeline instead of centering on one.
-  const isPipelineView = Boolean((props.assetDataset as any)?.isPipelineView);
-  const { nodes: initialNodes, edges: initialEdges } = isPipelineView
-    ? generateColumnGraphForPipeline(lineageData)
-    : generateColumnGraph(lineageData, props.assetDataset?.name || "");
-  const { nodes: layoutNodes, edges: layoutEdges } = await applyPipelineLayout(initialNodes, initialEdges);
+  // Clear the previous graph and show loading so a stale column graph isn't
+  // left on screen while this build runs.
+  columnElements.value = { nodes: [], edges: [] };
+  isLayouting.value = true;
+  try {
+    const lineageData = buildColumnLineage(newPipelineData);
+    // In pipeline view there is no single focus asset, so render column lineage
+    // across every asset in the pipeline instead of centering on one.
+    const isPipelineView = Boolean((props.assetDataset as any)?.isPipelineView);
+    const { nodes: initialNodes, edges: initialEdges } = isPipelineView
+      ? generateColumnGraphForPipeline(lineageData)
+      : generateColumnGraph(lineageData, props.assetDataset?.name || "");
+    const { nodes: layoutNodes, edges: layoutEdges } = await applyPipelineLayout(initialNodes, initialEdges);
 
-  // Save original positions for recalculation
-  originalColumnNodePositions.value = {};
-  layoutNodes.forEach(node => {
-    originalColumnNodePositions.value[node.id] = {
-      x: node.position.x,
-      y: node.position.y
-    };
-  });
+    // Save original positions for recalculation
+    originalColumnNodePositions.value = {};
+    layoutNodes.forEach(node => {
+      originalColumnNodePositions.value[node.id] = {
+        x: node.position.x,
+        y: node.position.y
+      };
+    });
 
-  columnElements.value = { nodes: layoutNodes, edges: layoutEdges };
+    columnElements.value = { nodes: layoutNodes, edges: layoutEdges };
+  } finally {
+    isLayouting.value = false;
+  }
 };
 
 const onColumnNodesInitialized = async () => {
