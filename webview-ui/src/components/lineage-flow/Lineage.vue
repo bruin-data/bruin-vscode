@@ -232,6 +232,9 @@ const columnFetchPending = ref(false);
 // True while a pipeline/column graph is being (re)built. Drives an immediate
 // loading overlay for those slower builds, instead of a bare dark canvas.
 const isBuildingView = ref(false);
+// Bumped whenever a (re)build starts; an async build only applies its result
+// if it's still the latest, so a slow older build can't overwrite a newer one.
+let buildGeneration = 0;
 const showLoadingIndicator = ref(false);
 let loadingTimer: NodeJS.Timeout | null = null;
 const shouldAutoFit = ref(true);
@@ -529,6 +532,7 @@ const _updateGraph = async () => {
     setNodes([]);
     setEdges([]);
 
+    const gen = ++buildGeneration;
     try {
       const graphData = currentGraphData.value;
       if (graphData.nodes.length > 0) {
@@ -538,12 +542,16 @@ const _updateGraph = async () => {
           layoutedGraphData = await applyLayout(graphData.nodes, graphData.edges);
           layoutCache.value.set(key, layoutedGraphData);
         }
+        // A newer build started while we were laying out; discard this result.
+        if (gen !== buildGeneration) {
+          return;
+        }
         setNodes(layoutedGraphData.nodes);
         setEdges(layoutedGraphData.edges);
         isLayouting.value = false;
         isLoadingLocal.value = false;
         await nextTick();
-        
+
         await fitViewSmooth(true, false);
       } else {
         setNodes([]);
@@ -818,6 +826,19 @@ watch(
   { immediate: false }
 );
 
+// A parse error (e.g. an on-demand column fetch that failed) must clear any
+// pending/building state so the spinner can't hang, and surface the error.
+watch(
+  () => props.LineageError,
+  (newError) => {
+    if (newError) {
+      columnFetchPending.value = false;
+      isBuildingView.value = false;
+      error.value = newError;
+    }
+  }
+);
+
 onNodeMouseEnter((event: NodeMouseEvent) => {
   if (showPipelineView.value || showColumnView.value) return;
   const hoveredNode = event.node;
@@ -878,6 +899,7 @@ const buildPipelineElements = async () => {
   // isn't left on screen while this (possibly slow) build runs.
   pipelineElements.value = { nodes: [], edges: [] };
   isBuildingView.value = true;
+  const gen = ++buildGeneration;
   try {
     const lineageData = buildPipelineLineage(props.pipelineData);
     const { nodes: initialNodes, edges: initialEdges } = (await import("@/components/lineage-flow/pipeline-lineage/pipelineLineageBuilder")).generateGraph(
@@ -885,9 +907,15 @@ const buildPipelineElements = async () => {
       props.assetDataset?.name || ""
     );
     const { nodes: layoutNodes, edges: layoutEdges } = await applyPipelineLayout(initialNodes, initialEdges);
+    // A newer build started while we were laying out; discard this stale result.
+    if (gen !== buildGeneration) {
+      return;
+    }
     pipelineElements.value = { nodes: layoutNodes, edges: layoutEdges };
   } finally {
-    isBuildingView.value = false;
+    if (gen === buildGeneration) {
+      isBuildingView.value = false;
+    }
   }
 };
 
@@ -1061,27 +1089,24 @@ const onColumnNodeClick = (nodeId: string) => {
 
 const buildColumnElements = async () => {
   const newPipelineData = props.pipelineData;
+  // We only reach here once data is available, so any pending on-demand fetch
+  // has resolved — clear it so the spinner can't hang if columns are absent.
+  columnFetchPending.value = false;
   if (!newPipelineData) {
     columnElements.value = { nodes: [], edges: [] };
     return;
   }
   if (!hasColumnLineageData(newPipelineData)) {
-    // Still waiting on the on-demand `-c` fetch: keep the spinner, no error yet.
-    if (columnFetchPending.value) {
-      columnElements.value = { nodes: [], edges: [] };
-      return;
-    }
-    console.warn("No column lineage data available. The data may have been parsed without the -c flag.");
     columnElements.value = { nodes: [], edges: [] };
     error.value = "No column lineage data found. To view column-level lineage, ensure the pipeline data includes column information";
     return;
   }
-  columnFetchPending.value = false;
   error.value = null;
   // Clear the previous graph and show loading so a stale column graph isn't
   // left on screen while this build runs.
   columnElements.value = { nodes: [], edges: [] };
   isBuildingView.value = true;
+  const gen = ++buildGeneration;
   try {
     const lineageData = buildColumnLineage(newPipelineData);
     // In pipeline view there is no single focus asset, so render column lineage
@@ -1091,6 +1116,10 @@ const buildColumnElements = async () => {
       ? generateColumnGraphForPipeline(lineageData)
       : generateColumnGraph(lineageData, props.assetDataset?.name || "");
     const { nodes: layoutNodes, edges: layoutEdges } = await applyPipelineLayout(initialNodes, initialEdges);
+    // A newer build started while we were laying out; discard this stale result.
+    if (gen !== buildGeneration) {
+      return;
+    }
 
     // Save original positions for recalculation
     originalColumnNodePositions.value = {};
@@ -1103,7 +1132,9 @@ const buildColumnElements = async () => {
 
     columnElements.value = { nodes: layoutNodes, edges: layoutEdges };
   } finally {
-    isBuildingView.value = false;
+    if (gen === buildGeneration) {
+      isBuildingView.value = false;
+    }
   }
 };
 
